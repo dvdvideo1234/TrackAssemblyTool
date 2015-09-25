@@ -48,8 +48,9 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
-local gsUndoPrefN = string.sub(asmlib.GetOpVar("INITNAME_NU"),1,1)
-                  ..string.sub(asmlib.GetOpVar("INITNAME_NL"),2,string.len(asmlib.GetOpVar("INITNAME_NL")))..": "
+local gsUndoPrefN = string.len(asmlib.GetOpVar("INITNAME_NL"))
+      gsUndoPrefN = string.sub(asmlib.GetOpVar("INITNAME_NU"),1,1)
+                  ..string.sub(asmlib.GetOpVar("INITNAME_NL"),2,gsUndoPrefN)..": "
 
 --- Render Base Colours
 local DDyes = asmlib.MakeContainer("Colours")

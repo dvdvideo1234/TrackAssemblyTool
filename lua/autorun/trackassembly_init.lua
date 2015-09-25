@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION",5)
+asmlib.SetOpVar("TOOL_VERSION",6)
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL").."/")
 asmlib.SetOpVar("DIRPATH_EXP","export/")
 asmlib.SetOpVar("DIRPATH_DSV","dsvbase/")
@@ -36,7 +36,6 @@ end
 asmlib.SetOpVar("MODE_DATABASE",asmlib.GetCvar("modedb","STR"))
 
 ------ GLOBAL VARIABLES ------
-local gsVersionST = "Ver.4"
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
