@@ -1271,4 +1271,4 @@ end
 -------- CACHE PANEL STUFF ---------
 asmlib.CacheQueryPanel()
 asmlib.CacheQueryProperty()
-asmlib.PrintInstance(gsToolNameU.." Loaded Rev.2")
+asmlib.PrintInstance(gsToolNameU.." Loaded Rev.3")

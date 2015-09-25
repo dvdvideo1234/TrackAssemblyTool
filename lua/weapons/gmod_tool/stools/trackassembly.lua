@@ -48,6 +48,8 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
+local gsUndoPrefN = string.sub(asmlib.GetOpVar("INITNAME_NU"),1,1)
+                  ..string.sub(asmlib.GetOpVar("INITNAME_NL"),2,string.len(asmlib.GetOpVar("INITNAME_NL")))..": "
 
 --- Render Base Colours
 local DDyes = asmlib.MakeContainer("Colours")
@@ -297,12 +299,12 @@ function TOOL:LeftClick(Trace)
           .."\n   hdModel: "..fnmodel)) then return false end
         ePiece:SetAngles(stSpawn.SAng)
       end
-      undo.Create("Track: "..fnmodel.." ( World spawn )")
+      undo.Create(gsUndoPrefN..fnmodel.." ( World spawn )")
       ePiece:Anchor(nil,weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
       undo.AddEntity(ePiece)
       undo.SetPlayer(ply)
-      undo.SetCustomUndoText("Track: "..fnmodel.." ( World spawn )")
+      undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( World spawn )")
       undo.Finish()
       return true
     end
@@ -353,7 +355,7 @@ function TOOL:LeftClick(Trace)
     local vTemp = Vector()
     local vLook = Vector()
     local ePieceN, ePieceO
-    undo.Create("Track: "..fnmodel.." ( Stack #"..tostring(iNdex).." )")
+    undo.Create(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
     ePieceO = trEnt
     while(iNdex > 0) do
       if(iNdex ~= count) then
@@ -372,7 +374,7 @@ function TOOL:LeftClick(Trace)
           .."\n   trModel: "..asmlib.GetModelFileName(trModel)
           .."\n   hdModel: "..fnmodel)) then
           undo.SetPlayer(ply)
-          undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+          undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
           undo.Finish()
           return true
         end
@@ -403,7 +405,7 @@ function TOOL:LeftClick(Trace)
           asmlib.PrintNotify(ply,"Cannot obtain spawn data!","ERROR")
           asmlib.EmitSoundPly(ply)
           undo.SetPlayer(ply)
-          undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+          undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
           undo.Finish()
           return asmlib.StatusLog(true,"Additional Error INFO"
           .."\n   Event  : Stacking has invalid user data"
@@ -424,7 +426,7 @@ function TOOL:LeftClick(Trace)
         asmlib.PrintNotify(ply,"Spawn attempts ran off!","ERROR")
         asmlib.EmitSoundPly(ply)
         undo.SetPlayer(ply)
-        undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+        undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
         undo.Finish()
         return asmlib.StatusLog(true,"Additional Error INFO"
         .."\n   Event  : Stacking failed to allocate memory for a piece"
@@ -439,7 +441,7 @@ function TOOL:LeftClick(Trace)
     end
     asmlib.EmitSoundPly(ply)
     undo.SetPlayer(ply)
-    undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+    undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
     undo.Finish()
     return true
   else
@@ -452,12 +454,12 @@ function TOOL:LeftClick(Trace)
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
-      undo.Create("Track: "..fnmodel.." ( Snap prop )")
+      undo.Create(gsUndoPrefN..fnmodel.." ( Snap prop )")
       ePiece:Anchor(trEnt,weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
       undo.AddEntity(ePiece)
       undo.SetPlayer(ply)
-      undo.SetCustomUndoText("Track: "..fnmodel.." ( Snap prop )")
+      undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Snap prop )")
       undo.Finish()
       return true
     end
