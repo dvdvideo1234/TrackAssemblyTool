@@ -22,6 +22,18 @@ asmlib.SetOpVar("MAX_LINEAR",10000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetLogControl(10000,"")
 
+------ CONFIGURE CVARS -----
+asmlib.MakeCvar("maxactrad","150" , {1,500}, "Maximum active radius to search for a point ID")
+asmlib.MakeCvar("maxstcnt" ,"200" , {1,200}, "Maximum pieces to spawn in stack mode")
+asmlib.MakeCvar("modedb"   ,"SQL" , nil    , "Database operating mode")
+if(SERVER) then
+  asmlib.MakeCvar("bnderrmod","1" , {0,4}  , "Unreasonable position error handling mode")
+  asmlib.MakeCvar("maxfruse" ,"50", {1,100}, "Maximum frequent pieces to be listed")
+end
+
+------ CONFIGURE DB MODE -----
+asmlib.SetOpVar("MODE_DATABASE",asmlib.GetCvar("modedb","STR"))
+
 ------ GLOBAL VARIABLES ------
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
@@ -30,16 +42,7 @@ local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsInstPrefx = asmlib.GetInstPref()
 local gsPathBAS   = asmlib.GetOpVar("DIRPATH_BAS")
 local gsPathDSV   = asmlib.GetOpVar("DIRPATH_DSV")
-local gsFullDSV   = gsPathBAS  ..gsPathDSV..
-                    gsInstPrefx..gsToolPrefU
-
------- CONFIGURE CVARS -----
-asmlib.MakeCvar("maxactrad","150" , {1,500}, "Maximum active radius to search for a point ID")
-asmlib.MakeCvar("maxstcnt" ,"200" , {1,200}, "Maximum pieces to spawn in stack mode")
-if(SERVER) then
-  asmlib.MakeCvar("bnderrmod","1" , {0,4}  , "Unreasonable position error handling mode")
-  asmlib.MakeCvar("maxfruse" ,"50", {1,100}, "Maximum frequent pieces to be listed")
-end
+local gsFullDSV   = gsPathBAS..gsPathDSV..gsInstPrefx..gsToolPrefU
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -74,7 +77,7 @@ if(CLIENT) then
     function(oPly,oCom,oArgs)
       local Frequent = asmlib.GetFrequentModels(oArgs[1])
       if(not Frequent) then
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models")
+        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
       end
       local pnFrame = vgui.Create("DFrame")
       local pnButton = vgui.Create("DButton", pnFrame)
@@ -144,17 +147,17 @@ if(CLIENT) then
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
         asmlib.LogInstance("OPEN_FRAME: Button "..pnButton:GetText().." clicked")
-        asmlib.SetLogControl(asmlib.GetCvar("logsmax", "I"),
-                             asmlib.GetCvar("logfile", "S"))
-        local ExportDB     = asmlib.GetCvar("exportdb","I")
+        asmlib.SetLogControl(asmlib.GetCvar("logsmax", "INT"),
+                             asmlib.GetCvar("logfile", "STR"))
+        local ExportDB     = asmlib.GetCvar("exportdb","INT")
         if(ExportDB ~= 0) then
           asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
-          asmlib.ExportIntoIns("PIECES")
-          asmlib.ExportIntoIns("ADDITIONS")
-          asmlib.ExportIntoIns("PHYSPROPERTIES")
-          asmlib.ExportIntoDSV("PIECES","\t")
-          asmlib.ExportIntoDSV("ADDITIONS","\t")
-          asmlib.ExportIntoDSV("PHYSPROPERTIES","\t")
+          asmlib.ExportIntoFile("PIECES",",","INS")
+          asmlib.ExportIntoFile("ADDITIONS",",","INS")
+          asmlib.ExportIntoFile("PHYSPROPERTIES",",","INS")
+          asmlib.ExportIntoFile("PIECES","\t","DSV")
+          asmlib.ExportIntoFile("ADDITIONS","\t","DSV")
+          asmlib.ExportIntoFile("PHYSPROPERTIES","\t","DSV")
         end
       end
       ------------ ListView --------------
@@ -172,9 +175,7 @@ if(CLIENT) then
         local uiMod = Frequent[nRow].Table[3]
         pnModelPanel:SetModel(uiMod)
         local uiRec = asmlib.CacheQueryPiece(uiMod)
-        if(not uiRec) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve model "..uiMod)
-        end
+        if(not uiRec) then return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve model "..uiMod) end
         -- OBBCenter ModelPanel Configuration --
         local uiEnt = pnModelPanel.Entity
         local uiCen = asmlib.GetCenterPoint(uiRec,"P")
@@ -241,7 +242,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Index = {{1},{2}},
   [1] = {"TYPE" , "TEXT"   ,  nil , "QMK"},
   [2] = {"SUBID", "INTEGER", "FLR",  nil },
-  [3] = {"NAME" , "TEXT"   , "FLR",  nil }
+  [3] = {"NAME" , "TEXT"   ,  nil , "QMK"}
 },true,true)
 
 if(file.Exists(gsFullDSV.."PIECES.txt", "DATA")) then
@@ -1119,6 +1120,27 @@ else
   asmlib.InsertRecord({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 1, "", "-0.014,0.13,96.075", "@-90,0,180"})
   asmlib.InsertRecord({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 2, "", "0,-95.9,0.054", "0,-90,90"})
   asmlib.InsertRecord({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 3, "", "0,96,0.083", "0,90,90"})
+  asmlib.SetDefaultType("Mister Train")
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 1, "", "16,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 2, "", "-16,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_64.mdl", "#", "#", 1, "", "32,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_64.mdl", "#", "#", 2, "", "-32,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128.mdl", "#", "#", 1, "", "64,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128.mdl", "#", "#", 2, "", "-64,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_256.mdl", "#", "#", 1, "", "128,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_256.mdl", "#", "#", 2, "", "-128,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_512.mdl", "#", "#", 1, "", "256,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_512.mdl", "#", "#", 2, "", "-256,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_1024.mdl", "#", "#", 1, "", "512,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_1024.mdl", "#", "#", 2, "", "-512,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_2048.mdl", "#", "#", 1, "", "1024,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_2048.mdl", "#", "#", 2, "", "-1024,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_4096.mdl", "#", "#", 1, "", "2048,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_4096.mdl", "#", "#", 2, "", "-2048,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 1, "", "64,0,0.016", ""})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 2, "", "0,64,0.016", "0,90,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 3, "", "-64,0,0.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 4, "", "0,-64,0.016", "0,-90,0"})
 end
 
 if(file.Exists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
@@ -1249,4 +1271,4 @@ end
 -------- CACHE PANEL STUFF ---------
 asmlib.CacheQueryPanel()
 asmlib.CacheQueryProperty()
-asmlib.PrintInstance(gsToolNameU.." Loaded Rev.1")
+asmlib.PrintInstance(gsToolNameU.." Loaded Rev.2")

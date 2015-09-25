@@ -122,7 +122,7 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetCount()
-  return math.Clamp(self:GetClientNumber("count"),1,asmlib.GetCvar("maxstcnt", "I"))
+  return math.Clamp(self:GetClientNumber("count"),1,asmlib.GetCvar("maxstcnt", "INT"))
 end
 
 function TOOL:GetMass()
@@ -195,7 +195,7 @@ function TOOL:GetPointID()
 end
 
 function TOOL:GetActiveRadius()
-  return math.Clamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetCvar("maxactrad", "F"))
+  return math.Clamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetCvar("maxactrad", "FLT"))
 end
 
 function TOOL:GetYawSnap()
@@ -224,7 +224,7 @@ function TOOL:GetPhysMeterial()
 end
 
 function TOOL:GetBoundErrorMode()
-  return asmlib.GetCvar("bnderrmod" ,"I")
+  return asmlib.GetCvar("bnderrmod" ,"INT")
 end
 
 function TOOL:GetSurfaceSnap()
@@ -237,6 +237,7 @@ function TOOL:LeftClick(Trace)
   if(not Trace.Hit) then return false end
   local trEnt     = Trace.Entity
   local model     = self:GetModel()
+  local fnmodel   = asmlib.GetModelFileName(model)
   local bgskids   = self:GetBodyGroupSkin()
   local physmater = self:GetPhysMeterial()
   local freeze    = self:GetFreeze()
@@ -259,8 +260,7 @@ function TOOL:LeftClick(Trace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   local ply       = self:GetOwner()
   asmlib.LoadPlyKey(ply)
-  if(Trace.HitWorld) then
-  -- Spawn it on the map ...
+  if(Trace.HitWorld) then -- Spawn it on the map ...
     local ePiece = asmlib.MakePiece(model,Trace.HitPos,
                      ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
@@ -281,7 +281,7 @@ function TOOL:LeftClick(Trace)
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
-          .."\n   hdModel: "..asmlib.GetModelFileName(model))) then return false end
+          .."\n   hdModel: "..fnmodel)) then return false end
       else -- Spawn on Active point
         local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -294,24 +294,24 @@ function TOOL:LeftClick(Trace)
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
-          .."\n   hdModel: "..asmlib.GetModelFileName(model))) then return false end
+          .."\n   hdModel: "..fnmodel)) then return false end
         ePiece:SetAngles(stSpawn.SAng)
       end
-      undo.Create("Last Track Assembly")
+      undo.Create("Track: "..fnmodel.." ( World spawn )")
       ePiece:Anchor(nil,weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
       undo.AddEntity(ePiece)
       undo.SetPlayer(ply)
-      undo.SetCustomUndoText("Undone Assembly ( World Spawn )")
+      undo.SetCustomUndoText("Track: "..fnmodel.." ( World spawn )")
       undo.Finish()
       return true
     end
     return false
   end
   -- Hit Prop
-  if(not util.IsValidModel(model)) then return false end
   if(not trEnt) then return false end
   if(not trEnt:IsValid()) then return false end
+  if(not util.IsValidModel(model)) then return false end
   if(not asmlib.IsPhysTrace(Trace)) then return false end
   if(asmlib.IsOther(trEnt)) then return false end
 
@@ -321,7 +321,9 @@ function TOOL:LeftClick(Trace)
   local trRec   = asmlib.CacheQueryPiece(trModel)
   local hdRec   = asmlib.CacheQueryPiece(model)
 
-  if(asmlib.LoadPlyKey(ply,"DUCK") and trRec) then
+  if(not trRec) then return false end
+
+  if(asmlib.LoadPlyKey(ply,"DUCK")) then
     -- IN_Duck: Use the VALID Trace.Entity as a piece
     asmlib.PrintNotify(ply,"Model: "..asmlib.GetModelFileName(trModel)
                                          .." selected !","GENERIC")
@@ -331,138 +333,116 @@ function TOOL:LeftClick(Trace)
     return true
   end
 
-  if(hdRec and
-     trRec and
-     count > 1 and
-     pointid ~= pnextid and
-     asmlib.LoadPlyKey(ply,"SPEED")
-  ) then -- IN_Speed: Switch the tool mode ( Stacking )
-    local stSpawn = asmlib.GetEntitySpawn(trEnt,Trace.HitPos,model,pointid,
-                      actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-    if(not stSpawn) then return false end
-    if(stSpawn.HRec.Kept > 1) then
-      local iNdex = count
-      local nTrys = staatts
-      local vTemp = Vector()
-      local vLook = Vector()
-      local ePieceN, ePieceO
-      undo.Create("Last Track Assembly")
-      ePieceO = trEnt
-      while(iNdex > 0) do
-        if(iNdex ~= count) then
-          ePieceN = ePieceO:Duplicate()
-        else -- Do not Clone the new from the old as the trace is spawned via Q menu
-          ePieceN = asmlib.MakePiece(model,ePieceO:GetPos(),
-                      ANG_ZERO,mass,bgskids,DDyes:Select("w"))
-        end
-        if(ePieceN) then
-          if(ePieceN:SetMapBoundPos(stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
-            .."\n   Event  : Stacking piece position out of map bounds"
-            .."\n   Iterats: "..tostring(count-iNdex)
-            .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-            .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-            .."\n   Player : "..ply:GetName()
-            .."\n   trModel: "..asmlib.GetModelFileName(trModel)
-            .."\n   hdModel: "..asmlib.GetModelFileName(model))) then
-            undo.SetPlayer(ply)
-            undo.SetCustomUndoText("Undone Assembly ( Stack #"..tostring(count-iNdex).." )")
-            undo.Finish()
-            return true
-          end
-          ePieceN:SetAngles(stSpawn.SAng)
-          ePieceN:Anchor(ePieceO,weld,nocolld,freeze,wgnd,engravity,physmater)
-          if(iNdex == count) then
-            if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
-              ePieceN:Remove()
-              asmlib.PrintNotify(ply,"Cannot find PointID data !","ERROR")
-              return asmlib.StatusLog(false,"Additional Error INFO"
-              .."\n   Event  : Stacking non-existent PointID on client prop"
-              .."\n   Iterats: "..tostring(count-iNdex)
-              .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-              .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-              .."\n   Player : "..ply:GetName()
-              .."\n   trModel: "..asmlib.GetModelFileName(trModel)
-              .."\n   hdModel: "..asmlib.GetModelFileName(model))
-            end
-            asmlib.SetVector(vLook,stSpawn.HRec.Offs[pnextid].P)
-          end
-          vTemp:Set(vLook)
-          vTemp:Rotate(stSpawn.SAng)
-          vTemp:Add(ePieceN:GetPos())
-          undo.AddEntity(ePieceN)
-          stSpawn = asmlib.GetEntitySpawn(ePieceN,vTemp,model,pointid,
-                      actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-          if(not stSpawn) then
-            asmlib.PrintNotify(ply,"Cannot obtain spawn data!","ERROR")
-            asmlib.EmitSoundPly(ply)
-            undo.SetPlayer(ply)
-            undo.SetCustomUndoText("Undone Assembly ( Stack #"..tostring(count-iNdex).." )")
-            undo.Finish()
-            return asmlib.StatusLog(true,"Additional Error INFO"
-            .."\n   Event  : Stacking has invalid user data"
-            .."\n   Iterats: "..tostring(count-iNdex)
-            .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-            .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-            .."\n   Player : "..ply:GetName()
-            .."\n   trModel: "..asmlib.GetModelFileName(trModel)
-            .."\n   hdModel: "..asmlib.GetModelFileName(model))
-          end
-          ePieceO = ePieceN
-          iNdex = iNdex - 1
-          nTrys = staatts
-        else
-          nTrys = nTrys - 1
-        end
-        if(nTrys <= 0) then
-          asmlib.PrintNotify(ply,"Spawn attempts ran off!","ERROR")
-          asmlib.EmitSoundPly(ply)
-          undo.SetPlayer(ply)
-          undo.SetCustomUndoText("Undone Assembly ( Stack #"..tostring(count-iNdex).." )")
-          undo.Finish()
-          return asmlib.StatusLog(true,"Additional Error INFO"
-          .."\n   Event  : Stacking failed to allocate memory for a piece"
+  if(not hdRec) then return false end
+
+  local stSpawn = asmlib.GetEntitySpawn(trEnt,Trace.HitPos,model,pointid,
+                           actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+  if(not stSpawn) then
+    local IDs = asmlib.StringExplode(bgskids,"/")
+    asmlib.Print(IDs,"BodygrpSkin")
+    asmlib.AttachBodyGroups(trEnt,IDs[1] or "")
+    trEnt:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
+    return true
+  end
+
+  if(asmlib.LoadPlyKey(ply,"SPEED")) then -- IN_Speed: Switch the tool mode ( Stacking )
+    if(count <= 0) then return asmLib.StatusLog(false,"Stack count #"..count.." not properly picked") end
+    if(pointid == pnextid) then return asmLib.StatusLog(false,"Point ID #"..pointid.." overlap") end
+    local iNdex = count
+    local nTrys = staatts
+    local vTemp = Vector()
+    local vLook = Vector()
+    local ePieceN, ePieceO
+    undo.Create("Track: "..fnmodel.." ( Stack #"..tostring(iNdex).." )")
+    ePieceO = trEnt
+    while(iNdex > 0) do
+      if(iNdex ~= count) then
+        ePieceN = ePieceO:Duplicate()
+      else -- Do not Clone the new from the old as the trace is spawned via the Q menu
+        ePieceN = asmlib.MakePiece(model,ePieceO:GetPos(),
+                    ANG_ZERO,mass,bgskids,DDyes:Select("w"))
+      end
+      if(ePieceN) then
+        if(ePieceN:SetMapBoundPos(stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+          .."\n   Event  : Stacking piece position out of map bounds"
           .."\n   Iterats: "..tostring(count-iNdex)
           .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
           .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
           .."\n   Player : "..ply:GetName()
           .."\n   trModel: "..asmlib.GetModelFileName(trModel)
-          .."\n   hdModel: "..asmlib.GetModelFileName(model))
+          .."\n   hdModel: "..fnmodel)) then
+          undo.SetPlayer(ply)
+          undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+          undo.Finish()
+          return true
         end
-      end
-      asmlib.EmitSoundPly(ply)
-      undo.SetPlayer(ply)
-      undo.SetCustomUndoText("Undone Assembly ( Stack #"..tostring(count-iNdex).." )")
-      undo.Finish()
-      return true
-    elseif(stSpawn.HRec.Kept == 1) then
-      asmlib.LogInstance("Model "..model.." is non-stackable, spawning instead !!")
-      ePiece = asmlib.MakePiece(model,Trace.HitPos,
-                 ANG_ZERO,mass,bgskids,DDyes:Select("w"))
-      if(ePiece) then
-        if(ePiece:SetMapBoundPos(stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
-          .."\n   Event  : Stacking when non available ( spawning instead )"
+        ePieceN:SetAngles(stSpawn.SAng)
+        ePieceN:Anchor(ePieceO,weld,nocolld,freeze,wgnd,engravity,physmater)
+        if(iNdex == count) then
+          if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
+            ePieceN:Remove()
+            asmlib.PrintNotify(ply,"Cannot find PointID data !","ERROR")
+            return asmlib.StatusLog(false,"Additional Error INFO"
+            .."\n   Event  : Stacking non-existent PointID on client prop"
+            .."\n   Iterats: "..tostring(count-iNdex)
+            .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
+            .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
+            .."\n   Player : "..ply:GetName()
+            .."\n   trModel: "..asmlib.GetModelFileName(trModel)
+            .."\n   hdModel: "..fnmodel)
+          end
+          asmlib.SetVector(vLook,stSpawn.HRec.Offs[pnextid].P)
+        end
+        vTemp:Set(vLook)
+        vTemp:Rotate(stSpawn.SAng)
+        vTemp:Add(ePieceN:GetPos())
+        undo.AddEntity(ePieceN)
+        stSpawn = asmlib.GetEntitySpawn(ePieceN,vTemp,model,pointid,
+                    actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+        if(not stSpawn) then
+          asmlib.PrintNotify(ply,"Cannot obtain spawn data!","ERROR")
+          asmlib.EmitSoundPly(ply)
+          undo.SetPlayer(ply)
+          undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+          undo.Finish()
+          return asmlib.StatusLog(true,"Additional Error INFO"
+          .."\n   Event  : Stacking has invalid user data"
+          .."\n   Iterats: "..tostring(count-iNdex)
+          .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
+          .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
           .."\n   Player : "..ply:GetName()
           .."\n   trModel: "..asmlib.GetModelFileName(trModel)
-          .."\n   hdModel: "..asmlib.GetModelFileName(model))) then return false end
-        ePiece:SetAngles(stSpawn.SAng)
-        undo.Create("Last Track Assembly")
-        ePiece:Anchor(trEnt,weld,nocolld,freeze,wgnd,engravity,physmater)
-        asmlib.EmitSoundPly(ply)
-        undo.AddEntity(ePiece)
-        undo.SetPlayer(ply)
-        undo.SetCustomUndoText("Undone Assembly ( Spawn Instead )")
-        undo.Finish()
-        return true
+          .."\n   hdModel: "..fnmodel)
+        end
+        ePieceO = ePieceN
+        iNdex = iNdex - 1
+        nTrys = staatts
+      else
+        nTrys = nTrys - 1
       end
+      if(nTrys <= 0) then
+        asmlib.PrintNotify(ply,"Spawn attempts ran off!","ERROR")
+        asmlib.EmitSoundPly(ply)
+        undo.SetPlayer(ply)
+        undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+        undo.Finish()
+        return asmlib.StatusLog(true,"Additional Error INFO"
+        .."\n   Event  : Stacking failed to allocate memory for a piece"
+        .."\n   Iterats: "..tostring(count-iNdex)
+        .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
+        .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
+        .."\n   Player : "..ply:GetName()
+        .."\n   trModel: "..asmlib.GetModelFileName(trModel)
+        .."\n   hdModel: "..fnmodel)
+      end
+      if(hdRec.Kept == 1) then break end
     end
-    return false
-  end
-
-  if(not(trRec and hdRec)) then return false end
-
-  local stSpawn = asmlib.GetEntitySpawn(trEnt,Trace.HitPos,model,pointid,
-                    actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-  if(stSpawn) then
+    asmlib.EmitSoundPly(ply)
+    undo.SetPlayer(ply)
+    undo.SetCustomUndoText("Track: "..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+    undo.Finish()
+    return true
+  else
     local ePiece = asmlib.MakePiece(model,Trace.HitPos,
                      ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
@@ -470,25 +450,19 @@ function TOOL:LeftClick(Trace)
         .."\n   Event  : Spawn one piece relative to another"
         .."\n   Player : "..ply:GetName()
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)
-        .."\n   hdModel: "..asmlib.GetModelFileName(model))) then return false end
+        .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
-      undo.Create("Last Track Assembly")
+      undo.Create("Track: "..fnmodel.." ( Snap prop )")
       ePiece:Anchor(trEnt,weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
       undo.AddEntity(ePiece)
       undo.SetPlayer(ply)
-      undo.SetCustomUndoText("Undone Assembly ( Prop Relative )")
+      undo.SetCustomUndoText("Track: "..fnmodel.." ( Snap prop )")
       undo.Finish()
       return true
     end
-  elseif(trEnt and trEnt:IsValid()) then
-    local IDs = asmlib.StringExplode(bgskids,"/")
-    asmlib.Print(IDs,"SetDirectlyID")
-    asmlib.AttachBodyGroups(trEnt,IDs[1] or "")
-    trEnt:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
-    return true
+    return false
   end
-  return false
 end
 
 function TOOL:RightClick(Trace)
@@ -503,7 +477,7 @@ function TOOL:RightClick(Trace)
   local pointbu = pointid
   asmlib.LoadPlyKey(ply)
   if(Trace.HitWorld and asmlib.LoadPlyKey(ply,"USE")) then
-    ply:ConCommand(gsToolPrefL.."openframe "..asmlib.GetCvar("maxfruse" ,"I").."\n")
+    ply:ConCommand(gsToolPrefL.."openframe "..asmlib.GetCvar("maxfruse" ,"INT").."\n")
     return true
   end
   if(asmlib.LoadPlyKey(ply,"DUCK")) then -- Use
@@ -535,12 +509,13 @@ function TOOL:Reload(Trace)
     asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile())
     if(self:GetExportDB() ~= 0) then
       asmlib.LogInstance("TOOL:Reload(Trace) > Exporting DB")
-      asmlib.ExportIntoIns("PIECES")
-      asmlib.ExportIntoIns("ADDITIONS")
-      asmlib.ExportIntoIns("PHYSPROPERTIES")
-      asmlib.ExportIntoDSV("PIECES","\t")
-      asmlib.ExportIntoDSV("ADDITIONS","\t")
-      asmlib.ExportIntoDSV("PHYSPROPERTIES","\t")
+      asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
+      asmlib.ExportIntoFile("PIECES",",","INS")
+      asmlib.ExportIntoFile("ADDITIONS",",","INS")
+      asmlib.ExportIntoFile("PHYSPROPERTIES",",","INS")
+      asmlib.ExportIntoFile("PIECES","\t","DSV")
+      asmlib.ExportIntoFile("ADDITIONS","\t","DSV")
+      asmlib.ExportIntoFile("PHYSPROPERTIES","\t","DSV")
       return asmlib.StatusLog(true,"Exported the server DB")
     end
   end
@@ -774,9 +749,10 @@ function TOOL:DrawToolScreen(w, h)
       trModel = "[X]"..asmlib.GetModelFileName(trModel)
     end
   end
+  model  = asmlib.GetModelFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
-  maxrad = asmlib.GetCvar("maxactrad", "F")
-  goToolScr:DrawText("HM: " ..asmlib.GetModelFileName(model),"m")
+  maxrad = asmlib.GetCvar("maxactrad", "FLT")
+  goToolScr:DrawText("HM: " ..(model      or NoAV),"m")
   goToolScr:DrawText("TM: " ..(trModel    or NoAV),"y")
   goToolScr:DrawText("ID: ["..(trMaxCN    or NoID)
                     .."] "  ..(trOID      or NoID)
@@ -788,7 +764,7 @@ function TOOL:DrawToolScreen(w, h)
   local txX, txY, txW, txH, txsX, txsY = goToolScr:GetTextState()
   local nRad = math.Clamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = math.Clamp(h - nRad - (txsY / 3),0,h)
-  local xyPos = { x = cPos, y = cPos}
+  local xyPos = {x = cPos, y = cPos}
   if(trRLen) then
     goToolScr:DrawCircle(xyPos, nRad * math.Clamp(trRLen/maxrad,0,1),"y")
   end
@@ -902,18 +878,18 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetValue(asmlib.StringDefault(
-          asmlib.GetCvar("physmater","S"),"<Select Surface Material NAME>"))
+          asmlib.GetCvar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local defTable = asmlib.GetOpVar("TABLEDEF_PHYSPROPERTIES")
   local Property = asmlib.CacheQueryProperty()
   if(not Property) then
     return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty")
   end
+  asmlib.Print(Property,"Property")
   local CntTyp = 1
-  local qNames
+  local qNames, Typ
   while(Property[CntTyp]) do
-    local Val = Property[CntTyp]
-    local Typ = Val[defTable[1][1]]
+    Typ = Property[CntTyp]
     pComboPhysType:AddChoice(Typ)
     pComboPhysType.OnSelect = function(pnSelf, nInd, sVal)
       qNames = asmlib.CacheQueryProperty(sVal)
@@ -922,8 +898,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetValue("<Select Surface Material NAME>")
         local CntNam = 1
         while(qNames[CntNam]) do
-          local Val = qNames[CntNam]
-          local Nam = Val[defTable[3][1]]
+          local Nam = qNames[CntNam]
           pComboPhysName:AddChoice(Nam)
           pComboPhysName.OnSelect = function(pnSelf, nInd, sVal)
             RunConsoleCommand(gsToolPrefL.."physmater", sVal)
@@ -942,7 +917,7 @@ function TOOL.BuildCPanel(CPanel)
   local pText = vgui.Create("DTextEntry")
         pText:SetPos(2, CurY)
         pText:SetTall(18)
-        pText:SetText(asmlib.StringDefault(asmlib.GetCvar("bgskids", "S"),
+        pText:SetText(asmlib.StringDefault(asmlib.GetCvar("bgskids", "STR"),
                  "Comma delimited Body/Skin IDs > ENTER ( TAB to Auto-fill from Trace )"))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
@@ -970,14 +945,14 @@ function TOOL.BuildCPanel(CPanel)
             Label   = "Active radius: ",
             Type    = "Float",
             Min     = 1,
-            Max     = asmlib.GetCvar("maxactrad", "F"),
+            Max     = asmlib.GetCvar("maxactrad", "FLT"),
             Command = gsToolPrefL.."activrad"})
 
   CPanel:AddControl("Slider", {
             Label   = "Pieces count: ",
             Type    = "Integer",
             Min     = 1,
-            Max     = asmlib.GetCvar("maxstcnt", "I"),
+            Max     = asmlib.GetCvar("maxstcnt", "INT"),
             Command = gsToolPrefL.."count"})
 
   CPanel:AddControl("Slider", {
