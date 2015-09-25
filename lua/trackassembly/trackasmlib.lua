@@ -137,11 +137,11 @@ end
 function PrintInstance(anyStuff)
   local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
   if(SERVER) then
-    print("SERVER > ["..sModeDB.."] "..tostring(anyStuff))
+    print("SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   elseif(CLIENT) then
-    print("CLIENT > ["..sModeDB.."] "..tostring(anyStuff))
+    print("CLIENT > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   else
-    print("NOINST > ["..sModeDB.."] "..tostring(anyStuff))
+    print("NOINST > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   end
 end
 

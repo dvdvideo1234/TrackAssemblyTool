@@ -12,6 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
+asmlib.SetOpVar("TOOL_VERSION",5)
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL").."/")
 asmlib.SetOpVar("DIRPATH_EXP","export/")
 asmlib.SetOpVar("DIRPATH_DSV","dsvbase/")
@@ -35,6 +36,7 @@ end
 asmlib.SetOpVar("MODE_DATABASE",asmlib.GetCvar("modedb","STR"))
 
 ------ GLOBAL VARIABLES ------
+local gsVersionST = "Ver.4"
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
@@ -104,7 +106,7 @@ if(CLIENT) then
       local scrW = surface.ScreenWidth()
       local scrH = surface.ScreenHeight()
       ------------ Frame --------------
-      pnFrame:SetTitle("Routine pieces by "..oPly:GetName())
+      pnFrame:SetTitle("Routine pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
       pnFrame:SetVisible(false)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
@@ -1271,4 +1273,4 @@ end
 -------- CACHE PANEL STUFF ---------
 asmlib.CacheQueryPanel()
 asmlib.CacheQueryProperty()
-asmlib.PrintInstance(gsToolNameU.." Loaded Rev.3")
+asmlib.PrintInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"))
