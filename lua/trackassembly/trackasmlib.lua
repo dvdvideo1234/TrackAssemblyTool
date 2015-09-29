@@ -389,7 +389,7 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
   if(nSnap and (nSnap ~= 0)) then -- Snap to the surface
     local Left = -oPly:GetAimVector():Angle():Right()
     local Trace = oTrace
-    if(not Trace) then
+    if(not (Trace and Trace.Hit)) then
       Trace = util.TraceLine(util.GetPlayerTrace(oPly))
       if(not (Trace and Trace.Hit)) then return Ang end
     end
@@ -2269,8 +2269,8 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   LogInstance("AttachKillTimer(): Place["..tostring(Key).."] Marked !")
   LogInstance("AttachKillTimer(): TimID: <"..TimerID..">")
   if(defTable.Life <= 0) then return StatusLog(false,"AttachKillTimer(): Timer not enabled") end
-  if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer(): Timer exists") end
   if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer(): Place not found") end
+  if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer(): Timer exists") end
   timer.Create(TimerID, defTable.Life, 1, function()
     LogInstance("AttachKillTimer["..TimerID.."]("..defTable.Life.."): "
                    ..tostring(anyMessage).." > Dead")

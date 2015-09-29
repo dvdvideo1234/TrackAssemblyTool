@@ -3,7 +3,7 @@ local asmlib = trackasmlib
 --------- Pieces ----------
 
 __e2setcost(100)
-e2function entity entity:trackasmlibGetEntitySpawn(vector trHitPos  , string hdModel  , number hdPointID,
+e2function entity entity:trackasmlibSpawnEntity(vector trHitPos  , string hdModel  , number hdPointID,
                                           number nActRadius, number enFlatten, number enIgnTyp ,
                                           vector ucsPos    , vector ucsAng)
   if(not IsValid(this)) then return nil end
@@ -16,7 +16,7 @@ e2function entity entity:trackasmlibGetEntitySpawn(vector trHitPos  , string hdM
 end
 
 __e2setcost(80)
-e2function entity trackasmlibGetNormalSpawn(vector ucsPos, angle ucsAng, string hdModel, number hdPointID, ucsOffPos,ucsOffAng)
+e2function entity trackasmlibSpawnNormal(vector ucsPos, angle ucsAng, string hdModel, number hdPointID, ucsOffPos,ucsOffAng)
 	if not PropCore.ValidAction(self, nil, "trackassembly_spawn_normal") then return nil end
   local stSpawn = GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
                         ucsOffPos[1],ucsOffPos[2],ucsOffPos[3],ucsOffAng[1],ucsOffAng[2],ucsOffAng[3])
@@ -39,7 +39,7 @@ e2function number entity:trackasmlibExists()
 end
 
 __e2setcost(120)
-e2function number trackasmlibGetOffset(string sModel, number nOffset, string sPOA)
+e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA)
 	if not PropCore.ValidAction(self, nil, "trackassembly_piece_poa") then return nil end
   local stRecord = asmlib.CacheQueryPiece(sModel)
   if(not stRecord) then return nil end
@@ -71,7 +71,7 @@ e2function number trackasmlibGetOffset(string sModel, number nOffset, string sPO
 end
 
 __e2setcost(120)
-e2function number entity:trackasmlibGetOffset(number nOffset)
+e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
 	if not PropCore.ValidAction(self, this, "trackassembly_piece_poa") then return nil end
   local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
   if(not stRecord) then return nil end
