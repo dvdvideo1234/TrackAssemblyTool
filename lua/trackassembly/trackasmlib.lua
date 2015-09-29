@@ -203,7 +203,6 @@ function InitAssembly(sName)
   SetOpVar("HASH_PLAYER_KEYDOWN","PLAYER_KEYDOWN")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
-  SetOpVar("FILE_EXTENSION_MODEL",".mdl")
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
   SetOpVar("OPSYM_DISABLE","#")
@@ -2419,49 +2418,47 @@ function CacheQueryPanel()
   if(not defTable) then
     return StatusLog(false,"CacheQueryPanel: Missing(): Table definition")
   end
-  local namTable = defTable.Name
-  local CacheKey = GetOpVar("HASH_USER_PANEL")
-  local Cache = LibCache[namTable]
-  if(not IsExistent(Cache)) then
-    return StatusLog(nil,"CacheQueryPanel(): Cache not allocated for "..namTable)
+  local PanelKey = GetOpVar("HASH_USER_PANEL")
+  if(not IsExistent(LibCache[defTable.Name])) then
+    return StatusLog(nil,"CacheQueryPanel(): Cache not allocated for "..defTable.Name)
   end
-  local Panel = Cache[CacheKey]
+  local Cache = LibCache[defTable.Name]
+  local Panel = LibCache[PanelKey]
   if(IsExistent(Panel)) then
     LogInstance("CacheQueryPanel: From Pool")
     return Panel
   else
+    LibCache[PanelKey] = {}
+    Panel = LibCache[PanelKey]
     local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel(): "..SQLGetBuildErr()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel(): No data found >"..Q.."<") end
-      Cache[CacheKey] = qData
-      LogInstance("CacheQueryPanel: To Pool")
-      return qData
+      local iNdex = 1
+      while(qData[iNdex]) do
+        Panel[iNdex] = tData[iNdex]
+        iNdex = iNdex + 1
+      end
     elseif(sModeDB == "LUA") then
-      if(not Cache[CacheKey]) then Cache[CacheKey] = {} end
       local tData = {}
       local iNdex = 0
-      local extModel = GetOpVar("FILE_EXTENSION_MODEL")
       for sModel, tRecord in pairs(Cache) do
-        iNdex = string.len(sModel)
-        if(string.sub(sModel,iNdex-3,iNdex) == extModel) then
-          tData[sModel] = { [defTable[1][1]] = sModel, [defTable[2][1]] = tRecord.Type, [defTable[3][1]] = tRecord.Name }
-        end
+        tData[sModel] = { [defTable[1][1]] = sModel, [defTable[2][1]] = tRecord.Type, [defTable[3][1]] = tRecord.Name }
       end
       local tSorted = Sort(tData,nil,{defTable[1][1],defTable[2][1],defTable[3][1]})
       if(not tSorted) then return StatusLog(nil,"CacheQueryPanel(): Cannot sort cache data") end
       iNdex = 1
       while(tSorted[iNdex]) do
-        Cache[CacheKey][iNdex] = tData[tSorted[iNdex].Key]
+        Panel[iNdex] = tData[tSorted[iNdex].Key]
         iNdex = iNdex + 1
       end
-      LogInstance("CacheQueryPanel(): To Pool")
-      return Cache[CacheKey]
     else
       return StatusLog(nil,"CacheQueryPanel(): Wrong database mode >"..sModeDB.."<")
     end
+    LogInstance("CacheQueryPanel(): To Pool")
+    return Panel
   end
 end
 
@@ -2704,16 +2701,12 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       iCnt = iCnt + 1
     end
   elseif(sModeDB == "LUA") then
-    local extModel = GetOpVar("FILE_EXTENSION_MODEL")
     if(sTable == "PIECES") then   
       local tData = {}
       local iInd iNdex = 1,1
       for sModel, tRecord in pairs(Cache) do
-        iNdex = string.len(sModel)
-        if(string.sub(sModel,iNdex-3,iNdex) == extModel) then
-          sData = tRecord.Type..tRecord.Name..sModel
-          tData[sModel] = {[defTable[1][1]] = sData}
-        end
+        sData = tRecord.Type..tRecord.Name..sModel
+        tData[sModel] = {[defTable[1][1]] = sData}
       end
       local tSorted = Sort(tData,nil,{defTable[1][1]})
       if(not tSorted) then
@@ -2750,34 +2743,31 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     elseif(sTable == "ADDITIONS") then
       local iNdex, tData
       for sModel, tRecord in pairs(Cache) do
-        iNdex = string.len(sModel)
-        if(string.sub(sModel,iNdex-3,iNdex) == extModel) then
+        if(sMethod == "DSV") then
+          sData = namTable..sDelim..sModel..sDelim
+        elseif(sMethod == "INS") then          
+          sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
+        end
+        iNdex = 1
+        while(tRecord[iNdex]) do
+          tData = tRecord[iNdex]
+          sTemp = sData..MatchType(defTable,tData[defTable[2 ][1]],2 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[3 ][1]],3 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[4 ][1]],4 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[5 ][1]],5 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[6 ][1]],6 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[7 ][1]],7 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[8 ][1]],8 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[9 ][1]],9 ,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[10][1]],10,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[11][1]],11,true,"\"")
           if(sMethod == "DSV") then
-            sData = namTable..sDelim..sModel..sDelim
-          elseif(sMethod == "INS") then          
-            sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
+            sTemp = sTemp.."\n"
+          elseif(sMethod == "INS") then
+            sTemp = sTemp.."})\n"
           end
-          iNdex = 1
-          while(tRecord[iNdex]) do
-            tData = tRecord[iNdex]
-            sTemp = sData..MatchType(defTable,tData[defTable[2 ][1]],2 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[3 ][1]],3 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[4 ][1]],4 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[5 ][1]],5 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[6 ][1]],6 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[7 ][1]],7 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[8 ][1]],8 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[9 ][1]],9 ,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[10][1]],10,true,"\"")..sDelim..
-                           MatchType(defTable,tData[defTable[11][1]],11,true,"\"")
-            if(sMethod == "DSV") then
-              sTemp = sTemp.."\n"
-            elseif(sMethod == "INS") then
-              sTemp = sTemp.."})\n"
-            end
-            F:Write(sTemp)
-            iNdex = iNdex + 1
-          end
+          F:Write(sTemp)
+          iNdex = iNdex + 1
         end
       end
     elseif(sTable == "PHYSPROPERTIES") then
