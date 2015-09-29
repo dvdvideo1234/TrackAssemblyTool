@@ -182,7 +182,7 @@ e2function array trackasmlibGetAdditionsLine(string sModel, number nLine)
   local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not (stRecord and stRecord[nLine])) then return nil else stRecord = stRecord[nLine] end
   local arAddtitionsLine = {}
-  local defTable = asmlib.GetOpVar("TABLEDEF_ADDITIONS")
+  local defTable = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
   local cntField = 2
   while(defTable[cntField]) do
     arAddtitionsLine[cntField] = stRecord[defTable[cntField][1]]
@@ -199,7 +199,7 @@ e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
   if(not (stRecord and stRecord[nLine])) then return nil else stRecord = stRecord[nLine] end
   local arAddtitionsLine = {}
-  local defTable = asmlib.GetOpVar("TABLEDEF_ADDITIONS")
+  local defTable = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
   local cntField = 2
   while(defTable[cntField]) do
     arAddtitionsLine[cntField] = stRecord[defTable[cntField][1]]

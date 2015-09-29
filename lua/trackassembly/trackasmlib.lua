@@ -755,7 +755,7 @@ function GetFrequentModels(snCount)
   local Cnt = tonumber(snCount) or 0
   if(Cnt < 1) then return nil end
   local FreqUse  = GetOpVar("TABLE_FREQUENT_MODELS")
-  local defTable = GetOpVar("TABLEDEF_PIECES")
+  local defTable = GetOpVar("DEFTABLE_PIECES")
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
   local TimerID  = ""
@@ -2028,10 +2028,10 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   if(not (type(defTable) == "table")) then return StatusLog(false,"CreateTable(): Table definition missing for "..sTable) end
   defTable.Size = ArrayCount(defTable)
   if(defTable.Size <= 0) then return StatusLog(false,"CreateTable(): Record definition empty for "..sTable) end
-  local sModeDB  = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
   local sTable  = string.upper(sTable)
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
-  SetOpVar("TABLEDEF_"..sTable,defTable)
+  SetOpVar("DEFTABLE_"..sTable,defTable)
   local sDisable = GetOpVar("OPSYM_DISABLE")
   local namTable = defTable.Name
   local Cnt, defField = 1, nil
@@ -2113,7 +2113,7 @@ function InsertRecord(sTable,tData)
   if(not IsString(sTable)) then
     return StatusLog(false,"InsertRecord(): Missing: Table definition name "..tostring(sTable).." ("..type(sTable)..")")
   end
-  local defTable = GetOpVar("TABLEDEF_"..sTable)
+  local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"InsertRecord(): Missing: Table definition for "..sTable)
   end
@@ -2262,7 +2262,6 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return false end
   if(not defTable.Timer) then return false end
   local Life = defTable.Timer.Life or 0
-  local Kill = defTable.Timer.Kill and true or false
   if(Life <= 0) then return false end
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
@@ -2273,6 +2272,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   LogInstance("AttachKillTimer(): TimID: <"..TimerID..">")
   if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer(): Place not found") end
   if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer(): Timer exists") end
+  local Kill = defTable.Timer.Kill and true or false
   timer.Create(TimerID, Life 1, function()
     LogInstance("AttachKillTimer["..TimerID.."]("..Life.."): "
                    ..tostring(anyMessage).." > Dead")
@@ -2300,7 +2300,7 @@ function CacheQueryPiece(sModel)
   if(not IsString(sModel)) then return nil end
   if(sModel == "") then return nil end
   if(not util.IsValidModel(sModel)) then return nil end
-  local defTable = GetOpVar("TABLEDEF_PIECES")
+  local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then return StatusLog(nil,"CacheQueryPiece(): Missing: Table definition") end
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
@@ -2366,7 +2366,7 @@ function CacheQueryAdditions(sModel)
   if(sModel == "") then return nil end
   if(not util.IsValidModel(sModel)) then return nil end
   LogInstance("CacheQueryAdditions: "..sModel)
-  local defTable = GetOpVar("TABLEDEF_ADDITIONS")
+  local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then return StatusLog(nil,"CacheQueryAdditions(): Missing: Table definition") end
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
@@ -2415,7 +2415,7 @@ end
 
 --- Used to Populate the CPanel Tree
 function CacheQueryPanel()
-  local defTable = GetOpVar("TABLEDEF_PIECES")
+  local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then
     return StatusLog(false,"CacheQueryPanel: Missing(): Table definition")
   end
@@ -2467,7 +2467,7 @@ end
 
 --- Used to Populate the CPanel Phys Materials
 function CacheQueryProperty(sType)
-  local defTable = GetOpVar("TABLEDEF_PHYSPROPERTIES")
+  local defTable = GetOpVar("DEFTABLE_PHYSPROPERTIES")
   if(not defTable) then
     return StatusLog(nil,"CacheQueryProperty(): Table definition missing")
   end
@@ -2589,7 +2589,7 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
   if(not IsString(sTable)) then
     return StatusLog(false,"ImportFromDSV(): Table name should be string but "..type(sTable))
   end
-  local defTable = GetOpVar("TABLEDEF_"..sTable)
+  local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"ImportFromDSV(): Missing: Table definition for "..sTable)
   end
@@ -2642,7 +2642,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   if(not IsString(sMethod)) then
     return StatusLog(false,"ExportIntoFile(): Export mode should be string but "..type(sTable))
   end
-  local defTable = GetOpVar("TABLEDEF_"..sTable)
+  local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"ExportIntoFile(): Missing: Table definition for "..sTable)
   end
@@ -3014,7 +3014,7 @@ function AttachAdditions(ePiece)
     if(qData) then
       local Record, Addition
       local Cnt = 1
-      local defTable = GetOpVar("TABLEDEF_ADDITIONS")
+      local defTable = GetOpVar("DEFTABLE_ADDITIONS")
       while(qData[Cnt]) do
         LogInstance("\n\nEnt [ "..Cnt.." ] INFO : ")
         Record   = qData[Cnt]

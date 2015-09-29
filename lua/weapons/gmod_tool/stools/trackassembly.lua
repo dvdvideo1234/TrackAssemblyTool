@@ -815,7 +815,7 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][23]  = gsToolPrefL.."physmater"
   CPanel:AddControl("ComboBox",Combo)
   CurY = CurY + 25
-  local defTable = asmlib.GetOpVar("TABLEDEF_PIECES")
+  local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then
     return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty")
@@ -884,7 +884,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetValue(asmlib.StringDefault(
           asmlib.GetCvar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
-  local defTable = asmlib.GetOpVar("TABLEDEF_PHYSPROPERTIES")
+  local defTable = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")
   local Property = asmlib.CacheQueryProperty()
   if(not Property) then
     return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty")
