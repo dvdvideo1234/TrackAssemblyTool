@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION",15)
+asmlib.SetOpVar("TOOL_VERSION",16)
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL").."/")
 asmlib.SetOpVar("DIRPATH_EXP","export/")
 asmlib.SetOpVar("DIRPATH_DSV","dsvbase/")
@@ -77,7 +77,7 @@ if(CLIENT) then
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs)
       local Frequent = asmlib.GetFrequentModels(oArgs[1])
-      if(not Frequent) then
+      if(not asmlib.IsExistent(Frequent)) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
       end
       local pnFrame = vgui.Create("DFrame")
@@ -105,7 +105,7 @@ if(CLIENT) then
       local scrW = surface.ScreenWidth()
       local scrH = surface.ScreenHeight()
       ------------ Frame --------------
-      pnFrame:SetTitle("Routine pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
+      pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
       pnFrame:SetVisible(false)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
@@ -168,7 +168,7 @@ if(CLIENT) then
       pnListView:Clear()
       pnListView:SetPos(10,65)
       pnListView:SetSize(480,205)
-      pnListView:AddColumn("Life"):SetFixedWidth(55)
+      pnListView:AddColumn("Used"):SetFixedWidth(55)
       pnListView:AddColumn("Act"):SetFixedWidth(20)
       pnListView:AddColumn("Type"):SetFixedWidth(100)
       pnListView:AddColumn("Model"):SetFixedWidth(305)

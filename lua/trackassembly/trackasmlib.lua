@@ -88,6 +88,7 @@ local type           = type
 local undo           = undo
 local util           = util
 local Vector         = Vector
+local TimeStamp      = SysTime
 
 ---------------- CASHES SPACE --------------------
 
@@ -737,7 +738,7 @@ local function PushSortValues(tTable,snCnt,nsValue,tData)
     tTable[Ind] = {Value = nsValue, Table = tData }
     return Ind
   else
-    while(tTable[Ind] and (tTable[Ind].Value > nsValue)) do
+    while(tTable[Ind] and (tTable[Ind].Value < nsValue)) do
       Ind = Ind + 1
     end
     if(Ind > Cnt) then return Ind end
@@ -753,19 +754,17 @@ end
 function GetFrequentModels(snCount)
   local Cnt = tonumber(snCount) or 0
   if(Cnt < 1) then return nil end
-  local FreqUse  = GetOpVar("TABLE_FREQUENT_MODELS")
   local defTable = GetOpVar("DEFTABLE_PIECES")
+  if(not defTable) then return StatusLog(nil,"GetFrequentModels(): Missing: Table definition") end
   local namTable = defTable.Name
+  local FreqUse  = GetOpVar("TABLE_FREQUENT_MODELS")
   local Cache    = LibCache[namTable]
-  local TimerID  = ""
-  local Tim      = 0
+  local Now      = TimeStamp()
   local Ind      = 1
   table.Empty(FreqUse)
   for Model, Record in pairs(Cache) do
-    TimerID  = namTable.."_"..Model
-    if(timer.Exists(TimerID)) then
-      Tim = timer.TimeLeft(TimerID)
-      Ind = PushSortValues(FreqUse,Cnt,Tim,{Record.Kept,Record.Type,Model})
+    if(IsExistent(Record.Used)) then
+      Ind = PushSortValues(FreqUse,Cnt,Now-Record.Used,{Record.Kept,Record.Type,Model})
       if(Ind < 1) then return nil end
     end
   end
@@ -2309,6 +2308,7 @@ function CacheQueryPiece(sModel)
   if(stPiece and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
       RestartTimer(defTable,CacheInd)
+      stPiece.Used = TimeStamp()
       return Cache[sModel]
     end
     return nil
@@ -2327,6 +2327,7 @@ function CacheQueryPiece(sModel)
       stPiece.Name = qData[1][defTable[3][1]]
       stPiece.Offs = {}
       stPiece.Kept = 1
+      stPiece.Used = TimeStamp()
       local tOffs, sPOA, qRec
       local syOff = GetOpVar("OPSYM_DISABLE")
       while(qData[stPiece.Kept]) do
@@ -2701,9 +2702,9 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       iCnt = iCnt + 1
     end
   elseif(sModeDB == "LUA") then
-    local Cache = LibCache[defTable.Name]
+    local Cache = LibCache[namTable]
     if(not IsExistent(Cache)) then
-      return StatusLog(false,"ExportIntoFile(): Table "..defTable.Name.." cache not allocated")
+      return StatusLog(false,"ExportIntoFile(): Table "..namTable.." cache not allocated")
     end
     if(sTable == "PIECES") then   
       local tData = {}
