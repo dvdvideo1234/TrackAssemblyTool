@@ -2260,7 +2260,10 @@ end
 
 local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return false end
-  if(defTable.Life <= 0) then return false end
+  if(not defTable.Timer) then return false end
+  local Life = defTable.Timer.Life or 0
+  local Kill = defTable.Timer.Kill and true or false
+  if(Life <= 0) then return false end
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
     return StatusLog(false,"AttachKillTimer(): Navigation failed")
@@ -2268,13 +2271,12 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   local TimerID = StringImplode(tKeys,"_")
   LogInstance("AttachKillTimer(): Place["..tostring(Key).."] Marked !")
   LogInstance("AttachKillTimer(): TimID: <"..TimerID..">")
-  if(defTable.Life <= 0) then return StatusLog(false,"AttachKillTimer(): Timer not enabled") end
   if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer(): Place not found") end
   if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer(): Timer exists") end
-  timer.Create(TimerID, defTable.Life, 1, function()
-    LogInstance("AttachKillTimer["..TimerID.."]("..defTable.Life.."): "
+  timer.Create(TimerID, Life 1, function()
+    LogInstance("AttachKillTimer["..TimerID.."]("..Life.."): "
                    ..tostring(anyMessage).." > Dead")
-    Place[Key] = nil
+    if(Kill) then Place[Key] = nil end
     timer.Stop(TimerID)
     timer.Destroy(TimerID)
     collectgarbage()
@@ -2284,7 +2286,9 @@ end
 
 local function RestartTimer(defTable,tKeys)
   if(not defTable) then return false end
-  if(defTable.Life <= 0) then return true end
+  if(not defTable.Timer) then return false end
+  local Life = defTable.Timer.Life or 0
+  if(Life <= 0) then return false end
   local TimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
   if(not timer.Exists(TimerID)) then return false end
   return timer.Start(TimerID)
