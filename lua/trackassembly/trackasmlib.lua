@@ -2701,6 +2701,10 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       iCnt = iCnt + 1
     end
   elseif(sModeDB == "LUA") then
+    local Cache = LibCache[defTable.Name]
+    if(not IsExistent(Cache)) then
+      return StatusLog(false,"ExportIntoFile(): Table "..defTable.Name.." cache not allocated")
+    end
     if(sTable == "PIECES") then   
       local tData = {}
       local iInd iNdex = 1,1
