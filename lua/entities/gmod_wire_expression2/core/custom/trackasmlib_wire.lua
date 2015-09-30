@@ -4,8 +4,8 @@ local asmlib = trackasmlib
 
 __e2setcost(100)
 e2function entity entity:trackasmlibSpawnEntity(vector trHitPos  , string hdModel  , number hdPointID,
-                                          number nActRadius, number enFlatten, number enIgnTyp ,
-                                          vector ucsPos    , vector ucsAng)
+                                                number nActRadius, number enFlatten, number enIgnTyp ,
+                                                vector ucsOffPos , vector ucsOffAng)
   if(not IsValid(this)) then return nil end
 	if(not PropCore.ValidAction(self, this, "trackassembly_spawn_entity")) then return nil end
   local stSpawn = asmlib.GetEntitySpawn(this,trHitPos,hdModel,hdPointID,
@@ -16,7 +16,8 @@ e2function entity entity:trackasmlibSpawnEntity(vector trHitPos  , string hdMode
 end
 
 __e2setcost(80)
-e2function entity trackasmlibSpawnNormal(vector ucsPos, angle ucsAng, string hdModel, number hdPointID, ucsOffPos,ucsOffAng)
+e2function entity trackasmlibSpawnNormal(vector ucsPos   , angle ucsAng    , string hdModel,
+                                         number hdPointID, vector ucsOffPos, vector ucsOffAng)
 	if not PropCore.ValidAction(self, nil, "trackassembly_spawn_normal") then return nil end
   local stSpawn = GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
                         ucsOffPos[1],ucsOffPos[2],ucsOffPos[3],ucsOffAng[1],ucsOffAng[2],ucsOffAng[3])

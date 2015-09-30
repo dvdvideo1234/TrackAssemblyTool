@@ -2323,11 +2323,11 @@ function CacheQueryPiece(sModel)
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece(): "..SQLGetBuildErr()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece(): No data found >"..Q.."<") end
+      stPiece.Kept = 1 --- Found at least one record
+      stPiece.Offs = {}
+      stPiece.Used = TimeStamp()
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
-      stPiece.Offs = {}
-      stPiece.Kept = 1
-      stPiece.Used = TimeStamp()
       local tOffs, sPOA, qRec
       local syOff = GetOpVar("OPSYM_DISABLE")
       while(qData[stPiece.Kept]) do
