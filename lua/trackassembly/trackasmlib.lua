@@ -909,9 +909,11 @@ function ModelToName(sModel)
   local Cnt = 1
   local sModel = string.sub(sModel,1,Len)
   local tMarks = GsubModel()
-  while(tMarks[Cnt]) do
-    sModel = string.gsub(sModel,tMarks[Cnt],tMarks[Cnt+1])
-    Cnt = Cnt + 2
+  if(tMarks and tMarks[1] and (ArrayCount(tMarks)%2 == 0)) then
+    while(tMarks[Cnt]) do
+      sModel = string.gsub(sModel,tMarks[Cnt],tMarks[Cnt+1])
+      Cnt = Cnt + 2
+    end
   end
   local Fch = ""
   Cnt = Len
