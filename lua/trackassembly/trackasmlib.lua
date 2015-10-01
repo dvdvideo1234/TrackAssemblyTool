@@ -159,10 +159,12 @@ function Delay(nAdd)
 end
 
 function GetOpVar(sName)
+  if(not (sName and IsString(sName))) then return StatusLog(nil,"Variable name invalid >"..tostring(sName).."<") end
   return LibOpVars[sName]
 end
 
 function SetOpVar(sName, anyValue)
+  if(not (sName and IsString(sName))) then return StatusLog(nil,"Variable name invalid >"..tostring(sName).."<") end
   LibOpVars[sName] = anyValue
 end
 
@@ -181,7 +183,7 @@ function InitAssembly(sName)
   SetOpVar("TYPEMT_SCREEN",{})
   SetOpVar("TYPEMT_CONTAINER",{})
   if(not IsString(sName)) then
-    return StatusPrint(false,"trackasmlib.lua: Error initializing. Expecting string argument")
+    return StatusPrint(false,"InitAssembly(): Error initializing. Expecting string argument")
   end
   if(string.len(sName) < 1 and tonumber(string.sub(sName,1,1))) then return end
   SetOpVar("TOOLNAME_INIT",string.lower(sName))
@@ -1087,7 +1089,7 @@ function Indent(nCnt,sStr,bFixed)
 end
 
 local function Qsort(Data,Lo,Hi)
-  if(Lo and Hi and Lo > 0 and Lo < Hi) then return end
+  if(Lo and Hi and Lo > 0 and Lo < Hi) then return StatusLog(nil,"Qsort(): Data dimensions mismatch") end
   local Mid = math.random(Hi-(Lo-1))+Lo-1
   Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
   local Vmid = Data[Lo].Val
@@ -1106,7 +1108,7 @@ local function Qsort(Data,Lo,Hi)
 end
 
 local function Ssort(Data,Lo,Hi)
-  if(Lo and Hi and Lo > 0 and Lo < Hi) then return end
+  if(Lo and Hi and Lo > 0 and Lo < Hi) then return StatusLog(nil,"Ssort(): Data dimensions mismatch") end
   local Ind = 1
   local Sel
   while(Data[Ind]) do
@@ -1122,8 +1124,8 @@ local function Ssort(Data,Lo,Hi)
 end
 
 local function Bsort(Data,Lo,Hi)
-  local Ind
-  local End = false
+  if(Lo and Hi and Lo > 0 and Lo < Hi) then return StatusLog(nil,"Bsort(): Data dimensions mismatch") end
+  local Ind, End = 1, false
   while(not End) do
     End = true
     for Ind = Lo, (Hi-1), 1 do
@@ -1151,7 +1153,7 @@ function Sort(tTable,tKeys,tFields,sMethod)
     Key = tKeys[Cnt]
     Val = tTable[Key]
     if(not Val) then
-      return StatusLog(nil,"Sort: Key >"..Key.."< does not exist in the primary table")
+      return StatusLog(nil,"Sort(): Key >"..Key.."< does not exist in the primary table")
     end
     Match[Cnt] = {}
     Match[Cnt].Key = Key
@@ -1161,7 +1163,7 @@ function Sort(tTable,tKeys,tFields,sMethod)
       while(tFields[Ind]) do
         Fld = tFields[Ind]
         if(not IsExistent(Val[Fld])) then
-          return StatusLog(nil,"Sort: Field >"..Fld.."< not found on the current record")
+          return StatusLog(nil,"Sort(): Field >"..Fld.."< not found on the current record")
         end
         Match[Cnt].Val = Match[Cnt].Val..tostring(Val[Fld])
         Ind = Ind + 1
@@ -1179,7 +1181,7 @@ function Sort(tTable,tKeys,tFields,sMethod)
   elseif(sMethod == "BBL") then
     Bsort(Match,1,Cnt-1)
   else
-    return StatusLog(nil,"Sort: Method >"..sMethod.."< not found")
+    return StatusLog(nil,"Sort(): Method >"..sMethod.."< not found")
   end
   return Match
 end
@@ -1480,21 +1482,17 @@ function SetDefaultTable(sTable)
   SetOpVar("DEFAULT_TABLE",sTable)
 end
 
-function SQLGetBuildErr()
-  return GetOpVar("SQL_BUILD_ERR") or ""
-end
-
-function SQLSetBuildErr(sError)
-  if(not IsString(sError)) then
-    return StatusLog(false,"SQLSetBuildErr(): Build error message must be string")
+local function SQLBuildErr(anyError)
+  if(not IsExistent(anyError)) then
+    return GetOpVar("SQL_BUILD_ERR") or ""
   end
-  SetOpVar("SQL_BUILD_ERR", sError)
+  SetOpVar("SQL_BUILD_ERR", tostring(anyError))
   return false
 end
 
 --------------------- USAGES --------------------
 
-function Str2BGID(sStr,nLen)
+function String2BGID(sStr,nLen)
   if(not sStr) then return nil end -- You never know ...
   local Len  = string.len(sStr)
   if(Len <= 0) then return nil end
@@ -1699,17 +1697,17 @@ end
 
 local function SQLBuildCreate(defTable)
   if(not defTable) then
-    return SQLSetBuildErr("SQLBuildCreate(): Missing: Table definition")
+    return SQLBuildErr("SQLBuildCreate(): Missing: Table definition")
   end
   local namTable   = defTable.Name
   local TableIndex = defTable.Index
   if(not defTable[1]) then
-    return SQLSetBuildErr("SQLBuildCreate(): Missing: Table definition is empty for "..namTable)
+    return SQLBuildErr("SQLBuildCreate(): Missing: Table definition is empty for "..namTable)
   end
   if(not (defTable[1][1] and
           defTable[1][2])
   ) then
-    return SQLSetBuildErr("SQLBuildCreate(): Missing: Table "..namTable.." field definitions")
+    return SQLBuildErr("SQLBuildCreate(): Missing: Table "..namTable.." field definitions")
   end
   local Ind = 1
   local Command  = {}
@@ -1719,11 +1717,11 @@ local function SQLBuildCreate(defTable)
   while(defTable[Ind]) do
     local v = defTable[Ind]
     if(not v[1]) then
-      return SQLSetBuildErr("SQLBuildCreate(): Missing Table "..namTable
+      return SQLBuildErr("SQLBuildCreate(): Missing Table "..namTable
                           .."'s field #"..tostring(Ind))
     end
     if(not v[2]) then
-      return SQLSetBuildErr("SQLBuildCreate(): Missing Table "..namTable
+      return SQLBuildErr("SQLBuildCreate(): Missing Table "..namTable
                                   .."'s field type #"..tostring(Ind))
     end
     Command.Create = Command.Create..string.upper(v[1]).." "..string.upper(v[2])
@@ -1745,7 +1743,7 @@ local function SQLBuildCreate(defTable)
     while(TableIndex[Ind]) do
       local vI = TableIndex[Ind]
       if(type(vI) ~= "table") then
-        return SQLSetBuildErr("SQLBuildCreate(): Index creator mismatch on "
+        return SQLBuildErr("SQLBuildCreate(): Index creator mismatch on "
           ..namTable.." value "..vI.." is not a table for index ["..tostring(Ind).."]")
       end
       local FieldsU = ""
@@ -1755,12 +1753,12 @@ local function SQLBuildCreate(defTable)
       while(vI[Cnt]) do
         local vF = vI[Cnt]
         if(type(vF) ~= "number") then
-          return SQLSetBuildErr("SQLBuildCreate(): Index creator mismatch on "
+          return SQLBuildErr("SQLBuildCreate(): Index creator mismatch on "
             ..namTable.." value "..vF.." is not a number for index ["
             ..tostring(Ind).."]["..tostring(Cnt).."]")
         end
         if(not defTable[vF]) then
-          return SQLSetBuildErr("SQLBuildCreate(): Index creator mismatch on "
+          return SQLBuildErr("SQLBuildCreate(): Index creator mismatch on "
             ..namTable..". The table does not have field index #"
             ..vF..", max is #"..Table.Size)
         end
@@ -1886,16 +1884,17 @@ end
 
 local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   if(not defTable) then
-    return SQLSetBuildErr("SQLBuildSelect(): Missing: Table definition")
+    return SQLBuildErr("SQLBuildSelect(): Missing: Table definition")
   end
   local namTable = defTable.Name
   if(not (defTable[1][1] and
           defTable[1][2])
   ) then
-    return SQLSetBuildErr("SQLBuildSelect(): Missing: Table "..namTable.." field definitions")
+    return SQLBuildErr("SQLBuildSelect(): Missing: Table "..namTable.." field definitions")
   end
   local Command = SQLStoreQuery(defTable,tFields,tWhere,tOrderBy)
   if(Command) then
+    SetOpVar("SQL_BUILD_ERR", "")
     return Command
   end
   local Cnt = 1
@@ -1904,7 +1903,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])
       if(not v) then
-        return SQLSetBuildErr("SQLBuildSelect(): Select index #"
+        return SQLBuildErr("SQLBuildSelect(): Select index #"
           ..tostring(tFields[Cnt])
           .." type mismatch in "..namTable)
       end
@@ -1912,7 +1911,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
         if(defTable[v][1]) then
           Command = Command..defTable[v][1]
         else
-          return SQLSetBuildErr("SQLBuildSelect(): Select no such field name by index #"
+          return SQLBuildErr("SQLBuildSelect(): Select no such field name by index #"
             ..v.." in the table "..namTable)
         end
       end
@@ -1939,13 +1938,13 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       v = tWhere[Cnt][2]
       t = defTable[k][2]
       if(not (k and v and t) ) then
-        return SQLSetBuildErr("SQLBuildSelect(): Where clause inconsistent on "
+        return SQLBuildErr("SQLBuildSelect(): Where clause inconsistent on "
           ..namTable.." field index, {"..tostring(k)..", "..tostring(v)..", "..tostring(t)
           .."} value or type in the table definition")
       end
       v = MatchType(defTable,v,k,true)
       if(not IsExistent(v)) then
-        return SQLSetBuildErr("SQLBuildSelect(): Data matching failed on "
+        return SQLBuildErr("SQLBuildSelect(): Data matching failed on "
           ..namTable.." field index #"..Cnt.." value >"..tostring(v).."<")
       end
       if(Cnt == 1) then
@@ -1970,7 +1969,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
           v = -v
         end
       else
-        return SQLSetBuildErr("SQLBuildSelect(): Order wrong for "..namTable
+        return SQLBuildErr("SQLBuildSelect(): Order wrong for "..namTable
                               .." field index #"..Cnt)
       end
         Command = Command..defTable[v][1]..Dire
@@ -1986,16 +1985,16 @@ end
 
 local function SQLBuildInsert(defTable,tInsert,tValues)
   if(not (defTable and tValues)) then
-    return SQLSetBuildErr("SQLBuildInsert(): Missing Table definition or value fields")
+    return SQLBuildErr("SQLBuildInsert(): Missing Table definition or value fields")
   end
   local namTable = defTable.Name
   if(not defTable[1]) then
-    return SQLSetBuildErr("SQLBuildInsert(): The table and the chosen fields must not be empty")
+    return SQLBuildErr("SQLBuildInsert(): The table and the chosen fields must not be empty")
   end
   if(not (defTable[1][1] and
           defTable[1][2])
   ) then
-    return SQLSetBuildErr("SQLBuildInsert(): Missing: Table "..namTable.." field definition")
+    return SQLBuildErr("SQLBuildInsert(): Missing: Table "..namTable.." field definition")
   end
   local tInsert = tInsert or {}
   if(not tInsert[1]) then
@@ -2013,11 +2012,11 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
     Ind = tInsert[iCnt]
     Fld = defTable[Ind]
     if(not IsExistent(Fld)) then
-      return SQLSetBuildErr("SQLBuildInsert(): No such field #"..Ind.." on table "..namTable)
+      return SQLBuildErr("SQLBuildInsert(): No such field #"..Ind.." on table "..namTable)
     end
     Val = MatchType(defTable,tValues[iCnt],Ind,true)
     if(not IsExistent(Val)) then
-      return SQLSetBuildErr("SQLBuildInsert(): Cannot match value >"..tostring(tValues[iCnt]).."< #"..Ind.." on table "..namTable)
+      return SQLBuildErr("SQLBuildInsert(): Cannot match value >"..tostring(tValues[iCnt]).."< #"..Ind.." on table "..namTable)
     end
     qIns = qIns..Fld[1]
     qVal = qVal..Val
@@ -2101,7 +2100,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
         end
       end
     else
-      return StatusLog(false,"CreateTable(): "..SQLGetBuildErr())
+      return StatusLog(false,"CreateTable(): "..SQLBuildErr())
     end
   elseif(sModeDB == "LUA") then
     defTable.Life = 0
@@ -2149,15 +2148,13 @@ function InsertRecord(sTable,tData)
   local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,tData)
-    if(Q) then
-      local qRez = sql.Query(Q)
-      if(not qRez and type(qRez) == "boolean") then
-         return StatusLog(false,"InsertRecord(): Failed to insert a record because of "
-                ..tostring(sql.LastError()).." Query ran > "..Q)
-      end
-      return true
+    if(Q) then return StatusLog(false,"InsertRecord(): "..SQLBuildErr()) end
+    local qRez = sql.Query(Q)
+    if(qRez == false) then
+       return StatusLog(false,"InsertRecord(): Failed to insert a record because of "
+              ..tostring(sql.LastError()).." Query ran > "..Q)
     end
-    return StatusLog(false,"InsertRecord(): "..SQLGetBuildErr())
+    return true
   elseif(sModeDB == "LUA") then
     local snPrimayKey = MatchType(defTable,tData[1],1)
     if(not IsExistent(snPrimayKey)) then return StatusLog(false,"InsertRecord(): Cannot match primary key") end
@@ -2333,7 +2330,7 @@ function CacheQueryPiece(sModel)
       stPiece = Cache[sModel]
       stPiece.Kept = 0
       local Q = SQLBuildSelect(defTable,nil,{{1,sModel}})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece(): "..SQLGetBuildErr()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece(): "..SQLBuildErr()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece(): No data found >"..Q.."<") end
       stPiece.Kept = 1 --- Found at least one record
@@ -2401,7 +2398,7 @@ function CacheQueryAdditions(sModel)
       stAddition = Cache[sModel]
       stAddition.Kept = 0
       local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11},{{1,sModel}},{3})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions(): "..SQLGetBuildErr()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions(): "..SQLBuildErr()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryAdditions(): No data found >"..Q.."<") end
       stAddition.Kept = 1
@@ -2447,7 +2444,7 @@ function CacheQueryPanel()
     local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel(): "..SQLGetBuildErr()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel(): "..SQLBuildErr()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel(): No data found >"..Q.."<") end
       local iNdex = 1
@@ -2499,7 +2496,7 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
-        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): "..SQLGetBuildErr()) end
+        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): "..SQLBuildErr()) end
         local qData = sql.Query(Q)
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty("..sType.."): No data found >"..Q.."<") end
         local qRec
@@ -2524,7 +2521,7 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
-        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty(): "..SQLGetBuildErr()) end
+        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty(): "..SQLBuildErr()) end
         local qData = sql.Query(Q)
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty(): No data found >"..Q.."<") end
         local qRec
@@ -2687,7 +2684,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     else
       Q = SQLBuildSelect(defTable,nil,nil,nil)
     end
-    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile(): "..SQLGetBuildErr()) end
+    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile(): "..SQLBuildErr()) end
     F:Write("# Query ran: >"..Q.."<\n")
     local qData = sql.Query(Q)
     if(not (qData and qData[1])) then return StatusLog(false,"ExportIntoFile(): No data found >"..Q.."<") end
@@ -3125,56 +3122,53 @@ function AttachAdditions(ePiece)
 end
 
 local function GetEntityOrTrace(oEnt)
-  local Ent
-  if(oEnt and oEnt:IsValid()) then
-    Ent = oEnt
-  else
-    local Ply = LocalPlayer()
-    if(not Ply) then return nil end
-    local tr  = Ply:GetEyeTrace()
-    if(not tr) then return nil end
-    if(tr.HitWorld) then return nil end
-    Ent = tr.Entity
-  end
-  return Ent
+  if(oEnt and oEnt:IsValid()) then return oEnt end
+  local Ply = LocalPlayer()
+  if(not Ply) then return nil end
+  local Trace = Ply:GetEyeTrace()
+  if(not Trace) then return nil end
+  if(not Trace.Hit) then return nil end
+  if(Trace.HitWorld) then return nil end
+  if(not (Trace.Entity and Trace.Entity:IsValid())) then return nil end
+  return Trace.Entity
 end
 
 function GetPropSkin(oEnt)
   local skEnt = GetEntityOrTrace(oEnt)
-  if(skEnt and skEnt:IsValid()) then
-    if(IsOther(skEnt)) then return "" end
-    local Skin = skEnt:GetSkin()
-    if(not tonumber(Skin)) then return "" end
-    return tostring(Skin)
-  end
-  return ""
+  if(not skEn) then return StatusLog("","GetPropSkin(): Failed to gather entity") end
+  LogInstance("GetPropSkin(): "..tostring(skEn))
+  if(IsOther(skEnt)) then return StatusLog("","GetPropSkin(): Entity is of other type") end
+  local Skin = skEnt:GetSkin()
+  if(not tonumber(Skin)) then return StatusLog("","GetPropSkin(): Skin is not a number") end
+  return tostring(Skin)
 end
 
 function GetPropBodyGrp(oEnt)
   local bgEnt = GetEntityOrTrace(oEnt)
-  if(bgEnt and bgEnt:IsValid()) then
-    LogInstance("GetPropBodyGrp: "..tostring(oEnt))
-    if(IsOther(bgEnt)) then return "" end
-    local BG = bgEnt:GetBodyGroups()
-    if(not (BG and BG[1])) then return "" end
-    Print(BG,"GetPropBodyGrp: BG")
-    local Rez = ""
-    local Cnt = 1
-    while(BG[Cnt]) do
-      Rez = Rez..","..(bgEnt:GetBodygroup(BG[Cnt].id) or 0)
-      Cnt = Cnt + 1
-    end
-    return string.sub(Rez,2,string.len(Rez))
+  if(not bgEnt) then return StatusLog("","GetPropBodyGrp(): Failed to gather entity") end
+  LogInstance("GetPropBodyGrp(): "..tostring(bgEnt))
+  if(IsOther(bgEnt)) then return StatusLog("","GetPropBodyGrp(): Entity is of other type") end
+  local BG = bgEnt:GetBodyGroups()
+  if(not (BG and BG[1])) then return StatusLog("","GetPropBodyGrp(): Bodygroup table empty") end
+  Print(BG,"GetPropBodyGrp(): BG")
+  local Rez = ""
+  local Cnt = 1
+  while(BG[Cnt]) do
+    Rez = Rez..","..tostring(bgEnt:GetBodygroup(BG[Cnt].id) or 0)
+    Cnt = Cnt + 1
   end
-  return ""
+  return string.sub(Rez,2,string.len(Rez))
 end
 
 function AttachBodyGroups(ePiece,sBgrpIDs)
-  LogInstance("AttachBodyGroups: ")
-  local NumBG = ePiece:GetNumBodyGroups()
-  LogInstance("BG: "..sBgrpIDs)
-  LogInstance("NU: "..NumBG)
-  local IDs = Str2BGID(sBgrpIDs,NumBG)
+  local sBgrpIDs = sBgrpIDs or ""
+  if(not (sBgrpIDs and IsString(sBgrpIDs))) then
+    return StatusLog("","AttachBodyGroups(): Expecting string argument for the bodygroup IDs")
+  end
+  local sNumBG = ePiece:GetNumBodyGroups()
+  LogInstance("AttachBodyGroups(): BGS: "..sBgrpIDs)
+  LogInstance("AttachBodyGroups(): NUM: "..sNumBG)
+  local IDs = String2BGID(sBgrpIDs,sNumBG)
   if(not IDs) then return end
   local BG = ePiece:GetBodyGroups()
   Print(IDs,"IDs")
