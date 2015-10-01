@@ -190,12 +190,12 @@ A: First of all if the the error origin is not the TA,
 Q: Yo, can I add some personal models to TA ?
 A: Yes, you can. For every active point, you have to add a line in the table PIECES.
     1) In the console ( Bring it up with ~ key under ESC ): "trackassembly_exportdb 1" [ press enter ]
-    2) After exporting, tables are located under ..common\GarrysMod\garrysmod\data\trackassembly\dsvbase\ [DB Folder]
+    2) After exporting, tables are located under ..common\GarrysMod\garrysmod\data\trackassembly\dsv\ [DSV Folder]
     3) Server: Point the crosshair anywhere on the map, then hit IN_SPEED ( Def: Shift ) + IN_RELOAD ( Def: R )
     4) Client: Just bring up the Frequently used pieces screen, then click the "Export client's DB" button
     5) Use Excel or another table editing program to edit the files sv_*.txt and cl_*.txt
     6) After you are done, proseed as below [Excel 2010] 
-    6) [Excel 2010] File -> Save As -> Navigate to the DB folder if you are not in there already
+    6) [Excel 2010] File -> Save As -> Navigate to the DSV folder if you are not in there already
     7) [Excel 2010] File name: *TRACKASSEMBLY_PIECES.txt
     8) [Excel 2010] Save as type: "Text (Tab delimited)(*.txt)"
     9) [Excel 2010] Replace it if you must (don't worry you can alway generate it again ( points 3) and 4) )

@@ -26,14 +26,14 @@ e2function entity trackasmlibSpawnNormal(vector ucsPos   , angle ucsAng    , str
 end
 
 __e2setcost(30)
-e2function number trackasmlibExists(string sModel)
+e2function number trackasmlibIsPiece(string sModel)
 	if not PropCore.ValidAction(self, nil, "trackassembly_piece_exist") then return nil end
   local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return 1 else return 0 end
 end
 
 __e2setcost(30)
-e2function number entity:trackasmlibExists()
+e2function number entity:trackasmlibIsPiece()
 	if not PropCore.ValidAction(self, this, "trackassembly_piece_exist") then return nil end
   local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
   if(stRecord) then return 1 else return 0 end

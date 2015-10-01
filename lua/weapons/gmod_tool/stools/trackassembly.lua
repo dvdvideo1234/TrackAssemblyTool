@@ -485,9 +485,9 @@ function TOOL:RightClick(Trace)
   end
   if(asmlib.LoadPlyKey(ply,"DUCK")) then -- Use
     if(asmlib.LoadPlyKey(ply,"SPEED")) then -- Left Shift
-      pnextid = asmlib.IncDecNextID(pnextid,pointid,"-",hdRec)
+      pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",hdRec)
     else
-      pnextid = asmlib.IncDecNextID(pnextid,pointid,"+",hdRec)
+      pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",hdRec)
     end
   else
     if(asmlib.LoadPlyKey(ply,"SPEED")) then -- Left Shift
@@ -649,54 +649,52 @@ function TOOL:DrawHUD()
       goMonitor:DrawText("Org POS: "..tostring(vPos),"k")
       goMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
-      if(pointid > 0 and pnextid > 0) then
-        local RadScale = math.Clamp(1500 / plyd,1,100)
-        local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
-        local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
-                          pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-        if(stSpawn) then
-          stSpawn.F:Mul(30)
-          stSpawn.F:Add(stSpawn.OPos)
-          stSpawn.R:Mul(30)
-          stSpawn.R:Add(stSpawn.OPos)
-          stSpawn.U:Mul(30)
-          stSpawn.U:Add(stSpawn.OPos)
-          local Os = stSpawn.OPos:ToScreen()
-          local Ss = stSpawn.SPos:ToScreen()
-          local Xs = stSpawn.F:ToScreen()
-          local Ys = stSpawn.R:ToScreen()
-          local Zs = stSpawn.U:ToScreen()
-          local Pp = stSpawn.PPos:ToScreen()
-          if(stSpawn.HRec.Kept > 1 and stSpawn.HRec.Offs[pnextid]) then
-            local vNext = Vector()
-                  asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
-                  vNext:Rotate(stSpawn.SAng)
-                  vNext:Add(stSpawn.SPos)
-            local Np = vNext:ToScreen()
-            -- Draw Next Point
-            goMonitor:DrawLine(Os,Np,"y")
-            goMonitor:DrawCircle(Np,RadScale / 2,"g")
-          end
-          -- Draw Elements
-          goMonitor:DrawLine(Os,Xs,"r")
-          goMonitor:DrawLine(Os,Pp)
-          goMonitor:DrawCircle(Pp, RadScale / 2)
-          goMonitor:DrawLine(Os,Ys,"g")
-          goMonitor:DrawLine(Os,Zs,"b")
-          goMonitor:DrawLine(Os,Ss,"m")
-          goMonitor:DrawCircle(Ss, RadScale, "c")
-          goMonitor:DrawCircle(Os, RadScale, "y")
-          if(addinfo == 0) then return end
-          local x,y = goMonitor:GetCenter(10,10)
-          goMonitor:SetTextEdge(x,y)
-          goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k")
-          goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
-          goMonitor:DrawText("Mod POS: "..tostring(stSpawn.MPos))
-          goMonitor:DrawText("Mod ANG: "..tostring(stSpawn.MAng))
-          goMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
-          goMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
-        end
+      if(not (pointid > 0 and pnextid > 0)) then return end
+      local RadScale = math.Clamp(1500 / plyd,1,100)
+      local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
+      local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
+                        pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      if(not stSpawn) then return end
+      stSpawn.F:Mul(30)
+      stSpawn.F:Add(stSpawn.OPos)
+      stSpawn.R:Mul(30)
+      stSpawn.R:Add(stSpawn.OPos)
+      stSpawn.U:Mul(30)
+      stSpawn.U:Add(stSpawn.OPos)
+      local Os = stSpawn.OPos:ToScreen()
+      local Ss = stSpawn.SPos:ToScreen()
+      local Xs = stSpawn.F:ToScreen()
+      local Ys = stSpawn.R:ToScreen()
+      local Zs = stSpawn.U:ToScreen()
+      local Pp = stSpawn.PPos:ToScreen()
+      if(stSpawn.HRec.Kept > 1 and stSpawn.HRec.Offs[pnextid]) then
+        local vNext = Vector()
+              asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
+              vNext:Rotate(stSpawn.SAng)
+              vNext:Add(stSpawn.SPos)
+        local Np = vNext:ToScreen()
+        -- Draw Next Point
+        goMonitor:DrawLine(Os,Np,"y")
+        goMonitor:DrawCircle(Np,RadScale / 2,"g")
       end
+      -- Draw Elements
+      goMonitor:DrawLine(Os,Xs,"r")
+      goMonitor:DrawLine(Os,Pp)
+      goMonitor:DrawCircle(Pp, RadScale / 2)
+      goMonitor:DrawLine(Os,Ys,"g")
+      goMonitor:DrawLine(Os,Zs,"b")
+      goMonitor:DrawLine(Os,Ss,"m")
+      goMonitor:DrawCircle(Ss, RadScale, "c")
+      goMonitor:DrawCircle(Os, RadScale, "y")
+      if(addinfo == 0) then return end
+      local x,y = goMonitor:GetCenter(10,10)
+      goMonitor:SetTextEdge(x,y)
+      goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k")
+      goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
+      goMonitor:DrawText("Mod POS: "..tostring(stSpawn.MPos))
+      goMonitor:DrawText("Mod ANG: "..tostring(stSpawn.MAng))
+      goMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
+      goMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
     end
   end
 end
@@ -713,7 +711,7 @@ function TOOL:DrawToolScreen(w, h)
   goToolScr:SetFont("Trebuchet24")
   goToolScr:SetTextEdge(0,0)
   local Trace = LocalPlayer():GetEyeTrace()
-  if(not Trace) then
+  if(not (Trace and Trace.Hit)) then
     goToolScr:DrawText("Trace status: Invalid","r")
     return
   end

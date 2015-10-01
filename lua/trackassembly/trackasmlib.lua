@@ -88,7 +88,7 @@ local type           = type
 local undo           = undo
 local util           = util
 local Vector         = Vector
-local TimeStamp      = SysTime
+local Time           = SysTime
 
 ---------------- CASHES SPACE --------------------
 
@@ -756,19 +756,18 @@ function GetFrequentModels(snCount)
   if(Cnt < 1) then return nil end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then return StatusLog(nil,"GetFrequentModels(): Missing: Table definition") end
-  local namTable = defTable.Name
-  local FreqUse  = GetOpVar("TABLE_FREQUENT_MODELS")
-  local Cache    = LibCache[namTable]
-  local Now      = TimeStamp()
-  local Ind      = 1
-  table.Empty(FreqUse)
+  local Cache = LibCache[defTable.Name]
+  if(not Cache) then return StatusLog(nil,"GetFrequentModels(): Missing: Table cache") end  
+  local Ind, Now = 1, Time()
+  local FreqUsed = GetOpVar("TABLE_FREQUENT_MODELS")
+  table.Empty(FreqUsed)
   for Model, Record in pairs(Cache) do
     if(IsExistent(Record.Used)) then
-      Ind = PushSortValues(FreqUse,Cnt,Now-Record.Used,{Record.Kept,Record.Type,Model})
+      Ind = PushSortValues(FreqUsed,Cnt,Now-Record.Used,{Record.Kept,Record.Type,Model})
       if(Ind < 1) then return nil end
     end
   end
-  if(FreqUse and FreqUse[1]) then return FreqUse end
+  if(FreqUsed and FreqUsed[1]) then return FreqUsed end
   return nil
 end
 
@@ -779,7 +778,11 @@ end
 
 function SnapValue(nVal, nSnap)
   if(not nVal) then return 0 end
+  local nVal = tonumber(nVal)
+  if(not nVal) then return StatusLog(0,"SnapValue(): Cannot convert value to a number") end 
   if(not nSnap) then return nVal end
+  local nSnap = tonumber(nSnap)
+  if(not nSnap) then return StatusLog(0,"SnapValue(): Cannot convert snap to a number") end
   if(nSnap == 0) then return nVal end
   local Rez
   local Snp = math.abs(nSnap)
@@ -831,57 +834,54 @@ function RollValue(nVal,nMin,nMax)
   return nVal
 end
 
-function BorderValue(nVal,sName)
-  if(not IsString(sName)) then return nVal end
+function BorderValue(nsVal,sName)
+  if(not IsString(sName)) then return nsVal end
+  if(not (IsString(nsVal) or tonumber(nsVal))) then return StatusLog(nsVal,"BorderValue(): Value not comparable") end
   local Border = GetOpVar("TABLE_BORDERS")
         Border = Border[sName]
   if(IsExistent(Border)) then
-    if    (nVal < Border[1]) then return Border[1]
-    elseif(nVal > Border[2]) then return Border[2]
-    else                          return nVal end
+    if    (nsVal < Border[1]) then return Border[1]
+    elseif(nsVal > Border[2]) then return Border[2]
+    else                           return nsVal end
   end
-  return nVal
+  return nsVal
 end
 
 function IncDecPointID(nPointID,sDir,rPiece)
-  if(not ( nPointID and
-           sDir     and
-           rPiece )
-  ) then
-    return 1
+  local nPointID = tonumber(nPointID)
+  if(not nPointID) then return StatusLog(1,"IncDecPointID(): Cannot convert pointid to a number") end
+  if(not IsThereRecID(rPiece,nPointID)) then return StatusLog(1,"IncDecPointID(): Offset not located") end
+  local sDir, nDir = string.sub(tostring(sDir),1,1), 0
+  if    (sDir == "+") then nDir = 1
+  elseif(sDir == "-") then nDir = -1
+  else return StatusLog(nPointID,"IncDecPointID(): Direction <"..sDir.."> mismatch") end
+  nPointID = nPointID + nDir
+  nPointID = RollValue(nPointID,1,rPiece.Kept)
+  if(rPiece.Offs[nPointID].P[csD]) then
+    nPointID = nPointID + nDir
   end
-  local Pnt = nPointID
-  local Dir = 0
-  if(sDir == "+") then Dir =  1 end
-  if(sDir == "-") then Dir = -1 end
-  Pnt = Pnt + Dir
-  Pnt = RollValue(Pnt,1,rPiece.Kept)
-  if(rPiece.Offs[Pnt].P[csD]) then
-    Pnt = Pnt + Dir
-  end
-  Pnt = RollValue(Pnt,1,rPiece.Kept)
-  return Pnt
+  nPointID = RollValue(nPointID,1,rPiece.Kept)
+  return nPointID
 end
 
-function IncDecNextID(nNextPointID,nPointID,sDir,rPiece)
-  if(not ( nNextPointID and
-           nPointID     and
-           sDir         and
-           rPiece )
-  ) then
-    return 1
+function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
+  local nPnextID = tonumber(nPnextID)
+  local nPointID = tonumber(nPointID)
+  if(not nPnextID) then return StatusLog(1,"IncDecPnextID(): Cannot convert PnextID to a number") end
+  if(not nPointID) then return StatusLog(1,"IncDecPnextID(): Cannot convert PointID to a number") end
+  if(not IsThereRecID(rPiece,nPnextID)) then return StatusLog(1,"IncDecPointID(): Offset PnextID not located") end
+  if(not IsThereRecID(rPiece,nPointID)) then return StatusLog(1,"IncDecPointID(): Offset PointID not located") end
+  local sDir, nDir = string.sub(tostring(sDir),1,1), 0
+  if    (sDir == "+") then nDir =  1
+  elseif(sDir == "-") then nDir = -1
+  else return StatusLog(nPnextID,"IncDecPnextID(): Direction <"..sDir.."> mismatch") end
+  nPnextID = nPnextID + nDir
+  nPnextID = RollValue(nPnextID,1,rPiece.Kept)
+  if(nPnextID == nPointID) then
+    nPnextID = nPnextID + nDir
   end
-  local Pnt = nNextPointID
-  local Dir = 0
-  if(sDir == "+") then Dir =  1 end
-  if(sDir == "-") then Dir = -1 end
-  Pnt = Pnt + Dir
-  Pnt = RollValue(Pnt,1,rPiece.Kept)
-  if(Pnt == nPointID) then
-    Pnt = Pnt + Dir
-  end
-  Pnt = RollValue(Pnt,1,rPiece.Kept)
-  return Pnt
+  nPnextID = RollValue(nPnextID,1,rPiece.Kept)
+  return nPnextID
 end
 
 function GetPointUpGap(oEnt,hdPoint)
@@ -966,7 +966,6 @@ local function StringPOA(arOffs,iID,sOffs)
   local sOffset = tostring(sOffs)
   local symRevs = GetOpVar("OPSYM_REVSIGN")
   local symDisa = GetOpVar("OPSYM_DISABLE")
-  local sOffs
   local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
   if    (sModeDB == "SQL") then sEmpty = "NULL"
   elseif(sModeDB == "LUA") then sEmpty = ""
@@ -1088,38 +1087,50 @@ function Indent(nCnt,sStr,bFixed)
 end
 
 local function Qsort(Data,Lo,Hi)
-  if(Lo and Hi and Lo > 0 and Lo < Hi) then
-    local Mid = math.random(Hi-(Lo-1))+Lo-1
-    Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
-    local Vmid = Data[Lo].Val
-          Mid  = Lo
-    local Cnt  = Lo + 1
-    while(Cnt <= Hi)do
-      if(Data[Cnt].Val < Vmid) then
-        Mid = Mid + 1
-        Data[Mid], Data[Cnt] = Data[Cnt], Data[Mid]
-      end
-      Cnt = Cnt + 1
+  if(Lo and Hi and Lo > 0 and Lo < Hi) then return end
+  local Mid = math.random(Hi-(Lo-1))+Lo-1
+  Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
+  local Vmid = Data[Lo].Val
+        Mid  = Lo
+  local Cnt  = Lo + 1
+  while(Cnt <= Hi)do
+    if(Data[Cnt].Val < Vmid) then
+      Mid = Mid + 1
+      Data[Mid], Data[Cnt] = Data[Cnt], Data[Mid]
     end
-    Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
-    Qsort(Data,Lo,Mid-1)
-    Qsort(Data,Mid+1,Hi)
+    Cnt = Cnt + 1
   end
+  Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
+  Qsort(Data,Lo,Mid-1)
+  Qsort(Data,Mid+1,Hi)
 end
 
 local function Ssort(Data,Lo,Hi)
-  if(Lo and Hi and Lo > 0 and Lo < Hi) then
-    local Ind = 1
-    local Sel
-    while(Data[Ind]) do
-      Sel = Ind + 1
-      while(Data[Sel]) do
-        if(Data[Sel].Val < Data[Ind].Val) then
-          Data[Ind], Data[Sel] = Data[Sel], Data[Ind]
-        end
-        Sel = Sel + 1
+  if(Lo and Hi and Lo > 0 and Lo < Hi) then return end
+  local Ind = 1
+  local Sel
+  while(Data[Ind]) do
+    Sel = Ind + 1
+    while(Data[Sel]) do
+      if(Data[Sel].Val < Data[Ind].Val) then
+        Data[Ind], Data[Sel] = Data[Sel], Data[Ind]
       end
-      Ind = Ind + 1
+      Sel = Sel + 1
+    end
+    Ind = Ind + 1
+  end
+end
+
+local function Bsort(Data,Lo,Hi)
+  local Ind
+  local End = false
+  while(not End) do
+    End = true
+    for Ind = Lo, (Hi-1), 1 do
+      if(Data[Ind].Val > Data[Ind+1].Val) then
+        End = false
+        Data[Ind], Data[Ind+1] = Data[Ind+1], Data[Ind]
+      end
     end
   end
 end
@@ -1165,6 +1176,8 @@ function Sort(tTable,tKeys,tFields,sMethod)
     Qsort(Match,1,Cnt-1)
   elseif(sMethod == "SEL") then
     Ssort(Match,1,Cnt-1)
+  elseif(sMethod == "BBL") then
+    Bsort(Match,1,Cnt-1)
   else
     return StatusLog(nil,"Sort: Method >"..sMethod.."< not found")
   end
@@ -2308,7 +2321,7 @@ function CacheQueryPiece(sModel)
   if(stPiece and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
       RestartTimer(defTable,CacheInd)
-      stPiece.Used = TimeStamp()
+      stPiece.Used = Time()
       return Cache[sModel]
     end
     return nil
@@ -2325,7 +2338,7 @@ function CacheQueryPiece(sModel)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece(): No data found >"..Q.."<") end
       stPiece.Kept = 1 --- Found at least one record
       stPiece.Offs = {}
-      stPiece.Used = TimeStamp()
+      stPiece.Used = Time()
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
       local tOffs, sPOA, qRec
