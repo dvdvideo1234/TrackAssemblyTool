@@ -201,6 +201,7 @@ function InitAssembly(sName)
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
+  SetOpVar("FILE_MODEL",".mdl")
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
   SetOpVar("HASH_PLAYER_KEYDOWN","PLAYER_KEYDOWN")
@@ -902,11 +903,18 @@ end
 function ModelToName(sModel)
   if(not IsString(sModel)) then return "" end
   local Len = string.len(sModel)
-  if(string.sub(sModel,Len-2,Len) ~= "mdl") then return "" end
+  if(string.sub(sModel,Len-3,Len) ~= GetOpVar("FILE_MODEL")) then return "" end
   Len = Len - 4
   if(Len <= 0) then return "" end
-  local Cnt = Len
+  local Cnt = 1
+  local sModel = string.sub(sModel,1,Len)
+  local tMarks = GsubModel()
+  while(tMarks[Cnt]) do
+    sModel = string.gsub(sModel,tMarks[Cnt],tMarks[Cnt+1])
+    Cnt = Cnt + 2
+  end
   local Fch = ""
+  Cnt = Len
   while(Cnt > 0) do
     Fch = string.sub(sModel,Cnt,Cnt)
     if(Fch == '/') then
@@ -1466,21 +1474,29 @@ function ArrayDrop(arArr,nDir)
   return arArr
 end
 
-------------- SQL Handling --------------
+------------- Variable Interfaces --------------
 
-function SetDefaultType(sType)
-  if(not IsExistent(sType)) then
-    return StatusLog(nil,"SetDefaultType(): Type name is empty")
+function DefaultType(anyType)
+  if(not IsExistent(anyType)) then
+    return GetOpVar("DEFAULT_TYPE") or ""
   end
-  SetOpVar("DEFAULT_TYPE",sType)
+  SetOpVar("DEFAULT_TYPE",tostring(anyType))
 end
 
-function SetDefaultTable(sTable)
-  if(not IsString(sTable)) then
-    return StatusLog(nil,"SetDefaultTable(): Table name is not a string")
+function DefaultTable(anyTable)
+  if(not IsExistent(anyTable)) then
+    return GetOpVar("DEFAULT_TABLE") or ""
   end
-  SetOpVar("DEFAULT_TABLE",sTable)
+  SetOpVar("DEFAULT_TABLE",anyTable)
 end
+
+function ModelGsubMode(tGsub)
+  if(not IsExistent(tGsub)) then
+    return GetOpVar("TABLE_GSUB_MODEL") or ""
+  end
+  SetOpVar("TABLE_GSUB_MODEL",tGsub)
+end
+
 
 local function SQLBuildErr(anyError)
   if(not IsExistent(anyError)) then
@@ -1773,7 +1789,7 @@ local function SQLBuildCreate(defTable)
       Ind = Ind + 1
     end
   end
-  SetOpVar("SQL_BUILD_ERR", "")
+  SQLBuildErr("")
   return Command
 end
 
@@ -1894,7 +1910,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   end
   local Command = SQLStoreQuery(defTable,tFields,tWhere,tOrderBy)
   if(Command) then
-    SetOpVar("SQL_BUILD_ERR", "")
+    SQLBuildErr("")
     return Command
   end
   local Cnt = 1
@@ -1979,7 +1995,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       Cnt = Cnt + 1
     end
   end
-  SetOpVar("SQL_BUILD_ERR", "")
+  SQLBuildErr("")
   return SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,Command..";")
 end
 
@@ -2029,7 +2045,7 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
     end
     iCnt = iCnt + 1
   end
-  SetOpVar("SQL_BUILD_ERR", "")
+  SQLBuildErr("")
   return qIns..qVal
 end
 
@@ -2115,7 +2131,7 @@ function InsertRecord(sTable,tData)
   end
   if(type(sTable) == "table") then
     tData  = sTable
-    sTable = GetOpVar("DEFAULT_TABLE")
+    sTable = DefaultTable()
     if(not (IsExistent(sTable) and sTable ~= "")) then
       return StatusLog(false,"InsertRecord(): Missing: Table default name for "..sTable)
     end
@@ -2139,10 +2155,10 @@ function InsertRecord(sTable,tData)
   local namTable = defTable.Name
 
   if(sTable == "PIECES") then
-    tData[2] = StringDisable(tData[2],GetOpVar("DEFAULT_TYPE"),"TYPE")
+    tData[2] = StringDisable(tData[2],DefaultType(),"TYPE")
     tData[3] = StringDisable(tData[3],ModelToName(tData[1]),"MODEL")
   elseif(sTable == "PHYSPROPERTIES") then
-    tData[1] = StringDisable(tData[1],GetOpVar("DEFAULT_TYPE"),"TYPE")
+    tData[1] = StringDisable(tData[1],DefaultType(),"TYPE")
   end
 
   local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
