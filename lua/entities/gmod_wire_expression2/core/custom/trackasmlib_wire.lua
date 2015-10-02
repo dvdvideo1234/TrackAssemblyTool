@@ -19,7 +19,7 @@ __e2setcost(80)
 e2function entity trackasmlibSpawnNormal(vector ucsPos   , angle ucsAng    , string hdModel,
                                          number hdPointID, vector ucsOffPos, vector ucsOffAng)
 	if not PropCore.ValidAction(self, nil, "trackassembly_spawn_normal") then return nil end
-  local stSpawn = GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
+  local stSpawn = asmlib.GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
                         ucsOffPos[1],ucsOffPos[2],ucsOffPos[3],ucsOffAng[1],ucsOffAng[2],ucsOffAng[3])
   if(not stSpawn) then return nil end
 	return PropCore.CreateProp(self,hdModel,stSpawn.SPos,stSpawn.SAng,frozen)
@@ -196,7 +196,7 @@ __e2setcost(60)
 e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   local nLine = tonumber(nLine)
   if(not nLine) then return nil end
-	if not PropCore.ValidAction(self, this, "trackassembly_piece_addcnt") then return nil end
+	if not PropCore.ValidAction(self, this, "trackassembly_piece_addlgn") then return nil end
   local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
   if(not (stRecord and stRecord[nLine])) then return nil else stRecord = stRecord[nLine] end
   local arAddtitionsLine = {}
