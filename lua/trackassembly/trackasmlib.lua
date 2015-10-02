@@ -935,6 +935,10 @@ function ModelToName(sModel)
     end
     Cnt = 1
   end
+  tMarks = GappModelToName()
+  if(tMarks and tMarks[1]) then
+    gModel = tostring(tMarks[1] or "")..gModel..tostring(tMarks[2] or "")
+  end
   -- Trigger the capital-space using the divider
   sModel = sDiv..gModel
   Len = string.len(sModel)
@@ -1501,6 +1505,13 @@ function GcutModelToName(tGcut)
   SetOpVar("TABLE_GCUT_MODEL",tGcut)
 end
 
+function GappModelToName(tGapp)
+  if(not IsExistent(tGapp)) then
+    return GetOpVar("TABLE_GAPP_MODEL") or ""
+  end
+  SetOpVar("TABLE_GAPP_MODEL",tGapp)
+end
+
 local function SQLBuildError(anyError)
   if(not IsExistent(anyError)) then
     return GetOpVar("SQL_BUILD_ERR") or ""
@@ -1516,6 +1527,7 @@ function DefaultType(anyType)
   SetOpVar("DEFAULT_TYPE",tostring(anyType))
   GcutModelToName({})
   GsubModelToName({})
+  GappModelToName({})
 end
 
 function DefaultTable(anyTable)
@@ -1525,6 +1537,7 @@ function DefaultTable(anyTable)
   SetOpVar("DEFAULT_TABLE",anyTable)
   GcutModelToName({})
   GsubModelToName({})
+  GappModelToName({})
 end
 
 --------------------- USAGES --------------------
