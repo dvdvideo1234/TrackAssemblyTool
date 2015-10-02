@@ -49,9 +49,9 @@ local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
-local gsUndoPrefN = asmlib.GetOpVar("TOOLNAME_INIT_FANCY")..": "
-local gsFancyName = asmlib.GetOpVar("TOOLNAME_FANCY_LONG")
-
+local gsUndoPrefN = asmlib.GetOpVar("INIT_FAN")..": "
+local gsFancyName = asmlib.GetOpVar("INIT_FAN").." "..asmlib.GetOpVar("PERP_FAN")
+print(gsFancyName)
 --- Render Base Colours
 local DDyes = asmlib.MakeContainer("Colours")
       DDyes:Insert("r" ,Color(255, 0 , 0 ,255))

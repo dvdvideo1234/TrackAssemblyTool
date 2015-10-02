@@ -159,12 +159,10 @@ function Delay(nAdd)
 end
 
 function GetOpVar(sName)
-  if(not (sName and IsString(sName))) then return StatusLog(nil,"Variable name invalid >"..tostring(sName).."<") end
   return LibOpVars[sName]
 end
 
 function SetOpVar(sName, anyValue)
-  if(not (sName and IsString(sName))) then return StatusLog(nil,"Variable name invalid >"..tostring(sName).."<") end
   LibOpVars[sName] = anyValue
 end
 
@@ -186,16 +184,14 @@ function InitAssembly(sName)
     return StatusPrint(false,"InitAssembly(): Error initializing. Expecting string argument")
   end
   if(string.len(sName) < 1 and tonumber(string.sub(sName,1,1))) then return end
-  SetOpVar("TOOLNAME_INIT",string.lower(sName))
-  SetOpVar("TOOLNAME_INIT_FANCY",string.sub(string.upper(GetOpVar("TOOLNAME_INI")),1,1)
-                               ..string.sub(string.lower(GetOpVar("TOOLNAME_INI")),2,1))
-  SetOpVar("TOOLNAME_PRPPOSE","assembly")
-  SetOpVar("TOOLNAME_PRPPOSE_FANCY",string.sub(string.upper(GetOpVar("TOOLNAME_PRP")),1,1)
-                                  ..string.sub(string.lower(GetOpVar("TOOLNAME_PRP")),2,1)))
-  SetOpVar("TOOLNAME_FANCY_LONG",GetOpVar("TOOLNAME_INIT_FANCY").." "..GetOpVar("TOOLNAME_PRPPOSE_FANCY"))
-  SetOpVar("FANCYNAME_NU",string.upper(sName))
-  SetOpVar("TOOLNAME_NL",string.lower(GetOpVar("INITNAME_NL")..GetOpVar("TOOLNAME_PRP")))
-  SetOpVar("TOOLNAME_NU",string.upper(GetOpVar("INITNAME_NL")..GetOpVar("TOOLNAME_PRP")))
+  SetOpVar("INIT_NL" ,string.lower(sName))
+  SetOpVar("INIT_FAN",string.sub(string.upper(GetOpVar("INIT_NL")),1,1)
+                    ..string.sub(string.lower(GetOpVar("INIT_NL")),2,string.len(GetOpVar("INIT_NL"))))
+  SetOpVar("PERP_UL","assembly")
+  SetOpVar("PERP_FAN",string.sub(string.upper(GetOpVar("PERP_UL")),1,1)
+                    ..string.sub(string.lower(GetOpVar("PERP_UL")),2,string.len(GetOpVar("PERP_UL"))))
+  SetOpVar("TOOLNAME_NL",string.lower(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
+  SetOpVar("TOOLNAME_NU",string.upper(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
@@ -1112,7 +1108,7 @@ function Indent(nCnt,sStr,bFixed)
 end
 
 local function Qsort(Data,Lo,Hi)
-  if(Lo and Hi and Lo > 0 and Lo < Hi) then return StatusLog(nil,"Qsort(): Data dimensions mismatch") end
+  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then return StatusLog(nil,"Qsort(): Data dimensions mismatch") end
   local Mid = math.random(Hi-(Lo-1))+Lo-1
   Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
   local Vmid = Data[Lo].Val
@@ -1131,7 +1127,7 @@ local function Qsort(Data,Lo,Hi)
 end
 
 local function Ssort(Data,Lo,Hi)
-  if(Lo and Hi and Lo > 0 and Lo < Hi) then return StatusLog(nil,"Ssort(): Data dimensions mismatch") end
+  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then return StatusLog(nil,"Ssort(): Data dimensions mismatch") end
   local Ind = 1
   local Sel
   while(Data[Ind]) do
@@ -1147,7 +1143,7 @@ local function Ssort(Data,Lo,Hi)
 end
 
 local function Bsort(Data,Lo,Hi)
-  if(Lo and Hi and Lo > 0 and Lo < Hi) then return StatusLog(nil,"Bsort(): Data dimensions mismatch") end
+  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then return StatusLog(nil,"Bsort(): Data dimensions mismatch") end
   local Ind, End = 1, false
   while(not End) do
     End = true
@@ -2202,7 +2198,7 @@ function InsertRecord(sTable,tData)
     local qRez = sql.Query(Q)
     if(qRez == false) then
        return StatusLog(false,"InsertRecord(): Failed to insert a record because of "
-              ..tostring(sql.LastError()).." Query ran > "..Q)
+              ..tostring(sql.LastError()).." Query ran >"..Q.."<")
     end
     return true
   elseif(sModeDB == "LUA") then
@@ -2331,7 +2327,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer(): Place not found") end
   if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer(): Timer exists") end
   local Kill = defTable.Timer.Kill and true or false
-  timer.Create(TimerID, Life 1, function()
+  timer.Create(TimerID, Life, 1, function()
     LogInstance("AttachKillTimer["..TimerID.."]("..Life.."): "
                    ..tostring(anyMessage).." > Dead")
     if(Kill) then Place[Key] = nil end
@@ -2425,7 +2421,6 @@ function CacheQueryAdditions(sModel)
   if(not IsString(sModel)) then return nil end
   if(sModel == "") then return nil end
   if(not util.IsValidModel(sModel)) then return nil end
-  LogInstance("CacheQueryAdditions: "..sModel)
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then return StatusLog(nil,"CacheQueryAdditions(): Missing: Table definition") end
   local namTable = defTable.Name
@@ -2434,7 +2429,6 @@ function CacheQueryAdditions(sModel)
   local CacheInd = {namTable,sModel}
   local stAddition = Cache[sModel]
   if(stAddition and IsExistent(stAddition.Kept)) then
-    LogInstance("CacheQueryAdditions: Model << Pool: "..GetModelFileName(sModel))
     if(stAddition.Kept > 0) then
       RestartTimer(defTable,CacheInd)
       return Cache[sModel]
@@ -2506,9 +2500,9 @@ function CacheQueryPanel()
       local tData = {}
       local iNdex = 0
       for sModel, tRecord in pairs(Cache) do
-        tData[sModel] = { [defTable[1][1]] = sModel, [defTable[2][1]] = tRecord.Type, [defTable[3][1]] = tRecord.Name }
+        tData[sModel] = {[defTable[1][1]] = sModel, [defTable[2][1]] = tRecord.Type, [defTable[3][1]] = tRecord.Name}
       end
-      local tSorted = Sort(tData,nil,{defTable[1][1],defTable[2][1],defTable[3][1]})
+      local tSorted = Sort(tData,nil,{defTable[2][1],defTable[3][1]})
       if(not tSorted) then return StatusLog(nil,"CacheQueryPanel(): Cannot sort cache data") end
       iNdex = 1
       while(tSorted[iNdex]) do
@@ -3185,7 +3179,7 @@ end
 
 function GetPropSkin(oEnt)
   local skEnt = GetEntityOrTrace(oEnt)
-  if(not skEn) then return StatusLog("","GetPropSkin(): Failed to gather entity") end
+  if(not skEnt) then return StatusLog("","GetPropSkin(): Failed to gather entity") end
   LogInstance("GetPropSkin(): "..tostring(skEn))
   if(IsOther(skEnt)) then return StatusLog("","GetPropSkin(): Entity is of other type") end
   local Skin = skEnt:GetSkin()
@@ -3375,7 +3369,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   return nil
 end
 
-function MakeCvar(sShortName, sValue, tBorder, sInfo)
+function MakeCvar(sShortName, sValue, tBorder, nFlags, sInfo)
   if(not IsString(sShortName)) then return StatusLog(nil,"MakeCvar("..tostring(sShortName).."): Wrong CVar name") end
   if(not IsString(sValue)) then return StatusLog(nil,"MakeCvar("..tostring(sValue).."): Wrong default value") end
   if(not IsString(sInfo)) then return StatusLog(nil,"MakeCvar("..tostring(sInfo).."): Wrong CVar information") end
@@ -3384,7 +3378,7 @@ function MakeCvar(sShortName, sValue, tBorder, sInfo)
     local Border = GetOpVar("TABLE_BORDERS")
     Border["cvar_"..sVar] = tBorder
   end
-  return CreateConVar(sVar, sValue, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), sInfo)
+  return CreateConVar(sVar, sValue, nFlags, sInfo)
 end
 
 function GetCvar(sShortName, sMode)

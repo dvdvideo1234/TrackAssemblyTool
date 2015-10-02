@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION",26)
+asmlib.SetOpVar("TOOL_VERSION",27)
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL").."/")
 asmlib.SetOpVar("DIRPATH_EXP","exp/")
 asmlib.SetOpVar("DIRPATH_DSV","dsv/")
@@ -24,12 +24,12 @@ asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetLogControl(10000,"")
 
 ------ CONFIGURE CVARS -----
-asmlib.MakeCvar("maxactrad","150" , {1,500}, "Maximum active radius to search for a point ID")
-asmlib.MakeCvar("maxstcnt" ,"200" , {1,200}, "Maximum pieces to spawn in stack mode")
-asmlib.MakeCvar("modedb"   ,"SQL" , nil    , "Database operating mode")
+asmlib.MakeCvar("maxactrad","150" , {1,500},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCvar("maxstcnt" ,"200" , {1,200},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+asmlib.MakeCvar("modedb"   ,"SQL" , nil    ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 if(SERVER) then
-  asmlib.MakeCvar("bnderrmod","1" , {0,4}  , "Unreasonable position error handling mode")
-  asmlib.MakeCvar("maxfruse" ,"50", {1,100}, "Maximum frequent pieces to be listed")
+  asmlib.MakeCvar("bnderrmod","1" , {0,4}  ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
+  asmlib.MakeCvar("maxfruse" ,"50", {1,100},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
 end
 
 ------ CONFIGURE DB MODE -----
@@ -212,7 +212,7 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = {Life = 36, Kill = true}
+  Timer = {Life = 36, Kill = true},
   Index = {{1},{4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -224,7 +224,7 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = {Life = 12, Kill = true}
+  Timer = {Life = 12, Kill = true},
   Index = {{1}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -846,13 +846,14 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 2, "", "-512,0,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 3, "", "-256,-256,7.346", "0,270,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 4, "", "-256,256,7.346", "0,90,0"})
-  asmlib.GsubModelToName({"_crossing","","double_","crossing_"})
+  asmlib.GsubModelToName({"_crossing","","double_","crossing_double_"})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 1, "", "0,128,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 2, "", "-512,128,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 3, "", "0,-128,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 4, "", "-512,-128,7.346", "0,180,0"})
+  asmlib.GsubModelToName({})
   asmlib.InsertRecord({"models/shinji85/train/rail_bumper.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.GsubModelToName({"_bumper","","double_","bumper_"})
+  asmlib.GsubModelToName({"double_bumper","bumper_double"})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_bumper.mdl", "#", "#", 1, "", "0,128,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_bumper.mdl", "#", "#", 2, "", "0,-128,7.346", ""})
   asmlib.GsubModelToName({})
