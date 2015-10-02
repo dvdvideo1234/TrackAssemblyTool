@@ -844,8 +844,7 @@ function BorderValue(nsVal,sName)
         Border = Border[sName]
   if(IsExistent(Border)) then
     if    (nsVal < Border[1]) then return Border[1]
-    elseif(nsVal > Border[2]) then return Border[2]
-    else                           return nsVal end
+    elseif(nsVal > Border[2]) then return Border[2] end
   end
   return nsVal
 end
@@ -860,11 +859,8 @@ function IncDecPointID(nPointID,sDir,rPiece)
   else return StatusLog(nPointID,"IncDecPointID(): Direction <"..sDir.."> mismatch") end
   nPointID = nPointID + nDir
   nPointID = RollValue(nPointID,1,rPiece.Kept)
-  if(rPiece.Offs[nPointID].P[csD]) then
-    nPointID = nPointID + nDir
-  end
-  nPointID = RollValue(nPointID,1,rPiece.Kept)
-  return nPointID
+  if(rPiece.Offs[nPointID].P[csD]) then nPointID = nPointID + nDir end
+  return RollValue(nPointID,1,rPiece.Kept)
 end
 
 function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
@@ -880,11 +876,8 @@ function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
   else return StatusLog(nPnextID,"IncDecPnextID(): Direction <"..sDir.."> mismatch") end
   nPnextID = nPnextID + nDir
   nPnextID = RollValue(nPnextID,1,rPiece.Kept)
-  if(nPnextID == nPointID) then
-    nPnextID = nPnextID + nDir
-  end
-  nPnextID = RollValue(nPnextID,1,rPiece.Kept)
-  return nPnextID
+  if(nPnextID == nPointID) then nPnextID = nPnextID + nDir end
+  return RollValue(nPnextID,1,rPiece.Kept)
 end
 
 function GetPointUpGap(oEnt,hdPoint)
@@ -902,48 +895,64 @@ end
 
 function ModelToName(sModel)
   if(not IsString(sModel)) then return "" end
+  -- If is model remove *.mdl
+  local Cnt = 1
   local Len = string.len(sModel)
+  local sDiv = GetOpVar("OPSYM_DIVIDER")
   if(string.sub(sModel,Len-3,Len) ~= GetOpVar("FILE_MODEL")) then return "" end
   Len = Len - 4
   if(Len <= 0) then return "" end
-  local Cnt = 1
+  local gModel = ""
   local sModel = string.sub(sModel,1,Len)
-  local tMarks = ModelGsubMode()
-  if(tMarks and tMarks[1] and (ArrayCount(tMarks)%2 == 0)) then
-    while(tMarks[Cnt]) do
-      sModel = string.gsub(sModel,tMarks[Cnt],tMarks[Cnt+1])
-      Cnt = Cnt + 2
-    end
-  end
-  local Fch = ""
-  Cnt = Len
+  -- Locate the model part and exclude the directories
+  Cnt = string.len(sModel)
+  local fCh, bCh = "", ""
   while(Cnt > 0) do
-    Fch = string.sub(sModel,Cnt,Cnt)
-    if(Fch == '/') then
+    fCh = string.sub(sModel,Cnt,Cnt)
+    if(fCh == '/') then
       break
     end
     Cnt = Cnt - 1
   end
-  local Div = GetOpVar("OPSYM_DIVIDER")
-  local Sub = Div..string.sub(sModel,Cnt+1,Len)
-  local Rez = ""
-  local Bch = ""
-  Len = string.len(Sub)
+  sModel = string.sub(sModel,Cnt+1,Len)
+  -- Remove the unneeded parts by indexing sModel
   Cnt = 1
+  gModel = sModel
+  local tMarks = GcutModelToName()
+  if(tMarks and tMarks[1]) then
+    while(tMarks[Cnt] and tMarks[Cnt+1]) do
+      gModel = string.gsub(gModel,string.sub(sModel,tMarks[Cnt],tMarks[Cnt+1]),"")
+      Cnt = Cnt + 2
+    end
+    Cnt = 1
+  end
+  -- Replace the unneeded parts by finding an in-string gModel
+  tMarks = GsubModelToName()
+  if(tMarks and tMarks[1]) then
+    while(tMarks[Cnt]) do
+      gModel = string.gsub(gModel,(tMarks[Cnt] or ""),(tMarks[Cnt+1] or ""))
+      Cnt = Cnt + 2
+    end
+    Cnt = 1
+  end
+  -- Trigger the capital-space using the divider
+  sModel = sDiv..gModel
+  Len = string.len(sModel)
+  fCh, bCh, gModel = "", "", ""
   while(Cnt <= Len) do
-    Bch = string.sub(Sub,Cnt,Cnt)
-    Cha = string.sub(Sub,Cnt+1,Cnt+1)
-    if(Bch == Div) then
-       Bch = " "
-       Cha = string.upper(Cha)
-       Rez = Rez..Bch..Cha
+    bCh = string.sub(sModel,Cnt,Cnt)
+    fCh = string.sub(sModel,Cnt+1,Cnt+1)
+    if(bCh == sDiv) then
+       bCh = " "
+       fCh = string.upper(fCh)
+       gModel = gModel..bCh..fCh
        Cnt = Cnt + 1
     else
-      Rez = Rez..Bch
+      gModel = gModel..bCh
     end
     Cnt = Cnt + 1
   end
-  return string.sub(Rez,2,Len)
+  return string.sub(gModel,2,Len)
 end
 
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
@@ -1478,11 +1487,35 @@ end
 
 ------------- Variable Interfaces --------------
 
+function GsubModelToName(tGsub)
+  if(not IsExistent(tGsub)) then
+    return GetOpVar("TABLE_GSUB_MODEL") or ""
+  end
+  SetOpVar("TABLE_GSUB_MODEL",tGsub)
+end
+
+function GcutModelToName(tGcut)
+  if(not IsExistent(tGcut)) then
+    return GetOpVar("TABLE_GCUT_MODEL") or ""
+  end
+  SetOpVar("TABLE_GCUT_MODEL",tGcut)
+end
+
+local function SQLBuildError(anyError)
+  if(not IsExistent(anyError)) then
+    return GetOpVar("SQL_BUILD_ERR") or ""
+  end
+  SetOpVar("SQL_BUILD_ERR", tostring(anyError))
+  return false
+end
+
 function DefaultType(anyType)
   if(not IsExistent(anyType)) then
     return GetOpVar("DEFAULT_TYPE") or ""
   end
   SetOpVar("DEFAULT_TYPE",tostring(anyType))
+  GcutModelToName({})
+  GsubModelToName({})
 end
 
 function DefaultTable(anyTable)
@@ -1490,22 +1523,8 @@ function DefaultTable(anyTable)
     return GetOpVar("DEFAULT_TABLE") or ""
   end
   SetOpVar("DEFAULT_TABLE",anyTable)
-end
-
-function ModelGsubMode(tGsub)
-  if(not IsExistent(tGsub)) then
-    return GetOpVar("TABLE_GSUB_MODEL") or ""
-  end
-  SetOpVar("TABLE_GSUB_MODEL",tGsub)
-end
-
-
-local function SQLBuildErr(anyError)
-  if(not IsExistent(anyError)) then
-    return GetOpVar("SQL_BUILD_ERR") or ""
-  end
-  SetOpVar("SQL_BUILD_ERR", tostring(anyError))
-  return false
+  GcutModelToName({})
+  GsubModelToName({})
 end
 
 --------------------- USAGES --------------------
@@ -1715,17 +1734,17 @@ end
 
 local function SQLBuildCreate(defTable)
   if(not defTable) then
-    return SQLBuildErr("SQLBuildCreate(): Missing: Table definition")
+    return SQLBuildErroror("SQLBuildCreate(): Missing: Table definition")
   end
   local namTable   = defTable.Name
   local TableIndex = defTable.Index
   if(not defTable[1]) then
-    return SQLBuildErr("SQLBuildCreate(): Missing: Table definition is empty for "..namTable)
+    return SQLBuildError("SQLBuildCreate(): Missing: Table definition is empty for "..namTable)
   end
   if(not (defTable[1][1] and
           defTable[1][2])
   ) then
-    return SQLBuildErr("SQLBuildCreate(): Missing: Table "..namTable.." field definitions")
+    return SQLBuildError("SQLBuildCreate(): Missing: Table "..namTable.." field definitions")
   end
   local Ind = 1
   local Command  = {}
@@ -1735,11 +1754,11 @@ local function SQLBuildCreate(defTable)
   while(defTable[Ind]) do
     local v = defTable[Ind]
     if(not v[1]) then
-      return SQLBuildErr("SQLBuildCreate(): Missing Table "..namTable
+      return SQLBuildError("SQLBuildCreate(): Missing Table "..namTable
                           .."'s field #"..tostring(Ind))
     end
     if(not v[2]) then
-      return SQLBuildErr("SQLBuildCreate(): Missing Table "..namTable
+      return SQLBuildError("SQLBuildCreate(): Missing Table "..namTable
                                   .."'s field type #"..tostring(Ind))
     end
     Command.Create = Command.Create..string.upper(v[1]).." "..string.upper(v[2])
@@ -1761,7 +1780,7 @@ local function SQLBuildCreate(defTable)
     while(TableIndex[Ind]) do
       local vI = TableIndex[Ind]
       if(type(vI) ~= "table") then
-        return SQLBuildErr("SQLBuildCreate(): Index creator mismatch on "
+        return SQLBuildError("SQLBuildCreate(): Index creator mismatch on "
           ..namTable.." value "..vI.." is not a table for index ["..tostring(Ind).."]")
       end
       local FieldsU = ""
@@ -1771,12 +1790,12 @@ local function SQLBuildCreate(defTable)
       while(vI[Cnt]) do
         local vF = vI[Cnt]
         if(type(vF) ~= "number") then
-          return SQLBuildErr("SQLBuildCreate(): Index creator mismatch on "
+          return SQLBuildError("SQLBuildCreate(): Index creator mismatch on "
             ..namTable.." value "..vF.." is not a number for index ["
             ..tostring(Ind).."]["..tostring(Cnt).."]")
         end
         if(not defTable[vF]) then
-          return SQLBuildErr("SQLBuildCreate(): Index creator mismatch on "
+          return SQLBuildError("SQLBuildCreate(): Index creator mismatch on "
             ..namTable..". The table does not have field index #"
             ..vF..", max is #"..Table.Size)
         end
@@ -1791,7 +1810,7 @@ local function SQLBuildCreate(defTable)
       Ind = Ind + 1
     end
   end
-  SQLBuildErr("")
+  SQLBuildError("")
   return Command
 end
 
@@ -1902,17 +1921,17 @@ end
 
 local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   if(not defTable) then
-    return SQLBuildErr("SQLBuildSelect(): Missing: Table definition")
+    return SQLBuildError("SQLBuildSelect(): Missing: Table definition")
   end
   local namTable = defTable.Name
   if(not (defTable[1][1] and
           defTable[1][2])
   ) then
-    return SQLBuildErr("SQLBuildSelect(): Missing: Table "..namTable.." field definitions")
+    return SQLBuildError("SQLBuildSelect(): Missing: Table "..namTable.." field definitions")
   end
   local Command = SQLStoreQuery(defTable,tFields,tWhere,tOrderBy)
   if(Command) then
-    SQLBuildErr("")
+    SQLBuildError("")
     return Command
   end
   local Cnt = 1
@@ -1921,7 +1940,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])
       if(not v) then
-        return SQLBuildErr("SQLBuildSelect(): Select index #"
+        return SQLBuildError("SQLBuildSelect(): Select index #"
           ..tostring(tFields[Cnt])
           .." type mismatch in "..namTable)
       end
@@ -1929,7 +1948,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
         if(defTable[v][1]) then
           Command = Command..defTable[v][1]
         else
-          return SQLBuildErr("SQLBuildSelect(): Select no such field name by index #"
+          return SQLBuildError("SQLBuildSelect(): Select no such field name by index #"
             ..v.." in the table "..namTable)
         end
       end
@@ -1956,13 +1975,13 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       v = tWhere[Cnt][2]
       t = defTable[k][2]
       if(not (k and v and t) ) then
-        return SQLBuildErr("SQLBuildSelect(): Where clause inconsistent on "
+        return SQLBuildError("SQLBuildSelect(): Where clause inconsistent on "
           ..namTable.." field index, {"..tostring(k)..", "..tostring(v)..", "..tostring(t)
           .."} value or type in the table definition")
       end
       v = MatchType(defTable,v,k,true)
       if(not IsExistent(v)) then
-        return SQLBuildErr("SQLBuildSelect(): Data matching failed on "
+        return SQLBuildError("SQLBuildSelect(): Data matching failed on "
           ..namTable.." field index #"..Cnt.." value >"..tostring(v).."<")
       end
       if(Cnt == 1) then
@@ -1987,7 +2006,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
           v = -v
         end
       else
-        return SQLBuildErr("SQLBuildSelect(): Order wrong for "..namTable
+        return SQLBuildError("SQLBuildSelect(): Order wrong for "..namTable
                               .." field index #"..Cnt)
       end
         Command = Command..defTable[v][1]..Dire
@@ -1997,22 +2016,22 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       Cnt = Cnt + 1
     end
   end
-  SQLBuildErr("")
+  SQLBuildError("")
   return SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,Command..";")
 end
 
 local function SQLBuildInsert(defTable,tInsert,tValues)
   if(not (defTable and tValues)) then
-    return SQLBuildErr("SQLBuildInsert(): Missing Table definition or value fields")
+    return SQLBuildError("SQLBuildInsert(): Missing Table definition or value fields")
   end
   local namTable = defTable.Name
   if(not defTable[1]) then
-    return SQLBuildErr("SQLBuildInsert(): The table and the chosen fields must not be empty")
+    return SQLBuildError("SQLBuildInsert(): The table and the chosen fields must not be empty")
   end
   if(not (defTable[1][1] and
           defTable[1][2])
   ) then
-    return SQLBuildErr("SQLBuildInsert(): Missing: Table "..namTable.." field definition")
+    return SQLBuildError("SQLBuildInsert(): Missing: Table "..namTable.." field definition")
   end
   local tInsert = tInsert or {}
   if(not tInsert[1]) then
@@ -2030,11 +2049,11 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
     Ind = tInsert[iCnt]
     Fld = defTable[Ind]
     if(not IsExistent(Fld)) then
-      return SQLBuildErr("SQLBuildInsert(): No such field #"..Ind.." on table "..namTable)
+      return SQLBuildError("SQLBuildInsert(): No such field #"..Ind.." on table "..namTable)
     end
     Val = MatchType(defTable,tValues[iCnt],Ind,true)
     if(not IsExistent(Val)) then
-      return SQLBuildErr("SQLBuildInsert(): Cannot match value >"..tostring(tValues[iCnt]).."< #"..Ind.." on table "..namTable)
+      return SQLBuildError("SQLBuildInsert(): Cannot match value >"..tostring(tValues[iCnt]).."< #"..Ind.." on table "..namTable)
     end
     qIns = qIns..Fld[1]
     qVal = qVal..Val
@@ -2047,7 +2066,7 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
     end
     iCnt = iCnt + 1
   end
-  SQLBuildErr("")
+  SQLBuildError("")
   return qIns..qVal
 end
 
@@ -2118,7 +2137,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
         end
       end
     else
-      return StatusLog(false,"CreateTable(): "..SQLBuildErr())
+      return StatusLog(false,"CreateTable(): "..SQLBuildError())
     end
   elseif(sModeDB == "LUA") then
     defTable.Life = 0
@@ -2166,7 +2185,7 @@ function InsertRecord(sTable,tData)
   local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,tData)
-    if(Q) then return StatusLog(false,"InsertRecord(): "..SQLBuildErr()) end
+    if(Q) then return StatusLog(false,"InsertRecord(): "..SQLBuildError()) end
     local qRez = sql.Query(Q)
     if(qRez == false) then
        return StatusLog(false,"InsertRecord(): Failed to insert a record because of "
@@ -2348,7 +2367,7 @@ function CacheQueryPiece(sModel)
       stPiece = Cache[sModel]
       stPiece.Kept = 0
       local Q = SQLBuildSelect(defTable,nil,{{1,sModel}})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece(): "..SQLBuildErr()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece(): "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece(): No data found >"..Q.."<") end
       stPiece.Kept = 1 --- Found at least one record
@@ -2416,7 +2435,7 @@ function CacheQueryAdditions(sModel)
       stAddition = Cache[sModel]
       stAddition.Kept = 0
       local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11},{{1,sModel}},{3})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions(): "..SQLBuildErr()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions(): "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryAdditions(): No data found >"..Q.."<") end
       stAddition.Kept = 1
@@ -2462,7 +2481,7 @@ function CacheQueryPanel()
     local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel(): "..SQLBuildErr()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel(): "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel(): No data found >"..Q.."<") end
       local iNdex = 1
@@ -2514,7 +2533,7 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
-        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): "..SQLBuildErr()) end
+        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty("..sType.."): No data found >"..Q.."<") end
         local qRec
@@ -2539,7 +2558,7 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
-        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty(): "..SQLBuildErr()) end
+        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty(): "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty(): No data found >"..Q.."<") end
         local qRec
@@ -2702,7 +2721,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     else
       Q = SQLBuildSelect(defTable,nil,nil,nil)
     end
-    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile(): "..SQLBuildErr()) end
+    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile(): "..SQLBuildError()) end
     F:Write("# Query ran: >"..Q.."<\n")
     local qData = sql.Query(Q)
     if(not (qData and qData[1])) then return StatusLog(false,"ExportIntoFile(): No data found >"..Q.."<") end
