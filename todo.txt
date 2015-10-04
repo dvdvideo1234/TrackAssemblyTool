@@ -1,0 +1,8 @@
+Fix inporting error
+
+[ERROR] addons/trackassemblytool_git/lua/trackassembly/trackasmlib.lua:920: bad argument #2 to 'sub' (number expected, got string)
+  1. sub - [C]:-1
+   2. ModelToName - addons/trackassemblytool_git/lua/trackassembly/trackasmlib.lua:920
+    3. InsertRecord - addons/trackassemblytool_git/lua/trackassembly/trackasmlib.lua:2186
+     4. ImportFromDSV - addons/trackassemblytool_git/lua/trackassembly/trackasmlib.lua:2675
+      5. unknown - addons/trackassemblytool_git/lua/autorun/trackassembly_init.lua:251
