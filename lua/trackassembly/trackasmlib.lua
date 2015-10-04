@@ -1743,7 +1743,7 @@ end
 
 local function SQLBuildCreate(defTable)
   if(not defTable) then
-    return SQLBuildErroror("SQLBuildCreate(): Missing: Table definition")
+    return SQLBuildError("SQLBuildCreate(): Missing: Table definition")
   end
   local namTable   = defTable.Name
   local TableIndex = defTable.Index
@@ -2101,52 +2101,49 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   if(sModeDB == "SQL") then
     defTable.Life = tonumber(defTable.Life) or 0
     local tQ = SQLBuildCreate(defTable)
-    if(tQ) then
-      if(bDelete and sql.TableExists(namTable)) then
-        local qRez = sql.Query(tQ.Delete)
-        if(not qRez and type(qRez) == "boolean") then
-          LogInstance("CreateTable(): Table "..sTable
-            .." is not present. Skipping delete !")
-        else
-          LogInstance("CreateTable(): Table "..sTable.." deleted !")
-        end
+    if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable(): "..SQLBuildError()) end
+    if(bDelete and sql.TableExists(namTable)) then
+      local qRez = sql.Query(tQ.Delete)
+      if(not qRez and type(qRez) == "boolean") then
+        LogInstance("CreateTable(): Table "..sTable
+          .." is not present. Skipping delete !")
+      else
+        LogInstance("CreateTable(): Table "..sTable.." deleted !")
       end
-      if(bReload) then
-        local qRez = sql.Query(tQ.Drop)
-        if(not qRez and type(qRez) == "boolean") then
-          LogInstance("CreateTable(): Table "..sTable
-            .." is not present. Skipping drop !")
-        else
-          LogInstance("CreateTable(): Table "..sTable.." dropped !")
-        end
+    end
+    if(bReload) then
+      local qRez = sql.Query(tQ.Drop)
+      if(not qRez and type(qRez) == "boolean") then
+        LogInstance("CreateTable(): Table "..sTable
+          .." is not present. Skipping drop !")
+      else
+        LogInstance("CreateTable(): Table "..sTable.." dropped !")
+      end
+    end
+    if(sql.TableExists(namTable)) then
+      LogInstance("CreateTable(): Table "..sTable.." exists!")
+      return true
+    else
+      local qRez = sql.Query(tQ.Create)
+      if(not qRez and type(qRez) == "boolean") then
+        return StatusLog(false,"CreateTable(): Table "..sTable
+          .." failed to create because of "..tostring(sql.LastError()))
       end
       if(sql.TableExists(namTable)) then
-        LogInstance("CreateTable(): Table "..sTable.." exists!")
-        return true
-      else
-        local qRez = sql.Query(tQ.Create)
-        if(not qRez and type(qRez) == "boolean") then
-          return StatusLog(false,"CreateTable(): Table "..sTable
-            .." failed to create because of "..tostring(sql.LastError()))
-        end
-        if(sql.TableExists(namTable)) then
-          for k, v in pairs(tQ.Index) do
-            qRez = sql.Query(v)
-            if(not qRez and type(qRez) == "boolean") then
-              return StatusLog(false,"CreateTable(): Table "..sTable
-                .." failed to create index ["..k.."] > "..v .." > because of "
-                ..tostring(sql.LastError()))
-            end
+        for k, v in pairs(tQ.Index) do
+          qRez = sql.Query(v)
+          if(not qRez and type(qRez) == "boolean") then
+            return StatusLog(false,"CreateTable(): Table "..sTable
+              .." failed to create index ["..k.."] > "..v .." > because of "
+              ..tostring(sql.LastError()))
           end
-          return StatusLog(true,"CreateTable(): Indexed Table "..sTable.." created !")
-        else
-          return StatusLog(false,"CreateTable(): Table "..sTable
-            .." failed to create because of "..tostring(sql.LastError())
-            .." Query ran > "..tQ.Create)
         end
+        return StatusLog(true,"CreateTable(): Indexed Table "..sTable.." created !")
+      else
+        return StatusLog(false,"CreateTable(): Table "..sTable
+          .." failed to create because of "..tostring(sql.LastError())
+          .." Query ran > "..tQ.Create)
       end
-    else
-      return StatusLog(false,"CreateTable(): "..SQLBuildError())
     end
   elseif(sModeDB == "LUA") then
     defTable.Life = 0
@@ -2194,7 +2191,7 @@ function InsertRecord(sTable,tData)
   local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,tData)
-    if(Q) then return StatusLog(false,"InsertRecord(): "..SQLBuildError()) end
+    if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord(): "..SQLBuildError()) end
     local qRez = sql.Query(Q)
     if(qRez == false) then
        return StatusLog(false,"InsertRecord(): Failed to insert a record because of "
@@ -2493,7 +2490,7 @@ function CacheQueryPanel()
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel(): No data found >"..Q.."<") end
       local iNdex = 1
       while(qData[iNdex]) do
-        Panel[iNdex] = tData[iNdex]
+        Panel[iNdex] = qData[iNdex]
         iNdex = iNdex + 1
       end
     elseif(sModeDB == "LUA") then

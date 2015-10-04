@@ -1,8 +1,0 @@
-# Exported on: 05/31/15 10:01:06
-# Table: TRACKASSEMBLY_ADDITIONS	MODELBASE	MODELADD	ENTCLASS	SETSOLID	MOVETYPE	PHYSINIT	DRSHADOW	PHMOTION	PHYSLEEP	TIMTIME	TIMSOLID	POSOFF	ANGOFF
-TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_l_switch.mdl	models/shinji85/train/rail_l_switcher1.mdl	prop_dynamic	6	6	6	-1	1	1	0.0	6	NULL	NULL
-TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_l_switch.mdl	models/shinji85/train/rail_l_switcher2.mdl	prop_dynamic	6	6	6	-1	-1	-1	0.0	0	NULL	NULL
-TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_l_switch.mdl	models/shinji85/train/sw_lever.mdl	buttonswitch	-1	-1	-1	-1	-1	-1	0.0	6	-100,-125,0	0,180,0
-TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_r_switch.mdl	models/shinji85/train/rail_r_switcher1.mdl	prop_dynamic	6	6	6	-1	1	1	0.0	6	NULL	NULL
-TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_r_switch.mdl	models/shinji85/train/rail_r_switcher2.mdl	prop_dynamic	6	6	6	-1	-1	-1	0.0	0	NULL	NULL
-TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_r_switch.mdl	models/shinji85/train/sw_lever.mdl	buttonswitch	-1	-1	-1	-1	-1	-1	0.0	6	-100,125,0	NULL
