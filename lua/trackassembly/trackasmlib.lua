@@ -136,7 +136,7 @@ function GetInstPref()
 end
 
 function PrintInstance(anyStuff)
-  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = GetOpVar("MODE_DATABASE")
   if(SERVER) then
     print("SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   elseif(CLIENT) then
@@ -1004,7 +1004,7 @@ local function StringPOA(arOffs,iID,sOffs)
   local sOffset = tostring(sOffs)
   local symRevs = GetOpVar("OPSYM_REVSIGN")
   local symDisa = GetOpVar("OPSYM_DISABLE")
-  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = GetOpVar("MODE_DATABASE")
   if    (sModeDB == "SQL") then sEmpty = "NULL"
   elseif(sModeDB == "LUA") then sEmpty = ""
   else return StatusLog("","StringPOA: Missed database mode "..sModeDB)
@@ -1257,7 +1257,7 @@ function Log(anyStuff)
 end
 
 function LogInstance(anyStuff)
-  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = GetOpVar("MODE_DATABASE")
   if(SERVER) then
     Log("SERVER > ["..sModeDB.."] "..tostring(anyStuff))
   elseif(CLIENT) then
@@ -1704,7 +1704,7 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise)
   end
   local snOut
   local tipField = tostring(defField[2])
-  local sModeDB  = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB  = GetOpVar("MODE_DATABASE")
   if(tipField == "TEXT") then
     snOut = tostring(snValue)
     if(snOut == "nil" or snOut == "") then
@@ -2101,7 +2101,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   if(not (type(defTable) == "table")) then return StatusLog(false,"CreateTable(): Table definition missing for "..sTable) end
   defTable.Size = ArrayCount(defTable)
   if(defTable.Size <= 0) then return StatusLog(false,"CreateTable(): Record definition empty for "..sTable) end
-  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = GetOpVar("MODE_DATABASE")
   local sTable  = string.upper(sTable)
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
   SetOpVar("DEFTABLE_"..sTable,defTable)
@@ -2205,7 +2205,7 @@ function InsertRecord(sTable,tData)
     tData[1] = StringDisable(tData[1],DefaultType(),"TYPE")
   end
 
-  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,tData)
     if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord(): "..SQLBuildError()) end
@@ -2383,7 +2383,7 @@ function CacheQueryPiece(sModel)
     end
     return nil
   else
-    local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+    local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryPiece(): Model >> Pool: "..GetModelFileName(sModel))
       Cache[sModel] = {}
@@ -2450,7 +2450,7 @@ function CacheQueryAdditions(sModel)
     end
     return nil
   else
-    local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+    local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryAdditions: Model >> Pool: "..GetModelFileName(sModel))
       Cache[sModel] = {}
@@ -2501,7 +2501,7 @@ function CacheQueryPanel()
   else
     LibCache[PanelKey] = {}
     Panel = LibCache[PanelKey]
-    local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+    local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel(): "..SQLBuildError()) end
@@ -2545,7 +2545,7 @@ function CacheQueryProperty(sType)
   if(not Cache) then
     return StatusLog(nil,"CacheQueryProperty("..tostring(sType).."): Cache not allocated for "..namTable)
   end
-  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and (sType ~= "")) then -- Get names per type
     local CacheKey = GetOpVar("HASH_PROPERTY_NAMES")
     if(not Cache[CacheKey]) then Cache[CacheKey] = {} end
@@ -2733,7 +2733,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   if(not F) then return StatusLog(false,"ExportIntoFile(): file.Open("..fName..") Failed") end
   local sData = ""
   local sTemp = ""
-  local sModeDB = tostring(GetOpVar("MODE_DATABASE"))
+  local sModeDB = GetOpVar("MODE_DATABASE")
   F:Write("# ExportIntoFile( "..sMethod.." ): "..os.date().." [ "..sModeDB.." ]".."\n")
   F:Write("# Data settings: "..GetFieldsName(defTable,sDelim).."\n")
   if(sModeDB == "SQL") then

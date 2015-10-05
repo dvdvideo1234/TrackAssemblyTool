@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION",32)
+asmlib.SetOpVar("TOOL_VERSION",33)
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL").."/")
 asmlib.SetOpVar("DIRPATH_EXP","exp/")
 asmlib.SetOpVar("DIRPATH_DSV","dsv/")
@@ -33,7 +33,7 @@ if(SERVER) then
 end
 
 ------ CONFIGURE DB MODE -----
-asmlib.SetOpVar("MODE_DATABASE",asmlib.GetCvar("modedb","STR"))
+asmlib.SetOpVar("MODE_DATABASE",tostring(asmlib.GetCvar("modedb","STR")))
 
 ------ GLOBAL VARIABLES ------
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
