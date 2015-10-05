@@ -157,6 +157,18 @@ A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
 N: The error is logged if the logs are enabled !
    ( See:  Hay, how should I proceed when I am experiencing errors points 10 - 12 ).
 
+Q: Hay, you said that we can switch the tool database between Lua or SQL. Is it working yet ?
+   I want to use Lua mode, because I've got third-party SQLite server. How can I switch to Lua mode ?
+A: You can do the following:
+   1) Bring up the console and write "trackassembly_modedb LUA" ( or "SQL" respectively without the quotes )
+   2) Press Enter
+   3) Restart Gmod
+   4) Done. You are now in LUA/SQL mode.
+N: SQL is still the best option for using the tool with, because only
+   small amount of models have to stay in the cache for a given amount
+   of time, rather than the whole database forever ( till the server is up that is .. ),
+   so please use SQL mode when possible if you want to save some amount of RAM.
+   
 Q: May I PUT this thing in another third party website ?
 A: No I will not give you my permission to do that... Why ...
    That way you will upload some half-baked tool, waste your time with stupid
