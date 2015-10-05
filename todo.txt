@@ -1,4 +1,4 @@
-Fix inporting error
+Fix importing error
 
 [ERROR] addons/trackassemblytool_git/lua/trackassembly/trackasmlib.lua:920: bad argument #2 to 'sub' (number expected, got string)
   1. sub - [C]:-1

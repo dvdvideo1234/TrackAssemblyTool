@@ -176,6 +176,12 @@ function IsString(anyValue)
   return false
 end
 
+function IsBool(anyArg)
+  if    ( anyArg == true) then return true
+  elseif(anyArg == false) then return true end
+  return false
+end
+
 function InitAssembly(sName)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   SetOpVar("TYPEMT_SCREEN",{})
@@ -2104,7 +2110,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable(): "..SQLBuildError()) end
     if(bDelete and sql.TableExists(namTable)) then
       local qRez = sql.Query(tQ.Delete)
-      if(not qRez and type(qRez) == "boolean") then
+      if(not qRez and IsBool(qRez)) then
         LogInstance("CreateTable(): Table "..sTable
           .." is not present. Skipping delete !")
       else
@@ -2113,7 +2119,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     end
     if(bReload) then
       local qRez = sql.Query(tQ.Drop)
-      if(not qRez and type(qRez) == "boolean") then
+      if(not qRez and IsBool(qRez)) then
         LogInstance("CreateTable(): Table "..sTable
           .." is not present. Skipping drop !")
       else
@@ -2125,14 +2131,14 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       return true
     else
       local qRez = sql.Query(tQ.Create)
-      if(not qRez and type(qRez) == "boolean") then
+      if(not qRez and IsBool(qRez)) then
         return StatusLog(false,"CreateTable(): Table "..sTable
           .." failed to create because of "..tostring(sql.LastError()))
       end
       if(sql.TableExists(namTable)) then
         for k, v in pairs(tQ.Index) do
           qRez = sql.Query(v)
-          if(not qRez and type(qRez) == "boolean") then
+          if(not qRez and IsBool(qRez)) then
             return StatusLog(false,"CreateTable(): Table "..sTable
               .." failed to create index ["..k.."] > "..v .." > because of "
               ..tostring(sql.LastError()))
@@ -2193,7 +2199,7 @@ function InsertRecord(sTable,tData)
     local Q = SQLBuildInsert(defTable,nil,tData)
     if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord(): "..SQLBuildError()) end
     local qRez = sql.Query(Q)
-    if(qRez == false) then
+    if(not qRez and IsBool(qRez)) then
        return StatusLog(false,"InsertRecord(): Failed to insert a record because of "
               ..tostring(sql.LastError()).." Query ran >"..Q.."<")
     end
@@ -2375,6 +2381,7 @@ function CacheQueryPiece(sModel)
       local Q = SQLBuildSelect(defTable,nil,{{1,sModel}})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece(): "..SQLBuildError()) end
       local qData = sql.Query(Q)
+      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPiece(): SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece(): No data found >"..Q.."<") end
       stPiece.Kept = 1 --- Found at least one record
       stPiece.Offs = {}
@@ -2441,6 +2448,7 @@ function CacheQueryAdditions(sModel)
       local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11},{{1,sModel}},{3})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions(): "..SQLBuildError()) end
       local qData = sql.Query(Q)
+      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryAdditions(): SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryAdditions(): No data found >"..Q.."<") end
       stAddition.Kept = 1
       while(qData[stAddition.Kept]) do
@@ -2487,6 +2495,7 @@ function CacheQueryPanel()
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel(): "..SQLBuildError()) end
       local qData = sql.Query(Q)
+      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPanel(): SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel(): No data found >"..Q.."<") end
       local iNdex = 1
       while(qData[iNdex]) do
@@ -2539,6 +2548,7 @@ function CacheQueryProperty(sType)
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): "..SQLBuildError()) end
         local qData = sql.Query(Q)
+        if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty(): SQL exec error "..sql.LastError()) end
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty("..sType.."): No data found >"..Q.."<") end
         local qRec
         local CntNam = 1
@@ -2564,6 +2574,7 @@ function CacheQueryProperty(sType)
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty(): "..SQLBuildError()) end
         local qData = sql.Query(Q)
+        if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty(): SQL exec error "..sql.LastError()) end
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty(): No data found >"..Q.."<") end
         local qRec
         local CntTyp = 1
@@ -2728,6 +2739,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile(): "..SQLBuildError()) end
     F:Write("# Query ran: >"..Q.."<\n")
     local qData = sql.Query(Q)
+    if(not qData and IsBool(qData)) then return StatusLog(nil,"ExportIntoFile(): SQL exec error "..sql.LastError()) end
     if(not (qData and qData[1])) then return StatusLog(false,"ExportIntoFile(): No data found >"..Q.."<") end
     local iCnt, iInd, qRec = 1, 1, nil
     if(sMethod == "DSV") then
