@@ -923,7 +923,13 @@ function ModelToName(sModel)
   local tMarks = GcutModelToName()
   if(tMarks and tMarks[1]) then
     while(tMarks[Cnt] and tMarks[Cnt+1]) do
-      gModel = string.gsub(gModel,string.sub(sModel,tMarks[Cnt],tMarks[Cnt+1]),"")
+      fCh = tonumber(tMarks[Cnt])
+      bCh = tonumber(tMarks[Cnt+1])
+      if(not (fCh and bCh)) then
+        return StatusLog("","ModelToName(): Cannot cut the model in {"
+                 ..tostring(tMarks[Cnt])..", "..tostring(tMarks[Cnt+1]).."} for "..sModel)
+      end
+      gModel = string.gsub(gModel,string.sub(sModel,fCh,bCh),"")
       Cnt = Cnt + 2
     end
     Cnt = 1
@@ -932,7 +938,12 @@ function ModelToName(sModel)
   tMarks = GsubModelToName()
   if(tMarks and tMarks[1]) then
     while(tMarks[Cnt]) do
-      gModel = string.gsub(gModel,(tMarks[Cnt] or ""),(tMarks[Cnt+1] or ""))
+      fCh = tostring(tMarks[Cnt] or "")
+      bCh = tostring(tMarks[Cnt+1] or "")
+      if(fCh and bCh)) then
+        return StatusLog("","ModelToName(): Cannot sub the model in {"..fCh..", "..bCh.."}")
+      end
+      gModel = string.gsub(gModel,fCh,bCh)
       Cnt = Cnt + 2
     end
     Cnt = 1
