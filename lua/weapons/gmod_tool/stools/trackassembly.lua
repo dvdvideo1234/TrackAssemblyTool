@@ -326,7 +326,7 @@ function TOOL:LeftClick(Trace)
                             Trace.HitPos[cvY] + nexty,
                             Trace.HitPos[cvZ] - (Trace.HitNormal.z * vBBMin.z) + nextz)
         vPos:Add(vOffset)
-        if(ePiece:SetBoundPos(vPos,ply,bnderrmod,"Additional Error INFO"
+        if(SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -339,7 +339,7 @@ function TOOL:LeftClick(Trace)
           stSpawn.SPos:Add(asmlib.GetPointUpGap(ePiece,
             stSpawn.HRec.Offs[pointid]) * Trace.HitNormal)
         end
-        if(ePiece:SetBoundPos(stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        if(SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -347,7 +347,7 @@ function TOOL:LeftClick(Trace)
         ePiece:SetAngles(stSpawn.SAng)
       end
       undo.Create(gsUndoPrefN..fnmodel.." ( World spawn )")
-      ePiece:Anchor(nil,weld,nocolld,freeze,wgnd,engravity,physmater)
+      asmlib.AnchorPiece(ePiece,nil,weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
       undo.AddEntity(ePiece)
       undo.SetPlayer(ply)
@@ -405,14 +405,9 @@ function TOOL:LeftClick(Trace)
     undo.Create(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
     ePieceO = trEnt
     while(iNdex > 0) do
-      if(iNdex ~= count) then
-        ePieceN = ePieceO:Duplicate()
-      else -- Do not Clone the new from the old as the trace is spawned via the Q menu
-        ePieceN = asmlib.MakePiece(model,ePieceO:GetPos(),
-                    ANG_ZERO,mass,bgskids,DDyes:Select("w"))
-      end
+      ePieceN = asmlib.DuplicatePiece(ePieceO)
       if(ePieceN) then
-        if(ePieceN:SetBoundPos(stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        if(SetBoundPosPiece(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Stacking piece position out of map bounds"
           .."\n   Iterats: "..tostring(count-iNdex)
           .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
@@ -426,7 +421,7 @@ function TOOL:LeftClick(Trace)
           return true
         end
         ePieceN:SetAngles(stSpawn.SAng)
-        ePieceN:Anchor(ePieceO,weld,nocolld,freeze,wgnd,engravity,physmater)
+        asmlib.AnchorPiece(ePieceN,ePieceO,weld,nocolld,freeze,wgnd,engravity,physmater)
         if(iNdex == count) then
           if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
             ePieceN:Remove()
@@ -495,14 +490,14 @@ function TOOL:LeftClick(Trace)
     local ePiece = asmlib.MakePiece(model,Trace.HitPos,
                      ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
-      if(ePiece:SetBoundPos(stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+      if(SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
         .."\n   Event  : Spawn one piece relative to another"
         .."\n   Player : "..ply:GetName()
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       undo.Create(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      ePiece:Anchor(trEnt,weld,nocolld,freeze,wgnd,engravity,physmater)
+      asmlib.AnchorPiece(ePiece,trEnt,weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
       undo.AddEntity(ePiece)
       undo.SetPlayer(ply)

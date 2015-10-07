@@ -227,5 +227,23 @@ end
 
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
-  return MakePiece(sModel,vPos,aAng,nMass or 50000,sBgpID or "",Color(nR or 255, nG or 255, nB or 255, nA or 255)))
+  return asmlib.MakePiece(sModel,vPos,aAng,nMass or 50000,sBgpID or "",Color(nR or 255, nG or 255, nB or 255, nA or 255)))
+end
+
+__e2setcost(50)
+e2function entity entity:trackasmlibDuplicatePiece(vector vPos, angle aAng)
+  if(not (this and this:IsValid())) then return nil end
+  local sModel = string.lower(this:GetModel())
+  local stRecord = asmlib.CacheQueryAdditions(sModel)
+  if(not stRecord) then return nil end
+  local sBgpID  = asmlib.GetPropBodyGrp(this)..GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
+  return asmlib.MakePiece(sModel,vPos,aAng,this:GetMass(),sBgpID,this:GetColor())
+end
+
+__e2setcost(15)
+e2function entity entity:trackasmlibAnchorPiece(entity eBase,number nWe,number nNc,number nFr,number nWg,number nGr,number sPh)
+  if(not (this and this:IsValid())) then return nil end
+  local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
+  if(not stRecord) then return nil end
+  return asmlib.AnchorPiece(this,eBase,nWe,nNc,nFr,nWg,nGr,sPh) and 1 or 0
 end

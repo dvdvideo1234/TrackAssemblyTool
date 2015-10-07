@@ -3285,124 +3285,130 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     ePiece:PhysWake()
     local phPiece = ePiece:GetPhysicsObject()
     if(phPiece and phPiece:IsValid()) then
-      local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-      local IDs = StringExplode(sBgSkIDs,sSymDir)
+      local IDs = StringExplode(sBgSkIDs,GetOpVar("OPSYM_DIRECTORY"))
       phPiece:SetMass(nMass)
       phPiece:EnableMotion(false)
       ePiece:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
       AttachBodyGroups(ePiece,IDs[1] or "")
       AttachAdditions(ePiece)
-      ePiece.Duplicate = function(ePiece)
-        if(CLIENT) then return nil end
-        return MakePiece(ePiece:GetModel(),ePiece:GetPos(),
-                         GetOpVar("ANG_ZERO"),phPiece:GetMass(),
-                         GetPropBodyGrp(ePiece)..sSymDir..GetPropSkin(ePiece),
-                         ePiece:GetColor())
-      end
-      ePiece.Anchor = function(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
-        if(CLIENT) then
-          return StatusLog(false,"Piece:Anchor(): Working on the client is not allowed")
-        end
-        local We = tonumber(nWe) or 0
-        local Nc = tonumber(nNc) or 0
-        local Fr = tonumber(nFr) or 0
-        local Wg = tonumber(nWg) or 0
-        local Gr = tonumber(nGr) or 0
-        local Ph = tostring(sPh) or ""
-        if(not (ePiece and ePiece:IsValid())) then
-          return StatusLog(false,"Piece:Anchor(): Piece entity not valid")
-        end
-        if(eBase and eBase:IsValid()) then
-          if(We ~= 0) then
-            local We = constraint.Weld(eBase, ePiece, 0, 0, 0, false, false)
-            ePiece:DeleteOnRemove(We)
-             eBase:DeleteOnRemove(We)
-          end
-          if(Nc ~= 0) then
-            local Nc = constraint.NoCollide(eBase, ePiece, 0, 0)
-            ePiece:DeleteOnRemove(Nc)
-             eBase:DeleteOnRemove(Nc)
-          end
-        else
-          LogInstance("Piece:Anchor(): Base entity not valid")
-        end
-        local pyPiece = ePiece:GetPhysicsObject()
-        if(not (pyPiece and pyPiece:IsValid())) then
-          return StatusLog(false,"Piece:Anchor(): Piece physobj not valid")
-        end
-        if(Fr == 0) then
-          pyPiece:EnableMotion(true)
-        end
-        if(Wg ~= 0) then
-          pyPiece:EnableMotion(false)
-          ePiece:SetUnFreezable(true)
-          ePiece.PhysgunDisabled = true
-          duplicator.StoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
-        end
-        if(Gr == 0) then
-          construct.SetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
-        end
-        if(Ph ~= "") then
-          construct.SetPhysProp(nil,ePiece,0,pyPiece,{Material = Ph})
-        end
-        return true
-      end
-      ePiece.SetBoundPos = function(ePiece,vPos,oPly,nMode,anyMessage)
-        local anyMessage = tostring(anyMessage)
-        if(not vPos) then
-          return StatusLog(true,"Piece:SetBoundPos(): Position invalid: "..anyMessage)
-        end
-        if(not oPly) then
-          return StatusLog(true,"Piece:SetBoundPos(): Player invalid: "..anyMessage)
-        end
-        local nMode = tonumber(nMode) or 1 -- On wrong mode do not allow them to flood the server
-        if(nMode == 0) then
-          ePiece:SetPos(vPos)
-          return false
-        elseif(nMode == 1) then
-          if(util.IsInWorld(vPos)) then
-            ePiece:SetPos(vPos)
-          else
-            ePiece:Remove()
-            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
-          end
-          return false
-        elseif(nMode == 2) then
-          if(util.IsInWorld(vPos)) then
-            ePiece:SetPos(vPos)
-          else
-            ePiece:Remove()
-            PrintNotify(oPly,"Position out of map bounds!","HINT")
-            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
-          end
-          return false
-        elseif(nMode == 3) then
-          if(util.IsInWorld(vPos)) then
-            ePiece:SetPos(vPos)
-          else
-            ePiece:Remove()
-            PrintNotify(oPly,"Position out of map bounds!","GENERIC")
-            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
-          end
-          return false
-        elseif(nMode == 4) then
-          if(util.IsInWorld(vPos)) then
-            ePiece:SetPos(vPos)
-          else
-            ePiece:Remove()
-            PrintNotify(oPly,"Position out of map bounds!","ERROR")
-            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
-          end
-          return false
-        end
-        return StatusLog(true,"Piece:SetBoundPos(): Mode #"..nMode.." not found: "..anyMessage)
-      end
       return ePiece
     end
     ePiece:Remove()
     return nil
   end
   return nil
+end
+
+function DuplicatePiece(ePiece)
+  if(CLIENT) then return nil end
+  MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise)
+  local sModel   = MatchType(GetOpVar("DEFTABLE_PIECES"),ePiece:GetModel(),1,false,"",true)
+  local stRecord = CacheQueryPiece(sModel)
+  if(not stRecord) then return nil end
+  return MakePiece(ePiece:GetModel(),ePiece:GetPos(),
+                   ePiece:GetAngles(),phPiece:GetMass(),
+                   GetPropBodyGrp(ePiece)..GetOpVar("OPSYM_DIRECTORY")..GetPropSkin(ePiece),
+                   ePiece:GetColor())
+end
+
+function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
+  if(CLIENT) then
+    return StatusLog(false,"Piece:Anchor(): Working on the client is not allowed")
+  end
+  local We = tonumber(nWe) or 0
+  local Nc = tonumber(nNc) or 0
+  local Fr = tonumber(nFr) or 0
+  local Wg = tonumber(nWg) or 0
+  local Gr = tonumber(nGr) or 0
+  local Ph = tostring(sPh) or ""
+  if(not (ePiece and ePiece:IsValid())) then
+    return StatusLog(false,"Piece:Anchor(): Piece entity not valid")
+  end
+  if(eBase and eBase:IsValid()) then
+    if(We ~= 0) then
+      local We = constraint.Weld(eBase, ePiece, 0, 0, 0, false, false)
+      ePiece:DeleteOnRemove(We)
+       eBase:DeleteOnRemove(We)
+    end
+    if(Nc ~= 0) then
+      local Nc = constraint.NoCollide(eBase, ePiece, 0, 0)
+      ePiece:DeleteOnRemove(Nc)
+       eBase:DeleteOnRemove(Nc)
+    end
+  else
+    LogInstance("Piece:Anchor(): Base entity not valid")
+  end
+  local pyPiece = ePiece:GetPhysicsObject()
+  if(not (pyPiece and pyPiece:IsValid())) then
+    return StatusLog(false,"Piece:Anchor(): Piece physobj not valid")
+  end
+  if(Fr == 0) then
+    pyPiece:EnableMotion(true)
+  end
+  if(Wg ~= 0) then
+    pyPiece:EnableMotion(false)
+    ePiece:SetUnFreezable(true)
+    ePiece.PhysgunDisabled = true
+    duplicator.StoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
+  end
+  if(Gr == 0) then
+    construct.SetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
+  end
+  if(Ph ~= "") then
+    construct.SetPhysProp(nil,ePiece,0,pyPiece,{Material = Ph})
+  end
+  return true
+end
+      
+function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
+  local anyMessage = tostring(anyMessage)
+  if(not vPos) then
+    return StatusLog(true,"Piece:SetBoundPos(): Position invalid: "..anyMessage)
+  end
+  if(not oPly) then
+    return StatusLog(true,"Piece:SetBoundPos(): Player invalid: "..anyMessage)
+  end
+  local nMode = tonumber(nMode) or 1 -- On wrong mode do not allow them to flood the server
+  if(nMode == 0) then
+    ePiece:SetPos(vPos)
+    return false
+  elseif(nMode == 1) then
+    if(util.IsInWorld(vPos)) then
+      ePiece:SetPos(vPos)
+    else
+      ePiece:Remove()
+      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+    end
+    return false
+  elseif(nMode == 2) then
+    if(util.IsInWorld(vPos)) then
+      ePiece:SetPos(vPos)
+    else
+      ePiece:Remove()
+      PrintNotify(oPly,"Position out of map bounds!","HINT")
+      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+    end
+    return false
+  elseif(nMode == 3) then
+    if(util.IsInWorld(vPos)) then
+      ePiece:SetPos(vPos)
+    else
+      ePiece:Remove()
+      PrintNotify(oPly,"Position out of map bounds!","GENERIC")
+      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+    end
+    return false
+  elseif(nMode == 4) then
+    if(util.IsInWorld(vPos)) then
+      ePiece:SetPos(vPos)
+    else
+      ePiece:Remove()
+      PrintNotify(oPly,"Position out of map bounds!","ERROR")
+      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+    end
+    return false
+  end
+  return StatusLog(true,"Piece:SetBoundPos(): Mode #"..nMode.." not found: "..anyMessage)
 end
 
 function MakeCvar(sShortName, sValue, tBorder, nFlags, sInfo)
