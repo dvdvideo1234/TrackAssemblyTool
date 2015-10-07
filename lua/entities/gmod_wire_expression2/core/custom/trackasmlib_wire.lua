@@ -222,3 +222,10 @@ e2function array trackasmlibGetProperty()
   if(not stRecord) then return {} end
 	return stRecord
 end
+
+----------- Piece creator --------------
+
+__e2setcost(50)
+e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
+  return MakePiece(sModel,vPos,aAng,nMass or 50000,sBgpID or "",Color(nR or 255, nG or 255, nB or 255, nA or 255)))
+end
