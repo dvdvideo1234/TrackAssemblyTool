@@ -565,6 +565,18 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
     end
     Text.ScrH = Text.DrawY
   end
+  function self:DrawTextAdd(sText,sColor)
+    surface.SetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
+    self:SetColor(sColor)
+    surface.DrawText(sText)
+    local LastW, LastH = surface.GetTextSize(sText)
+    Text.LastW = Text.LastW + LastW
+    Text.LastH = LastH
+    if(Text.LastW > Text.ScrW) then
+      Text.ScrW = Text.LastW
+    end
+    Text.ScrH = Text.DrawY
+  end
   function self:DrawCircle(xyPos,nRad,sColor)
     if(Palette) then
       if(sColor) then
@@ -1312,6 +1324,19 @@ function StringDefault(sBase, sDefault)
   return ""
 end
 
+function StringBarred(sStr,sS,sE)
+  if(not IsString(sStr)) then return StatusLog("","StringBarred(): First argument invalid") end
+  local sS = string.sub(tostring(sS),1,1)
+  local sE = string.sub(tostring(sE),1,1)
+  if(sS == "") then return StatusLog("","StringBarred(): Start barricade invalid") end
+  if(sE == "") then return StatusLog("","StringBarred(): End barricade invalid") end
+  sS = string.find(sStr,sS,1,true)
+  if(not IsExistent(sS)) then return StatusLog("","StringBarred(): Start barricade missing") end
+  sE = string.find(sStr,sE,sS + 1,true)
+  if(not IsExistent(sE)) then return StatusLog("","StringBarred(): End barricade missing") end
+  return string.sub(sStr,sS,sE)
+end
+
 function StringExplode(sStr,sDelim)
   if(not (IsString(sStr) and IsString(sDelim))) then
     return StatusLog(nil,"StringExplode(): All parameters should be strings")
@@ -1724,8 +1749,8 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise)
     if(not bStopRevise and defField[4] == "QMK" and sModeDB == "SQL") then
       snOut = StringMakeSQL(snOut)
     end
-    local sqChar
     if(bQuoted) then
+      local sqChar
       if(sQuote) then
         sqChar = string.sub(tostring(sQuote),1,1)
       else
@@ -3310,76 +3335,75 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
           LogInstance("Piece:Anchor(): Base entity not valid")
         end
         local pyPiece = ePiece:GetPhysicsObject()
-        if(pyPiece and pyPiece:IsValid()) then
-          if(Fr == 0) then
-            pyPiece:EnableMotion(true)
-          end
-          if(Wg ~= 0) then
-            pyPiece:EnableMotion(false)
-            ePiece:SetUnFreezable(true)
-            ePiece.PhysgunDisabled = true
-            duplicator.StoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
-          end
-          if(Gr == 0) then
-            construct.SetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
-          end
-          if(Ph ~= "") then
-            construct.SetPhysProp(nil,ePiece,0,pyPiece,{Material = Ph})
-          end
-        else
-          LogInstance("Piece:Anchor(): Piece physobj not valid")
+        if(not (pyPiece and pyPiece:IsValid())) then
+          return StatusLog(false,"Piece:Anchor(): Piece physobj not valid")
+        end
+        if(Fr == 0) then
+          pyPiece:EnableMotion(true)
+        end
+        if(Wg ~= 0) then
+          pyPiece:EnableMotion(false)
+          ePiece:SetUnFreezable(true)
+          ePiece.PhysgunDisabled = true
+          duplicator.StoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
+        end
+        if(Gr == 0) then
+          construct.SetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
+        end
+        if(Ph ~= "") then
+          construct.SetPhysProp(nil,ePiece,0,pyPiece,{Material = Ph})
         end
         return true
       end
-      ePiece.SetMapBoundPos = function(ePiece,vPos,oPly,nBndErrMode,anyMessage)
-        local Message = tostring(anyMessage)
+      ePiece.SetBoundPos = function(ePiece,vPos,oPly,nMode,anyMessage)
+        local anyMessage = tostring(anyMessage)
         if(not vPos) then
-          return StatusLog(true,"Piece:SetMapBoundPos(): Position invalid: \n"..Message)
+          return StatusLog(true,"Piece:SetBoundPos(): Position invalid: "..anyMessage)
         end
         if(not oPly) then
-          return StatusLog(true,"Piece:SetMapBoundPos(): Player invalid: \n"..Message)
+          return StatusLog(true,"Piece:SetBoundPos(): Player invalid: "..anyMessage)
         end
-        local BndErrMode = (tonumber(nBndErrMode) or 0)
-        if(BndErrMode == 0) then
+        local nMode = tonumber(nMode) or 1 -- On wrong mode do not allow them to flood the server
+        if(nMode == 0) then
           ePiece:SetPos(vPos)
           return false
-        elseif(BndErrMode == 1) then
+        elseif(nMode == 1) then
           if(util.IsInWorld(vPos)) then
             ePiece:SetPos(vPos)
           else
             ePiece:Remove()
-            return StatusLog(true,"Piece:SetMapBoundPos("..BndErrMode.."): Position out of map bounds: \n"..anyMessage)
+            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
           end
           return false
-        elseif(BndErrMode == 2) then
+        elseif(nMode == 2) then
           if(util.IsInWorld(vPos)) then
             ePiece:SetPos(vPos)
           else
             ePiece:Remove()
             PrintNotify(oPly,"Position out of map bounds!","HINT")
-            return StatusLog(true,"Piece:SetMapBoundPos("..BndErrMode.."): Position out of map bounds: \n"..anyMessage)
+            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
           end
           return false
-        elseif(BndErrMode == 3) then
+        elseif(nMode == 3) then
           if(util.IsInWorld(vPos)) then
             ePiece:SetPos(vPos)
           else
             ePiece:Remove()
             PrintNotify(oPly,"Position out of map bounds!","GENERIC")
-            return StatusLog(true,"Piece:SetMapBoundPos("..BndErrMode.."): Position out of map bounds: \n"..anyMessage)
+            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
           end
           return false
-        elseif(BndErrMode == 4) then
+        elseif(nMode == 4) then
           if(util.IsInWorld(vPos)) then
             ePiece:SetPos(vPos)
           else
             ePiece:Remove()
             PrintNotify(oPly,"Position out of map bounds!","ERROR")
-            return StatusLog(true,"Piece:SetMapBoundPos("..BndErrMode.."): Position out of map bounds: \n"..anyMessage)
+            return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
           end
           return false
         end
-        return StatusLog(true,"Piece:SetMapBoundPos(): Mode #"..BndErrMode.." not found: \n"..Message)
+        return StatusLog(true,"Piece:SetBoundPos(): Mode #"..nMode.." not found: "..anyMessage)
       end
       return ePiece
     end
