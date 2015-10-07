@@ -53,7 +53,7 @@ local gsUndoPrefN = asmlib.GetOpVar("INIT_FAN")..": "
 local gsFancyName = asmlib.GetOpVar("INIT_FAN").." "..asmlib.GetOpVar("PERP_FAN")
 local gsNoID      = asmlib.GetOpVar("MISS_NOID")
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
-local gsLock      = asmlib.GetOpVar("OPSYM_REVSIGN")
+local gsRevSign   = asmlib.GetOpVar("OPSYM_REVSIGN")
 
 
 --- Render Base Colours
@@ -248,7 +248,7 @@ function TOOL:ClearAnchor()
     svEnt:SetColor(DDyes:Select("w"))
   end
   self:ClearObjects()
-  sAnchor = "["..gsNoID.."]"..gsLock..gsNoAV
+  sAnchor = gsNoID..gsRevSign..gsNoAV
   asmlib.PrintNotify(ply,"Anchor: Cleaned !","CLEANUP")
   ply:ConCommand(gsToolPrefL.."anchor "..sAnchor.."\n")
   return asmlib.StatusLog(true,"TOOL:ClearAnchor(): Anchor cleared")
@@ -264,7 +264,7 @@ function TOOL:SetAnchor(stTrace)
   if(not (phEnt and phEnt:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace no physics") end
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Player invalid") end
-  local sAnchor = "["..trEnt:EntIndex().."]"..gsLock..asmlib.GetModelFileName(trEnt:GetModel())
+  local sAnchor = trEnt:EntIndex()..gsRevSign..asmlib.GetModelFileName(trEnt:GetModel())
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
   trEnt:SetColor(DDyes:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
@@ -275,7 +275,7 @@ end
 
 function TOOL:GetAnchor()
   local svEnt   = self:GetEnt(1)
-  local sAnchor = "["..gsNoID.."]"..gsLock..gsNoAV  
+  local sAnchor = gsNoID..gsRevSign..gsNoAV  
   if(not (svEnt and svEnt:IsValid())) then svEnt = nil end
   return (self:GetClientInfo("anchor") or sAnchor), svEnt
 end
@@ -387,7 +387,7 @@ function TOOL:LeftClick(Trace)
   local stSpawn = asmlib.GetEntitySpawn(trEnt,Trace.HitPos,model,pointid,
                            actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
   if(not stSpawn) then
-    local IDs = asmlib.StringExplode(bgskids,"/")
+    local IDs = asmlib.StringExplode(bgskids,asmlib.GetOpVar("OPSYM_DIRECTORY"))
     asmlib.Print(IDs,"BodygrpSkin")
     asmlib.AttachBodyGroups(trEnt,IDs[1] or "")
     trEnt:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
@@ -763,8 +763,7 @@ function TOOL:DrawToolScreen(w, h)
   goToolScr:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()
   local anInfo, anEnt = self:GetAnchor()
-  local tInfo = asmlib.StringExplode(anInfo,gsLock)
-  local txX, txY, txW, txH, txsX, txsY
+  local tInfo = asmlib.StringExplode(anInfo,gsRevSign)
   if(not (stTrace and stTrace.Hit)) then
     goToolScr:DrawText("Trace status: Invalid ","r")
     goToolScr:DrawTextAdd(Info[1],"an")
@@ -809,15 +808,16 @@ function TOOL:DrawToolScreen(w, h)
   model  = asmlib.GetModelFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
   maxrad = asmlib.GetCvar("maxactrad", "FLT")
-  goToolScr:DrawText("HM: " ..(model      or gsNoAV),"m")
   goToolScr:DrawText("TM: " ..(trModel    or gsNoAV),"y")
+  goToolScr:DrawText("HM: " ..(model      or gsNoAV),"m")
   goToolScr:DrawText("ID: ["..(trMaxCN    or gsNoID)
                     .."] "  ..(trOID      or gsNoID)
                     .." >> "..(pointid    or gsNoID)
                     .. " (" ..(pnextid    or gsNoID)
                     ..") [" ..(hdRec.Kept or gsNoID).."]","g")
-  goToolScr:DrawText("AR: "..(trRLen or gsNoAV).."<"..actrad.."<["..maxrad.."]","y")
-  txX, txY, txW, txH, txsX, txsY = goToolScr:GetTextState()
+  goToolScr:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
+  goToolScr:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
+  local txX, txY, txW, txH, txsX, txsY = goToolScr:GetTextState()
   local nRad = math.Clamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = math.Clamp(h - nRad - (txsY / 3),0,h)
   local xyPos = {x = cPos, y = cPos}
@@ -978,7 +978,7 @@ function TOOL.BuildCPanel(CPanel)
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGrp()
-                 .."/"..asmlib.GetPropSkin()
+                ..asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin()
             pnSelf:SetText(sTX)
             pnSelf:SetValue(sTX)
           elseif(nKeyEnum == KEY_ENTER) then

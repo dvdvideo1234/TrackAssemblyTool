@@ -214,6 +214,7 @@ function InitAssembly(sName)
   SetOpVar("OPSYM_DISABLE","#")
   SetOpVar("OPSYM_REVSIGN","@")
   SetOpVar("OPSYM_DIVIDER","_")
+  SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("SPAWN_ENTITY",{
     F    = Vector(),
     R    = Vector(),
@@ -458,9 +459,9 @@ function MakeContainer(sInfo,sDefKey)
     end
   end
   function self:GetHistory()
-    return tostring(Met).."@"..
-           tostring(Sel).."/"..
-           tostring(Ins).."/"..
+    return tostring(Met)..GetOpVar("OPSYM_REVSIGN")..
+           tostring(Sel)..GetOpVar("OPSYM_DIRECTORY")..
+           tostring(Ins)..GetOpVar("OPSYM_DIRECTORY")..
            tostring(Del)
   end
   setmetatable(self,GetOpVar("TYPEMT_CONTAINER"))
@@ -912,7 +913,8 @@ function ModelToName(sModel)
   -- If is model remove *.mdl
   local Cnt = 1
   local Len = string.len(sModel)
-  local sDiv = GetOpVar("OPSYM_DIVIDER")
+  local sSymDiv = GetOpVar("OPSYM_DIVIDER")
+  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
   if(string.sub(sModel,Len-3,Len) ~= GetOpVar("FILE_MODEL")) then return "" end
   Len = Len - 4
   if(Len <= 0) then return "" end
@@ -923,7 +925,7 @@ function ModelToName(sModel)
   local fCh, bCh = "", ""
   while(Cnt > 0) do
     fCh = string.sub(sModel,Cnt,Cnt)
-    if(fCh == '/') then
+    if(fCh == sSymDir) then
       break
     end
     Cnt = Cnt - 1
@@ -965,13 +967,13 @@ function ModelToName(sModel)
     gModel = tostring(tMarks[1] or "")..gModel..tostring(tMarks[2] or "")
   end
   -- Trigger the capital-space using the divider
-  sModel = sDiv..gModel
+  sModel = sSymDiv..gModel
   Len = string.len(sModel)
   fCh, bCh, gModel = "", "", ""
   while(Cnt <= Len) do
     bCh = string.sub(sModel,Cnt,Cnt)
     fCh = string.sub(sModel,Cnt+1,Cnt+1)
-    if(bCh == sDiv) then
+    if(bCh == sSymDiv) then
        bCh = " "
        fCh = string.upper(fCh)
        gModel = gModel..bCh..fCh
@@ -1324,19 +1326,6 @@ function StringDefault(sBase, sDefault)
   return ""
 end
 
-function StringBarred(sStr,sS,sE)
-  if(not IsString(sStr)) then return StatusLog("","StringBarred(): First argument invalid") end
-  local sS = string.sub(tostring(sS),1,1)
-  local sE = string.sub(tostring(sE),1,1)
-  if(sS == "") then return StatusLog("","StringBarred(): Start barricade invalid") end
-  if(sE == "") then return StatusLog("","StringBarred(): End barricade invalid") end
-  sS = string.find(sStr,sS,1,true)
-  if(not IsExistent(sS)) then return StatusLog("","StringBarred(): Start barricade missing") end
-  sE = string.find(sStr,sE,sS + 1,true)
-  if(not IsExistent(sE)) then return StatusLog("","StringBarred(): End barricade missing") end
-  return string.sub(sStr,sS,sE)
-end
-
 function StringExplode(sStr,sDelim)
   if(not (IsString(sStr) and IsString(sDelim))) then
     return StatusLog(nil,"StringExplode(): All parameters should be strings")
@@ -1602,7 +1591,8 @@ end
 
 function ModelToHashLocation(sModel,tTable,anyValue)
   if(not (IsString(sModel) and type(tTable) == "table")) then return end
-  local Key = StringExplode(sModel,"/")
+  local sSymDir = GetOpVar("OPSYM_DIRECTORY")  
+  local Key = StringExplode(sModel,sSymDir)
   Print(Key,"Key")
   if(not (Key and Key[1])) then return end
   local Ind = 1
@@ -1627,14 +1617,15 @@ end
 function GetModelFileName(sModel)
   if(not sModel or
          sModel == "") then return "NULL" end
-  local Len = string.len(sModel)
-  local Cnt = Len
-  local Ch  = string.sub(sModel,Cnt,Cnt)
-  while(Ch ~= "/" and Cnt > 0) do
-    Cnt = Cnt - 1
-    Ch  = string.sub(sModel,Cnt,Cnt)
+  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
+  local nLen = string.len(sModel)
+  local nCnt = nLen
+  local sCh  = string.sub(sModel,nCnt,nCnt)
+  while(sCh ~= sSymDir and nCnt > 0) do
+    nCnt = nCnt - 1
+    sCh  = string.sub(sModel,nCnt,nCnt)
   end
-  return string.sub(sModel,Cnt+1,Len)
+  return string.sub(sModel,nCnt+1,Len)
 end
 
 ------------------------- PLAYER -----------------------------------
@@ -3294,7 +3285,8 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     ePiece:PhysWake()
     local phPiece = ePiece:GetPhysicsObject()
     if(phPiece and phPiece:IsValid()) then
-      local IDs = StringExplode(sBgSkIDs,"/")
+      local sSymDir = GetOpVar("OPSYM_DIRECTORY")
+      local IDs = StringExplode(sBgSkIDs,sSymDir)
       phPiece:SetMass(nMass)
       phPiece:EnableMotion(false)
       ePiece:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
@@ -3304,7 +3296,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
         if(CLIENT) then return nil end
         return MakePiece(ePiece:GetModel(),ePiece:GetPos(),
                          GetOpVar("ANG_ZERO"),phPiece:GetMass(),
-                         GetPropBodyGrp(ePiece).."/"..GetPropSkin(ePiece),
+                         GetPropBodyGrp(ePiece)..sSymDir..GetPropSkin(ePiece),
                          ePiece:GetColor())
       end
       ePiece.Anchor = function(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
