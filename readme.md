@@ -169,12 +169,24 @@ N: SQL is still the best option for using the tool with, because only
    of time, rather than the whole database forever ( till the server is up that is .. ),
    so please use SQL mode when possible if you want to save some amount of RAM.
    
+Q: Does this thing have any wire extensions and how can I control then
+   when my clients are abusing them ?
+A: Yes it does. You can enable/disable the wire extension using the
+   convar "trackassembly_enwiremod" and set it to 1 or 0 respectively.
+
+Q: What do the tool versions represent?
+A: The first number will get an increase when a new major update has arrived.
+   The second number is the commit number in the repository, related to
+   some smaller changes and fixes. For example rearranging the code,
+   performance optimizations, doing the same thing ,but in more "elegant"
+   way and such.   
+   
 Q: May I PUT this thing in another third party website ?
 A: No I will not give you my permission to do that... Why ...
    That way you will upload some half-baked tool, waste your time with stupid
    things and confuse everybody with this so called "unofficial" version of the TrackAssembly tool.
-   Not to mention that the stunned people will NOT GET ANY updates !
-   So please don't !
+   Not to mention that the stunned people will NOT GET ANY updates!
+   So please don't!
 
 Q: Hay, how should I proceed when I am experiencing errors ?
 A: First of all if the the error origin is not the TA, 
