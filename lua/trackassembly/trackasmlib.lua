@@ -1706,7 +1706,7 @@ end
 
 -------------------------- AssemblyLib BUILDSQL ------------------------------
 
-local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise)
+local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
   if(not defTable) then
     return StatusLog(nil,"MatchType(): Missing: Table definition")
   end
@@ -1723,7 +1723,7 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise)
   local sModeDB  = GetOpVar("MODE_DATABASE")
   if(tipField == "TEXT") then
     snOut = tostring(snValue)
-    if(snOut == "nil" or snOut == "") then
+    if(not bStopEmpty and (snOut == "nil" or snOut == "")) then
       if(sModeDB == "SQL") then
         snOut = "NULL"
       elseif(sModeDB == "LUA") then
@@ -2386,6 +2386,7 @@ function CacheQueryPiece(sModel)
   if(not util.IsValidModel(sModel)) then return nil end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then return StatusLog(nil,"CacheQueryPiece(): Missing: Table definition") end
+  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
   if(not IsExistent(Cache)) then return StatusLog(nil,"CacheQueryPiece(): Cache not allocated for "..namTable) end
@@ -2454,6 +2455,7 @@ function CacheQueryAdditions(sModel)
   if(not util.IsValidModel(sModel)) then return nil end
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then return StatusLog(nil,"CacheQueryAdditions(): Missing: Table definition") end
+  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
   if(not IsExistent(Cache)) then return StatusLog(nil,"CacheQueryAdditions(): Cache not allocated for "..namTable) end
@@ -2556,6 +2558,7 @@ function CacheQueryProperty(sType)
   if(not defTable) then
     return StatusLog(nil,"CacheQueryProperty(): Table definition missing")
   end
+  local sType    = MatchType(defTable,sType,1,false,"",true,true)
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
   if(not Cache) then
@@ -3297,8 +3300,8 @@ end
 
 function DuplicatePiece(ePiece)
   if(CLIENT) then return nil end
-  local sModel   = MatchType(GetOpVar("DEFTABLE_PIECES"),ePiece:GetModel(),1,false,"",true)
-  local stRecord = CacheQueryPiece(sModel)
+  if(not (ePiece and ePiece:IsValid())) then return nil end
+  local stRecord = CacheQueryPiece(ePiece:GetModel())
   if(not stRecord) then return nil end
   return MakePiece(ePiece:GetModel(),ePiece:GetPos(),
                    ePiece:GetAngles(),phPiece:GetMass(),
