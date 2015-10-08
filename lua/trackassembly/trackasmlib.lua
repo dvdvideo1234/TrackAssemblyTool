@@ -934,14 +934,14 @@ function ModelToName(sModel)
   -- Remove the unneeded parts by indexing sModel
   Cnt = 1
   gModel = sModel
-  local tMarks = GcutModelToName()
-  if(tMarks and tMarks[1]) then
-    while(tMarks[Cnt] and tMarks[Cnt+1]) do
-      fCh = tonumber(tMarks[Cnt])
-      bCh = tonumber(tMarks[Cnt+1])
+  local tCut, tSub, tApp = SettingsModelToName("GET")
+  if(tCut and tCut[1]) then
+    while(tCut[Cnt] and tCut[Cnt+1]) do
+      fCh = tonumber(tCut[Cnt])
+      bCh = tonumber(tCut[Cnt+1])
       if(not (fCh and bCh)) then
         return StatusLog("","ModelToName(): Cannot cut the model in {"
-                 ..tostring(tMarks[Cnt])..", "..tostring(tMarks[Cnt+1]).."} for "..sModel)
+                 ..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} for "..sModel)
       end
       gModel = string.gsub(gModel,string.sub(sModel,fCh,bCh),"")
       Cnt = Cnt + 2
@@ -949,11 +949,10 @@ function ModelToName(sModel)
     Cnt = 1
   end
   -- Replace the unneeded parts by finding an in-string gModel
-  tMarks = GsubModelToName()
-  if(tMarks and tMarks[1]) then
-    while(tMarks[Cnt]) do
-      fCh = tostring(tMarks[Cnt] or "")
-      bCh = tostring(tMarks[Cnt+1] or "")
+  if(tSub and tSub[1]) then
+    while(tSub[Cnt]) do
+      fCh = tostring(tSub[Cnt] or "")
+      bCh = tostring(tSub[Cnt+1] or "")
       if(fCh and bCh)) then
         return StatusLog("","ModelToName(): Cannot sub the model in {"..fCh..", "..bCh.."}")
       end
@@ -962,9 +961,9 @@ function ModelToName(sModel)
     end
     Cnt = 1
   end
-  tMarks = GappModelToName()
-  if(tMarks and tMarks[1]) then
-    gModel = tostring(tMarks[1] or "")..gModel..tostring(tMarks[2] or "")
+  -- Append something if needed
+  if(tApp and tApp[1]) then
+    gModel = tostring(tApp[1] or "")..gModel..tostring(tApp[2] or "")
   end
   -- Trigger the capital-space using the divider
   sModel = sSymDiv..gModel
@@ -1518,27 +1517,6 @@ end
 
 ------------- Variable Interfaces --------------
 
-function GsubModelToName(tGsub)
-  if(not IsExistent(tGsub)) then
-    return GetOpVar("TABLE_GSUB_MODEL") or ""
-  end
-  SetOpVar("TABLE_GSUB_MODEL",tGsub)
-end
-
-function GcutModelToName(tGcut)
-  if(not IsExistent(tGcut)) then
-    return GetOpVar("TABLE_GCUT_MODEL") or ""
-  end
-  SetOpVar("TABLE_GCUT_MODEL",tGcut)
-end
-
-function GappModelToName(tGapp)
-  if(not IsExistent(tGapp)) then
-    return GetOpVar("TABLE_GAPP_MODEL") or ""
-  end
-  SetOpVar("TABLE_GAPP_MODEL",tGapp)
-end
-
 local function SQLBuildError(anyError)
   if(not IsExistent(anyError)) then
     return GetOpVar("SQL_BUILD_ERR") or ""
@@ -1547,14 +1525,29 @@ local function SQLBuildError(anyError)
   return false
 end
 
+function SettingsModelToName(sMode, gCut, gSub, gApp)
+  if(not IsString(sMode)) then return StatusLog(false,"SettingsModelToName(): Wrong mode type "..type(sMode)) end
+  if(sMode == "SET") then
+    if(gCut and gCut[1]) then SetOpVar("TABLE_GCUT_MODEL",tGcut) else SetOpVar("TABLE_GCUT_MODEL",{}) end
+    if(gSub and gSub[1]) then SetOpVar("TABLE_GSUB_MODEL",tGsub) else SetOpVar("TABLE_GSUB_MODEL",{}) end
+    if(gApp and gApp[1]) then SetOpVar("TABLE_GAPP_MODEL",tGapp) else SetOpVar("TABLE_GAPP_MODEL",{}) end 
+  elseif(sMode == "GET") then
+    return GetOpVar("TABLE_GCUT_MODEL"), GetOpVar("TABLE_GSUB_MODEL"), GetOpVar("TABLE_GAPP_MODEL")
+  elseif(sMode == "CLR") then
+    SetOpVar("TABLE_GCUT_MODEL",{})
+    SetOpVar("TABLE_GSUB_MODEL",{})  
+    SetOpVar("TABLE_GAPP_MODEL",{})  
+  else
+    return StatusLog(false,"SettingsModelToName(): Wrong mode name "..sMode)
+  end
+end
+
 function DefaultType(anyType)
   if(not IsExistent(anyType)) then
     return GetOpVar("DEFAULT_TYPE") or ""
   end
   SetOpVar("DEFAULT_TYPE",tostring(anyType))
-  GcutModelToName({})
-  GsubModelToName({})
-  GappModelToName({})
+  SettingsModelToName("CLR")
 end
 
 function DefaultTable(anyTable)
@@ -1562,9 +1555,7 @@ function DefaultTable(anyTable)
     return GetOpVar("DEFAULT_TABLE") or ""
   end
   SetOpVar("DEFAULT_TABLE",anyTable)
-  GcutModelToName({})
-  GsubModelToName({})
-  GappModelToName({})
+  SettingsModelToName("CLR")
 end
 
 --------------------- USAGES --------------------
