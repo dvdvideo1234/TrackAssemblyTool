@@ -2,6 +2,9 @@
 local asmlib = trackasmlib
 ----- Get extention enabled flag
 local enflag = (asmlib.GetCvar("enwiremod","INT") ~= 0) and true or false
+local defPiece = asmlib.GetOpVar("DEFTABLE_PIECES")
+local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
+local defPhysp = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")
 --------- Pieces ----------
 
 __e2setcost(100)
@@ -9,6 +12,7 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
                                                 number nActRadius, number enFlatten, number enIgnTyp ,
                                                 vector ucsOffPos , vector ucsOffAng)
   if(not (this and this:IsValid() and enflag)) then return {} end
+  local hdModel = asmlib.MatchType(defPiece,hdModel,1,false,"",true)
   local stSpawn = asmlib.GetEntitySpawn(this,trHitPos,hdModel,hdPointID,
                                         nActRadius,enFlatten,enIgnTyp,
                                         ucsPos[1],ucsPos[2],ucsPos[3],
@@ -31,6 +35,7 @@ end
 __e2setcost(30)
 e2function number trackasmlibIsPiece(string sModel)
   if(not enflag) then return 0 end
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
   local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return 1 else return 0 end
 end
@@ -38,13 +43,15 @@ end
 __e2setcost(30)
 e2function number entity:trackasmlibIsPiece()
   if(not (this and this:IsValid() and enflag)) then return 0 end
-  local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return 1 else return 0 end
 end
 
 __e2setcost(120)
 e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA)
   if(not enflag) then return {} end
+  local sModel   = asmlib.MatchType(defPiece,sModel,1,false,"",true)
   local stRecord = asmlib.CacheQueryPiece(sModel)
   if(not stRecord) then return {} end
   if(not stRecord.Offs) then return {} end
@@ -77,7 +84,8 @@ end
 __e2setcost(120)
 e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
   if(not (this and this:IsValid() and enflag)) then return {} end
-  local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryPiece(sModel)
   if(not stRecord) then return {} end
   if(not stRecord.Offs) then return {} end
   local nOffset = tonumber(nOffset)
@@ -109,6 +117,7 @@ end
 __e2setcost(30)
 e2function string trackasmlibGetType(string sModel)
   if(not enflag) then return "" end
+  local sModel   = asmlib.MatchType(defPiece,sModel,1,false,"",true)
   local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return stRecord.Type else return "" end
 end
@@ -116,13 +125,15 @@ end
 __e2setcost(30)
 e2function string entity:trackasmlibGetType()
   if(not (this and this:IsValid() and enflag)) then return "" end
-  local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return stRecord.Type else return "" end
 end
 
 __e2setcost(30)
 e2function string trackasmlibGetName(string sModel)
   if(not enflag) then return "" end
+  local sModel   = asmlib.MatchType(defPiece,sModel,1,false,"",true)
   local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return stRecord.Name else return "" end
 end
@@ -130,13 +141,15 @@ end
 __e2setcost(30)
 e2function string entity:trackasmlibGetName()
   if(not (this and this:IsValid() and enflag)) then return "" end
-  local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return stRecord.Name else return "" end
 end
 
 __e2setcost(30)
 e2function number trackasmlibGetPointsCount(string sModel)
   if(not enflag) then return 0 end
+  local sModel   = asmlib.MatchType(defPiece,sModel,1,false,"",true)
   local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return stRecord.Kept else return 0 end
 end
@@ -144,7 +157,8 @@ end
 __e2setcost(30)
 e2function number entity:trackasmlibGetPointsCount()
   if(not (this and this:IsValid() and enflag)) then return 0 end
-  local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryPiece(sModel)
   if(stRecord) then return stRecord.Kept else return 0 end
 end
 
@@ -153,6 +167,7 @@ end
 __e2setcost(30)
 e2function number trackasmlibHasAdditions(string sModel)
   if(not enflag) then return 0 end
+  local sModel   = asmlib.MatchType(defAddit,sModel,1,false,"",true)
   local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(stRecord) then return 1 else return 0 end
 end
@@ -160,13 +175,15 @@ end
 __e2setcost(30)
 e2function number entity:trackasmlibHasAdditions()
   if(not (this and this:IsValid() and enflag)) then return 0 end
-  local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defAddit,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(stRecord) then return 1 else return 0 end
 end
 
 __e2setcost(50)
 e2function number trackasmlibGetAdditionsCount(string sModel)
   if(not enflag) then return 0 end
+  local sModel   = asmlib.MatchType(defAddit,sModel,1,false,"",true)
   local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(stRecord) then return stRecord.Kept else return 0 end
 end
@@ -174,25 +191,26 @@ end
 __e2setcost(50)
 e2function number entity:trackasmlibGetAdditionsCount()
   if(not (this and this:IsValid() and enflag)) then return 0 end
-  local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defAddit,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(stRecord) then return stRecord.Kept else return 0 end
 end
 
 __e2setcost(60)
 e2function array trackasmlibGetAdditionsLine(string sModel, number nLine)
   if(not enflag) then return {} end
+  if(not defAddit) then
+    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition")
+  end
+  local sModel   = asmlib.MatchType(defAddit,sModel,1,false,"",true)
   local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
   stRecord = stRecord[nLine]
-  local defTable = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
-  if(not defTable) then
-    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition")
-  end
   local cntField = 2
   local arAdditionsLine = {}
-  while(defTable[cntField]) do
-    arAdditionsLine[cntField-1] = stRecord[defTable[cntField][1]]
+  while(defAddit[cntField]) do
+    arAdditionsLine[cntField-1] = stRecord[defAddit[cntField][1]]
     cntField = cntField + 1
   end
   return arAdditionsLine
@@ -201,18 +219,18 @@ end
 __e2setcost(60)
 e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   if(not (this and this:IsValid() and enflag)) then return {} end
-  local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
+  if(not defAddit) then
+    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition")
+  end
+  local sModel   = asmlib.MatchType(defAddit,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
   stRecord = stRecord[nLine]
-  local defTable = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
-  if(not defTable) then
-    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition")
-  end
   local arAdditionsLine = {}
   local cntField = 2
-  while(defTable[cntField]) do
-    arAdditionsLine[cntField-1] = stRecord[defTable[cntField][1]]
+  while(defAddit[cntField]) do
+    arAdditionsLine[cntField-1] = stRecord[defAddit[cntField][1]]
     cntField = cntField + 1
   end
   return arAdditionsLine
@@ -223,6 +241,7 @@ end
 __e2setcost(15)
 e2function array trackasmlibGetProperty(string sType)
   if(not enflag) then return {} end
+  local sType    = asmlib.MatchType(defPhysp,sType,1,false,"",true)
   local stRecord = asmlib.CacheQueryProperty(sType)
   if(not stRecord) then return {} end
 	return stRecord
@@ -241,23 +260,27 @@ end
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
   if(not enflag) then return nil end
+  local sModel   = asmlib.MatchType(defPiece,sModel,1,false,"",true)
   return asmlib.MakePiece(sModel,vPos,aAng,nMass or 50000,sBgpID or "",Color(nR or 255, nG or 255, nB or 255, nA or 255)))
 end
 
 __e2setcost(50)
 e2function entity entity:trackasmlibDuplicatePiece(vector vPos, angle aAng)
   if(not (this and this:IsValid() and enflag)) then return nil end
-  local sModel = string.lower(this:GetModel())
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
   local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not stRecord) then return nil end
-  local sBgpID  = asmlib.GetPropBodyGrp(this)..GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
+  local sBgpID  = asmlib.GetPropBodyGrp(this)..
+                  asmlib.GetOpVar("OPSYM_DIRECTORY")..
+                  asmlib.GetPropSkin(this)
   return asmlib.MakePiece(sModel,vPos,aAng,this:GetMass(),sBgpID,this:GetColor())
 end
 
 __e2setcost(15)
 e2function entity entity:trackasmlibAnchorPiece(entity eBase,number nWe,number nNc,number nFr,number nWg,number nGr,number sPh)
   if(not (this and this:IsValid() and enflag)) then return 0 end
-  local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not stRecord) then return 0 end
   return asmlib.AnchorPiece(this,eBase,nWe,nNc,nFr,nWg,nGr,sPh) and 1 or 0
 end
@@ -265,7 +288,8 @@ end
 __e2setcost(35)
 e2function number entity:trackasmlibAttachAdditions()
   if(not (this and this:IsValid() and enflag)) then return 0 end
-  local stRecord = asmlib.CacheQueryAdditions(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defAddit,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not stRecord) then return 0 end
   return asmlib.AttachAdditions(this) and 1 or 0
 end
@@ -273,7 +297,8 @@ end
 __e2setcost(20)
 e2function number entity:AttachBodyGroups(string sBgpID)
   if(not (this and this:IsValid() and enflag)) then return 0 end
-  local stRecord = asmlib.CacheQueryPiece(string.lower(this:GetModel()))
+  local sModel   = asmlib.MatchType(defPiece,this:GetModel(),1,false,"",true)
+  local stRecord = asmlib.CacheQueryPiece(sModel)
   if(not stRecord) then return 0 end
   return asmlib.AttachBodyGroups(this,sBgpID) and 1 or 0
 end
