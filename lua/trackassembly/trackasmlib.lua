@@ -3090,115 +3090,111 @@ end
 
 function AttachAdditions(ePiece)
   LogInstance("AttachAdditions Invoked:")
-  if(ePiece and ePiece:IsValid()) then
-    local LocalAng  = ePiece:GetAngles()
-    local LocalPos  = ePiece:GetPos()
-    local BaseModel = ePiece:GetModel()
-    LogInstance("Model: "..BaseModel)
-    local qData = CacheQueryAdditions(BaseModel)
-    if(qData) then
-      local Record, Addition
-      local Cnt = 1
-      local defTable = GetOpVar("DEFTABLE_ADDITIONS")
-      while(qData[Cnt]) do
-        LogInstance("\n\nEnt [ "..Cnt.." ] INFO : ")
-        Record   = qData[Cnt]
-        Addition = ents.Create(Record[defTable[3][1]])
-        if(Addition and Addition:IsValid()) then
-          LogInstance("Addition Class: "..Record[defTable[3][1]])
-          if(file.Exists(Record[defTable[2][1]], "GAME")) then
-            Addition:SetModel(Record[defTable[2][1]])
-            LogInstance("Addition:SetModel("..Record[defTable[2][1]]..")")
-          else
-            LogInstance("AttachAdditions: No such model "..Record[defTable[2][1]]
-                  .."for Body Grouping mode !")
-            return nil
-          end
-          local OffPos = Record[defTable[4][1]]
-          if(OffPos       and
-             OffPos ~= "" and
-             OffPos ~= "NULL"
-          ) then
-            local AdditionPos = Vector()
-            local arConv = DecodePOA(OffPos)
-            arConv[1] = arConv[1] * arConv[4]
-            arConv[2] = arConv[2] * arConv[5]
-            arConv[3] = arConv[3] * arConv[6]
-            AdditionPos:Set(LocalPos)
-            AdditionPos:Add(arConv[1] * LocalAng:Forward())
-            AdditionPos:Add(arConv[2] * LocalAng:Right())
-            AdditionPos:Add(arConv[3] * LocalAng:Up())
-            Addition:SetPos(AdditionPos)
-            LogInstance("Addition:SetPos(AdditionPos)")
-          else
-            Addition:SetPos(LocalPos)
-            LogInstance("Addition:SetPos(LocalPos)")
-          end
-          local OffAngle = Record[defTable[5][1]]
-          if(OffAngle       and
-             OffAngle ~= "" and
-             OffAngle ~= "NULL"
-          ) then
-            local AdditionAng = Angle()
-            local arConv = DecodePOA(OffAngle)
-            AdditionAng[caP] = arConv[1] * arConv[4] + LocalAng[caP]
-            AdditionAng[caY] = arConv[2] * arConv[5] + LocalAng[caY]
-            AdditionAng[caR] = arConv[3] * arConv[6] + LocalAng[caR]
-            Addition:SetAngles(AdditionAng)
-            LogInstance("Addition:SetAngles(AdditionAng)")
-          else
-            Addition:SetAngles(LocalAng)
-            LogInstance("Addition:SetAngles(LocalAng)")
-          end
-          local MoveType = (tonumber(Record[defTable[6][1]]) or -1)
-          if(MoveType >= 0) then
-            Addition:SetMoveType(MoveType)
-            LogInstance("Addition:SetMoveType("..MoveType..")")
-          end
-          local PhysInit = (tonumber(Record[defTable[7][1]]) or -1)
-          if(PhysInit >= 0) then
-            Addition:PhysicsInit(PhysInit)
-            LogInstance("Addition:PhysicsInit("..PhysInit..")")
-          end
-          if((tonumber(Record[defTable[8][1]]) or -1) >= 0) then
-            Addition:DrawShadow(false)
-            LogInstance("Addition:DrawShadow(false)")
-          end
-          Addition:SetParent( ePiece )
-          LogInstance("Addition:SetParent(ePiece)")
-          Addition:Spawn()
-          LogInstance("Addition:Spawn()")
-          phAddition = Addition:GetPhysicsObject()
-          if(phAddition and phAddition:IsValid()) then
-            if((tonumber(Record[defTable[9][1]]) or -1) >= 0) then
-              phAddition:EnableMotion(false)
-              LogInstance("phAddition:EnableMotion(false)")
-            end
-            if((tonumber(Record[defTable[10][1]]) or -1) >= 0) then
-              phAddition:Sleep()
-              LogInstance("phAddition:Sleep()")
-            end
-          end
-          Addition:Activate()
-          LogInstance("Addition:Activate()")
-          ePiece:DeleteOnRemove(Addition)
-          LogInstance("ePiece:DeleteOnRemove(Addition)")
-          local Solid = (tonumber(Record[defTable[11][1]]) or -1)
-          if(Solid >= 0) then
-            Addition:SetSolid(Solid)
-            LogInstance("Addition:SetSolid("..Solid..")")
-          end
-        else
-          LogInstance("Failed to allocate Addition #"..Cnt.." memory:"
-              .."\n     Modelbse: "..qData[Cnt][defTable[1][1]]
-              .."\n     Addition: "..qData[Cnt][defTable[2][1]]
-              .."\n     ENTclass: "..qData[Cnt][defTable[3][1]])
-          break
-        end
-        Cnt = Cnt + 1
+  if(not (ePiece and ePiece:IsValid())) then return StatusLog(false,"AttachAdditions(): Piece invalid") end
+  local LocalAng  = ePiece:GetAngles()
+  local LocalPos  = ePiece:GetPos()
+  local BaseModel = ePiece:GetModel()
+  LogInstance("Model: "..BaseModel)
+  local qData = CacheQueryAdditions(BaseModel)
+  if(not qData) then return StatusLog(false,"AttachAdditions(): No data found") end
+  local Record, Addition
+  local Cnt = 1
+  local defTable = GetOpVar("DEFTABLE_ADDITIONS")
+  while(qData[Cnt]) do
+    LogInstance("\n\nEnt [ "..Cnt.." ] INFO : ")
+    Record   = qData[Cnt]
+    Addition = ents.Create(Record[defTable[3][1]])
+    if(Addition and Addition:IsValid()) then
+      LogInstance("Addition Class: "..Record[defTable[3][1]])
+      if(file.Exists(Record[defTable[2][1]], "GAME")) then
+        Addition:SetModel(Record[defTable[2][1]])
+        LogInstance("Addition:SetModel("..Record[defTable[2][1]]..")")
+      else
+        return StatusLog(false,"AttachAdditions(): No such attachment model "..Record[defTable[2][1]])
       end
+      local OffPos = Record[defTable[4][1]]
+      if(OffPos       and
+         OffPos ~= "" and
+         OffPos ~= "NULL"
+      ) then
+        local AdditionPos = Vector()
+        local arConv = DecodePOA(OffPos)
+        arConv[1] = arConv[1] * arConv[4]
+        arConv[2] = arConv[2] * arConv[5]
+        arConv[3] = arConv[3] * arConv[6]
+        AdditionPos:Set(LocalPos)
+        AdditionPos:Add(arConv[1] * LocalAng:Forward())
+        AdditionPos:Add(arConv[2] * LocalAng:Right())
+        AdditionPos:Add(arConv[3] * LocalAng:Up())
+        Addition:SetPos(AdditionPos)
+        LogInstance("Addition:SetPos(AdditionPos)")
+      else
+        Addition:SetPos(LocalPos)
+        LogInstance("Addition:SetPos(LocalPos)")
+      end
+      local OffAngle = Record[defTable[5][1]]
+      if(OffAngle       and
+         OffAngle ~= "" and
+         OffAngle ~= "NULL"
+      ) then
+        local AdditionAng = Angle()
+        local arConv = DecodePOA(OffAngle)
+        AdditionAng[caP] = arConv[1] * arConv[4] + LocalAng[caP]
+        AdditionAng[caY] = arConv[2] * arConv[5] + LocalAng[caY]
+        AdditionAng[caR] = arConv[3] * arConv[6] + LocalAng[caR]
+        Addition:SetAngles(AdditionAng)
+        LogInstance("Addition:SetAngles(AdditionAng)")
+      else
+        Addition:SetAngles(LocalAng)
+        LogInstance("Addition:SetAngles(LocalAng)")
+      end
+      local MoveType = (tonumber(Record[defTable[6][1]]) or -1)
+      if(MoveType >= 0) then
+        Addition:SetMoveType(MoveType)
+        LogInstance("Addition:SetMoveType("..MoveType..")")
+      end
+      local PhysInit = (tonumber(Record[defTable[7][1]]) or -1)
+      if(PhysInit >= 0) then
+        Addition:PhysicsInit(PhysInit)
+        LogInstance("Addition:PhysicsInit("..PhysInit..")")
+      end
+      if((tonumber(Record[defTable[8][1]]) or -1) >= 0) then
+        Addition:DrawShadow(false)
+        LogInstance("Addition:DrawShadow(false)")
+      end
+      Addition:SetParent( ePiece )
+      LogInstance("Addition:SetParent(ePiece)")
+      Addition:Spawn()
+      LogInstance("Addition:Spawn()")
+      phAddition = Addition:GetPhysicsObject()
+      if(phAddition and phAddition:IsValid()) then
+        if((tonumber(Record[defTable[9][1]]) or -1) >= 0) then
+          phAddition:EnableMotion(false)
+          LogInstance("phAddition:EnableMotion(false)")
+        end
+        if((tonumber(Record[defTable[10][1]]) or -1) >= 0) then
+          phAddition:Sleep()
+          LogInstance("phAddition:Sleep()")
+        end
+      end
+      Addition:Activate()
+      LogInstance("Addition:Activate()")
+      ePiece:DeleteOnRemove(Addition)
+      LogInstance("ePiece:DeleteOnRemove(Addition)")
+      local Solid = (tonumber(Record[defTable[11][1]]) or -1)
+      if(Solid >= 0) then
+        Addition:SetSolid(Solid)
+        LogInstance("Addition:SetSolid("..Solid..")")
+      end
+    else
+      return StatusLog(false,"Failed to allocate Addition #"..Cnt.." memory:"
+          .."\n     Modelbse: "..qData[Cnt][defTable[1][1]]
+          .."\n     Addition: "..qData[Cnt][defTable[2][1]]
+          .."\n     ENTclass: "..qData[Cnt][defTable[3][1]])
     end
+    Cnt = Cnt + 1
   end
+  return StatusLog(true,"AttachAdditions(): Success")
 end
 
 local function GetEntityOrTrace(oEnt)
@@ -3301,7 +3297,6 @@ end
 
 function DuplicatePiece(ePiece)
   if(CLIENT) then return nil end
-  MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise)
   local sModel   = MatchType(GetOpVar("DEFTABLE_PIECES"),ePiece:GetModel(),1,false,"",true)
   local stRecord = CacheQueryPiece(sModel)
   if(not stRecord) then return nil end

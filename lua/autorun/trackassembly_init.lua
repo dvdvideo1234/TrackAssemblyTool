@@ -14,7 +14,7 @@ asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")
 asmlib.SetOpVar("MISS_NOAV","N/A")
-asmlib.SetOpVar("TOOL_VERSION","4.38")
+asmlib.SetOpVar("TOOL_VERSION","4.39")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -27,6 +27,7 @@ asmlib.SetLogControl(10000,"")
 
 ------ CONFIGURE CVARS -----
 asmlib.MakeCvar("maxactrad","150" , {1,500},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCvar("enwiremod","1"   , {0,1  },bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeCvar("maxstcnt" ,"200" , {1,200},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 asmlib.MakeCvar("modedb"   ,"SQL" , nil    ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 if(SERVER) then
