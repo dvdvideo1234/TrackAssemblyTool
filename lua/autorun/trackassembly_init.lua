@@ -14,7 +14,7 @@ asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")
 asmlib.SetOpVar("MISS_NOAV","N/A")
-asmlib.SetOpVar("TOOL_VERSION","4.44")
+asmlib.SetOpVar("TOOL_VERSION","4.45")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -215,7 +215,7 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = {Life = 3600, Kill = true},
+  Timer = {Mode = "QTM", Life = 3600, Kill = true},
   Index = {{1},{4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -227,7 +227,7 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = {Life = 1200, Kill = true},
+  Timer = {Mode = "QTM", Life = 1200, Kill = true},
   Index = {{1}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
