@@ -15,7 +15,7 @@ asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")
 asmlib.SetOpVar("MISS_NOAV","N/A")
 asmlib.SetOpVar("MISS_NOMD","X") -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.46")
+asmlib.SetOpVar("TOOL_VERSION","4.47")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -25,7 +25,7 @@ asmlib.SetOpVar("MAX_MASS",50000)
 asmlib.SetOpVar("MAX_LINEAR",10000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetOpVar("LOG_LOGONLY","AttachKillTimer")
-asmlib.SetLogControl(10000,"")
+asmlib.SetLogControl(10000,"trackasmlib_log")
 
 ------ CONFIGURE CVARS -----
 asmlib.MakeCvar("maxactrad","150" , {1,500},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
@@ -217,7 +217,7 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = {Mode = "QTM", Life = 6, Kill = true},
+  Timer = {Mode = "QTM", Life = 10, Kill = true},
   Index = {{1},{4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -229,7 +229,7 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = {Mode = "QTM", Life = 3, Kill = true},
+  Timer = {Mode = "QTM", Life = 5, Kill = true},
   Index = {{1}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -452,19 +452,19 @@ else
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch.mdl", "#", "Switch Right", 2, "", "829.88, -0.022, 11.21", ""})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch.mdl", "#", "Switch Right", 3, "", "-158.306, 338.107, 11.213", "0,135,0"})
   asmlib.DefaultType("SProps")
-  asmlib.SettingsModelToName("SET",nil,{"track_s","straight_"},{"","x"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#Straight 1x", 1, "", "0.0020000000949949,0,7.6240000724792", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#Straight 1x", 2, "", "-162.00199890137,0,7.6240000724792", "0,180,0"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s02.mdl", "#", "", 1, "", "0.0020000000949949,0,7.6240000724792", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s02.mdl", "#", "", 2, "", "-324.00201416016,0,7.6240000724792", "0,180,0"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s03.mdl", "#", "", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s03.mdl", "#", "", 2, "", "-486.00201416016,0,7.6240000724792", "0,180,0"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s04.mdl", "#", "", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s04.mdl", "#", "", 2, "", "-648.00201416016,0,7.6240000724792", "0,180,0"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s05.mdl", "#", "", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s05.mdl", "#", "", 2, "", "-1296.001953125,0,7.6240000724792", "0,180,0"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s06.mdl", "#", "", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_s06.mdl", "#", "", 2, "", "-2592.001953125,0,7.6240000724792", "0,180,0"})
+  asmlib.SettingsModelToName("SET",nil,{"track_s0","straight_"},{"","x"})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 1, "", "0.0020000000949949,0,7.6240000724792", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 2, "", "-162.00199890137,0,7.6240000724792", "0,180,0"})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s02.mdl", "#", "#", 1, "", "0.0020000000949949,0,7.6240000724792", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s02.mdl", "#", "#", 2, "", "-324.00201416016,0,7.6240000724792", "0,180,0"})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s03.mdl", "#", "#", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s03.mdl", "#", "#", 2, "", "-486.00201416016,0,7.6240000724792", "0,180,0"})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s04.mdl", "#", "#", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s04.mdl", "#", "#", 2, "", "-648.00201416016,0,7.6240000724792", "0,180,0"})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s05.mdl", "#", "#", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s05.mdl", "#", "#", 2, "", "-1296.001953125,0,7.6240000724792", "0,180,0"})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s06.mdl", "#", "#", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_s06.mdl", "#", "#", 2, "", "-2592.001953125,0,7.6240000724792", "0,180,0"})
   asmlib.SettingsModelToName("CLR")
   asmlib.InsertRecord({"models/sprops/trans/train/track_h01.mdl", "#", "Ramp", 1, "", "0.0010000000474975,0,7.6240000724792", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_h01.mdl", "#", "Ramp", 2, "", "-2525.9780273438,0,503.5830078125", "0,180,0"})

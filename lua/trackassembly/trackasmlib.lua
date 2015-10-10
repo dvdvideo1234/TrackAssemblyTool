@@ -944,7 +944,9 @@ function ModelToName(sModel)
         return StatusLog("","ModelToName: Cannot cut the model in {"
                  ..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} for "..sModel)
       end
+      LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} << "..gModel)
       gModel = string.gsub(gModel,string.sub(sModel,fCh,bCh),"")
+      LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} >> "..gModel)
       Cnt = Cnt + 2
     end
     Cnt = 1
@@ -952,19 +954,23 @@ function ModelToName(sModel)
   -- Replace the unneeded parts by finding an in-string gModel
   if(tSub and tSub[1]) then
     while(tSub[Cnt]) do
-      fCh = tostring(tSub[Cnt] or "")
+      fCh = tostring(tSub[Cnt]   or "")
       bCh = tostring(tSub[Cnt+1] or "")
-      if(fCh and bCh) then
+      if(not (fCh and bCh)) then
         return StatusLog("","ModelToName: Cannot sub the model in {"..fCh..", "..bCh.."}")
       end
+      LogInstance("ModelToName:[SUB] {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} << "..gModel)
       gModel = string.gsub(gModel,fCh,bCh)
+      LogInstance("ModelToName:[SUB] {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
       Cnt = Cnt + 2
     end
     Cnt = 1
   end
   -- Append something if needed
   if(tApp and tApp[1]) then
+    LogInstance("ModelToName:[APP] {"..tostring(tApp[Cnt])..", "..tostring(tApp[Cnt+1]).."} << "..gModel)
     gModel = tostring(tApp[1] or "")..gModel..tostring(tApp[2] or "")
+    LogInstance("ModelToName:[APP] {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
   end
   -- Trigger the capital-space using the divider
   sModel = sSymDiv..gModel
@@ -1536,9 +1542,9 @@ end
 function SettingsModelToName(sMode, gCut, gSub, gApp)
   if(not IsString(sMode)) then return StatusLog(false,"SettingsModelToName: Wrong mode type "..type(sMode)) end
   if(sMode == "SET") then
-    if(gCut and gCut[1]) then SetOpVar("TABLE_GCUT_MODEL",tGcut) else SetOpVar("TABLE_GCUT_MODEL",{}) end
-    if(gSub and gSub[1]) then SetOpVar("TABLE_GSUB_MODEL",tGsub) else SetOpVar("TABLE_GSUB_MODEL",{}) end
-    if(gApp and gApp[1]) then SetOpVar("TABLE_GAPP_MODEL",tGapp) else SetOpVar("TABLE_GAPP_MODEL",{}) end 
+    if(gCut and gCut[1]) then SetOpVar("TABLE_GCUT_MODEL",gCut) else SetOpVar("TABLE_GCUT_MODEL",{}) end
+    if(gSub and gSub[1]) then SetOpVar("TABLE_GSUB_MODEL",gSub) else SetOpVar("TABLE_GSUB_MODEL",{}) end
+    if(gApp and gApp[1]) then SetOpVar("TABLE_GAPP_MODEL",gApp) else SetOpVar("TABLE_GAPP_MODEL",{}) end 
   elseif(sMode == "GET") then
     return GetOpVar("TABLE_GCUT_MODEL"), GetOpVar("TABLE_GSUB_MODEL"), GetOpVar("TABLE_GAPP_MODEL")
   elseif(sMode == "CLR") then
@@ -2324,15 +2330,12 @@ local function NavigateTable(oLocation,tKeys)
   local Place, Key
   while(tKeys[Cnt]) do
     Key = tKeys[Cnt]
-    LogInstance("NavigateTable: Key: <"..Key..">")
     if(Place) then
       if(tKeys[Cnt+1]) then
-        LogInstance("NavigateTable: Jump: "..Key)
         Place = Place[Key]
         if(not IsExistent(Place)) then return nil, nil end
       end
     else
-      LogInstance("NavigateTable: Start: "..Key)
       Place = oLocation[Key]
       if(not IsExistent(Place)) then return nil, nil end
     end
@@ -2345,59 +2348,84 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return false end
   if(not defTable.Timer) then return false end
   local nLife = defTable.Timer.Life or 0
-  if(nLife <= 0) then return false end  
+  if(nLife <= 0) then return false end
+  local sModeDB = GetOpVar("MODE_DATABASE")
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
     return StatusLog(false,"AttachKillTimer: Navigation failed")
   end
-  LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
-  local sMode = tostring(defTable.Timer.Mode or "QTM")
-  if(sMode == "QTM") then
-    Place[Key].Load = Time()
-    return StatusLog(true,"AttachKillTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
-  elseif(sMode == "OBJ") then
-    local TimerID = StringImplode(tKeys,"_")
-    LogInstance("AttachKillTimer: TimID: <"..TimerID..">")
-    if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer: Place not found") end
-    if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer: Timer exists") end
+  if(sModeDB == "SQL") then
+    LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
     local bKill = defTable.Timer.Kill and true or false
-    timer.Create(TimerID, nLife, 1, function()
-      LogInstance("AttachKillTimer["..TimerID.."]("..nLife.."): "
-                     ..tostring(anyMessage).." > Dead")
-      if(bKill) then Place[Key] = nil end
-      timer.Stop(TimerID)
-      timer.Destroy(TimerID)
+    local sMode = tostring(defTable.Timer.Mode or "QTM")
+    if(sMode == "QTM") then
+      Place[Key].Load = Time()
+      for k, v in pairs(Place) do
+        if(v.Used and v.Load and ((v.Used - v.Load) > nLife)) then
+          LogInstance("AttachKillTimer: ("..tostring(v.Used - v.Load).." > "
+                                          ..tostring(nLife)..") "
+                                          ..tostring(anyMessage).." > Dead")
+          if(bKill) then
+            LogInstance("AttachKillTimer: Killed: Place["..k.."]")
+            Place[k] = nil
+          end
+        end
+      end
       collectgarbage()
-    end)
-    return timer.Start(TimerID)
+      return StatusLog(true,"AttachKillTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
+    elseif(sMode == "OBJ") then
+      local TimerID = StringImplode(tKeys,"_")
+      LogInstance("AttachKillTimer: TimID: <"..TimerID..">")
+      if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer: Place not found") end
+      if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer: Timer exists") end
+      timer.Create(TimerID, nLife, 1, function()
+        LogInstance("AttachKillTimer["..TimerID.."]("..nLife.."): "
+                       ..tostring(anyMessage).." > Dead")
+        if(bKill) then
+          LogInstance("AttachKillTimer: Killed: Place["..Key.."]")
+          Place[Key] = nil
+        end
+        timer.Stop(TimerID)
+        timer.Destroy(TimerID)
+        collectgarbage()
+      end)
+      return timer.Start(TimerID)
+    else
+      return StatusLog(false,"AttachKillTimer: Mode not found: "..sMode)
+    end
+  elseif(sModeDB == "LUA") then
+    return StatusLog(true,"AttachKillTimer: Timers not available")
   else
-    return StatusLog(false,"AttachKillTimer: Mode not found: "..sMode)
+    return StatusLog(false,"AttachKillTimer: Wrong database mode")
   end
 end
 
 local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
-  if(not defTable) then return false end
-  if(not defTable.Timer) then return false end
+  if(not defTable) then return nil end
+  if(not defTable.Timer) then return nil end
   local nLife = defTable.Timer.Life or 0
-  local sMode = tostring(defTable.Timer.Mode or "QTM")
-  if(nLife <= 0) then return false end
+  if(nLife <= 0) then return nil end
+  local sModeDB = GetOpVar("MODE_DATABASE")
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
-    return StatusLog(false,"RestartTimer: Navigation failed")
+    return StatusLog(nil,"RestartTimer: Navigation failed")
   end
-  if(sMode == "QTM") then
-    local bKill = defTable.Timer.Kill and true or false
+  if(sModeDB == "SQL") then
     Place[Key].Used = Time()
-    if((Place[Key].Used - Place[Key].Load) > nLife) then
-      if(bKill) then Place[Key] = nil end
-      collectgarbage()
+    local sMode = tostring(defTable.Timer.Mode or "QTM")
+    if(sMode == "QTM") then
+      sMode = "QTM"
+    elseif(sMode == "OBJ") then
+      local TimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
+      if(not timer.Exists(TimerID)) then return StatusLog(nil,"RestartTimer: Timer missing: "..TimerID) end
+      timer.Start(TimerID)
+    else
+      return StatusLog(nil,"RestartTimer: Mode not found: "..sMode)
     end
-  elseif(sMode == "OBJ") then
-    local TimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
-    if(not timer.Exists(TimerID)) then return StatusLog(nil,"RestartTimer: Timer missing: "..TimerID) end
-    if(not timer.Start(TimerID)) then return StatusLog(nil,"RestartTimer: Timer cannot start: "..TimerID) end
+  elseif(sModeDB == "LUA") then
+    Place[Key].Used = Time()
   else
-    return StatusLog(nil,"RestartTimer: Mode not found: "..sMode)
+    return StatusLog(nil,"AttachKillTimer: Wrong database mode")
   end
   return Place[Key]
 end
@@ -2421,7 +2449,7 @@ function CacheQueryPiece(sModel)
     end
     return nil
   else
-    local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
+    local sModel  = MatchType(defTable,sModel,1,false,"",true,true)
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryPiece: Model >> Pool: "..GetModelFileName(sModel))
@@ -3304,22 +3332,23 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   ePiece:DrawShadow(false)
   ePiece:PhysWake()
   local phPiece = ePiece:GetPhysicsObject()
-  if(phPiece and phPiece:IsValid()) then
-    local IDs = StringExplode(sBgSkIDs,GetOpVar("OPSYM_DIRECTORY"))
-    phPiece:SetMass(nMass)
-    phPiece:EnableMotion(false)
-    ePiece:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
-    AttachBodyGroups(ePiece,IDs[1] or "")
-    AttachAdditions(ePiece)
-    return ePiece
+  if(not (phPiece and phPiece:IsValid())) then
+    ePiece:Remove()
+    return StatusLog(nil,"MakePiece: Entity phys object invalid")
   end
-  ePiece:Remove()
-  return StatusLog(nil,"MakePiece: Entity phys object invalid")
+  local IDs = StringExplode(sBgSkIDs,GetOpVar("OPSYM_DIRECTORY"))
+  phPiece:SetMass(nMass)
+  phPiece:EnableMotion(false)
+  ePiece:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
+  AttachBodyGroups(ePiece,IDs[1] or "")
+  AttachAdditions(ePiece)
+  return ePiece
 end
 
 function DuplicatePiece(ePiece)
-  if(CLIENT) then return nil end
   if(not (ePiece and ePiece:IsValid())) then return nil end
+  local phPiece = ePiece:GetPhysicsObject()
+  if(not (phPiece and phPiece:IsValid())) then return nil end
   local stRecord = CacheQueryPiece(ePiece:GetModel())
   if(not stRecord) then return nil end
   return MakePiece(ePiece:GetModel(),ePiece:GetPos(),
