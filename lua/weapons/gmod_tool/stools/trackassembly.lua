@@ -53,7 +53,9 @@ local gsUndoPrefN = asmlib.GetOpVar("INIT_FAN")..": "
 local gsFancyName = asmlib.GetOpVar("INIT_FAN").." "..asmlib.GetOpVar("PERP_FAN")
 local gsNoID      = asmlib.GetOpVar("MISS_NOID")
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
+local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsRevSign   = asmlib.GetOpVar("OPSYM_REVSIGN")
+local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 
 
 --- Render Base Colours
@@ -102,7 +104,7 @@ TOOL.ClientConVar = {
   [ "count"     ] = "1",
   [ "freeze"    ] = "0",
   [ "advise"    ] = "1",
-  [ "anchor"    ] = "",
+  [ "anchor"    ] = gsNoID..gsSymDir..gsNoMD,
   [ "igntyp"    ] = "0",
   [ "spnflat"   ] = "0",
   [ "ydegsnp"   ] = "0",
@@ -247,10 +249,11 @@ function TOOL:ClearAnchor()
     svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
     svEnt:SetColor(DDyes:Select("w"))
   end
+  local plPly = self:GetOwner()
   self:ClearObjects()
   sAnchor = gsNoID..gsRevSign..gsNoAV
-  asmlib.PrintNotify(ply,"Anchor: Cleaned !","CLEANUP")
-  ply:ConCommand(gsToolPrefL.."anchor "..sAnchor.."\n")
+  asmlib.PrintNotify(plPly,"Anchor: Cleaned !","CLEANUP")
+  plPly:ConCommand(gsToolPrefL.."anchor "..sAnchor.."\n")
   return asmlib.StatusLog(true,"TOOL:ClearAnchor(): Anchor cleared")
 end
 
@@ -269,7 +272,7 @@ function TOOL:SetAnchor(stTrace)
   trEnt:SetColor(DDyes:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
   plPly:ConCommand(gsToolPrefL.."anchor "..sAnchor.."\n")
-  asmlib.PrintNotify(plPly,"Anchor: Set "..sAnchor" !","UNDO")
+  asmlib.PrintNotify(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
   return asmlib.StatusLog(true,"TOOL:SetAnchor("..sAnchor..")")
 end
 
@@ -327,7 +330,7 @@ function TOOL:LeftClick(Trace)
                             Trace.HitPos[cvY] + nexty,
                             Trace.HitPos[cvZ] - (Trace.HitNormal.z * vBBMin.z) + nextz)
         vPos:Add(vOffset)
-        if(SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
+        if(asmlib.SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -340,7 +343,7 @@ function TOOL:LeftClick(Trace)
           stSpawn.SPos:Add(asmlib.GetPointUpGap(ePiece,
             stSpawn.HRec.Offs[pointid]) * Trace.HitNormal)
         end
-        if(SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        if(asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -388,7 +391,7 @@ function TOOL:LeftClick(Trace)
   local stSpawn = asmlib.GetEntitySpawn(trEnt,Trace.HitPos,model,pointid,
                            actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
   if(not stSpawn) then
-    local IDs = asmlib.StringExplode(bgskids,asmlib.GetOpVar("OPSYM_DIRECTORY"))
+    local IDs = asmlib.StringExplode(bgskids,gsSymDir)
     asmlib.Print(IDs,"BodygrpSkin")
     asmlib.AttachBodyGroups(trEnt,IDs[1] or "")
     trEnt:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
@@ -408,7 +411,7 @@ function TOOL:LeftClick(Trace)
     while(iNdex > 0) do
       ePieceN = asmlib.DuplicatePiece(ePieceO)
       if(ePieceN) then
-        if(SetBoundPosPiece(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        if(asmlib.SetBoundPosPiece(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Stacking piece position out of map bounds"
           .."\n   Iterats: "..tostring(count-iNdex)
           .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
@@ -491,7 +494,7 @@ function TOOL:LeftClick(Trace)
     local ePiece = asmlib.MakePiece(model,Trace.HitPos,
                      ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
-      if(SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+      if(asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
         .."\n   Event  : Spawn one piece relative to another"
         .."\n   Player : "..ply:GetName()
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)
@@ -761,21 +764,21 @@ function TOOL:DrawToolScreen(w, h)
   local anInfo, anEnt = self:GetAnchor()
   local tInfo = asmlib.StringExplode(anInfo,gsRevSign)
   if(not (stTrace and stTrace.Hit)) then
-    goToolScr:DrawText("Trace status: Invalid ","r")
-    goToolScr:DrawTextAdd(Info[1],"an")
+    goToolScr:DrawText("Trace status: Invalid","r")
+    goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
     return
   end
-  goToolScr:DrawText("Trace status: Valid ","g")
-  goToolScr:DrawTextAdd(Info[1],"an")
+  goToolScr:DrawText("Trace status: Valid","g")
+  goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not hdRec) then
-    goToolScr:DrawText("Holds Model: Invalid ","r")
-    goToolScr:DrawTextAdd(gsModeDataB,"db")
+    goToolScr:DrawText("Holds Model: Invalid","r")
+    goToolScr:DrawTextAdd("  ["..gsModeDataB.."]","db")
     return
   end
-  goToolScr:DrawText("Holds Model: Valid ","g")
-  goToolScr:DrawTextAdd(gsModeDataB,"db")
+  goToolScr:DrawText("Holds Model: Valid","g")
+  goToolScr:DrawTextAdd("  ["..gsModeDataB.."]","db")
   local trEnt   = stTrace.Entity
   local actrad  = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
@@ -974,7 +977,7 @@ function TOOL.BuildCPanel(CPanel)
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGrp()
-                ..asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin()
+                ..gsSymDir..asmlib.GetPropSkin()
             pnSelf:SetText(sTX)
             pnSelf:SetValue(sTX)
           elseif(nKeyEnum == KEY_ENTER) then

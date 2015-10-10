@@ -954,7 +954,7 @@ function ModelToName(sModel)
     while(tSub[Cnt]) do
       fCh = tostring(tSub[Cnt] or "")
       bCh = tostring(tSub[Cnt+1] or "")
-      if(fCh and bCh)) then
+      if(fCh and bCh) then
         return StatusLog("","ModelToName: Cannot sub the model in {"..fCh..", "..bCh.."}")
       end
       gModel = string.gsub(gModel,fCh,bCh)
@@ -1271,13 +1271,20 @@ function Log(anyStuff)
 end
 
 function LogInstance(anyStuff)
-  local sModeDB = GetOpVar("MODE_DATABASE")
+  local sModeDB  = GetOpVar("MODE_DATABASE")
+  local anyStuff = tostring(anyStuff)
+  local logOnly  = GetOpVar("LOG_LOGONLY")
+  if(logOnly and IsString(logOnly)) then
+    if(logOnly ~= "" and logOnly ~= "NULL" and string.len(logOnly) > 0) then
+      if(not string.find(anyStuff,GetOpVar("LOG_LOGONLY"))) then return end
+    end
+  end
   if(SERVER) then
-    Log("SERVER > ["..sModeDB.."] "..tostring(anyStuff))
+    Log("SERVER > ["..sModeDB.."] "..anyStuff)
   elseif(CLIENT) then
-    Log("CLIENT > ["..sModeDB.."] "..tostring(anyStuff))
+    Log("CLIENT > ["..sModeDB.."] "..anyStuff)
   else
-    Log("NOINST > ["..sModeDB.."] "..tostring(anyStuff))
+    Log("NOINST > ["..sModeDB.."] "..anyStuff)
   end
 end
 
@@ -2344,6 +2351,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
     return StatusLog(false,"AttachKillTimer: Navigation failed")
   end
   LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
+  local sMode = tostring(defTable.Timer.Mode or "QTM")
   if(sMode == "QTM") then
     Place[Key].Load = Time()
     return StatusLog(true,"AttachKillTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
@@ -2381,9 +2389,9 @@ local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
     local bKill = defTable.Timer.Kill and true or false
     Place[Key].Used = Time()
     if((Place[Key].Used - Place[Key].Load) > nLife) then
-      if(bKill) Place[Key] = nil end
+      if(bKill) then Place[Key] = nil end
+      collectgarbage()
     end
-    collectgarbage()
   elseif(sMode == "OBJ") then
     local TimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
     if(not timer.Exists(TimerID)) then return StatusLog(nil,"RestartTimer: Timer missing: "..TimerID) end
@@ -2402,7 +2410,6 @@ function CacheQueryPiece(sModel)
   if(not util.IsValidModel(sModel)) then return nil end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then return StatusLog(nil,"CacheQueryPiece: Missing: Table definition") end
-  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
   if(not IsExistent(Cache)) then return StatusLog(nil,"CacheQueryPiece: Cache not allocated for "..namTable) end
@@ -2414,6 +2421,7 @@ function CacheQueryPiece(sModel)
     end
     return nil
   else
+    local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryPiece: Model >> Pool: "..GetModelFileName(sModel))
@@ -2572,7 +2580,6 @@ function CacheQueryProperty(sType)
   if(not defTable) then
     return StatusLog(nil,"CacheQueryProperty: Table definition missing")
   end
-  local sType    = MatchType(defTable,sType,1,false,"",true,true)
   local namTable = defTable.Name
   local Cache    = LibCache[namTable]
   if(not Cache) then
@@ -2580,6 +2587,7 @@ function CacheQueryProperty(sType)
   end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and (sType ~= "")) then -- Get names per type
+    local sType    = MatchType(defTable,sType,1,false,"",true,true)
     local CacheKey = GetOpVar("HASH_PROPERTY_NAMES")
     if(not Cache[CacheKey]) then Cache[CacheKey] = {} end
     Cache = Cache[CacheKey]
@@ -2638,11 +2646,11 @@ function CacheQueryProperty(sType)
 end
 
 function GetCenterPoint(oRec,sO)
-  if(not IsString(sO)) then return Vector(0,0,0) end
-  if((sO ~= "P") and (sO ~= "O")) then return Vector(0,0,0) end
-  if(not oRec) then return Vector(0,0,0) end
-  if(not oRec.Offs) then return Vector(0,0,0) end
-  if(not oRec.Offs[1]) then return Vector(0,0,0) end
+  if(not IsString(sO)) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Wrong offset type") end
+  if((sO ~= "P") and (sO ~= "O")) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Wrong offset name") end
+  if(not oRec) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Missing piece record") end
+  if(not oRec.Offs) then return StatusLog(Vector(0,0,0),"GetCenterPoint: No piece offsets") end
+  if(not oRec.Offs[1]) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Missing piece offset") end
   local Ind = 1
   local Cent = Vector()
   while(oRec.Offs[Ind]) do
@@ -3306,7 +3314,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     return ePiece
   end
   ePiece:Remove()
-  return return StatusLog(nil,"MakePiece: Entity phys object invalid")
+  return StatusLog(nil,"MakePiece: Entity phys object invalid")
 end
 
 function DuplicatePiece(ePiece)
