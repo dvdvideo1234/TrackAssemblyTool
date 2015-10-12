@@ -168,6 +168,38 @@ N: SQL is still the best option for using the tool with, because only
    small amount of models have to stay in the cache for a given amount
    of time, rather than the whole database forever ( till the server is up that is .. ),
    so please use SQL mode when possible if you want to save some amount of RAM.
+
+Q: Can I do something about my server's performance and how can I configure the memory manager properly?
+A: You can chose a memory management algorithm by setting trackassembly_modemm to ether "QTM" or "OBJ"
+   First of all the memory manager is available only in SQL mode, because in LUA mode, all the records
+   are already in the memory and thus, there is no need to manage ( delete ) anything automatically.
+   It's pretty much for you to decide, because every setting has its pros and cons.
+   "QTM" - The memory management is called every time a new piece is requested from the database and
+           not found. Therefore a query should be processed to retrieve it, so as it does at
+           the end it runs a "for k, v pairs(Cache)" cycle, inspecting which record is
+           old enough ( not used for given amount of time ) to be deleted, as it does.
+     Pros: Lighter algorithm
+           No need for additional memory allocation for timers
+     Cons: Uses particular points in time the record is used/loaded and judges by these how old is it.
+           Every piece of track is not deleted from the cache at
+           the exact same moment when its time ( life in the cache ) runs out
+     Used: When there is no need of many timer objects to store in the memory    or
+           they cannot be created due to some reasons not related to the TA tool or
+           the server will run out of memory when creating too much objects ( timers ).
+   "OBJ" - It attaches a timer object ( That's why the OBJ xD ) to every record
+           created in the cache with one repetition for given amount of time in seconds.
+           After the time is passed, the record is destroyed, so as the timer.
+     Pros: Old ( Not popularly used ) records are deleted at the exact given time when processed.
+           Timer is deleted with the record.
+           It uses a running process, rather than points in time to control the memory management.
+     Cons: Needs additional memory for the timers. 
+     Used: When server has enough memory for the timers or
+           the record has to be deleted at exact moment.
+
+Q: Dude, is there any other way to connect ( weld ) all the pieces relative
+   to one big base prop and use it as an anchor to constrain these thing to?
+A: Well yeah, select/clear the anchor prop using IN_SPEED ( def. Shift ) + IN_RELOAD ( def. R )
+   When pointing to an entity, trace will be selected for an anchor or point to the world to clear it.
    
 Q: Does this thing have any wire extensions and how can I control then
    when my clients are abusing them ?

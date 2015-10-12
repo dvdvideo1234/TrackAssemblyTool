@@ -1119,6 +1119,41 @@ local function DecodePOA(sStr)
   return arPOA
 end
 
+local function RegisterPOA(stPiece, nID, sP, sO, sA)
+  if(not stPiece) then return StatusLog(nil,"RegisterPOA: Cache record invalid") end
+  local nID = tonumber(nID)
+  if(not nID) then return StatusLog(nil,"RegisterPOA: OffsetID is not a number") end
+  local sP = sP or "NULL"
+  local sO = sO or "NULL"
+  local sA = sA or "NULL"
+  if(not IsString(sP)) then return StatusLog(nil,"RegisterPOA: Point is not a string") end
+  if(not IsString(sO)) then return StatusLog(nil,"RegisterPOA: Origin is not a string") end
+  if(not IsString(sA)) then return StatusLog(nil,"RegisterPOA: Angle is not a string") end
+  if(not stPiece.Offs) then
+    if(nID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be "..tostring(nID)) end
+    stPiece.Offs = {}
+  end
+  local tOffs = stPiece.Offs
+  if(tOffs[nID]) then
+    return StatusLog(nil,"RegisterPOA: Exists ID #"..tostring(nID))
+  else
+    if((nID > 1) and (not tOffs[nID - 1])) then return StatusLog(nil,"RegisterPOA: Not sequential ID #"..tostring(nID - 1)) end
+    tOffs[nID]   = {}
+    tOffs[nID].P = {}
+    tOffs[nID].O = {}
+    tOffs[nID].A = {}
+    tOffs        = tOffs[nID]
+  end
+  if((sO ~= "") and (sO ~= "NULL")) then DecodePOA(sO)
+  else ReloadPOA() end TransferPOA(tOffs.O,"POS")
+  if((sP ~= "") and (sP ~= "NULL")) then DecodePOA(sP) end
+  TransferPOA(tOffs.P,"POS") -- in the POA array still persists the decoded Origin
+  if(string.sub(sP,1,1) == GetOpVar("OPSYM_DISABLE")) then tOffs.P[csD] = true end
+  if((sA ~= "") and (sA ~= "NULL")) then DecodePOA(sA)
+  else ReloadPOA() end TransferPOA(tOffs.A,"ANG")
+  return tOffs
+end
+
 function FormatNumberMax(nNum,nMax)
   local nNum = tonumber(nNum)
   local nMax = tonumber(nMax)
@@ -2254,24 +2289,9 @@ function InsertRecord(sTable,tData)
       local nOffsID = MatchType(defTable,tData[4],4)
       if(not IsExistent(nOffsID)) then return StatusLog(nil,"InsertRecord: Cannot match offset ID") end
       if(not IsExistent(tLine.Offs[nOffsID])) then
-        tLine.Offs[nOffsID] = {}
-        local sPOA = ""
-        local syOff = GetOpVar("OPSYM_DISABLE")
-        local tOffs = tLine.Offs[nOffsID]
-              tOffs.P = {}
-              tOffs.O = {}
-              tOffs.A = {}
-        sPOA = tostring(tData[6])
-        if((sPOA ~= "") and (sPOA ~= "NULL")) then DecodePOA(sPOA)
-        else ReloadPOA() end TransferPOA(tOffs.O,"POS")
-        sPOA = tostring(tData[5])
-        -- in the POA array still persists the decoded Origin
-        if((sPOA ~= "") and (sPOA ~= "NULL")) then DecodePOA(sPOA) end
-        TransferPOA(tOffs.P,"POS")
-        if(string.sub(sPOA,1,1) == syOff) then tOffs.P[csD] = true end
-        sPOA = tData[7]
-        if((sPOA ~= "") and (sPOA ~= "NULL")) then DecodePOA(sPOA)
-        else ReloadPOA() end TransferPOA(tOffs.A,"ANG")
+        if(not RegisterPOA(tLine,nOffsID,tostring(tData[5]),tostring(tData[6]),tostring(tData[7])))
+          return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID))
+        end
         if(nOffsID >= tLine.Kept) then tLine.Kept = nOffsID end
       end
     elseif(sTable == "ADDITIONS") then
@@ -2356,9 +2376,9 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(sModeDB == "SQL") then
     LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
-    local bKill = defTable.Timer.Kill and true or false
-    local sMode = tostring(defTable.Timer.Mode or "QTM")
-    if(sMode == "QTM") then
+    local bKill   = defTable.Timer.Kill and true or false
+    local sModeTM = defTable.Timer.Mode or "QTM"
+    if(sModeTM == "QTM") then
       Place[Key].Load = Time()
       for k, v in pairs(Place) do
         if(v.Used and v.Load and ((v.Used - v.Load) > nLife)) then
@@ -2373,7 +2393,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
       end
       collectgarbage()
       return StatusLog(true,"AttachKillTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
-    elseif(sMode == "OBJ") then
+    elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,"_")
       LogInstance("AttachKillTimer: TimID: <"..TimerID..">")
       if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer: Place not found") end
@@ -2391,7 +2411,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
       end)
       return timer.Start(TimerID)
     else
-      return StatusLog(false,"AttachKillTimer: Mode not found: "..sMode)
+      return StatusLog(false,"AttachKillTimer: Memory manager mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
     return StatusLog(true,"AttachKillTimer: Timers not available")
@@ -2412,15 +2432,15 @@ local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(sModeDB == "SQL") then
     Place[Key].Used = Time()
-    local sMode = tostring(defTable.Timer.Mode or "QTM")
-    if(sMode == "QTM") then
-      sMode = "QTM"
-    elseif(sMode == "OBJ") then
+    local sModeTM = defTable.Timer.Mode or "QTM"
+    if(sModeTM == "QTM") then
+      sModeTM = "QTM"
+    elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
       if(not timer.Exists(TimerID)) then return StatusLog(nil,"RestartTimer: Timer missing: "..TimerID) end
       timer.Start(TimerID)
     else
-      return StatusLog(nil,"RestartTimer: Mode not found: "..sMode)
+      return StatusLog(nil,"RestartTimer: Mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
     Place[Key].Used = Time()
@@ -2469,21 +2489,9 @@ function CacheQueryPiece(sModel)
       local syOff = GetOpVar("OPSYM_DISABLE")
       while(qData[stPiece.Kept]) do
         qRec = qData[stPiece.Kept]
-        stPiece.Offs[stPiece.Kept] = {}
-        tOffs = stPiece.Offs[stPiece.Kept]
-        tOffs.O = {}
-        tOffs.P = {}
-        tOffs.A = {}
-        sPOA = qRec[defTable[6][1]]
-        if((sPOA ~= "") and (sPOA ~= "NULL")) then DecodePOA(sPOA)
-        else ReloadPOA() end TransferPOA(tOffs.O,"POS")
-        sPOA = qRec[defTable[5][1]]
-        if((sPOA ~= "") and (sPOA ~= "NULL")) then DecodePOA(sPOA) end
-        TransferPOA(tOffs.P,"POS") -- in the POA array still persists the decoded Origin
-        if(string.sub(sPOA,1,1) == syOff) then tOffs.P[csD] = true end
-        sPOA = qRec[defTable[7][1]]
-        if((sPOA ~= "") and (sPOA ~= "NULL")) then DecodePOA(sPOA)
-        else ReloadPOA() end TransferPOA(tOffs.A,"ANG")
+        if(not RegisterPOA(stPiece,stPiece.Kept,qRec[defTable[5][1]],qRec[defTable[6][1]],qRec[defTable[7][1]]))
+          return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept))
+        end
         stPiece.Kept = stPiece.Kept + 1
       end
       stPiece.Kept = stPiece.Kept - 1
