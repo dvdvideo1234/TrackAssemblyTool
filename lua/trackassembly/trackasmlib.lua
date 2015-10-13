@@ -790,9 +790,13 @@ function GetFrequentModels(snCount)
   return nil
 end
 
-function RoundValue(exact, frac)
-    local q,f = math.modf(exact/frac)
-    return frac * (q + (f > 0.5 and 1 or 0))
+function RoundValue(nExact, nFrac)
+  local nExact = tonumber(nExact)
+  if(not nExact) then return StatusLog(nil,"RoundValue: Only numbers can be rounded") end
+  local nFrac  = tonumber(nFrac) or 0
+  if(nFrac == 0) then return StatusLog(nil,"RoundValue: Fraction must be <> 0") end
+  local q,f = math.modf(nExact/nFrac)
+  return nFrac * (q + (f > 0.5 and 1 or 0))
 end
 
 function SnapValue(nVal, nSnap)

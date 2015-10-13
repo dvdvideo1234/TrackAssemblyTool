@@ -15,7 +15,7 @@ asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
 asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Avaoilable
 asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.49")
+asmlib.SetOpVar("TOOL_VERSION","4.50")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
