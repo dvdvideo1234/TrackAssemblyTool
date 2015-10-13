@@ -15,7 +15,7 @@ asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
 asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Avaoilable
 asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.50")
+asmlib.SetOpVar("TOOL_VERSION","4.51")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -179,6 +179,7 @@ if(CLIENT) then
       ------------ ListView --------------
       pnListView:SetParent(pnFrame)
       pnListView:SetVisible(true)
+      pnListView:SetSortable(true)
       pnListView:SetMultiSelect(false)
       pnListView:Clear()
       pnListView:SetPos(10,65)
@@ -206,18 +207,21 @@ if(CLIENT) then
         oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
         asmlib.LogInstance("ListView: Row selected ["..nRow.."]")
       end
-      ------------ Organizing the panel --------------
-      local Ind = 1
-      while(Frequent[Ind]) do
-        local Val = Frequent[Ind]
-        local Rec = asmlib.CacheQueryPiece(Val.Table[3])
-        if(Rec) then
-          pnListView:AddLine(
-            asmlib.RoundValue(Val.Value,0.001),
-              Val.Table[1],Val.Table[2],Val.Table[3])
+      ------------ Organizing the LustView --------------
+      local iNdex, tValue, pnRec, pnLin = 1, nil, nil, nil
+      while(Frequent[iNdex]) do
+        tValue = Frequent[iNdex]
+        pnRec  = asmlib.CacheQueryPiece(tValue.Table[3])
+        if(pnRec) then
+          pnRec = pnListView:AddLine(asmlib.RoundValue(tValue.Value,0.001),
+                                     tValue.Table[1],tValue.Table[2],tValue.Table[3])
+          if(not pnRec)  then LogInstance("OPEN_FRAME: Failed to create a LisView line")
+          if(iNdex == 1) then pnLin = pnRec end
         end
-        Ind = Ind + 1
+        iNdex = iNdex + 1
       end
+      pnListView:SelectItem(pnLin)
+      ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)
       pnFrame:Center()
       pnFrame:MakePopup()
