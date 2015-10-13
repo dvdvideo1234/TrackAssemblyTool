@@ -54,7 +54,7 @@ local gsFancyName = asmlib.GetOpVar("INIT_FAN").." "..asmlib.GetOpVar("PERP_FAN"
 local gsNoID      = asmlib.GetOpVar("MISS_NOID")
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
-local gsRevSign   = asmlib.GetOpVar("OPSYM_REVSIGN")
+local gsSymRev    = asmlib.GetOpVar("OPSYM_REVSIGN")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 
 
@@ -251,7 +251,7 @@ function TOOL:ClearAnchor()
   end
   local plPly = self:GetOwner()
   self:ClearObjects()
-  sAnchor = gsNoID..gsRevSign..gsNoAV
+  sAnchor = gsNoID..gsSymRev..gsNoAV
   asmlib.PrintNotify(plPly,"Anchor: Cleaned !","CLEANUP")
   plPly:ConCommand(gsToolPrefL.."anchor "..sAnchor.."\n")
   return asmlib.StatusLog(true,"TOOL:ClearAnchor(): Anchor cleared")
@@ -267,7 +267,7 @@ function TOOL:SetAnchor(stTrace)
   if(not (phEnt and phEnt:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace no physics") end
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Player invalid") end
-  local sAnchor = trEnt:EntIndex()..gsRevSign..asmlib.GetModelFileName(trEnt:GetModel())
+  local sAnchor = trEnt:EntIndex()..gsSymRev..asmlib.GetModelFileName(trEnt:GetModel())
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
   trEnt:SetColor(DDyes:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
@@ -278,7 +278,7 @@ end
 
 function TOOL:GetAnchor()
   local svEnt   = self:GetEnt(1)
-  local sAnchor = gsNoID..gsRevSign..gsNoAV  
+  local sAnchor = gsNoID..gsSymRev..gsNoAV  
   if(not (svEnt and svEnt:IsValid())) then svEnt = nil end
   return (self:GetClientInfo("anchor") or sAnchor), svEnt
 end
@@ -762,7 +762,7 @@ function TOOL:DrawToolScreen(w, h)
   goToolScr:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()
   local anInfo, anEnt = self:GetAnchor()
-  local tInfo = asmlib.StringExplode(anInfo,gsRevSign)
+  local tInfo = asmlib.StringExplode(anInfo,gsSymRev)
   if(not (stTrace and stTrace.Hit)) then
     goToolScr:DrawText("Trace status: Invalid","r")
     goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
@@ -801,7 +801,7 @@ function TOOL:DrawToolScreen(w, h)
       trMaxCN = trRec.Kept
       trModel = asmlib.GetModelFileName(trModel)
     else
-      trModel = "[X]"..asmlib.GetModelFileName(trModel)
+      trModel = "["..gsNoMD.."]"..asmlib.GetModelFileName(trModel)
     end
   end
   model  = asmlib.GetModelFileName(model)

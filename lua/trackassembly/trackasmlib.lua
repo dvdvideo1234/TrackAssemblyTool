@@ -2367,7 +2367,7 @@ end
 local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return false end
   if(not defTable.Timer) then return false end
-  local nLife = defTable.Timer.Life or 0
+  local nLife = tonumber(defTable.Timer.Life) or 0
   if(nLife <= 0) then return false end
   local sModeDB = GetOpVar("MODE_DATABASE")
   local Place, Key = NavigateTable(oLocation,tKeys)
@@ -2377,7 +2377,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(sModeDB == "SQL") then
     LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
     local bKill   = defTable.Timer.Kill and true or false
-    local sModeTM = defTable.Timer.Mode or "QTM"
+    local sModeTM = tostring(defTable.Timer.Mode or "QTM")
     if(sModeTM == "QTM") then
       Place[Key].Load = Time()
       for k, v in pairs(Place) do
@@ -2386,7 +2386,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
                                           ..tostring(nLife)..") "
                                           ..tostring(anyMessage).." > Dead")
           if(bKill) then
-            LogInstance("AttachKillTimer: Killed: Place["..k.."]")
+            LogInstance("AttachKillTimer: Killed: Place["..tostring(k).."]")
             Place[k] = nil
           end
         end
@@ -2423,7 +2423,7 @@ end
 local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return nil end
   if(not defTable.Timer) then return nil end
-  local nLife = defTable.Timer.Life or 0
+  local nLife = tonumber(defTable.Timer.Life) or 0
   if(nLife <= 0) then return nil end
   local sModeDB = GetOpVar("MODE_DATABASE")
   local Place, Key = NavigateTable(oLocation,tKeys)
@@ -2432,7 +2432,7 @@ local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(sModeDB == "SQL") then
     Place[Key].Used = Time()
-    local sModeTM = defTable.Timer.Mode or "QTM"
+    local sModeTM = tostring(defTable.Timer.Mode or "QTM")
     if(sModeTM == "QTM") then
       sModeTM = "QTM"
     elseif(sModeTM == "OBJ") then

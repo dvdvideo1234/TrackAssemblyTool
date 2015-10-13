@@ -12,10 +12,10 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("MISS_NOID","N")
-asmlib.SetOpVar("MISS_NOAV","N/A")
-asmlib.SetOpVar("MISS_NOMD","X") -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.48")
+asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
+asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Avaoilable
+asmlib.SetOpVar("MISS_NOMD","X")    -- No model
+asmlib.SetOpVar("TOOL_VERSION","4.49")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -28,15 +28,15 @@ asmlib.SetOpVar("LOG_LOGONLY","AttachKillTimer")
 asmlib.SetLogControl(10000,"trackasmlib_log")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeCvar("timermode","QTM@3600/1200", nil,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCvar("maxactrad","150" , {1,500},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCvar("enwiremod","1"   , {0,1  },bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCvar("maxstcnt" ,"200" , {1,200},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+asmlib.MakeCvar("timermode","QTM@3600/1200", nil    ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
+asmlib.MakeCvar("maxactrad","150"          , {1,500},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCvar("enwiremod","1"            , {0,1  },bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCvar("maxstcnt" ,"200"          , {1,200},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
   asmlib.MakeCvar("bnderrmod","1" , {0,4}  ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
   asmlib.MakeCvar("maxfruse" ,"50", {1,100},bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
 end
------- CONFIGURE REPLICATED CVARS ----- Client's got a mind of its own
+------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeCvar("modedb"   ,"SQL" , nil    ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 
 
@@ -54,8 +54,8 @@ local gsPathBAS   = asmlib.GetOpVar("DIRPATH_BAS")
 local gsPathDSV   = asmlib.GetOpVar("DIRPATH_DSV")
 local gsFullDSV   = gsPathBAS..gsPathDSV..gsInstPrefx..gsToolPrefU
 local gaTimerMode = asmlib.GetOpVar("MODE_TIMER")
-local gsTimerMode = gaTimerMode[1] -- Timer Mode
-local gaTimerDur  = asmlib.StringExplode(gaTimerMode[2],asmlib.GetOpVar("OPSYM_DIRECTORY"))
+local gsTimerMode = tostring(gaTimerMode[1]) -- Timer Mode
+local gaTimerDur  = asmlib.StringExplode(tostring(gaTimerMode[2] or "0"..gsSymDirChg.."0"),gsSymDirChg)
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -63,11 +63,14 @@ if(SERVER) then
   asmlib.SetAction("WELD_GROUND",
     function(oPly,oEnt,tData)
       if(tData[1]) then
-        if(not (oEnt and oEnt:IsValid())) then return end
+        if(not (oEnt and oEnt:IsValid())) then return asmlib.StatusLog(nil,"WELD_GROUND: Entity invalid "..tostring(oEnt)) end
         oEnt.PhysgunDisabled = true
         oEnt:SetMoveType(MOVETYPE_NONE)
         oEnt:SetUnFreezable(true)
-        oEnt:GetPhysicsObject():EnableMotion(false)
+        local sInf = "["..tostring(oEnt:EntIndex()).."]"..asmlib.GetModelFileName(GetFoEnt:GetModel())
+        local oPhy = oEnt:GetPhysicsObject()
+        if(not (oPhy and oPhy:IsValid())) then return asmlib.StatusLog(nil,"WELD_GROUND: PhysObj invalid "..sInf) end
+        oPhy:EnableMotion(false)
         duplicator.StoreEntityModifier(oEnt, gsToolPrefL.."wgnd", {[1] = true})
       end
     end)
@@ -224,7 +227,7 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = {Mode = gsTimerMode, Life = gaTimerDur[1], Kill = true},
+  Timer = {Mode = gsTimerMode, Life = tonumber(gaTimerDur[1]) or 0, Kill = true},
   Index = {{1},{4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -236,7 +239,7 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = {Mode = gsTimerMode, Life = gaTimerDur[2], Kill = true},
+  Timer = {Mode = gsTimerMode, Life = tonumber(gaTimerDur[2]) or 0, Kill = true},
   Index = {{1}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
