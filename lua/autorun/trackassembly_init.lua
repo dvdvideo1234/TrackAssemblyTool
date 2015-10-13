@@ -15,7 +15,7 @@ asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
 asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Available
 asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.53")
+asmlib.SetOpVar("TOOL_VERSION","4.54")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -190,11 +190,20 @@ if(CLIENT) then
       pnListView.OnRowSelected = function(pnSelf, nRow, pnVal)
         local uiMod = Frequent[nRow].Table[3]
         pnModelPanel:SetModel(uiMod)
-        local uiRec = asmlib.CacheQueryPiece(uiMod)
-        if(not uiRec) then return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve model "..uiMod) end
+        local uiRec  = asmlib.CacheQueryPiece(uiMod)
+        if(not uiRec) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve model "..uiMod)
+        end
         -- OBBCenter ModelPanel Configuration --
-        local uiEnt = pnModelPanel.Entity
-        local uiCen = asmlib.GetCenterPoint(uiRec,"P")
+        local uiEnt = pnModelPanel:GetEntity()
+        if(not (uiEnt and uiEnt:IsValid())) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve entity")
+        end
+        local uiKept = tonumber(uiRec.Kept) or 0
+        local uiCen  = Vector()
+        if    (uiKept > 1) then asmlib.SetVector(uiCen,asmlib.GetCenterPoint(uiRec,"P"))
+        elseif(uiKept = 1) then asmlib.SetVector(uiCen,uiEnt:OBBCenter())
+        else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end
         local uiEye = uiEnt:LocalToWorld(uiCen)
         asmlib.SubVector(uiCen,uiRec.Offs[1].P)
         local uiLen = uiCen:Length()
