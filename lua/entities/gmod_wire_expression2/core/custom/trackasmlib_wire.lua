@@ -2,7 +2,7 @@
 local asmlib   = trackasmlib
 ----- Get extention enabled flag
 local Color    = Color
-local enflag   = (asmlib.GetCvar("enwiremod","INT") ~= 0) and true or false
+local enflag   = ((tonumber(asmlib.GetCvar("enwiremod","INT")) or 0) ~= 0) and true or false
 local defPiece = asmlib.GetOpVar("DEFTABLE_PIECES")
 local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
 local defPhysp = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")

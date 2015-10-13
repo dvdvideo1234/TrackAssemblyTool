@@ -13,14 +13,13 @@ asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
-asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Avaoilable
+asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Available
 asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.52")
+asmlib.SetOpVar("TOOL_VERSION","4.53")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_LOG","")
-asmlib.SetOpVar("EN_QUERY_STORE",true)
 asmlib.SetOpVar("MAX_MASS",50000)
 asmlib.SetOpVar("MAX_LINEAR",10000)
 asmlib.SetOpVar("MAX_ROTATION",360)
@@ -37,11 +36,12 @@ if(SERVER) then
   asmlib.MakeCvar("maxfruse" , "50", {1,100} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
 end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeCvar("modedb", "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-
+asmlib.MakeCvar("modedb"  , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
+asmlib.MakeCvar("enqstore",     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 
 ------ CONFIGURE MODES -----
 asmlib.SetOpVar("MODE_DATABASE" ,tostring(asmlib.GetCvar("modedb","STR")))
+asmlib.SetOpVar("EN_QUERY_STORE",((tonumber(asmlib.GetOpVar("enqstore","INT")) or 0) ~= 0) and true or false)
 
 ------ GLOBAL VARIABLES ------
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")

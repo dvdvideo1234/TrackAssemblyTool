@@ -157,45 +157,6 @@ A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
 N: The error is logged if the logs are enabled !
    ( See:  Hay, how should I proceed when I am experiencing errors points 10 - 12 ).
 
-Q: Hay, you said that we can switch the tool database between Lua or SQL. Is it working yet ?
-   I want to use Lua mode, because I've got third-party SQLite server. How can I switch to Lua mode ?
-A: You can do the following:
-   1) Bring up the console and write "trackassembly_modedb LUA" ( or "SQL" respectively without the quotes )
-   2) Press Enter
-   3) Restart Gmod
-   4) Done. You are now in LUA/SQL mode.
-N: SQL is still the best option for using the tool with, because only
-   small amount of models have to stay in the cache for a given amount
-   of time, rather than the whole database forever ( till the server is up that is .. ),
-   so please use SQL mode when possible if you want to save some amount of RAM.
-
-Q: Can I do something about my server's performance and how can I configure the memory manager properly?
-A: You can chose a memory management algorithm by setting trackassembly_modemm to ether "QTM" or "OBJ"
-   First of all the memory manager is available only in SQL mode, because in LUA mode, all the records
-   are already in the memory and thus, there is no need to manage ( delete ) anything automatically.
-   It's pretty much for you to decide, because every setting has its pros and cons.
-   "QTM" - The memory management is called every time a new piece is requested from the database and
-           not found. Therefore a query should be processed to retrieve it, so as it does at
-           the end it runs a "for k, v pairs(Cache)" cycle, inspecting which record is
-           old enough ( not used for given amount of time ) to be deleted, as it does.
-     Pros: Lighter algorithm
-           No need for additional memory allocation for timers
-     Cons: Uses particular points in time the record is used/loaded and judges by these how old is it.
-           Every piece of track is not deleted from the cache at
-           the exact same moment when its time ( life in the cache ) runs out
-     Used: When there is no need of many timer objects to store in the memory    or
-           they cannot be created due to some reasons not related to the TA tool or
-           the server will run out of memory when creating too much objects ( timers ).
-   "OBJ" - It attaches a timer object ( That's why the OBJ xD ) to every record
-           created in the cache with one repetition for given amount of time in seconds.
-           After the time is passed, the record is destroyed, so as the timer.
-     Pros: Old ( Not popularly used ) records are deleted at the exact given time when processed.
-           Timer is deleted with the record.
-           It uses a running process, rather than points in time to control the memory management.
-     Cons: Needs additional memory for the timers. 
-     Used: When server has enough memory for the timers or
-           the record has to be deleted at exact moment.
-
 Q: Dude, is there any other way to connect ( weld ) all the pieces relative
    to one big base prop and use it as an anchor to constrain these thing to?
 A: Well yeah, select/clear the anchor prop using IN_SPEED ( def. Shift ) + IN_RELOAD ( def. R )
@@ -204,21 +165,66 @@ A: Well yeah, select/clear the anchor prop using IN_SPEED ( def. Shift ) + IN_RE
 Q: Does this thing have any wire extensions and how can I control then
    when my clients are abusing them ?
 A: Yes it does. You can enable/disable the wire extension using the
-   convar "trackassembly_enwiremod" and set it to 1 or 0 respectively.
+   convar "trackassembly_enwiremod" and set it to 0 or <>0 respectively ( =0 disables it ).
 
 Q: What do the tool versions represent?
 A: The first number will get an increase when a new major update has arrived.
    The second number is the commit number in the repository, related to
    some smaller changes and fixes. For example rearranging the code,
    performance optimizations, doing the same thing ,but in more "elegant"
-   way and such.   
-   
-Q: May I PUT this thing in another third party website ?
-A: No I will not give you my permission to do that... Why ...
-   That way you will upload some half-baked tool, waste your time with stupid
-   things and confuse everybody with this so called "unofficial" version of the TrackAssembly tool.
-   Not to mention that the stunned people will NOT GET ANY updates!
-   So please don't!
+   way and such.
+
+Q: Hay, you said that we can switch the tool database between Lua or SQL. Is it working yet ?
+   I want to use Lua mode, because I've got third-party SQLite server. How can I switch to Lua mode ?
+A: You can do the following:
+   1) On the tool screen next to holder's model validation you shall see the database mode.
+   2) Bring up the console and write "trackassembly_modedb LUA" ( or "SQL" to go to SQL mode respectively without the quotes ).
+   3) Press enter and restart Gmod.
+   4) Look at the tool screen. After holder's model validation it shall write the new mode.
+   5) Done. You are now in LUA mode.
+N: SQL is still the best option for using the tool with, because only
+   small amount of models have to stay in the cache for a given amount
+   of time, rather than the whole database forever ( till the server is up that is .. ),
+   so please use SQL mode when possible if you want to save some amount of RAM.
+
+Q: Can I do something about my server's performance and how can I configure the memory manager properly?
+A: You can chose a memory management algorithm by setting trackassembly_timermode to ether "QTM" or "OBJ"
+   for any table, followed by the life duration. First of all the memory manager is available only in SQL mode,
+   because in LUA mode, all the records are already in the memory and thus, there is no need to manage ( delete )
+   anything automatically. An example timer setting looks something like this: "QTM/QTM@3600/1200". Here the first
+   settings before the "@" is the memory management algorithm to be used for all the tables ( PIECES and ADDITIONS
+   respectively. PHYSPROPERTIES does not need memory management, as the records have to stay there forever ),
+   where the second part of the settings ( after the "@" ) are the cache lifes for those tables in seconds.
+   This means how much time the data will spent sitting in the cache, until it gets deleted to save some memory
+   ( for the example above an hour for PIECES and 20 minuted for ADDITIONS respectively ).
+   The greater the number, the more persistent are the records and less queries will be used to retrieve the data.
+   For example setting this to "0/0" will turn-off the memory management algorithm for both tables.
+   It's pretty much for you to decide, because every setting has its pros and cons.
+   "QTM" - The memory management is called every time a new piece is requested from the database and
+           not found. Therefore a query should be processed to retrieve it, so as it does at
+           the end it runs a "for k, v pairs(Cache)" cycle, inspecting which record is
+           old enough ( not used for given amount of time ) to be deleted, as it does.
+     Pros: Lighter algorithm.
+           No need for additional memory allocation for timers.
+     Cons: Uses particular points in time when record is used/loaded and judges by these how old is it.
+           Records do not get deleted from the cache at the exact moment when the life in the cache runs out.
+     Used: When there is no need of many timer objects to store in the memory    OR
+           they cannot be created due to some reasons not related to the TA tool OR
+           the time precision does not matter when the record gets deleted       OR
+           the server will run out of memory when creating too much objects ( timers ).
+   "OBJ" - It attaches a timer object ( That's why the OBJ xD ) to every record
+           created in the cache with one repetition for given amount of time in seconds.
+           After the time is passed, the record is destroyed, so as the timer.
+     Pros: Obsolete ( not so frequently used ) records are deleted at the exact given time when processed.
+           Timer is deleted with the record.
+           It uses a running process, rather than points in time to control the memory management.
+     Cons: Heavier algorithm.
+           Needs additional memory for the timers.
+     Used: When server has enough memory for the timers OR
+           the record has to be deleted at the exact moment the life passes.
+
+Q: Does this script stores the created queries for later use. Can I disable/enable this option ?
+A: Yes you can. Just set the trackassembly_enqstore to 0/<>0 respectively.
 
 Q: Hay, how should I proceed when I am experiencing errors ?
 A: First of all if the the error origin is not the TA, 
@@ -259,6 +265,14 @@ A: Yes, you can. For every active point, you have to add a line in the table PIE
    11) [Excel 2010] Just Click "Yes" and close Excel
    12) [Excel 2010] It will want to save it again, so you should click "Don't Save"
    13) [Excel 2010] You are good to go
+
+Q: May I PUT this thing in another third party website ?
+A: No I will not give you my permission to do that... Why ...
+   That way you will upload some half-baked tool, waste your time with stupid
+   things and confuse everybody with this so called "unofficial" version of the TrackAssembly tool.
+   Not to mention that the stunned people will NOT GET ANY updates!
+   So please don't!
+
 ```
 Just CLK the subscribe to the button above. And also Thumbs Up ! XD
 
