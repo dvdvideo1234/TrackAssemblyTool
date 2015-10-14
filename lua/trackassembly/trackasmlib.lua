@@ -2311,7 +2311,7 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0 end
       local nCnt = 2 -- The base model is not needed
       local sFld = ""
-      local nAddID = tLine.Kept + 1
+      local nAddID = MatchType(defTable,tData[4],4)
       tLine[nAddID] = {}
       while(nCnt <= defTable.Size) do
         sFld = defTable[nCnt][1]
@@ -2539,7 +2539,7 @@ function CacheQueryAdditions(sModel)
       Cache[sModel] = {}
       stAddition = Cache[sModel]
       stAddition.Kept = 0
-      local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11},{{1,sModel}},{3})
+      local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryAdditions: SQL exec error "..sql.LastError()) end
@@ -2825,7 +2825,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     if(sTable == "PIECES") then
       Q = SQLBuildSelect(defTable,nil,nil,{2,3,1,4})
     elseif(sTable == "ADDITIONS") then
-      Q = SQLBuildSelect(defTable,nil,nil,{1,2,3})
+      Q = SQLBuildSelect(defTable,nil,nil,{1,2,3,4})
     elseif(sTable == "PHYSPROPERTIES") then
       Q = SQLBuildSelect(defTable,nil,nil,{1,2})
     else
@@ -2923,7 +2923,8 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
                          MatchType(defTable,tData[defTable[8 ][1]],8 ,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[9 ][1]],9 ,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[10][1]],10,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[11][1]],11,true,"\"")
+                         MatchType(defTable,tData[defTable[11][1]],11,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[12][1]],12,true,"\"")
           if(sMethod == "DSV") then
             sTemp = sTemp.."\n"
           elseif(sMethod == "INS") then
@@ -3169,8 +3170,8 @@ function AttachAdditions(ePiece)
   local Cnt = 1
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   while(qData[Cnt]) do
-    LogInstance("\n\nEnt [ "..Cnt.." ] INFO : ")
     Record   = qData[Cnt]
+    LogInstance("\n\nEnt [ "..Record[defTable[4][1]].." ] INFO : ")
     Addition = ents.Create(Record[defTable[3][1]])
     if(Addition and Addition:IsValid()) then
       LogInstance("Addition Class: "..Record[defTable[3][1]])
@@ -3180,7 +3181,7 @@ function AttachAdditions(ePiece)
       else
         return StatusLog(false,"AttachAdditions: No such attachment model "..Record[defTable[2][1]])
       end
-      local OffPos = Record[defTable[4][1]]
+      local OffPos = Record[defTable[5][1]]
       if(OffPos       and
          OffPos ~= "" and
          OffPos ~= "NULL"
@@ -3200,7 +3201,7 @@ function AttachAdditions(ePiece)
         Addition:SetPos(LocalPos)
         LogInstance("Addition:SetPos(LocalPos)")
       end
-      local OffAngle = Record[defTable[5][1]]
+      local OffAngle = Record[defTable[6][1]]
       if(OffAngle       and
          OffAngle ~= "" and
          OffAngle ~= "NULL"
@@ -3216,17 +3217,17 @@ function AttachAdditions(ePiece)
         Addition:SetAngles(LocalAng)
         LogInstance("Addition:SetAngles(LocalAng)")
       end
-      local MoveType = (tonumber(Record[defTable[6][1]]) or -1)
+      local MoveType = (tonumber(Record[defTable[7][1]]) or -1)
       if(MoveType >= 0) then
         Addition:SetMoveType(MoveType)
         LogInstance("Addition:SetMoveType("..MoveType..")")
       end
-      local PhysInit = (tonumber(Record[defTable[7][1]]) or -1)
+      local PhysInit = (tonumber(Record[defTable[8][1]]) or -1)
       if(PhysInit >= 0) then
         Addition:PhysicsInit(PhysInit)
         LogInstance("Addition:PhysicsInit("..PhysInit..")")
       end
-      if((tonumber(Record[defTable[8][1]]) or -1) >= 0) then
+      if((tonumber(Record[defTable[9][1]]) or -1) >= 0) then
         Addition:DrawShadow(false)
         LogInstance("Addition:DrawShadow(false)")
       end
@@ -3236,11 +3237,11 @@ function AttachAdditions(ePiece)
       LogInstance("Addition:Spawn()")
       phAddition = Addition:GetPhysicsObject()
       if(phAddition and phAddition:IsValid()) then
-        if((tonumber(Record[defTable[9][1]]) or -1) >= 0) then
+        if((tonumber(Record[defTable[10][1]]) or -1) >= 0) then
           phAddition:EnableMotion(false)
           LogInstance("phAddition:EnableMotion(false)")
         end
-        if((tonumber(Record[defTable[10][1]]) or -1) >= 0) then
+        if((tonumber(Record[defTable[11][1]]) or -1) >= 0) then
           phAddition:Sleep()
           LogInstance("phAddition:Sleep()")
         end
@@ -3249,7 +3250,7 @@ function AttachAdditions(ePiece)
       LogInstance("Addition:Activate()")
       ePiece:DeleteOnRemove(Addition)
       LogInstance("ePiece:DeleteOnRemove(Addition)")
-      local Solid = (tonumber(Record[defTable[11][1]]) or -1)
+      local Solid = (tonumber(Record[defTable[12][1]]) or -1)
       if(Solid >= 0) then
         Addition:SetSolid(Solid)
         LogInstance("Addition:SetSolid("..Solid..")")
@@ -3425,52 +3426,52 @@ end
 function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
   local anyMessage = tostring(anyMessage)
   if(not vPos) then
-    return StatusLog(true,"Piece:SetBoundPos: Position invalid: "..anyMessage)
+    return StatusLog(false,"Piece:SetBoundPos: Position invalid: "..anyMessage)
   end
   if(not oPly) then
-    return StatusLog(true,"Piece:SetBoundPos: Player invalid: "..anyMessage)
+    return StatusLog(false,"Piece:SetBoundPos: Player invalid: "..anyMessage)
   end
   local nMode = tonumber(nMode) or 1 -- On wrong mode do not allow them to flood the server
   if(nMode == 0) then
     ePiece:SetPos(vPos)
-    return false
+    return true
   elseif(nMode == 1) then
     if(util.IsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
-      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
     end
-    return false
+    return true
   elseif(nMode == 2) then
     if(util.IsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
       PrintNotify(oPly,"Position out of map bounds!","HINT")
-      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
     end
-    return false
+    return true
   elseif(nMode == 3) then
     if(util.IsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
       PrintNotify(oPly,"Position out of map bounds!","GENERIC")
-      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
     end
-    return false
+    return true
   elseif(nMode == 4) then
     if(util.IsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
       PrintNotify(oPly,"Position out of map bounds!","ERROR")
-      return StatusLog(true,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
     end
-    return false
+    return true
   end
-  return StatusLog(true,"Piece:SetBoundPos: Mode #"..nMode.." not found: "..anyMessage)
+  return StatusLog(false,"Piece:SetBoundPos: Mode #"..nMode.." not found: "..anyMessage)
 end
 
 function MakeCvar(sShortName, sValue, tBorder, nFlags, sInfo)

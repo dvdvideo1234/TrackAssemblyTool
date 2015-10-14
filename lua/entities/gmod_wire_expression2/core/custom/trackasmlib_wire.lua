@@ -191,7 +191,7 @@ e2function array trackasmlibGetAdditionsLine(string sModel, number nLine)
   local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
-  stRecord = stRecord[nLine]
+  stRecord = stRecord[nLine] -- Ordered by line ID
   local cntField = 2
   local arAdditionsLine = {}
   while(defAddit[cntField]) do

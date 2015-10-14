@@ -330,7 +330,7 @@ function TOOL:LeftClick(Trace)
                             Trace.HitPos[cvY] + nexty,
                             Trace.HitPos[cvZ] - (Trace.HitNormal.z * vBBMin.z) + nextz)
         vPos:Add(vOffset)
-        if(asmlib.SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
+        if(not asmlib.SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -343,7 +343,7 @@ function TOOL:LeftClick(Trace)
           stSpawn.SPos:Add(asmlib.GetPointUpGap(ePiece,
             stSpawn.HRec.Offs[pointid]) * Trace.HitNormal)
         end
-        if(asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        if(not asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -411,7 +411,7 @@ function TOOL:LeftClick(Trace)
     while(iNdex > 0) do
       ePieceN = asmlib.DuplicatePiece(ePieceO)
       if(ePieceN) then
-        if(asmlib.SetBoundPosPiece(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        if(not asmlib.SetBoundPosPiece(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Stacking piece position out of map bounds"
           .."\n   Iterats: "..tostring(count-iNdex)
           .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
@@ -494,7 +494,7 @@ function TOOL:LeftClick(Trace)
     local ePiece = asmlib.MakePiece(model,Trace.HitPos,
                      ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
-      if(asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+      if(not asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
         .."\n   Event  : Spawn one piece relative to another"
         .."\n   Player : "..ply:GetName()
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)

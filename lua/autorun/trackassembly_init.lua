@@ -15,7 +15,7 @@ asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
 asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Available
 asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.55")
+asmlib.SetOpVar("TOOL_VERSION","4.56")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -243,11 +243,11 @@ end
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
   Timer = {Mode = tostring(gaTimerMode[1] or "QTM"), Life = tonumber(gaTimerDur[1]) or 0, Kill = true},
-  Index = {{1},{4}},
+  Index = {{1},{4},{1,4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"},
-  [4] = {"OFFSID", "INTEGER", "FLR",  nil },
+  [4] = {"LINEID", "INTEGER", "FLR",  nil },
   [5] = {"POINT" , "TEXT"   ,  nil ,  nil },
   [6] = {"ORIGIN", "TEXT"   ,  nil ,  nil },
   [7] = {"ANGLE" , "TEXT"   ,  nil ,  nil }
@@ -255,25 +255,26 @@ asmlib.CreateTable("PIECES",{
 
 asmlib.CreateTable("ADDITIONS",{
   Timer = {Mode = tostring(gaTimerMode[2] or "QTM"), Life = tonumber(gaTimerDur[2]) or 0, Kill = true},
-  Index = {{1}},
+  Index = {{1},{4},{1,4}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
   [3]  = {"ENTCLASS" , "TEXT"   ,  nil ,  nil },
-  [4]  = {"POSOFF"   , "TEXT"   ,  nil ,  nil },
-  [5]  = {"ANGOFF"   , "TEXT"   ,  nil ,  nil },
-  [6]  = {"MOVETYPE" , "INTEGER", "FLR",  nil },
-  [7]  = {"PHYSINIT" , "INTEGER", "FLR",  nil },
-  [8]  = {"DRSHADOW" , "INTEGER", "FLR",  nil },
-  [9]  = {"PHMOTION" , "INTEGER", "FLR",  nil },
-  [10] = {"PHYSLEEP" , "INTEGER", "FLR",  nil },
-  [11] = {"SETSOLID" , "INTEGER", "FLR",  nil },
+  [4]  = {"LINEID"   , "INTEGER", "FLR",  nil },
+  [5]  = {"POSOFF"   , "TEXT"   ,  nil ,  nil },
+  [6]  = {"ANGOFF"   , "TEXT"   ,  nil ,  nil },
+  [7]  = {"MOVETYPE" , "INTEGER", "FLR",  nil },
+  [8]  = {"PHYSINIT" , "INTEGER", "FLR",  nil },
+  [9]  = {"DRSHADOW" , "INTEGER", "FLR",  nil },
+  [10] = {"PHMOTION" , "INTEGER", "FLR",  nil },
+  [11] = {"PHYSLEEP" , "INTEGER", "FLR",  nil },
+  [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
 },true,true)
 
 asmlib.CreateTable("PHYSPROPERTIES",{
-  Index = {{1},{2}},
-  [1] = {"TYPE" , "TEXT"   ,  nil , "QMK"},
-  [2] = {"SUBID", "INTEGER", "FLR",  nil },
-  [3] = {"NAME" , "TEXT"   ,  nil , "QMK"}
+  Index = {{1},{2},{1,2}},
+  [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
+  [2] = {"LINEID", "INTEGER", "FLR",  nil },
+  [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"}
 },true,true)
 
 if(file.Exists(gsFullDSV.."PIECES.txt", "DATA")) then
@@ -1373,12 +1374,12 @@ else
   asmlib.DefaultTable("ADDITIONS")
   ------ ADDITIONS ------
   --- Shinji's Switchers ---
-  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch","-100,125,0","",-1,-1,-1,-1,-1,-1})
-  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher1.mdl","prop_dynamic","","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,1,1,SOLID_VPHYSICS})
-  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher2.mdl","prop_dynamic","","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,-1,SOLID_NONE})
-  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch","-100,-125,0","0,180,0",-1,-1,-1,-1,-1,-1})
-  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic","","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,1,1,SOLID_VPHYSICS})
-  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic","","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,-1,SOLID_NONE})
+  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,-1,-1,-1})
+  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,1,1,SOLID_VPHYSICS})
+  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,-1,SOLID_NONE})
+  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,-1,-1,-1,-1})
+  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,1,1,SOLID_VPHYSICS})
+  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,-1,SOLID_NONE})
 end
 
 -------- CACHE PANEL STUFF ---------
