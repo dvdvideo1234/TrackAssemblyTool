@@ -203,7 +203,7 @@ A: You can chose a memory management algorithm by setting trackassembly_timermod
    "QTM" - The memory management is called every time a new piece is requested from the database and
            not found. Therefore a query should be processed to retrieve it, so as it does at
            the end it runs a "for k, v pairs(Cache)" cycle, inspecting which record is
-           old enough ( not used for given amount of time ) to be deleted, as it does.
+           old enough ( not used for given amount of time ) to be deleted and does it.
      Pros: Lighter algorithm.
            No need for additional memory allocation for timers.
      Cons: Uses particular points in time when record is used/loaded and judges by these how old is it.

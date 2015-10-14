@@ -393,9 +393,10 @@ end
 function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
   local Ang = Angle()
   if(not oPly) then return Ang end
+  local nSnap = tonumber(nSnap) or 0
   if(nSnap and (nSnap ~= 0)) then -- Snap to the surface
-    local Left = -oPly:GetAimVector():Angle():Right()
     local Trace = oTrace
+    local Left = -oPly:GetAimVector():Angle():Right()
     if(not (Trace and Trace.Hit)) then
       Trace = util.TraceLine(util.GetPlayerTrace(oPly))
       if(not (Trace and Trace.Hit)) then return Ang end
@@ -405,6 +406,7 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
     Ang:Set(oPly:GetAimVector():Angle())
     Ang[caP] = 0
     Ang[caR] = 0
+    local nYSnap = tonumber(nYSnap) or 0
     if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
       Ang[caY] = SnapValue(Ang[caY],nYSnap)
     end
@@ -1141,7 +1143,9 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if(tOffs[nID]) then
     return StatusLog(nil,"RegisterPOA: Exists ID #"..tostring(nID))
   else
-    if((nID > 1) and (not tOffs[nID - 1])) then return StatusLog(nil,"RegisterPOA: Not sequential ID #"..tostring(nID - 1)) end
+    if((nID > 1) and (not tOffs[nID - 1])) then
+      return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(nID - 1))
+    end
     tOffs[nID]   = {}
     tOffs[nID].P = {}
     tOffs[nID].O = {}
@@ -2016,7 +2020,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
     return SQLBuildError("SQLBuildSelect: Missing: Table "..namTable.." field definitions")
   end
   local Command = SQLStoreQuery(defTable,tFields,tWhere,tOrderBy)
-  if(Command) then
+  if(IsString(Command)) then
     SQLBuildError("")
     return Command
   end
@@ -2294,7 +2298,7 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(nOffsID)) then return StatusLog(nil,"InsertRecord: Cannot match offset ID") end
       if(not IsExistent(tLine.Offs[nOffsID])) then
         if(not RegisterPOA(tLine,nOffsID,tostring(tData[5]),tostring(tData[6]),tostring(tData[7])))
-          return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID))
+          return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID).." for "..tostring(snPrimayKey))
         end
         if(nOffsID >= tLine.Kept) then tLine.Kept = nOffsID end
       end
@@ -2480,7 +2484,7 @@ function CacheQueryPiece(sModel)
       Cache[sModel] = {}
       stPiece = Cache[sModel]
       stPiece.Kept = 0
-      local Q = SQLBuildSelect(defTable,nil,{{1,sModel}})
+      local Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPiece: SQL exec error "..sql.LastError()) end
@@ -2494,7 +2498,7 @@ function CacheQueryPiece(sModel)
       while(qData[stPiece.Kept]) do
         qRec = qData[stPiece.Kept]
         if(not RegisterPOA(stPiece,stPiece.Kept,qRec[defTable[5][1]],qRec[defTable[6][1]],qRec[defTable[7][1]]))
-          return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept))
+          return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for "..sModel)
         end
         stPiece.Kept = stPiece.Kept + 1
       end

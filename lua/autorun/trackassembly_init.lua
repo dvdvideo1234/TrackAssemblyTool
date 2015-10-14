@@ -15,7 +15,7 @@ asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
 asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Available
 asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.54")
+asmlib.SetOpVar("TOOL_VERSION","4.55")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -139,9 +139,7 @@ if(CLIENT) then
       pnModelPanel:SetSize(250, 255)
       pnModelPanel:SetVisible(true)
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
-        if(pnSelf.bAnimated) then
-          gpnSelf:RunAnimation()
-        end
+        if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiRec = asmlib.CacheQueryPiece(oEnt:GetModel())
         if(not uiRec) then return end
         local Ang = Angle(0, RealTime() * 10, 0)
@@ -223,8 +221,13 @@ if(CLIENT) then
         if(pnRec) then
           pnRec = pnListView:AddLine(asmlib.RoundValue(tValue.Value,0.001),
                                      tValue.Table[1],tValue.Table[2],tValue.Table[3])
-          if(not pnRec)  then LogInstance("OPEN_FRAME: Failed to create a LisView line")
+          if(not asmlib.IsExistent(pnRec)) then
+            LogInstance("OPEN_FRAME: Failed to create a LisView line for #"
+              ..iNdex.." "..tValue.Table[3])
+          end
           if(iNdex == 1) then pnLin = pnRec end
+        else
+          LogInstance("OPEN_FRAME: Skipped piece #"..iNdex.." "..tValue.Table[3])
         end
         iNdex = iNdex + 1
       end
