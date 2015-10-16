@@ -15,7 +15,7 @@ asmlib.InitAssembly("track")
 asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
 asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Available
 asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.57")
+asmlib.SetOpVar("TOOL_VERSION","4.58")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -27,7 +27,7 @@ asmlib.SetOpVar("LOG_LOGONLY","AttachKillTimer")
 asmlib.SetLogControl(10000,"trackasmlib_log")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeCvar("timermode", "QTM/QTM@3600/1200", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
+asmlib.MakeCvar("timermode", "CQT@3600@1@1/CQT@1200@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
 asmlib.MakeCvar("maxactrad", "150", {1,500} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeCvar("enwiremod", "1"  , {0,1  } ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeCvar("maxstcnt" , "200", {1,200} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
@@ -40,8 +40,8 @@ asmlib.MakeCvar("modedb"  , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBO
 asmlib.MakeCvar("enqstore",     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 
 ------ CONFIGURE MODES -----
-asmlib.SetOpVar("MODE_DATABASE" ,tostring(asmlib.GetCvar("modedb","STR")))
-asmlib.SetOpVar("EN_QUERY_STORE",((tonumber(asmlib.GetOpVar("enqstore","INT")) or 0) ~= 0) and true or false)
+asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCvar("modedb","STR"))
+asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetCvar("enqstore","INT") ~= 0) and true or false)
 
 ------ GLOBAL VARIABLES ------
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -52,9 +52,7 @@ local gsInstPrefx = asmlib.GetInstPref()
 local gsPathBAS   = asmlib.GetOpVar("DIRPATH_BAS")
 local gsPathDSV   = asmlib.GetOpVar("DIRPATH_DSV")
 local gsFullDSV   = gsPathBAS..gsPathDSV..gsInstPrefx..gsToolPrefU
-local gaTimerSet  = asmlib.StringExplode(tostring(asmlib.GetCvar("timermode","STR")),asmlib.GetOpVar("OPSYM_REVSIGN"))
-local gaTimerMode = asmlib.StringExplode(tostring(gaTimerSet[1] or ("QTM"..gsSymDirChg.."QTM")),gsSymDirChg)
-local gaTimerDur  = asmlib.StringExplode(tostring(gaTimerSet[2] or ( "0" ..gsSymDirChg.. "0" )),gsSymDirChg)
+local gaTimerSet  = asmlib.StringExplode(asmlib.GetCvar("timermode","STR"),asmlib.GetOpVar("OPSYM_DIRECTORY"))
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -242,7 +240,7 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = {Mode = tostring(gaTimerMode[1] or "QTM"), Life = tonumber(gaTimerDur[1]) or 0, Kill = true},
+  Timer = asmlib.TimerSettingMode(gaTimerSet[1]),
   Index = {{1},{4},{1,4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -254,7 +252,7 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = {Mode = tostring(gaTimerMode[2] or "QTM"), Life = tonumber(gaTimerDur[2]) or 0, Kill = true},
+  Timer = asmlib.TimerSettingMode(gaTimerSet[2]),
   Index = {{1},{4},{1,4}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},

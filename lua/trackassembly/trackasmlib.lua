@@ -2372,10 +2372,23 @@ local function NavigateTable(oLocation,tKeys)
   return Place, Key
 end
 
+function TimerSettingMode(sTimerSetting)
+  if(not IsExistent(sTimerSetting)) then return StatusLog(nil,"TimerSettingMode: No setting netting") end
+  if(not IsString(sTimerSetting)) then return StatusLog(nil,"TimerSettingMode: Setting not a string") end
+  local tBoom = StringExplode(sTimerSetting,GetOpVar("OPSYM_REVSIGN"))
+  tBoom[1] = tostring(tBoom[1])
+  tBoom[2] = (tonumber(tBoom[2])  or 0)
+  tBoom[3] = ((tonumber(tBoom[3]) or 0) ~= 0) and true or false
+  tBoom[4] = ((tonumber(tBoom[4]) or 0) ~= 0) and true or false
+  return tBoom
+end
+
 local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return false end
   if(not defTable.Timer) then return false end
-  local nLife = tonumber(defTable.Timer.Life) or 0
+  local tTimer = defTable.Timer
+  if(not (tTimer and tTimer[1] and tTimer[2]) then return false end
+  local nLife = tonumber(tTimer[2]) or 0
   if(nLife <= 0) then return false end
   local sModeDB = GetOpVar("MODE_DATABASE")
   local Place, Key = NavigateTable(oLocation,tKeys)
@@ -2384,22 +2397,26 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(sModeDB == "SQL") then
     LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
-    local bKill   = defTable.Timer.Kill and true or false
-    local sModeTM = tostring(defTable.Timer.Mode or "QTM")
-    if(sModeTM == "QTM") then
+    local bKillRC = tTimer[3] and true or false
+    local bCollGB = tTimer[4] and true or false
+    local sModeTM = tostring(defTable.Timer.Mode or "CQT")
+    if(sModeTM == "CQT") then
       Place[Key].Load = Time()
       for k, v in pairs(Place) do
         if(v.Used and v.Load and ((v.Used - v.Load) > nLife)) then
           LogInstance("AttachKillTimer: ("..tostring(v.Used - v.Load).." > "
                                           ..tostring(nLife)..") "
                                           ..tostring(anyMessage).." > Dead")
-          if(bKill) then
+          if(bKillRC) then
             LogInstance("AttachKillTimer: Killed: Place["..tostring(k).."]")
             Place[k] = nil
           end
         end
       end
-      collectgarbage()
+      if(bCollGB) then
+        collectgarbage()
+        LogInstance("AttachKillTimer: Garbage collected")
+      end
       return StatusLog(true,"AttachKillTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
     elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,"_")
@@ -2409,20 +2426,23 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
       timer.Create(TimerID, nLife, 1, function()
         LogInstance("AttachKillTimer["..TimerID.."]("..nLife.."): "
                        ..tostring(anyMessage).." > Dead")
-        if(bKill) then
+        if(bKillRC) then
           LogInstance("AttachKillTimer: Killed: Place["..Key.."]")
           Place[Key] = nil
         end
         timer.Stop(TimerID)
         timer.Destroy(TimerID)
-        collectgarbage()
+        if(bCollGB) then
+          collectgarbage()
+          LogInstance("AttachKillTimer: Garbage collected")
+        end
       end)
       return timer.Start(TimerID)
     else
       return StatusLog(false,"AttachKillTimer: Memory manager mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
-    return StatusLog(true,"AttachKillTimer: Timers not available")
+    return StatusLog(true,"AttachKillTimer: Memory manager not available")
   else
     return StatusLog(false,"AttachKillTimer: Wrong database mode")
   end
@@ -2440,9 +2460,9 @@ local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(sModeDB == "SQL") then
     Place[Key].Used = Time()
-    local sModeTM = tostring(defTable.Timer.Mode or "QTM")
-    if(sModeTM == "QTM") then
-      sModeTM = "QTM"
+    local sModeTM = tostring(defTable.Timer.Mode or "CQT")
+    if(sModeTM == "CQT") then
+      sModeTM = "CQT"
     elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
       if(not timer.Exists(TimerID)) then return StatusLog(nil,"RestartTimer: Timer missing: "..TimerID) end

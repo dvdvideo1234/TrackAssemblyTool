@@ -188,38 +188,41 @@ N: SQL is still the best option for using the tool with, because only
    so please use SQL mode when possible if you want to save some amount of RAM.
 
 Q: Can I do something about my server's performance and how can I configure the memory manager properly?
-A: You can chose a memory management algorithm by setting trackassembly_timermode to ether "QTM" or "OBJ"
-   for any table, followed by the life duration. First of all the memory manager is available only in SQL mode,
+A: You can chose a memory management algorithm by setting trackassembly_timermode to "mode@life@clear@collect"
+   for any table sequentially divided by "/". First of all the memory manager is available only in SQL mode,
    because in LUA mode, all the records are already in the memory and thus, there is no need to manage ( delete )
-   anything automatically. An example timer setting looks something like this: "QTM/QTM@3600/1200". Here the first
-   settings before the "@" is the memory management algorithm to be used for all the tables ( PIECES and ADDITIONS
-   respectively. PHYSPROPERTIES does not need memory management, as the records have to stay there forever ),
-   where the second part of the settings ( after the "@" ) are the cache lifes for those tables in seconds.
-   This means how much time the data will spent sitting in the cache, until it gets deleted to save some memory
-   ( for the example above an hour for PIECES and 20 minuted for ADDITIONS respectively ).
-   The greater the number, the more persistent are the records and less queries will be used to retrieve the data.
-   For example setting this to "0/0" will turn-off the memory management algorithm for both tables.
-   It's pretty much for you to decide, because every setting has its pros and cons.
-   "QTM" - The memory management is called every time a new piece is requested from the database and
-           not found. Therefore a query should be processed to retrieve it, so as it does at
-           the end it runs a "for k, v pairs(Cache)" cycle, inspecting which record is
-           old enough ( not used for given amount of time ) to be deleted and does it.
+   anything automatically. An example timer setting looks something like this: ( CQT@3600@1@1/CQT@1200@1@1 ).
+   Here "mode" setting is the memory management algorithm to be used ( either "CQT" or "OBJ" ) for the table.
+   These are explained below what they do. The "life" in the cache for the record is how much time in seconds
+   the data will spend sitting in the cache, until it gets deleted to save some memory ( For the example above
+   an hour for PIECES and 20 minuted for ADDITIONS respectively ). The greater the number, the more persistent
+   are the records and less queries will be used to retrieve the data. Setting this to "0" will turn-off the
+   memory management for the table. The "clear" setting if <>0, assigns a nil to the record, marking it for
+   deletion by Lua's garbage collector. The "collect" setting if <>0 calls the garbage collector when a
+   record is marked or =0 leaves it to the game's garbage collector. It's pretty much for you to decide, because
+   every setting has its pros and cons.
+   "CQT" - The memory management is called every time a new piece is requested from the cache and
+           not found. Therefore a query should be processed to retrieve it from the database, so
+           as it does at the end it runs a "for k, v pairs(Cache)" cycle, inspecting which record is
+           old enough ( not used for given amount of time ) to be deleted and marks it for deletion.
      Pros: Lighter algorithm.
            No need for additional memory allocation for timers.
-     Cons: Uses particular points in time when record is used/loaded and judges by these how old is it.
+           Garbage collector ( "collect" <>0 ) is called once to process all the obsolete records.
+     Cons: Uses particular points in time when a record is used/loaded and judges by these how old is it.
            Records do not get deleted from the cache at the exact moment when the life in the cache runs out.
      Used: When there is no need of many timer objects to store in the memory    OR
            they cannot be created due to some reasons not related to the TA tool OR
            the time precision does not matter when the record gets deleted       OR
            the server will run out of memory when creating too much objects ( timers ).
    "OBJ" - It attaches a timer object ( That's why the OBJ xD ) to every record
-           created in the cache with one repetition for given amount of time in seconds.
-           After the time is passed, the record is destroyed, so as the timer.
+           created in the cache with one repetition for given amount of time ( The life  )
+           in seconds. After the time is passed, the record is marked for deletion, and the timer is destroyed.
      Pros: Obsolete ( not so frequently used ) records are deleted at the exact given time when processed.
            Timer is deleted with the record.
            It uses a running process, rather than points in time to control the memory management.
      Cons: Heavier algorithm.
            Needs additional memory for the timers.
+           Garbage collector ( "collect" <>0 ) is called on every timer function call.
      Used: When server has enough memory for the timers OR
            the record has to be deleted at the exact moment the life passes.
 
