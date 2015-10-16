@@ -191,7 +191,7 @@ e2function array trackasmlibGetAdditionsLine(string sModel, number nLine)
   local stRecord = asmlib.CacheQueryAdditions(sModel)
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
-  stRecord = stRecord[nLine] -- Ordered by line ID
+  stRecord = stRecord[nLine] -- Ordered by ID. Get the line per model
   local cntField = 2
   local arAdditionsLine = {}
   while(defAddit[cntField]) do
@@ -210,7 +210,7 @@ e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   local stRecord = asmlib.CacheQueryAdditions(this:GetModel())
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
-  stRecord = stRecord[nLine]
+  stRecord = stRecord[nLine] -- Ordered by ID. Get the line per model
   local arAdditionsLine = {}
   local cntField = 2
   while(defAddit[cntField]) do

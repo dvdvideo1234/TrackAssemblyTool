@@ -3493,11 +3493,11 @@ function GetCvar(sShortName, sMode)
   local CVar = GetConVar(sVar)
   if(not IsExistent(CVar)) then return StatusLog(nil,"GetCvar("..sShortName..", "..sMode.."): Missing CVar object") end
   if    (sMode == "INT") then
-    return (BorderValue(CVar:GetInt(),"cvar_"..sVar) or 0)
+    return (tonumber(BorderValue(CVar:GetInt(),"cvar_"..sVar)) or 0)
   elseif(sMode == "FLT") then
-    return (BorderValue(CVar:GetFloat(),"cvar_"..sVar) or 0)
+    return (tonumber(BorderValue(CVar:GetFloat(),"cvar_"..sVar)) or 0)
   elseif(sMode == "STR") then
-    return (CVar:GetString() or "")
+    return tostring(CVar:GetString() or "")
   elseif(sMode == "BUL") then
     return (CVar:GetBool() or false)
   elseif(sMode == "DEF") then

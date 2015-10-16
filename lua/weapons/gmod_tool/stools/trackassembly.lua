@@ -56,7 +56,7 @@ local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVSIGN")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
-
+local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 
 --- Render Base Colours
 local DDyes = asmlib.MakeContainer("Colours")
@@ -104,7 +104,7 @@ TOOL.ClientConVar = {
   [ "count"     ] = "1",
   [ "freeze"    ] = "0",
   [ "advise"    ] = "1",
-  [ "anchor"    ] = gsNoID..gsSymDir..gsNoMD,
+  [ "anchor"    ] = gsNoAnchor,
   [ "igntyp"    ] = "0",
   [ "spnflat"   ] = "0",
   [ "ydegsnp"   ] = "0",
@@ -245,15 +245,14 @@ end
 
 function TOOL:ClearAnchor()
   local svEnt = self:GetEnt(1)
+  local plPly = self:GetOwner()
   if(svEnt and svEnt:IsValid()) then
     svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
     svEnt:SetColor(DDyes:Select("w"))
   end
-  local plPly = self:GetOwner()
   self:ClearObjects()
-  sAnchor = gsNoID..gsSymRev..gsNoAV
   asmlib.PrintNotify(plPly,"Anchor: Cleaned !","CLEANUP")
-  plPly:ConCommand(gsToolPrefL.."anchor "..sAnchor.."\n")
+  plPly:ConCommand(gsToolPrefL.."anchor "..gsNoAnchor.."\n")
   return asmlib.StatusLog(true,"TOOL:ClearAnchor(): Anchor cleared")
 end
 
@@ -278,9 +277,8 @@ end
 
 function TOOL:GetAnchor()
   local svEnt   = self:GetEnt(1)
-  local sAnchor = gsNoID..gsSymRev..gsNoAV  
   if(not (svEnt and svEnt:IsValid())) then svEnt = nil end
-  return (self:GetClientInfo("anchor") or sAnchor), svEnt
+  return (self:GetClientInfo("anchor") or gsNoAnchor), svEnt
 end
 
 function TOOL:LeftClick(Trace)
@@ -786,10 +784,10 @@ function TOOL:DrawToolScreen(w, h)
   if(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
           trModel = trEnt:GetModel()
+    local spnflat = self:GetSpawnFlat()
+    local igntyp  = self:GetIgnoreType()
     local trRec   = asmlib.CacheQueryPiece(trModel)
     local nextx, nexty, nextz = self:GetPosOffsets()
-    local igntyp  = self:GetIgnoreType()
-    local spnflat = self:GetSpawnFlat()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                       actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
