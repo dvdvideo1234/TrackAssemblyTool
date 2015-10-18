@@ -201,10 +201,14 @@ function InitAssembly(sName)
   SetOpVar("TOOLNAME_NU",string.upper(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
+  SetOpVar("MISS_NOID","N")    -- No ID selected
+  SetOpVar("MISS_NOAV","N/A")  -- Not Available
+  SetOpVar("MISS_NOMD","X")    -- No model
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("FILE_MODEL",".mdl")
+  SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
   SetOpVar("HASH_PLAYER_KEYDOWN","PLAYER_KEYDOWN")
@@ -1323,9 +1327,19 @@ function LogInstance(anyStuff)
   local sModeDB  = GetOpVar("MODE_DATABASE")
   local anyStuff = tostring(anyStuff)
   local logOnly  = GetOpVar("LOG_LOGONLY")
-  if(logOnly and IsString(logOnly)) then
-    if(logOnly ~= "" and logOnly ~= "NULL" and string.len(logOnly) > 0) then
-      if(not string.find(anyStuff,GetOpVar("LOG_LOGONLY"))) then return end
+  local logHere  = false
+  if(logOnly and IsString(logOnly[1])) then
+    local iNdex = 1
+    local sOnly = logOnly[iNdex]
+    while(sOnly and IsString(sOnly)) do
+      if(string.find(anyStuff,sOnly)) then
+        logHere = true
+      end
+      iNdex = iNdex + 1
+      sOnly = logOnly[iNdex]
+    end
+    if((not logHere) and IsBool(logHere)) then
+      return 
     end
   end
   if(SERVER) then
@@ -1579,7 +1593,7 @@ local function SQLBuildError(anyError)
     return GetOpVar("SQL_BUILD_ERR") or ""
   end
   SetOpVar("SQL_BUILD_ERR", tostring(anyError))
-  return false
+  return nil -- Nothing assembled
 end
 
 function SettingsModelToName(sMode, gCut, gSub, gApp)
@@ -2292,12 +2306,11 @@ function InsertRecord(sTable,tData)
       end
       if(not IsExistent(tLine.Type)) then tLine.Type = tData[2] end
       if(not IsExistent(tLine.Name)) then tLine.Name = tData[3] end
-      if(not IsExistent(tLine.Offs)) then tLine.Offs = {}       end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0        end
       local nOffsID = MatchType(defTable,tData[4],4)
       if(not IsExistent(nOffsID)) then return StatusLog(nil,"InsertRecord: Cannot match offset ID") end
       if(not IsExistent(tLine.Offs[nOffsID])) then
-        if(not RegisterPOA(tLine,nOffsID,tostring(tData[5]),tostring(tData[6]),tostring(tData[7])))
+        if(not RegisterPOA(tLine,nOffsID,tostring(tData[5]),tostring(tData[6]),tostring(tData[7]))) then
           return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID).." for "..tostring(snPrimayKey))
         end
         if(nOffsID >= tLine.Kept) then tLine.Kept = nOffsID end
@@ -2387,7 +2400,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return false end
   if(not defTable.Timer) then return false end
   local tTimer = defTable.Timer
-  if(not (tTimer and tTimer[1] and tTimer[2]) then return false end
+  if(not (tTimer and tTimer[1] and tTimer[2])) then return false end
   local nLife = tonumber(tTimer[2]) or 0
   if(nLife <= 0) then return false end
   local sModeDB = GetOpVar("MODE_DATABASE")
@@ -2397,9 +2410,10 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(sModeDB == "SQL") then
     LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
+    local sModeTM = tostring(tTimer[1] or "CQT")
     local bKillRC = tTimer[3] and true or false
     local bCollGB = tTimer[4] and true or false
-    local sModeTM = tostring(defTable.Timer.Mode or "CQT")
+    LogInstance("AttachKillTimer: ["..sModeTM.."] ("..tostring(nLife)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
       Place[Key].Load = Time()
       for k, v in pairs(Place) do
@@ -2451,8 +2465,10 @@ end
 local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return nil end
   if(not defTable.Timer) then return nil end
-  local nLife = tonumber(defTable.Timer.Life) or 0
-  if(nLife <= 0) then return nil end
+  local tTimer = defTable.Timer
+  if(not (tTimer and tTimer[1] and tTimer[2])) then return false end
+  local nLife = tonumber(tTimer[2]) or 0
+  if(nLife <= 0) then return false end
   local sModeDB = GetOpVar("MODE_DATABASE")
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
@@ -2460,7 +2476,7 @@ local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(sModeDB == "SQL") then
     Place[Key].Used = Time()
-    local sModeTM = tostring(defTable.Timer.Mode or "CQT")
+    local sModeTM = tostring(tTimer[1] or "CQT")
     if(sModeTM == "CQT") then
       sModeTM = "CQT"
     elseif(sModeTM == "OBJ") then
@@ -2473,7 +2489,7 @@ local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
   elseif(sModeDB == "LUA") then
     Place[Key].Used = Time()
   else
-    return StatusLog(nil,"AttachKillTimer: Wrong database mode")
+    return StatusLog(nil,"RestartTimer: Wrong database mode")
   end
   return Place[Key]
 end
@@ -2510,21 +2526,24 @@ function CacheQueryPiece(sModel)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPiece: SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece: No data found >"..Q.."<") end
       stPiece.Kept = 1 --- Found at least one record
-      stPiece.Offs = {}
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
-      local tOffs, sPOA, qRec
+      local qRec, qRez
       local syOff = GetOpVar("OPSYM_DISABLE")
       while(qData[stPiece.Kept]) do
         qRec = qData[stPiece.Kept]
-        if(not RegisterPOA(stPiece,stPiece.Kept,qRec[defTable[5][1]],qRec[defTable[6][1]],qRec[defTable[7][1]]))
+        qRez = RegisterPOA(stPiece,
+                           stPiece.Kept,
+                           qRec[defTable[5][1]],
+                           qRec[defTable[6][1]],
+                           qRec[defTable[7][1]])
+        if(not IsExistent(qRez)) then
           return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for "..sModel)
         end
         stPiece.Kept = stPiece.Kept + 1
       end
       stPiece.Kept = stPiece.Kept - 1
       AttachKillTimer(LibCache,CacheInd,defTable,"CacheQueryPiece")
-      stPiece.Used = Time()
       return stPiece
     elseif(sModeDB == "LUA") then
       return nil -- The whole DB is in the cache
@@ -2845,7 +2864,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     if(sTable == "PIECES") then
       Q = SQLBuildSelect(defTable,nil,nil,{2,3,1,4})
     elseif(sTable == "ADDITIONS") then
-      Q = SQLBuildSelect(defTable,nil,nil,{1,2,3,4})
+      Q = SQLBuildSelect(defTable,nil,nil,{1,4})
     elseif(sTable == "PHYSPROPERTIES") then
       Q = SQLBuildSelect(defTable,nil,nil,{1,2})
     else
@@ -3496,7 +3515,7 @@ end
 
 function MakeCvar(sShortName, sValue, tBorder, nFlags, sInfo)
   if(not IsString(sShortName)) then return StatusLog(nil,"MakeCvar("..tostring(sShortName).."): Wrong CVar name") end
-  if(not IsString(sValue)) then return StatusLog(nil,"MakeCvar("..tostring(sValue).."): Wrong default value") end
+  if(not IsExistent(sValue)) then return StatusLog(nil,"MakeCvar("..tostring(sValue).."): Wrong default value") end
   if(not IsString(sInfo)) then return StatusLog(nil,"MakeCvar("..tostring(sInfo).."): Wrong CVar information") end
   local sVar = GetOpVar("TOOLNAME_PL")..string.lower(sShortName)
   if(tBorder and (type(tBorder) == "table") and tBorder[1] and tBorder[2]) then

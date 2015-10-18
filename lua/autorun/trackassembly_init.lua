@@ -12,10 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("MISS_NOID","N")    -- No ID selected
-asmlib.SetOpVar("MISS_NOAV","N/A")  -- Not Available
-asmlib.SetOpVar("MISS_NOMD","X")    -- No model
-asmlib.SetOpVar("TOOL_VERSION","4.58")
+asmlib.SetOpVar("TOOL_VERSION","4.59")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -23,11 +20,10 @@ asmlib.SetOpVar("DIRPATH_LOG","")
 asmlib.SetOpVar("MAX_MASS",50000)
 asmlib.SetOpVar("MAX_LINEAR",10000)
 asmlib.SetOpVar("MAX_ROTATION",360)
-asmlib.SetOpVar("LOG_LOGONLY","AttachKillTimer")
-asmlib.SetLogControl(10000,"trackasmlib_log")
+asmlib.SetOpVar("LOG_LOGONLY",nil)
+asmlib.SetLogControl(0,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeCvar("timermode", "CQT@3600@1@1/CQT@1200@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
 asmlib.MakeCvar("maxactrad", "150", {1,500} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeCvar("enwiremod", "1"  , {0,1  } ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeCvar("maxstcnt" , "200", {1,200} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
@@ -36,8 +32,9 @@ if(SERVER) then
   asmlib.MakeCvar("maxfruse" , "50", {1,100} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
 end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeCvar("modedb"  , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-asmlib.MakeCvar("enqstore",     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
+asmlib.MakeCvar("modedb"   , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
+asmlib.MakeCvar("enqstore" ,     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
+asmlib.MakeCvar("timermode", "CQT@3600@1@1/CQT@1200@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
 
 ------ CONFIGURE MODES -----
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCvar("modedb","STR"))
@@ -198,7 +195,7 @@ if(CLIENT) then
         local uiKept = tonumber(uiRec.Kept) or 0
         local uiCen  = Vector()
         if    (uiKept > 1) then asmlib.SetVector(uiCen,asmlib.GetCenterPoint(uiRec,"P"))
-        elseif(uiKept = 1) then asmlib.SetVector(uiCen,uiEnt:OBBCenter())
+        elseif(uiKept == 1) then asmlib.SetVector(uiCen,uiEnt:OBBCenter())
         else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end
         local uiEye = uiEnt:LocalToWorld(uiCen)
         asmlib.SubVector(uiCen,uiRec.Offs[1].P)
