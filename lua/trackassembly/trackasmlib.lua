@@ -1133,9 +1133,9 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if(not stPiece) then return StatusLog(nil,"RegisterPOA: Cache record invalid") end
   local nID = tonumber(nID)
   if(not nID) then return StatusLog(nil,"RegisterPOA: OffsetID is not a number") end
-  local sP = sP or "NULL"
-  local sO = sO or "NULL"
-  local sA = sA or "NULL"
+  local sP = tostring(sP or "NULL")
+  local sO = tostring(sO or "NULL")
+  local sA = tostring(sA or "NULL")
   if(not IsString(sP)) then return StatusLog(nil,"RegisterPOA: Point is not a string") end
   if(not IsString(sO)) then return StatusLog(nil,"RegisterPOA: Origin is not a string") end
   if(not IsString(sA)) then return StatusLog(nil,"RegisterPOA: Angle is not a string") end
@@ -2295,9 +2295,13 @@ function InsertRecord(sTable,tData)
     return true
   elseif(sModeDB == "LUA") then
     local snPrimayKey = MatchType(defTable,tData[1],1)
-    if(not IsExistent(snPrimayKey)) then return StatusLog(false,"InsertRecord: Cannot match primary key") end
+    if(not IsExistent(snPrimayKey)) then
+      return StatusLog(false,"InsertRecord: Cannot match primary key")
+    end
     local Cache = LibCache[namTable]
-    if(not IsExistent(Cache)) then return StatusLog(false,"InsertRecord: Cache not allocated for "..namTable) end
+    if(not IsExistent(Cache)) then
+      return StatusLog(false,"InsertRecord: Cache not allocated for "..namTable)
+    end
     if(sTable == "PIECES") then
       local tLine = Cache[snPrimayKey]
       if(not tLine) then
@@ -2308,12 +2312,17 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(tLine.Name)) then tLine.Name = tData[3] end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0        end
       local nOffsID = MatchType(defTable,tData[4],4)
-      if(not IsExistent(nOffsID)) then return StatusLog(nil,"InsertRecord: Cannot match offset ID") end
-      if(not IsExistent(tLine.Offs[nOffsID])) then
-        if(not RegisterPOA(tLine,nOffsID,tostring(tData[5]),tostring(tData[6]),tostring(tData[7]))) then
-          return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID).." for "..tostring(snPrimayKey))
-        end
-        if(nOffsID >= tLine.Kept) then tLine.Kept = nOffsID end
+      if(not IsExistent(nOffsID)) then
+        return StatusLog(nil,"InsertRecord: Cannot match offset ID")
+      end
+      local stRezul = RegisterPOA(tLine,nOffsID,tData[5],tData[6],tData[7])
+      if(not IsExistent(stRezul)) then
+        return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID).." for "..tostring(snPrimayKey))
+      end
+      if(nOffsID > tLine.Kept) then
+        tLine.Kept = nOffsID
+      else
+        return StatusLog(nil,"InsertRecord: Offset #"..tostring(nOffsID).." sequentiality mismatch")
       end
     elseif(sTable == "ADDITIONS") then
       local tLine = Cache[snPrimayKey]
