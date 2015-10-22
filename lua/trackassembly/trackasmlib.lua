@@ -921,16 +921,14 @@ end
 
 function ModelToName(sModel)
   if(not IsString(sModel)) then return "" end
-  -- If is model remove *.mdl
-  local Cnt = 1
+  local Cnt = 1   -- If is model remove *.mdl
+  local sModel = string.gsub(sModel,GetOpVar("FILE_MODEL"),"")
   local Len = string.len(sModel)
-  if(string.sub(sModel,Len-3,Len) ~= GetOpVar("FILE_MODEL")) then return "" end
-  Len = Len - 4
   if(Len <= 0) then return "" end
   local sSymDiv = GetOpVar("OPSYM_DIVIDER")
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
   local gModel = ""
-  local sModel = string.sub(sModel,1,Len)
+        sModel = string.sub(sModel,1,Len)
   -- Locate the model part and exclude the directories
   Cnt = string.len(sModel)
   local fCh, bCh = "", ""
@@ -1925,6 +1923,10 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
   if(not defTable) then
     return StatusLog(nil,"SQLStoreQuery: Missing: Table definition")
   end
+  local tTimer = defTable.Timer
+  if(not (tTimer and ((tonumber(tTimer[2]) or 0) > 0))) then
+    return StatusLog(nil,"SQLStoreQuery: Skipped. Cache persistent forever")
+  end
   local Field = 1
   local Where = 1
   local Order = 1
@@ -2039,7 +2041,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
     return Command
   end
   local Cnt = 1
-  Command = "SELECT "
+  local Command = "SELECT "
   if(tFields) then
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])

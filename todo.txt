@@ -1,2 +1,3 @@
 Test function CacheQueryAdditions(sModel) addition order by LINEID
 Test RegisterPOA() when database mode = "LUA" if the offsets will be registered
+Check Track names in the panel.
