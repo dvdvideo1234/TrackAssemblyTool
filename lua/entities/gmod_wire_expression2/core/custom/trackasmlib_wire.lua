@@ -7,6 +7,37 @@ local defPiece = asmlib.GetOpVar("DEFTABLE_PIECES")
 local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
 local defPhysp = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")
 --------- Pieces ----------
+__e2setcost(50)
+e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
+  if(not (this and this:IsValid() and enflag)) then return "" end
+  if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
+  local C1, C2, C3
+        C1, C2, C3 = asmlib.GetIndexes("V")
+  local ucsPos = ucsEnt:GetPos()
+        C1, C2, C3 = asmlib.GetIndexes("A")
+  local ucsAng = ucsEnt:GetAngles()
+  local sO = tostring(ucsAng[C1])..", "..tostring(ucsAng[C2])..", "..tostring(ucsAng[C3])
+  return "asmlib.InsertRecord({\""..this:GetModel().."\", \""..sType..
+         "\", \""..sName.."\", "..tostring(nPoint or 0)..", \""..sP..
+         "\", \""..sO.."\", \""..sA.."\"})"
+end
+
+__e2setcost(50)
+e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sType, string sName, number nPoint, string sP, string sDelim)
+  if(not (this and this:IsValid() and enflag)) then return "" end
+  if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
+  local sDelim = string.sub(sDelim,1,1)
+  if(not (string.len(sDelim) > 0)) then return "" end
+  local C1, C2, C3
+        C1, C2, C3 = asmlib.GetIndexes("V")
+  local ucsPos = ucsEnt:GetPos()
+        C1, C2, C3 = asmlib.GetIndexes("A")
+  local ucsAng = ucsEnt:GetAngles()
+  local sO = tostring(ucsAng[C1])..", "..tostring(ucsAng[C2])..", "..tostring(ucsAng[C3])
+  return "TRACKASSEMBLY_PIECES \""..this:GetModel().."\""..sDelim.."\""..
+         sType.."\""..sDelim.."\""..sName.."\""..sDelim.."\""..tostring(nPoint or 0)..
+         "\""..sDelim.."\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA
+end
 
 __e2setcost(100)
 e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel  , number hdPointID,

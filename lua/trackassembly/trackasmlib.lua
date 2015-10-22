@@ -2041,7 +2041,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
     return Command
   end
   local Cnt = 1
-  local Command = "SELECT "
+  Command = "SELECT "
   if(tFields) then
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])
