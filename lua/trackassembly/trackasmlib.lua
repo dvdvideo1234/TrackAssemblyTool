@@ -3475,9 +3475,10 @@ function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
     pyPiece:EnableMotion(true)
   end
   if(Wg ~= 0) then
-    pyPiece:EnableMotion(false)
-    ePiece:SetUnFreezable(true)
     ePiece.PhysgunDisabled = true
+    ePiece:SetMoveType(MOVETYPE_NONE)
+    ePiece:SetUnFreezable(true)
+    pyPiece:EnableMotion(false)
     duplicator.StoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
   end
   if(Gr == 0) then
