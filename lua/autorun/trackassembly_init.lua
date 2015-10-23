@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.63")
+asmlib.SetOpVar("TOOL_VERSION","4.64")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -61,7 +61,7 @@ if(SERVER) then
         oEnt.PhysgunDisabled = true
         oEnt:SetMoveType(MOVETYPE_NONE)
         oEnt:SetUnFreezable(true)
-        local sInf = "["..tostring(oEnt:EntIndex()).."]"..asmlib.GetModelFileName(GetFoEnt:GetModel())
+        local sInf = "["..tostring(oEnt:EntIndex()).."]"..asmlib.GetModelFileName(oEnt:GetModel())
         local oPhy = oEnt:GetPhysicsObject()
         if(not (oPhy and oPhy:IsValid())) then return asmlib.StatusLog(nil,"WELD_GROUND: PhysObj invalid "..sInf) end
         oPhy:EnableMotion(false)
