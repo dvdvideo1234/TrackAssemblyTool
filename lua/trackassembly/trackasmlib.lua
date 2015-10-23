@@ -1008,7 +1008,7 @@ local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
         arPOA[4] = tonumber(nSX) or 1
         arPOA[5] = tonumber(nSY) or 1
         arPOA[6] = tonumber(nSZ) or 1
-        arPOA[7] = tobool  (nSD) or false
+        arPOA[7] = (nSD) and true or false
   return arPOA
 end
 
@@ -1071,14 +1071,16 @@ local function TransferPOA(stOffset,sMode)
   if(not IsExistent(stOffset)) then return StatusLog(nil,"TransferPOA: Destination needed") end
   if(not IsString(sMode)) then return StatusLog(nil,"TransferPOA: Mode must be string") end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
-  if(sMode == "POS") then
+  if(sMode == "V") then
     stOffset[cvX] = arPOA[1]
     stOffset[cvY] = arPOA[2]
     stOffset[cvZ] = arPOA[3]
-  elseif(sMode == "ANG") then
+  elseif(sMode == "A") then
     stOffset[caP] = arPOA[1]
     stOffset[caY] = arPOA[2]
     stOffset[caR] = arPOA[3]
+  else
+    return StatusLog(nil,"TransferPOA: Missed mode "..sMode)
   end
   stOffset[csX] = arPOA[4]
   stOffset[csY] = arPOA[5]
@@ -1131,12 +1133,12 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if(not stPiece) then return StatusLog(nil,"RegisterPOA: Cache record invalid") end
   local nID = tonumber(nID)
   if(not nID) then return StatusLog(nil,"RegisterPOA: OffsetID is not a number") end
-  local sP = tostring(sP or "NULL")
-  local sO = tostring(sO or "NULL")
-  local sA = tostring(sA or "NULL")
-  if(not IsString(sP)) then return StatusLog(nil,"RegisterPOA: Point is not a string") end
-  if(not IsString(sO)) then return StatusLog(nil,"RegisterPOA: Origin is not a string") end
-  if(not IsString(sA)) then return StatusLog(nil,"RegisterPOA: Angle is not a string") end
+  local sP = sP or "NULL"
+  local sO = sO or "NULL"
+  local sA = sA or "NULL"
+  if(not IsString(sP)) then return StatusLog(nil,"RegisterPOA: Point is not a string but "..type(sP)) end
+  if(not IsString(sO)) then return StatusLog(nil,"RegisterPOA: Origin is not a string but "..type(sO)) end
+  if(not IsString(sA)) then return StatusLog(nil,"RegisterPOA: Angle is not a string but "..type(sA)) end
   if(not stPiece.Offs) then
     if(nID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be "..tostring(nID)) end
     stPiece.Offs = {}
@@ -1155,12 +1157,20 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
     tOffs        = tOffs[nID]
   end
   if((sO ~= "") and (sO ~= "NULL")) then DecodePOA(sO)
-  else ReloadPOA() end TransferPOA(tOffs.O,"POS")
+  else ReloadPOA() end
+  if(not IsExistent(TransferPOA(tOffs.O,"V"))) then
+    return StatusLog(nil,"RegisterPOA: Cannot transfer origin")
+  end
   if((sP ~= "") and (sP ~= "NULL")) then DecodePOA(sP) end
-  TransferPOA(tOffs.P,"POS") -- in the POA array still persists the decoded Origin
+  if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
+    return StatusLog(nil,"RegisterPOA: Cannot transfer point")
+  end -- In the POA array still persists the decoded Origin
   if(string.sub(sP,1,1) == GetOpVar("OPSYM_DISABLE")) then tOffs.P[csD] = true end
   if((sA ~= "") and (sA ~= "NULL")) then DecodePOA(sA)
-  else ReloadPOA() end TransferPOA(tOffs.A,"ANG")
+  else ReloadPOA() end
+  if(not IsExistent(TransferPOA(tOffs.A,"A"))) then
+    return StatusLog(nil,"RegisterPOA: Cannot transfer angle")
+  end
   return tOffs
 end
 
@@ -3232,6 +3242,9 @@ function AttachAdditions(ePiece)
         return StatusLog(false,"AttachAdditions: No such attachment model "..Record[defTable[2][1]])
       end
       local OffPos = Record[defTable[5][1]]
+      if(not IsString(OffPos)) then
+        return StatusLog(false,"AttachAdditions: Position is not a string but "..type(OffPos))
+      end
       if(OffPos       and
          OffPos ~= "" and
          OffPos ~= "NULL"
@@ -3252,6 +3265,9 @@ function AttachAdditions(ePiece)
         LogInstance("Addition:SetPos(LocalPos)")
       end
       local OffAngle = Record[defTable[6][1]]
+      if(not IsString(OffAngle)) then
+        return StatusLog(false,"AttachAdditions: Angle is not a string but "..type(OffAngle))
+      end
       if(OffAngle       and
          OffAngle ~= "" and
          OffAngle ~= "NULL"
