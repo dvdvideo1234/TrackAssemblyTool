@@ -45,6 +45,7 @@ local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
 local MOVETYPE_VPHYSICS     = MOVETYPE_VPHYSICS
 local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
+local MOVETYPE_NONE         = MOVETYPE_NONE
 
 ---------------- Localizing CVar flags ----------------
 local FCVAR_ARCHIVE       = FCVAR_ARCHIVE
@@ -1935,7 +1936,7 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
   end
   local tTimer = defTable.Timer
   if(not (tTimer and ((tonumber(tTimer[2]) or 0) > 0))) then
-    return StatusLog(nil,"SQLStoreQuery: Skipped. Cache persistent forever")
+    return StatusLog(sQuery,"SQLStoreQuery: Skipped. Cache persistent forever")
   end
   local Field = 1
   local Where = 1
@@ -2727,7 +2728,7 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
-        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty: "..SQLBuildError()) end
+        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty: Build error: "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty: No data found >"..Q.."<") end

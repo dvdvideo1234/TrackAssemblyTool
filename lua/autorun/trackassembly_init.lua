@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.65")
+asmlib.SetOpVar("TOOL_VERSION","4.66")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -21,7 +21,7 @@ asmlib.SetOpVar("MAX_MASS",50000)
 asmlib.SetOpVar("MAX_LINEAR",10000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetOpVar("LOG_LOGONLY",nil)
-asmlib.SetLogControl(0,"")
+asmlib.SetLogControl(10000,"trackasmlib_log")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeCvar("maxactrad", "150", {1,500} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
@@ -63,9 +63,12 @@ if(SERVER) then
         oEnt:SetUnFreezable(true)
         local sInf = "["..tostring(oEnt:EntIndex()).."]"..asmlib.GetModelFileName(oEnt:GetModel())
         local oPhy = oEnt:GetPhysicsObject()
-        if(not (oPhy and oPhy:IsValid())) then return asmlib.StatusLog(nil,"WELD_GROUND: PhysObj invalid "..sInf) end
+        if(not (oPhy and oPhy:IsValid())) then
+          return asmlib.StatusLog(nil,"WELD_GROUND: PhysObj invalid "..sInf)
+        end
         oPhy:EnableMotion(false)
         duplicator.StoreEntityModifier(oEnt, gsToolPrefL.."wgnd", {[1] = true})
+        asmlib.LogInstance("WELD_GROUND: "..sInf)
       end
     end)
 
