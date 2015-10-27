@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.66")
+asmlib.SetOpVar("TOOL_VERSION","4.67")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -68,7 +68,7 @@ if(SERVER) then
         end
         oPhy:EnableMotion(false)
         duplicator.StoreEntityModifier(oEnt, gsToolPrefL.."wgnd", {[1] = true})
-        asmlib.LogInstance("WELD_GROUND: "..sInf)
+        asmlib.LogInstance("WELD_GROUND: Success "..sInf)
       end
     end)
 
@@ -84,6 +84,7 @@ if(CLIENT) then
       oPly:ConCommand(gsToolPrefL.."nextx 0\n")
       oPly:ConCommand(gsToolPrefL.."nexty 0\n")
       oPly:ConCommand(gsToolPrefL.."nextz 0\n")
+      asmlib.LogInstance("RESET_OFFSETS: Success")
     end)
 
   asmlib.SetAction("OPEN_FRAME",
@@ -234,7 +235,7 @@ if(CLIENT) then
       pnFrame:SetVisible(true)
       pnFrame:Center()
       pnFrame:MakePopup()
-      return true
+      return asmlib.StatusLog(true,"OPEN_FRAME: Success")
     end)
 end
 

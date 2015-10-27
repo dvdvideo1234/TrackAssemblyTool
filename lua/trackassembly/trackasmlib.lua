@@ -1023,49 +1023,49 @@ local function IsEqualPOA(stOffsetA,stOffsetB)
 end
 
 local function StringPOA(arOffs,iID,sOffs)
+  if(not IsString(sOffs)) then return StatusLog(nil,"StringPOA: Mode is not a string but "..type(sOffs)) end
   if(not IsExistent(arOffs)) then return StatusLog(nil,"StringPOA: Missing Offsets") end
   local iID = tonumber(iID)
-  if(not IsExistent(iID))    then return StatusLog(nil,"StringPOA: Missing PointID") end
+  if(not IsExistent(iID)) then return StatusLog(nil,"StringPOA: Missing PointID") end
   local Offset = arOffs[iID]
-  if(not IsExistent(Offset)) then return StatusLog(nil,"StringPOA: No PointID") end
-  local sEmpty
-  local sResult = ""
-  local sOffset = tostring(sOffs)
+  if(not IsExistent(Offset)) then return StatusLog(nil,"StringPOA: No offset for ID #"..tostring(iID)) end
+  local Empty
+  local Result = ""
   local symRevs = GetOpVar("OPSYM_REVSIGN")
   local symDisa = GetOpVar("OPSYM_DISABLE")
   local sModeDB = GetOpVar("MODE_DATABASE")
-  if    (sModeDB == "SQL") then sEmpty = "NULL"
-  elseif(sModeDB == "LUA") then sEmpty = "NULL"
+  if    (sModeDB == "SQL") then Empty = "NULL"
+  elseif(sModeDB == "LUA") then Empty = "NULL"
   else return StatusLog("","StringPOA: Missed database mode "..sModeDB)
   end
-  if(sOffset == "P") then
+  if(sOffs == "P") then
     if(not Offset.P[csD]) then
       if(IsEqualPOA(Offset.P,Offset.O)) then
-        sResult = sEmpty
+        Result = Empty
       else
-        sResult = ((Offset.P[csX] == -1) and symRevs or "")..tostring(Offset.P[cvX])..","
+        Result =  ((Offset.P[csX] == -1) and symRevs or "")..tostring(Offset.P[cvX])..","
                 ..((Offset.P[csY] == -1) and symRevs or "")..tostring(Offset.P[cvY])..","
                 ..((Offset.P[csZ] == -1) and symRevs or "")..tostring(Offset.P[cvZ])
       end
     else
-      sResult = symDisa
+      Result = symDisa
     end
-  elseif(sOffset == "O") then
-    sResult = ((Offset.O[csX] == -1) and symRevs or "")..tostring(Offset.O[cvX])..","
+  elseif(sOffs == "O") then
+    Result =  ((Offset.O[csX] == -1) and symRevs or "")..tostring(Offset.O[cvX])..","
             ..((Offset.O[csY] == -1) and symRevs or "")..tostring(Offset.O[cvY])..","
             ..((Offset.O[csZ] == -1) and symRevs or "")..tostring(Offset.O[cvZ])
-  elseif(sOffset == "A") then
+  elseif(sOffs == "A") then
     if(Offset.A[caP] == 0 and Offset.A[caY] == 0 and Offset.A[caR] == 0) then
-      sResult = sEmpty
+      Result = Empty
     else
-      sResult = ((Offset.A[csX] == -1) and symRevs or "")..tostring(Offset.A[caP])..","
+      Result =  ((Offset.A[csX] == -1) and symRevs or "")..tostring(Offset.A[caP])..","
               ..((Offset.A[csY] == -1) and symRevs or "")..tostring(Offset.A[caY])..","
               ..((Offset.A[csZ] == -1) and symRevs or "")..tostring(Offset.A[caR])
     end
   else
-    return StatusLog("","StringPOA: Missed offset mode "..sOffset)
+    return StatusLog("","StringPOA: Missed offset mode "..sOffs)
   end
-  return string.gsub(sResult," ","") -- Get rid of the spaces
+  return string.gsub(Result," ","") -- Get rid of the spaces
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -2299,7 +2299,7 @@ function InsertRecord(sTable,tData)
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,tData)
-    if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: "..SQLBuildError()) end
+    if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: Build error: "..SQLBuildError()) end
     local qRez = sql.Query(Q)
     if(not qRez and IsBool(qRez)) then
        return StatusLog(false,"InsertRecord: Failed to insert a record because of "
@@ -2543,7 +2543,7 @@ function CacheQueryPiece(sModel)
       stPiece = Cache[sModel]
       stPiece.Kept = 0
       local Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece: "..SQLBuildError()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece: Build error: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPiece: SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece: No data found >"..Q.."<") end
@@ -2601,7 +2601,7 @@ function CacheQueryAdditions(sModel)
       stAddition = Cache[sModel]
       stAddition.Kept = 0
       local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions: "..SQLBuildError()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions: Build error: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryAdditions: SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryAdditions: No data found >"..Q.."<") end
@@ -2649,7 +2649,7 @@ function CacheQueryPanel()
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
-      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel: "..SQLBuildError()) end
+      if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel: Build error: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPanel: SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel: No data found >"..Q.."<") end
@@ -2702,7 +2702,7 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
-        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): "..SQLBuildError()) end
+        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): Build error: "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty("..sType.."): No data found >"..Q.."<") end
@@ -2892,7 +2892,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     else
       Q = SQLBuildSelect(defTable,nil,nil,nil)
     end
-    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile: "..SQLBuildError()) end
+    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile: Build error: "..SQLBuildError()) end
     F:Write("# Query ran: >"..Q.."<\n")
     local qData = sql.Query(Q)
     if(not qData and IsBool(qData)) then return StatusLog(nil,"ExportIntoFile: SQL exec error "..sql.LastError()) end
