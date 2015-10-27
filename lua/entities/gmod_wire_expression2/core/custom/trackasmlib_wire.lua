@@ -6,7 +6,9 @@ local enflag   = ((tonumber(asmlib.GetCvar("enwiremod","INT")) or 0) ~= 0) and t
 local defPiece = asmlib.GetOpVar("DEFTABLE_PIECES")
 local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
 local defPhysp = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")
+
 --------- Pieces ----------
+
 __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
   if(not (this and this:IsValid() and enflag)) then return "" end
