@@ -2751,22 +2751,22 @@ function CacheQueryProperty(sType)
 end
 
 function GetCenterPoint(oRec,sO)
-  if(not IsString(sO)) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Wrong offset type") end
-  if((sO ~= "P") and (sO ~= "O")) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Wrong offset name") end
-  if(not oRec) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Missing piece record") end
-  if(not oRec.Offs) then return StatusLog(Vector(0,0,0),"GetCenterPoint: No piece offsets") end
-  if(not oRec.Offs[1]) then return StatusLog(Vector(0,0,0),"GetCenterPoint: Missing piece offset") end
-  local Ind = 1
-  local Cent = Vector()
-  while(oRec.Offs[Ind]) do
-    local Cur = oRec.Offs[Ind][sO]
-    AddVectorXYZ(Cent,Cur[cvX],Cur[cvY],Cur[cvZ])
-    Ind = Ind + 1
+  if(not IsString(sO)) then return StatusLog(nil,"GetCenterPoint: Wrong offset type") end
+  if((sO ~= "P") and (sO ~= "O")) then return StatusLog(nil,"GetCenterPoint: Wrong offset name") end
+  if(not oRec) then return StatusLog(nil,"GetCenterPoint: Missing piece record") end
+  if(not oRec.Offs) then return StatusLog(nil,"GetCenterPoint: No piece offsets") end
+  if(not oRec.Offs[1]) then return StatusLog(nil,"GetCenterPoint: Missing piece offset") end
+  local iInd, rCur = 1
+  local vCent = Vector()
+  while(oRec.Offs[iInd]) do
+    rCur = oRec.Offs[iInd][sO]
+    AddVectorXYZ(vCent,rCur[cvX],rCur[cvY],rCur[cvZ])
+    iInd = iInd + 1
   end
-  if(Ind > 1) then
-    Cent:Mul(1/(Ind-1))
+  if(iInd > 1) then
+    vCent:Mul(1/(iInd-1))
   end
-  return Cent
+  return vCent
 end
 
 ---------------------- AssemblyLib EXPORT --------------------------------

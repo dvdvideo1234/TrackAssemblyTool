@@ -1,0 +1,1 @@
+Test is layout entity will display correctly when points count = 1 or above 1!

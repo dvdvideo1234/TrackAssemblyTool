@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.69")
+asmlib.SetOpVar("TOOL_VERSION","4.70")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -141,15 +141,22 @@ if(CLIENT) then
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiRec = asmlib.CacheQueryPiece(oEnt:GetModel())
         if(not uiRec) then return end
-        local Ang = Angle(0, RealTime() * 10, 0)
-        local Pos = asmlib.GetCenterPoint(uiRec,"P")
-        local Rot = Vector()
-              Rot:Set(Pos)
-              Rot:Rotate(Ang)
-              Rot:Mul(-1)
-              Rot:Add(Pos)
-        oEnt:SetAngles(Ang)
-        oEnt:SetPos(Rot)
+        local uiKept = uiRec.Kept
+        local uiAng = Angle(0, RealTime() * 10, 0)
+        local uiPos = Vector()
+        if(uiKept > 1) then
+          local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
+          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel: Center point non-applicable") end
+          asmlib.SetVector(uiPos,uiCalc)
+        elseif(uiKept == 1) then asmlib.SetVector(uiPos,(uiEnt:OBBMaxs()-uiEnt:OBBMins()))
+        else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end      
+        local uiRot = Vector()
+              uiRot:Set(uiPos)
+              uiRot:Rotate(uiAng)
+              uiRot:Mul(-1)
+              uiRot:Add(uiPos)
+        oEnt:SetAngles(uiAng)
+        oEnt:SetPos(uiRot)
       end
       ------------ Button --------------
       pnButton:SetParent(pnFrame)
@@ -198,8 +205,11 @@ if(CLIENT) then
         end
         local uiKept = tonumber(uiRec.Kept) or 0
         local uiCen  = Vector()
-        if    (uiKept > 1) then asmlib.SetVector(uiCen,asmlib.GetCenterPoint(uiRec,"P"))
-        elseif(uiKept == 1) then asmlib.SetVector(uiCen,uiEnt:OBBCenter())
+        if(uiKept > 1) then
+          local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
+          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: Center point non-applicable") end
+          asmlib.SetVector(uiCen,uiCalc)
+        elseif(uiKept == 1) then asmlib.SetVector(uiCen,(uiEnt:OBBMaxs()-uiEnt:OBBMins()))
         else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end
         local uiEye = uiEnt:LocalToWorld(uiCen)
         asmlib.SubVector(uiCen,uiRec.Offs[1].P)
