@@ -178,7 +178,7 @@ function IsString(anyValue)
 end
 
 function IsBool(anyArg)
-  if    ( anyArg == true) then return true
+  if    (anyArg == true ) then return true
   elseif(anyArg == false) then return true end
   return false
 end
@@ -2475,7 +2475,7 @@ local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
       end)
       return timer.Start(TimerID)
     else
-      return StatusLog(false,"AttachKillTimer: Memory manager mode not found: "..sModeTM)
+      return StatusLog(false,"AttachKillTimer: Timer mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
     return StatusLog(true,"AttachKillTimer: Memory manager not available")
@@ -2506,7 +2506,7 @@ local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
       if(not timer.Exists(TimerID)) then return StatusLog(nil,"RestartTimer: Timer missing: "..TimerID) end
       timer.Start(TimerID)
     else
-      return StatusLog(nil,"RestartTimer: Mode not found: "..sModeTM)
+      return StatusLog(nil,"RestartTimer: Timer mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
     Place[Key].Used = Time()

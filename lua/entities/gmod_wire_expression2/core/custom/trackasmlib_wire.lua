@@ -1,11 +1,7 @@
 ----- Localizing the asmlib module
 local asmlib   = trackasmlib
 ----- Get extention enabled flag
-local Color    = Color
 local enflag   = ((tonumber(asmlib.GetCvar("enwiremod","INT")) or 0) ~= 0) and true or false
-local defPiece = asmlib.GetOpVar("DEFTABLE_PIECES")
-local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
-local defPhysp = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")
 
 --------- Pieces ----------
 
@@ -218,6 +214,7 @@ end
 __e2setcost(60)
 e2function array trackasmlibGetAdditionsLine(string sModel, number nLine)
   if(not enflag) then return {} end
+  local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
   if(not defAddit) then
     return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition")
   end
@@ -237,6 +234,7 @@ end
 __e2setcost(60)
 e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   if(not (this and this:IsValid() and enflag)) then return {} end
+  local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
   if(not defAddit) then
     return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition")
   end
