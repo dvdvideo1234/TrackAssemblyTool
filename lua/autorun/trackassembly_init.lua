@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.70")
+asmlib.SetOpVar("TOOL_VERSION","4.71")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -89,8 +89,8 @@ if(CLIENT) then
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs)
-      local Frequent = asmlib.GetFrequentModels(oArgs[1])
-      if(not asmlib.IsExistent(Frequent)) then
+      local frUsed = asmlib.GetFrequentModels(oArgs[1])
+      if(not asmlib.IsExistent(frUsed)) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
       end
       local pnFrame = vgui.Create("DFrame")
@@ -165,7 +165,7 @@ if(CLIENT) then
       pnButton:SetSize(55,30)
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
-        asmlib.LogInstance("OPEN_FRAME: Button "..pnButton:GetText().." clicked")
+        asmlib.LogInstance("OPEN_FRAME: Button <"..pnButton:GetText().."> clicked")
         asmlib.SetLogControl(asmlib.GetCvar("logsmax", "INT"),
                              asmlib.GetCvar("logfile", "STR"))
         local ExportDB     = asmlib.GetCvar("exportdb","INT")
@@ -192,7 +192,8 @@ if(CLIENT) then
       pnListView:AddColumn("Type"):SetFixedWidth(100)
       pnListView:AddColumn("Model"):SetFixedWidth(305)
       pnListView.OnRowSelected = function(pnSelf, nRow, pnVal)
-        local uiMod = Frequent[nRow].Table[3]
+        asmlib.LogInstance("ListView: Row selected ["..nRow.."]")
+        local uiMod = frUsed[nRow].Table[3]
         pnModelPanel:SetModel(uiMod)
         local uiRec  = asmlib.CacheQueryPiece(uiMod)
         if(not uiRec) then
@@ -207,7 +208,7 @@ if(CLIENT) then
         local uiCen  = Vector()
         if(uiKept > 1) then
           local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
-          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: Center point non-applicable") end
+          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ListView: Center point non-applicable") end
           asmlib.SetVector(uiCen,uiCalc)
         elseif(uiKept == 1) then asmlib.SetVector(uiCen,(uiEnt:OBBMaxs()-uiEnt:OBBMins()))
         else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end
@@ -220,25 +221,16 @@ if(CLIENT) then
         oPly:ConCommand(gsToolPrefL.."model "..uiMod.."\n")
         oPly:ConCommand(gsToolPrefL.."pointid 1\n")
         oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
-        asmlib.LogInstance("ListView: Row selected ["..nRow.."]")
       end
       ------------ Organizing the LustView --------------
       local iNdex, tValue, pnRec, pnLin = 1, nil, nil, nil
-      while(Frequent[iNdex]) do
-        tValue = Frequent[iNdex]
-        pnRec  = asmlib.CacheQueryPiece(tValue.Table[3])
-        if(pnRec) then
-          pnRec = pnListView:AddLine(asmlib.RoundValue(tValue.Value,0.001),
-                                     tValue.Table[1],tValue.Table[2],tValue.Table[3])
+      while(frUsed[iNdex]) do
+        tValue = frUsed[iNdex]
+        pnRec = pnListView:AddLine(asmlib.RoundValue(tValue.Value,0.001),
+          tValue.Table[1],tValue.Table[2],tValue.Table[3])
           if(not asmlib.IsExistent(pnRec)) then
-            LogInstance("OPEN_FRAME: Failed to create a LisView line for #"
-              ..iNdex.." "..tValue.Table[3])
+            return StatusLog(false,"OPEN_FRAME: Failed to create a ListView line for <"..tValue.Table[3].."> #"..iNdex)
           end
-          if(iNdex == 1) then pnLin = pnRec end
-        else
-          LogInstance("OPEN_FRAME: Skipped piece #"..iNdex.." "..tValue.Table[3])
-        end
-        iNdex = iNdex + 1
       end
       pnListView:SelectItem(pnLin)
       ------------ Show the completed panel --------------

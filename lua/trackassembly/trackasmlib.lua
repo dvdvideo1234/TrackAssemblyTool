@@ -778,22 +778,22 @@ local function PushSortValues(tTable,snCnt,nsValue,tData)
 end
 
 function GetFrequentModels(snCount)
-  local Cnt = tonumber(snCount) or 0
-  if(Cnt < 1) then return nil end
+  local snCount = tonumber(snCount) or 0
+  if(snCount < 1) then return nil end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then return StatusLog(nil,"GetFrequentModels: Missing: Table definition") end
   local Cache = LibCache[defTable.Name]
   if(not Cache) then return StatusLog(nil,"GetFrequentModels: Missing: Table cache") end  
-  local Ind, Now = 1, Time()
-  local FreqUsed = GetOpVar("TABLE_FREQUENT_MODELS")
-  table.Empty(FreqUsed)
+  local iInd, tmNow = 1, Time()
+  local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
+  table.Empty(frUsed)
   for Model, Record in pairs(Cache) do
-    if(IsExistent(Record.Used)) then
-      Ind = PushSortValues(FreqUsed,Cnt,Now-Record.Used,{Record.Kept,Record.Type,Model})
-      if(Ind < 1) then return nil end
+    if(IsExistent(Record.Used) and IsExistent(stPiece.Kept) and stPiece.Kept > 0) then
+      iInd = PushSortValues(frUsed,snCount,tmNow-Record.Used,{Record.Kept,Record.Type,Model})
+      if(iInd < 1) then return nil end
     end
   end
-  if(FreqUsed and FreqUsed[1]) then return FreqUsed end
+  if(frUsed and frUsed[1]) then return frUsed end
   return nil
 end
 
