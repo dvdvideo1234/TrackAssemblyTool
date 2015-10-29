@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.73")
+asmlib.SetOpVar("TOOL_VERSION","4.74")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -150,7 +150,9 @@ if(CLIENT) then
           asmlib.SetVector(uiPos,uiCalc)
         elseif(uiKept == 1) then
           local uiMin, uiMax = oEnt:GetRenderBounds()
-          asmlib.SetVector(uiPos,(uiMin-uiMax):Mul(0.5))
+          asmlib.SetVector(uiPos,uiMin)
+          asmlib.SubVector(uiPos,uiMax)
+          uiPos:Mul(0.5)
         else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end      
         local uiRot = Vector()
               uiRot:Set(uiPos)
@@ -214,7 +216,9 @@ if(CLIENT) then
           asmlib.SetVector(uiCen,uiCalc)
         elseif(uiKept == 1) then
           local uiMin, uiMax = uiEnt:GetRenderBounds()
-          asmlib.SetVector(uiPos,(uiMin-uiMax):Mul(0.5))
+          asmlib.SetVector(uiCen,uiMin)
+          asmlib.SubVector(uiCen,uiMax)
+          uiCen:Mul(0.5)
         else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end
         local uiEye = uiEnt:LocalToWorld(uiCen)
         asmlib.SubVector(uiCen,uiRec.Offs[1].P)
