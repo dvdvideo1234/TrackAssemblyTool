@@ -444,6 +444,9 @@ function MakeContainer(sInfo,sDefKey)
   function self:GetSize()
     return Curs
   end
+  function self:GetData()
+    return Data 
+  end
   function self:Insert(nsKey,anyValue)
     Ins = nsKey or Key
     Met = "I"
@@ -457,10 +460,13 @@ function MakeContainer(sInfo,sDefKey)
     Sel = nsKey or Key
     return Data[Sel]
   end
-  function self:Delete(nsKey)
+  function self:Delete(nsKey,fnDel)
     Del = nsKey or Key
     Met = "D"
     if(IsExistent(Data[Del])) then
+      if(IsExistent(fnDel)) then
+        fnDel(Data[Del])
+      end
       Data[Del] = nil
       Curs = Curs - 1
       collectgarbage()
@@ -777,6 +783,58 @@ local function PushSortValues(tTable,snCnt,nsValue,tData)
   end
 end
 
+local function LineAddListView(pnListView,frUsed,iNdex)
+  if(not IsExistent(pnListView)) then return StatusLog(nil,"LineAddListView: Missing panel") end
+  if(not IsValid(pnListView)) then return StatusLog(nil,"LineAddListView: Invalid panel") end
+  if(not IsExistent(frUsed)) then return StatusLog(nil,"LineAddListView: Missing data") end
+  local iNdex = tonumber(iNdex)
+  if(not IsExistent(iNdex)) then return StatusLog(nil,"LineAddListView: Index <"..tostring(iNdex).."> not a number but "..type(iNdex)) end
+  local tValue = frUsed[iNdex]
+  if(not IsExistent(tValue)) then return StatusLog(nil,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
+  local defTable = GetOpVar("DEFTABLE_PIECES")
+  if(not IsExistent(defTable)) then return StatusLog(nil,"LineAddListView: Missing: Table definition") end
+  local sModel = tValue.Table[defTable[1][1]]
+  local sType  = tValue.Table[defTable[2][1]]
+  local nAct   = tValue.Table[defTable[4][1]]
+  local nLife  = asmlib.RoundValue(tValue.Value,0.001)
+  local pnRec  = pnListView:AddLine(nLife,nAct,sType,sModel)
+  if(not asmlib.IsExistent(pnRec)) then
+    return StatusLog(false,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..iNdex)
+  end
+  return pnRec
+end
+
+--[[
+ * Searches in the already generated frequently used pieces "frUsed"
+ * and searches for a string "sSrcVal" given by user and a filed selected "sSrcFld"
+]]--
+function PopulateListView(pnListView,frUsed,sSrcFld,sSrcVal)
+  if(not IsExistent(pnListView)) then return StatusLog(false,"SearchListView: Missing panel") end
+  if(not IsExistent(frUsed)) then return StatusLog(false,"SearchListView: Missing data") end
+  local sSrcFld = tostring(sSrcFld or "")
+  local sSrcVal = tostring(sSrcVal or "")
+  local iNdex, pnRec = 1, nil
+  if(sSearch == "") then
+    while(frUsed[iNdex]) do
+      pnRec = LineAddListView(pnListView,frUsed,iNdex)
+      if(not IsExistent(pnRec)) then return StatusLog(false,"SearchListView: Failed to add line on #"..tostring(iNdex)) end
+      iNdex = iNdex + 1
+    end
+  else
+    local sData
+    while(frUsed[iNdex]) do
+      anyData = frUsed[iNdex].Table[sSrcFld]
+      if(not IsExistent(anyData)) then return StatusLog(false,"SearchListView: Failed to get data from "..sSrcFld) end
+      if(string.find(,sSrcVal)) then
+        pnRec = LineAddListView(pnListView,frUsed,iNdex)
+        if(not IsExistent(pnRec)) then return StatusLog(false,"SearchListView: Failed to add line on #"..tostring(iNdex)) end
+      end
+      iNdex = iNdex + 1
+    end
+  end
+  return StatusLog(true,"PopulateSearchListView: Crated #"..iNdex)
+end
+
 function GetFrequentModels(snCount)
   local snCount = tonumber(snCount) or 0
   if(snCount < 1) then return nil end
@@ -789,7 +847,12 @@ function GetFrequentModels(snCount)
   table.Empty(frUsed)
   for Model, Record in pairs(Cache) do
     if(IsExistent(Record.Used) and IsExistent(stPiece.Kept) and stPiece.Kept > 0) then
-      iInd = PushSortValues(frUsed,snCount,tmNow-Record.Used,{Record.Kept,Record.Type,Model})
+      iInd = PushSortValues(frUsed,snCount,tmNow-Record.Used,{
+               [defTable[1][1]] = Model,
+               [defTable[2][1]] = Record.Type,
+               [defTable[3][1]] = Record.Name,
+               [defTable[4][1]] = Record.Kept
+             })
       if(iInd < 1) then return nil end
     end
   end
@@ -2800,7 +2863,7 @@ end
  * sTable  = Definition KEY to export to
  * sDelim  = Delimiter CHAR data separator
  * bCommit = true to insert the read values
-]]
+]]--
 function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
   if(not IsString(sTable)) then
     return StatusLog(false,"ImportFromDSV: Table name should be string but "..type(sTable))

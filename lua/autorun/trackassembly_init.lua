@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.74")
+asmlib.SetOpVar("TOOL_VERSION","4.75")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -93,30 +93,50 @@ if(CLIENT) then
       if(not asmlib.IsExistent(frUsed)) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
       end
+      local defPieces = asmlib.GetOpVar("DEFTABLE_PIECES")
+      if(not defPieces) then return StatusLog(false,"Missing definition for table PIECES") end
       local pnFrame = vgui.Create("DFrame")
-      local pnButton = vgui.Create("DButton", pnFrame)
-      local pnListView = vgui.Create("DListView", pnFrame)
-      local pnModelPanel = vgui.Create("DModelPanel",pnFrame)
       if(not IsValid(pnFrame)) then
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create DFrame")
-      end
-      if(not IsValid(pnButton)) then
         pnFrame:Remove()
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create DButton")
+        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create elements frame")
       end
-      if(not IsValid(pnListView)) then
-        pnFrame:Remove()
-        pnButton:Remove()
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create DListView")
+      local pnElements = asmlib.MakeContainer("FREQ_VGUI")
+            pnElements:Insert(1,{"DButton"    ,"ExportDB"})
+            pnElements:Insert(2,{"DListView"  ,"ItemRoutine"})
+            pnElements:Insert(3,{"DModelPanel","ItemScreen"})
+            pnElements:Insert(4,{"DTextEntry" ,"ItemSearch"})
+            pnElements:Insert(5,{"DComboBox"  ,"StatSearch"})
+      ------------ Manage the invalid panels -------------------
+      local iNdex, sName, sType, pnPan, vItem = 1, "", ""
+      local iSize = pnElements:GetSize()
+      while(iNdex <= iSize) do
+        vItem = pnElements:Select(iNdex)
+        sType = vItem[1]
+        sName = vItem[2]
+        pnPan = vgui.Create(sType,pnFrame)
+        if(not IsValid(pnPan)) then
+          asmlib.LogInstance("OPEN_FRAME: Failed to create "..sName.." element "..sType.." ID #"..iNdex)
+          pnElements:Delete(iNdex) -- Not valid, so pnPan:Remove() is messy
+          iNdex = iNdex - 1
+          while(iNdex >= 1) do
+            pnElements:Select(iNdex):Remove()
+            pnElements:Delete(iNdex)
+          end
+          pnFrame:Remove()
+          return StatusLog(false,"OPEN_FRAME: Frame wiped")
+        end
+        pnPan:SetName(sName)
+        pnElements:Insert(iNdex,pnPan)
+        iNdex = iNdex + 1
       end
-      if(not IsValid(pnModelPanel)) then
-        pnFrame:Remove()
-        pnButton:Remove()
-        pnListView:Remove()
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create DModelPanel")
-      end
+      ------ Screen resolution and elements -------
       local scrW = surface.ScreenWidth()
       local scrH = surface.ScreenHeight()
+      local pnButton     = pnElements:Select(1)
+      local pnListView   = pnElements:Select(2)
+      local pnModelPanel = pnElements:Select(3)
+      local pnTextEntry  = pnElements:Select(4)
+      local pnComboBox   = pnElements:Select(5)
       ------------ Frame --------------
       pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
       pnFrame:SetVisible(false)
@@ -127,9 +147,13 @@ if(CLIENT) then
       pnFrame.OnClose = function()
         pnFrame:SetVisible(false)
         pnFrame:Remove()
-        pnButton:Remove()
-        pnListView:Remove()
-        pnModelPanel:Remove()
+        local iSize = pnElements:GetSize()
+        while(iSize > 0) do
+          pnElements:Select(iSize):Remove()
+          pnElements:Delete(iSize)
+          iSize = pnElements:GetSize()
+        end
+        pnElements = nil
         asmlib.LogInstance("OPEN_FRAME: Form removed")
       end
       ------------ ModelPanel --------------
@@ -188,7 +212,6 @@ if(CLIENT) then
       pnListView:SetVisible(true)
       pnListView:SetSortable(true)
       pnListView:SetMultiSelect(false)
-      pnListView:Clear()
       pnListView:SetPos(10,65)
       pnListView:SetSize(480,205)
       pnListView:AddColumn("Used"):SetFixedWidth(55)
@@ -230,17 +253,36 @@ if(CLIENT) then
         oPly:ConCommand(gsToolPrefL.."pointid 1\n")
         oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
       end
-      ------------ Organizing the LustView --------------
-      local iNdex, tValue, pnRec, pnLin = 1, nil, nil, nil
-      while(frUsed[iNdex]) do
-        tValue = frUsed[iNdex]
-        pnRec = pnListView:AddLine(asmlib.RoundValue(tValue.Value,0.001),
-          tValue.Table[1],tValue.Table[2],tValue.Table[3])
-          if(not asmlib.IsExistent(pnRec)) then
-            return StatusLog(false,"OPEN_FRAME: Failed to create a ListView line for <"..tValue.Table[3].."> #"..iNdex)
-          end
+      ------------ Fill the LustView --------------
+      pnListView:Clear()
+      local iNdex, tValue, pnRec = 1, nil, nil
+      local nLife, nAct  , sType, sModel
+      asmlib.PopulateListView(pnListView,frUsed)
+      ------------- ComboBox ---------------
+      pnComboBox:SetParent(pnFrame)
+      pnComboBox:SetPos(75,30)
+      pnComboBox:SetSize(55,30)
+      pnComboBox:SetVisible(true)
+      pnComboBox:SetValue("<Search BY>")
+      pnComboBox:AddChoice(defPieces[1][1])
+      pnComboBox:AddChoice(defPieces[2][1])
+      pnComboBox:AddChoice(defPieces[3][1])
+      pnComboBox.OnSelect = function(pnSelf, nInd, sVal)
+        asmlib.LogInstance("OPEN_FRAME: ID #"..nInd.." >> "..sVal)
+        pnSelf:SetValue(sVal)
       end
-      pnListView:SelectItem(pnLin)
+      ------------ TextEntry --------------
+      pnTextEntry:SetParent(pnFrame)
+      pnTextEntry:SetPos(135,30)
+      pnTextEntry:SetSize(340,30)
+      pnTextEntry:SetVisible(true)
+      pnTextEntry.OnEnter = function(pnSelf)
+        local sField = pnComboBox:GetValue()
+        local sSearh = pnSelf:GetValue()
+        pnListView:Clear()
+        local bStatus = asmlib.PopulateListView(pnListView,frUsed,sField,sSearh)
+        asmlib.LogInstance("OPEN_FRAME: ["..bStatus.."] Field, Searh = "..sField..", "..sSearh)
+      end
       ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)
       pnFrame:Center()

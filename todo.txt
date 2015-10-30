@@ -1,1 +1,2 @@
 Test is layout entity will display correctly when points count = 1 or above 1!
+Test if the frequent pieces panel ListView can search by Model/Type/Name and populate the data!
