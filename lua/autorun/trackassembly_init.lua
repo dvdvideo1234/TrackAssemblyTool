@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.77")
+asmlib.SetOpVar("TOOL_VERSION","4.78")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -106,6 +106,7 @@ if(CLIENT) then
             pnElements:Insert(3,{"DModelPanel","ItemScreen"})
             pnElements:Insert(4,{"DTextEntry" ,"ItemSearch"})
             pnElements:Insert(5,{"DComboBox"  ,"StatSearch"})
+            pnElements:Insert(6,{"DProgress"  ,"ProgressBar"})
       ------------ Manage the invalid panels -------------------
       local iNdex, sName, sType, pnPan, vItem = 1, "", ""
       local iSize = pnElements:GetSize()
@@ -137,6 +138,7 @@ if(CLIENT) then
       local pnModelPanel = pnElements:Select(3)
       local pnTextEntry  = pnElements:Select(4)
       local pnComboBox   = pnElements:Select(5)
+      local pnProgress   = pnElements:Select(5)
       ------------ Frame --------------
       pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
       pnFrame:SetVisible(false)
@@ -156,6 +158,11 @@ if(CLIENT) then
         pnElements = nil
         asmlib.LogInstance("OPEN_FRAME: Form removed")
       end
+      ------------ Progress --------------
+      pnProgress:SetParent(pnFrame)
+      pnProgress:SetPos(15,85)
+      pnProgress:SetSize(480,35)
+      pnProgress:SetVisible(false)
       ------------ ModelPanel --------------
       pnModelPanel:SetParent(pnFrame)
       pnModelPanel:SetPos(500,25)
