@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.76")
+asmlib.SetOpVar("TOOL_VERSION","4.77")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -93,8 +93,8 @@ if(CLIENT) then
       if(not asmlib.IsExistent(frUsed)) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
       end
-      local defPieces = asmlib.GetOpVar("DEFTABLE_PIECES")
-      if(not defPieces) then return StatusLog(false,"Missing definition for table PIECES") end
+      local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
+      if(not defTable) then return StatusLog(false,"Missing definition for table PIECES") end
       local pnFrame = vgui.Create("DFrame")
       if(not IsValid(pnFrame)) then
         pnFrame:Remove()
@@ -264,9 +264,9 @@ if(CLIENT) then
       pnComboBox:SetSize(55,30)
       pnComboBox:SetVisible(true)
       pnComboBox:SetValue("<Search BY>")
-      pnComboBox:AddChoice(defPieces[1][1])
-      pnComboBox:AddChoice(defPieces[2][1])
-      pnComboBox:AddChoice(defPieces[3][1])
+      pnComboBox:AddChoice(defTable[1][1])
+      pnComboBox:AddChoice(defTable[2][1])
+      pnComboBox:AddChoice(defTable[3][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal)
         asmlib.LogInstance("OPEN_FRAME: ID #"..nInd.." >> "..sVal)
         pnSelf:SetValue(sVal)
