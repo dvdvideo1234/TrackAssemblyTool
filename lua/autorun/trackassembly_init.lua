@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.75")
+asmlib.SetOpVar("TOOL_VERSION","4.76")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -253,11 +253,11 @@ if(CLIENT) then
         oPly:ConCommand(gsToolPrefL.."pointid 1\n")
         oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
       end
-      ------------ Fill the LustView --------------
       pnListView:Clear()
-      local iNdex, tValue, pnRec = 1, nil, nil
-      local nLife, nAct  , sType, sModel
-      asmlib.PopulateListView(pnListView,frUsed)
+      local bStatus = asmlib.PopulateListView(pnListView,frUsed)
+      if(asmlib.IsBool(bStatus) and bStatus == false) then
+        asmlib.StatusLog(false,"OPEN_FRAME: ["..bStatus.."] Populate the list view failed")
+      end
       ------------- ComboBox ---------------
       pnComboBox:SetParent(pnFrame)
       pnComboBox:SetPos(75,30)

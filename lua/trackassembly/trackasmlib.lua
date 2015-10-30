@@ -801,7 +801,7 @@ local function LineAddListView(pnListView,frUsed,iNdex)
   if(not asmlib.IsExistent(pnRec)) then
     return StatusLog(false,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..iNdex)
   end
-  return pnRec
+  return pnRec, tValue
 end
 
 --[[
@@ -2450,8 +2450,9 @@ end
 --------------------------- AssemblyLib PIECE QUERY -----------------------------
 
 local function NavigateTable(oLocation,tKeys)
-  if(not (oLocation and tKeys)) then return nil, nil end
-  if(not tKeys[1]) then return nil, nil end
+  if(not IsExistent(oLocation)) then return StatusLog(nil,"NavigateTable: Location missing") end
+  if(not IsExistent(tKeys)) then return StatusLog(nil,"NavigateTable: Key table missing") end
+  if(not tKeys[1]) then then return StatusLog(nil,"NavigateTable: First key missing") end
   local Cnt = 1
   local Place, Key
   while(tKeys[Cnt]) do
@@ -2459,11 +2460,11 @@ local function NavigateTable(oLocation,tKeys)
     if(Place) then
       if(tKeys[Cnt+1]) then
         Place = Place[Key]
-        if(not IsExistent(Place)) then return nil, nil end
+        if(not IsExistent(Place)) then return StatusLog(nil,"NavigateTable: Key #"..tostring(Key).." irrelevant to location") end
       end
     else
       Place = oLocation[Key]
-      if(not IsExistent(Place)) then return nil, nil end
+      if(not IsExistent(Place)) then return StatusLog(nil,"NavigateTable: First key irrelevant to location") end
     end
     Cnt = Cnt + 1
   end
