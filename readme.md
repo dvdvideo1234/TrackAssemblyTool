@@ -65,6 +65,7 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    16) gm_sunsetgulch map props ( Ignore, it's not designed to be a prop )
    17) StevenTechno's Buildings pack
    18) Mr. Train's M-Gauge rails
+   19) Bobsters's two gauge rails ( In dev 0% )
 
 Q: Are there going to be more of those?
 A: Yes, I developed my dynamic database, so I can insert any model I want.
@@ -140,8 +141,8 @@ A: Naa, just use the Garry's right-click context menu to select body-groups/skin
    If you are happy with the selection, click in the text-box and then hit the TAB button.
    The selection code will be auto-generated in there, press ENTER and it's done :).
 
-Q: Dude, I want to snap the track piece direcly to the trace serface, how shold I do that ?
-A: Emm Check the "Snap to trace surface" option.
+Q: Dude, I want to snap the track piece directly to the trace surface, how should I do that ?
+A: Emm, Check the "Snap to trace surface" option.
 
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?
@@ -234,19 +235,22 @@ A: Well, when a server owners set the "trackasmlib_maxfruse" to a higher value, 
    If the client has used many pieces during his/her routine, he/she cannot possibly locate the ones
    he/she needs, especially, when they are at the bottom of the list as "not frequently used" pieces.
    That's why it was needed some kind of a filter. With the drop-down menu you can chose whatever
-   field to filter the data on (<Search BY> either "Model", "Type", "Name"). Do not bother that the
-   name is not displayed in the pieces list. That's normal ( Cave Johnson xD ). For 95% of the models
-   it is dynamically generated using the *.mdl file, that's why. In the text-box, you are entering
-   the pattern than you want to preform the filtering with. The result will populate the list view,
-   only with those pieces, whatever desired field value is matched by the pattern given.
+   field to filter the data on (<Search BY> either "Model", "Type", "Name", "Act"). Do not bother that
+   the name is not displayed in the pieces list. That's normal ( Cave Johnson xD ). For 95% of the
+   models it is dynamically generated using the *.mdl file, so there is really no point in viewing
+   that parameter on the pieces panel. In the text-box, to search you have to enter a pattern than
+   you want to preform the filtering with. The result will populate the list view, only with these
+   pieces, whatever desired field value is matched by the pattern given. The pattern is a standard
+   Lua one, which is supported by the string.* library an you can also google it ;)
+   http://lmgtfy.com/?q=lua+string+library+pattern+matching
 
 Q: Hay, how should I proceed when I am experiencing errors ?
 A: First of all if the the error origin is not the TA, 
     I can't pretty much help you with it, but I will do my best
     If the error is related to the TA then:
-    1) While ingame ( or the TA's link ) unsubscribe to TA
+    1) While in-game ( or the TA's link ) unsubscribe to TA
     2) Delete the TA's *.gma file
-    3) Enter Gmod to see that you've unsubscribed TA
+    3) Enter Gmod to see that you've unsubscribed to TA
     4) Delete the cache "..\GarrysMod\garrysmod\cache"
     5) In the game library, right click on Gmod and select "Properties"
     6) Navigate to "Local Files" and click "Verify integrity of the game cache"
@@ -255,11 +259,11 @@ A: First of all if the the error origin is not the TA,
     9) If the error does not go away pls proceed to ( 10 - 16 )
    10) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
    11) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
-   12) Point to the world ingame hold "IN_SPEED" ( Running: Shift ) + Reload
-   13) Now the hardest part - While ingame do some stuff and make it crash 
+   12) Point to the world in-game hold "IN_SPEED" ( Running: Shift ) + Reload
+   13) Now the hardest part - While in-game do some stuff and make it crash 
    14) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
-   15) Report the log and the error to http://steamcommunity.com/workshop/filedetails/discussion/287012681/35220315967153021/
-   16) If you don't boter using the workshop, then please use the GitHub link instead
+   15) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
+   16) If you don't bother using the workshop, then please use the GitHub link instead
        GitHub: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master
        SVN     https://github.com/dvdvideo1234/TrackAssemblyTool/trunk
 
@@ -270,11 +274,11 @@ A: Yes, you can. For every active point, you have to add a line in the table PIE
     3) Server: Point the crosshair anywhere on the map, then hit IN_SPEED ( Def: Shift ) + IN_RELOAD ( Def: R )
     4) Client: Just bring up the Frequently used pieces screen, then click the "Export client's DB" button
     5) Use Excel or another table editing program to edit the files sv_*.txt and cl_*.txt
-    6) After you are done, proseed as below [Excel 2010] 
+    6) After you are done, proceed as below [Excel 2010] 
     6) [Excel 2010] File -> Save As -> Navigate to the DSV folder if you are not in there already
     7) [Excel 2010] File name: *TRACKASSEMBLY_PIECES.txt
     8) [Excel 2010] Save as type: "Text (Tab delimited)(*.txt)"
-    9) [Excel 2010] Replace it if you must (don't worry you can alway generate it again ( points 3) and 4) )
+    9) [Excel 2010] Replace it if you must (don't worry you can always generate it again ( points 3) and 4) )
    10) [Excel 2010] It will prompt you that the file you are saving does contain features not compatible with "TAB Delimited" format
    11) [Excel 2010] Just Click "Yes" and close Excel
    12) [Excel 2010] It will want to save it again, so you should click "Don't Save"

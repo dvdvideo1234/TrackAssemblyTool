@@ -845,7 +845,7 @@ function UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
     if(sPattern == "") then
       pnRec = AddLineListView(pnListView,frUsed,iNdex)
     else
-      sData = tostring(frUsed[iNdex].Table[sField] or "NULL")
+      sData = tostring(frUsed[iNdex].Table[sField] or "")
       if(string.find(sData,sPattern)) then
         pnRec = AddLineListView(pnListView,frUsed,iNdex)
       end
