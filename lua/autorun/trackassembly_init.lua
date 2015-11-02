@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.79")
+asmlib.SetOpVar("TOOL_VERSION","4.80")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -89,7 +89,7 @@ if(CLIENT) then
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs)
-      local frUsed = asmlib.GetFrequentModels(oArgs[1])
+      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1])
       if(not asmlib.IsExistent(frUsed)) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
       end
@@ -260,7 +260,7 @@ if(CLIENT) then
         oPly:ConCommand(gsToolPrefL.."pointid 1\n")
         oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
       end
-      if(not asmlib.UpdateListView(pnListView,pnProgress,frUsed)) then
+      if(not asmlib.UpdateListView(pnListView,pnProgress,frUsed,nCount)) then
         asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed")
       end
       ------------- ComboBox ---------------
@@ -269,10 +269,11 @@ if(CLIENT) then
       pnComboBox:SetSize(55,30)
       pnComboBox:SetVisible(true)
       pnComboBox:SetValue("<Search BY>")
-      pnComboBox:AddChoice(defTable[1][1])
-      pnComboBox:AddChoice(defTable[2][1])
-      pnComboBox:AddChoice(defTable[3][1])
-      pnComboBox.OnSelect = function(pnSelf, nInd, sVal)
+      pnComboBox:AddChoice("Model",defTable[1][1])
+      pnComboBox:AddChoice("Type" ,defTable[2][1])
+      pnComboBox:AddChoice("Name" ,defTable[3][1])
+      pnComboBox:AddChoice("Act"  ,defTable[4][1])
+      pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
         asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.." >> "..sVal)
         pnSelf:SetValue(sVal)
       end
@@ -282,10 +283,10 @@ if(CLIENT) then
       pnTextEntry:SetSize(340,30)
       pnTextEntry:SetVisible(true)
       pnTextEntry.OnEnter = function(pnSelf)
-        local sField = pnComboBox:GetValue()
-        local sSearh = pnSelf:GetValue()
-        local bStats = asmlib.UpdateListView(pnListView,pnProgress,frUsed,sField,sSearh)
-        asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..bStats.."] "..sField..", "..sSearh)
+        local sName, sField = pnComboBox:GetSelected()
+        local sPattern = pnSelf:GetValue()
+        local bStatus  = asmlib.UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
+        asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..bStatus.."] "..sField..", "..sPattern)
       end
       ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)

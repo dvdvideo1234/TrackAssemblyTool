@@ -821,48 +821,51 @@ end
  * On success populates "pnListView" with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
 ]]--
-function UpdateListView(pnListView,pnProgress,frUsed,sField,sPattern)
-  if(not IsExistent(frUsed)) then return StatusLog(false,"SearchListView: Missing data") end
+function UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
+  if(not (IsExistent(frUsed) and IsExistent(frUsed[1]))) then return StatusLog(false,"UpdateListView: Missing data") end
+  local nCount = tonumber(nCount) or 0
+  if(not IsExistent(nCount)) then return StatusLog(false,"UpdateListView: Number conversion failed "..tostring(nCount)) end
+  if(nCount <= 0) then return StatusLog(false,"UpdateListView: Count not applicable") end
   if(IsExistent(pnListView)) then
-    if(not IsValid(pnListView)) then return StatusLog(false,"SearchListView: Invalid ListView") end
+    if(not IsValid(pnListView)) then return StatusLog(false,"UpdateListView: Invalid ListView") end
     pnListView:SetVisible(false)
     pnListView:Clear()
   else
-    return StatusLog(false,"SearchListView: Missing ListView")
+    return StatusLog(false,"UpdateListView: Missing ListView")
   end
   if(IsExistent(pnProgress)) then
-    if(not IsValid(pnProgress)) then return StatusLog(false,"SearchListView: Invalid ProgressBar") end
+    if(not IsValid(pnProgress)) then return StatusLog(false,"UpdateListView: Invalid ProgressBar") end
     pnProgress:SetVisible(true)
     pnProgress:SetFraction(0)
   end
-  local sField = tostring(sField or "")
-  local sPattr = tostring(sPattr or "")
-  local iNdex, iAll, pnRec, sData = 1, ArrayCount(frUsed), nil, nil
+  local sField   = tostring(sField   or "")
+  local sPattern = tostring(sPattern or "")
+  local iNdex, pnRec, sData = 1, nil, nil
   while(frUsed[iNdex]) do
-    if(sPattr == "") then
+    if(sPattern == "") then
       pnRec = AddLineListView(pnListView,frUsed,iNdex)
     else
       sData = tostring(frUsed[iNdex].Table[sField] or "NULL")
-      if(string.find(sData,sPattr)) then
+      if(string.find(sData,sPattern)) then
         pnRec = AddLineListView(pnListView,frUsed,iNdex)
       end
     end
-    if(IsExistent(pnProgress)) then pnProgress:SetFraction(iAll/iNdex) end
-    if(not IsExistent(pnRec)) then return StatusLog(false,"SearchListView: Failed to add line on #"..tostring(iNdex)) end
+    if(IsExistent(pnProgress)) then pnProgress:SetFraction(nCount/iNdex) end
+    if(not IsExistent(pnRec)) then return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex)) end
     iNdex = iNdex + 1
   end
   if(IsExistent(pnProgress)) then pnProgress:SetVisible(false) end
   pnListView:SetVisible(true)
-  return StatusLog(true,"PopulateSearchListView: Crated #"..iNdex)
+  return StatusLog(true,"UpdateListView: Crated #"..tostring(iNdex-1))
 end
 
 function GetFrequentModels(snCount)
   local snCount = tonumber(snCount) or 0
-  if(snCount < 1) then return nil end
+  if(snCount < 1) then return StatusLog(nil,"GetFrequentModels: Count not applicable") end
   local defTable = GetOpVar("DEFTABLE_PIECES")
-  if(not defTable) then return StatusLog(nil,"GetFrequentModels: Missing: Table definition") end
+  if(not IsExistent(defTable)) then return StatusLog(nil,"GetFrequentModels: Missing: Table definition") end
   local Cache = LibCache[defTable.Name]
-  if(not Cache) then return StatusLog(nil,"GetFrequentModels: Missing: Table cache") end  
+  if(not IsExistent(Cache)) then return StatusLog(nil,"GetFrequentModels: Missing: Table cache") end
   local iInd, tmNow = 1, Time()
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
   table.Empty(frUsed)
@@ -874,16 +877,16 @@ function GetFrequentModels(snCount)
                [defTable[3][1]] = Record.Name,
                [defTable[4][1]] = Record.Kept
              })
-      if(iInd < 1) then return nil end
+      if(iInd < 1) then return StatusLog(nil,"GetFrequentModels: Array index out of border") end
     end
   end
-  if(frUsed and frUsed[1]) then return frUsed end
-  return nil
+  if(IsExistent(frUsed) and IsExistent(frUsed[1])) then return frUsed, snCount end
+  return StatusLog(nil,"GetFrequentModels: Array is empty or not available")
 end
 
 function RoundValue(nExact, nFrac)
   local nExact = tonumber(nExact)
-  if(not nExact) then return StatusLog(nil,"RoundValue: Only numbers can be rounded") end
+  if(not IsExistent(nExact)) then return StatusLog(nil,"RoundValue: Only numbers can be rounded") end
   local nFrac  = tonumber(nFrac) or 0
   if(nFrac == 0) then return StatusLog(nil,"RoundValue: Fraction must be <> 0") end
   local q,f = math.modf(nExact/nFrac)
@@ -893,10 +896,10 @@ end
 function SnapValue(nVal, nSnap)
   if(not nVal) then return 0 end
   local nVal = tonumber(nVal)
-  if(not nVal) then return StatusLog(0,"SnapValue: Cannot convert value to a number") end 
-  if(not nSnap) then return nVal end
+  if(not IsExistent(nVal)) then return StatusLog(0,"SnapValue: Cannot convert value to a number") end 
+  if(not IsExistent(nSnap)) then return nVal end
   local nSnap = tonumber(nSnap)
-  if(not nSnap) then return StatusLog(0,"SnapValue: Cannot convert snap to a number") end
+  if(not IsExistent(nSnap)) then return StatusLog(0,"SnapValue: Cannot convert snap to a number") end
   if(nSnap == 0) then return nVal end
   local Rez
   local Snp = math.abs(nSnap)

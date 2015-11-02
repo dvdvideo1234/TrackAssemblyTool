@@ -940,11 +940,11 @@ function TOOL.BuildCPanel(CPanel)
   end
   asmlib.Print(Property,"Property")
   local CntTyp = 1
-  local qNames, Typ
+  local qNames, Type
   while(Property[CntTyp]) do
-    Typ = Property[CntTyp]
-    pComboPhysType:AddChoice(Typ)
-    pComboPhysType.OnSelect = function(pnSelf, nInd, sVal)
+    Type = Property[CntTyp]
+    pComboPhysType:AddChoice(Type)
+    pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
       qNames = asmlib.CacheQueryProperty(sVal)
       if(qNames) then
         pComboPhysName:Clear()
@@ -953,7 +953,7 @@ function TOOL.BuildCPanel(CPanel)
         while(qNames[CntNam]) do
           local Nam = qNames[CntNam]
           pComboPhysName:AddChoice(Nam)
-          pComboPhysName.OnSelect = function(pnSelf, nInd, sVal)
+          pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
             RunConsoleCommand(gsToolPrefL.."physmater", sVal)
           end
           CntNam = CntNam + 1
