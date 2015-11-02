@@ -472,6 +472,16 @@ function MakeContainer(sInfo,sDefKey)
       collectgarbage()
     end
   end
+  function self:Empty(fnDel)
+    Curs = 0
+    for k,v in pairs(Data) do
+      if(IsExistent(fnDel)) then
+        fnDel(v)
+      end
+      Data[k] = nil
+    end
+    collectgarbage()
+  end
   function self:GetHistory()
     return tostring(Met)..GetOpVar("OPSYM_REVSIGN")..
            tostring(Sel)..GetOpVar("OPSYM_DIRECTORY")..
@@ -783,7 +793,7 @@ local function PushSortValues(tTable,snCnt,nsValue,tData)
   end
 end
 
-local function LineAddListView(pnListView,frUsed,iNdex)
+local function AddLineListView(pnListView,frUsed,iNdex)
   if(not IsExistent(pnListView)) then return StatusLog(nil,"LineAddListView: Missing panel") end
   if(not IsValid(pnListView)) then return StatusLog(nil,"LineAddListView: Invalid panel") end
   if(not IsExistent(frUsed)) then return StatusLog(nil,"LineAddListView: Missing data") end
@@ -796,42 +806,53 @@ local function LineAddListView(pnListView,frUsed,iNdex)
   local sModel = tValue.Table[defTable[1][1]]
   local sType  = tValue.Table[defTable[2][1]]
   local nAct   = tValue.Table[defTable[4][1]]
-  local nLife  = asmlib.RoundValue(tValue.Value,0.001)
+  local nLife  = RoundValue(tValue.Value,0.001)
   local pnRec  = pnListView:AddLine(nLife,nAct,sType,sModel)
-  if(not asmlib.IsExistent(pnRec)) then
+  if(not IsExistent(pnRec)) then
     return StatusLog(false,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..iNdex)
   end
   return pnRec, tValue
 end
 
 --[[
- * Searches in the already generated frequently used pieces "frUsed"
- * and searches for a string "sSrcVal" given by user and a filed selected "sSrcFld"
+ * Updates a VGUI pnListView with a search preformed in the already generated
+ * frequently used pieces "frUsed" for the pattern "sPattern" given by the user
+ * and a filed selected "sField". Draws the progress on the progress bar (if any).
+ * On success populates "pnListView" with the search preformed
+ * On fail a parameter is not valid or missing and returns non-success
 ]]--
-function PopulateListView(pnListView,frUsed,sSrcFld,sSrcVal)
-  if(not IsExistent(pnListView)) then return StatusLog(false,"SearchListView: Missing panel") end
+function UpdateListView(pnListView,pnProgress,frUsed,sField,sPattern)
   if(not IsExistent(frUsed)) then return StatusLog(false,"SearchListView: Missing data") end
-  local sSrcFld = tostring(sSrcFld or "")
-  local sSrcVal = tostring(sSrcVal or "")
-  local iNdex, pnRec = 1, nil
-  if(sSearch == "") then
-    while(frUsed[iNdex]) do
-      pnRec = LineAddListView(pnListView,frUsed,iNdex)
-      if(not IsExistent(pnRec)) then return StatusLog(false,"SearchListView: Failed to add line on #"..tostring(iNdex)) end
-      iNdex = iNdex + 1
-    end
+  if(IsExistent(pnListView)) then
+    if(not IsValid(pnListView)) then return StatusLog(false,"SearchListView: Invalid ListView") end
+    pnListView:SetVisible(false)
+    pnListView:Clear()
   else
-    local sData
-    while(frUsed[iNdex]) do
-      anyData = frUsed[iNdex].Table[sSrcFld]
-      if(not IsExistent(anyData)) then return StatusLog(false,"SearchListView: Failed to get data from "..sSrcFld) end
-      if(string.find(,sSrcVal)) then
-        pnRec = LineAddListView(pnListView,frUsed,iNdex)
-        if(not IsExistent(pnRec)) then return StatusLog(false,"SearchListView: Failed to add line on #"..tostring(iNdex)) end
-      end
-      iNdex = iNdex + 1
-    end
+    return StatusLog(false,"SearchListView: Missing ListView")
   end
+  if(IsExistent(pnProgress)) then
+    if(not IsValid(pnProgress)) then return StatusLog(false,"SearchListView: Invalid ProgressBar") end
+    pnProgress:SetVisible(true)
+    pnProgress:SetFraction(0)
+  end
+  local sField = tostring(sField or "")
+  local sPattr = tostring(sPattr or "")
+  local iNdex, iAll, pnRec, sData = 1, ArrayCount(frUsed), nil, nil
+  while(frUsed[iNdex]) do
+    if(sPattr == "") then
+      pnRec = AddLineListView(pnListView,frUsed,iNdex)
+    else
+      sData = tostring(frUsed[iNdex].Table[sField] or "NULL")
+      if(string.find(sData,sPattr)) then
+        pnRec = AddLineListView(pnListView,frUsed,iNdex)
+      end
+    end
+    if(IsExistent(pnProgress)) then pnProgress:SetFraction(iAll/iNdex) end
+    if(not IsExistent(pnRec)) then return StatusLog(false,"SearchListView: Failed to add line on #"..tostring(iNdex)) end
+    iNdex = iNdex + 1
+  end
+  if(IsExistent(pnProgress)) then pnProgress:SetVisible(false) end
+  pnListView:SetVisible(true)
   return StatusLog(true,"PopulateSearchListView: Crated #"..iNdex)
 end
 

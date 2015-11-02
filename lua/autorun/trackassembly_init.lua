@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.78")
+asmlib.SetOpVar("TOOL_VERSION","4.79")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -138,7 +138,7 @@ if(CLIENT) then
       local pnModelPanel = pnElements:Select(3)
       local pnTextEntry  = pnElements:Select(4)
       local pnComboBox   = pnElements:Select(5)
-      local pnProgress   = pnElements:Select(5)
+      local pnProgress   = pnElements:Select(6)
       ------------ Frame --------------
       pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
       pnFrame:SetVisible(false)
@@ -148,15 +148,15 @@ if(CLIENT) then
       pnFrame:SetSize(750, 280)
       pnFrame.OnClose = function()
         pnFrame:SetVisible(false)
-        pnFrame:Remove()
         local iSize = pnElements:GetSize()
         while(iSize > 0) do
           pnElements:Select(iSize):Remove()
           pnElements:Delete(iSize)
           iSize = pnElements:GetSize()
         end
+        pnFrame:Remove()
         pnElements = nil
-        asmlib.LogInstance("OPEN_FRAME: Form removed")
+        asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
       end
       ------------ Progress --------------
       pnProgress:SetParent(pnFrame)
@@ -177,14 +177,14 @@ if(CLIENT) then
         local uiPos = Vector()
         if(uiKept > 1) then
           local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
-          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel: Center point non-applicable") end
+          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Center point non-applicable") end
           asmlib.SetVector(uiPos,uiCalc)
         elseif(uiKept == 1) then
           local uiMin, uiMax = oEnt:GetRenderBounds()
           asmlib.SetVector(uiPos,uiMin)
           asmlib.SubVector(uiPos,uiMax)
           uiPos:Mul(0.5)
-        else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end      
+        else return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Record has no points") end      
         local uiRot = Vector()
               uiRot:Set(uiPos)
               uiRot:Rotate(uiAng)
@@ -200,7 +200,7 @@ if(CLIENT) then
       pnButton:SetSize(55,30)
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
-        asmlib.LogInstance("OPEN_FRAME: Button <"..pnButton:GetText().."> clicked")
+        asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
         asmlib.SetLogControl(asmlib.GetCvar("logsmax", "INT"),
                              asmlib.GetCvar("logfile", "STR"))
         local ExportDB     = asmlib.GetCvar("exportdb","INT")
@@ -216,7 +216,7 @@ if(CLIENT) then
       end
       ------------ ListView --------------
       pnListView:SetParent(pnFrame)
-      pnListView:SetVisible(true)
+      pnListView:SetVisible(false)
       pnListView:SetSortable(true)
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(10,65)
@@ -226,30 +226,30 @@ if(CLIENT) then
       pnListView:AddColumn("Type"):SetFixedWidth(100)
       pnListView:AddColumn("Model"):SetFixedWidth(305)
       pnListView.OnRowSelected = function(pnSelf, nRow, pnVal)
-        asmlib.LogInstance("ListView: Row selected ["..nRow.."]")
+        asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: ["..nRow.."]")
         local uiMod = frUsed[nRow].Table[3]
         pnModelPanel:SetModel(uiMod)
         local uiRec  = asmlib.CacheQueryPiece(uiMod)
         if(not uiRec) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve model "..uiMod)
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve model "..uiMod)
         end
         -- OBBCenter ModelPanel Configuration --
         local uiEnt = pnModelPanel:GetEntity()
         if(not (uiEnt and uiEnt:IsValid())) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve entity")
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve entity")
         end
         local uiKept = tonumber(uiRec.Kept) or 0
         local uiCen  = Vector()
         if(uiKept > 1) then
           local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
-          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ListView: Center point non-applicable") end
+          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Center point non-applicable") end
           asmlib.SetVector(uiCen,uiCalc)
         elseif(uiKept == 1) then
           local uiMin, uiMax = uiEnt:GetRenderBounds()
           asmlib.SetVector(uiCen,uiMin)
           asmlib.SubVector(uiCen,uiMax)
           uiCen:Mul(0.5)
-        else return asmlib.StatusLog(false,"OPEN_FRAME: Record has no points") end
+        else return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Record has no points") end
         local uiEye = uiEnt:LocalToWorld(uiCen)
         asmlib.SubVector(uiCen,uiRec.Offs[1].P)
         local uiLen = uiCen:Length()
@@ -260,10 +260,8 @@ if(CLIENT) then
         oPly:ConCommand(gsToolPrefL.."pointid 1\n")
         oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
       end
-      pnListView:Clear()
-      local bStatus = asmlib.PopulateListView(pnListView,frUsed)
-      if(asmlib.IsBool(bStatus) and bStatus == false) then
-        asmlib.StatusLog(false,"OPEN_FRAME: ["..bStatus.."] Populate the list view failed")
+      if(not asmlib.UpdateListView(pnListView,pnProgress,frUsed)) then
+        asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed")
       end
       ------------- ComboBox ---------------
       pnComboBox:SetParent(pnFrame)
@@ -275,7 +273,7 @@ if(CLIENT) then
       pnComboBox:AddChoice(defTable[2][1])
       pnComboBox:AddChoice(defTable[3][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal)
-        asmlib.LogInstance("OPEN_FRAME: ID #"..nInd.." >> "..sVal)
+        asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.." >> "..sVal)
         pnSelf:SetValue(sVal)
       end
       ------------ TextEntry --------------
@@ -286,9 +284,8 @@ if(CLIENT) then
       pnTextEntry.OnEnter = function(pnSelf)
         local sField = pnComboBox:GetValue()
         local sSearh = pnSelf:GetValue()
-        pnListView:Clear()
-        local bStatus = asmlib.PopulateListView(pnListView,frUsed,sField,sSearh)
-        asmlib.LogInstance("OPEN_FRAME: ["..bStatus.."] Field, Searh = "..sField..", "..sSearh)
+        local bStats = asmlib.UpdateListView(pnListView,pnProgress,frUsed,sField,sSearh)
+        asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..bStats.."] "..sField..", "..sSearh)
       end
       ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)

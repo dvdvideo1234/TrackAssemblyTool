@@ -229,6 +229,17 @@ A: You can chose a memory management algorithm by setting trackassembly_timermod
 Q: Does this script stores the created queries for later use. Can I disable/enable this option ?
 A: Yes you can. Just set the trackassembly_enqstore to 0/<>0 respectively.
 
+Q: Hay, there is a text-box and a drop down menu next to the "ExportDB" button. What are these for ?
+A: Well, when a server owners set the "trackasmlib_maxfruse" to a higher value, a slider appears.
+   If the client has used many pieces during his/her routine, he/she cannot possibly locate the ones
+   he/she needs, especially, when they are at the bottom of the list as "not frequently used" pieces.
+   That's why it was needed some kind of a filter. With the drop-down menu you can chose whatever
+   field to filter the data on (<Search BY> either "Model", "Type", "Name"). Do not bother that the
+   name is not displayed in the pieces list. That's normal ( Cave Johnson xD ). For 95% of the models
+   it is dynamically generated using the *.mdl file, that's why. In the text-box, you are entering
+   the pattern than you want to preform the filtering with. The result will populate the list view,
+   only with those pieces, whatever desired field value is matched by the pattern given.
+
 Q: Hay, how should I proceed when I am experiencing errors ?
 A: First of all if the the error origin is not the TA, 
     I can't pretty much help you with it, but I will do my best
