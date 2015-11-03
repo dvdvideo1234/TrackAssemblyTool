@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.81")
+asmlib.SetOpVar("TOOL_VERSION","4.82")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -101,33 +101,31 @@ if(CLIENT) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create elements frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{"DButton"    ,"ExportDB"})
-            pnElements:Insert(2,{"DListView"  ,"ItemRoutine"})
-            pnElements:Insert(3,{"DModelPanel","ItemScreen"})
-            pnElements:Insert(4,{"DTextEntry" ,"ItemSearch"})
-            pnElements:Insert(5,{"DComboBox"  ,"StatSearch"})
-            pnElements:Insert(6,{"DProgress"  ,"ProgressBar"})
+            pnElements:Insert(1,{Data = { "DButton"    ,"ExportDB"   }})
+            pnElements:Insert(2,{Data = { "DListView"  ,"ItemRoutine"}})
+            pnElements:Insert(3,{Data = { "DModelPanel","ItemScreen" }})
+            pnElements:Insert(4,{Data = { "DTextEntry" ,"ItemSearch" }})
+            pnElements:Insert(5,{Data = { "DComboBox"  ,"StatSearch" }})
+            pnElements:Insert(6,{Data = { "DProgress"  ,"ProgressBar"}})
       ------------ Manage the invalid panels -------------------
       local iNdex, sName, sType, pnPan, vItem = 1, "", ""
       local iSize = pnElements:GetSize()
       while(iNdex <= iSize) do
         vItem = pnElements:Select(iNdex)
-        sType = vItem[1]
-        sName = vItem[2]
-        pnPan = vgui.Create(sType,pnFrame)
-        if(not IsValid(pnPan)) then
-          asmlib.LogInstance("OPEN_FRAME: Failed to create "..sName.." element "..sType.." ID #"..iNdex)
-          pnElements:Delete(iNdex) -- Not valid, so pnPan:Remove() is messy
+        asmlib.LogInstance("OPEN_FRAME: Create "..vItem.Data[1].." name "..vItem.Data[2]..." ID #"..iNdex)
+        vItem.Panel = vgui.Create(vItem.Data[1],pnFrame)
+        if(not IsValid(vItem.Panel)) then
+          asmlib.LogInstance("OPEN_FRAME: Failed to create "..vItem.Data[1].." name "..vItem.Data[2].." ID #"..iNdex)
           iNdex = iNdex - 1
           while(iNdex >= 1) do
+            asmlib.LogInstance("OPEN_FRAME: Delete invalid #"..iNdex)
             pnElements:Select(iNdex):Remove()
-            pnElements:Delete(iNdex)
           end
           pnFrame:Remove()
-          return StatusLog(false,"OPEN_FRAME: Frame wiped")
+          pnElements:Empty() -- Be sure to wipe everything, with pairs
+          return StatusLog(false,"OPEN_FRAME: Invalid panel found. Frame removed")
         end
-        pnPan:SetName(sName)
-        pnElements:Insert(iNdex,pnPan)
+        vItem.Panel:SetName(vItem.Data[2])
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
@@ -148,14 +146,15 @@ if(CLIENT) then
       pnFrame:SetSize(750, 280)
       pnFrame.OnClose = function()
         pnFrame:SetVisible(false)
-        local iSize = pnElements:GetSize()
+        local iSize, vItem = pnElements:GetSize(), nil
         while(iSize > 0) do
-          pnElements:Select(iSize):Remove()
-          pnElements:Delete(iSize)
-          iSize = pnElements:GetSize()
+          asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iSize)
+          vItem = pnElements:Select(iSize)
+          vItem.Panel:Remove()
+          iSize = iSize - 1
         end
         pnFrame:Remove()
-        pnElements = nil
+        pnElements:Empty() -- Be sure to wipe everything, with pairs
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
       end
       ------------ Progress --------------
@@ -274,7 +273,7 @@ if(CLIENT) then
       pnComboBox:AddChoice("Name" ,defTable[3][1])
       pnComboBox:AddChoice("Act"  ,defTable[4][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
-        asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.." >> "..sVal)
+        asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.." >> "..sVal.." >> "..tostring(anyData))
         pnSelf:SetValue(sVal)
       end
       ------------ TextEntry --------------
@@ -284,7 +283,9 @@ if(CLIENT) then
       pnTextEntry:SetVisible(true)
       pnTextEntry.OnEnter = function(pnSelf)
         local sName, sField = pnComboBox:GetSelected()
-        local sPattern = pnSelf:GetValue()
+              sName    = tostring(sName  or "")
+              sField   = tostring(sField or "")
+        local sPattern = tostring(pnSelf:GetValue() or "")
         asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: "..sName.." >> "..sField.." >> "..sPattern)
         local bStatus  = asmlib.UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
         asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..bStatus.."]")
