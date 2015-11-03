@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.82")
+asmlib.SetOpVar("TOOL_VERSION","4.83")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -108,8 +108,7 @@ if(CLIENT) then
             pnElements:Insert(5,{Data = { "DComboBox"  ,"StatSearch" }})
             pnElements:Insert(6,{Data = { "DProgress"  ,"ProgressBar"}})
       ------------ Manage the invalid panels -------------------
-      local iNdex, sName, sType, pnPan, vItem = 1, "", ""
-      local iSize = pnElements:GetSize()
+      local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
       while(iNdex <= iSize) do
         vItem = pnElements:Select(iNdex)
         asmlib.LogInstance("OPEN_FRAME: Create "..vItem.Data[1].." name "..vItem.Data[2]..." ID #"..iNdex)
@@ -146,12 +145,12 @@ if(CLIENT) then
       pnFrame:SetSize(750, 280)
       pnFrame.OnClose = function()
         pnFrame:SetVisible(false)
-        local iSize, vItem = pnElements:GetSize(), nil
-        while(iSize > 0) do
-          asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iSize)
-          vItem = pnElements:Select(iSize)
+        local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
+        while(iNdex <= iSize) do
+          asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iNdex)
+          vItem = pnElements:Select(iNdex)
           vItem.Panel:Remove()
-          iSize = iSize - 1
+          iNdex = iNdex + 1
         end
         pnFrame:Remove()
         pnElements:Empty() -- Be sure to wipe everything, with pairs
