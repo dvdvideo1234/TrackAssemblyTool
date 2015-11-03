@@ -263,7 +263,8 @@ A: First of all if the the error origin is not the TA,
    13) Now the hardest part - While in-game do some stuff and make it crash 
    14) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
    15) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
-   16) If you don't bother using the workshop, then please use the GitHub link instead
+   16) If you don't bother using the workshop, then please use the GitHub link instead.
+       Be sure to dowload only a stable release version: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
        GitHub: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master
        SVN     https://github.com/dvdvideo1234/TrackAssemblyTool/trunk
 

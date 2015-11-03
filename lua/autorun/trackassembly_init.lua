@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.83")
+asmlib.SetOpVar("TOOL_VERSION","4.84")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -21,7 +21,7 @@ asmlib.SetOpVar("MAX_MASS",50000)
 asmlib.SetOpVar("MAX_LINEAR",10000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetOpVar("LOG_LOGONLY",nil)
-asmlib.SetLogControl(10000,"trackasmlib_log")
+asmlib.SetLogControl(10000,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeCvar("maxactrad", "150", {1,500} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
@@ -101,20 +101,20 @@ if(CLIENT) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create elements frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{Data = { "DButton"    ,"ExportDB"   }})
-            pnElements:Insert(2,{Data = { "DListView"  ,"ItemRoutine"}})
-            pnElements:Insert(3,{Data = { "DModelPanel","ItemScreen" }})
-            pnElements:Insert(4,{Data = { "DTextEntry" ,"ItemSearch" }})
-            pnElements:Insert(5,{Data = { "DComboBox"  ,"StatSearch" }})
-            pnElements:Insert(6,{Data = { "DProgress"  ,"ProgressBar"}})
+            pnElements:Insert(1,{Label = { "DButton"    ,"ExportDB"   }})
+            pnElements:Insert(2,{Label = { "DListView"  ,"ItemRoutine"}})
+            pnElements:Insert(3,{Label = { "DModelPanel","ItemScreen" }})
+            pnElements:Insert(4,{Label = { "DTextEntry" ,"ItemSearch" }})
+            pnElements:Insert(5,{Label = { "DComboBox"  ,"StatSearch" }})
+            pnElements:Insert(6,{Label = { "DProgress"  ,"ProgressBar"}})
       ------------ Manage the invalid panels -------------------
       local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
       while(iNdex <= iSize) do
         vItem = pnElements:Select(iNdex)
-        asmlib.LogInstance("OPEN_FRAME: Create "..vItem.Data[1].." name "..vItem.Data[2]..." ID #"..iNdex)
-        vItem.Panel = vgui.Create(vItem.Data[1],pnFrame)
+        asmlib.LogInstance("OPEN_FRAME: Create "..vItem.Label[1].." name "..vItem.Label[2].." ID #"..iNdex)
+        vItem.Panel = vgui.Create(vItem.Label[1],pnFrame)
         if(not IsValid(vItem.Panel)) then
-          asmlib.LogInstance("OPEN_FRAME: Failed to create "..vItem.Data[1].." name "..vItem.Data[2].." ID #"..iNdex)
+          asmlib.LogInstance("OPEN_FRAME: Failed to create "..vItem.Label[1].." name "..vItem.Label[2].." ID #"..iNdex)
           iNdex = iNdex - 1
           while(iNdex >= 1) do
             asmlib.LogInstance("OPEN_FRAME: Delete invalid #"..iNdex)
@@ -124,18 +124,18 @@ if(CLIENT) then
           pnElements:Empty() -- Be sure to wipe everything, with pairs
           return StatusLog(false,"OPEN_FRAME: Invalid panel found. Frame removed")
         end
-        vItem.Panel:SetName(vItem.Data[2])
+        vItem.Panel:SetName(vItem.Label[2])
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
       local scrW = surface.ScreenWidth()
       local scrH = surface.ScreenHeight()
-      local pnButton     = pnElements:Select(1)
-      local pnListView   = pnElements:Select(2)
-      local pnModelPanel = pnElements:Select(3)
-      local pnTextEntry  = pnElements:Select(4)
-      local pnComboBox   = pnElements:Select(5)
-      local pnProgress   = pnElements:Select(6)
+      local pnButton     = pnElements:Select(1).Panel
+      local pnListView   = pnElements:Select(2).Panel
+      local pnModelPanel = pnElements:Select(3).Panel
+      local pnTextEntry  = pnElements:Select(4).Panel
+      local pnComboBox   = pnElements:Select(5).Panel
+      local pnProgress   = pnElements:Select(6).Panel
       ------------ Frame --------------
       pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
       pnFrame:SetVisible(false)
@@ -175,13 +175,13 @@ if(CLIENT) then
         local uiPos = Vector()
         if(uiKept > 1) then
           local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
-          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Center point non-applicable") end
+          if(not asmlib.IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Center point non-applicable") end
           asmlib.SetVector(uiPos,uiCalc)
         elseif(uiKept == 1) then
           local uiMin, uiMax = oEnt:GetRenderBounds()
-          asmlib.SetVector(uiPos,uiMin)
-          asmlib.SubVector(uiPos,uiMax)
-          uiPos:Mul(0.5)
+          asmlib.SetVector(uiPos,uiMax)
+          asmlib.SubVector(uiPos,uiMin)
+          uiPos:Mul(-0.5)
         else return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Record has no points") end      
         local uiRot = Vector()
               uiRot:Set(uiPos)
@@ -225,7 +225,7 @@ if(CLIENT) then
       pnListView:AddColumn("Model"):SetFixedWidth(305)
       pnListView.OnRowSelected = function(pnSelf, nRow, pnVal)
         asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: ["..nRow.."]")
-        local uiMod = frUsed[nRow].Table[3]
+        local uiMod = frUsed[nRow].Table[defTable[1][1]]
         pnModelPanel:SetModel(uiMod)
         local uiRec  = asmlib.CacheQueryPiece(uiMod)
         if(not uiRec) then
@@ -240,13 +240,13 @@ if(CLIENT) then
         local uiCen  = Vector()
         if(uiKept > 1) then
           local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
-          if(not IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Center point non-applicable") end
+          if(not asmlib.IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Center point non-applicable") end
           asmlib.SetVector(uiCen,uiCalc)
         elseif(uiKept == 1) then
           local uiMin, uiMax = uiEnt:GetRenderBounds()
-          asmlib.SetVector(uiCen,uiMin)
-          asmlib.SubVector(uiCen,uiMax)
-          uiCen:Mul(0.5)
+          asmlib.SetVector(uiCen,uiMax)
+          asmlib.SubVector(uiCen,uiMin)
+          uiCen:Mul(-0.5)
         else return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Record has no points") end
         local uiEye = uiEnt:LocalToWorld(uiCen)
         asmlib.SubVector(uiCen,uiRec.Offs[1].P)
@@ -264,7 +264,7 @@ if(CLIENT) then
       ------------- ComboBox ---------------
       pnComboBox:SetParent(pnFrame)
       pnComboBox:SetPos(75,30)
-      pnComboBox:SetSize(55,30)
+      pnComboBox:SetSize(95,30)
       pnComboBox:SetVisible(true)
       pnComboBox:SetValue("<Search BY>")
       pnComboBox:AddChoice("Model",defTable[1][1])
@@ -277,8 +277,8 @@ if(CLIENT) then
       end
       ------------ TextEntry --------------
       pnTextEntry:SetParent(pnFrame)
-      pnTextEntry:SetPos(135,30)
-      pnTextEntry:SetSize(340,30)
+      pnTextEntry:SetPos(175,30)
+      pnTextEntry:SetSize(300,30)
       pnTextEntry:SetVisible(true)
       pnTextEntry.OnEnter = function(pnSelf)
         local sName, sField = pnComboBox:GetSelected()
@@ -287,7 +287,7 @@ if(CLIENT) then
         local sPattern = tostring(pnSelf:GetValue() or "")
         asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: "..sName.." >> "..sField.." >> "..sPattern)
         local bStatus  = asmlib.UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
-        asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..bStatus.."]")
+        asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..tostring(bStatus).."]")
       end
       ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)

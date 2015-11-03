@@ -844,14 +844,19 @@ function UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
   while(frUsed[iNdex]) do
     if(sPattern == "") then
       pnRec = AddLineListView(pnListView,frUsed,iNdex)
+      if(not IsExistent(pnRec)) then
+        return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex))
+      end
     else
       sData = tostring(frUsed[iNdex].Table[sField] or "")
       if(string.find(sData,sPattern)) then
         pnRec = AddLineListView(pnListView,frUsed,iNdex)
+        if(not IsExistent(pnRec)) then
+          return StatusLog(false,"UpdateListView: Failed to add pattern <"..sPattern.."> on #"..tostring(iNdex))
+        end
       end
     end
     if(IsExistent(pnProgress)) then pnProgress:SetFraction(nCount/iNdex) end
-    if(not IsExistent(pnRec)) then return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex)) end
     iNdex = iNdex + 1
   end
   if(IsExistent(pnProgress)) then pnProgress:SetVisible(false) end
@@ -870,7 +875,7 @@ function GetFrequentModels(snCount)
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
   table.Empty(frUsed)
   for Model, Record in pairs(Cache) do
-    if(IsExistent(Record.Used) and IsExistent(stPiece.Kept) and stPiece.Kept > 0) then
+    if(IsExistent(Record.Used) and IsExistent(Record.Kept) and Record.Kept > 0) then
       iInd = PushSortValues(frUsed,snCount,tmNow-Record.Used,{
                [defTable[1][1]] = Model,
                [defTable[2][1]] = Record.Type,
@@ -2476,7 +2481,7 @@ end
 local function NavigateTable(oLocation,tKeys)
   if(not IsExistent(oLocation)) then return StatusLog(nil,"NavigateTable: Location missing") end
   if(not IsExistent(tKeys)) then return StatusLog(nil,"NavigateTable: Key table missing") end
-  if(not tKeys[1]) then then return StatusLog(nil,"NavigateTable: First key missing") end
+  if(not IsExistent(tKeys[1])) then return StatusLog(nil,"NavigateTable: First key missing") end
   local Cnt = 1
   local Place, Key
   while(tKeys[Cnt]) do
