@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.90")
+asmlib.SetOpVar("TOOL_VERSION","4.91")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -106,7 +106,6 @@ if(CLIENT) then
             pnElements:Insert(3,{Label = { "DModelPanel","ItemScreen" }})
             pnElements:Insert(4,{Label = { "DTextEntry" ,"ItemSearch" }})
             pnElements:Insert(5,{Label = { "DComboBox"  ,"StatSearch" }})
-            pnElements:Insert(6,{Label = { "DProgress"  ,"ProgressBar"}})
       ------------ Manage the invalid panels -------------------
       local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
       while(iNdex <= iSize) do
@@ -135,10 +134,9 @@ if(CLIENT) then
       local pnModelPanel = pnElements:Select(3).Panel
       local pnTextEntry  = pnElements:Select(4).Panel
       local pnComboBox   = pnElements:Select(5).Panel
-      local pnProgress   = pnElements:Select(6).Panel
       ------------ Frame --------------
       pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." (Ver."..asmlib.GetOpVar("TOOL_VERSION")..")")
-      pnFrame:SetVisible(false)
+      pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
       pnFrame:SetPos(scrW/4, scrH/4)
@@ -156,11 +154,6 @@ if(CLIENT) then
         pnElements:Empty() -- Be sure to wipe everything, with pairs
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
       end
-      ------------ Progress --------------
-      pnProgress:SetParent(pnFrame)
-      pnProgress:SetPos(15,85)
-      pnProgress:SetSize(480,35)
-      pnProgress:SetVisible(false)
       ------------ ModelPanel --------------
       pnModelPanel:SetParent(pnFrame)
       pnModelPanel:SetPos(500,25)
@@ -223,18 +216,18 @@ if(CLIENT) then
       pnListView:AddColumn("Act"):SetFixedWidth(20)
       pnListView:AddColumn("Type"):SetFixedWidth(100)
       pnListView:AddColumn("Model"):SetFixedWidth(305)
-      pnListView.OnRowSelected = function(pnSelf, nRow, pnVal)
-        asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: ["..nRow.."]")
-        local uiMod = frUsed[nRow].Table[defTable[1][1]]
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+        local uiMod = pnLine:GetColumnText(4)
+        asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: #"..tostring(nIndex).." <"..tostring(uiMod)..">")
         pnModelPanel:SetModel(uiMod)
         local uiRec  = asmlib.CacheQueryPiece(uiMod)
         if(not uiRec) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve model "..uiMod)
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve model <"..uiMod..">")
         end
         -- OBBCenter ModelPanel Configuration --
         local uiEnt = pnModelPanel:GetEntity()
         if(not (uiEnt and uiEnt:IsValid())) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve entity")
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Model panel entity invalid")
         end
         local uiKept = tonumber(uiRec.Kept) or 0
         local uiCen  = Vector()
@@ -258,7 +251,7 @@ if(CLIENT) then
         oPly:ConCommand(gsToolPrefL.."pointid 1\n")
         oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
       end
-      if(not asmlib.UpdateListView(pnListView,pnProgress,frUsed,nCount)) then
+      if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed")
       end
       ------------- ComboBox ---------------
@@ -286,7 +279,7 @@ if(CLIENT) then
               sField   = tostring(sField or "")
         local sPattern = tostring(pnSelf:GetValue() or "")
         asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: "..sName.." >> "..sField.." >> "..sPattern)
-        local bStatus  = asmlib.UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
+        local bStatus  = asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
         asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..tostring(bStatus).."]")
       end
       ------------ Show the completed panel --------------
@@ -1312,6 +1305,79 @@ else
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 1, "", "0,10,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 2, "", "-384,160,0.016", "0,180,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 3, "", "-256,10,0.016", "0,180,0"})
+  asmlib.DefaultType("Bobster's two feet rails ")
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 2, "0,32,1.5", "-16,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_64.mdl", "#", "#", 1, "", "32,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_64.mdl", "#", "#", 2, "", "-32,0,3.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_128.mdl", "#", "#", 1, "", "64,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_128.mdl", "#", "#", 2, "", "-64,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_256.mdl", "#", "#", 1, "", "128,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_256.mdl", "#", "#", 2, "", "-128,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_512.mdl", "#", "#", 1, "", "256,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_512.mdl", "#", "#", 2, "", "-256,0,3.016", "0,180,0"})  
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_1024.mdl", "#", "#", 1, "", "512,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_1024.mdl", "#", "#", 2, "", "-512,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_32.mdl", "#", "#", 2, "0,32,1.5", "-16,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_64.mdl", "#", "#", 1, "", "32,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_64.mdl", "#", "#", 2, "", "-32,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_128.mdl", "#", "#", 1, "", "64,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_128.mdl", "#", "#", 2, "", "-64,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_256.mdl", "#", "#", 1, "", "128,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_256.mdl", "#", "#", 2, "", "-128,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_512.mdl", "#", "#", 1, "", "256,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_512.mdl", "#", "#", 2, "", "-256,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_1024.mdl", "#", "#", 1, "", "512,0,3.016", ""})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_rack_1024.mdl", "#", "#", 2, "", "-512,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_right_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})  
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_right_512.mdl", "#", "#", 2, "", "124.736,-24.811,3.016", "0,-22.5,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_left_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})  
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_left_512.mdl", "#", "#", 2, "", "124.735,24.812,3.016", "0,22.5,0"}) 
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_right_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_right_1024.mdl", "#", "#", 2, "", "249.471,-49.623,3.016", "0,-22.5,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_225_left_1024.mdl", "#", "#", 2, "", "249.471,49.621,3.016", "0,22.5,0"}) 
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_left_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_left_512.mdl", "#", "#", 2, "", "230.481,95.468,3.016", "0,45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_right_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_right_512.mdl", "#", "#", 2, "", "230.481,-95.469,3.016", "0,-45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_right_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_right_1024.mdl", "#", "#", 2, "", "460.963,-190.936,3.016", "0,-45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_45_left_1024.mdl", "#", "#", 2, "", "460.962,190.936,3.016", "0,45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_right_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_right_512.mdl", "#", "#", 2, "", "325.949,-325.949,3.016", "0,-90,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_left_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_left_512.mdl", "#", "#", 2, "", "325.949,325.95,3.016", "0,90,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_right_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_right_1024.mdl", "#", "#", 2, "", "651.898,-651.899,3.016", "0,-90,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_right_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})  
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_right_512.mdl", "#", "#", 2, "", "124.736,-24.811,3.016", "0,-22.5,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_left_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})  
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_left_512.mdl", "#", "#", 2, "", "124.735,24.812,3.016", "0,22.5,0"}) 
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_right_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_right_1024.mdl", "#", "#", 2, "", "249.471,-49.623,3.016", "0,-22.5,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_225_left_1024.mdl", "#", "#", 2, "", "249.471,49.621,3.016", "0,22.5,0"}) 
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_left_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_left_512.mdl", "#", "#", 2, "", "230.481,95.468,3.016", "0,45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_right_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_right_512.mdl", "#", "#", 2, "", "230.481,-95.469,3.016", "0,-45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_right_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_right_1024.mdl", "#", "#", 2, "", "460.963,-190.936,3.016", "0,-45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_45_left_1024.mdl", "#", "#", 2, "", "460.962,190.936,3.016", "0,45,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_right_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_right_512.mdl", "#", "#", 2, "", "325.949,-325.949,3.016", "0,-90,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_512.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_512.mdl", "#", "#", 2, "", "325.949,325.95,3.016", "0,90,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_right_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_right_1024.mdl", "#", "#", 2, "", "651.898,-651.899,3.016", "0,-90,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
+  asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
 end
 
 if(file.Exists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then

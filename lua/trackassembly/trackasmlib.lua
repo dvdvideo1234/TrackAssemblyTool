@@ -821,7 +821,7 @@ end
  * On success populates "pnListView" with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
 ]]--
-function UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
+function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
   if(not (IsExistent(frUsed) and IsExistent(frUsed[1]))) then return StatusLog(false,"UpdateListView: Missing data") end
   local nCount = tonumber(nCount) or 0
   if(not IsExistent(nCount)) then return StatusLog(false,"UpdateListView: Number conversion failed "..tostring(nCount)) end
@@ -832,11 +832,6 @@ function UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
     pnListView:Clear()
   else
     return StatusLog(false,"UpdateListView: Missing ListView")
-  end
-  if(IsExistent(pnProgress)) then
-    if(not IsValid(pnProgress)) then return StatusLog(false,"UpdateListView: Invalid ProgressBar") end
-    pnProgress:SetVisible(true)
-    pnProgress:SetFraction(0)
   end
   local sField   = tostring(sField   or "")
   local sPattern = tostring(sPattern or "")
@@ -856,10 +851,8 @@ function UpdateListView(pnListView,pnProgress,frUsed,nCount,sField,sPattern)
         end
       end
     end
-    if(IsExistent(pnProgress)) then pnProgress:SetFraction(nCount/iNdex) end
     iNdex = iNdex + 1
   end
-  if(IsExistent(pnProgress)) then pnProgress:SetVisible(false) end
   pnListView:SetVisible(true)
   return StatusLog(true,"UpdateListView: Crated #"..tostring(iNdex-1))
 end
@@ -1426,9 +1419,9 @@ end
 
 function LogInstance(anyStuff)
   local sModeDB  = GetOpVar("MODE_DATABASE")
-  local anyStuff = tostring(anyStuff)
   local logOnly  = GetOpVar("LOG_LOGONLY")
   local logHere  = false
+  local anyStuff = tostring(anyStuff)
   if(logOnly and IsString(logOnly[1])) then
     local iNdex = 1
     local sOnly = logOnly[iNdex]
