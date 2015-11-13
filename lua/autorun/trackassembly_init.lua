@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.92")
+asmlib.SetOpVar("TOOL_VERSION","4.93")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -24,21 +24,21 @@ asmlib.SetOpVar("LOG_LOGONLY",nil)
 asmlib.SetLogControl(0,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeCvar("maxactrad", "150", {1,500} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCvar("enwiremod", "1"  , {0,1  } ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCvar("maxstcnt" , "200", {1,200} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCoVar("enwiremod", "1"  , {0,1  } ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCoVar("maxstcnt" , "200", {1,200} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
-  asmlib.MakeCvar("bnderrmod", "1" , {0,4}   ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
-  asmlib.MakeCvar("maxfruse" , "50", {1,100} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
+  asmlib.MakeCoVar("bnderrmod", "1" , {0,4}   ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
+  asmlib.MakeCoVar("maxfruse" , "50", {1,100} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
 end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeCvar("modedb"   , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-asmlib.MakeCvar("enqstore" ,     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable cache for built queries")
-asmlib.MakeCvar("timermode", "CQT@3600@1@1/CQT@1200@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
+asmlib.MakeCoVar("modedb"   , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
+asmlib.MakeCoVar("enqstore" ,     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable cache for built queries")
+asmlib.MakeCoVar("timermode", "CQT@3600@1@1/CQT@1200@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
 
 ------ CONFIGURE MODES -----
-asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCvar("modedb","STR"))
-asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetCvar("enqstore","INT") ~= 0) and true or false)
+asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCoVar("modedb","STR"))
+asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetCoVar("enqstore","INT") ~= 0) and true or false)
 
 ------ GLOBAL VARIABLES ------
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -49,7 +49,7 @@ local gsInstPrefx = asmlib.GetInstPref()
 local gsPathBAS   = asmlib.GetOpVar("DIRPATH_BAS")
 local gsPathDSV   = asmlib.GetOpVar("DIRPATH_DSV")
 local gsFullDSV   = gsPathBAS..gsPathDSV..gsInstPrefx..gsToolPrefU
-local gaTimerSet  = asmlib.StringExplode(asmlib.GetCvar("timermode","STR"),asmlib.GetOpVar("OPSYM_DIRECTORY"))
+local gaTimerSet  = asmlib.StringExplode(asmlib.GetCoVar("timermode","STR"),asmlib.GetOpVar("OPSYM_DIRECTORY"))
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -192,9 +192,9 @@ if(CLIENT) then
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
         asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
-        asmlib.SetLogControl(asmlib.GetCvar("logsmax", "INT"),
-                             asmlib.GetCvar("logfile", "STR"))
-        local ExportDB     = asmlib.GetCvar("exportdb","INT")
+        asmlib.SetLogControl(asmlib.GetCoVar("logsmax", "INT"),
+                             asmlib.GetCoVar("logfile", "STR"))
+        local ExportDB     = asmlib.GetCoVar("exportdb","INT")
         if(ExportDB ~= 0) then
           asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
           asmlib.ExportIntoFile("PIECES",",","INS")

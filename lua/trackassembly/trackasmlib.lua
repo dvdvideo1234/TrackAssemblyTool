@@ -743,7 +743,7 @@ function SetAction(sKey,fAct,tDat)
 end
 
 function GetActionCode(sKey)
-  if(not (sKey and IsString(sKey))) then return nil end
+  if(not (sKey and IsString(sKey))) then return StatusLog(nil,"GetActionCode: ") end
   if(not (LibAction and LibAction[sKey])) then return nil end
   return LibAction[sKey].Act
 end
@@ -772,27 +772,6 @@ function IsOther(oEnt)
   return false
 end
 
-local function PushSortValues(tTable,snCnt,nsValue,tData)
-  local Cnt = math.floor(tonumber(snCnt) or 0)
-  if(not (tTable and (type(tTable) == "table") and (Cnt > 0))) then return 0 end
-  local Ind  = 1
-  if(not tTable[Ind]) then
-    tTable[Ind] = {Value = nsValue, Table = tData }
-    return Ind
-  else
-    while(tTable[Ind] and (tTable[Ind].Value < nsValue)) do
-      Ind = Ind + 1
-    end
-    if(Ind > Cnt) then return Ind end
-    while(Ind < Cnt) do
-      tTable[Cnt] = tTable[Cnt - 1]
-      Cnt = Cnt - 1
-    end
-    tTable[Ind] = { Value = nsValue, Table = tData }
-    return Ind
-  end
-end
-
 local function AddLineListView(pnListView,frUsed,iNdex)
   if(not IsExistent(pnListView)) then return StatusLog(nil,"LineAddListView: Missing panel") end
   if(not IsValid(pnListView)) then return StatusLog(nil,"LineAddListView: Invalid panel") end
@@ -806,8 +785,8 @@ local function AddLineListView(pnListView,frUsed,iNdex)
   local sModel = tValue.Table[defTable[1][1]]
   local sType  = tValue.Table[defTable[2][1]]
   local nAct   = tValue.Table[defTable[4][1]]
-  local nLife  = RoundValue(tValue.Value,0.001)
-  local pnRec  = pnListView:AddLine(nLife,nAct,sType,sModel)
+  local nUsed  = RoundValue(tValue.Value,0.001)
+  local pnRec  = pnListView:AddLine(nUsed,nAct,sType,sModel)
   if(not IsExistent(pnRec)) then
     return StatusLog(false,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..iNdex)
   end
@@ -817,7 +796,7 @@ end
 --[[
  * Updates a VGUI pnListView with a search preformed in the already generated
  * frequently used pieces "frUsed" for the pattern "sPattern" given by the user
- * and a filed selected "sField". Draws the progress on the progress bar (if any).
+ * and a filled selected "sField".
  * On success populates "pnListView" with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
 ]]--
@@ -855,6 +834,27 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
   end
   pnListView:SetVisible(true)
   return StatusLog(true,"UpdateListView: Crated #"..tostring(iNdex-1))
+end
+
+local function PushSortValues(tTable,snCnt,nsValue,tData)
+  local Cnt = math.floor(tonumber(snCnt) or 0)
+  if(not (tTable and (type(tTable) == "table") and (Cnt > 0))) then return 0 end
+  local Ind  = 1
+  if(not tTable[Ind]) then
+    tTable[Ind] = {Value = nsValue, Table = tData }
+    return Ind
+  else
+    while(tTable[Ind] and (tTable[Ind].Value < nsValue)) do
+      Ind = Ind + 1
+    end
+    if(Ind > Cnt) then return Ind end
+    while(Ind < Cnt) do
+      tTable[Cnt] = tTable[Cnt - 1]
+      Cnt = Cnt - 1
+    end
+    tTable[Ind] = { Value = nsValue, Table = tData }
+    return Ind
+  end
 end
 
 function GetFrequentModels(snCount)
@@ -1107,22 +1107,28 @@ local function IsEqualPOA(stOffsetA,stOffsetB)
   return true
 end
 
-local function StringPOA(arOffs,iID,sOffs)
+local function StringPOA(arPOA,sOffs)
   if(not IsString(sOffs)) then return StatusLog(nil,"StringPOA: Mode is not a string but "..type(sOffs)) end
-  if(not IsExistent(arOffs)) then return StatusLog(nil,"StringPOA: Missing Offsets") end
-  local iID = tonumber(iID)
-  if(not IsExistent(iID)) then return StatusLog(nil,"StringPOA: Missing PointID") end
-  local Offset = arOffs[iID]
-  if(not IsExistent(Offset)) then return StatusLog(nil,"StringPOA: No offset for ID #"..tostring(iID)) end
-  local Empty
-  local Result = ""
+  if(not IsExistent(arPOA)) then return StatusLog(nil,"StringPOA: Missing Offsets") end
   local symRevs = GetOpVar("OPSYM_REVSIGN")
   local symDisa = GetOpVar("OPSYM_DISABLE")
   local sModeDB = GetOpVar("MODE_DATABASE")
+  local Result = ((arPOA[csD] and symDisa) or "")
   if    (sModeDB == "SQL") then Empty = "NULL"
   elseif(sModeDB == "LUA") then Empty = "NULL"
-  else return StatusLog("","StringPOA: Missed database mode "..sModeDB)
-  end
+  else return StatusLog(nil,"StringPOA: Missed database mode "..sModeDB) end
+  if(sOffs == "V") then
+    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[cvX])..","
+                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[cvY])..","
+                   ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[cvZ])
+  elseif(sOffs == "A") then
+    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[caP])..","
+                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[caY])..","
+                   ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[caR])
+  else return StatusLog("","StringPOA: Missed offset mode "..sOffs) end
+  return string.gsub(Result," ","") -- Get rid of the spaces
+  
+  
   if(sOffs == "P") then
     if(not Offset.P[csD]) then
       if(IsEqualPOA(Offset.P,Offset.O)) then
@@ -1150,7 +1156,7 @@ local function StringPOA(arOffs,iID,sOffs)
   else
     return StatusLog("","StringPOA: Missed offset mode "..sOffs)
   end
-  return string.gsub(Result," ","") -- Get rid of the spaces
+  
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -1265,24 +1271,6 @@ function FormatNumberMax(nNum,nMax)
   local nMax = tonumber(nMax)
   if(not (nNum and nMax)) then return "" end
   return string.format("%"..string.len(tostring(math.floor(nMax))).."d",nNum)
-end
-
-function Indent(nCnt,sStr,bFixed)
-  if(not (nCnt and sStr)) then return "" end
-  local Out = ""
-  local Cnt = nCnt
-  local Len = string.len(sStr)
-  if(bFixed) then return " "..sStr end
-  if(Cnt == 0) then return sStr end
-  if(Cnt  > 0) then
-    while(Cnt > 0) do
-      Out = Out.."  "
-      Cnt = Cnt - 1
-    end
-    return Out..sStr
-  else
-    return string.sub(sStr,1-2*Cnt,Len)
-  end
 end
 
 local function Qsort(Data,Lo,Hi)
@@ -1726,23 +1714,23 @@ end
 --------------------- USAGES --------------------
 
 function String2BGID(sStr,nLen)
-  if(not sStr) then return nil end -- You never know ...
+  if(not IsExistent(sStr)) then return StatusLog(nil, "String2BGID: String missing") end
   local Len  = string.len(sStr)
-  if(Len <= 0) then return nil end
+  if(Len <= 0) then return StatusLog(nil, "String2BGID: Empty string") end
   local Data = StringExplode(sStr,",")
   local Cnt = 1
   local exLen = nLen or Data.Len
   while(Cnt <= exLen) do
     local v = Data[Cnt]
-    if(v == "") then return nil end
+    if(v == "") then return StatusLog(nil, "String2BGID: Value missing") end
     local vV = tonumber(v)
-    if(not vV) then return nil end
-    if((math.floor(vV) - vV) ~= 0) then return nil end
+    if(not vV) then return StatusLog(nil, "String2BGID: Value not a number") end
+    if((math.floor(vV) - vV) ~= 0) then return StatusLog(nil, "String2BGID: Floats forbidden") end
     Data[Cnt] = vV
     Cnt = Cnt + 1
   end
   if(Data[1])then return Data end
-  return nil
+  return StatusLog(nil, "String2BGID: No data found")
 end
 
 function ModelToHashLocation(sModel,tTable,anyValue)
@@ -2637,7 +2625,6 @@ function CacheQueryPiece(sModel)
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
       local qRec, qRez
-      local syOff = GetOpVar("OPSYM_DISABLE")
       while(qData[stPiece.Kept]) do
         qRec = qData[stPiece.Kept]
         qRez = RegisterPOA(stPiece,
@@ -3628,7 +3615,7 @@ function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
   return StatusLog(false,"Piece:SetBoundPos: Mode #"..nMode.." not found: "..anyMessage)
 end
 
-function MakeCvar(sShortName, sValue, tBorder, nFlags, sInfo)
+function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
   if(not IsString(sShortName)) then return StatusLog(nil,"MakeCvar("..tostring(sShortName).."): Wrong CVar name") end
   if(not IsExistent(sValue)) then return StatusLog(nil,"MakeCvar("..tostring(sValue).."): Wrong default value") end
   if(not IsString(sInfo)) then return StatusLog(nil,"MakeCvar("..tostring(sInfo).."): Wrong CVar information") end
@@ -3640,12 +3627,12 @@ function MakeCvar(sShortName, sValue, tBorder, nFlags, sInfo)
   return CreateConVar(sVar, sValue, nFlags, sInfo)
 end
 
-function GetCvar(sShortName, sMode)
-  if(not IsString(sShortName)) then return StatusLog(nil,"GetCvar("..tostring(sShortName).."): Wrong CVar name") end
-  if(not IsString(sMode)) then return StatusLog(nil,"GetCvar("..tostring(sMode).."): Wrong CVar mode") end
+function GetCoVar(sShortName, sMode)
+  if(not IsString(sShortName)) then return StatusLog(nil,"GetCoVar("..tostring(sShortName).."): Wrong CVar name") end
+  if(not IsString(sMode)) then return StatusLog(nil,"GetCoVar("..tostring(sMode).."): Wrong CVar mode") end
   local sVar = GetOpVar("TOOLNAME_PL")..string.lower(sShortName)
   local CVar = GetConVar(sVar)
-  if(not IsExistent(CVar)) then return StatusLog(nil,"GetCvar("..sShortName..", "..sMode.."): Missing CVar object") end
+  if(not IsExistent(CVar)) then return StatusLog(nil,"GetCoVar("..sShortName..", "..sMode.."): Missing CVar object") end
   if    (sMode == "INT") then
     return (tonumber(BorderValue(CVar:GetInt(),"cvar_"..sVar)) or 0)
   elseif(sMode == "FLT") then
@@ -3661,5 +3648,5 @@ function GetCvar(sShortName, sMode)
   elseif(sMode == "NAM") then
     return CVar:GetName()
   end
-  return StatusLog(nil,"GetCvar("..sShortName..", "..sMode.."): Missed mode")
+  return StatusLog(nil,"GetCoVar("..sShortName..", "..sMode.."): Missed mode")
 end

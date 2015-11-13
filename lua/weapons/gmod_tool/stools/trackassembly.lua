@@ -134,7 +134,7 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetCount()
-  return math.Clamp(self:GetClientNumber("count"),1,asmlib.GetCvar("maxstcnt", "INT"))
+  return math.Clamp(self:GetClientNumber("count"),1,asmlib.GetCoVar("maxstcnt", "INT"))
 end
 
 function TOOL:GetMass()
@@ -207,7 +207,7 @@ function TOOL:GetPointID()
 end
 
 function TOOL:GetActiveRadius()
-  return math.Clamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetCvar("maxactrad", "FLT"))
+  return math.Clamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetCoVar("maxactrad", "FLT"))
 end
 
 function TOOL:GetYawSnap()
@@ -236,7 +236,7 @@ function TOOL:GetPhysMeterial()
 end
 
 function TOOL:GetBoundErrorMode()
-  return asmlib.GetCvar("bnderrmod" ,"INT")
+  return asmlib.GetCoVar("bnderrmod" ,"INT")
 end
 
 function TOOL:GetSurfaceSnap()
@@ -523,7 +523,7 @@ function TOOL:RightClick(Trace)
   local pointbu = pointid
   asmlib.LoadPlyKey(ply)
   if(Trace.HitWorld and asmlib.LoadPlyKey(ply,"USE")) then
-    ply:ConCommand(gsToolPrefL.."openframe "..asmlib.GetCvar("maxfruse" ,"INT").."\n")
+    ply:ConCommand(gsToolPrefL.."openframe "..asmlib.GetCoVar("maxfruse" ,"INT").."\n")
     return true
   end
   if(asmlib.LoadPlyKey(ply,"DUCK")) then -- Use
@@ -804,7 +804,7 @@ function TOOL:DrawToolScreen(w, h)
   end
   model  = asmlib.GetModelFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
-  maxrad = asmlib.GetCvar("maxactrad", "FLT")
+  maxrad = asmlib.GetCoVar("maxactrad", "FLT")
   goToolScr:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   goToolScr:DrawText("HM: " ..(model      or gsNoAV),"m")
   goToolScr:DrawText("ID: ["..(trMaxCN    or gsNoID)
@@ -931,7 +931,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetValue(asmlib.StringDefault(
-          asmlib.GetCvar("physmater","STR"),"<Select Surface Material NAME>"))
+          asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local defTable = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")
   local Property = asmlib.CacheQueryProperty()
@@ -970,7 +970,7 @@ function TOOL.BuildCPanel(CPanel)
   local pText = vgui.Create("DTextEntry")
         pText:SetPos(2, CurY)
         pText:SetTall(18)
-        pText:SetText(asmlib.StringDefault(asmlib.GetCvar("bgskids", "STR"),
+        pText:SetText(asmlib.StringDefault(asmlib.GetCoVar("bgskids", "STR"),
                  "Comma delimited Body/Skin IDs > ENTER ( TAB to Auto-fill from Trace )"))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
@@ -998,14 +998,14 @@ function TOOL.BuildCPanel(CPanel)
             Label   = "Active radius: ",
             Type    = "Float",
             Min     = 1,
-            Max     = asmlib.GetCvar("maxactrad", "FLT"),
+            Max     = asmlib.GetCoVar("maxactrad", "FLT"),
             Command = gsToolPrefL.."activrad"})
 
   CPanel:AddControl("Slider", {
             Label   = "Pieces count: ",
             Type    = "Integer",
             Min     = 1,
-            Max     = asmlib.GetCvar("maxstcnt", "INT"),
+            Max     = asmlib.GetCoVar("maxstcnt", "INT"),
             Command = gsToolPrefL.."count"})
 
   CPanel:AddControl("Slider", {

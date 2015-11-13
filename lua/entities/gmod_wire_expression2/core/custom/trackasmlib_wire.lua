@@ -1,7 +1,7 @@
 ----- Localizing the asmlib module
 local asmlib   = trackasmlib
 ----- Get extention enabled flag
-local enflag   = ((tonumber(asmlib.GetCvar("enwiremod","INT")) or 0) ~= 0) and true or false
+local enflag   = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
 
 --------- Pieces ----------
 
