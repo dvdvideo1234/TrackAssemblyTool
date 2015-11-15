@@ -1114,9 +1114,6 @@ local function StringPOA(arPOA,sOffs)
   local symDisa = GetOpVar("OPSYM_DISABLE")
   local sModeDB = GetOpVar("MODE_DATABASE")
   local Result = ((arPOA[csD] and symDisa) or "")
-  if    (sModeDB == "SQL") then Empty = "NULL"
-  elseif(sModeDB == "LUA") then Empty = "NULL"
-  else return StatusLog(nil,"StringPOA: Missed database mode "..sModeDB) end
   if(sOffs == "V") then
     Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[cvX])..","
                    ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[cvY])..","
@@ -1127,36 +1124,6 @@ local function StringPOA(arPOA,sOffs)
                    ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[caR])
   else return StatusLog("","StringPOA: Missed offset mode "..sOffs) end
   return string.gsub(Result," ","") -- Get rid of the spaces
-  
-  
-  if(sOffs == "P") then
-    if(not Offset.P[csD]) then
-      if(IsEqualPOA(Offset.P,Offset.O)) then
-        Result = Empty
-      else
-        Result =  ((Offset.P[csX] == -1) and symRevs or "")..tostring(Offset.P[cvX])..","
-                ..((Offset.P[csY] == -1) and symRevs or "")..tostring(Offset.P[cvY])..","
-                ..((Offset.P[csZ] == -1) and symRevs or "")..tostring(Offset.P[cvZ])
-      end
-    else
-      Result = symDisa
-    end
-  elseif(sOffs == "O") then
-    Result =  ((Offset.O[csX] == -1) and symRevs or "")..tostring(Offset.O[cvX])..","
-            ..((Offset.O[csY] == -1) and symRevs or "")..tostring(Offset.O[cvY])..","
-            ..((Offset.O[csZ] == -1) and symRevs or "")..tostring(Offset.O[cvZ])
-  elseif(sOffs == "A") then
-    if(Offset.A[caP] == 0 and Offset.A[caY] == 0 and Offset.A[caR] == 0) then
-      Result = Empty
-    else
-      Result =  ((Offset.A[csX] == -1) and symRevs or "")..tostring(Offset.A[caP])..","
-              ..((Offset.A[csY] == -1) and symRevs or "")..tostring(Offset.A[caY])..","
-              ..((Offset.A[csZ] == -1) and symRevs or "")..tostring(Offset.A[caR])
-    end
-  else
-    return StatusLog("","StringPOA: Missed offset mode "..sOffs)
-  end
-  
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -3024,9 +2991,9 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
 
         while(tData.Offs[iInd]) do
             sTemp = sData..MatchType(defTable,tostring(iInd),4,true,"\"")..sDelim..
-                          "\""..StringPOA(tData.Offs,iInd,"P").."\""..sDelim..
-                          "\""..StringPOA(tData.Offs,iInd,"O").."\""..sDelim..
-                          "\""..StringPOA(tData.Offs,iInd,"A").."\""
+                          "\""..StringPOA(tData.Offs[iInd].P,"V").."\""..sDelim..
+                          "\""..StringPOA(tData.Offs[iInd].O,"V").."\""..sDelim..
+                          "\""..StringPOA(tData.Offs[iInd].A,"A").."\""
           if(sMethod == "DSV") then
             sTemp = sTemp.."\n"
           elseif(sMethod == "INS") then
