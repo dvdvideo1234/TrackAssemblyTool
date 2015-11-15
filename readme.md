@@ -65,7 +65,7 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    16) gm_sunsetgulch map props ( Ignore, it's not designed to be a prop )
    17) StevenTechno's Buildings pack
    18) Mr. Train's M-Gauge rails
-   19) Bobsters's two gauge rails ( In dev 0% )
+   19) Bobsters's two gauge rails
 
 Q: Are there going to be more of those?
 A: Yes, I developed my dynamic database, so I can insert any model I want.
