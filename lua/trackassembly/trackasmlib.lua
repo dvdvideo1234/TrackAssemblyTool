@@ -445,7 +445,7 @@ function MakeContainer(sInfo,sDefKey)
     return Curs
   end
   function self:GetData()
-    return Data 
+    return Data
   end
   function self:Insert(nsKey,anyValue)
     Ins = nsKey or Key
@@ -894,7 +894,7 @@ end
 function SnapValue(nVal, nSnap)
   if(not nVal) then return 0 end
   local nVal = tonumber(nVal)
-  if(not IsExistent(nVal)) then return StatusLog(0,"SnapValue: Cannot convert value to a number") end 
+  if(not IsExistent(nVal)) then return StatusLog(0,"SnapValue: Cannot convert value to a number") end
   if(not IsExistent(nSnap)) then return nVal end
   local nSnap = tonumber(nSnap)
   if(not IsExistent(nSnap)) then return StatusLog(0,"SnapValue: Cannot convert snap to a number") end
@@ -1388,7 +1388,7 @@ function LogInstance(anyStuff)
       sOnly = logOnly[iNdex]
     end
     if((not logHere) and IsBool(logHere)) then
-      return 
+      return
     end
   end
   if(SERVER) then
@@ -1650,13 +1650,13 @@ function SettingsModelToName(sMode, gCut, gSub, gApp)
   if(sMode == "SET") then
     if(gCut and gCut[1]) then SetOpVar("TABLE_GCUT_MODEL",gCut) else SetOpVar("TABLE_GCUT_MODEL",{}) end
     if(gSub and gSub[1]) then SetOpVar("TABLE_GSUB_MODEL",gSub) else SetOpVar("TABLE_GSUB_MODEL",{}) end
-    if(gApp and gApp[1]) then SetOpVar("TABLE_GAPP_MODEL",gApp) else SetOpVar("TABLE_GAPP_MODEL",{}) end 
+    if(gApp and gApp[1]) then SetOpVar("TABLE_GAPP_MODEL",gApp) else SetOpVar("TABLE_GAPP_MODEL",{}) end
   elseif(sMode == "GET") then
     return GetOpVar("TABLE_GCUT_MODEL"), GetOpVar("TABLE_GSUB_MODEL"), GetOpVar("TABLE_GAPP_MODEL")
   elseif(sMode == "CLR") then
     SetOpVar("TABLE_GCUT_MODEL",{})
-    SetOpVar("TABLE_GSUB_MODEL",{})  
-    SetOpVar("TABLE_GAPP_MODEL",{})  
+    SetOpVar("TABLE_GSUB_MODEL",{})
+    SetOpVar("TABLE_GAPP_MODEL",{})
   else
     return StatusLog(false,"SettingsModelToName: Wrong mode name "..sMode)
   end
@@ -1702,7 +1702,7 @@ end
 
 function ModelToHashLocation(sModel,tTable,anyValue)
   if(not (IsString(sModel) and type(tTable) == "table")) then return end
-  local sSymDir = GetOpVar("OPSYM_DIRECTORY")  
+  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
   local Key = StringExplode(sModel,sSymDir)
   Print(Key,"Key")
   if(not (Key and Key[1])) then return end
@@ -2657,7 +2657,7 @@ function CacheQueryAdditions(sModel)
       stAddition.Kept = stAddition.Kept - 1
       AttachKillTimer(LibCache,CacheInd,defTable,"CacheQueryAdditions")
       stAddition.Used = Time()
-      return stAddition   
+      return stAddition
     elseif(sModeDB == "LUA") then
       return nil -- The whole DB is in the cache
     else
@@ -2754,7 +2754,7 @@ function CacheQueryProperty(sType)
           CntNam = CntNam + 1
         end
         AttachKillTimer(LibCache,CacheInd,defTable,"CacheQueryProperty")
-        return Cache[sType]      
+        return Cache[sType]
       elseif(sModeDB == "LUA") then
         return nil
       else
@@ -2819,7 +2819,7 @@ local function GetFieldsName(defTable,sDelim)
     return StatusLog("","GetFieldsName: Invalid delimiter for "..defTable.Name)
   end
   local iCount  = 1
-  local namField 
+  local namField
   while(defTable[iCount]) do
     namField = defTable[iCount][1]
     if(not IsString(namField)) then
@@ -2911,7 +2911,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     fName = fName..GetOpVar("DIRPATH_EXP")
   else
     return StatusLog(false,"Missed export method: "..sMethod)
-  end  
+  end
   if(not file.Exists(fName,"DATA")) then file.CreateDir(fName) end
   fName = fName..(sPrefix or GetInstPref())..namTable..".txt"
   local F = file.Open(fName, "w", "DATA" )
@@ -2940,7 +2940,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     local iCnt, iInd, qRec = 1, 1, nil
     if(sMethod == "DSV") then
       sData = namTable..sDelim
-    elseif(sMethod == "INS") then          
+    elseif(sMethod == "INS") then
       sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
     end
     while(qData[iCnt]) do
@@ -2965,7 +2965,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     if(not IsExistent(Cache)) then
       return StatusLog(false,"ExportIntoFile: Table "..namTable.." cache not allocated")
     end
-    if(sTable == "PIECES") then   
+    if(sTable == "PIECES") then
       local tData = {}
       local iInd iNdex = 1,1
       for sModel, tRecord in pairs(Cache) do
@@ -2982,7 +2982,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
         tData = Cache[tSorted[iNdex].Key]
         if(sMethod == "DSV") then
           sData = namTable..sDelim
-        elseif(sMethod == "INS") then          
+        elseif(sMethod == "INS") then
           sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
         end
         sData = sData..MatchType(defTable,tSorted[iNdex].Key,1,true,"\"")..sDelim..
@@ -2999,7 +2999,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
           elseif(sMethod == "INS") then
             sTemp = sTemp.."})\n"
           end
-          F:Write(sTemp)         
+          F:Write(sTemp)
           iInd = iInd  + 1
         end
         iNdex = iNdex + 1
@@ -3009,7 +3009,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       for sModel, tRecord in pairs(Cache) do
         if(sMethod == "DSV") then
           sData = namTable..sDelim..sModel..sDelim
-        elseif(sMethod == "INS") then          
+        elseif(sMethod == "INS") then
           sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
         end
         iNdex = 1
@@ -3048,7 +3048,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
         if(not tType) then return StatusLog(false,"ExportIntoFile: Missing index #"..iInd.." on type "..sType) end
         if(sMethod == "DSV") then
           sData = namTable..sDelim
-        elseif(sMethod == "INS") then          
+        elseif(sMethod == "INS") then
           sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
         end
         iCnt = 1
@@ -3530,7 +3530,7 @@ function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
   end
   return true
 end
-      
+
 function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
   local anyMessage = tostring(anyMessage)
   if(not vPos) then

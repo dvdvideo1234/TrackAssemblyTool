@@ -11,10 +11,10 @@ set Dirs=(lua)
 title Addon updater/publisher
 
 echo Press Crtl+C to terminate !
-echo Press a key if you dont want to wait ! 
+echo Press a key if you dont want to wait !
 echo Rinning in %RevPath%.
-echo Npp Find --\h{1,}\n-- replace --\n-- in unix format before commit !
-echo.  
+echo Npp Find --\h{1,}\r\n-- replace --\r\n-- in unix format before commit !
+echo.
 
 timeout 3
 rd /S /Q %RevPath%Workshop

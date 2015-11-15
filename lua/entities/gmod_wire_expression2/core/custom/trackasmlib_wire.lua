@@ -95,7 +95,7 @@ e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA
     C1, C2, C3 = asmlib.GetIndexes("A")
   else
     return {}
-  end  
+  end
   arResult[1] = stRecord[sPOA][C1]
   arResult[2] = stRecord[sPOA][C2]
   arResult[3] = stRecord[sPOA][C3]
@@ -127,7 +127,7 @@ e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
     C1, C2, C3 = asmlib.GetIndexes("A")
   else
     return {}
-  end  
+  end
   arResult[1] = stRecord[sPOA][C1]
   arResult[2] = stRecord[sPOA][C2]
   arResult[3] = stRecord[sPOA][C3]
