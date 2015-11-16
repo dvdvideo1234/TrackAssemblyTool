@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.99")
+asmlib.SetOpVar("TOOL_VERSION","4.100")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -291,7 +291,7 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = asmlib.TimerSettingMode(gaTimerSet[1]),
+  Timer = asmlib.TimerSetting(gaTimerSet[1]),
   Index = {{1},{4},{1,4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -303,7 +303,7 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = asmlib.TimerSettingMode(gaTimerSet[2]),
+  Timer = asmlib.TimerSetting(gaTimerSet[2]),
   Index = {{1},{4},{1,4}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -320,7 +320,7 @@ asmlib.CreateTable("ADDITIONS",{
 },true,true)
 
 asmlib.CreateTable("PHYSPROPERTIES",{
-  Timer = asmlib.TimerSettingMode(gaTimerSet[3]),
+  Timer = asmlib.TimerSetting(gaTimerSet[3]),
   Index = {{1},{2},{1,2}},
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },

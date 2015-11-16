@@ -2448,11 +2448,11 @@ local function NavigateTable(oLocation,tKeys)
   return Place, Key
 end
 
-function TimerSettingMode(sTimerSetting)
-  if(not IsExistent(sTimerSetting)) then return StatusLog(nil,"TimerSettingMode: No setting netting") end
-  if(not IsString(sTimerSetting)) then return StatusLog(nil,"TimerSettingMode: Setting not a string") end
-  local tBoom = StringExplode(sTimerSetting,GetOpVar("OPSYM_REVSIGN"))
-  tBoom[1] = tostring(tBoom[1])
+function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps the defaults
+  if(not IsExistent(sTimerSet)) then return StatusLog(nil,"TimerSetting: No setting netting") end
+  if(not IsString(sTimerSet)) then return StatusLog(nil,"TimerSetting: Setting not a string") end
+  local tBoom = StringExplode(sTimerSet,GetOpVar("OPSYM_REVSIGN"))
+  tBoom[1] = tostring(tBoom[1] or "CQT")
   tBoom[2] = (tonumber(tBoom[2])  or 0)
   tBoom[3] = ((tonumber(tBoom[3]) or 0) ~= 0) and true or false
   tBoom[4] = ((tonumber(tBoom[4]) or 0) ~= 0) and true or false
@@ -2463,29 +2463,29 @@ local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return StatusLog(nil,"AttachTimer: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
-    return StatusLog(false,"AttachTimer: Navigation failed")
+    return StatusLog(nil,"AttachTimer: Navigation failed")
   end
   if(not IsExistent(Place[Key])) then return StatusLog(nil,"AttachTimer: Place not found") end
   if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
   if(not defTable.Timer) then return StatusLog(Place[Key],"AttachTimer: Missing timer settings") end
   local tTimer = defTable.Timer
-  if(not (tTimer and tTimer[1] and tTimer[2])) then return StatusLog(Place[Key],"AttachTimer: Timer not set") end
-  local nLife = tonumber(tTimer[2]) or 0
-  if(nLife <= 0) then return StatusLog(Place[Key],"AttachTimer: Data life not set") end
+  if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"AttachTimer: Timer not set") end
+  local sModeTM = tTimer[1]
+  local nLifeTM = tTimer[2]
+  if(not (IsExistent(sModeTM) and IsExistent(nLifeTM))) then return StatusLog(Place[Key],"AttachTimer: Missing timer mode/life") end
+  if(nLifeTM <= 0) then return StatusLog(Place[Key],"AttachTimer: Timer life not set") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
     LogInstance("AttachTimer: Place["..tostring(Key).."] Marked !")
-    local sModeTM = tostring(tTimer[1] or "CQT")
-    local bKillRC = tTimer[3] and true or false
-    local bCollGB = tTimer[4] and true or false
-    LogInstance("AttachTimer: ["..sModeTM.."] ("..tostring(nLife)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
+    local bKillRC = tTimer[3]
+    local bCollGB = tTimer[4]
+    LogInstance("AttachTimer: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
       Place[Key].Load = Time()
       for k, v in pairs(Place) do
-        if(v.Used and v.Load and ((v.Used - v.Load) > nLife)) then
+        if(IsExistent(v.Used) and IsExistent(v.Load) and ((v.Used - v.Load) > nLifeTM)) then
           LogInstance("AttachTimer: ("..tostring(v.Used - v.Load).." > "
-                                          ..tostring(nLife)..") "
-                                          ..tostring(anyMessage).." > Dead")
+               ..tostring(nLifeTM)..") "..tostring(anyMessage).." > Dead")
           if(bKillRC) then
             LogInstance("AttachTimer: Killed: Place["..tostring(k).."]")
             Place[k] = nil
@@ -2501,8 +2501,8 @@ local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
       local TimerID = StringImplode(tKeys,"_")
       LogInstance("AttachTimer: TimID: <"..TimerID..">")
       if(timer.Exists(TimerID)) then return StatusLog(Place[Key],"AttachTimer: Timer exists") end
-      timer.Create(TimerID, nLife, 1, function()
-        LogInstance("AttachTimer["..TimerID.."]("..nLife.."): "
+      timer.Create(TimerID, nLifeTM, 1, function()
+        LogInstance("AttachTimer["..TimerID.."]("..nLifeTM.."): "
                        ..tostring(anyMessage).." > Dead")
         if(bKillRC) then
           LogInstance("AttachTimer: Killed: Place["..Key.."]")
