@@ -1,2 +1,3 @@
-Test is layout entity will display correctly when points count = 1 or above 1!
-Test if the frequent pieces panel ListView can search by Model/Type/Name and populate the data!
+Test if memory manager will work correctly
+Test if The frequent pieces will display all if 2 or more are clicked very rapidly
+Test if the table PHYSPROPERTIES will have memory management

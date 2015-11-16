@@ -2467,13 +2467,12 @@ local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
   end
   if(not IsExistent(Place[Key])) then return StatusLog(nil,"AttachTimer: Place not found") end
   if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
-  if(not defTable.Timer) then return StatusLog(Place[Key],"AttachTimer: Missing timer settings") end
   local tTimer = defTable.Timer
-  if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"AttachTimer: Timer not set") end
+  if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"AttachTimer: Missing timer settings") end
   local sModeTM = tTimer[1]
   local nLifeTM = tTimer[2]
   if(not (IsExistent(sModeTM) and IsExistent(nLifeTM))) then return StatusLog(Place[Key],"AttachTimer: Missing timer mode/life") end
-  if(nLifeTM <= 0) then return StatusLog(Place[Key],"AttachTimer: Timer life not set") end
+  if(nLifeTM <= 0) then return StatusLog(Place[Key],"AttachTimer: Timer life ignored") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
     LogInstance("AttachTimer: Place["..tostring(Key).."] Marked !")
