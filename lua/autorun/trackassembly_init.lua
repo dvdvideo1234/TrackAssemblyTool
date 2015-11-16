@@ -12,7 +12,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.96")
+asmlib.SetOpVar("TOOL_VERSION","4.99")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -34,7 +34,7 @@ end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeCoVar("modedb"   , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 asmlib.MakeCoVar("enqstore" ,     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable cache for built queries")
-asmlib.MakeCoVar("timermode", "CQT@3600@1@1/CQT@1200@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
+asmlib.MakeCoVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
 
 ------ CONFIGURE MODES -----
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCoVar("modedb","STR"))
@@ -320,6 +320,7 @@ asmlib.CreateTable("ADDITIONS",{
 },true,true)
 
 asmlib.CreateTable("PHYSPROPERTIES",{
+  Timer = asmlib.TimerSettingMode(gaTimerSet[3]),
   Index = {{1},{2},{1,2}},
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
@@ -332,10 +333,6 @@ if(file.Exists(gsFullDSV.."PIECES.txt", "DATA")) then
 else
   asmlib.LogInstance(gsToolNameU..": DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
-  ------- DEV -------
-  -- asmlib.InsertRecord({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", "Development", "Rail 6", 1, "", "", ""})
-  -- asmlib.InsertRecord({"models/sprops/cuboids/height36/size_1/cube_36x36x36.mdl", "Development", "Rail 36", 1, "", "", ""})
-  ------ PIECES ------
   asmlib.DefaultType("SligWolf's Rerailers")
   asmlib.InsertRecord({"models/props_phx/trains/sw_rerailer_1.mdl", "#", "Short Single", 1, "-190.55299377441,0,25.193000793457", "211.41400146484,0.014999999664724,-5.3949999809265", ""})
   asmlib.InsertRecord({"models/props_phx/trains/sw_rerailer_2.mdl", "#", "Middle Single", 1, "-190.55299377441,0,25.193000793457", "211.41400146484,0.014999999664724,-5.3949999809265", ""})
@@ -1434,11 +1431,9 @@ end
 if(file.Exists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from DSV")
   asmlib.ImportFromDSV("PHYSPROPERTIES","\t",true)
-else
+else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from LUA")
   asmlib.DefaultTable("PHYSPROPERTIES")
-  ------ PHYSPROPERTIES ------
-  --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   asmlib.DefaultType("Special")
   asmlib.InsertRecord({"#", 1 , "default"             })
   asmlib.InsertRecord({"#", 2 , "default_silent"      })
@@ -1546,7 +1541,6 @@ if(file.Exists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
 else
   asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from LUA")
   asmlib.DefaultTable("ADDITIONS")
-  ------ ADDITIONS ------
   --- Shinji's Switchers ---
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,-1,-1,-1})
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,1,1,SOLID_VPHYSICS})

@@ -1352,20 +1352,20 @@ function SetLogControl(nLines,sFile)
 end
 
 function Log(anyStuff)
-  local MaxLogs = GetOpVar("LOG_MAXLOGS")
-  if(MaxLogs > 0) then
-    local LogFile = GetOpVar("LOG_LOGFILE")
-    local CurLogs = GetOpVar("LOG_CURLOGS")
-    if(LogFile ~= "") then
-      local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..LogFile..".txt"
-      file.Append(fName,FormatNumberMax(CurLogs,MaxLogs)
+  local nMaxLogs = GetOpVar("LOG_MAXLOGS")
+  if(nMaxLogs > 0) then
+    local sLogFile = GetOpVar("LOG_LOGFILE")
+    local nCurLogs = GetOpVar("LOG_CURLOGS")
+    if(sLogFile ~= "") then
+      local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
+      file.Append(fName,FormatNumberMax(nCurLogs,nMaxLogs)
                 .." >> "..tostring(anyStuff).."\n")
-      CurLogs = CurLogs + 1
-      if(CurLogs > MaxLogs) then
+      nCurLogs = nCurLogs + 1
+      if(nCurLogs > nMaxLogs) then
         file.Delete(fName)
-        CurLogs = 0
+        nCurLogs = 0
       end
-      SetOpVar("LOG_CURLOGS",CurLogs)
+      SetOpVar("LOG_CURLOGS",nCurLogs)
     else
       print(GetOpVar("TOOLNAME_NU").." LOG: "..tostring(anyStuff))
     end
@@ -2294,7 +2294,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       end
     end
   elseif(sModeDB == "LUA") then
-    defTable.Life = 0
+    sModeDB = "LUA" -- Gust to do something here.
   else
     return StatusLog(false,"CreateTable: Wrong database mode >"..sModeDB.."<")
   end
@@ -2459,69 +2459,71 @@ function TimerSettingMode(sTimerSetting)
   return tBoom
 end
 
-local function AttachKillTimer(oLocation,tKeys,defTable,anyMessage)
-  if(not defTable) then return false end
-  if(not defTable.Timer) then return false end
-  local tTimer = defTable.Timer
-  if(not (tTimer and tTimer[1] and tTimer[2])) then return false end
-  local nLife = tonumber(tTimer[2]) or 0
-  if(nLife <= 0) then return false end
-  local sModeDB = GetOpVar("MODE_DATABASE")
+local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
+  if(not defTable) then return StatusLog(nil,"AttachTimer: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
-    return StatusLog(false,"AttachKillTimer: Navigation failed")
+    return StatusLog(false,"AttachTimer: Navigation failed")
   end
+  if(not IsExistent(Place[Key])) then return StatusLog(nil,"AttachTimer: Place not found") end
+  if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
+  if(not defTable.Timer) then return StatusLog(Place[Key],"AttachTimer: Missing timer settings") end
+  local tTimer = defTable.Timer
+  if(not (tTimer and tTimer[1] and tTimer[2])) then return StatusLog(Place[Key],"AttachTimer: Timer not set") end
+  local nLife = tonumber(tTimer[2]) or 0
+  if(nLife <= 0) then return StatusLog(Place[Key],"AttachTimer: Data life not set") end
+  local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
-    LogInstance("AttachKillTimer: Place["..tostring(Key).."] Marked !")
+    LogInstance("AttachTimer: Place["..tostring(Key).."] Marked !")
     local sModeTM = tostring(tTimer[1] or "CQT")
     local bKillRC = tTimer[3] and true or false
     local bCollGB = tTimer[4] and true or false
-    LogInstance("AttachKillTimer: ["..sModeTM.."] ("..tostring(nLife)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
+    LogInstance("AttachTimer: ["..sModeTM.."] ("..tostring(nLife)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
       Place[Key].Load = Time()
       for k, v in pairs(Place) do
         if(v.Used and v.Load and ((v.Used - v.Load) > nLife)) then
-          LogInstance("AttachKillTimer: ("..tostring(v.Used - v.Load).." > "
+          LogInstance("AttachTimer: ("..tostring(v.Used - v.Load).." > "
                                           ..tostring(nLife)..") "
                                           ..tostring(anyMessage).." > Dead")
           if(bKillRC) then
-            LogInstance("AttachKillTimer: Killed: Place["..tostring(k).."]")
+            LogInstance("AttachTimer: Killed: Place["..tostring(k).."]")
             Place[k] = nil
           end
         end
       end
       if(bCollGB) then
         collectgarbage()
-        LogInstance("AttachKillTimer: Garbage collected")
+        LogInstance("AttachTimer: Garbage collected")
       end
-      return StatusLog(true,"AttachKillTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
+      return StatusLog(Place[Key],"AttachTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
     elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,"_")
-      LogInstance("AttachKillTimer: TimID: <"..TimerID..">")
-      if(not IsExistent(Place[Key])) then return StatusLog(false,"AttachKillTimer: Place not found") end
-      if(timer.Exists(TimerID)) then return StatusLog(false,"AttachKillTimer: Timer exists") end
+      LogInstance("AttachTimer: TimID: <"..TimerID..">")
+      if(timer.Exists(TimerID)) then return StatusLog(Place[Key],"AttachTimer: Timer exists") end
       timer.Create(TimerID, nLife, 1, function()
-        LogInstance("AttachKillTimer["..TimerID.."]("..nLife.."): "
+        LogInstance("AttachTimer["..TimerID.."]("..nLife.."): "
                        ..tostring(anyMessage).." > Dead")
         if(bKillRC) then
-          LogInstance("AttachKillTimer: Killed: Place["..Key.."]")
+          LogInstance("AttachTimer: Killed: Place["..Key.."]")
           Place[Key] = nil
         end
         timer.Stop(TimerID)
         timer.Destroy(TimerID)
         if(bCollGB) then
           collectgarbage()
-          LogInstance("AttachKillTimer: Garbage collected")
+          LogInstance("AttachTimer: Garbage collected")
         end
       end)
-      return timer.Start(TimerID)
+      timer.Start(TimerID)
+      return Place[Key]
     else
-      return StatusLog(false,"AttachKillTimer: Timer mode not found: "..sModeTM)
+      return StatusLog(Place[Key],"AttachTimer: Timer mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
-    return StatusLog(true,"AttachKillTimer: Memory manager not available")
+    return StatusLog(Place[Key],"AttachTimer: Memory manager not available")
   else
-    return StatusLog(false,"AttachKillTimer: Wrong database mode")
+    return StatusLog(nil,"AttachTimer: Wrong database mode")
   end
 end
 
@@ -2576,8 +2578,8 @@ function CacheQueryPiece(sModel)
     end
     return nil
   else
-    local sModel  = MatchType(defTable,sModel,1,false,"",true,true)
     local sModeDB = GetOpVar("MODE_DATABASE")
+    local sModel  = MatchType(defTable,sModel,1,false,"",true,true)
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryPiece: Model >> Pool: "..GetModelFileName(sModel))
       Cache[sModel] = {}
@@ -2604,9 +2606,7 @@ function CacheQueryPiece(sModel)
         end
         stPiece.Kept = stPiece.Kept + 1
       end
-      stPiece.Kept = stPiece.Kept - 1
-      AttachKillTimer(LibCache,CacheInd,defTable,"CacheQueryPiece")
-      return stPiece
+      return AttachTimer(LibCache,CacheInd,defTable,"CacheQueryPiece")
     elseif(sModeDB == "LUA") then
       return nil -- The whole DB is in the cache
     else
@@ -2654,10 +2654,7 @@ function CacheQueryAdditions(sModel)
         end
         stAddition.Kept = stAddition.Kept + 1
       end
-      stAddition.Kept = stAddition.Kept - 1
-      AttachKillTimer(LibCache,CacheInd,defTable,"CacheQueryAdditions")
-      stAddition.Used = Time()
-      return stAddition
+      return AttachTimer(LibCache,CacheInd,defTable,"CacheQueryAdditions")
     elseif(sModeDB == "LUA") then
       return nil -- The whole DB is in the cache
     else
@@ -2753,10 +2750,9 @@ function CacheQueryProperty(sType)
           Cache[sType][CntNam] = qData[CntNam][defTable[3][1]]
           CntNam = CntNam + 1
         end
-        AttachKillTimer(LibCache,CacheInd,defTable,"CacheQueryProperty")
-        return Cache[sType]
+        return AttachTimer(LibCache,CacheInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then
-        return nil
+        return StatusLog(nil,"CacheQueryProperty("..sType.."): Caching not available")
       else
         return StatusLog(nil,"CacheQueryProperty("..sType.."): Wrong database mode >"..sModeDB.."<")
       end
@@ -2782,7 +2778,7 @@ function CacheQueryProperty(sType)
         end
         return Cache
       elseif(sModeDB == "LUA") then
-        return nil
+        return StatusLog(nil,"CacheQueryProperty: Caching not available")
       else
         return StatusLog(nil,"CacheQueryProperty: Wrong database mode >"..sModeDB.."<")
       end

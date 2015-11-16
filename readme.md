@@ -192,13 +192,14 @@ Q: Can I do something about my server's performance and how can I configure the 
 A: You can chose a memory management algorithm by setting trackassembly_timermode to "mode@life@clear@collect"
    for any table sequentially divided by "/". First of all the memory manager is available only in SQL mode,
    because in LUA mode, all the records are already in the memory and thus, there is no need to manage ( delete )
-   anything automatically. An example timer setting looks something like this: ( CQT@3600@1@1/CQT@1200@1@1 ).
+   anything automatically. An example timer setting looks something like this: ( CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1 ).
    Here "mode" setting is the memory management algorithm to be used ( either "CQT" or "OBJ" ) for the table.
    These are explained below what they do. The "life" in the cache for the record is how much time in seconds
    the data will spend sitting in the cache, until it gets deleted to save some memory ( For the example above
-   an hour for PIECES and 20 minuted for ADDITIONS respectively ). The greater the number, the more persistent
-   are the records and less queries will be used to retrieve the data. Setting this to "0" will turn-off the
-   memory management for the table. The "clear" setting if <>0, assigns a nil to the record, marking it for
+   an half an hour for PIECES, 15 minutes for ADDITIONS and 10 minutes for PHYSPROPERTIES ).
+   The greater the number, the more persistent are the records and less queries will be used to retrieve the data.
+   Setting this to "0" will turn-off the memory management for the table.
+   The "clear" setting if <>0, assigns a nil to the record, marking it for
    deletion by Lua's garbage collector. The "collect" setting if <>0 calls the garbage collector when a
    record is marked or =0 leaves it to the game's garbage collector. It's pretty much for you to decide, because
    every setting has its pros and cons.
