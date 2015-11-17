@@ -93,9 +93,9 @@ local Time           = SysTime
 
 ---------------- CASHES SPACE --------------------
 
-local LibCache  = {} -- Used to cache stuff in a Pool
-local LibAction = {} -- Used to attach external function to the lib
-local LibOpVars = {} -- Used to Store operational Variable Values
+local libCache  = {} -- Used to cache stuff in a Pool
+local libAction = {} -- Used to attach external function to the lib
+local libOpVars = {} -- Used to Store operational Variable Values
 
 module( "trackasmlib" )
 
@@ -160,11 +160,11 @@ function Delay(nAdd)
 end
 
 function GetOpVar(sName)
-  return LibOpVars[sName]
+  return libOpVars[sName]
 end
 
 function SetOpVar(sName, anyValue)
-  LibOpVars[sName] = anyValue
+  libOpVars[sName] = anyValue
 end
 
 function IsExistent(anyValue)
@@ -734,30 +734,30 @@ end
 function SetAction(sKey,fAct,tDat)
   if(not (sKey and IsString(sKey))) then return false end
   if(not (fAct and type(fAct) == "function")) then return false end
-  if(not LibAction[sKey]) then
-    LibAction[sKey] = {}
+  if(not libAction[sKey]) then
+    libAction[sKey] = {}
   end
-  LibAction[sKey].Act = fAct
-  LibAction[sKey].Dat = tDat
+  libAction[sKey].Act = fAct
+  libAction[sKey].Dat = tDat
   return true
 end
 
 function GetActionCode(sKey)
   if(not (sKey and IsString(sKey))) then return StatusLog(nil,"GetActionCode: ") end
-  if(not (LibAction and LibAction[sKey])) then return nil end
-  return LibAction[sKey].Act
+  if(not (libAction and libAction[sKey])) then return nil end
+  return libAction[sKey].Act
 end
 
 function GetActionData(sKey)
   if(not (sKey and IsString(sKey))) then return nil end
-  if(not (LibAction and LibAction[sKey])) then return nil end
-  return LibAction[sKey].Dat
+  if(not (libAction and libAction[sKey])) then return nil end
+  return libAction[sKey].Dat
 end
 
 function CallAction(sKey,A1,A2,A3,A4)
   if(not (sKey and IsString(sKey))) then return false end
-  if(not (LibAction and LibAction[sKey])) then return false end
-  return LibAction[sKey].Act(A1,A2,A3,A4,LibAction[sKey].Dat)
+  if(not (libAction and libAction[sKey])) then return false end
+  return libAction[sKey].Act(A1,A2,A3,A4,libAction[sKey].Dat)
 end
 
 function IsOther(oEnt)
@@ -862,7 +862,7 @@ function GetFrequentModels(snCount)
   if(snCount < 1) then return StatusLog(nil,"GetFrequentModels: Count not applicable") end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not IsExistent(defTable)) then return StatusLog(nil,"GetFrequentModels: Missing: Table definition") end
-  local Cache = LibCache[defTable.Name]
+  local Cache = libCache[defTable.Name]
   if(not IsExistent(Cache)) then return StatusLog(nil,"GetFrequentModels: Missing: Table cache") end
   local iInd, tmNow = 1, Time()
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
@@ -1755,11 +1755,11 @@ function EmitSoundPly(pPly)
 end
 
 function LoadPlyKey(pPly, sKey)
-  local CacheKey = GetOpVar("HASH_PLAYER_KEYDOWN")
-  local Cache    = LibCache[CacheKey]
+  local keyPly = GetOpVar("HASH_PLAYER_KEYDOWN")
+  local Cache  = libCache[keyPly]
   if(not IsExistent(Cache)) then
-    LibCache[CacheKey] = {}
-    Cache = LibCache[CacheKey]
+    libCache[keyPly] = {}
+    Cache = libCache[keyPly]
   end
   if(not pPly) then return StatusLog(nil,"LoadPlyKey: Player not available") end
   local spName = pPly:GetName()
@@ -1981,12 +1981,12 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
   local Field = 1
   local Where = 1
   local Order = 1
-  local CacheKey = GetOpVar("HASH_QUERY_STORE")
-  local Cache    = LibCache[CacheKey]
+  local keyStore = GetOpVar("HASH_QUERY_STORE")
+  local Cache    = libCache[keyStore]
   local namTable = defTable.Name
   if(not IsExistent(Cache)) then
-    LibCache[CacheKey] = {}
-    Cache = LibCache[CacheKey]
+    libCache[keyStore] = {}
+    Cache = libCache[keyStore]
   end
   local Place = Cache[namTable]
   if(not IsExistent(Place)) then
@@ -2245,7 +2245,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     defField[4] = StringDefault(tostring(defField[4] or sDisable), sDisable)
     Cnt = Cnt + 1
   end
-  LibCache[namTable] = {}
+  libCache[namTable] = {}
   if(sModeDB == "SQL") then
     defTable.Life = tonumber(defTable.Life) or 0
     local tQ = SQLBuildCreate(defTable)
@@ -2351,7 +2351,7 @@ function InsertRecord(sTable,tData)
     if(not IsExistent(snPrimayKey)) then
       return StatusLog(false,"InsertRecord: Cannot match primary key")
     end
-    local Cache = LibCache[namTable]
+    local Cache = libCache[namTable]
     if(not IsExistent(Cache)) then
       return StatusLog(false,"InsertRecord: Cache not allocated for "..namTable)
     end
@@ -2567,13 +2567,13 @@ function CacheQueryPiece(sModel)
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then return StatusLog(nil,"CacheQueryPiece: Missing: Table definition") end
   local namTable = defTable.Name
-  local Cache    = LibCache[namTable]
+  local Cache    = libCache[namTable]
   if(not IsExistent(Cache)) then return StatusLog(nil,"CacheQueryPiece: Cache not allocated for "..namTable) end
-  local CacheInd = {namTable,sModel}
+  local caInd    = {namTable,sModel}
   local stPiece  = Cache[sModel]
-  if(stPiece and IsExistent(stPiece.Kept)) then
+  if(IsExistent(stPiece) and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
-      return RestartTimer(LibCache,CacheInd,defTable,"CacheQueryPiece")
+      return RestartTimer(libCache,caInd,defTable,"CacheQueryPiece")
     end
     return nil
   else
@@ -2605,9 +2605,9 @@ function CacheQueryPiece(sModel)
         end
         stPiece.Kept = stPiece.Kept + 1
       end
-      return AttachTimer(LibCache,CacheInd,defTable,"CacheQueryPiece")
+      return AttachTimer(libCache,caInd,defTable,"CacheQueryPiece")
     elseif(sModeDB == "LUA") then
-      return nil -- The whole DB is in the cache
+      return StatusLog(nil,"CacheQueryPiece: Record not located")
     else
       return StatusLog(nil,"CacheQueryPiece: Wrong database mode >"..sModeDB.."<")
     end
@@ -2623,13 +2623,13 @@ function CacheQueryAdditions(sModel)
   if(not defTable) then return StatusLog(nil,"CacheQueryAdditions: Missing: Table definition") end
   local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   local namTable = defTable.Name
-  local Cache    = LibCache[namTable]
+  local Cache    = libCache[namTable]
   if(not IsExistent(Cache)) then return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for "..namTable) end
-  local CacheInd = {namTable,sModel}
+  local caInd    = {namTable,sModel}
   local stAddition = Cache[sModel]
-  if(stAddition and IsExistent(stAddition.Kept)) then
+  if(IsExistent(stAddition) and IsExistent(stAddition.Kept)) then
     if(stAddition.Kept > 0) then
-      return RestartTimer(LibCache,CacheInd,defTable,"CacheQueryAdditions")
+      return RestartTimer(libCache,caInd,defTable,"CacheQueryAdditions")
     end
     return nil
   else
@@ -2653,9 +2653,9 @@ function CacheQueryAdditions(sModel)
         end
         stAddition.Kept = stAddition.Kept + 1
       end
-      return AttachTimer(LibCache,CacheInd,defTable,"CacheQueryAdditions")
+      return AttachTimer(libCache,caInd,defTable,"CacheQueryAdditions")
     elseif(sModeDB == "LUA") then
-      return nil -- The whole DB is in the cache
+      return StatusLog(nil,"CacheQueryAdditions: Record not located")
     else
       return StatusLog(nil,"CacheQueryAdditions: Wrong database mode >"..sModeDB.."<")
     end
@@ -2670,18 +2670,23 @@ function CacheQueryPanel()
   if(not defTable) then
     return StatusLog(false,"CacheQueryPanel: Missing: Table definition")
   end
-  local PanelKey = GetOpVar("HASH_USER_PANEL")
-  if(not IsExistent(LibCache[defTable.Name])) then
-    return StatusLog(nil,"CacheQueryPanel: Cache not allocated for "..defTable.Name)
+  local namTable = defTable.Name
+  local keyPanel = GetOpVar("HASH_USER_PANEL")
+  if(not IsExistent(libCache[namTable])) then
+    return StatusLog(nil,"CacheQueryPanel: Cache not allocated for "..namTable)
   end
-  local Cache = LibCache[defTable.Name]
-  local Panel = LibCache[PanelKey]
-  if(IsExistent(Panel)) then
+  local Cache = libCache[namTable]
+  local Panel = libCache[keyPanel]
+  local caInd = {namTable,sModel}
+  if(IsExistent(Panel) and IsExistent(Panel.Kept)) then
     LogInstance("CacheQueryPanel: From Pool")
-    return Panel
+    if(stAddition.Kept > 0) then
+      return RestartTimer(libCache,caInd,defTable,"CacheQueryPanel")
+    end
+    return nil
   else
-    LibCache[PanelKey] = {}
-    Panel = LibCache[PanelKey]
+    libCache[keyPanel] = {}
+    Panel = libCache[keyPanel]
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
@@ -2689,11 +2694,12 @@ function CacheQueryPanel()
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPanel: SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel: No data found >"..Q.."<") end
-      local iNdex = 1
-      while(qData[iNdex]) do
-        Panel[iNdex] = qData[iNdex]
-        iNdex = iNdex + 1
+      Panel.Kept = 1
+      while(qData[Panel.Kept]) do
+        Panel[Panel.Kept] = qData[Panel.Kept]
+        Panel.Kept = Panel.Kept + 1
       end
+      return AttachTimer(libCache,caInd,defTable,"CacheQueryPanel")
     elseif(sModeDB == "LUA") then
       local tData = {}
       local iNdex = 0
@@ -2707,11 +2713,11 @@ function CacheQueryPanel()
         Panel[iNdex] = tData[tSorted[iNdex].Key]
         iNdex = iNdex + 1
       end
+      return Panel
     else
       return StatusLog(nil,"CacheQueryPanel: Wrong database mode >"..sModeDB.."<")
     end
     LogInstance("CacheQueryPanel: To Pool")
-    return Panel
   end
 end
 
@@ -2722,62 +2728,76 @@ function CacheQueryProperty(sType)
     return StatusLog(nil,"CacheQueryProperty: Table definition missing")
   end
   local namTable = defTable.Name
-  local Cache    = LibCache[namTable]
+  local Cache    = libCache[namTable]
   if(not Cache) then
-    return StatusLog(nil,"CacheQueryProperty("..tostring(sType).."): Cache not allocated for "..namTable)
+    return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for "..namTable)
   end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and (sType ~= "")) then -- Get names per type
-    local sType    = MatchType(defTable,sType,1,false,"",true,true)
-    local CacheKey = GetOpVar("HASH_PROPERTY_NAMES")
-    if(not Cache[CacheKey]) then Cache[CacheKey] = {} end
-    Cache = Cache[CacheKey]
-    local CacheInd = {namTable,CacheKey,sType}
-    if(Cache and IsExistent(Cache[sType])) then
-      return RestartTimer(LibCache,CacheInd,defTable,"CacheQueryProperty")
+    local sType   = MatchType(defTable,sType,1,false,"",true,true)
+    local keyName = GetOpVar("HASH_PROPERTY_NAMES")
+    local Names   = Cache[keyName]
+    local caInd   = {namTable,keyName,sType}
+    if(not IsExistent(Names)) then
+      Cache[keyName] = {}
+      Names = Cache[keyName]
+    end
+    local stName = Names[sType]
+    if(IsExistent(stName) and IsExistent(stName.Kept)) then
+      LogInstance("CacheQueryProperty["..sType.."]: From Pool")
+      if(stName.Kept > 0) then
+        return RestartTimer(libCache,caInd,defTable,"CacheQueryProperty")
+      end
+      return nil
     else
       if(sModeDB == "SQL") then
+        Names[sType] = {}
+        stName = Names[sType]
+        stName.Kept = 0
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
-        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty("..sType.."): Build error: "..SQLBuildError()) end
+        if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
-        if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty("..sType.."): No data found >"..Q.."<") end
-        local qRec
-        local CntNam = 1
-        Cache[sType] = {}
-        while(qData[CntNam]) do
-          Cache[sType][CntNam] = qData[CntNam][defTable[3][1]]
-          CntNam = CntNam + 1
+        if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found >"..Q.."<") end
+        stName.Kept = 1
+        while(qData[stName.Kept]) do
+          stName[stName.Kept] = qData[stName.Kept][defTable[3][1]]
+          stName.Kept = stName.Kept + 1
         end
-        return AttachTimer(LibCache,CacheInd,defTable,"CacheQueryProperty")
+        return AttachTimer(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then
-        return StatusLog(nil,"CacheQueryProperty("..sType.."): Caching not available")
+        return StatusLog(nil,"CacheQueryProperty["..sType.."]: Record not located")
       else
-        return StatusLog(nil,"CacheQueryProperty("..sType.."): Wrong database mode >"..sModeDB.."<")
+        return StatusLog(nil,"CacheQueryProperty["..sType.."]: Wrong database mode >"..sModeDB.."<")
       end
     end
   else
-    local CacheKey = GetOpVar("HASH_PROPERTY_TYPES")
-    if(Cache and IsExistent(Cache[CacheKey])) then -- Get All type names
-      return Cache[CacheKey]
+    local keyType = GetOpVar("HASH_PROPERTY_TYPES")
+    local stType  = Cache[keyType]
+    if(IsExistent(stType) and IsExistent(stType.Kept)) then -- Get All type names
+      LogInstance("CacheQueryProperty: From Pool")
+      if(stType.Kept > 0) then
+        return RestartTimer(libCache,caInd,defTable,"CacheQueryProperty")
+      end
+      return nil
     else
       if(sModeDB == "SQL") then
+        Cache[keyType] = {}
+        stType = Cache[keyType]
+        stType.Kept = 0
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty: Build error: "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty: No data found >"..Q.."<") end
-        local qRec
-        local CntTyp = 1
-        Cache[CacheKey] = {}
-        Cache = Cache[CacheKey]
-        while(qData[CntTyp]) do
-          Cache[CntTyp] = qData[CntTyp][defTable[1][1]]
-          CntTyp = CntTyp + 1
+        stType.Kept = 1
+        while(qData[stType.Kept]) do
+          stType[stType.Kept] = qData[stType.Kept][defTable[1][1]]
+          stType.Kept = stType.Kept + 1
         end
-        return Cache
+        return AttachTimer(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then
-        return StatusLog(nil,"CacheQueryProperty: Caching not available")
+        return StatusLog(nil,"CacheQueryProperty: Record not located")
       else
         return StatusLog(nil,"CacheQueryProperty: Wrong database mode >"..sModeDB.."<")
       end
@@ -2956,7 +2976,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       iCnt = iCnt + 1
     end
   elseif(sModeDB == "LUA") then
-    local Cache = LibCache[namTable]
+    local Cache = libCache[namTable]
     if(not IsExistent(Cache)) then
       return StatusLog(false,"ExportIntoFile: Table "..namTable.." cache not allocated")
     end
