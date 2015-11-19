@@ -2462,9 +2462,7 @@ end
 local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return StatusLog(nil,"AttachTimer: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
-  if(not (IsExistent(Place) and IsExistent(Key))) then
-    return StatusLog(nil,"AttachTimer: Navigation failed")
-  end
+  if(not (IsExistent(Place) and IsExistent(Key))) then return StatusLog(nil,"AttachTimer: Navigation failed") end
   if(not IsExistent(Place[Key])) then return StatusLog(nil,"AttachTimer: Place not found") end
   if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
   local tTimer = defTable.Timer
@@ -2527,20 +2525,21 @@ local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
 end
 
 local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
-  if(not defTable) then return nil end
-  if(not defTable.Timer) then return nil end
-  local tTimer = defTable.Timer
-  if(not (tTimer and tTimer[1] and tTimer[2])) then return false end
-  local nLife = tonumber(tTimer[2]) or 0
-  if(nLife <= 0) then return false end
-  local sModeDB = GetOpVar("MODE_DATABASE")
+  if(not defTable) then return StatusLog(nil,"RestartTimer: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
-  if(not (IsExistent(Place) and IsExistent(Key))) then
-    return StatusLog(nil,"RestartTimer: Navigation failed")
-  end
+  if(not (IsExistent(Place) and IsExistent(Key))) then return StatusLog(nil,"RestartTimer: Navigation failed") end
+  if(not IsExistent(Place[Key])) then return StatusLog(nil,"RestartTimer: Place not found") end
+  if(not defTable.Timer) then return StatusLog(nil,"RestartTimer: Missing table definition") end
+  local tTimer = defTable.Timer
+  if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"RestartTimer: Missing timer settings") end
+  local sModeTM = tTimer[1]
+  local nLifeTM = tTimer[2]
+  if(not (IsExistent(sModeTM) and IsExistent(nLifeTM))) then return StatusLog(Place[Key],"RestartTimer: Missing timer mode/life") end
+  if(nLifeTM <= 0) then return StatusLog(Place[Key],"RestartTimer: Timer life ignored") end
+  local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
     Place[Key].Used = Time()
-    local sModeTM = tostring(tTimer[1] or "CQT")
+    local sModeTM = tTimer[1]
     if(sModeTM == "CQT") then
       sModeTM = "CQT"
     elseif(sModeTM == "OBJ") then
