@@ -912,14 +912,13 @@ function TOOL.BuildCPanel(CPanel)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end
     else
-      asmlib.PrintInstance(gsToolNameU..": Model "
-            ..Mod.." is not available in".." your system .. SKIPPING !")
+      asmlib.PrintInstance("Model <"..Mod.."> is not available in your system .. SKIPPING !")
     end
     Cnt = Cnt + 1
   end
   CPanel:AddItem(pTree)
   CurY = CurY + pTree:GetTall() + 2
-  asmlib.LogInstance(gsToolNameU..": Found #"..tostring(Cnt-1).." piece items.")
+  asmlib.LogInstance("Found #"..tostring(Cnt-1).." piece items.")
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local pComboPhysType = vgui.Create("DComboBox")
@@ -957,13 +956,15 @@ function TOOL.BuildCPanel(CPanel)
           end
           CntNam = CntNam + 1
         end
+      else
+        asmlib.PrintInstance("PhysType <"..sVal.."> has no names available")
       end
     end
     CntTyp = CntTyp + 1
   end
   CPanel:AddItem(pComboPhysType)
   CPanel:AddItem(pComboPhysName)
-  asmlib.LogInstance(gsToolNameU..": Found #"..(CntTyp-1).." material types.")
+  asmlib.LogInstance("Found #"..(CntTyp-1).." material types.")
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local pText = vgui.Create("DTextEntry")
