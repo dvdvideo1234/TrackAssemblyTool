@@ -866,9 +866,7 @@ function TOOL.BuildCPanel(CPanel)
   CurY = CurY + 25
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local Panel = asmlib.CacheQueryPanel()
-  if(not Panel) then
-    return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty")
-  end
+  if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
   local pTree = vgui.Create("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 250)
@@ -929,13 +927,10 @@ function TOOL.BuildCPanel(CPanel)
   local pComboPhysName = vgui.Create("DComboBox")
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
-        pComboPhysName:SetValue(asmlib.StringDefault(
-          asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
+        pComboPhysName:SetValue(asmlib.StringDefault(asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local Property = asmlib.CacheQueryProperty()
-  if(not Property) then
-    return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty")
-  end
+  if(not Property) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty") end
   asmlib.Print(Property,"Property")
   local CntTyp = 1
   local qNames, Type
@@ -971,11 +966,10 @@ function TOOL.BuildCPanel(CPanel)
         pText:SetPos(2, CurY)
         pText:SetTall(18)
         pText:SetText(asmlib.StringDefault(asmlib.GetCoVar("bgskids", "STR"),
-                 "Comma delimited Body/Skin IDs > ENTER ( TAB to Auto-fill from Trace )"))
+                      "Comma delimited Body/Skin IDs > ENTER ( TAB to Auto-fill from Trace )"))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
-            local sTX = asmlib.GetPropBodyGrp()
-                ..gsSymDir..asmlib.GetPropSkin()
+            local sTX = asmlib.GetPropBodyGrp()..gsSymDir..asmlib.GetPropSkin()
             pnSelf:SetText(sTX)
             pnSelf:SetValue(sTX)
           elseif(nKeyEnum == KEY_ENTER) then
@@ -984,7 +978,6 @@ function TOOL.BuildCPanel(CPanel)
           end
         end
         CurY = CurY + pText:GetTall() + 2
-
   CPanel:AddItem(pText)
 
   CPanel:AddControl("Slider", {
