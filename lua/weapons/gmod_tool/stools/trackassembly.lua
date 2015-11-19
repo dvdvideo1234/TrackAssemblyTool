@@ -933,7 +933,6 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetValue(asmlib.StringDefault(
           asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
-  local defTable = asmlib.GetOpVar("DEFTABLE_PHYSPROPERTIES")
   local Property = asmlib.CacheQueryProperty()
   if(not Property) then
     return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty")
