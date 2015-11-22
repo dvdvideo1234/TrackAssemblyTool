@@ -1387,9 +1387,9 @@ function LogInstance(anyStuff)
       iNdex = iNdex + 1
       sOnly = logOnly[iNdex]
     end
-    if((not logHere) and IsBool(logHere)) then
-      return
-    end
+  end
+  if((not logHere) and IsBool(logHere)) then
+    return
   end
   if(SERVER) then
     Log("SERVER > ["..sModeDB.."] "..anyStuff)
@@ -2404,6 +2404,7 @@ function InsertRecord(sTable,tData)
       if(not tTypes) then
         Cache[sKeyType] = {}
         tTypes = Cache[sKeyType]
+        tTypes.Kept = 0
       end
       if(not tNames) then
         Cache[sKeyName] = {}
@@ -2413,11 +2414,15 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(iNameID)) then return StatusLog(nil,"InsertRecord: Cannot match "..defTable[2][1]) end
       if(not IsExistent(tNames[snPrimayKey])) then
         -- If a new type is inserted
-        local lenTypes = ArrayCount(tTypes)
-        tTypes[lenTypes + 1] = MatchType(defTable,snPrimayKey,1)
+        tTypes.Kept = tTypes.Kept + 1
+        tTypes[tTypes.Kept] = MatchType(defTable,snPrimayKey,1)
         tNames[snPrimayKey] = {}
+        tNames[snPrimayKey].Kept = 0
       end
       tNames[snPrimayKey][iNameID] = MatchType(defTable,tData[3],3)
+      tNames[snPrimayKey].Kept = iNameID
+      Print(tTypes,"tTypes_asd")
+      Print(tNames,"tNames_asd")
     else
       return StatusLog(false,"InsertRecord: No settings for table "..sTable)
     end
@@ -2430,19 +2435,14 @@ local function NavigateTable(oLocation,tKeys)
   if(not IsExistent(oLocation)) then return StatusLog(nil,"NavigateTable: Location missing") end
   if(not IsExistent(tKeys)) then return StatusLog(nil,"NavigateTable: Key table missing") end
   if(not IsExistent(tKeys[1])) then return StatusLog(nil,"NavigateTable: First key missing") end
-  local Cnt = 1
-  local Place, Key
+  local Place, Key, Cnt = oLocation, tKeys[1], 1
   while(tKeys[Cnt]) do
     Key = tKeys[Cnt]
-    if(Place) then
-      if(tKeys[Cnt+1]) then
-        Place = Place[Key]
-        if(not IsExistent(Place)) then return StatusLog(nil,"NavigateTable: Key #"..tostring(Key).." irrelevant to location") end
-      end
-    else
-      Place = oLocation[Key]
-      if(not IsExistent(Place)) then return StatusLog(nil,"NavigateTable: First key irrelevant to location") end
-    end
+    if(tKeys[Cnt+1]) then
+      Place = Place[Key]
+      LogInstance("NavigateTable: Step ["..Key.."]")
+      if(not IsExistent(Place)) then return StatusLog(nil,"NavigateTable: Key #"..tostring(Key).." irrelevant to location") end
+    end    
     Cnt = Cnt + 1
   end
   return Place, Key
@@ -2452,8 +2452,8 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
   if(not IsExistent(sTimerSet)) then return StatusLog(nil,"TimerSetting: No setting netting") end
   if(not IsString(sTimerSet)) then return StatusLog(nil,"TimerSetting: Setting not a string") end
   local tBoom = StringExplode(sTimerSet,GetOpVar("OPSYM_REVSIGN"))
-  tBoom[1] = tostring(tBoom[1] or "CQT")
-  tBoom[2] = (tonumber(tBoom[2])  or 0)
+  tBoom[1] =   tostring(tBoom[1]  or "CQT")
+  tBoom[2] =  (tonumber(tBoom[2]) or 0)
   tBoom[3] = ((tonumber(tBoom[3]) or 0) ~= 0) and true or false
   tBoom[4] = ((tonumber(tBoom[4]) or 0) ~= 0) and true or false
   return tBoom
@@ -2463,7 +2463,7 @@ local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
   if(not defTable) then return StatusLog(nil,"AttachTimer: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then return StatusLog(nil,"AttachTimer: Navigation failed") end
-  if(not IsExistent(Place[Key])) then return StatusLog(nil,"AttachTimer: Place not found") end
+  if(not IsExistent(Place[Key])) then return StatusLog(nil,"AttachTimer: Data not found") end
   if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
   local tTimer = defTable.Timer
   if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"AttachTimer: Missing timer settings") end
@@ -2472,6 +2472,7 @@ local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
   if(not (IsExistent(sModeTM) and IsExistent(nLifeTM))) then return StatusLog(Place[Key],"AttachTimer: Missing timer mode/life") end
   if(nLifeTM <= 0) then return StatusLog(Place[Key],"AttachTimer: Timer life ignored") end
   local sModeDB = GetOpVar("MODE_DATABASE")
+  LogInstance("AttachTimer: Called by <"..anyMessage..">")
   if(sModeDB == "SQL") then
     LogInstance("AttachTimer: Place["..tostring(Key).."] Marked !")
     local bKillRC = tTimer[3]
@@ -2674,18 +2675,17 @@ function CacheQueryPanel()
   if(not IsExistent(libCache[namTable])) then
     return StatusLog(nil,"CacheQueryPanel: Cache not allocated for "..namTable)
   end
-  local Cache = libCache[namTable]
-  local Panel = libCache[keyPanel]
-  local caInd = {namTable,sModel}
-  if(IsExistent(Panel) and IsExistent(Panel.Kept)) then
+  local stPanel = libCache[keyPanel]
+  local caInd = {keyPanel}
+  if(IsExistent(stPanel) and IsExistent(stPanel.Kept)) then
     LogInstance("CacheQueryPanel: From Pool")
-    if(stAddition.Kept > 0) then
+    if(stPanel.Kept > 0) then
       return RestartTimer(libCache,caInd,defTable,"CacheQueryPanel")
     end
     return nil
   else
     libCache[keyPanel] = {}
-    Panel = libCache[keyPanel]
+    stPanel = libCache[keyPanel]
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
@@ -2693,13 +2693,14 @@ function CacheQueryPanel()
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPanel: SQL exec error "..sql.LastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel: No data found >"..Q.."<") end
-      Panel.Kept = 1
-      while(qData[Panel.Kept]) do
-        Panel[Panel.Kept] = qData[Panel.Kept]
-        Panel.Kept = Panel.Kept + 1
+      stPanel.Kept = 1
+      while(qData[stPanel.Kept]) do
+        stPanel[stPanel.Kept] = qData[stPanel.Kept]
+        stPanel.Kept = stPanel.Kept + 1
       end
       return AttachTimer(libCache,caInd,defTable,"CacheQueryPanel")
     elseif(sModeDB == "LUA") then
+      local Cache = libCache[namTable]
       local tData = {}
       local iNdex = 0
       for sModel, tRecord in pairs(Cache) do
@@ -2709,10 +2710,10 @@ function CacheQueryPanel()
       if(not tSorted) then return StatusLog(nil,"CacheQueryPanel: Cannot sort cache data") end
       iNdex = 1
       while(tSorted[iNdex]) do
-        Panel[iNdex] = tData[tSorted[iNdex].Key]
+        stPanel[iNdex] = tData[tSorted[iNdex].Key]
         iNdex = iNdex + 1
       end
-      return Panel
+      return stPanel
     else
       return StatusLog(nil,"CacheQueryPanel: Wrong database mode >"..sModeDB.."<")
     end
@@ -2735,13 +2736,13 @@ function CacheQueryProperty(sType)
   if(IsString(sType) and (sType ~= "")) then -- Get names per type
     local sType   = MatchType(defTable,sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
-    local Names   = Cache[keyName]
+    local arNames = Cache[keyName]
     local caInd   = {namTable,keyName,sType}
-    if(not IsExistent(Names)) then
+    if(not IsExistent(arNames)) then
       Cache[keyName] = {}
-      Names = Cache[keyName]
+      arNames = Cache[keyName]
     end
-    local stName = Names[sType]
+    local stName = arNames[sType]
     if(IsExistent(stName) and IsExistent(stName.Kept)) then
       LogInstance("CacheQueryProperty["..sType.."]: From Pool")
       if(stName.Kept > 0) then
@@ -2750,8 +2751,8 @@ function CacheQueryProperty(sType)
       return nil
     else
       if(sModeDB == "SQL") then
-        Names[sType] = {}
-        stName = Names[sType]
+        arNames[sType] = {}
+        stName = arNames[sType]
         stName.Kept = 0
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: "..SQLBuildError()) end
@@ -2773,6 +2774,7 @@ function CacheQueryProperty(sType)
   else
     local keyType = GetOpVar("HASH_PROPERTY_TYPES")
     local stType  = Cache[keyType]
+    local caInd   = {namTable,keyType}
     if(IsExistent(stType) and IsExistent(stType.Kept)) then -- Get All type names
       LogInstance("CacheQueryProperty: From Pool")
       if(stType.Kept > 0) then
