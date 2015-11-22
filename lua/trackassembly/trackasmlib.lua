@@ -2442,7 +2442,7 @@ local function NavigateTable(oLocation,tKeys)
       Place = Place[Key]
       LogInstance("NavigateTable: Step ["..Key.."]")
       if(not IsExistent(Place)) then return StatusLog(nil,"NavigateTable: Key #"..tostring(Key).." irrelevant to location") end
-    end    
+    end
     Cnt = Cnt + 1
   end
   return Place, Key
