@@ -2421,8 +2421,6 @@ function InsertRecord(sTable,tData)
       end
       tNames[snPrimayKey][iNameID] = MatchType(defTable,tData[3],3)
       tNames[snPrimayKey].Kept = iNameID
-      Print(tTypes,"tTypes_asd")
-      Print(tNames,"tNames_asd")
     else
       return StatusLog(false,"InsertRecord: No settings for table "..sTable)
     end
