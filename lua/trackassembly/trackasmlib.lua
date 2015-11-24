@@ -1305,7 +1305,7 @@ function Sort(tTable,tKeys,tFields,sMethod)
     Key = tKeys[Cnt]
     Val = tTable[Key]
     if(not Val) then
-      return StatusLog(nil,"Sort: Key >"..Key.."< does not exist in the primary table")
+      return StatusLog(nil,"Sort: Key <"..Key.."> does not exist in the primary table")
     end
     Match[Cnt] = {}
     Match[Cnt].Key = Key
@@ -1315,7 +1315,7 @@ function Sort(tTable,tKeys,tFields,sMethod)
       while(tFields[Ind]) do
         Fld = tFields[Ind]
         if(not IsExistent(Val[Fld])) then
-          return StatusLog(nil,"Sort: Field >"..Fld.."< not found on the current record")
+          return StatusLog(nil,"Sort: Field <"..Fld.."> not found on the current record")
         end
         Match[Cnt].Val = Match[Cnt].Val..tostring(Val[Fld])
         Ind = Ind + 1
@@ -1333,7 +1333,7 @@ function Sort(tTable,tKeys,tFields,sMethod)
   elseif(sMethod == "BBL") then
     Bsort(Match,1,Cnt-1)
   else
-    return StatusLog(nil,"Sort: Method >"..sMethod.."< not found")
+    return StatusLog(nil,"Sort: Method <"..sMethod.."> not found")
   end
   return Match
 end
@@ -1791,7 +1791,7 @@ function LoadPlyKey(pPly, sKey)
     if(sKey == "DEBUG") then
       return Cache
     end
-    LogInstance("LoadPlyKey: NamePK >"..sKey.."< = "..tostring(Cache[sKey]))
+    LogInstance("LoadPlyKey: NamePK <"..sKey.."> = "..tostring(Cache[sKey]))
     return Cache[sKey]
   end
   Cache["ALTLFT"]  = pPly:KeyDown(IN_ALT1      )
@@ -1812,7 +1812,7 @@ function LoadPlyKey(pPly, sKey)
   Cache["LEFT"]    = pPly:KeyDown(IN_LEFT      )
   Cache["RIGHT"]   = pPly:KeyDown(IN_RIGHT     )
   Cache["WALK"]    = pPly:KeyDown(IN_WALK      )
-  return StatusLog(nil,"LoadPlyKey: Player >"..spName.."< keys loaded")
+  return StatusLog(nil,"LoadPlyKey: Player <"..spName.."> keys loaded")
 end
 
 -------------------------- AssemblyLib BUILDSQL ------------------------------
@@ -1840,7 +1840,7 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
       elseif(sModeDB == "LUA") then
         snOut = "NULL"
       else
-        return StatusLog(nil,"MatchType: Wrong database mode >"..sModeDB.."<")
+        return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB..">")
       end
     end
     if(defField[3] == "LOW") then
@@ -1867,8 +1867,8 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
   elseif(tipField == "REAL" or tipField == "INTEGER") then
     snOut = tonumber(snValue)
     if(not snOut) then
-      return StatusLog(nil,"MatchType: Failed converting >"
-               ..tostring(snValue).."< "..type(snValue)
+      return StatusLog(nil,"MatchType: Failed converting <"
+               ..tostring(snValue).."> "..type(snValue)
                .." to NUMBER for table "..defTable.Name.." field #"..nIndex)
     end
     if(tipField == "INTEGER") then
@@ -1879,8 +1879,8 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
       end
     end
   else
-    return StatusLog(nil,"MatchType: Invalid: Field type >"..tipField
-                                     .."< on table "..defTable.Name)
+    return StatusLog(nil,"MatchType: Invalid: Field type <"..tipField
+                                     .."> on table "..defTable.Name)
   end
   return snOut
 end
@@ -2139,7 +2139,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       v = MatchType(defTable,v,k,true)
       if(not IsExistent(v)) then
         return SQLBuildError("SQLBuildSelect: Data matching failed on "
-          ..namTable.." field index #"..Cnt.." value >"..tostring(v).."<")
+          ..namTable.." field index #"..Cnt.." value <"..tostring(v)..">")
       end
       if(Cnt == 1) then
         Command = Command.." WHERE "..defTable[k][1].." = "..v
@@ -2210,7 +2210,7 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
     end
     Val = MatchType(defTable,tValues[iCnt],Ind,true)
     if(not IsExistent(Val)) then
-      return SQLBuildError("SQLBuildInsert: Cannot match value >"..tostring(tValues[iCnt]).."< #"..Ind.." on table "..namTable)
+      return SQLBuildError("SQLBuildInsert: Cannot match value <"..tostring(tValues[iCnt]).."> #"..Ind.." on table "..namTable)
     end
     qIns = qIns..Fld[1]
     qVal = qVal..Val
@@ -2296,7 +2296,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   elseif(sModeDB == "LUA") then
     sModeDB = "LUA" -- Gust to do something here.
   else
-    return StatusLog(false,"CreateTable: Wrong database mode >"..sModeDB.."<")
+    return StatusLog(false,"CreateTable: Wrong database mode <"..sModeDB..">")
   end
 end
 
@@ -2343,18 +2343,18 @@ function InsertRecord(sTable,tData)
     local qRez = sql.Query(Q)
     if(not qRez and IsBool(qRez)) then
        return StatusLog(false,"InsertRecord: Failed to insert a record because of "
-              ..tostring(sql.LastError()).." Query ran >"..Q.."<")
+              ..tostring(sql.LastError()).." Query ran <"..Q..">")
     end
     return true
   elseif(sModeDB == "LUA") then
     local snPrimayKey = MatchType(defTable,tData[1],1)
     if(not IsExistent(snPrimayKey)) then
-      return StatusLog(false,"InsertRecord: Cannot match primary key")
+      return StatusLog(nil,"InsertRecord: Cannot match "
+                          ..sTable.." <"..tostring(tData[1]).."> to "
+                          ..defTable[1][1].." for "..tostring(snPrimayKey))
     end
     local Cache = libCache[namTable]
-    if(not IsExistent(Cache)) then
-      return StatusLog(false,"InsertRecord: Cache not allocated for "..namTable)
-    end
+    if(not IsExistent(Cache)) then return StatusLog(false,"InsertRecord: Cache not allocated for "..namTable) end
     if(sTable == "PIECES") then
       local tLine = Cache[snPrimayKey]
       if(not tLine) then
@@ -2366,15 +2366,15 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0        end
       local nOffsID = MatchType(defTable,tData[4],4)
       if(not IsExistent(nOffsID)) then
-        return StatusLog(nil,"InsertRecord: Cannot match offset ID")
+        return StatusLog(nil,"InsertRecord: Cannot match "
+                            ..sTable.." <"..tostring(tData[4]).."> to "
+                            ..defTable[4][1].." for "..tostring(snPrimayKey))
       end
       local stRezul = RegisterPOA(tLine,nOffsID,tData[5],tData[6],tData[7])
       if(not IsExistent(stRezul)) then
         return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID).." for "..tostring(snPrimayKey))
       end
-      if(nOffsID > tLine.Kept) then
-        tLine.Kept = nOffsID
-      else
+      if(nOffsID > tLine.Kept) then tLine.Kept = nOffsID else
         return StatusLog(nil,"InsertRecord: Offset #"..tostring(nOffsID).." sequentiality mismatch")
       end
     elseif(sTable == "ADDITIONS") then
@@ -2384,14 +2384,21 @@ function InsertRecord(sTable,tData)
         tLine = Cache[snPrimayKey]
       end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0 end
-      local nCnt = 2 -- The base model is not needed
-      local sFld = ""
-      local nAddID = MatchType(defTable,tData[4],4)
+      local nCnt, sFld, nAddID = 2, "", MatchType(defTable,tData[4],4) -- The base model is not needed
+      if(not IsExistent(nAddID)) then
+        return StatusLog(nil,"InsertRecord: Cannot match "
+                            ..sTable.." <"..tostring(tData[4]).."> to "
+                            ..defTable[4][1].." for "..tostring(snPrimayKey))])
+      end
       tLine[nAddID] = {}
       while(nCnt <= defTable.Size) do
         sFld = defTable[nCnt][1]
         tLine[nAddID][sFld] = MatchType(defTable,tData[nCnt],nCnt)
-        if(not IsExistent(tLine[nAddID][sFld])) then return StatusLog(nil,"InsertRecord: Cannot match "..sFld) end
+        if(not IsExistent(tLine[nAddID][sFld])) then
+          return StatusLog(nil,"InsertRecord: Cannot match "
+                    ..sTable.." <"..tostring(tData[nCnt]).."> to "
+                    ..defTable[nCnt][1].." for "..tostring(snPrimayKey))
+        end
         nCnt = nCnt + 1
       end
       tLine.Kept = nAddID
@@ -2411,15 +2418,24 @@ function InsertRecord(sTable,tData)
         tNames = Cache[sKeyName]
       end
       local iNameID = MatchType(defTable,tData[2],2)
-      if(not IsExistent(iNameID)) then return StatusLog(nil,"InsertRecord: Cannot match "..defTable[2][1]) end
+      if(not IsExistent(iNameID)) then
+        return StatusLog(nil,"InsertRecord: Cannot match "
+                            ..sTable.." <"..tostring(tData[2]).."> to "
+                            ..defTable[2][1].." for "..tostring(snPrimayKey))
+      end
       if(not IsExistent(tNames[snPrimayKey])) then
         -- If a new type is inserted
         tTypes.Kept = tTypes.Kept + 1
-        tTypes[tTypes.Kept] = MatchType(defTable,snPrimayKey,1)
+        tTypes[tTypes.Kept] = snPrimayKey
         tNames[snPrimayKey] = {}
         tNames[snPrimayKey].Kept = 0
       end
       tNames[snPrimayKey][iNameID] = MatchType(defTable,tData[3],3)
+      if(not IsExistent(tNames[snPrimayKey][iNameID])) then
+        return StatusLog(nil,"InsertRecord: Cannot match "
+                            ..sTable.." <"..tostring(tData[3]).."> to "
+                            ..defTable[3][1].." for "..tostring(snPrimayKey))
+      end
       tNames[snPrimayKey].Kept = iNameID
     else
       return StatusLog(false,"InsertRecord: No settings for table "..sTable)
@@ -2586,7 +2602,7 @@ function CacheQueryPiece(sModel)
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece: Build error: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPiece: SQL exec error "..sql.LastError()) end
-      if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece: No data found >"..Q.."<") end
+      if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece: No data found <"..Q..">") end
       stPiece.Kept = 1 --- Found at least one record
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
@@ -2607,7 +2623,7 @@ function CacheQueryPiece(sModel)
     elseif(sModeDB == "LUA") then
       return StatusLog(nil,"CacheQueryPiece: Record not located")
     else
-      return StatusLog(nil,"CacheQueryPiece: Wrong database mode >"..sModeDB.."<")
+      return StatusLog(nil,"CacheQueryPiece: Wrong database mode <"..sModeDB..">")
     end
   end
 end
@@ -2641,7 +2657,7 @@ function CacheQueryAdditions(sModel)
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions: Build error: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryAdditions: SQL exec error "..sql.LastError()) end
-      if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryAdditions: No data found >"..Q.."<") end
+      if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryAdditions: No data found <"..Q..">") end
       stAddition.Kept = 1
       while(qData[stAddition.Kept]) do
         local qRec = qData[stAddition.Kept]
@@ -2655,7 +2671,7 @@ function CacheQueryAdditions(sModel)
     elseif(sModeDB == "LUA") then
       return StatusLog(nil,"CacheQueryAdditions: Record not located")
     else
-      return StatusLog(nil,"CacheQueryAdditions: Wrong database mode >"..sModeDB.."<")
+      return StatusLog(nil,"CacheQueryAdditions: Wrong database mode <"..sModeDB..">")
     end
   end
 end
@@ -2690,7 +2706,7 @@ function CacheQueryPanel()
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel: Build error: "..SQLBuildError()) end
       local qData = sql.Query(Q)
       if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPanel: SQL exec error "..sql.LastError()) end
-      if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel: No data found >"..Q.."<") end
+      if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel: No data found <"..Q..">") end
       stPanel.Kept = 1
       while(qData[stPanel.Kept]) do
         stPanel[stPanel.Kept] = qData[stPanel.Kept]
@@ -2713,7 +2729,7 @@ function CacheQueryPanel()
       end
       return stPanel
     else
-      return StatusLog(nil,"CacheQueryPanel: Wrong database mode >"..sModeDB.."<")
+      return StatusLog(nil,"CacheQueryPanel: Wrong database mode <"..sModeDB..">")
     end
     LogInstance("CacheQueryPanel: To Pool")
   end
@@ -2756,7 +2772,7 @@ function CacheQueryProperty(sType)
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
-        if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found >"..Q.."<") end
+        if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found <"..Q..">") end
         stName.Kept = 1
         while(qData[stName.Kept]) do
           stName[stName.Kept] = qData[stName.Kept][defTable[3][1]]
@@ -2766,7 +2782,7 @@ function CacheQueryProperty(sType)
       elseif(sModeDB == "LUA") then
         return StatusLog(nil,"CacheQueryProperty["..sType.."]: Record not located")
       else
-        return StatusLog(nil,"CacheQueryProperty["..sType.."]: Wrong database mode >"..sModeDB.."<")
+        return StatusLog(nil,"CacheQueryProperty["..sType.."]: Wrong database mode <"..sModeDB..">")
       end
     end
   else
@@ -2788,7 +2804,7 @@ function CacheQueryProperty(sType)
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty: Build error: "..SQLBuildError()) end
         local qData = sql.Query(Q)
         if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
-        if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty: No data found >"..Q.."<") end
+        if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty: No data found <"..Q..">") end
         stType.Kept = 1
         while(qData[stType.Kept]) do
           stType[stType.Kept] = qData[stType.Kept][defTable[1][1]]
@@ -2798,7 +2814,7 @@ function CacheQueryProperty(sType)
       elseif(sModeDB == "LUA") then
         return StatusLog(nil,"CacheQueryProperty: Record not located")
       else
-        return StatusLog(nil,"CacheQueryProperty: Wrong database mode >"..sModeDB.."<")
+        return StatusLog(nil,"CacheQueryProperty: Wrong database mode <"..sModeDB..">")
       end
     end
   end
@@ -2947,10 +2963,10 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       Q = SQLBuildSelect(defTable,nil,nil,nil)
     end
     if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile: Build error: "..SQLBuildError()) end
-    F:Write("# Query ran: >"..Q.."<\n")
+    F:Write("# Query ran: <"..Q..">\n")
     local qData = sql.Query(Q)
     if(not qData and IsBool(qData)) then return StatusLog(nil,"ExportIntoFile: SQL exec error "..sql.LastError()) end
-    if(not (qData and qData[1])) then return StatusLog(false,"ExportIntoFile: No data found >"..Q.."<") end
+    if(not (qData and qData[1])) then return StatusLog(false,"ExportIntoFile: No data found <"..Q..">") end
     local iCnt, iInd, qRec = 1, 1, nil
     if(sMethod == "DSV") then
       sData = namTable..sDelim
