@@ -2348,7 +2348,7 @@ function InsertRecord(sTable,tData)
     return true
   elseif(sModeDB == "LUA") then
     local snPrimayKey = MatchType(defTable,tData[1],1)
-    if(not IsExistent(snPrimayKey)) then
+    if(not IsExistent(snPrimayKey)) then -- If primary key becomes a number
       return StatusLog(nil,"InsertRecord: Cannot match "
                           ..sTable.." <"..tostring(tData[1]).."> to "
                           ..defTable[1][1].." for "..tostring(snPrimayKey))
@@ -2364,7 +2364,7 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(tLine.Type)) then tLine.Type = tData[2] end
       if(not IsExistent(tLine.Name)) then tLine.Name = tData[3] end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0        end
-      local nOffsID = MatchType(defTable,tData[4],4)
+      local nOffsID = MatchType(defTable,tData[4],4) -- LineID has to be set properly
       if(not IsExistent(nOffsID)) then
         return StatusLog(nil,"InsertRecord: Cannot match "
                             ..sTable.." <"..tostring(tData[4]).."> to "
@@ -2384,8 +2384,8 @@ function InsertRecord(sTable,tData)
         tLine = Cache[snPrimayKey]
       end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0 end
-      local nCnt, sFld, nAddID = 2, "", MatchType(defTable,tData[4],4) -- The base model is not needed
-      if(not IsExistent(nAddID)) then
+      local nCnt, sFld, nAddID = 2, "", MatchType(defTable,tData[4],4)
+      if(not IsExistent(nAddID)) then -- LineID has to be set properly
         return StatusLog(nil,"InsertRecord: Cannot match "
                             ..sTable.." <"..tostring(tData[4]).."> to "
                             ..defTable[4][1].." for "..tostring(snPrimayKey))])
@@ -2394,7 +2394,7 @@ function InsertRecord(sTable,tData)
       while(nCnt <= defTable.Size) do
         sFld = defTable[nCnt][1]
         tLine[nAddID][sFld] = MatchType(defTable,tData[nCnt],nCnt)
-        if(not IsExistent(tLine[nAddID][sFld])) then
+        if(not IsExistent(tLine[nAddID][sFld])) then  -- ADDITIONS is full of numbers
           return StatusLog(nil,"InsertRecord: Cannot match "
                     ..sTable.." <"..tostring(tData[nCnt]).."> to "
                     ..defTable[nCnt][1].." for "..tostring(snPrimayKey))
@@ -2418,7 +2418,7 @@ function InsertRecord(sTable,tData)
         tNames = Cache[sKeyName]
       end
       local iNameID = MatchType(defTable,tData[2],2)
-      if(not IsExistent(iNameID)) then
+      if(not IsExistent(iNameID)) then -- LineID has to be set properly
         return StatusLog(nil,"InsertRecord: Cannot match "
                             ..sTable.." <"..tostring(tData[2]).."> to "
                             ..defTable[2][1].." for "..tostring(snPrimayKey))
@@ -2429,13 +2429,8 @@ function InsertRecord(sTable,tData)
         tTypes[tTypes.Kept] = snPrimayKey
         tNames[snPrimayKey] = {}
         tNames[snPrimayKey].Kept = 0
-      end
+      end -- MatchType crashes only on numbers
       tNames[snPrimayKey][iNameID] = MatchType(defTable,tData[3],3)
-      if(not IsExistent(tNames[snPrimayKey][iNameID])) then
-        return StatusLog(nil,"InsertRecord: Cannot match "
-                            ..sTable.." <"..tostring(tData[3]).."> to "
-                            ..defTable[3][1].." for "..tostring(snPrimayKey))
-      end
       tNames[snPrimayKey].Kept = iNameID
     else
       return StatusLog(false,"InsertRecord: No settings for table "..sTable)
@@ -2462,9 +2457,11 @@ local function NavigateTable(oLocation,tKeys)
   return Place, Key
 end
 
+--------------- TIMER MEMORY MANAGMENT ----------------------------
+
 function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps the defaults
-  if(not IsExistent(sTimerSet)) then return StatusLog(nil,"TimerSetting: No setting netting") end
-  if(not IsString(sTimerSet)) then return StatusLog(nil,"TimerSetting: Setting not a string") end
+  if(not IsExistent(sTimerSet)) then return StatusLog(nil,"TimerSetting: Timer set missing for setup") end
+  if(not IsString(sTimerSet)) then return StatusLog(nil,"TimerSetting: Timer set not a string but "..type(sTimerSet)) end
   local tBoom = StringExplode(sTimerSet,GetOpVar("OPSYM_REVSIGN"))
   tBoom[1] =   tostring(tBoom[1]  or "CQT")
   tBoom[2] =  (tonumber(tBoom[2]) or 0)
@@ -2473,101 +2470,94 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
   return tBoom
 end
 
-local function AttachTimer(oLocation,tKeys,defTable,anyMessage)
-  if(not defTable) then return StatusLog(nil,"AttachTimer: Missing table definition") end
+local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
+  if(not defTable) then return StatusLog(nil,"TimerAttach: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
-  if(not (IsExistent(Place) and IsExistent(Key))) then return StatusLog(nil,"AttachTimer: Navigation failed") end
-  if(not IsExistent(Place[Key])) then return StatusLog(nil,"AttachTimer: Data not found") end
-  if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
-  local tTimer = defTable.Timer
-  if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"AttachTimer: Missing timer settings") end
-  local sModeTM = tTimer[1]
-  local nLifeTM = tTimer[2]
-  if(not (IsExistent(sModeTM) and IsExistent(nLifeTM))) then return StatusLog(Place[Key],"AttachTimer: Missing timer mode/life") end
-  if(nLifeTM <= 0) then return StatusLog(Place[Key],"AttachTimer: Timer life ignored") end
+  if(not (IsExistent(Place) and IsExistent(Key))) then return StatusLog(nil,"TimerAttach: Navigation failed") end
+  if(not IsExistent(Place[Key])) then return StatusLog(nil,"TimerAttach: Data not found") end
   local sModeDB = GetOpVar("MODE_DATABASE")
-  LogInstance("AttachTimer: Called by <"..anyMessage..">")
+  LogInstance("TimerAttach: Called by <"..anyMessage.."> for Place["..tostring(Key).."]")
   if(sModeDB == "SQL") then
-    LogInstance("AttachTimer: Place["..tostring(Key).."] Marked !")
+    if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
+    local tTimer = defTable.Timer -- If we have a timer, and it does speak, we advise you send your regards..
+    if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"TimerAttach: Missing timer settings") end
+    local nLifeTM = tTimer[2]
+    if(nLifeTM <= 0) then return StatusLog(Place[Key],"TimerAttach: Timer attachment ignored") end
+    local sModeTM = tTimer[1]
     local bKillRC = tTimer[3]
     local bCollGB = tTimer[4]
-    LogInstance("AttachTimer: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
+    LogInstance("TimerAttach: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
       Place[Key].Load = Time()
       for k, v in pairs(Place) do
         if(IsExistent(v.Used) and IsExistent(v.Load) and ((v.Used - v.Load) > nLifeTM)) then
-          LogInstance("AttachTimer: ("..tostring(v.Used - v.Load).." > "
-               ..tostring(nLifeTM)..") "..tostring(anyMessage).." > Dead")
+          LogInstance("TimerAttach: ("..tostring(v.Used - v.Load).." > "..tostring(nLifeTM)..") > Dead")
           if(bKillRC) then
-            LogInstance("AttachTimer: Killed: Place["..tostring(k).."]")
+            LogInstance("TimerAttach: Killed: Place["..tostring(k).."]")
             Place[k] = nil
           end
         end
       end
       if(bCollGB) then
         collectgarbage()
-        LogInstance("AttachTimer: Garbage collected")
+        LogInstance("TimerAttach: Garbage collected")
       end
-      return StatusLog(Place[Key],"AttachTimer: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
+      return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
     elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,"_")
-      LogInstance("AttachTimer: TimID: <"..TimerID..">")
-      if(timer.Exists(TimerID)) then return StatusLog(Place[Key],"AttachTimer: Timer exists") end
+      LogInstance("TimerAttach: TimID: <"..TimerID..">")
+      if(timer.Exists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
       timer.Create(TimerID, nLifeTM, 1, function()
-        LogInstance("AttachTimer["..TimerID.."]("..nLifeTM.."): "
-                       ..tostring(anyMessage).." > Dead")
+        LogInstance("TimerAttach["..TimerID.."]("..nLifeTM..") > Dead")
         if(bKillRC) then
-          LogInstance("AttachTimer: Killed: Place["..Key.."]")
+          LogInstance("TimerAttach: Killed: Place["..Key.."]")
           Place[Key] = nil
         end
         timer.Stop(TimerID)
         timer.Destroy(TimerID)
         if(bCollGB) then
           collectgarbage()
-          LogInstance("AttachTimer: Garbage collected")
+          LogInstance("TimerAttach: Garbage collected")
         end
       end)
       timer.Start(TimerID)
       return Place[Key]
     else
-      return StatusLog(Place[Key],"AttachTimer: Timer mode not found: "..sModeTM)
+      return StatusLog(Place[Key],"TimerAttach: Timer mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
-    return StatusLog(Place[Key],"AttachTimer: Memory manager not available")
+    return StatusLog(Place[Key],"TimerAttach: Memory manager not available")
   else
-    return StatusLog(nil,"AttachTimer: Wrong database mode")
+    return StatusLog(nil,"TimerAttach: Wrong database mode")
   end
 end
 
-local function RestartTimer(oLocation,tKeys,defTable,anyMessage)
-  if(not defTable) then return StatusLog(nil,"RestartTimer: Missing table definition") end
+local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
+  if(not defTable) then return StatusLog(nil,"TimerRestart: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
-  if(not (IsExistent(Place) and IsExistent(Key))) then return StatusLog(nil,"RestartTimer: Navigation failed") end
-  if(not IsExistent(Place[Key])) then return StatusLog(nil,"RestartTimer: Place not found") end
-  if(not defTable.Timer) then return StatusLog(nil,"RestartTimer: Missing table definition") end
-  local tTimer = defTable.Timer
-  if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"RestartTimer: Missing timer settings") end
-  local sModeTM = tTimer[1]
-  local nLifeTM = tTimer[2]
-  if(not (IsExistent(sModeTM) and IsExistent(nLifeTM))) then return StatusLog(Place[Key],"RestartTimer: Missing timer mode/life") end
-  if(nLifeTM <= 0) then return StatusLog(Place[Key],"RestartTimer: Timer life ignored") end
+  if(not (IsExistent(Place) and IsExistent(Key))) then return StatusLog(nil,"TimerRestart: Navigation failed") end
+  if(not IsExistent(Place[Key])) then return StatusLog(nil,"TimerRestart: Place not found") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
+    local tTimer = defTable.Timer
+    if(not IsExistent(tTimer)) then return StatusLog(Place[Key],"TimerRestart: Missing timer settings") end
     Place[Key].Used = Time()
+    local nLifeTM = tTimer[2]
+    if(nLifeTM <= 0) then return StatusLog(Place[Key],"TimerRestart: Timer life ignored") end
     local sModeTM = tTimer[1]
     if(sModeTM == "CQT") then
-      sModeTM = "CQT"
+      sModeTM = "CQT" -- Just for something to do here and to be known that this is mode CQT
     elseif(sModeTM == "OBJ") then
-      local TimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
-      if(not timer.Exists(TimerID)) then return StatusLog(nil,"RestartTimer: Timer missing: "..TimerID) end
-      timer.Start(TimerID)
+      local keyTimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
+      if(not timer.Exists(keyTimerID)) then return StatusLog(nil,"TimerRestart: Timer missing: "..keyTimerID) end
+      timer.Start(keyTimerID)
     else
-      return StatusLog(nil,"RestartTimer: Timer mode not found: "..sModeTM)
+      return StatusLog(nil,"TimerRestart: Timer mode not found: "..sModeTM)
     end
   elseif(sModeDB == "LUA") then
     Place[Key].Used = Time()
   else
-    return StatusLog(nil,"RestartTimer: Wrong database mode")
+    return StatusLog(nil,"TimerRestart: Wrong database mode")
   end
   return Place[Key]
 end
@@ -2587,7 +2577,7 @@ function CacheQueryPiece(sModel)
   local stPiece  = Cache[sModel]
   if(IsExistent(stPiece) and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
-      return RestartTimer(libCache,caInd,defTable,"CacheQueryPiece")
+      return TimerRestart(libCache,caInd,defTable,"CacheQueryPiece")
     end
     return nil
   else
@@ -2619,7 +2609,7 @@ function CacheQueryPiece(sModel)
         end
         stPiece.Kept = stPiece.Kept + 1
       end
-      return AttachTimer(libCache,caInd,defTable,"CacheQueryPiece")
+      return TimerAttach(libCache,caInd,defTable,"CacheQueryPiece")
     elseif(sModeDB == "LUA") then
       return StatusLog(nil,"CacheQueryPiece: Record not located")
     else
@@ -2643,7 +2633,7 @@ function CacheQueryAdditions(sModel)
   local stAddition = Cache[sModel]
   if(IsExistent(stAddition) and IsExistent(stAddition.Kept)) then
     if(stAddition.Kept > 0) then
-      return RestartTimer(libCache,caInd,defTable,"CacheQueryAdditions")
+      return TimerRestart(libCache,caInd,defTable,"CacheQueryAdditions")
     end
     return nil
   else
@@ -2667,7 +2657,7 @@ function CacheQueryAdditions(sModel)
         end
         stAddition.Kept = stAddition.Kept + 1
       end
-      return AttachTimer(libCache,caInd,defTable,"CacheQueryAdditions")
+      return TimerAttach(libCache,caInd,defTable,"CacheQueryAdditions")
     elseif(sModeDB == "LUA") then
       return StatusLog(nil,"CacheQueryAdditions: Record not located")
     else
@@ -2694,7 +2684,7 @@ function CacheQueryPanel()
   if(IsExistent(stPanel) and IsExistent(stPanel.Kept)) then
     LogInstance("CacheQueryPanel: From Pool")
     if(stPanel.Kept > 0) then
-      return RestartTimer(libCache,caInd,defTable,"CacheQueryPanel")
+      return TimerRestart(libCache,caInd,defTable,"CacheQueryPanel")
     end
     return nil
   else
@@ -2712,7 +2702,7 @@ function CacheQueryPanel()
         stPanel[stPanel.Kept] = qData[stPanel.Kept]
         stPanel.Kept = stPanel.Kept + 1
       end
-      return AttachTimer(libCache,caInd,defTable,"CacheQueryPanel")
+      return TimerAttach(libCache,caInd,defTable,"CacheQueryPanel")
     elseif(sModeDB == "LUA") then
       local Cache = libCache[namTable]
       local tData = {}
@@ -2760,7 +2750,7 @@ function CacheQueryProperty(sType)
     if(IsExistent(stName) and IsExistent(stName.Kept)) then
       LogInstance("CacheQueryProperty["..sType.."]: From Pool")
       if(stName.Kept > 0) then
-        return RestartTimer(libCache,caInd,defTable,"CacheQueryProperty")
+        return TimerRestart(libCache,caInd,defTable,"CacheQueryProperty")
       end
       return nil
     else
@@ -2778,7 +2768,7 @@ function CacheQueryProperty(sType)
           stName[stName.Kept] = qData[stName.Kept][defTable[3][1]]
           stName.Kept = stName.Kept + 1
         end
-        return AttachTimer(libCache,caInd,defTable,"CacheQueryProperty")
+        return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then
         return StatusLog(nil,"CacheQueryProperty["..sType.."]: Record not located")
       else
@@ -2792,7 +2782,7 @@ function CacheQueryProperty(sType)
     if(IsExistent(stType) and IsExistent(stType.Kept)) then -- Get All type names
       LogInstance("CacheQueryProperty: From Pool")
       if(stType.Kept > 0) then
-        return RestartTimer(libCache,caInd,defTable,"CacheQueryProperty")
+        return TimerRestart(libCache,caInd,defTable,"CacheQueryProperty")
       end
       return nil
     else
@@ -2810,7 +2800,7 @@ function CacheQueryProperty(sType)
           stType[stType.Kept] = qData[stType.Kept][defTable[1][1]]
           stType.Kept = stType.Kept + 1
         end
-        return AttachTimer(libCache,caInd,defTable,"CacheQueryProperty")
+        return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then
         return StatusLog(nil,"CacheQueryProperty: Record not located")
       else
@@ -2974,10 +2964,10 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
     end
     while(qData[iCnt]) do
-      iInd = 1
       sTemp = sData
-      qRec = qData[iCnt]
-      while(defTable[iInd]) do
+      qRec  = qData[iCnt]
+      iInd, sRez = 1, ""
+      while(defTable[iInd]) do -- The data is already inserted, so matching will not crash
         sTemp = sTemp..MatchType(defTable,qRec[defTable[iInd][1]],iInd,true,"\"",true)
         if(defTable[iInd + 1]) then sTemp = sTemp..sDelim end
         iInd = iInd + 1
@@ -3008,22 +2998,22 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       end
       iNdex = 1
       while(tSorted[iNdex]) do
-        iInd = 1
+        iInd, sRez = 1, ""
         tData = Cache[tSorted[iNdex].Key]
         if(sMethod == "DSV") then
           sData = namTable..sDelim
         elseif(sMethod == "INS") then
           sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
-        end
+        end -- Matching crashes only for numbers
         sData = sData..MatchType(defTable,tSorted[iNdex].Key,1,true,"\"")..sDelim..
                        MatchType(defTable,tData.Type,2,true,"\"")..sDelim..
                        MatchType(defTable,tData.Name,3,true,"\"")..sDelim
 
-        while(tData.Offs[iInd]) do
-            sTemp = sData..MatchType(defTable,tostring(iInd),4,true,"\"")..sDelim..
-                          "\""..StringPOA(tData.Offs[iInd].P,"V").."\""..sDelim..
-                          "\""..StringPOA(tData.Offs[iInd].O,"V").."\""..sDelim..
-                          "\""..StringPOA(tData.Offs[iInd].A,"A").."\""
+        while(tData.Offs[iInd]) do -- The number is already inserted, so there will be no crash
+          sTemp = sData..MatchType(defTable,iInd,4,true,"\"")..sDelim..
+                        "\""..StringPOA(tData.Offs[iInd].P,"V").."\""..sDelim..
+                        "\""..StringPOA(tData.Offs[iInd].O,"V").."\""..sDelim..
+                        "\""..StringPOA(tData.Offs[iInd].A,"A").."\""
           if(sMethod == "DSV") then
             sTemp = sTemp.."\n"
           elseif(sMethod == "INS") then
@@ -3043,7 +3033,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
           sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
         end
         iNdex = 1
-        while(tRecord[iNdex]) do
+        while(tRecord[iNdex]) do -- Data is already inserted, there will be no crash
           tData = tRecord[iNdex]
           sTemp = sData..MatchType(defTable,tData[defTable[2 ][1]],2 ,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[3 ][1]],3 ,true,"\"")..sDelim..
@@ -3082,7 +3072,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
           sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
         end
         iCnt = 1
-        while(tType[iCnt]) do
+        while(tType[iCnt]) do -- The number is already inserted, there will be no crash
           sTemp = sData..MatchType(defTable,sType      ,1,true,"\"")..sDelim..
                          MatchType(defTable,iCnt       ,2,true,"\"")..sDelim..
                          MatchType(defTable,tType[iCnt],3,true,"\"")

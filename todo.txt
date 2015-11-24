@@ -1,3 +1,2 @@
 Test if memory manager will work correctly
-Test if The frequent pieces will display all if 2 or more are clicked very rapidly
-Test if the table PHYSPROPERTIES will have memory management
+
