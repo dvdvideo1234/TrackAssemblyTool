@@ -2964,9 +2964,9 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       sData = "  asmlib.InsertRecord(\""..sTable.."\", {"
     end
     while(qData[iCnt]) do
+      iInd  = 1
       sTemp = sData
       qRec  = qData[iCnt]
-      iInd, sRez = 1, ""
       while(defTable[iInd]) do -- The data is already inserted, so matching will not crash
         sTemp = sTemp..MatchType(defTable,qRec[defTable[iInd][1]],iInd,true,"\"",true)
         if(defTable[iInd + 1]) then sTemp = sTemp..sDelim end
@@ -2998,7 +2998,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       end
       iNdex = 1
       while(tSorted[iNdex]) do
-        iInd, sRez = 1, ""
+        iInd = 1
         tData = Cache[tSorted[iNdex].Key]
         if(sMethod == "DSV") then
           sData = namTable..sDelim
