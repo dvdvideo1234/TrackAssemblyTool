@@ -3211,13 +3211,12 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,hdPointID,
   local stSpawn = GetOpVar("SPAWN_ENTITY")
         stSpawn.RLen = nActRadius
 
-  local trpOff
-  local valOff
+  local trpOff valOff
   local trAcDis = 0
   local trPntID = 1
   for k = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
-    valOff = trRec.Offs
+    valOff = trRec.Offs[k]
     SetVector(stSpawn.MPos,valOff.P)
     stSpawn.MPos:Rotate(trAng)
     stSpawn.MPos:Add(trPos)
