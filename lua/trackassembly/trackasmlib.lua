@@ -1094,7 +1094,7 @@ local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
         arPOA[4] = tonumber(nSX) or 1
         arPOA[5] = tonumber(nSY) or 1
         arPOA[6] = tonumber(nSZ) or 1
-        arPOA[7] = (nSD) and true or false
+        arPOA[7] = (tonumber(nSD) and (nSD ~= 0)) and true or false
   return arPOA
 end
 
@@ -2388,7 +2388,7 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(nAddID)) then -- LineID has to be set properly
         return StatusLog(nil,"InsertRecord: Cannot match "
                             ..sTable.." <"..tostring(tData[4]).."> to "
-                            ..defTable[4][1].." for "..tostring(snPrimayKey))])
+                            ..defTable[4][1].." for "..tostring(snPrimayKey))
       end
       tLine[nAddID] = {}
       while(nCnt <= defTable.Size) do
