@@ -1,7 +1,17 @@
 ----- Localizing the asmlib module
 local asmlib   = trackasmlib
+----- Localizing needed functions
+local Vector      = Vector
+local Angle       = Angle
+local Color       = Color
+local tonumber    = tonumber
+local tostring    = tostring
+local stringSub   = string.sub
+local stringUpper = string.upper
+local stringLen   = string.len
+
 ----- Get extention enabled flag
-local enflag   = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
+local enflag = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
 
 --------- Pieces ----------
 
@@ -24,8 +34,8 @@ __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sType, string sName, number nPoint, string sP, string sDelim)
   if(not (this and this:IsValid() and enflag)) then return "" end
   if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
-  local sDelim = string.sub(sDelim,1,1)
-  if(not (string.len(sDelim) > 0)) then return "" end
+  local sDelim = stringSub(sDelim,1,1)
+  if(not (stringLen(sDelim) > 0)) then return "" end
   local C1, C2, C3 = asmlib.GetIndexes("V")
   local ucsPos = ucsEnt:GetPos()
   local sO = tostring(ucsPos[C1])..","..tostring(ucsPos[C2])..","..tostring(ucsPos[C3])
@@ -84,7 +94,7 @@ e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA
   local nOffset = tonumber(nOffset)
   if(not nOffset) then return {} end
   if(not stRecord.Offs[nOffset]) then return {} else stRecord = stRecord.Offs[nOffset] end
-  local sPOA = string.sub(string.upper(tostring(sPOA)),1,1)
+  local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
   local arResult = {}
   local C1, C2, C3, C4
   if(sPOA == "P") then
@@ -116,7 +126,7 @@ e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
   local nOffset = tonumber(nOffset)
   if(not nOffset) then return {} end
   if(not stRecord.Offs[nOffset]) then return {} else stRecord = stRecord.Offs[nOffset] end
-  local sPOA = string.sub(string.upper(tostring(sPOA)),1,1)
+  local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
   local arResult = {}
   local C1, C2, C3, C4
   if(sPOA == "P") then

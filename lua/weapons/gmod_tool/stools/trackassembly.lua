@@ -1,29 +1,37 @@
 ---------------- Localizing Libraries ---------------
 local type                  = type
-local Color                 = Color
 local pairs                 = pairs
 local print                 = print
 local Angle                 = Angle
+local Color                 = Color
 local Vector                = Vector
-local ipairs                = ipairs
 local IsValid               = IsValid
 local tostring              = tostring
 local tonumber              = tonumber
 local LocalPlayer           = LocalPlayer
 local RunConsoleCommand     = RunConsoleCommand
 local RestoreCursorPosition = RestoreCursorPosition
-local os                    = os
-local sql                   = sql
-local undo                  = undo
-local util                  = util
-local math                  = math
-local ents                  = ents
-local file                  = file
-local string                = string
-local cleanup               = cleanup
-local duplicator            = duplicator
-local constraint            = constraint
-local concommand            = concommand
+local osDate                = os.date
+local stringSub             = string.sub 
+local gameSinglePlayer      = game.SinglePlayer
+local undoCreate            = undo.Create           
+local undoAddEntity         = undo.AddEntity        
+local undoSetPlayer         = undo.SetPlayer        
+local undoSetCustomUndoText = undo.SetCustomUndoText
+local undoFinish            = undo.Finish           
+local utilIsValidModel      = util.TraceLine
+local utilTraceLine         = util.IsValidModel
+local utilPrecacheModel     = util.PrecacheModel
+local utilIsValidRagdoll    = util.IsValidRagdoll
+local utilGetPlayerTrace    = util.GetPlayerTrace
+local mathClamp             = math.Clamp
+local languageAdd           = language.Add
+local concommandAdd         = concommand.Add
+local cleanupRegister       = cleanup.Register
+local entsCreateClientProp  = ents.CreateClientProp
+local entsCreate            = ents.Create
+local fileExists            = file.Exists
+local duplicatorRegisterEntityModifier = duplicator.RegisterEntityModifier
 
 ----------------- TOOL Global Parameters ----------------
 --- Store a pointer to our module
@@ -74,18 +82,18 @@ local DDyes = asmlib.MakeContainer("Colours")
       DDyes:Insert("db",Color(220,164,52 ,255)) -- Database mode
 
       if(CLIENT) then
-  language.Add("tool."   ..gsToolNameL..".name", gsFancyName)
-  language.Add("tool."   ..gsToolNameL..".desc", "Assembles a track for vehicles to run on")
-  language.Add("tool."   ..gsToolNameL..".0"   , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
-  language.Add("cleanup."..gsToolNameL         , gsFancyName)
-  language.Add("cleaned."..gsToolNameL.."s"    , "Cleaned up all Pieces")
-  concommand.Add(gsToolPrefL.."resetoffs", asmlib.GetActionCode("RESET_OFFSETS"))
-  concommand.Add(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
+  languageAdd("tool."   ..gsToolNameL..".name", gsFancyName)
+  languageAdd("tool."   ..gsToolNameL..".desc", "Assembles a track for vehicles to run on")
+  languageAdd("tool."   ..gsToolNameL..".0"   , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
+  languageAdd("cleanup."..gsToolNameL         , gsFancyName)
+  languageAdd("cleaned."..gsToolNameL.."s"    , "Cleaned up all Pieces")
+  concommandAdd(gsToolPrefL.."resetoffs", asmlib.GetActionCode("RESET_OFFSETS"))
+  concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
 end
 
 if(SERVER) then
-  cleanup.Register(gsToolNameU.."s")
-  duplicator.RegisterEntityModifier(gsToolPrefL.."wgnd",asmlib.GetActionCode("WELD_GROUND"))
+  cleanupRegister(gsToolNameU.."s")
+  duplicatorRegisterEntityModifier(gsToolPrefL.."wgnd",asmlib.GetActionCode("WELD_GROUND"))
 end
 
 TOOL.Category   = "Construction"            -- Name of the category
@@ -134,11 +142,11 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetCount()
-  return math.Clamp(self:GetClientNumber("count"),1,asmlib.GetCoVar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("count"),1,asmlib.GetCoVar("maxstcnt", "INT"))
 end
 
 function TOOL:GetMass()
-  return math.Clamp(self:GetClientNumber("mass"),1,gnMaxMass)
+  return mathClamp(self:GetClientNumber("mass"),1,gnMaxMass)
 end
 
 function TOOL:GetAdditionalInfo()
@@ -146,15 +154,15 @@ function TOOL:GetAdditionalInfo()
 end
 
 function TOOL:GetPosOffsets()
-  return (math.Clamp(self:GetClientNumber("nextx") or 0,-gnMaxOffLin,gnMaxOffLin)),
-         (math.Clamp(self:GetClientNumber("nexty") or 0,-gnMaxOffLin,gnMaxOffLin)),
-         (math.Clamp(self:GetClientNumber("nextz") or 0,-gnMaxOffLin,gnMaxOffLin))
+  return (mathClamp(self:GetClientNumber("nextx") or 0,-gnMaxOffLin,gnMaxOffLin)),
+         (mathClamp(self:GetClientNumber("nexty") or 0,-gnMaxOffLin,gnMaxOffLin)),
+         (mathClamp(self:GetClientNumber("nextz") or 0,-gnMaxOffLin,gnMaxOffLin))
 end
 
 function TOOL:GetAngOffsets()
-  return (math.Clamp(self:GetClientNumber("nextpic") or 0,-gnMaxOffRot,gnMaxOffRot)),
-         (math.Clamp(self:GetClientNumber("nextyaw") or 0,-gnMaxOffRot,gnMaxOffRot)),
-         (math.Clamp(self:GetClientNumber("nextrol") or 0,-gnMaxOffRot,gnMaxOffRot))
+  return (mathClamp(self:GetClientNumber("nextpic") or 0,-gnMaxOffRot,gnMaxOffRot)),
+         (mathClamp(self:GetClientNumber("nextyaw") or 0,-gnMaxOffRot,gnMaxOffRot)),
+         (mathClamp(self:GetClientNumber("nextrol") or 0,-gnMaxOffRot,gnMaxOffRot))
 end
 
 function TOOL:GetFreeze()
@@ -207,11 +215,11 @@ function TOOL:GetPointID()
 end
 
 function TOOL:GetActiveRadius()
-  return math.Clamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetCoVar("maxactrad", "FLT"))
+  return mathClamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetCoVar("maxactrad", "FLT"))
 end
 
 function TOOL:GetYawSnap()
-  return math.Clamp(self:GetClientNumber("ydegsnp"),0,gnMaxOffRot)
+  return mathClamp(self:GetClientNumber("ydegsnp"),0,gnMaxOffRot)
 end
 
 function TOOL:GetWeld()
@@ -228,7 +236,7 @@ function TOOL:GetAutoOffsetUp()
 end
 
 function TOOL:GetStackAttempts()
-  return (math.Clamp(self:GetClientNumber("maxstaatts"),1,5))
+  return (mathClamp(self:GetClientNumber("maxstaatts"),1,5))
 end
 
 function TOOL:GetPhysMeterial()
@@ -348,13 +356,13 @@ function TOOL:LeftClick(Trace)
           .."\n   hdModel: "..fnmodel)) then return false end
         ePiece:SetAngles(stSpawn.SAng)
       end
-      undo.Create(gsUndoPrefN..fnmodel.." ( World spawn )")
+      undoCreate(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.AnchorPiece(ePiece,anEnt,weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
-      undo.AddEntity(ePiece)
-      undo.SetPlayer(ply)
-      undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( World spawn )")
-      undo.Finish()
+      undoAddEntity(ePiece)
+      undoSetPlayer(ply)
+      undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( World spawn )")
+      undoFinish()
       return true
     end
     return false
@@ -362,7 +370,7 @@ function TOOL:LeftClick(Trace)
   -- Hit Prop
   if(not trEnt) then return false end
   if(not trEnt:IsValid()) then return false end
-  if(not util.IsValidModel(model)) then return false end
+  if(not utilTraceLine(model)) then return false end
   if(not asmlib.IsPhysTrace(Trace)) then return false end
   if(asmlib.IsOther(trEnt)) then return false end
 
@@ -392,7 +400,7 @@ function TOOL:LeftClick(Trace)
     local IDs = asmlib.StringExplode(bgskids,gsSymDir)
     asmlib.Print(IDs,"BodygrpSkin")
     asmlib.AttachBodyGroups(trEnt,IDs[1] or "")
-    trEnt:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
+    trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
     return true
   end
 
@@ -404,7 +412,7 @@ function TOOL:LeftClick(Trace)
     local vTemp = Vector()
     local vLook = Vector()
     local ePieceN, ePieceO
-    undo.Create(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
+    undoCreate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
     ePieceO = trEnt
     while(iNdex > 0) do
       ePieceN = asmlib.DuplicatePiece(ePieceO)
@@ -417,9 +425,9 @@ function TOOL:LeftClick(Trace)
           .."\n   Player : "..ply:GetName()
           .."\n   trModel: "..asmlib.GetModelFileName(trModel)
           .."\n   hdModel: "..fnmodel)) then
-          undo.SetPlayer(ply)
-          undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-          undo.Finish()
+          undoSetPlayer(ply)
+          undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+          undoFinish()
           return true
         end
         ePieceN:SetAngles(stSpawn.SAng)
@@ -442,15 +450,15 @@ function TOOL:LeftClick(Trace)
         vTemp:Set(vLook)
         vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos())
-        undo.AddEntity(ePieceN)
+        undoAddEntity(ePieceN)
         stSpawn = asmlib.GetEntitySpawn(ePieceN,vTemp,model,pointid,
                     actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then
           asmlib.PrintNotify(ply,"Cannot obtain spawn data!","ERROR")
           asmlib.EmitSoundPly(ply)
-          undo.SetPlayer(ply)
-          undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-          undo.Finish()
+          undoSetPlayer(ply)
+          undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+          undoFinish()
           return asmlib.StatusLog(true,"Additional Error INFO"
           .."\n   Event  : Stacking has invalid user data"
           .."\n   Iterats: "..tostring(count-iNdex)
@@ -469,9 +477,9 @@ function TOOL:LeftClick(Trace)
       if(nTrys <= 0) then
         asmlib.PrintNotify(ply,"Spawn attempts ran off!","ERROR")
         asmlib.EmitSoundPly(ply)
-        undo.SetPlayer(ply)
-        undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-        undo.Finish()
+        undoSetPlayer(ply)
+        undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+        undoFinish()
         return asmlib.StatusLog(true,"Additional Error INFO"
         .."\n   Event  : Stacking failed to allocate memory for a piece"
         .."\n   Iterats: "..tostring(count-iNdex)
@@ -484,9 +492,9 @@ function TOOL:LeftClick(Trace)
       if(hdRec.Kept == 1) then break end
     end
     asmlib.EmitSoundPly(ply)
-    undo.SetPlayer(ply)
-    undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-    undo.Finish()
+    undoSetPlayer(ply)
+    undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
+    undoFinish()
     return true
   else
     local ePiece = asmlib.MakePiece(model,Trace.HitPos,
@@ -498,13 +506,13 @@ function TOOL:LeftClick(Trace)
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
-      undo.Create(gsUndoPrefN..fnmodel.." ( Snap prop )")
+      undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
       asmlib.AnchorPiece(ePiece,(anEnt or trEnt),weld,nocolld,freeze,wgnd,engravity,physmater)
       asmlib.EmitSoundPly(ply)
-      undo.AddEntity(ePiece)
-      undo.SetPlayer(ply)
-      undo.SetCustomUndoText(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      undo.Finish()
+      undoAddEntity(ePiece)
+      undoSetPlayer(ply)
+      undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Snap prop )")
+      undoFinish()
       return true
     end
     return false
@@ -515,7 +523,7 @@ function TOOL:RightClick(Trace)
   -- Change the active point
   if(CLIENT) then return true end
   local model   = self:GetModel()
-  if(not util.IsValidModel(model)) then return false end
+  if(not utilTraceLine(model)) then return false end
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not hdRec) then return false end
   local pointid, pnextid = self:GetPointID()
@@ -625,7 +633,7 @@ function TOOL:DrawHUD()
     stSpawn.R:Add(stSpawn.OPos)
     stSpawn.U:Mul(30)
     stSpawn.U:Add(stSpawn.OPos)
-    local RadScale = math.Clamp(75 * stSpawn.RLen / plyd,1,100)
+    local RadScale = mathClamp(75 * stSpawn.RLen / plyd,1,100)
     local Os = stSpawn.OPos:ToScreen()
     local Ss = stSpawn.SPos:ToScreen()
     local Xs = stSpawn.F:ToScreen()
@@ -668,7 +676,7 @@ function TOOL:DrawHUD()
     local addinfo  = self:GetAdditionalInfo()
     local surfsnap = self:GetSurfaceSnap()
     if(mcspawn ~= 0) then -- Relative to MC
-      local RadScale = math.Clamp(1500 / plyd,1,100)
+      local RadScale = mathClamp(1500 / plyd,1,100)
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       aAng[caP] = aAng[caP] + nextpic
       aAng[caY] = aAng[caY] - nextyaw
@@ -698,7 +706,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local RadScale = math.Clamp(1500 / plyd,1,100)
+      local RadScale = mathClamp(1500 / plyd,1,100)
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -815,17 +823,17 @@ function TOOL:DrawToolScreen(w, h)
   goToolScr:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
   goToolScr:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
   local txX, txY, txW, txH, txsX, txsY = goToolScr:GetTextState()
-  local nRad = math.Clamp(h - txH  - (txsY / 2),0,h) / 2
-  local cPos = math.Clamp(h - nRad - (txsY / 3),0,h)
+  local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
+  local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
   local xyPos = {x = cPos, y = cPos}
   if(trRLen) then
-    goToolScr:DrawCircle(xyPos, nRad * math.Clamp(trRLen/maxrad,0,1),"y")
+    goToolScr:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y")
   end
-  local sTime = tostring(os.date())
-  goToolScr:DrawCircle(xyPos, math.Clamp(actrad/maxrad,0,1)*nRad, "c")
+  local sTime = tostring(osDate())
+  goToolScr:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c")
   goToolScr:DrawCircle(xyPos, nRad, "m")
-  goToolScr:DrawText(string.sub(sTime,1,8),"w")
-  goToolScr:DrawText(string.sub(sTime,10,17))
+  goToolScr:DrawText(stringSub(sTime,1,8),"w")
+  goToolScr:DrawText(stringSub(sTime,10,17))
 end
 
 function TOOL.BuildCPanel(CPanel)
@@ -880,7 +888,7 @@ function TOOL.BuildCPanel(CPanel)
     local Mod = Rec[defTable[1][1]]
     local Typ = Rec[defTable[2][1]]
     local Nam = Rec[defTable[3][1]]
-    if(file.Exists(Mod, "GAME")) then
+    if(fileExists(Mod, "GAME")) then
       if(Typ ~= "" and not pFolders[Typ]) then
         -- No Folder, Make one xD
         pItem = pTree:AddNode(Typ)
@@ -1106,21 +1114,21 @@ end
 
 function TOOL:MakeGhostEntity(sModel)
   -- Check for invalid model
-  if(not util.IsValidModel(sModel)) then return end
-  util.PrecacheModel(sModel)
+  if(not utilTraceLine(sModel)) then return end
+  utilPrecacheModel(sModel)
   -- We do ghosting serverside in single player
   -- It's done clientside in multiplayer
-  if(SERVER and not game.SinglePlayer()) then return end
-  if(CLIENT and     game.SinglePlayer()) then return end
+  if(SERVER and not gameSinglePlayer()) then return end
+  if(CLIENT and     gameSinglePlayer()) then return end
   -- Release the old ghost entity
   self:ReleaseGhostEntity()
   if(CLIENT) then
-    self.GhostEntity = ents.CreateClientProp(sModel)
+    self.GhostEntity = entsCreateClientProp(sModel)
   else
-    if(util.IsValidRagdoll(sModel)) then
-      self.GhostEntity = ents.Create("prop_dynamic")
+    if(utilIsValidRagdoll(sModel)) then
+      self.GhostEntity = entsCreate("prop_dynamic")
     else
-      self.GhostEntity = ents.Create("prop_physics")
+      self.GhostEntity = entsCreate("prop_physics")
     end
   end
   -- If there are too many entities we might not spawn..
@@ -1142,7 +1150,7 @@ end
 function TOOL:UpdateGhost(oEnt, oPly)
   if(not (oEnt and oEnt:IsValid())) then return end
   oEnt:SetNoDraw(true)
-  local Trace = util.TraceLine(util.GetPlayerTrace(oPly))
+  local Trace = utilTraceLine(utilGetPlayerTrace(oPly))
   if(not Trace) then return end
   local trEnt = Trace.Entity
   if(Trace.HitWorld) then
@@ -1208,7 +1216,7 @@ end
 
 function TOOL:Think()
   local model = self:GetModel()
-  if(self:GetEnableGhost() ~= 0 and util.IsValidModel(model)) then
+  if(self:GetEnableGhost() ~= 0 and utilTraceLine(model)) then
     if (not self.GhostEntity or
         not self.GhostEntity:IsValid() or
             self.GhostEntity:GetModel() ~= model

@@ -54,42 +54,77 @@ local FCVAR_NOTIFY        = FCVAR_NOTIFY
 local FCVAR_REPLICATED    = FCVAR_REPLICATED
 local FCVAR_PRINTABLEONLY = FCVAR_PRINTABLEONLY
 
----------------- Localizing Libraries ----------------
-local Angle          = Angle
-local bit            = bit
-local collectgarbage = collectgarbage
-local constraint     = constraint
-local construct      = construct
-local Color          = Color
-local CreateConVar   = CreateConVar
-local duplicator     = duplicator
-local ents           = ents
-local file           = file
-local getmetatable   = getmetatable
-local GetConVar      = GetConVar
-local setmetatable   = setmetatable
-local include        = include
-local IsValid        = IsValid
-local LocalPlayer    = LocalPlayer
-local math           = math
-local next           = next
-local os             = os
-local pairs          = pairs
-local print          = print
-local require        = require
-local sql            = sql
-local string         = string
-local surface        = surface
-local table          = table
-local timer          = timer
-local tobool         = tobool
-local tonumber       = tonumber
-local tostring       = tostring
-local type           = type
-local undo           = undo
-local util           = util
-local Vector         = Vector
-local Time           = SysTime
+---------------- Localizing needed functions ----------------
+
+local next                 = next
+local type                 = type
+local Angle                = Angle
+local Color                = Color
+local pairs                = pairs
+local print                = print
+local tobool               = tobool
+local Vector               = Vector
+local include              = include
+local IsValid              = IsValid
+local require              = require
+local Time                 = SysTime
+local tonumber             = tonumber
+local tostring             = tostring
+local GetConVar            = GetConVar
+local LocalPlayer          = LocalPlayer
+local CreateConVar         = CreateConVar
+local getmetatable         = getmetatable
+local setmetatable         = setmetatable
+local collectgarbage       = collectgarbage
+local osClock              = os.clock
+local constraintWeld       = constraint.Weld
+local constraintNoCollide  = constraint.NoCollide
+local constructSetPhysProp = construct.SetPhysProp
+local utilTraceLine        = util.TraceLine
+local utilIsInWorld        = util.IsInWorld
+local utilIsValidModel     = util.IsValidModel
+local utilGetPlayerTrace   = util.GetPlayerTrace
+local entsCreate           = ents.Create
+local fileOpen             = file.Open
+local fileExists           = file.Exists
+local fileAppend           = file.Append
+local fileDelete           = file.Delete
+local fileCreateDir        = file.CreateDir
+local mathAbs              = math.abs
+local mathCeil             = math.ceil
+local mathModf             = math.modf
+local mathSqrt             = math.sqrt
+local mathFloor            = math.floor
+local mathClamp            = math.Clamp
+local mathRandom           = math.random
+local sqlQuery             = sql.Query
+local sqlLastError         = sql.LastError
+local sqlTableExists       = sql.TableExists
+local stringLen            = string.len
+local stringSub            = string.sub
+local stringFind           = string.find
+local stringGsub           = string.gsub
+local stringUpper          = string.upper
+local stringLower          = string.lower
+local stringFormat         = string.format
+local timerStop            = timer.Stop
+local tableEmpty           = table.Empty
+local timerStart           = timer.Start
+local timerExists          = timer.Exists
+local timerCreate          = timer.Create
+local timerDestroy         = timer.Destroy
+local surfaceSetFont       = surface.SetFont
+local surfaceDrawLine      = surface.DrawLine
+local surfaceDrawText      = surface.DrawText
+local surfaceDrawCircle    = surface.DrawCircle
+local surfaceSetTexture    = surface.SetTexture
+local surfaceSetTextPos    = surface.SetTextPos
+local surfaceGetTextSize   = surface.GetTextSize
+local surfaceGetTextureID  = surface.GetTextureID
+local surfaceSetDrawColor  = surface.SetDrawColor
+local surfaceSetTextColor  = surface.SetTextColor
+local surfaceDrawTexturedRect = surface.DrawTexturedRect
+local duplicatorStoreEntityModifier = duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
 
@@ -100,6 +135,14 @@ local libOpVars = {} -- Used to Store operational Variable Values
 module( "trackasmlib" )
 
 ---------------------------- AssemblyLib COMMON ----------------------------
+
+function Delay(nAdd)
+  local nAdd = tonumber(nAdd) or 0
+  if(nAdd > 0) then
+    local tmEnd = osClock() + nAdd
+    while(osClock() < tmEnd) do end
+  end
+end
 
 function GetIndexes(sType)
   if(sType == "V") then
@@ -114,18 +157,11 @@ end
 
 function SetIndexes(sType,I1,I2,I3,I4)
   if(sType == "V") then
-    cvX = I1
-    cvY = I2
-    cvZ = I3
+    cvX, cvY, cvZ = I1, I2, I3
   elseif(sType == "A") then
-    caP = I1
-    caY = I2
-    caR = I3
+    caP, caY, caR = I1, I2, I3
   elseif(sType == "S") then
-    csX = I1
-    csY = I2
-    csZ = I3
-    csD = I4
+    csX, csY, csZ, csD = I1, I2, I3, I4
   end
   return nil
 end
@@ -150,13 +186,6 @@ end
 function StatusPrint(anyStatus,sError)
   PrintInstance(sError)
   return anyStatus
-end
-
-function Delay(nAdd)
-  if(nAdd > 0) then
-    local i = os.clock() + nAdd
-    while(os.clock() < i) do end
-  end
 end
 
 function GetOpVar(sName)
@@ -190,16 +219,16 @@ function InitAssembly(sName)
   if(not IsString(sName)) then
     return StatusPrint(false,"InitAssembly: Error initializing. Expecting string argument")
   end
-  if(string.len(sName) < 1 and tonumber(string.sub(sName,1,1))) then return end
-  SetOpVar("TIME_EPOCH",os.clock())
-  SetOpVar("INIT_NL" ,string.lower(sName))
-  SetOpVar("INIT_FAN",string.sub(string.upper(GetOpVar("INIT_NL")),1,1)
-                    ..string.sub(string.lower(GetOpVar("INIT_NL")),2,string.len(GetOpVar("INIT_NL"))))
+  if(stringLen(sName) < 1 and tonumber(stringSub(sName,1,1))) then return end
+  SetOpVar("TIME_EPOCH",Time())
+  SetOpVar("INIT_NL" ,stringLower(sName))
+  SetOpVar("INIT_FAN",stringSub(stringUpper(GetOpVar("INIT_NL")),1,1)
+                    ..stringSub(stringLower(GetOpVar("INIT_NL")),2,stringLen(GetOpVar("INIT_NL"))))
   SetOpVar("PERP_UL","assembly")
-  SetOpVar("PERP_FAN",string.sub(string.upper(GetOpVar("PERP_UL")),1,1)
-                    ..string.sub(string.lower(GetOpVar("PERP_UL")),2,string.len(GetOpVar("PERP_UL"))))
-  SetOpVar("TOOLNAME_NL",string.lower(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
-  SetOpVar("TOOLNAME_NU",string.upper(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
+  SetOpVar("PERP_FAN",stringSub(stringUpper(GetOpVar("PERP_UL")),1,1)
+                    ..stringSub(stringLower(GetOpVar("PERP_UL")),2,stringLen(GetOpVar("PERP_UL"))))
+  SetOpVar("TOOLNAME_NL",stringLower(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
+  SetOpVar("TOOLNAME_NU",stringUpper(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
   SetOpVar("MISS_NOID","N")    -- No ID selected
@@ -329,7 +358,7 @@ function GetLengthVector(vdbBase)
         Y = Y * Y
   local Z = (vdbBase[cvZ] or 0)
         Z = Z * Z
-  return math.sqrt(X+Y+Z)
+  return mathSqrt(X+Y+Z)
 end
 
 function RoundVector(vBase,nRound)
@@ -403,7 +432,7 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
     local Trace = oTrace
     local Left = -oPly:GetAimVector():Angle():Right()
     if(not (Trace and Trace.Hit)) then
-      Trace = util.TraceLine(util.GetPlayerTrace(oPly))
+      Trace = utilTraceLine(utilGetPlayerTrace(oPly))
       if(not (Trace and Trace.Hit)) then return Ang end
     end
     Ang:Set(Left:Cross(Trace.HitNormal):AngleEx(Trace.HitNormal))
@@ -517,7 +546,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
   end
   local Texture = {}
         Texture.Path = "vgui/white"
-        Texture.ID   = surface.GetTextureID(Texture.Path)
+        Texture.ID   = surfaceGetTextureID(Texture.Path)
   local self = {}
   function self:GetSize()
     return (eW-sW), (eH-sH)
@@ -533,33 +562,33 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
     if(Palette) then
       local Colour = Palette:Select(sColor)
       if(Colour) then
-        surface.SetDrawColor(Colour.r, Colour.g, Colour.b, Colour.a)
-        surface.SetTextColor(Colour.r, Colour.g, Colour.b, Colour.a)
+        surfaceSetDrawColor(Colour.r, Colour.g, Colour.b, Colour.a)
+        surfaceSetTextColor(Colour.r, Colour.g, Colour.b, Colour.a)
         ColorKey = sColor
       end
     else
-      surface.SetDrawColor(White.r,White.g,White.b,White.a)
-      surface.SetTextColor(White.r,White.g,White.b,White.a)
+      surfaceSetDrawColor(White.r,White.g,White.b,White.a)
+      surfaceSetTextColor(White.r,White.g,White.b,White.a)
     end
   end
   function self:SetTexture(sTexture)
     if(not IsString(sTexture)) then return end
     if(sTexture == "") then return end
     Texture.Path = sTexture
-    Texture.ID   = surface.GetTextureID(Texture.Path)
+    Texture.ID   = surfaceGetTextureID(Texture.Path)
   end
   function self:GetTexture()
     return Texture.ID, Texture.Path
   end
   function self:DrawBackGround(sColor)
     self:SetColor(sColor)
-    surface.SetTexture(Texture.ID)
-    surface.DrawTexturedRect(sW,sH,eW-sW,eH-sH)
+    surfaceSetTexture(Texture.ID)
+    surfaceDrawTexturedRect(sW,sH,eW-sW,eH-sH)
   end
   function self:DrawRect(nX,nY,nW,nH,sColor)
     self:SetColor(sColor)
-    surface.SetTexture(Texture.ID)
-    surface.DrawTexturedRect(nX,nY,nW,nH)
+    surfaceSetTexture(Texture.ID)
+    surfaceDrawTexturedRect(nX,nY,nW,nH)
   end
   function self:SetTextEdge(x,y)
     Text.DrawX = tonumber(x) or 0
@@ -572,7 +601,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
   function self:SetFont(sFont)
     if(not IsString(sFont)) then return end
     Text.Font = sFont or "Trebuchet18"
-    surface.SetFont(Text.Font)
+    surfaceSetFont(Text.Font)
   end
   function self:GetTextState(nX,nY,nW,nH)
     return (Text.DrawX + (nX or 0)), (Text.DrawY + (nY or 0)),
@@ -580,10 +609,10 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
             Text.LastW, Text.LastH
   end
   function self:DrawText(sText,sColor)
-    surface.SetTextPos(Text.DrawX,Text.DrawY)
+    surfaceSetTextPos(Text.DrawX,Text.DrawY)
     self:SetColor(sColor)
-    surface.DrawText(sText)
-    Text.LastW, Text.LastH = surface.GetTextSize(sText)
+    surfaceDrawText(sText)
+    Text.LastW, Text.LastH = surfaceGetTextSize(sText)
     Text.DrawY = Text.DrawY + Text.LastH
     if(Text.LastW > Text.ScrW) then
       Text.ScrW = Text.LastW
@@ -591,10 +620,10 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
     Text.ScrH = Text.DrawY
   end
   function self:DrawTextAdd(sText,sColor)
-    surface.SetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
+    surfaceSetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
     self:SetColor(sColor)
-    surface.DrawText(sText)
-    local LastW, LastH = surface.GetTextSize(sText)
+    surfaceDrawText(sText)
+    local LastW, LastH = surfaceGetTextSize(sText)
     Text.LastW = Text.LastW + LastW
     Text.LastH = LastH
     if(Text.LastW > Text.ScrW) then
@@ -607,20 +636,20 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
       if(sColor) then
         local Colour = Palette:Select(sColor)
         if(Colour) then
-          surface.DrawCircle( xyPos.x, xyPos.y, nRad, Colour)
+          surfaceDrawCircle( xyPos.x, xyPos.y, nRad, Colour)
           ColorKey = sColor
           return
         end
       else
         if(IsExistent(ColorKey)) then
           local Colour = Palette:Select(ColorKey)
-          surface.DrawCircle( xyPos.x, xyPos.y, nRad, Colour)
+          surfaceDrawCircle( xyPos.x, xyPos.y, nRad, Colour)
           return
         end
       end
       return
     else
-      surface.DrawCircle( xyPos.x, xyPos.y, nRad, White)
+      surfaceDrawCircle( xyPos.x, xyPos.y, nRad, White)
     end
   end
   function self:Enclose(xyPnt)
@@ -636,7 +665,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
     if(not (xyS.x and xyS.y and xyE.x and xyE.y)) then return I end
     local nK = nK or 0.75
     local nI = nI or 50
-          nI = math.floor(nI)
+          nI = mathFloor(nI)
     if(sW >= eW) then return I end
     if(sH >= eH) then return I end
     if(nI < 1) then return I end
@@ -658,7 +687,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
       local DisY = xyE.y - xyS.y
       local DirY = DisY
             DisY = DisY * DisY
-      local Dis = math.sqrt(DisX + DisY)
+      local Dis = mathSqrt(DisX + DisY)
       if(Dis == 0) then
         return I
       end
@@ -679,10 +708,10 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
           --[[
             Estimate the distance and break
             earlier with 0.5 because of the
-            math.floor call afterwards.
+            mathFloor call afterwards.
           ]]
-          Pre = math.abs(math.abs(Pos.x) + math.abs(Pos.y) -
-                         math.abs(xyE.x) - math.abs(xyE.y))
+          Pre = mathAbs(mathAbs(Pos.x) + mathAbs(Pos.y) -
+                         mathAbs(xyE.x) - mathAbs(xyE.y))
           if(Pre < 0.5) then break end
         end
         Mid = nK * Mid
@@ -690,7 +719,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
       end
     elseif(sMeth == "ITR") then
       local V = {x = xyE.x-xyS.x, y = xyE.y-xyS.y}
-      local N = math.sqrt(V.x*V.x + V.y*V.y)
+      local N = mathSqrt(V.x*V.x + V.y*V.y)
       local Z = (N * (1-nK))
       if(Z == 0) then return I end
       local D = {x = V.x/Z , y = V.y/Z}
@@ -707,8 +736,8 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
     else
       return StatusLog(0,"Screen:AdaptLine: Missed method "..tostring(sMeth))
     end
-    xyS.x, xyS.y = math.floor(xyS.x), math.floor(xyS.y)
-    xyE.x, xyE.y = math.floor(xyE.x), math.floor(xyE.y)
+    xyS.x, xyS.y = mathFloor(xyS.x), mathFloor(xyS.y)
+    xyE.x, xyE.y = mathFloor(xyE.x), mathFloor(xyE.y)
     return I
   end
   function self:DrawLine(xyS,xyE,sColor)
@@ -718,13 +747,13 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
     if(Est ~= "") then
       local Iter = self:AdaptLine(xyS,xyE,200,0.75,Est)
       if(Iter > 0) then
-        surface.DrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
+        surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
       end
     else
       local nS = self:Enclose(xyS)
       local nE = self:Enclose(xyE)
       if(nS == -1 or nE == -1) then return end
-      surface.DrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
+      surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
     end
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
@@ -823,7 +852,7 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
       end
     else
       sData = tostring(frUsed[iNdex].Table[sField] or "")
-      if(string.find(sData,sPattern)) then
+      if(stringFind(sData,sPattern)) then
         pnRec = AddLineListView(pnListView,frUsed,iNdex)
         if(not IsExistent(pnRec)) then
           return StatusLog(false,"UpdateListView: Failed to add pattern <"..sPattern.."> on #"..tostring(iNdex))
@@ -837,7 +866,7 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
 end
 
 local function PushSortValues(tTable,snCnt,nsValue,tData)
-  local Cnt = math.floor(tonumber(snCnt) or 0)
+  local Cnt = mathFloor(tonumber(snCnt) or 0)
   if(not (tTable and (type(tTable) == "table") and (Cnt > 0))) then return 0 end
   local Ind  = 1
   if(not tTable[Ind]) then
@@ -866,7 +895,7 @@ function GetFrequentModels(snCount)
   if(not IsExistent(Cache)) then return StatusLog(nil,"GetFrequentModels: Missing: Table cache") end
   local iInd, tmNow = 1, Time()
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
-  table.Empty(frUsed)
+  tableEmpty(frUsed)
   for Model, Record in pairs(Cache) do
     if(IsExistent(Record.Used) and IsExistent(Record.Kept) and Record.Kept > 0) then
       iInd = PushSortValues(frUsed,snCount,tmNow-Record.Used,{
@@ -887,7 +916,7 @@ function RoundValue(nExact, nFrac)
   if(not IsExistent(nExact)) then return StatusLog(nil,"RoundValue: Only numbers can be rounded") end
   local nFrac  = tonumber(nFrac) or 0
   if(nFrac == 0) then return StatusLog(nil,"RoundValue: Fraction must be <> 0") end
-  local q,f = math.modf(nExact/nFrac)
+  local q,f = mathModf(nExact/nFrac)
   return nFrac * (q + (f > 0.5 and 1 or 0))
 end
 
@@ -900,8 +929,8 @@ function SnapValue(nVal, nSnap)
   if(not IsExistent(nSnap)) then return StatusLog(0,"SnapValue: Cannot convert snap to a number") end
   if(nSnap == 0) then return nVal end
   local Rez
-  local Snp = math.abs(nSnap)
-  local Val = math.abs(nVal)
+  local Snp = mathAbs(nSnap)
+  local Val = mathAbs(nVal)
   local Rst = Val % Snp
   if((Snp-Rst) < Rst) then
     Rez = Val+Snp-Rst
@@ -965,7 +994,7 @@ function IncDecPointID(nPointID,sDir,rPiece)
   local nPointID = tonumber(nPointID)
   if(not nPointID) then return StatusLog(1,"IncDecPointID: Cannot convert pointid to a number") end
   if(not IsThereRecID(rPiece,nPointID)) then return StatusLog(1,"IncDecPointID: Offset not located") end
-  local sDir, nDir = string.sub(tostring(sDir),1,1), 0
+  local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir = 1
   elseif(sDir == "-") then nDir = -1
   else return StatusLog(nPointID,"IncDecPointID: Direction <"..sDir.."> mismatch") end
@@ -982,7 +1011,7 @@ function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
   if(not nPointID) then return StatusLog(1,"IncDecPnextID: Cannot convert PointID to a number") end
   if(not IsThereRecID(rPiece,nPnextID)) then return StatusLog(1,"IncDecPointID: Offset PnextID not located") end
   if(not IsThereRecID(rPiece,nPointID)) then return StatusLog(1,"IncDecPointID: Offset PointID not located") end
-  local sDir, nDir = string.sub(tostring(sDir),1,1), 0
+  local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir =  1
   elseif(sDir == "-") then nDir = -1
   else return StatusLog(nPnextID,"IncDecPnextID: Direction <"..sDir.."> mismatch") end
@@ -1002,30 +1031,30 @@ function GetPointUpGap(oEnt,hdPoint)
   aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
   SubVector(vDiffBB,hdPoint.O)
   vDiffBB:Set(DecomposeByAngle(vDiffBB,aDiffBB))
-  return math.abs(vDiffBB[cvZ])
+  return mathAbs(vDiffBB[cvZ])
 end
 
 function ModelToName(sModel)
   if(not IsString(sModel)) then return "" end
   local Cnt = 1   -- If is model remove *.mdl
-  local sModel = string.gsub(sModel,GetOpVar("FILE_MODEL"),"")
-  local Len = string.len(sModel)
+  local sModel = stringGsub(sModel,GetOpVar("FILE_MODEL"),"")
+  local Len = stringLen(sModel)
   if(Len <= 0) then return "" end
   local sSymDiv = GetOpVar("OPSYM_DIVIDER")
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
   local gModel = ""
-        sModel = string.sub(sModel,1,Len)
+        sModel = stringSub(sModel,1,Len)
   -- Locate the model part and exclude the directories
-  Cnt = string.len(sModel)
+  Cnt = stringLen(sModel)
   local fCh, bCh = "", ""
   while(Cnt > 0) do
-    fCh = string.sub(sModel,Cnt,Cnt)
+    fCh = stringSub(sModel,Cnt,Cnt)
     if(fCh == sSymDir) then
       break
     end
     Cnt = Cnt - 1
   end
-  sModel = string.sub(sModel,Cnt+1,Len)
+  sModel = stringSub(sModel,Cnt+1,Len)
   -- Remove the unneeded parts by indexing sModel
   Cnt = 1
   gModel = sModel
@@ -1039,7 +1068,7 @@ function ModelToName(sModel)
                  ..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} for "..sModel)
       end
       LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} << "..gModel)
-      gModel = string.gsub(gModel,string.sub(sModel,fCh,bCh),"")
+      gModel = stringGsub(gModel,stringSub(sModel,fCh,bCh),"")
       LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} >> "..gModel)
       Cnt = Cnt + 2
     end
@@ -1054,7 +1083,7 @@ function ModelToName(sModel)
         return StatusLog("","ModelToName: Cannot sub the model in {"..fCh..", "..bCh.."}")
       end
       LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} << "..gModel)
-      gModel = string.gsub(gModel,fCh,bCh)
+      gModel = stringGsub(gModel,fCh,bCh)
       LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
       Cnt = Cnt + 2
     end
@@ -1068,14 +1097,14 @@ function ModelToName(sModel)
   end
   -- Trigger the capital-space using the divider
   sModel = sSymDiv..gModel
-  Len = string.len(sModel)
+  Len = stringLen(sModel)
   fCh, bCh, gModel = "", "", ""
   while(Cnt <= Len) do
-    bCh = string.sub(sModel,Cnt,Cnt)
-    fCh = string.sub(sModel,Cnt+1,Cnt+1)
+    bCh = stringSub(sModel,Cnt,Cnt)
+    fCh = stringSub(sModel,Cnt+1,Cnt+1)
     if(bCh == sSymDiv) then
        bCh = " "
-       fCh = string.upper(fCh)
+       fCh = stringUpper(fCh)
        gModel = gModel..bCh..fCh
        Cnt = Cnt + 1
     else
@@ -1083,7 +1112,7 @@ function ModelToName(sModel)
     end
     Cnt = Cnt + 1
   end
-  return string.sub(gModel,2,Len)
+  return stringSub(gModel,2,Len)
 end
 
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
@@ -1123,7 +1152,7 @@ local function StringPOA(arPOA,sOffs)
                    ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[caY])..","
                    ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[caR])
   else return StatusLog("","StringPOA: Missed offset mode "..sOffs) end
-  return string.gsub(Result," ","") -- Get rid of the spaces
+  return stringGsub(Result," ","") -- Get rid of the spaces
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -1152,7 +1181,7 @@ local function DecodePOA(sStr)
   if(not IsString(sStr)) then return StatusLog(nil,"DecodePOA: Argument must be string") end
   local DatInd = 1
   local ComCnt = 0
-  local Len    = string.len(sStr)
+  local Len    = stringLen(sStr)
   local SymOff = GetOpVar("OPSYM_DISABLE")
   local SymRev = GetOpVar("OPSYM_REVSIGN")
   local arPOA  = GetOpVar("ARRAY_DECODEPOA")
@@ -1161,13 +1190,13 @@ local function DecodePOA(sStr)
   local E = 1
   local Cnt = 1
   ReloadPOA()
-  if(string.sub(sStr,Cnt,Cnt) == SymOff) then
+  if(stringSub(sStr,Cnt,Cnt) == SymOff) then
     arPOA[7] = true
     Cnt = Cnt + 1
     S   = S   + 1
   end
   while(Cnt <= Len) do
-    Ch = string.sub(sStr,Cnt,Cnt)
+    Ch = stringSub(sStr,Cnt,Cnt)
     if(Ch == SymRev) then
       arPOA[3+DatInd] = -arPOA[3+DatInd]
       S   = S + 1
@@ -1175,7 +1204,7 @@ local function DecodePOA(sStr)
       ComCnt = ComCnt + 1
       E = Cnt - 1
       if(ComCnt > 2) then break end
-      arPOA[DatInd] = tonumber(string.sub(sStr,S,E)) or 0
+      arPOA[DatInd] = tonumber(stringSub(sStr,S,E)) or 0
       DatInd = DatInd + 1
       S = Cnt + 1
       E = S
@@ -1184,7 +1213,7 @@ local function DecodePOA(sStr)
     end
     Cnt = Cnt + 1
   end
-  arPOA[DatInd] = tonumber(string.sub(sStr,S,E)) or 0
+  arPOA[DatInd] = tonumber(stringSub(sStr,S,E)) or 0
   return arPOA
 end
 
@@ -1224,7 +1253,7 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer point")
   end -- In the POA array still persists the decoded Origin
-  if(string.sub(sP,1,1) == GetOpVar("OPSYM_DISABLE")) then tOffs.P[csD] = true end
+  if(stringSub(sP,1,1) == GetOpVar("OPSYM_DISABLE")) then tOffs.P[csD] = true end
   if((sA ~= "") and (sA ~= "NULL")) then DecodePOA(sA)
   else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.A,"A"))) then
@@ -1237,12 +1266,12 @@ function FormatNumberMax(nNum,nMax)
   local nNum = tonumber(nNum)
   local nMax = tonumber(nMax)
   if(not (nNum and nMax)) then return "" end
-  return string.format("%"..string.len(tostring(math.floor(nMax))).."d",nNum)
+  return stringFormat("%"..stringLen(tostring(mathFloor(nMax))).."d",nNum)
 end
 
 local function Qsort(Data,Lo,Hi)
   if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then return StatusLog(nil,"Qsort: Data dimensions mismatch") end
-  local Mid = math.random(Hi-(Lo-1))+Lo-1
+  local Mid = mathRandom(Hi-(Lo-1))+Lo-1
   Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
   local Vmid = Data[Lo].Val
         Mid  = Lo
@@ -1344,10 +1373,10 @@ function SetLogControl(nLines,sFile)
   SetOpVar("LOG_LOGFILE",tostring(sFile) or "")
   SetOpVar("LOG_MAXLOGS",tonumber(nLines) or 0)
   SetOpVar("LOG_CURLOGS",0)
-  if(not file.Exists(GetOpVar("DIRPATH_BAS"),"DATA") and
-    (string.len(GetOpVar("LOG_LOGFILE")) > 0)
+  if(not fileExists(GetOpVar("DIRPATH_BAS"),"DATA") and
+    (stringLen(GetOpVar("LOG_LOGFILE")) > 0)
   ) then
-    file.CreateDir(GetOpVar("DIRPATH_BAS"))
+    fileCreateDir(GetOpVar("DIRPATH_BAS"))
   end
 end
 
@@ -1358,11 +1387,11 @@ function Log(anyStuff)
     local nCurLogs = GetOpVar("LOG_CURLOGS")
     if(sLogFile ~= "") then
       local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
-      file.Append(fName,FormatNumberMax(nCurLogs,nMaxLogs)
+      fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs)
                 .." >> "..tostring(anyStuff).."\n")
       nCurLogs = nCurLogs + 1
       if(nCurLogs > nMaxLogs) then
-        file.Delete(fName)
+        fileDelete(fName)
         nCurLogs = 0
       end
       SetOpVar("LOG_CURLOGS",nCurLogs)
@@ -1381,7 +1410,7 @@ function LogInstance(anyStuff)
     local iNdex = 1
     local sOnly = logOnly[iNdex]
     while(sOnly and IsString(sOnly)) do
-      if(string.find(anyStuff,sOnly)) then
+      if(stringFind(anyStuff,sOnly)) then
         logHere = true
       end
       iNdex = iNdex + 1
@@ -1412,25 +1441,25 @@ function StringMakeSQL(sStr)
   end
   local Cnt = 1
   local Out = ""
-  local Chr = string.sub(sStr,Cnt,Cnt)
+  local Chr = stringSub(sStr,Cnt,Cnt)
   while(Chr ~= "") do
     Out = Out..Chr
     if(Chr == "'") then
       Out = Out..Chr
     end
     Cnt = Cnt + 1
-    Chr = string.sub(sStr,Cnt,Cnt)
+    Chr = stringSub(sStr,Cnt,Cnt)
   end
   return Out
 end
 
 function StringDisable(sBase, anyDisable, anyDefault)
   if(IsString(sBase)) then
-    if(string.len(sBase) > 0 and
-       string.sub(sBase,1,1) ~= GetOpVar("OPSYM_DISABLE")
+    if(stringLen(sBase) > 0 and
+       stringSub(sBase,1,1) ~= GetOpVar("OPSYM_DISABLE")
     ) then
       return sBase
-    elseif(string.sub(sBase,1,1) == GetOpVar("OPSYM_DISABLE")) then
+    elseif(stringSub(sBase,1,1) == GetOpVar("OPSYM_DISABLE")) then
       return anyDisable
     end
   end
@@ -1439,7 +1468,7 @@ end
 
 function StringDefault(sBase, sDefault)
   if(IsString(sBase)) then
-    if(string.len(sBase) > 0) then return sBase end
+    if(stringLen(sBase) > 0) then return sBase end
   end
   if(IsString(sDefault)) then return sDefault end
   return ""
@@ -1449,23 +1478,23 @@ function StringExplode(sStr,sDelim)
   if(not (IsString(sStr) and IsString(sDelim))) then
     return StatusLog(nil,"StringExplode: All parameters should be strings")
   end
-  if(string.len(sDelim) <= 0) then
+  if(stringLen(sDelim) <= 0) then
     return StatusLog(nil,"StringExplode: Delimiter has to be a symbol")
   end
-  local Len = string.len(sStr)
+  local Len = stringLen(sStr)
   local S = 1
   local E = 1
   local V = ""
   local Ind = 1
   local Data = {}
-  if(string.sub(sStr,Len,Len) ~= sDelim) then
+  if(stringSub(sStr,Len,Len) ~= sDelim) then
     sStr = sStr..sDelim
     Len = Len + 1
   end
   while(E <= Len) do
-    Ch = string.sub(sStr,E,E)
+    Ch = stringSub(sStr,E,E)
     if(Ch == sDelim) then
-      V = string.sub(sStr,S,E-1)
+      V = stringSub(sStr,S,E-1)
       S = E + 1
       Data[Ind] = V or ""
       Ind = Ind + 1
@@ -1482,7 +1511,7 @@ function StringImplode(tParts,sDelim)
   end
   local iCnt = 1
   local sImplode = ""
-  local sDelim = string.sub(tostring(sDelim),1,1)
+  local sDelim = stringSub(tostring(sDelim),1,1)
   while(tParts[iCnt]) do
     sImplode = sImplode..tostring(tParts[iCnt])
     if(tParts[iCnt+1]) then
@@ -1496,13 +1525,13 @@ end
 function StringPad(sStr,sPad,nCnt)
   if(not IsString(sStr)) then return StatusLog("","StringPad: String missing") end
   if(not IsString(sPad)) then return StatusLog(sStr,"StringPad: Pad missing") end
-  local iLen = string.len(sStr)
+  local iLen = stringLen(sStr)
   if(iLen == 0) then return StatusLog(sStr,"StringPad: Pad too short") end
   local iCnt = tonumber(nCnt)
   if(not iCnt) then return StatusLog(sStr,"StringPad: Count missing") end
-  local iDif = (math.abs(iCnt) - iLen)
+  local iDif = (mathAbs(iCnt) - iLen)
   if(iDif <= 0) then return StatusLog(sStr,"StringPad: Padding Ignored") end
-  local sCh = string.sub(sPad,1,1)
+  local sCh = stringSub(sPad,1,1)
   local sPad = sCh
   iDif = iDif - 1
   while(iDif > 0) do
@@ -1566,16 +1595,16 @@ function ArrayPrint(arArr,sName,nCol)
   local Max  = 0
   local Cols = 0
   local Line = (sName or "Data").." = { \n"
-  local Pad  = StringPad(" "," ",string.len(Line)-1)
+  local Pad  = StringPad(" "," ",stringLen(Line)-1)
   local Next
   while(arArr[Cnt]) do
-    Col = string.len(tostring(arArr[Cnt]))
+    Col = stringLen(tostring(arArr[Cnt]))
     if(Col > Max) then
       Max = Col
     end
     Cnt = Cnt + 1
   end
-  Col  = math.Clamp((tonumber(nCol) or 1),1,100)
+  Col  = mathClamp((tonumber(nCol) or 1),1,100)
   Cols = Col-1
   Cnt  = 1
   while(arArr[Cnt]) do
@@ -1617,9 +1646,9 @@ function ArrayDrop(arArr,nDir)
   if(nDir == 0) then return arArr end
   local nLen = ArrayCount(arArr)
   if(nLen <= 0) then return arArr end
-  if(math.abs(nDir) > nLen) then return arArr end
+  if(mathAbs(nDir) > nLen) then return arArr end
   local nS   = 1
-  local nD   = nS + math.abs(nDir)
+  local nD   = nS + mathAbs(nDir)
   local nSig = (nDir > 0) and 1    or -1
   while(arArr[nD]) do
     if(nSig == 1) then
@@ -1682,7 +1711,7 @@ end
 
 function String2BGID(sStr,nLen)
   if(not IsExistent(sStr)) then return StatusLog(nil, "String2BGID: String missing") end
-  local Len  = string.len(sStr)
+  local Len  = stringLen(sStr)
   if(Len <= 0) then return StatusLog(nil, "String2BGID: Empty string") end
   local Data = StringExplode(sStr,",")
   local Cnt = 1
@@ -1692,7 +1721,7 @@ function String2BGID(sStr,nLen)
     if(v == "") then return StatusLog(nil, "String2BGID: Value missing") end
     local vV = tonumber(v)
     if(not vV) then return StatusLog(nil, "String2BGID: Value not a number") end
-    if((math.floor(vV) - vV) ~= 0) then return StatusLog(nil, "String2BGID: Floats forbidden") end
+    if((mathFloor(vV) - vV) ~= 0) then return StatusLog(nil, "String2BGID: Floats forbidden") end
     Data[Cnt] = vV
     Cnt = Cnt + 1
   end
@@ -1712,8 +1741,8 @@ function ModelToHashLocation(sModel,tTable,anyValue)
   local Place = tTable
   while(Key[Ind]) do
     Val = Key[Ind]
-    Len = string.len(Val)
-    if(string.sub(Val,Len-3,Len) == ".mdl") then
+    Len = stringLen(Val)
+    if(stringSub(Val,Len-3,Len) == ".mdl") then
       Place[Val] = anyValue
     else
       if(not Place[Val]) then
@@ -1729,14 +1758,14 @@ function GetModelFileName(sModel)
   if(not sModel or
          sModel == "") then return "NULL" end
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local nLen = string.len(sModel)
+  local nLen = stringLen(sModel)
   local nCnt = nLen
-  local sCh  = string.sub(sModel,nCnt,nCnt)
+  local sCh  = stringSub(sModel,nCnt,nCnt)
   while(sCh ~= sSymDir and nCnt > 0) do
     nCnt = nCnt - 1
-    sCh  = string.sub(sModel,nCnt,nCnt)
+    sCh  = stringSub(sModel,nCnt,nCnt)
   end
-  return string.sub(sModel,nCnt+1,Len)
+  return stringSub(sModel,nCnt+1,Len)
 end
 
 ------------------------- PLAYER -----------------------------------
@@ -1745,13 +1774,13 @@ function PrintNotify(pPly,sText,sNotifType)
   if(not pPly) then return end
   if(SERVER) then
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
-    pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..math.random(1, 4)..".wav\")")
+    pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
   end
 end
 
 function EmitSoundPly(pPly)
   if(not pPly) then return end
-  pPly:EmitSound("physics/metal/metal_canister_impact_hard"..math.floor(math.random(3))..".wav")
+  pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathFloor(mathRandom(3))..".wav")
 end
 
 function LoadPlyKey(pPly, sKey)
@@ -1844,9 +1873,9 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
       end
     end
     if(defField[3] == "LOW") then
-      snOut = string.lower(snOut)
+      snOut = stringLower(snOut)
     elseif(defField[3] == "CAP") then
-      snOut = string.upper(snOut)
+      snOut = stringUpper(snOut)
     end
     if(not bStopRevise and defField[4] == "QMK" and sModeDB == "SQL") then
       snOut = StringMakeSQL(snOut)
@@ -1854,7 +1883,7 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
     if(bQuoted) then
       local sqChar
       if(sQuote) then
-        sqChar = string.sub(tostring(sQuote),1,1)
+        sqChar = stringSub(tostring(sQuote),1,1)
       else
         if(sModeDB == "SQL") then
           sqChar = "'"
@@ -1873,9 +1902,9 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
     end
     if(tipField == "INTEGER") then
       if(defField[3] == "FLR") then
-        snOut = math.floor(snOut)
+        snOut = mathFloor(snOut)
       elseif(defField[3] == "CEL") then
-        snOut = math.ceil(snOut)
+        snOut = mathCeil(snOut)
       end
     end
   else
@@ -1914,7 +1943,7 @@ local function SQLBuildCreate(defTable)
       return SQLBuildError("SQLBuildCreate: Missing Table "..namTable
                                   .."'s field type #"..tostring(Ind))
     end
-    Command.Create = Command.Create..string.upper(v[1]).." "..string.upper(v[2])
+    Command.Create = Command.Create..stringUpper(v[1]).." "..stringUpper(v[2])
     if(defTable[Ind+1]) then
       Command.Create = Command.Create ..", "
     end
@@ -1952,8 +1981,8 @@ local function SQLBuildCreate(defTable)
             ..namTable..". The table does not have field index #"
             ..vF..", max is #"..Table.Size)
         end
-        FieldsU = FieldsU.."_" ..string.upper(defTable[vF][1])
-        FieldsC = FieldsC..string.upper(defTable[vF][1])
+        FieldsU = FieldsU.."_" ..stringUpper(defTable[vF][1])
+        FieldsC = FieldsC..stringUpper(defTable[vF][1])
         if(vI[Cnt+1]) then
           FieldsC = FieldsC ..", "
         end
@@ -2233,7 +2262,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   defTable.Size = ArrayCount(defTable)
   if(defTable.Size <= 0) then return StatusLog(false,"CreateTable: Record definition empty for "..sTable) end
   local sModeDB = GetOpVar("MODE_DATABASE")
-  local sTable  = string.upper(sTable)
+  local sTable  = stringUpper(sTable)
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
   SetOpVar("DEFTABLE_"..sTable,defTable)
   local sDisable = GetOpVar("OPSYM_DISABLE")
@@ -2250,8 +2279,8 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     defTable.Life = tonumber(defTable.Life) or 0
     local tQ = SQLBuildCreate(defTable)
     if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable: "..SQLBuildError()) end
-    if(bDelete and sql.TableExists(namTable)) then
-      local qRez = sql.Query(tQ.Delete)
+    if(bDelete and sqlTableExists(namTable)) then
+      local qRez = sqlQuery(tQ.Delete)
       if(not qRez and IsBool(qRez)) then
         LogInstance("CreateTable: Table "..sTable
           .." is not present. Skipping delete !")
@@ -2260,7 +2289,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       end
     end
     if(bReload) then
-      local qRez = sql.Query(tQ.Drop)
+      local qRez = sqlQuery(tQ.Drop)
       if(not qRez and IsBool(qRez)) then
         LogInstance("CreateTable: Table "..sTable
           .." is not present. Skipping drop !")
@@ -2268,28 +2297,28 @@ function CreateTable(sTable,defTable,bDelete,bReload)
         LogInstance("CreateTable: Table "..sTable.." dropped !")
       end
     end
-    if(sql.TableExists(namTable)) then
+    if(sqlTableExists(namTable)) then
       LogInstance("CreateTable: Table "..sTable.." exists!")
       return true
     else
-      local qRez = sql.Query(tQ.Create)
+      local qRez = sqlQuery(tQ.Create)
       if(not qRez and IsBool(qRez)) then
         return StatusLog(false,"CreateTable: Table "..sTable
-          .." failed to create because of "..tostring(sql.LastError()))
+          .." failed to create because of "..tostring(sqlLastError()))
       end
-      if(sql.TableExists(namTable)) then
+      if(sqlTableExists(namTable)) then
         for k, v in pairs(tQ.Index) do
-          qRez = sql.Query(v)
+          qRez = sqlQuery(v)
           if(not qRez and IsBool(qRez)) then
             return StatusLog(false,"CreateTable: Table "..sTable
               .." failed to create index ["..k.."] > "..v .." > because of "
-              ..tostring(sql.LastError()))
+              ..tostring(sqlLastError()))
           end
         end
         return StatusLog(true,"CreateTable: Indexed Table "..sTable.." created !")
       else
         return StatusLog(false,"CreateTable: Table "..sTable
-          .." failed to create because of "..tostring(sql.LastError())
+          .." failed to create because of "..tostring(sqlLastError())
           .." Query ran > "..tQ.Create)
       end
     end
@@ -2340,10 +2369,10 @@ function InsertRecord(sTable,tData)
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,tData)
     if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: Build error: "..SQLBuildError()) end
-    local qRez = sql.Query(Q)
+    local qRez = sqlQuery(Q)
     if(not qRez and IsBool(qRez)) then
        return StatusLog(false,"InsertRecord: Failed to insert a record because of "
-              ..tostring(sql.LastError()).." Query ran <"..Q..">")
+              ..tostring(sqlLastError()).." Query ran <"..Q..">")
     end
     return true
   elseif(sModeDB == "LUA") then
@@ -2506,21 +2535,21 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
     elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,"_")
       LogInstance("TimerAttach: TimID: <"..TimerID..">")
-      if(timer.Exists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
-      timer.Create(TimerID, nLifeTM, 1, function()
+      if(timerExists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
+      timerCreate(TimerID, nLifeTM, 1, function()
         LogInstance("TimerAttach["..TimerID.."]("..nLifeTM..") > Dead")
         if(bKillRC) then
           LogInstance("TimerAttach: Killed: Place["..Key.."]")
           Place[Key] = nil
         end
-        timer.Stop(TimerID)
-        timer.Destroy(TimerID)
+        timerStop(TimerID)
+        timerDestroy(TimerID)
         if(bCollGB) then
           collectgarbage()
           LogInstance("TimerAttach: Garbage collected")
         end
       end)
-      timer.Start(TimerID)
+      timerStart(TimerID)
       return Place[Key]
     else
       return StatusLog(Place[Key],"TimerAttach: Timer mode not found: "..sModeTM)
@@ -2549,8 +2578,8 @@ local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
       sModeTM = "CQT" -- Just for something to do here and to be known that this is mode CQT
     elseif(sModeTM == "OBJ") then
       local keyTimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
-      if(not timer.Exists(keyTimerID)) then return StatusLog(nil,"TimerRestart: Timer missing: "..keyTimerID) end
-      timer.Start(keyTimerID)
+      if(not timerExists(keyTimerID)) then return StatusLog(nil,"TimerRestart: Timer missing: "..keyTimerID) end
+      timerStart(keyTimerID)
     else
       return StatusLog(nil,"TimerRestart: Timer mode not found: "..sModeTM)
     end
@@ -2567,7 +2596,7 @@ function CacheQueryPiece(sModel)
   if(not sModel) then return nil end
   if(not IsString(sModel)) then return nil end
   if(sModel == "") then return nil end
-  if(not util.IsValidModel(sModel)) then return nil end
+  if(not utilIsValidModel(sModel)) then return nil end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then return StatusLog(nil,"CacheQueryPiece: Missing: Table definition") end
   local namTable = defTable.Name
@@ -2590,8 +2619,8 @@ function CacheQueryPiece(sModel)
       stPiece.Kept = 0
       local Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPiece: Build error: "..SQLBuildError()) end
-      local qData = sql.Query(Q)
-      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPiece: SQL exec error "..sql.LastError()) end
+      local qData = sqlQuery(Q)
+      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPiece: SQL exec error "..sqlLastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPiece: No data found <"..Q..">") end
       stPiece.Kept = 1 --- Found at least one record
       stPiece.Type = qData[1][defTable[2][1]]
@@ -2622,7 +2651,7 @@ function CacheQueryAdditions(sModel)
   if(not sModel) then return nil end
   if(not IsString(sModel)) then return nil end
   if(sModel == "") then return nil end
-  if(not util.IsValidModel(sModel)) then return nil end
+  if(not utilIsValidModel(sModel)) then return nil end
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then return StatusLog(nil,"CacheQueryAdditions: Missing: Table definition") end
   local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
@@ -2645,8 +2674,8 @@ function CacheQueryAdditions(sModel)
       stAddition.Kept = 0
       local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryAdditions: Build error: "..SQLBuildError()) end
-      local qData = sql.Query(Q)
-      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryAdditions: SQL exec error "..sql.LastError()) end
+      local qData = sqlQuery(Q)
+      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryAdditions: SQL exec error "..sqlLastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryAdditions: No data found <"..Q..">") end
       stAddition.Kept = 1
       while(qData[stAddition.Kept]) do
@@ -2694,8 +2723,8 @@ function CacheQueryPanel()
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
       if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryPanel: Build error: "..SQLBuildError()) end
-      local qData = sql.Query(Q)
-      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPanel: SQL exec error "..sql.LastError()) end
+      local qData = sqlQuery(Q)
+      if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryPanel: SQL exec error "..sqlLastError()) end
       if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryPanel: No data found <"..Q..">") end
       stPanel.Kept = 1
       while(qData[stPanel.Kept]) do
@@ -2760,8 +2789,8 @@ function CacheQueryProperty(sType)
         stName.Kept = 0
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: "..SQLBuildError()) end
-        local qData = sql.Query(Q)
-        if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
+        local qData = sqlQuery(Q)
+        if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sqlLastError()) end
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found <"..Q..">") end
         stName.Kept = 1
         while(qData[stName.Kept]) do
@@ -2792,8 +2821,8 @@ function CacheQueryProperty(sType)
         stType.Kept = 0
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
         if(not IsExistent(Q)) then return StatusLog(nil,"CacheQueryProperty: Build error: "..SQLBuildError()) end
-        local qData = sql.Query(Q)
-        if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sql.LastError()) end
+        local qData = sqlQuery(Q)
+        if(not qData and IsBool(qData)) then return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sqlLastError()) end
         if(not (qData and qData[1])) then return StatusLog(nil,"CacheQueryProperty: No data found <"..Q..">") end
         stType.Kept = 1
         while(qData[stType.Kept]) do
@@ -2833,7 +2862,7 @@ end
 
 local function GetFieldsName(defTable,sDelim)
   if(not IsExistent(sDelim)) then return "" end
-  local sDelim  = string.sub(tostring(sDelim),1,1)
+  local sDelim  = stringSub(tostring(sDelim),1,1)
   local sResult = ""
   if(sDelim == "") then
     return StatusLog("","GetFieldsName: Invalid delimiter for "..defTable.Name)
@@ -2872,10 +2901,10 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
   local namTable = defTable.Name
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..(sPrefix or GetInstPref())..namTable..".txt"
-  local F = file.Open(fName, "r", "DATA")
-  if(not F) then return StatusLog(false,"ImportFromDSV: file.Open("..fName..".txt) Failed") end
+  local F = fileOpen(fName, "r", "DATA")
+  if(not F) then return StatusLog(false,"ImportFromDSV: fileOpen("..fName..".txt) Failed") end
   local Line = ""
-  local TabLen = string.len(namTable)
+  local TabLen = stringLen(namTable)
   local LinLen = 0
   local ComCnt = 0
   local SymOff = GetOpVar("OPSYM_DISABLE")
@@ -2884,18 +2913,18 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
     Ch = F:Read(1)
     if(not Ch) then return end
     if(Ch == "\n") then
-      LinLen = string.len(Line)
-      if(string.sub(Line,LinLen,LinLen) == "\r") then
-        Line = string.sub(Line,1,LinLen-1)
+      LinLen = stringLen(Line)
+      if(stringSub(Line,LinLen,LinLen) == "\r") then
+        Line = stringSub(Line,1,LinLen-1)
         LinLen = LinLen - 1
       end
-      if(not (string.sub(Line,1,1) == SymOff)) then
-        if(string.sub(Line,1,TabLen) == namTable) then
-          local Data = StringExplode(string.sub(Line,TabLen+2,LinLen),sDelim)
+      if(not (stringSub(Line,1,1) == SymOff)) then
+        if(stringSub(Line,1,TabLen) == namTable) then
+          local Data = StringExplode(stringSub(Line,TabLen+2,LinLen),sDelim)
           for k,v in pairs(Data) do
-            local vLen = string.len(v)
-            if(string.sub(v,1,1) == "\"" and string.sub(v,vLen,vLen) == "\"") then
-              Data[k] = string.sub(v,2,vLen-1)
+            local vLen = stringLen(v)
+            if(stringSub(v,1,1) == "\"" and stringSub(v,vLen,vLen) == "\"") then
+              Data[k] = stringSub(v,2,vLen-1)
             end
           end
           if(bCommit) then
@@ -2924,7 +2953,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   end
   local fName = GetOpVar("DIRPATH_BAS")
   local namTable = defTable.Name
-  if(not file.Exists(fName,"DATA")) then file.CreateDir(fName) end
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   if(sMethod == "DSV") then
     fName = fName..GetOpVar("DIRPATH_DSV")
   elseif(sMethod == "INS") then
@@ -2932,10 +2961,10 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   else
     return StatusLog(false,"Missed export method: "..sMethod)
   end
-  if(not file.Exists(fName,"DATA")) then file.CreateDir(fName) end
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..(sPrefix or GetInstPref())..namTable..".txt"
-  local F = file.Open(fName, "w", "DATA" )
-  if(not F) then return StatusLog(false,"ExportIntoFile: file.Open("..fName..") Failed") end
+  local F = fileOpen(fName, "w", "DATA" )
+  if(not F) then return StatusLog(false,"ExportIntoFile: fileOpen("..fName..") Failed") end
   local sData = ""
   local sTemp = ""
   local sModeDB = GetOpVar("MODE_DATABASE")
@@ -2954,8 +2983,8 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     end
     if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile: Build error: "..SQLBuildError()) end
     F:Write("# Query ran: <"..Q..">\n")
-    local qData = sql.Query(Q)
-    if(not qData and IsBool(qData)) then return StatusLog(nil,"ExportIntoFile: SQL exec error "..sql.LastError()) end
+    local qData = sqlQuery(Q)
+    if(not qData and IsBool(qData)) then return StatusLog(nil,"ExportIntoFile: SQL exec error "..sqlLastError()) end
     if(not (qData and qData[1])) then return StatusLog(false,"ExportIntoFile: No data found <"..Q..">") end
     local iCnt, iInd, qRec = 1, 1, nil
     if(sMethod == "DSV") then
@@ -3112,7 +3141,7 @@ function GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
            hdPointID )
   ) then return nil end
 
-  if(not util.IsValidModel(hdModel)) then return nil end
+  if(not utilIsValidModel(hdModel)) then return nil end
 
   local hdRec = CacheQueryPiece(hdModel)
 
@@ -3292,10 +3321,10 @@ function AttachAdditions(ePiece)
   while(qData[Cnt]) do
     Record   = qData[Cnt]
     LogInstance("\n\nEnt [ "..Record[defTable[4][1]].." ] INFO : ")
-    Addition = ents.Create(Record[defTable[3][1]])
+    Addition = entsCreate(Record[defTable[3][1]])
     if(Addition and Addition:IsValid()) then
       LogInstance("Addition Class: "..Record[defTable[3][1]])
-      if(file.Exists(Record[defTable[2][1]], "GAME")) then
+      if(fileExists(Record[defTable[2][1]], "GAME")) then
         Addition:SetModel(Record[defTable[2][1]])
         LogInstance("Addition:SetModel("..Record[defTable[2][1]]..")")
       else
@@ -3428,7 +3457,7 @@ function GetPropBodyGrp(oEnt)
     Rez = Rez..","..tostring(bgEnt:GetBodygroup(BG[Cnt].id) or 0)
     Cnt = Cnt + 1
   end
-  return string.sub(Rez,2,string.len(Rez))
+  return stringSub(Rez,2,stringLen(Rez))
 end
 
 function AttachBodyGroups(ePiece,sBgrpIDs)
@@ -3459,7 +3488,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   if(CLIENT) then return nil end
   local stPiece = CacheQueryPiece(sModel)
   if(not stPiece) then return nil end
-  local ePiece = ents.Create("prop_physics")
+  local ePiece = entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then return StatusLog(nil,"MakePiece: Entity invalid") end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
@@ -3482,7 +3511,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   local IDs = StringExplode(sBgSkIDs,GetOpVar("OPSYM_DIRECTORY"))
   phPiece:SetMass(nMass)
   phPiece:EnableMotion(false)
-  ePiece:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
+  ePiece:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
   AttachBodyGroups(ePiece,IDs[1] or "")
   AttachAdditions(ePiece)
   return ePiece
@@ -3515,12 +3544,12 @@ function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
   end
   if(eBase and eBase:IsValid()) then
     if(We ~= 0) then
-      local We = constraint.Weld(eBase, ePiece, 0, 0, 0, false, false)
+      local We = constraintWeld(eBase, ePiece, 0, 0, 0, false, false)
       ePiece:DeleteOnRemove(We)
        eBase:DeleteOnRemove(We)
     end
     if(Nc ~= 0) then
-      local Nc = constraint.NoCollide(eBase, ePiece, 0, 0)
+      local Nc = constraintNoCollide(eBase, ePiece, 0, 0)
       ePiece:DeleteOnRemove(Nc)
        eBase:DeleteOnRemove(Nc)
     end
@@ -3539,13 +3568,13 @@ function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
     ePiece:SetMoveType(MOVETYPE_NONE)
     ePiece:SetUnFreezable(true)
     pyPiece:EnableMotion(false)
-    duplicator.StoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
+    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
   end
   if(Gr == 0) then
-    construct.SetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
+    constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
   end
   if(Ph ~= "") then
-    construct.SetPhysProp(nil,ePiece,0,pyPiece,{Material = Ph})
+    constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = Ph})
   end
   return true
 end
@@ -3563,7 +3592,7 @@ function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
     ePiece:SetPos(vPos)
     return true
   elseif(nMode == 1) then
-    if(util.IsInWorld(vPos)) then
+    if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
@@ -3571,7 +3600,7 @@ function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
     end
     return true
   elseif(nMode == 2) then
-    if(util.IsInWorld(vPos)) then
+    if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
@@ -3580,7 +3609,7 @@ function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
     end
     return true
   elseif(nMode == 3) then
-    if(util.IsInWorld(vPos)) then
+    if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
@@ -3589,7 +3618,7 @@ function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
     end
     return true
   elseif(nMode == 4) then
-    if(util.IsInWorld(vPos)) then
+    if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
@@ -3605,7 +3634,7 @@ function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
   if(not IsString(sShortName)) then return StatusLog(nil,"MakeCvar("..tostring(sShortName).."): Wrong CVar name") end
   if(not IsExistent(sValue)) then return StatusLog(nil,"MakeCvar("..tostring(sValue).."): Wrong default value") end
   if(not IsString(sInfo)) then return StatusLog(nil,"MakeCvar("..tostring(sInfo).."): Wrong CVar information") end
-  local sVar = GetOpVar("TOOLNAME_PL")..string.lower(sShortName)
+  local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
   if(tBorder and (type(tBorder) == "table") and tBorder[1] and tBorder[2]) then
     local Border = GetOpVar("TABLE_BORDERS")
     Border["cvar_"..sVar] = tBorder
@@ -3616,7 +3645,7 @@ end
 function GetCoVar(sShortName, sMode)
   if(not IsString(sShortName)) then return StatusLog(nil,"GetCoVar("..tostring(sShortName).."): Wrong CVar name") end
   if(not IsString(sMode)) then return StatusLog(nil,"GetCoVar("..tostring(sMode).."): Wrong CVar mode") end
-  local sVar = GetOpVar("TOOLNAME_PL")..string.lower(sShortName)
+  local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
   local CVar = GetConVar(sVar)
   if(not IsExistent(CVar)) then return StatusLog(nil,"GetCoVar("..sShortName..", "..sMode.."): Missing CVar object") end
   if    (sMode == "INT") then

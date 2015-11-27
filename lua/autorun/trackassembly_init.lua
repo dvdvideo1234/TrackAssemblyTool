@@ -4,6 +4,20 @@ if(SERVER) then
 end
 include("trackassembly/trackasmlib.lua")
 
+------ LOCALIZNG FUNCTIONS ---
+local tonumber             = tonumber
+local tostring             = tostring
+local Vector               = Vector
+local Angle                = Angle
+local IsValid              = IsValid
+local RealTime             = RealTime
+local fileExists           = file.Exists
+local bitBor               = bit.bor
+local vguiCreate           = vgui.Create
+local surfaceScreenWidth   = surface.ScreenWidth
+local surfaceScreenHeight  = surface.ScreenHeight
+local duplicatorStoreEntityModifier = duplicator.StoreEntityModifier
+
 ------ MODULE POINTER -------
 local asmlib = trackasmlib
 
@@ -12,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.115")
+asmlib.SetOpVar("TOOL_VERSION","4.116")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -24,17 +38,17 @@ asmlib.SetOpVar("LOG_LOGONLY",nil)
 asmlib.SetLogControl(0,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCoVar("enwiremod", "1"  , {0,1  } ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCoVar("maxstcnt" , "200", {1,200} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCoVar("enwiremod", "1"  , {0,1  } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCoVar("maxstcnt" , "200", {1,200} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
-  asmlib.MakeCoVar("bnderrmod", "1" , {0,4}   ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
-  asmlib.MakeCoVar("maxfruse" , "50", {1,100} ,bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
+  asmlib.MakeCoVar("bnderrmod", "1" , {0,4}   ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
+  asmlib.MakeCoVar("maxfruse" , "50", {1,100} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
 end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeCoVar("modedb"   , "SQL", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-asmlib.MakeCoVar("enqstore" ,     1, nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable cache for built queries")
-asmlib.MakeCoVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
+asmlib.MakeCoVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
+asmlib.MakeCoVar("enqstore" ,     1, nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable cache for built queries")
+asmlib.MakeCoVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
 
 ------ CONFIGURE MODES -----
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCoVar("modedb","STR"))
@@ -66,7 +80,7 @@ if(SERVER) then
           return asmlib.StatusLog(nil,"WELD_GROUND: PhysObj invalid "..sInf)
         end
         oPhy:EnableMotion(false)
-        duplicator.StoreEntityModifier(oEnt, gsToolPrefL.."wgnd", {[1] = true})
+        duplicatorStoreEntityModifier(oEnt, gsToolPrefL.."wgnd", {[1] = true})
         asmlib.LogInstance("WELD_GROUND: Success "..sInf)
       end
     end)
@@ -94,7 +108,7 @@ if(CLIENT) then
       end
       local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
       if(not defTable) then return StatusLog(false,"Missing definition for table PIECES") end
-      local pnFrame = vgui.Create("DFrame")
+      local pnFrame = vguiCreate("DFrame")
       if(not IsValid(pnFrame)) then
         pnFrame:Remove()
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create elements frame")
@@ -110,7 +124,7 @@ if(CLIENT) then
       while(iNdex <= iSize) do
         vItem = pnElements:Select(iNdex)
         asmlib.LogInstance("OPEN_FRAME: Create "..vItem.Label[1].." name "..vItem.Label[2].." ID #"..iNdex)
-        vItem.Panel = vgui.Create(vItem.Label[1],pnFrame)
+        vItem.Panel = vguiCreate(vItem.Label[1],pnFrame)
         if(not IsValid(vItem.Panel)) then
           asmlib.LogInstance("OPEN_FRAME: Failed to create "..vItem.Label[1].." name "..vItem.Label[2].." ID #"..iNdex)
           iNdex = iNdex - 1
@@ -126,8 +140,8 @@ if(CLIENT) then
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
-      local scrW = surface.ScreenWidth()
-      local scrH = surface.ScreenHeight()
+      local scrW = surfaceScreenWidth()
+      local scrH = surfaceScreenHeight()
       local pnButton     = pnElements:Select(1).Panel
       local pnListView   = pnElements:Select(2).Panel
       local pnModelPanel = pnElements:Select(3).Panel
