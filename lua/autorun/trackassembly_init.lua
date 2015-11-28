@@ -11,12 +11,12 @@ local Vector               = Vector
 local Angle                = Angle
 local IsValid              = IsValid
 local RealTime             = RealTime
-local fileExists           = file.Exists
-local bitBor               = bit.bor
-local vguiCreate           = vgui.Create
-local surfaceScreenWidth   = surface.ScreenWidth
-local surfaceScreenHeight  = surface.ScreenHeight
-local duplicatorStoreEntityModifier = duplicator.StoreEntityModifier
+local bitBor               = bit and bit.bor
+local vguiCreate           = vgui and vgui.Create
+local fileExists           = file and file.Exists
+local surfaceScreenWidth   = surface and surface.ScreenWidth
+local surfaceScreenHeight  = surface and surface.ScreenHeight
+local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
 local asmlib = trackasmlib
@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.116")
+asmlib.SetOpVar("TOOL_VERSION","4.117")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))

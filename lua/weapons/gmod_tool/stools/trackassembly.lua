@@ -11,27 +11,27 @@ local tonumber              = tonumber
 local LocalPlayer           = LocalPlayer
 local RunConsoleCommand     = RunConsoleCommand
 local RestoreCursorPosition = RestoreCursorPosition
-local osDate                = os.date
-local stringSub             = string.sub 
-local gameSinglePlayer      = game.SinglePlayer
-local undoCreate            = undo.Create           
-local undoAddEntity         = undo.AddEntity        
-local undoSetPlayer         = undo.SetPlayer        
-local undoSetCustomUndoText = undo.SetCustomUndoText
-local undoFinish            = undo.Finish           
-local utilIsValidModel      = util.TraceLine
-local utilTraceLine         = util.IsValidModel
-local utilPrecacheModel     = util.PrecacheModel
-local utilIsValidRagdoll    = util.IsValidRagdoll
-local utilGetPlayerTrace    = util.GetPlayerTrace
-local mathClamp             = math.Clamp
-local languageAdd           = language.Add
-local concommandAdd         = concommand.Add
-local cleanupRegister       = cleanup.Register
-local entsCreateClientProp  = ents.CreateClientProp
-local entsCreate            = ents.Create
-local fileExists            = file.Exists
-local duplicatorRegisterEntityModifier = duplicator.RegisterEntityModifier
+local osDate                = os and os.date
+local gameSinglePlayer      = game and game.SinglePlayer
+local undoCreate            = undo and undo.Create           
+local undoAddEntity         = undo and undo.AddEntity        
+local undoSetPlayer         = undo and undo.SetPlayer        
+local undoSetCustomUndoText = undo and undo.SetCustomUndoText
+local undoFinish            = undo and undo.Finish           
+local utilIsValidModel      = util and util.IsValidModel
+local utilTraceLine         = util and util.TraceLine
+local utilPrecacheModel     = util and util.PrecacheModel
+local utilIsValidRagdoll    = util and util.IsValidRagdoll
+local utilGetPlayerTrace    = util and util.GetPlayerTrace
+local mathClamp             = math and math.Clamp
+local entsCreateClientProp  = ents and ents.CreateClientProp
+local entsCreate            = ents and ents.Create
+local fileExists            = file and file.Exists
+local stringSub             = string and string.sub 
+local cleanupRegister       = cleanup and cleanup.Register
+local languageAdd           = language and language.Add
+local concommandAdd         = concommand and concommand.Add
+local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntityModifier
 
 ----------------- TOOL Global Parameters ----------------
 --- Store a pointer to our module
@@ -370,7 +370,7 @@ function TOOL:LeftClick(Trace)
   -- Hit Prop
   if(not trEnt) then return false end
   if(not trEnt:IsValid()) then return false end
-  if(not utilTraceLine(model)) then return false end
+  if(not utilIsValidModel(model)) then return false end
   if(not asmlib.IsPhysTrace(Trace)) then return false end
   if(asmlib.IsOther(trEnt)) then return false end
 
@@ -523,7 +523,7 @@ function TOOL:RightClick(Trace)
   -- Change the active point
   if(CLIENT) then return true end
   local model   = self:GetModel()
-  if(not utilTraceLine(model)) then return false end
+  if(not utilIsValidModel(model)) then return false end
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not hdRec) then return false end
   local pointid, pnextid = self:GetPointID()
@@ -1114,7 +1114,7 @@ end
 
 function TOOL:MakeGhostEntity(sModel)
   -- Check for invalid model
-  if(not utilTraceLine(sModel)) then return end
+  if(not utilIsValidModel(sModel)) then return end
   utilPrecacheModel(sModel)
   -- We do ghosting serverside in single player
   -- It's done clientside in multiplayer
@@ -1216,7 +1216,7 @@ end
 
 function TOOL:Think()
   local model = self:GetModel()
-  if(self:GetEnableGhost() ~= 0 and utilTraceLine(model)) then
+  if(self:GetEnableGhost() ~= 0 and utilIsValidModel(model)) then
     if (not self.GhostEntity or
         not self.GhostEntity:IsValid() or
             self.GhostEntity:GetModel() ~= model
