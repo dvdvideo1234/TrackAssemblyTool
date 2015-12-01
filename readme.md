@@ -248,7 +248,7 @@ A: Well, when a server owners set the "trackasmlib_maxfruse" to a higher value, 
    field to filter the data on (<Search BY> either "Model", "Type", "Name", "Act"). Do not bother that
    the name is not displayed in the pieces list. That's normal ( Cave Johnson xD ). For 95% of the
    models it is dynamically generated using the *.mdl file, so there is really no point in viewing
-   that parameter on the pieces panel. In the text-box, to search you have to enter a pattern than
+   that parameter on the pieces panel. In the text-box, to search you have to enter a pattern that
    you want to preform the filtering with. The result will populate the list view, only with these
    pieces, whatever desired field value is matched by the pattern given. The pattern is a standard
    Lua one, which is supported by the string.* library an you can also google it ;)
@@ -291,9 +291,14 @@ A: Yes, you can. For every active point, you have to add a line in the table PIE
     8) [Excel 2010] Save as type: "Text (Tab delimited)(*.txt)"
     9) [Excel 2010] Replace it if you must (don't worry you can always generate it again ( points 3) and 4) )
    10) [Excel 2010] It will prompt you that the file you are saving does contain features not compatible with "TAB Delimited" format
-   11) [Excel 2010] Just Click "Yes" and close Excel
-   12) [Excel 2010] It will want to save it again, so you should click "Don't Save"
+   11) [Excel 2010] Click "Yes" and close Excel
+   12) [Excel 2010] It will want you to save it again, so just click "Don't Save"
    13) [Excel 2010] You are good to go
+N: After adding these models, the database can be exported again.
+   This will generate export data, that can be located under "../data/trackassembly/exp/"
+   If you want me to review your custom models/addon, please provide these inserts to me.
+   Whether it is for PIECES, ADDITIONS, PHYSPROPERTIES, these files will be generated with
+   the instance prefix also ( cl_*.txt and sv_*.txt ). Please provide me the client side file.
 
 Q: May I PUT this thing in another third party website ?
 A: No I will not give you my permission to do that... Why ...
