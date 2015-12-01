@@ -10,7 +10,7 @@ local stringSub   = string and string.sub
 local stringUpper = string and string.upper
 local stringLen   = string and string.len
 
------ Get extention enabled flag
+----- Get extension enabled flag
 local enFlag = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
 
 --------- Pieces ----------

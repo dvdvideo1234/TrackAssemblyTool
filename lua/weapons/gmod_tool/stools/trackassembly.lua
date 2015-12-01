@@ -534,14 +534,14 @@ function TOOL:RightClick(Trace)
     ply:ConCommand(gsToolPrefL.."openframe "..asmlib.GetCoVar("maxfruse" ,"INT").."\n")
     return true
   end
-  if(asmlib.LoadPlyKey(ply,"DUCK")) then -- Use
-    if(asmlib.LoadPlyKey(ply,"SPEED")) then -- Left Shift
+  if(asmlib.LoadPlyKey(ply,"DUCK")) then -- Crouch ( Ctrl )
+    if(asmlib.LoadPlyKey(ply,"SPEED")) then -- Run ( Left Shift )
       pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",hdRec)
     else
       pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",hdRec)
     end
-  else
-    if(asmlib.LoadPlyKey(ply,"SPEED")) then -- Left Shift
+  else -- Not Crouch ( Ctrl )
+    if(asmlib.LoadPlyKey(ply,"SPEED")) then -- Run ( Left Shift )
       pointid = asmlib.IncDecPointID(pointid,"-",hdRec)
     else
       pointid = asmlib.IncDecPointID(pointid,"+",hdRec)

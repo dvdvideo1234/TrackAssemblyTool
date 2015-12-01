@@ -69,19 +69,22 @@ A: Here they are, with available status, why I did not do some of them ( in the 
 
 Q: Are there going to be more of those?
 A: Yes, I developed my dynamic database, so I can insert any model I want.
-   When I have free time I will make more, because its a lot of data i insert in the DB
+   When I have free time I will make more, because its a lot of data I insert in the DB
 
 Q: How can I change fast my piece model?
-A: Duck Key ( Default: Crtl ) + Left click.
+A: Press DUCK ( Default: Ctrl ) + ATTACK1 ( Default: Left mouse button ).
 
 Q: How can I open the recently used pieces list.
-A: Press USE ( Default: E ) + Right mouse button.
+A: Press USE ( Default: E ) + ATTACK2 ( Default: Right mouse button ).
 
 Q: How can I make a track with multiple piece segments?
-A: Hold Speed/Run ( Default: Shift ), point to an active position then Left click while holding.
+A: Hold SPEED   ( Default: Shift ), point to an active position then press
+        ATTACK1 ( Default: Left mouse button ) while holding.
 
-Q: How to choose Previous, Next active position and vice-versa?
-A: Shift + RightClick, Right Click.
+Q: How can I choose desired, Next active position?
+A: Use ATTACK2 ( Default: Right mouse button ) for VICE
+       SPEED   ( Default: Shift ) +
+       ATTACK2 ( Default: Right mouse button ) for VERSA
 
 Q: Can I assemble tracks in a different than default way?
 A: Yes, use the X,Y,Z P,Y and R offsets.
@@ -100,9 +103,15 @@ A: Remember when I got suggestions to do the switchers.
 
 Q: I want to change the active position of the next
    rail when stacking, could you help me with that?
-A: Do you see the yellow line with the circle, use E + RightClk
-   or E + Shift + RigthClk to change its position and vice-versa.
-   Now use the stacking option ( Shift + LeftClk ).
+A: Do you see the yellow line with the circle, use
+     DUCK    ( Default: Ctrl ) + 
+     ATTACK2 ( Default: Right mouse button ) for VICE
+     DUCK    ( Default: Ctrl ) + 
+     SPEED   ( Default: Shift ) + 
+     ATTACK2 ( Default: Right mouse button ) for VERSA
+   Now use the stacking option and you are done !
+     SPEED   ( Default: Shift ) +
+     ATTACK1 ( Default: Left mouse button ).
 
 Q: Well, I am having hard time placing the last track flat
    relative to the map ground, can you help me?
@@ -160,7 +169,7 @@ N: The error is logged if the logs are enabled !
 
 Q: Dude, is there any other way to connect ( weld ) all the pieces relative
    to one big base prop and use it as an anchor to constrain these thing to?
-A: Well yeah, select/clear the anchor prop using IN_SPEED ( def. Shift ) + IN_RELOAD ( def. R )
+A: Well yeah, select/clear the anchor prop using SPEED ( Default: Shift ) + RELOAD ( Default: R )
    When pointing to an entity, trace will be selected for an anchor or point to the world to clear it.
    
 Q: Does this thing have any wire extensions and how can I control then
@@ -260,7 +269,7 @@ A: First of all if the the error origin is not the TA,
     9) If the error does not go away pls proceed to ( 10 - 16 )
    10) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
    11) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
-   12) Point to the world in-game hold "IN_SPEED" ( Running: Shift ) + Reload
+   12) Point to the world in-game hold SPEED ( Default: Shift ) + RELOAD ( Default: R )
    13) Now the hardest part - While in-game do some stuff and make it crash 
    14) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
    15) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
@@ -273,7 +282,7 @@ Q: Yo, can I add some personal models to TA ?
 A: Yes, you can. For every active point, you have to add a line in the table PIECES.
     1) In the console ( Bring it up with ~ key under ESC ): "trackassembly_exportdb 1" [ press enter ]
     2) After exporting, tables are located under ..common\GarrysMod\garrysmod\data\trackassembly\dsv\ [DSV Folder]
-    3) Server: Point the crosshair anywhere on the map, then hit IN_SPEED ( Def: Shift ) + IN_RELOAD ( Def: R )
+    3) Server: Point the crosshair anywhere on the map, then hit SPEED ( Default: Shift ) + RELOAD ( Default: R )
     4) Client: Just bring up the Frequently used pieces screen, then click the "Export client's DB" button
     5) Use Excel or another table editing program to edit the files sv_*.txt and cl_*.txt
     6) After you are done, proceed as below [Excel 2010] 
