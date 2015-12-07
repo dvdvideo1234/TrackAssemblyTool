@@ -12,40 +12,75 @@ On the Steam WS: http://steamcommunity.com/sharedfiles/filedetails/?id=287012681
 
 General FAQ:
 ```
-Q: What doest this thing do?
-A: This tool is optimized for assembling a track.
+Q: What does this thing do?
+A: This script is optimized for assembling a prop-segmented track inside the game "Garry's mod".
+   It uses pre-defined active pints to snap the props the best way there is.
 
 Q: Why did you consider making this thing ?
-A: I was always annoyed when building a railroad track, spending a lot of time
+A: I was always annoyed when building a railroad track in-game, spending a lot of time
    just to align the pieces together, so I thought "Here is a bright idea!" and there you have it :)
    Also another great achievement progress is in place, so 10x guys for helping me, help you, help us all !
    ( Portal quote )
 
-Q: Dude the rails are not showing in the menu, what should I do ?
-A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
-Note: What addons did you work on?
+Q: What are the most important things that I need in order to build a track using this script?
+A: Just subscribe to the workshop item:
+     http://steamcommunity.com/sharedfiles/filedetails/?id=287012681
+     or download the last stable release:
+     https://github.com/dvdvideo1234/TrackAssemblyTool/releases
+     and extract it inside ..\GarrysMod\garrysmod\addons
+   You can find the tool in the "Constriction" section of the Garry's mod "Q" menu under the name of "Track Assembly".
+   On the right in the tool's menu you can locate the track pieces tree.
+   Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
+   Pressing ATTACK1 ( Default: Left mouse button )
+     When you are looking at the world the piece will just be spawned on the map.
+     When you are looking at one of track piece's pre-defined active points, it will snap the piece that you're holding
+       to the trace one if the trace piece's type is the same as the holder piece's type
+       ( When types are different, please refer to "How can I assemble a track with different piece types in one place?" )
+       and a coordinate system appears, marking the origin position on the trace piece and rendering the ghost model
+       ( When "Enable ghosting" is checked ).
+     When you are not looking at one of track piece's pre-defined active points, you will update the piece's bodygroups.
+   Pressing DUCK ( Default: Ctrl ) + ATTACK1 ( Default: Left mouse button )
+     Will select the trace model to use as a piece for building.
+   Pressing SPEED ( Default: Shift ) + ATTACK1 ( Default: Left mouse button ) 
+     Will stack as many pieces as shown by the slider "Pieces count".
+   Pressing ATTACK2 ( Default: Right mouse button )
+     Will increment the chosen active position of the piece that you're holding.
+   Pressing SPEED ( Default: Shift ) + ATTACK2 ( Default: Right mouse button )
+     Will decrement the chosen active position of the piece that you're holding.
+   Pressing USE ( Default: E ) + ATTACK2 ( Default: Right mouse button )
+     When pointing to the world will open the "Frequent pieces by <PLAYER_NAME_HERE>" frame form where
+       you can select your routine pieces to use again in the track building process
+       as well as searching in the table either by MODEL, TYPE, NAME, LAST_USED to obtain the piece
+       you want to continue your track with.
+   Pressing DUCK ( Default: Ctrl ) + ATTACK2 ( Default: Right mouse button )
+     Will increment the next active point chosen of the piece that you're holding.
+   Pressing DUCK ( Default: Ctrl ) + SPEED ( Default: Shift ) + ATTACK2 ( Default: Right mouse button )
+     Will decrement the next active point chosen of the piece that you're holding.
+   Pressing RELOAD ( Default: R )
+     When used on trace it removes it, if it's a track piece.
+     When Pressing it on world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
+   Pressing RELOAD ( Default: R ) + SPEED ( Default: Shift )
+     Will set the trace prop as an anchor for other pieces spawned to be welded to.
+   If you want to obtain different grip behaviour for a wheel-powered train,
+     you may use the surface material drop-down menus as you select first "TYPE" then "NAME".
+   The "Yaw snap amount" slider is used to snap the first piece
+     to a user-defined angle ( Usually 45 ) so that the track building process becomes easier.
+   In the text field you may type bodygroup/skin selection code or generate one using the SCORE ( Default: TAB ) key
+     while pointing to a prop with bodygroups/skins set by Garry's mod entity right click menu.
+     Press "ENTER" in the text field if you are happy with the selection to apply it.
+   Piece mass slider is used to set the mass of the next track piece to be spawned.
+   Active radius is used to set the minimum distance needed to select an active point when pointing to e piece.
+   When building a track using a different than the default way is needed you may use:
+     UCS Pitch/Yaw/Roll are angle offsets used for orientating the base coordinate system in order to snap the piece as the user desires.
+     Offset X(Forward-RED)/Y(Right-GREEN)/Z(Up-BLUE) are linear offsets used for additional user offset regarding the next track piece to be spawned.
+   The button "Reset All Offsets" as the name suggests clears the offsets mentioned above ( UCS% and Offset% ).
 
-Q: Where is the TrackAssembly tool located?
-A: It should be always "Q -> Construction [ Left side, "Tools" part ] -> Track Assembly Tool".
-   Anywhere else than there, means that you have "different version", so please report it ! 
-   
-Q: Will you create more models in the future?
-A: Well, It depends what do you mean by "create".
-   If it is for the making of the 3D models, then NO ( big one ) I've got no experience in
-   that stuff nether am I a 3D artist. Other than that if the models are created by the 3D artists,
-   I will be more then happy to add them in to the TrackAssembly Tool if their collision model meets
-   the minimum requirements.
-   ( Made a model once, but it turned out quite nasty xD, so better leave the job to the right people.)
-   
 Q: What will happen if something gets updated?
 A: First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that
    the tool supports will be represented here as a "manual" or something.
    That's what is this FAQ for anyway ...
 
-Q: Where are the trains / vehicles, are there any of those?
-A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
-
-Q: What addons did you work on?
+Q: Which addons did you work on?
 A: Here they are, with available status, why I did not do some of them ( in the time of developing ):
     1) PHX Monorails,
     2) PHX Regular Tracks ( Ignore "switcher_2" missing part of the collision model),
@@ -67,27 +102,24 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    18) Mr. Train's M-Gauge rails
    19) Bobsters's two gauge rails
 
+Q: Dude the rails are not showing in the menu, what should I do ?
+A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
+N: Which addons did you work on?
+
 Q: Are there going to be more of those?
 A: Yes, I developed my dynamic database, so I can insert any model I want.
    When I have free time I will make more, because its a lot of data I insert in the DB
 
-Q: How can I change fast my piece model?
-A: Press DUCK ( Default: Ctrl ) + ATTACK1 ( Default: Left mouse button ).
+Q: Will you create more models in the future?
+A: Well, It depends what do you mean by "create".
+   If it is for the making of the 3D models, then NO ( big one ) I've got no experience in
+   that stuff nether am I a 3D artist. Other than that if the models are created by the 3D artists,
+   I will be more then happy to add them in to the TrackAssembly Tool if their collision model meets
+   the minimum requirements.
+   ( Made a model once, but it turned out quite nasty xD, so better leave the job to the right people.)
 
-Q: How can I open the recently used pieces list.
-A: Press USE ( Default: E ) + ATTACK2 ( Default: Right mouse button ).
-
-Q: How can I make a track with multiple piece segments?
-A: Hold SPEED   ( Default: Shift ), point to an active position then press
-        ATTACK1 ( Default: Left mouse button ) while holding.
-
-Q: How can I choose desired, Next active position?
-A: Use ATTACK2 ( Default: Right mouse button ) for VICE
-       SPEED   ( Default: Shift ) +
-       ATTACK2 ( Default: Right mouse button ) for VERSA
-
-Q: Can I assemble tracks in a different than default way?
-A: Yes, use the X,Y,Z P,Y and R offsets.
+Q: Where are the trains/vehicles, are there any of these?
+A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
 
 Q: How can I assemble a track with different piece types in one place?
 A: Check "Ignore track type" checkbox.
@@ -95,32 +127,18 @@ A: Check "Ignore track type" checkbox.
 Q: Can I rid of the ghosted piece temporary ?
 A: Yes you can uncheck "Enable ghosting" checkbox.
 
-Q: What is this new yellow line into the advisor, what is it for ?
+Q: What is this yellow line into the advisor, what is it for ?
 A: Remember when I got suggestions to do the switchers.
    This is an easy way of indicating which NEXT active position ( of some... )
    is chosen when stacking is in place. The end of the line with the green
    circle points to the next active position that is chosen.
 
-Q: I want to change the active position of the next
-   rail when stacking, could you help me with that?
-A: Do you see the yellow line with the circle, use
-     DUCK    ( Default: Ctrl ) + 
-     ATTACK2 ( Default: Right mouse button ) for VICE
-     DUCK    ( Default: Ctrl ) + 
-     SPEED   ( Default: Shift ) + 
-     ATTACK2 ( Default: Right mouse button ) for VERSA
-   Now use the stacking option and you are done !
-     SPEED   ( Default: Shift ) +
-     ATTACK1 ( Default: Left mouse button ).
-
 Q: Well, I am having hard time placing the last track flat
    relative to the map ground, can you help me?
-A: Check "Next piece flat to surface" track option, then point
-   to an active position and click the Left mouse button.
+A: Check "Next piece flat to surface" track option.
 
-Q: I want to place the first piece relative to the mass-centre like the previous
-   version or relative to the chosen point, how can I do that ?
-A: EEmm, check/uncheck "Spawn at mass-centre" checkbox.
+Q: I want to place the first piece relative to the mass-centre or the chosen point, how can I do that ?
+A: Emm, check/uncheck "Spawn at mass-centre" checkbox.
 N: If you uncheck it, the position were you pointing at becomes origin,
    so you need to offset your piece as you want to, using the Pos/Ang offsets!
 
@@ -130,15 +148,10 @@ A: See the "Yaw snap amount" slider ! Use that to Snap your first piece.
 N: Assembling the track relative to the first piece will be snapped also, because
    you are building it relative to the first piece as an origin !
 
-Q: Are there any other options?
-A: Yes, there are, but you don't need them, because they
-   are intended for developing xD, so just play along :)
-
 Q: Dude the piece is still spawning in the the ground, what should I do?
 A: Amm uncheck "Origin from mass-centre" and check "Auto-offset up",
-   I Put this like that, so we can still have custom offsets :)
-   The tool adapts to its user xD
-
+   I Put this like that, so we can still have custom offsets :).
+  
 Q: Can I change the surface properties of a piece to obtain a better grip
 A: Yeah, choose a type from the upper combo then mat. name from the one below it.
 
@@ -166,11 +179,6 @@ A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
    May the force be with you and your server !
 N: The error is logged if the logs are enabled !
    ( See:  Hay, how should I proceed when I am experiencing errors points 10 - 12 ).
-
-Q: Dude, is there any other way to connect ( weld ) all the pieces relative
-   to one big base prop and use it as an anchor to constrain these thing to?
-A: Well yeah, select/clear the anchor prop using SPEED ( Default: Shift ) + RELOAD ( Default: R )
-   When pointing to an entity, trace will be selected for an anchor or point to the world to clear it.
    
 Q: Does this thing have any wire extensions and how can I control then
    when my clients are abusing them ?
@@ -266,15 +274,15 @@ A: First of all if the the error origin is not the TA,
     6) Navigate to "Local Files" and click "Verify integrity of the game cache"
     7) Go to http://steamcommunity.com/sharedfiles/filedetails/?id=287012681 
     8) Hit the subscribe button
-    9) If the error does not go away pls proceed to ( 10 - 16 )
+    9) If the error does not go away please proceed to ( 10 - 16 )
    10) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
    11) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
    12) Point to the world in-game hold SPEED ( Default: Shift ) + RELOAD ( Default: R )
-   13) Now the hardest part - While in-game do some stuff and make it crash 
+   13) Now the hardest part - While in-game do some stuff and make it crash again.
    14) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
    15) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
    16) If you don't bother using the workshop, then please use the GitHub link instead.
-       Be sure to dowload only a stable release version: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
+       Be sure to download only a stable release version: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
        GitHub: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master
        SVN     https://github.com/dvdvideo1234/TrackAssemblyTool/trunk
 
