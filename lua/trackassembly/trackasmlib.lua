@@ -438,8 +438,8 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
     end
     local vLeft = -oPly:GetAimVector():Angle():Right()
     aAng:Set(vLeft:Cross(oTrace.HitNormal):AngleEx(oTrace.HitNormal))
-  else -- Get the player yaw
-    local nYSnap = tonumber(nYSnap) or 0
+  else -- Get only the player yaw, pitch and roll are not needed
+    local nYSnap = tonumber(nYSnap) or 0 
     if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
       aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap)
     end
@@ -1020,15 +1020,22 @@ function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
   return RollValue(nPnextID,1,rPiece.Kept)
 end
 
-function GetPointUpGap(oEnt,hdPoint)
-  if(not (oEnt and hdPoint)) then return 0 end
-  if(not oEnt:IsValid()) then return 0 end
-  if(not (hdPoint.O and hdPoint.A )) then return 0 end
+function GetUpAutoFill(oEnt, nPointID)
+  if(not (oEnt and oEnt:IsValid())) then return StatusLog(0,"GetGapFill: Entity Invalid") end
+  local hdPnt = CacheQueryPiece(oEnt:GetModel())
+  if(not IsExistent(hdPnt)) then return StatusLog(0,"GetGapFill: Record not found") end
+  local hdPnt = hdPnt.Offs
+  if(not IsExistent(hdPnt)) then return StatusLog(0,"GetGapFill: Record has no offsets") end
+  local nPointID = tonumber(nPointID)
+  if(not IsExistent(nPointID)) then return StatusLog(0,"GetGapFill: Not a number #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+  local hdPnt = hdPnt.Offs[nPointID]
+  if(not IsExistent(hdPnt)) then return StatusLog(0,"GetGapFill: Invalid point #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+  if(not (hdPnt.O and hdPnt.A )) then return StatusLog(0,"GetGapFill: Invalid POA #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   local aDiffBB = Angle()
   local vDiffBB = oEnt:OBBMins()
-  SetAngle(aDiffBB,hdPoint.A)
+  SetAngle(aDiffBB,hdPnt.A)
   aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
-  SubVector(vDiffBB,hdPoint.O)
+  SubVector(vDiffBB,hdPnt.O)
   vDiffBB:Set(DecomposeByAngle(vDiffBB,aDiffBB))
   return mathAbs(vDiffBB[cvZ])
 end

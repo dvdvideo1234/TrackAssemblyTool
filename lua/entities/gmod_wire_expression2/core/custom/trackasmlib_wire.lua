@@ -1,5 +1,5 @@
 ----- Localizing the asmlib module
-local asmlib   = trackasmlib
+local asmlib      = trackasmlib
 ----- Localizing needed functions
 local Vector      = Vector
 local Angle       = Angle

@@ -1,1 +1,2 @@
 Test if the Trace.HitWorld Pos/Ang will be calculated correctly.
+Test if GetUpAutoFill() will work correctly for trace.HitHormal/Trace.HitWorld

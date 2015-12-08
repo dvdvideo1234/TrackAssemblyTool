@@ -68,8 +68,12 @@ A: Just subscribe to the workshop item:
      to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
      whole track build will be snapped also, because you are building it relative to the first piece.
    The "Snap to trace surface" checkbox if checked, will snap the chosen track directly to the
-     trace surface. 
-     
+     trace surface.
+   The "Enable pieces gravity" checkbox if checked, will disable the gravity on the spawned pieces.
+   The "Next piece flat to surface" checkbox if checked, will make the next pieces parallel to the map ground.
+   The "Spawn at mass-centre" checkbox if checked, will align the piece spawned to its mass-centre.
+   The "Auto-offset up" checkbox if checked, will automatically offset the piece spawned,
+     so it is barely touches the ground and spawns over it (When "Spawn at mass-centre" is unchecked).
    In the text field you may type bodygroup/skin selection code or generate one using the SCORE ( Default: TAB ) key
      while pointing to a prop with bodygroups/skins set by Garry's mod entity right click menu.
      Press "ENTER" in the text field if you are happy with the selection to apply it.
@@ -132,29 +136,10 @@ A: Remember when I got suggestions to do the switchers.
    is chosen when stacking is in place. The end of the line with the green
    circle points to the next active position that is chosen.
 
-Q: Well, I am having hard time placing the last track flat
-   relative to the map ground, can you help me?
-A: Check "Next piece flat to surface" track option.
-
-Q: I want to place the first piece relative to the mass-centre or the chosen point, how can I do that ?
-A: Emm, check/uncheck "Spawn at mass-centre" checkbox.
-N: If you uncheck it, the position were you pointing at becomes origin,
-   so you need to offset your piece as you want to, using the Pos/Ang offsets!
-
-Q: Dude the piece is still spawning in the the ground, what should I do?
-A: Amm uncheck "Origin from mass-centre" and check "Auto-offset up",
-   I Put this like that, so we can still have custom offsets :).
-  
-Q: I want to disable the gravity on a piece, how should I do that?
-A: Uncheck "Enable pieces gravity" checkbox
-
 Q: How can I guess Bodygroup IDs and skins, it's annoying...
 A: Naa, just use the Garry's right-click context menu to select body-groups/skins
    If you are happy with the selection, click in the text-box and then hit the TAB button.
    The selection code will be auto-generated in there, press ENTER and it's done :).
-
-Q: Dude, I want to snap the track piece directly to the trace surface, how should I do that ?
-A: Emm, Check the "Snap to trace surface" option.
 
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?

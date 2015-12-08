@@ -320,8 +320,7 @@ function TOOL:LeftClick(Trace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadPlyKey(ply)
   if(Trace.HitWorld) then -- Spawn it on the map ...
-    local ePiece = asmlib.MakePiece(model,Trace.HitPos,
-                     ANG_ZERO,mass,bgskids,DDyes:Select("w"))
+    local ePiece = asmlib.MakePiece(model,Trace.HitPos,ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
@@ -331,7 +330,10 @@ function TOOL:LeftClick(Trace)
         local vBBMin = ePiece:OBBMins()
         asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
                                  Trace.HitPos[cvY] + nexty,
-                                 Trace.HitPos[cvZ] + nextz - (Trace.HitNormal.z * vBBMin.z) - vPos[cvZ])       
+                                 Trace.HitPos[cvZ] + nextz - vPos[cvZ])
+        if(autoffsz ~= 0) then
+          vPos:Add(asmlib.GetUpAutoFill(ePiece,pointid) * Trace.HitNormal)
+        end
         if(not asmlib.SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
@@ -342,8 +344,7 @@ function TOOL:LeftClick(Trace)
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then return false end
         if(autoffsz ~= 0) then
-          stSpawn.SPos:Add(asmlib.GetPointUpGap(ePiece,
-            stSpawn.HRec.Offs[pointid]) * Trace.HitNormal)
+          stSpawn.SPos:Add(asmlib.GetUpAutoFill(ePiece,pointid) * Trace.HitNormal)
         end
         if(not asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
@@ -380,8 +381,7 @@ function TOOL:LeftClick(Trace)
 
   if(asmlib.LoadPlyKey(ply,"DUCK")) then
     -- IN_Duck: Use the VALID Trace.Entity as a piece
-    asmlib.PrintNotify(ply,"Model: "..asmlib.GetModelFileName(trModel)
-                                         .." selected !","GENERIC")
+    asmlib.PrintNotify(ply,"Model: "..asmlib.GetModelFileName(trModel).." selected !","GENERIC")
     ply:ConCommand(gsToolPrefL.."model " ..trModel.."\n")
     ply:ConCommand(gsToolPrefL.."pointid 1\n")
     ply:ConCommand(gsToolPrefL.."pnextid 2\n")
@@ -403,13 +403,10 @@ function TOOL:LeftClick(Trace)
   if(asmlib.LoadPlyKey(ply,"SPEED")) then -- IN_Speed: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,"Stack count #"..count.." not properly picked") end
     if(pointid == pnextid) then return asmlib.StatusLog(false,"Point ID #"..pointid.." overlap") end
-    local iNdex = count
-    local nTrys = staatts
-    local vTemp = Vector()
-    local vLook = Vector()
-    local ePieceN, ePieceO
+    local iNdex  , nTrys   = count, staatts
+    local vTemp  , vLook   = Vector(), Vector()
+    local ePieceO, ePieceN = trEnt, nil
     undoCreate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
-    ePieceO = trEnt
     while(iNdex > 0) do
       ePieceN = asmlib.DuplicatePiece(ePieceO)
       if(ePieceN) then
@@ -425,7 +422,7 @@ function TOOL:LeftClick(Trace)
           undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
           undoFinish()
           return true
-        end
+        end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
         asmlib.AnchorPiece(ePieceN,(anEnt or ePieceO),weld,nocolld,freeze,wgnd,engravity,physmater)
         if(iNdex == count) then
@@ -442,7 +439,7 @@ function TOOL:LeftClick(Trace)
             .."\n   hdModel: "..fnmodel)
           end
           asmlib.SetVector(vLook,stSpawn.HRec.Offs[pnextid].P)
-        end
+        end -- The next point is valid
         vTemp:Set(vLook)
         vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos())
@@ -463,7 +460,7 @@ function TOOL:LeftClick(Trace)
           .."\n   Player : "..ply:GetName()
           .."\n   trModel: "..asmlib.GetModelFileName(trModel)
           .."\n   hdModel: "..fnmodel)
-        end
+        end -- Spawn data is valid for the current iteration iNdex
         ePieceO = ePieceN
         iNdex = iNdex - 1
         nTrys = staatts
@@ -484,8 +481,8 @@ function TOOL:LeftClick(Trace)
         .."\n   Player : "..ply:GetName()
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)
         .."\n   hdModel: "..fnmodel)
-      end
-      if(hdRec.Kept == 1) then break end
+      end -- We still have enough memory to preform the stacking
+      if(hdRec.Kept == 1) then break end -- If holder's model has only one point, we cannot stack
     end
     asmlib.EmitSoundPly(ply)
     undoSetPlayer(ply)
@@ -493,8 +490,7 @@ function TOOL:LeftClick(Trace)
     undoFinish()
     return true
   else
-    local ePiece = asmlib.MakePiece(model,Trace.HitPos,
-                     ANG_ZERO,mass,bgskids,DDyes:Select("w"))
+    local ePiece = asmlib.MakePiece(model,Trace.HitPos,ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
       if(not asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
         .."\n   Event  : Spawn one piece relative to another"
@@ -1166,7 +1162,10 @@ function TOOL:UpdateGhost(oEnt, oPly)
       local vBBMin = oEnt:OBBMins()
       asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
                                Trace.HitPos[cvY] + nexty,
-                               Trace.HitPos[cvZ] + nextz - (Trace.HitNormal[cvZ] * vBBMin[cvZ]) - vPos[cvZ])      
+                               Trace.HitPos[cvZ] + nextz - (Trace.HitNormal[cvZ] * vBBMin[cvZ]) - vPos[cvZ])
+      if(autoffsz ~= 0) then
+        vPos:Add(asmlib.GetUpAutoFill(oEnt,pointid) * Trace.HitNormal)
+      end
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else
@@ -1174,8 +1173,7 @@ function TOOL:UpdateGhost(oEnt, oPly)
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
         if(autoffsz ~= 0) then
-          stSpawn.SPos:Add(asmlib.GetPointUpGap(oEnt,
-            stSpawn.HRec.Offs[pointid]) * Trace.HitNormal)
+          stSpawn.SPos:Add(asmlib.GetUpAutoFill(oEnt,pointid) * Trace.HitNormal)
         end
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
