@@ -325,17 +325,13 @@ function TOOL:LeftClick(Trace)
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
-        aAng[caP] = aAng[caP] + nextpic
-        aAng[caY] = aAng[caY] - nextyaw
-        aAng[caR] = aAng[caR] + nextrol
+        asmlib.AddAnglePYR(nextpic,-nextyaw,nextrol)
         ePiece:SetAngles(aAng)
-        local vOffset = asmlib.GetMCWorldOffset(ePiece)
-              vOffset[cvZ] = 0
+        local vPos = asmlib.GetMCWorldOffset(ePiece)
         local vBBMin = ePiece:OBBMins()
-        local vPos = Vector(Trace.HitPos[cvX] + nextx,
-                            Trace.HitPos[cvY] + nexty,
-                            Trace.HitPos[cvZ] - (Trace.HitNormal.z * vBBMin.z) + nextz)
-        vPos:Add(vOffset)
+        asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
+                                 Trace.HitPos[cvY] + nexty,
+                                 Trace.HitPos[cvZ] + nextz - (Trace.HitNormal.z * vBBMin.z) - vPos[cvZ])       
         if(not asmlib.SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
@@ -1164,19 +1160,13 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local surfsnap  = self:GetSurfaceSnap()
     local aAng = asmlib.GetNormalAngle(oPly,Trace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then
-      aAng[caP] = aAng[caP] + nextpic
-      aAng[caY] = aAng[caY] - nextyaw
-      aAng[caR] = aAng[caR] + nextrol
+      asmlib.AddAnglePYR(aAng,nextpic,-nextyaw,nextrol)
       oEnt:SetAngles(aAng)
-      local vBBMin  = oEnt:OBBMins()
-      local vPos    = Vector(Trace.HitPos[cvX],
-                             Trace.HitPos[cvY],
-                             Trace.HitPos[cvZ] - (Trace.HitNormal[cvZ] * vBBMin[cvZ]))
-      local vOff = asmlib.GetMCWorldOffset(oEnt)
-            vOff[cvX] = vOff[cvX] + nextx
-            vOff[cvY] = vOff[cvY] + nexty
-            vOff[cvZ] = nextz
-      vPos:Add(vOff)
+      local vPos = asmlib.GetMCWorldOffset(oEnt)
+      local vBBMin = oEnt:OBBMins()
+      asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
+                               Trace.HitPos[cvY] + nexty,
+                               Trace.HitPos[cvZ] + nextz - (Trace.HitNormal[cvZ] * vBBMin[cvZ]) - vPos[cvZ])      
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else

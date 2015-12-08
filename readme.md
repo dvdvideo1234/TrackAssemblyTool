@@ -33,11 +33,11 @@ A: Just subscribe to the workshop item:
    Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
    Pressing ATTACK1 ( Default: Left mouse button )
      When you are looking at the world the piece will just be spawned on the map.
-     When you are looking at one of track piece's pre-defined active points, it will snap the piece that you're holding
-       to the trace one if the trace piece's type is the same as the holder piece's type
-       ( When types are different, please refer to "How can I assemble a track with different piece types in one place?" )
-       and a coordinate system appears, marking the origin position on the trace piece and rendering the ghost model
-       ( When "Enable ghosting" is checked ).
+     When you are looking at one of track piece's pre-defined active points
+       Will snap the piece that you're holding to the trace one.
+       If the trace piece's type is different than the holder piece's type, please check "Ignore track type" checkbox.
+       If "Enable advisor" is checked, a coordinate system will appear, marking the origin position on the trace piece
+       If "Enable ghosting" is checked the ghost track piece will be rendered to assist you with the building.
      When you are not looking at one of track piece's pre-defined active points, you will update the piece's bodygroups.
    Pressing DUCK ( Default: Ctrl ) + ATTACK1 ( Default: Left mouse button )
      Will select the trace model to use as a piece for building.
@@ -52,6 +52,7 @@ A: Just subscribe to the workshop item:
        you can select your routine pieces to use again in the track building process
        as well as searching in the table either by MODEL, TYPE, NAME, LAST_USED to obtain the piece
        you want to continue your track with.
+       ( Hay, there is a text-box and a drop down menu next to the "ExportDB" button. What are these for ? )
    Pressing DUCK ( Default: Ctrl ) + ATTACK2 ( Default: Right mouse button )
      Will increment the next active point chosen of the piece that you're holding.
    Pressing DUCK ( Default: Ctrl ) + SPEED ( Default: Shift ) + ATTACK2 ( Default: Right mouse button )
@@ -63,8 +64,12 @@ A: Just subscribe to the workshop item:
      Will set the trace prop as an anchor for other pieces spawned to be welded to.
    If you want to obtain different grip behaviour for a wheel-powered train,
      you may use the surface material drop-down menus as you select first "TYPE" then "NAME".
-   The "Yaw snap amount" slider is used to snap the first piece
-     to a user-defined angle ( Usually 45 ) so that the track building process becomes easier.
+   The "Yaw snap amount" slider is used to snap the first piece ( Requested by Magnum )
+     to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
+     whole track build will be snapped also, because you are building it relative to the first piece.
+   The "Snap to trace surface" checkbox if checked, will snap the chosen track directly to the
+     trace surface. 
+     
    In the text field you may type bodygroup/skin selection code or generate one using the SCORE ( Default: TAB ) key
      while pointing to a prop with bodygroups/skins set by Garry's mod entity right click menu.
      Press "ENTER" in the text field if you are happy with the selection to apply it.
@@ -121,12 +126,6 @@ A: Well, It depends what do you mean by "create".
 Q: Where are the trains/vehicles, are there any of these?
 A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
 
-Q: How can I assemble a track with different piece types in one place?
-A: Check "Ignore track type" checkbox.
-
-Q: Can I rid of the ghosted piece temporary ?
-A: Yes you can uncheck "Enable ghosting" checkbox.
-
 Q: What is this yellow line into the advisor, what is it for ?
 A: Remember when I got suggestions to do the switchers.
    This is an easy way of indicating which NEXT active position ( of some... )
@@ -142,19 +141,10 @@ A: Emm, check/uncheck "Spawn at mass-centre" checkbox.
 N: If you uncheck it, the position were you pointing at becomes origin,
    so you need to offset your piece as you want to, using the Pos/Ang offsets!
 
-Q: I want to snap the first piece in N-Degrees. Please Help ! ( Requested by Magnum )
-A: See the "Yaw snap amount" slider ! Use that to Snap your first piece.
-   Everything greater than 0 will become the "Snap amount".
-N: Assembling the track relative to the first piece will be snapped also, because
-   you are building it relative to the first piece as an origin !
-
 Q: Dude the piece is still spawning in the the ground, what should I do?
 A: Amm uncheck "Origin from mass-centre" and check "Auto-offset up",
    I Put this like that, so we can still have custom offsets :).
   
-Q: Can I change the surface properties of a piece to obtain a better grip
-A: Yeah, choose a type from the upper combo then mat. name from the one below it.
-
 Q: I want to disable the gravity on a piece, how should I do that?
 A: Uncheck "Enable pieces gravity" checkbox
 

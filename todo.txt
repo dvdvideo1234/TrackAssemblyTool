@@ -1,12 +1,1 @@
-Test if memory manager will work correctly
-To decide to localize math.*, string.* and so on or not.
-  Libraries speed benchmark
-    math.*
-      1       Local   3.8565  100
-      2       LocalM  4.6914  121.64916374951
-      3       Global  6.0417  156.66277712952
-    string.*
-      1       Local   3.8455  100
-      2       LocalM  4.8207  125.35951111689
-      3       Global  6.1948  161.09218567156
-At the moment "asmlib" is working with the speed of "LocalM"
+Test if the Trace.HitWorld Pos/Ang will be calculated correctly.

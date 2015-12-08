@@ -427,27 +427,24 @@ function DecomposeByAngle(V,A)
 end
 
 function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
-  local Ang = Angle()
-  if(not oPly) then return Ang end
+  local aAng = Angle()
+  if(not oPly) then return aAng end
   local nSnap = tonumber(nSnap) or 0
   if(nSnap and (nSnap ~= 0)) then -- Snap to the surface
-    local Trace = oTrace
-    local Left = -oPly:GetAimVector():Angle():Right()
-    if(not (Trace and Trace.Hit)) then
-      Trace = utilTraceLine(utilGetPlayerTrace(oPly))
-      if(not (Trace and Trace.Hit)) then return Ang end
+    local oTrace = oTrace
+    if(not (oTrace and oTrace.Hit)) then
+      oTrace = utilTraceLine(utilGetPlayerTrace(oPly))
+      if(not (oTrace and oTrace.Hit)) then return aAng end
     end
-    Ang:Set(Left:Cross(Trace.HitNormal):AngleEx(Trace.HitNormal))
+    local vLeft = -oPly:GetAimVector():Angle():Right()
+    aAng:Set(vLeft:Cross(oTrace.HitNormal):AngleEx(oTrace.HitNormal))
   else -- Get the player yaw
-    Ang:Set(oPly:GetAimVector():Angle())
-    Ang[caP] = 0
-    Ang[caR] = 0
     local nYSnap = tonumber(nYSnap) or 0
     if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
-      Ang[caY] = SnapValue(Ang[caY],nYSnap)
+      aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap)
     end
   end
-  return Ang
+  return aAng
 end
 
 function IsThereRecID(oRec, nPointID)
