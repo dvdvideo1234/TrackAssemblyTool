@@ -419,7 +419,8 @@ function TOOL:LeftClick(Trace)
           return true
         end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
-        asmlib.AnchorPiece(ePieceN,(anEnt or ePieceO),weld,nocolld,freeze,wgnd,engravity,physmater)
+        asmlib.AnchorPiece(ePieceN,(anEnt or ePieceO),weld,nil,freeze,wgnd,engravity,physmater)
+        asmlib.AnchorPiece(ePieceN,ePieceO,nil,nocolld,nil,nil,nil,nil) -- Place no-collide between the pieces
         if(iNdex == count) then
           if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
             ePieceN:Remove()
@@ -494,7 +495,8 @@ function TOOL:LeftClick(Trace)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      asmlib.AnchorPiece(ePiece,(anEnt or trEnt),weld,nocolld,freeze,wgnd,engravity,physmater)
+      asmlib.AnchorPiece(ePiece,(anEnt or trEnt),weld,nil,freeze,wgnd,engravity,physmater)
+      asmlib.AnchorPiece(ePiece,trEnt,nil,nocolld,nil,nil,nil,nil) -- Place no-collide between the pieces
       asmlib.EmitSoundPly(ply)
       undoAddEntity(ePiece)
       undoSetPlayer(ply)
@@ -865,6 +867,7 @@ function TOOL.BuildCPanel(CPanel)
   local pTree = vgui.Create("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 250)
+        pTree:SetTooltip("Select a piece to start/continue your track with by expanding a type and clicking on a node")
         pTree:SetIndentSize(0)
   local pFolders = {}
   local pNode, pItem
@@ -917,11 +920,13 @@ function TOOL.BuildCPanel(CPanel)
   local pComboPhysType = vgui.Create("DComboBox")
         pComboPhysType:SetPos(2, CurY)
         pComboPhysType:SetTall(18)
+        pComboPhysType:SetTooltip("Select physical properties type of the ones listed here")
         pComboPhysType:SetValue("<Select Surface Material TYPE>")
         CurY = CurY + pComboPhysType:GetTall() + 2
   local pComboPhysName = vgui.Create("DComboBox")
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
+        pComboPhysName:SetTooltip("Select physical properties name to use when creating the track. This will affect the surface friction")
         pComboPhysName:SetValue(asmlib.StringDefault(asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local Property = asmlib.CacheQueryProperty()
@@ -960,8 +965,8 @@ function TOOL.BuildCPanel(CPanel)
   local pText = vgui.Create("DTextEntry")
         pText:SetPos(2, CurY)
         pText:SetTall(18)
-        pText:SetText(asmlib.StringDefault(asmlib.GetCoVar("bgskids", "STR"),
-                      "Comma delimited Body/Skin IDs > ENTER ( TAB to Auto-fill from Trace )"))
+        pText:SetTooltip("Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
+        pText:SetText(asmlib.StringDefault(asmlib.GetCoVar("bgskids", "STR"),"Write selection code here. For example 1,0,0,2,1/3"))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGrp()..gsSymDir..asmlib.GetPropSkin()
@@ -980,123 +985,123 @@ function TOOL.BuildCPanel(CPanel)
             Type    = "Integer",
             Min     = 1,
             Max     = gnMaxMass,
-            Command = gsToolPrefL.."mass"})
+            Command = gsToolPrefL.."mass"}):SetTooltip("How much weight to create the piece with")
 
   CPanel:AddControl("Slider", {
             Label   = "Active radius: ",
             Type    = "Float",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxactrad", "FLT"),
-            Command = gsToolPrefL.."activrad"})
+            Command = gsToolPrefL.."activrad"}):SetTooltip("The minimum distance needed to select an active point")
 
   CPanel:AddControl("Slider", {
             Label   = "Pieces count: ",
             Type    = "Integer",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxstcnt", "INT"),
-            Command = gsToolPrefL.."count"})
+            Command = gsToolPrefL.."count"}):SetTooltip("How many pieces to create while stacking")
 
   CPanel:AddControl("Slider", {
             Label   = "Yaw snap amount: ",
             Type    = "Float",
             Min     = 0,
             Max     = gnMaxOffRot,
-            Command = gsToolPrefL.."ydegsnp"})
+            Command = gsToolPrefL.."ydegsnp"}):SetTooltip("Snap the first piece spawned at this much degrees")
 
   CPanel:AddControl("Button", {
             Label   = "V Reset Offset Values V",
             Command = gsToolPrefL.."resetoffs",
-            Text    = "Reset All Offsets" })
+            Text    = "Reset All Offsets" }):SetTooltip("Click to reset the additional offsets")
 
   CPanel:AddControl("Slider", {
             Label   = "UCS Pitch: ",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextpic"})
+            Command = gsToolPrefL.."nextpic"}):SetTooltip("Additional origin angular pitch offset")
 
   CPanel:AddControl("Slider", {
             Label   = "UCS Yaw: ",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextyaw"})
+            Command = gsToolPrefL.."nextyaw"}):SetTooltip("Additional origin angular yaw offset")
 
   CPanel:AddControl("Slider", {
             Label   = "Piece Roll: ",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextrol"})
+            Command = gsToolPrefL.."nextrol"}):SetTooltip("Additional origin angular roll offset")
 
   CPanel:AddControl("Slider", {
             Label   = "Offset X: ",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextx"})
+            Command = gsToolPrefL.."nextx"}):SetTooltip("Additional origin linear X offset")
 
   CPanel:AddControl("Slider", {
             Label   = "Offset Y: ",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nexty"})
+            Command = gsToolPrefL.."nexty"}):SetTooltip("Additional origin linear Y offset")
 
   CPanel:AddControl("Slider", {
             Label   = "Offset Z: ",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextz"})
+            Command = gsToolPrefL.."nextz"}):SetTooltip("Additional origin linear Z offset")
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Enable pieces gravity",
-            Command = gsToolPrefL.."engravity"})
+            Label   = "Enable gravity",
+            Command = gsToolPrefL.."engravity"}):SetTooltip("Enables the gravity on a piece")
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Weld pieces",
-            Command = gsToolPrefL.."weld"})
+            Label   = "Weld",
+            Command = gsToolPrefL.."weld"}):SetTooltip("Creates welds between pieces or pieces/anchor")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Weld to the ground",
-            Command = gsToolPrefL.."wgnd"})
+            Command = gsToolPrefL.."wgnd"}):SetTooltip("Makes the piece act as a map prop")
 
   CPanel:AddControl("Checkbox", {
-            Label   = "NoCollide pieces",
-            Command = gsToolPrefL.."nocollide"})
+            Label   = "NoCollide",
+            Command = gsToolPrefL.."nocollide"}):SetTooltip("Puts a no-collide between pieces or pieces/anchor")
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Freeze pieces",
-            Command = gsToolPrefL.."freeze"})
+            Label   = "Freeze on spawn",
+            Command = gsToolPrefL.."freeze"}):SetTooltip("Makes the piece spawn in a frozen state")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Ignore track type",
-            Command = gsToolPrefL.."igntyp"})
+            Command = gsToolPrefL.."igntyp"}):SetTooltip("Makes the tool ignore the different piece types on snapping/stacking")
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Next piece flat to surface",
-            Command = gsToolPrefL.."spnflat"})
+            Label   = "Spawn horizontal",
+            Command = gsToolPrefL.."spnflat"}):SetTooltip("The next piece will be spawned horizontally")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Origin from mass-centre",
-            Command = gsToolPrefL.."mcspawn"})
+            Command = gsToolPrefL.."mcspawn"}):SetTooltip("Makes the piece spawn relative to the mass-centre")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Snap to trace surface",
-            Command = gsToolPrefL.."surfsnap"})
+            Command = gsToolPrefL.."surfsnap"}):SetTooltip("Snaps the piece to the surface the player is pointing at")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Auto-offset UP",
-            Command = gsToolPrefL.."autoffsz"})
+            Command = gsToolPrefL.."autoffsz"}):SetTooltip("Automatically offsets the piece to lay it above the ground")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Enable advisor",
-            Command = gsToolPrefL.."advise"})
+            Command = gsToolPrefL.."advise"}):SetTooltip("Enables the tool position/angle advisor")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Enable ghosting",
-            Command = gsToolPrefL.."enghost"})
+            Command = gsToolPrefL.."enghost"}):SetTooltip("Enables the ghost prop of the tool")
 end
 
 function TOOL:MakeGhostEntity(sModel)

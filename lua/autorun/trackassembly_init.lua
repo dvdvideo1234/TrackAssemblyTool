@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.126")
+asmlib.SetOpVar("TOOL_VERSION","4.128")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -114,29 +114,32 @@ if(CLIENT) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create elements frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{Label = { "DButton"    ,"ExportDB"   }})
-            pnElements:Insert(2,{Label = { "DListView"  ,"ItemRoutine"}})
-            pnElements:Insert(3,{Label = { "DModelPanel","ItemScreen" }})
-            pnElements:Insert(4,{Label = { "DTextEntry" ,"ItemSearch" }})
-            pnElements:Insert(5,{Label = { "DComboBox"  ,"StatSearch" }})
+            pnElements:Insert(1,{Label = { "DButton"    ,"ExportDB"   ,"Click to export the client database as a file"}})
+            pnElements:Insert(2,{Label = { "DListView"  ,"ItemRoutine","The list of your frequently used track pieces"}})
+            pnElements:Insert(3,{Label = { "DModelPanel","ItemScreen" ,"The model of your track piece is displayed here"}})
+            pnElements:Insert(4,{Label = { "DTextEntry" ,"ItemSearch" ,"Enter a pattern here and hit enter to preform a search"}})
+            pnElements:Insert(5,{Label = { "DComboBox"  ,"StatSearch" ,"Choose which list column you want to preform a search on"}})
       ------------ Manage the invalid panels -------------------
       local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
       while(iNdex <= iSize) do
         vItem = pnElements:Select(iNdex)
-        asmlib.LogInstance("OPEN_FRAME: Create "..vItem.Label[1].." name "..vItem.Label[2].." ID #"..iNdex)
         vItem.Panel = vguiCreate(vItem.Label[1],pnFrame)
         if(not IsValid(vItem.Panel)) then
           asmlib.LogInstance("OPEN_FRAME: Failed to create "..vItem.Label[1].." name "..vItem.Label[2].." ID #"..iNdex)
-          iNdex = iNdex - 1
-          while(iNdex >= 1) do
-            asmlib.LogInstance("OPEN_FRAME: Delete invalid #"..iNdex)
-            pnElements:Select(iNdex):Remove()
+          pnElements:Delete(iNdex)
+          iNdex, iSize = 1, pnElements:GetSize()
+          while(iNdex <= iSize) do
+            asmlib.LogInstance("OPEN_FRAME: Delete #"..iNdex)
+            pnElements:Select(iNdex).Panel:Remove()
+            pnElements:Delete(iNdex)
+            iNdex = iNdex + 1
           end
           pnFrame:Remove()
-          pnElements:Empty() -- Be sure to wipe everything, with pairs
-          return StatusLog(false,"OPEN_FRAME: Invalid panel found. Frame removed")
+          collectgarbage()
+          return StatusLog(false,"OPEN_FRAME: Invalid panel created. Frame removed")
         end
         vItem.Panel:SetName(vItem.Label[2])
+        vItem.Panel:SetTooltip(vItem.Label[3])
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
@@ -156,15 +159,15 @@ if(CLIENT) then
       pnFrame:SetSize(750, 280)
       pnFrame.OnClose = function()
         pnFrame:SetVisible(false)
-        local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
+        local iNdex, iSize = 1, pnElements:GetSize()
         while(iNdex <= iSize) do
           asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iNdex)
-          vItem = pnElements:Select(iNdex)
-          vItem.Panel:Remove()
+          pnElements:Select(iNdex).Panel:Remove()
+          pnElements:Delete(iNdex)
           iNdex = iNdex + 1
         end
         pnFrame:Remove()
-        pnElements:Empty() -- Be sure to wipe everything, with pairs
+        collectgarbage()
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
       end
       ------------ ModelPanel --------------
@@ -225,16 +228,16 @@ if(CLIENT) then
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(10,65)
       pnListView:SetSize(480,205)
-      pnListView:AddColumn("Used"):SetFixedWidth(55)
-      pnListView:AddColumn("Act"):SetFixedWidth(20)
-      pnListView:AddColumn("Type"):SetFixedWidth(100)
-      pnListView:AddColumn("Model"):SetFixedWidth(305)
+      pnListView:AddColumn("Used"):SetFixedWidth(55)  -- (1)
+      pnListView:AddColumn("Act"):SetFixedWidth(20)   -- (2)
+      pnListView:AddColumn("Type"):SetFixedWidth(100) -- (2)
+      pnListView:AddColumn("Model"):SetFixedWidth(305)-- (4)
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
-        local uiMod = pnLine:GetColumnText(4)
+        local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
         asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: #"..tostring(nIndex).." <"..tostring(uiMod)..">")
         pnModelPanel:SetModel(uiMod)
-        local uiRec  = asmlib.CacheQueryPiece(uiMod)
-        if(not uiRec) then
+        local uiRec = asmlib.CacheQueryPiece(uiMod)
+        if(not asmlib.IsExistent(uiRec)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve model <"..uiMod..">")
         end
         -- OBBCenter ModelPanel Configuration --
@@ -291,15 +294,15 @@ if(CLIENT) then
               sName    = tostring(sName  or "")
               sField   = tostring(sField or "")
         local sPattern = tostring(pnSelf:GetValue() or "")
-        asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: "..sName.." >> "..sField.." >> "..sPattern)
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattern)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView")
+          return asmlib.StatusLog(false,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sName.."#"..sField.."#"..sPattern.."}")
         end
       end
       ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)
       pnFrame:Center()
       pnFrame:MakePopup()
+      collectgarbage()
       return asmlib.StatusLog(true,"OPEN_FRAME: Success")
     end)
 end

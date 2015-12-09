@@ -482,7 +482,6 @@ function MakeContainer(sInfo,sDefKey)
       Curs = Curs + 1
     end
     Data[Ins] = anyValue
-    collectgarbage()
   end
   function self:Select(nsKey)
     Sel = nsKey or Key
@@ -497,18 +496,7 @@ function MakeContainer(sInfo,sDefKey)
       end
       Data[Del] = nil
       Curs = Curs - 1
-      collectgarbage()
     end
-  end
-  function self:Empty(fnDel)
-    Curs = 0
-    for k,v in pairs(Data) do
-      if(IsExistent(fnDel)) then
-        fnDel(v)
-      end
-      Data[k] = nil
-    end
-    collectgarbage()
   end
   function self:GetHistory()
     return tostring(Met)..GetOpVar("OPSYM_REVSIGN")..
@@ -3542,25 +3530,25 @@ function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
   if(CLIENT) then
     return StatusLog(false,"Piece:Anchor: Working on the client is not allowed")
   end
-  local We = tonumber(nWe) or 0
-  local Nc = tonumber(nNc) or 0
-  local Fr = tonumber(nFr) or 0
-  local Wg = tonumber(nWg) or 0
-  local Gr = tonumber(nGr) or 0
-  local Ph = tostring(sPh) or ""
+  local nWe = tonumber(nWe) or 0
+  local nNc = tonumber(nNc) or 0
+  local nFr = tonumber(nFr) or 0
+  local nWg = tonumber(nWg) or 0
+  local nGr = tonumber(nGr) or 0
+  local sPh = tostring(sPh) or ""
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"Piece:Anchor: Piece entity not valid")
   end
   if(eBase and eBase:IsValid()) then
-    if(We ~= 0) then
-      local We = constraintWeld(eBase, ePiece, 0, 0, 0, false, false)
-      ePiece:DeleteOnRemove(We)
-       eBase:DeleteOnRemove(We)
+    if(nWe ~= 0) then
+      local nWe = constraintWeld(eBase, ePiece, 0, 0, 0, false, false)
+      ePiece:DeleteOnRemove(nWe)
+       eBase:DeleteOnRemove(nWe)
     end
-    if(Nc ~= 0) then
-      local Nc = constraintNoCollide(eBase, ePiece, 0, 0)
-      ePiece:DeleteOnRemove(Nc)
-       eBase:DeleteOnRemove(Nc)
+    if(nNc ~= 0) then
+      local nNc = constraintNoCollide(eBase, ePiece, 0, 0)
+      ePiece:DeleteOnRemove(nNc)
+       eBase:DeleteOnRemove(nNc)
     end
   else
     LogInstance("Piece:Anchor: Base entity not valid")
@@ -3569,21 +3557,21 @@ function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
   if(not (pyPiece and pyPiece:IsValid())) then
     return StatusLog(false,"Piece:Anchor: Piece physobj not valid")
   end
-  if(Fr == 0) then
+  if(nFr == 0) then
     pyPiece:EnableMotion(true)
   end
-  if(Wg ~= 0) then
+  if(nWg ~= 0) then
     ePiece.PhysgunDisabled = true
     ePiece:SetMoveType(MOVETYPE_NONE)
     ePiece:SetUnFreezable(true)
     pyPiece:EnableMotion(false)
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
   end
-  if(Gr == 0) then
+  if(nGr == 0) then
     constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
   end
-  if(Ph ~= "") then
-    constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = Ph})
+  if(sPh ~= "") then
+    constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh})
   end
   return true
 end
