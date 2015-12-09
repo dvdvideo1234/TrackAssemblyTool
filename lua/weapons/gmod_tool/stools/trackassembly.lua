@@ -1097,11 +1097,11 @@ function TOOL.BuildCPanel(CPanel)
 
   CPanel:AddControl("Checkbox", {
             Label   = "Enable advisor",
-            Command = gsToolPrefL.."advise"}):SetTooltip("Enables the tool position/angle advisor")
+            Command = gsToolPrefL.."advise"}):SetTooltip("Enables rendering the tool position/angle advisor")
 
   CPanel:AddControl("Checkbox", {
             Label   = "Enable ghosting",
-            Command = gsToolPrefL.."enghost"}):SetTooltip("Enables the ghost prop of the tool")
+            Command = gsToolPrefL.."enghost"}):SetTooltip("Enables rendering the tool ghost prop")
 end
 
 function TOOL:MakeGhostEntity(sModel)
