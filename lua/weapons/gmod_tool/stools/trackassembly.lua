@@ -324,17 +324,14 @@ function TOOL:LeftClick(Trace)
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
-        asmlib.AddAnglePYR(nextpic,-nextyaw,nextrol)
+        asmlib.AddAnglePYR(aAng,nextpic,-nextyaw,nextrol)
         ePiece:SetAngles(aAng)
         local vPos = asmlib.GetMCWorldOffset(ePiece)
-        local vBBMin = ePiece:OBBMins()
         asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
                                  Trace.HitPos[cvY] + nexty,
                                  Trace.HitPos[cvZ] + nextz - vPos[cvZ])
-        if(autoffsz ~= 0) then
-          vPos:Add(asmlib.GetUpAutoFill(ePiece,pointid) * Trace.HitNormal)
-        end
-        if(not asmlib.SetBoundPosPiece(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
+        asmlib.AutoOffsetUp(vPos,ePiece,pointid,Trace.HitNormal,autoffsz)
+        if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -343,10 +340,8 @@ function TOOL:LeftClick(Trace)
         local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then return false end
-        if(autoffsz ~= 0) then
-          stSpawn.SPos:Add(asmlib.GetUpAutoFill(ePiece,pointid) * Trace.HitNormal)
-        end
-        if(not asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        asmlib.AutoOffsetUp(stSpawn.SPos,ePiece,pointid,Trace.HitNormal,autoffsz)
+        if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
           .."\n   Player : "..ply:GetName()
@@ -410,7 +405,7 @@ function TOOL:LeftClick(Trace)
     while(iNdex > 0) do
       ePieceN = asmlib.DuplicatePiece(ePieceO)
       if(ePieceN) then
-        if(not asmlib.SetBoundPosPiece(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+        if(not asmlib.SetBoundPos(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Stacking piece position out of map bounds"
           .."\n   Iterats: "..tostring(count-iNdex)
           .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
@@ -492,7 +487,7 @@ function TOOL:LeftClick(Trace)
   else
     local ePiece = asmlib.MakePiece(model,Trace.HitPos,ANG_ZERO,mass,bgskids,DDyes:Select("w"))
     if(ePiece) then
-      if(not asmlib.SetBoundPosPiece(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
+      if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
         .."\n   Event  : Spawn one piece relative to another"
         .."\n   Player : "..ply:GetName()
         .."\n   trModel: "..asmlib.GetModelFileName(trModel)
@@ -1163,18 +1158,14 @@ function TOOL:UpdateGhost(oEnt, oPly)
       asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
                                Trace.HitPos[cvY] + nexty,
                                Trace.HitPos[cvZ] + nextz - (Trace.HitNormal[cvZ] * vBBMin[cvZ]) - vPos[cvZ])
-      if(autoffsz ~= 0) then
-        vPos:Add(asmlib.GetUpAutoFill(oEnt,pointid) * Trace.HitNormal)
-      end
+      asmlib.AutoOffsetUp(vPos,oEnt,pointid,Trace.HitNormal,autoffsz)
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else
       local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        if(autoffsz ~= 0) then
-          stSpawn.SPos:Add(asmlib.GetUpAutoFill(oEnt,pointid) * Trace.HitNormal)
-        end
+        asmlib.AutoOffsetUp(stSpawn.SPos,oEnt,pointid,Trace.HitNormal,autoffsz)
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
         oEnt:SetNoDraw(false)

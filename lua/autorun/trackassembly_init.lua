@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.124")
+asmlib.SetOpVar("TOOL_VERSION","4.125")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -199,7 +199,7 @@ if(CLIENT) then
       end
       ------------ Button --------------
       pnButton:SetParent(pnFrame)
-      pnButton:SetText("Export DB")
+      pnButton:SetText(pnElements:Select(1).Label[2])
       pnButton:SetPos(15,30)
       pnButton:SetSize(55,30)
       pnButton:SetVisible(true)
@@ -292,8 +292,9 @@ if(CLIENT) then
               sField   = tostring(sField or "")
         local sPattern = tostring(pnSelf:GetValue() or "")
         asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: "..sName.." >> "..sField.." >> "..sPattern)
-        local bStatus  = asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
-        asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: ["..tostring(bStatus).."]")
+        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattern)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView")
+        end
       end
       ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)

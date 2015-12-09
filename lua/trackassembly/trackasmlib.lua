@@ -1020,24 +1020,29 @@ function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
   return RollValue(nPnextID,1,rPiece.Kept)
 end
 
-function GetUpAutoFill(oEnt, nPointID)
-  if(not (oEnt and oEnt:IsValid())) then return StatusLog(0,"GetGapFill: Entity Invalid") end
-  local hdPnt = CacheQueryPiece(oEnt:GetModel())
-  if(not IsExistent(hdPnt)) then return StatusLog(0,"GetGapFill: Record not found") end
-  local hdPnt = hdPnt.Offs
-  if(not IsExistent(hdPnt)) then return StatusLog(0,"GetGapFill: Record has no offsets") end
+function AutoOffsetUp(vPos,oEnt,nPointID,vHitNormal,nFlag)
+  if(not IsExistent(vHitNormal)) then return StatusLog(false,"AutoOffsetUp: HitNormal missing") end
+  if(not IsExistent(vPos)) then return StatusLog(false,"AutoOffsetUp: Base position missing") end
+  if(not (oEnt and oEnt:IsValid())) then return StatusLog(false,"AutoOffsetUp: Entity Invalid") end
   local nPointID = tonumber(nPointID)
-  if(not IsExistent(nPointID)) then return StatusLog(0,"GetGapFill: Not a number #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+  if(not IsExistent(nPointID)) then return StatusLog(false,"AutoOffsetUp: Not a number #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+  local bFlag = (tonumber(nFlag) and (nFlag ~= 0)) and true or false
+  if(not bFlag and IsBool(bFlag)) then return StatusLog(true,"AutoOffsetUp: Not enabled") end
+  local hdPnt = CacheQueryPiece(oEnt:GetModel())
+  if(not IsExistent(hdPnt)) then return StatusLog(false,"AutoOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
+  local hdPnt = hdPnt.Offs
+  if(not IsExistent(hdPnt)) then return StatusLog(false,"AutoOffsetUp: Offsets missing for <"..oEnt:GetModel()..">") end
   local hdPnt = hdPnt.Offs[nPointID]
-  if(not IsExistent(hdPnt)) then return StatusLog(0,"GetGapFill: Invalid point #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
-  if(not (hdPnt.O and hdPnt.A )) then return StatusLog(0,"GetGapFill: Invalid POA #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+  if(not IsExistent(hdPnt)) then return StatusLog(false,"AutoOffsetUp: Invalid point #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+  if(not (hdPnt.O and hdPnt.A)) then return StatusLog(false,"AutoOffsetUp: Invalid POA #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   local aDiffBB = Angle()
   local vDiffBB = oEnt:OBBMins()
   SetAngle(aDiffBB,hdPnt.A)
   aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
   SubVector(vDiffBB,hdPnt.O)
   vDiffBB:Set(DecomposeByAngle(vDiffBB,aDiffBB))
-  return mathAbs(vDiffBB[cvZ])
+  vPos:Add(mathAbs(vDiffBB[cvZ]) * vHitNormal)
+  return StatusLog(true,"AutoOffsetUp: Enabled and success")
 end
 
 function ModelToName(sModel)
@@ -1410,10 +1415,10 @@ end
 function LogInstance(anyStuff)
   local sModeDB  = GetOpVar("MODE_DATABASE")
   local logOnly  = GetOpVar("LOG_LOGONLY")
-  local logHere  = false
   local anyStuff = tostring(anyStuff)
   if(logOnly and IsString(logOnly[1])) then
     local iNdex = 1
+    local logHere  = false
     local sOnly = logOnly[iNdex]
     while(sOnly and IsString(sOnly)) do
       if(stringFind(anyStuff,sOnly)) then
@@ -1422,9 +1427,7 @@ function LogInstance(anyStuff)
       iNdex = iNdex + 1
       sOnly = logOnly[iNdex]
     end
-  end
-  if((not logHere) and IsBool(logHere)) then
-    return
+    if(not logHere) then return end
   end
   if(SERVER) then
     Log("SERVER > ["..sModeDB.."] "..anyStuff)
@@ -2599,7 +2602,7 @@ end
 
 -- Cashing the selected Piece Result
 function CacheQueryPiece(sModel)
-  if(not sModel) then return nil end
+  if(not IsExistent(sModel)) then return nil end
   if(not IsString(sModel)) then return nil end
   if(sModel == "") then return nil end
   if(not utilIsValidModel(sModel)) then return nil end
@@ -2654,7 +2657,7 @@ function CacheQueryPiece(sModel)
 end
 
 function CacheQueryAdditions(sModel)
-  if(not sModel) then return nil end
+  if(not IsExistent(sModel)) then return nil end
   if(not IsString(sModel)) then return nil end
   if(sModel == "") then return nil end
   if(not utilIsValidModel(sModel)) then return nil end
@@ -3489,9 +3492,9 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
 end
 
 function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
-  if(CLIENT) then return nil end
+  if(CLIENT) then return nil end -- Make sure we do not work on the client
   local stPiece = CacheQueryPiece(sModel)
-  if(not stPiece) then return nil end
+  if(not IsExistent(stPiece)) then return nil end
   local ePiece = entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then return StatusLog(nil,"MakePiece: Entity invalid") end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
@@ -3512,9 +3515,9 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     ePiece:Remove()
     return StatusLog(nil,"MakePiece: Entity phys object invalid")
   end
-  local IDs = StringExplode(sBgSkIDs,GetOpVar("OPSYM_DIRECTORY"))
-  phPiece:SetMass(nMass)
   phPiece:EnableMotion(false)
+  phPiece:SetMass(mathClamp(tonumber(nMass) or 1,1,GetOpVar("MAX_MASS")))
+  local IDs = StringExplode((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY")) 
   ePiece:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
   AttachBodyGroups(ePiece,IDs[1] or "")
   AttachAdditions(ePiece)
@@ -3522,11 +3525,11 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
 end
 
 function DuplicatePiece(ePiece)
-  if(not (ePiece and ePiece:IsValid())) then return nil end
+  if(not (ePiece and ePiece:IsValid())) then return StatusLog(nil,"DuplicatePiece: Source invalid") end
   local phPiece = ePiece:GetPhysicsObject()
-  if(not (phPiece and phPiece:IsValid())) then return nil end
+  if(not (phPiece and phPiece:IsValid())) then return StatusLog(nil,"DuplicatePiece: Source phys invalid") end
   local stRecord = CacheQueryPiece(ePiece:GetModel())
-  if(not stRecord) then return nil end
+  if(not IsExistent(stRecord)) then return StatusLog(nil,"DuplicatePiece: Source is not a piece") end
   return MakePiece(ePiece:GetModel(),ePiece:GetPos(),
                    ePiece:GetAngles(),phPiece:GetMass(),
                    GetPropBodyGrp(ePiece)..GetOpVar("OPSYM_DIRECTORY")..GetPropSkin(ePiece),
@@ -3583,7 +3586,7 @@ function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
   return true
 end
 
-function SetBoundPosPiece(ePiece,vPos,oPly,nMode,anyMessage)
+function SetBoundPos(ePiece,vPos,oPly,nMode,anyMessage)
   local anyMessage = tostring(anyMessage)
   if(not vPos) then
     return StatusLog(false,"Piece:SetBoundPos: Position invalid: "..anyMessage)
