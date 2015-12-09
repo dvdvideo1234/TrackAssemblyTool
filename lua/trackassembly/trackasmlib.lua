@@ -520,7 +520,7 @@ function MakeContainer(sInfo,sDefKey)
   return self
 end
 
-function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
+function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
   if(SERVER) then return nil end
   local sW = sW or 0
   local sH = sH or 0
@@ -528,7 +528,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
   local eH = eH or 0
   if(eW <= 0 or eH <= 0) then return nil end
   if(type(conPalette) ~= "table") then return nil end
-  local Est = sEst or ""
+  local Method = tostring(sMeth or "")
   local White = Color(255,255,255,255)
   local ColorKey
   local Text = {}
@@ -743,16 +743,18 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sEst)
     if(not (xyS and xyE)) then return end
     if(not (xyS.x and xyS.y and xyE.x and xyE.y)) then return end
     self:SetColor(sColor)
-    if(Est ~= "") then
-      local Iter = self:AdaptLine(xyS,xyE,200,0.75,Est)
+    if(Method == "BIN" or Method == "ITR") then
+      local Iter = self:AdaptLine(xyS,xyE,200,0.75,Method)
       if(Iter > 0) then
         surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
       end
-    else
+    elseif(Method == "GHO")
       local nS = self:Enclose(xyS)
       local nE = self:Enclose(xyE)
       if(nS == -1 or nE == -1) then return end
       surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
+    else
+      LogInstance("Screen:DrawLine: Missed method <"..Method..">")
     end
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))

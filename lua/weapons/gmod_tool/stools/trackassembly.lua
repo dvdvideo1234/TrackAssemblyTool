@@ -67,21 +67,21 @@ local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 
 --- Render Base Colours
-local DDyes = asmlib.MakeContainer("Colours")
-      DDyes:Insert("r" ,Color(255, 0 , 0 ,255))
-      DDyes:Insert("g" ,Color( 0 ,255, 0 ,255))
-      DDyes:Insert("b" ,Color( 0 , 0 ,255,255))
-      DDyes:Insert("c" ,Color( 0 ,255,255,255))
-      DDyes:Insert("m" ,Color(255, 0 ,255,255))
-      DDyes:Insert("y" ,Color(255,255, 0 ,255))
-      DDyes:Insert("w" ,Color(255,255,255,255))
-      DDyes:Insert("k" ,Color( 0 , 0 , 0 ,255))
-      DDyes:Insert("gh",Color(255,255,255,150)) -- self.GhostEntity
-      DDyes:Insert("tx",Color(161,161,161,255)) -- Panel mode tree style
-      DDyes:Insert("an",Color(180,255,150,255)) -- Selected anchor
-      DDyes:Insert("db",Color(220,164,52 ,255)) -- Database mode
+local conPalette = asmlib.MakeContainer("Colours")
+      conPalette:Insert("r" ,Color(255, 0 , 0 ,255))
+      conPalette:Insert("g" ,Color( 0 ,255, 0 ,255))
+      conPalette:Insert("b" ,Color( 0 , 0 ,255,255))
+      conPalette:Insert("c" ,Color( 0 ,255,255,255))
+      conPalette:Insert("m" ,Color(255, 0 ,255,255))
+      conPalette:Insert("y" ,Color(255,255, 0 ,255))
+      conPalette:Insert("w" ,Color(255,255,255,255))
+      conPalette:Insert("k" ,Color( 0 , 0 , 0 ,255))
+      conPalette:Insert("gh",Color(255,255,255,150)) -- self.GhostEntity
+      conPalette:Insert("tx",Color(161,161,161,255)) -- Panel mode tree style
+      conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
+      conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
 
-      if(CLIENT) then
+if(CLIENT) then
   languageAdd("tool."   ..gsToolNameL..".name", gsFancyName)
   languageAdd("tool."   ..gsToolNameL..".desc", "Assembles a track for vehicles to run on")
   languageAdd("tool."   ..gsToolNameL..".0"   , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
@@ -256,7 +256,7 @@ function TOOL:ClearAnchor()
   local plPly = self:GetOwner()
   if(svEnt and svEnt:IsValid()) then
     svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-    svEnt:SetColor(DDyes:Select("w"))
+    svEnt:SetColor(conPalette:Select("w"))
   end
   self:ClearObjects()
   asmlib.PrintNotify(plPly,"Anchor: Cleaned !","CLEANUP")
@@ -276,7 +276,7 @@ function TOOL:SetAnchor(stTrace)
   if(not (plPly and plPly:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Player invalid") end
   local sAnchor = trEnt:EntIndex()..gsSymRev..asmlib.GetModelFileName(trEnt:GetModel())
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-  trEnt:SetColor(DDyes:Select("an"))
+  trEnt:SetColor(conPalette:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
   plPly:ConCommand(gsToolPrefL.."anchor "..sAnchor.."\n")
   asmlib.PrintNotify(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
@@ -320,7 +320,7 @@ function TOOL:LeftClick(Trace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadPlyKey(ply)
   if(Trace.HitWorld) then -- Spawn it on the map ...
-    local ePiece = asmlib.MakePiece(model,Trace.HitPos,ANG_ZERO,mass,bgskids,DDyes:Select("w"))
+    local ePiece = asmlib.MakePiece(model,Trace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
@@ -485,7 +485,7 @@ function TOOL:LeftClick(Trace)
     undoFinish()
     return true
   else
-    local ePiece = asmlib.MakePiece(model,Trace.HitPos,ANG_ZERO,mass,bgskids,DDyes:Select("w"))
+    local ePiece = asmlib.MakePiece(model,Trace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
         .."\n   Event  : Spawn one piece relative to another"
@@ -588,7 +588,7 @@ function TOOL:DrawHUD()
   if(not goMonitor) then
     goMonitor = asmlib.MakeScreen(0,0,
                   surface.ScreenWidth(),
-                  surface.ScreenHeight(),DDyes,false)
+                  surface.ScreenHeight(),conPalette,"GHO")
     if(not goMonitor) then
       return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen")
     end
@@ -745,7 +745,7 @@ end
 function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
   if(not goToolScr) then
-    goToolScr = asmlib.MakeScreen(0,0,w,h,DDyes,false)
+    goToolScr = asmlib.MakeScreen(0,0,w,h,conPalette,"GHO")
     if(not goToolScr) then
       return asmlib.StatusPrint(nil,"DrawToolScreen: Invalid screen")
     end
@@ -867,14 +867,14 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetSize(2, 250)
         pTree:SetIndentSize(0)
   local pFolders = {}
-  local pNode
-  local pItem
+  local pNode, pItem
   local Cnt = 1
+  local Rec, Mod, Typ, Nam
   while(Panel[Cnt]) do
-    local Rec = Panel[Cnt]
-    local Mod = Rec[defTable[1][1]]
-    local Typ = Rec[defTable[2][1]]
-    local Nam = Rec[defTable[3][1]]
+    Rec = Panel[Cnt]
+    Mod = Rec[defTable[1][1]]
+    Typ = Rec[defTable[2][1]]
+    Nam = Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
       if(Typ ~= "" and not pFolders[Typ]) then
         -- No Folder, Make one xD
@@ -887,7 +887,7 @@ function TOOL.BuildCPanel(CPanel)
         end
         local FolderLabel = pItem.Label
         function FolderLabel:UpdateColours(skin)
-          return self:SetTextStyleColor(DDyes:Select("tx"))
+          return self:SetTextStyleColor(conPalette:Select("tx"))
         end
         pFolders[Typ] = pItem
       end
@@ -1131,7 +1131,7 @@ function TOOL:MakeGhostEntity(sModel)
   self.GhostEntity:SetMoveType(MOVETYPE_NONE)
   self.GhostEntity:SetNotSolid(true);
   self.GhostEntity:SetRenderMode(RENDERMODE_TRANSALPHA)
-  self.GhostEntity:SetColor(DDyes:Select("gh"))
+  self.GhostEntity:SetColor(conPalette:Select("gh"))
 end
 
 function TOOL:UpdateGhost(oEnt, oPly)
