@@ -1010,28 +1010,28 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddItem(pText)
 
   CPanel:AddControl("Slider", {
-            Label   = "Piece mass: ",
+            Label   = "Piece mass:",
             Type    = "Integer",
             Min     = 1,
             Max     = gnMaxMass,
             Command = gsToolPrefL.."mass"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Active radius: ",
+            Label   = "Active radius:",
             Type    = "Float",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxactrad", "FLT"),
             Command = gsToolPrefL.."activrad"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Pieces count: ",
+            Label   = "Pieces count:",
             Type    = "Integer",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxstcnt", "INT"),
             Command = gsToolPrefL.."count"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Yaw snap amount: ",
+            Label   = "Yaw snap amount:",
             Type    = "Float",
             Min     = 0,
             Max     = gnMaxOffRot,
@@ -1043,42 +1043,42 @@ function TOOL.BuildCPanel(CPanel)
             Text    = "Reset All Offsets" }):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetoffs"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Origin pitch: ",
+            Label   = "Origin pitch:",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
             Command = gsToolPrefL.."nextpic"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Origin yaw: ",
+            Label   = "Origin yaw:",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
             Command = gsToolPrefL.."nextyaw"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Origin roll: ",
+            Label   = "Origin roll:",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
             Command = gsToolPrefL.."nextrol"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Offset X: ",
+            Label   = "Offset X:",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nextx"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Offset Y: ",
+            Label   = "Offset Y:",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nexty"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Offset Z: ",
+            Label   = "Offset Z:",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
@@ -1093,7 +1093,7 @@ function TOOL.BuildCPanel(CPanel)
             Command = gsToolPrefL.."weld"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Disable physics gun ",
+            Label   = "Disable physics gun",
             Command = gsToolPrefL.."disphysg"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".disphysg"))
 
   CPanel:AddControl("Checkbox", {
