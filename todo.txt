@@ -1,2 +1,6 @@
 Test if the Trace.HitWorld Pos/Ang will be calculated correctly.
 Test if GetUpAutoFill() will work correctly for trace.HitHormal/Trace.HitWorld
+Test the physical settings on the pieces
+Test the physical constraints on the pieces
+Take a look at the panel elements translated descriptions
+Test Disable physgun and freeze to be separated

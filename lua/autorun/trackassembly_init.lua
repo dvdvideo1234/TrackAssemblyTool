@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","4.128")
+asmlib.SetOpVar("TOOL_VERSION","5.129")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -67,21 +67,17 @@ local gaTimerSet  = asmlib.StringExplode(asmlib.GetCoVar("timermode","STR"),asml
 -------- ACTIONS  ----------
 if(SERVER) then
 
-  asmlib.SetAction("WELD_GROUND",
+  asmlib.SetAction("DISABLE_PHYSGUN",
     function(oPly,oEnt,tData)
       if(tData[1]) then
-        if(not (oEnt and oEnt:IsValid())) then return asmlib.StatusLog(nil,"WELD_GROUND: Entity invalid "..tostring(oEnt)) end
+        if(not (oEnt and oEnt:IsValid())) then
+          return asmlib.StatusLog(false,"DISABLE_PHYSGUN: Entity invalid "..tostring(oEnt))
+        end
         oEnt.PhysgunDisabled = true
         oEnt:SetMoveType(MOVETYPE_NONE)
         oEnt:SetUnFreezable(true)
-        local sInf = "["..tostring(oEnt:EntIndex()).."]"..asmlib.GetModelFileName(oEnt:GetModel())
-        local oPhy = oEnt:GetPhysicsObject()
-        if(not (oPhy and oPhy:IsValid())) then
-          return asmlib.StatusLog(nil,"WELD_GROUND: PhysObj invalid "..sInf)
-        end
-        oPhy:EnableMotion(false)
-        duplicatorStoreEntityModifier(oEnt, gsToolPrefL.."wgnd", {[1] = true})
-        asmlib.LogInstance("WELD_GROUND: Success "..sInf)
+        duplicatorStoreEntityModifier(oEnt, gsToolPrefL.."disphysg", {[1] = true})
+        return asmlib.StatusLog(true,"DISABLE_PHYSGUN: Success")
       end
     end)
 
@@ -97,7 +93,7 @@ if(CLIENT) then
       oPly:ConCommand(gsToolPrefL.."nextx 0\n")
       oPly:ConCommand(gsToolPrefL.."nexty 0\n")
       oPly:ConCommand(gsToolPrefL.."nextz 0\n")
-      asmlib.LogInstance("RESET_OFFSETS: Success")
+      return asmlib.StatusLog(true,"RESET_OFFSETS: Success")
     end)
 
   asmlib.SetAction("OPEN_FRAME",

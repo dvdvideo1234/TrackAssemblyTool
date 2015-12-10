@@ -14,22 +14,23 @@ local RestoreCursorPosition = RestoreCursorPosition
 local osDate                = os and os.date
 local gameSinglePlayer      = game and game.SinglePlayer
 local undoCreate            = undo and undo.Create
+local undoFinish            = undo and undo.Finish
 local undoAddEntity         = undo and undo.AddEntity
 local undoSetPlayer         = undo and undo.SetPlayer
 local undoSetCustomUndoText = undo and undo.SetCustomUndoText
-local undoFinish            = undo and undo.Finish
-local utilIsValidModel      = util and util.IsValidModel
 local utilTraceLine         = util and util.TraceLine
+local utilIsValidModel      = util and util.IsValidModel
 local utilPrecacheModel     = util and util.PrecacheModel
 local utilIsValidRagdoll    = util and util.IsValidRagdoll
 local utilGetPlayerTrace    = util and util.GetPlayerTrace
 local mathClamp             = math and math.Clamp
-local entsCreateClientProp  = ents and ents.CreateClientProp
 local entsCreate            = ents and ents.Create
+local entsCreateClientProp  = ents and ents.CreateClientProp
 local fileExists            = file and file.Exists
 local stringSub             = string and string.sub
 local cleanupRegister       = cleanup and cleanup.Register
 local languageAdd           = language and language.Add
+local languageGetPhrase     = language and language.GetPhrase
 local concommandAdd         = concommand and concommand.Add
 local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntityModifier
 
@@ -82,18 +83,41 @@ local conPalette = asmlib.MakeContainer("Colours")
       conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
 
 if(CLIENT) then
-  languageAdd("tool."   ..gsToolNameL..".name", gsFancyName)
-  languageAdd("tool."   ..gsToolNameL..".desc", "Assembles a track for vehicles to run on")
-  languageAdd("tool."   ..gsToolNameL..".0"   , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
-  languageAdd("cleanup."..gsToolNameL         , gsFancyName)
-  languageAdd("cleaned."..gsToolNameL.."s"    , "Cleaned up all Pieces")
+  languageAdd("tool."   ..gsToolNameL..".name"     , gsFancyName)
+  languageAdd("tool."   ..gsToolNameL..".desc"     , "Assembles a track for vehicles to run on")
+  languageAdd("tool."   ..gsToolNameL..".0"        , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
+  languageAdd("cleanup."..gsToolNameL              , "Undone assembly")
+  languageAdd("cleaned."..gsToolNameL.."s"         , "Cleaned up all Pieces")
+  languageAdd("tool."   ..gsToolNameL..".mass"     , "How heavy the piece spawned will be")
+  languageAdd("tool."   ..gsToolNameL..".activrad" , "Minimum distance needed to select an active point")
+  languageAdd("tool."   ..gsToolNameL..".count"    , "Maximum number of pieces to create while stacking")
+  languageAdd("tool."   ..gsToolNameL..".ydegsnp"  , "Snap the first piece spawned at this much degrees")
+  languageAdd("tool."   ..gsToolNameL..".resetoffs", "Click to reset the additional offsets")
+  languageAdd("tool."   ..gsToolNameL..".nextpic"  , "Additional origin angular pitch offset")
+  languageAdd("tool."   ..gsToolNameL..".nextyaw"  , "Additional origin angular yaw offset")
+  languageAdd("tool."   ..gsToolNameL..".nextrol"  , "Additional origin angular roll offset")
+  languageAdd("tool."   ..gsToolNameL..".nextx"    , "Additional origin linear X offset")
+  languageAdd("tool."   ..gsToolNameL..".nexty"    , "Additional origin linear Y offset")
+  languageAdd("tool."   ..gsToolNameL..".nextz"    , "Additional origin linear Z offset")
+  languageAdd("tool."   ..gsToolNameL..".engravity", "Enables the gravity on the piece spawned")
+  languageAdd("tool."   ..gsToolNameL..".weld"     , "Creates welds between pieces or pieces/anchor")
+  languageAdd("tool."   ..gsToolNameL..".disphysg" , "Disables the physics gun used on on the piece spawned/snapped/stacked")
+  languageAdd("tool."   ..gsToolNameL..".nocollide", "Puts a no-collide between pieces or pieces/anchor")
+  languageAdd("tool."   ..gsToolNameL..".freeze"   , "Makes the piece spawn in a frozen state")
+  languageAdd("tool."   ..gsToolNameL..".igntyp"   , "Makes the tool ignore the different piece types on snapping/stacking")
+  languageAdd("tool."   ..gsToolNameL..".spnflat"  , "The next piece will be spawned horizontally")
+  languageAdd("tool."   ..gsToolNameL..".mcspawn"  , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
+  languageAdd("tool."   ..gsToolNameL..".surfsnap" , "Snaps the piece to the surface the player is pointing at")
+  languageAdd("tool."   ..gsToolNameL..".autoffsz" , "Automatically offsets the piece to lay it above the ground")
+  languageAdd("tool."   ..gsToolNameL..".disadvis" , "Disables rendering the tool position/angle advisor")
+  languageAdd("tool."   ..gsToolNameL..".disghost" , "Disables rendering the tool ghost prop")
   concommandAdd(gsToolPrefL.."resetoffs", asmlib.GetActionCode("RESET_OFFSETS"))
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
 end
 
 if(SERVER) then
   cleanupRegister(gsToolNameU.."s")
-  duplicatorRegisterEntityModifier(gsToolPrefL.."wgnd",asmlib.GetActionCode("WELD_GROUND"))
+  duplicatorRegisterEntityModifier(gsToolPrefL.."disphysg",asmlib.GetActionCode("DISABLE_PHYSGUN"))
 end
 
 TOOL.Category   = "Construction"            -- Name of the category
@@ -103,7 +127,6 @@ TOOL.ConfigName = nil         -- Config file name (nil for default)
 
 TOOL.ClientConVar = {
   [ "weld"      ] = "1",
-  [ "wgnd"      ] = "0",
   [ "mass"      ] = "25000",
   [ "model"     ] = "models/props_phx/trains/tracks/track_1x.mdl",
   [ "nextx"     ] = "0",
@@ -111,7 +134,6 @@ TOOL.ClientConVar = {
   [ "nextz"     ] = "0",
   [ "count"     ] = "1",
   [ "freeze"    ] = "0",
-  [ "advise"    ] = "1",
   [ "anchor"    ] = gsNoAnchor,
   [ "igntyp"    ] = "0",
   [ "spnflat"   ] = "0",
@@ -121,12 +143,14 @@ TOOL.ClientConVar = {
   [ "nextpic"   ] = "0",
   [ "nextyaw"   ] = "0",
   [ "nextrol"   ] = "0",
-  [ "enghost"   ] = "0",
   [ "addinfo"   ] = "0",
   [ "logsmax"   ] = "0",
   [ "logfile"   ] = "",
   [ "mcspawn"   ] = "1",
   [ "bgskids"   ] = "",
+  [ "disadvis"  ] = "0",
+  [ "disghost"  ] = "0",
+  [ "disphysg"  ] = "0",
   [ "activrad"  ] = "30",
   [ "surfsnap"  ] = "0",
   [ "autoffsz"  ] = "1",
@@ -181,8 +205,8 @@ function TOOL:GetEnableGravity()
   return (self:GetClientNumber("engravity") or 0)
 end
 
-function TOOL:GetEnableGhost()
-  return (self:GetClientNumber("enghost") or 0)
+function TOOL:GetDisableGhost()
+  return (self:GetClientNumber("disghost") or 0)
 end
 
 function TOOL:GetNoCollide()
@@ -205,8 +229,8 @@ function TOOL:GetLogFile()
   return (self:GetClientInfo("logfile") or "")
 end
 
-function TOOL:GetAdvisor()
-  return (self:GetClientNumber("advise") or 0)
+function TOOL:GetDisableAdvisor()
+  return (self:GetClientNumber("disadvis") or 0)
 end
 
 function TOOL:GetPointID()
@@ -223,8 +247,11 @@ function TOOL:GetYawSnap()
 end
 
 function TOOL:GetWeld()
-  return (self:GetClientNumber("weld") or 0),
-         (self:GetClientNumber("wgnd") or 0)
+  return (self:GetClientNumber("weld") or 0)
+end
+
+function TOOL:GetDisablePhysgun()
+  return (self:GetClientNumber("disphysg") or 0)
 end
 
 function TOOL:GetSpawnMC()
@@ -284,7 +311,7 @@ function TOOL:SetAnchor(stTrace)
 end
 
 function TOOL:GetAnchor()
-  local svEnt   = self:GetEnt(1)
+  local svEnt = self:GetEnt(1)
   if(not (svEnt and svEnt:IsValid())) then svEnt = nil end
   return (self:GetClientInfo("anchor") or gsNoAnchor), svEnt
 end
@@ -294,7 +321,7 @@ function TOOL:LeftClick(Trace)
   if(not Trace) then return false end
   if(not Trace.Hit) then return false end
   local trEnt      = Trace.Entity
-  local weld, wgnd = self:GetWeld()
+  local weld       = self:GetWeld()
   local mass       = self:GetMass()
   local model      = self:GetModel()
   local count      = self:GetCount()
@@ -302,7 +329,7 @@ function TOOL:LeftClick(Trace)
   local freeze     = self:GetFreeze()
   local mcspawn    = self:GetSpawnMC()
   local ydegsnp    = self:GetYawSnap()
-  local nocolld    = self:GetNoCollide()
+  local nocollide    = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntyp     = self:GetIgnoreType()
   local surfsnap   = self:GetSurfaceSnap()
@@ -312,6 +339,7 @@ function TOOL:LeftClick(Trace)
   local bgskids    = self:GetBodyGroupSkin()
   local engravity  = self:GetEnableGravity()
   local staatts    = self:GetStackAttempts()
+  local disphysg   = self:GetDisablePhysgun()
   local bnderrmod  = self:GetBoundErrorMode()
   local fnmodel    = asmlib.GetModelFileName(model)
   local aninfo , anEnt   = self:GetAnchor()
@@ -349,7 +377,8 @@ function TOOL:LeftClick(Trace)
         ePiece:SetAngles(stSpawn.SAng)
       end
       undoCreate(gsUndoPrefN..fnmodel.." ( World spawn )")
-      asmlib.AnchorPiece(ePiece,anEnt,weld,nocolld,freeze,wgnd,engravity,physmater)
+      asmlib.ApplyPhysicalSettings(ePiece,freeze,disphysg,engravity,physmater)
+      asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)
       asmlib.EmitSoundPly(ply)
       undoAddEntity(ePiece)
       undoSetPlayer(ply)
@@ -360,22 +389,21 @@ function TOOL:LeftClick(Trace)
     return false
   end
   -- Hit Prop
-  if(not trEnt) then return false end
-  if(not trEnt:IsValid()) then return false end
+  if(not (trEnt and trEnt:IsValid())) then return false end
   if(not utilIsValidModel(model)) then return false end
   if(not asmlib.IsPhysTrace(Trace)) then return false end
   if(asmlib.IsOther(trEnt)) then return false end
-
+  
   local trModel = trEnt:GetModel()
 
-  --No need stacking relative to non-persistent props or using them...
-  local trRec   = asmlib.CacheQueryPiece(trModel)
-  local hdRec   = asmlib.CacheQueryPiece(model)
+  -- No need stacking relative to non-persistent props or using them...
+  local trRec = asmlib.CacheQueryPiece(trModel)
+  local hdRec = asmlib.CacheQueryPiece(model)
 
-  if(not trRec) then return false end
+  if(not trRec) then return false end -- Trace must exist in the database
 
   if(asmlib.LoadPlyKey(ply,"DUCK")) then
-    -- IN_Duck: Use the VALID Trace.Entity as a piece
+    -- IN_DUCK: Use the VALID Trace.Entity as a piece
     asmlib.PrintNotify(ply,"Model: "..asmlib.GetModelFileName(trModel).." selected !","GENERIC")
     ply:ConCommand(gsToolPrefL.."model " ..trModel.."\n")
     ply:ConCommand(gsToolPrefL.."pointid 1\n")
@@ -383,11 +411,11 @@ function TOOL:LeftClick(Trace)
     return true
   end
 
-  if(not hdRec) then return false end
+  if(not hdRec) then return false end -- Holder model must exist in the database
 
   local stSpawn = asmlib.GetEntitySpawn(trEnt,Trace.HitPos,model,pointid,
                            actrad,spnflat,igntyp,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-  if(not stSpawn) then
+  if(not stSpawn) then -- Not aiming into an active point
     local IDs = asmlib.StringExplode(bgskids,gsSymDir)
     asmlib.Print(IDs,"BodygrpSkin")
     asmlib.AttachBodyGroups(trEnt,IDs[1] or "")
@@ -395,7 +423,7 @@ function TOOL:LeftClick(Trace)
     return true
   end
 
-  if(asmlib.LoadPlyKey(ply,"SPEED")) then -- IN_Speed: Switch the tool mode ( Stacking )
+  if(asmlib.LoadPlyKey(ply,"SPEED")) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,"Stack count #"..count.." not properly picked") end
     if(pointid == pnextid) then return asmlib.StatusLog(false,"Point ID #"..pointid.." overlap") end
     local iNdex  , nTrys   = count, staatts
@@ -419,8 +447,9 @@ function TOOL:LeftClick(Trace)
           return true
         end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
-        asmlib.AnchorPiece(ePieceN,(anEnt or ePieceO),weld,nil,freeze,wgnd,engravity,physmater)
-        asmlib.AnchorPiece(ePieceN,ePieceO,nil,nocolld,nil,nil,nil,nil) -- Place no-collide between the pieces
+        asmlib.ApplyPhysicalSettings(ePiece,freeze,disphysg,engravity,physmater)
+        asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or ePieceO),weld,nil)
+        asmlib.ApplyPhysicalAnchor(ePiece,ePieceO,nil,nocollide)
         if(iNdex == count) then
           if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
             ePieceN:Remove()
@@ -495,8 +524,9 @@ function TOOL:LeftClick(Trace)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      asmlib.AnchorPiece(ePiece,(anEnt or trEnt),weld,nil,freeze,wgnd,engravity,physmater)
-      asmlib.AnchorPiece(ePiece,trEnt,nil,nocolld,nil,nil,nil,nil) -- Place no-collide between the pieces
+      asmlib.ApplyPhysicalSettings(ePiece,freeze,disphysg,engravity,physmater)
+      asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil) -- Weld all created to the anchor/previous
+      asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide)       -- NoCollide all to previous
       asmlib.EmitSoundPly(ply)
       undoAddEntity(ePiece)
       undoSetPlayer(ply)
@@ -596,9 +626,9 @@ function TOOL:DrawHUD()
     end
     goMonitor:SetFont("Trebuchet24")
   end
-  local adv   = self:GetAdvisor()
-  if(adv == 0) then return end
-  local ply   = LocalPlayer()
+  local adv = self:GetDisableAdvisor()
+  if(adv ~= 0) then return end
+  local ply = LocalPlayer()
   local Trace = ply:GetEyeTrace()
   if(not Trace) then return end
   local plyd  = (Trace.HitPos - ply:GetPos()):Length()
@@ -660,7 +690,6 @@ function TOOL:DrawHUD()
     goMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
   elseif(Trace.HitWorld) then
     local mcspawn  = self:GetSpawnMC()
-    local autoffsz = self:GetAutoOffsetUp()
     local ydegsnp  = self:GetYawSnap()
     local addinfo  = self:GetAdditionalInfo()
     local surfsnap = self:GetSurfaceSnap()
@@ -836,7 +865,7 @@ function TOOL.BuildCPanel(CPanel)
   Combo["Folder"]     = gsToolNameL
   Combo["CVars"]      = {}
   Combo["CVars"][0 ]  = gsToolPrefL.."weld"
-  Combo["CVars"][1 ]  = gsToolPrefL.."wgnd"
+  Combo["CVars"][1 ]  = gsToolPrefL.."disphysg"
   Combo["CVars"][2 ]  = gsToolPrefL.."mass"
   Combo["CVars"][3 ]  = gsToolPrefL.."model"
   Combo["CVars"][4 ]  = gsToolPrefL.."nextx"
@@ -844,7 +873,7 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][6 ]  = gsToolPrefL.."nextz"
   Combo["CVars"][7 ]  = gsToolPrefL.."count"
   Combo["CVars"][8 ]  = gsToolPrefL.."freeze"
-  Combo["CVars"][9 ]  = gsToolPrefL.."advise"
+  Combo["CVars"][9 ]  = gsToolPrefL.."disadvis"
   Combo["CVars"][10]  = gsToolPrefL.."igntyp"
   Combo["CVars"][11]  = gsToolPrefL.."spnflat"
   Combo["CVars"][12]  = gsToolPrefL.."pointid"
@@ -852,7 +881,7 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][14]  = gsToolPrefL.."nextpic"
   Combo["CVars"][15]  = gsToolPrefL.."nextyaw"
   Combo["CVars"][16]  = gsToolPrefL.."nextrol"
-  Combo["CVars"][17]  = gsToolPrefL.."enghost"
+  Combo["CVars"][17]  = gsToolPrefL.."disghost"
   Combo["CVars"][18]  = gsToolPrefL.."ydegsnp"
   Combo["CVars"][19]  = gsToolPrefL.."mcspawn"
   Combo["CVars"][20]  = gsToolPrefL.."activrad"
@@ -926,7 +955,7 @@ function TOOL.BuildCPanel(CPanel)
   local pComboPhysName = vgui.Create("DComboBox")
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
-        pComboPhysName:SetTooltip("Select physical properties name to use when creating the track. This will affect the surface friction")
+        pComboPhysName:SetTooltip("Select physical properties name to use when creating the track as this will affect the surface friction")
         pComboPhysName:SetValue(asmlib.StringDefault(asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local Property = asmlib.CacheQueryProperty()
@@ -985,123 +1014,123 @@ function TOOL.BuildCPanel(CPanel)
             Type    = "Integer",
             Min     = 1,
             Max     = gnMaxMass,
-            Command = gsToolPrefL.."mass"}):SetTooltip("How much weight to create the piece with")
+            Command = gsToolPrefL.."mass"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
 
   CPanel:AddControl("Slider", {
             Label   = "Active radius: ",
             Type    = "Float",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxactrad", "FLT"),
-            Command = gsToolPrefL.."activrad"}):SetTooltip("The minimum distance needed to select an active point")
+            Command = gsToolPrefL.."activrad"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
 
   CPanel:AddControl("Slider", {
             Label   = "Pieces count: ",
             Type    = "Integer",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxstcnt", "INT"),
-            Command = gsToolPrefL.."count"}):SetTooltip("How many pieces to create while stacking")
+            Command = gsToolPrefL.."count"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
 
   CPanel:AddControl("Slider", {
             Label   = "Yaw snap amount: ",
             Type    = "Float",
             Min     = 0,
             Max     = gnMaxOffRot,
-            Command = gsToolPrefL.."ydegsnp"}):SetTooltip("Snap the first piece spawned at this much degrees")
+            Command = gsToolPrefL.."ydegsnp"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
 
   CPanel:AddControl("Button", {
             Label   = "V Reset Offset Values V",
             Command = gsToolPrefL.."resetoffs",
-            Text    = "Reset All Offsets" }):SetTooltip("Click to reset the additional offsets")
+            Text    = "Reset All Offsets" }):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetoffs"))
 
   CPanel:AddControl("Slider", {
-            Label   = "UCS Pitch: ",
+            Label   = "Origin pitch: ",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextpic"}):SetTooltip("Additional origin angular pitch offset")
+            Command = gsToolPrefL.."nextpic"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
 
   CPanel:AddControl("Slider", {
-            Label   = "UCS Yaw: ",
+            Label   = "Origin yaw: ",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextyaw"}):SetTooltip("Additional origin angular yaw offset")
+            Command = gsToolPrefL.."nextyaw"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
 
   CPanel:AddControl("Slider", {
-            Label   = "Piece Roll: ",
+            Label   = "Origin roll: ",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextrol"}):SetTooltip("Additional origin angular roll offset")
+            Command = gsToolPrefL.."nextrol"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
 
   CPanel:AddControl("Slider", {
             Label   = "Offset X: ",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextx"}):SetTooltip("Additional origin linear X offset")
+            Command = gsToolPrefL.."nextx"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
 
   CPanel:AddControl("Slider", {
             Label   = "Offset Y: ",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nexty"}):SetTooltip("Additional origin linear Y offset")
+            Command = gsToolPrefL.."nexty"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
 
   CPanel:AddControl("Slider", {
             Label   = "Offset Z: ",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextz"}):SetTooltip("Additional origin linear Z offset")
+            Command = gsToolPrefL.."nextz"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Enable gravity",
-            Command = gsToolPrefL.."engravity"}):SetTooltip("Enables the gravity on a piece")
+            Command = gsToolPrefL.."engravity"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".engravity"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Weld",
-            Command = gsToolPrefL.."weld"}):SetTooltip("Creates welds between pieces or pieces/anchor")
+            Command = gsToolPrefL.."weld"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Weld to the ground",
-            Command = gsToolPrefL.."wgnd"}):SetTooltip("Makes the piece act as a map prop")
+            Label   = "Disable physics gun ",
+            Command = gsToolPrefL.."disphysg"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".disphysg"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "NoCollide",
-            Command = gsToolPrefL.."nocollide"}):SetTooltip("Puts a no-collide between pieces or pieces/anchor")
+            Command = gsToolPrefL.."nocollide"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Freeze on spawn",
-            Command = gsToolPrefL.."freeze"}):SetTooltip("Makes the piece spawn in a frozen state")
+            Command = gsToolPrefL.."freeze"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Ignore track type",
-            Command = gsToolPrefL.."igntyp"}):SetTooltip("Makes the tool ignore the different piece types on snapping/stacking")
+            Command = gsToolPrefL.."igntyp"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntyp"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Spawn horizontal",
-            Command = gsToolPrefL.."spnflat"}):SetTooltip("The next piece will be spawned horizontally")
+            Command = gsToolPrefL.."spnflat"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Origin from mass-centre",
-            Command = gsToolPrefL.."mcspawn"}):SetTooltip("Makes the piece spawn relative to the mass-centre")
+            Command = gsToolPrefL.."mcspawn"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Snap to trace surface",
-            Command = gsToolPrefL.."surfsnap"}):SetTooltip("Snaps the piece to the surface the player is pointing at")
+            Command = gsToolPrefL.."surfsnap"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
 
   CPanel:AddControl("Checkbox", {
             Label   = "Auto-offset UP",
-            Command = gsToolPrefL.."autoffsz"}):SetTooltip("Automatically offsets the piece to lay it above the ground")
+            Command = gsToolPrefL.."autoffsz"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".autoffsz"))
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Enable advisor",
-            Command = gsToolPrefL.."advise"}):SetTooltip("Enables rendering the tool position/angle advisor")
+            Label   = "Disable advisor",
+            Command = gsToolPrefL.."disadvis"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".disadvis"))
 
   CPanel:AddControl("Checkbox", {
-            Label   = "Enable ghosting",
-            Command = gsToolPrefL.."enghost"}):SetTooltip("Enables rendering the tool ghost prop")
+            Label   = "Disable ghosting",
+            Command = gsToolPrefL.."disghost"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".disghost"))
 end
 
 function TOOL:MakeGhostEntity(sModel)
@@ -1200,7 +1229,7 @@ end
 
 function TOOL:Think()
   local model = self:GetModel()
-  if(self:GetEnableGhost() ~= 0 and utilIsValidModel(model)) then
+  if(self:GetDisableGhost() == 0 and utilIsValidModel(model)) then
     if (not self.GhostEntity or
         not self.GhostEntity:IsValid() or
             self.GhostEntity:GetModel() ~= model

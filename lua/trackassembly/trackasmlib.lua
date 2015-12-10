@@ -126,8 +126,6 @@ local constraintNoCollide  = constraint and constraint.NoCollide
 local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
-
-
 ---------------- CASHES SPACE --------------------
 
 local libCache  = {} -- Used to cache stuff in a Pool
@@ -3526,45 +3524,52 @@ function DuplicatePiece(ePiece)
                    ePiece:GetColor())
 end
 
-function AnchorPiece(ePiece,eBase,nWe,nNc,nFr,nWg,nGr,sPh)
+function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   if(CLIENT) then
-    return StatusLog(false,"Piece:Anchor: Working on the client is not allowed")
+    return StatusLog(false,"ApplyPhysicalAnchor: Working on the client is not allowed")
   end
   local nWe = tonumber(nWe) or 0
   local nNc = tonumber(nNc) or 0
-  local nFr = tonumber(nFr) or 0
-  local nWg = tonumber(nWg) or 0
-  local nGr = tonumber(nGr) or 0
-  local sPh = tostring(sPh) or ""
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"Piece:Anchor: Piece entity not valid")
+    return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid")
   end
-  if(eBase and eBase:IsValid()) then
-    if(nWe ~= 0) then
-      local nWe = constraintWeld(eBase, ePiece, 0, 0, 0, false, false)
-      ePiece:DeleteOnRemove(nWe)
-       eBase:DeleteOnRemove(nWe)
-    end
-    if(nNc ~= 0) then
-      local nNc = constraintNoCollide(eBase, ePiece, 0, 0)
-      ePiece:DeleteOnRemove(nNc)
-       eBase:DeleteOnRemove(nNc)
-    end
-  else
-    LogInstance("Piece:Anchor: Base entity not valid")
+  if(not (eBase and eBase:IsValid())) then
+    return StatusLog(false,"ApplyPhysicalAnchor: Base entity not valid")
+  end
+  if(nWe ~= 0) then -- Weld
+    local nWe = constraintWeld(eBase, ePiece, 0, 0, 0, false, false)
+    ePiece:DeleteOnRemove(nWe)
+     eBase:DeleteOnRemove(nWe)
+  end
+  if(nNc ~= 0) then -- NoCollide
+    local nNc = constraintNoCollide(eBase, ePiece, 0, 0)
+    ePiece:DeleteOnRemove(nNc)
+     eBase:DeleteOnRemove(nNc)
+  end
+end
+  
+function ApplyPhysicalSettings(ePiece,nFr,nPd,nGr,sPh)
+  if(CLIENT) then
+    return StatusLog(false,"ApplyPhysicalSettings: Working on the client is not allowed")
+  end
+  local nFr = tonumber(nFr) or 0
+  local nPd = tonumber(nPd) or 0
+  local nGr = tonumber(nGr) or 0
+  local sPh = tostring(sPh or "")
+  if(not (ePiece and ePiece:IsValid())) then
+    return StatusLog(false,"ApplyPhysicalSettings: Piece entity not valid")
   end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
-    return StatusLog(false,"Piece:Anchor: Piece physobj not valid")
+    return StatusLog(false,"ApplyPhysicalSettings: Piece physical object not valid")
   end
   if(nFr == 0) then
     pyPiece:EnableMotion(true)
   end
-  if(nWg ~= 0) then
+  if(nPd ~= 0) then
     ePiece.PhysgunDisabled = true
     ePiece:SetMoveType(MOVETYPE_NONE)
     ePiece:SetUnFreezable(true)
-    pyPiece:EnableMotion(false)
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
   end
   if(nGr == 0) then
