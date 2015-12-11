@@ -119,10 +119,10 @@ if(SERVER) then
   duplicatorRegisterEntityModifier(gsToolPrefL.."igphysgn",asmlib.GetActionCode("IGNORE_PHYSGUN"))
 end
 
-TOOL.Category   = "Construction"                                   -- Name of the category
-TOOL.Name       = languageGetPhrase("tool."..gsToolNameL..".name") -- Name to display
-TOOL.Command    = nil                                              -- Command on click (nil for default)
-TOOL.ConfigName = nil                                              -- Config file name (nil for default)
+TOOL.Category   = "Construction" -- Name of the category
+TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name") -- Name to display
+TOOL.Command    = nil -- Command on click (nil for default)
+TOOL.ConfigName = nil -- Config file name (nil for default)
 
 TOOL.ClientConVar = {
   [ "weld"      ] = "1",
