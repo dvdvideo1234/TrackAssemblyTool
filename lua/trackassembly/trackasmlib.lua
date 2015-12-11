@@ -3549,12 +3549,12 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   end
 end
 
-function ApplyPhysicalSettings(ePiece,nPi,nPs,nFr,nGr,sPh)
+function ApplyPhysicalSettings(ePiece,nPi,nSs,nFr,nGr,sPh)
   if(CLIENT) then
     return StatusLog(false,"ApplyPhysicalSettings: Working on the client is not allowed")
   end
   local nPi = tonumber(nPi) or 0
-  local nPs = tonumber(nPs) or 0
+  local nSs = tonumber(nSs) or 0
   local nFr = tonumber(nFr) or 0
   local nGr = tonumber(nGr) or 0
   local sPh = tostring(sPh or "")
@@ -3566,7 +3566,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nPs,nFr,nGr,sPh)
     ePiece:SetUnFreezable(true)
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."igphysgn",{[1] = true})
   end
-  if(nPs ~= 0) then ePiece:SetMoveType(MOVETYPE_NONE)
+  if(nSs ~= 0) then ePiece:SetMoveType(MOVETYPE_NONE)
                else ePiece:SetMoveType(MOVETYPE_VPHYSICS) end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then

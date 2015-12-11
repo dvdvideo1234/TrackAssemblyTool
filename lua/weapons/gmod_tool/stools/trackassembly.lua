@@ -114,7 +114,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".autoffsz" , "Automatically offsets the piece to lay it above the ground")
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
-  languageAdd("tool."..gsToolNameL..".movstatic", "Sets the piece in a persistent state like a map prop")
+  languageAdd("tool."..gsToolNameL..".spnstatic", "Sets the piece in a persistent state like a map prop")
   languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
   languageAdd("cleaned."..gsToolNameL.."s", "Cleaned up all Pieces")
   concommandAdd(gsToolPrefL.."resetoffs", asmlib.GetActionCode("RESET_OFFSETS"))
@@ -160,7 +160,7 @@ TOOL.ClientConVar = {
   [ "surfsnap"  ] = "0",
   [ "autoffsz"  ] = "1",
   [ "exportdb"  ] = "0",
-  [ "movstatic" ] = "0",
+  [ "spnstatic" ] = "0",
   [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "0",
   [ "maxstatts" ] = "3",
@@ -261,8 +261,8 @@ function TOOL:GetPhysgunGrab()
   return (self:GetClientNumber("ignphysgn") or 0)
 end
 
-function TOOL:GetMoveStatic()
-  return (self:GetClientNumber("movstatic") or 0)
+function TOOL:GetSpawnStatic()
+  return (self:GetClientNumber("spnstatic") or 0)
 end
 
 function TOOL:GetSpawnMC()
@@ -344,7 +344,7 @@ function TOOL:LeftClick(Trace)
   local nocollide  = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
-  local movstatic  = self:GetMoveStatic()
+  local spnstatic  = self:GetSpawnStatic()
   local ignphysgn  = self:GetPhysgunGrab()
   local surfsnap   = self:GetSurfaceSnap()
   local physmater  = self:GetPhysMeterial()
@@ -389,7 +389,7 @@ function TOOL:LeftClick(Trace)
         ePiece:SetAngles(stSpawn.SAng)
       end
       undoCreate(gsUndoPrefN..fnmodel.." ( World spawn )")
-      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,movstatic,freeze,gravity,physmater)
+      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,spnstatic,freeze,gravity,physmater)
       asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)
       asmlib.EmitSoundPly(ply)
       undoAddEntity(ePiece)
@@ -459,7 +459,7 @@ function TOOL:LeftClick(Trace)
           return true
         end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
-        asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,movstatic,freeze,gravity,physmater)
+        asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,spnstatic,freeze,gravity,physmater)
         asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or ePieceO),weld,nil)
         asmlib.ApplyPhysicalAnchor(ePiece,ePieceO,nil,nocollide)
         if(iNdex == count) then
@@ -536,7 +536,7 @@ function TOOL:LeftClick(Trace)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,movstatic,freeze,gravity,physmater)
+      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,spnstatic,freeze,gravity,physmater)
       asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil) -- Weld all created to the anchor/previous
       asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide)       -- NoCollide all to previous
       asmlib.EmitSoundPly(ply)
@@ -900,7 +900,7 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][21]  = gsToolPrefL.."nocollide"
   Combo["CVars"][22]  = gsToolPrefL.."gravity"
   Combo["CVars"][23]  = gsToolPrefL.."physmater"
-  Combo["CVars"][24]  = gsToolPrefL.."movstatic"
+  Combo["CVars"][24]  = gsToolPrefL.."spnstatic"
   
   CPanel:AddControl("ComboBox",Combo)
   CurY = CurY + 25
@@ -1110,7 +1110,7 @@ function TOOL.BuildCPanel(CPanel)
 
   CPanel:AddControl("Checkbox", {
             Label   = "Spawn stationary",
-            Command = gsToolPrefL.."freeze"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".movstatic"))
+            Command = gsToolPrefL.."spnstatic"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnstatic"))
             
   CPanel:AddControl("Checkbox", {
             Label   = "Ignore physics gun grab",
