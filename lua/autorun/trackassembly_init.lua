@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","5.130")
+asmlib.SetOpVar("TOOL_VERSION","5.131")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -69,7 +69,7 @@ if(SERVER) then
 
   asmlib.SetAction("IGNORE_PHYSGUN",
     function(oPly,oEnt,tData) -- Duplicator wrapper
-      if(not ApplyPhysicalSettings(oEnt,(tData[1] and 1))) then
+      if(not asmlib.ApplyPhysicalSettings(oEnt,(tData[1] and 1))) then
         return asmlib.StatusLog(false,"IGNORE_PHYSGUN: Failed to apply physical settings")
       end
       return asmlib.StatusLog(true,"IGNORE_PHYSGUN: Success")
