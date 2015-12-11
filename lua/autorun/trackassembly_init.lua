@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","5.129")
+asmlib.SetOpVar("TOOL_VERSION","5.130")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -39,7 +39,7 @@ asmlib.SetLogControl(0,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCoVar("enwiremod", "1"  , {0,1  } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCoVar("enwiremod", "1"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeCoVar("maxstcnt" , "200", {1,200} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
   asmlib.MakeCoVar("bnderrmod", "1" , {0,4}   ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
@@ -67,18 +67,12 @@ local gaTimerSet  = asmlib.StringExplode(asmlib.GetCoVar("timermode","STR"),asml
 -------- ACTIONS  ----------
 if(SERVER) then
 
-  asmlib.SetAction("DISABLE_PHYSGUN",
-    function(oPly,oEnt,tData)
-      if(tData[1]) then
-        if(not (oEnt and oEnt:IsValid())) then
-          return asmlib.StatusLog(false,"DISABLE_PHYSGUN: Entity invalid "..tostring(oEnt))
-        end
-        oEnt.PhysgunDisabled = true
-        oEnt:SetMoveType(MOVETYPE_NONE)
-        oEnt:SetUnFreezable(true)
-        duplicatorStoreEntityModifier(oEnt, gsToolPrefL.."disphysg", {[1] = true})
-        return asmlib.StatusLog(true,"DISABLE_PHYSGUN: Success")
+  asmlib.SetAction("IGNORE_PHYSGUN",
+    function(oPly,oEnt,tData) -- Duplicator wrapper
+      if(not ApplyPhysicalSettings(oEnt,(tData[1] and 1))) then
+        return asmlib.StatusLog(false,"IGNORE_PHYSGUN: Failed to apply physical settings")
       end
+      return asmlib.StatusLog(true,"IGNORE_PHYSGUN: Success")
     end)
 
 end
@@ -87,12 +81,12 @@ if(CLIENT) then
 
   asmlib.SetAction("RESET_OFFSETS",
     function(oPly,oCom,oArgs)
-      oPly:ConCommand(gsToolPrefL.."nextpic 0\n")
-      oPly:ConCommand(gsToolPrefL.."nextyaw 0\n")
-      oPly:ConCommand(gsToolPrefL.."nextrol 0\n")
       oPly:ConCommand(gsToolPrefL.."nextx 0\n")
       oPly:ConCommand(gsToolPrefL.."nexty 0\n")
       oPly:ConCommand(gsToolPrefL.."nextz 0\n")
+      oPly:ConCommand(gsToolPrefL.."nextpic 0\n")
+      oPly:ConCommand(gsToolPrefL.."nextyaw 0\n")
+      oPly:ConCommand(gsToolPrefL.."nextrol 0\n")
       return asmlib.StatusLog(true,"RESET_OFFSETS: Success")
     end)
 
@@ -110,7 +104,7 @@ if(CLIENT) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create elements frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{Label = { "DButton"    ,"ExportDB"   ,"Click to export the client database as a file"}})
+            pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"  ,"Click to export the client database as a file"}})
             pnElements:Insert(2,{Label = { "DListView"  ,"ItemRoutine","The list of your frequently used track pieces"}})
             pnElements:Insert(3,{Label = { "DModelPanel","ItemScreen" ,"The model of your track piece is displayed here"}})
             pnElements:Insert(4,{Label = { "DTextEntry" ,"ItemSearch" ,"Enter a pattern here and hit enter to preform a search"}})
@@ -230,12 +224,11 @@ if(CLIENT) then
       pnListView:AddColumn("Model"):SetFixedWidth(305)-- (4)
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
-        asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: #"..tostring(nIndex).." <"..tostring(uiMod)..">")
-        pnModelPanel:SetModel(uiMod)
         local uiRec = asmlib.CacheQueryPiece(uiMod)
         if(not asmlib.IsExistent(uiRec)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve model <"..uiMod..">")
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve #"..nIndex.." model <"..uiMod..">")
         end
+        pnModelPanel:SetModel(uiMod) -- Set the damn thing only if valid record is found
         -- OBBCenter ModelPanel Configuration --
         local uiEnt = pnModelPanel:GetEntity()
         if(not (uiEnt and uiEnt:IsValid())) then

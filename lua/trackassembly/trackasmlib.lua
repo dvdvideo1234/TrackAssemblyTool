@@ -132,7 +132,7 @@ local libCache  = {} -- Used to cache stuff in a Pool
 local libAction = {} -- Used to attach external function to the lib
 local libOpVars = {} -- Used to Store operational Variable Values
 
-module( "trackasmlib" )
+module("trackasmlib")
 
 ---------------------------- AssemblyLib COMMON ----------------------------
 
@@ -437,7 +437,7 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
     local vLeft = -oPly:GetAimVector():Angle():Right()
     aAng:Set(vLeft:Cross(oTrace.HitNormal):AngleEx(oTrace.HitNormal))
   else -- Get only the player yaw, pitch and roll are not needed
-    local nYSnap = tonumber(nYSnap) or 0 
+    local nYSnap = tonumber(nYSnap) or 0
     if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
       aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap)
     end
@@ -3505,7 +3505,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   end
   phPiece:EnableMotion(false)
   phPiece:SetMass(mathClamp(tonumber(nMass) or 1,1,GetOpVar("MAX_MASS")))
-  local IDs = StringExplode((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY")) 
+  local IDs = StringExplode((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY"))
   ePiece:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
   AttachBodyGroups(ePiece,IDs[1] or "")
   AttachAdditions(ePiece)
@@ -3547,37 +3547,32 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
      eBase:DeleteOnRemove(nNc)
   end
 end
-  
-function ApplyPhysicalSettings(ePiece,nFr,nPd,nGr,sPh)
+
+function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(CLIENT) then
     return StatusLog(false,"ApplyPhysicalSettings: Working on the client is not allowed")
   end
   local nFr = tonumber(nFr) or 0
-  local nPd = tonumber(nPd) or 0
+  local nPi = tonumber(nPi) or 0
   local nGr = tonumber(nGr) or 0
   local sPh = tostring(sPh or "")
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalSettings: Piece entity not valid")
   end
+  if(nPi ~= 0) then
+    ePiece.PhysgunDisabled = true
+    ePiece:SetMoveType(MOVETYPE_NONE)
+    ePiece:SetUnFreezable(true)
+    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."igphysgn",{[1] = true})
+  end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalSettings: Piece physical object not valid")
   end
-  if(nFr == 0) then
-    pyPiece:EnableMotion(true)
-  end
-  if(nPd ~= 0) then
-    ePiece.PhysgunDisabled = true
-    ePiece:SetMoveType(MOVETYPE_NONE)
-    ePiece:SetUnFreezable(true)
-    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."wgnd",{[1] = true})
-  end
-  if(nGr == 0) then
-    constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false})
-  end
-  if(sPh ~= "") then
-    constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh})
-  end
+  if(nFr ~=  0) then pyPiece:EnableMotion(false) else pyPiece:EnableMotion(true) end
+  if(nGr ~=  0) then constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = true })
+                else constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false}) end
+  if(sPh ~= "") then constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh}) end
   return true
 end
 
