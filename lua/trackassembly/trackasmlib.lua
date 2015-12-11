@@ -228,8 +228,8 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("TIME_EPOCH",Time())
   SetOpVar("NAME_INIT",stringLower(sName))
   SetOpVar("NAME_PERP",stringLower(sPurpose))                 
-  SetOpVar("TOOLNAME_NL",stringLower(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
-  SetOpVar("TOOLNAME_NU",stringUpper(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
+  SetOpVar("TOOLNAME_NL",stringLower(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
+  SetOpVar("TOOLNAME_NU",stringUpper(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
   SetOpVar("MISS_NOID","N")    -- No ID selected
@@ -735,7 +735,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
       if(Iter > 0) then
         surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
       end
-    elseif(Method == "GHO")
+    elseif(Method == "GHO") then
       local nS = self:Enclose(xyS)
       local nE = self:Enclose(xyE)
       if(nS == -1 or nE == -1) then return end
@@ -1021,7 +1021,7 @@ function AutoOffsetUp(vPos,oEnt,nPointID,vHitNormal,nFlag)
   if(not IsExistent(hdPnt)) then return StatusLog(false,"AutoOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
   local hdPnt = hdPnt.Offs
   if(not IsExistent(hdPnt)) then return StatusLog(false,"AutoOffsetUp: Offsets missing for <"..oEnt:GetModel()..">") end
-  local hdPnt = hdPnt.Offs[nPointID]
+  local hdPnt = hdPnt[nPointID]
   if(not IsExistent(hdPnt)) then return StatusLog(false,"AutoOffsetUp: Invalid point #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   if(not (hdPnt.O and hdPnt.A)) then return StatusLog(false,"AutoOffsetUp: Invalid POA #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   local aDiffBB = Angle()
