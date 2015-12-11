@@ -28,6 +28,8 @@ local entsCreate            = ents and ents.Create
 local entsCreateClientProp  = ents and ents.CreateClientProp
 local fileExists            = file and file.Exists
 local stringSub             = string and string.sub
+local stringUpper           = string and string.upper
+local stringLower           = string and string.lower
 local cleanupRegister       = cleanup and cleanup.Register
 local languageAdd           = language and language.Add
 local languageGetPhrase     = language and language.GetPhrase
@@ -58,7 +60,11 @@ local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
-local gsUndoPrefN = asmlib.GetOpVar("INIT_FAN")..": "
+local gsNameInitF = asmlib.GetOpVar("NAME_INIT")
+      gsNameInitF = stringUpper(stringSub(gsNameInitF,1,1))..stringSub(gsNameInitF,2,-1)
+local gsNamePerpF = asmlib.GetOpVar("NAME_PERP")
+      gsNamePerpF = stringUpper(stringSub(gsNamePerpF,1,1))..stringSub(gsNamePerpF,2,-1)    
+local gsUndoPrefN = gsNameInitF..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID")
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
@@ -82,7 +88,7 @@ local conPalette = asmlib.MakeContainer("Colours")
       conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
 
 if(CLIENT) then
-  languageAdd("tool."..gsToolNameL..".name"     , asmlib.GetOpVar("INIT_FAN").." "..asmlib.GetOpVar("PERP_FAN"))
+  languageAdd("tool."..gsToolNameL..".name"     , gsNameInitF.." "..gsNamePerpF)
   languageAdd("tool."..gsToolNameL..".desc"     , "Assembles a track for vehicles to run on")
   languageAdd("tool."..gsToolNameL..".0"        , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
   languageAdd("tool."..gsToolNameL..".mass"     , "How heavy the piece spawned will be")
@@ -107,9 +113,10 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".surfsnap" , "Snaps the piece to the surface the player is pointing at")
   languageAdd("tool."..gsToolNameL..".autoffsz" , "Automatically offsets the piece to lay it above the ground")
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
-  languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghost prop")
-  languageAdd("cleanup."..gsToolNameL              , "Undone assembly")
-  languageAdd("cleaned."..gsToolNameL.."s"         , "Cleaned up all Pieces")
+  languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
+  languageAdd("tool."..gsToolNameL..".movstatic", "Sets the piece in a persistent state like a map prop")
+  languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
+  languageAdd("cleaned."..gsToolNameL.."s", "Cleaned up all Pieces")
   concommandAdd(gsToolPrefL.."resetoffs", asmlib.GetActionCode("RESET_OFFSETS"))
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
 end
@@ -153,6 +160,7 @@ TOOL.ClientConVar = {
   [ "surfsnap"  ] = "0",
   [ "autoffsz"  ] = "1",
   [ "exportdb"  ] = "0",
+  [ "movstatic" ] = "0",
   [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "0",
   [ "maxstatts" ] = "3",
@@ -253,6 +261,10 @@ function TOOL:GetPhysgunGrab()
   return (self:GetClientNumber("ignphysgn") or 0)
 end
 
+function TOOL:GetMoveStatic()
+  return (self:GetClientNumber("movstatic") or 0)
+end
+
 function TOOL:GetSpawnMC()
   return self:GetClientNumber("mcspawn") or 0
 end
@@ -332,6 +344,7 @@ function TOOL:LeftClick(Trace)
   local nocollide  = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
+  local movstatic  = self:GetMoveStatic()
   local ignphysgn  = self:GetPhysgunGrab()
   local surfsnap   = self:GetSurfaceSnap()
   local physmater  = self:GetPhysMeterial()
@@ -376,7 +389,7 @@ function TOOL:LeftClick(Trace)
         ePiece:SetAngles(stSpawn.SAng)
       end
       undoCreate(gsUndoPrefN..fnmodel.." ( World spawn )")
-      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)
+      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,movstatic,freeze,gravity,physmater)
       asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)
       asmlib.EmitSoundPly(ply)
       undoAddEntity(ePiece)
@@ -446,7 +459,7 @@ function TOOL:LeftClick(Trace)
           return true
         end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
-        asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)
+        asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,movstatic,freeze,gravity,physmater)
         asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or ePieceO),weld,nil)
         asmlib.ApplyPhysicalAnchor(ePiece,ePieceO,nil,nocollide)
         if(iNdex == count) then
@@ -523,7 +536,7 @@ function TOOL:LeftClick(Trace)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)
+      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,movstatic,freeze,gravity,physmater)
       asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil) -- Weld all created to the anchor/previous
       asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide)       -- NoCollide all to previous
       asmlib.EmitSoundPly(ply)
@@ -854,8 +867,8 @@ function TOOL:DrawToolScreen(w, h)
 end
 
 function TOOL.BuildCPanel(CPanel)
-  Header = CPanel:AddControl( "Header", { Text        = languageGetPhrase("tool."..gsToolNameL..".name"),
-                                          Description = languageGetPhrase("tool."..gsToolNameL..".desc")})
+  Header = CPanel:AddControl( "Header", {Text        = languageGetPhrase("tool."..gsToolNameL..".name"),
+                                         Description = languageGetPhrase("tool."..gsToolNameL..".desc")})
   local CurY = Header:GetTall() + 2
 
   local Combo         = {}
@@ -887,6 +900,8 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][21]  = gsToolPrefL.."nocollide"
   Combo["CVars"][22]  = gsToolPrefL.."gravity"
   Combo["CVars"][23]  = gsToolPrefL.."physmater"
+  Combo["CVars"][24]  = gsToolPrefL.."movstatic"
+  
   CPanel:AddControl("ComboBox",Combo)
   CurY = CurY + 25
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
@@ -1093,6 +1108,10 @@ function TOOL.BuildCPanel(CPanel)
             Label   = "Freeze on spawn",
             Command = gsToolPrefL.."freeze"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
 
+  CPanel:AddControl("Checkbox", {
+            Label   = "Spawn stationary",
+            Command = gsToolPrefL.."freeze"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".movstatic"))
+            
   CPanel:AddControl("Checkbox", {
             Label   = "Ignore physics gun grab",
             Command = gsToolPrefL.."ignphysgn"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))

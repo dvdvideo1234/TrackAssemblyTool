@@ -4,3 +4,4 @@ Test the physical settings on the pieces
 Test the physical constraints on the pieces
 Take a look at the panel elements translated descriptions
 Test Disable physgun and freeze to be separated
+Test if the "movstatic" option can be duped

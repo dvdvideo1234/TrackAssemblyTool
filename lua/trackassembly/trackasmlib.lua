@@ -212,21 +212,22 @@ function IsBool(anyArg)
   return false
 end
 
-function InitAssembly(sName)
+function IsNumber(anyArg)
+  return ((tonumber(anyArg) and true) or false)
+end
+
+function InitAssembly(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   SetOpVar("TYPEMT_SCREEN",{})
   SetOpVar("TYPEMT_CONTAINER",{})
-  if(not IsString(sName)) then
+  if(not (IsString(sName) and IsString(sPurpose))) then
     return StatusPrint(false,"InitAssembly: Error initializing. Expecting string argument")
   end
   if(stringLen(sName) < 1 and tonumber(stringSub(sName,1,1))) then return end
+  if(stringLen(sPurpose) < 1 and tonumber(stringSub(sPurpose,1,1))) then return end
   SetOpVar("TIME_EPOCH",Time())
-  SetOpVar("INIT_NL" ,stringLower(sName))
-  SetOpVar("INIT_FAN",stringSub(stringUpper(GetOpVar("INIT_NL")),1,1)
-                    ..stringSub(stringLower(GetOpVar("INIT_NL")),2,stringLen(GetOpVar("INIT_NL"))))
-  SetOpVar("PERP_UL","assembly")
-  SetOpVar("PERP_FAN",stringSub(stringUpper(GetOpVar("PERP_UL")),1,1)
-                    ..stringSub(stringLower(GetOpVar("PERP_UL")),2,stringLen(GetOpVar("PERP_UL"))))
+  SetOpVar("NAME_INIT",stringLower(sName))
+  SetOpVar("NAME_PERP",stringLower(sPurpose))                 
   SetOpVar("TOOLNAME_NL",stringLower(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
   SetOpVar("TOOLNAME_NU",stringUpper(GetOpVar("INIT_NL")..GetOpVar("PERP_UL")))
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
@@ -3480,9 +3481,9 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
 end
 
 function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
-  if(CLIENT) then return nil end -- Make sure we do not work on the client
+  if(CLIENT) then return StatusLog(nil,"MakePiece: Working on client") end
   local stPiece = CacheQueryPiece(sModel)
-  if(not IsExistent(stPiece)) then return nil end
+  if(not IsExistent(stPiece)) then return StatusLog(nil,"MakePiece: Relation mismatch <"..sModel..">") end
   local ePiece = entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then return StatusLog(nil,"MakePiece: Entity invalid") end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
@@ -3548,12 +3549,13 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   end
 end
 
-function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
+function ApplyPhysicalSettings(ePiece,nPi,nPs,nFr,nGr,sPh)
   if(CLIENT) then
     return StatusLog(false,"ApplyPhysicalSettings: Working on the client is not allowed")
   end
-  local nFr = tonumber(nFr) or 0
   local nPi = tonumber(nPi) or 0
+  local nPs = tonumber(nPs) or 0
+  local nFr = tonumber(nFr) or 0
   local nGr = tonumber(nGr) or 0
   local sPh = tostring(sPh or "")
   if(not (ePiece and ePiece:IsValid())) then
@@ -3561,10 +3563,11 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   end
   if(nPi ~= 0) then
     ePiece.PhysgunDisabled = true
-    ePiece:SetMoveType(MOVETYPE_NONE)
     ePiece:SetUnFreezable(true)
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."igphysgn",{[1] = true})
   end
+  if(nPs ~= 0) then ePiece:SetMoveType(MOVETYPE_NONE)
+               else ePiece:SetMoveType(MOVETYPE_VPHYSICS) end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalSettings: Piece physical object not valid")

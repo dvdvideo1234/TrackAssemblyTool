@@ -25,8 +25,8 @@ local asmlib = trackasmlib
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
-asmlib.InitAssembly("track")
-asmlib.SetOpVar("TOOL_VERSION","5.132")
+asmlib.InitAssembly("track","assembly")
+asmlib.SetOpVar("TOOL_VERSION","5.133")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -39,7 +39,7 @@ asmlib.SetLogControl(0,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeCoVar("enwiremod", "1"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeCoVar("enwiremod", "1"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
 asmlib.MakeCoVar("maxstcnt" , "200", {1,200} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
   asmlib.MakeCoVar("bnderrmod", "1" , {0,4}   ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
@@ -48,7 +48,7 @@ end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeCoVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 asmlib.MakeCoVar("enqstore" ,     1, nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable cache for built queries")
-asmlib.MakeCoVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Cache management setting when DB mode is SQL")
+asmlib.MakeCoVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
 
 ------ CONFIGURE MODES -----
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCoVar("modedb","STR"))
@@ -66,19 +66,16 @@ local gaTimerSet  = asmlib.StringExplode(asmlib.GetCoVar("timermode","STR"),asml
 
 -------- ACTIONS  ----------
 if(SERVER) then
-
   asmlib.SetAction("IGNORE_PHYSGUN",
     function(oPly,oEnt,tData) -- Duplicator wrapper
       if(not asmlib.ApplyPhysicalSettings(oEnt,(tData[1] and 1))) then
-        return asmlib.StatusLog(false,"IGNORE_PHYSGUN: Failed to apply physical settings")
+        return asmlib.StatusLog(false,"IGNORE_PHYSGUN: Failed to apply physical settings on "..tostring(oEnt))
       end
       return asmlib.StatusLog(true,"IGNORE_PHYSGUN: Success")
     end)
-
 end
 
 if(CLIENT) then
-
   asmlib.SetAction("RESET_OFFSETS",
     function(oPly,oCom,oArgs)
       oPly:ConCommand(gsToolPrefL.."nextx 0\n")
@@ -101,7 +98,7 @@ if(CLIENT) then
       local pnFrame = vguiCreate("DFrame")
       if(not IsValid(pnFrame)) then
         pnFrame:Remove()
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create elements frame")
+        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create base frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"  ,"Click to export the client database as a file"}})
@@ -115,13 +112,16 @@ if(CLIENT) then
         vItem = pnElements:Select(iNdex)
         vItem.Panel = vguiCreate(vItem.Label[1],pnFrame)
         if(not IsValid(vItem.Panel)) then
-          asmlib.LogInstance("OPEN_FRAME: Failed to create "..vItem.Label[1].." name "..vItem.Label[2].." ID #"..iNdex)
-          pnElements:Delete(iNdex)
-          iNdex, iSize = 1, pnElements:GetSize()
+          asmlib.LogInstance("OPEN_FRAME: Failed to create ID #"..iNdex)
+          iNdex, vItem = 1, nil
           while(iNdex <= iSize) do
-            asmlib.LogInstance("OPEN_FRAME: Delete #"..iNdex)
-            pnElements:Select(iNdex).Panel:Remove()
+            vItem = pnElements:Select(iNdex) 
+            if(IsValid(vItem.Panel)) then
+              vItem.Panel:Remove()
+              asmlib.LogInstance("OPEN_FRAME: Deleted panel ID #"..iNdex)
+            end
             pnElements:Delete(iNdex)
+            asmlib.LogInstance("OPEN_FRAME: Deleted entry ID #"..iNdex)
             iNdex = iNdex + 1
           end
           pnFrame:Remove()
@@ -150,7 +150,7 @@ if(CLIENT) then
       pnFrame.OnClose = function()
         pnFrame:SetVisible(false)
         local iNdex, iSize = 1, pnElements:GetSize()
-        while(iNdex <= iSize) do
+        while(iNdex <= iSize) do -- All panels are valid
           asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iNdex)
           pnElements:Select(iNdex).Panel:Remove()
           pnElements:Delete(iNdex)
@@ -270,7 +270,7 @@ if(CLIENT) then
       pnComboBox:AddChoice("Name" ,defTable[3][1])
       pnComboBox:AddChoice("Act"  ,defTable[4][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
-        asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.." >> "..sVal.." >> "..tostring(anyData))
+        asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.."<"..sVal..">"..tostring(anyData))
         pnSelf:SetValue(sVal)
       end
       ------------ TextEntry --------------
