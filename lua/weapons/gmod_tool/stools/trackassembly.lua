@@ -257,7 +257,7 @@ function TOOL:GetWeld()
   return (self:GetClientNumber("weld") or 0)
 end
 
-function TOOL:GetPhysgunGrab()
+function TOOL:GetIgnorePhysgun()
   return (self:GetClientNumber("ignphysgn") or 0)
 end
 
@@ -345,13 +345,13 @@ function TOOL:LeftClick(Trace)
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
   local spnstatic  = self:GetSpawnStatic()
-  local ignphysgn  = self:GetPhysgunGrab()
   local surfsnap   = self:GetSurfaceSnap()
   local physmater  = self:GetPhysMeterial()
   local autoffsz   = self:GetAutoOffsetUp()
   local actrad     = self:GetActiveRadius()
   local bgskids    = self:GetBodyGroupSkin()
   local staatts    = self:GetStackAttempts()
+  local ignphysgn  = self:GetIgnorePhysgun()
   local bnderrmod  = self:GetBoundErrorMode()
   local fnmodel    = asmlib.GetModelFileName(model)
   local aninfo , anEnt   = self:GetAnchor()
