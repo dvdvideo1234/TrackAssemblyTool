@@ -282,7 +282,7 @@ function TOOL:GetPhysMeterial()
 end
 
 function TOOL:GetBoundErrorMode()
-  return asmlib.GetCoVar("bnderrmod" ,"INT")
+  return asmlib.GetCoVar("bnderrmod" ,"STR")
 end
 
 function TOOL:GetSurfaceSnap()

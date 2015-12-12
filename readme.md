@@ -144,11 +144,12 @@ A: Naa, just use the Garry's right-click context menu to select body-groups/skin
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?
 A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
-   0 -> Clients are allowed to stack/spawn out of the map bounds without restriction
-   1 -> Clients are not allowed to stack/spawn out of the map bounds. The error is logged.
-   2 -> Clients are not allowed to stack/spawn out of the map bounds. Hunt message is displayed.
-   3 -> Clients are not allowed to stack/spawn out of the map bounds. Generic message is displayed.
-   4 -> Clients are not allowed to stack/spawn out of the map bounds. Error message is displayed.
+   OFF     -> Clients are allowed to stack/spawn out of the map bounds without restriction
+   LOG     -> Clients are not allowed to stack/spawn out of the map bounds. The error is logged.
+   HINT    -> Clients are not allowed to stack/spawn out of the map bounds. Hunt message is displayed.
+   GENERIC -> Clients are not allowed to stack/spawn out of the map bounds. Generic message is displayed.
+   ERROR   -> Clients are not allowed to stack/spawn out of the map bounds. Error message is displayed.
+   Other value will be treated as "invalid".
    But remember young samurai, this variable is only server side, and because of that
    you can only access it via single player or set it in the "server.vdf" gmod start-up file. 
    May the force be with you and your server !

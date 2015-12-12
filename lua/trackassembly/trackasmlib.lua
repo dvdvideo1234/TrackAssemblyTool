@@ -1402,9 +1402,23 @@ function Log(anyStuff)
 end
 
 function LogInstance(anyStuff)
-  local sModeDB  = GetOpVar("MODE_DATABASE")
-  local logOnly  = GetOpVar("LOG_LOGONLY")
   local anyStuff = tostring(anyStuff)
+  local sModeDB  = GetOpVar("MODE_DATABASE")
+  local logSkip  = GetOpVar("LOG_SKIP")
+  if(logSkip and IsString(logSkip[1])) then
+    local iNdex = 1
+    local logHere  = true
+    local sSkip = logSkip[iNdex]
+    while(sSkip and IsString(sSkip)) do
+      if(stringFind(anyStuff,sSkip)) then
+        logHere = true
+      end
+      iNdex = iNdex + 1
+      sSkip = logSkip[iNdex]
+    end
+    if(not logHere) then return end
+  end -- Should the current log be skipped
+  local logOnly  = GetOpVar("LOG_ONLY")
   if(logOnly and IsString(logOnly[1])) then
     local iNdex = 1
     local logHere  = false
@@ -1417,7 +1431,7 @@ function LogInstance(anyStuff)
       sOnly = logOnly[iNdex]
     end
     if(not logHere) then return end
-  end
+  end -- Only the chosen messages are processed
   if(SERVER) then
     Log("SERVER > ["..sModeDB.."] "..anyStuff)
   elseif(CLIENT) then
@@ -3579,55 +3593,55 @@ function ApplyPhysicalSettings(ePiece,nPi,nSs,nFr,nGr,sPh)
   return true
 end
 
-function SetBoundPos(ePiece,vPos,oPly,nMode,anyMessage)
-  local anyMessage = tostring(anyMessage)
+function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)
   if(not vPos) then
     return StatusLog(false,"Piece:SetBoundPos: Position invalid: "..anyMessage)
   end
   if(not oPly) then
     return StatusLog(false,"Piece:SetBoundPos: Player invalid: "..anyMessage)
   end
-  local nMode = tonumber(nMode) or 1 -- On wrong mode do not allow them to flood the server
-  if(nMode == 0) then
+  local sMode = tostring(sMode or "")
+  local anyMessage = tostring(anyMessage)
+  if(sMode == "OFF") then
     ePiece:SetPos(vPos)
     return true
-  elseif(nMode == 1) then
+  elseif(sMode == "LOG") then
     if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
-      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
     end
     return true
-  elseif(nMode == 2) then
+  elseif(sMode == "HINT") then
     if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
-      PrintNotify(oPly,"Position out of map bounds!","HINT")
-      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      PrintNotify(oPly,"Position out of map bounds!",sMode)
+      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
     end
     return true
-  elseif(nMode == 3) then
+  elseif(sMode == "GENERIC") then
     if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
-      PrintNotify(oPly,"Position out of map bounds!","GENERIC")
-      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      PrintNotify(oPly,"Position out of map bounds!",sMode)
+      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
     end
     return true
-  elseif(nMode == 4) then
+  elseif(sMode == "ERROR") then
     if(utilIsInWorld(vPos)) then
       ePiece:SetPos(vPos)
     else
       ePiece:Remove()
-      PrintNotify(oPly,"Position out of map bounds!","ERROR")
-      return StatusLog(false,"Piece:SetBoundPos("..nMode.."): Position out of map bounds: "..anyMessage)
+      PrintNotify(oPly,"Position out of map bounds!",sMode)
+      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
     end
     return true
   end
-  return StatusLog(false,"Piece:SetBoundPos: Mode #"..nMode.." not found: "..anyMessage)
+  return StatusLog(false,"Piece:SetBoundPos: Mode <"..sMode.."> not found: "..anyMessage)
 end
 
 function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
