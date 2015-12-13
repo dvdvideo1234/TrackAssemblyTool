@@ -43,9 +43,8 @@ local IN_ZOOM      = IN_ZOOM
 ---------------- Localizing ENT Properties ----------------
 local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
-local MOVETYPE_VPHYSICS     = MOVETYPE_VPHYSICS
 local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
-local MOVETYPE_NONE         = MOVETYPE_NONE
+local MOVETYPE_VPHYSICS     = MOVETYPE_VPHYSICS
 
 ---------------- Localizing CVar flags ----------------
 local FCVAR_ARCHIVE       = FCVAR_ARCHIVE
@@ -444,6 +443,19 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
     end
   end
   return aAng
+end
+
+function RotNormalAngle(aAng,nP,nY,nR)
+  if(not aAng) then return StatusLog(false,"RotNormalAngle: Angle missing") end
+  local nP = tonumber(nP) or 0
+  local nY = tonumber(nY) or 0
+  local nR = tonumber(nR) or 0
+  local vF = aAng:Forward()
+  local vR = aAng:Right()
+  local vU = aAng:Up()
+  aAng:RotateAroundAxis(aAng:Up(),-nY)
+  aAng:RotateAroundAxis(aAng:Right(),-nP)
+  aAng:RotateAroundAxis(aAng:Forward(),nR)
 end
 
 function IsThereRecID(oRec, nPointID)
@@ -933,15 +945,19 @@ end
 
 function GetMCWorldOffset(oEnt)
   -- Set the ENT's Angles first!
-  local vOff = Vector()
-  if(not (oEnt and oEnt:IsValid())) then return vOff end
-  local Phys = oEnt:GetPhysicsObject()
-  if(Phys and Phys:IsValid()) then
-    vOff:Set(Phys:GetMassCenter())
-    vOff:Rotate(oEnt:GetAngles())
-    vOff:Mul(-1)
+  if(not (oEnt and oEnt:IsValid())) then
+    return StatusLog(Vector(0,0,0),"GetMCWorldOffset: Entity Invalid")
   end
-  return vOff
+  local Phys = oEnt:GetPhysicsObject()
+  if(not (Phys and Phys:IsValid())) then
+    return StatusLog(Vector(0,0,0),"GetMCWorldOffset: Phys object Invalid")
+  end
+  local aAng = oEnt:GetAngles()
+  local vMCL = Phys:GetMassCenter()
+  local vRez = Vector()
+        vRez:Add(-vMCL[cvX] * aAng:Forward())
+        vRez:Add(-vMCL[cvY] * aAng:Right())
+  return vRez
 end
 
 function IsPhysTrace(Trace)
@@ -1016,7 +1032,7 @@ function AutoOffsetUp(vPos,oEnt,nPointID,vHitNormal,nFlag)
   local nPointID = tonumber(nPointID)
   if(not IsExistent(nPointID)) then return StatusLog(false,"AutoOffsetUp: Not a number #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   local bFlag = (tonumber(nFlag) and (nFlag ~= 0)) and true or false
-  if(not bFlag and IsBool(bFlag)) then return StatusLog(true,"AutoOffsetUp: Not enabled") end
+  if(not bFlag and IsBool(bFlag)) then return true end -- Not Enabled
   local hdPnt = CacheQueryPiece(oEnt:GetModel())
   if(not IsExistent(hdPnt)) then return StatusLog(false,"AutoOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
   local hdPnt = hdPnt.Offs
@@ -1031,7 +1047,7 @@ function AutoOffsetUp(vPos,oEnt,nPointID,vHitNormal,nFlag)
   SubVector(vDiffBB,hdPnt.O)
   vDiffBB:Set(DecomposeByAngle(vDiffBB,aDiffBB))
   vPos:Add(mathAbs(vDiffBB[cvZ]) * vHitNormal)
-  return StatusLog(true,"AutoOffsetUp: Enabled and success")
+  return true
 end
 
 function ModelToName(sModel)
@@ -1403,35 +1419,27 @@ end
 
 function LogInstance(anyStuff)
   local anyStuff = tostring(anyStuff)
-  local sModeDB  = GetOpVar("MODE_DATABASE")
   local logSkip  = GetOpVar("LOG_SKIP")
-  if(logSkip and IsString(logSkip[1])) then
+  if(logSkip and logSkip[1]) then
     local iNdex = 1
-    local logHere  = true
-    local sSkip = logSkip[iNdex]
-    while(sSkip and IsString(sSkip)) do
-      if(stringFind(anyStuff,sSkip)) then
-        logHere = true
-      end
+    while(logSkip[iNdex]) do
+      if(stringFind(anyStuff,tostring(logSkip[iNdex]))) then return end
       iNdex = iNdex + 1
-      sSkip = logSkip[iNdex]
     end
-    if(not logHere) then return end
   end -- Should the current log be skipped
   local logOnly  = GetOpVar("LOG_ONLY")
-  if(logOnly and IsString(logOnly[1])) then
+  if(logOnly and logOnly[1]) then
     local iNdex = 1
-    local logHere  = false
-    local sOnly = logOnly[iNdex]
-    while(sOnly and IsString(sOnly)) do
-      if(stringFind(anyStuff,sOnly)) then
-        logHere = true
+    local logMe = false
+    while(logOnly[iNdex]) do
+      if(stringFind(anyStuff,tostring(logOnly[iNdex]))) then
+        logMe = true
       end
       iNdex = iNdex + 1
-      sOnly = logOnly[iNdex]
     end
-    if(not logHere) then return end
+    if(not logMe) then return end
   end -- Only the chosen messages are processed
+  local sModeDB  = GetOpVar("MODE_DATABASE")
   if(SERVER) then
     Log("SERVER > ["..sModeDB.."] "..anyStuff)
   elseif(CLIENT) then
@@ -1558,7 +1566,7 @@ end
 
 function Print(tT,sS)
   if(not IsExistent(tT)) then
-    return StatusLog(nil,"Print: No Data: Print( table, string = \"Data\" )!")
+    return StatusLog(nil,"Print: {nil, name="..tostring(sS or "\"Data\"").."}")
   end
   local S = type(sS)
   local T = type(tT)
@@ -2490,7 +2498,6 @@ local function NavigateTable(oLocation,tKeys)
     Key = tKeys[Cnt]
     if(tKeys[Cnt+1]) then
       Place = Place[Key]
-      LogInstance("NavigateTable: Step ["..Key.."]")
       if(not IsExistent(Place)) then return StatusLog(nil,"NavigateTable: Key #"..tostring(Key).." irrelevant to location") end
     end
     Cnt = Cnt + 1
@@ -3317,12 +3324,11 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,hdPointID,
 end
 
 function AttachAdditions(ePiece)
-  LogInstance("AttachAdditions Invoked:")
   if(not (ePiece and ePiece:IsValid())) then return StatusLog(false,"AttachAdditions: Piece invalid") end
   local LocalAng  = ePiece:GetAngles()
   local LocalPos  = ePiece:GetPos()
   local BaseModel = ePiece:GetModel()
-  LogInstance("Model: "..BaseModel)
+  LogInstance("AttachAdditions: Model: <"..BaseModel..">")
   local qData = CacheQueryAdditions(BaseModel)
   if(not qData) then return StatusLog(false,"AttachAdditions: No data found") end
   local Record, Addition
@@ -3563,12 +3569,11 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   end
 end
 
-function ApplyPhysicalSettings(ePiece,nPi,nSs,nFr,nGr,sPh)
+function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(CLIENT) then
     return StatusLog(false,"ApplyPhysicalSettings: Working on the client is not allowed")
   end
   local nPi = tonumber(nPi) or 0
-  local nSs = tonumber(nSs) or 0
   local nFr = tonumber(nFr) or 0
   local nGr = tonumber(nGr) or 0
   local sPh = tostring(sPh or "")
@@ -3578,10 +3583,9 @@ function ApplyPhysicalSettings(ePiece,nPi,nSs,nFr,nGr,sPh)
   if(nPi ~= 0) then
     ePiece.PhysgunDisabled = true
     ePiece:SetUnFreezable(true)
+    ePiece:SetMoveType(MOVETYPE_VPHYSICS)
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."igphysgn",{[1] = true})
   end
-  if(nSs ~= 0) then ePiece:SetMoveType(MOVETYPE_NONE)
-               else ePiece:SetMoveType(MOVETYPE_VPHYSICS) end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalSettings: Piece physical object not valid")

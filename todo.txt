@@ -1,7 +1,7 @@
-Test if the Trace.HitWorld Pos/Ang will be calculated correctly.
-Test if GetUpAutoFill() will work correctly for trace.HitHormal/Trace.HitWorld
-Test the physical settings on the pieces
-Test the physical constraints on the pieces
-Take a look at the panel elements translated descriptions
-Test Disable physgun and freeze to be separated
-Test if the "movstatic" option can be duped
+[X] Test if the Trace.HitWorld Pos/Ang will be calculated correctly.
+[V] Test if GetUpAutoFill() will work correctly for trace.HitHormal/Trace.HitWorld
+[V] Test the physical settings on the pieces
+[V] Test the physical constraints on the pieces
+[V]Take a look at the panel elements translated descriptions
+[V] Test Disable physgun and freeze to be separated
+[N] Test if the "movstatic" option can be duped

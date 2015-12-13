@@ -82,8 +82,8 @@ local conPalette = asmlib.MakeContainer("Colours")
       conPalette:Insert("y" ,Color(255,255, 0 ,255))
       conPalette:Insert("w" ,Color(255,255,255,255))
       conPalette:Insert("k" ,Color( 0 , 0 , 0 ,255))
-      conPalette:Insert("gh",Color(255,255,255,150)) -- self.GhostEntity
-      conPalette:Insert("tx",Color(161,161,161,255)) -- Panel mode tree style
+      conPalette:Insert("gh",Color(255,255,255,240)) -- self.GhostEntity
+      conPalette:Insert("tx",Color(80 ,80 ,80 ,255)) -- Panel mode names
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
 
@@ -114,7 +114,6 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".autoffsz" , "Automatically offsets the piece to lay it above the ground")
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
-  languageAdd("tool."..gsToolNameL..".spnstatic", "Sets the piece in a persistent state like a map prop")
   languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
   languageAdd("cleaned."..gsToolNameL.."s", "Cleaned up all Pieces")
   concommandAdd(gsToolPrefL.."resetoffs", asmlib.GetActionCode("RESET_OFFSETS"))
@@ -138,31 +137,30 @@ TOOL.ClientConVar = {
   [ "nextx"     ] = "0",
   [ "nexty"     ] = "0",
   [ "nextz"     ] = "0",
-  [ "count"     ] = "1",
+  [ "count"     ] = "5",
   [ "freeze"    ] = "0",
   [ "anchor"    ] = gsNoAnchor,
   [ "igntype"   ] = "0",
   [ "spnflat"   ] = "0",
   [ "ydegsnp"   ] = "0",
   [ "pointid"   ] = "1",
-  [ "pnextid"   ] = "1",
+  [ "pnextid"   ] = "2",
   [ "nextpic"   ] = "0",
   [ "nextyaw"   ] = "0",
   [ "nextrol"   ] = "0",
   [ "addinfo"   ] = "0",
-  [ "logsmax"   ] = "0",
-  [ "logfile"   ] = "",
-  [ "mcspawn"   ] = "1",
+  [ "logsmax"   ] = "10000",
+  [ "logfile"   ] = "trackasmlib_log",
+  [ "mcspawn"   ] = "0",
   [ "bgskids"   ] = "",
   [ "gravity"   ] = "1",
-  [ "adviser"   ] = "0",
+  [ "adviser"   ] = "1",
   [ "activrad"  ] = "30",
   [ "surfsnap"  ] = "0",
   [ "autoffsz"  ] = "1",
   [ "exportdb"  ] = "0",
-  [ "spnstatic" ] = "0",
   [ "ignphysgn" ] = "0",
-  [ "ghosthold" ] = "0",
+  [ "ghosthold" ] = "1",
   [ "maxstatts" ] = "3",
   [ "nocollide" ] = "0",
   [ "physmater" ] = "metal"
@@ -261,10 +259,6 @@ function TOOL:GetIgnorePhysgun()
   return (self:GetClientNumber("ignphysgn") or 0)
 end
 
-function TOOL:GetSpawnStatic()
-  return (self:GetClientNumber("spnstatic") or 0)
-end
-
 function TOOL:GetSpawnMC()
   return self:GetClientNumber("mcspawn") or 0
 end
@@ -344,7 +338,6 @@ function TOOL:LeftClick(Trace)
   local nocollide  = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
-  local spnstatic  = self:GetSpawnStatic()
   local surfsnap   = self:GetSurfaceSnap()
   local physmater  = self:GetPhysMeterial()
   local autoffsz   = self:GetAutoOffsetUp()
@@ -367,10 +360,12 @@ function TOOL:LeftClick(Trace)
         asmlib.AddAnglePYR(aAng,nextpic,-nextyaw,nextrol)
         ePiece:SetAngles(aAng)
         local vPos = asmlib.GetMCWorldOffset(ePiece)
+        local vOBB = ePiece:OBBMins()
+           --   vOBB:Rotate(aAng)
         asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
                                  Trace.HitPos[cvY] + nexty,
                                  Trace.HitPos[cvZ] + nextz - vPos[cvZ])
-        asmlib.AutoOffsetUp(vPos,ePiece,pointid,Trace.HitNormal,autoffsz)
+        asmlib.AddVector(vPos,-vOBB[cvZ] * Trace.HitNormal)
         if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
@@ -389,7 +384,7 @@ function TOOL:LeftClick(Trace)
         ePiece:SetAngles(stSpawn.SAng)
       end
       undoCreate(gsUndoPrefN..fnmodel.." ( World spawn )")
-      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,spnstatic,freeze,gravity,physmater)
+      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)
       asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)
       asmlib.EmitSoundPly(ply)
       undoAddEntity(ePiece)
@@ -459,7 +454,7 @@ function TOOL:LeftClick(Trace)
           return true
         end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
-        asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,spnstatic,freeze,gravity,physmater)
+        asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)
         asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or ePieceO),weld,nil)
         asmlib.ApplyPhysicalAnchor(ePiece,ePieceO,nil,nocollide)
         if(iNdex == count) then
@@ -536,7 +531,7 @@ function TOOL:LeftClick(Trace)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,spnstatic,freeze,gravity,physmater)
+      asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)
       asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil) -- Weld all created to the anchor/previous
       asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide)       -- NoCollide all to previous
       asmlib.EmitSoundPly(ply)
@@ -603,7 +598,7 @@ function TOOL:Reload(Trace)
       asmlib.ExportIntoFile("ADDITIONS","\t","DSV")
       asmlib.ExportIntoFile("PHYSPROPERTIES","\t","DSV")
     end
-    return asmlib.StatusLog(true,"HitWorld exit success")
+    return asmlib.StatusLog(true,"TOOL:Reload(Trace):HitWorld exit success")
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(Trace)) then return false end
     if(asmlib.IsOther(trEnt)) then return false end
@@ -705,12 +700,10 @@ function TOOL:DrawHUD()
     local ydegsnp  = self:GetYawSnap()
     local addinfo  = self:GetAdditionalInfo()
     local surfsnap = self:GetSurfaceSnap()
+    local RadScale = mathClamp(1500 / plyd,1,100)
+    local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then -- Relative to MC
-      local RadScale = mathClamp(1500 / plyd,1,100)
-      local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
-      aAng[caP] = aAng[caP] + nextpic
-      aAng[caY] = aAng[caY] - nextyaw
-      aAng[caR] = aAng[caR] + nextrol
+      asmlib.RotNormalAngle(aAng,nextpic,nextyaw,nextrol)
       local vPos = Trace.HitPos
       local F = aAng:Forward()
             F:Mul(30)
@@ -736,8 +729,6 @@ function TOOL:DrawHUD()
       goMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local RadScale = mathClamp(1500 / plyd,1,100)
-      local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
@@ -900,7 +891,6 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][21]  = gsToolPrefL.."nocollide"
   Combo["CVars"][22]  = gsToolPrefL.."gravity"
   Combo["CVars"][23]  = gsToolPrefL.."physmater"
-  Combo["CVars"][24]  = gsToolPrefL.."spnstatic"
   
   CPanel:AddControl("ComboBox",Combo)
   CurY = CurY + 25
@@ -915,23 +905,21 @@ function TOOL.BuildCPanel(CPanel)
   local pFolders = {}
   local pNode, pItem
   local Cnt = 1
-  local Rec, Mod, Typ, Nam
   while(Panel[Cnt]) do
-    Rec = Panel[Cnt]
-    Mod = Rec[defTable[1][1]]
-    Typ = Rec[defTable[2][1]]
-    Nam = Rec[defTable[3][1]]
+    local Rec = Panel[Cnt]
+    local Mod = Rec[defTable[1][1]]
+    local Typ = Rec[defTable[2][1]]
+    local Nam = Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
       if(Typ ~= "" and not pFolders[Typ]) then
         -- No Folder, Make one xD
         pItem = pTree:AddNode(Typ)
         pItem:SetName(Typ)
         pItem.Icon:SetImage("icon16/disconnect.png")
-        function pItem:InternalDoClick() end
-        function pItem:DoClick() return false end
-        local FolderLabel = pItem.Label
-        function FolderLabel:UpdateColours(skin)
-          return self:SetTextStyleColor(conPalette:Select("tx"))
+        pItem.InternalDoClick = function() end
+        pItem.DoClick = function() return false end
+        pItem.Label.UpdateColours = function(pSelf)
+          return pSelf:SetTextStyleColor(conPalette:Select("tx"))
         end
         pFolders[Typ] = pItem
       end
@@ -943,7 +931,7 @@ function TOOL.BuildCPanel(CPanel)
       pNode = pItem:AddNode(Nam)
       pNode:SetName(Nam)
       pNode.Icon:SetImage("icon16/control_play_blue.png")
-      pNode.DoClick = function()
+      pNode.DoClick = function(pSelf)
         RunConsoleCommand(gsToolPrefL.."model"  , Mod)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
@@ -1107,10 +1095,6 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddControl("Checkbox", {
             Label   = "Freeze on spawn",
             Command = gsToolPrefL.."freeze"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
-
-  CPanel:AddControl("Checkbox", {
-            Label   = "Spawn stationary",
-            Command = gsToolPrefL.."spnstatic"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnstatic"))
             
   CPanel:AddControl("Checkbox", {
             Label   = "Ignore physics gun grab",
@@ -1201,14 +1185,17 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local aAng = asmlib.GetNormalAngle(oPly,Trace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then
-      asmlib.AddAnglePYR(aAng,nextpic,-nextyaw,nextrol)
+      asmlib.RotNormalAngle(aAng,nextpic,nextyaw,nextrol)
+      local vNxt = Vector()
+            vNxt:Add(nextx * aAng:Forward())
+            vNxt:Add(nexty * aAng:Right())
+            vNxt:Add(nextz * aAng:Up())
       oEnt:SetAngles(aAng)
       local vPos = asmlib.GetMCWorldOffset(oEnt)
-      local vBBMin = oEnt:OBBMins()
-      asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
-                               Trace.HitPos[cvY] + nexty,
-                               Trace.HitPos[cvZ] + nextz - vPos[cvZ])
-      asmlib.AutoOffsetUp(vPos,oEnt,pointid,Trace.HitNormal,autoffsz)
+      local vOBB = oEnt:OBBMins()
+            vPos:Add(Trace.HitPos)
+            vPos:Add(-vOBB[cvZ] * Trace.HitNormal)
+            vPos:Add(vNxt)
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else
