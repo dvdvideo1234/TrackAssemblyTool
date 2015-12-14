@@ -54,7 +54,6 @@ local FCVAR_REPLICATED    = FCVAR_REPLICATED
 local FCVAR_PRINTABLEONLY = FCVAR_PRINTABLEONLY
 
 ---------------- Localizing needed functions ----------------
-
 local next                 = next
 local type                 = type
 local Angle                = Angle
@@ -474,19 +473,6 @@ function DisplacePositionAng(vBase, aAng, sOrder, arDis)
     elseif(Cha == "U") then vBase:Add(Dis * aAng:Up()) end
     nSta = nSta + 1
   end
-end
-
-function RotNormalAngle(aAng,nP,nY,nR)
-  if(not aAng) then return StatusLog(false,"RotNormalAngle: Angle missing") end
-  local nP = tonumber(nP) or 0
-  local nY = tonumber(nY) or 0
-  local nR = tonumber(nR) or 0
-  local vF = aAng:Forward()
-  local vR = aAng:Right()
-  local vU = aAng:Up()
-  aAng:RotateAroundAxis(aAng:Up(),nY)
-  aAng:RotateAroundAxis(aAng:Right(),nP)
-  aAng:RotateAroundAxis(aAng:Forward(),nR)
 end
 
 function IsThereRecID(oRec, nPointID)
@@ -3615,7 +3601,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
     ePiece.PhysgunDisabled = true
     ePiece:SetUnFreezable(true)
     ePiece:SetMoveType(MOVETYPE_VPHYSICS)
-    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."igphysgn",{[1] = true})
+    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_key0",{[1] = true})
   end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
