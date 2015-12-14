@@ -357,15 +357,13 @@ function TOOL:LeftClick(Trace)
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
-        asmlib.AddAnglePYR(aAng,nextpic,-nextyaw,nextrol)
+        asmlib.DisplaceAngleDir(aAng,"URF",{-nextyaw,-nextpic,nextrol})
         ePiece:SetAngles(aAng)
         local vPos = asmlib.GetMCWorldOffset(ePiece)
         local vOBB = ePiece:OBBMins()
-           --   vOBB:Rotate(aAng)
-        asmlib.AddVectorXYZ(vPos,Trace.HitPos[cvX] + nextx,
-                                 Trace.HitPos[cvY] + nexty,
-                                 Trace.HitPos[cvZ] + nextz - vPos[cvZ])
-        asmlib.AddVector(vPos,-vOBB[cvZ] * Trace.HitNormal)
+              vPos:Add(Trace.HitPos)
+              vPos:Add(-vOBB[cvZ] * Trace.HitNormal)
+        asmlib.DisplacePositionAng(vPos,aAng,"FRU",{nextx,nexty,nextz})
         if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
@@ -666,6 +664,7 @@ function TOOL:DrawHUD()
     local Ys = stSpawn.R:ToScreen()
     local Zs = stSpawn.U:ToScreen()
     local Pp = stSpawn.PPos:ToScreen()
+    local Tp = Trace.HitPos:ToScreen()
     if(stSpawn.HRec.Offs[pnextid] and stSpawn.HRec.Kept > 1) then
       local vNext = Vector()
             asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
@@ -673,7 +672,7 @@ function TOOL:DrawHUD()
             vNext:Add(stSpawn.SPos)
       local Np = vNext:ToScreen()
       -- Draw Next Point
-      goMonitor:DrawLine(Os,Np,"y")
+      goMonitor:DrawLine(Os,Np,"g")
       goMonitor:DrawCircle(Np, RadScale / 2, "g")
     end
     -- Draw Elements
@@ -683,6 +682,8 @@ function TOOL:DrawHUD()
     goMonitor:DrawLine(Os,Ys,"g")
     goMonitor:DrawLine(Os,Zs,"b")
     goMonitor:DrawCircle(Os, RadScale,"y")
+    goMonitor:DrawLine(Os,Tp)
+    goMonitor:DrawCircle(Tp, RadScale / 2)
     goMonitor:DrawLine(Os,Ss,"m")
     goMonitor:DrawCircle(Ss, RadScale,"c")
     if(addinfo == 0) then return end
@@ -703,8 +704,9 @@ function TOOL:DrawHUD()
     local RadScale = mathClamp(1500 / plyd,1,100)
     local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then -- Relative to MC
-      asmlib.RotNormalAngle(aAng,nextpic,nextyaw,nextrol)
-      local vPos = Trace.HitPos
+      asmlib.DisplaceAngleDir(aAng,"URF",{-nextyaw,-nextpic,nextrol})
+      local vPos = Vector()
+            vPos:Set(Trace.HitPos)
       local F = aAng:Forward()
             F:Mul(30)
             F:Add(vPos)
@@ -718,10 +720,13 @@ function TOOL:DrawHUD()
       local Xs = F:ToScreen()
       local Ys = R:ToScreen()
       local Zs = U:ToScreen()
+      local Tp = Trace.HitPos:ToScreen()
       goMonitor:DrawLine(Os,Xs,"r")
       goMonitor:DrawLine(Os,Ys,"g")
       goMonitor:DrawLine(Os,Zs,"b")
-      goMonitor:DrawCircle(Os, RadScale, "y")
+      goMonitor:DrawLine(Os,Tp,"y")
+      goMonitor:DrawCircle(Tp, RadScale / 2)
+      goMonitor:DrawCircle(Os, RadScale, "m")
       if(addinfo == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
@@ -744,6 +749,7 @@ function TOOL:DrawHUD()
       local Ys = stSpawn.R:ToScreen()
       local Zs = stSpawn.U:ToScreen()
       local Pp = stSpawn.PPos:ToScreen()
+      local Tp = Trace.HitPos:ToScreen()
       if(stSpawn.HRec.Kept > 1 and stSpawn.HRec.Offs[pnextid]) then
         local vNext = Vector()
               asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
@@ -763,6 +769,8 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Ss,"m")
       goMonitor:DrawCircle(Ss, RadScale, "c")
       goMonitor:DrawCircle(Os, RadScale, "y")
+      goMonitor:DrawLine(Os,Tp)
+      goMonitor:DrawCircle(Tp, RadScale / 2)
       if(addinfo == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
@@ -1009,128 +1017,154 @@ function TOOL.BuildCPanel(CPanel)
         CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Piece mass:",
             Type    = "Integer",
             Min     = 1,
             Max     = gnMaxMass,
-            Command = gsToolPrefL.."mass"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
+            Command = gsToolPrefL.."mass"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Active radius:",
             Type    = "Float",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxactrad", "FLT"),
-            Command = gsToolPrefL.."activrad"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
+            Command = gsToolPrefL.."activrad"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Pieces count:",
             Type    = "Integer",
             Min     = 1,
             Max     = asmlib.GetCoVar("maxstcnt", "INT"),
-            Command = gsToolPrefL.."count"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
+            Command = gsToolPrefL.."count"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Yaw snap amount:",
             Type    = "Float",
             Min     = 0,
             Max     = gnMaxOffRot,
-            Command = gsToolPrefL.."ydegsnp"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
+            Command = gsToolPrefL.."ydegsnp"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
 
-  CPanel:AddControl("Button", {
+  pItem = CPanel:AddControl("Button", {
             Label   = "V Reset Offset Values V",
             Command = gsToolPrefL.."resetoffs",
-            Text    = "Reset All Offsets" }):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetoffs"))
+            Text    = "Reset All Offsets" })
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetoffs"))
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Origin pitch:",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextpic"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
+            Command = gsToolPrefL.."nextpic"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Origin yaw:",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextyaw"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
+            Command = gsToolPrefL.."nextyaw"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Origin roll:",
             Type    = "Float",
             Min     = -gnMaxOffRot,
             Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextrol"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
+            Command = gsToolPrefL.."nextrol"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
 
-  CPanel:AddControl("Slider", {
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Offset X:",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextx"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
-
-  CPanel:AddControl("Slider", {
+            Command = gsToolPrefL.."nextx"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
+  pItem:SetSlideY(1)
+  
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Offset Y:",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nexty"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
-
-  CPanel:AddControl("Slider", {
+            Command = gsToolPrefL.."nexty"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
+  pItem:SetSlideY(1)
+  
+  pItem = CPanel:AddControl("Slider", {
             Label   = "Offset Z:",
             Type    = "Float",
             Min     = -gnMaxOffLin,
             Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextz"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-
-  CPanel:AddControl("Checkbox", {
+            Command = gsToolPrefL.."nextz"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
+  pItem:SetSlideY(1)
+  
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Weld",
-            Command = gsToolPrefL.."weld"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
+            Command = gsToolPrefL.."weld"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "NoCollide",
-            Command = gsToolPrefL.."nocollide"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
+            Command = gsToolPrefL.."nocollide"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Freeze on spawn",
-            Command = gsToolPrefL.."freeze"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
+            Command = gsToolPrefL.."freeze"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
             
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Ignore physics gun grab",
-            Command = gsToolPrefL.."ignphysgn"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))
+            Command = gsToolPrefL.."ignphysgn"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Apply piece gravity",
-            Command = gsToolPrefL.."gravity"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".gravity"))
+            Command = gsToolPrefL.."gravity"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".gravity"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Ignore track type",
-            Command = gsToolPrefL.."igntype"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntype"))
+            Command = gsToolPrefL.."igntype"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntype"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Spawn horizontal",
-            Command = gsToolPrefL.."spnflat"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
+            Command = gsToolPrefL.."spnflat"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Origin from mass-centre",
-            Command = gsToolPrefL.."mcspawn"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
+            Command = gsToolPrefL.."mcspawn"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Snap to trace surface",
-            Command = gsToolPrefL.."surfsnap"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
+            Command = gsToolPrefL.."surfsnap"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Auto-offset UP",
-            Command = gsToolPrefL.."autoffsz"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".autoffsz"))
+            Command = gsToolPrefL.."autoffsz"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".autoffsz"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Draw advisor",
-            Command = gsToolPrefL.."adviser"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
+            Command = gsToolPrefL.."adviser"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
 
-  CPanel:AddControl("Checkbox", {
+  pItem = CPanel:AddControl("Checkbox", {
             Label   = "Draw holder ghost",
-            Command = gsToolPrefL.."ghosthold"}):SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
+            Command = gsToolPrefL.."ghosthold"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
 end
 
 function TOOL:MakeGhostEntity(sModel)
@@ -1185,17 +1219,13 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local aAng = asmlib.GetNormalAngle(oPly,Trace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then
-      asmlib.RotNormalAngle(aAng,nextpic,nextyaw,nextrol)
-      local vNxt = Vector()
-            vNxt:Add(nextx * aAng:Forward())
-            vNxt:Add(nexty * aAng:Right())
-            vNxt:Add(nextz * aAng:Up())
+      asmlib.DisplaceAngleDir(aAng,"URF",{-nextyaw,-nextpic,nextrol})
       oEnt:SetAngles(aAng)
       local vPos = asmlib.GetMCWorldOffset(oEnt)
       local vOBB = oEnt:OBBMins()
             vPos:Add(Trace.HitPos)
             vPos:Add(-vOBB[cvZ] * Trace.HitNormal)
-            vPos:Add(vNxt)
+      asmlib.DisplacePositionAng(vPos,aAng,"FRU",{nextx,nexty,nextz})
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else

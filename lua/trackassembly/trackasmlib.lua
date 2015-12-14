@@ -445,6 +445,37 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
   return aAng
 end
 
+function DisplaceAngleDir(aBase, sOrder, arRot)
+  if(not aBase) then return StatusLog(nil,"RotateAngleDir: Base angle not found") end
+  if(not IsString(sOrder)) then return StatusLog(nil,"RotateAngleDir: Order must be string") end
+  local nSta, nLen = 1, stringLen(sOrder)
+  if(nLen <= 0) then return StatusLog(nil,"RotateAngleDir: Irrelevant string length #"..tostring(nLen)) end
+  while(nSta <= nLen) do
+    local Cha = stringSub(sOrder,nSta,nSta)
+    local Rot = tonumber(arRot[nSta]) or 0
+    if    (Cha == "F") then aBase:RotateAroundAxis(aBase:Forward(),Rot)
+    elseif(Cha == "R") then aBase:RotateAroundAxis(aBase:Right(),Rot)
+    elseif(Cha == "U") then aBase:RotateAroundAxis(aBase:Up(),Rot) end
+    nSta = nSta + 1
+  end
+end
+
+function DisplacePositionAng(vBase, aAng, sOrder, arDis)
+  if(not aAng) then return StatusLog(nil,"RotateAngleDir: Base angle not found") end
+  if(not vBase) then return StatusLog(nil,"RotateAngleDir: Base vector not found") end
+  if(not IsString(sOrder)) then return StatusLog(nil,"RotateAngleDir: Order must be string") end
+  local nSta, nLen = 1, stringLen(sOrder)
+  if(nLen <= 0) then return StatusLog(nil,"RotateAngleDir: Irrelevant string length #"..tostring(nLen)) end
+  while(nSta <= nLen) do
+    local Cha = stringSub(sOrder,nSta,nSta)
+    local Dis = tonumber(arDis[nSta]) or 0
+    if    (Cha == "F") then vBase:Add(Dis * aAng:Forward())
+    elseif(Cha == "R") then vBase:Add(Dis * aAng:Right())
+    elseif(Cha == "U") then vBase:Add(Dis * aAng:Up()) end
+    nSta = nSta + 1
+  end
+end
+
 function RotNormalAngle(aAng,nP,nY,nR)
   if(not aAng) then return StatusLog(false,"RotNormalAngle: Angle missing") end
   local nP = tonumber(nP) or 0
@@ -453,8 +484,8 @@ function RotNormalAngle(aAng,nP,nY,nR)
   local vF = aAng:Forward()
   local vR = aAng:Right()
   local vU = aAng:Up()
-  aAng:RotateAroundAxis(aAng:Up(),-nY)
-  aAng:RotateAroundAxis(aAng:Right(),-nP)
+  aAng:RotateAroundAxis(aAng:Up(),nY)
+  aAng:RotateAroundAxis(aAng:Right(),nP)
   aAng:RotateAroundAxis(aAng:Forward(),nR)
 end
 
@@ -603,7 +634,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
   end
   function self:GetTextState(nX,nY,nW,nH)
     return (Text.DrawX + (nX or 0)), (Text.DrawY + (nY or 0)),
-           (Text.ScrW + (nW or 0)), (Text.ScrH + (nH or 0)),
+           (Text.ScrW  + (nW or 0)), (Text.ScrH  + (nH or 0)),
             Text.LastW, Text.LastH
   end
   function self:DrawText(sText,sColor)

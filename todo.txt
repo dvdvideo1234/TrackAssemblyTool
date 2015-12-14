@@ -1,7 +1,17 @@
-[X] Test if the Trace.HitWorld Pos/Ang will be calculated correctly.
-[V] Test if GetUpAutoFill() will work correctly for trace.HitHormal/Trace.HitWorld
+V - Checked
+X - Fail
+D - Discontinued
+N - Not applicable
+? - Not yet tested
+
+[V] Test if the Trace.HitWorld Pos/Ang will be calculated correctly.
+[V] Test if AutoOffsetUp() will work correctly for trace.HitHormal/Trace.HitWorld
 [V] Test the physical settings on the pieces
 [V] Test the physical constraints on the pieces
-[V]Take a look at the panel elements translated descriptions
+[V] Take a look at the panel elements translated descriptions
 [V] Test Disable physgun and freeze to be separated
-[N] Test if the "movstatic" option can be duped
+[D] Test if the "movstatic" option can be duped
+[?] Check the trace position to be displayed with yellow
+[?] Max mass to be 100
+[?] Replace RotNormalAngle() with DisplaceAngleDir()
+[?] Properly offset the spawn position for MC spawn with DisplacePositionAng()
