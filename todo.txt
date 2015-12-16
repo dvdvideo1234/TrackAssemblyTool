@@ -12,6 +12,6 @@ N - Not applicable
 [V] Test Disable physgun and freeze to be separated
 [D] Test if the "movstatic" option can be duped
 [?] Check the trace position to be displayed with yellow
-[?] Max mass to be 100
+[?] "MAX_LINEAR" to be 1000 and Mouse Y to start with a small value
 [?] Replace RotNormalAngle() with DisplaceAngleDir()
 [?] Properly offset the spawn position for MC spawn with DisplacePositionAng()

@@ -3601,7 +3601,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
     ePiece.PhysgunDisabled = true
     ePiece:SetUnFreezable(true)
     ePiece:SetMoveType(MOVETYPE_VPHYSICS)
-    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_key0",{[1] = true})
+    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_key_phys",{[1] = true})
   end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
