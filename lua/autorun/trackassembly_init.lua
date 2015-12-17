@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.142")
+asmlib.SetOpVar("TOOL_VERSION","5.143")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -67,12 +67,12 @@ local gaTimerSet  = asmlib.StringExplode(asmlib.GetCoVar("timermode","STR"),asml
 
 -------- ACTIONS  ----------
 if(SERVER) then
-  asmlib.SetAction("LOAD_PHYS_SETTINGS",
+  asmlib.SetAction("DUPE_PHYS_SETTINGS",
     function(oPly,oEnt,tData) -- Duplicator wrapper
-      if(not asmlib.ApplyPhysicalSettings(oEnt,(tData[1] and 1))) then
-        return asmlib.StatusLog(false,"LOAD_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt))
+      if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1])) then
+        return asmlib.StatusLog(false,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt))
       end
-      return asmlib.StatusLog(true,"LOAD_PHYS_SETTINGS: Success")
+      return asmlib.StatusLog(true,"DUPE_PHYS_SETTINGS: Success")
     end)
 end
 

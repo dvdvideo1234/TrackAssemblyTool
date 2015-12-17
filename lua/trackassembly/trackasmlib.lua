@@ -1703,12 +1703,36 @@ function ArrayPrint(arArr,sName,nCol)
 end
 
 local function ArrayCount(arArr)
-  if(not IsExistent(arArr)) then return StatusLog(0,"ArrayCount: Array missing") end
-  if(not (type(arArr) == "table")) then return StatusLog(0,"ArrayCount: Array is "..type(arArr)) end
-  if(not arArr[1]) then return StatusLog(0,"ArrayCount: Array is empty") end
+  if(not IsExistent(arArr)) then return StatusLog(nil,"ArrayCount: Array missing") end
+  if(not (type(arArr) == "table")) then return StatusLog(nil,"ArrayCount: Array is "..type(arArr)) end
+  if(not IsExistent(arArr[1])) then return StatusLog(0,"ArrayCount: Table is empty or hash based") end
   local Count = 1
   while(arArr[Count]) do Count = Count + 1 end
   return (Count - 1)
+end
+
+local function IsArrayOrIndex(arArr,iEnd)
+  if(not IsExistent(arArr)) then return StatusLog(nil,"IsArrayOrIndex: Array missing") end
+  if(not (type(arArr) == "table")) then return StatusLog(nil,"IsArrayOrIndex: Array is "..type(arArr)) end
+  local iEnd = tonumber(iEnd)
+  if(not IsExistent(iEnd)) then return StatusLog(nil,"IsArrayOrIndex: End index not a number") end
+  local iCnt, bFlg = 1, false
+  while(iCnt <= iEnd) do
+    bFlg = bFlg or (arArr[iCnt] and true or false)
+    iCnt = iCnt + 1
+  end return bFlg
+end
+
+function IsArrayAndIndex(arArr,iEnd)
+  if(not IsExistent(arArr)) then return StatusLog(nil,"IsArrayAndIndex: Array missing") end
+  if(not (type(arArr) == "table")) then return StatusLog(nil,"IsArrayAndIndex: Array is "..type(arArr)) end
+  local iEnd = tonumber(iEnd)
+  if(not IsExistent(iEnd)) then return StatusLog(nil,"IsArrayAndIndex: End index not a number") end
+  local iCnt, bFlg = 1, true
+  while(iCnt <= iEnd) do
+    bFlg = bFlg and (arArr[iCnt] and true or false)
+    iCnt = iCnt + 1
+  end return bFlg
 end
 
 ------------- Variable Interfaces --------------
@@ -2309,7 +2333,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       end
     end
   elseif(sModeDB == "LUA") then
-    sModeDB = "LUA" -- Gust to do something here.
+    sModeDB = "LUA" -- Just to do something here.
   else
     return StatusLog(false,"CreateTable: Wrong database mode <"..sModeDB..">")
   end
@@ -3518,10 +3542,10 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   local nWe = tonumber(nWe) or 0
   local nNc = tonumber(nNc) or 0
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid")
+    return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid {"..nWe..","..nNc.."}")
   end
   if(not (eBase and eBase:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalAnchor: Base entity not valid")
+    return StatusLog(false,"ApplyPhysicalAnchor: Base entity not valid {"..nWe..","..nNc.."}")
   end
   if(nWe ~= 0) then -- Weld
     local nWe = constraintWeld(eBase, ePiece, 0, 0, 0, false, false)
@@ -3533,6 +3557,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
     ePiece:DeleteOnRemove(nNc)
      eBase:DeleteOnRemove(nNc)
   end
+  return true
 end
 
 function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
@@ -3544,24 +3569,26 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   local nGr = tonumber(nGr) or 0
   local sPh = tostring(sPh or "")
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalSettings: Piece entity not valid")
-  end
-  local dataSettings = {}
+    return StatusLog(false,"ApplyPhysicalSettings: Piece entity not "..
+                           "valid {"..nPi..","..nFr..","..nGr..","..sPh.."}")
+  end -- Initialize dupe settings using this array
+  local dataSettings = {0}
   if(nPi ~= 0) then
     ePiece.PhysgunDisabled = true
     ePiece:SetUnFreezable(true)
     ePiece:SetMoveType(MOVETYPE_VPHYSICS)
-    dataSettings[1] = true
+    dataSettings[1] = 1 -- Enabled
   end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalSettings: Piece physical object not valid")
+    return StatusLog(false,"ApplyPhysicalSettings: Piece physical "..
+                           "object not valid {"..nPi..","..nFr..","..nGr..","..sPh.."}")
   end
   if(nFr ~=  0) then pyPiece:EnableMotion(false) else pyPiece:EnableMotion(true) end
   if(nGr ~=  0) then constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = true })
                 else constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false}) end
   if(sPh ~= "") then constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh}) end
-  if(ArrayCount(dataSettings) > 0) then
+  if(IsArrayOrIndex(dataSettings,1) > 0) then -- Are there any settings to be saved
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",dataSettings)
   end
   return true

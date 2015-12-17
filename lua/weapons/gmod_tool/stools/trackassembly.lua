@@ -122,7 +122,7 @@ end
 
 if(SERVER) then
   cleanupRegister(gsToolNameU.."s")
-  duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("LOAD_PHYS_SETTINGS"))
+  duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 
 TOOL.Category   = "Construction" -- Name of the category
