@@ -1472,6 +1472,7 @@ function StatusLog(anyStatus,sError)
 end
 
 --------------------- STRING -----------------------
+
 function StringMakeSQL(sStr)
   if(not IsString(sStr)) then
     return StatusLog(nil,"StringMakeSQL: Only strings can be revised")
@@ -1579,6 +1580,41 @@ function StringPad(sStr,sPad,nCnt)
   return (sPad..sStr)
 end
 
+function String2BGID(sStr,nLen)
+  if(not IsExistent(sStr)) then return StatusLog(nil, "String2BGID: String missing") end
+  local Len  = stringLen(sStr)
+  if(Len <= 0) then return StatusLog(nil, "String2BGID: Empty string") end
+  local Data = StringExplode(sStr,",")
+  local Cnt = 1
+  local exLen = nLen or Data.Len
+  while(Cnt <= exLen) do
+    local v = Data[Cnt]
+    if(v == "") then return StatusLog(nil, "String2BGID: Value missing") end
+    local vV = tonumber(v)
+    if(not vV) then return StatusLog(nil, "String2BGID: Value not a number") end
+    if((mathFloor(vV) - vV) ~= 0) then return StatusLog(nil, "String2BGID: Floats forbidden") end
+    Data[Cnt] = vV
+    Cnt = Cnt + 1
+  end
+  if(Data[1])then return Data end
+  return StatusLog(nil, "String2BGID: No data found")
+end
+
+-- props/model.mdl --> model.mdl
+function StringFileModel(sModel)
+  if(not sModel or
+         sModel == "") then return "NULL" end
+  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
+  local nLen = stringLen(sModel)
+  local nCnt = nLen
+  local sCh  = stringSub(sModel,nCnt,nCnt)
+  while(sCh ~= sSymDir and nCnt > 0) do
+    nCnt = nCnt - 1
+    sCh  = stringSub(sModel,nCnt,nCnt)
+  end
+  return stringSub(sModel,nCnt+1,Len)
+end
+
 ----------------- PRINTS ------------------------
 
 function Print(tT,sS)
@@ -1666,39 +1702,13 @@ function ArrayPrint(arArr,sName,nCol)
   LogInstance(Line.."\n}")
 end
 
-function ArrayCount(arArr)
+local function ArrayCount(arArr)
   if(not IsExistent(arArr)) then return StatusLog(0,"ArrayCount: Array missing") end
   if(not (type(arArr) == "table")) then return StatusLog(0,"ArrayCount: Array is "..type(arArr)) end
-  if(not arArr[1]) then return 0 end
+  if(not arArr[1]) then return StatusLog(0,"ArrayCount: Array is empty") end
   local Count = 1
   while(arArr[Count]) do Count = Count + 1 end
   return (Count - 1)
-end
-
-function ArrayDrop(arArr,nDir)
-  if(not IsExistent(arArr)) then return StatusLog(0,"ArrayDrop: Array missing") end
-  if(not arArr[1]) then return arArr end
-  local nDir = tonumber(nDir) or 0
-  if(not nDir) then return arArr end
-  if(nDir == 0) then return arArr end
-  local nLen = ArrayCount(arArr)
-  if(nLen <= 0) then return arArr end
-  if(mathAbs(nDir) > nLen) then return arArr end
-  local nS   = 1
-  local nD   = nS + mathAbs(nDir)
-  local nSig = (nDir > 0) and 1    or -1
-  while(arArr[nD]) do
-    if(nSig == 1) then
-      arArr[nS] = arArr[nD]
-    end
-    nS = nS + 1
-    nD = nD + 1
-  end
-  while(arArr[nS]) do
-    arArr[nS] = nil
-    nS = nS + 1
-  end
-  return arArr
 end
 
 ------------- Variable Interfaces --------------
@@ -1742,67 +1752,6 @@ function DefaultTable(anyTable)
   end
   SetOpVar("DEFAULT_TABLE",anyTable)
   SettingsModelToName("CLR")
-end
-
---------------------- USAGES --------------------
-
-function String2BGID(sStr,nLen)
-  if(not IsExistent(sStr)) then return StatusLog(nil, "String2BGID: String missing") end
-  local Len  = stringLen(sStr)
-  if(Len <= 0) then return StatusLog(nil, "String2BGID: Empty string") end
-  local Data = StringExplode(sStr,",")
-  local Cnt = 1
-  local exLen = nLen or Data.Len
-  while(Cnt <= exLen) do
-    local v = Data[Cnt]
-    if(v == "") then return StatusLog(nil, "String2BGID: Value missing") end
-    local vV = tonumber(v)
-    if(not vV) then return StatusLog(nil, "String2BGID: Value not a number") end
-    if((mathFloor(vV) - vV) ~= 0) then return StatusLog(nil, "String2BGID: Floats forbidden") end
-    Data[Cnt] = vV
-    Cnt = Cnt + 1
-  end
-  if(Data[1])then return Data end
-  return StatusLog(nil, "String2BGID: No data found")
-end
-
-function ModelToHashLocation(sModel,tTable,anyValue)
-  if(not (IsString(sModel) and type(tTable) == "table")) then return end
-  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local Key = StringExplode(sModel,sSymDir)
-  Print(Key,"Key")
-  if(not (Key and Key[1])) then return end
-  local Ind = 1
-  local Len = 0
-  local Val = ""
-  local Place = tTable
-  while(Key[Ind]) do
-    Val = Key[Ind]
-    Len = stringLen(Val)
-    if(stringSub(Val,Len-3,Len) == ".mdl") then
-      Place[Val] = anyValue
-    else
-      if(not Place[Val]) then
-        Place[Val] = {}
-      end
-      Place = Place[Val]
-    end
-    Ind = Ind + 1
-  end
-end
-
-function GetModelFileName(sModel)
-  if(not sModel or
-         sModel == "") then return "NULL" end
-  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local nLen = stringLen(sModel)
-  local nCnt = nLen
-  local sCh  = stringSub(sModel,nCnt,nCnt)
-  while(sCh ~= sSymDir and nCnt > 0) do
-    nCnt = nCnt - 1
-    sCh  = stringSub(sModel,nCnt,nCnt)
-  end
-  return stringSub(sModel,nCnt+1,Len)
 end
 
 ------------------------- PLAYER -----------------------------------
@@ -2649,7 +2598,7 @@ function CacheQueryPiece(sModel)
     local sModeDB = GetOpVar("MODE_DATABASE")
     local sModel  = MatchType(defTable,sModel,1,false,"",true,true)
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryPiece: Model >> Pool: "..GetModelFileName(sModel))
+      LogInstance("CacheQueryPiece: Model >> Pool: "..StringFileModel(sModel))
       Cache[sModel] = {}
       stPiece = Cache[sModel]
       stPiece.Kept = 0
@@ -2704,7 +2653,7 @@ function CacheQueryAdditions(sModel)
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryAdditions: Model >> Pool: "..GetModelFileName(sModel))
+      LogInstance("CacheQueryAdditions: Model >> Pool: "..StringFileModel(sModel))
       Cache[sModel] = {}
       stAddition = Cache[sModel]
       stAddition.Kept = 0
@@ -3597,11 +3546,12 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalSettings: Piece entity not valid")
   end
+  local dataSettings = {}
   if(nPi ~= 0) then
     ePiece.PhysgunDisabled = true
     ePiece:SetUnFreezable(true)
     ePiece:SetMoveType(MOVETYPE_VPHYSICS)
-    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_key_phys",{[1] = true})
+    dataSettings[1] = true
   end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
@@ -3611,6 +3561,9 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(nGr ~=  0) then constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = true })
                 else constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false}) end
   if(sPh ~= "") then constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh}) end
+  if(ArrayCount(dataSettings) > 0) then
+    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",dataSettings)
+  end
   return true
 end
 

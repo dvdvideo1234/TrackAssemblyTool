@@ -35,7 +35,7 @@ asmlib.SetOpVar("MAX_MASS",50000)
 asmlib.SetOpVar("MAX_LINEAR",1000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetOpVar("LOG_ONLY",nil)
-asmlib.SetOpVar("LOG_SKIP",{"Qsort","ModelToName"})
+asmlib.SetOpVar("LOG_SKIP",{"Qsort","ModelToName","ArrayCount"})
 asmlib.SetLogControl(10000,"trackasmlib_log")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
@@ -67,12 +67,12 @@ local gaTimerSet  = asmlib.StringExplode(asmlib.GetCoVar("timermode","STR"),asml
 
 -------- ACTIONS  ----------
 if(SERVER) then
-  asmlib.SetAction("IGNORE_PHYSGUN",
+  asmlib.SetAction("LOAD_PHYS_SETTINGS",
     function(oPly,oEnt,tData) -- Duplicator wrapper
       if(not asmlib.ApplyPhysicalSettings(oEnt,(tData[1] and 1))) then
-        return asmlib.StatusLog(false,"IGNORE_PHYSGUN: Failed to apply physical settings on "..tostring(oEnt))
+        return asmlib.StatusLog(false,"LOAD_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt))
       end
-      return asmlib.StatusLog(true,"IGNORE_PHYSGUN: Success")
+      return asmlib.StatusLog(true,"LOAD_PHYS_SETTINGS: Success")
     end)
 end
 

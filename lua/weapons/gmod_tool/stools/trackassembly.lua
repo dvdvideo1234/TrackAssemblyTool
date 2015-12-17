@@ -122,7 +122,7 @@ end
 
 if(SERVER) then
   cleanupRegister(gsToolNameU.."s")
-  duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_key_phys",asmlib.GetActionCode("IGNORE_PHYSGUN"))
+  duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("LOAD_PHYS_SETTINGS"))
 end
 
 TOOL.Category   = "Construction" -- Name of the category
@@ -306,7 +306,7 @@ function TOOL:SetAnchor(stTrace)
   if(not (phEnt and phEnt:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace no physics") end
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Player invalid") end
-  local sAnchor = trEnt:EntIndex()..gsSymRev..asmlib.GetModelFileName(trEnt:GetModel())
+  local sAnchor = trEnt:EntIndex()..gsSymRev..asmlib.StringFileModel(trEnt:GetModel())
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
   trEnt:SetColor(conPalette:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
@@ -346,7 +346,7 @@ function TOOL:LeftClick(Trace)
   local staatts    = self:GetStackAttempts()
   local ignphysgn  = self:GetIgnorePhysgun()
   local bnderrmod  = self:GetBoundErrorMode()
-  local fnmodel    = asmlib.GetModelFileName(model)
+  local fnmodel    = asmlib.StringFileModel(model)
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -409,7 +409,7 @@ function TOOL:LeftClick(Trace)
 
   if(asmlib.LoadPlyKey(ply,"DUCK")) then
     -- IN_DUCK: Use the VALID Trace.Entity as a piece
-    asmlib.PrintNotify(ply,"Model: "..asmlib.GetModelFileName(trModel).." selected !","GENERIC")
+    asmlib.PrintNotify(ply,"Model: "..asmlib.StringFileModel(trModel).." selected !","GENERIC")
     ply:ConCommand(gsToolPrefL.."model " ..trModel.."\n")
     ply:ConCommand(gsToolPrefL.."pointid 1\n")
     ply:ConCommand(gsToolPrefL.."pnextid 2\n")
@@ -444,7 +444,7 @@ function TOOL:LeftClick(Trace)
           .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
           .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
           .."\n   Player : "..ply:GetName()
-          .."\n   trModel: "..asmlib.GetModelFileName(trModel)
+          .."\n   trModel: "..asmlib.StringFileModel(trModel)
           .."\n   hdModel: "..fnmodel)) then
           undoSetPlayer(ply)
           undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
@@ -465,7 +465,7 @@ function TOOL:LeftClick(Trace)
             .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
             .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
             .."\n   Player : "..ply:GetName()
-            .."\n   trModel: "..asmlib.GetModelFileName(trModel)
+            .."\n   trModel: "..asmlib.StringFileModel(trModel)
             .."\n   hdModel: "..fnmodel)
           end
           asmlib.SetVector(vLook,stSpawn.HRec.Offs[pnextid].P)
@@ -488,7 +488,7 @@ function TOOL:LeftClick(Trace)
           .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
           .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
           .."\n   Player : "..ply:GetName()
-          .."\n   trModel: "..asmlib.GetModelFileName(trModel)
+          .."\n   trModel: "..asmlib.StringFileModel(trModel)
           .."\n   hdModel: "..fnmodel)
         end -- Spawn data is valid for the current iteration iNdex
         ePieceO = ePieceN
@@ -509,7 +509,7 @@ function TOOL:LeftClick(Trace)
         .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
         .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
         .."\n   Player : "..ply:GetName()
-        .."\n   trModel: "..asmlib.GetModelFileName(trModel)
+        .."\n   trModel: "..asmlib.StringFileModel(trModel)
         .."\n   hdModel: "..fnmodel)
       end -- We still have enough memory to preform the stacking
       if(hdRec.Kept == 1) then break end -- If holder's model has only one point, we cannot stack
@@ -525,7 +525,7 @@ function TOOL:LeftClick(Trace)
       if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
         .."\n   Event  : Spawn one piece relative to another"
         .."\n   Player : "..ply:GetName()
-        .."\n   trModel: "..asmlib.GetModelFileName(trModel)
+        .."\n   trModel: "..asmlib.StringFileModel(trModel)
         .."\n   hdModel: "..fnmodel)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
@@ -834,12 +834,12 @@ function TOOL:DrawToolScreen(w, h)
     end
     if(trRec) then
       trMaxCN = trRec.Kept
-      trModel = asmlib.GetModelFileName(trModel)
+      trModel = asmlib.StringFileModel(trModel)
     else
-      trModel = "["..gsNoMD.."]"..asmlib.GetModelFileName(trModel)
+      trModel = "["..gsNoMD.."]"..asmlib.StringFileModel(trModel)
     end
   end
-  model  = asmlib.GetModelFileName(model)
+  model  = asmlib.StringFileModel(model)
   actrad = asmlib.RoundValue(actrad,0.01)
   maxrad = asmlib.GetCoVar("maxactrad", "FLT")
   goToolScr:DrawText("TM: " ..(trModel    or gsNoAV),"y")
