@@ -15,3 +15,6 @@ N - Not applicable
 [?] "MAX_LINEAR" to be 1000 and Mouse Y to start with a small value
 [?] Replace RotNormalAngle() with DisplaceAngleDir()
 [?] Properly offset the spawn position for MC spawn with DisplacePositionAng()
+
+1       EQ      4.7539  100
+2       LN      67.239  1414.3966006858

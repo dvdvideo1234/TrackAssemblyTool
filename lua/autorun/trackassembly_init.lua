@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.143")
+asmlib.SetOpVar("TOOL_VERSION","5.144")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -164,7 +164,7 @@ if(CLIENT) then
       ------------ ModelPanel --------------
       pnModelPanel:SetParent(pnFrame)
       pnModelPanel:SetPos(500,25)
-      pnModelPanel:SetSize(250, 255)
+      pnModelPanel:SetSize(250,255)
       pnModelPanel:SetVisible(true)
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
