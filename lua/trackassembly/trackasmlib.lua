@@ -205,7 +205,7 @@ function IsString(anyValue)
 end
 
 local function IsEmptyString(sString)
-  if(not IsString(sString)) then return false
+  if(not IsString(sString)) then return false end
   return (sS == "")
 end
 
@@ -226,11 +226,11 @@ function InitAssembly(sName,sPurpose)
   if(not (IsString(sName) and IsString(sPurpose))) then
     return StatusPrint(false,"InitAssembly: Error initializing. Expecting string argument")
   end
-  if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then return StatusPrint(false "InitAssembly: Name invalid") end
-  if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then return StatusPrint(false "InitAssembly: Purpose invalid") end
+  if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then return StatusPrint(false,"InitAssembly: Name invalid") end
+  if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then return StatusPrint(false,"InitAssembly: Purpose invalid") end
   SetOpVar("TIME_EPOCH",Time())
   SetOpVar("NAME_INIT",stringLower(sName))
-  SetOpVar("NAME_PERP",stringLower(sPurpose))                 
+  SetOpVar("NAME_PERP",stringLower(sPurpose))
   SetOpVar("TOOLNAME_NL",stringLower(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
   SetOpVar("TOOLNAME_NU",stringUpper(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
@@ -447,44 +447,6 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
     end
   end
   return aAng
-end
-
-function DisplaceAngleDir(aBase, sOrder, arRot)
-  if(not aBase) then
-    return StatusLog(nil,"RotateAngleDir: Base angle not found") end
-  if(not IsString(sOrder)) then
-    return StatusLog(nil,"RotateAngleDir: Order must be string") end
-  local nSta, nLen = 1, stringLen(sOrder)
-  if(nLen <= 0) then -- Not used only for error handling
-    return StatusLog(nil,"RotateAngleDir: Irrelevant string length #"..tostring(nLen)) end
-  while(nSta <= nLen) do
-    local Cha = stringSub(sOrder,nSta,nSta)
-    local Rot = tonumber(arRot[nSta]) or 0
-    if    (Cha == "F") then aBase:RotateAroundAxis(aBase:Forward(),Rot)
-    elseif(Cha == "R") then aBase:RotateAroundAxis(aBase:Right(),Rot)
-    elseif(Cha == "U") then aBase:RotateAroundAxis(aBase:Up(),Rot) end
-    nSta = nSta + 1
-  end
-end
-
-function DisplacePositionAng(vBase, aAng, sOrder, arDis)
-  if(not aAng) then
-    return StatusLog(nil,"RotateAngleDir: Base angle not found") end
-  if(not vBase) then
-    return StatusLog(nil,"RotateAngleDir: Base vector not found") end
-  if(not IsString(sOrder)) then
-    return StatusLog(nil,"RotateAngleDir: Order must be string") end
-  local nSta, nLen = 1, stringLen(sOrder)
-  if(nLen <= 0) then -- Not used only for error handling
-    return StatusLog(nil,"RotateAngleDir: Irrelevant string length #"..tostring(nLen)) end
-  while(nSta <= nLen) do
-    local Cha = stringSub(sOrder,nSta,nSta)
-    local Dis = tonumber(arDis[nSta]) or 0
-    if    (Cha == "F") then vBase:Add(Dis * aAng:Forward())
-    elseif(Cha == "R") then vBase:Add(Dis * aAng:Right())
-    elseif(Cha == "U") then vBase:Add(Dis * aAng:Up()) end
-    nSta = nSta + 1
-  end
 end
 
 function IsThereRecID(oRec, nPointID)
@@ -1074,37 +1036,30 @@ function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
   return RollValue(nPnextID,1,rPiece.Kept)
 end
 
-function AutoOffsetUp(vPos,oEnt,nPointID,vHitNormal,nFlag)
-  if(not IsExistent(vHitNormal)) then
-    return StatusLog(false,"AutoOffsetUp: HitNormal missing") end
-  if(not IsExistent(vPos)) then
-    return StatusLog(false,"AutoOffsetUp: Base position missing") end
+function PointOffsetUp(oEnt,nPointID)
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(false,"AutoOffsetUp: Entity Invalid") end
+    return StatusLog(nil,"PointOffsetUp: Entity Invalid") end
   local nPointID = tonumber(nPointID)
   if(not IsExistent(nPointID)) then
-    return StatusLog(false,"AutoOffsetUp: Not a number #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
-  local bFlag = (tonumber(nFlag) and (nFlag ~= 0)) and true or false
-  if(not bFlag and IsBool(bFlag)) then return true end -- Not Enabled
+    return StatusLog(nil,"PointOffsetUp: Not a number #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   local hdPnt = CacheQueryPiece(oEnt:GetModel())
   if(not IsExistent(hdPnt)) then
-    return StatusLog(false,"AutoOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
   local hdPnt = hdPnt.Offs
   if(not IsExistent(hdPnt)) then
-    return StatusLog(false,"AutoOffsetUp: Offsets missing for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Offsets missing for <"..oEnt:GetModel()..">") end
   local hdPnt = hdPnt[nPointID]
   if(not IsExistent(hdPnt)) then
-    return StatusLog(false,"AutoOffsetUp: Invalid point #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Invalid point #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   if(not (hdPnt.O and hdPnt.A)) then
-    return StatusLog(false,"AutoOffsetUp: Invalid POA #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Invalid POA #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
   local aDiffBB = Angle()
   local vDiffBB = oEnt:OBBMins()
   SetAngle(aDiffBB,hdPnt.A)
   aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
   SubVector(vDiffBB,hdPnt.O)
   vDiffBB:Set(DecomposeByAngle(vDiffBB,aDiffBB))
-  vPos:Add(mathAbs(vDiffBB[cvZ]) * vHitNormal)
-  return true
+  return mathAbs(vDiffBB[cvZ])
 end
 
 function ModelToName(sModel)
@@ -1566,7 +1521,7 @@ function StringExplode(sStr,sDelim)
   if(not (IsString(sStr) and IsString(sDelim))) then
     return StatusLog(nil,"StringExplode: All parameters should be strings")
   end
-  if(IsEmptyString(sDelim) <= 0) then
+  if(IsEmptyString(sDelim)) then
     return StatusLog(nil,"StringExplode: Missing string exploding delimiter")
   end
   local sStr   = sStr
@@ -2584,7 +2539,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
 end
 
 local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
-  if(not defTable) then 
+  if(not defTable) then
     return StatusLog(nil,"TimerRestart: Missing table definition") end
   local Place, Key = NavigateTable(oLocation,tKeys)
   if(not (IsExistent(Place) and IsExistent(Key))) then
@@ -2616,7 +2571,7 @@ end
 
 -- Cashing the selected Piece Result
 function CacheQueryPiece(sModel)
-  if(not IsExistent(sModel)) then 
+  if(not IsExistent(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model does not exist") end
   if(not IsString(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model is not string") end
@@ -2679,7 +2634,7 @@ function CacheQueryAdditions(sModel)
     return StatusLog(nil,"CacheQueryAdditions: Model does not exist") end
   if(not IsString(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model not string") end
-  if(IsEmptyString(sModel) then
+  if(IsEmptyString(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model empty string") end
   if(not utilIsValidModel(sModel)) then return nil end
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
@@ -2872,7 +2827,7 @@ function GetCenterPoint(oRec,sO)
     return StatusLog(nil,"GetCenterPoint: Wrong offset name") end
   if(not oRec) then
     return StatusLog(nil,"GetCenterPoint: Missing piece record") end
-  if(not oRec.Offs) then  
+  if(not oRec.Offs) then
     return StatusLog(nil,"GetCenterPoint: No piece offsets") end
   if(not oRec.Offs[1]) then
     return StatusLog(nil,"GetCenterPoint: Missing piece offset") end
@@ -3140,11 +3095,11 @@ function GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
     return StatusLog(nil,"GetNormalSpawn: No record located") end
   if(not hdRec.Offs) then
     return StatusLog(nil,"GetNormalSpawn: Offsets missing") end
-  local hdPointID = tonumber(hdPointID)  
+  local hdPointID = tonumber(hdPointID)
   if(not IsExistent(hdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID number mismatch #"..tostring(hdPointID)) end
   if(not IsThereRecID(hdRec,hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..hdPointID) end  
+    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..hdPointID) end
   local stPoint = hdRec.Offs[hdPointID]
   local stSpawn = GetOpVar("SPAWN_NORMAL")
   stSpawn.HRec = hdRec
@@ -3514,10 +3469,10 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
 end
 
 function DuplicatePiece(ePiece)
-  if(not (ePiece and ePiece:IsValid())) then  
+  if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(nil,"DuplicatePiece: Source invalid") end
   local phPiece = ePiece:GetPhysicsObject()
-  if(not (phPiece and phPiece:IsValid())) then  
+  if(not (phPiece and phPiece:IsValid())) then
     return StatusLog(nil,"DuplicatePiece: Source phys invalid") end
   local stRecord = CacheQueryPiece(ePiece:GetModel())
   if(not IsExistent(stRecord)) then
@@ -3574,7 +3529,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(nGr ~=  0) then constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = true })
                 else constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false}) end
   if(sPh ~= "") then constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh}) end
-  if(IsArrayOr(dataSettings,1) > 0) then -- Are there any settings to be saved
+  if(IsArrayOr(dataSettings,1)) then -- Are there any settings to be saved
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",dataSettings) end
   return true
 end

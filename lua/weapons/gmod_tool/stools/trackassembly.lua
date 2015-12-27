@@ -63,7 +63,7 @@ local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
 local gsNameInitF = asmlib.GetOpVar("NAME_INIT")
       gsNameInitF = stringUpper(stringSub(gsNameInitF,1,1))..stringSub(gsNameInitF,2,-1)
 local gsNamePerpF = asmlib.GetOpVar("NAME_PERP")
-      gsNamePerpF = stringUpper(stringSub(gsNamePerpF,1,1))..stringSub(gsNamePerpF,2,-1)    
+      gsNamePerpF = stringUpper(stringSub(gsNamePerpF,1,1))..stringSub(gsNamePerpF,2,-1)
 local gsUndoPrefN = gsNameInitF..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID")
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
@@ -111,7 +111,6 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".spnflat"  , "The next piece will be spawned/snapped/stacked horizontally")
   languageAdd("tool."..gsToolNameL..".mcspawn"  , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
   languageAdd("tool."..gsToolNameL..".surfsnap" , "Snaps the piece to the surface the player is pointing at")
-  languageAdd("tool."..gsToolNameL..".autoffsz" , "Automatically offsets the piece to lay it above the ground")
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
   languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
@@ -157,8 +156,8 @@ TOOL.ClientConVar = {
   [ "adviser"   ] = "1",
   [ "activrad"  ] = "30",
   [ "surfsnap"  ] = "0",
-  [ "autoffsz"  ] = "1",
   [ "exportdb"  ] = "0",
+  [ "offsetup"  ] = "0",
   [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "1",
   [ "maxstatts" ] = "3",
@@ -263,10 +262,6 @@ function TOOL:GetSpawnMC()
   return self:GetClientNumber("mcspawn") or 0
 end
 
-function TOOL:GetAutoOffsetUp()
-  return (self:GetClientNumber("autoffsz") or 0)
-end
-
 function TOOL:GetStackAttempts()
   return (mathClamp(self:GetClientNumber("maxstaatts"),1,5))
 end
@@ -340,7 +335,6 @@ function TOOL:LeftClick(Trace)
   local igntype    = self:GetIgnoreType()
   local surfsnap   = self:GetSurfaceSnap()
   local physmater  = self:GetPhysMeterial()
-  local autoffsz   = self:GetAutoOffsetUp()
   local actrad     = self:GetActiveRadius()
   local bgskids    = self:GetBodyGroupSkin()
   local staatts    = self:GetStackAttempts()
@@ -357,13 +351,18 @@ function TOOL:LeftClick(Trace)
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
-        asmlib.DisplaceAngleDir(aAng,"URF",{-nextyaw,-nextpic,nextrol})
         ePiece:SetAngles(aAng)
         local vPos = asmlib.GetMCWorldOffset(ePiece)
         local vOBB = ePiece:OBBMins()
               vPos:Add(Trace.HitPos)
               vPos:Add(-vOBB[cvZ] * Trace.HitNormal)
-        asmlib.DisplacePositionAng(vPos,aAng,"FRU",{nextx,nexty,nextz})
+              vPos:Add(nextx * aAng:Forward())
+              vPos:Add(nexty * aAng:Right())
+              vPos:Add(nextz * aAng:Up())
+        aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+        aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+        aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+        ePiece:SetAngles(aAng)
         if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
@@ -373,7 +372,7 @@ function TOOL:LeftClick(Trace)
         local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then return false end
-        asmlib.AutoOffsetUp(stSpawn.SPos,ePiece,pointid,Trace.HitNormal,autoffsz)
+        stSpawn.SPos:Add(asmlib.PointOffsetUp(ePiece,pointid) * Trace.HitNormal)
         if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Spawning when Trace.HitWorld"
           .."\n   MCspawn: "..mcspawn
@@ -704,9 +703,14 @@ function TOOL:DrawHUD()
     local RadScale = mathClamp(1500 / plyd,1,100)
     local aAng = asmlib.GetNormalAngle(ply,Trace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then -- Relative to MC
-      asmlib.DisplaceAngleDir(aAng,"URF",{-nextyaw,-nextpic,nextrol})
       local vPos = Vector()
             vPos:Set(Trace.HitPos)
+            vPos:Add(nextx * aAng:Forward())
+            vPos:Add(nexty * aAng:Right())
+            vPos:Add(nextz * aAng:Up())
+      aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+      aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+      aAng:RotateAroundAxis(aAng:Forward(), nextrol)
       local F = aAng:Forward()
             F:Mul(30)
             F:Add(vPos)
@@ -726,7 +730,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Zs,"b")
       goMonitor:DrawLine(Os,Tp,"y")
       goMonitor:DrawCircle(Tp, RadScale / 2)
-      goMonitor:DrawCircle(Os, RadScale, "m")
+      goMonitor:DrawCircle(Os, RadScale)
       if(addinfo == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
@@ -734,8 +738,9 @@ function TOOL:DrawHUD()
       goMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
-                        pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      local offsetup = self:GetClientNumber("offsetup")
+      local stSpawn  = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
+                        pointid,nextx,nexty,nextz + offsetup,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       stSpawn.F:Mul(30)
       stSpawn.F:Add(stSpawn.OPos)
@@ -757,8 +762,8 @@ function TOOL:DrawHUD()
               vNext:Add(stSpawn.SPos)
         local Np = vNext:ToScreen()
         -- Draw Next Point
-        goMonitor:DrawLine(Os,Np,"y")
-        goMonitor:DrawCircle(Np,RadScale / 2,"g")
+        goMonitor:DrawLine(Os,Np,"g")
+        goMonitor:DrawCircle(Np,RadScale / 2)
       end
       -- Draw Elements
       goMonitor:DrawLine(Os,Xs,"r")
@@ -899,7 +904,7 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][21]  = gsToolPrefL.."nocollide"
   Combo["CVars"][22]  = gsToolPrefL.."gravity"
   Combo["CVars"][23]  = gsToolPrefL.."physmater"
-  
+
   CPanel:AddControl("ComboBox",Combo)
   CurY = CurY + 25
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
@@ -1086,8 +1091,8 @@ function TOOL.BuildCPanel(CPanel)
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nextx"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
-  pItem:SetSlideY(1)
-  
+  -- pItem:SetSlideY(1)
+
   pItem = CPanel:AddControl("Slider", {
             Label   = "Offset Y:",
             Type    = "Float",
@@ -1095,8 +1100,8 @@ function TOOL.BuildCPanel(CPanel)
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nexty"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
-  pItem:SetSlideY(1)
-  
+  -- pItem:SetSlideY(1)
+
   pItem = CPanel:AddControl("Slider", {
             Label   = "Offset Z:",
             Type    = "Float",
@@ -1104,8 +1109,8 @@ function TOOL.BuildCPanel(CPanel)
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nextz"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-  pItem:SetSlideY(1)
-  
+  -- pItem:SetSlideY(1)
+
   pItem = CPanel:AddControl("Checkbox", {
             Label   = "Weld",
             Command = gsToolPrefL.."weld"})
@@ -1120,7 +1125,7 @@ function TOOL.BuildCPanel(CPanel)
             Label   = "Freeze on spawn",
             Command = gsToolPrefL.."freeze"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
-            
+
   pItem = CPanel:AddControl("Checkbox", {
             Label   = "Ignore physics gun grab",
             Command = gsToolPrefL.."ignphysgn"})
@@ -1150,11 +1155,6 @@ function TOOL.BuildCPanel(CPanel)
             Label   = "Snap to trace surface",
             Command = gsToolPrefL.."surfsnap"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Auto-offset UP",
-            Command = gsToolPrefL.."autoffsz"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".autoffsz"))
 
   pItem = CPanel:AddControl("Checkbox", {
             Label   = "Draw advisor",
@@ -1213,26 +1213,32 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local mcspawn = self:GetSpawnMC()
     local ydegsnp = self:GetYawSnap()
     local surfsnap = self:GetSurfaceSnap()
-    local autoffsz = self:GetAutoOffsetUp()
     local pointid, pnextid = self:GetPointID()
     local nextx, nexty, nextz = self:GetPosOffsets()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local aAng = asmlib.GetNormalAngle(oPly,Trace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then
-      asmlib.DisplaceAngleDir(aAng,"URF",{-nextyaw,-nextpic,nextrol})
       oEnt:SetAngles(aAng)
       local vPos = asmlib.GetMCWorldOffset(oEnt)
       local vOBB = oEnt:OBBMins()
             vPos:Add(Trace.HitPos)
             vPos:Add(-vOBB[cvZ] * Trace.HitNormal)
-      asmlib.DisplacePositionAng(vPos,aAng,"FRU",{nextx,nexty,nextz})
+            vPos:Add(nextx * aAng:Forward())
+            vPos:Add(nexty * aAng:Right())
+            vPos:Add(nextz * aAng:Up())
+      aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+      aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+      aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+      oEnt:SetAngles(aAng)
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else
       local stSpawn = asmlib.GetNormalSpawn(Trace.HitPos,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        asmlib.AutoOffsetUp(stSpawn.SPos,oEnt,pointid,Trace.HitNormal,autoffsz)
+        local pntUp = asmlib.PointOffsetUp(oEnt,pointid)
+        oPly:ConCommand(gsToolPrefL.."offsetup "..(pntUp or 0).."\n")
+        stSpawn.SPos:Add(pntUp * Trace.HitNormal)
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
         oEnt:SetNoDraw(false)

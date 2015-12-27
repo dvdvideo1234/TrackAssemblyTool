@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.144")
+asmlib.SetOpVar("TOOL_VERSION","5.145")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -116,7 +116,7 @@ if(CLIENT) then
           asmlib.LogInstance("OPEN_FRAME: Failed to create ID #"..iNdex)
           iNdex, vItem = 1, nil
           while(iNdex <= iSize) do
-            vItem = pnElements:Select(iNdex) 
+            vItem = pnElements:Select(iNdex)
             if(IsValid(vItem.Panel)) then
               vItem.Panel:Remove()
               asmlib.LogInstance("OPEN_FRAME: Deleted panel ID #"..iNdex)
