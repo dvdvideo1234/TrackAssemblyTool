@@ -430,7 +430,6 @@ function TOOL:LeftClick(Trace)
   if(asmlib.LoadPlyKey(ply,"SPEED")) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,"Stack count #"..count.." not properly picked") end
     if(pointid == pnextid) then return asmlib.StatusLog(false,"Point ID #"..pointid.." overlap") end
-    print("Pints",pointid,">>",pnextid)
     local ePieceO, ePieceN
     local iNdex, nTrys = count, staatts
     local vTemp, vLook, trPos = Vector(), Vector(), trEnt:GetPos()
