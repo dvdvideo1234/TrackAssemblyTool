@@ -3431,6 +3431,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
     ePiece:SetBodygroup(CurBG.id,IDs[Cnt] or 0)
     Cnt = Cnt + 1
   end
+  return StatusLog(true,"AttachBodyGroups: Success")
 end
 
 function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
@@ -3486,7 +3487,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
     ePiece:DeleteOnRemove(nNc)
      eBase:DeleteOnRemove(nNc)
   end
-  return true
+  return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end
 
 function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
@@ -3516,7 +3517,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(sPh ~= "") then constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh}) end
   if(IsArrayOr(dataSettings,1)) then -- Are there any settings to be saved
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",dataSettings) end
-  return true
+  return StatusLog(true,"ApplyPhysicalSettings: Success")
 end
 
 function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)

@@ -12,7 +12,8 @@ local stringLen   = string and string.len
 
 ----- Get extension enabled flag
 local enFlag = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
-
+local anyTrue  = 1
+local anyFalse = 0
 --------- Pieces ----------
 
 __e2setcost(50)
@@ -73,16 +74,16 @@ end
 
 __e2setcost(30)
 e2function number trackasmlibIsPiece(string sModel)
-  if(not enFlag) then return 0 end
-  local stRecord = asmlib.CacheQueryPiece(this:GetModel())
-  if(stRecord) then return 1 else return 0 end
+  if(not enFlag) then return anyFalse end
+  local stRecord = asmlib.CacheQueryPiece(sModel)
+  if(stRecord) then return anyTrue else return anyFalse end
 end
 
 __e2setcost(30)
 e2function number entity:trackasmlibIsPiece()
-  if(not (this and this:IsValid() and enFlag)) then return 0 end
+  if(not (this and this:IsValid() and enFlag)) then return anyFalse end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
-  if(stRecord) then return 1 else return 0 end
+  if(stRecord) then return anyTrue else return anyFalse end
 end
 
 __e2setcost(120)
@@ -153,72 +154,72 @@ __e2setcost(30)
 e2function string trackasmlibGetType(string sModel)
   if(not enFlag) then return "" end
   local stRecord = asmlib.CacheQueryPiece(sModel)
-  if(stRecord) then return stRecord.Type else return "" end
+  if(stRecord and stRecord.Type) then return stRecord.Type else return "" end
 end
 
 __e2setcost(30)
 e2function string entity:trackasmlibGetType()
   if(not (this and this:IsValid() and enFlag)) then return "" end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
-  if(stRecord) then return stRecord.Type else return "" end
+  if(stRecord and stRecord.Type) then return stRecord.Type else return "" end
 end
 
 __e2setcost(30)
 e2function string trackasmlibGetName(string sModel)
   if(not enFlag) then return "" end
   local stRecord = asmlib.CacheQueryPiece(sModel)
-  if(stRecord) then return stRecord.Name else return "" end
+  if(stRecord and stRecord.Name) then return stRecord.Name else return "" end
 end
 
 __e2setcost(30)
 e2function string entity:trackasmlibGetName()
   if(not (this and this:IsValid() and enFlag)) then return "" end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
-  if(stRecord) then return stRecord.Name else return "" end
+  if(stRecord and stRecord.Name) then return stRecord.Name else return "" end
 end
 
 __e2setcost(30)
 e2function number trackasmlibGetPointsCount(string sModel)
   if(not enFlag) then return 0 end
   local stRecord = asmlib.CacheQueryPiece(sModel)
-  if(stRecord) then return stRecord.Kept else return 0 end
+  if(stRecord and stRecord.Kept) then return stRecord.Kept else return 0 end
 end
 
 __e2setcost(30)
 e2function number entity:trackasmlibGetPointsCount()
   if(not (this and this:IsValid() and enFlag)) then return 0 end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
-  if(stRecord) then return stRecord.Kept else return 0 end
+  if(stRecord and stRecord.Kept) then return stRecord.Kept else return 0 end
 end
 
 ---------- Additions ------------
 
 __e2setcost(30)
 e2function number trackasmlibHasAdditions(string sModel)
-  if(not enFlag) then return 0 end
+  if(not enFlag) then return anyFalse end
   local stRecord = asmlib.CacheQueryAdditions(sModel)
-  if(stRecord) then return 1 else return 0 end
+  if(stRecord) then return anyTrue else return anyFalse end
 end
 
 __e2setcost(30)
 e2function number entity:trackasmlibHasAdditions()
-  if(not (this and this:IsValid() and enFlag)) then return 0 end
+  if(not (this and this:IsValid() and enFlag)) then return anyFalse end
   local stRecord = asmlib.CacheQueryAdditions(this:GetModel())
-  if(stRecord) then return 1 else return 0 end
+  if(stRecord) then return anyTrue else return anyFalse end
 end
 
 __e2setcost(50)
 e2function number trackasmlibGetAdditionsCount(string sModel)
   if(not enFlag) then return 0 end
   local stRecord = asmlib.CacheQueryAdditions(sModel)
-  if(stRecord) then return stRecord.Kept else return 0 end
+  if(stRecord and stRecord.Kept) then return stRecord.Kept else return 0 end
 end
 
 __e2setcost(50)
 e2function number entity:trackasmlibGetAdditionsCount()
   if(not (this and this:IsValid() and enFlag)) then return 0 end
-  local stRecord = asmlib.CacheQueryAdditions(sModel)
-  if(stRecord) then return stRecord.Kept else return 0 end
+  local stRecord = asmlib.CacheQueryAdditions(this:GetModel())
+  if(stRecord and stRecord.Kept) then return stRecord.Kept else return 0 end
 end
 
 __e2setcost(60)
@@ -232,7 +233,7 @@ e2function array trackasmlibGetAdditionsLine(string sModel, number nLine)
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
   stRecord = stRecord[nLine] -- Ordered by ID. Get the line per model
-  local cntField = 2
+  local cntField = 2         -- The model is missed by the main SELECT
   local arAdditionsLine = {}
   while(defAddit[cntField]) do
     arAdditionsLine[cntField-1] = stRecord[defAddit[cntField][1]]
@@ -252,8 +253,8 @@ e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
   stRecord = stRecord[nLine] -- Ordered by ID. Get the line per model
+  local cntField = 2         -- The model is missed by the main SELECT
   local arAdditionsLine = {}
-  local cntField = 2
   while(defAddit[cntField]) do
     arAdditionsLine[cntField-1] = stRecord[defAddit[cntField][1]]
     cntField = cntField + 1
@@ -291,32 +292,44 @@ e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, n
 end
 
 __e2setcost(50)
-e2function entity entity:trackasmlibDuplicatePiece(vector vPos, angle aAng)
+e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   if(not (this and this:IsValid() and enFlag)) then return nil end
-  local stRecord = asmlib.CacheQueryAdditions(this:GetModel())
+  local phthis = this:GetPhysicsObject()
+  if(not (phthis and phthis:IsValid())) then return nil end
+  local stRecord = asmlib.CacheQueryPiece(this:GetModel())
   if(not stRecord) then return nil end
   local sBgpID  = asmlib.GetPropBodyGrp(this)..
                   asmlib.GetOpVar("OPSYM_DIRECTORY")..
                   asmlib.GetPropSkin(this)
-  return asmlib.MakePiece(sModel,Vector(vPos[1],vPos[2],vPos[3]),
-                                 Angle (aAng[1],aAng[2],aAng[3]),
-                                 this:GetMass(),sBgpID,this:GetColor())
+  return asmlib.MakePiece(this:GetModel(),
+                Vector(vPos[1],vPos[2],vPos[3]),
+                Angle (aAng[1],aAng[2],aAng[3]),
+                phthis:GetMass(),sBgpID,this:GetColor())
 end
 
 __e2setcost(15)
-e2function entity entity:trackasmlibAnchorPiece(entity eBase, number nWe, number nNc, number nFr, number nWg, number nGr, number sPh)
-  if(not (this and this:IsValid() and enFlag)) then return 0 end
-  local stRecord = asmlib.CacheQueryAdditions(this:GetModel())
-  if(not stRecord) then return 0 end
-  return asmlib.AnchorPiece(this,eBase,nWe,nNc,nFr,nWg,nGr,sPh) and 1 or 0
+e2function entity entity:trackasmlibApplyPhysicalAnchor(entity eBase, number nWe, number nNc)
+  if(not (this and this:IsValid() and enFlag)) then return anyFalse end
+  if(not (eBase and eBase:IsValid())) then return anyFalse end
+  local stRecord = asmlib.CacheQueryPiece(this:GetModel())
+  if(not stRecord) then return anyFalse end
+  return asmlib.ApplyPhysicalAnchor(this,eBase,nWe,nNc) and anyTrue or anyFalse
+end
+
+__e2setcost(15)
+e2function entity entity:trackasmlibApplyPhysicalSettings(number nPi, number nFr, number nGr, string sPh)
+  if(not (this and this:IsValid() and enFlag)) then return anyFalse end
+  local stRecord = asmlib.CacheQueryPiece(this:GetModel())
+  if(not stRecord) then return anyFalse end
+  return asmlib.ApplyPhysicalSettings(this,nPi,nFr,nGr,sPh) and anyTrue or anyFalse
 end
 
 __e2setcost(35)
 e2function number entity:trackasmlibAttachAdditions()
-  if(not (this and this:IsValid() and enFlag)) then return 0 end
+  if(not (this and this:IsValid() and enFlag)) then return anyFalse end
   local stRecord = asmlib.CacheQueryAdditions(this:GetModel())
   if(not stRecord) then return 0 end
-  return asmlib.AttachAdditions(this) and 1 or 0
+  return asmlib.AttachAdditions(this) and anyTrue or anyFalse
 end
 
 __e2setcost(20)
@@ -324,5 +337,5 @@ e2function number entity:trackasmlibAttachBodyGroups(string sBgpID)
   if(not (this and this:IsValid() and enFlag)) then return 0 end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
   if(not stRecord) then return 0 end
-  return asmlib.AttachBodyGroups(this, sBgpID) and 1 or 0
+  return asmlib.AttachBodyGroups(this, sBgpID) and anyTrue or anyFalse
 end
