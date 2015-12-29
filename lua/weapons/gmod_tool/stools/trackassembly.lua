@@ -430,12 +430,28 @@ function TOOL:LeftClick(Trace)
   if(asmlib.LoadPlyKey(ply,"SPEED")) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,"Stack count #"..count.." not properly picked") end
     if(pointid == pnextid) then return asmlib.StatusLog(false,"Point ID #"..pointid.." overlap") end
-    local iNdex  , nTrys   = count, staatts
-    local vTemp  , vLook   = Vector(), Vector()
-    local ePieceO, ePieceN = trEnt, nil
+    print("Pints",pointid,">>",pnextid)
+    local ePieceO, ePieceN
+    local iNdex, nTrys = count, staatts
+    local vTemp, vLook, trPos = Vector(), Vector(), trEnt:GetPos()
     undoCreate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
     while(iNdex > 0) do
-      ePieceN = asmlib.DuplicatePiece(ePieceO)
+      -- ePieceN = asmlib.DuplicatePiece(ePieceO)
+      if(iNdex == count) then
+        if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
+          asmlib.PrintNotify(ply,"Cannot find PointID data !","ERROR")
+          return asmlib.StatusLog(false,"Additional Error INFO"
+          .."\n   Event  : Stacking non-existent PointID on client prop"
+          .."\n   Iterats: "..tostring(count-iNdex)
+          .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
+          .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
+          .."\n   Player : "..ply:GetName()
+          .."\n   trModel: "..asmlib.StringFileModel(trModel)
+          .."\n   hdModel: "..fnmodel)
+        end
+        asmlib.SetVector(vLook,stSpawn.HRec.Offs[pnextid].P)
+      end -- The next point is valid
+      ePieceN = asmlib.MakePiece(model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
       if(ePieceN) then
         if(not asmlib.SetBoundPos(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
           .."\n   Event  : Stacking piece position out of map bounds"
@@ -451,24 +467,9 @@ function TOOL:LeftClick(Trace)
           return true
         end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
-        asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)
-        asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or ePieceO),weld,nil)
-        asmlib.ApplyPhysicalAnchor(ePiece,ePieceO,nil,nocollide)
-        if(iNdex == count) then
-          if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
-            ePieceN:Remove()
-            asmlib.PrintNotify(ply,"Cannot find PointID data !","ERROR")
-            return asmlib.StatusLog(false,"Additional Error INFO"
-            .."\n   Event  : Stacking non-existent PointID on client prop"
-            .."\n   Iterats: "..tostring(count-iNdex)
-            .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-            .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-            .."\n   Player : "..ply:GetName()
-            .."\n   trModel: "..asmlib.StringFileModel(trModel)
-            .."\n   hdModel: "..fnmodel)
-          end
-          asmlib.SetVector(vLook,stSpawn.HRec.Offs[pnextid].P)
-        end -- The next point is valid
+        asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)
+        asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil)
+        asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide)
         vTemp:Set(vLook)
         vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos())

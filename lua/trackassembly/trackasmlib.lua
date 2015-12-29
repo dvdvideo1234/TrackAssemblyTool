@@ -3468,21 +3468,6 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   return ePiece
 end
 
-function DuplicatePiece(ePiece)
-  if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(nil,"DuplicatePiece: Source invalid") end
-  local phPiece = ePiece:GetPhysicsObject()
-  if(not (phPiece and phPiece:IsValid())) then
-    return StatusLog(nil,"DuplicatePiece: Source phys invalid") end
-  local stRecord = CacheQueryPiece(ePiece:GetModel())
-  if(not IsExistent(stRecord)) then
-    return StatusLog(nil,"DuplicatePiece: Source is not a piece") end
-  return MakePiece(ePiece:GetModel(),ePiece:GetPos(),
-                   ePiece:GetAngles(),phPiece:GetMass(),
-                   GetPropBodyGrp(ePiece)..GetOpVar("OPSYM_DIRECTORY")..GetPropSkin(ePiece),
-                   ePiece:GetColor())
-end
-
 function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   if(CLIENT) then return StatusLog(false,"ApplyPhysicalAnchor: Working on client") end
   local nWe = tonumber(nWe) or 0
@@ -3492,12 +3477,12 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   if(not (eBase and eBase:IsValid())) then
     return StatusLog(false,"ApplyPhysicalAnchor: Base entity not valid {"..nWe..","..nNc.."}") end
   if(nWe ~= 0) then -- Weld
-    local nWe = constraintWeld(eBase, ePiece, 0, 0, 0, false, false)
+    local nWe = constraintWeld(ePiece, eBase, 0, 0, 0, false, false)
     ePiece:DeleteOnRemove(nWe)
      eBase:DeleteOnRemove(nWe)
   end
   if(nNc ~= 0) then -- NoCollide
-    local nNc = constraintNoCollide(eBase, ePiece, 0, 0)
+    local nNc = constraintNoCollide(ePiece, eBase, 0, 0)
     ePiece:DeleteOnRemove(nNc)
      eBase:DeleteOnRemove(nNc)
   end
