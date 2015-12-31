@@ -75,6 +75,7 @@ local getmetatable         = getmetatable
 local setmetatable         = setmetatable
 local collectgarbage       = collectgarbage
 local osClock              = os and os.clock
+local osDate               = os and os.date
 local sqlQuery             = sql and sql.Query
 local sqlLastError         = sql and sql.LastError
 local sqlTableExists       = sql and sql.TableExists
@@ -2943,7 +2944,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   local sData = ""
   local sTemp = ""
   local sModeDB = GetOpVar("MODE_DATABASE")
-  F:Write("# ExportIntoFile( "..sMethod.." ): "..os.date().." [ "..sModeDB.." ]".."\n")
+  F:Write("# ExportIntoFile( "..sMethod.." ): "..osDate().." [ "..sModeDB.." ]".."\n")
   F:Write("# Data settings: "..GetFieldsName(defTable,sDelim).."\n")
   if(sModeDB == "SQL") then
     local Q = ""
