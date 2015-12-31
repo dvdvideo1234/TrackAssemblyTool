@@ -62,23 +62,27 @@ A: Just subscribe to the workshop item:
      When Pressing it on world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
    Pressing RELOAD ( Default: R ) + SPEED ( Default: Shift )
      Will set the trace prop as an anchor for other pieces spawned to be welded to.
-   If you want to obtain different grip behaviour for a wheel-powered train,
+   If you want to obtain different grip behaviour for a wheel-powered/sliding train,
      you may use the surface material drop-down menus as you select first "TYPE" then "NAME".
-   The "Yaw snap amount" slider is used to snap the first piece ( Requested by Magnum )
-     to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
-     whole track build will be snapped also, because you are building it relative to the first piece.
-   The "Snap to trace surface" checkbox if checked, will snap the chosen track directly to the
-     trace surface.
-   The "Enable pieces gravity" checkbox if checked, will disable the gravity on the spawned pieces.
-   The "Next piece flat to surface" checkbox if checked, will make the next pieces parallel to the map ground.
-   The "Spawn at mass-centre" checkbox if checked, will align the piece spawned to its mass-centre.
-   The "Auto-offset up" checkbox if checked, will automatically offset the piece spawned,
-     so it is barely touches the ground and spawns over it (When "Spawn at mass-centre" is unchecked).
    In the text field you may type bodygroup/skin selection code or generate one using the SCORE ( Default: TAB ) key
      while pointing to a prop with bodygroups/skins set by Garry's mod entity right click menu.
      Press "ENTER" in the text field if you are happy with the selection to apply it.
    Piece mass slider is used to set the mass of the next track piece to be spawned.
-   Active radius is used to set the minimum distance needed to select an active point when pointing to e piece.
+   Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
+   Pieces count shows the maximum number of pieces to be stacked.
+   The "Yaw snap amount" slider is used to snap the first piece ( Requested by Magnum )
+     to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
+     whole track build will be snapped also, because you are building it relative to the first piece.
+   The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
+     because they are defined by their own and not going to be explained further.
+   The "Ignore track type" check-box if checked, will enable snapping between pieces of a different type.
+   The "Spawn horizontally" ( as the name suggests ) if checked, will spawn the next pieces horizontally to the
+     map ground if the additional angle offsets are zeros. If not they will be added to the result angle.
+   The "Origin from mass-centre" check-box if checked, will align the piece spawned to its mass-centre.
+   The "Snap to trace surface" check-box if checked, will snap the chosen track directly to the trace surface.
+   The "Next piece flat to surface" check-box if checked, will make the next pieces parallel to the map ground.
+   The "Draw adviser" check-box if checked, will draw a composition of lines and circles to assist you with the building.
+   The "Draw holder ghost" check-box if checked, will render the the current piece that you are holding at the moment.
    When building a track using a different than the default way is needed you may use:
      UCS Pitch/Yaw/Roll are angle offsets used for orientating the base coordinate system in order to snap the piece as the user desires.
      Offset X(Forward-RED)/Y(Right-GREEN)/Z(Up-BLUE) are linear offsets used for additional user offset regarding the next track piece to be spawned.

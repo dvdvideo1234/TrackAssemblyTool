@@ -1142,7 +1142,7 @@ function TOOL.BuildCPanel(CPanel)
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntype"))
 
   pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Spawn horizontal",
+            Label   = "Spawn horizontally",
             Command = gsToolPrefL.."spnflat"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
 
@@ -1157,7 +1157,7 @@ function TOOL.BuildCPanel(CPanel)
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
 
   pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Draw advisor",
+            Label   = "Draw adviser",
             Command = gsToolPrefL.."adviser"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
 

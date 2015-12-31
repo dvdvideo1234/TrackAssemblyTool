@@ -1592,12 +1592,12 @@ function String2BGID(sStr,nLen)
   local Cnt = 1
   local exLen = tonumber(nLen) or ArrayCount(Data)
   while(Cnt <= exLen) do
-    local nV = tonumber(Data[Cnt])
-    if(not nV) then
+    local Num = tonumber(Data[Cnt])
+    if(not Num) then
       return StatusLog(nil, "String2BGID: Value not a number") end
-    if((mathFloor(nV) - nV) ~= 0) then
+    if((mathFloor(Num) - Num) ~= 0) then
       return StatusLog(nil, "String2BGID: Floats are forbidden") end
-    Data[Cnt] = nV
+    Data[Cnt] = tonumber(Data[Cnt])
     Cnt = Cnt + 1
   end
   if(IsExistent(Data[1]))then return Data end
@@ -3156,30 +3156,30 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,hdPointID,
                         nActRadius,enFlatten,enIgnTyp,ucsPosX,
                         ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   if(not (trEnt and trHitPos and hdModel and hdPointID and nActRadius)) then
-    return StatusLog(nil,"GetNormalSpawn: Mismatched input parameters") end
+    return StatusLog(nil,"GetEntitySpawn: Mismatched input parameters") end
   if(not trEnt:IsValid()) then
-    return StatusLog(nil,"GetNormalSpawn: Trace entity not valid") end
+    return StatusLog(nil,"GetEntitySpawn: Trace entity not valid") end
   if(IsOther(trEnt)) then
-    return StatusLog(nil,"GetNormalSpawn: Trace is other type") end
+    return StatusLog(nil,"GetEntitySpawn: Trace is other type") end
   local trRec = CacheQueryPiece(trEnt:GetModel())
   if(not IsThereRecID(trRec,1)) then
-    return StatusLog(nil,"GetNormalSpawn: Trace point invalid") end
+    return StatusLog(nil,"GetEntitySpawn: Trace point invalid") end
   local hdPointID = tonumber(hdPointID)
   if(not IsExistent(hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder ID number mismatch #"..tostring(hdPointID)) end
+    return StatusLog(nil,"GetEntitySpawn: Holder ID number mismatch #"..tostring(hdPointID)) end
   local hdRec = CacheQueryPiece(hdModel)
   if(not IsThereRecID(hdRec,hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point invalid") end
+    return StatusLog(nil,"GetEntitySpawn: Holder point invalid") end
   -- Get client's offset ID
   local hdOffs = hdRec.Offs[hdPointID]
   -- If there is no Type field exit immediately
   if(not IsExistent(trRec.Type)) then
-    return StatusLog(nil,"GetNormalSpawn: Trace type missing") end
+    return StatusLog(nil,"GetEntitySpawn: Trace type missing") end
   if(not IsExistent(hdRec.Type)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder type missing") end
+    return StatusLog(nil,"GetEntitySpawn: Holder type missing") end
   -- If the types are different and disabled
   if((not enIgnTyp or enIgnTyp == 0) and trRec.Type ~= hdRec.Type ) then
-    return StatusLog(nil,"GetNormalSpawn: Types are different") end
+    return StatusLog(nil,"GetEntitySpawn: Types are different") end
   local trAng = trEnt:GetAngles()
   local trPos = trEnt:GetPos()
   -- We have the next Piece Offset
@@ -3205,7 +3205,7 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,hdPointID,
   -- Found the active point ID on trEnt
   -- Using "trpOff" because we are only reading
   if(not trpOff) then
-    return StatusLog(nil,"GetNormalSpawn: Not hitting active point") end
+    return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
   --Do origin !
   SetVector(stSpawn.OPos,trpOff.O)
   stSpawn.OPos:Rotate(trAng)
@@ -3253,13 +3253,13 @@ end
 function AttachAdditions(ePiece)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"AttachAdditions: Piece invalid") end
-  local LocalAng  = ePiece:GetAngles()
-  local LocalPos  = ePiece:GetPos()
-  local BaseModel = ePiece:GetModel()
-  LogInstance("AttachAdditions: Model: <"..BaseModel..">")
-  local qData = CacheQueryAdditions(BaseModel)
+  local LocalAng = ePiece:GetAngles()
+  local LocalPos = ePiece:GetPos()
+  local LocalMod = ePiece:GetModel()
+  local qData = CacheQueryAdditions(LocalMod)
   if(not IsExistent(qData)) then
-    return StatusLog(false,"AttachAdditions: No data found") end
+    return StatusLog(true,"AttachAdditions: Model <"..LocalMod.."> has no additions") end
+  LogInstance("AttachAdditions: Model: <"..LocalMod..">")
   local Record, Addition
   local Cnt = 1
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
@@ -3386,7 +3386,7 @@ function GetPropSkin(oEnt)
   if(IsOther(skEnt)) then
     return StatusLog("","GetPropSkin: Entity other type") end
   local Skin = tonumber(skEnt:GetSkin())
-  if(IsExistent(Skin)) then return StatusLog("","GetPropSkin: Skin number mismatch") end
+  if(not IsExistent(Skin)) then return StatusLog("","GetPropSkin: Skin number mismatch") end
   return StatusLog(tostring(Skin),"GetPropSkin: Success "..tostring(skEn))
 end
 
@@ -3473,10 +3473,11 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   if(CLIENT) then return StatusLog(false,"ApplyPhysicalAnchor: Working on client") end
   local nWe = tonumber(nWe) or 0
   local nNc = tonumber(nNc) or 0
+  LogInstance("ApplyPhysicalAnchor: {"..nWe..","..nNc.."}")
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid {"..nWe..","..nNc.."}") end
+    return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid") end
   if(not (eBase and eBase:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalAnchor: Base entity not valid {"..nWe..","..nNc.."}") end
+    return StatusLog(false,"ApplyPhysicalAnchor: Base entity not valid") end
   if(nWe ~= 0) then -- Weld
     local nWe = constraintWeld(ePiece, eBase, 0, 0, 0, false, false)
     ePiece:DeleteOnRemove(nWe)
@@ -3496,9 +3497,9 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   local nFr = tonumber(nFr) or 0
   local nGr = tonumber(nGr) or 0
   local sPh = tostring(sPh or "")
+  LogInstance("ApplyPhysicalSettings: {"..nPi..","..nFr..","..nGr..","..sPh.."}")
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalSettings: Piece entity not "..
-                           "valid {"..nPi..","..nFr..","..nGr..","..sPh.."}") end
+    return StatusLog(false,"ApplyPhysicalSettings: Piece entity not valid") end
   -- Initialize dupe settings using this array
   local dataSettings = {0}
   if(nPi ~= 0) then
@@ -3509,8 +3510,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   end
   local pyPiece = ePiece:GetPhysicsObject()
   if(not (pyPiece and pyPiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalSettings: Piece physical "..
-                           "object not valid {"..nPi..","..nFr..","..nGr..","..sPh.."}") end
+    return StatusLog(false,"ApplyPhysicalSettings: Piece physical object not valid") end
   if(nFr ~=  0) then pyPiece:EnableMotion(false) else pyPiece:EnableMotion(true) end
   if(nGr ~=  0) then constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = true })
                 else constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false}) end
@@ -3521,52 +3521,27 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
 end
 
 function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)
+  local anyMessage = tostring(anyMessage)
+  if(not (ePiece and ePiece:IsValid())) then
+    return StatusLog(false,"Piece:SetBoundPos: Entity invalid: "..anyMessage) end
   if(not vPos) then
     return StatusLog(false,"Piece:SetBoundPos: Position invalid: "..anyMessage) end
   if(not oPly) then
     return StatusLog(false,"Piece:SetBoundPos: Player invalid: "..anyMessage) end
-  local sMode = tostring(sMode or "")
-  local anyMessage = tostring(anyMessage)
+  local sMode = tostring(sMode or "LOG")
   if(sMode == "OFF") then
     ePiece:SetPos(vPos)
-    return true
-  elseif(sMode == "LOG") then
-    if(utilIsInWorld(vPos)) then
-      ePiece:SetPos(vPos)
-    else
-      ePiece:Remove()
-      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
-    end
-    return true
-  elseif(sMode == "HINT") then
-    if(utilIsInWorld(vPos)) then
-      ePiece:SetPos(vPos)
-    else
-      ePiece:Remove()
-      PrintNotify(oPly,"Position out of map bounds!",sMode)
-      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
-    end
-    return true
-  elseif(sMode == "GENERIC") then
-    if(utilIsInWorld(vPos)) then
-      ePiece:SetPos(vPos)
-    else
-      ePiece:Remove()
-      PrintNotify(oPly,"Position out of map bounds!",sMode)
-      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
-    end
-    return true
-  elseif(sMode == "ERROR") then
-    if(utilIsInWorld(vPos)) then
-      ePiece:SetPos(vPos)
-    else
-      ePiece:Remove()
-      PrintNotify(oPly,"Position out of map bounds!",sMode)
-      return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
-    end
-    return true
+    return StatusLog(true,"Piece:SetBoundPos("..sMode.."): Tuned off")
   end
-  return StatusLog(false,"Piece:SetBoundPos: Mode <"..sMode.."> not found: "..anyMessage)
+  if(utilIsInWorld(vPos)) then -- Error mode is "LOG" by default
+    ePiece:SetPos(vPos)
+  else
+    ePiece:Remove()
+    if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
+      PrintNotify(oPly,"Position out of map bounds!",sMode) end
+    return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
+  end
+  return StatusLog(true,"Piece:SetBoundPos("..sMode.."): Success")
 end
 
 function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
