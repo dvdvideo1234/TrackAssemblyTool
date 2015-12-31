@@ -255,6 +255,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("OPSYM_REVSIGN","@")
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
+  SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("SPAWN_ENTITY",{
     F    = Vector(),
     R    = Vector(),
@@ -1174,15 +1175,16 @@ local function StringPOA(arPOA,sOffs)
     return StatusLog(nil,"StringPOA: Missing Offsets") end
   local symRevs = GetOpVar("OPSYM_REVSIGN")
   local symDisa = GetOpVar("OPSYM_DISABLE")
+  local symSepa = GetOpVar("OPSYM_SEPARATOR")
   local sModeDB = GetOpVar("MODE_DATABASE")
   local Result = ((arPOA[csD] and symDisa) or "")
   if(sOffs == "V") then
-    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[cvX])..","
-                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[cvY])..","
+    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[cvX])..symSepa
+                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[cvY])..symSepa
                    ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[cvZ])
   elseif(sOffs == "A") then
-    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[caP])..","
-                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[caY])..","
+    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[caP])..symSepa
+                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[caY])..symSepa
                    ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[caR])
   else return StatusLog("","StringPOA: Missed offset mode "..sOffs) end
   return stringGsub(Result," ","") -- Get rid of the spaces
@@ -1218,25 +1220,26 @@ local function DecodePOA(sStr)
   local DatInd = 1
   local ComCnt = 0
   local Len    = stringLen(sStr)
-  local SymOff = GetOpVar("OPSYM_DISABLE")
-  local SymRev = GetOpVar("OPSYM_REVSIGN")
+  local symOff = GetOpVar("OPSYM_DISABLE")
+  local symRev = GetOpVar("OPSYM_REVSIGN")
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
   local arPOA  = GetOpVar("ARRAY_DECODEPOA")
   local Ch = ""
   local S = 1
   local E = 1
   local Cnt = 1
   ReloadPOA()
-  if(stringSub(sStr,Cnt,Cnt) == SymOff) then
+  if(stringSub(sStr,Cnt,Cnt) == symOff) then
     arPOA[7] = true
     Cnt = Cnt + 1
     S   = S   + 1
   end
   while(Cnt <= Len) do
     Ch = stringSub(sStr,Cnt,Cnt)
-    if(Ch == SymRev) then
+    if(Ch == symRev) then
       arPOA[3+DatInd] = -arPOA[3+DatInd]
       S   = S + 1
-    elseif(Ch == ",") then
+    elseif(Ch == symSep) then
       ComCnt = ComCnt + 1
       E = Cnt - 1
       if(ComCnt > 2) then break end
@@ -1584,21 +1587,20 @@ function StringPad(sStr,sPad,nCnt)
   return (sPad..sStr)
 end
 
-function String2BGID(sStr,nLen)
+function String2BGID(sStr)
   if(not IsExistent(sStr)) then
     return StatusLog(nil, "String2BGID: String missing") end
   if(IsEmptyString(sStr)) then
     return StatusLog(nil, "String2BGID: Empty string") end
-  local Data = StringExplode(sStr,",")
-  local Cnt = 1
-  local exLen = tonumber(nLen) or ArrayCount(Data)
-  while(Cnt <= exLen) do
+  local Cnt  = 1
+  local Data = StringExplode(sStr,GetOpVar("OPSYM_SEPARATOR"))
+  while(Data[Cnt]) do
     local Num = tonumber(Data[Cnt])
     if(not Num) then
       return StatusLog(nil, "String2BGID: Value not a number") end
     if((mathFloor(Num) - Num) ~= 0) then
       return StatusLog(nil, "String2BGID: Floats are forbidden") end
-    Data[Cnt] = tonumber(Data[Cnt])
+    Data[Cnt] = Num
     Cnt = Cnt + 1
   end
   if(IsExistent(Data[1]))then return Data end
@@ -1668,13 +1670,11 @@ function ArrayPrint(arArr,sName,nCol)
     return StatusLog(0,"ArrayPrint: Array is "..type(arArr)) end
   if(not arArr[1]) then
     return StatusLog(0,"ArrayPrint: Array empty") end
-  local Cnt  = 1
-  local Col  = 0
-  local Max  = 0
-  local Cols = 0
+  local Cnt, Next = 1
+  local Col, Max, Cols = 0, 0, 0
   local Line = (sName or "Data").." = { \n"
   local Pad  = StringPad(" "," ",stringLen(Line)-1)
-  local Next
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
   while(arArr[Cnt]) do
     Col = stringLen(tostring(arArr[Cnt]))
     if(Col > Max) then
@@ -1692,7 +1692,7 @@ function ArrayPrint(arArr,sName,nCol)
     end
     Line = Line..StringPad(tostring(arArr[Cnt])," ",-Max-1)
     if(Next) then
-      Line = Line..","
+      Line = Line..symSep
     end
     if(nCol and Cols == 0) then
       Cols = Col - 1
@@ -3401,8 +3401,9 @@ function GetPropBodyGrp(oEnt)
   if(not (BG and BG[1])) then
     return StatusLog("","GetPropBodyGrp: Bodygroup table empty") end
   local Rez, Cnt = "", 1
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
   while(BG[Cnt]) do
-    Rez = Rez..","..tostring(bgEnt:GetBodygroup(BG[Cnt].id) or 0)
+    Rez = Rez..symSep..tostring(bgEnt:GetBodygroup(BG[Cnt].id) or 0)
     Cnt = Cnt + 1
   end
   Rez = stringSub(Rez,2,-1)
@@ -3413,22 +3414,19 @@ end
 function AttachBodyGroups(ePiece,sBgrpIDs)
   local sBgrpIDs = sBgrpIDs or ""
   if(not (sBgrpIDs and IsString(sBgrpIDs))) then
-    return StatusLog(false,"AttachBodyGroups: Expecting string argument for bodygroup IDs") end
-  local sNumBG = ePiece:GetNumBodyGroups()
+    return StatusLog(false,"AttachBodyGroups: Expecting string argument") end
   LogInstance("AttachBodyGroups: BGS: "..sBgrpIDs)
-  LogInstance("AttachBodyGroups: NUM: "..sNumBG)
-  local IDs = String2BGID(sBgrpIDs,sNumBG)
+  local IDs = String2BGID(sBgrpIDs)
   if(not IsExistent(IDs)) then -- Nil or table
-    return StatusLog(false,"AttachBodyGroups: Expecting string argument for bodygroup IDs") end
-  local BG = ePiece:GetBodyGroups()
-  Print(IDs,"IDs")
+    return StatusLog(false,"AttachBodyGroups: Bodygroup ID not matched") end
   local Cnt = 1
+  local BG  = ePiece:GetBodyGroups()
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
   while(BG[Cnt]) do
     local CurBG = BG[Cnt]
     local BGCnt = ePiece:GetBodygroupCount(CurBG.id)
-    if(IDs[Cnt] > BGCnt or
-       IDs[Cnt] < 0) then IDs[Cnt] = 0 end
-    LogInstance("ePiece:SetBodygroup("..CurBG.id..","..(IDs[Cnt] or 0)..")")
+    if(IDs[Cnt] < 0 or IDs[Cnt] > BGCnt) then IDs[Cnt] = 0 end
+    LogInstance("ePiece:SetBodygroup("..CurBG.id..symSep..(IDs[Cnt] or 0)..")")
     ePiece:SetBodygroup(CurBG.id,IDs[Cnt] or 0)
     Cnt = Cnt + 1
   end

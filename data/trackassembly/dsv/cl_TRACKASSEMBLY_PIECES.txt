@@ -1,4 +1,4 @@
-# ExportIntoFile( DSV ): 12/31/15 20:43:07 [ LUA ]
+# ExportIntoFile( DSV ): 12/31/15 21:41:25 [ LUA ]
 # Data settings: MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE
 TRACKASSEMBLY_PIECES	"models/bobsters_trains/rails/2ft/misc/cross.mdl"	"Bobster's two feet rails"	"Cross"	1	"83,0,3.015"	"83,0,3.015"	"0,0,0"
 TRACKASSEMBLY_PIECES	"models/bobsters_trains/rails/2ft/misc/cross.mdl"	"Bobster's two feet rails"	"Cross"	2	"0.003,83,3.015"	"0.003,83,3.015"	"0,90,0"
