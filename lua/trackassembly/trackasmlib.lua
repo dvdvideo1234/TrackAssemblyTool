@@ -3422,7 +3422,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   local Cnt = 1
   local BG  = ePiece:GetBodyGroups()
   local symSep = GetOpVar("OPSYM_SEPARATOR")
-  while(BG[Cnt]) do
+  while(BG[Cnt] and IDs[Cnt]) do
     local CurBG = BG[Cnt]
     local BGCnt = ePiece:GetBodygroupCount(CurBG.id)
     if(IDs[Cnt] < 0 or IDs[Cnt] > BGCnt) then IDs[Cnt] = 0 end
