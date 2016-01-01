@@ -3397,21 +3397,23 @@ function GetPropBodyGrp(oEnt)
     return StatusLog("","GetPropBodyGrp: Failed to gather entity") end
   if(IsOther(bgEnt)) then
     return StatusLog("","GetPropBodyGrp: Entity other type") end
-  local BG = bgEnt:GetBodyGroups()
-  if(not (BG and BG[1])) then
+  local BGs = bgEnt:GetBodyGroups()
+  if(not (BGs and BGs[1])) then
     return StatusLog("","GetPropBodyGrp: Bodygroup table empty") end
   local Rez, Cnt = "", 1
   local symSep = GetOpVar("OPSYM_SEPARATOR")
-  while(BG[Cnt]) do
-    Rez = Rez..symSep..tostring(bgEnt:GetBodygroup(BG[Cnt].id) or 0)
+  while(BGs[Cnt]) do
+    Rez = Rez..symSep..tostring(bgEnt:GetBodygroup(BGs[Cnt].id) or 0)
     Cnt = Cnt + 1
   end
   Rez = stringSub(Rez,2,-1)
-  Print(BG,"GetPropBodyGrp: BG")
+  Print(BGs,"GetPropBodyGrp: BGs")
   return StatusLog(Rez,"GetPropBodyGrp: Success "..Rez)
 end
 
 function AttachBodyGroups(ePiece,sBgrpIDs)
+  if(not (ePiece and ePiece:IsValid())) then
+    return StatusLog(false,"AttachBodyGroups: Base entity invalid") end
   local sBgrpIDs = sBgrpIDs or ""
   if(not (sBgrpIDs and IsString(sBgrpIDs))) then
     return StatusLog(false,"AttachBodyGroups: Expecting string argument") end
@@ -3420,14 +3422,15 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   if(not IsExistent(IDs)) then -- Nil or table
     return StatusLog(false,"AttachBodyGroups: Bodygroup ID not matched") end
   local Cnt = 1
-  local BG  = ePiece:GetBodyGroups()
+  local BGs = ePiece:GetBodyGroups()
   local symSep = GetOpVar("OPSYM_SEPARATOR")
-  while(BG[Cnt] and IDs[Cnt]) do
-    local CurBG = BG[Cnt]
-    local BGCnt = ePiece:GetBodygroupCount(CurBG.id)
-    if(IDs[Cnt] < 0 or IDs[Cnt] > BGCnt) then IDs[Cnt] = 0 end
-    LogInstance("ePiece:SetBodygroup("..CurBG.id..symSep..(IDs[Cnt] or 0)..")")
-    ePiece:SetBodygroup(CurBG.id,IDs[Cnt] or 0)
+  while(BGs[Cnt] and IDs[Cnt]) do
+    local BG = BGs[Cnt]
+    local ID = IDs[Cnt]
+    local cntBG = ePiece:GetBodygroupCount(BG.id)
+    if(ID < 0 or ID > cntBG) then ID = 0 end
+    LogInstance("ePiece:SetBodygroup("..BG.id..symSep..ID..") ["..cntBG.."]")
+    ePiece:SetBodygroup(BG.id,ID)
     Cnt = Cnt + 1
   end
   return StatusLog(true,"AttachBodyGroups: Success")
@@ -3461,9 +3464,9 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   end
   phPiece:EnableMotion(false)
   phPiece:SetMass(mathClamp(tonumber(nMass) or 1,1,GetOpVar("MAX_MASS")))
-  local IDs = StringExplode((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY"))
-  ePiece:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,ePiece:SkinCount()-1))
-  AttachBodyGroups(ePiece,IDs[1] or "")
+  local BgSk = StringExplode((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY"))
+  ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
+  AttachBodyGroups(ePiece,BgSk[1] or "")
   AttachAdditions(ePiece)
   return ePiece
 end
