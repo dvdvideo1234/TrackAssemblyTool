@@ -36,7 +36,7 @@ asmlib.SetOpVar("MAX_LINEAR",1000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetOpVar("LOG_ONLY",nil)
 asmlib.SetOpVar("LOG_SKIP",{"Qsort","ModelToName","ArrayCount","GetEntitySpawn: Not hitting active point"})
-asmlib.SetLogControl(100000,"")
+asmlib.SetLogControl(0,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
