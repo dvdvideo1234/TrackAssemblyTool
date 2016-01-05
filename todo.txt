@@ -4,17 +4,7 @@ D - Discontinued
 N - Not applicable
 ? - Not yet tested
 
-[V] Test if the Trace.HitWorld Pos/Ang will be calculated correctly.
-[V] Test if AutoOffsetUp() will work correctly for trace.HitHormal/Trace.HitWorld
-[V] Test the physical settings on the pieces
-[V] Test the physical constraints on the pieces
-[V] Take a look at the panel elements translated descriptions
-[V] Test Disable physgun and freeze to be separated
-[D] Test if the "movstatic" option can be duped
-[?] Check the trace position to be displayed with yellow
 [?] "MAX_LINEAR" to be 1000 and Mouse Y to start with a small value
-[?] Replace RotNormalAngle() with DisplaceAngleDir()
-[?] Properly offset the spawn position for MC spawn with DisplacePositionAng()
 
 1       EQ      4.7539  100
 2       LN      67.239  1414.3966006858

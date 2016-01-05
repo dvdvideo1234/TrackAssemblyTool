@@ -225,10 +225,12 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("TYPEMT_SCREEN",{})
   SetOpVar("TYPEMT_CONTAINER",{})
   if(not (IsString(sName) and IsString(sPurpose))) then
-    return StatusPrint(false,"InitAssembly: Error initializing. Expecting string argument")
-  end
-  if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then return StatusPrint(false,"InitAssembly: Name invalid") end
-  if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then return StatusPrint(false,"InitAssembly: Purpose invalid") end
+    return StatusPrint(false,"InitAssembly: Expecting string argument"
+             .." {"..type(sName)..","..type(sPurpose).."}") end
+  if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then
+    return StatusPrint(false,"InitAssembly: Name invalid") end
+  if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then
+    return StatusPrint(false,"InitAssembly: Purpose invalid") end
   SetOpVar("TIME_EPOCH",Time())
   SetOpVar("NAME_INIT",stringLower(sName))
   SetOpVar("NAME_PERP",stringLower(sPurpose))
@@ -803,13 +805,13 @@ local function AddLineListView(pnListView,frUsed,iNdex)
     return StatusLog(nil,"LineAddListView: Missing data") end
   local iNdex = tonumber(iNdex)
   if(not IsExistent(iNdex)) then
-    return StatusLog(nil,"LineAddListView: Index <"..tostring(iNdex).."> not a number but "..type(iNdex)) end
+    return StatusLog(nil,"LineAddListView: Index NAN {"..type(iNdex).."}<"..tostring(iNdex)..">") end
   local tValue = frUsed[iNdex]
   if(not IsExistent(tValue)) then
     return StatusLog(nil,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not IsExistent(defTable)) then
-    return StatusLog(nil,"LineAddListView: Missing: Table definition") end
+    return StatusLog(nil,"LineAddListView: Missing table definition") end
   local sModel = tValue.Table[defTable[1][1]]
   local sType  = tValue.Table[defTable[2][1]]
   local nAct   = tValue.Table[defTable[4][1]]
@@ -831,8 +833,6 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
   if(not (IsExistent(frUsed) and IsExistent(frUsed[1]))) then
     return StatusLog(false,"UpdateListView: Missing data") end
   local nCount = tonumber(nCount) or 0
-  if(not IsExistent(nCount)) then
-    return StatusLog(false,"UpdateListView: Number conversion failed "..tostring(nCount)) end
   if(nCount <= 0) then
     return StatusLog(false,"UpdateListView: Count not applicable") end
   if(IsExistent(pnListView)) then
@@ -894,10 +894,10 @@ function GetFrequentModels(snCount)
     return StatusLog(nil,"GetFrequentModels: Count not applicable") end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not IsExistent(defTable)) then
-    return StatusLog(nil,"GetFrequentModels: Missing: Table definition") end
+    return StatusLog(nil,"GetFrequentModels: Missing table definition") end
   local Cache = libCache[defTable.Name]
   if(not IsExistent(Cache)) then
-    return StatusLog(nil,"GetFrequentModels: Missing: Table cache") end
+    return StatusLog(nil,"GetFrequentModels: Missing table cache space") end
   local iInd, tmNow = 1, Time()
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
   tableEmpty(frUsed)
@@ -919,7 +919,7 @@ end
 function RoundValue(nExact, nFrac)
   local nExact = tonumber(nExact)
   if(not IsExistent(nExact)) then
-    return StatusLog(nil,"RoundValue: Only numbers can be rounded") end
+    return StatusLog(nil,"RoundValue: Cannot round NAN {"..type(nExact).."}<"..tostring(nExact)..">") end
   local nFrac  = tonumber(nFrac) or 0
   if(nFrac == 0) then
     return StatusLog(nil,"RoundValue: Fraction must be <> 0") end
@@ -931,11 +931,11 @@ function SnapValue(nVal, nSnap)
   if(not nVal) then return 0 end
   local nVal = tonumber(nVal)
   if(not IsExistent(nVal)) then
-    return StatusLog(0,"SnapValue: Cannot convert value to a number") end
+    return StatusLog(0,"SnapValue: Convert value NAN {"..type(nVal).."}<"..tostring(nVal)..">") end
   if(not IsExistent(nSnap)) then return nVal end
   local nSnap = tonumber(nSnap)
   if(not IsExistent(nSnap)) then
-    return StatusLog(0,"SnapValue: Cannot convert snap to a number") end
+    return StatusLog(0,"SnapValue: Convert snap NAN {"..type(nSnap).."}<"..tostring(nSnap)..">") end
   if(nSnap == 0) then return nVal end
   local Rez
   local Snp = mathAbs(nSnap)
@@ -1003,8 +1003,8 @@ end
 
 function IncDecPointID(nPointID,sDir,rPiece)
   local nPointID = tonumber(nPointID)
-  if(not nPointID) then
-    return StatusLog(1,"IncDecPointID: Cannot convert pointid to a number") end
+  if(not IsExistent(nPointID)) then
+    return StatusLog(1,"IncDecPointID: PointID NAN {"..type(nPointID).."}<"..tostring(nPointID)..">") end
   if(not IsThereRecID(rPiece,nPointID)) then
     return StatusLog(1,"IncDecPointID: Offset not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
@@ -1020,14 +1020,14 @@ end
 function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
   local nPnextID = tonumber(nPnextID)
   local nPointID = tonumber(nPointID)
-  if(not nPnextID) then
-    return StatusLog(1,"IncDecPnextID: Cannot convert PnextID to a number") end
-  if(not nPointID) then
-    return StatusLog(1,"IncDecPnextID: Cannot convert PointID to a number") end
+  if(not IsExistent(nPnextID)) then
+    return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(nPnextID).."}<"..tostring(nPnextID)..">") end
+  if(not IsExistent(nPointID)) then
+    return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(nPointID).."}<"..tostring(nPointID)..">") end
   if(not IsThereRecID(rPiece,nPnextID)) then
-    return StatusLog(1,"IncDecPointID: Offset PnextID not located") end
+    return StatusLog(1,"IncDecPointID: Offset PnextID["..tostring(nPnextID).."] not located") end
   if(not IsThereRecID(rPiece,nPointID)) then
-    return StatusLog(1,"IncDecPointID: Offset PointID not located") end
+    return StatusLog(1,"IncDecPointID: Offset PointID["..tostring(nPointID).."] not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir =  1
   elseif(sDir == "-") then nDir = -1
@@ -1043,7 +1043,7 @@ function PointOffsetUp(oEnt,nPointID)
     return StatusLog(nil,"PointOffsetUp: Entity Invalid") end
   local nPointID = tonumber(nPointID)
   if(not IsExistent(nPointID)) then
-    return StatusLog(nil,"PointOffsetUp: Not a number #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: PointID NAN {"..type(nPointID).."}<"..tostring(nPointID).."> for <"..oEnt:GetModel()..">") end
   local hdPnt = CacheQueryPiece(oEnt:GetModel())
   if(not IsExistent(hdPnt)) then
     return StatusLog(nil,"PointOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
@@ -1093,9 +1093,9 @@ function ModelToName(sModel)
     while(tCut[Cnt] and tCut[Cnt+1]) do
       fCh = tonumber(tCut[Cnt])
       bCh = tonumber(tCut[Cnt+1])
-      if(not (fCh and bCh)) then
+      if(not (IsExistent(fCh) and IsExistent(bCh))) then
         return StatusLog("","ModelToName: Cannot cut the model in {"
-                 ..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} for "..sModel)
+                 ..tostring(tCut[Cnt])..","..tostring(tCut[Cnt+1]).."} for "..sModel)
       end
       LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} << "..gModel)
       gModel = stringGsub(gModel,stringSub(sModel,fCh,bCh),"")
@@ -1260,8 +1260,8 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if(not stPiece) then
     return StatusLog(nil,"RegisterPOA: Cache record invalid") end
   local nID = tonumber(nID)
-  if(not nID) then
-    return StatusLog(nil,"RegisterPOA: OffsetID is not a number") end
+  if(not IsExistent(nID)) then
+    return StatusLog(nil,"RegisterPOA: OffsetID NAN {"..type(nID).."}<"..tostring(nID)..">") end
   local sP = sP or "NULL"
   local sO = sO or "NULL"
   local sA = sA or "NULL"
@@ -1291,8 +1291,7 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if((sO ~= "") and (sO ~= "NULL")) then DecodePOA(sO)
   else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.O,"V"))) then
-    return StatusLog(nil,"RegisterPOA: Cannot transfer origin")
-  end
+    return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
   if((sP ~= "") and (sP ~= "NULL")) then DecodePOA(sP) end
   if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer point")
@@ -1301,8 +1300,7 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if((sA ~= "") and (sA ~= "NULL")) then DecodePOA(sA)
   else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.A,"A"))) then
-    return StatusLog(nil,"RegisterPOA: Cannot transfer angle")
-  end
+    return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
   return tOffs
 end
 
@@ -1314,7 +1312,8 @@ function FormatNumberMax(nNum,nMax)
 end
 
 local function Qsort(Data,Lo,Hi)
-  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then return StatusLog(nil,"Qsort: Data dimensions mismatch") end
+  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
+    return StatusLog(nil,"Qsort: Data dimensions mismatch") end
   local Mid = mathRandom(Hi-(Lo-1))+Lo-1
   Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
   local Vmid = Data[Lo].Val
@@ -1333,7 +1332,8 @@ local function Qsort(Data,Lo,Hi)
 end
 
 local function Ssort(Data,Lo,Hi)
-  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then return StatusLog(nil,"Ssort: Data dimensions mismatch") end
+  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
+    return StatusLog(nil,"Ssort: Data dimensions mismatch") end
   local Ind = 1
   local Sel
   while(Data[Ind]) do
@@ -1349,7 +1349,8 @@ local function Ssort(Data,Lo,Hi)
 end
 
 local function Bsort(Data,Lo,Hi)
-  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then return StatusLog(nil,"Bsort: Data dimensions mismatch") end
+  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
+    return StatusLog(nil,"Bsort: Data dimensions mismatch") end
   local Ind, End = 1, false
   while(not End) do
     End = true
@@ -1573,7 +1574,9 @@ function StringPad(sStr,sPad,nCnt)
   local iLen = stringLen(sStr) -- Not used just for error handling
   if(iLen == 0) then return StatusLog(sStr,"StringPad: Pad too short") end
   local iCnt = tonumber(nCnt)
-  if(not iCnt) then return StatusLog(sStr,"StringPad: Count missing") end
+  if(not IsExistent(iCnt)) then
+    return StatusLog(sStr,"StringPad: Count NAN {"
+             ..type(iCnt).."}<"..tostring(iCnt)..">") end
   local iDif = (mathAbs(iCnt) - iLen)
   if(iDif <= 0) then return StatusLog(sStr,"StringPad: Padding Ignored") end
   local sCh = stringSub(sPad,1,1)
@@ -1596,8 +1599,9 @@ function String2BGID(sStr)
   local Data = StringExplode(sStr,GetOpVar("OPSYM_SEPARATOR"))
   while(Data[Cnt]) do
     local Num = tonumber(Data[Cnt])
-    if(not Num) then
-      return StatusLog(nil, "String2BGID: Value not a number") end
+    if(not IsExistent(Num)) then
+      return StatusLog(nil, "String2BGID: Value NAN {"
+               ..type(Num).."}<"..tostring(Num)..">") end
     if((mathFloor(Num) - Num) ~= 0) then
       return StatusLog(nil, "String2BGID: Floats are forbidden") end
     Data[Cnt] = Num
@@ -1726,7 +1730,8 @@ local function IsArrayOr(arArr,iEnd)
     return StatusLog(nil,"IsArrayOr: Array is "..type(arArr)) end
   local iEnd = tonumber(iEnd)
   if(not IsExistent(iEnd)) then
-    return StatusLog(nil,"IsArrayOr: End index not a number") end
+    return StatusLog(nil,"IsArrayOr: End NAN {"
+             ..type(iEnd).."}<"..tostring(iEnd)..">") end
   local iCnt, bFlg = 1, false
   while(iCnt <= iEnd) do
     bFlg = bFlg or (arArr[iCnt] and true or false)
@@ -1741,7 +1746,8 @@ function IsArrayAnd(arArr,iEnd)
     return StatusLog(nil,"IsArrayAnd: Array is "..type(arArr)) end
   local iEnd = tonumber(iEnd)
   if(not IsExistent(iEnd)) then
-    return StatusLog(nil,"IsArrayAnd: End index not a number") end
+    return StatusLog(nil,"IsArrayAnd: End NAN {"
+             ..type(iEnd).."}<"..tostring(iEnd)..">") end
   local iCnt, bFlg = 1, true
   while(iCnt <= iEnd) do
     bFlg = bFlg and (arArr[iCnt] and true or false)
@@ -1870,13 +1876,15 @@ end
 
 local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
   if(not defTable) then
-    return StatusLog(nil,"MatchType: Missing: Table definition") end
+    return StatusLog(nil,"MatchType: Missing table definition") end
   local nIndex = tonumber(nIndex)
   if(not nIndex) then
-    return StatusLog(nil,"MatchType: Invalid: Field ID #"..tostring(nIndex).." on table "..defTable.Name) end
+    return StatusLog(nil,"MatchType: Field NAN {"..type(nIndex)"}<"
+             ..tostring(nIndex).."> invalid on table "..defTable.Name) end
   local defField = defTable[nIndex]
   if(not defField) then
-    return StatusLog(nil,"MatchType: Invalid: Field #"..tostring(nIndex).." on table "..defTable.Name) end
+    return StatusLog(nil,"MatchType: Invalid field #"
+             ..tostring(nIndex).." on table "..defTable.Name) end
   local snOut
   local tipField = tostring(defField[2])
   local sModeDB  = GetOpVar("MODE_DATABASE")
@@ -1914,11 +1922,10 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
     end
   elseif(tipField == "REAL" or tipField == "INTEGER") then
     snOut = tonumber(snValue)
-    if(not snOut) then
-      return StatusLog(nil,"MatchType: Failed converting <"
-               ..tostring(snValue).."> "..type(snValue)
-               .." to NUMBER for table "..defTable.Name.." field #"..nIndex)
-    end
+    if(not IsExistent(snOut)) then
+      return StatusLog(nil,"MatchType: Failed converting {"
+               ..type(snValue).."}<"..tostring(snValue).."> to NUMBER for table "
+               ..defTable.Name.." field #"..nIndex) end
     if(tipField == "INTEGER") then
       if(defField[3] == "FLR") then
         snOut = mathFloor(snOut)
@@ -1927,21 +1934,20 @@ local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bSto
       end
     end
   else
-    return StatusLog(nil,"MatchType: Invalid: Field type <"..tipField
-                                     .."> on table "..defTable.Name)
-  end
+    return StatusLog(nil,"MatchType: Invalid field type <"
+      ..tipField.."> on table "..defTable.Name) end
   return snOut
 end
 
 local function SQLBuildCreate(defTable)
   if(not defTable) then
-    return SQLBuildError("SQLBuildCreate: Missing: Table definition") end
+    return SQLBuildError("SQLBuildCreate: Missing table definition") end
   local namTable   = defTable.Name
   local TableIndex = defTable.Index
   if(not defTable[1]) then
-    return SQLBuildError("SQLBuildCreate: Missing: Table definition is empty for "..namTable) end
+    return SQLBuildError("SQLBuildCreate: Missing table definition is empty for "..namTable) end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return SQLBuildError("SQLBuildCreate: Missing: Table "..namTable.." field definitions") end
+    return SQLBuildError("SQLBuildCreate: Missing table "..namTable.." field definitions") end
   local Ind = 1
   local Command  = {}
   Command.Drop   = "DROP TABLE "..namTable..";"
@@ -2006,7 +2012,7 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
   local Val
   local Base
   if(not defTable) then
-    return StatusLog(nil,"SQLStoreQuery: Missing: Table definition") end
+    return StatusLog(nil,"SQLStoreQuery: Missing table definition") end
   local tTimer = defTable.Timer
   if(not (tTimer and ((tonumber(tTimer[2]) or 0) > 0))) then
     return StatusLog(sQuery,"SQLStoreQuery: Skipped. Cache persistent forever") end
@@ -2029,7 +2035,7 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
     while(tFields[Field]) do
       Val = defTable[tFields[Field]][1]
       if(not IsExistent(Val)) then
-        return StatusLog(nil,"SQLStoreQuery: Missing: Field key for #"..tostring(Field)) end
+        return StatusLog(nil,"SQLStoreQuery: Missing field key for #"..tostring(Field)) end
       if(Place[Val]) then
         Place = Place[Val]
       elseif(sQuery) then
@@ -2064,7 +2070,7 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
         Base = Place
         Place[Val] = {}
         Place = Place[Val]
-      else return StatusLog(nil,"SQLStoreQuery: Missing: Order field key for #"..tostring(Order)) end
+      else return StatusLog(nil,"SQLStoreQuery: Missing order field key for #"..tostring(Order)) end
       Order = Order + 1
     end
   end
@@ -2072,7 +2078,7 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
     while(tWhere[Where]) do
       Val = defTable[tWhere[Where][1]][1]
       if(not IsExistent(Val)) then
-        return StatusLog(nil,"SQLStoreQuery: Missing: Where field key for #"..tostring(Where)) end
+        return StatusLog(nil,"SQLStoreQuery: Missing where field key for #"..tostring(Where)) end
       if(Place[Val]) then
         Base = Place
         Place = Place[Val]
@@ -2085,7 +2091,7 @@ local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
       end
       Val = tWhere[Where][2]
       if(not IsExistent(Val)) then
-        return StatusLog(nil,"SQLStoreQuery: Missing: Where value key for #"..tostring(Where)) end
+        return StatusLog(nil,"SQLStoreQuery: Missing where value key for #"..tostring(Where)) end
       if(Place[Val]) then
         Base = Place
         Place = Place[Val]
@@ -2103,10 +2109,10 @@ end
 
 local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   if(not defTable) then
-    return SQLBuildError("SQLBuildSelect: Missing: Table definition") end
+    return SQLBuildError("SQLBuildSelect: Missing table definition") end
   local namTable = defTable.Name
   if(not (defTable[1][1] and defTable[1][2])) then
-    return SQLBuildError("SQLBuildSelect: Missing: Table "..namTable.." field definitions") end
+    return SQLBuildError("SQLBuildSelect: Missing table "..namTable.." field definitions") end
   local Command = SQLStoreQuery(defTable,tFields,tWhere,tOrderBy)
   if(IsString(Command)) then
     SQLBuildError("")
@@ -2117,10 +2123,10 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   if(tFields) then
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])
-      if(not v) then
-        return SQLBuildError("SQLBuildSelect: Select index #"
-          ..tostring(tFields[Cnt])
-          .." type mismatch in "..namTable) end
+      if(not IsExistent(v)) then
+        return SQLBuildError("SQLBuildSelect: Select index NAN {"
+             ..type(iEnd).."}<"..tostring(iEnd)
+             .."> type mismatch in "..namTable) end
       if(defTable[v]) then
         if(defTable[v][1]) then
           Command = Command..defTable[v][1]
@@ -2152,7 +2158,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       t = defTable[k][2]
       if(not (k and v and t) ) then
         return SQLBuildError("SQLBuildSelect: Where clause inconsistent on "
-          ..namTable.." field index, {"..tostring(k)..", "..tostring(v)..", "..tostring(t)
+          ..namTable.." field index, {"..tostring(k)..","..tostring(v)..","..tostring(t)
           .."} value or type in the table definition") end
       v = MatchType(defTable,v,k,true)
       if(not IsExistent(v)) then
@@ -2204,7 +2210,7 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
   if(not (defTable[1][1] and
           defTable[1][2])
   ) then
-    return SQLBuildError("SQLBuildInsert: Missing: Table "..namTable.." field definition")
+    return SQLBuildError("SQLBuildInsert: Missing table "..namTable.." field definition")
   end
   local tInsert = tInsert or {}
   if(not tInsert[1]) then
@@ -2311,25 +2317,25 @@ end
 
 function InsertRecord(sTable,tData)
   if(not IsExistent(sTable)) then
-    return StatusLog(false,"InsertRecord: Missing: Table name/values")
+    return StatusLog(false,"InsertRecord: Missing table name/values")
   end
   if(type(sTable) == "table") then
     tData  = sTable
     sTable = DefaultTable()
     if(not (IsExistent(sTable) and sTable ~= "")) then
-      return StatusLog(false,"InsertRecord: Missing: Table default name for "..sTable) end
+      return StatusLog(false,"InsertRecord: Missing table default name for "..sTable) end
   end
   if(not IsString(sTable)) then
-    return StatusLog(false,"InsertRecord: Missing: Table definition name "..tostring(sTable).." ("..type(sTable)..")") end
+    return StatusLog(false,"InsertRecord: Missing table definition name "..tostring(sTable).." ("..type(sTable)..")") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
-    return StatusLog(false,"InsertRecord: Missing: Table definition for "..sTable) end
+    return StatusLog(false,"InsertRecord: Missing table definition for "..sTable) end
   if(not defTable[1])  then
-    return StatusLog(false,"InsertRecord: Missing: Table definition is empty for "..sTable) end
+    return StatusLog(false,"InsertRecord: Missing table definition is empty for "..sTable) end
   if(not tData)      then
-    return StatusLog(false,"InsertRecord: Missing: Data table for "..sTable) end
+    return StatusLog(false,"InsertRecord: Missing data table for "..sTable) end
   if(not tData[1])   then
-    return StatusLog(false,"InsertRecord: Missing: Data table is empty for "..sTable) end
+    return StatusLog(false,"InsertRecord: Missing data table is empty for "..sTable) end
   local namTable = defTable.Name
 
   if(sTable == "PIECES") then
@@ -2342,11 +2348,11 @@ function InsertRecord(sTable,tData)
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,tData)
-    if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: Build error: "..SQLBuildError()) end
+    if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: Build error <"..SQLBuildError()..">") end
     local qRez = sqlQuery(Q)
     if(not qRez and IsBool(qRez)) then
-       return StatusLog(false,"InsertRecord: Failed to insert a record because of "
-              ..sqlLastError().." Query ran <"..Q..">") end
+       return StatusLog(false,"InsertRecord: Failed to insert a record because of <"
+              ..sqlLastError().."> Query ran <"..Q..">") end
     return true
   elseif(sModeDB == "LUA") then
     local snPrimaryKey = MatchType(defTable,tData[1],1)
@@ -2500,7 +2506,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
         if(IsExistent(v.Used) and IsExistent(v.Load) and ((v.Used - v.Load) > nLifeTM)) then
           LogInstance("TimerAttach: ("..tostring(v.Used - v.Load).." > "..tostring(nLifeTM)..") > Dead")
           if(bKillRC) then
-            LogInstance("TimerAttach: Killed: Place["..tostring(k).."]")
+            LogInstance("TimerAttach: Killed <"..tostring(k)..">")
             Place[k] = nil
           end
         end
@@ -2512,12 +2518,12 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
       return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
     elseif(sModeTM == "OBJ") then
       local TimerID = StringImplode(tKeys,"_")
-      LogInstance("TimerAttach: TimID: <"..TimerID..">")
+      LogInstance("TimerAttach: TimID <"..TimerID..">")
       if(timerExists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
       timerCreate(TimerID, nLifeTM, 1, function()
         LogInstance("TimerAttach["..TimerID.."]("..nLifeTM..") > Dead")
         if(bKillRC) then
-          LogInstance("TimerAttach: Killed: Place["..Key.."]")
+          LogInstance("TimerAttach: Killed <"..Key..">")
           Place[Key] = nil
         end
         timerStop(TimerID)
@@ -2530,7 +2536,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
       timerStart(TimerID)
       return Place[Key]
     else
-      return StatusLog(Place[Key],"TimerAttach: Timer mode not found: "..sModeTM)
+      return StatusLog(Place[Key],"TimerAttach: Timer mode not found <"..sModeTM..">")
     end
   elseif(sModeDB == "LUA") then
     return StatusLog(Place[Key],"TimerAttach: Memory manager not available")
@@ -2562,9 +2568,9 @@ local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
     elseif(sModeTM == "OBJ") then
       local keyTimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
       if(not timerExists(keyTimerID)) then
-        return StatusLog(nil,"TimerRestart: Timer missing: "..keyTimerID) end
+        return StatusLog(nil,"TimerRestart: Timer missing <"..keyTimerID..">") end
       timerStart(keyTimerID)
-    else return StatusLog(nil,"TimerRestart: Timer mode not found: "..sModeTM) end
+    else return StatusLog(nil,"TimerRestart: Timer mode not found <"..sModeTM..">") end
   elseif(sModeDB == "LUA") then Place[Key].Used = Time()
   else return StatusLog(nil,"TimerRestart: Wrong database mode") end
   return Place[Key]
@@ -2576,15 +2582,17 @@ function CacheQueryPiece(sModel)
     return StatusLog(nil,"CacheQueryPiece: Model does not exist") end
   if(not IsString(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model is not string") end
-  if(IsEmptyString(sModel)) then return StatusLog(nil,"CacheQueryPiece: Model empty string") end
-  if(not utilIsValidModel(sModel)) then return nil end
+  if(IsEmptyString(sModel)) then
+    return StatusLog(nil,"CacheQueryPiece: Model empty string") end
+  if(not utilIsValidModel(sModel)) then
+    return StatusLog(nil,"CacheQueryPiece: Model invalid") end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then
-    return StatusLog(nil,"CacheQueryPiece: Missing: Table definition") end
+    return StatusLog(nil,"CacheQueryPiece: Table definition missing") end
   local namTable = defTable.Name
   local Cache    = libCache[namTable]
   if(not IsExistent(Cache)) then
-    return StatusLog(nil,"CacheQueryPiece: Cache not allocated for "..namTable) end
+    return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..namTable..">") end
   local caInd    = {namTable,sModel}
   local stPiece  = Cache[sModel]
   if(IsExistent(stPiece) and IsExistent(stPiece.Kept)) then
@@ -2596,16 +2604,16 @@ function CacheQueryPiece(sModel)
     local sModeDB = GetOpVar("MODE_DATABASE")
     local sModel  = MatchType(defTable,sModel,1,false,"",true,true)
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryPiece: Model >> Pool: "..StringFileModel(sModel))
+      LogInstance("CacheQueryPiece: Model >> Pool <"..StringFileModel(sModel)..">")
       Cache[sModel] = {}
       stPiece = Cache[sModel]
       stPiece.Kept = 0
       local Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
       if(not IsExistent(Q)) then
-        return StatusLog(nil,"CacheQueryPiece: Build error: "..SQLBuildError()) end
+        return StatusLog(nil,"CacheQueryPiece: Build error <"..SQLBuildError()..">") end
       local qData = sqlQuery(Q)
       if(not qData and IsBool(qData)) then
-        return StatusLog(nil,"CacheQueryPiece: SQL exec error "..sqlLastError()) end
+        return StatusLog(nil,"CacheQueryPiece: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPiece: No data found <"..Q..">") end
       stPiece.Kept = 1 --- Found at least one record
@@ -2620,7 +2628,7 @@ function CacheQueryPiece(sModel)
                            qRec[defTable[6][1]],
                            qRec[defTable[7][1]])
         if(not IsExistent(qRez)) then
-          return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for "..sModel)
+          return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for <"..sModel..">")
         end
         stPiece.Kept = stPiece.Kept + 1
       end
@@ -2637,15 +2645,16 @@ function CacheQueryAdditions(sModel)
     return StatusLog(nil,"CacheQueryAdditions: Model not string") end
   if(IsEmptyString(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model empty string") end
-  if(not utilIsValidModel(sModel)) then return nil end
+  if(not utilIsValidModel(sModel)) then 
+    return StatusLog(nil,"CacheQueryAdditions: Model invalid") end
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then
-    return StatusLog(nil,"CacheQueryAdditions: Missing: Table definition") end
+    return StatusLog(nil,"CacheQueryAdditions: Missing table definition") end
   local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   local namTable = defTable.Name
   local Cache    = libCache[namTable]
   if(not IsExistent(Cache)) then
-    return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for "..namTable) end
+    return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..namTable..">") end
   local caInd    = {namTable,sModel}
   local stAddition = Cache[sModel]
   if(IsExistent(stAddition) and IsExistent(stAddition.Kept)) then
@@ -2655,16 +2664,16 @@ function CacheQueryAdditions(sModel)
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryAdditions: Model >> Pool: "..StringFileModel(sModel))
+      LogInstance("CacheQueryAdditions: Model >> Pool <"..StringFileModel(sModel)..">")
       Cache[sModel] = {}
       stAddition = Cache[sModel]
       stAddition.Kept = 0
       local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
       if(not IsExistent(Q)) then
-        return StatusLog(nil,"CacheQueryAdditions: Build error: "..SQLBuildError()) end
+        return StatusLog(nil,"CacheQueryAdditions: Build error <"..SQLBuildError()..">") end
       local qData = sqlQuery(Q)
       if(not qData and IsBool(qData)) then
-        return StatusLog(nil,"CacheQueryAdditions: SQL exec error "..sqlLastError()) end
+        return StatusLog(nil,"CacheQueryAdditions: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryAdditions: No data found <"..Q..">") end
       stAddition.Kept = 1
@@ -2688,11 +2697,11 @@ end
 function CacheQueryPanel()
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then
-    return StatusLog(false,"CacheQueryPanel: Missing: Table definition") end
+    return StatusLog(false,"CacheQueryPanel: Missing table definition") end
   local namTable = defTable.Name
   local keyPanel = GetOpVar("HASH_USER_PANEL")
   if(not IsExistent(libCache[namTable])) then
-    return StatusLog(nil,"CacheQueryPanel: Cache not allocated for "..namTable) end
+    return StatusLog(nil,"CacheQueryPanel: Cache not allocated for <"..namTable..">") end
   local stPanel = libCache[keyPanel]
   local caInd = {keyPanel}
   if(IsExistent(stPanel) and IsExistent(stPanel.Kept)) then
@@ -2707,10 +2716,10 @@ function CacheQueryPanel()
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
       if(not IsExistent(Q)) then
-        return StatusLog(nil,"CacheQueryPanel: Build error: "..SQLBuildError()) end
+        return StatusLog(nil,"CacheQueryPanel: Build error: <"..SQLBuildError()..">") end
       local qData = sqlQuery(Q)
       if(not qData and IsBool(qData)) then
-        return StatusLog(nil,"CacheQueryPanel: SQL exec error "..sqlLastError()) end
+        return StatusLog(nil,"CacheQueryPanel: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPanel: No data found <"..Q..">") end
       stPanel.Kept = 1
@@ -2744,11 +2753,11 @@ end
 function CacheQueryProperty(sType)
   local defTable = GetOpVar("DEFTABLE_PHYSPROPERTIES")
   if(not defTable) then
-    return StatusLog(nil,"CacheQueryProperty: Table definition missing") end
+    return StatusLog(nil,"CacheQueryProperty: Missing table definition") end
   local namTable = defTable.Name
   local Cache    = libCache[namTable]
   if(not Cache) then
-    return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for "..namTable) end
+    return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..namTable..">") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and (sType ~= "")) then -- Get names per type
     local sType   = MatchType(defTable,sType,1,false,"",true,true)
@@ -2772,10 +2781,10 @@ function CacheQueryProperty(sType)
         stName.Kept = 0
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
         if(not IsExistent(Q)) then
-          return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: "..SQLBuildError()) end
+          return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: <"..SQLBuildError()..">") end
         local qData = sqlQuery(Q)
         if(not qData and IsBool(qData)) then
-          return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sqlLastError()) end
+          return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found <"..Q..">") end
         stName.Kept = 1
@@ -2803,10 +2812,10 @@ function CacheQueryProperty(sType)
         stType.Kept = 0
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
         if(not IsExistent(Q)) then
-          return StatusLog(nil,"CacheQueryProperty: Build error: "..SQLBuildError()) end
+          return StatusLog(nil,"CacheQueryProperty: Build error: <"..SQLBuildError()..">") end
         local qData = sqlQuery(Q)
         if(not qData and IsBool(qData)) then
-          return StatusLog(nil,"CacheQueryProperty: SQL exec error "..sqlLastError()) end
+          return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty: No data found <"..Q..">") end
         stType.Kept = 1
@@ -2852,13 +2861,13 @@ local function GetFieldsName(defTable,sDelim)
   local sDelim  = stringSub(tostring(sDelim),1,1)
   local sResult = ""
   if(sDelim == "") then
-    return StatusLog("","GetFieldsName: Invalid delimiter for "..defTable.Name) end
+    return StatusLog("","GetFieldsName: Invalid delimiter for <"..defTable.Name..">") end
   local iCount  = 1
   local namField
   while(defTable[iCount]) do
     namField = defTable[iCount][1]
     if(not IsString(namField)) then
-      return StatusLog("","GetFieldsName: Invalid field #"..iCount.." for "..defTable.Name) end
+      return StatusLog("","GetFieldsName: Invalid field #"..iCount.." for <"..defTable.Name..">") end
     sResult = sResult..namField
     if(defTable[iCount + 1]) then sResult = sResult..sDelim end
     iCount = iCount + 1
@@ -2880,7 +2889,7 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
     return StatusLog(false,"ImportFromDSV: Table name should be string but "..type(sTable)) end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
-    return StatusLog(false,"ImportFromDSV: Missing: Table definition for "..sTable) end
+    return StatusLog(false,"ImportFromDSV: Missing table definition for <"..sTable..">") end
   local namTable = defTable.Name
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..(sPrefix or GetInstPref())..namTable..".txt"
@@ -2930,13 +2939,13 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     return StatusLog(false,"ExportIntoFile: Export mode should be string but "..type(sTable)) end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
-    return StatusLog(false,"ExportIntoFile: Missing: Table definition for "..sTable) end
+    return StatusLog(false,"ExportIntoFile: Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")
   local namTable = defTable.Name
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   if    (sMethod == "DSV") then fName = fName..GetOpVar("DIRPATH_DSV")
   elseif(sMethod == "INS") then fName = fName..GetOpVar("DIRPATH_EXP")
-  else return StatusLog(false,"Missed export method: "..sMethod) end
+  else return StatusLog(false,"Missed export method: <"..sMethod..">") end
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..(sPrefix or GetInstPref())..namTable..".txt"
   local F = fileOpen(fName, "w", "DATA" )
@@ -2952,11 +2961,11 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     elseif(sTable == "ADDITIONS"     ) then Q = SQLBuildSelect(defTable,nil,nil,{1,4})
     elseif(sTable == "PHYSPROPERTIES") then Q = SQLBuildSelect(defTable,nil,nil,{1,2})
     else                                    Q = SQLBuildSelect(defTable,nil,nil,nil) end
-    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile: Build error: "..SQLBuildError()) end
+    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile: Build error <"..SQLBuildError()..">") end
     F:Write("# Query ran: <"..Q..">\n")
     local qData = sqlQuery(Q)
     if(not qData and IsBool(qData)) then
-      return StatusLog(nil,"ExportIntoFile: SQL exec error "..sqlLastError()) end
+      return StatusLog(nil,"ExportIntoFile: SQL exec error <"..sqlLastError()..">") end
     if(not (qData and qData[1])) then
       return StatusLog(false,"ExportIntoFile: No data found <"..Q..">") end
     local iCnt, iInd, qRec = 1, 1, nil
@@ -2982,7 +2991,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   elseif(sModeDB == "LUA") then
     local Cache = libCache[namTable]
     if(not IsExistent(Cache)) then
-      return StatusLog(false,"ExportIntoFile: Table "..namTable.." cache not allocated") end
+      return StatusLog(false,"ExportIntoFile: Table <"..namTable.."> cache not allocated") end
     if(sTable == "PIECES") then
       local tData = {}
       local iInd iNdex = 1,1
@@ -3052,7 +3061,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
         sType = tTypes[iInd]
         tType = tNames[sType]
         if(not tType) then return
-          StatusLog(false,"ExportIntoFile: Missing index #"..iInd.." on type "..sType) end
+          StatusLog(false,"ExportIntoFile: Missing index #"..iInd.." on type <"..sType..">") end
         if    (sMethod == "DSV") then sData = namTable..sDelim
         elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
         iCnt = 1
@@ -3090,7 +3099,7 @@ function GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
   if(not (ucsPos and ucsAng and hdModel and hdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Mismatched input parameters") end
   if(not utilIsValidModel(hdModel)) then
-    return StatusLog(nil,"GetNormalSpawn: Model not valid") end
+    return StatusLog(nil,"GetNormalSpawn: Model invalid") end
   local hdRec = CacheQueryPiece(hdModel)
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"GetNormalSpawn: No record located") end
@@ -3098,7 +3107,7 @@ function GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
     return StatusLog(nil,"GetNormalSpawn: Offsets missing") end
   local hdPointID = tonumber(hdPointID)
   if(not IsExistent(hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID number mismatch #"..tostring(hdPointID)) end
+    return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(hdPointID).."}<"..tostring(hdPointID)..">") end
   if(not IsThereRecID(hdRec,hdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..hdPointID) end
   local stPoint = hdRec.Offs[hdPointID]
@@ -3167,10 +3176,10 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,hdPointID,
     return StatusLog(nil,"GetEntitySpawn: Trace point invalid") end
   local hdPointID = tonumber(hdPointID)
   if(not IsExistent(hdPointID)) then
-    return StatusLog(nil,"GetEntitySpawn: Holder ID number mismatch #"..tostring(hdPointID)) end
+    return StatusLog(nil,"GetEntitySpawn: Holder PointID NAN {"..type(hdPointID).."}<"..tostring(hdPointID)..">") end
   local hdRec = CacheQueryPiece(hdModel)
   if(not IsThereRecID(hdRec,hdPointID)) then
-    return StatusLog(nil,"GetEntitySpawn: Holder point invalid") end
+    return StatusLog(nil,"GetEntitySpawn: Holder PointID invalid") end
   -- Get client's offset ID
   local hdOffs = hdRec.Offs[hdPointID]
   -- If there is no Type field exit immediately
@@ -3260,7 +3269,7 @@ function AttachAdditions(ePiece)
   local qData = CacheQueryAdditions(LocalMod)
   if(not IsExistent(qData)) then
     return StatusLog(true,"AttachAdditions: Model <"..LocalMod.."> has no additions") end
-  LogInstance("AttachAdditions: Model: <"..LocalMod..">")
+  LogInstance("AttachAdditions: Called for model <"..LocalMod..">")
   local Record, Addition
   local Cnt = 1
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
@@ -3408,7 +3417,7 @@ function GetPropBodyGrp(oEnt)
   end
   Rez = stringSub(Rez,2,-1)
   Print(BGs,"GetPropBodyGrp: BGs")
-  return StatusLog(Rez,"GetPropBodyGrp: Success "..Rez)
+  return StatusLog(Rez,"GetPropBodyGrp: Success <"..Rez..">")
 end
 
 function AttachBodyGroups(ePiece,sBgrpIDs)
@@ -3417,7 +3426,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   local sBgrpIDs = sBgrpIDs or ""
   if(not (sBgrpIDs and IsString(sBgrpIDs))) then
     return StatusLog(false,"AttachBodyGroups: Expecting string argument") end
-  LogInstance("AttachBodyGroups: BGS: "..sBgrpIDs)
+  LogInstance("AttachBodyGroups: BGS <"..sBgrpIDs..">")
   local IDs = String2BGID(sBgrpIDs)
   if(not IsExistent(IDs)) then -- Nil or table
     return StatusLog(false,"AttachBodyGroups: Bodygroup ID not matched") end
@@ -3525,15 +3534,15 @@ end
 function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)
   local anyMessage = tostring(anyMessage)
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"Piece:SetBoundPos: Entity invalid: "..anyMessage) end
+    return StatusLog(false,"Piece:SetBoundPos: Entity invalid "..anyMessage) end
   if(not vPos) then
-    return StatusLog(false,"Piece:SetBoundPos: Position invalid: "..anyMessage) end
+    return StatusLog(false,"Piece:SetBoundPos: Position invalid "..anyMessage) end
   if(not oPly) then
-    return StatusLog(false,"Piece:SetBoundPos: Player invalid: "..anyMessage) end
+    return StatusLog(false,"Piece:SetBoundPos: Player invalid "..anyMessage) end
   local sMode = tostring(sMode or "LOG")
   if(sMode == "OFF") then
     ePiece:SetPos(vPos)
-    return StatusLog(true,"Piece:SetBoundPos("..sMode.."): Tuned off")
+    return StatusLog(true,"Piece:SetBoundPos("..sMode..") Tuned off")
   end
   if(utilIsInWorld(vPos)) then -- Error mode is "LOG" by default
     ePiece:SetPos(vPos)
@@ -3541,7 +3550,7 @@ function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)
     ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
       PrintNotify(oPly,"Position out of map bounds!",sMode) end
-    return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds: "..anyMessage)
+    return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds "..anyMessage)
   end
   return StatusLog(true,"Piece:SetBoundPos("..sMode.."): Success")
 end

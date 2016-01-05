@@ -35,10 +35,14 @@ A: Just subscribe to the workshop item:
      When you are looking at the world the piece will just be spawned on the map.
      When you are looking at one of track piece's pre-defined active points
        Will snap the piece that you're holding to the trace one.
-       If the trace piece's type is different than the holder piece's type, please check "Ignore track type" checkbox.
-       If "Enable advisor" is checked, a coordinate system will appear, marking the origin position on the trace piece
-       If "Enable ghosting" is checked the ghost track piece will be rendered to assist you with the building.
-     When you are not looking at one of track piece's pre-defined active points, you will update the piece's bodygroups.
+       If the trace piece's type is different than the holder piece's type,
+         please check "Ignore track type" checkbox.
+       If "Enable advisor" is checked, a coordinate system will appear,
+         marking the origin position on the trace piece
+       If "Enable ghosting" is checked the ghost track piece will be
+         rendered to assist you with the building.
+     When you are not looking at one of track piece's pre-defined active points,
+       you will update the piece's bodygroups/skin.
    Pressing DUCK ( Default: Ctrl ) + ATTACK1 ( Default: Left mouse button )
      Will select the trace model to use as a piece for building.
    Pressing SPEED ( Default: Shift ) + ATTACK1 ( Default: Left mouse button ) 
@@ -64,9 +68,10 @@ A: Just subscribe to the workshop item:
      Will set the trace prop as an anchor for other pieces spawned to be welded to.
    If you want to obtain different grip behaviour for a wheel-powered/sliding train,
      you may use the surface material drop-down menus as you select first "TYPE" then "NAME".
-   In the text field you may type bodygroup/skin selection code or generate one using the SCORE ( Default: TAB ) key
-     while pointing to a prop with bodygroups/skins set by Garry's mod entity right click menu.
-     Press "ENTER" in the text field if you are happy with the selection to apply it.
+   In the text field you may type bodygroup/skin selection code or generate one using
+     the SCORE ( Default: TAB ) key while pointing to a prop with bodygroups/skins set
+     by Garry's mod entity right click menu. Press "ENTER" in the text field if you
+     are happy with the selection to apply it.
    Piece mass slider is used to set the mass of the next track piece to be spawned.
    Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
    Pieces count shows the maximum number of pieces to be stacked.
@@ -80,7 +85,6 @@ A: Just subscribe to the workshop item:
      map ground if the additional angle offsets are zeros. If not they will be added to the result angle.
    The "Origin from mass-centre" check-box if checked, will align the piece spawned to its mass-centre.
    The "Snap to trace surface" check-box if checked, will snap the chosen track directly to the trace surface.
-   The "Next piece flat to surface" check-box if checked, will make the next pieces parallel to the map ground.
    The "Draw adviser" check-box if checked, will draw a composition of lines and circles to assist you with the building.
    The "Draw holder ghost" check-box if checked, will render the the current piece that you are holding at the moment.
    When building a track using a different than the default way is needed you may use:
@@ -114,7 +118,8 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    17) StevenTechno's Buildings pack
    18) Mr. Train's M-Gauge rails
    19) Bobsters's two gauge rails
-
+   20) Mr. Train's G-Gauge rails
+   
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
 N: Which addons did you work on?
@@ -134,16 +139,11 @@ A: Well, It depends what do you mean by "create".
 Q: Where are the trains/vehicles, are there any of these?
 A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
 
-Q: What is this yellow line into the advisor, what is it for ?
+Q: What is this green line into the advisor, what is it for ?
 A: Remember when I got suggestions to do the switchers.
    This is an easy way of indicating which NEXT active position ( of some... )
    is chosen when stacking is in place. The end of the line with the green
    circle points to the next active position that is chosen.
-
-Q: How can I guess Bodygroup IDs and skins, it's annoying...
-A: Naa, just use the Garry's right-click context menu to select body-groups/skins
-   If you are happy with the selection, click in the text-box and then hit the TAB button.
-   The selection code will be auto-generated in there, press ENTER and it's done :).
 
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?
