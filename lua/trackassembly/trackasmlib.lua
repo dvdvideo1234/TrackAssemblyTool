@@ -796,16 +796,16 @@ function IsOther(oEnt)
   return false
 end
 
-local function AddLineListView(pnListView,frUsed,iNdex)
+local function AddLineListView(pnListView,frUsed,vNdex)
   if(not IsExistent(pnListView)) then
     return StatusLog(nil,"LineAddListView: Missing panel") end
   if(not IsValid(pnListView)) then
     return StatusLog(nil,"LineAddListView: Invalid panel") end
   if(not IsExistent(frUsed)) then
     return StatusLog(nil,"LineAddListView: Missing data") end
-  local iNdex = tonumber(iNdex)
+  local iNdex = tonumber(vNdex)
   if(not IsExistent(iNdex)) then
-    return StatusLog(nil,"LineAddListView: Index NAN {"..type(iNdex).."}<"..tostring(iNdex)..">") end
+    return StatusLog(nil,"LineAddListView: Index NAN {"..type(vNdex).."}<"..tostring(vNdex)..">") end
   local tValue = frUsed[iNdex]
   if(not IsExistent(tValue)) then
     return StatusLog(nil,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
@@ -818,7 +818,7 @@ local function AddLineListView(pnListView,frUsed,iNdex)
   local nUsed  = RoundValue(tValue.Value,0.001)
   local pnRec  = pnListView:AddLine(nUsed,nAct,sType,sModel)
   if(not IsExistent(pnRec)) then
-    return StatusLog(false,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..iNdex) end
+    return StatusLog(false,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..tostring(iNdex)) end
   return pnRec, tValue
 end
 
@@ -916,26 +916,26 @@ function GetFrequentModels(snCount)
   return StatusLog(nil,"GetFrequentModels: Array is empty or not available")
 end
 
-function RoundValue(nExact, nFrac)
-  local nExact = tonumber(nExact)
+function RoundValue(vExact, nFrac)
+  local nExact = tonumber(vExact)
   if(not IsExistent(nExact)) then
-    return StatusLog(nil,"RoundValue: Cannot round NAN {"..type(nExact).."}<"..tostring(nExact)..">") end
-  local nFrac  = tonumber(nFrac) or 0
+    return StatusLog(nil,"RoundValue: Cannot round NAN {"..type(vExact).."}<"..tostring(vExact)..">") end
+  local nFrac = tonumber(nFrac) or 0
   if(nFrac == 0) then
     return StatusLog(nil,"RoundValue: Fraction must be <> 0") end
-  local q,f = mathModf(nExact/nFrac)
+  local q, f = mathModf(nExact/nFrac)
   return nFrac * (q + (f > 0.5 and 1 or 0))
 end
 
-function SnapValue(nVal, nSnap)
-  if(not nVal) then return 0 end
-  local nVal = tonumber(nVal)
+function SnapValue(vVal, vSnap)
+  if(not vVal) then return 0 end
+  local nVal = tonumber(vVal)
   if(not IsExistent(nVal)) then
-    return StatusLog(0,"SnapValue: Convert value NAN {"..type(nVal).."}<"..tostring(nVal)..">") end
-  if(not IsExistent(nSnap)) then return nVal end
-  local nSnap = tonumber(nSnap)
+    return StatusLog(0,"SnapValue: Convert value NAN {"..type(vVal).."}<"..tostring(vVal)..">") end
+  if(not IsExistent(vSnap)) then return nVal end
+  local nSnap = tonumber(vSnap)
   if(not IsExistent(nSnap)) then
-    return StatusLog(0,"SnapValue: Convert snap NAN {"..type(nSnap).."}<"..tostring(nSnap)..">") end
+    return StatusLog(0,"SnapValue: Convert snap NAN {"..type(vSnap).."}<"..tostring(vSnap)..">") end
   if(nSnap == 0) then return nVal end
   local Rez
   local Snp = mathAbs(nSnap)
@@ -1001,60 +1001,60 @@ function BorderValue(nsVal,sName)
   return nsVal
 end
 
-function IncDecPointID(nPointID,sDir,rPiece)
-  local nPointID = tonumber(nPointID)
-  if(not IsExistent(nPointID)) then
-    return StatusLog(1,"IncDecPointID: PointID NAN {"..type(nPointID).."}<"..tostring(nPointID)..">") end
-  if(not IsThereRecID(rPiece,nPointID)) then
+function IncDecPointID(vPointID,sDir,rPiece)
+  local iPointID = tonumber(vPointID)
+  if(not IsExistent(iPointID)) then
+    return StatusLog(1,"IncDecPointID: PointID NAN {"..type(vPointID).."}<"..tostring(vPointID)..">") end
+  if(not IsThereRecID(rPiece,iPointID)) then
     return StatusLog(1,"IncDecPointID: Offset not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir = 1
   elseif(sDir == "-") then nDir = -1
-  else return StatusLog(nPointID,"IncDecPointID: Direction <"..sDir.."> mismatch") end
-  nPointID = nPointID + nDir
-  nPointID = RollValue(nPointID,1,rPiece.Kept)
-  if(rPiece.Offs[nPointID].P[csD]) then nPointID = nPointID + nDir end
-  return RollValue(nPointID,1,rPiece.Kept)
+  else return StatusLog(iPointID,"IncDecPointID: Direction <"..sDir.."> mismatch") end
+  iPointID = iPointID + nDir
+  iPointID = RollValue(iPointID,1,rPiece.Kept)
+  if(rPiece.Offs[iPointID].P[csD]) then iPointID = iPointID + nDir end
+  return RollValue(iPointID,1,rPiece.Kept)
 end
 
-function IncDecPnextID(nPnextID,nPointID,sDir,rPiece)
-  local nPnextID = tonumber(nPnextID)
-  local nPointID = tonumber(nPointID)
-  if(not IsExistent(nPnextID)) then
-    return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(nPnextID).."}<"..tostring(nPnextID)..">") end
-  if(not IsExistent(nPointID)) then
-    return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(nPointID).."}<"..tostring(nPointID)..">") end
-  if(not IsThereRecID(rPiece,nPnextID)) then
-    return StatusLog(1,"IncDecPointID: Offset PnextID["..tostring(nPnextID).."] not located") end
-  if(not IsThereRecID(rPiece,nPointID)) then
-    return StatusLog(1,"IncDecPointID: Offset PointID["..tostring(nPointID).."] not located") end
+function IncDecPnextID(vPnextID,vPointID,sDir,rPiece)
+  local iPnextID = tonumber(vPnextID)
+  local iPointID = tonumber(vPointID)
+  if(not IsExistent(iPnextID)) then
+    return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(vPnextID).."}<"..tostring(vPnextID)..">") end
+  if(not IsExistent(iPointID)) then
+    return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(vPointID).."}<"..tostring(vPointID)..">") end
+  if(not IsThereRecID(rPiece,iPnextID)) then
+    return StatusLog(1,"IncDecPointID: Offset PnextID["..tostring(iPnextID).."] not located") end
+  if(not IsThereRecID(rPiece,iPointID)) then
+    return StatusLog(1,"IncDecPointID: Offset PointID["..tostring(iPointID).."] not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir =  1
   elseif(sDir == "-") then nDir = -1
-  else return StatusLog(nPnextID,"IncDecPnextID: Direction <"..sDir.."> mismatch") end
-  nPnextID = nPnextID + nDir
-  nPnextID = RollValue(nPnextID,1,rPiece.Kept)
-  if(nPnextID == nPointID) then nPnextID = nPnextID + nDir end
-  return RollValue(nPnextID,1,rPiece.Kept)
+  else return StatusLog(iPnextID,"IncDecPnextID: Direction <"..sDir.."> mismatch") end
+  iPnextID = iPnextID + nDir
+  iPnextID = RollValue(iPnextID,1,rPiece.Kept)
+  if(iPnextID == iPointID) then iPnextID = iPnextID + nDir end
+  return RollValue(iPnextID,1,rPiece.Kept)
 end
 
-function PointOffsetUp(oEnt,nPointID)
+function PointOffsetUp(oEnt,vPointID)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(nil,"PointOffsetUp: Entity Invalid") end
-  local nPointID = tonumber(nPointID)
-  if(not IsExistent(nPointID)) then
-    return StatusLog(nil,"PointOffsetUp: PointID NAN {"..type(nPointID).."}<"..tostring(nPointID).."> for <"..oEnt:GetModel()..">") end
+  local iPointID = tonumber(vPointID)
+  if(not IsExistent(iPointID)) then
+    return StatusLog(nil,"PointOffsetUp: PointID NAN {"..type(vPointID).."}<"..tostring(vPointID).."> for <"..oEnt:GetModel()..">") end
   local hdPnt = CacheQueryPiece(oEnt:GetModel())
   if(not IsExistent(hdPnt)) then
     return StatusLog(nil,"PointOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
   local hdPnt = hdPnt.Offs
   if(not IsExistent(hdPnt)) then
     return StatusLog(nil,"PointOffsetUp: Offsets missing for <"..oEnt:GetModel()..">") end
-  local hdPnt = hdPnt[nPointID]
+  local hdPnt = hdPnt[iPointID]
   if(not IsExistent(hdPnt)) then
-    return StatusLog(nil,"PointOffsetUp: Invalid point #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Invalid point #"..tostring(iPointID).." for <"..oEnt:GetModel()..">") end
   if(not (hdPnt.O and hdPnt.A)) then
-    return StatusLog(nil,"PointOffsetUp: Invalid POA #"..tostring(nPointID).." for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Invalid POA #"..tostring(iPointID).." for <"..oEnt:GetModel()..">") end
   local aDiffBB = Angle()
   local vDiffBB = oEnt:OBBMins()
   SetAngle(aDiffBB,hdPnt.A)
@@ -1256,12 +1256,12 @@ local function DecodePOA(sStr)
   return arPOA
 end
 
-local function RegisterPOA(stPiece, nID, sP, sO, sA)
+local function RegisterPOA(stPiece, vID, sP, sO, sA)
   if(not stPiece) then
     return StatusLog(nil,"RegisterPOA: Cache record invalid") end
-  local nID = tonumber(nID)
-  if(not IsExistent(nID)) then
-    return StatusLog(nil,"RegisterPOA: OffsetID NAN {"..type(nID).."}<"..tostring(nID)..">") end
+  local iID = tonumber(vID)
+  if(not IsExistent(iID)) then
+    return StatusLog(nil,"RegisterPOA: OffsetID NAN {"..type(vID).."}<"..tostring(vID)..">") end
   local sP = sP or "NULL"
   local sO = sO or "NULL"
   local sA = sA or "NULL"
@@ -1272,21 +1272,21 @@ local function RegisterPOA(stPiece, nID, sP, sO, sA)
   if(not IsString(sA)) then
     return StatusLog(nil,"RegisterPOA: Angle is not a string but "..type(sA)) end
   if(not stPiece.Offs) then
-    if(nID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be "..tostring(nID)) end
+    if(iID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be "..tostring(iID)) end
     stPiece.Offs = {}
   end
   local tOffs = stPiece.Offs
-  if(tOffs[nID]) then
-    return StatusLog(nil,"RegisterPOA: Exists ID #"..tostring(nID))
+  if(tOffs[iID]) then
+    return StatusLog(nil,"RegisterPOA: Exists ID #"..tostring(iID))
   else
-    if((nID > 1) and (not tOffs[nID - 1])) then
-      return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(nID - 1))
+    if((iID > 1) and (not tOffs[iID - 1])) then
+      return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(iID - 1))
     end
-    tOffs[nID]   = {}
-    tOffs[nID].P = {}
-    tOffs[nID].O = {}
-    tOffs[nID].A = {}
-    tOffs        = tOffs[nID]
+    tOffs[iID]   = {}
+    tOffs[iID].P = {}
+    tOffs[iID].O = {}
+    tOffs[iID].A = {}
+    tOffs        = tOffs[iID]
   end
   if((sO ~= "") and (sO ~= "NULL")) then DecodePOA(sO)
   else ReloadPOA() end
@@ -1568,15 +1568,15 @@ function StringImplode(tParts,sDelim)
   return sImplode
 end
 
-function StringPad(sStr,sPad,nCnt)
+function StringPad(sStr,sPad,vCnt)
   if(not IsString(sStr)) then return StatusLog("","StringPad: String missing") end
   if(not IsString(sPad)) then return StatusLog(sStr,"StringPad: Pad missing") end
   local iLen = stringLen(sStr) -- Not used just for error handling
   if(iLen == 0) then return StatusLog(sStr,"StringPad: Pad too short") end
-  local iCnt = tonumber(nCnt)
+  local iCnt = tonumber(vCnt)
   if(not IsExistent(iCnt)) then
     return StatusLog(sStr,"StringPad: Count NAN {"
-             ..type(iCnt).."}<"..tostring(iCnt)..">") end
+             ..type(vCnt).."}<"..tostring(vCnt)..">") end
   local iDif = (mathAbs(iCnt) - iLen)
   if(iDif <= 0) then return StatusLog(sStr,"StringPad: Padding Ignored") end
   local sCh = stringSub(sPad,1,1)
@@ -1601,7 +1601,7 @@ function String2BGID(sStr)
     local Num = tonumber(Data[Cnt])
     if(not IsExistent(Num)) then
       return StatusLog(nil, "String2BGID: Value NAN {"
-               ..type(Num).."}<"..tostring(Num)..">") end
+               ..type(Data[Cnt]).."}<"..tostring(Data[Cnt])..">") end
     if((mathFloor(Num) - Num) ~= 0) then
       return StatusLog(nil, "String2BGID: Floats are forbidden") end
     Data[Cnt] = Num
@@ -1723,15 +1723,15 @@ local function ArrayCount(arArr)
   return (Count - 1)
 end
 
-local function IsArrayOr(arArr,iEnd)
+local function IsArrayOr(arArr,vEnd)
   if(not IsExistent(arArr)) then
     return StatusLog(nil,"IsArrayOr: Array missing") end
   if(not (type(arArr) == "table")) then
     return StatusLog(nil,"IsArrayOr: Array is "..type(arArr)) end
-  local iEnd = tonumber(iEnd)
+  local iEnd = tonumber(vEnd)
   if(not IsExistent(iEnd)) then
     return StatusLog(nil,"IsArrayOr: End NAN {"
-             ..type(iEnd).."}<"..tostring(iEnd)..">") end
+             ..type(vEnd).."}<"..tostring(vEnd)..">") end
   local iCnt, bFlg = 1, false
   while(iCnt <= iEnd) do
     bFlg = bFlg or (arArr[iCnt] and true or false)
@@ -1739,15 +1739,15 @@ local function IsArrayOr(arArr,iEnd)
   end return bFlg
 end
 
-function IsArrayAnd(arArr,iEnd)
+function IsArrayAnd(arArr,vEnd)
   if(not IsExistent(arArr)) then
     return StatusLog(nil,"IsArrayAnd: Array missing") end
   if(not (type(arArr) == "table")) then
     return StatusLog(nil,"IsArrayAnd: Array is "..type(arArr)) end
-  local iEnd = tonumber(iEnd)
+  local iEnd = tonumber(vEnd)
   if(not IsExistent(iEnd)) then
     return StatusLog(nil,"IsArrayAnd: End NAN {"
-             ..type(iEnd).."}<"..tostring(iEnd)..">") end
+             ..type(vEnd).."}<"..tostring(vEnd)..">") end
   local iCnt, bFlg = 1, true
   while(iCnt <= iEnd) do
     bFlg = bFlg and (arArr[iCnt] and true or false)
@@ -1874,13 +1874,13 @@ end
 
 -------------------------- AssemblyLib BUILDSQL ------------------------------
 
-local function MatchType(defTable,snValue,nIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
+local function MatchType(defTable,snValue,vIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
   if(not defTable) then
     return StatusLog(nil,"MatchType: Missing table definition") end
-  local nIndex = tonumber(nIndex)
+  local nIndex = tonumber(vIndex)
   if(not nIndex) then
-    return StatusLog(nil,"MatchType: Field NAN {"..type(nIndex)"}<"
-             ..tostring(nIndex).."> invalid on table "..defTable.Name) end
+    return StatusLog(nil,"MatchType: Field NAN {"..type(vIndex)"}<"
+             ..tostring(vIndex).."> invalid on table "..defTable.Name) end
   local defField = defTable[nIndex]
   if(not defField) then
     return StatusLog(nil,"MatchType: Invalid field #"
@@ -2125,7 +2125,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       local v = tonumber(tFields[Cnt])
       if(not IsExistent(v)) then
         return SQLBuildError("SQLBuildSelect: Select index NAN {"
-             ..type(iEnd).."}<"..tostring(iEnd)
+             ..type(tFields[Cnt]).."}<"..tostring(tFields[Cnt])
              .."> type mismatch in "..namTable) end
       if(defTable[v]) then
         if(defTable[v][1]) then
@@ -3094,7 +3094,7 @@ end
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
+function GetNormalSpawn(ucsPos,ucsAng,hdModel,vhdPointID,
                         ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   if(not (ucsPos and ucsAng and hdModel and hdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Mismatched input parameters") end
@@ -3105,11 +3105,11 @@ function GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
     return StatusLog(nil,"GetNormalSpawn: No record located") end
   if(not hdRec.Offs) then
     return StatusLog(nil,"GetNormalSpawn: Offsets missing") end
-  local hdPointID = tonumber(hdPointID)
+  local hdPointID = tonumber(vhdPointID)
   if(not IsExistent(hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(hdPointID).."}<"..tostring(hdPointID)..">") end
+    return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(vhdPointID).."}<"..tostring(vhdPointID)..">") end
   if(not IsThereRecID(hdRec,hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..hdPointID) end
+    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(hdPointID)) end
   local stPoint = hdRec.Offs[hdPointID]
   local stSpawn = GetOpVar("SPAWN_NORMAL")
   stSpawn.HRec = hdRec
@@ -3162,7 +3162,7 @@ end
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetEntitySpawn(trEnt,trHitPos,hdModel,hdPointID,
+function GetEntitySpawn(trEnt,trHitPos,hdModel,vhdPointID,
                         nActRadius,enFlatten,enIgnTyp,ucsPosX,
                         ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   if(not (trEnt and trHitPos and hdModel and hdPointID and nActRadius)) then
@@ -3174,9 +3174,9 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,hdPointID,
   local trRec = CacheQueryPiece(trEnt:GetModel())
   if(not IsThereRecID(trRec,1)) then
     return StatusLog(nil,"GetEntitySpawn: Trace point invalid") end
-  local hdPointID = tonumber(hdPointID)
+  local hdPointID = tonumber(vhdPointID)
   if(not IsExistent(hdPointID)) then
-    return StatusLog(nil,"GetEntitySpawn: Holder PointID NAN {"..type(hdPointID).."}<"..tostring(hdPointID)..">") end
+    return StatusLog(nil,"GetEntitySpawn: Holder PointID NAN {"..type(vhdPointID).."}<"..tostring(vhdPointID)..">") end
   local hdRec = CacheQueryPiece(hdModel)
   if(not IsThereRecID(hdRec,hdPointID)) then
     return StatusLog(nil,"GetEntitySpawn: Holder PointID invalid") end
