@@ -457,9 +457,10 @@ function LocateRecID(oRec, nvPointID)
   if(not oRec) then return StatusLog(nil,"LocateRecID: Missing record") end
   if(not oRec.Offs) then return StatusLog(nil,"LocateRecID: Missing offsets") end
   local nPointID = tonumber(nvPointID) or 0
-  if(not oRec.Offs[nPointID]) then
+  local stOffset = oRec.Offs[nPointID]
+  if(not IsExistent(stOffset)) then
     return StatusLog(nil,"LocateRecID: Missing ID #"..tostring(nPointID).." <"..tostring(nvPointID)..">") end
-  return oRec.Offs[nPointID]
+  return stOffset
 end
 
 ---------- Library OOP -----------------
@@ -548,8 +549,8 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
   end
   function self:GetCenter(nX,nY)
     local w, h = self:GetSize()
-    w = (w / 2) + (nX or 0)
-    h = (h / 2) + (nY or 0)
+    w = (w / 2) + (tonumber(nX) or 0)
+    h = (h / 2) + (tonumber(nY) or 0)
     return w, h
   end
   function self:SetColor(sColor)
@@ -585,9 +586,9 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
     surfaceSetTexture(Texture.ID)
     surfaceDrawTexturedRect(nX,nY,nW,nH)
   end
-  function self:SetTextEdge(x,y)
-    Text.DrawX = tonumber(x) or 0
-    Text.DrawY = tonumber(y) or 0
+  function self:SetTextEdge(nX,nY)
+    Text.DrawX = (tonumber(nX) or 0)
+    Text.DrawY = (tonumber(nY) or 0)
     Text.ScrW  = 0
     Text.ScrH  = 0
     Text.LastW = 0
@@ -982,12 +983,8 @@ function IsPhysTrace(Trace)
 end
 
 function RollValue(nVal,nMin,nMax)
-  if(nVal > nMax) then
-    return nMin
-  end
-  if(nVal < nMin) then
-    return nMax
-  end
+  if(nVal > nMax) then return nMin end
+  if(nVal < nMin) then return nMax end
   return nVal
 end
 
@@ -1006,9 +1003,9 @@ end
 function IncDecPointID(ivPointID,sDir,rPiece)
   local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
-    return StatusLog(1,"IncDecPointID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
+    return StatusLog(1,"IncDecPointID: Point ID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
   if(not IsExistent(LocateRecID(rPiece,iPointID))) then
-    return StatusLog(1,"IncDecPointID: PointID["..tostring(iPointID).."] not located") end
+    return StatusLog(1,"IncDecPointID: Point ID #"..tostring(iPointID).." not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir = 1
   elseif(sDir == "-") then nDir = -1
@@ -1027,9 +1024,9 @@ function IncDecPnextID(ivPnextID,ivPointID,sDir,rPiece)
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
   if(not IsExistent(LocateRecID(rPiece,iPnextID))) then
-    return StatusLog(1,"IncDecPointID: Offset PnextID["..tostring(iPnextID).."] not located") end
+    return StatusLog(1,"IncDecPointID: Offset PnextID #"..tostring(iPnextID).." not located") end
   if(not IsExistent(LocateRecID(rPiece,iPointID))) then
-    return StatusLog(1,"IncDecPointID: Offset PointID["..tostring(iPointID).."] not located") end
+    return StatusLog(1,"IncDecPointID: Offset PointID #"..tostring(iPointID).." not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir =  1
   elseif(sDir == "-") then nDir = -1
@@ -1043,20 +1040,20 @@ end
 function PointOffsetUp(oEnt,ivPointID)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(nil,"PointOffsetUp: Entity Invalid") end
+  local sModel = oEnt:GetModel()
   local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
-    return StatusLog(nil,"PointOffsetUp: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID).."> for <"..oEnt:GetModel()..">") end
-  local hdPnt = CacheQueryPiece(oEnt:GetModel())
+    return StatusLog(nil,"PointOffsetUp: PointID NAN {"
+             ..type(ivPointID).."}<"..tostring(ivPointID).."> for <"..sModel..">") end
+  local hdRec = CacheQueryPiece(sModel)
+  if(not IsExistent(hdRec)) then
+    return StatusLog(nil,"PointOffsetUp: Record not found for <"..sModel..">") end
+  local hdPnt = LocateRecID(hdRec,iPointID)
   if(not IsExistent(hdPnt)) then
-    return StatusLog(nil,"PointOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
-  local hdPnt = hdPnt.Offs
-  if(not IsExistent(hdPnt)) then
-    return StatusLog(nil,"PointOffsetUp: Offsets missing for <"..oEnt:GetModel()..">") end
-  local hdPnt = hdPnt[iPointID]
-  if(not IsExistent(hdPnt)) then
-    return StatusLog(nil,"PointOffsetUp: Invalid point #"..tostring(iPointID).." for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Point #"..tostring(iPointID)
+             .." not located on model <"..sModel..">") end  
   if(not (hdPnt.O and hdPnt.A)) then
-    return StatusLog(nil,"PointOffsetUp: Invalid POA #"..tostring(iPointID).." for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: Invalid POA #"..tostring(iPointID).." for <"..sModel..">") end
   local aDiffBB = Angle()
   local vDiffBB = oEnt:OBBMins()
   SetAngle(aDiffBB,hdPnt.A)
@@ -1719,22 +1716,6 @@ local function IsArrayOr(arArr,ivEnd)
   local iCnt, bFlg = 1, false
   while(iCnt <= iEnd) do
     bFlg = bFlg or (arArr[iCnt] and true or false)
-    iCnt = iCnt + 1
-  end return bFlg
-end
-
-function IsArrayAnd(arArr,ivEnd)
-  if(not IsExistent(arArr)) then
-    return StatusLog(nil,"IsArrayAnd: Array missing") end
-  if(not (type(arArr) == "table")) then
-    return StatusLog(nil,"IsArrayAnd: Array is "..type(arArr)) end
-  local iEnd = tonumber(ivEnd)
-  if(not IsExistent(iEnd)) then
-    return StatusLog(nil,"IsArrayAnd: End NAN {"
-             ..type(ivEnd).."}<"..tostring(ivEnd)..">") end
-  local iCnt, bFlg = 1, true
-  while(iCnt <= iEnd) do
-    bFlg = bFlg and (arArr[iCnt] and true or false)
     iCnt = iCnt + 1
   end return bFlg
 end
@@ -3082,19 +3063,15 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,
                         ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   if(not (ucsPos and ucsAng and shdModel and ivhdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Mismatched input parameters") end
-  if(not utilIsValidModel(shdModel)) then
-    return StatusLog(nil,"GetNormalSpawn: Model invalid") end
-  local hdRec = CacheQueryPiece(shdModel)
-  if(not IsExistent(hdRec)) then
-    return StatusLog(nil,"GetNormalSpawn: No record located") end
-  if(not hdRec.Offs) then
-    return StatusLog(nil,"GetNormalSpawn: Offsets missing") end
   local ihdPointID = tonumber(ivhdPointID)
   if(not IsExistent(ihdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
-  if(not IsExistent(LocateRecID(hdRec,ihdPointID))) then
+  local hdRec = CacheQueryPiece(shdModel)
+  if(not IsExistent(hdRec)) then
+    return StatusLog(nil,"GetNormalSpawn: No record located") end
+  local stPoint = LocateRecID(hdRec,ihdPointID)
+  if(not IsExistent(stPoint)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
-  local stPoint = hdRec.Offs[ihdPointID]
   local stSpawn = GetOpVar("SPAWN_NORMAL")
   stSpawn.HRec = hdRec
   SetAngle(stSpawn.MAng,stPoint.A)

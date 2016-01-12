@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.166")
+asmlib.SetOpVar("TOOL_VERSION","5.167")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -95,18 +95,18 @@ if(CLIENT) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
       end
       local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
-      if(not defTable) then return StatusLog(false,"Missing definition for table PIECES") end
+      if(not defTable) then return StatusLog(false,"OPEN_FRAME: Missing definition for table PIECES") end
       local pnFrame = vguiCreate("DFrame")
       if(not IsValid(pnFrame)) then
         pnFrame:Remove()
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create base frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"  ,"Click to export the client database as a file"}})
-            pnElements:Insert(2,{Label = { "DListView"  ,"ItemRoutine","The list of your frequently used track pieces"}})
-            pnElements:Insert(3,{Label = { "DModelPanel","ItemScreen" ,"The model of your track piece is displayed here"}})
-            pnElements:Insert(4,{Label = { "DTextEntry" ,"ItemSearch" ,"Enter a pattern here and hit enter to preform a search"}})
-            pnElements:Insert(5,{Label = { "DComboBox"  ,"StatSearch" ,"Choose which list column you want to preform a search on"}})
+            pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"     ,"Click to export the client database as a file"}})
+            pnElements:Insert(2,{Label = { "DListView"  ,"Routine Items" ,"The list of your frequently used track pieces"}})
+            pnElements:Insert(3,{Label = { "DModelPanel","Piece Display" ,"The model of your track piece is displayed here"}})
+            pnElements:Insert(4,{Label = { "DTextEntry" ,"Enter Pattern" ,"Enter a pattern here and hit enter to preform a search"}})
+            pnElements:Insert(5,{Label = { "DComboBox"  ,"Select Column" ,"Choose which list column you want to preform a search on"}})
       ------------ Manage the invalid panels -------------------
       local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
       while(iNdex <= iSize) do

@@ -432,7 +432,7 @@ function TOOL:LeftClick(Trace)
     if(pointid == pnextid) then return asmlib.StatusLog(false,"Point ID #"..pointid.." overlap") end
     local ePieceO, ePieceN
     local iNdex, nTrys = count, staatts
-    local vTemp, vLook, trPos = Vector(), Vector(), trEnt:GetPos()
+    local vTemp, trPos = Vector(), trEnt:GetPos()
     local hdOffs = asmlib.LocateRecID(stSpawn.HRec,pnextid)
     if(not hdOffs) then
       asmlib.PrintNotify(ply,"Cannot find next PointID data !","ERROR")
@@ -443,7 +443,6 @@ function TOOL:LeftClick(Trace)
       .."\n   trModel: "..asmlib.StringFileModel(trModel)
       .."\n   hdModel: "..fnmodel)
     end -- Validate 
-    asmlib.SetVector(vLook,hdOffs.P)
     undoCreate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
     while(iNdex > 0) do
       ePieceN = asmlib.MakePiece(model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
@@ -465,7 +464,7 @@ function TOOL:LeftClick(Trace)
         asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)
         asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil)
         asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide)
-        vTemp:Set(vLook)
+        asmlib.SetVector(vTemp,hdOffs.P)
         vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos())
         undoAddEntity(ePieceN)
