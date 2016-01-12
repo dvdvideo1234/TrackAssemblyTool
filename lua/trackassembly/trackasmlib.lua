@@ -453,11 +453,13 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
   return aAng
 end
 
-function IsThereRecID(oRec, nPointID)
-  if(not oRec) then return false end
-  if(not oRec.Offs) then return false end
-  if(not oRec.Offs[nPointID]) then return false end
-  return true
+function LocateRecID(oRec, nvPointID)
+  if(not oRec) then return StatusLog(nil,"LocateRecID: Missing record") end
+  if(not oRec.Offs) then return StatusLog(nil,"LocateRecID: Missing offsets") end
+  local nPointID = tonumber(nvPointID) or 0
+  if(not oRec.Offs[nPointID]) then
+    return StatusLog(nil,"LocateRecID: Missing ID #"..tostring(nPointID).." <"..tostring(nvPointID)..">") end
+  return oRec.Offs[nPointID]
 end
 
 ---------- Library OOP -----------------
@@ -1005,8 +1007,8 @@ function IncDecPointID(ivPointID,sDir,rPiece)
   local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPointID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
-  if(not IsThereRecID(rPiece,iPointID)) then
-    return StatusLog(1,"IncDecPointID: Offset not located") end
+  if(not IsExistent(LocateRecID(rPiece,iPointID))) then
+    return StatusLog(1,"IncDecPointID: PointID["..tostring(iPointID).."] not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir = 1
   elseif(sDir == "-") then nDir = -1
@@ -1024,9 +1026,9 @@ function IncDecPnextID(ivPnextID,ivPointID,sDir,rPiece)
     return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(ivPnextID).."}<"..tostring(ivPnextID)..">") end
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
-  if(not IsThereRecID(rPiece,iPnextID)) then
+  if(not IsExistent(LocateRecID(rPiece,iPnextID))) then
     return StatusLog(1,"IncDecPointID: Offset PnextID["..tostring(iPnextID).."] not located") end
-  if(not IsThereRecID(rPiece,iPointID)) then
+  if(not IsExistent(LocateRecID(rPiece,iPointID))) then
     return StatusLog(1,"IncDecPointID: Offset PointID["..tostring(iPointID).."] not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir =  1
@@ -3078,7 +3080,7 @@ end
 ]]--
 function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,
                         ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
-  if(not (ucsPos and ucsAng and shdModel and hdPointID)) then
+  if(not (ucsPos and ucsAng and shdModel and ivhdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Mismatched input parameters") end
   if(not utilIsValidModel(shdModel)) then
     return StatusLog(nil,"GetNormalSpawn: Model invalid") end
@@ -3087,12 +3089,12 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,
     return StatusLog(nil,"GetNormalSpawn: No record located") end
   if(not hdRec.Offs) then
     return StatusLog(nil,"GetNormalSpawn: Offsets missing") end
-  local hdPointID = tonumber(ivhdPointID)
-  if(not IsExistent(hdPointID)) then
+  local ihdPointID = tonumber(ivhdPointID)
+  if(not IsExistent(ihdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
-  if(not IsThereRecID(hdRec,hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(hdPointID)) end
-  local stPoint = hdRec.Offs[hdPointID]
+  if(not IsExistent(LocateRecID(hdRec,ihdPointID))) then
+    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
+  local stPoint = hdRec.Offs[ihdPointID]
   local stSpawn = GetOpVar("SPAWN_NORMAL")
   stSpawn.HRec = hdRec
   SetAngle(stSpawn.MAng,stPoint.A)
@@ -3152,21 +3154,24 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   if(not trEnt:IsValid()) then
     return StatusLog(nil,"GetEntitySpawn: Trace entity not valid") end
   if(IsOther(trEnt)) then
-    return StatusLog(nil,"GetEntitySpawn: Trace is other type") end
-  local trRec = CacheQueryPiece(trEnt:GetModel())
-  if(not IsThereRecID(trRec,1)) then
-    return StatusLog(nil,"GetEntitySpawn: Trace point invalid") end
+    return StatusLog(nil,"GetEntitySpawn: Trace is of other type") end
   local ihdPointID = tonumber(ivhdPointID)
   if(not IsExistent(ihdPointID)) then
     return StatusLog(nil,"GetEntitySpawn: Holder PointID NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
   local nActRadius = tonumber(nvActRadius)
   if(not IsExistent(nActRadius)) then
     return StatusLog(nil,"GetEntitySpawn: Active radius NAN {"..type(nvActRadius).."}<"..tostring(nvActRadius)..">") end
-  local hdRec = CacheQueryPiece(shdModel)
-  if(not IsThereRecID(hdRec,ihdPointID)) then
-    return StatusLog(nil,"GetEntitySpawn: Holder PointID invalid") end
-  -- Get client's offset ID
-  local hdOffs = hdRec.Offs[ihdPointID]
+  local trRec = CacheQueryPiece(trEnt:GetModel())
+  if(not IsExistent(hdRec)) then
+    return StatusLog(nil,"GetEntitySpawn: Trace model missing <"..trEnt:GetModel()..">") end
+  if(not IsExistent(LocateRecID(trRec,1))) then
+    return StatusLog(nil,"GetEntitySpawn: Trace has no points") end
+  local hdRec  = CacheQueryPiece(shdModel)
+  if(not IsExistent(hdRec)) then
+    return StatusLog(nil,"GetEntitySpawn: Holder model missing <"..tostring(shdModel)..">") end
+  local hdOffs = LocateRecID(hdRec,ihdPointID)
+  if(not IsExistent(hdOffs)) then
+    return StatusLog(nil,"GetEntitySpawn: Holder point invalid #"..tostring(ihdPointID)) end
   -- If there is no Type field exit immediately
   if(not IsExistent(trRec.Type)) then
     return StatusLog(nil,"GetEntitySpawn: Trace type missing") end
@@ -3178,28 +3183,30 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   local trAng = trEnt:GetAngles()
   local trPos = trEnt:GetPos()
   -- We have the next Piece Offset
-  local stSpawn = GetOpVar("SPAWN_ENTITY")
+  local stSpawn, trOffs = GetOpVar("SPAWN_ENTITY")
         stSpawn.RLen = nActRadius
         stSpawn.OID  = 0
-  for k = 1, trRec.Kept do
+  for ID = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
-    local vOff = trRec.Offs[k]
+    local vOff = LocateRecID(trRec,ID)
+    if(not IsExistent(vOff)) then
+      return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
     SetVector(stSpawn.MPos,vOff.P)
     stSpawn.MPos:Rotate(trAng)
     stSpawn.MPos:Add(trPos)
     stSpawn.MPos:Sub(trHitPos)
     local trAcDis = stSpawn.MPos:Length()
     if(trAcDis < stSpawn.RLen) then
-      stSpawn.OID  = k
+      trOffs       = vOff
+      stSpawn.OID  = ID
       stSpawn.RLen = trAcDis
       stSpawn.PPos:Set(stSpawn.MPos)
       stSpawn.PPos:Add(trHitPos)
     end
   end
   -- Found the active point ID on trEnt
-  if(stSpawn.OID <= 0) then
+  if(not IsExistent(trOffs)) then
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
-  local trOffs = trRec.Offs[stSpawn.OID]
   --Do origin !
   SetVector(stSpawn.OPos,trOffs.O)
   stSpawn.OPos:Rotate(trAng)

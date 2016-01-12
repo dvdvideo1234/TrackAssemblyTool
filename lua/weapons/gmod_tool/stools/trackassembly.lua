@@ -433,23 +433,19 @@ function TOOL:LeftClick(Trace)
     local ePieceO, ePieceN
     local iNdex, nTrys = count, staatts
     local vTemp, vLook, trPos = Vector(), Vector(), trEnt:GetPos()
+    local hdOffs = asmlib.LocateRecID(stSpawn.HRec,pnextid)
+    if(not hdOffs) then
+      asmlib.PrintNotify(ply,"Cannot find next PointID data !","ERROR")
+      return asmlib.StatusLog(false,"Additional Error INFO"
+      .."\n   Event  : Stacking non-existent next PointID on client prop"
+      .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
+      .."\n   Player : "..ply:GetName()
+      .."\n   trModel: "..asmlib.StringFileModel(trModel)
+      .."\n   hdModel: "..fnmodel)
+    end -- Validate 
+    asmlib.SetVector(vLook,hdOffs.P)
     undoCreate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
     while(iNdex > 0) do
-      -- ePieceN = asmlib.DuplicatePiece(ePieceO)
-      if(iNdex == count) then
-        if(not asmlib.IsThereRecID(stSpawn.HRec,pnextid)) then
-          asmlib.PrintNotify(ply,"Cannot find PointID data !","ERROR")
-          return asmlib.StatusLog(false,"Additional Error INFO"
-          .."\n   Event  : Stacking non-existent PointID on client prop"
-          .."\n   Iterats: "..tostring(count-iNdex)
-          .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-          .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-          .."\n   Player : "..ply:GetName()
-          .."\n   trModel: "..asmlib.StringFileModel(trModel)
-          .."\n   hdModel: "..fnmodel)
-        end
-        asmlib.SetVector(vLook,stSpawn.HRec.Offs[pnextid].P)
-      end -- The next point is valid
       ePieceN = asmlib.MakePiece(model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
       if(ePieceN) then
         if(not asmlib.SetBoundPos(ePieceN,stSpawn.SPos,ply,bnderrmod,"Additional Error INFO"
