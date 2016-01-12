@@ -796,16 +796,16 @@ function IsOther(oEnt)
   return false
 end
 
-local function AddLineListView(pnListView,frUsed,vNdex)
+local function AddLineListView(pnListView,frUsed,ivNdex)
   if(not IsExistent(pnListView)) then
     return StatusLog(nil,"LineAddListView: Missing panel") end
   if(not IsValid(pnListView)) then
     return StatusLog(nil,"LineAddListView: Invalid panel") end
   if(not IsExistent(frUsed)) then
     return StatusLog(nil,"LineAddListView: Missing data") end
-  local iNdex = tonumber(vNdex)
+  local iNdex = tonumber(ivNdex)
   if(not IsExistent(iNdex)) then
-    return StatusLog(nil,"LineAddListView: Index NAN {"..type(vNdex).."}<"..tostring(vNdex)..">") end
+    return StatusLog(nil,"LineAddListView: Index NAN {"..type(ivNdex).."}<"..tostring(ivNdex)..">") end
   local tValue = frUsed[iNdex]
   if(not IsExistent(tValue)) then
     return StatusLog(nil,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
@@ -916,10 +916,10 @@ function GetFrequentModels(snCount)
   return StatusLog(nil,"GetFrequentModels: Array is empty or not available")
 end
 
-function RoundValue(vExact, nFrac)
-  local nExact = tonumber(vExact)
+function RoundValue(nvExact, nFrac)
+  local nExact = tonumber(nvExact)
   if(not IsExistent(nExact)) then
-    return StatusLog(nil,"RoundValue: Cannot round NAN {"..type(vExact).."}<"..tostring(vExact)..">") end
+    return StatusLog(nil,"RoundValue: Cannot round NAN {"..type(nvExact).."}<"..tostring(nvExact)..">") end
   local nFrac = tonumber(nFrac) or 0
   if(nFrac == 0) then
     return StatusLog(nil,"RoundValue: Fraction must be <> 0") end
@@ -927,15 +927,15 @@ function RoundValue(vExact, nFrac)
   return nFrac * (q + (f > 0.5 and 1 or 0))
 end
 
-function SnapValue(vVal, vSnap)
-  if(not vVal) then return 0 end
-  local nVal = tonumber(vVal)
+function SnapValue(nvVal, nvSnap)
+  if(not nvVal) then return 0 end
+  local nVal = tonumber(nvVal)
   if(not IsExistent(nVal)) then
-    return StatusLog(0,"SnapValue: Convert value NAN {"..type(vVal).."}<"..tostring(vVal)..">") end
-  if(not IsExistent(vSnap)) then return nVal end
-  local nSnap = tonumber(vSnap)
+    return StatusLog(0,"SnapValue: Convert value NAN {"..type(nvVal).."}<"..tostring(nvVal)..">") end
+  if(not IsExistent(nvSnap)) then return nVal end
+  local nSnap = tonumber(nvSnap)
   if(not IsExistent(nSnap)) then
-    return StatusLog(0,"SnapValue: Convert snap NAN {"..type(vSnap).."}<"..tostring(vSnap)..">") end
+    return StatusLog(0,"SnapValue: Convert snap NAN {"..type(nvSnap).."}<"..tostring(nvSnap)..">") end
   if(nSnap == 0) then return nVal end
   local Rez
   local Snp = mathAbs(nSnap)
@@ -1001,10 +1001,10 @@ function BorderValue(nsVal,sName)
   return nsVal
 end
 
-function IncDecPointID(vPointID,sDir,rPiece)
-  local iPointID = tonumber(vPointID)
+function IncDecPointID(ivPointID,sDir,rPiece)
+  local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
-    return StatusLog(1,"IncDecPointID: PointID NAN {"..type(vPointID).."}<"..tostring(vPointID)..">") end
+    return StatusLog(1,"IncDecPointID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
   if(not IsThereRecID(rPiece,iPointID)) then
     return StatusLog(1,"IncDecPointID: Offset not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
@@ -1017,13 +1017,13 @@ function IncDecPointID(vPointID,sDir,rPiece)
   return RollValue(iPointID,1,rPiece.Kept)
 end
 
-function IncDecPnextID(vPnextID,vPointID,sDir,rPiece)
-  local iPnextID = tonumber(vPnextID)
-  local iPointID = tonumber(vPointID)
+function IncDecPnextID(ivPnextID,ivPointID,sDir,rPiece)
+  local iPnextID = tonumber(ivPnextID)
+  local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPnextID)) then
-    return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(vPnextID).."}<"..tostring(vPnextID)..">") end
+    return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(ivPnextID).."}<"..tostring(ivPnextID)..">") end
   if(not IsExistent(iPointID)) then
-    return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(vPointID).."}<"..tostring(vPointID)..">") end
+    return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
   if(not IsThereRecID(rPiece,iPnextID)) then
     return StatusLog(1,"IncDecPointID: Offset PnextID["..tostring(iPnextID).."] not located") end
   if(not IsThereRecID(rPiece,iPointID)) then
@@ -1038,12 +1038,12 @@ function IncDecPnextID(vPnextID,vPointID,sDir,rPiece)
   return RollValue(iPnextID,1,rPiece.Kept)
 end
 
-function PointOffsetUp(oEnt,vPointID)
+function PointOffsetUp(oEnt,ivPointID)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(nil,"PointOffsetUp: Entity Invalid") end
-  local iPointID = tonumber(vPointID)
+  local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
-    return StatusLog(nil,"PointOffsetUp: PointID NAN {"..type(vPointID).."}<"..tostring(vPointID).."> for <"..oEnt:GetModel()..">") end
+    return StatusLog(nil,"PointOffsetUp: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID).."> for <"..oEnt:GetModel()..">") end
   local hdPnt = CacheQueryPiece(oEnt:GetModel())
   if(not IsExistent(hdPnt)) then
     return StatusLog(nil,"PointOffsetUp: Record not found for <"..oEnt:GetModel()..">") end
@@ -1256,12 +1256,12 @@ local function DecodePOA(sStr)
   return arPOA
 end
 
-local function RegisterPOA(stPiece, vID, sP, sO, sA)
+local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   if(not stPiece) then
     return StatusLog(nil,"RegisterPOA: Cache record invalid") end
-  local iID = tonumber(vID)
+  local iID = tonumber(ivID)
   if(not IsExistent(iID)) then
-    return StatusLog(nil,"RegisterPOA: OffsetID NAN {"..type(vID).."}<"..tostring(vID)..">") end
+    return StatusLog(nil,"RegisterPOA: OffsetID NAN {"..type(ivID).."}<"..tostring(ivID)..">") end
   local sP = sP or "NULL"
   local sO = sO or "NULL"
   local sA = sA or "NULL"
@@ -1484,24 +1484,6 @@ end
 
 --------------------- STRING -----------------------
 
-function StringMakeSQL(sStr)
-  if(not IsString(sStr)) then
-    return StatusLog(nil,"StringMakeSQL: Only strings can be revised")
-  end
-  local Cnt = 1
-  local Out = ""
-  local Chr = stringSub(sStr,Cnt,Cnt)
-  while(Chr ~= "") do
-    Out = Out..Chr
-    if(Chr == "'") then
-      Out = Out..Chr
-    end
-    Cnt = Cnt + 1
-    Chr = stringSub(sStr,Cnt,Cnt)
-  end
-  return Out
-end
-
 function StringDisable(sBase, anyDisable, anyDefault)
   if(IsString(sBase)) then
     local sFirst = stringSub(sBase,1,1)
@@ -1568,15 +1550,15 @@ function StringImplode(tParts,sDelim)
   return sImplode
 end
 
-function StringPad(sStr,sPad,vCnt)
+function StringPad(sStr,sPad,ivCnt)
   if(not IsString(sStr)) then return StatusLog("","StringPad: String missing") end
   if(not IsString(sPad)) then return StatusLog(sStr,"StringPad: Pad missing") end
   local iLen = stringLen(sStr) -- Not used just for error handling
   if(iLen == 0) then return StatusLog(sStr,"StringPad: Pad too short") end
-  local iCnt = tonumber(vCnt)
+  local iCnt = tonumber(ivCnt)
   if(not IsExistent(iCnt)) then
     return StatusLog(sStr,"StringPad: Count NAN {"
-             ..type(vCnt).."}<"..tostring(vCnt)..">") end
+             ..type(ivCnt).."}<"..tostring(ivCnt)..">") end
   local iDif = (mathAbs(iCnt) - iLen)
   if(iDif <= 0) then return StatusLog(sStr,"StringPad: Padding Ignored") end
   local sCh = stringSub(sPad,1,1)
@@ -1723,15 +1705,15 @@ local function ArrayCount(arArr)
   return (Count - 1)
 end
 
-local function IsArrayOr(arArr,vEnd)
+local function IsArrayOr(arArr,ivEnd)
   if(not IsExistent(arArr)) then
     return StatusLog(nil,"IsArrayOr: Array missing") end
   if(not (type(arArr) == "table")) then
     return StatusLog(nil,"IsArrayOr: Array is "..type(arArr)) end
-  local iEnd = tonumber(vEnd)
+  local iEnd = tonumber(ivEnd)
   if(not IsExistent(iEnd)) then
     return StatusLog(nil,"IsArrayOr: End NAN {"
-             ..type(vEnd).."}<"..tostring(vEnd)..">") end
+             ..type(ivEnd).."}<"..tostring(ivEnd)..">") end
   local iCnt, bFlg = 1, false
   while(iCnt <= iEnd) do
     bFlg = bFlg or (arArr[iCnt] and true or false)
@@ -1739,15 +1721,15 @@ local function IsArrayOr(arArr,vEnd)
   end return bFlg
 end
 
-function IsArrayAnd(arArr,vEnd)
+function IsArrayAnd(arArr,ivEnd)
   if(not IsExistent(arArr)) then
     return StatusLog(nil,"IsArrayAnd: Array missing") end
   if(not (type(arArr) == "table")) then
     return StatusLog(nil,"IsArrayAnd: Array is "..type(arArr)) end
-  local iEnd = tonumber(vEnd)
+  local iEnd = tonumber(ivEnd)
   if(not IsExistent(iEnd)) then
     return StatusLog(nil,"IsArrayAnd: End NAN {"
-             ..type(vEnd).."}<"..tostring(vEnd)..">") end
+             ..type(ivEnd).."}<"..tostring(ivEnd)..">") end
   local iCnt, bFlg = 1, true
   while(iCnt <= iEnd) do
     bFlg = bFlg and (arArr[iCnt] and true or false)
@@ -1874,15 +1856,15 @@ end
 
 -------------------------- AssemblyLib BUILDSQL ------------------------------
 
-local function MatchType(defTable,snValue,vIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
+local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
   if(not defTable) then
     return StatusLog(nil,"MatchType: Missing table definition") end
-  local nIndex = tonumber(vIndex)
-  if(not nIndex) then
-    return StatusLog(nil,"MatchType: Field NAN {"..type(vIndex)"}<"
-             ..tostring(vIndex).."> invalid on table "..defTable.Name) end
+  local nIndex = tonumber(ivIndex)
+  if(not IsExistent(nIndex)) then
+    return StatusLog(nil,"MatchType: Field NAN {"..type(ivIndex)"}<"
+             ..tostring(ivIndex).."> invalid on table "..defTable.Name) end
   local defField = defTable[nIndex]
-  if(not defField) then
+  if(not IsExistent(defField)) then
     return StatusLog(nil,"MatchType: Invalid field #"
              ..tostring(nIndex).." on table "..defTable.Name) end
   local snOut
@@ -1904,8 +1886,8 @@ local function MatchType(defTable,snValue,vIndex,bQuoted,sQuote,bStopRevise,bSto
     elseif(defField[3] == "CAP") then
       snOut = stringUpper(snOut)
     end
-    if(not bStopRevise and defField[4] == "QMK" and sModeDB == "SQL") then
-      snOut = StringMakeSQL(snOut)
+    if(not bStopRevise and sModeDB == "SQL" and defField[4] == "QMK") then
+      snOut = string.gsub(snOut,"'","''")
     end
     if(bQuoted) then
       local sqChar
@@ -1942,8 +1924,8 @@ end
 local function SQLBuildCreate(defTable)
   if(not defTable) then
     return SQLBuildError("SQLBuildCreate: Missing table definition") end
-  local namTable   = defTable.Name
-  local TableIndex = defTable.Index
+  local namTable = defTable.Name
+  local indTable = defTable.Index
   if(not defTable[1]) then
     return SQLBuildError("SQLBuildCreate: Missing table definition is empty for "..namTable) end
   if(not (defTable[1][1] and defTable[1][2])) then
@@ -1966,17 +1948,17 @@ local function SQLBuildCreate(defTable)
     Ind = Ind + 1
   end
   Command.Create = Command.Create.." );"
-  if(TableIndex and
-     TableIndex[1] and
-     type(TableIndex[1]) == "table" and
-     TableIndex[1][1] and
-     type(TableIndex[1][1]) == "number"
+  if(indTable and
+     indTable[1] and
+     type(indTable[1]) == "table" and
+     indTable[1][1] and
+     type(indTable[1][1]) == "number"
    ) then
     Command.Index = {}
     Ind = 1
     Cnt = 1
-    while(TableIndex[Ind]) do
-      local vI = TableIndex[Ind]
+    while(indTable[Ind]) do
+      local vI = indTable[Ind]
       if(type(vI) ~= "table") then
         return SQLBuildError("SQLBuildCreate: Index creator mismatch on "
           ..namTable.." value "..vI.." is not a table for index ["..tostring(Ind).."]") end
@@ -3089,25 +3071,25 @@ end
  * Calculates SPos, SAng based on the DB inserts and input parameters
  * ucsPos        = Base UCS Pos
  * ucsAng        = Base UCS Ang
- * hdPointID     = Client Point ID
- * hdModel       = Client Model
+ * ivhdPointID   = Client Point ID
+ * shdModel      = Client Model
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetNormalSpawn(ucsPos,ucsAng,hdModel,vhdPointID,
+function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,
                         ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
-  if(not (ucsPos and ucsAng and hdModel and hdPointID)) then
+  if(not (ucsPos and ucsAng and shdModel and hdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Mismatched input parameters") end
-  if(not utilIsValidModel(hdModel)) then
+  if(not utilIsValidModel(shdModel)) then
     return StatusLog(nil,"GetNormalSpawn: Model invalid") end
-  local hdRec = CacheQueryPiece(hdModel)
+  local hdRec = CacheQueryPiece(shdModel)
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"GetNormalSpawn: No record located") end
   if(not hdRec.Offs) then
     return StatusLog(nil,"GetNormalSpawn: Offsets missing") end
-  local hdPointID = tonumber(vhdPointID)
+  local hdPointID = tonumber(ivhdPointID)
   if(not IsExistent(hdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(vhdPointID).."}<"..tostring(vhdPointID)..">") end
+    return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
   if(not IsThereRecID(hdRec,hdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(hdPointID)) end
   local stPoint = hdRec.Offs[hdPointID]
@@ -3122,14 +3104,14 @@ function GetNormalSpawn(ucsPos,ucsAng,hdModel,vhdPointID,
   stSpawn.U:Set(stSpawn.OAng:Up())
   --- Offset NOW !
   stSpawn.SPos:Set(ucsPos)
-  stSpawn.SPos:Add(stSpawn.F * (ucsPosX or 0))
-  stSpawn.SPos:Add(stSpawn.R * (ucsPosY or 0))
-  stSpawn.SPos:Add(stSpawn.U * (ucsPosZ or 0))
+  stSpawn.SPos:Add(stSpawn.F * (tonumber(ucsPosX) or 0))
+  stSpawn.SPos:Add(stSpawn.R * (tonumber(ucsPosY) or 0))
+  stSpawn.SPos:Add(stSpawn.U * (tonumber(ucsPosZ) or 0))
   stSpawn.OPos:Set(stSpawn.SPos)
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (ucsAngP or 0))
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(ucsAngY or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
   stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (ucsAngR or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   -- Init Model Offsets
@@ -3156,16 +3138,16 @@ end
  * Calculates SPos, SAng based on the DB inserts and input parameters
  * trEnt         = Trace.Entity
  * trHitPos      = Trace.HitPos
- * hdModel       = Node:DoClick() --> Node:Model()
- * hdPointID     = nIncDecID(nHoldPointID,....) per Right click ...
- * nActRadius    = Min radius to get an active point from the client
+ * shdModel      = Spawn data will be obtained for this model
+ * ivhdPointID   = Active point ID selected via Right click ...
+ * nvActRadius   = Minimal radius to get an active point from the client
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetEntitySpawn(trEnt,trHitPos,hdModel,vhdPointID,
-                        nActRadius,enFlatten,enIgnTyp,ucsPosX,
+function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
+                        nvActRadius,enFlatten,enIgnTyp,ucsPosX,
                         ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
-  if(not (trEnt and trHitPos and hdModel and hdPointID and nActRadius)) then
+  if(not (trEnt and trHitPos and shdModel and ivhdPointID and nvActRadius)) then
     return StatusLog(nil,"GetEntitySpawn: Mismatched input parameters") end
   if(not trEnt:IsValid()) then
     return StatusLog(nil,"GetEntitySpawn: Trace entity not valid") end
@@ -3174,14 +3156,17 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,vhdPointID,
   local trRec = CacheQueryPiece(trEnt:GetModel())
   if(not IsThereRecID(trRec,1)) then
     return StatusLog(nil,"GetEntitySpawn: Trace point invalid") end
-  local hdPointID = tonumber(vhdPointID)
-  if(not IsExistent(hdPointID)) then
-    return StatusLog(nil,"GetEntitySpawn: Holder PointID NAN {"..type(vhdPointID).."}<"..tostring(vhdPointID)..">") end
-  local hdRec = CacheQueryPiece(hdModel)
-  if(not IsThereRecID(hdRec,hdPointID)) then
+  local ihdPointID = tonumber(ivhdPointID)
+  if(not IsExistent(ihdPointID)) then
+    return StatusLog(nil,"GetEntitySpawn: Holder PointID NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
+  local nActRadius = tonumber(nvActRadius)
+  if(not IsExistent(nActRadius)) then
+    return StatusLog(nil,"GetEntitySpawn: Active radius NAN {"..type(nvActRadius).."}<"..tostring(nvActRadius)..">") end
+  local hdRec = CacheQueryPiece(shdModel)
+  if(not IsThereRecID(hdRec,ihdPointID)) then
     return StatusLog(nil,"GetEntitySpawn: Holder PointID invalid") end
   -- Get client's offset ID
-  local hdOffs = hdRec.Offs[hdPointID]
+  local hdOffs = hdRec.Offs[ihdPointID]
   -- If there is no Type field exit immediately
   if(not IsExistent(trRec.Type)) then
     return StatusLog(nil,"GetEntitySpawn: Trace type missing") end
@@ -3195,17 +3180,16 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,vhdPointID,
   -- We have the next Piece Offset
   local stSpawn = GetOpVar("SPAWN_ENTITY")
         stSpawn.RLen = nActRadius
-  local trAcDis, trPntID, trpOff valOff = 0,1
+        stSpawn.OID  = 0
   for k = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
-    valOff = trRec.Offs[k]
-    SetVector(stSpawn.MPos,valOff.P)
+    local vOff = trRec.Offs[k]
+    SetVector(stSpawn.MPos,vOff.P)
     stSpawn.MPos:Rotate(trAng)
     stSpawn.MPos:Add(trPos)
     stSpawn.MPos:Sub(trHitPos)
-    trAcDis = stSpawn.MPos:Length()
+    local trAcDis = stSpawn.MPos:Length()
     if(trAcDis < stSpawn.RLen) then
-      trpOff = valOff
       stSpawn.OID  = k
       stSpawn.RLen = trAcDis
       stSpawn.PPos:Set(stSpawn.MPos)
@@ -3213,15 +3197,15 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,vhdPointID,
     end
   end
   -- Found the active point ID on trEnt
-  -- Using "trpOff" because we are only reading
-  if(not trpOff) then
+  if(stSpawn.OID <= 0) then
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
+  local trOffs = trRec.Offs[stSpawn.OID]
   --Do origin !
-  SetVector(stSpawn.OPos,trpOff.O)
+  SetVector(stSpawn.OPos,trOffs.O)
   stSpawn.OPos:Rotate(trAng)
   stSpawn.OPos:Add(trPos)
   --- Do Origin UCS World angle
-  SetAngle(stSpawn.OAng,trpOff.A)
+  SetAngle(stSpawn.OAng,trOffs.A)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten and enFlatten ~= 0) then
@@ -3231,10 +3215,10 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,vhdPointID,
   --- Do F,R,U
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R,(ucsAngP or 0))
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(ucsAngY or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
   stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F,(ucsAngR or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   --- F R U Ready, Save our records
@@ -3249,9 +3233,9 @@ function GetEntitySpawn(trEnt,trHitPos,hdModel,vhdPointID,
   NegAngle(stSpawn.MAng)
   --Do Spawn Pos
   stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((hdOffs.O[csX] * stSpawn.MPos[cvX] + (ucsPosX or 0)) * stSpawn.F)
-  stSpawn.SPos:Add((hdOffs.O[csY] * stSpawn.MPos[cvY] + (ucsPosY or 0)) * stSpawn.R)
-  stSpawn.SPos:Add((hdOffs.O[csZ] * stSpawn.MPos[cvZ] + (ucsPosZ or 0)) * stSpawn.U)
+  stSpawn.SPos:Add((hdOffs.O[csX] * stSpawn.MPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
+  stSpawn.SPos:Add((hdOffs.O[csY] * stSpawn.MPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
+  stSpawn.SPos:Add((hdOffs.O[csZ] * stSpawn.MPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
   --Do Spawn Angle
   SetAngle(stSpawn.SAng,stSpawn.OAng)
   stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.MAng[caP] * hdOffs.A[csX])
