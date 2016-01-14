@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.167")
+asmlib.SetOpVar("TOOL_VERSION","5.168")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -63,7 +63,7 @@ local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsPathBAS   = asmlib.GetOpVar("DIRPATH_BAS")
 local gsPathDSV   = asmlib.GetOpVar("DIRPATH_DSV")
 local gsFullDSV   = gsPathBAS..gsPathDSV..asmlib.GetInstPref()..gsToolPrefU
-local gaTimerSet  = asmlib.StringExplode(asmlib.GetCoVar("timermode","STR"),asmlib.GetOpVar("OPSYM_DIRECTORY"))
+local gaTimerSet  = asmlib.ExplodeString(asmlib.GetCoVar("timermode","STR"),asmlib.GetOpVar("OPSYM_DIRECTORY"))
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -332,7 +332,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Index = {{1},{2},{1,2}},
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
-  [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"}
+  [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
 },true,true)
 
 if(file.Exists(gsFullDSV.."PIECES.txt", "DATA")) then

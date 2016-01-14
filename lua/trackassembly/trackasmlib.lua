@@ -171,6 +171,76 @@ function GetInstPref()
   return "na_"
 end
 
+function GetOpVar(sName)
+  return libOpVars[sName]
+end
+
+function SetOpVar(sName, anyValue)
+  libOpVars[sName] = anyValue
+end
+
+function IsExistent(anyValue)
+  return (anyValue ~= nil)
+end
+
+function IsString(anyValue)
+  return (getmetatable(anyValue) == GetOpVar("TYPEMT_STRING"))
+end
+
+local function IsEmptyString(anyValue)
+  if(not IsString(anyValue)) then return false end
+  return (anyValue == "")
+end
+
+function IsBool(anyValue)
+  if    (anyValue == true ) then return true
+  elseif(anyValue == false) then return true end
+  return false
+end
+
+function IsNumber(anyValue)
+  return ((tonumber(anyValue) and true) or false)
+end
+
+------------------ AssemblyLib LOGS ------------------------
+
+local function FormatNumberMax(nNum,nMax)
+  local nNum = tonumber(nNum)
+  local nMax = tonumber(nMax)
+  if(not (nNum and nMax)) then return "" end
+  return stringFormat("%"..stringLen(tostring(mathFloor(nMax))).."d",nNum)
+end
+
+function SetLogControl(nLines,sFile)
+  SetOpVar("LOG_LOGFILE",tostring(sFile) or "")
+  SetOpVar("LOG_MAXLOGS",tonumber(nLines) or 0)
+  SetOpVar("LOG_CURLOGS",0)
+  if(not fileExists(GetOpVar("DIRPATH_BAS"),"DATA") and
+     not IsEmptyString(GetOpVar("LOG_LOGFILE"))) then
+    fileCreateDir(GetOpVar("DIRPATH_BAS"))
+  end
+end
+
+local function Log(anyStuff)
+  local nMaxLogs = GetOpVar("LOG_MAXLOGS")
+  if(nMaxLogs > 0) then
+    local sLogFile = GetOpVar("LOG_LOGFILE")
+    local nCurLogs = GetOpVar("LOG_CURLOGS")
+    if(sLogFile ~= "") then
+      local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
+      fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff).."\n")
+      nCurLogs = nCurLogs + 1
+      if(nCurLogs > nMaxLogs) then
+        fileDelete(fName)
+        nCurLogs = 0
+      end
+      SetOpVar("LOG_CURLOGS",nCurLogs)
+    else
+      print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff))
+    end
+  end
+end
+
 function PrintInstance(anyStuff)
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(SERVER) then
@@ -182,43 +252,49 @@ function PrintInstance(anyStuff)
   end
 end
 
+function LogInstance(anyStuff)
+  local anyStuff = tostring(anyStuff)
+  local logSkip  = GetOpVar("LOG_SKIP")
+  if(logSkip and logSkip[1]) then
+    local iNdex = 1
+    while(logSkip[iNdex]) do
+      if(stringFind(anyStuff,tostring(logSkip[iNdex]))) then return end
+      iNdex = iNdex + 1
+    end
+  end -- Should the current log be skipped
+  local logOnly  = GetOpVar("LOG_ONLY")
+  if(logOnly and logOnly[1]) then
+    local iNdex = 1
+    local logMe = false
+    while(logOnly[iNdex]) do
+      if(stringFind(anyStuff,tostring(logOnly[iNdex]))) then
+        logMe = true
+      end
+      iNdex = iNdex + 1
+    end
+    if(not logMe) then return end
+  end -- Only the chosen messages are processed
+  local sModeDB  = GetOpVar("MODE_DATABASE")
+  if(SERVER) then
+    Log("SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
+  elseif(CLIENT) then
+    Log("CLIENT > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
+  else
+    Log("NOINST > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
+  end
+end
+
 function StatusPrint(anyStatus,sError)
   PrintInstance(sError)
   return anyStatus
 end
 
-function GetOpVar(sName)
-  return libOpVars[sName]
+function StatusLog(anyStatus,sError)
+  LogInstance(sError)
+  return anyStatus
 end
 
-function SetOpVar(sName, anyValue)
-  libOpVars[sName] = anyValue
-end
-
-function IsExistent(anyValue)
-  if(anyValue ~= nil) then return true end
-  return false
-end
-
-function IsString(anyValue)
-  if(getmetatable(anyValue) == GetOpVar("TYPEMT_STRING")) then return true end
-  return false
-end
-
-local function IsEmptyString(sString)
-  if(not IsString(sString)) then return false end
-  return (sS == "")
-end
-
-function IsBool(anyArg)
-  if    (anyArg == true ) then return true
-  elseif(anyArg == false) then return true end
-  return false
-end
-
-function IsNumber(anyArg)
-  return ((tonumber(anyArg) and true) or false)
-end
+----------------- AssemblyLib INITAIALIZATION -----------------
 
 function InitAssembly(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
@@ -287,7 +363,7 @@ function InitAssembly(sName,sPurpose)
     MPos = Vector(),
     HRec = 0
   })
-  return true
+  return StatusPrint(false,"InitAssembly: Success")
 end
 
 ------------- ANGLE ---------------
@@ -432,37 +508,6 @@ function DecomposeByAngle(V,A)
                 V:DotProduct(A:Up()))
 end
 
-function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
-  local aAng = Angle()
-  if(not oPly) then return aAng end
-  local nSnap = tonumber(nSnap) or 0
-  if(nSnap and (nSnap ~= 0)) then -- Snap to the surface
-    local oTrace = oTrace
-    if(not (oTrace and oTrace.Hit)) then
-      oTrace = utilTraceLine(utilGetPlayerTrace(oPly))
-      if(not (oTrace and oTrace.Hit)) then return aAng end
-    end
-    local vLeft = -oPly:GetAimVector():Angle():Right()
-    aAng:Set(vLeft:Cross(oTrace.HitNormal):AngleEx(oTrace.HitNormal))
-  else -- Get only the player yaw, pitch and roll are not needed
-    local nYSnap = tonumber(nYSnap) or 0
-    if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
-      aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap)
-    end
-  end
-  return aAng
-end
-
-function LocateRecID(oRec, nvPointID)
-  if(not oRec) then return StatusLog(nil,"LocateRecID: Missing record") end
-  if(not oRec.Offs) then return StatusLog(nil,"LocateRecID: Missing offsets") end
-  local nPointID = tonumber(nvPointID) or 0
-  local stOffset = oRec.Offs[nPointID]
-  if(not IsExistent(stOffset)) then
-    return StatusLog(nil,"LocateRecID: Missing ID #"..tostring(nPointID).." <"..tostring(nvPointID)..">") end
-  return stOffset
-end
-
 ---------- Library OOP -----------------
 
 function MakeContainer(sInfo,sDefKey)
@@ -569,7 +614,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
   end
   function self:SetTexture(sTexture)
     if(not IsString(sTexture)) then return end
-    if(sTexture == "") then return end
+    if(IsEmptyString(sTexture)) then return end
     Texture.Path = sTexture
     Texture.ID   = surfaceGetTextureID(Texture.Path)
   end
@@ -828,7 +873,7 @@ end
 --[[
  * Updates a VGUI pnListView with a search preformed in the already generated
  * frequently used pieces "frUsed" for the pattern "sPattern" given by the user
- * and a filled selected "sField".
+ * and a field name selected "sField".
  * On success populates "pnListView" with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
 ]]--
@@ -850,7 +895,7 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
   local sPattern = tostring(sPattern or "")
   local iNdex, pnRec, sData = 1, nil, nil
   while(frUsed[iNdex]) do
-    if(sPattern == "") then
+    if(IsEmptyString(sPattern)) then
       pnRec = AddLineListView(pnListView,frUsed,iNdex)
       if(not IsExistent(pnRec)) then
         return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex))
@@ -1004,7 +1049,7 @@ function IncDecPointID(ivPointID,sDir,rPiece)
   local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPointID: Point ID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
-  if(not IsExistent(LocateRecID(rPiece,iPointID))) then
+  if(not IsExistent(LocatePOA(rPiece,iPointID))) then
     return StatusLog(1,"IncDecPointID: Point ID #"..tostring(iPointID).." not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir = 1
@@ -1023,9 +1068,9 @@ function IncDecPnextID(ivPnextID,ivPointID,sDir,rPiece)
     return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(ivPnextID).."}<"..tostring(ivPnextID)..">") end
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
-  if(not IsExistent(LocateRecID(rPiece,iPnextID))) then
+  if(not IsExistent(LocatePOA(rPiece,iPnextID))) then
     return StatusLog(1,"IncDecPointID: Offset PnextID #"..tostring(iPnextID).." not located") end
-  if(not IsExistent(LocateRecID(rPiece,iPointID))) then
+  if(not IsExistent(LocatePOA(rPiece,iPointID))) then
     return StatusLog(1,"IncDecPointID: Offset PointID #"..tostring(iPointID).." not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir =  1
@@ -1048,7 +1093,7 @@ function PointOffsetUp(oEnt,ivPointID)
   local hdRec = CacheQueryPiece(sModel)
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"PointOffsetUp: Record not found for <"..sModel..">") end
-  local hdPnt = LocateRecID(hdRec,iPointID)
+  local hdPnt = LocatePOA(hdRec,iPointID)
   if(not IsExistent(hdPnt)) then
     return StatusLog(nil,"PointOffsetUp: Point #"..tostring(iPointID)
              .." not located on model <"..sModel..">") end  
@@ -1064,29 +1109,14 @@ function PointOffsetUp(oEnt,ivPointID)
 end
 
 function ModelToName(sModel)
-  if(not IsString(sModel)) then return "" end
-  local Cnt = 1   -- If is model remove *.mdl
-  local sModel = stringGsub(sModel,GetOpVar("FILE_MODEL"),"")
-  local Len = stringLen(sModel)
-  if(Len <= 0) then return "" end
+  if(not IsString(sModel)) then
+    return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..sModel..">") end
+  if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
+  local fCh, bCh, Cnt = "", "", 1
   local sSymDiv = GetOpVar("OPSYM_DIVIDER")
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local gModel = ""
-        sModel = stringSub(sModel,1,Len)
-  -- Locate the model part and exclude the directories
-  Cnt = stringLen(sModel)
-  local fCh, bCh = "", ""
-  while(Cnt > 0) do
-    fCh = stringSub(sModel,Cnt,Cnt)
-    if(fCh == sSymDir) then
-      break
-    end
-    Cnt = Cnt - 1
-  end
-  sModel = stringSub(sModel,Cnt+1,Len)
-  -- Remove the unneeded parts by indexing sModel
-  Cnt = 1
-  gModel = sModel
+  local sModel  = stringGsub(StringToFile(sModel),GetOpVar("FILE_MODEL"),"")
+  local gModel  = StringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
   local tCut, tSub, tApp = SettingsModelToName("GET")
   if(tCut and tCut[1]) then
     while(tCut[Cnt] and tCut[Cnt+1]) do
@@ -1108,9 +1138,6 @@ function ModelToName(sModel)
     while(tSub[Cnt]) do
       fCh = tostring(tSub[Cnt]   or "")
       bCh = tostring(tSub[Cnt+1] or "")
-      if(not (fCh and bCh)) then
-        return StatusLog("","ModelToName: Cannot sub the model in {"..fCh..", "..bCh.."}")
-      end
       LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} << "..gModel)
       gModel = stringGsub(gModel,fCh,bCh)
       LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
@@ -1125,23 +1152,30 @@ function ModelToName(sModel)
     LogInstance("ModelToName[APP]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
   end
   -- Trigger the capital-space using the divider
-  sModel = sSymDiv..gModel
-  Len = stringLen(sModel)
-  fCh, bCh, gModel = "", "", ""
-  while(Cnt <= Len) do
-    bCh = stringSub(sModel,Cnt,Cnt)
-    fCh = stringSub(sModel,Cnt+1,Cnt+1)
-    if(bCh == sSymDiv) then
-       bCh = " "
-       fCh = stringUpper(fCh)
-       gModel = gModel..bCh..fCh
-       Cnt = Cnt + 1
-    else
-      gModel = gModel..bCh
+  if(stringSub(gModel,1,1) ~= sSymDiv) then sModel = sSymDiv..gModel end
+  -- Here in sModel we have: _aaaaa_bbbb_ccccc
+  fCh, bCh, gModel = stringFind(sModel,sSymDiv,1), 1, "" 
+  while(fCh) do
+    print("F",fCh,bCh,stringSub(sModel,bCh+2,fCh-1))
+    if(fCh > bCh) then
+      gModel = gModel..stringSub(sModel,bCh+2,fCh-1)
     end
-    Cnt = Cnt + 1
+    gModel = gModel.." "..stringUpper(stringSub(sModel,fCh+1,fCh+1))
+    bCh = fCh
+    fCh = stringFind(sModel,"_",fCh+1)
   end
-  return stringSub(gModel,2,Len)
+  return gModel..stringFub(sModel,O+2,-1)
+end
+
+function LocatePOA(oRec, nvPointID)
+  if(not oRec) then return StatusLog(nil,"LocatePOA: Missing record") end
+  if(not oRec.Offs) then return StatusLog(nil,"LocatePOA: Missing offsets for <"..tostring(oRec.Slot)..">") end
+  local nPointID = tonumber(nvPointID) or 0
+  local stPOA = oRec.Offs[nPointID]
+  if(not IsExistent(stPOA)) then
+    return StatusLog(nil,"LocatePOA: Missing ID #"..tostring(nPointID).." <"
+             ..tostring(nvPointID).."> for <"..tostring(oRec.Slot)..">") end
+  return stPOA
 end
 
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
@@ -1265,13 +1299,13 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   local sO = sO or "NULL"
   local sA = sA or "NULL"
   if(not IsString(sP)) then
-    return StatusLog(nil,"RegisterPOA: Point is not a string but "..type(sP)) end
+    return StatusLog(nil,"RegisterPOA: Point  {"..type(sP).."}<"..tostring(sP)..">") end
   if(not IsString(sO)) then
-    return StatusLog(nil,"RegisterPOA: Origin is not a string but "..type(sO)) end
+    return StatusLog(nil,"RegisterPOA: Origin {"..type(sO).."}<"..tostring(sO)..">") end
   if(not IsString(sA)) then
-    return StatusLog(nil,"RegisterPOA: Angle is not a string but "..type(sA)) end
+    return StatusLog(nil,"RegisterPOA: Angle  {"..type(sA).."}<"..tostring(sA)..">") end
   if(not stPiece.Offs) then
-    if(iID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be "..tostring(iID)) end
+    if(iID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be #"..tostring(iID)) end
     stPiece.Offs = {}
   end
   local tOffs = stPiece.Offs
@@ -1287,27 +1321,18 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     tOffs[iID].A = {}
     tOffs        = tOffs[iID]
   end
-  if((sO ~= "") and (sO ~= "NULL")) then DecodePOA(sO)
-  else ReloadPOA() end
+  if((sO ~= "") and (sO ~= "NULL")) then DecodePOA(sO) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.O,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
   if((sP ~= "") and (sP ~= "NULL")) then DecodePOA(sP) end
   if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer point")
   end -- In the POA array still persists the decoded Origin
-  if(stringSub(sP,1,1) == GetOpVar("OPSYM_DISABLE")) then tOffs.P[csD] = true end
-  if((sA ~= "") and (sA ~= "NULL")) then DecodePOA(sA)
-  else ReloadPOA() end
+  if(stringSub(sP,1,1) == GetOpVar("OPSYM_DISABLE")) then tOffs.P[csD] = true else tOffs.P[csD] = false end
+  if((sA ~= "") and (sA ~= "NULL")) then DecodePOA(sA) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.A,"A"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
   return tOffs
-end
-
-function FormatNumberMax(nNum,nMax)
-  local nNum = tonumber(nNum)
-  local nMax = tonumber(nMax)
-  if(not (nNum and nMax)) then return "" end
-  return stringFormat("%"..stringLen(tostring(mathFloor(nMax))).."d",nNum)
 end
 
 local function Qsort(Data,Lo,Hi)
@@ -1411,79 +1436,9 @@ function Sort(tTable,tKeys,tFields,sMethod)
   return Match
 end
 
------------------- AssemblyLib LOGS ------------------------
-
-function SetLogControl(nLines,sFile)
-  SetOpVar("LOG_LOGFILE",tostring(sFile) or "")
-  SetOpVar("LOG_MAXLOGS",tonumber(nLines) or 0)
-  SetOpVar("LOG_CURLOGS",0)
-  if(not fileExists(GetOpVar("DIRPATH_BAS"),"DATA") and
-     not IsEmptyString(GetOpVar("LOG_LOGFILE"))) then
-    fileCreateDir(GetOpVar("DIRPATH_BAS"))
-  end
-end
-
-function Log(anyStuff)
-  local nMaxLogs = GetOpVar("LOG_MAXLOGS")
-  if(nMaxLogs > 0) then
-    local sLogFile = GetOpVar("LOG_LOGFILE")
-    local nCurLogs = GetOpVar("LOG_CURLOGS")
-    if(sLogFile ~= "") then
-      local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
-      fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs)
-                .." >> "..tostring(anyStuff).."\n")
-      nCurLogs = nCurLogs + 1
-      if(nCurLogs > nMaxLogs) then
-        fileDelete(fName)
-        nCurLogs = 0
-      end
-      SetOpVar("LOG_CURLOGS",nCurLogs)
-    else
-      print(GetOpVar("TOOLNAME_NU").." LOG: "..tostring(anyStuff))
-    end
-  end
-end
-
-function LogInstance(anyStuff)
-  local anyStuff = tostring(anyStuff)
-  local logSkip  = GetOpVar("LOG_SKIP")
-  if(logSkip and logSkip[1]) then
-    local iNdex = 1
-    while(logSkip[iNdex]) do
-      if(stringFind(anyStuff,tostring(logSkip[iNdex]))) then return end
-      iNdex = iNdex + 1
-    end
-  end -- Should the current log be skipped
-  local logOnly  = GetOpVar("LOG_ONLY")
-  if(logOnly and logOnly[1]) then
-    local iNdex = 1
-    local logMe = false
-    while(logOnly[iNdex]) do
-      if(stringFind(anyStuff,tostring(logOnly[iNdex]))) then
-        logMe = true
-      end
-      iNdex = iNdex + 1
-    end
-    if(not logMe) then return end
-  end -- Only the chosen messages are processed
-  local sModeDB  = GetOpVar("MODE_DATABASE")
-  if(SERVER) then
-    Log("SERVER > ["..sModeDB.."] "..anyStuff)
-  elseif(CLIENT) then
-    Log("CLIENT > ["..sModeDB.."] "..anyStuff)
-  else
-    Log("NOINST > ["..sModeDB.."] "..anyStuff)
-  end
-end
-
-function StatusLog(anyStatus,sError)
-  LogInstance(sError)
-  return anyStatus
-end
-
 --------------------- STRING -----------------------
 
-function StringDisable(sBase, anyDisable, anyDefault)
+function DisableString(sBase, anyDisable, anyDefault)
   if(IsString(sBase)) then
     local sFirst = stringSub(sBase,1,1)
     if(sFirst ~= GetOpVar("OPSYM_DISABLE") and not IsEmptyString(sBase)) then
@@ -1495,7 +1450,7 @@ function StringDisable(sBase, anyDisable, anyDefault)
   return anyDefault
 end
 
-function StringDefault(sBase, sDefault)
+function DefaultString(sBase, sDefault)
   if(IsString(sBase)) then
     if(not IsEmptyString(sBase)) then return sBase end
   end
@@ -1503,12 +1458,12 @@ function StringDefault(sBase, sDefault)
   return ""
 end
 
-function StringExplode(sStr,sDelim)
+function ExplodeString(sStr,sDelim)
   if(not (IsString(sStr) and IsString(sDelim))) then
-    return StatusLog(nil,"StringExplode: All parameters should be strings")
+    return StatusLog(nil,"ExplodeString: All parameters should be strings")
   end
   if(IsEmptyString(sDelim)) then
-    return StatusLog(nil,"StringExplode: Missing string exploding delimiter")
+    return StatusLog(nil,"ExplodeString: Missing string exploding delimiter")
   end
   local sStr   = sStr
   local sDelim = stringSub(sDelim,1,1)
@@ -1531,10 +1486,10 @@ function StringExplode(sStr,sDelim)
   return Data
 end
 
-function StringImplode(tParts,sDelim)
+function ImplodeString(tParts,sDelim)
   if(not (tParts and tParts[1])) then return "" end
   if(not IsString(sDelim)) then
-    return StatusLog(nil,"StringImplode: The delimiter should be string")
+    return StatusLog(nil,"ImplodeString: The delimiter should be string")
   end
   local iCnt = 1
   local sImplode = ""
@@ -1549,17 +1504,17 @@ function StringImplode(tParts,sDelim)
   return sImplode
 end
 
-function StringPad(sStr,sPad,ivCnt)
-  if(not IsString(sStr)) then return StatusLog("","StringPad: String missing") end
-  if(not IsString(sPad)) then return StatusLog(sStr,"StringPad: Pad missing") end
+function PadString(sStr,sPad,ivCnt)
+  if(not IsString(sStr)) then return StatusLog("","PadString: String missing") end
+  if(not IsString(sPad)) then return StatusLog(sStr,"PadString: Pad missing") end
   local iLen = stringLen(sStr) -- Not used just for error handling
-  if(iLen == 0) then return StatusLog(sStr,"StringPad: Pad too short") end
+  if(iLen == 0) then return StatusLog(sStr,"PadString: Pad too short") end
   local iCnt = tonumber(ivCnt)
   if(not IsExistent(iCnt)) then
-    return StatusLog(sStr,"StringPad: Count NAN {"
+    return StatusLog(sStr,"PadString: Count NAN {"
              ..type(ivCnt).."}<"..tostring(ivCnt)..">") end
   local iDif = (mathAbs(iCnt) - iLen)
-  if(iDif <= 0) then return StatusLog(sStr,"StringPad: Padding Ignored") end
+  if(iDif <= 0) then return StatusLog(sStr,"PadString: Padding Ignored") end
   local sCh = stringSub(sPad,1,1)
   local sPad = sCh
   iDif = iDif - 1
@@ -1571,42 +1526,44 @@ function StringPad(sStr,sPad,ivCnt)
   return (sPad..sStr)
 end
 
-function String2BGID(sStr)
+function StringToBGID(sStr)
   if(not IsExistent(sStr)) then
-    return StatusLog(nil, "String2BGID: String missing") end
+    return StatusLog(nil, "StringToBGID: String missing") end
   if(IsEmptyString(sStr)) then
-    return StatusLog(nil, "String2BGID: Empty string") end
+    return StatusLog(nil, "StringToBGID: Empty string") end
   local Cnt  = 1
-  local Data = StringExplode(sStr,GetOpVar("OPSYM_SEPARATOR"))
+  local Data = ExplodeString(sStr,GetOpVar("OPSYM_SEPARATOR"))
   while(Data[Cnt]) do
     local Num = tonumber(Data[Cnt])
     if(not IsExistent(Num)) then
-      return StatusLog(nil, "String2BGID: Value NAN {"
+      return StatusLog(nil, "StringToBGID: Value NAN {"
                ..type(Data[Cnt]).."}<"..tostring(Data[Cnt])..">") end
     if((mathFloor(Num) - Num) ~= 0) then
-      return StatusLog(nil, "String2BGID: Floats are forbidden") end
+      return StatusLog(nil, "StringToBGID: Floats are forbidden") end
     Data[Cnt] = Num
     Cnt = Cnt + 1
   end
   if(IsExistent(Data[1]))then return Data end
-  return StatusLog(nil, "String2BGID: No data found")
+  return StatusLog(nil, "StringToBGID: No data found")
 end
 
--- props/model.mdl --> model.mdl
-function StringFileModel(sModel)
-  if(not IsString(sModel)) then
-    return StatusLog("","StringFileModel: Model must be string") end
-  if(IsEmptyString(sModel)) then
-    return StatusLog(GetOpVar("MISS_NOAV"),"StringFileModel: Model is empty") end
+--[[
+ * Extracts the file name from a path
+ * props/models/example/wheel.mdl --> wheel.mdl
+]]--
+function StringToFile(sPath)
+  if(not IsString(sPath)) then
+    return StatusLog(GetOpVar("MISS_NOAV"),"StringToFile: Path must be string") end
+  if(IsEmptyString(sPath)) then
+    return StatusLog(GetOpVar("MISS_NOAV"),"StringToFile: Path is empty") end
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local nLen = stringLen(sModel)
-  local nCnt = nLen
-  local sCh  = stringSub(sModel,nCnt,nCnt)
-  while(sCh ~= sSymDir and nCnt > 0) do
-    nCnt = nCnt - 1
-    sCh  = stringSub(sModel,nCnt,nCnt)
+  local New = stringFind(sPath,sSymDir,1)
+  if(not IsExistent(New))then return sPath end
+  local Old = 0
+  while(New) do Old = New
+    New = stringFind(sPath,sSymDir,New+1)
   end
-  return stringSub(sModel,nCnt+1,Len)
+  return stringSub(sPath,Old+1,-1)
 end
 
 ----------------- PRINTS ------------------------
@@ -1658,7 +1615,7 @@ function ArrayPrint(arArr,sName,nCol)
   local Cnt, Next = 1
   local Col, Max, Cols = 0, 0, 0
   local Line = (sName or "Data").." = { \n"
-  local Pad  = StringPad(" "," ",stringLen(Line)-1)
+  local Pad  = PadString(" "," ",stringLen(Line)-1)
   local symSep = GetOpVar("OPSYM_SEPARATOR")
   while(arArr[Cnt]) do
     Col = stringLen(tostring(arArr[Cnt]))
@@ -1675,7 +1632,7 @@ function ArrayPrint(arArr,sName,nCol)
     if(nCol and Cols == Col-1) then
       Line = Line..Pad
     end
-    Line = Line..StringPad(tostring(arArr[Cnt])," ",-Max-1)
+    Line = Line..PadString(tostring(arArr[Cnt])," ",-Max-1)
     if(Next) then
       Line = Line..symSep
     end
@@ -1763,7 +1720,13 @@ end
 
 ------------------------- PLAYER -----------------------------------
 
-function PrintNotify(pPly,sText,sNotifType)
+function ConCommandPly(pPly,sCvar,anyValue)
+  if(not pPly) then return StatusLog("","StringConCmd: Player invalid") end
+  if(not IsString(sCvar)) then return StatusLog("","StringConCmd: Convar name invalid") end
+  return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(sValue).."\n")
+end
+
+function PrintNotifyPly(pPly,sText,sNotifType)
   if(not pPly) then return end
   if(SERVER) then
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
@@ -1776,14 +1739,14 @@ function EmitSoundPly(pPly)
   pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathFloor(mathRandom(3))..".wav")
 end
 
-function LoadPlyKey(pPly, sKey)
+function LoadKeyPly(pPly, sKey)
   local keyPly = GetOpVar("HASH_PLAYER_KEYDOWN")
   local Cache  = libCache[keyPly]
   if(not IsExistent(Cache)) then
     libCache[keyPly] = {}
     Cache = libCache[keyPly]
   end
-  if(not pPly) then return StatusLog(nil,"LoadPlyKey: Player not available") end
+  if(not pPly) then return StatusLog(nil,"LoadKeyPly: Player not available") end
   local spName = pPly:GetName()
   if(not Cache[spName]) then
     Cache[spName]   = {
@@ -1809,11 +1772,11 @@ function LoadPlyKey(pPly, sKey)
     Cache = Cache[spName]
   end
   if(IsExistent(sKey)) then
-    if(not IsString(sKey)) then return StatusLog(nil,"LoadPlyKey: Key hash not correct") end
+    if(not IsString(sKey)) then return StatusLog(nil,"LoadKeyPly: Key hash not correct") end
     if(sKey == "DEBUG") then
       return Cache
     end
-    LogInstance("LoadPlyKey: NamePK <"..sKey.."> = "..tostring(Cache[sKey]))
+    LogInstance("LoadKeyPly: NamePK <"..sKey.."> = "..tostring(Cache[sKey]))
     return Cache[sKey]
   end
   Cache["ALTLFT"]  = pPly:KeyDown(IN_ALT1      )
@@ -1834,7 +1797,7 @@ function LoadPlyKey(pPly, sKey)
   Cache["LEFT"]    = pPly:KeyDown(IN_LEFT      )
   Cache["RIGHT"]   = pPly:KeyDown(IN_RIGHT     )
   Cache["WALK"]    = pPly:KeyDown(IN_WALK      )
-  return StatusLog(nil,"LoadPlyKey: Player <"..spName.."> keys loaded")
+  return StatusLog(nil,"LoadKeyPly: Player <"..spName.."> keys loaded")
 end
 
 -------------------------- AssemblyLib BUILDSQL ------------------------------
@@ -1855,20 +1818,13 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
   local sModeDB  = GetOpVar("MODE_DATABASE")
   if(tipField == "TEXT") then
     snOut = tostring(snValue)
-    if(not bStopEmpty and (snOut == "nil" or snOut == "")) then
-      if(sModeDB == "SQL") then
-        snOut = "NULL"
-      elseif(sModeDB == "LUA") then
-        snOut = "NULL"
-      else
-        return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB..">")
-      end
+    if(not bStopEmpty and (snOut == "nil" or IsEmptyString(snOut)) then
+      if    (sModeDB == "SQL") then snOut = "NULL"
+      elseif(sModeDB == "LUA") then snOut = "NULL"
+      else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB..">") end
     end
-    if(defField[3] == "LOW") then
-      snOut = stringLower(snOut)
-    elseif(defField[3] == "CAP") then
-      snOut = stringUpper(snOut)
-    end
+    if    (defField[3] == "LOW") then snOut = stringLower(snOut)
+    elseif(defField[3] == "CAP") then snOut = stringUpper(snOut) end
     if(not bStopRevise and sModeDB == "SQL" and defField[4] == "QMK") then
       snOut = string.gsub(snOut,"'","''")
     end
@@ -1877,11 +1833,8 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
       if(sQuote) then
         sqChar = stringSub(tostring(sQuote),1,1)
       else
-        if(sModeDB == "SQL") then
-          sqChar = "'"
-        elseif(sModeDB == "LUA") then
-          sqChar = "\""
-        end
+        if    (sModeDB == "SQL") then sqChar = "'"
+        elseif(sModeDB == "LUA") then sqChar = "\"" end
       end
       snOut = sqChar..snOut..sqChar
     end
@@ -2231,8 +2184,8 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   local Cnt, defField = 1, nil
   while(defTable[Cnt]) do
     defField    = defTable[Cnt]
-    defField[3] = StringDefault(tostring(defField[3] or sDisable), sDisable)
-    defField[4] = StringDefault(tostring(defField[4] or sDisable), sDisable)
+    defField[3] = DefaultString(tostring(defField[3] or sDisable), sDisable)
+    defField[4] = DefaultString(tostring(defField[4] or sDisable), sDisable)
     Cnt = Cnt + 1
   end
   libCache[namTable] = {}
@@ -2304,10 +2257,10 @@ function InsertRecord(sTable,tData)
   local namTable = defTable.Name
 
   if(sTable == "PIECES") then
-    tData[2] = StringDisable(tData[2],DefaultType(),"TYPE")
-    tData[3] = StringDisable(tData[3],ModelToName(tData[1]),"MODEL")
+    tData[2] = DisableString(tData[2],DefaultType(),"TYPE")
+    tData[3] = DisableString(tData[3],ModelToName(tData[1]),"MODEL")
   elseif(sTable == "PHYSPROPERTIES") then
-    tData[1] = StringDisable(tData[1],DefaultType(),"TYPE")
+    tData[1] = DisableString(tData[1],DefaultType(),"TYPE")
   end
 
   local sModeDB = GetOpVar("MODE_DATABASE")
@@ -2337,6 +2290,7 @@ function InsertRecord(sTable,tData)
       if(not IsExistent(tLine.Type)) then tLine.Type = tData[2] end
       if(not IsExistent(tLine.Name)) then tLine.Name = tData[3] end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0        end
+      if(not IsExistent(tLine.Slot)) then tLine.Slot = snPrimaryKey end
       local nOffsID = MatchType(defTable,tData[4],4) -- LineID has to be set properly
       if(not IsExistent(nOffsID)) then
         return StatusLog(nil,"InsertRecord: Cannot match "
@@ -2355,6 +2309,7 @@ function InsertRecord(sTable,tData)
         tLine = Cache[snPrimaryKey]
       end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0 end
+      if(not IsExistent(tLine.Slot)) then tLine.Slot = snPrimaryKey end
       local nCnt, sFld, nAddID = 2, "", MatchType(defTable,tData[4],4)
       if(not IsExistent(nAddID)) then -- LineID has to be set properly
         return StatusLog(nil,"InsertRecord: Cannot match "
@@ -2397,6 +2352,7 @@ function InsertRecord(sTable,tData)
         tTypes[tTypes.Kept] = snPrimaryKey
         tNames[snPrimaryKey] = {}
         tNames[snPrimaryKey].Kept = 0
+        tNames[snPrimaryKey].Slot = snPrimaryKey
       end -- MatchType crashes only on numbers
       tNames[snPrimaryKey].Kept = iNameID
       tNames[snPrimaryKey][iNameID] = MatchType(defTable,tData[3],3)
@@ -2435,7 +2391,7 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
     return StatusLog(nil,"TimerSetting: Timer set missing for setup") end
   if(not IsString(sTimerSet)) then
     return StatusLog(nil,"TimerSetting: Timer set not a string but "..type(sTimerSet)) end
-  local tBoom = StringExplode(sTimerSet,GetOpVar("OPSYM_REVSIGN"))
+  local tBoom = ExplodeString(sTimerSet,GetOpVar("OPSYM_REVSIGN"))
   tBoom[1] =   tostring(tBoom[1]  or "CQT")
   tBoom[2] =  (tonumber(tBoom[2]) or 0)
   tBoom[3] = ((tonumber(tBoom[3]) or 0) ~= 0) and true or false
@@ -2482,7 +2438,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
       end
       return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
     elseif(sModeTM == "OBJ") then
-      local TimerID = StringImplode(tKeys,"_")
+      local TimerID = ImplodeString(tKeys,"_")
       LogInstance("TimerAttach: TimID <"..TimerID..">")
       if(timerExists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
       timerCreate(TimerID, nLifeTM, 1, function()
@@ -2531,7 +2487,7 @@ local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
     if(sModeTM == "CQT") then
       sModeTM = "CQT" -- Just for something to do here and to be known that this is mode CQT
     elseif(sModeTM == "OBJ") then
-      local keyTimerID = StringImplode(tKeys,GetOpVar("OPSYM_DIVIDER"))
+      local keyTimerID = ImplodeString(tKeys,GetOpVar("OPSYM_DIVIDER"))
       if(not timerExists(keyTimerID)) then
         return StatusLog(nil,"TimerRestart: Timer missing <"..keyTimerID..">") end
       timerStart(keyTimerID)
@@ -2556,6 +2512,7 @@ function CacheQueryPiece(sModel)
     return StatusLog(nil,"CacheQueryPiece: Table definition missing") end
   local namTable = defTable.Name
   local Cache    = libCache[namTable]
+  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(Cache)) then
     return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..namTable..">") end
   local caInd    = {namTable,sModel}
@@ -2567,9 +2524,8 @@ function CacheQueryPiece(sModel)
     return nil
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
-    local sModel  = MatchType(defTable,sModel,1,false,"",true,true)
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryPiece: Model >> Pool <"..StringFileModel(sModel)..">")
+      LogInstance("CacheQueryPiece: Model >> Pool <"..StringToFile(sModel)..">")
       Cache[sModel] = {}
       stPiece = Cache[sModel]
       stPiece.Kept = 0
@@ -2582,6 +2538,7 @@ function CacheQueryPiece(sModel)
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPiece: No data found <"..Q..">") end
       stPiece.Kept = 1 --- Found at least one record
+      stPiece.Slot = sModel
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
       local qRec, qRez
@@ -2615,9 +2572,9 @@ function CacheQueryAdditions(sModel)
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then
     return StatusLog(nil,"CacheQueryAdditions: Missing table definition") end
-  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   local namTable = defTable.Name
   local Cache    = libCache[namTable]
+  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(Cache)) then
     return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..namTable..">") end
   local caInd    = {namTable,sModel}
@@ -2629,7 +2586,7 @@ function CacheQueryAdditions(sModel)
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryAdditions: Model >> Pool <"..StringFileModel(sModel)..">")
+      LogInstance("CacheQueryAdditions: Model >> Pool <"..StringToFile(sModel)..">")
       Cache[sModel] = {}
       stAddition = Cache[sModel]
       stAddition.Kept = 0
@@ -2642,6 +2599,7 @@ function CacheQueryAdditions(sModel)
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryAdditions: No data found <"..Q..">") end
       stAddition.Kept = 1
+      stAddition.Slot = sModel
       while(qData[stAddition.Kept]) do
         local qRec = qData[stAddition.Kept]
         stAddition[stAddition.Kept] = {}
@@ -2724,7 +2682,7 @@ function CacheQueryProperty(sType)
   if(not Cache) then
     return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..namTable..">") end
   local sModeDB = GetOpVar("MODE_DATABASE")
-  if(IsString(sType) and (sType ~= "")) then -- Get names per type
+  if(IsString(sType) and not IsEmptyString(sType)) then -- Get names per type
     local sType   = MatchType(defTable,sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
     local arNames = Cache[keyName]
@@ -2753,6 +2711,7 @@ function CacheQueryProperty(sType)
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found <"..Q..">") end
         stName.Kept = 1
+        stName.Slot = sType
         while(qData[stName.Kept]) do
           stName[stName.Kept] = qData[stName.Kept][defTable[3][1]]
           stName.Kept = stName.Kept + 1
@@ -2798,25 +2757,28 @@ end
 function GetCenterPoint(oRec,sO)
   if(not IsString(sO)) then
     return StatusLog(nil,"GetCenterPoint: Wrong offset type") end
+  local sO = stringSub(sO,1,1)
   if((sO ~= "P") and (sO ~= "O")) then
     return StatusLog(nil,"GetCenterPoint: Wrong offset name") end
-  if(not oRec) then
-    return StatusLog(nil,"GetCenterPoint: Missing piece record") end
-  if(not oRec.Offs) then
-    return StatusLog(nil,"GetCenterPoint: No piece offsets") end
-  if(not oRec.Offs[1]) then
-    return StatusLog(nil,"GetCenterPoint: Missing piece offset") end
-  local iInd, rCur = 1
-  local vCent = Vector()
-  while(oRec.Offs[iInd]) do
-    rCur = oRec.Offs[iInd][sO]
-    AddVectorXYZ(vCent,rCur[cvX],rCur[cvY],rCur[cvZ])
+  local stPOA = LocatePOA(oRec,1)
+  if(not IsExistent(stPOA)) then
+    return StatusLog(nil,"GetCenterPoint: First point missing") end
+  local iInd, vCen = 1, Vector()
+  while(stPOA) do
+    local arOff = stPOA[sO]
+    if(not IsExistent(arOff)) then
+      return StatusLog(nil,"GetCenterPoint: Offset <"..sO.."> not found for point #"
+               ..tostring(iInd).." and slot <"..tostring(oRec.Slot)..">") end
+    AddVectorXYZ(vCen,arOff[cvX],arOff[cvY],arOff[cvZ])
     iInd = iInd + 1
+    stPOA = LocatePOA(oRec,iInd)
+    if(not IsExistent(stPOA)) then
+      return StatusLog(nil,"GetCenterPoint: Point #"..tostring(iInd).." missing from record") end
   end
   if(iInd > 1) then
-    vCent:Mul(1/(iInd-1))
+    vCen:Mul(1/(iInd-1))
   end
-  return vCent
+  return vCen
 end
 
 ---------------------- AssemblyLib EXPORT --------------------------------
@@ -2825,7 +2787,7 @@ local function GetFieldsName(defTable,sDelim)
   if(not IsExistent(sDelim)) then return "" end
   local sDelim  = stringSub(tostring(sDelim),1,1)
   local sResult = ""
-  if(sDelim == "") then
+  if(IsEmptyString(sDelim)) then
     return StatusLog("","GetFieldsName: Invalid delimiter for <"..defTable.Name..">") end
   local iCount  = 1
   local namField
@@ -2877,7 +2839,7 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
       end
       if(not (stringSub(Line,1,1) == SymOff)) then
         if(stringSub(Line,1,TabLen) == namTable) then
-          local Data = StringExplode(stringSub(Line,TabLen+2,LinLen),sDelim)
+          local Data = ExplodeString(stringSub(Line,TabLen+2,LinLen),sDelim)
           for k,v in pairs(Data) do
             local vLen = stringLen(v)
             if(stringSub(v,1,1) == "\"" and stringSub(v,vLen,vLen) == "\"") then
@@ -3049,6 +3011,27 @@ end
 
 ----------------------------- AssemblyLib SNAPPING ------------------------------
 
+function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
+  local aAng = Angle()
+  if(not oPly) then return aAng end
+  local nSnap = tonumber(nSnap) or 0
+  if(nSnap and (nSnap ~= 0)) then -- Snap to the surface
+    local oTrace = oTrace
+    if(not (oTrace and oTrace.Hit)) then
+      oTrace = utilTraceLine(utilGetPlayerTrace(oPly))
+      if(not (oTrace and oTrace.Hit)) then return aAng end
+    end
+    local vLeft = -oPly:GetAimVector():Angle():Right()
+    aAng:Set(vLeft:Cross(oTrace.HitNormal):AngleEx(oTrace.HitNormal))
+  else -- Get only the player yaw, pitch and roll are not needed
+    local nYSnap = tonumber(nYSnap) or 0
+    if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
+      aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap)
+    end
+  end
+  return aAng
+end
+
 --[[
  * This function is the backbone of the tool for Trace.HitWorld
  * Calculates SPos, SAng based on the DB inserts and input parameters
@@ -3069,7 +3052,7 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,
   local hdRec = CacheQueryPiece(shdModel)
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"GetNormalSpawn: No record located") end
-  local stPoint = LocateRecID(hdRec,ihdPointID)
+  local stPoint = LocatePOA(hdRec,ihdPointID)
   if(not IsExistent(stPoint)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
   local stSpawn = GetOpVar("SPAWN_NORMAL")
@@ -3141,12 +3124,12 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   local trRec = CacheQueryPiece(trEnt:GetModel())
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"GetEntitySpawn: Trace model missing <"..trEnt:GetModel()..">") end
-  if(not IsExistent(LocateRecID(trRec,1))) then
+  if(not IsExistent(LocatePOA(trRec,1))) then
     return StatusLog(nil,"GetEntitySpawn: Trace has no points") end
   local hdRec  = CacheQueryPiece(shdModel)
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"GetEntitySpawn: Holder model missing <"..tostring(shdModel)..">") end
-  local hdOffs = LocateRecID(hdRec,ihdPointID)
+  local hdOffs = LocatePOA(hdRec,ihdPointID)
   if(not IsExistent(hdOffs)) then
     return StatusLog(nil,"GetEntitySpawn: Holder point invalid #"..tostring(ihdPointID)) end
   -- If there is no Type field exit immediately
@@ -3165,7 +3148,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
         stSpawn.OID  = 0
   for ID = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
-    local vOff = LocateRecID(trRec,ID)
+    local vOff = LocatePOA(trRec,ID)
     if(not IsExistent(vOff)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
     SetVector(stSpawn.MPos,vOff.P)
@@ -3352,9 +3335,10 @@ local function GetEntityOrTrace(oEnt)
     return StatusLog(nil,"GetEntityOrTrace: Trace not hit") end
   if(Trace.HitWorld) then -- Boolean
     return StatusLog(nil,"GetEntityOrTrace: Trace hit world") end
-  if(not (Trace.Entity and Trace.Entity:IsValid())) then
+  local trEnt = Trace.Entity
+  if(not (trEnt and trEnt:IsValid())) then
     return StatusLog(nil,"GetEntityOrTrace: Trace entity invalid") end
-  return Trace.Entity
+  return StatusLog(trEnt,"GetEntityOrTrace: Success "..tostring(trEnt))
 end
 
 function GetPropSkin(oEnt)
@@ -3395,7 +3379,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   if(not (sBgrpIDs and IsString(sBgrpIDs))) then
     return StatusLog(false,"AttachBodyGroups: Expecting string argument") end
   LogInstance("AttachBodyGroups: BGS <"..sBgrpIDs..">")
-  local IDs = String2BGID(sBgrpIDs)
+  local IDs = StringToBGID(sBgrpIDs)
   if(not IsExistent(IDs)) then -- Nil or table
     return StatusLog(false,"AttachBodyGroups: Bodygroup ID not matched") end
   local Cnt = 1
@@ -3441,11 +3425,17 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   end
   phPiece:EnableMotion(false)
   phPiece:SetMass(mathClamp(tonumber(nMass) or 1,1,GetOpVar("MAX_MASS")))
-  local BgSk = StringExplode((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY"))
+  local BgSk = ExplodeString((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY"))
   ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
-  AttachBodyGroups(ePiece,BgSk[1] or "")
-  AttachAdditions(ePiece)
-  return ePiece
+  if(not AttachBodyGroups(ePiece,BgSk[1] or "")) then
+    ePiece:Remove()
+    return StatusLog(nil,"MakePiece: Failed to attach bodygroups")
+  end
+  if(not AttachAdditions(ePiece)) then
+    ePiece:Remove()
+    return StatusLog(nil,"MakePiece: Failed to attach additions")
+  end
+  return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
 end
 
 function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
@@ -3517,7 +3507,7 @@ function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)
   else
     ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
-      PrintNotify(oPly,"Position out of map bounds!",sMode) end
+      PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
     return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds "..anyMessage)
   end
   return StatusLog(true,"Piece:SetBoundPos("..sMode.."): Success")
