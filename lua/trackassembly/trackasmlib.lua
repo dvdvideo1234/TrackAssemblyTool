@@ -325,7 +325,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("FILE_MODEL",".mdl")
+  SetOpVar("FILE_MODEL","%.mdl")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
@@ -1115,13 +1115,13 @@ end
 
 function ModelToName(sModel)
   if(not IsString(sModel)) then
-    return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..sModel.."> not string") end
+    return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..tostring(sModel)..">") end
   if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
   local fCh, bCh, Cnt = "", "", 1
   local sSymDiv = GetOpVar("OPSYM_DIVIDER")
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
   local sModel  = stringGsub(StringToFile(sModel),GetOpVar("FILE_MODEL"),"")
-  local gModel  = StringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
+  local gModel  = stringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
   local tCut, tSub, tApp = SettingsModelToName("GET")
   if(tCut and tCut[1]) then
     while(tCut[Cnt] and tCut[Cnt+1]) do
@@ -1159,16 +1159,19 @@ function ModelToName(sModel)
   -- Trigger the capital-space using the divider
   if(stringSub(gModel,1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
   -- Here in gModel we have: _aaaaa_bbbb_ccccc
-  fCh, bCh, gModel = stringFind(sModel,sSymDiv,1), 1, "" 
+  fCh, bCh, sModel = stringFind(gModel,sSymDiv,1), 1, "" 
   while(fCh) do
     if(fCh > bCh) then
-      gModel = gModel..stringSub(sModel,bCh+2,fCh-1)
+      sModel = sModel..stringSub(gModel,bCh+2,fCh-1)
     end
-    gModel = gModel.." "..stringUpper(stringSub(sModel,fCh+1,fCh+1))
+    if(not IsEmptyString(sModel)) then
+      sModel = sModel.." "
+    end
+    sModel = sModel..stringUpper(stringSub(gModel,fCh+1,fCh+1))
     bCh = fCh
-    fCh = stringFind(sModel,sSymDiv,fCh+1)
+    fCh = stringFind(gModel,sSymDiv,fCh+1)
   end
-  return gModel..stringFub(sModel,O+2,-1)
+  return sModel..stringSub(gModel,bCh+2,-1)
 end
 
 function LocatePOA(oRec, nvPointID)
