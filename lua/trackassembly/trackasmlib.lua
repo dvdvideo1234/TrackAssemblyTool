@@ -1115,7 +1115,7 @@ end
 
 function ModelToName(sModel)
   if(not IsString(sModel)) then
-    return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..sModel..">") end
+    return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..sModel.."> not string") end
   if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
   local fCh, bCh, Cnt = "", "", 1
   local sSymDiv = GetOpVar("OPSYM_DIVIDER")
@@ -1157,17 +1157,16 @@ function ModelToName(sModel)
     LogInstance("ModelToName[APP]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
   end
   -- Trigger the capital-space using the divider
-  if(stringSub(gModel,1,1) ~= sSymDiv) then sModel = sSymDiv..gModel end
-  -- Here in sModel we have: _aaaaa_bbbb_ccccc
+  if(stringSub(gModel,1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
+  -- Here in gModel we have: _aaaaa_bbbb_ccccc
   fCh, bCh, gModel = stringFind(sModel,sSymDiv,1), 1, "" 
   while(fCh) do
-    print("F",fCh,bCh,stringSub(sModel,bCh+2,fCh-1))
     if(fCh > bCh) then
       gModel = gModel..stringSub(sModel,bCh+2,fCh-1)
     end
     gModel = gModel.." "..stringUpper(stringSub(sModel,fCh+1,fCh+1))
     bCh = fCh
-    fCh = stringFind(sModel,"_",fCh+1)
+    fCh = stringFind(sModel,sSymDiv,fCh+1)
   end
   return gModel..stringFub(sModel,O+2,-1)
 end
@@ -1208,7 +1207,7 @@ end
 
 local function StringPOA(arPOA,sOffs)
   if(not IsString(sOffs)) then
-    return StatusLog(nil,"StringPOA: Mode is not a string but "..type(sOffs)) end
+    return StatusLog(nil,"StringPOA: Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string") end
   if(not IsExistent(arPOA)) then
     return StatusLog(nil,"StringPOA: Missing Offsets") end
   local symRevs = GetOpVar("OPSYM_REVSIGN")
@@ -1232,7 +1231,7 @@ local function TransferPOA(stOffset,sMode)
   if(not IsExistent(stOffset)) then
     return StatusLog(nil,"TransferPOA: Destination needed") end
   if(not IsString(sMode)) then
-    return StatusLog(nil,"TransferPOA: Mode must be string") end
+    return StatusLog(nil,"TransferPOA: Mode {"..type(sMode).."}<"tostring(sMode)"> not string") end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
   if(sMode == "V") then
     stOffset[cvX] = arPOA[1]
@@ -1254,7 +1253,7 @@ end
 
 local function DecodePOA(sStr)
   if(not IsString(sStr)) then
-    return StatusLog(nil,"DecodePOA: Argument must be string") end
+    return StatusLog(nil,"DecodePOA: Argument {"..type(sStr).."}<"..tostring(sStr).."> not string") end
   local DatInd = 1
   local ComCnt = 0
   local Len    = stringLen(sStr)
@@ -1494,7 +1493,7 @@ end
 function ImplodeString(tParts,sDelim)
   if(not (tParts and tParts[1])) then return "" end
   if(not IsString(sDelim)) then
-    return StatusLog(nil,"ImplodeString: The delimiter should be string")
+    return StatusLog(nil,"ImplodeString: The delimiter {"..type(sDelim).."}<"..tostring(sDelim).."> not string")
   end
   local iCnt = 1
   local sImplode = ""
@@ -1510,8 +1509,10 @@ function ImplodeString(tParts,sDelim)
 end
 
 function PadString(sStr,sPad,ivCnt)
-  if(not IsString(sStr)) then return StatusLog("","PadString: String missing") end
-  if(not IsString(sPad)) then return StatusLog(sStr,"PadString: Pad missing") end
+  if(not IsString(sStr)) then
+    return StatusLog(""  ,"PadString: String {"..type(sStr).."}<"..tostring(sStr).."> not string") end
+  if(not IsString(sPad)) then
+    return StatusLog(sStr,"PadString: Pad {"..type(sPad).."}<"..tostring(sPad).."> not string") end
   local iLen = stringLen(sStr) -- Not used just for error handling
   if(iLen == 0) then return StatusLog(sStr,"PadString: Pad too short") end
   local iCnt = tonumber(ivCnt)
@@ -1558,7 +1559,7 @@ end
 ]]--
 function StringToFile(sPath)
   if(not IsString(sPath)) then
-    return StatusLog(GetOpVar("MISS_NOAV"),"StringToFile: Path must be string") end
+    return StatusLog(GetOpVar("MISS_NOAV"),"StringToFile: Path {"..type(sPath).."}<"..tostring(sPath).."> not string") end
   if(IsEmptyString(sPath)) then
     return StatusLog(GetOpVar("MISS_NOAV"),"StringToFile: Path is empty") end
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
@@ -1693,7 +1694,7 @@ end
 
 function SettingsModelToName(sMode, gCut, gSub, gApp)
   if(not IsString(sMode)) then
-    return StatusLog(false,"SettingsModelToName: Wrong mode type "..type(sMode)) end
+    return StatusLog(false,"SettingsModelToName: Mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
   if(sMode == "SET") then
     if(gCut and gCut[1]) then SetOpVar("TABLE_GCUT_MODEL",gCut) else SetOpVar("TABLE_GCUT_MODEL",{}) end
     if(gSub and gSub[1]) then SetOpVar("TABLE_GSUB_MODEL",gSub) else SetOpVar("TABLE_GSUB_MODEL",{}) end
@@ -1727,7 +1728,8 @@ end
 
 function ConCommandPly(pPly,sCvar,anyValue)
   if(not pPly) then return StatusLog("","StringConCmd: Player invalid") end
-  if(not IsString(sCvar)) then return StatusLog("","StringConCmd: Convar name invalid") end
+  if(not IsString(sCvar)) then
+    return StatusLog("","StringConCmd: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
   return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(sValue).."\n")
 end
 
@@ -1794,7 +1796,8 @@ function LoadKeyPly(pPly, sKey)
     Cache = Cache[spName]
   end
   if(IsExistent(sKey)) then
-    if(not IsString(sKey)) then return StatusLog(nil,"LoadKeyPly: Key hash not correct") end
+    if(not IsString(sKey)) then
+      return StatusLog(nil,"LoadKeyPly: Key hash {"..type(sKey).."}<"..tostring(sKey).."> not string") end
     if(sKey == "DEBUG") then
       return Cache
     end
@@ -2191,7 +2194,7 @@ end
 
 function CreateTable(sTable,defTable,bDelete,bReload)
   if(not IsString(sTable)) then
-    return StatusLog(false,"CreateTable: Table key is not a string") end
+    return StatusLog(false,"CreateTable: Table key {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   if(not (type(defTable) == "table")) then
     return StatusLog(false,"CreateTable: Table definition missing for "..sTable) end
   defTable.Size = ArrayCount(defTable)
@@ -2266,7 +2269,7 @@ function InsertRecord(sTable,tData)
       return StatusLog(false,"InsertRecord: Missing table default name for "..sTable) end
   end
   if(not IsString(sTable)) then
-    return StatusLog(false,"InsertRecord: Missing table definition name "..tostring(sTable).." ("..type(sTable)..")") end
+    return StatusLog(false,"InsertRecord: Table name {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"InsertRecord: Missing table definition for "..sTable) end
@@ -2412,7 +2415,7 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
   if(not IsExistent(sTimerSet)) then
     return StatusLog(nil,"TimerSetting: Timer set missing for setup") end
   if(not IsString(sTimerSet)) then
-    return StatusLog(nil,"TimerSetting: Timer set not a string but "..type(sTimerSet)) end
+    return StatusLog(nil,"TimerSetting: Timer set {"..type(sTimerSet).."}<"..tostring(sTimerSet).."> not string") end
   local tBoom = ExplodeString(sTimerSet,GetOpVar("OPSYM_REVSIGN"))
   tBoom[1] =   tostring(tBoom[1]  or "CQT")
   tBoom[2] =  (tonumber(tBoom[2]) or 0)
@@ -2524,7 +2527,7 @@ function CacheQueryPiece(sModel)
   if(not IsExistent(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model does not exist") end
   if(not IsString(sModel)) then
-    return StatusLog(nil,"CacheQueryPiece: Model is not string") end
+    return StatusLog(nil,"CacheQueryPiece: Model {"..type(sModel).."}<"..tostring(sModel).."> not string") end
   if(IsEmptyString(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model empty string") end
   if(not utilIsValidModel(sModel)) then
@@ -2586,7 +2589,7 @@ function CacheQueryAdditions(sModel)
   if(not IsExistent(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model does not exist") end
   if(not IsString(sModel)) then
-    return StatusLog(nil,"CacheQueryAdditions: Model not string") end
+    return StatusLog(nil,"CacheQueryAdditions: Model {"..type(sModel).."}<"..tostring(sModel).."> not string") end
   if(IsEmptyString(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model empty string") end
   if(not utilIsValidModel(sModel)) then 
@@ -2778,7 +2781,7 @@ end
 
 function GetCenterPoint(oRec,sO)
   if(not IsString(sO)) then
-    return StatusLog(nil,"GetCenterPoint: Wrong offset type") end
+    return StatusLog(nil,"GetCenterPoint: Offset {"..type(sO).."}<"..tostring(sO).."> not string") end
   local sO = stringSub(sO,1,1)
   if((sO ~= "P") and (sO ~= "O")) then
     return StatusLog(nil,"GetCenterPoint: Wrong offset name") end
@@ -2816,7 +2819,8 @@ local function GetFieldsName(defTable,sDelim)
   while(defTable[iCount]) do
     namField = defTable[iCount][1]
     if(not IsString(namField)) then
-      return StatusLog("","GetFieldsName: Invalid field #"..iCount.." for <"..defTable.Name..">") end
+      return StatusLog("","GetFieldsName: Field #"..iCount
+               .." {"..type(namField).."}<"..tostring(namField).."> not string") end
     sResult = sResult..namField
     if(defTable[iCount + 1]) then sResult = sResult..sDelim end
     iCount = iCount + 1
@@ -2835,7 +2839,7 @@ end
 ]]--
 function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
   if(not IsString(sTable)) then
-    return StatusLog(false,"ImportFromDSV: Table name should be string but "..type(sTable)) end
+    return StatusLog(false,"ImportFromDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"ImportFromDSV: Missing table definition for <"..sTable..">") end
@@ -2883,9 +2887,9 @@ end
 
 function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   if(not IsString(sTable)) then
-    return StatusLog(false,"ExportIntoFile: Table name should be string but "..type(sTable)) end
+    return StatusLog(false,"ExportIntoFile: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   if(not IsString(sMethod)) then
-    return StatusLog(false,"ExportIntoFile: Export mode should be string but "..type(sTable)) end
+    return StatusLog(false,"ExportIntoFile: Export mode {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"ExportIntoFile: Missing table definition for <"..sTable..">") end
@@ -3258,7 +3262,7 @@ function AttachAdditions(ePiece)
       else return StatusLog(false,"AttachAdditions: No such attachment model "..Record[defTable[2][1]]) end
       local OffPos = Record[defTable[5][1]]
       if(not IsString(OffPos)) then
-        return StatusLog(false,"AttachAdditions: Position is not a string but "..type(OffPos)) end
+        return StatusLog(false,"AttachAdditions: Position {"..type(OffPos).."}<"..tostring(OffPos).."> not string") end
       if(OffPos       and
          OffPos ~= "" and
          OffPos ~= "NULL"
@@ -3278,15 +3282,15 @@ function AttachAdditions(ePiece)
         Addition:SetPos(LocalPos)
         LogInstance("Addition:SetPos(LocalPos)")
       end
-      local OffAngle = Record[defTable[6][1]]
-      if(not IsString(OffAngle)) then
-        return StatusLog(false,"AttachAdditions: Angle is not a string but "..type(OffAngle)) end
-      if(OffAngle       and
-         OffAngle ~= "" and
-         OffAngle ~= "NULL"
+      local OffAng = Record[defTable[6][1]]
+      if(not IsString(OffAng)) then
+        return StatusLog(false,"AttachAdditions: Angle {"..type(OffAng).."}<"..tostring(OffAng).."> not string") end
+      if(OffAng       and
+         OffAng ~= "" and
+         OffAng ~= "NULL"
       ) then
         local AdditionAng = Angle()
-        local arConv = DecodePOA(OffAngle)
+        local arConv = DecodePOA(OffAng)
         AdditionAng[caP] = arConv[1] * arConv[4] + LocalAng[caP]
         AdditionAng[caY] = arConv[2] * arConv[5] + LocalAng[caY]
         AdditionAng[caR] = arConv[3] * arConv[6] + LocalAng[caR]
@@ -3537,11 +3541,11 @@ end
 
 function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
   if(not IsString(sShortName)) then
-    return StatusLog(nil,"MakeCvar("..tostring(sShortName).."): Wrong CVar name") end
+    return StatusLog(nil,"MakeCvar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
   if(not IsExistent(sValue)) then
-    return StatusLog(nil,"MakeCvar("..tostring(sValue).."): Wrong default value") end
+    return StatusLog(nil,"MakeCvar: Wrong default value <"..tostring(sValue)..">") end
   if(not IsString(sInfo)) then
-    return StatusLog(nil,"MakeCvar("..tostring(sInfo).."): Wrong CVar information") end
+    return StatusLog(nil,"MakeCvar: CVar info {"..type(sInfo).."}<"..tostring(sInfo).."> not string") end
   local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
   if(tBorder and (type(tBorder) == "table") and tBorder[1] and tBorder[2]) then
     local Border = GetOpVar("TABLE_BORDERS")
@@ -3552,9 +3556,9 @@ end
 
 function GetCoVar(sShortName, sMode)
   if(not IsString(sShortName)) then
-    return StatusLog(nil,"GetCoVar("..tostring(sShortName).."): Wrong CVar name") end
+    return StatusLog(nil,"GetCoVar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
   if(not IsString(sMode)) then
-    return StatusLog(nil,"GetCoVar("..tostring(sMode).."): Wrong CVar mode") end
+    return StatusLog(nil,"GetCoVar: CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
   local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
   local CVar = GetConVar(sVar)
   if(not IsExistent(CVar)) then

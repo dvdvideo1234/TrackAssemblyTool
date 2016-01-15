@@ -313,9 +313,12 @@ function TOOL:GetAnchor()
 end
 
 function TOOL:LeftClick(stTrace)
-  if(CLIENT) then return true end
-  if(not stTrace) then return false end
-  if(not stTrace.Hit) then return false end
+  if(CLIENT) then
+    return asmlib.StatusLog(true,"TOOL:LeftClick(): Working on client") end
+  if(not stTrace) then
+    return asmlib.StatusLog(false,"TOOL:LeftClick(): Trace missing"..errInfo) end
+  if(not stTrace.Hit) then
+    return asmlib.StatusLog(false,"TOOL:LeftClick(): Trace not hit"..errInfo) end
   local trEnt      = stTrace.Entity
   local weld       = self:GetWeld()
   local mass       = self:GetMass()
@@ -367,7 +370,8 @@ function TOOL:LeftClick(stTrace)
       else -- Spawn on Active point
         local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-        if(not stSpawn) then return false end
+        if(not stSpawn) then
+          return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): No spawn data"..errInfo) end
         stSpawn.SPos:Add(asmlib.PointOffsetUp(ePiece,pointid) * stTrace.HitNormal)
         if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(HitWorld)"
           .."\n   Event  : Spawning when HitWorld"..errInfo)) then return false end
@@ -405,7 +409,7 @@ function TOOL:LeftClick(stTrace)
 
   if(asmlib.LoadKeyPly(ply,"DUCK")) then
     -- IN_DUCK: Use the VALID stTrace.Entity as a piece
-    asmlib.PrintNotifyPly(ply,"Model: "..fntrmod.." selected !","GENERIC")
+    asmlib.PrintNotifyPly(ply,"Model: "..fntrmod.." selected !","UNDO")
     asmlib.ConCommandPly(ply,"model",trModel)
     asmlib.ConCommandPly(ply,"pointid",1)
     asmlib.ConCommandPly(ply,"pnextid",2)
@@ -522,11 +526,12 @@ end
 ]]--
 function TOOL:RightClick(stTrace)
   if(CLIENT) then return asmlib.StatusLog(true,"TOOL:RightClick(): Working on client") end
-  if(not stTrace) then return asmlib.StatusLog(false,"TOOL:RightClick(): Invalid trace") end
+  if(not stTrace) then return asmlib.StatusLog(false,"TOOL:RightClick(): Trace missing") end
   local ply   = self:GetOwner()
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
-  if(not hdRec) then return asmlib.StatusLog(false,"TOOL:RightClick(): Model <"..model.."> not a piece") end
+  if(not hdRec) then
+    return asmlib.StatusLog(false,"TOOL:RightClick(): Model <"..model.."> not a piece") end
   local pointid, pnextid = self:GetPointID()
   local pointbu = pointid
   asmlib.LoadKeyPly(ply)
