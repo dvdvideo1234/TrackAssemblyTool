@@ -83,6 +83,7 @@ local conPalette = asmlib.MakeContainer("Colours")
       conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
 
 if(CLIENT) then
+  languageAdd("tool."..gsToolNameL..".category" , "Construction")
   languageAdd("tool."..gsToolNameL..".name"     , gsNameInitF.." "..gsNamePerpF)
   languageAdd("tool."..gsToolNameL..".desc"     , "Assembles a track for vehicles to run on")
   languageAdd("tool."..gsToolNameL..".0"        , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
@@ -119,8 +120,8 @@ if(SERVER) then
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 
-TOOL.Category   = "Construction" -- Name of the category
-TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name") -- Name to display
+TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
+TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
 TOOL.Command    = nil -- Command on click (nil for default)
 TOOL.ConfigName = nil -- Config file name (nil for default)
 

@@ -3468,7 +3468,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid") end
   if(not (eBase and eBase:IsValid())) then
-    return StatusLog(true,"ApplyPhysicalAnchor: Base invalid. Constraints ignored") end
+    return StatusLog(true,"ApplyPhysicalAnchor: Base constraint ignored") end
   if(nWe ~= 0) then -- Weld
     local nWe = constraintWeld(ePiece, eBase, 0, 0, 0, false, false)
     ePiece:DeleteOnRemove(nWe)
