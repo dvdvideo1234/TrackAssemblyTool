@@ -13,11 +13,6 @@ local RunConsoleCommand     = RunConsoleCommand
 local RestoreCursorPosition = RestoreCursorPosition
 local osDate                = os and os.date
 local gameSinglePlayer      = game and game.SinglePlayer
-local undoCreate            = undo and undo.Create
-local undoFinish            = undo and undo.Finish
-local undoAddEntity         = undo and undo.AddEntity
-local undoSetPlayer         = undo and undo.SetPlayer
-local undoSetCustomUndoText = undo and undo.SetCustomUndoText
 local utilTraceLine         = util and util.TraceLine
 local utilIsValidModel      = util and util.IsValidModel
 local utilPrecacheModel     = util and util.PrecacheModel
@@ -347,6 +342,9 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld) then -- Spawn it on the map ...
+    local errInfo = "\n   MCspawn: "..mcspawn
+                  .."\n   Player : "..ply:GetName()
+                  .."\n   hdModel: "..fnmodel
     local ePiece = asmlib.MakePiece(model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
@@ -364,32 +362,23 @@ function TOOL:LeftClick(stTrace)
         aAng:RotateAroundAxis(aAng:Forward(), nextrol)
         ePiece:SetAngles(aAng)
         if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,"TOOL:LeftClick(HitWorld)"
-          .."\n   Event  : Spawning when HitWorld"
-          .."\n   MCspawn: "..mcspawn
-          .."\n   Player : "..ply:GetName()
-          .."\n   hdModel: "..fnmodel)) then return false end
+          .."\n   Event  : Spawning when HitWorld"..errInfo)) then return false end
       else -- Spawn on Active point
         local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then return false end
         stSpawn.SPos:Add(asmlib.PointOffsetUp(ePiece,pointid) * stTrace.HitNormal)
         if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(HitWorld)"
-          .."\n   Event  : Spawning when HitWorld"
-          .."\n   MCspawn: "..mcspawn
-          .."\n   Player : "..ply:GetName()
-          .."\n   hdModel: "..fnmodel)) then return false end
+          .."\n   Event  : Spawning when HitWorld"..errInfo)) then return false end
         ePiece:SetAngles(stSpawn.SAng)
       end
-      undoCreate(gsUndoPrefN..fnmodel.." ( World spawn )")
+      asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to apply physical settings") end
+        return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to apply physical settings"..errInfo) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)) then
-        return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to apply physical anchor") end
-      asmlib.EmitSoundPly(ply)
-      undoAddEntity(ePiece)
-      undoSetPlayer(ply)
-      undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( World spawn )")
-      undoFinish()
+        return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to apply physical anchor"..errInfo) end
+      asmlib.UndoAddEntityPly(ePiece)
+      asmlib.UndoFinishPly(ply,gsUndoPrefN..fnmodel.." ( World spawn )")
       return asmlib.StatusLog(true,"TOOL:LeftClick(HitWorld): Success hit world <"..fnmodel..">")
     end
     return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to create <"..fnmodel..">")
@@ -438,83 +427,60 @@ function TOOL:LeftClick(stTrace)
     if(count <= 0) then return asmlib.StatusLog(false,"Stack count #"..count.." not properly picked") end
     if(pointid == pnextid) then return asmlib.StatusLog(false,"Point ID #"..pointid.." overlap") end
     local ePieceO, ePieceN
-    local iNdex, nTrys = count, staatts
+    local iNdex, iTrys = 1, staatts
     local vTemp, trPos = Vector(), trEnt:GetPos()
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
+    local errInfo = "\n   Player : "..ply:GetName()
+                  .."\n   trModel: "..fntrmod
+                  .."\n   hdModel: "..fnmodel
+                  .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
     if(not hdOffs) then
       asmlib.PrintNotifyPly(ply,"Cannot find next PointID data !","ERROR")
       return asmlib.StatusLog(false,"TOOL:LeftClick(Stack)"
-      .."\n   Event  : Stacking non-existent next PointID on client prop"
-      .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-      .."\n   Player : "..ply:GetName()
-      .."\n   trModel: "..fntrmod
-      .."\n   hdModel: "..fnmodel)
+      .."\n   Event  : Stacking non-existent next PointID on client prop"..errInfo)
     end -- Validate existent next point ID
-    undoCreate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(iNdex).." )")
-    while(iNdex > 0) do
+    asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count).." )")
+    while(iNdex <= count) do
+      local sIterat = "["..tostring(iNdex).."]" 
+      local errIter = "\n   Iterats: "..sIterat
+                    .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
       ePieceN = asmlib.MakePiece(model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
       if(ePieceN) then
         if(not asmlib.SetBoundPos(ePieceN,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(Stack)"
-          .."\n   Event  : Stacking piece position out of map bounds"
-          .."\n   Iterats: "..tostring(count-iNdex)
-          .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-          .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-          .."\n   Player : "..ply:GetName()
-          .."\n   trModel: "..fntrmod
-          .."\n   hdModel: "..fnmodel)) then
-          undoSetPlayer(ply)
-          undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-          undoFinish()
-          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Position set irrelevant")
+          .."\n   Event  : Stacking piece position out of map bounds")) then
+          asmlib.UndoFinishPly(ply,sIterat)
+          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Position set irrelevant"..errInfo..errIter)
         end -- Set position is valid
         ePieceN:SetAngles(stSpawn.SAng)
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
-          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Failed to apply physical settings when stacking") end
+          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Failed to apply physical settings on stacking"..errInfo..errIter) end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil)) then
-          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Failed to create weld between pieces/anchor when stacking") end
+          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Failed to create weld between pieces/anchor on stacking"..errInfo..errIter) end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide)) then
-          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Failed to create no-collide between pieces when stacking") end
+          return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Failed to create no-collide on stacking"..errInfo..errIter) end
         asmlib.SetVector(vTemp,hdOffs.P)
         vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos())
-        undoAddEntity(ePieceN)
+        asmlib.UndoAddEntityPly(ePieceN)
         stSpawn = asmlib.GetEntitySpawn(ePieceN,vTemp,model,pointid,
                     actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then
           asmlib.PrintNotifyPly(ply,"Cannot obtain spawn data!","ERROR")
-          asmlib.EmitSoundPly(ply)
-          undoSetPlayer(ply)
-          undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-          undoFinish()
+          asmlib.UndoFinishPly(ply,sIterat)
           return asmlib.StatusLog(true,"TOOL:LeftClick(Stack)"
-          .."\n   Event  : Stacking has invalid user data"
-          .."\n   Iterats: "..tostring(count-iNdex)
-          .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-          .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-          .."\n   Player : "..ply:GetName()
-          .."\n   trModel: "..fntrmod
-          .."\n   hdModel: "..fnmodel)
+          .."\n   Event  : Stacking has invalid user data"..errInfo..errIter)
         end -- Spawn data is valid for the current iteration iNdex
         ePieceO = ePieceN
         iNdex = iNdex - 1
-        nTrys = staatts
+        iTrys = staatts
       else
-        nTrys = nTrys - 1
+        iTrys = iTrys - 1
       end
-      if(nTrys <= 0) then
+      if(iTrys <= 0) then
         asmlib.PrintNotifyPly(ply,"Spawn attempts ran off!","ERROR")
-        asmlib.EmitSoundPly(ply)
-        undoSetPlayer(ply)
-        undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-        undoFinish()
-        return asmlib.StatusLog(true,"TOOL:LeftClick(Stack)"
-        .."\n   Event  : Stacking failed to allocate memory for a piece"
-        .."\n   Iterats: "..tostring(count-iNdex)
-        .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
-        .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
-        .."\n   Player : "..ply:GetName()
-        .."\n   trModel: "..fntrmod
-        .."\n   hdModel: "..fnmodel)
+        asmlib.UndoFinishPly(ply,sIterat)
+        return asmlib.StatusLog(false,"TOOL:LeftClick(Stack)"
+        .."\n   Event  : Stacking failed to allocate memory for a piece"..errInfo..errIter)
       end -- We still have enough memory to preform the stacking
       if(hdRec.Kept == 1) then
         asmlib.LogInstance("TOOL:LeftClick(Stack): Player "..ply:GetName()
@@ -522,35 +488,30 @@ function TOOL:LeftClick(stTrace)
         break -- If holder's model has only one point, we cannot stack
       end
     end
-    asmlib.EmitSoundPly(ply)
-    undoSetPlayer(ply)
-    undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count-iNdex).." )")
-    undoFinish()
+    asmlib.UndoFinishPly(ply)
     return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success stacking")
   else
     local ePiece = asmlib.MakePiece(model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
+      local errInfo = "\n   Player : "..ply:GetName()
+                    .."\n   trModel: "..fntrmod
+                    .."\n   hdModel: "..fnmodel
+                    .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
       if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(Snap)"
-        .."\n   Event  : Snap one piece relative to another"
-        .."\n   Player : "..ply:GetName()
-        .."\n   trModel: "..fntrmod
-        .."\n   hdModel: "..fnmodel)) then return false end
+        .."\n   Event  : Snap one piece relative to another"..errInfo)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
-      undoCreate(gsUndoPrefN..fnmodel.." ( Snap prop )")
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply physical settings when snapping") end 
+        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply physical settings on snapping"..errInfo) end 
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil)) then -- Weld all created to the anchor/previous
-        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply weld between pieces/anchor when snapping") end
+        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply weld on snapping"..errInfo) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide)) then       -- NoCollide all to previous
-        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply no-collide between pieces when snapping") end
-      asmlib.EmitSoundPly(ply)
-      undoAddEntity(ePiece)
-      undoSetPlayer(ply)
-      undoSetCustomUndoText(gsUndoPrefN..fnmodel.." ( Snap prop )")
-      undoFinish()
+        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply no-collide on snapping"..errInfo) end
+      asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Snap prop )")
+      asmlib.UndoAddEntityPly(ePiece)
+      asmlib.UndoFinishPly(ply)
       return asmlib.StatusLog(true,"TOOL:LeftClick(Snap): Success snapping")
     end
-    return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed snapping the piece")
+    return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed crating piece")
   end
 end
 

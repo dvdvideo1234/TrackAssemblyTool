@@ -54,74 +54,79 @@ local FCVAR_REPLICATED    = FCVAR_REPLICATED
 local FCVAR_PRINTABLEONLY = FCVAR_PRINTABLEONLY
 
 ---------------- Localizing needed functions ----------------
-local next                 = next
-local type                 = type
-local Angle                = Angle
-local Color                = Color
-local pairs                = pairs
-local print                = print
-local tobool               = tobool
-local Vector               = Vector
-local include              = include
-local IsValid              = IsValid
-local require              = require
-local Time                 = SysTime
-local tonumber             = tonumber
-local tostring             = tostring
-local GetConVar            = GetConVar
-local LocalPlayer          = LocalPlayer
-local CreateConVar         = CreateConVar
-local getmetatable         = getmetatable
-local setmetatable         = setmetatable
-local collectgarbage       = collectgarbage
-local osClock              = os and os.clock
-local osDate               = os and os.date
-local sqlQuery             = sql and sql.Query
-local sqlLastError         = sql and sql.LastError
-local sqlTableExists       = sql and sql.TableExists
-local utilTraceLine        = util and util.TraceLine
-local utilIsInWorld        = util and util.IsInWorld
-local utilIsValidModel     = util and util.IsValidModel
-local utilGetPlayerTrace   = util and util.GetPlayerTrace
-local entsCreate           = ents and ents.Create
-local fileOpen             = file and file.Open
-local fileExists           = file and file.Exists
-local fileAppend           = file and file.Append
-local fileDelete           = file and file.Delete
-local fileCreateDir        = file and file.CreateDir
-local mathAbs              = math and math.abs
-local mathCeil             = math and math.ceil
-local mathModf             = math and math.modf
-local mathSqrt             = math and math.sqrt
-local mathFloor            = math and math.floor
-local mathClamp            = math and math.Clamp
-local mathRandom           = math and math.random
-local timerStop            = timer and timer.Stop
-local timerStart           = timer and timer.Start
-local timerExists          = timer and timer.Exists
-local timerCreate          = timer and timer.Create
-local timerDestroy         = timer and timer.Destroy
-local tableEmpty           = table and table.Empty
-local stringLen            = string and string.len
-local stringSub            = string and string.sub
-local stringFind           = string and string.find
-local stringGsub           = string and string.gsub
-local stringUpper          = string and string.upper
-local stringLower          = string and string.lower
-local stringFormat         = string and string.format
-local surfaceSetFont       = surface and surface.SetFont
-local surfaceDrawLine      = surface and surface.DrawLine
-local surfaceDrawText      = surface and surface.DrawText
-local surfaceDrawCircle    = surface and surface.DrawCircle
-local surfaceSetTexture    = surface and surface.SetTexture
-local surfaceSetTextPos    = surface and surface.SetTextPos
-local surfaceGetTextSize   = surface and surface.GetTextSize
-local surfaceGetTextureID  = surface and surface.GetTextureID
-local surfaceSetDrawColor  = surface and surface.SetDrawColor
-local surfaceSetTextColor  = surface and surface.SetTextColor
-local constructSetPhysProp = construct and construct.SetPhysProp
-local constraintWeld       = constraint and constraint.Weld
-local constraintNoCollide  = constraint and constraint.NoCollide
+local next                  = next
+local type                  = type
+local Angle                 = Angle
+local Color                 = Color
+local pairs                 = pairs
+local print                 = print
+local tobool                = tobool
+local Vector                = Vector
+local include               = include
+local IsValid               = IsValid
+local require               = require
+local Time                  = SysTime
+local tonumber              = tonumber
+local tostring              = tostring
+local GetConVar             = GetConVar
+local LocalPlayer           = LocalPlayer
+local CreateConVar          = CreateConVar
+local getmetatable          = getmetatable
+local setmetatable          = setmetatable
+local collectgarbage        = collectgarbage
+local osClock               = os and os.clock
+local osDate                = os and os.date
+local sqlQuery              = sql and sql.Query
+local sqlLastError          = sql and sql.LastError
+local sqlTableExists        = sql and sql.TableExists
+local utilTraceLine         = util and util.TraceLine
+local utilIsInWorld         = util and util.IsInWorld
+local utilIsValidModel      = util and util.IsValidModel
+local utilGetPlayerTrace    = util and util.GetPlayerTrace
+local entsCreate            = ents and ents.Create
+local fileOpen              = file and file.Open
+local fileExists            = file and file.Exists
+local fileAppend            = file and file.Append
+local fileDelete            = file and file.Delete
+local fileCreateDir         = file and file.CreateDir
+local mathAbs               = math and math.abs
+local mathCeil              = math and math.ceil
+local mathModf              = math and math.modf
+local mathSqrt              = math and math.sqrt
+local mathFloor             = math and math.floor
+local mathClamp             = math and math.Clamp
+local mathRandom            = math and math.random
+local undoCreate            = undo and undo.Create
+local undoFinish            = undo and undo.Finish
+local undoAddEntity         = undo and undo.AddEntity
+local undoSetPlayer         = undo and undo.SetPlayer
+local undoSetCustomUndoText = undo and undo.SetCustomUndoText
+local timerStop             = timer and timer.Stop
+local timerStart            = timer and timer.Start
+local timerExists           = timer and timer.Exists
+local timerCreate           = timer and timer.Create
+local timerDestroy          = timer and timer.Destroy
+local tableEmpty            = table and table.Empty
+local stringLen             = string and string.len
+local stringSub             = string and string.sub
+local stringFind            = string and string.find
+local stringGsub            = string and string.gsub
+local stringUpper           = string and string.upper
+local stringLower           = string and string.lower
+local stringFormat          = string and string.format
+local surfaceSetFont        = surface and surface.SetFont
+local surfaceDrawLine       = surface and surface.DrawLine
+local surfaceDrawText       = surface and surface.DrawText
+local surfaceDrawCircle     = surface and surface.DrawCircle
+local surfaceSetTexture     = surface and surface.SetTexture
+local surfaceSetTextPos     = surface and surface.SetTextPos
+local surfaceGetTextSize    = surface and surface.GetTextSize
+local surfaceGetTextureID   = surface and surface.GetTextureID
+local surfaceSetDrawColor   = surface and surface.SetDrawColor
+local surfaceSetTextColor   = surface and surface.SetTextColor
+local constructSetPhysProp  = construct and construct.SetPhysProp
+local constraintWeld        = constraint and constraint.Weld
+local constraintNoCollide   = constraint and constraint.NoCollide
 local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
@@ -1734,9 +1739,26 @@ function PrintNotifyPly(pPly,sText,sNotifType)
   end
 end
 
-function EmitSoundPly(pPly)
-  if(not pPly) then return end
+function UndoCratePly(sMessage)
+  SetOpVar("LABEL_UNDO",tostring(sMessage))
+  undoCreate(GetOpVar("LABEL_UNDO"))
+  return true
+end
+
+function UndoAddEntityPly(oEnt)
+  if(not (oEnt and oEnt:IsValid())) then
+    return StatusLog(false,"AddUndoPly: Entity invalid")
+  undoAddEntity(oEnt)
+  return true
+end
+
+function UndoFinishPly(pPly,sMessage)
+  if(not pPly) then return StatusLog(false,"UndoFinishPly: Player invalid") end
   pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathFloor(mathRandom(3))..".wav")
+  undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(sMessage or ""))
+  undoSetPlayer(pPly)
+  undoFinish()
+  return true
 end
 
 function LoadKeyPly(pPly, sKey)
@@ -3446,7 +3468,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid") end
   if(not (eBase and eBase:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalAnchor: Base entity not valid") end
+    return StatusLog(true,"ApplyPhysicalAnchor: Base invalid. Constraints ignored") end
   if(nWe ~= 0) then -- Weld
     local nWe = constraintWeld(ePiece, eBase, 0, 0, 0, false, false)
     ePiece:DeleteOnRemove(nWe)
