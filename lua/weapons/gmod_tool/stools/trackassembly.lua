@@ -277,19 +277,6 @@ function TOOL:GetSurfaceSnap()
   return (self:GetClientNumber("surfsnap") or 0)
 end
 
-function TOOL:ClearAnchor()
-  local svEnt = self:GetEnt(1)
-  local plPly = self:GetOwner()
-  if(svEnt and svEnt:IsValid()) then
-    svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-    svEnt:SetColor(conPalette:Select("w"))
-  end
-  self:ClearObjects()
-  asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned !","CLEANUP")
-  asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
-  return asmlib.StatusLog(true,"TOOL:ClearAnchor(): Anchor cleared")
-end
-
 function TOOL:SetAnchor(stTrace)
   self:ClearAnchor()
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace invalid") end
@@ -307,6 +294,19 @@ function TOOL:SetAnchor(stTrace)
   asmlib.ConCommandPly(plPly,"anchor",sAnchor)
   asmlib.PrintNotifyPly(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
   return asmlib.StatusLog(true,"TOOL:SetAnchor("..sAnchor..")")
+end
+
+function TOOL:ClearAnchor()
+  local svEnt = self:GetEnt(1)
+  local plPly = self:GetOwner()
+  if(svEnt and svEnt:IsValid()) then
+    svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+    svEnt:SetColor(conPalette:Select("w"))
+  end
+  self:ClearObjects()
+  asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned !","CLEANUP")
+  asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
+  return asmlib.StatusLog(true,"TOOL:ClearAnchor(): Anchor cleared")
 end
 
 function TOOL:GetAnchor()
@@ -403,7 +403,7 @@ function TOOL:LeftClick(stTrace)
 
   local trModel = trEnt:GetModel()
   local fntrmod = stringToFileName(trModel)
-  
+
   -- No need stacking relative to non-persistent props or using them...
   local trRec = asmlib.CacheQueryPiece(trModel)
   local hdRec = asmlib.CacheQueryPiece(model)
@@ -449,7 +449,7 @@ function TOOL:LeftClick(stTrace)
     end -- Validate existent next point ID
     asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count).." )")
     while(iNdex <= count) do
-      local sIterat = "["..tostring(iNdex).."]" 
+      local sIterat = "["..tostring(iNdex).."]"
       local errIter = gsErrorPad.."Iterats: "..sIterat
                     ..gsErrorPad.."StackTr: "..tostring( iTrys ).." ?= "..tostring(staatts)
       ePieceN = asmlib.MakePiece(model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
@@ -509,7 +509,7 @@ function TOOL:LeftClick(stTrace)
         ..gsErrorPad.."Event  : Snap one piece relative to another"..errInfo)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply physical settings on snapping"..errInfo) end 
+        return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply physical settings on snapping"..errInfo) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil)) then -- Weld all created to the anchor/previous
         return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply weld on snapping"..errInfo) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide)) then       -- NoCollide all to previous

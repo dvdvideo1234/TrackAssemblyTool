@@ -1105,7 +1105,7 @@ function PointOffsetUp(oEnt,ivPointID)
   local hdPnt = LocatePOA(hdRec,iPointID)
   if(not IsExistent(hdPnt)) then
     return StatusLog(nil,"PointOffsetUp: Point #"..tostring(iPointID)
-             .." not located on model <"..sModel..">") end  
+             .." not located on model <"..sModel..">") end
   if(not (hdPnt.O and hdPnt.A)) then
     return StatusLog(nil,"PointOffsetUp: Invalid POA #"..tostring(iPointID).." for <"..sModel..">") end
   local aDiffBB = Angle()
@@ -1163,7 +1163,7 @@ function ModelToName(sModel)
   -- Trigger the capital-space using the divider
   if(stringSub(gModel,1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
   -- Here in gModel we have: _aaaaa_bbbb_ccccc
-  fCh, bCh, sModel = stringFind(gModel,sSymDiv,1), 1, "" 
+  fCh, bCh, sModel = stringFind(gModel,sSymDiv,1), 1, ""
   while(fCh) do
     if(fCh > bCh) then
       sModel = sModel..stringSub(gModel,bCh+2,fCh-1)
@@ -1721,7 +1721,7 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
     if    (defField[3] == "LOW") then snOut = stringLower(snOut)
     elseif(defField[3] == "CAP") then snOut = stringUpper(snOut) end
     if(not bStopRevise and sModeDB == "SQL" and defField[4] == "QMK") then
-      snOut = string.gsub(snOut,"'","''")
+      snOut = stringGsub(snOut,"'","''")
     end
     if(bQuoted) then
       local sqChar
@@ -2464,7 +2464,7 @@ function CacheQueryAdditions(sModel)
     return StatusLog(nil,"CacheQueryAdditions: Model {"..type(sModel).."}<"..tostring(sModel).."> not string") end
   if(IsEmptyString(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model empty string") end
-  if(not utilIsValidModel(sModel)) then 
+  if(not utilIsValidModel(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model invalid") end
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then
