@@ -14,6 +14,7 @@ local RealTime             = RealTime
 local bitBor               = bit and bit.bor
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
+local stringExplode        = string and string.Explode
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
@@ -26,7 +27,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.172")
+asmlib.SetOpVar("TOOL_VERSION","5.173")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -35,7 +36,7 @@ asmlib.SetOpVar("MAX_MASS",50000)
 asmlib.SetOpVar("MAX_LINEAR",1000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetOpVar("LOG_ONLY",nil)
-asmlib.SetOpVar("LOG_SKIP",{"Qsort","ModelToName","ArrayCount"})
+asmlib.SetOpVar("LOG_SKIP",{"Qsort","ModelToName","GetEntitySpawn: Not hitting active point"})
 asmlib.SetLogControl(0,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
@@ -63,7 +64,7 @@ local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsPathBAS   = asmlib.GetOpVar("DIRPATH_BAS")
 local gsPathDSV   = asmlib.GetOpVar("DIRPATH_DSV")
 local gsFullDSV   = gsPathBAS..gsPathDSV..asmlib.GetInstPref()..gsToolPrefU
-local gaTimerSet  = asmlib.ExplodeString(asmlib.GetCoVar("timermode","STR"),asmlib.GetOpVar("OPSYM_DIRECTORY"))
+local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetCoVar("timermode","STR"))
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -174,7 +175,7 @@ if(CLIENT) then
         local uiAng = Angle(0, RealTime() * 10, 0)
         local uiPos = Vector()
         if(uiKept > 1) then
-          local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
+          local uiCalc = asmlib.GetCorePoint(uiRec,"P")
           if(not asmlib.IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Center point non-applicable") end
           asmlib.SetVector(uiPos,uiCalc)
         elseif(uiKept == 1) then
@@ -238,7 +239,7 @@ if(CLIENT) then
         local uiKept = tonumber(uiRec.Kept) or 0
         local uiCen  = Vector()
         if(uiKept > 1) then
-          local uiCalc = asmlib.GetCenterPoint(uiRec,"P")
+          local uiCalc = asmlib.GetCorePoint(uiRec,"P")
           if(not asmlib.IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Center point non-applicable") end
           asmlib.SetVector(uiCen,uiCalc)
         elseif(uiKept == 1) then

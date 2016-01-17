@@ -107,6 +107,7 @@ local timerExists           = timer and timer.Exists
 local timerCreate           = timer and timer.Create
 local timerDestroy          = timer and timer.Destroy
 local tableEmpty            = table and table.Empty
+local tableMaxn             = table and table.maxn
 local stringLen             = string and string.len
 local stringSub             = string and string.sub
 local stringFind            = string and string.find
@@ -114,6 +115,9 @@ local stringGsub            = string and string.gsub
 local stringUpper           = string and string.upper
 local stringLower           = string and string.lower
 local stringFormat          = string and string.format
+local stringExplode         = string and string.Explode
+local stringImplode         = string and string.Implode
+local stringToFileName      = string and string.GetFileFromFilename
 local surfaceSetFont        = surface and surface.SetFont
 local surfaceDrawLine       = surface and surface.DrawLine
 local surfaceDrawText       = surface and surface.DrawText
@@ -871,7 +875,7 @@ local function AddLineListView(pnListView,frUsed,ivNdex)
   local nUsed  = RoundValue(tValue.Value,0.001)
   local pnRec  = pnListView:AddLine(nUsed,nAct,sType,sModel)
   if(not IsExistent(pnRec)) then
-    return StatusLog(false,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..tostring(iNdex)) end
+    return StatusLog(nil,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..tostring(iNdex)) end
   return pnRec, tValue
 end
 
@@ -1120,7 +1124,7 @@ function ModelToName(sModel)
   local fCh, bCh, Cnt = "", "", 1
   local sSymDiv = GetOpVar("OPSYM_DIVIDER")
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local sModel  = stringGsub(StringToFile(sModel),GetOpVar("FILE_MODEL"),"")
+  local sModel  = stringGsub(stringToFileName(sModel),GetOpVar("FILE_MODEL"),"")
   local gModel  = stringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
   local tCut, tSub, tApp = SettingsModelToName("GET")
   if(tCut and tCut[1]) then
@@ -1234,7 +1238,7 @@ local function TransferPOA(stOffset,sMode)
   if(not IsExistent(stOffset)) then
     return StatusLog(nil,"TransferPOA: Destination needed") end
   if(not IsString(sMode)) then
-    return StatusLog(nil,"TransferPOA: Mode {"..type(sMode).."}<"tostring(sMode)"> not string") end
+    return StatusLog(nil,"TransferPOA: Mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
   if(sMode == "V") then
     stOffset[cvX] = arPOA[1]
@@ -1465,52 +1469,6 @@ function DefaultString(sBase, sDefault)
   return ""
 end
 
-function ExplodeString(sStr,sDelim)
-  if(not (IsString(sStr) and IsString(sDelim))) then
-    return StatusLog(nil,"ExplodeString: All parameters should be strings")
-  end
-  if(IsEmptyString(sDelim)) then
-    return StatusLog(nil,"ExplodeString: Missing string exploding delimiter")
-  end
-  local sStr   = sStr
-  local sDelim = stringSub(sDelim,1,1)
-  if(stringSub(sStr,-1,-1) ~= sDelim) then -- Triggers on the delimiter
-    sStr = sStr..sDelim
-  end
-  local Data = {}
-  local lenStr = stringLen(sStr)
-  local S, E, I, V = 1, 1, 1, ""
-  while(E <= lenStr) do
-    local Ch = stringSub(sStr,E,E)
-    if(Ch == sDelim) then
-      V = stringSub(sStr,S,E-1)
-      S = E + 1
-      Data[I] = V or ""
-      I = I + 1
-    end
-    E = E + 1
-  end
-  return Data
-end
-
-function ImplodeString(tParts,sDelim)
-  if(not (tParts and tParts[1])) then return "" end
-  if(not IsString(sDelim)) then
-    return StatusLog(nil,"ImplodeString: The delimiter {"..type(sDelim).."}<"..tostring(sDelim).."> not string")
-  end
-  local iCnt = 1
-  local sImplode = ""
-  local sDelim = stringSub(tostring(sDelim),1,1)
-  while(tParts[iCnt]) do
-    sImplode = sImplode..tostring(tParts[iCnt])
-    if(tParts[iCnt+1]) then
-      sImplode = sImplode..sDelim
-    end
-    iCnt = iCnt + 1
-  end
-  return sImplode
-end
-
 function PadString(sStr,sPad,ivCnt)
   if(not IsString(sStr)) then
     return StatusLog(""  ,"PadString: String {"..type(sStr).."}<"..tostring(sStr).."> not string") end
@@ -1541,7 +1499,7 @@ function StringToBGID(sStr)
   if(IsEmptyString(sStr)) then
     return StatusLog(nil, "StringToBGID: Empty string") end
   local Cnt  = 1
-  local Data = ExplodeString(sStr,GetOpVar("OPSYM_SEPARATOR"))
+  local Data = stringExplode(GetOpVar("OPSYM_SEPARATOR"),sStr)
   while(Data[Cnt]) do
     local Num = tonumber(Data[Cnt])
     if(not IsExistent(Num)) then
@@ -1554,25 +1512,6 @@ function StringToBGID(sStr)
   end
   if(IsExistent(Data[1]))then return Data end
   return StatusLog(nil, "StringToBGID: No data found")
-end
-
---[[
- * Extracts the file name from a path
- * props/models/example/wheel.mdl --> wheel.mdl
-]]--
-function StringToFile(sPath)
-  if(not IsString(sPath)) then
-    return StatusLog(GetOpVar("MISS_NOAV"),"StringToFile: Path {"..type(sPath).."}<"..tostring(sPath).."> not string") end
-  if(IsEmptyString(sPath)) then
-    return StatusLog(GetOpVar("MISS_NOAV"),"StringToFile: Path is empty") end
-  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local New = stringFind(sPath,sSymDir,1)
-  if(not IsExistent(New))then return sPath end
-  local Old = 0
-  while(New) do Old = New
-    New = stringFind(sPath,sSymDir,New+1)
-  end
-  return stringSub(sPath,Old+1,-1)
 end
 
 ----------------- PRINTS ------------------------
@@ -1614,79 +1553,7 @@ function Print(tT,sS)
   end
 end
 
-function ArrayPrint(arArr,sName,nCol)
-  if(not IsExistent(arArr)) then
-    return StatusLog(0,"ArrayPrint: Array missing") end
-  if(not (type(arArr) == "table")) then
-    return StatusLog(0,"ArrayPrint: Array is "..type(arArr)) end
-  if(not arArr[1]) then
-    return StatusLog(0,"ArrayPrint: Array empty") end
-  local Cnt, Next = 1
-  local Col, Max, Cols = 0, 0, 0
-  local Line = (sName or "Data").." = { \n"
-  local Pad  = PadString(" "," ",stringLen(Line)-1)
-  local symSep = GetOpVar("OPSYM_SEPARATOR")
-  while(arArr[Cnt]) do
-    Col = stringLen(tostring(arArr[Cnt]))
-    if(Col > Max) then
-      Max = Col
-    end
-    Cnt = Cnt + 1
-  end
-  Col  = mathClamp((tonumber(nCol) or 1),1,100)
-  Cols = Col-1
-  Cnt  = 1
-  while(arArr[Cnt]) do
-    Next = arArr[Cnt + 1]
-    if(nCol and Cols == Col-1) then
-      Line = Line..Pad
-    end
-    Line = Line..PadString(tostring(arArr[Cnt])," ",-Max-1)
-    if(Next) then
-      Line = Line..symSep
-    end
-    if(nCol and Cols == 0) then
-      Cols = Col - 1
-      if(Next) then
-        Line = Line.."\n"
-      end
-    elseif(nCol and Cols > 0) then
-      Cols = Cols - 1
-    end
-    Cnt = Cnt + 1
-  end
-  LogInstance(Line.."\n}")
-end
-
-local function ArrayCount(arArr)
-  if(not IsExistent(arArr)) then
-    return StatusLog(nil,"ArrayCount: Array missing") end
-  if(not (type(arArr) == "table")) then
-    return StatusLog(nil,"ArrayCount: Array is "..type(arArr)) end
-  if(not IsExistent(arArr[1])) then
-    return StatusLog(0,"ArrayCount: Table is empty or hash based") end
-  local Count = 1
-  while(arArr[Count]) do Count = Count + 1 end
-  return (Count - 1)
-end
-
-local function IsArrayOr(arArr,ivEnd)
-  if(not IsExistent(arArr)) then
-    return StatusLog(nil,"IsArrayOr: Array missing") end
-  if(not (type(arArr) == "table")) then
-    return StatusLog(nil,"IsArrayOr: Array is "..type(arArr)) end
-  local iEnd = tonumber(ivEnd)
-  if(not IsExistent(iEnd)) then
-    return StatusLog(nil,"IsArrayOr: End NAN {"
-             ..type(ivEnd).."}<"..tostring(ivEnd)..">") end
-  local iCnt, bFlg = 1, false
-  while(iCnt <= iEnd) do
-    bFlg = bFlg or (arArr[iCnt] and true or false)
-    iCnt = iCnt + 1
-  end return bFlg
-end
-
-------------- Variable Interfaces --------------
+------------- VARIABLE INTERFACES --------------
 
 local function SQLBuildError(anyError)
   if(not IsExistent(anyError)) then
@@ -1729,11 +1596,11 @@ end
 
 ------------------------- PLAYER -----------------------------------
 
-function ConCommandPly(pPly,sCvar,anyValue)
+function ConCommandPly(pPly,sCvar,snValue)
   if(not pPly) then return StatusLog("","StringConCmd: Player invalid") end
   if(not IsString(sCvar)) then
     return StatusLog("","StringConCmd: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
-  return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(sValue).."\n")
+  return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(snValue).."\n")
 end
 
 function PrintNotifyPly(pPly,sText,sNotifType)
@@ -1744,23 +1611,23 @@ function PrintNotifyPly(pPly,sText,sNotifType)
   end
 end
 
-function UndoCratePly(sMessage)
-  SetOpVar("LABEL_UNDO",tostring(sMessage))
+function UndoCratePly(anyMessage)
+  SetOpVar("LABEL_UNDO",tostring(anyMessage))
   undoCreate(GetOpVar("LABEL_UNDO"))
   return true
 end
 
 function UndoAddEntityPly(oEnt)
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(false,"AddUndoPly: Entity invalid")
+    return StatusLog(false,"AddUndoPly: Entity invalid") end
   undoAddEntity(oEnt)
   return true
 end
 
-function UndoFinishPly(pPly,sMessage)
+function UndoFinishPly(pPly,anyMessage)
   if(not pPly) then return StatusLog(false,"UndoFinishPly: Player invalid") end
   pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathFloor(mathRandom(3))..".wav")
-  undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(sMessage or ""))
+  undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(anyMessage or ""))
   undoSetPlayer(pPly)
   undoFinish()
   return true
@@ -1846,7 +1713,7 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
   local sModeDB  = GetOpVar("MODE_DATABASE")
   if(tipField == "TEXT") then
     snOut = tostring(snValue)
-    if(not bStopEmpty and (snOut == "nil" or IsEmptyString(snOut)) then
+    if(not bStopEmpty and (snOut == "nil" or IsEmptyString(snOut))) then
       if    (sModeDB == "SQL") then snOut = "NULL"
       elseif(sModeDB == "LUA") then snOut = "NULL"
       else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB..">") end
@@ -2200,20 +2067,22 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     return StatusLog(false,"CreateTable: Table key {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   if(not (type(defTable) == "table")) then
     return StatusLog(false,"CreateTable: Table definition missing for "..sTable) end
-  defTable.Size = ArrayCount(defTable)
-  if(defTable.Size <= 0) then
-    return StatusLog(false,"CreateTable: Record definition empty for "..sTable) end
+  if(#defTable <= 0) then
+    return StatusLog(false,"CreateTable: Record definition missing for "..sTable) end
+  if(#defTable ~= tableMaxn(defTable)) then
+    return StatusLog(false,"CreateTable: Record definition mismatch for "..sTable) end
+  defTable.Size = #defTable
   local sModeDB = GetOpVar("MODE_DATABASE")
   local sTable  = stringUpper(sTable)
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
   SetOpVar("DEFTABLE_"..sTable,defTable)
-  local sDisable = GetOpVar("OPSYM_DISABLE")
+  local symDis = GetOpVar("OPSYM_DISABLE")
   local namTable = defTable.Name
   local Cnt, defField = 1, nil
   while(defTable[Cnt]) do
     defField    = defTable[Cnt]
-    defField[3] = DefaultString(tostring(defField[3] or sDisable), sDisable)
-    defField[4] = DefaultString(tostring(defField[4] or sDisable), sDisable)
+    defField[3] = DefaultString(tostring(defField[3] or symDis), symDis)
+    defField[4] = DefaultString(tostring(defField[4] or symDis), symDis)
     Cnt = Cnt + 1
   end
   libCache[namTable] = {}
@@ -2419,7 +2288,7 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
     return StatusLog(nil,"TimerSetting: Timer set missing for setup") end
   if(not IsString(sTimerSet)) then
     return StatusLog(nil,"TimerSetting: Timer set {"..type(sTimerSet).."}<"..tostring(sTimerSet).."> not string") end
-  local tBoom = ExplodeString(sTimerSet,GetOpVar("OPSYM_REVSIGN"))
+  local tBoom = stringExplode(GetOpVar("OPSYM_REVSIGN"),sTimerSet)
   tBoom[1] =   tostring(tBoom[1]  or "CQT")
   tBoom[2] =  (tonumber(tBoom[2]) or 0)
   tBoom[3] = ((tonumber(tBoom[3]) or 0) ~= 0) and true or false
@@ -2466,7 +2335,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
       end
       return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
     elseif(sModeTM == "OBJ") then
-      local TimerID = ImplodeString(tKeys,"_")
+      local TimerID = stringImplode(GetOpVar("OPSYM_DIVIDER"),tKeys)
       LogInstance("TimerAttach: TimID <"..TimerID..">")
       if(timerExists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
       timerCreate(TimerID, nLifeTM, 1, function()
@@ -2515,7 +2384,7 @@ local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
     if(sModeTM == "CQT") then
       sModeTM = "CQT" -- Just for something to do here and to be known that this is mode CQT
     elseif(sModeTM == "OBJ") then
-      local keyTimerID = ImplodeString(tKeys,GetOpVar("OPSYM_DIVIDER"))
+      local keyTimerID = stringImplode(GetOpVar("OPSYM_DIVIDER"),tKeys)
       if(not timerExists(keyTimerID)) then
         return StatusLog(nil,"TimerRestart: Timer missing <"..keyTimerID..">") end
       timerStart(keyTimerID)
@@ -2553,7 +2422,7 @@ function CacheQueryPiece(sModel)
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryPiece: Model >> Pool <"..StringToFile(sModel)..">")
+      LogInstance("CacheQueryPiece: Model >> Pool <"..stringToFileName(sModel)..">")
       Cache[sModel] = {}
       stPiece = Cache[sModel]
       stPiece.Kept = 0
@@ -2614,7 +2483,7 @@ function CacheQueryAdditions(sModel)
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
-      LogInstance("CacheQueryAdditions: Model >> Pool <"..StringToFile(sModel)..">")
+      LogInstance("CacheQueryAdditions: Model >> Pool <"..stringToFileName(sModel)..">")
       Cache[sModel] = {}
       stAddition = Cache[sModel]
       stAddition.Kept = 0
@@ -2782,31 +2651,35 @@ function CacheQueryProperty(sType)
   end
 end
 
-function GetCenterPoint(oRec,sO)
-  if(not IsString(sO)) then
-    return StatusLog(nil,"GetCenterPoint: Offset {"..type(sO).."}<"..tostring(sO).."> not string") end
-  local sO = stringSub(sO,1,1)
-  if((sO ~= "P") and (sO ~= "O")) then
-    return StatusLog(nil,"GetCenterPoint: Wrong offset name") end
-  local stPOA = LocatePOA(oRec,1)
-  if(not IsExistent(stPOA)) then
-    return StatusLog(nil,"GetCenterPoint: First point missing") end
-  local iInd, vCen = 1, Vector()
-  while(stPOA) do
-    local arOff = stPOA[sO]
-    if(not IsExistent(arOff)) then
-      return StatusLog(nil,"GetCenterPoint: Offset <"..sO.."> not found for point #"
-               ..tostring(iInd).." and slot <"..tostring(oRec.Slot)..">") end
-    AddVectorXYZ(vCen,arOff[cvX],arOff[cvY],arOff[cvZ])
-    iInd = iInd + 1
-    stPOA = LocatePOA(oRec,iInd)
-    if(not IsExistent(stPOA)) then
-      return StatusLog(nil,"GetCenterPoint: Point #"..tostring(iInd).." missing from record") end
+function GetCorePoint(oRec,sName)
+  if(not IsString(sName)) then
+    return StatusLog(nil,"GetCorePoint: Offset {"..type(sName).."}<"..tostring(sName).."> not string") end
+  local sName = stringSub(sName,1,1)
+  if((sName ~= "P") and (sName ~= "O")) then
+    return StatusLog(nil,"GetCorePoint: Wrong offset name <"..sName..">") end
+  if(not IsExistent(oRec.Core)) then oRec.Core = {} end
+  local vCore = oRec.Core[sName]
+  if(IsExistent(vCore)) then
+    return vCore
+  else
+    oRec.Core[sName] = Vector()
+    local iInd, vCore = 1, oRec.Core[sName]
+    while(iInd <= oRec.Kept) do
+      local stPOA = LocatePOA(oRec,iInd)
+      if(not IsExistent(stPOA)) then -- Does the registered point really persists
+        return StatusLog(nil,"GetCorePoint: Point #"..tostring(iInd).." index mismatch") end
+      local arOff = stPOA[sName]
+      if(not IsExistent(arOff)) then
+        return StatusLog(nil,"GetCorePoint: Offset <"..sName.."> not found for point #"
+                 ..tostring(iInd).." and slot <"..tostring(oRec.Slot)..">") end
+      AddVectorXYZ(vCore,arOff[cvX],arOff[cvY],arOff[cvZ])
+      iInd = iInd + 1
+    end
+    if(iInd > 1) then
+      vCore:Mul(1/(iInd-1))
+    end
+    return StatusLog(vCore,"GetCorePoint: From cache <"..sName.."> = ["..tostring(vCore).."]")
   end
-  if(iInd > 1) then
-    vCen:Mul(1/(iInd-1))
-  end
-  return vCen
 end
 
 ---------------------- AssemblyLib EXPORT --------------------------------
@@ -2868,7 +2741,7 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
       end
       if(not (stringSub(Line,1,1) == SymOff)) then
         if(stringSub(Line,1,TabLen) == namTable) then
-          local Data = ExplodeString(stringSub(Line,TabLen+2,LinLen),sDelim)
+          local Data = stringExplode(sDelim,stringSub(Line,TabLen+2,LinLen))
           for k,v in pairs(Data) do
             local vLen = stringLen(v)
             if(stringSub(v,1,1) == "\"" and stringSub(v,vLen,vLen) == "\"") then
@@ -3151,7 +3024,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   if(not IsExistent(nActRadius)) then
     return StatusLog(nil,"GetEntitySpawn: Active radius NAN {"..type(nvActRadius).."}<"..tostring(nvActRadius)..">") end
   local trRec = CacheQueryPiece(trEnt:GetModel())
-  if(not IsExistent(hdRec)) then
+  if(not IsExistent(trRec)) then
     return StatusLog(nil,"GetEntitySpawn: Trace model missing <"..trEnt:GetModel()..">") end
   if(not IsExistent(LocatePOA(trRec,1))) then
     return StatusLog(nil,"GetEntitySpawn: Trace has no points") end
@@ -3454,7 +3327,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   end
   phPiece:EnableMotion(false)
   phPiece:SetMass(mathClamp(tonumber(nMass) or 1,1,GetOpVar("MAX_MASS")))
-  local BgSk = ExplodeString((sBgSkIDs or ""),GetOpVar("OPSYM_DIRECTORY"))
+  local BgSk = stringExplode(GetOpVar("OPSYM_DIRECTORY"),(sBgSkIDs or ""))
   ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
   if(not AttachBodyGroups(ePiece,BgSk[1] or "")) then
     ePiece:Remove()
@@ -3499,7 +3372,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalSettings: Piece entity not valid") end
   -- Initialize dupe settings using this array
-  local dataSettings = {0}
+  local dataSettings = {}
   if(nPi ~= 0) then
     ePiece.PhysgunDisabled = true
     ePiece:SetUnFreezable(true)
@@ -3513,7 +3386,7 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   if(nGr ~=  0) then constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = true })
                 else constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false}) end
   if(sPh ~= "") then constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh}) end
-  if(IsArrayOr(dataSettings,1)) then -- Are there any settings to be saved
+  if(tableMaxn(dataSettings) > 0) then -- Are there any settings to be saved
     duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",dataSettings) end
   return StatusLog(true,"ApplyPhysicalSettings: Success")
 end

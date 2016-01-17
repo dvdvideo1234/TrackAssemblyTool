@@ -1,4 +1,4 @@
-# ExportIntoFile( INS ): 12/31/15 21:41:32 [ LUA ]
+# ExportIntoFile( INS ): 01/17/16 17:32:16 [ LUA ]
 # Data settings: TYPE,LINEID,NAME
   asmlib.InsertRecord("PHYSPROPERTIES", {"Special",1,"default"})
   asmlib.InsertRecord("PHYSPROPERTIES", {"Special",2,"default_silent"})

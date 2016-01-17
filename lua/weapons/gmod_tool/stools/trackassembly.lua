@@ -25,6 +25,8 @@ local fileExists            = file and file.Exists
 local stringSub             = string and string.sub
 local stringUpper           = string and string.upper
 local stringLower           = string and string.lower
+local stringExplode         = string and string.Explode
+local stringToFileName      = string and string.GetFileFromFilename
 local cleanupRegister       = cleanup and cleanup.Register
 local languageAdd           = language and language.Add
 local languageGetPhrase     = language and language.GetPhrase
@@ -66,6 +68,7 @@ local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVSIGN")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
+local gsErrorPad  = "\n          "
 
 --- Render Base Colours
 local conPalette = asmlib.MakeContainer("Colours")
@@ -297,7 +300,7 @@ function TOOL:SetAnchor(stTrace)
   if(not (phEnt and phEnt:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace no physics") end
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Player invalid") end
-  local sAnchor = trEnt:EntIndex()..gsSymRev..asmlib.StringToFile(trEnt:GetModel())
+  local sAnchor = trEnt:EntIndex()..gsSymRev..stringToFileName(trEnt:GetModel())
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
   trEnt:SetColor(conPalette:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
@@ -339,16 +342,16 @@ function TOOL:LeftClick(stTrace)
   local staatts    = self:GetStackAttempts()
   local ignphysgn  = self:GetIgnorePhysgun()
   local bnderrmod  = self:GetBoundErrorMode()
-  local fnmodel    = asmlib.StringToFile(model)
+  local fnmodel    = stringToFileName(model)
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld) then -- Spawn it on the map ...
-    local errInfo = "\n   MCspawn: "..mcspawn
-                  .."\n   Player : "..ply:GetName()
-                  .."\n   hdModel: "..fnmodel
+    local errInfo = gsErrorPad.."MCspawn: "..mcspawn
+                  ..gsErrorPad.."Player : "..ply:GetName()
+                  ..gsErrorPad.."hdModel: "..fnmodel
     local ePiece = asmlib.MakePiece(model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
@@ -366,7 +369,7 @@ function TOOL:LeftClick(stTrace)
         aAng:RotateAroundAxis(aAng:Forward(), nextrol)
         ePiece:SetAngles(aAng)
         if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,"TOOL:LeftClick(HitWorld)"
-          .."\n   Event  : Spawning when HitWorld"..errInfo)) then return false end
+          ..gsErrorPad.."Event  : Spawning when HitWorld"..errInfo)) then return false end
       else -- Spawn on Active point
         local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -374,7 +377,7 @@ function TOOL:LeftClick(stTrace)
           return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): No spawn data"..errInfo) end
         stSpawn.SPos:Add(asmlib.PointOffsetUp(ePiece,pointid) * stTrace.HitNormal)
         if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(HitWorld)"
-          .."\n   Event  : Spawning when HitWorld"..errInfo)) then return false end
+          ..gsErrorPad.."Event  : Spawning when HitWorld"..errInfo)) then return false end
         ePiece:SetAngles(stSpawn.SAng)
       end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
@@ -383,7 +386,7 @@ function TOOL:LeftClick(stTrace)
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)) then
         return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to apply physical anchor"..errInfo) end
       asmlib.UndoAddEntityPly(ePiece)
-      asmlib.UndoFinishPly(ply,gsUndoPrefN..fnmodel.." ( World spawn )")
+      asmlib.UndoFinishPly(ply)
       return asmlib.StatusLog(true,"TOOL:LeftClick(HitWorld): Success hit world <"..fnmodel..">")
     end
     return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to create <"..fnmodel..">")
@@ -399,7 +402,7 @@ function TOOL:LeftClick(stTrace)
     return asmlib.StatusLog(false,"TOOL:LeftClick(HitProp): Trace is other type of object") end
 
   local trModel = trEnt:GetModel()
-  local fntrmod = asmlib.StringToFile(trModel)
+  local fntrmod = stringToFileName(trModel)
   
   -- No need stacking relative to non-persistent props or using them...
   local trRec = asmlib.CacheQueryPiece(trModel)
@@ -421,38 +424,38 @@ function TOOL:LeftClick(stTrace)
   local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
   if(not stSpawn) then -- Not aiming into an active point
-    local IDs = asmlib.ExplodeString(bgskids,gsSymDir)
+    local IDs = stringExplode(gsSymDir,bgskids)
     if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
       return asmlib.StatusLog(false,"TOOL:LeftClick(Bodygroup/Skin): Failed <"..bgskids..">") end
     trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
     return asmlib.StatusLog(true,"TOOL:LeftClick(Bodygroup/Skin): Success <"..bgskids..">")
   end
 
-  if(asmlib.LoadKeyPly(ply,"SPEED")) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(asmlib.LoadKeyPly(ply,"SPEED") and hdRec.Kept > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,"Stack count #"..count.." not properly picked") end
     if(pointid == pnextid) then return asmlib.StatusLog(false,"Point ID #"..pointid.." overlap") end
     local ePieceO, ePieceN
     local iNdex, iTrys = 1, staatts
     local vTemp, trPos = Vector(), trEnt:GetPos()
+    local errInfo = gsErrorPad.."Player : "..ply:GetName()
+                  ..gsErrorPad.."trModel: "..fntrmod
+                  ..gsErrorPad.."hdModel: "..fnmodel
+                  ..gsErrorPad.."pointID: "..tostring(pointid).." >> "..tostring(pnextid)
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
-    local errInfo = "\n   Player : "..ply:GetName()
-                  .."\n   trModel: "..fntrmod
-                  .."\n   hdModel: "..fnmodel
-                  .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
     if(not hdOffs) then
       asmlib.PrintNotifyPly(ply,"Cannot find next PointID data !","ERROR")
       return asmlib.StatusLog(false,"TOOL:LeftClick(Stack)"
-      .."\n   Event  : Stacking non-existent next PointID on client prop"..errInfo)
+      ..gsErrorPad.."Event  : Stacking non-existent next PointID on client prop"..errInfo)
     end -- Validate existent next point ID
     asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count).." )")
     while(iNdex <= count) do
       local sIterat = "["..tostring(iNdex).."]" 
-      local errIter = "\n   Iterats: "..sIterat
-                    .."\n   StackTr: "..tostring( nTrys ).." ?= "..tostring(staatts)
+      local errIter = gsErrorPad.."Iterats: "..sIterat
+                    ..gsErrorPad.."StackTr: "..tostring( iTrys ).." ?= "..tostring(staatts)
       ePieceN = asmlib.MakePiece(model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
       if(ePieceN) then
         if(not asmlib.SetBoundPos(ePieceN,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(Stack)"
-          .."\n   Event  : Stacking piece position out of map bounds")) then
+          ..gsErrorPad.."Event  : Stacking piece position out of map bounds")) then
           asmlib.UndoFinishPly(ply,sIterat)
           return asmlib.StatusLog(false,"TOOL:LeftClick(Stack): Position set irrelevant"..errInfo..errIter)
         end -- Set position is valid
@@ -473,10 +476,10 @@ function TOOL:LeftClick(stTrace)
           asmlib.PrintNotifyPly(ply,"Cannot obtain spawn data!","ERROR")
           asmlib.UndoFinishPly(ply,sIterat)
           return asmlib.StatusLog(true,"TOOL:LeftClick(Stack)"
-          .."\n   Event  : Stacking has invalid user data"..errInfo..errIter)
+          ..gsErrorPad.."Event  : Stacking has invalid user data"..errInfo..errIter)
         end -- Spawn data is valid for the current iteration iNdex
         ePieceO = ePieceN
-        iNdex = iNdex - 1
+        iNdex = iNdex + 1
         iTrys = staatts
       else
         iTrys = iTrys - 1
@@ -485,7 +488,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.PrintNotifyPly(ply,"Spawn attempts ran off!","ERROR")
         asmlib.UndoFinishPly(ply,sIterat)
         return asmlib.StatusLog(false,"TOOL:LeftClick(Stack)"
-        .."\n   Event  : Stacking failed to allocate memory for a piece"..errInfo..errIter)
+        ..gsErrorPad.."Event  : Stacking failed to allocate memory for a piece"..errInfo..errIter)
       end -- We still have enough memory to preform the stacking
       if(hdRec.Kept == 1) then
         asmlib.LogInstance("TOOL:LeftClick(Stack): Player "..ply:GetName()
@@ -498,12 +501,12 @@ function TOOL:LeftClick(stTrace)
   else
     local ePiece = asmlib.MakePiece(model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
-      local errInfo = "\n   Player : "..ply:GetName()
-                    .."\n   trModel: "..fntrmod
-                    .."\n   hdModel: "..fnmodel
-                    .."\n   pointID: "..tostring(pointid).." >> "..tostring(pnextid)
+      local errInfo = gsErrorPad.."Player : "..ply:GetName()
+                    ..gsErrorPad.."trModel: "..fntrmod
+                    ..gsErrorPad.."hdModel: "..fnmodel
+                    ..gsErrorPad.."pointID: "..tostring(pointid).." >> "..tostring(pnextid)
       if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(Snap)"
-        .."\n   Event  : Snap one piece relative to another"..errInfo)) then return false end
+        ..gsErrorPad.."Event  : Snap one piece relative to another"..errInfo)) then return false end
       ePiece:SetAngles(stSpawn.SAng)
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,"TOOL:LeftClick(Snap): Failed to apply physical settings on snapping"..errInfo) end 
@@ -785,7 +788,7 @@ function TOOL:DrawToolScreen(w, h)
   goToolScr:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()
   local anInfo, anEnt = self:GetAnchor()
-  local tInfo = asmlib.ExplodeString(anInfo,gsSymRev)
+  local tInfo = stringExplode(gsSymRev,anInfo)
   if(not (stTrace and stTrace.Hit)) then
     goToolScr:DrawText("Trace status: Invalid","r")
     goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
@@ -822,12 +825,12 @@ function TOOL:DrawToolScreen(w, h)
     end
     if(trRec) then
       trMaxCN = trRec.Kept
-      trModel = asmlib.StringToFile(trModel)
+      trModel = stringToFileName(trModel)
     else
-      trModel = "["..gsNoMD.."]"..asmlib.StringToFile(trModel)
+      trModel = "["..gsNoMD.."]"..stringToFileName(trModel)
     end
   end
-  model  = asmlib.StringToFile(model)
+  model  = stringToFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
   maxrad = asmlib.GetCoVar("maxactrad", "FLT")
   goToolScr:DrawText("TM: " ..(trModel    or gsNoAV),"y")
