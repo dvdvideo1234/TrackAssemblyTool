@@ -3392,14 +3392,13 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
 end
 
-function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)
-  local anyMessage = tostring(anyMessage)
+function SetBoundPos(ePiece,vPos,oPly,sMode)
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"Piece:SetBoundPos: Entity invalid "..anyMessage) end
+    return StatusLog(false,"Piece:SetBoundPos: Entity invalid") end
   if(not vPos) then
-    return StatusLog(false,"Piece:SetBoundPos: Position invalid "..anyMessage) end
+    return StatusLog(false,"Piece:SetBoundPos: Position invalid") end
   if(not oPly) then
-    return StatusLog(false,"Piece:SetBoundPos: Player invalid "..anyMessage) end
+    return StatusLog(false,"Piece:SetBoundPos: Player invalid") end
   local sMode = tostring(sMode or "LOG")
   if(sMode == "OFF") then
     ePiece:SetPos(vPos)
@@ -3411,7 +3410,7 @@ function SetBoundPos(ePiece,vPos,oPly,sMode,anyMessage)
     ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
       PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
-    return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds "..anyMessage)
+    return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds")
   end
   return StatusLog(true,"Piece:SetBoundPos("..sMode.."): Success")
 end
