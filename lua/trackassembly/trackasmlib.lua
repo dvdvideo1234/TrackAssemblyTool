@@ -1634,16 +1634,17 @@ function UndoFinishPly(pPly,anyMessage)
 end
 
 function LoadKeyPly(pPly, sKey)
-  local keyPly = GetOpVar("HASH_PLAYER_KEYDOWN")
-  local Cache  = libCache[keyPly]
-  if(not IsExistent(Cache)) then
+  local keyPly   = GetOpVar("HASH_PLAYER_KEYDOWN")
+  local plyCache = libCache[keyPly]
+  if(not IsExistent(plyCache)) then
     libCache[keyPly] = {}
-    Cache = libCache[keyPly]
+    plyCache = libCache[keyPly]
   end
   if(not pPly) then return StatusLog(nil,"LoadKeyPly: Player not available") end
-  local spName = pPly:GetName()
-  if(not Cache[spName]) then
-    Cache[spName]   = {
+  local spName   = pPly:GetName()
+  local plyPlace = plyCache[spName]
+  if(not IsExistent(plyPlace)) then
+    plyCache[spName] = {
       ["ALTLFT"]  = false,
       ["ALTRGH"]  = false,
       ["ATTLFT"]  = false,
@@ -1663,35 +1664,35 @@ function LoadKeyPly(pPly, sKey)
       ["RIGHT"]   = false,
       ["WALK"]    = false
     }
-    Cache = Cache[spName]
+    plyPlace = plyCache[spName]
   end
   if(IsExistent(sKey)) then
     if(not IsString(sKey)) then
       return StatusLog(nil,"LoadKeyPly: Key hash {"..type(sKey).."}<"..tostring(sKey).."> not string") end
     if(sKey == "DEBUG") then
-      return Cache
+      return plyPlace
     end
-    LogInstance("LoadKeyPly: NamePK <"..sKey.."> = "..tostring(Cache[sKey]))
-    return Cache[sKey]
+    LogInstance("LoadKeyPly: NamePK <"..sKey.."> = "..tostring(plyPlace[sKey]))
+    return plyPlace[sKey]
   end
-  Cache["ALTLFT"]  = pPly:KeyDown(IN_ALT1      )
-  Cache["ALTRGH"]  = pPly:KeyDown(IN_ALT2      )
-  Cache["ATTLFT"]  = pPly:KeyDown(IN_ATTACK    )
-  Cache["ATTRGH"]  = pPly:KeyDown(IN_ATTACK2   )
-  Cache["FORWARD"] = pPly:KeyDown(IN_FORWARD   )
-  Cache["BACK"]    = pPly:KeyDown(IN_BACK      )
-  Cache["MOVELFT"] = pPly:KeyDown(IN_MOVELEFT  )
-  Cache["MOVERGH"] = pPly:KeyDown(IN_MOVERIGHT )
-  Cache["RELOAD"]  = pPly:KeyDown(IN_RELOAD    )
-  Cache["USE"]     = pPly:KeyDown(IN_USE       )
-  Cache["DUCK"]    = pPly:KeyDown(IN_DUCK      )
-  Cache["JUMP"]    = pPly:KeyDown(IN_JUMP      )
-  Cache["SPEED"]   = pPly:KeyDown(IN_SPEED     )
-  Cache["SCORE"]   = pPly:KeyDown(IN_SCORE     )
-  Cache["ZOOM"]    = pPly:KeyDown(IN_ZOOM      )
-  Cache["LEFT"]    = pPly:KeyDown(IN_LEFT      )
-  Cache["RIGHT"]   = pPly:KeyDown(IN_RIGHT     )
-  Cache["WALK"]    = pPly:KeyDown(IN_WALK      )
+  plyPlace["ALTLFT"]  = pPly:KeyDown(IN_ALT1      )
+  plyPlace["ALTRGH"]  = pPly:KeyDown(IN_ALT2      )
+  plyPlace["ATTLFT"]  = pPly:KeyDown(IN_ATTACK    )
+  plyPlace["ATTRGH"]  = pPly:KeyDown(IN_ATTACK2   )
+  plyPlace["FORWARD"] = pPly:KeyDown(IN_FORWARD   )
+  plyPlace["BACK"]    = pPly:KeyDown(IN_BACK      )
+  plyPlace["MOVELFT"] = pPly:KeyDown(IN_MOVELEFT  )
+  plyPlace["MOVERGH"] = pPly:KeyDown(IN_MOVERIGHT )
+  plyPlace["RELOAD"]  = pPly:KeyDown(IN_RELOAD    )
+  plyPlace["USE"]     = pPly:KeyDown(IN_USE       )
+  plyPlace["DUCK"]    = pPly:KeyDown(IN_DUCK      )
+  plyPlace["JUMP"]    = pPly:KeyDown(IN_JUMP      )
+  plyPlace["SPEED"]   = pPly:KeyDown(IN_SPEED     )
+  plyPlace["SCORE"]   = pPly:KeyDown(IN_SCORE     )
+  plyPlace["ZOOM"]    = pPly:KeyDown(IN_ZOOM      )
+  plyPlace["LEFT"]    = pPly:KeyDown(IN_LEFT      )
+  plyPlace["RIGHT"]   = pPly:KeyDown(IN_RIGHT     )
+  plyPlace["WALK"]    = pPly:KeyDown(IN_WALK      )
   return StatusLog(nil,"LoadKeyPly: Player <"..spName.."> keys loaded")
 end
 

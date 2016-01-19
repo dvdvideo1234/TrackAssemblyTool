@@ -34,9 +34,9 @@ local concommandAdd         = concommand and concommand.Add
 local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntityModifier
 
 ----------------- TOOL Global Parameters ----------------
+--- Because Vec[1] is actually faster than Vec.X
 --- Store a pointer to our module
 local asmlib = trackasmlib
---- Because Vec[1] is actually faster than Vec.X
 --- Vector Component indexes ---
 local cvX, cvY, cvZ = asmlib.GetIndexes("V")
 --- Angle Component indexes ---
@@ -315,6 +315,53 @@ function TOOL:GetAnchor()
   return (self:GetClientInfo("anchor") or gsNoAnchor), svEnt
 end
 
+function TOOL:GetStatus(stTrace,anyMessage)
+  local sDelim  = "\n"
+  local ply     = self:GetOwner()
+  local plyKeys = LoadKeyPly(ply,"DEBUG")
+  local aninfo , anEnt   = self:GetAnchor()
+  local pointid, pnextid = self:GetPointID()
+  local nextx  , nexty  , nextz   = self:GetPosOffsets()
+  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+   return "  Dumping main message:"..sDelim
+        .."    "..tostring(anyMessage)..sDelim
+        .."  Dumping trace data state:"..sDelim
+        .."    Trace:      <"..tostring(stTrace)..">"..sDelim
+        .."    TR.Hit:     <"..tostring(stTrace and stTrace.Hit)..">"..sDelim
+        .."    TR.HitW:    <"..tostring(stTrace and stTrace.HitWorld)..">"..sDelim
+        .."    TR.ENT:     <"..tostring(stTrace and stTrace.Entity)..">"..sDelim
+        .."  Dumping player keys:"..sDelim
+        .."    USE:        <"..tostring(plyKeys["USE"])..">"..sDelim
+        .."    DUCK:       <"..tostring(plyKeys["DUCK"])..">"..sDelim
+        .."    SPEED:      <"..tostring(plyKeys["SPEED"])..">"..sDelim
+        .."    RELOAD:     <"..tostring(plyKeys["RELOAD"])..">"..sDelim
+        .."    SCORE:      <"..tostring(plyKeys["SCORE"])..">"..sDelim
+        .."  Dumping console variables state:"..sDelim
+        .."    Weld:       <"..tostring(self:GetWeld())..">"..sDelim
+        .."    Mass:       <"..tostring(self:GetMass())..">"..sDelim
+        .."    ModelHD:    <"..tostring(self:GetModel())..">"..sDelim
+        .."    StackCNT:   <"..tostring(self:GetCount())..">"..sDelim
+        .."    Player:     {"..tostring(ply).."}<"..tostring(ply:GetName())..">"..sDelim
+        .."    Freeze:     <"..tostring(self:GetFreeze())..">"..sDelim
+        .."    SpawnMC:    <"..tostring(self:GetSpawnMC())..">"..sDelim
+        .."    YawSnap:    <"..tostring(self:GetYawSnap())..">"..sDelim
+        .."    Gravity:    <"..tostring(self:GetGravity())..">"..sDelim
+        .."    NoCollide:  <"..tostring(self:GetNoCollide())..">"..sDelim
+        .."    SpawnFlat:  <"..tostring(self:GetSpawnFlat())..">"..sDelim
+        .."    IgnoreType: <"..tostring(self:GetIgnoreType())..">"..sDelim
+        .."    SurfSnap:   <"..tostring(self:GetSurfaceSnap())..">"..sDelim
+        .."    PhysMeter:  <"..tostring(self:GetPhysMeterial())..">"..sDelim
+        .."    ActRadius:  <"..tostring(self:GetActiveRadius())..">"..sDelim
+        .."    SkinBG:     <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
+        .."    StackAT:    <"..tostring(self:GetStackAttempts())..">"..sDelim
+        .."    IgnorePG:   <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
+        .."    BndErrMod:  <"..tostring(self:GetBoundErrorMode())..">"..sDelim
+        .."    EntAnchor:  {"..tostring(anEnt).."}<"..tostring(aninfo)..">"..sDelim
+        .."    PointID:    ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
+        .."    AngOffsets: ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
+        .."    PosOffsets: ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
+end
+
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then
     return asmlib.StatusLog(true,"TOOL:LeftClick(): Working on client") end
@@ -349,9 +396,6 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld) then -- Spawn it on the map ...
-    local errInfo = gsErrorPad.."MCspawn: "..mcspawn
-                  ..gsErrorPad.."Player : "..ply:GetName()
-                  ..gsErrorPad.."hdModel: "..fnmodel
     local ePiece = asmlib.MakePiece(model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
@@ -368,28 +412,26 @@ function TOOL:LeftClick(stTrace)
         aAng:RotateAroundAxis(aAng:Right()  , nextpic)
         aAng:RotateAroundAxis(aAng:Forward(), nextrol)
         ePiece:SetAngles(aAng)
-        if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,"TOOL:LeftClick(HitWorld)"
-          ..gsErrorPad.."Event  : Spawning when HitWorld"..errInfo)) then return false end
+        if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod,self:GetStatus(stTrace,"TOOL:LeftClick(HitWorld): Spawning when HitWorld"))) then return false end
       else -- Spawn on Active point
         local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then
-          return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): No spawn data"..errInfo) end
+          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(HitWorld): No spawn data")) end
         stSpawn.SPos:Add(asmlib.PointOffsetUp(ePiece,pointid) * stTrace.HitNormal)
-        if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,"TOOL:LeftClick(HitWorld)"
-          ..gsErrorPad.."Event  : Spawning when HitWorld"..errInfo)) then return false end
+        if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod,self:GetStatus(stTrace,"TOOL:LeftClick(HitWorld): Bound position invalid"))) then return false end
         ePiece:SetAngles(stSpawn.SAng)
       end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to apply physical settings"..errInfo) end
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(HitWorld): Failed to apply physical settings")) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)) then
-        return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to apply physical anchor"..errInfo) end
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(HitWorld): Failed to apply physical anchor")) end
       asmlib.UndoAddEntityPly(ePiece)
       asmlib.UndoFinishPly(ply)
-      return asmlib.StatusLog(true,"TOOL:LeftClick(HitWorld): Success hit world <"..fnmodel..">")
+      return asmlib.StatusLog(true,self:GetStatus(stTrace,"TOOL:LeftClick(HitWorld): Success hit world"))
     end
-    return asmlib.StatusLog(false,"TOOL:LeftClick(HitWorld): Failed to create <"..fnmodel..">")
+    return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(HitWorld): Failed to create"))
   end
 
   if(not (trEnt and trEnt:IsValid())) then
