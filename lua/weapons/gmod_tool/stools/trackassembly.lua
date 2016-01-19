@@ -619,9 +619,9 @@ function TOOL:Reload(stTrace)
   local trEnt = stTrace.Entity
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld) then
-    self:ClearAnchor()
+    if(asmlib.LoadKeyPly(ply,"SPEED")) then self:ClearAnchor() end
     asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile())
-    if((self:GetExportDB() ~= 0) and asmlib.LoadKeyPly(ply,"SPEED")) then
+    if(self:GetExportDB() ~= 0) then
       asmlib.LogInstance("TOOL:Reload(HitWorld): Exporting DB")
       asmlib.ExportIntoFile("PIECES",",","INS")
       asmlib.ExportIntoFile("ADDITIONS",",","INS")
