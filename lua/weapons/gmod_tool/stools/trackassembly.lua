@@ -1240,6 +1240,7 @@ end
 function TOOL:UpdateGhost(oEnt, oPly)
   if(not (oEnt and oEnt:IsValid())) then return end
   oEnt:SetNoDraw(true)
+  oEnt:DrawShadow(false)
   local stTrace = utilTraceLine(utilGetPlayerTrace(oPly))
   if(not stTrace) then return end
   local trEnt = stTrace.Entity

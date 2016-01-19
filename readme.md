@@ -62,10 +62,11 @@ A: Just subscribe to the workshop item:
    Pressing DUCK ( Default: Ctrl ) + SPEED ( Default: Shift ) + ATTACK2 ( Default: Right mouse button )
      Will decrement the next active point chosen of the piece that you're holding.
    Pressing RELOAD ( Default: R )
+     When used on the world exports the database if the console variable "trackassembly_exportdb" is set to <>0,
      When used on trace it removes it, if it's a track piece.
-     When Pressing it on world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
    Pressing RELOAD ( Default: R ) + SPEED ( Default: Shift )
-     Will set the trace prop as an anchor for other pieces spawned to be welded to.
+     When pressing it on world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
+     When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
    If you want to obtain different grip behaviour for a wheel-powered/sliding train,
      you may use the surface material drop-down menus as you select first "TYPE" then "NAME".
    In the text field you may type bodygroup/skin selection code or generate one using
@@ -270,7 +271,7 @@ Q: Yo, can I add some personal models to TA ?
 A: Yes, you can. For every active point, you have to add a line in the table PIECES.
     1) In the console ( Bring it up with ~ key under ESC ): "trackassembly_exportdb 1" [ press enter ]
     2) After exporting, tables are located under ..common\GarrysMod\garrysmod\data\trackassembly\dsv\ [DSV Folder]
-    3) Server: Point the crosshair anywhere on the map, then hit SPEED ( Default: Shift ) + RELOAD ( Default: R )
+    3) Server: Point the crosshair anywhere on the map, then hit RELOAD ( Default: R )
     4) Client: Just bring up the Frequently used pieces screen, then click the "Export client's DB" button
     5) Use Excel or another table editing program to edit the files sv_*.txt and cl_*.txt
     6) After you are done, proceed as below [Excel 2010] 

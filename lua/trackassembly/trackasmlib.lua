@@ -246,6 +246,11 @@ local function Log(anyStuff)
       SetOpVar("LOG_CURLOGS",nCurLogs)
     else
       print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff))
+      nCurLogs = nCurLogs + 1
+      if(nCurLogs > nMaxLogs) then
+        nCurLogs = 0
+      end
+      SetOpVar("LOG_CURLOGS",nCurLogs)
     end
   end
 end
