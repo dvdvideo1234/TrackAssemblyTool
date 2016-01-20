@@ -3286,10 +3286,10 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   local sBgrpIDs = sBgrpIDs or ""
   if(not (sBgrpIDs and IsString(sBgrpIDs))) then
     return StatusLog(false,"AttachBodyGroups: Expecting string argument") end
-  LogInstance("AttachBodyGroups: BGS <"..sBgrpIDs..">")
+  LogInstance("AttachBodyGroups: <"..sBgrpIDs..">")
   local IDs = StringToBGID(sBgrpIDs)
-  if(not IsExistent(IDs)) then -- Nil or table
-    return StatusLog(false,"AttachBodyGroups: Bodygroup ID not matched") end
+  if(not IsExistent(IDs)) then -- No IDs equals no attachments
+    return StatusLog(true,"AttachBodyGroups: Bodygroup ID not matched") end
   local Cnt = 1
   local BGs = ePiece:GetBodyGroups()
   local symSep = GetOpVar("OPSYM_SEPARATOR")
@@ -3298,7 +3298,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
     local ID = IDs[Cnt]
     local cntBG = ePiece:GetBodygroupCount(BG.id)
     if(ID < 0 or ID > cntBG) then ID = 0 end
-    LogInstance("ePiece:SetBodygroup("..BG.id..symSep..ID..") ["..cntBG.."]")
+    LogInstance("ePiece:SetBodygroup("..tostring(BG.id)..tostring(symSep..ID)..") ["..tostring(cntBG).."]")
     ePiece:SetBodygroup(BG.id,ID)
     Cnt = Cnt + 1
   end
