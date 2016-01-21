@@ -27,7 +27,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.180")
+asmlib.SetOpVar("TOOL_VERSION","5.181")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -135,6 +135,8 @@ if(CLIENT) then
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
+      local caP, caY, caR = asmlib.GetIndexes("A")
+      local csA, csB, csC = asmlib.GetIndexes("S")
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
       local pnButton     = pnElements:Select(1).Panel
@@ -170,13 +172,27 @@ if(CLIENT) then
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiRec = asmlib.CacheQueryPiece(oEnt:GetModel())
-        if(not uiRec) then return end
+        if(not asmlib.IsExistent(uiRec)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Record missing <"..oEnt:GetModel()..">") end
+        local stPoint = asmlib.LocatePOA(uiRec,1)
+        if(not asmlib.IsExistent(stPoint)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Location failed <"..oEnt:GetModel()..">") end
         local uiKept = uiRec.Kept
-        local uiAng = Angle(0, RealTime() * 10, 0)
-        local uiPos = Vector()
+        local uiOAng = Angle(0, RealTime() * 10, 0)
+        local uivF   = uiOAng:Forward()
+        local uivR   = uiOAng:Right()
+        local uivU   = uiOAng:Up()
+        local uiPos  = Vector()
+        local uiMAng = Angle()
+        asmlib.SetAngle(uiMAng,stPoint.A)  
+        uiMAng:RotateAroundAxis(uiMAng:Up(),180)
+        uiOAng:RotateAroundAxis(-uivR,uiMAng[caP] * stPoint.A[csA])
+        uiOAng:RotateAroundAxis(-uivU,uiMAng[caY] * stPoint.A[csB])
+        uiOAng:RotateAroundAxis(-uivF,uiMAng[caR] * stPoint.A[csC])
         if(uiKept > 1) then
           local uiCalc = asmlib.GetCorePoint(uiRec,"P")
-          if(not asmlib.IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Center point non-applicable") end
+          if(not asmlib.IsExistent(uiCalc)) then
+            return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Center point non-applicable") end
           asmlib.SetVector(uiPos,uiCalc)
         elseif(uiKept == 1) then
           local uiMin, uiMax = oEnt:GetRenderBounds()
@@ -186,10 +202,10 @@ if(CLIENT) then
         else return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Record has no points") end
         local uiRot = Vector()
               uiRot:Set(uiPos)
-              uiRot:Rotate(uiAng)
+              uiRot:Rotate(uiOAng)
               uiRot:Mul(-1)
               uiRot:Add(uiPos)
-        oEnt:SetAngles(uiAng)
+        oEnt:SetAngles(uiOAng)
         oEnt:SetPos(uiRot)
       end
       ------------ Button --------------

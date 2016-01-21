@@ -4,7 +4,5 @@ D - Discontinued
 N - Not applicable
 ? - Not yet tested
 
-[?] "MAX_LINEAR" to be 1000 and Mouse Y to start with a small value
-
-1       EQ      4.7539  100
-2       LN      67.239  1414.3966006858
+To test if the models in the Model panel will be displayed
+relative to the angle of the first point inserted

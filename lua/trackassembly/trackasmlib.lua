@@ -11,9 +11,9 @@ local caY -- Angle Yaw   component
 local caR -- Angle Roll  component
 
 --- Component Status indexes ---
-local csX -- Sign of the first component
-local csY -- Sign of the second component
-local csZ -- Sign of the third component
+local csA -- Sign of the first component
+local csB -- Sign of the second component
+local csC -- Sign of the third component
 local csD -- Flag for disabling the point
 
 ---------------- Localizing instances ------------------
@@ -153,24 +153,16 @@ function Delay(nAdd)
 end
 
 function GetIndexes(sType)
-  if(sType == "V") then
-    return cvX, cvY, cvZ
-  elseif(sType == "A") then
-    return caP, caY, caR
-  elseif(sType == "S") then
-    return csX, csY, csZ, csD
-  end
+  if    (sType == "V") then return cvX, cvY, cvZ
+  elseif(sType == "A") then return caP, caY, caR
+  elseif(sType == "S") then return csA, csB, csC, csD end
   return nil
 end
 
 function SetIndexes(sType,I1,I2,I3,I4)
-  if(sType == "V") then
-    cvX, cvY, cvZ = I1, I2, I3
-  elseif(sType == "A") then
-    caP, caY, caR = I1, I2, I3
-  elseif(sType == "S") then
-    csX, csY, csZ, csD = I1, I2, I3, I4
-  end
+  if    (sType == "V") then cvX, cvY, cvZ      = I1, I2, I3
+  elseif(sType == "A") then caP, caY, caR      = I1, I2, I3
+  elseif(sType == "S") then csA, csB, csC, csD = I1, I2, I3, I4 end
   return nil
 end
 
@@ -1228,13 +1220,13 @@ local function StringPOA(arPOA,sOffs)
   local sModeDB = GetOpVar("MODE_DATABASE")
   local Result = ((arPOA[csD] and symDisa) or "")
   if(sOffs == "V") then
-    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[cvX])..symSepa
-                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[cvY])..symSepa
-                   ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[cvZ])
+    Result = Result..((arPOA[csA] == -1) and symRevs or "")..tostring(arPOA[cvX])..symSepa
+                   ..((arPOA[csB] == -1) and symRevs or "")..tostring(arPOA[cvY])..symSepa
+                   ..((arPOA[csC] == -1) and symRevs or "")..tostring(arPOA[cvZ])
   elseif(sOffs == "A") then
-    Result = Result..((arPOA[csX] == -1) and symRevs or "")..tostring(arPOA[caP])..symSepa
-                   ..((arPOA[csY] == -1) and symRevs or "")..tostring(arPOA[caY])..symSepa
-                   ..((arPOA[csZ] == -1) and symRevs or "")..tostring(arPOA[caR])
+    Result = Result..((arPOA[csA] == -1) and symRevs or "")..tostring(arPOA[caP])..symSepa
+                   ..((arPOA[csB] == -1) and symRevs or "")..tostring(arPOA[caY])..symSepa
+                   ..((arPOA[csC] == -1) and symRevs or "")..tostring(arPOA[caR])
   else return StatusLog("","StringPOA: Missed offset mode "..sOffs) end
   return stringGsub(Result," ","") -- Get rid of the spaces
 end
@@ -1256,9 +1248,9 @@ local function TransferPOA(stOffset,sMode)
   else
     return StatusLog(nil,"TransferPOA: Missed mode "..sMode)
   end
-  stOffset[csX] = arPOA[4]
-  stOffset[csY] = arPOA[5]
-  stOffset[csZ] = arPOA[6]
+  stOffset[csA] = arPOA[4]
+  stOffset[csB] = arPOA[5]
+  stOffset[csC] = arPOA[6]
   stOffset[csD] = arPOA[7]
   return arPOA
 end
@@ -2414,7 +2406,7 @@ function CacheQueryPiece(sModel)
   if(not defTable) then
     return StatusLog(nil,"CacheQueryPiece: Table definition missing") end
   local namTable = defTable.Name
-  local Cache    = libCache[namTable]
+  local Cache    = libCache[namTable] -- Match the model casing
   local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(Cache)) then
     return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..namTable..">") end
@@ -2476,7 +2468,7 @@ function CacheQueryAdditions(sModel)
   if(not defTable) then
     return StatusLog(nil,"CacheQueryAdditions: Missing table definition") end
   local namTable = defTable.Name
-  local Cache    = libCache[namTable]
+  local Cache    = libCache[namTable] -- Match the model casing
   local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(Cache)) then
     return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..namTable..">") end
@@ -2586,7 +2578,7 @@ function CacheQueryProperty(sType)
     return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..namTable..">") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and not IsEmptyString(sType)) then -- Get names per type
-    local sType   = MatchType(defTable,sType,1,false,"",true,true)
+    local sType   = MatchType(defTable,sType,1,false,"",true,true) -- Match type casing
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
     local arNames = Cache[keyName]
     local caInd   = {namTable,keyName,sType}
@@ -2684,7 +2676,7 @@ function GetCorePoint(oRec,sName)
     if(iInd > 1) then
       vCore:Mul(1/(iInd-1))
     end
-    return StatusLog(vCore,"GetCorePoint: From cache <"..sName.."> = ["..tostring(vCore).."]")
+    return StatusLog(vCore,"GetCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
   end
 end
 
@@ -2989,14 +2981,14 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,
   stSpawn.MPos:Mul(-1)
   stSpawn.MPos:Set(DecomposeByAngle(stSpawn.MPos,stSpawn.MAng))
   -- Make Spawn Pos
-  stSpawn.SPos:Add(stSpawn.F * (stSpawn.MPos[cvX] * stPoint.O[csX]))
-  stSpawn.SPos:Add(stSpawn.R * (stSpawn.MPos[cvY] * stPoint.O[csY]))
-  stSpawn.SPos:Add(stSpawn.U * (stSpawn.MPos[cvZ] * stPoint.O[csZ]))
+  stSpawn.SPos:Add(stSpawn.F * (stSpawn.MPos[cvX] * stPoint.O[csA]))
+  stSpawn.SPos:Add(stSpawn.R * (stSpawn.MPos[cvY] * stPoint.O[csB]))
+  stSpawn.SPos:Add(stSpawn.U * (stSpawn.MPos[cvZ] * stPoint.O[csC]))
   -- Make Spawn Ang
   stSpawn.SAng:Set(stSpawn.OAng)
-  stSpawn.SAng:RotateAroundAxis(-stSpawn.R,stSpawn.MAng[caP] * stPoint.A[csX])
-  stSpawn.SAng:RotateAroundAxis(-stSpawn.U,stSpawn.MAng[caY] * stPoint.A[csY])
-  stSpawn.SAng:RotateAroundAxis(-stSpawn.F,stSpawn.MAng[caR] * stPoint.A[csZ])
+  stSpawn.SAng:RotateAroundAxis(-stSpawn.R,stSpawn.MAng[caP] * stPoint.A[csA])
+  stSpawn.SAng:RotateAroundAxis(-stSpawn.U,stSpawn.MAng[caY] * stPoint.A[csB])
+  stSpawn.SAng:RotateAroundAxis(-stSpawn.F,stSpawn.MAng[caR] * stPoint.A[csC])
   SetVector(stSpawn.PPos,stPoint.P)
   stSpawn.PPos:Rotate(stSpawn.SAng)
   stSpawn.PPos:Add(stSpawn.SPos)
@@ -3108,14 +3100,14 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   NegAngle(stSpawn.MAng)
   --Do Spawn Pos
   stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((hdOffs.O[csX] * stSpawn.MPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
-  stSpawn.SPos:Add((hdOffs.O[csY] * stSpawn.MPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
-  stSpawn.SPos:Add((hdOffs.O[csZ] * stSpawn.MPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
+  stSpawn.SPos:Add((hdOffs.O[csA] * stSpawn.MPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
+  stSpawn.SPos:Add((hdOffs.O[csB] * stSpawn.MPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
+  stSpawn.SPos:Add((hdOffs.O[csC] * stSpawn.MPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
   --Do Spawn Angle
   SetAngle(stSpawn.SAng,stSpawn.OAng)
-  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.MAng[caP] * hdOffs.A[csX])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.MAng[caY] * hdOffs.A[csY])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.MAng[caR] * hdOffs.A[csZ])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.MAng[caP] * hdOffs.A[csA])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.MAng[caY] * hdOffs.A[csB])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.MAng[caR] * hdOffs.A[csC])
   return stSpawn
 end
 
@@ -3309,7 +3301,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   if(CLIENT) then return StatusLog(nil,"MakePiece: Working on client") end
   local stPiece = CacheQueryPiece(sModel)
   if(not IsExistent(stPiece)) then
-    return StatusLog(nil,"MakePiece: Relation mismatch <"..sModel..">") end
+    return StatusLog(nil,"MakePiece: Record missing <"..sModel..">") end
   local ePiece = entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(nil,"MakePiece: Entity invalid") end
