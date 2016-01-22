@@ -27,7 +27,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.182")
+asmlib.SetOpVar("TOOL_VERSION","5.183")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -175,7 +175,7 @@ if(CLIENT) then
         local uiPos = asmlib.CacheCorePoint(uiRec,"CL",oEnt) 
         if(not asmlib.IsExistent(uiPos)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Core point not applicable") end  
-        asmlib.LayoutPiece(oEnt,uiPos,RealTime() * 10)
+        asmlib.LayoutPiece(oEnt,uiRec,uiPos,RealTime() * 10)
       end      
       ------------ Button --------------
       pnButton:SetParent(pnFrame)
