@@ -1601,11 +1601,12 @@ function ConCommandPly(pPly,sCvar,snValue)
 end
 
 function PrintNotifyPly(pPly,sText,sNotifType)
-  if(not pPly) then return end
+  if(not pPly) then return StatusLog(false,"PrintNotifyPly: Player invalid") end
   if(SERVER) then
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
     pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
   end
+  return StatusLog(false,"PrintNotifyPly: Success")
 end
 
 function UndoCratePly(anyMessage)
@@ -2649,34 +2650,47 @@ function CacheQueryProperty(sType)
   end
 end
 
-function GetCorePoint(oRec,sName)
+function CacheCorePoint(oRec,sName,oEnt)
   if(not IsString(sName)) then
-    return StatusLog(nil,"GetCorePoint: Offset {"..type(sName).."}<"..tostring(sName).."> not string") end
+    return StatusLog(nil,"CacheCorePoint: Offset {"..type(sName).."}<"..tostring(sName).."> not string") end
+  if(IsEmptyString(sName) then
+    return StatusLog(nil,"CacheCorePoint: Name empty sting") end
   local sName = stringSub(sName,1,1)
-  if((sName ~= "P") and (sName ~= "O")) then
-    return StatusLog(nil,"GetCorePoint: Wrong offset name <"..sName..">") end
   if(not IsExistent(oRec.Core)) then oRec.Core = {} end
   local vCore = oRec.Core[sName]
   if(IsExistent(vCore)) then
     return vCore
   else
+    if((sName ~= "CL") and (sName ~= "SV") and (sName ~= "P") and (sName ~= "O")) then
+      return StatusLog(nil,"CacheCorePoint: Name invalid <"..sName..">") end
     oRec.Core[sName] = Vector()
-    local iInd, vCore = 1, oRec.Core[sName]
-    while(iInd <= oRec.Kept) do
-      local stPOA = LocatePOA(oRec,iInd)
-      if(not IsExistent(stPOA)) then -- Does the registered point really persists
-        return StatusLog(nil,"GetCorePoint: Point #"..tostring(iInd).." index mismatch") end
-      local arOff = stPOA[sName]
-      if(not IsExistent(arOff)) then
-        return StatusLog(nil,"GetCorePoint: Offset <"..sName.."> not found for point #"
-                 ..tostring(iInd).." and slot <"..tostring(oRec.Slot)..">") end
-      AddVectorXYZ(vCore,arOff[cvX],arOff[cvY],arOff[cvZ])
-      iInd = iInd + 1
-    end
-    if(iInd > 1) then
-      vCore:Mul(1/(iInd-1))
-    end
-    return StatusLog(vCore,"GetCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
+    local vCore = oRec.Core[sName]
+    if(CLIENT and (oEnt and oEnt:IsValid()) and (sName == "CL")) then
+      local vMin, vMax = oEnt:GetRenderBounds()
+      vCore:Set(vMax); vCore:Add(vMin); vCore:Mul(0.5)
+      return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
+    elseif(SERVER and (oEnt and oEnt:IsValid()) and (sName == "SV")) then
+      local vMin, vMax = oEnt:OBBCenter()
+      vCore:Set(vMax); vCore:Add(vMin); vCore:Mul(0.5)
+      return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
+    elseif((sName == "P") or (sName == "O")) then
+      local iInd, = 1
+      while(iInd <= oRec.Kept) do
+        local stPOA = LocatePOA(oRec,iInd)
+        if(not IsExistent(stPOA)) then -- Does the registered point really persists
+          return StatusLog(nil,"CacheCorePoint: Point #"..tostring(iInd).." index mismatch") end
+        local arOff = stPOA[sName]
+        if(not IsExistent(arOff)) then
+          return StatusLog(nil,"CacheCorePoint: Offset <"..sName.."> not found for point #"
+                   ..tostring(iInd).." and slot <"..tostring(oRec.Slot)..">") end
+        AddVectorXYZ(vCore,arOff[cvX],arOff[cvY],arOff[cvZ])
+        iInd = iInd + 1
+      end
+      if(iInd > 1) then
+        vCore:Mul(1/(iInd-1))
+      end
+      return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
+    else return StatusLog(nil,"CacheCorePoint: Wrong offset name <"..sName..">") end
   end
 end
 
@@ -2911,6 +2925,55 @@ end
 
 ----------------------------- AssemblyLib SNAPPING ------------------------------
 
+--[[
+ * This function layouts an entity 
+ * Calculates SPos, SAng based on the DB inserts and input parameters
+ * oPly          = The player we need the normal angle from
+ * oTrace        = A trace structure if nil, it takes oPly's
+ * nSnap         = Snap to the trace surface flag
+ * nYSnap        = Yaw snap amount
+]]--
+function LayoutPiece(oEnt, stRec, vCore, fvYaw)
+  if(not (oEnt and oEnt:IsValid())) then
+    return StatusLog(false,"LayoutEntity: Entity invalid")
+  local stPoint = asmlib.LocatePOA(stRec,1)
+  if(not asmlib.IsExistent(stPoint)) then
+    return asmlib.StatusLog(false,"LayoutPiece: Location failed") end
+  if(not IsExistent(vCore)) then
+    return StatusLog(false,"LayoutEntity: Missing core vector")
+  local fYaw = tonumber(fvYaw)
+  if(not IsExistent(fYaw)) then
+    return StatusLog(false,"LineAddListView: Index NAN {"..type(fvYaw).."}<"..tostring(fvYaw)..">") end
+  local uiAng = Angle(0, fvYaw, 0)
+  local uivF  = uiAng:Forward()
+  local uivR  = uiAng:Right()
+  local uivU  = uiAng:Up()
+  --[[
+  local uiMAng = Angle()
+  asmlib.SetAngle(uiMAng,stPoint.A)  
+  uiMAng:RotateAroundAxis(uiMAng:Up(),180)
+  ]]
+  uiAng:RotateAroundAxis(-uivR,stPoint.A[caP] * stPoint.A[csA])
+  uiAng:RotateAroundAxis(-uivU,stPoint.A[caY] * stPoint.A[csB])
+  uiAng:RotateAroundAxis(-uivF,stPoint.A[caR] * stPoint.A[csC])
+  local uiRot = Vector()
+        uiRot:Set(vCore)
+        uiRot:Rotate(uiAng)
+        uiRot:Mul(-1)
+        uiRot:Add(vCore)
+  oEnt:SetAngles(uiAng)
+  oEnt:SetPos(uiRot)
+end
+
+--[[
+ * This function calculates the cross product normal angle of
+ * a player by a given trace. If the trace is missing it takes player trace
+ * It has options for snap to surface and yaw snap
+ * oPly          = The player we need the normal angle from
+ * oTrace        = A trace structure if nil, it takes oPly's
+ * nSnap         = Snap to the trace surface flag
+ * nYSnap        = Yaw snap amount
+]]--
 function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
   local aAng = Angle()
   if(not oPly) then return aAng end
@@ -3339,7 +3402,7 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
 end
 
 function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
-  if(CLIENT) then return StatusLog(false,"ApplyPhysicalAnchor: Working on client") end
+  if(CLIENT) then return StatusLog(true,"ApplyPhysicalAnchor: Working on client") end
   local nWe = tonumber(nWe) or 0
   local nNc = tonumber(nNc) or 0
   LogInstance("ApplyPhysicalAnchor: {"..nWe..","..nNc.."}")
@@ -3361,7 +3424,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
 end
 
 function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
-  if(CLIENT) then return StatusLog(false,"ApplyPhysicalSettings: Working on client") end
+  if(CLIENT) then return StatusLog(true,"ApplyPhysicalSettings: Working on client") end
   local nPi = tonumber(nPi) or 0
   local nFr = tonumber(nFr) or 0
   local nGr = tonumber(nGr) or 0

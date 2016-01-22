@@ -27,7 +27,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.181")
+asmlib.SetOpVar("TOOL_VERSION","5.182")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -80,12 +80,12 @@ end
 if(CLIENT) then
   asmlib.SetAction("RESET_OFFSETS",
     function(oPly,oCom,oArgs)
-      oPly:ConCommand(gsToolPrefL.."nextx 0\n")
-      oPly:ConCommand(gsToolPrefL.."nexty 0\n")
-      oPly:ConCommand(gsToolPrefL.."nextz 0\n")
-      oPly:ConCommand(gsToolPrefL.."nextpic 0\n")
-      oPly:ConCommand(gsToolPrefL.."nextyaw 0\n")
-      oPly:ConCommand(gsToolPrefL.."nextrol 0\n")
+      asmlib.ConCommandPly(oPly,"nextx"  , 0)
+      asmlib.ConCommandPly(oPly,"nexty"  , 0)
+      asmlib.ConCommandPly(oPly,"nextz"  , 0)
+      asmlib.ConCommandPly(oPly,"nextpic", 0)
+      asmlib.ConCommandPly(oPly,"nextyaw", 0)
+      asmlib.ConCommandPly(oPly,"nextrol", 0)
       return asmlib.StatusLog(true,"RESET_OFFSETS: Success")
     end)
 
@@ -135,8 +135,6 @@ if(CLIENT) then
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
-      local caP, caY, caR = asmlib.GetIndexes("A")
-      local csA, csB, csC = asmlib.GetIndexes("S")
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
       local pnButton     = pnElements:Select(1).Panel
@@ -174,40 +172,11 @@ if(CLIENT) then
         local uiRec = asmlib.CacheQueryPiece(oEnt:GetModel())
         if(not asmlib.IsExistent(uiRec)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Record missing <"..oEnt:GetModel()..">") end
-        local stPoint = asmlib.LocatePOA(uiRec,1)
-        if(not asmlib.IsExistent(stPoint)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Location failed <"..oEnt:GetModel()..">") end
-        local uiKept = uiRec.Kept
-        local uiOAng = Angle(0, RealTime() * 10, 0)
-        local uivF   = uiOAng:Forward()
-        local uivR   = uiOAng:Right()
-        local uivU   = uiOAng:Up()
-        local uiPos  = Vector()
-        local uiMAng = Angle()
-        asmlib.SetAngle(uiMAng,stPoint.A)  
-        uiMAng:RotateAroundAxis(uiMAng:Up(),180)
-        uiOAng:RotateAroundAxis(-uivR,uiMAng[caP] * stPoint.A[csA])
-        uiOAng:RotateAroundAxis(-uivU,uiMAng[caY] * stPoint.A[csB])
-        uiOAng:RotateAroundAxis(-uivF,uiMAng[caR] * stPoint.A[csC])
-        if(uiKept > 1) then
-          local uiCalc = asmlib.GetCorePoint(uiRec,"P")
-          if(not asmlib.IsExistent(uiCalc)) then
-            return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Center point non-applicable") end
-          asmlib.SetVector(uiPos,uiCalc)
-        elseif(uiKept == 1) then
-          local uiMin, uiMax = oEnt:GetRenderBounds()
-          asmlib.SetVector(uiPos,uiMax)
-          asmlib.SubVector(uiPos,uiMin)
-          uiPos:Mul(-0.5)
-        else return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Record has no points") end
-        local uiRot = Vector()
-              uiRot:Set(uiPos)
-              uiRot:Rotate(uiOAng)
-              uiRot:Mul(-1)
-              uiRot:Add(uiPos)
-        oEnt:SetAngles(uiOAng)
-        oEnt:SetPos(uiRot)
-      end
+        local uiPos = asmlib.CacheCorePoint(uiRec,"CL",oEnt) 
+        if(not asmlib.IsExistent(uiPos)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Core point not applicable") end  
+        asmlib.LayoutPiece(oEnt,uiPos,RealTime() * 10)
+      end      
       ------------ Button --------------
       pnButton:SetParent(pnFrame)
       pnButton:SetText(pnElements:Select(1).Label[2])
@@ -245,34 +214,24 @@ if(CLIENT) then
         local uiRec = asmlib.CacheQueryPiece(uiMod)
         if(not asmlib.IsExistent(uiRec)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve #"..nIndex.." model <"..uiMod..">")
-        end
-        pnModelPanel:SetModel(uiMod) -- Set the damn thing only if valid record is found
-        -- OBBCenter ModelPanel Configuration --
+        end -- Set the damn thing only if valid record is found
+        pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
         if(not (uiEnt and uiEnt:IsValid())) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Model panel entity invalid")
         end
-        local uiKept = tonumber(uiRec.Kept) or 0
-        local uiCen  = Vector()
-        if(uiKept > 1) then
-          local uiCalc = asmlib.GetCorePoint(uiRec,"P")
-          if(not asmlib.IsExistent(uiCalc)) then return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Center point non-applicable") end
-          asmlib.SetVector(uiCen,uiCalc)
-        elseif(uiKept == 1) then
-          local uiMin, uiMax = uiEnt:GetRenderBounds()
-          asmlib.SetVector(uiCen,uiMax)
-          asmlib.SubVector(uiCen,uiMin)
-          uiCen:Mul(-0.5)
-        else return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Record has no points") end
+        local uiCen = asmlib.CacheCorePoint(uiRec,"CL",uiEnt)
+        if(not asmlib.IsExistent(uiCen)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Core point non-applicable") end       
         local uiEye = uiEnt:LocalToWorld(uiCen)
         asmlib.SubVector(uiCen,uiRec.Offs[1].P)
         local uiLen = uiCen:Length()
         local uiCam = Vector(0.70 * uiLen, 0, 0.30 * uiLen)
         pnModelPanel:SetLookAt(uiEye)
         pnModelPanel:SetCamPos(2 * uiCam + uiEye)
-        oPly:ConCommand(gsToolPrefL.."model "..uiMod.."\n")
-        oPly:ConCommand(gsToolPrefL.."pointid 1\n")
-        oPly:ConCommand(gsToolPrefL.."pnextid 2\n")
+        asmlib.ConCommandPly(oPly, "model" ,uiMod)
+        asmlib.ConCommandPly(oPly,"pointid",  1  )
+        asmlib.ConCommandPly(oPly,"pnextid",  2  )
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed")
