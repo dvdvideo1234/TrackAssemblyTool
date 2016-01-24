@@ -27,7 +27,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.184")
+asmlib.SetOpVar("TOOL_VERSION","5.185")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -170,12 +170,18 @@ if(CLIENT) then
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiRec = asmlib.CacheQueryPiece(oEnt:GetModel())
-        if(not asmlib.IsExistent(uiRec)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Record missing <"..oEnt:GetModel()..">") end
-        local uiPos = asmlib.CacheCorePoint(uiRec,"CL",oEnt) 
+        if(not asmlib.IsExistent(uiRec)) then return end
+        local uiPos = asmlib.CacheCorePoint(uiRec,"CL",oEnt)
         if(not asmlib.IsExistent(uiPos)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Core point not applicable") end  
-        asmlib.LayoutPiece(oEnt,uiRec,uiPos,RealTime() * 10)
+          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Core point invalid") end
+        local uiAng = Angle(0, RealTime() * 10, 0)
+        local uiRot = Vector()
+              uiRot:Set(uiPos)
+              uiRot:Rotate(uiAng)
+              uiRot:Mul(-1)
+              uiRot:Add(uiPos)
+        oEnt:SetAngles(uiAng)
+        oEnt:SetPos(uiRot)
       end      
       ------------ Button --------------
       pnButton:SetParent(pnFrame)
@@ -224,9 +230,10 @@ if(CLIENT) then
         if(not asmlib.IsExistent(uiCen)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Core point non-applicable") end       
         local uiEye = uiEnt:LocalToWorld(uiCen)
-        asmlib.SubVector(uiCen,uiRec.Offs[1].P)
-        local uiLen = uiCen:Length()
-        local uiCam = Vector(0.70 * uiLen, 0, 0.30 * uiLen)
+        local uiCam, uiMax = uiEnt:GetRenderBounds()
+        uiMax:Sub(uiCam)
+        local uiLen = uiMax:Length() / 2
+        asmlib.SetVectorXYZ(uiCam, 0.7*uiLen, 0, 0.3*uiLen)
         pnModelPanel:SetLookAt(uiEye)
         pnModelPanel:SetCamPos(2 * uiCam + uiEye)
         asmlib.ConCommandPly(oPly, "model" ,uiMod)
@@ -253,7 +260,7 @@ if(CLIENT) then
       ------------ TextEntry --------------
       pnTextEntry:SetParent(pnFrame)
       pnTextEntry:SetPos(175,30)
-      pnTextEntry:SetSize(330,30)
+      pnTextEntry:SetSize(305,30)
       pnTextEntry:SetVisible(true)
       pnTextEntry.OnEnter = function(pnSelf)
         local sName, sField = pnComboBox:GetSelected()

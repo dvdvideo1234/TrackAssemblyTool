@@ -2642,7 +2642,6 @@ function CacheCorePoint(oRec,sName,oEnt)
     return StatusLog(nil,"CacheCorePoint: Offset {"..type(sName).."}<"..tostring(sName).."> not string") end
   if(IsEmptyString(sName)) then
     return StatusLog(nil,"CacheCorePoint: Name empty sting") end
-  local sName = stringSub(sName,1,1)
   if(not IsExistent(oRec.Core)) then oRec.Core = {} end
   local vCore = oRec.Core[sName]
   if(IsExistent(vCore)) then
@@ -2913,47 +2912,6 @@ end
 ----------------------------- AssemblyLib SNAPPING ------------------------------
 
 --[[
- * This function layouts an entity 
- * Calculates SPos, SAng based on the DB inserts and input parameters
- * oPly          = The player we need the normal angle from
- * oTrace        = A trace structure if nil, it takes oPly's
- * nSnap         = Snap to the trace surface flag
- * nYSnap        = Yaw snap amount
-]]--
-function LayoutPiece(oEnt, stRec, vCore, fvYaw)
-  if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(false,"LayoutEntity: Entity invalid") end
-  local stPoint = asmlib.LocatePOA(stRec,1)
-  if(not asmlib.IsExistent(stPoint)) then
-    return asmlib.StatusLog(false,"LayoutPiece: Location failed") end
-  if(not IsExistent(vCore)) then
-    return StatusLog(false,"LayoutEntity: Missing core vector") end
-  local fYaw = tonumber(fvYaw)
-  if(not IsExistent(fYaw)) then
-    return StatusLog(false,"LineAddListView: Index NAN {"..type(fvYaw).."}<"..tostring(fvYaw)..">") end
-  local uiAng = Angle(0, fvYaw, 0)
-  local uivF  = uiAng:Forward()
-  local uivR  = uiAng:Right()
-  local uivU  = uiAng:Up()
-  --[[
-  local uiMAng = Angle()
-  asmlib.SetAngle(uiMAng,stPoint.A)  
-  uiMAng:RotateAroundAxis(uiMAng:Up(),180)
-  ]]
-  uiAng:RotateAroundAxis(-uivR,stPoint.A[caP] * stPoint.A[csA])
-  uiAng:RotateAroundAxis(-uivU,stPoint.A[caY] * stPoint.A[csB])
-  uiAng:RotateAroundAxis(-uivF,stPoint.A[caR] * stPoint.A[csC])
-  local uiRot = Vector()
-        uiRot:Set(vCore)
-        uiRot:Rotate(uiAng)
-        uiRot:Mul(-1)
-        uiRot:Add(vCore)
-  oEnt:SetAngles(uiAng)
-  oEnt:SetPos(uiRot)
-end
-
-
---[[
  * This function calculates the cross product normal angle of
  * a player by a given trace. If the trace is missing it takes player trace
  * It has options for snap to surface and yaw snap
@@ -2999,10 +2957,10 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
     return StatusLog(nil,"GetNormalSpawn: No record located") end
   local ihdPointID = tonumber(ivhdPointID)
   if(not IsExistent(ihdPointID)) then
-    return StatusLog(nil,"GetSpawn: Index NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
+    return StatusLog(nil,"GetNormalSpawn: Index NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
   local stPoint = LocatePOA(hdRec,ihdPointID)
   if(not IsExistent(stPoint)) then
-    return StatusLog(nil,"GetSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
+    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
   local stSpawn = GetOpVar("STRUCT_SPAWN") -- What did you put at this time
   local ucsPos = ucsPos or stSpawn.OPos
   local ucsAng = ucsAng or stSpawn.OAng
