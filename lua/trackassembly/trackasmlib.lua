@@ -348,15 +348,15 @@ function InitAssembly(sName,sPurpose)
     OAng = Angle (),
     SPos = Vector(),
     SAng = Angle (),
-    MPos = Vector(),
-    MAng = Angle (),
-    HPnt = Vector(),
-    TPnt = Vector(),
-    RLen = 0,
     HRec = 0,
-    TRec = 0,
     HID  = 0,
-    TID  = 0
+    HPnt = Vector(), -- P
+    HPos = Vector(), -- O
+    HAng = Angle (), -- A
+    TRec = 0,
+    TID  = 0,
+    TPnt = Vector(), -- P
+    RLen = 0
   })
   return StatusPrint(false,"InitAssembly: Success")
 end
@@ -2941,7 +2941,8 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
 end
 
 --[[
- * This function is the backbone of the tool for Trace.HitWorld
+ * This function is the backbone of the tool snapping and spawning.
+ * Anything related to dealing with the track assembly database
  * Calculates SPos, SAng based on the DB inserts and input parameters
  * ucsPos        = Base UCS Pos
  * ucsAng        = Base UCS Ang
@@ -2957,43 +2958,43 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   local ihdPointID = tonumber(ivhdPointID)
   if(not IsExistent(ihdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Index NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
-  local stPoint = LocatePOA(hdRec,ihdPointID)
-  if(not IsExistent(stPoint)) then
+  local stPOA = LocatePOA(hdRec,ihdPointID)
+  if(not IsExistent(stPOA)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
-  local stSpawn = GetOpVar("STRUCT_SPAWN") -- What did you put at this time
+  local stSpawn = GetOpVar("STRUCT_SPAWN")
   local ucsPos = ucsPos or stSpawn.OPos
   local ucsAng = ucsAng or stSpawn.OAng
   stSpawn.HRec = hdRec
-  -- Initialize F, R, U
+  -- Initialize F, R, U Copy the UCS like that to support database POA
   SetVector(stSpawn.OPos,ucsPos)
   SetAngle (stSpawn.OAng,ucsAng)
-  stSpawn.R:Set(ucsAng:Right())
-  stSpawn.U:Set(ucsAng:Up())
-  ucsAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
-  ucsAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
-  stSpawn.F:Set(ucsAng:Forward())
-  ucsAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
-  stSpawn.R:Set(ucsAng:Right())
-  stSpawn.U:Set(ucsAng:Up())
-  -- Get Hold model data
-  SetVector(stSpawn.HPnt,stPoint.P)
-  SetVector(stSpawn.MPos,stPoint.O)
-  SetAngle (stSpawn.MAng,stPoint.A)
+  stSpawn.R:Set(stSpawn.OAng:Right())
+  stSpawn.U:Set(stSpawn.OAng:Up())
+  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
+  stSpawn.F:Set(stSpawn.OAng:Forward())
+  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
+  stSpawn.R:Set(stSpawn.OAng:Right())
+  stSpawn.U:Set(stSpawn.OAng:Up())
+  -- Get Holder model data
+  SetVector(stSpawn.HPnt,stPOA.P)
+  SetVector(stSpawn.HPos,stPOA.O)
+  SetAngle (stSpawn.HAng,stPOA.A)
   -- Calculate spawn relation
-  stSpawn.MAng:RotateAroundAxis(stSpawn.MAng:Up(),180)
-  stSpawn.MPos:Mul(-1)
-  stSpawn.MPos:Set(DecomposeByAngle(stSpawn.MPos,stSpawn.MAng))
-  NegAngle(stSpawn.MAng)
+  stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180)
+  stSpawn.HPos:Mul(-1)
+  stSpawn.HPos:Set(DecomposeByAngle(stSpawn.HPos,stSpawn.HAng))
+  NegAngle(stSpawn.HAng)
   -- Spawn Position
-  stSpawn.SPos:Set(ucsPos)
-  stSpawn.SPos:Add((stPoint.O[csA] * stSpawn.MPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
-  stSpawn.SPos:Add((stPoint.O[csB] * stSpawn.MPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
-  stSpawn.SPos:Add((stPoint.O[csC] * stSpawn.MPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
+  stSpawn.SPos:Set(stSpawn.OPos)
+  stSpawn.SPos:Add((stPOA.O[csA] * stSpawn.HPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
+  stSpawn.SPos:Add((stPOA.O[csB] * stSpawn.HPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
+  stSpawn.SPos:Add((stPOA.O[csC] * stSpawn.HPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
   -- Spawn Angle
-  stSpawn.SAng:Set(ucsAng)
-  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.MAng[caP] * stPoint.A[csA])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.MAng[caY] * stPoint.A[csB])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.MAng[caR] * stPoint.A[csC])
+  stSpawn.SAng:Set(stSpawn.OAng)
+  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.HAng[caP] * stPOA.A[csA])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * stPOA.A[csB])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.HAng[caR] * stPOA.A[csC])
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
@@ -3001,7 +3002,7 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
 end
 
 --[[
- * This function is the backbone of the tool for Trace.Entity
+ * This function is the backbone of the tool on entity snapping
  * Calculates SPos, SAng based on the DB inserts and input parameters
  * trEnt         = Trace.Entity
  * trHitPos      = Trace.HitPos
@@ -3055,29 +3056,27 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
         stSpawn.TID  = 0
   for ID = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
-    local vOff = LocatePOA(trRec,ID)
-    if(not IsExistent(vOff)) then
+    local stPOA = LocatePOA(trRec,ID)
+    if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
-    SetVector(stSpawn.MPos,vOff.P)
-    stSpawn.MPos:Rotate(trAng)
-    stSpawn.MPos:Add(trPos)
-    stSpawn.MPos:Sub(trHitPos)
-    local trAcDis = stSpawn.MPos:Length()
+    SetVector(stSpawn.HPos,stPOA.P)
+    stSpawn.HPos:Rotate(trAng)
+    stSpawn.HPos:Add(trPos) -- Use HPos as temporary replaced on spawn
+    stSpawn.HPos:Sub(trHitPos)
+    local trAcDis = stSpawn.HPos:Length()
     if(trAcDis < stSpawn.RLen) then
-      trOffs       = vOff
+      trOffs       = stPOA
       stSpawn.TID  = ID
       stSpawn.RLen = trAcDis
-      stSpawn.TPnt:Set(stSpawn.MPos)
+      stSpawn.TPnt:Set(stSpawn.HPos)
       stSpawn.TPnt:Add(trHitPos)
     end
   end
-  -- Found the active point ID on trEnt
   if(not IsExistent(trOffs)) then
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
-  --Do origin !
+  -- Found the active point ID on trEnt. Initialize origins
   SetVector(stSpawn.OPos,trOffs.O)
   SetAngle (stSpawn.OAng,trOffs.A)
-  -- Initialize origins
   stSpawn.OPos:Rotate(trAng)
   stSpawn.OPos:Add(trPos)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
