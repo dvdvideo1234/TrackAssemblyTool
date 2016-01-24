@@ -2656,8 +2656,7 @@ function CacheCorePoint(oRec,sName,oEnt)
       vCore:Set(vMax); vCore:Add(vMin); vCore:Mul(0.5)
       return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
     elseif(SERVER and (oEnt and oEnt:IsValid()) and (sName == "SV")) then
-      local vMin, vMax = oEnt:OBBCenter()
-      vCore:Set(vMax); vCore:Add(vMin); vCore:Mul(0.5)
+      vCore:Set(oEnt:OBBCenter())
       return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
     elseif((sName == "P") or (sName == "O")) then
       local iInd = 1
