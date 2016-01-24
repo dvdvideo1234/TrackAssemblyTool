@@ -340,34 +340,23 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
-  SetOpVar("SPAWN_ENTITY",{
+  SetOpVar("STRUCT_SPAWN",{
     F    = Vector(),
     R    = Vector(),
     U    = Vector(),
-    PPos = Vector(),
     OPos = Vector(),
     OAng = Angle (),
     SPos = Vector(),
     SAng = Angle (),
     MPos = Vector(),
     MAng = Angle (),
+    HPnt = Vector(),
+    TPnt = Vector(),
     RLen = 0,
     HRec = 0,
     TRec = 0,
-    OID  = 0
-  })
-  SetOpVar("SPAWN_NORMAL",{
-    F    = Vector(),
-    R    = Vector(),
-    U    = Vector(),
-    PPos = Vector(),
-    OPos = Vector(),
-    OAng = Angle (),
-    SAng = Angle (),
-    SPos = Vector(),
-    MAng = Angle (),
-    MPos = Vector(),
-    HRec = 0
+    HID  = 0,
+    TID  = 0
   })
   return StatusPrint(false,"InitAssembly: Success")
 end
@@ -1175,14 +1164,14 @@ function ModelToName(sModel)
   return sModel..stringSub(gModel,bCh+2,-1)
 end
 
-function LocatePOA(oRec, nvPointID)
+function LocatePOA(oRec, ivPointID)
   if(not oRec) then return StatusLog(nil,"LocatePOA: Missing record") end
   if(not oRec.Offs) then return StatusLog(nil,"LocatePOA: Missing offsets for <"..tostring(oRec.Slot)..">") end
-  local nPointID = tonumber(nvPointID) or 0
-  local stPOA = oRec.Offs[nPointID]
+  local iPointID = mathFloor(tonumber(ivPointID) or 0)
+  local stPOA = oRec.Offs[iPointID]
   if(not IsExistent(stPOA)) then
-    return StatusLog(nil,"LocatePOA: Missing ID #"..tostring(nPointID).." <"
-             ..tostring(nvPointID).."> for <"..tostring(oRec.Slot)..">") end
+    return StatusLog(nil,"LocatePOA: Missing ID #"..tostring(iPointID).." <"
+             ..tostring(ivPointID).."> for <"..tostring(oRec.Slot)..">") end
   return stPOA
 end
 
@@ -1502,9 +1491,7 @@ function StringToBGID(sStr)
     if(not IsExistent(Num)) then
       return StatusLog(nil, "StringToBGID: Value NAN {"
                ..type(Data[Cnt]).."}<"..tostring(Data[Cnt])..">") end
-    if((mathFloor(Num) - Num) ~= 0) then
-      return StatusLog(nil, "StringToBGID: Floats are forbidden") end
-    Data[Cnt] = Num
+    Data[Cnt] = mathFloor(Num)
     Cnt = Cnt + 1
   end
   if(IsExistent(Data[1]))then return Data end
@@ -2653,7 +2640,7 @@ end
 function CacheCorePoint(oRec,sName,oEnt)
   if(not IsString(sName)) then
     return StatusLog(nil,"CacheCorePoint: Offset {"..type(sName).."}<"..tostring(sName).."> not string") end
-  if(IsEmptyString(sName) then
+  if(IsEmptyString(sName)) then
     return StatusLog(nil,"CacheCorePoint: Name empty sting") end
   local sName = stringSub(sName,1,1)
   if(not IsExistent(oRec.Core)) then oRec.Core = {} end
@@ -2674,7 +2661,7 @@ function CacheCorePoint(oRec,sName,oEnt)
       vCore:Set(vMax); vCore:Add(vMin); vCore:Mul(0.5)
       return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
     elseif((sName == "P") or (sName == "O")) then
-      local iInd, = 1
+      local iInd = 1
       while(iInd <= oRec.Kept) do
         local stPOA = LocatePOA(oRec,iInd)
         if(not IsExistent(stPOA)) then -- Does the registered point really persists
@@ -2935,12 +2922,12 @@ end
 ]]--
 function LayoutPiece(oEnt, stRec, vCore, fvYaw)
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(false,"LayoutEntity: Entity invalid")
+    return StatusLog(false,"LayoutEntity: Entity invalid") end
   local stPoint = asmlib.LocatePOA(stRec,1)
   if(not asmlib.IsExistent(stPoint)) then
     return asmlib.StatusLog(false,"LayoutPiece: Location failed") end
   if(not IsExistent(vCore)) then
-    return StatusLog(false,"LayoutEntity: Missing core vector")
+    return StatusLog(false,"LayoutEntity: Missing core vector") end
   local fYaw = tonumber(fvYaw)
   if(not IsExistent(fYaw)) then
     return StatusLog(false,"LineAddListView: Index NAN {"..type(fvYaw).."}<"..tostring(fvYaw)..">") end
@@ -2964,6 +2951,7 @@ function LayoutPiece(oEnt, stRec, vCore, fvYaw)
   oEnt:SetAngles(uiAng)
   oEnt:SetPos(uiRot)
 end
+
 
 --[[
  * This function calculates the cross product normal angle of
@@ -3000,61 +2988,58 @@ end
  * Calculates SPos, SAng based on the DB inserts and input parameters
  * ucsPos        = Base UCS Pos
  * ucsAng        = Base UCS Ang
- * ivhdPointID   = Client Point ID
  * shdModel      = Client Model
+ * ivhdPointID   = Client Point ID
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,
-                        ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
-  if(not (ucsPos and ucsAng and shdModel and ivhdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Mismatched input parameters") end
-  local ihdPointID = tonumber(ivhdPointID)
-  if(not IsExistent(ihdPointID)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
+function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   local hdRec = CacheQueryPiece(shdModel)
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"GetNormalSpawn: No record located") end
+  local ihdPointID = tonumber(ivhdPointID)
+  if(not IsExistent(ihdPointID)) then
+    return StatusLog(nil,"GetSpawn: Index NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
   local stPoint = LocatePOA(hdRec,ihdPointID)
   if(not IsExistent(stPoint)) then
-    return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
-  local stSpawn = GetOpVar("SPAWN_NORMAL")
+    return StatusLog(nil,"GetSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
+  local stSpawn = GetOpVar("STRUCT_SPAWN") -- What did you put at this time
+  local ucsPos = ucsPos or stSpawn.OPos
+  local ucsAng = ucsAng or stSpawn.OAng
   stSpawn.HRec = hdRec
-  SetAngle(stSpawn.MAng,stPoint.A)
+  -- Initialize F, R, U
+  SetVector(stSpawn.OPos,ucsPos)
+  SetAngle (stSpawn.OAng,ucsAng)
+  stSpawn.R:Set(ucsAng:Right())
+  stSpawn.U:Set(ucsAng:Up())
+  ucsAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
+  ucsAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
+  stSpawn.F:Set(ucsAng:Forward())
+  ucsAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
+  stSpawn.R:Set(ucsAng:Right())
+  stSpawn.U:Set(ucsAng:Up())
+  -- Get Hold model data
+  SetVector(stSpawn.HPnt,stPoint.P)
   SetVector(stSpawn.MPos,stPoint.O)
-  -- Orient the UCS
-  stSpawn.OAng:Set(ucsAng)
-  stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  --- Offset NOW !
-  stSpawn.SPos:Set(ucsPos)
-  stSpawn.SPos:Add(stSpawn.F * (tonumber(ucsPosX) or 0))
-  stSpawn.SPos:Add(stSpawn.R * (tonumber(ucsPosY) or 0))
-  stSpawn.SPos:Add(stSpawn.U * (tonumber(ucsPosZ) or 0))
-  stSpawn.OPos:Set(stSpawn.SPos)
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
-  stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  -- Init Model Offsets
+  SetAngle (stSpawn.MAng,stPoint.A)
+  -- Calculate spawn relation
   stSpawn.MAng:RotateAroundAxis(stSpawn.MAng:Up(),180)
   stSpawn.MPos:Mul(-1)
   stSpawn.MPos:Set(DecomposeByAngle(stSpawn.MPos,stSpawn.MAng))
-  -- Make Spawn Pos
-  stSpawn.SPos:Add(stSpawn.F * (stSpawn.MPos[cvX] * stPoint.O[csA]))
-  stSpawn.SPos:Add(stSpawn.R * (stSpawn.MPos[cvY] * stPoint.O[csB]))
-  stSpawn.SPos:Add(stSpawn.U * (stSpawn.MPos[cvZ] * stPoint.O[csC]))
-  -- Make Spawn Ang
-  stSpawn.SAng:Set(stSpawn.OAng)
-  stSpawn.SAng:RotateAroundAxis(-stSpawn.R,stSpawn.MAng[caP] * stPoint.A[csA])
-  stSpawn.SAng:RotateAroundAxis(-stSpawn.U,stSpawn.MAng[caY] * stPoint.A[csB])
-  stSpawn.SAng:RotateAroundAxis(-stSpawn.F,stSpawn.MAng[caR] * stPoint.A[csC])
-  SetVector(stSpawn.PPos,stPoint.P)
-  stSpawn.PPos:Rotate(stSpawn.SAng)
-  stSpawn.PPos:Add(stSpawn.SPos)
+  NegAngle(stSpawn.MAng)
+  -- Spawn Position
+  stSpawn.SPos:Set(ucsPos)
+  stSpawn.SPos:Add((stPoint.O[csA] * stSpawn.MPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
+  stSpawn.SPos:Add((stPoint.O[csB] * stSpawn.MPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
+  stSpawn.SPos:Add((stPoint.O[csC] * stSpawn.MPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
+  -- Spawn Angle
+  stSpawn.SAng:Set(ucsAng)
+  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.MAng[caP] * stPoint.A[csA])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.MAng[caY] * stPoint.A[csB])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.MAng[caR] * stPoint.A[csC])
+  -- Store the active point position of holder
+  stSpawn.HPnt:Rotate(stSpawn.SAng)
+  stSpawn.HPnt:Add(stSpawn.SPos)
   return stSpawn
 end
 
@@ -3106,9 +3091,11 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   local trAng = trEnt:GetAngles()
   local trPos = trEnt:GetPos()
   -- We have the next Piece Offset
-  local stSpawn, trOffs = GetOpVar("SPAWN_ENTITY")
+  local stSpawn, trOffs = GetOpVar("STRUCT_SPAWN")
+        stSpawn.TRec = trRec
         stSpawn.RLen = nActRadius
-        stSpawn.OID  = 0
+        stSpawn.HID  = ihdPointID
+        stSpawn.TID  = 0
   for ID = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
     local vOff = LocatePOA(trRec,ID)
@@ -3121,10 +3108,10 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     local trAcDis = stSpawn.MPos:Length()
     if(trAcDis < stSpawn.RLen) then
       trOffs       = vOff
-      stSpawn.OID  = ID
+      stSpawn.TID  = ID
       stSpawn.RLen = trAcDis
-      stSpawn.PPos:Set(stSpawn.MPos)
-      stSpawn.PPos:Add(trHitPos)
+      stSpawn.TPnt:Set(stSpawn.MPos)
+      stSpawn.TPnt:Add(trHitPos)
     end
   end
   -- Found the active point ID on trEnt
@@ -3132,46 +3119,17 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
   --Do origin !
   SetVector(stSpawn.OPos,trOffs.O)
+  SetAngle (stSpawn.OAng,trOffs.A)
+  -- Initialize origins
   stSpawn.OPos:Rotate(trAng)
   stSpawn.OPos:Add(trPos)
-  --- Do Origin UCS World angle
-  SetAngle(stSpawn.OAng,trOffs.A)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten and enFlatten ~= 0) then
     stSpawn.OAng[caP] = 0
     stSpawn.OAng[caR] = 0
   end
-  --- Do F,R,U
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
-  stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  --- F R U Ready, Save our records
-  stSpawn.HRec = hdRec
-  stSpawn.TRec = trRec
-  --Get Hold model stuff
-  SetAngle(stSpawn.MAng,hdOffs.A)
-  stSpawn.MAng:RotateAroundAxis(stSpawn.MAng:Up(),180)
-  SetVector(stSpawn.MPos,hdOffs.O)
-  NegVector(stSpawn.MPos)
-  stSpawn.MPos:Set(DecomposeByAngle(stSpawn.MPos,stSpawn.MAng))
-  NegAngle(stSpawn.MAng)
-  --Do Spawn Pos
-  stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((hdOffs.O[csA] * stSpawn.MPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
-  stSpawn.SPos:Add((hdOffs.O[csB] * stSpawn.MPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
-  stSpawn.SPos:Add((hdOffs.O[csC] * stSpawn.MPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
-  --Do Spawn Angle
-  SetAngle(stSpawn.SAng,stSpawn.OAng)
-  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.MAng[caP] * hdOffs.A[csA])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.MAng[caY] * hdOffs.A[csB])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.MAng[caR] * hdOffs.A[csC])
-  return stSpawn
+  return GetNormalSpawn(nil,nil,shdModel,ihdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end
 
 function AttachAdditions(ePiece)
@@ -3180,17 +3138,16 @@ function AttachAdditions(ePiece)
   local LocalAng = ePiece:GetAngles()
   local LocalPos = ePiece:GetPos()
   local LocalMod = ePiece:GetModel()
-  local qData = CacheQueryAdditions(LocalMod)
-  if(not IsExistent(qData)) then
+  local stAddition = CacheQueryAdditions(LocalMod)
+  if(not IsExistent(stAddition)) then
     return StatusLog(true,"AttachAdditions: Model <"..LocalMod.."> has no additions") end
   LogInstance("AttachAdditions: Called for model <"..LocalMod..">")
-  local Record, Addition
   local Cnt = 1
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
-  while(qData[Cnt]) do
-    Record   = qData[Cnt]
+  while(stAddition[Cnt]) do
+    local Record = stAddition[Cnt]
     LogInstance("\n\nEnt [ "..Record[defTable[4][1]].." ] INFO : ")
-    Addition = entsCreate(Record[defTable[3][1]])
+    local Addition = entsCreate(Record[defTable[3][1]])
     if(Addition and Addition:IsValid()) then
       LogInstance("Addition Class: "..Record[defTable[3][1]])
       if(fileExists(Record[defTable[2][1]], "GAME")) then
@@ -3277,9 +3234,9 @@ function AttachAdditions(ePiece)
       end
     else
       return StatusLog(false,"Failed to allocate Addition #"..Cnt.." memory:"
-          .."\n     Modelbse: "..qData[Cnt][defTable[1][1]]
-          .."\n     Addition: "..qData[Cnt][defTable[2][1]]
-          .."\n     ENTclass: "..qData[Cnt][defTable[3][1]])
+          .."\n     Modelbse: "..stAddition[Cnt][defTable[1][1]]
+          .."\n     Addition: "..stAddition[Cnt][defTable[2][1]]
+          .."\n     ENTclass: "..stAddition[Cnt][defTable[3][1]])
     end
     Cnt = Cnt + 1
   end

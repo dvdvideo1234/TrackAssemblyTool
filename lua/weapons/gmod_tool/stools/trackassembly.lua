@@ -195,6 +195,10 @@ function TOOL:GetAngOffsets()
          (mathClamp(self:GetClientNumber("nextrol") or 0,-gnMaxOffRot,gnMaxOffRot))
 end
 
+function TOOL:GetOffsetUp()
+  return (self:GetClientNumber("offsetup") or 0)
+end
+
 function TOOL:GetFreeze()
   return (self:GetClientNumber("freeze") or 0)
 end
@@ -318,7 +322,7 @@ function TOOL:GetAnchor()
   return (self:GetClientInfo("anchor") or gsNoAnchor), svEnt
 end
 
-function TOOL:GetStatus(stTrace,anyMessage)
+function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local sDelim  = "\n"
   local iMaxlog = mathFloor(asmlib.GetOpVar("LOG_MAXLOGS"))
   local sSpace  = stringRep(" ",6 + stringLen(tostring(iMaxlog)))
@@ -334,46 +338,50 @@ function TOOL:GetStatus(stTrace,anyMessage)
     trModel = stTrace.Entity:GetModel()
     trRec  = asmlib.CacheQueryPiece(trModel)
   end
-   local sDump = ""
-         sDump = sDump..tostring(anyMessage)..sDelim
-         sDump = sDump..sSpace.."Dumping player keys:"..sDelim
-         sDump = sDump..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
-         sDump = sDump..sSpace.."  IN.USE:         <"..tostring(plyKeys["USE"])..">"..sDelim
-         sDump = sDump..sSpace.."  IN.DUCK:        <"..tostring(plyKeys["DUCK"])..">"..sDelim
-         sDump = sDump..sSpace.."  IN.SPEED:       <"..tostring(plyKeys["SPEED"])..">"..sDelim
-         sDump = sDump..sSpace.."  IN.RELOAD:      <"..tostring(plyKeys["RELOAD"])..">"..sDelim
-         sDump = sDump..sSpace.."  IN.SCORE:       <"..tostring(plyKeys["SCORE"])..">"..sDelim
-         sDump = sDump..sSpace.."Dumping trace data state:"..sDelim
-         sDump = sDump..sSpace.."  Trace:          <"..tostring(stTrace)..">"..sDelim
-         sDump = sDump..sSpace.."  TR.Hit:         <"..tostring(stTrace and stTrace.Hit or gsNoAV)..">"..sDelim
-         sDump = sDump..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
-         sDump = sDump..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
-         sDump = sDump..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Kept or gsNoID).."]"..sDelim
-         sDump = sDump..sSpace.."  TR.File:        <"..stringToFileName(tostring(trModel or gsNoAV))..">"..sDelim
-         sDump = sDump..sSpace.."Dumping console variables state:"..sDelim
-         sDump = sDump..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Kept or gsNoID).."]"..sDelim
-         sDump = sDump..sSpace.."  HD.File:        <"..stringToFileName(tostring(hdModel or gsNoAV))..">"..sDelim
-         sDump = sDump..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.StackCNT:    <"..tostring(self:GetCount())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.SpawnMC:     <"..tostring(self:GetSpawnMC())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.BndErrMod:   <"..tostring(self:GetBoundErrorMode())..">"..sDelim
-         sDump = sDump..sSpace.."  HD.EntAnchor:   {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
-         sDump = sDump..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
-         sDump = sDump..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
-         sDump = sDump..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
+  local sDump = ""
+       sDump = sDump..tostring(anyMessage)..sDelim
+       sDump = sDump..sSpace.."Dumping player keys:"..sDelim
+       sDump = sDump..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
+       sDump = sDump..sSpace.."  IN.USE:         <"..tostring(plyKeys["USE"])..">"..sDelim
+       sDump = sDump..sSpace.."  IN.DUCK:        <"..tostring(plyKeys["DUCK"])..">"..sDelim
+       sDump = sDump..sSpace.."  IN.SPEED:       <"..tostring(plyKeys["SPEED"])..">"..sDelim
+       sDump = sDump..sSpace.."  IN.RELOAD:      <"..tostring(plyKeys["RELOAD"])..">"..sDelim
+       sDump = sDump..sSpace.."  IN.SCORE:       <"..tostring(plyKeys["SCORE"])..">"..sDelim
+       sDump = sDump..sSpace.."Dumping trace data state:"..sDelim
+       sDump = sDump..sSpace.."  Trace:          <"..tostring(stTrace)..">"..sDelim
+       sDump = sDump..sSpace.."  TR.Hit:         <"..tostring(stTrace and stTrace.Hit or gsNoAV)..">"..sDelim
+       sDump = sDump..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
+       sDump = sDump..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
+       sDump = sDump..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Kept or gsNoID).."]"..sDelim
+       sDump = sDump..sSpace.."  TR.File:        <"..stringToFileName(tostring(trModel or gsNoAV))..">"..sDelim
+       sDump = sDump..sSpace.."Dumping console variables state:"..sDelim
+       sDump = sDump..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
+       sDump = sDump..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Kept or gsNoID).."]"..sDelim
+       sDump = sDump..sSpace.."  HD.File:        <"..stringToFileName(tostring(hdModel or gsNoAV))..">"..sDelim
+       sDump = sDump..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.StackCNT:    <"..tostring(self:GetCount())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.SpawnMC:     <"..tostring(self:GetSpawnMC())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.BndErrMod:   <"..tostring(self:GetBoundErrorMode())..">"..sDelim
+       sDump = sDump..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
+       sDump = sDump..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
+       sDump = sDump..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
+       sDump = sDump..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
+  if(hdEnt and hdEnt:IsValid()) then
+    hdEnt:Remove()
+  end
   return sDump
 end
 
@@ -394,6 +402,7 @@ function TOOL:LeftClick(stTrace)
   local mcspawn    = self:GetSpawnMC()
   local ydegsnp    = self:GetYawSnap()
   local gravity    = self:GetGravity()
+  local offsetup   = self:GetOffsetUp() 
   local nocollide  = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
@@ -419,7 +428,7 @@ function TOOL:LeftClick(stTrace)
         local vPos = asmlib.GetMCWorldOffset(ePiece)
         local vOBB = ePiece:OBBMins()
               vPos:Add(stTrace.HitPos)
-              vPos:Add(-vOBB[cvZ] * stTrace.HitNormal)
+              vPos:Add(offsetup * stTrace.HitNormal)
               vPos:Add(nextx * aAng:Forward())
               vPos:Add(nexty * aAng:Right())
               vPos:Add(nextz * aAng:Up())
@@ -428,22 +437,21 @@ function TOOL:LeftClick(stTrace)
         aAng:RotateAroundAxis(aAng:Forward(), nextrol)
         ePiece:SetAngles(aAng)
         if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod)) then
-          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid")) end
+          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid",ePiece)) end
       else -- Spawn on Active point
-        local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos,aAng,model,
+        local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
                           pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then
-          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): No spawn data")) end
+          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): No spawn data",ePiece)) end
         ePiece:SetAngles(stSpawn.SAng)
-        stSpawn.SPos:Add(asmlib.PointOffsetUp(ePiece,pointid) * stTrace.HitNormal)
         if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod)) then
-          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid")) end
+          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid",ePiece)) end
       end
-      asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical settings")) end
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical settings",ePiece)) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)) then
-        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical anchor")) end
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical anchor",ePiece)) end
+      asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.UndoAddEntityPly(ePiece)
       asmlib.UndoFinishPly(ply)
       return asmlib.StatusLog(true,"TOOL:LeftClick(World): Success hit world")
@@ -691,7 +699,7 @@ function TOOL:DrawHUD()
     local Xs = stSpawn.F:ToScreen()
     local Ys = stSpawn.R:ToScreen()
     local Zs = stSpawn.U:ToScreen()
-    local Pp = stSpawn.PPos:ToScreen()
+    local Pp = stSpawn.TPnt:ToScreen()
     local Tp = stTrace.HitPos:ToScreen()
     if(stSpawn.HRec.Offs[pnextid] and stSpawn.HRec.Kept > 1) then
       local vNext = Vector()
@@ -725,6 +733,7 @@ function TOOL:DrawHUD()
     goMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
     goMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
   elseif(stTrace.HitWorld) then
+    local offsetup = self:GetOffsetUp()
     local mcspawn  = self:GetSpawnMC()
     local ydegsnp  = self:GetYawSnap()
     local addinfo  = self:GetAdditionalInfo()
@@ -733,7 +742,7 @@ function TOOL:DrawHUD()
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then -- Relative to MC
       local vPos = Vector()
-            vPos:Set(stTrace.HitPos)
+            vPos:Set(stTrace.HitPos + offsetup * stTrace.HitNormal)
             vPos:Add(nextx * aAng:Forward())
             vPos:Add(nexty * aAng:Right())
             vPos:Add(nextz * aAng:Up())
@@ -767,9 +776,8 @@ function TOOL:DrawHUD()
       goMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local offsetup = self:GetClientNumber("offsetup")
-      local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos,aAng,model,
-                        pointid,nextx,nexty,nextz + offsetup,nextpic,nextyaw,nextrol)
+      local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
+                        pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       stSpawn.F:Mul(30)
       stSpawn.F:Add(stSpawn.OPos)
@@ -782,7 +790,7 @@ function TOOL:DrawHUD()
       local Xs = stSpawn.F:ToScreen()
       local Ys = stSpawn.R:ToScreen()
       local Zs = stSpawn.U:ToScreen()
-      local Pp = stSpawn.PPos:ToScreen()
+      local Pp = stSpawn.HPnt:ToScreen()
       local Tp = stTrace.HitPos:ToScreen()
       if(stSpawn.HRec.Kept > 1 and stSpawn.HRec.Offs[pnextid]) then
         local vNext = Vector()
@@ -863,7 +871,7 @@ function TOOL:DrawToolScreen(w, h)
     local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(stSpawn) then
-      trOID  = stSpawn.OID
+      trOID  = stSpawn.TID
       trRLen = asmlib.RoundValue(stSpawn.RLen,0.01)
     end
     if(trRec) then
@@ -1246,7 +1254,7 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local pointid, pnextid = self:GetPointID()
     local nextx, nexty, nextz = self:GetPosOffsets()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
+    local aAng  = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then
       oEnt:SetAngles(aAng)
       local vPos = asmlib.GetMCWorldOffset(oEnt)
@@ -1256,6 +1264,7 @@ function TOOL:UpdateGhost(oEnt, oPly)
             vPos:Add(nextx * aAng:Forward())
             vPos:Add(nexty * aAng:Right())
             vPos:Add(nextz * aAng:Up())
+      asmlib.ConCommandPly(oPly,"offsetup",-vOBB[cvZ])
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
@@ -1263,12 +1272,11 @@ function TOOL:UpdateGhost(oEnt, oPly)
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else
-      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos,aAng,model,
+      local pntUp = asmlib.PointOffsetUp(oEnt,pointid)
+      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + pntUp * stTrace.HitNormal,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        local pntUp = asmlib.PointOffsetUp(oEnt,pointid)
         asmlib.ConCommandPly(oPly,"offsetup",(pntUp or 0))
-        stSpawn.SPos:Add(pntUp * stTrace.HitNormal)
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
         oEnt:SetNoDraw(false)
