@@ -348,7 +348,7 @@ function InitAssembly(sName,sPurpose)
     OAng = Angle (),
     SPos = Vector(),
     SAng = Angle (),
-    RLen = 0
+    RLen = 0,
     --- Holder ---
     HRec = 0,
     HID  = 0,
