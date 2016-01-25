@@ -348,15 +348,19 @@ function InitAssembly(sName,sPurpose)
     OAng = Angle (),
     SPos = Vector(),
     SAng = Angle (),
+    RLen = 0
+    --- Holder ---
     HRec = 0,
     HID  = 0,
     HPnt = Vector(), -- P
     HPos = Vector(), -- O
     HAng = Angle (), -- A
+    --- Traced ---
     TRec = 0,
     TID  = 0,
     TPnt = Vector(), -- P
-    RLen = 0
+    TPos = Vector(), -- O
+    TAng = Angle ()  -- A
   })
   return StatusPrint(false,"InitAssembly: Success")
 end
@@ -3046,29 +3050,30 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   -- If the types are different and disabled
   if((not enIgnTyp or enIgnTyp == 0) and trRec.Type ~= hdRec.Type ) then
     return StatusLog(nil,"GetEntitySpawn: Types are different") end
-  local trAng = trEnt:GetAngles()
-  local trPos = trEnt:GetPos()
   -- We have the next Piece Offset
+  local vTemp = Vector()
   local stSpawn, trOffs = GetOpVar("STRUCT_SPAWN")
         stSpawn.TRec = trRec
         stSpawn.RLen = nActRadius
         stSpawn.HID  = ihdPointID
         stSpawn.TID  = 0
+        stSpawn.TPos:Set(trEnt:GetPos())
+        stSpawn.TAng:Set(trEnt:GetAngles())
   for ID = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
     local stPOA = LocatePOA(trRec,ID)
     if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
-    SetVector(stSpawn.HPos,stPOA.P)
-    stSpawn.HPos:Rotate(trAng)
-    stSpawn.HPos:Add(trPos) -- Use HPos as temporary replaced on spawn
-    stSpawn.HPos:Sub(trHitPos)
-    local trAcDis = stSpawn.HPos:Length()
+    SetVector(vTemp,stPOA.P)
+    vTemp:Rotate(stSpawn.TAng)
+    vTemp:Add(stSpawn.TPos)
+    vTemp:Sub(trHitPos)
+    local trAcDis = vTemp:Length()
     if(trAcDis < stSpawn.RLen) then
       trOffs       = stPOA
       stSpawn.TID  = ID
       stSpawn.RLen = trAcDis
-      stSpawn.TPnt:Set(stSpawn.HPos)
+      stSpawn.TPnt:Set(vTemp)
       stSpawn.TPnt:Add(trHitPos)
     end
   end
@@ -3077,8 +3082,8 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   -- Found the active point ID on trEnt. Initialize origins
   SetVector(stSpawn.OPos,trOffs.O)
   SetAngle (stSpawn.OAng,trOffs.A)
-  stSpawn.OPos:Rotate(trAng)
-  stSpawn.OPos:Add(trPos)
+  stSpawn.OPos:Rotate(stSpawn.TAng)
+  stSpawn.OPos:Add(stSpawn.TPos)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten and enFlatten ~= 0) then
