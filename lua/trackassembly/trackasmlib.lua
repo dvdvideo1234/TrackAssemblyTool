@@ -735,7 +735,6 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
             DirY = DirY / Dis
       local Pos = {x = xyS.x, y = xyS.y}
       local Mid = Dis / 2
-      local Pre = 100 -- Obviously big enough
       while(I < nI) do
         Sig = self:Enclose(Pos)
         if(Sig == 1) then
@@ -749,10 +748,10 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
             Estimate the distance and break
             earlier with 0.5 because of the
             mathFloor call afterwards.
-          ]]
-          Pre = mathAbs(mathAbs(Pos.x) + mathAbs(Pos.y) -
-                         mathAbs(xyE.x) - mathAbs(xyE.y))
-          if(Pre < 0.5) then break end
+          --]]
+          local Dxy = mathAbs(mathAbs(Pos.x) + mathAbs(Pos.y)
+                            - mathAbs(xyE.x) - mathAbs(xyE.y))
+          if(Dxy < 0.5) then break end
         end
         Mid = nK * Mid
         I = I + 1
@@ -786,12 +785,11 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
     self:SetColor(sColor)
     if(Method == "BIN" or Method == "ITR") then
       local Iter = self:AdaptLine(xyS,xyE,200,0.75,Method)
-      if(Iter > 0) then
+      if(Iter and Iter > 0) then
         surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
       end
     elseif(Method == "GHO") then
-      local nS = self:Enclose(xyS)
-      local nE = self:Enclose(xyE)
+      local nS, nE = self:Enclose(xyS), self:Enclose(xyE)
       if(nS == -1 or nE == -1) then return end
       surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
     else
@@ -897,15 +895,14 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
     if(IsEmptyString(sPattern)) then
       pnRec = AddLineListView(pnListView,frUsed,iNdex)
       if(not IsExistent(pnRec)) then
-        return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex))
-      end
+        return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex)) end
     else
       sData = tostring(frUsed[iNdex].Table[sField] or "")
       if(stringFind(sData,sPattern)) then
         pnRec = AddLineListView(pnListView,frUsed,iNdex)
         if(not IsExistent(pnRec)) then
-          return StatusLog(false,"UpdateListView: Failed to add pattern <"..sPattern.."> on #"..tostring(iNdex))
-        end
+          return StatusLog(false,"UpdateListView: Failed to add line <"
+                   ..sData.."> pattern <"..sPattern.."> on <"..sField.."> #"..tostring(iNdex)) end
       end
     end
     iNdex = iNdex + 1
@@ -3052,7 +3049,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     return StatusLog(nil,"GetEntitySpawn: Types are different") end
   -- We have the next Piece Offset
   local vTemp = Vector()
-  local stSpawn, trOffs = GetOpVar("STRUCT_SPAWN")
+  local stSpawn, trPOA = GetOpVar("STRUCT_SPAWN")
         stSpawn.TRec = trRec
         stSpawn.RLen = nActRadius
         stSpawn.HID  = ihdPointID
@@ -3070,18 +3067,18 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     vTemp:Sub(trHitPos)
     local trAcDis = vTemp:Length()
     if(trAcDis < stSpawn.RLen) then
-      trOffs       = stPOA
+      trPOA        = stPOA
       stSpawn.TID  = ID
       stSpawn.RLen = trAcDis
       stSpawn.TPnt:Set(vTemp)
       stSpawn.TPnt:Add(trHitPos)
     end
   end
-  if(not IsExistent(trOffs)) then
+  if(not IsExistent(trPOA)) then
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
   -- Found the active point ID on trEnt. Initialize origins
-  SetVector(stSpawn.OPos,trOffs.O)
-  SetAngle (stSpawn.OAng,trOffs.A)
+  SetVector(stSpawn.OPos,trPOA.O)
+  SetAngle (stSpawn.OAng,trPOA.A)
   stSpawn.OPos:Rotate(stSpawn.TAng)
   stSpawn.OPos:Add(stSpawn.TPos)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
