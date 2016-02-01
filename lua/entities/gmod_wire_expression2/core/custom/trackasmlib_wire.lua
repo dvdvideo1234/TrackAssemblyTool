@@ -89,64 +89,47 @@ end
 __e2setcost(120)
 e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA)
   if(not enFlag) then return {} end
-  local stRecord = asmlib.CacheQueryPiece(sModel)
-  if(not stRecord) then return {} end
-  if(not stRecord.Offs) then return {} end
-  local nOffset = tonumber(nOffset)
-  if(not nOffset) then return {} end
-  if(not stRecord.Offs[nOffset]) then return {} else stRecord = stRecord.Offs[nOffset] end
+  local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(sModel),nOffset)
+  if(not stPOA) then return {} end 
   local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
   local arResult = {}
   local C1, C2, C3, C4
-  if(sPOA == "P") then
-    C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "O") then
-    C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "A") then
-    C1, C2, C3 = asmlib.GetIndexes("A")
-  else
-    return {}
-  end
-  arResult[1] = stRecord[sPOA][C1]
-  arResult[2] = stRecord[sPOA][C2]
-  arResult[3] = stRecord[sPOA][C3]
+  if    (sPOA == "P") then C1, C2, C3 = asmlib.GetIndexes("V")
+  elseif(sPOA == "O") then C1, C2, C3 = asmlib.GetIndexes("V")
+  elseif(sPOA == "A") then C1, C2, C3 = asmlib.GetIndexes("A")
+  else return arResult end
+  arResult[1] = stPOA[sPOA][C1]
+  arResult[1] = stPOA[sPOA][C1]
+  arResult[2] = stPOA[sPOA][C2]
+  arResult[3] = stPOA[sPOA][C3]
   C1, C2, C3, C4 = asmlib.GetIndexes("S")
-  arResult[4] = stRecord[sPOA][C1]
-  arResult[5] = stRecord[sPOA][C2]
-  arResult[6] = stRecord[sPOA][C3]
-  arResult[7] = stRecord[sPOA][C4] and 1 or 0
+  arResult[4] = stPOA[sPOA][C1]
+  arResult[5] = stPOA[sPOA][C2]
+  arResult[6] = stPOA[sPOA][C3]
+  arResult[7] = stPOA[sPOA][C4] and 1 or 0
   return arResult
 end
 
 __e2setcost(120)
 e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local stRecord = asmlib.CacheQueryPiece(this:GetModel())
-  if(not stRecord) then return {} end
-  if(not stRecord.Offs) then return {} end
-  local nOffset = tonumber(nOffset)
-  if(not nOffset) then return {} end
-  if(not stRecord.Offs[nOffset]) then return {} else stRecord = stRecord.Offs[nOffset] end
+  local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(this:GetModel()),nOffset)
+  if(not stPOA) then return {} end  
   local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
   local arResult = {}
   local C1, C2, C3, C4
-  if(sPOA == "P") then
-    C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "O") then
-    C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "A") then
-    C1, C2, C3 = asmlib.GetIndexes("A")
-  else
-    return {}
-  end
-  arResult[1] = stRecord[sPOA][C1]
-  arResult[2] = stRecord[sPOA][C2]
-  arResult[3] = stRecord[sPOA][C3]
+  if    (sPOA == "P") then C1, C2, C3 = asmlib.GetIndexes("V")
+  elseif(sPOA == "O") then C1, C2, C3 = asmlib.GetIndexes("V")
+  elseif(sPOA == "A") then C1, C2, C3 = asmlib.GetIndexes("A")
+  else return arResult end
+  arResult[1] = stPOA[sPOA][C1]
+  arResult[2] = stPOA[sPOA][C2]
+  arResult[3] = stPOA[sPOA][C3]
   C1, C2, C3, C4 = asmlib.GetIndexes("S")
-  arResult[4] = stRecord[sPOA][C1]
-  arResult[5] = stRecord[sPOA][C2]
-  arResult[6] = stRecord[sPOA][C3]
-  arResult[7] = stRecord[sPOA][C4] and 1 or 0
+  arResult[4] = stPOA[sPOA][C1]
+  arResult[5] = stPOA[sPOA][C2]
+  arResult[6] = stPOA[sPOA][C3]
+  arResult[7] = stPOA[sPOA][C4] and 1 or 0
   return arResult
 end
 
