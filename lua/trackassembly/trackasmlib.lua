@@ -2638,48 +2638,6 @@ function CacheQueryProperty(sType)
   end
 end
 
-function CacheCorePoint(oRec,sName,oEnt)
-  if(not IsString(sName)) then
-    return StatusLog(nil,"CacheCorePoint: Offset {"..type(sName).."}<"..tostring(sName).."> not string") end
-  if(IsEmptyString(sName)) then
-    return StatusLog(nil,"CacheCorePoint: Name empty sting") end
-  if(not IsExistent(oRec.Core)) then oRec.Core = {} end
-  local vCore = oRec.Core[sName]
-  if(IsExistent(vCore)) then
-    return vCore
-  else
-    if((sName ~= "CL") and (sName ~= "SV") and (sName ~= "P") and (sName ~= "O")) then
-      return StatusLog(nil,"CacheCorePoint: Name invalid <"..sName..">") end
-    oRec.Core[sName] = Vector()
-    local vCore = oRec.Core[sName]
-    if(CLIENT and (oEnt and oEnt:IsValid()) and (sName == "CL")) then
-      local vMin, vMax = oEnt:GetRenderBounds()
-      vCore:Set(vMax); vCore:Add(vMin); vCore:Mul(0.5)
-      return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
-    elseif(SERVER and (oEnt and oEnt:IsValid()) and (sName == "SV")) then
-      vCore:Set(oEnt:OBBCenter())
-      return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
-    elseif((sName == "P") or (sName == "O")) then
-      local iInd = 1
-      while(iInd <= oRec.Kept) do
-        local stPOA = LocatePOA(oRec,iInd)
-        if(not IsExistent(stPOA)) then -- Does the registered point really persists
-          return StatusLog(nil,"CacheCorePoint: Point #"..tostring(iInd).." index mismatch") end
-        local arOff = stPOA[sName]
-        if(not IsExistent(arOff)) then
-          return StatusLog(nil,"CacheCorePoint: Offset <"..sName.."> not found for point #"
-                   ..tostring(iInd).." and slot <"..tostring(oRec.Slot)..">") end
-        AddVectorXYZ(vCore,arOff[cvX],arOff[cvY],arOff[cvZ])
-        iInd = iInd + 1
-      end
-      if(iInd > 1) then
-        vCore:Mul(1/(iInd-1))
-      end
-      return StatusLog(vCore,"CacheCorePoint: Cached <"..sName.."> = ["..tostring(vCore).."]")
-    else return StatusLog(nil,"CacheCorePoint: Wrong offset name <"..sName..">") end
-  end
-end
-
 ---------------------- AssemblyLib EXPORT --------------------------------
 
 local function GetFieldsName(defTable,sDelim)

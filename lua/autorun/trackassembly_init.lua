@@ -27,7 +27,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.190")
+asmlib.SetOpVar("TOOL_VERSION","5.191")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -169,19 +169,19 @@ if(CLIENT) then
       pnModelPanel:SetVisible(true)
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
-        local uiRec = asmlib.CacheQueryPiece(oEnt:GetModel())
+        local uiMod = oEnt:GetModel()
+        local uiRec = asmlib.CacheQueryPiece(uiMod)
         if(not asmlib.IsExistent(uiRec)) then return end
-        local uiPos = asmlib.CacheCorePoint(uiRec,"CL",oEnt)
-        if(not asmlib.IsExistent(uiPos)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ModelPanel.LayoutEntity: Core point invalid") end
+        local vMin, vMax = uiEnt:GetRenderBounds()
+        local uiCen = Vector(); uiPos:Set(vMax); uiPos:Add(vMin); uiPos:Mul(0.5)
         local uiAng = Angle(0, RealTime() * 10, 0)
-        local uiRot = Vector()
-              uiRot:Set(uiPos)
-              uiRot:Rotate(uiAng)
-              uiRot:Mul(-1)
-              uiRot:Add(uiPos)
-        oEnt:SetAngles(uiAng)
-        oEnt:SetPos(uiRot)
+        local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiAng,uiMod,1)
+              stSpawn.SPos:Set(uiCen)
+              stSpawn.SPos:Rotate(uiAng)
+              stSpawn.SPos:Mul(-1)
+              stSpawn.SPos:Add(uiCen)
+        oEnt:SetAngles(stSpawn.SAng)
+        oEnt:SetPos(stSpawn.SPos)
       end      
       ------------ Button --------------
       pnButton:SetParent(pnFrame)
@@ -226,16 +226,14 @@ if(CLIENT) then
         if(not (uiEnt and uiEnt:IsValid())) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Model panel entity invalid")
         end
-        local uiCen = asmlib.CacheCorePoint(uiRec,"CL",uiEnt)
-        if(not asmlib.IsExistent(uiCen)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Core point non-applicable") end       
+        local vMin, vMax = uiEnt:GetRenderBounds()
+        local uiCen = Vector(); uiCen:Set(vMax); uiCen:Add(vMin); uiCen:Mul(0.5)
         local uiEye = uiEnt:LocalToWorld(uiCen)
-        local uiCam, uiMax = uiEnt:GetRenderBounds()
-        uiMax:Sub(uiCam)
-        local uiLen = uiMax:Length() / 2
-        asmlib.SetVectorXYZ(uiCam, 0.7*uiLen, 0, 0.3*uiLen)
+        vMax:Sub(vMin)
+        local uiLen = vMax:Length() / 2
+        asmlib.SetVectorXYZ(vMin, 0.7*uiLen, 0, 0.3*uiLen)
         pnModelPanel:SetLookAt(uiEye)
-        pnModelPanel:SetCamPos(2 * uiCam + uiEye)
+        pnModelPanel:SetCamPos(2 * vMin + uiEye)
         asmlib.ConCommandPly(oPly, "model" ,uiMod)
         asmlib.ConCommandPly(oPly,"pointid",  1  )
         asmlib.ConCommandPly(oPly,"pnextid",  2  )
