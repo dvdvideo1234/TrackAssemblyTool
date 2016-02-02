@@ -4,5 +4,6 @@ D - Discontinued
 N - Not applicable
 ? - Not yet tested
 
-To test if the models in the Model panel will be displayed
-relative to the angle of the first point inserted
+Test the piece layout to use calculated angle rotating around uiCen
+Test the ModelPanel entity pos/ang
+Test the bodygroups working correctly when StringToBGID() removed

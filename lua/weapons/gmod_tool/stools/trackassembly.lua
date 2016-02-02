@@ -661,7 +661,7 @@ function TOOL:DrawHUD()
   if(not goMonitor) then
     goMonitor = asmlib.MakeScreen(0,0,
                   surface.ScreenWidth(),
-                  surface.ScreenHeight(),conPalette,"GHO")
+                  surface.ScreenHeight(),conPalette)
     if(not goMonitor) then
       return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen")
     end
@@ -829,7 +829,7 @@ end
 function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
   if(not goToolScr) then
-    goToolScr = asmlib.MakeScreen(0,0,w,h,conPalette,"GHO")
+    goToolScr = asmlib.MakeScreen(0,0,w,h,conPalette)
     if(not goToolScr) then
       return asmlib.StatusPrint(nil,"DrawToolScreen: Invalid screen")
     end
@@ -987,7 +987,7 @@ function TOOL.BuildCPanel(CPanel)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end
     else
-      asmlib.PrintInstance("Model <"..Mod.."> is not available in your system .. SKIPPING !")
+      asmlib.PrintInstance("Piece <"..Mod.."> from extension <"..Typ.."> not available .. SKIPPING !")
     end
     Cnt = Cnt + 1
   end

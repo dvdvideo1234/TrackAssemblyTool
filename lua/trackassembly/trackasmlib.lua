@@ -259,21 +259,22 @@ function PrintInstance(anyStuff)
 end
 
 function LogInstance(anyStuff)
+  if(GetOpVar("LOG_MAXLOGS") <= 0) then return end
   local anyStuff = tostring(anyStuff)
-  local logSkip  = GetOpVar("LOG_SKIP")
-  if(logSkip and logSkip[1]) then
+  local logStats = GetOpVar("LOG_SKIP")
+  if(logStats and logStats[1]) then
     local iNdex = 1
-    while(logSkip[iNdex]) do
-      if(stringFind(anyStuff,tostring(logSkip[iNdex]))) then return end
+    while(logStats[iNdex]) do
+      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then return end
       iNdex = iNdex + 1
     end
-  end -- Should the current log be skipped
-  local logOnly  = GetOpVar("LOG_ONLY")
-  if(logOnly and logOnly[1]) then
+  end -- Should the current log being skipped
+  logStats = GetOpVar("LOG_ONLY")
+  if(logStats and logStats[1]) then
     local iNdex = 1
     local logMe = false
-    while(logOnly[iNdex]) do
-      if(stringFind(anyStuff,tostring(logOnly[iNdex]))) then
+    while(logStats[iNdex]) do
+      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then
         logMe = true
       end
       iNdex = iNdex + 1
@@ -298,6 +299,43 @@ end
 function StatusLog(anyStatus,sError)
   LogInstance(sError)
   return anyStatus
+end
+
+function Print(tT,sS)
+  if(not IsExistent(tT)) then
+    return StatusLog(nil,"Print: {nil, name="..tostring(sS or "\"Data\"").."}") end
+  local S = type(sS)
+  local T = type(tT)
+  local Key = ""
+  if    (S == "string") then S = sS
+  elseif(S == "number") then S = tostring(sS)
+  else                       S = "Data" end
+  if(T ~= "table") then
+    LogInstance("{"..T.."}["..tostring(sS or "N/A").."] = "..tostring(tT))
+    return
+  end
+  T = tT
+  if(next(T) == nil) then
+    LogInstance(S.." = {}")
+    return
+  end
+  LogInstance(S)
+  for k,v in pairs(T) do
+    if(type(k) == "string") then
+      Key = S.."[\""..k.."\"]"
+    else
+      Key = S.."["..tostring(k).."]"
+    end
+    if(type(v) ~= "table") then
+      if(type(v) == "string") then
+        LogInstance(Key.." = \""..v.."\"")
+      else
+        LogInstance(Key.." = "..tostring(v))
+      end
+    else
+      Print(v,Key)
+    end
+  end
 end
 
 ----------------- AssemblyLib INITAIALIZATION -----------------
@@ -423,37 +461,24 @@ end
 --- Vector
 
 function ToVector(vBase)
-  return Vector((vBase[cvX] or 0),
-                (vBase[cvY] or 0),
-                (vBase[cvZ] or 0))
+  return Vector((vBase[cvX] or 0), (vBase[cvY] or 0), (vBase[cvZ] or 0))
 end
 
 function ExpVector(vBase)
-  return (vBase[cvX] or 0),
-         (vBase[cvY] or 0),
-         (vBase[cvZ] or 0)
+  return (vBase[cvX] or 0), (vBase[cvY] or 0), (vBase[cvZ] or 0)
 end
 
 function GetLengthVector(vdbBase)
-  local X = (vdbBase[cvX] or 0)
-        X = X * X
-  local Y = (vdbBase[cvY] or 0)
-        Y = Y * Y
-  local Z = (vdbBase[cvZ] or 0)
-        Z = Z * Z
+  local X = (vdbBase[cvX] or 0); X = X * X
+  local Y = (vdbBase[cvY] or 0); Y = Y * Y
+  local Z = (vdbBase[cvZ] or 0); Z = Z * Z
   return mathSqrt(X+Y+Z)
 end
 
 function RoundVector(vBase,nRound)
-  local X = vBase[cvX] or 0
-        X = RoundValue(X,nRound or 0.1)
-  local Y = vBase[cvY] or 0
-        Y = RoundValue(Y,nRound or 0.1)
-  local Z = vBase[cvZ] or 0
-        Z = RoundValue(Z,nRound or 0.1)
-  vBase[cvX] = X
-  vBase[cvY] = Y
-  vBase[cvZ] = Z
+  local X = vBase[cvX] or 0; X = RoundValue(X,nRound or 0.1); vBase[cvX] = X
+  local Y = vBase[cvY] or 0; Y = RoundValue(Y,nRound or 0.1); vBase[cvY] = Y
+  local Z = vBase[cvZ] or 0; Z = RoundValue(Z,nRound or 0.1); vBase[cvZ] = Z
 end
 
 function AddVector(vBase, vdbAdd)
@@ -499,35 +524,22 @@ function SetVectorXYZ(vVec, nX, nY, nZ)
 end
 
 function DecomposeByAngle(V,A)
-  if(not ( V and A ) ) then
-    return Vector()
-  end
-  return Vector(V:DotProduct(A:Forward()),
-                V:DotProduct(A:Right()),
-                V:DotProduct(A:Up()))
+  if(not ( V and A ) ) then return Vector() end
+  return Vector(V:DotProduct(A:Forward()), V:DotProduct(A:Right()), V:DotProduct(A:Up()))
 end
 
 ---------- Library OOP -----------------
 
 function MakeContainer(sInfo,sDefKey)
-  local Info = tostring(sInfo or "Store Container")
   local Curs = 0
   local Data = {}
-  local Sel  = ""
-  local Ins  = ""
-  local Del  = ""
-  local Met  = ""
+  local Sel, Ins, Del, Met = "", "", "", ""
+  local Info = tostring(sInfo or "Store Container")
   local Key  = sDefKey or "(!_+*#-$@DEFKEY@$-#*+_!)"
   local self = {}
-  function self:GetInfo()
-    return Info
-  end
-  function self:GetSize()
-    return Curs
-  end
-  function self:GetData()
-    return Data
-  end
+  function self:GetInfo() return Info end
+  function self:GetSize() return Curs end
+  function self:GetData() return Data end
   function self:Insert(nsKey,anyValue)
     Ins = nsKey or Key
     Met = "I"
@@ -561,16 +573,14 @@ function MakeContainer(sInfo,sDefKey)
   return self
 end
 
-function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
+function MakeScreen(sW,sH,eW,eH,conPalette)
   if(SERVER) then return nil end
-  local sW = sW or 0
-  local sH = sH or 0
-  local eW = eW or 0
-  local eH = eH or 0
+  local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
+  local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(eW <= 0 or eH <= 0) then return nil end
   if(type(conPalette) ~= "table") then return nil end
-  local Method = tostring(sMeth or "")
-  local White = Color(255,255,255,255)
+  local White  = Color(255,255,255,255)
+  local Palette
   local ColorKey
   local Text = {}
         Text.Font = "Trebuchet18"
@@ -580,7 +590,6 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
         Text.ScrH  = 0
         Text.LastW = 0
         Text.LastH = 0
-  local Palette
   if(getmetatable(conPalette) == GetOpVar("TYPEMT_CONTAINER")) then
     Palette = conPalette
   end
@@ -588,9 +597,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
         Texture.Path = "vgui/white"
         Texture.ID   = surfaceGetTextureID(Texture.Path)
   local self = {}
-  function self:GetSize()
-    return (eW-sW), (eH-sH)
-  end
+  function self:GetSize() return (eW-sW), (eH-sH) end
   function self:GetCenter(nX,nY)
     local w, h = self:GetSize()
     w = (w / 2) + (tonumber(nX) or 0)
@@ -617,9 +624,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
     Texture.Path = sTexture
     Texture.ID   = surfaceGetTextureID(Texture.Path)
   end
-  function self:GetTexture()
-    return Texture.ID, Texture.Path
-  end
+  function self:GetTexture() return Texture.ID, Texture.Path end
   function self:DrawBackGround(sColor)
     self:SetColor(sColor)
     surfaceSetTexture(Texture.ID)
@@ -699,102 +704,12 @@ function MakeScreen(sW,sH,eW,eH,conPalette,sMeth)
     if(xyPnt.y > eH) then return -1 end
     return 1
   end
-  function self:AdaptLine(xyS,xyE,nI,nK,sMeth)
-    local I = 0
-    if(not (xyS and xyE)) then return I end
-    if(not (xyS.x and xyS.y and xyE.x and xyE.y)) then return I end
-    local nK = nK or 0.75
-    local nI = nI or 50
-          nI = mathFloor(nI)
-    if(sW >= eW) then return I end
-    if(sH >= eH) then return I end
-    if(nI < 1) then return I end
-    if(not (nK > I and nK < 1)) then return I end
-    local SigS = self:Enclose(xyS)
-    local SigE = self:Enclose(xyE)
-    if(SigS == 1 and SigE == 1) then
-      return (I+1)
-    elseif(SigS == -1 and SigE == -1) then
-      return I
-    elseif(SigS == -1 and SigE == 1) then
-      xyS.x, xyE.x = xyE.x, xyS.x
-      xyS.y, xyE.y = xyE.y, xyS.y
-    end --- From here below are the methods
-    if(sMeth == "BIN") then
-      local DisX = xyE.x - xyS.x
-      local DirX = DisX
-            DisX = DisX * DisX
-      local DisY = xyE.y - xyS.y
-      local DirY = DisY
-            DisY = DisY * DisY
-      local Dis = mathSqrt(DisX + DisY)
-      if(Dis == 0) then
-        return I
-      end
-            DirX = DirX / Dis
-            DirY = DirY / Dis
-      local Pos = {x = xyS.x, y = xyS.y}
-      local Mid = Dis / 2
-      while(I < nI) do
-        Sig = self:Enclose(Pos)
-        if(Sig == 1) then
-          xyE.x = Pos.x
-          xyE.y = Pos.y
-        end
-        Pos.x = Pos.x + DirX * Sig * Mid
-        Pos.y = Pos.y + DirY * Sig * Mid
-        if(Sig == -1) then
-          --[[
-            Estimate the distance and break
-            earlier with 0.5 because of the
-            mathFloor call afterwards.
-          --]]
-          local Dxy = mathAbs(mathAbs(Pos.x) + mathAbs(Pos.y)
-                            - mathAbs(xyE.x) - mathAbs(xyE.y))
-          if(Dxy < 0.5) then break end
-        end
-        Mid = nK * Mid
-        I = I + 1
-      end
-    elseif(sMeth == "ITR") then
-      local V = {x = xyE.x-xyS.x, y = xyE.y-xyS.y}
-      local N = mathSqrt(V.x*V.x + V.y*V.y)
-      local Z = (N * (1-nK))
-      if(Z == 0) then return I end
-      local D = {x = V.x/Z , y = V.y/Z}
-            V.x = xyS.x
-            V.y = xyS.y
-      local Sig = self:Enclose(V)
-      while(Sig == 1) do
-        xyE.x, xyE.y = V.x, V.y
-        V.x = V.x + D.x
-        V.y = V.y + D.y
-        Sig = self:Enclose(V)
-        I = I + 1
-      end
-    else
-      return StatusLog(0,"Screen:AdaptLine: Missed method "..tostring(sMeth))
-    end
-    xyS.x, xyS.y = mathFloor(xyS.x), mathFloor(xyS.y)
-    xyE.x, xyE.y = mathFloor(xyE.x), mathFloor(xyE.y)
-    return I
-  end
   function self:DrawLine(xyS,xyE,sColor)
     if(not (xyS and xyE)) then return end
     if(not (xyS.x and xyS.y and xyE.x and xyE.y)) then return end
     self:SetColor(sColor)
-    if(Method == "BIN" or Method == "ITR") then
-      local Iter = self:AdaptLine(xyS,xyE,200,0.75,Method)
-      if(Iter and Iter > 0) then
-        surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
-      end
-    elseif(Method == "GHO") then
-      local nS, nE = self:Enclose(xyS), self:Enclose(xyE)
-      if(nS == -1 or nE == -1) then return end
-      surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
-    else
-      LogInstance("Screen:DrawLine: Missed method <"..Method..">")
-    end
+    if(self:Enclose(xyS) == -1 or self:Enclose(xyE) == -1) then return end
+    surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
   return self
@@ -1227,21 +1142,10 @@ local function TransferPOA(stOffset,sMode)
   if(not IsString(sMode)) then
     return StatusLog(nil,"TransferPOA: Mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
-  if(sMode == "V") then
-    stOffset[cvX] = arPOA[1]
-    stOffset[cvY] = arPOA[2]
-    stOffset[cvZ] = arPOA[3]
-  elseif(sMode == "A") then
-    stOffset[caP] = arPOA[1]
-    stOffset[caY] = arPOA[2]
-    stOffset[caR] = arPOA[3]
-  else
-    return StatusLog(nil,"TransferPOA: Missed mode "..sMode)
-  end
-  stOffset[csA] = arPOA[4]
-  stOffset[csB] = arPOA[5]
-  stOffset[csC] = arPOA[6]
-  stOffset[csD] = arPOA[7]
+  if    (sMode == "V") then stOffset[cvX] = arPOA[1]; stOffset[cvY] = arPOA[2]; stOffset[cvZ] = arPOA[3]
+  elseif(sMode == "A") then stOffset[caP] = arPOA[1]; stOffset[caY] = arPOA[2]; stOffset[caR] = arPOA[3]
+  else return StatusLog(nil,"TransferPOA: Missed mode "..sMode) end
+  stOffset[csA] = arPOA[4]; stOffset[csB] = arPOA[5]; stOffset[csC] = arPOA[6]; stOffset[csD] = arPOA[7]
   return arPOA
 end
 
@@ -1333,59 +1237,28 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   return tOffs
 end
 
-local function Qsort(Data,Lo,Hi)
-  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
-    return StatusLog(nil,"Qsort: Data dimensions mismatch") end
-  local Mid = mathRandom(Hi-(Lo-1))+Lo-1
-  Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
-  local Vmid = Data[Lo].Val
-        Mid  = Lo
-  local Cnt  = Lo + 1
-  while(Cnt <= Hi)do
-    if(Data[Cnt].Val < Vmid) then
-      Mid = Mid + 1
-      Data[Mid], Data[Cnt] = Data[Cnt], Data[Mid]
-    end
-    Cnt = Cnt + 1
-  end
-  Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
-  Qsort(Data,Lo,Mid-1)
-  Qsort(Data,Mid+1,Hi)
-end
+local function Sort(tTable,tKeys,tFields)
 
-local function Ssort(Data,Lo,Hi)
-  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
-    return StatusLog(nil,"Ssort: Data dimensions mismatch") end
-  local Ind = 1
-  local Sel
-  while(Data[Ind]) do
-    Sel = Ind + 1
-    while(Data[Sel]) do
-      if(Data[Sel].Val < Data[Ind].Val) then
-        Data[Ind], Data[Sel] = Data[Sel], Data[Ind]
+  local function Qsort(Data,Lo,Hi)
+    if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
+      return StatusLog(nil,"Qsort: Data dimensions mismatch") end
+    local Mid = mathRandom(Hi-(Lo-1))+Lo-1
+    Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
+    local Vmid = Data[Lo].Val
+          Mid  = Lo
+    local Cnt  = Lo + 1
+    while(Cnt <= Hi)do
+      if(Data[Cnt].Val < Vmid) then
+        Mid = Mid + 1
+        Data[Mid], Data[Cnt] = Data[Cnt], Data[Mid]
       end
-      Sel = Sel + 1
+      Cnt = Cnt + 1
     end
-    Ind = Ind + 1
+    Data[Lo], Data[Mid] = Data[Mid], Data[Lo]
+    Qsort(Data,Lo,Mid-1)
+    Qsort(Data,Mid+1,Hi)
   end
-end
 
-local function Bsort(Data,Lo,Hi)
-  if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
-    return StatusLog(nil,"Bsort: Data dimensions mismatch") end
-  local Ind, End = 1, false
-  while(not End) do
-    End = true
-    for Ind = Lo, (Hi-1), 1 do
-      if(Data[Ind].Val > Data[Ind+1].Val) then
-        End = false
-        Data[Ind], Data[Ind+1] = Data[Ind+1], Data[Ind]
-      end
-    end
-  end
-end
-
-function Sort(tTable,tKeys,tFields,sMethod)
   local Match = {}
   local tKeys = tKeys or {}
   local tFields = tFields or {}
@@ -1420,17 +1293,7 @@ function Sort(tTable,tKeys,tFields,sMethod)
       Match[Cnt].Val = Val
     end
     Cnt = Cnt + 1
-  end
-  local sMethod = tostring(sMethod or "QIK")
-  if(sMethod == "QIK") then
-    Qsort(Match,1,Cnt-1)
-  elseif(sMethod == "SEL") then
-    Ssort(Match,1,Cnt-1)
-  elseif(sMethod == "BBL") then
-    Bsort(Match,1,Cnt-1)
-  else
-    return StatusLog(nil,"Sort: Method <"..sMethod.."> not found")
-  end
+  end Qsort(Match,1,Cnt-1)
   return Match
 end
 
@@ -1454,88 +1317,6 @@ function DefaultString(sBase, sDefault)
   end
   if(IsString(sDefault)) then return sDefault end
   return ""
-end
-
-function PadString(sStr,sPad,ivCnt)
-  if(not IsString(sStr)) then
-    return StatusLog(""  ,"PadString: String {"..type(sStr).."}<"..tostring(sStr).."> not string") end
-  if(not IsString(sPad)) then
-    return StatusLog(sStr,"PadString: Pad {"..type(sPad).."}<"..tostring(sPad).."> not string") end
-  local iLen = stringLen(sStr) -- Not used just for error handling
-  if(iLen == 0) then return StatusLog(sStr,"PadString: Pad too short") end
-  local iCnt = tonumber(ivCnt)
-  if(not IsExistent(iCnt)) then
-    return StatusLog(sStr,"PadString: Count NAN {"
-             ..type(ivCnt).."}<"..tostring(ivCnt)..">") end
-  local iDif = (mathAbs(iCnt) - iLen)
-  if(iDif <= 0) then return StatusLog(sStr,"PadString: Padding Ignored") end
-  local sCh = stringSub(sPad,1,1)
-  local sPad = sCh
-  iDif = iDif - 1
-  while(iDif > 0) do
-    sPad = sPad..sCh
-    iDif = iDif - 1
-  end
-  if(iCnt > 0) then return (sStr..sPad) end
-  return (sPad..sStr)
-end
-
-function StringToBGID(sStr)
-  if(not IsExistent(sStr)) then
-    return StatusLog(nil, "StringToBGID: String missing") end
-  if(IsEmptyString(sStr)) then
-    return StatusLog(nil, "StringToBGID: Empty string") end
-  local Cnt  = 1
-  local Data = stringExplode(GetOpVar("OPSYM_SEPARATOR"),sStr)
-  while(Data[Cnt]) do
-    local Num = tonumber(Data[Cnt])
-    if(not IsExistent(Num)) then
-      return StatusLog(nil, "StringToBGID: Value NAN {"
-               ..type(Data[Cnt]).."}<"..tostring(Data[Cnt])..">") end
-    Data[Cnt] = mathFloor(Num)
-    Cnt = Cnt + 1
-  end
-  if(IsExistent(Data[1]))then return Data end
-  return StatusLog(nil, "StringToBGID: No data found")
-end
-
------------------ PRINTS ------------------------
-
-function Print(tT,sS)
-  if(not IsExistent(tT)) then
-    return StatusLog(nil,"Print: {nil, name="..tostring(sS or "\"Data\"").."}") end
-  local S = type(sS)
-  local T = type(tT)
-  local Key = ""
-  if    (S == "string") then S = sS
-  elseif(S == "number") then S = tostring(sS)
-  else                       S = "Data" end
-  if(T ~= "table") then
-    LogInstance("{"..T.."}["..tostring(sS or "N/A").."] = "..tostring(tT))
-    return
-  end
-  T = tT
-  if(next(T) == nil) then
-    LogInstance(S.." = {}")
-    return
-  end
-  LogInstance(S)
-  for k,v in pairs(T) do
-    if(type(k) == "string") then
-      Key = S.."[\""..k.."\"]"
-    else
-      Key = S.."["..tostring(k).."]"
-    end
-    if(type(v) ~= "table") then
-      if(type(v) == "string") then
-        LogInstance(Key.." = \""..v.."\"")
-      else
-        LogInstance(Key.." = "..tostring(v))
-      end
-    else
-      Print(v,Key)
-    end
-  end
 end
 
 ------------- VARIABLE INTERFACES --------------
@@ -3211,23 +2992,17 @@ end
 function AttachBodyGroups(ePiece,sBgrpIDs)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"AttachBodyGroups: Base entity invalid") end
-  local sBgrpIDs = sBgrpIDs or ""
-  if(not (sBgrpIDs and IsString(sBgrpIDs))) then
-    return StatusLog(false,"AttachBodyGroups: Expecting string argument") end
-  LogInstance("AttachBodyGroups: <"..sBgrpIDs..">")
-  local IDs = StringToBGID(sBgrpIDs)
-  if(not IsExistent(IDs)) then -- No IDs equals no attachments
-    return StatusLog(true,"AttachBodyGroups: Bodygroup ID not matched") end
+  local grpIDs = tostring(sBgrpIDs or "")
+  LogInstance("AttachBodyGroups: <"..grpIDs..">")
   local Cnt = 1
   local BGs = ePiece:GetBodyGroups()
-  local symSep = GetOpVar("OPSYM_SEPARATOR")
+  local IDs = stringExplode(GetOpVar("OPSYM_SEPARATOR"),grpIDs)
   while(BGs[Cnt] and IDs[Cnt]) do
-    local BG = BGs[Cnt]
-    local ID = IDs[Cnt]
-    local cntBG = ePiece:GetBodygroupCount(BG.id)
-    if(ID < 0 or ID > cntBG) then ID = 0 end
-    LogInstance("ePiece:SetBodygroup("..tostring(BG.id)..tostring(symSep..ID)..") ["..tostring(cntBG).."]")
-    ePiece:SetBodygroup(BG.id,ID)
+    local itrBG = BGs[Cnt]
+    local cntBG = ePiece:GetBodygroupCount(itrBG.id)
+    local itrID = mathClamp(mathFloor(tonumber(IDs[Cnt]) or 0),0,cntBG)
+    LogInstance("ePiece:SetBodygroup("..tostring(itrBG.id)..","..tostring(itrID)..") ["..tostring(cntBG).."]")
+    ePiece:SetBodygroup(itrBG.id,itrID)
     Cnt = Cnt + 1
   end
   return StatusLog(true,"AttachBodyGroups: Success")
