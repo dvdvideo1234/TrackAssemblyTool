@@ -224,26 +224,25 @@ end
 
 local function Log(anyStuff)
   local nMaxLogs = GetOpVar("LOG_MAXLOGS")
-  if(nMaxLogs > 0) then
-    local sLogFile = GetOpVar("LOG_LOGFILE")
-    local nCurLogs = GetOpVar("LOG_CURLOGS")
-    if(sLogFile ~= "") then
-      local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
-      fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff).."\n")
-      nCurLogs = nCurLogs + 1
-      if(nCurLogs > nMaxLogs) then
-        fileDelete(fName)
-        nCurLogs = 0
-      end
-      SetOpVar("LOG_CURLOGS",nCurLogs)
-    else
-      print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff))
-      nCurLogs = nCurLogs + 1
-      if(nCurLogs > nMaxLogs) then
-        nCurLogs = 0
-      end
-      SetOpVar("LOG_CURLOGS",nCurLogs)
+  if(nMaxLogs <= 0) then return end
+  local sLogFile = GetOpVar("LOG_LOGFILE")
+  local nCurLogs = GetOpVar("LOG_CURLOGS")
+  if(sLogFile ~= "") then
+    local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
+    fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff).."\n")
+    nCurLogs = nCurLogs + 1
+    if(nCurLogs > nMaxLogs) then
+      fileDelete(fName)
+      nCurLogs = 0
     end
+    SetOpVar("LOG_CURLOGS",nCurLogs)
+  else
+    print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff))
+    nCurLogs = nCurLogs + 1
+    if(nCurLogs > nMaxLogs) then
+      nCurLogs = 0
+    end
+    SetOpVar("LOG_CURLOGS",nCurLogs)
   end
 end
 
@@ -2992,11 +2991,11 @@ end
 function AttachBodyGroups(ePiece,sBgrpIDs)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"AttachBodyGroups: Base entity invalid") end
-  local grpIDs = tostring(sBgrpIDs or "")
-  LogInstance("AttachBodyGroups: <"..grpIDs..">")
+  local sBgrpIDs = tostring(sBgrpIDs or "")
+  LogInstance("AttachBodyGroups: <"..sBgrpIDs..">")
   local Cnt = 1
   local BGs = ePiece:GetBodyGroups()
-  local IDs = stringExplode(GetOpVar("OPSYM_SEPARATOR"),grpIDs)
+  local IDs = stringExplode(GetOpVar("OPSYM_SEPARATOR"),sBgrpIDs)
   while(BGs[Cnt] and IDs[Cnt]) do
     local itrBG = BGs[Cnt]
     local cntBG = ePiece:GetBodygroupCount(itrBG.id)
