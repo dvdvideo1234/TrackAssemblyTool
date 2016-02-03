@@ -2484,9 +2484,7 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
               Data[k] = stringSub(v,2,vLen-1)
             end
           end
-          if(bCommit) then
-            InsertRecord(sTable,Data)
-          end
+          if(bCommit) then InsertRecord(sTable,Data) end
         end
       end
       Line = ""
@@ -2998,9 +2996,9 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   local IDs = stringExplode(GetOpVar("OPSYM_SEPARATOR"),sBgrpIDs)
   while(BGs[Cnt] and IDs[Cnt]) do
     local itrBG = BGs[Cnt]
-    local cntBG = ePiece:GetBodygroupCount(itrBG.id)
-    local itrID = mathClamp(mathFloor(tonumber(IDs[Cnt]) or 0),0,cntBG)
-    LogInstance("ePiece:SetBodygroup("..tostring(itrBG.id)..","..tostring(itrID)..") ["..tostring(cntBG).."]")
+    local maxBG = ePiece:GetBodygroupCount(itrBG.id) - 1
+    local itrID = mathClamp(mathFloor(tonumber(IDs[Cnt]) or 0),0,maxBG)
+    LogInstance("ePiece:SetBodygroup("..tostring(itrBG.id)..","..tostring(itrID)..") ["..tostring(maxBG).."]")
     ePiece:SetBodygroup(itrBG.id,itrID)
     Cnt = Cnt + 1
   end

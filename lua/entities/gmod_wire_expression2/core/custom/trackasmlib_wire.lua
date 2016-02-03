@@ -90,7 +90,7 @@ __e2setcost(120)
 e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA)
   if(not enFlag) then return {} end
   local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(sModel),nOffset)
-  if(not stPOA) then return {} end 
+  if(not stPOA) then return {} end
   local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
   local arResult = {}
   local C1, C2, C3, C4
@@ -114,7 +114,7 @@ __e2setcost(120)
 e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
   if(not (this and this:IsValid() and enFlag)) then return {} end
   local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(this:GetModel()),nOffset)
-  if(not stPOA) then return {} end  
+  if(not stPOA) then return {} end
   local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
   local arResult = {}
   local C1, C2, C3, C4
