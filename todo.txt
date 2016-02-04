@@ -4,6 +4,4 @@ D - Discontinued
 N - Not applicable
 ? - Not yet tested
 
-Test the piece layout to use calculated angle rotating around uiCen
-Test the ModelPanel entity pos/ang
-Test the bodygroups working correctly when StringToBGID() removed
+Test if the caching CacheBoxLayout() will be preformed

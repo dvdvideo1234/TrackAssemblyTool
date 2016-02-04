@@ -10,7 +10,6 @@ local tostring             = tostring
 local Vector               = Vector
 local Angle                = Angle
 local IsValid              = IsValid
-local RealTime             = RealTime
 local bitBor               = bit and bit.bor
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
@@ -27,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.195")
+asmlib.SetOpVar("TOOL_VERSION","5.196")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -169,12 +168,15 @@ if(CLIENT) then
       pnModelPanel:SetVisible(true)
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
+        if(not (oEnt and oEnt:IsValid())) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Entity invalid") end
         local uiMod = oEnt:GetModel()
         local uiRec = asmlib.CacheQueryPiece(uiMod)
-        if(not asmlib.IsExistent(uiRec)) then return end
-        local vMin, vMax = oEnt:GetRenderBounds()
-        local uiAng = Angle(0, RealTime() * 40, 0)
-        local uiCen = Vector(); uiCen:Set(vMax); uiCen:Add(vMin); uiCen:Mul(0.5)
+        if(not asmlib.IsExistent(uiRec)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Record invalid") end
+        local uiCen, uiAng, uiCam, uiEye, uiLen = asmlib.CacheBoxLayout(oEnt,uiRec,40)
+        if(not asmlib.IsExistent(uiCen)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
         local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiAng,uiMod,1)
               stSpawn.SPos:Set(uiCen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
@@ -218,22 +220,17 @@ if(CLIENT) then
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
         local uiRec = asmlib.CacheQueryPiece(uiMod)
-        if(not asmlib.IsExistent(uiRec)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve #"..nIndex.." model <"..uiMod..">")
-        end -- Set the damn thing only if valid record is found
+        if(not asmlib.IsExistent(uiRec)) then -- Set the damn thing only if valid record is found
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve #"..nIndex.." model <"..uiMod..">") end
         pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
         if(not (uiEnt and uiEnt:IsValid())) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Model panel entity invalid")
-        end
-        local vMin, vMax = uiEnt:GetRenderBounds()
-        local uiCen = Vector(); uiCen:Set(vMax); uiCen:Add(vMin); uiCen:Mul(0.5)
-        local uiEye = uiEnt:LocalToWorld(uiCen)
-        vMax:Sub(vMin)
-        local uiLen = vMax:Length() / 2
-        asmlib.SetVectorXYZ(vMin, 0.7*uiLen, 0, 0.3*uiLen)
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Model panel entity invalid") end
+        local uiCen, uiAng, uiCam, uiEye, uiLen = asmlib.CacheBoxLayout(uiEnt,uiRec,0,1.5,0.6)
+        if(not asmlib.IsExistent(uiCen)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Box invalid") end
         pnModelPanel:SetLookAt(uiEye)
-        pnModelPanel:SetCamPos(2 * vMin + uiEye)
+        pnModelPanel:SetCamPos(uiCam)
         asmlib.ConCommandPly(oPly, "model" ,uiMod)
         asmlib.ConCommandPly(oPly,"pointid",  1  )
         asmlib.ConCommandPly(oPly,"pnextid",  2  )

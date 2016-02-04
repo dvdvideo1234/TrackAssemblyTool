@@ -2161,6 +2161,30 @@ local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
   return Place[Key]
 end
 
+function CacheBoxLayout(oEnt,oRec,nRot,nCamX,nCamZ)
+  if(not (oEnt and oEnt:IsValid())) then
+    return StatusLog(nil,"CacheBoxLayout: Entity invalid") end
+  if(not IsExistent(oRec)) then
+    return StatusLog(nil,"CacheBoxLayout: Piece record invalid") end
+  local Box = oRec.Layout
+  if(not IsExistent(Box)) then
+    local vMin, vMax
+    oRec.Layout = {}; Box = oRec.Layout
+    if    (CLIENT) then vMin, vMax = oEnt:GetRenderBounds()
+    elseif(SERVER) then vMin, vMax = oEnt:OBBCenter()
+    else return StatusLog(nil,"CacheBoxLayout: Wrong instance") end
+    Box.Ang = Angle()  -- Layout entity angle
+    Box.Cen = Vector() -- Layout entity centre
+    Box.Cen:Set(vMax); Box.Cen:Add(vMin); Box.Cen:Mul(0.5)
+    Box.Eye = oEnt:LocalToWorld(Box.Cen) -- Layout camera eye
+    Box.Len = ((vMax - vMin):Length() / 2) -- Layout border sphere radius
+    Box.Cam = Vector(); Box.Cam:Set(Box.Eye)  -- Layout camera position
+    AddVectorXYZ(Box.Cam,Box.Len*(tonumber(nCamX) or 0),0,Box.Len*(tonumber(nCamZ) or 0))
+  end
+  Box.Ang[caY] = (tonumber(nRot) or 0) * Time()
+  return Box.Cen, Box.Ang, Box.Cam, Box.Eye, Box.Len
+end
+
 -- Cashing the selected Piece Result
 function CacheQueryPiece(sModel)
   if(not IsExistent(sModel)) then
@@ -2183,8 +2207,7 @@ function CacheQueryPiece(sModel)
   local stPiece  = Cache[sModel]
   if(IsExistent(stPiece) and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
-      return TimerRestart(libCache,caInd,defTable,"CacheQueryPiece")
-    end
+      return TimerRestart(libCache,caInd,defTable,"CacheQueryPiece") end
     return nil
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
@@ -2996,9 +3019,9 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   local IDs = stringExplode(GetOpVar("OPSYM_SEPARATOR"),sBgrpIDs)
   while(BGs[Cnt] and IDs[Cnt]) do
     local itrBG = BGs[Cnt]
-    local maxBG = ePiece:GetBodygroupCount(itrBG.id) - 1
-    local itrID = mathClamp(mathFloor(tonumber(IDs[Cnt]) or 0),0,maxBG)
-    LogInstance("ePiece:SetBodygroup("..tostring(itrBG.id)..","..tostring(itrID)..") ["..tostring(maxBG).."]")
+    local maxID = (ePiece:GetBodygroupCount(itrBG.id) - 1)
+    local itrID = mathClamp(mathFloor(tonumber(IDs[Cnt]) or 0),0,maxID)
+    LogInstance("ePiece:SetBodygroup("..tostring(itrBG.id)..","..tostring(itrID)..") ["..tostring(maxID).."]")
     ePiece:SetBodygroup(itrBG.id,itrID)
     Cnt = Cnt + 1
   end
