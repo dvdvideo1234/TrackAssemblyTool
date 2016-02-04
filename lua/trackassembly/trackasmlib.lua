@@ -2180,6 +2180,7 @@ function CacheBoxLayout(oEnt,oRec,nRot,nCamX,nCamZ)
     Box.Len = ((vMax - vMin):Length() / 2) -- Layout border sphere radius
     Box.Cam = Vector(); Box.Cam:Set(Box.Eye)  -- Layout camera position
     AddVectorXYZ(Box.Cam,Box.Len*(tonumber(nCamX) or 0),0,Box.Len*(tonumber(nCamZ) or 0))
+    LogInstance("CacheBoxLayout: "..tostring(Box.Cen).." #"..tostring(Box.Len))
   end
   Box.Ang[caY] = (tonumber(nRot) or 0) * Time()
   return Box.Cen, Box.Ang, Box.Cam, Box.Eye, Box.Len
