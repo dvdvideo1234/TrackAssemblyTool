@@ -36,7 +36,7 @@ asmlib.SetOpVar("MAX_LINEAR",1000)
 asmlib.SetOpVar("MAX_ROTATION",360)
 asmlib.SetOpVar("LOG_ONLY",nil)
 asmlib.SetOpVar("LOG_SKIP",{"Qsort","ModelToName","GetEntitySpawn: Not hitting active point","CacheQueryPiece: Record not located"})
-asmlib.SetLogControl(0,"")
+asmlib.SetLogControl(10000,"")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
@@ -1500,7 +1500,7 @@ else
   asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_c90g1.mdl", "#", "#", 1, "", " 0,-52.001,7", ""})
   asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_c90g1.mdl", "#", "#", 2, "", "-1747.999,-1800,7", "0,-90,0"})
   asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_left_c225g1.mdl", "#", "#", 1, "", "0,-52.012,7", ""})
-  asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_left_c225g1.mdl", "#", "#", 1, "", "-668.901,-185.014,7", "0,-157.5,0"})
+  asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_left_c225g1.mdl", "#", "#", 2, "", "-668.901,-185.014,7", "0,-157.5,0"})
   asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_left_c45g1.mdl"  , "#", "#", 1, "", "0,-52.032,7", ""})
   asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_left_c45g1.mdl"  , "#", "#", 2, "", "-1235.977,-564.026,7", "0,-135,0"})
   asmlib.InsertRecord({"models/ron/m_strom/ii/gle_xxxg1/gle_inner_right_c225g1.mdl", "#", "#", 1, "", "0, 52.033,7", ""})
