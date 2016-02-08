@@ -72,6 +72,7 @@ local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVSIGN")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
+local gsVersion   = asmlib.GetOpVar("TOOL_VERSION")
 
 --- Render Base Colours
 local conPalette = asmlib.MakeContainer("Colours")
@@ -93,6 +94,10 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".name"     , gsNameInitF.." "..gsNamePerpF)
   languageAdd("tool."..gsToolNameL..".desc"     , "Assembles a track for vehicles to run on")
   languageAdd("tool."..gsToolNameL..".0"        , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
+  languageAdd("tool."..gsToolNameL..".tree"     , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
+  languageAdd("tool."..gsToolNameL..".phytype"  , "Select physical properties type of the ones listed here")
+  languageAdd("tool."..gsToolNameL..".phyname"  , "Select physical properties name to use when creating the track as this will affect the surface friction")
+  languageAdd("tool."..gsToolNameL..".bgskids"  , "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
   languageAdd("tool."..gsToolNameL..".mass"     , "How heavy the piece spawned will be")
   languageAdd("tool."..gsToolNameL..".activrad" , "Minimum distance needed to select an active point")
   languageAdd("tool."..gsToolNameL..".count"    , "Maximum number of pieces to create while stacking")
@@ -900,11 +905,10 @@ function TOOL:DrawToolScreen(w, h)
   if(trRLen) then
     goToolScr:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y")
   end
-  local sTime = tostring(osDate())
   goToolScr:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c")
   goToolScr:DrawCircle(xyPos, nRad, "m")
-  goToolScr:DrawText(stringSub(sTime,1,8),"w")
-  goToolScr:DrawText(stringSub(sTime,10,17))
+  goToolScr:DrawText(osDate(),"w")
+  goToolScr:DrawText("VerCL: "..gsVersion)
 end
 
 function TOOL.BuildCPanel(CPanel)
@@ -950,7 +954,7 @@ function TOOL.BuildCPanel(CPanel)
   local pTree = vgui.Create("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 250)
-        pTree:SetTooltip("Select a piece to start/continue your track with by expanding a type and clicking on a node")
+        pTree:SetTooltip(languageGetPhrase(""tool."..gsToolNameL..".tree""))
         pTree:SetIndentSize(0)
   local pFolders = {}
   local pNode, pItem
@@ -999,13 +1003,13 @@ function TOOL.BuildCPanel(CPanel)
   local pComboPhysType = vgui.Create("DComboBox")
         pComboPhysType:SetPos(2, CurY)
         pComboPhysType:SetTall(18)
-        pComboPhysType:SetTooltip("Select physical properties type of the ones listed here")
+        pComboPhysType:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phytype"))
         pComboPhysType:SetValue("<Select Surface Material TYPE>")
         CurY = CurY + pComboPhysType:GetTall() + 2
   local pComboPhysName = vgui.Create("DComboBox")
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
-        pComboPhysName:SetTooltip("Select physical properties name to use when creating the track as this will affect the surface friction")
+        pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
         pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local Property = asmlib.CacheQueryProperty()
@@ -1044,7 +1048,7 @@ function TOOL.BuildCPanel(CPanel)
   local pText = vgui.Create("DTextEntry")
         pText:SetPos(2, CurY)
         pText:SetTall(18)
-        pText:SetTooltip("Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
+        pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
         pText:SetText(asmlib.DefaultString(asmlib.GetCoVar("bgskids", "STR"),"Write selection code here. For example 1,0,0,2,1/3"))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then

@@ -1,4 +1,4 @@
-:: This is comment
+:: Hard reset the HEAD: git push origin +<NEW_HEAD_COMMIT_HASH>:master
 
 @echo off
 

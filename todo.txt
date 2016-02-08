@@ -4,4 +4,4 @@ D - Discontinued
 N - Not applicable
 ? - Not yet tested
 
-Test if the caching CacheBoxLayout() will be preformed
+Test the On-Hover panel informations for the tree, type, name and bgskID
