@@ -908,7 +908,6 @@ function TOOL:DrawToolScreen(w, h)
   goToolScr:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c")
   goToolScr:DrawCircle(xyPos, nRad, "m")
   goToolScr:DrawText(osDate(),"w")
-  goToolScr:DrawText("VerCL: "..gsVersion)
 end
 
 function TOOL.BuildCPanel(CPanel)
@@ -954,7 +953,7 @@ function TOOL.BuildCPanel(CPanel)
   local pTree = vgui.Create("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 250)
-        pTree:SetTooltip(languageGetPhrase(""tool."..gsToolNameL..".tree""))
+        pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
         pTree:SetIndentSize(0)
   local pFolders = {}
   local pNode, pItem
