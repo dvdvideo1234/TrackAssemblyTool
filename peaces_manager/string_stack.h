@@ -122,10 +122,3 @@ int string_stack::updateStack(struct string_stack *Other, FILE *File)
   }
   return SSTACK_SUCCESS;
 }
-
-
-
-
-
-
-

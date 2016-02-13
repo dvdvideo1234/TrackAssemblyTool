@@ -18,6 +18,4 @@ dir /a-d /b /s *.mdl > %ModelLst%
 
 call chewpath.exe %BasePath% %ModelLst% %DataBase% %AddonNam%
 
-
 timeout 300
-
