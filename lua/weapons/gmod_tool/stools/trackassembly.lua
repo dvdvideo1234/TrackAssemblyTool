@@ -1275,11 +1275,11 @@ function TOOL:UpdateGhost(oEnt, oPly)
       oEnt:SetPos(vPos)
       oEnt:SetNoDraw(false)
     else
-      local pntUp = asmlib.PointOffsetUp(oEnt,pointid)
+      local pntUp = (asmlib.PointOffsetUp(oEnt,pointid) or 0)
       local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + pntUp * stTrace.HitNormal,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        asmlib.ConCommandPly(oPly,"offsetup",(pntUp or 0))
+        asmlib.ConCommandPly(oPly,"offsetup",pntUp)
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
         oEnt:SetNoDraw(false)
