@@ -154,7 +154,6 @@ TOOL.ClientConVar = {
   [ "nextpic"   ] = "0",
   [ "nextyaw"   ] = "0",
   [ "nextrol"   ] = "0",
-  [ "addinfo"   ] = "0",
   [ "logsmax"   ] = "0",
   [ "logfile"   ] = "",
   [ "mcspawn"   ] = "0",
@@ -184,8 +183,8 @@ function TOOL:GetMass()
   return mathClamp(self:GetClientNumber("mass"),1,gnMaxMass)
 end
 
-function TOOL:GetAdditionalInfo()
-  return (self:GetClientNumber("addinfo") or 0)
+function TOOL:GetDeveloperMode()
+  return asmlib.GetCoVar("devmode" ,"INT")
 end
 
 function TOOL:GetPosOffsets()
@@ -691,7 +690,7 @@ function TOOL:DrawHUD()
     local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then return end
-    local addinfo = self:GetAdditionalInfo()
+    local devmode = self:GetDeveloperMode()
     stSpawn.F:Mul(30)
     stSpawn.F:Add(stSpawn.OPos)
     stSpawn.R:Mul(30)
@@ -727,7 +726,7 @@ function TOOL:DrawHUD()
     goMonitor:DrawCircle(Tp, RadScale / 2)
     goMonitor:DrawLine(Os,Ss,"m")
     goMonitor:DrawCircle(Ss, RadScale,"c")
-    if(addinfo == 0) then return end
+    if(devmode == 0) then return end
     local x,y = goMonitor:GetCenter(10,10)
     goMonitor:SetTextEdge(x,y)
     goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k")
@@ -741,7 +740,7 @@ function TOOL:DrawHUD()
     local offsetup = self:GetOffsetUp()
     local mcspawn  = self:GetSpawnMC()
     local ydegsnp  = self:GetYawSnap()
-    local addinfo  = self:GetAdditionalInfo()
+    local devmode  = self:GetDeveloperMode()
     local surfsnap = self:GetSurfaceSnap()
     local RadScale = mathClamp(1500 / plyd,1,100)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
@@ -774,7 +773,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Tp,"y")
       goMonitor:DrawCircle(Tp, RadScale / 2)
       goMonitor:DrawCircle(Os, RadScale)
-      if(addinfo == 0) then return end
+      if(devmode == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
       goMonitor:DrawText("Org POS: "..tostring(vPos),"k")
@@ -818,7 +817,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawCircle(Os, RadScale, "y")
       goMonitor:DrawLine(Os,Tp)
       goMonitor:DrawCircle(Tp, RadScale / 2)
-      if(addinfo == 0) then return end
+      if(devmode == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
       goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k")

@@ -3,5 +3,3 @@ X - Fail
 D - Discontinued
 N - Not applicable
 ? - Not yet tested
-
-Test the On-Hover panel informations for the tree, type, name and bgskID

@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.203")
+asmlib.SetOpVar("TOOL_VERSION","5.204")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -41,6 +41,7 @@ asmlib.SetLogControl(0,"")
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeCoVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeCoVar("enwiremod", "1"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
+asmlib.MakeCoVar("devmode"  , "0"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
 asmlib.MakeCoVar("maxstcnt" , "200", {1,200} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
   asmlib.MakeCoVar("bnderrmod", "LOG",   nil   ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
@@ -319,8 +320,10 @@ if(file.Exists(gsFullDSV.."PIECES.txt", "DATA")) then
 else
   asmlib.LogInstance(gsToolNameU..": DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
-  asmlib.DefaultType("Develop")
-  asmlib.InsertRecord({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", "#", "#", 1, "", "", ""})
+  if(asmlib.GetCoVar("devmode" ,"INT") ~= 0) then
+    asmlib.DefaultType("Develop")
+    asmlib.InsertRecord({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", "#", "#", 1, "", "", ""})
+  end
   asmlib.DefaultType("SligWolf's Rerailers")
   asmlib.InsertRecord({"models/props_phx/trains/sw_rerailer_1.mdl", "#", "Short Single", 1, "-190.55299377441,0,25.193000793457", "211.41400146484,0.014999999664724,-5.3949999809265", ""})
   asmlib.InsertRecord({"models/props_phx/trains/sw_rerailer_2.mdl", "#", "Middle Single", 1, "-190.55299377441,0,25.193000793457", "211.41400146484,0.014999999664724,-5.3949999809265", ""})
