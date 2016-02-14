@@ -486,7 +486,7 @@ function TOOL:LeftClick(stTrace)
     asmlib.ConCommandPly(ply,"model",trModel)
     asmlib.ConCommandPly(ply,"pointid",1)
     asmlib.ConCommandPly(ply,"pnextid",2)
-    return asmlib.StatusLog(true,"TOOL:LeftClick(Select): New piece success")
+    return asmlib.StatusLog(true,"TOOL:LeftClick(Select): New piece <"..trModel.."> success")
   end
 
   if(not hdRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Holder model not a piece")) end
@@ -1131,7 +1131,6 @@ function TOOL.BuildCPanel(CPanel)
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nextx"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
-  -- pItem:SetSlideY(1)
 
   pItem = CPanel:AddControl("Slider", {
             Label   = "Offset Y:",
@@ -1140,7 +1139,6 @@ function TOOL.BuildCPanel(CPanel)
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nexty"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
-  -- pItem:SetSlideY(1)
 
   pItem = CPanel:AddControl("Slider", {
             Label   = "Offset Z:",
@@ -1149,7 +1147,6 @@ function TOOL.BuildCPanel(CPanel)
             Max     =  gnMaxOffLin,
             Command = gsToolPrefL.."nextz"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-  -- pItem:SetSlideY(1)
 
   pItem = CPanel:AddControl("Checkbox", {
             Label   = "Weld",
