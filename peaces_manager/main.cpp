@@ -8,7 +8,7 @@
 
 using namespace std;
 
-char *strLower(char *strData)
+char *pathToGmod(char *strData)
 {
   int i = 0;
   char ch;
@@ -16,10 +16,7 @@ char *strLower(char *strData)
   {
     ch = strData[i];
     if  (ch == '\\'){ strData[i] = '/'; }
-    else
-    {
-      if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')){ strData[i] |= ' '; }
-    }
+    else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')){ strData[i] |= ' '; }
     i++;
   }
   return strData;
@@ -65,9 +62,27 @@ int main(int argc, char **argv)
   strcpy(fName,"addon-db.txt");
   FILE *AD = fopen(fName,"wt");
 
-  if(NULL == I || NULL == D || NULL == AD || NULL == DA)
+  if(NULL == I)
   {
     printf("Cannot open input file");
+    return 0;
+  }
+
+  if(NULL == D)
+  {
+    printf("Cannot open database file");
+    return 0;
+  }
+
+  if(NULL == DA)
+  {
+    printf("Cannot open db-addon");
+    return 0;
+  }
+
+  if(NULL == AD)
+  {
+    printf("Cannot open addon-db");
     return 0;
   }
 
@@ -78,7 +93,7 @@ int main(int argc, char **argv)
   while(fgets(resuPath,PATH_LEN,I))
   {
     strcpy(resuPath,&(resuPath[Cnt]));
-    strLower(resuPath);
+    pathToGmod(resuPath);
     resuPath[strlen(resuPath)-1] = '\0';
     Addon.putString(resuPath);
   }
@@ -103,7 +118,7 @@ int main(int argc, char **argv)
           Len = (E - S + 4);
           strncpy(resuPath,S,Len);
           resuPath[Len] = '\0';
-          strLower(resuPath);
+          pathToGmod(resuPath);
           if(DataBase.findStringID(0,resuPath) == SSTACK_NOT_FOUND)
           {
             DataBase.putString(resuPath);

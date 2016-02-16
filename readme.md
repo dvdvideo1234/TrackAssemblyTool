@@ -248,22 +248,20 @@ Q: Hay, how should I proceed when I am experiencing errors ?
 A: First of all if the the error origin is not the TA, 
     I can't pretty much help you with it, but I will do my best
     If the error is related to the TA then:
-    1) While in-game ( or the TA's link ) unsubscribe to TA
+    1) Delete database ( if any ) located in ..common\GarrysMod\garrysmod\data\trackassembly\*.*
     2) Delete the TA's *.gma file
-    3) Enter Gmod to see that you've unsubscribed to TA
-    4) Delete the cache "..\GarrysMod\garrysmod\cache"
-    5) In the game library, right click on Gmod and select "Properties"
-    6) Navigate to "Local Files" and click "Verify integrity of the game cache"
-    7) Go to http://steamcommunity.com/sharedfiles/filedetails/?id=287012681 
-    8) Hit the subscribe button
-    9) If the error does not go away please proceed to ( 10 - 16 )
-   10) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
-   11) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
-   12) Point to the world in-game hold SPEED ( Default: Shift ) + RELOAD ( Default: R )
-   13) Now the hardest part - While in-game do some stuff and make it crash again.
-   14) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
-   15) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
-   16) If you don't bother using the workshop, then please use the GitHub link instead.
+    3) Delete the cache "..\GarrysMod\garrysmod\cache"
+    4) In the game library, right click on Gmod and select "Properties"
+    5) Navigate to "Local Files" and click "Verify integrity of the game cache"
+    6) Enter Gmod and while in-game open the console and paste "trackassembly_exportdb 0" ( without the quotes )
+    7) Done ! It all should work now. If not, proceed ad below ( 8 - 14 )
+    8) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
+    9) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
+   10) Point to the world in-game hold SPEED ( Default: Shift ) + RELOAD ( Default: R )
+   11) Now the hardest part - While in-game do some stuff and make it crash again.
+   12) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
+   13) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
+   14) If you don't bother using the workshop ( Yeah, I hate it too ), then please use the GitHub link instead.
        Be sure to download only a stable release version: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
        GitHub: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master
        SVN     https://github.com/dvdvideo1234/TrackAssemblyTool/trunk
