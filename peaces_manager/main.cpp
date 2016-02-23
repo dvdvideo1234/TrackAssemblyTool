@@ -33,15 +33,33 @@ int mainExit(int errID, const char * const errFormat)
 
 char *pathToGmod(char *strData)
 {
-  int i = 0;
   char ch;
+  unsigned int i = 0;
   while(strData[i] != '\0')
   {
     ch = strData[i];
     if  (ch == '\\'){ strData[i] = '/'; }
-    else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')){ strData[i] |= ' '; }
+    else if(ch >= 'A' && ch <= 'Z'){ strData[i] |= ' '; }
     i++;
   }
+  return strData;
+}
+
+char *trimAll(char *strData)
+{
+  unsigned int L = strlen(strData);
+  if(L > 0){ L--; }else{ return strData; }
+  unsigned int S = 0, E = L;
+  while((!(strData[S] > ' ') || !(strData[E] > ' ')) && (S >= 0) && (S <= L) && (E >= 0) && (E <= L))
+  {
+    if(strData[S] <= ' '){ S++; }
+    if(strData[E] <= ' '){ E--; }
+  }
+  if(S == 0 && E == L){ return strData; } // Nothing to be done
+  if((S >= 0) && (S <= L) && (E >= 0) && (E <= L)){
+    L = E - S + 1;
+    strncpy(strData,&strData[S],L); strData[L] = '\0';
+  }else{ strData[0] = '\0'; }
   return strData;
 }
 
@@ -51,13 +69,13 @@ int main(int argc, char **argv)
   unsigned char F;
   int Cnt, Len, Err;
   char *S, *E, *F1, *F2, *F3;
-  char basePath[PATH_LEN]  = {0};
   char resuPath[PATH_LEN]  = {0};
   char fName[PATH_LEN]     = {0};
 
   printf("\nargc: <%d>",argc);
   for(Cnt = 0; Cnt < argc; Cnt++)
   {
+    trimAll(argv[Cnt]);
     printf("\nargv[%d] = <%s>",Cnt, argv[Cnt]);
   }
 
@@ -68,23 +86,17 @@ int main(int argc, char **argv)
     return mainExit(0,"");
   }
 
-  printf("\n");
-
-  strcpy(basePath,argv[1]);
-
-  printf("basePath: <%s>\n",basePath);
-
-  strcpy(fName,basePath);
+  strcpy(fName,argv[1]);
   strcat(fName,argv[2]);
 
   I = fopen(fName  ,"rt");
   D = fopen(argv[3],"rt");
 
-  strcpy(fName,basePath);
+  strcpy(fName,argv[1]);
   strcpy(fName,"db-addon.txt");
   DA = fopen(fName,"wt");
 
-  strcpy(fName,basePath);
+  strcpy(fName,argv[1]);
   strcpy(fName,"addon-db.txt");
   AD = fopen(fName,"wt");
 
@@ -102,35 +114,35 @@ int main(int argc, char **argv)
 
   if(NULL == DA)
   {
-    printf("Cannot open db-addon using stdout");
+    printf("Cannot open db-addon, using console");
     DA = stdout;
   }
 
   if(NULL == AD)
   {
-    printf("Cannot open addon-db");
+    printf("Cannot open addon-db, using console");
     AD = stdout;
   }
 
-  Cnt = strlen(basePath);
+  Cnt = strlen(argv[1]);
   while(fgets(resuPath,PATH_LEN,I))
   {
+    trimAll(resuPath);
     strcpy(resuPath,&(resuPath[Cnt]));
     pathToGmod(resuPath);
-    resuPath[strlen(resuPath)-1] = '\0';
     Err = Addon.putString(resuPath);
     if(Err < 0){ return mainExit(Err,"main(I): putString: <%s>"); }
   }
 
   while(fgets(resuPath,PATH_LEN,D))
   {
+    trimAll(resuPath);
     Cnt = strlen(resuPath);
-    resuPath[Cnt-1] = '\0';
     F1 = strstr(resuPath,MATCH_START_NEW_TYPE);
     F2 = strstr(resuPath,argv[4]);
     F3 = strstr(resuPath,"end"); // Closing the IF statement in LUA
     if(!F &&  F1 != NULL &&  F2 != NULL){ F = 1; }
-    if( F && (F1 != NULL || (F3 != NULL && Cnt == 4)) &&  F2 == NULL ){ F = 0; }
+    if( F && (F1 != NULL || (F3 != NULL && Cnt == 3)) &&  F2 == NULL ){ F = 0; }
     if(F)
     {
       S = strstr(resuPath,MATCH_MODEL_STR);

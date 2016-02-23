@@ -29,9 +29,9 @@
       stString *getString(int iID);
             int findStringID(int iID, const char * strData);
             int printMismatch(struct string_stack *Other, FILE *File);
-          void      print(int iID);
-                 string_stack(void);
-                ~string_stack(void);
+           void print(int iID);
+                string_stack(void);
+               ~string_stack(void);
 
     } cstrStack;
 
@@ -86,7 +86,7 @@
     {
       if(!(iID >= 0 || iID < Count))
         { printf("print: No such ID #%d\n",iID ); return; }
-      printf("[%u]=[%u]<%s>\n",iID,Stack[iID]->Len, Stack[iID]->Data);
+      printf("[%u]=(%u)<%s>\n",iID,Stack[iID]->Len, Stack[iID]->Data);
       return;
     }
 
