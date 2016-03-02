@@ -41,17 +41,10 @@ local IN_WALK      = IN_WALK
 local IN_ZOOM      = IN_ZOOM
 
 ---------------- Localizing ENT Properties ----------------
-local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
-local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 local MOVETYPE_VPHYSICS     = MOVETYPE_VPHYSICS
-
----------------- Localizing CVar flags ----------------
-local FCVAR_ARCHIVE       = FCVAR_ARCHIVE
-local FCVAR_ARCHIVE_XBOX  = FCVAR_ARCHIVE_XBOX
-local FCVAR_NOTIFY        = FCVAR_NOTIFY
-local FCVAR_REPLICATED    = FCVAR_REPLICATED
-local FCVAR_PRINTABLEONLY = FCVAR_PRINTABLEONLY
+local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
+local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 
 ---------------- Localizing needed functions ----------------
 local next                  = next
@@ -142,7 +135,7 @@ local libOpVars = {} -- Used to Store operational Variable Values
 
 module("trackasmlib")
 
----------------------------- AssemblyLib COMMON ----------------------------
+---------------------------- COMMON ----------------------------
 
 function Delay(nAdd)
   local nAdd = tonumber(nAdd) or 0
@@ -203,7 +196,7 @@ function IsNumber(anyValue)
   return ((tonumber(anyValue) and true) or false)
 end
 
------------------- AssemblyLib LOGS ------------------------
+------------------ LOGS ------------------------
 
 local function FormatNumberMax(nNum,nMax)
   local nNum = tonumber(nNum)
@@ -337,7 +330,7 @@ function Print(tT,sS)
   end
 end
 
------------------ AssemblyLib INITAIALIZATION -----------------
+----------------- INITAIALIZATION -----------------
 
 function InitAssembly(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
@@ -399,20 +392,16 @@ function InitAssembly(sName,sPurpose)
     TPos = Vector(), -- O
     TAng = Angle ()  -- A
   })
-  return StatusPrint(false,"InitAssembly: Success")
+  return StatusPrint(true,"InitAssembly: Success")
 end
 
 ------------- ANGLE ---------------
 function ToAngle(aBase)
-  return Angle((aBase[caP] or 0),
-               (aBase[caY] or 0),
-               (aBase[caR] or 0))
+  return Angle((aBase[caP] or 0), (aBase[caY] or 0), (aBase[caR] or 0))
 end
 
 function ExpAngle(aBase)
-  return (aBase[caP] or 0),
-         (aBase[caY] or 0),
-         (aBase[caR] or 0)
+  return (aBase[caP] or 0), (aBase[caY] or 0), (aBase[caR] or 0)
 end
 
 function AddAngle(aBase, adbAdd)
@@ -457,7 +446,7 @@ function SetAnglePYR(aBase, nP, nY, nR)
   aBase[caR] = (nR or 0)
 end
 
---- Vector
+------------- VECTOR ---------------
 
 function ToVector(vBase)
   return Vector((vBase[cvX] or 0), (vBase[cvY] or 0), (vBase[cvZ] or 0))
@@ -527,7 +516,7 @@ function DecomposeByAngle(V,A)
   return Vector(V:DotProduct(A:Forward()), V:DotProduct(A:Right()), V:DotProduct(A:Up()))
 end
 
----------- Library OOP -----------------
+---------- OOP -----------------
 
 function MakeContainer(sInfo,sDefKey)
   local Curs = 0
@@ -927,25 +916,25 @@ end
 
 function IsPhysTrace(Trace)
   if(not Trace) then return false end
+  if(not Trace.Hit) then return false end
+  if(Trace.HitWorld) then return false end
   local eEnt = Trace.Entity
-  if(     eEnt   and
-      not Trace.HitWorld and
-          eEnt:IsValid() and
-          eEnt:GetPhysicsObject():IsValid()) then
-    return true
-  end
-  return false
+  if(not eEnt) then return false end
+  if(not eEnt:IsValid()) then return false end
+  if(not eEnt:GetPhysicsObject():IsValid()) then return false end
+  return true
 end
 
-function RollValue(nVal,nMin,nMax)
+local function RollValue(nVal,nMin,nMax)
   if(nVal > nMax) then return nMin end
   if(nVal < nMin) then return nMax end
   return nVal
 end
 
-function BorderValue(nsVal,sName)
+local function BorderValue(nsVal,sName)
   if(not IsString(sName)) then return nsVal end
-  if(not (IsString(nsVal) or tonumber(nsVal))) then return StatusLog(nsVal,"BorderValue: Value not comparable") end
+  if(not (IsString(nsVal) or tonumber(nsVal))) then
+    return StatusLog(nsVal,"BorderValue: Value not comparable") end
   local Border = GetOpVar("TABLE_BORDERS")
         Border = Border[sName]
   if(IsExistent(Border)) then
@@ -1080,8 +1069,10 @@ function ModelToName(sModel)
 end
 
 function LocatePOA(oRec, ivPointID)
-  if(not oRec) then return StatusLog(nil,"LocatePOA: Missing record") end
-  if(not oRec.Offs) then return StatusLog(nil,"LocatePOA: Missing offsets for <"..tostring(oRec.Slot)..">") end
+  if(not oRec) then
+    return StatusLog(nil,"LocatePOA: Missing record") end
+  if(not oRec.Offs) then
+    return StatusLog(nil,"LocatePOA: Missing offsets for <"..tostring(oRec.Slot)..">") end
   local iPointID = mathFloor(tonumber(ivPointID) or 0)
   local stPOA = oRec.Offs[iPointID]
   if(not IsExistent(stPOA)) then
@@ -1089,6 +1080,7 @@ function LocatePOA(oRec, ivPointID)
              ..tostring(ivPointID).."> for <"..tostring(oRec.Slot)..">") end
   return stPOA
 end
+
 
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
@@ -1369,12 +1361,13 @@ function ConCommandPly(pPly,sCvar,snValue)
 end
 
 function PrintNotifyPly(pPly,sText,sNotifType)
-  if(not pPly) then return StatusLog(false,"PrintNotifyPly: Player invalid") end
+  if(not pPly) then
+    return StatusLog(false,"PrintNotifyPly: Player invalid") end
   if(SERVER) then
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
     pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
   end
-  return StatusLog(false,"PrintNotifyPly: Success")
+  return StatusLog(true,"PrintNotifyPly: Success")
 end
 
 function UndoCratePly(anyMessage)
@@ -1406,7 +1399,8 @@ function LoadKeyPly(pPly, sKey)
     libCache[keyPly] = {}
     plyCache = libCache[keyPly]
   end
-  if(not pPly) then return StatusLog(nil,"LoadKeyPly: Player not available") end
+  if(not pPly) then
+    return StatusLog(false,"LoadKeyPly: Player not available") end
   local spName   = pPly:GetName()
   local plyPlace = plyCache[spName]
   if(not IsExistent(plyPlace)) then
@@ -1434,7 +1428,7 @@ function LoadKeyPly(pPly, sKey)
   end
   if(IsExistent(sKey)) then
     if(not IsString(sKey)) then
-      return StatusLog(nil,"LoadKeyPly: Key hash {"..type(sKey).."}<"..tostring(sKey).."> not string") end
+      return StatusLog(false,"LoadKeyPly: Key hash {"..type(sKey).."}<"..tostring(sKey).."> not string") end
     if(sKey == "DEBUG") then
       return plyPlace
     end
@@ -1459,10 +1453,10 @@ function LoadKeyPly(pPly, sKey)
   plyPlace["LEFT"]    = pPly:KeyDown(IN_LEFT      )
   plyPlace["RIGHT"]   = pPly:KeyDown(IN_RIGHT     )
   plyPlace["WALK"]    = pPly:KeyDown(IN_WALK      )
-  return StatusLog(nil,"LoadKeyPly: Player <"..spName.."> keys loaded")
+  return StatusLog(true,"LoadKeyPly: Player <"..spName.."> keys loaded")
 end
 
--------------------------- AssemblyLib BUILDSQL ------------------------------
+-------------------------- BUILDSQL ------------------------------
 
 local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
   if(not defTable) then
@@ -1697,9 +1691,8 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   if(IsString(Command)) then
     SQLBuildError("")
     return Command
-  end
+  else Command = "SELECT " end
   local Cnt = 1
-  Command = "SELECT "
   if(tFields) then
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])
@@ -2026,7 +2019,7 @@ function InsertRecord(sTable,tData)
   end
 end
 
---------------------------- AssemblyLib PIECE QUERY -----------------------------
+--------------------------- PIECE QUERY -----------------------------
 
 local function NavigateTable(oLocation,tKeys)
   if(not IsExistent(oLocation)) then
@@ -2161,17 +2154,19 @@ local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
   return Place[Key]
 end
 
-function CacheBoxLayout(oEnt,oRec,nRot,nCamX,nCamZ)
+function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(nil,"CacheBoxLayout: Entity invalid") end
+  local sMod = oEnt:GetModel()
+  local oRec = CacheQueryPiece(sMod)  
   if(not IsExistent(oRec)) then
-    return StatusLog(nil,"CacheBoxLayout: Piece record invalid") end
+    return StatusLog(nil,"CacheBoxLayout: Piece record invalid <"..sMod..">") end
   local Box = oRec.Layout
   if(not IsExistent(Box)) then
     local vMin, vMax
     oRec.Layout = {}; Box = oRec.Layout
     if    (CLIENT) then vMin, vMax = oEnt:GetRenderBounds()
-    elseif(SERVER) then vMin, vMax = oEnt:OBBCenter()
+    elseif(SERVER) then vMin, vMax = oEnt:OBBMins(), oEnt:OBBMaxs()
     else return StatusLog(nil,"CacheBoxLayout: Wrong instance") end
     Box.Ang = Angle()  -- Layout entity angle
     Box.Cen = Vector() -- Layout entity centre
@@ -2181,9 +2176,8 @@ function CacheBoxLayout(oEnt,oRec,nRot,nCamX,nCamZ)
     Box.Cam = Vector(); Box.Cam:Set(Box.Eye)  -- Layout camera position
     AddVectorXYZ(Box.Cam,Box.Len*(tonumber(nCamX) or 0),0,Box.Len*(tonumber(nCamZ) or 0))
     LogInstance("CacheBoxLayout: "..tostring(Box.Cen).." #"..tostring(Box.Len))
-  end
-  Box.Ang[caY] = (tonumber(nRot) or 0) * Time()
-  return Box.Cen, Box.Ang, Box.Cam, Box.Eye, Box.Len
+  end; Box.Ang[caY] = (tonumber(nRot) or 0) * Time()
+  return Box
 end
 
 -- Cashing the selected Piece Result
@@ -2302,7 +2296,7 @@ function CacheQueryAdditions(sModel)
   end
 end
 
------------------------ AssemblyLib PANEL QUERY -------------------------------
+----------------------- PANEL QUERY -------------------------------
 
 --- Used to Populate the CPanel Tree
 function CacheQueryPanel()
@@ -2442,7 +2436,7 @@ function CacheQueryProperty(sType)
   end
 end
 
----------------------- AssemblyLib EXPORT --------------------------------
+---------------------- EXPORT --------------------------------
 
 local function GetFieldsName(defTable,sDelim)
   if(not IsExistent(sDelim)) then return "" end
@@ -2669,7 +2663,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   F:Close()
 end
 
------------------------------ AssemblyLib SNAPPING ------------------------------
+----------------------------- SNAPPING ------------------------------
 
 --[[
  * This function calculates the cross product normal angle of

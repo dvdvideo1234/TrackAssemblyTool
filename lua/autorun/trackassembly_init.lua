@@ -26,7 +26,7 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.210")
+asmlib.SetOpVar("TOOL_VERSION","5.211")
 asmlib.SetOpVar("DIRPATH_BAS",asmlib.GetOpVar("TOOLNAME_NL")..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_EXP","exp"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
 asmlib.SetOpVar("DIRPATH_DSV","dsv"..asmlib.GetOpVar("OPSYM_DIRECTORY"))
@@ -169,20 +169,14 @@ if(CLIENT) then
       pnModelPanel:SetVisible(true)
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
-        if(not (oEnt and oEnt:IsValid())) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Entity invalid") end
-        local uiMod = oEnt:GetModel()
-        local uiRec = asmlib.CacheQueryPiece(uiMod)
-        if(not asmlib.IsExistent(uiRec)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Record invalid") end
-        local uiCen, uiAng, uiCam, uiEye, uiLen = asmlib.CacheBoxLayout(oEnt,uiRec,40)
-        if(not asmlib.IsExistent(uiCen)) then
+        local uiBox = asmlib.CacheBoxLayout(oEnt,40)
+        if(not asmlib.IsExistent(uiBox)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
-        local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiAng,uiMod,1)
-              stSpawn.SPos:Set(uiCen)
+        local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
+              stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
               stSpawn.SPos:Mul(-1)
-              stSpawn.SPos:Add(uiCen)
+              stSpawn.SPos:Add(uiBox.Cen)
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
       end
@@ -220,18 +214,13 @@ if(CLIENT) then
       pnListView:AddColumn("Model"):SetFixedWidth(305)-- (4)
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
-        local uiRec = asmlib.CacheQueryPiece(uiMod)
-        if(not asmlib.IsExistent(uiRec)) then -- Set the damn thing only if valid record is found
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Failed to retrieve #"..nIndex.." model <"..uiMod..">") end
-        pnModelPanel:SetModel(uiMod)
+                      pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
-        if(not (uiEnt and uiEnt:IsValid())) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Model panel entity invalid") end
-        local uiCen, uiAng, uiCam, uiEye, uiLen = asmlib.CacheBoxLayout(uiEnt,uiRec,0,1.5,0.6)
-        if(not asmlib.IsExistent(uiCen)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Box invalid") end
-        pnModelPanel:SetLookAt(uiEye)
-        pnModelPanel:SetCamPos(uiCam)
+        local uiBox = asmlib.CacheBoxLayout(uiEnt,0,1.5,0.6)
+        if(not asmlib.IsExistent(uiBox)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
+        pnModelPanel:SetLookAt(uiBox.Eye)
+        pnModelPanel:SetCamPos(uiBox.Cam)
         asmlib.ConCommandPly(oPly, "model" ,uiMod)
         asmlib.ConCommandPly(oPly,"pointid",  1  )
         asmlib.ConCommandPly(oPly,"pnextid",  2  )
