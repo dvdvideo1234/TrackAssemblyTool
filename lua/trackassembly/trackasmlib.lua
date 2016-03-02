@@ -1081,7 +1081,6 @@ function LocatePOA(oRec, ivPointID)
   return stPOA
 end
 
-
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
         arPOA[1] = tonumber(nXP) or 0
@@ -2156,7 +2155,7 @@ end
 
 function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(nil,"CacheBoxLayout: Entity invalid") end
+    return StatusLog(nil,"CacheBoxLayout: Entity invalid <"..tostring(oEnt)..">") end
   local sMod = oEnt:GetModel()
   local oRec = CacheQueryPiece(sMod)  
   if(not IsExistent(oRec)) then
