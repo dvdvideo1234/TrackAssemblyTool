@@ -343,6 +343,13 @@ function InitAssembly(sName,sPurpose)
     return StatusPrint(false,"InitAssembly: Name invalid") end
   if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then
     return StatusPrint(false,"InitAssembly: Purpose invalid") end
+  SetOpVar("ANG_ZERO",Angle())
+  SetOpVar("VEC_ZERO",Vector())
+  SetOpVar("OPSYM_DISABLE","#")
+  SetOpVar("OPSYM_REVSIGN","@")
+  SetOpVar("OPSYM_DIVIDER","_")
+  SetOpVar("OPSYM_DIRECTORY","/")
+  SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("TIME_EPOCH",Time())
   SetOpVar("NAME_INIT",stringLower(sName))
   SetOpVar("NAME_PERP",stringLower(sPurpose))
@@ -363,13 +370,11 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("HASH_PLAYER_KEYDOWN","PLAYER_KEYDOWN")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
-  SetOpVar("ANG_ZERO",Angle())
-  SetOpVar("VEC_ZERO",Vector())
-  SetOpVar("OPSYM_DISABLE","#")
-  SetOpVar("OPSYM_REVSIGN","@")
-  SetOpVar("OPSYM_DIVIDER","_")
-  SetOpVar("OPSYM_DIRECTORY","/")
-  SetOpVar("OPSYM_SEPARATOR",",")
+  SetOpVar("NAV_PIECE",{})
+  SetOpVar("NAV_ADDITION",{})
+  SetOpVar("NAV_PROPERTY_NAMES",{})
+  SetOpVar("NAV_PROPERTY_TYPES",{})
+  SetOpVar("NAV_PANEL",{})
   SetOpVar("STRUCT_SPAWN",{
     F    = Vector(),
     R    = Vector(),
@@ -2018,7 +2023,7 @@ function InsertRecord(sTable,tData)
   end
 end
 
---------------------------- PIECE QUERY -----------------------------
+--------------- TIMER MEMORY MANAGMENT ----------------------------
 
 local function NavigateTable(oLocation,tKeys)
   if(not IsExistent(oLocation)) then
@@ -2039,8 +2044,6 @@ local function NavigateTable(oLocation,tKeys)
   end
   return Place, Key
 end
-
---------------- TIMER MEMORY MANAGMENT ----------------------------
 
 function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps the defaults
   if(not IsExistent(sTimerSet)) then
@@ -2066,10 +2069,14 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
   local sModeDB = GetOpVar("MODE_DATABASE")
   LogInstance("TimerAttach: Called by <"..anyMessage.."> for Place["..tostring(Key).."]")
   if(sModeDB == "SQL") then
-    if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end -- Get the proper line count
-    local tTimer = defTable.Timer -- If we have a timer, and it does speak, we advise you send your regards..
+    local nNowTM = Time() -- When is "now" ?
+    -- If we have a timer, and it does speak, we advise you send your regards..
+    local tTimer = defTable.Timer
     if(not IsExistent(tTimer)) then
       return StatusLog(Place[Key],"TimerAttach: Missing timer settings") end
+    Place[Key].Used = nNowTM -- Make the first selected deletable to avoid phantom records
+    -- Get the proper line count to avoid doing in every caching function"
+    if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end
     local nLifeTM = tTimer[2]
     if(nLifeTM <= 0) then
       return StatusLog(Place[Key],"TimerAttach: Timer attachment ignored") end
@@ -2078,10 +2085,10 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
     local bCollGB = tTimer[4]
     LogInstance("TimerAttach: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
-      Place[Key].Load = Time()
+      Place[Key].Load = nNowTM
       for k, v in pairs(Place) do
-        if(IsExistent(v.Used) and IsExistent(v.Load) and ((v.Used - v.Load) > nLifeTM)) then
-          LogInstance("TimerAttach: ("..tostring(v.Used - v.Load).." > "..tostring(nLifeTM)..") > Dead")
+        if(IsExistent(v.Load) and IsExistent(v.Used) and  ((nNowTM - v.Used) > nLifeTM)) then
+          LogInstance("TimerAttach: ("..tostring(RoundValue(nNowTM - v.Used,0.01)).." > "..tostring(nLifeTM)..") > Dead")
           if(bKillRC) then
             LogInstance("TimerAttach: Killed <"..tostring(k)..">")
             Place[k] = nil
@@ -2092,7 +2099,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
         collectgarbage()
         LogInstance("TimerAttach: Garbage collected")
       end
-      return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."].Load = "..tostring(Place[Key].Load))
+      return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."].Load = "..tostring(RoundValue(nNowTM,0.01)))
     elseif(sModeTM == "OBJ") then
       local TimerID = stringImplode(GetOpVar("OPSYM_DIVIDER"),tKeys)
       LogInstance("TimerAttach: TimID <"..TimerID..">")
@@ -2157,7 +2164,7 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(nil,"CacheBoxLayout: Entity invalid <"..tostring(oEnt)..">") end
   local sMod = oEnt:GetModel()
-  local oRec = CacheQueryPiece(sMod)  
+  local oRec = CacheQueryPiece(sMod)
   if(not IsExistent(oRec)) then
     return StatusLog(nil,"CacheBoxLayout: Piece record invalid <"..sMod..">") end
   local Box = oRec.Layout
@@ -2174,12 +2181,13 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
     Box.Len = ((vMax - vMin):Length() / 2) -- Layout border sphere radius
     Box.Cam = Vector(); Box.Cam:Set(Box.Eye)  -- Layout camera position
     AddVectorXYZ(Box.Cam,Box.Len*(tonumber(nCamX) or 0),0,Box.Len*(tonumber(nCamZ) or 0))
-    LogInstance("CacheBoxLayout: "..tostring(Box.Cen).." #"..tostring(Box.Len))
+    LogInstance("CacheBoxLayout: "..tostring(Box.Cen).." # "..tostring(Box.Len))
   end; Box.Ang[caY] = (tonumber(nRot) or 0) * Time()
   return Box
 end
 
--- Cashing the selected Piece Result
+--------------------------- PIECE QUERY -----------------------------
+
 function CacheQueryPiece(sModel)
   if(not IsExistent(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model does not exist") end
@@ -2197,7 +2205,8 @@ function CacheQueryPiece(sModel)
   local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(Cache)) then
     return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..namTable..">") end
-  local caInd    = {namTable,sModel}
+  local caInd    = GetOpVar("NAV_PIECE")
+  if(not IsExistent(caInd[1])) then caInd[1] = namTable end caInd[2] = sModel
   local stPiece  = Cache[sModel]
   if(IsExistent(stPiece) and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
@@ -2258,7 +2267,8 @@ function CacheQueryAdditions(sModel)
   local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(Cache)) then
     return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..namTable..">") end
-  local caInd    = {namTable,sModel}
+  local caInd    = GetOpVar("NAV_ADDITION")
+  if(not IsExistent(caInd[1])) then caInd[1] = namTable end caInd[2] = sModel
   local stAddition = Cache[sModel]
   if(IsExistent(stAddition) and IsExistent(stAddition.Kept)) then
     if(stAddition.Kept > 0) then
@@ -2303,11 +2313,12 @@ function CacheQueryPanel()
   if(not defTable) then
     return StatusLog(false,"CacheQueryPanel: Missing table definition") end
   local namTable = defTable.Name
-  local keyPanel = GetOpVar("HASH_USER_PANEL")
   if(not IsExistent(libCache[namTable])) then
     return StatusLog(nil,"CacheQueryPanel: Cache not allocated for <"..namTable..">") end
-  local stPanel = libCache[keyPanel]
-  local caInd = {keyPanel}
+  local caInd    = GetOpVar("NAV_PANEL")
+  local keyPanel = GetOpVar("HASH_USER_PANEL")
+  if(not IsExistent(caInd[1])) then caInd[1] = keyPanel end
+  local stPanel  = libCache[keyPanel]
   if(IsExistent(stPanel) and IsExistent(stPanel.Kept)) then
     LogInstance("CacheQueryPanel: From Pool")
     if(stPanel.Kept > 0) then
@@ -2363,18 +2374,19 @@ function CacheQueryProperty(sType)
   if(not Cache) then
     return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..namTable..">") end
   local sModeDB = GetOpVar("MODE_DATABASE")
-  if(IsString(sType) and not IsEmptyString(sType)) then -- Get names per type
-    local sType   = MatchType(defTable,sType,1,false,"",true,true) -- Match type casing
+  if(IsString(sType) and not IsEmptyString(sType)) then
+    local sType   = MatchType(defTable,sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
     local arNames = Cache[keyName]
-    local caInd   = {namTable,keyName,sType}
+    local caInd   = GetOpVar("NAV_PROPERTY_NAMES")
+    if(not IsExistent(caInd[1])) then caInd[1] = namTable; caInd[2] = keyName end caInd[3] = sType
     if(not IsExistent(arNames)) then
       Cache[keyName] = {}
       arNames = Cache[keyName]
     end
     local stName = arNames[sType]
     if(IsExistent(stName) and IsExistent(stName.Kept)) then
-      LogInstance("CacheQueryProperty["..sType.."]: From Pool")
+      LogInstance("CacheQueryProperty["..sType.."]: Names << Pool")
       if(stName.Kept > 0) then
         return TimerRestart(libCache,caInd,defTable,"CacheQueryProperty") end
       return nil
@@ -2397,6 +2409,7 @@ function CacheQueryProperty(sType)
           stName[stName.Kept] = qData[stName.Kept][defTable[3][1]]
           stName.Kept = stName.Kept + 1
         end
+        LogInstance("CacheQueryProperty["..sType.."]: Names >> Pool")
         return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Record not located")
       else return StatusLog(nil,"CacheQueryProperty["..sType.."]: Wrong database mode <"..sModeDB..">") end
@@ -2404,9 +2417,10 @@ function CacheQueryProperty(sType)
   else
     local keyType = GetOpVar("HASH_PROPERTY_TYPES")
     local stType  = Cache[keyType]
-    local caInd   = {namTable,keyType}
-    if(IsExistent(stType) and IsExistent(stType.Kept)) then -- Get All type names
-      LogInstance("CacheQueryProperty: From Pool")
+    local caInd   = GetOpVar("NAV_PROPERTY_TYPES")
+    if(not IsExistent(caInd[1])) then caInd[1] = namTable; caInd[2] = keyType end
+    if(IsExistent(stType) and IsExistent(stType.Kept)) then
+      LogInstance("CacheQueryProperty: Types << Pool")
       if(stType.Kept > 0) then
         return TimerRestart(libCache,caInd,defTable,"CacheQueryProperty") end
       return nil
@@ -2428,6 +2442,7 @@ function CacheQueryProperty(sType)
           stType[stType.Kept] = qData[stType.Kept][defTable[1][1]]
           stType.Kept = stType.Kept + 1
         end
+        LogInstance("CacheQueryProperty: Types >> Pool")
         return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryProperty: Record not located")
       else return StatusLog(nil,"CacheQueryProperty: Wrong database mode <"..sModeDB..">") end
