@@ -1,11 +1,8 @@
-:: ?[1] Process the %Model% so it becomes "models/TEST3/Cerus/Modbridge/Core/g-221.mdl"
-:: ?[2] IF (not found %Model% in the contents of %DataBase% ) THEN echo Model END
-
 echo off
 
 set DataBase=F:\Games\Steam\steamapps\common\GarrysMod\garrysmod\addons\TrackAssemblyTool_GIT\lua\autorun\trackassembly_init.lua
 set ModelLst=models_list.txt
-set AddonNam="Ron's 56 gauge rails"
+set AddonNam="Ron's 2ft track pack"
 set BasePath=%~dp0
 
 echo Addon is "%AddonNam%"
