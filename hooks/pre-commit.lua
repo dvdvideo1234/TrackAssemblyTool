@@ -4,85 +4,104 @@
 -- Work: E:\Documents\Lua-Projs\SVN\TrackAssemblyTool_GIT_master\hooks\pre-commit.bat E:\Documents\Lua-Projs\Lua\Bin\ E:\Desktop\tmp.txt
 -- Home: 
 
-local sFile = tostring(arg[1])
-      sFile = sFile:gsub("\\","/")
-if((sFile == "nil") or (string.len(sFile) == 0)) then
-  print("No file")
+local sLog = tostring(arg[4]) -- "test.lua"
+if((sLog == "nil") or (string.len(sLog) == 0)) then
+  io.write("No output log file")
+else
+  sLog = sLog:gsub("\\","/")
+  fLog = io.open(sLog,"w+")
+  if(fLog) then io.output(fLog) end
+end
+
+io.write("------------------ ARG ------------------\n")
+io.write("arg[1]<"..tostring(arg[1])..">\n")
+io.write("arg[2]<"..tostring(arg[2])..">\n")
+io.write("arg[3]<"..tostring(arg[3])..">\n")
+io.write("arg[4]<"..tostring(arg[4])..">\n")
+local sBase = tostring(arg[1])
+      sBase = sBase:gsub("\\","/")
+if((sBase == "nil") or (string.len(sBase) == 0)) then
+  io.write("No file\n")
   return false
 end
-local sMarker = tostring(arg[2])
-if((sMarker == "nil") or (string.len(sMarker) == 0)) then
-  print("No marker")
+io.write("------------------ FILE ------------------\n")
+local sOut = tostring(arg[2]) -- "test.lua"
+if((sOut == "nil") or (string.len(sOut) == 0)) then
+  io.write("No output file")
   return false
 end
+local sOut = sBase..sOut
+local sInp = sBase.."tmp.lua"
+io.write("<"..sOut..">\n<"..sInp..">\n")
+io.write("------------------ END ------------------\n")
 local sEnd = tostring(arg[3])
 if((sEnd == "nil") or (string.len(sEnd) == 0)) then
-  print("No endline")
+  io.write("No end-line\n")
   return false
 end
 if(not (sEnd == "DOS" or sEnd == "UNX")) then
-  print("Wrong end line mode: -"..sEnd.."-")
+  io.write("Wrong end line mode: -"..sEnd.."-\n")
   return false
 end
-
 if(sEnd == "DOS") then sEnd = "\r\n" end
 if(sEnd == "UNX") then sEnd = "\n"   end
-
-print("\nHook: ",sFile)
-print(  "Mark: ",sMarker)
-print(  "EndL: ","-"..sEnd.."-")
-
-local F = io.open(sFile,"r+")
-if(not F) then
-  print("File "..sFile.." not found")
+io.write("------------------ OPEN FILE ------------------\n")
+local fOut = io.open(sOut,"w+")
+local fInp = io.open(sInp,"r+")
+if(not fOut) then
+  io.write("File "..sOut.." not found\n")
   return false
 end
-local sI = F:read()
+if(not fInp) then
+  io.write("File "..sInp.." not found\n")
+  return false
+end
+io.write("------------------ STORE ------------------\n")
+local sI = fInp:read()
 if(not sI) then
-  print("File "..sFile.." reached EOF")
+  io.write("File "..sInp.." reached EOF\n")
   return false
 end
-local sO = ""
-local nB, nE, nS, iLen = 1, 1, 1, 0
+local sO, sCat = "", ""
+local sLog = "asmlib.SetLogControl("
+local sVer = "asmlib.SetOpVar(\"TOOL_VERSION\",\"5."
+local nB, nE, nS = 1, 1, 1
 while(sI) do
-  iLen = sI:len()
-  while(sI:sub(iLen,iLen) == "\r" or sI:sub(iLen,iLen) == "\n") do
-    iLen = iLen - 1
-  end
-  sI = sI:sub(nS,iLen)
-  nB, nE = sI:find(sMarker,nS,true)
+  nB, nE = sI:find(sLog,1,true)
   if(nB and nE) then
-    while(nB and nE) do
-      print("Line : ",sI)
-      print("Found: ",nB, nE)
-      sO = sO..sI:sub(nS,nE)
-      nS = nE + 1
-      local sNum = ""
-      local sCh  = ""
-      while(true) do
-        sCh = sI:sub(nS,nS)
-        if(not tonumber(sCh)) then break end
-        sNum = sNum..sCh
-        nS   = nS + 1
-      end
-      if(sNum:len() > 0) then
-        sNum = tostring(tonumber(sNum) + 1)
-      end
-      sO = sO..sNum
-      nB, nE = sI:find(sMarker,nS,true)
+    sCat = "0,\"\")"
+    io.write("Disable logs[1]:<"..tostring(nB).."><"..tostring(nE).."><"..sCat..">\n")
+    nB = sI:find(",",1,true)
+    if(nB and tonumber(sI:sub(nE+1,nB-1))) then
+      io.write("Disable logs[2]:<"..tostring(nB).."><"..tostring(sI:sub(nE+1,nB-1)).."><"..tonumber(sI:sub(nE+1,nB-1))..">\n")
+      sI = sLog..sCat
     end
-    sO = sO..string.format("%s%s",sI:sub(nS,iLen),sEnd)
-  else
-    sO = sO..string.format("%s%s",sI:sub(nS,iLen),sEnd)
   end
-  nS = 1
-  sI = F:read()
+  nB, nE = sI:find(sVer,1,true)
+  if(nB and nE) then
+    sCat = "\")"
+    io.write("Increment the version[1]:<"..tostring(nB).."><"..tostring(nE).."><"..sCat..">\n")
+    nB = sI:find(sCat,1,true)
+    if(nB) then
+      nS = tonumber(sI:sub(nE+1,nB-1))
+      io.write("Increment the version[2]:<"..tostring(nS).."><"..tostring(sI:sub(nE+1,nB-1))..">\n")
+      if(nS) then
+        io.write("Increment the version[3]:<"..tostring(nS+1)..">\n")
+        sI = sVer..tostring(nS+1)..sCat
+      end
+    end
+  end
+  fOut:write(sI..sEnd)
+  sI = fInp:read()
 end
-if(sO:len() > 0) then
-  F:seek("set",0)
-  F:write(sO)
-  F:flush()
-end
-F:close()
+io.write("------------------ FINISH ------------------\n")
+fOut:flush()
+fOut:close()
+fInp:close()
 
-print("Success !")
+if(fLog) then
+  fLog:flush()
+  fLog:close()
+end
+
+
