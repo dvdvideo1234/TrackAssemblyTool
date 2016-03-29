@@ -329,7 +329,7 @@ end
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local sDelim  = "\n"
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
-  local iFleLog = asmlib.GetOpVar("LOG_LOGFILE")
+  local sFleLog = asmlib.GetOpVar("LOG_LOGFILE")
   local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
   local sSpace  = stringRep(" ",6 + stringLen(tostring(iMaxlog)))
   local ply     = self:GetOwner()
@@ -347,9 +347,9 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local sDu = ""
         sDu = sDu..tostring(anyMessage)..sDelim
         sDu = sDu..sSpace.."Dumping logs state:"..sDelim
-        sDu = sDu..sSpace.."  MaxLogs:        <"..tostring(iMaxlog)..">"..sDelim
-        sDu = sDu..sSpace.."  CurLogs:        <"..tostring(iCurLog)..">"..sDelim
-        sDu = sDu..sSpace.."  iFleLog:        <"..tostring(iFleLog)..">"..sDelim
+        sDu = sDu..sSpace.."  LogsMax:        <"..tostring(iMaxlog)..">"..sDelim
+        sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
+        sDu = sDu..sSpace.."  LogFile:        <"..tostring(sFleLog)..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim
         sDu = sDu..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
         sDu = sDu..sSpace.."  IN.USE:         <"..tostring(plyKeys["USE"])..">"..sDelim

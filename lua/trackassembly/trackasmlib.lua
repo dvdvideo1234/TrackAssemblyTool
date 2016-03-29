@@ -362,6 +362,10 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("TOOLNAME_NU",stringUpper(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
+  SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("DIRPATH_EXP","exp"..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("DIRPATH_LOG","")
   SetOpVar("MISS_NOID","N")    -- No ID selected
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
@@ -380,6 +384,9 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("NAV_PROPERTY_NAMES",{})
   SetOpVar("NAV_PROPERTY_TYPES",{})
   SetOpVar("NAV_PANEL",{})
+  SetOpVar("LOG_MAXLOGS",0)
+  SetOpVar("LOG_CURLOGS",0)
+  SetOpVar("LOG_LOGFILE","")
   SetOpVar("STRUCT_SPAWN",{
     F    = Vector(),
     R    = Vector(),
