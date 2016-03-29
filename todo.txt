@@ -3,3 +3,5 @@ X - Fail
 D - Discontinued
 N - Not applicable
 ? - Not yet tested
+
+? Will the vectors, angles and statuses be indexed properly

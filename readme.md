@@ -120,12 +120,12 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    18) Mr. Train's M-Gauge rails
    19) Bobsters's two gauge rails
    20) Mr. Train's G-Gauge rails
-   21) Ron's 56 gauge rails
+   21) Ron's 56 gauge rails ( Removed by the add-on owner. Discontinued )
    22) Ron's 2ft track pack
    
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
-N: Which addons did you work on?
+N: Which add-ons did you work on?
 
 Q: Are there going to be more of those?
 A: Yes, I developed my dynamic database, so I can insert any model I want.
@@ -156,7 +156,7 @@ A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
    HINT    -> Clients are not allowed to stack/spawn out of the map bounds. Hunt message is displayed.
    GENERIC -> Clients are not allowed to stack/spawn out of the map bounds. Generic message is displayed.
    ERROR   -> Clients are not allowed to stack/spawn out of the map bounds. Error message is displayed.
-   Other value will be treated as "invalid".
+   Other value will be treated as "LOG".
    But remember young samurai, this variable is only server side, and because of that
    you can only access it via single player or set it in the "server.vdf" gmod start-up file. 
    May the force be with you and your server !
@@ -255,7 +255,7 @@ A: First of all if the the error origin is not the TA,
     4) In the game library, right click on Gmod and select "Properties"
     5) Navigate to "Local Files" and click "Verify integrity of the game cache"
     6) Enter Gmod and while in-game open the console and paste "trackassembly_exportdb 0" ( without the quotes )
-    7) Done ! It all should work now. If not, proceed ad below ( 8 - 14 )
+    7) Done ! It all should work now. If not, proceed as below ( 8 - 14 )
     8) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
     9) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
    10) Point to the world in-game hold SPEED ( Default: Shift ) + RELOAD ( Default: R )

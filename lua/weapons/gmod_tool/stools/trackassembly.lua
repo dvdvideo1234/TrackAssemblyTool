@@ -328,7 +328,9 @@ end
 
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local sDelim  = "\n"
-  local iMaxlog = mathFloor(asmlib.GetOpVar("LOG_MAXLOGS"))
+  local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
+  local iFleLog = asmlib.GetOpVar("LOG_LOGFILE")
+  local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
   local sSpace  = stringRep(" ",6 + stringLen(tostring(iMaxlog)))
   local ply     = self:GetOwner()
   local plyKeys = asmlib.LoadKeyPly(ply,"DEBUG")
@@ -336,57 +338,61 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  local hdModel, trModel, trRec = self:GetModel()
-  local hdRec = asmlib.CacheQueryPiece(hdModel)
+  local hdModel, trModel, trRec   = self:GetModel()
+  local hdRec   = asmlib.CacheQueryPiece(hdModel)
   if(stTrace and stTrace.Entity and stTrace.Entity:IsValid()) then
     trModel = stTrace.Entity:GetModel()
-    trRec  = asmlib.CacheQueryPiece(trModel)
+    trRec   = asmlib.CacheQueryPiece(trModel)
   end
-  local sDump = ""
-       sDump = sDump..tostring(anyMessage)..sDelim
-       sDump = sDump..sSpace.."Dumping player keys:"..sDelim
-       sDump = sDump..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
-       sDump = sDump..sSpace.."  IN.USE:         <"..tostring(plyKeys["USE"])..">"..sDelim
-       sDump = sDump..sSpace.."  IN.DUCK:        <"..tostring(plyKeys["DUCK"])..">"..sDelim
-       sDump = sDump..sSpace.."  IN.SPEED:       <"..tostring(plyKeys["SPEED"])..">"..sDelim
-       sDump = sDump..sSpace.."  IN.RELOAD:      <"..tostring(plyKeys["RELOAD"])..">"..sDelim
-       sDump = sDump..sSpace.."  IN.SCORE:       <"..tostring(plyKeys["SCORE"])..">"..sDelim
-       sDump = sDump..sSpace.."Dumping trace data state:"..sDelim
-       sDump = sDump..sSpace.."  Trace:          <"..tostring(stTrace)..">"..sDelim
-       sDump = sDump..sSpace.."  TR.Hit:         <"..tostring(stTrace and stTrace.Hit or gsNoAV)..">"..sDelim
-       sDump = sDump..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
-       sDump = sDump..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
-       sDump = sDump..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Kept or gsNoID).."]"..sDelim
-       sDump = sDump..sSpace.."  TR.File:        <"..stringToFileName(tostring(trModel or gsNoAV))..">"..sDelim
-       sDump = sDump..sSpace.."Dumping console variables state:"..sDelim
-       sDump = sDump..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
-       sDump = sDump..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Kept or gsNoID).."]"..sDelim
-       sDump = sDump..sSpace.."  HD.File:        <"..stringToFileName(tostring(hdModel or gsNoAV))..">"..sDelim
-       sDump = sDump..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.StackCNT:    <"..tostring(self:GetCount())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.SpawnMC:     <"..tostring(self:GetSpawnMC())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.BndErrMod:   <"..tostring(self:GetBoundErrorMode())..">"..sDelim
-       sDump = sDump..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
-       sDump = sDump..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
-       sDump = sDump..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
-       sDump = sDump..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
+  local sDu = ""
+        sDu = sDu..tostring(anyMessage)..sDelim
+        sDu = sDu..sSpace.."Dumping logs state:"..sDelim
+        sDu = sDu..sSpace.."  MaxLogs:        <"..tostring(iMaxlog)..">"..sDelim
+        sDu = sDu..sSpace.."  CurLogs:        <"..tostring(iCurLog)..">"..sDelim
+        sDu = sDu..sSpace.."  iFleLog:        <"..tostring(iFleLog)..">"..sDelim
+        sDu = sDu..sSpace.."Dumping player keys:"..sDelim
+        sDu = sDu..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
+        sDu = sDu..sSpace.."  IN.USE:         <"..tostring(plyKeys["USE"])..">"..sDelim
+        sDu = sDu..sSpace.."  IN.DUCK:        <"..tostring(plyKeys["DUCK"])..">"..sDelim
+        sDu = sDu..sSpace.."  IN.SPEED:       <"..tostring(plyKeys["SPEED"])..">"..sDelim
+        sDu = sDu..sSpace.."  IN.RELOAD:      <"..tostring(plyKeys["RELOAD"])..">"..sDelim
+        sDu = sDu..sSpace.."  IN.SCORE:       <"..tostring(plyKeys["SCORE"])..">"..sDelim
+        sDu = sDu..sSpace.."Dumping trace data state:"..sDelim
+        sDu = sDu..sSpace.."  Trace:          <"..tostring(stTrace)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.Hit:         <"..tostring(stTrace and stTrace.Hit or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Kept or gsNoID).."]"..sDelim
+        sDu = sDu..sSpace.."  TR.File:        <"..stringToFileName(tostring(trModel or gsNoAV))..">"..sDelim
+        sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
+        sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
+        sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Kept or gsNoID).."]"..sDelim
+        sDu = sDu..sSpace.."  HD.File:        <"..stringToFileName(tostring(hdModel or gsNoAV))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.StackCNT:    <"..tostring(self:GetCount())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.SpawnMC:     <"..tostring(self:GetSpawnMC())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.BndErrMod:   <"..tostring(self:GetBoundErrorMode())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
+        sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
+        sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
+        sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
   if(hdEnt and hdEnt:IsValid()) then
     hdEnt:Remove()
   end
-  return sDump
+  return sDu
 end
 
 function TOOL:LeftClick(stTrace)

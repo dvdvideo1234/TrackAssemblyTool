@@ -135,7 +135,7 @@ local libOpVars = {} -- Used to Store operational Variable Values
 
 module("trackasmlib")
 
----------------------------- COMMON ----------------------------
+---------------------------- PRIMITIVES ----------------------------
 
 function Delay(nAdd)
   local nAdd = tonumber(nAdd) or 0
@@ -143,20 +143,6 @@ function Delay(nAdd)
     local tmEnd = osClock() + nAdd
     while(osClock() < tmEnd) do end
   end
-end
-
-function GetIndexes(sType)
-  if    (sType == "V") then return cvX, cvY, cvZ
-  elseif(sType == "A") then return caP, caY, caR
-  elseif(sType == "S") then return csA, csB, csC, csD end
-  return nil
-end
-
-function SetIndexes(sType,I1,I2,I3,I4)
-  if    (sType == "V") then cvX, cvY, cvZ      = I1, I2, I3
-  elseif(sType == "A") then caP, caY, caR      = I1, I2, I3
-  elseif(sType == "S") then csA, csB, csC, csD = I1, I2, I3, I4 end
-  return nil
 end
 
 function GetInstPref()
@@ -206,9 +192,9 @@ local function FormatNumberMax(nNum,nMax)
 end
 
 function SetLogControl(nLines,sFile)
-  SetOpVar("LOG_LOGFILE",tostring(sFile) or "")
-  SetOpVar("LOG_MAXLOGS",tonumber(nLines) or 0)
   SetOpVar("LOG_CURLOGS",0)
+  SetOpVar("LOG_LOGFILE",tostring(sFile or ""))
+  SetOpVar("LOG_MAXLOGS",mathFloor(tonumber(nLines) or 0))
   if(not fileExists(GetOpVar("DIRPATH_BAS"),"DATA") and
      not IsEmptyString(GetOpVar("LOG_LOGFILE"))) then
     fileCreateDir(GetOpVar("DIRPATH_BAS"))
@@ -331,6 +317,25 @@ function Print(tT,sS)
 end
 
 ----------------- INITAIALIZATION -----------------
+
+function GetIndexes(sType)
+  if(not IsString(sType)) then
+    return StatusLog(nil,"GetIndexes: Type {"..type(sType).."}<"..tostring(sType).."> not string") end
+  if    (sType == "V") then return cvX, cvY, cvZ
+  elseif(sType == "A") then return caP, caY, caR
+  elseif(sType == "S") then return csA, csB, csC, csD
+  else return StatusLog(nil,"GetIndexes: Type <"..sType.."> not found") end
+end
+
+function SetIndexes(sType,I1,I2,I3,I4)
+  if(not IsString(sType)) then
+    return StatusLog(false,"SetIndexes: Type {"..type(sType).."}<"..tostring(sType).."> not string") end
+  if    (sType == "V") then cvX, cvY, cvZ      = I1, I2, I3
+  elseif(sType == "A") then caP, caY, caR      = I1, I2, I3
+  elseif(sType == "S") then csA, csB, csC, csD = I1, I2, I3, I4
+  else return StatusLog(false,"SetIndexes: Type <"..sType.."> not found") end
+  return StatusLog(true,"SetIndexes["..sType.."]: Success")
+end
 
 function InitAssembly(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
@@ -1382,7 +1387,7 @@ end
 
 function UndoAddEntityPly(oEnt)
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(false,"AddUndoPly: Entity invalid") end
+    return StatusLog(false,"UndoAddEntityPly: Entity invalid") end
   undoAddEntity(oEnt)
   return true
 end

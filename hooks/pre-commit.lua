@@ -65,32 +65,32 @@ end
 local sO, sCat = "", ""
 local sLog = "asmlib.SetLogControl("
 local sVer = "asmlib.SetOpVar(\"TOOL_VERSION\",\"5."
-local nB, nE, nS = 1, 1, 1
+local nB, nE, nS, nL = 1, 1, 1, 1
 while(sI) do
   nB, nE = sI:find(sLog,1,true)
   if(nB and nE) then
     sCat = "0,\"\")"
-    io.write("Disable logs[1]:<"..tostring(nB).."><"..tostring(nE).."><"..sCat..">\n")
+    io.write("["..tostring(nL).."]Disable logs[1]:<"..tostring(nB).."><"..tostring(nE).."><"..sCat..">\n")
     nB = sI:find(",",1,true)
     if(nB and tonumber(sI:sub(nE+1,nB-1))) then
-      io.write("Disable logs[2]:<"..tostring(nB).."><"..tostring(sI:sub(nE+1,nB-1)).."><"..tonumber(sI:sub(nE+1,nB-1))..">\n")
+      io.write("["..tostring(nL).."]Disable logs[2]:<"..tostring(nB).."><"..tostring(sI:sub(nE+1,nB-1)).."><"..tonumber(sI:sub(nE+1,nB-1))..">\n")
       sI = sLog..sCat
     end
   end
   nB, nE = sI:find(sVer,1,true)
   if(nB and nE) then
     sCat = "\")"
-    io.write("Increment the version[1]:<"..tostring(nB).."><"..tostring(nE).."><"..sCat..">\n")
+    io.write("["..tostring(nL).."]Increment the version[1]:<"..tostring(nB).."><"..tostring(nE).."><"..sCat..">\n")
     nB = sI:find(sCat,1,true)
     if(nB) then
       nS = tonumber(sI:sub(nE+1,nB-1))
-      io.write("Increment the version[2]:<"..tostring(nS).."><"..tostring(sI:sub(nE+1,nB-1))..">\n")
+      io.write("["..tostring(nL).."]Increment the version[2]:<"..tostring(nS).."><"..tostring(sI:sub(nE+1,nB-1))..">\n")
       if(nS) then
-        io.write("Increment the version[3]:<"..tostring(nS+1)..">\n")
+        io.write("["..tostring(nL).."]Increment the version[3]:<"..tostring(nS+1)..">\n")
         sI = sVer..tostring(nS+1)..sCat
       end
     end
-  end
+  end; nL = nL + 1
   fOut:write(sI..sEnd)
   sI = fInp:read()
 end
