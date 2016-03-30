@@ -20,6 +20,8 @@ local utilIsValidRagdoll    = util and util.IsValidRagdoll
 local utilGetPlayerTrace    = util and util.GetPlayerTrace
 local mathClamp             = math and math.Clamp
 local mathFloor             = math and math.floor
+local mathSqrt              = math and math.sqrt
+local mathSqrt              = math and math.sqrt
 local entsCreate            = ents and ents.Create
 local entsCreateClientProp  = ents and ents.CreateClientProp
 local fileExists            = file and file.Exists
@@ -683,10 +685,12 @@ function TOOL:DrawHUD()
   local ply = LocalPlayer()
   local stTrace = ply:GetEyeTrace()
   if(not stTrace) then return end
+  local ratioc = (gnRatio - 1) * 100
+  local ratiom = (gnRatio * 1000)
   local plyd   = (stTrace.HitPos - ply:GetPos()):Length()
   local trEnt  = stTrace.Entity
   local model  = self:GetModel()
-  local maxrad = self:GetActiveRadius()
+  local maxrad = asmlib.GetCoVar("maxactrad", "FLT")
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
@@ -697,15 +701,31 @@ function TOOL:DrawHUD()
     local spnflat = self:GetSpawnFlat()
     local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-    if(not stSpawn) then return end
-    local devmode = self:GetDeveloperMode()
+    if(not stSpawn) then
+      local ID, Origin, Radius, Up = 1, Vector(), Vector(), Vector(0,0,actrad)
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+      local stPOA = asmlib.LocatePOA(trRec,ID)
+      while(stPOA) do
+        asmlib.SetVector(Origin,stPOA.O)
+        Origin:Rotate(trEnt:GetAngles())
+        Origin:Add(trEnt:GetPos())
+        Radius:Set(Origin)
+        Radius:Add(Up)
+        local scOrigin = Origin:ToScreen()
+        local scRadius = Radius:ToScreen()
+        local modX = (scRadius.x - scOrigin.x); modX = modX * modX
+        local modY = (scRadius.y - scOrigin.y); modY = modY * modY
+        local modR = mathSqrt(modX + modY)
+        goMonitor:DrawCircle(scOrigin, modR,"y")
+      end; return
+    end
     stSpawn.F:Mul(30)
     stSpawn.F:Add(stSpawn.OPos)
     stSpawn.R:Mul(30)
     stSpawn.R:Add(stSpawn.OPos)
     stSpawn.U:Mul(30)
     stSpawn.U:Add(stSpawn.OPos)
-    local RadScale = mathClamp(75 * stSpawn.RLen / plyd,1,60)
+    local RadScale = mathClamp((ratiom * stSpawn.RLen) / (maxrad * plyd),1,ratioc)
     local Os = stSpawn.OPos:ToScreen()
     local Ss = stSpawn.SPos:ToScreen()
     local Xs = stSpawn.F:ToScreen()
@@ -734,7 +754,7 @@ function TOOL:DrawHUD()
     goMonitor:DrawCircle(Tp, RadScale / 2)
     goMonitor:DrawLine(Os,Ss,"m")
     goMonitor:DrawCircle(Ss, RadScale,"c")
-    if(devmode == 0) then return end
+    if(self:GetDeveloperMode() == 0) then return end
     local x,y = goMonitor:GetCenter(10,10)
     goMonitor:SetTextEdge(x,y)
     goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k")
@@ -748,9 +768,8 @@ function TOOL:DrawHUD()
     local offsetup = self:GetOffsetUp()
     local mcspawn  = self:GetSpawnMC()
     local ydegsnp  = self:GetYawSnap()
-    local devmode  = self:GetDeveloperMode()
     local surfsnap = self:GetSurfaceSnap()
-    local RadScale = mathClamp(1500 / plyd,1,100)
+    local RadScale = mathClamp(ratiom / plyd,1,ratioc)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then -- Relative to MC
       local vPos = Vector()
@@ -781,7 +800,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Tp,"y")
       goMonitor:DrawCircle(Tp, RadScale / 2)
       goMonitor:DrawCircle(Os, RadScale)
-      if(devmode == 0) then return end
+      if(self:GetDeveloperMode() == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
       goMonitor:DrawText("Org POS: "..tostring(vPos),"k")
@@ -825,7 +844,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawCircle(Os, RadScale, "y")
       goMonitor:DrawLine(Os,Tp)
       goMonitor:DrawCircle(Tp, RadScale / 2)
-      if(devmode == 0) then return end
+      if(self:GetDeveloperMode() == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
       goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k")
@@ -895,7 +914,7 @@ function TOOL:DrawToolScreen(w, h)
   end
   model  = stringToFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
-  maxrad = self:GetActiveRadius()
+  maxrad = asmlib.GetCoVar("maxactrad", "FLT")
   goToolScr:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   goToolScr:DrawText("HM: " ..(model      or gsNoAV),"m")
   goToolScr:DrawText("ID: ["..(trMaxCN    or gsNoID)
