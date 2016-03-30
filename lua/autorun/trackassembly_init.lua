@@ -13,6 +13,7 @@ local IsValid              = IsValid
 local bitBor               = bit and bit.bor
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
+local mathFloor            = math and math.floor
 local stringExplode        = string and string.Explode
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
@@ -23,8 +24,8 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
+asmlib.SetOpVar("TOOL_VERSION","5.222")
 asmlib.SetLogControl(0,"")
-asmlib.SetOpVar("TOOL_VERSION","5.221")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -131,20 +132,31 @@ if(CLIENT) then
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
-      local scrW = surfaceScreenWidth()
-      local scrH = surfaceScreenHeight()
+      local nRatio       = asmlib.GetOpVar("GOLDEN_RATIO")
+      local 
+      local scrW         = surfaceScreenWidth()
+      local scrH         = surfaceScreenHeight()
       local pnButton     = pnElements:Select(1).Panel
       local pnListView   = pnElements:Select(2).Panel
       local pnModelPanel = pnElements:Select(3).Panel
       local pnTextEntry  = pnElements:Select(4).Panel
       local pnComboBox   = pnElements:Select(5).Panel
+      local xyZero       = {x = 0 ,y = 20} -- The start location of left-top
+      local xyDelta      = {x = 10,y = 10} -- Distance between panels
+      local xySiz        = {x = 0 ,y = 0}  -- Current panel size
+      local xyPos        = {x = 0, y = 0}  -- Current panel position
+      local xyTmp       = {x = 0 ,y = 0}  -- Temporary coordinate
       ------------ Frame --------------
+      xyPos.x = (scrW / 4)
+      xyPos.y = (scrH / 4)
+      xySiz.x = 750
+      xySiz.y = mathFloor(xySiz.x * (1 + nRatio))
       pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." v."..asmlib.GetOpVar("TOOL_VERSION"))
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
-      pnFrame:SetPos(scrW/4, scrH/4)
-      pnFrame:SetSize(750, 280)
+      pnFrame:SetPos(xyPos.x, xyPos.y)
+      pnFrame:SetSize(xySiz.x, xySiz.y)
       pnFrame.OnClose = function()
         pnFrame:SetVisible(false)
         local iNdex, iSize = 1, pnElements:GetSize()
@@ -158,29 +170,15 @@ if(CLIENT) then
         collectgarbage()
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
       end
-      ------------ ModelPanel --------------
-      pnModelPanel:SetParent(pnFrame)
-      pnModelPanel:SetPos(500,25)
-      pnModelPanel:SetSize(250,255)
-      pnModelPanel:SetVisible(true)
-      pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
-        if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
-        local uiBox = asmlib.CacheBoxLayout(oEnt,40)
-        if(not asmlib.IsExistent(uiBox)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
-        local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
-              stSpawn.SPos:Set(uiBox.Cen)
-              stSpawn.SPos:Rotate(stSpawn.SAng)
-              stSpawn.SPos:Mul(-1)
-              stSpawn.SPos:Add(uiBox.Cen)
-        oEnt:SetAngles(stSpawn.SAng)
-        oEnt:SetPos(stSpawn.SPos)
-      end
       ------------ Button --------------
+      xyPos.x = xyZero.x + xyDelta.x
+      xyPos.y = xyZero.y + xyDelta.y
+      xySiz.x = 55 -- Display properly the name
+      xySiz.y = 25 -- Used by combo-box and text-box
       pnButton:SetParent(pnFrame)
       pnButton:SetText(pnElements:Select(1).Label[2])
-      pnButton:SetPos(15,30)
-      pnButton:SetSize(55,30)
+      pnButton:SetPos(xyPos.x, xyPos.y)
+      pnButton:SetSize(xySiz.x, xySiz.y)
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
         asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
@@ -197,37 +195,15 @@ if(CLIENT) then
           asmlib.ExportIntoFile("PHYSPROPERTIES","\t","DSV")
         end
       end
-      ------------ ListView --------------
-      pnListView:SetParent(pnFrame)
-      pnListView:SetVisible(false)
-      pnListView:SetSortable(true)
-      pnListView:SetMultiSelect(false)
-      pnListView:SetPos(10,65)
-      pnListView:SetSize(480,205)
-      pnListView:AddColumn("Used"):SetFixedWidth(55)  -- (1)
-      pnListView:AddColumn("Act"):SetFixedWidth(20)   -- (2)
-      pnListView:AddColumn("Type"):SetFixedWidth(100) -- (2)
-      pnListView:AddColumn("Model"):SetFixedWidth(305)-- (4)
-      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
-        local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
-                      pnModelPanel:SetModel(uiMod)
-        local uiEnt = pnModelPanel:GetEntity()
-        local uiBox = asmlib.CacheBoxLayout(uiEnt,0,1.5,0.6)
-        if(not asmlib.IsExistent(uiBox)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
-        pnModelPanel:SetLookAt(uiBox.Eye)
-        pnModelPanel:SetCamPos(uiBox.Cam)
-        asmlib.ConCommandPly(oPly, "model" ,uiMod)
-        asmlib.ConCommandPly(oPly,"pointid",  1  )
-        asmlib.ConCommandPly(oPly,"pnextid",  2  )
-      end
-      if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
-        asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed")
-      end
       ------------- ComboBox ---------------
+      xySiz.x = 90 -- Display properly the name
+      xyPos.x, xyPos.y = pnButton:GetPos()
+      xyTmp.x, xyTmp.y = pnButton:GetSize()
+      xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
+      xySiz.y = xyTmp.y
       pnComboBox:SetParent(pnFrame)
-      pnComboBox:SetPos(75,30)
-      pnComboBox:SetSize(95,30)
+      pnComboBox:SetPos(xyPos.x,xyPos.y)
+      pnComboBox:SetSize(xySiz.x,xySiz.y)
       pnComboBox:SetVisible(true)
       pnComboBox:SetValue("<Search BY>")
       pnComboBox:AddChoice("Model",defTable[1][1])
@@ -238,10 +214,42 @@ if(CLIENT) then
         asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.."<"..sVal..">"..tostring(anyData))
         pnSelf:SetValue(sVal)
       end
+      ------------ ModelPanel --------------
+      xySiz.x = 250 -- Display model properly
+      xyTmp.x, xyTmp.y = pnFrame:GetSize()
+      xyPos.x, xyPos.y = pnComboBox:GetPos()
+      xyPos.x = xyTmp.x - xySiz.x - xyDelta.x
+      xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
+      --------------------------------------
+      pnModelPanel:SetParent(pnFrame)
+      pnModelPanel:SetPos(xyPos.x,xyPos.y)
+      pnModelPanel:SetSize(xySiz.x,xySiz.y)
+      pnModelPanel:SetVisible(true)
+      pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
+        if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
+        local uiBox = asmlib.CacheBoxLayout(oEnt,40)
+        if(not asmlib.IsExistent(uiBox)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
+        local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
+              stSpawn.SPos:Set(uiBox.Cen)
+              stSpawn.SPos:Rotate(stSpawn.SAng)
+              stSpawn.SPos:Mul(-1)
+              stSpawn.SPos:Add(uiBox.Cen)
+        oEnt:SetAngles(stSpawn.SAng)
+        oEnt:SetPos(stSpawn.SPos)
+      end
       ------------ TextEntry --------------
+      xyPos.x, xyPos.y = pnComboBox:GetPos()
+      xyTmp.x, xyTmp.y = pnComboBox:GetSize()
+      xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
+      xySiz.y = xyTmp.y
+      -------------------------------------
+      xyTmp.x, xyTmp.y = pnModelPanel:GetPos()
+      xySiz.x = xyTmp.x - xyPos.x - xyDelta.x
+      -------------------------------------
       pnTextEntry:SetParent(pnFrame)
-      pnTextEntry:SetPos(175,30)
-      pnTextEntry:SetSize(305,30)
+      pnTextEntry:SetPos(xyPos.x,xyPos.y)
+      pnTextEntry:SetSize(xySiz.x,xySiz.y)
       pnTextEntry:SetVisible(true)
       pnTextEntry.OnEnter = function(pnSelf)
         local sName, sField = pnComboBox:GetSelected()
@@ -251,6 +259,44 @@ if(CLIENT) then
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattern)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sName.."#"..sField.."#"..sPattern.."}")
         end
+      end
+      ------------ ListView --------------
+      xyPos.x, xyPos.y = pnButton:GetPos()
+      xyTmp.x, xyTmp.y = pnButton:GetSize()
+      xyPos.y = xyPos.y + xyTmp.y + xyDelta.y
+      ------------------------------------
+      xyTmp.x, xyTmp.y = pnTextEntry:GetPos()
+      xySiz.x, xySiz.y = pnTextEntry:GetSize()
+      xySiz.x = xyTmp.x + xySiz.x
+      ------------------------------------
+      xyTmp.x, xyTmp.y = pnFrame:GetSize()
+      xySiz.y = xyTmp.y - xyPos.y
+      ------------------------------------
+      pnListView:SetParent(pnFrame)
+      pnListView:SetVisible(false)
+      pnListView:SetSortable(true)
+      pnListView:SetMultiSelect(false)
+      pnListView:SetPos(xyPos.x,xyPos.y)
+      pnListView:SetSize(xySiz.x,xySiz.y)
+      pnListView:AddColumn("Used"):SetFixedWidth(0.120377559 * xySiz.x) -- (1)
+      pnListView:AddColumn("Act" ):SetFixedWidth(0.047460893 * xySiz.x) -- (2)
+      pnListView:AddColumn("Type"):SetFixedWidth(0.214127559 * xySiz.x) -- (3)
+      pnListView:AddColumn("Model"):SetFixedWidth(mathFloor((nRatio-1) * xySiz.x)) -- (4)
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+        local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
+                      pnModelPanel:SetModel(uiMod)
+        local uiEnt = pnModelPanel:GetEntity()
+        local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
+        if(not asmlib.IsExistent(uiBox)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
+        pnModelPanel:SetLookAt(uiBox.Eye)
+        pnModelPanel:SetCamPos(uiBox.Cam)
+        asmlib.ConCommandPly(oPly, "model" ,uiMod)
+        asmlib.ConCommandPly(oPly,"pointid",  1  )
+        asmlib.ConCommandPly(oPly,"pnextid",  2  )
+      end
+      if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
+        asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed")
       end
       ------------ Show the completed panel --------------
       pnFrame:SetVisible(true)

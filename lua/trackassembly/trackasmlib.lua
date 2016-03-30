@@ -348,14 +348,18 @@ function InitAssembly(sName,sPurpose)
     return StatusPrint(false,"InitAssembly: Name invalid") end
   if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then
     return StatusPrint(false,"InitAssembly: Purpose invalid") end
+  SetOpVar("LOG_MAXLOGS",0)
+  SetOpVar("LOG_CURLOGS",0)
+  SetOpVar("LOG_LOGFILE","")
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
+  SetOpVar("TIME_EPOCH",Time())
   SetOpVar("OPSYM_DISABLE","#")
   SetOpVar("OPSYM_REVSIGN","@")
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
-  SetOpVar("TIME_EPOCH",Time())
+  SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("NAME_INIT",stringLower(sName))
   SetOpVar("NAME_PERP",stringLower(sPurpose))
   SetOpVar("TOOLNAME_NL",stringLower(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
@@ -384,9 +388,6 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("NAV_PROPERTY_NAMES",{})
   SetOpVar("NAV_PROPERTY_TYPES",{})
   SetOpVar("NAV_PANEL",{})
-  SetOpVar("LOG_MAXLOGS",0)
-  SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("LOG_LOGFILE","")
   SetOpVar("STRUCT_SPAWN",{
     F    = Vector(),
     R    = Vector(),
