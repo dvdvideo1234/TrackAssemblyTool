@@ -24,7 +24,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.222")
+asmlib.SetOpVar("TOOL_VERSION","5.223")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -132,8 +132,6 @@ if(CLIENT) then
         iNdex = iNdex + 1
       end
       ------ Screen resolution and elements -------
-      local nRatio       = asmlib.GetOpVar("GOLDEN_RATIO")
-      local 
       local scrW         = surfaceScreenWidth()
       local scrH         = surfaceScreenHeight()
       local pnButton     = pnElements:Select(1).Panel
@@ -141,16 +139,17 @@ if(CLIENT) then
       local pnModelPanel = pnElements:Select(3).Panel
       local pnTextEntry  = pnElements:Select(4).Panel
       local pnComboBox   = pnElements:Select(5).Panel
-      local xyZero       = {x = 0 ,y = 20} -- The start location of left-top
-      local xyDelta      = {x = 10,y = 10} -- Distance between panels
-      local xySiz        = {x = 0 ,y = 0}  -- Current panel size
-      local xyPos        = {x = 0, y = 0}  -- Current panel position
-      local xyTmp       = {x = 0 ,y = 0}  -- Temporary coordinate
+      local nRatio       = asmlib.GetOpVar("GOLDEN_RATIO")
+      local xyZero       = {x =  0, y = 20} -- The start location of left-top
+      local xyDelta      = {x = 10, y = 10} -- Distance between panels
+      local xySiz        = {x =  0, y =  0} -- Current panel size
+      local xyPos        = {x =  0, y =  0} -- Current panel position
+      local xyTmp        = {x =  0, y =  0} -- Temporary coordinate
       ------------ Frame --------------
       xyPos.x = (scrW / 4)
       xyPos.y = (scrH / 4)
       xySiz.x = 750
-      xySiz.y = mathFloor(xySiz.x * (1 + nRatio))
+      xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
       pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." v."..asmlib.GetOpVar("TOOL_VERSION"))
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
@@ -196,10 +195,10 @@ if(CLIENT) then
         end
       end
       ------------- ComboBox ---------------
-      xySiz.x = 90 -- Display properly the name
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
       xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
+      xySiz.x = nRatio * xyTmp.x
       xySiz.y = xyTmp.y
       pnComboBox:SetParent(pnFrame)
       pnComboBox:SetPos(xyPos.x,xyPos.y)

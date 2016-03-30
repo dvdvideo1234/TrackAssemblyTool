@@ -4,4 +4,4 @@ D - Discontinued
 N - Not applicable
 ? - Not yet tested
 
-? Will the vectors, angles and statuses be indexed properly
+? Use the value of the golden ratio to initialize the circles in the adviser
