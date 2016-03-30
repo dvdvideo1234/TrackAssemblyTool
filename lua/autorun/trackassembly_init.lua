@@ -24,7 +24,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.224")
+asmlib.SetOpVar("TOOL_VERSION","5.225")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -266,21 +266,25 @@ if(CLIENT) then
       ------------------------------------
       xyTmp.x, xyTmp.y = pnTextEntry:GetPos()
       xySiz.x, xySiz.y = pnTextEntry:GetSize()
-      xySiz.x = xyTmp.x + xySiz.x
+      xySiz.x = xyTmp.x + xySiz.x - xyDelta.x
       ------------------------------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
-      xySiz.y = xyTmp.y - xyPos.y
+      xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
       ------------------------------------
+      local wUse = mathFloor(0.120377559 * xySiz.x)
+      local wAct = mathFloor(0.047460893 * xySiz.x)
+      local wTyp = mathFloor(0.214127559 * xySiz.x)
+      local wMod = xySiz.x - wUse - wAct - wTyp
       pnListView:SetParent(pnFrame)
       pnListView:SetVisible(false)
       pnListView:SetSortable(true)
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(xyPos.x,xyPos.y)
       pnListView:SetSize(xySiz.x,xySiz.y)
-      pnListView:AddColumn("Used"):SetFixedWidth(mathFloor(0.120377559 * xySiz.x)) -- (1)
-      pnListView:AddColumn("Act" ):SetFixedWidth(mathFloor(0.047460893 * xySiz.x)) -- (2)
-      pnListView:AddColumn("Type"):SetFixedWidth(mathFloor(0.214127559 * xySiz.x)) -- (3)
-      pnListView:AddColumn("Model"):SetFixedWidth(mathFloor((nRatio-1) * xySiz.x)) -- (4)
+      pnListView:AddColumn("Used" ):SetFixedWidth(wUse) -- (1)
+      pnListView:AddColumn("Act"  ):SetFixedWidth(wAct) -- (2)
+      pnListView:AddColumn("Type" ):SetFixedWidth(wTyp) -- (3)
+      pnListView:AddColumn("Model"):SetFixedWidth(wMod) -- (4)
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
                       pnModelPanel:SetModel(uiMod)

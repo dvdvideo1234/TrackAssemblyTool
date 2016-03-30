@@ -18,10 +18,9 @@ local utilIsValidModel      = util and util.IsValidModel
 local utilPrecacheModel     = util and util.PrecacheModel
 local utilIsValidRagdoll    = util and util.IsValidRagdoll
 local utilGetPlayerTrace    = util and util.GetPlayerTrace
+local mathSqrt              = math and math.sqrt
 local mathClamp             = math and math.Clamp
 local mathFloor             = math and math.floor
-local mathSqrt              = math and math.sqrt
-local mathSqrt              = math and math.sqrt
 local entsCreate            = ents and ents.Create
 local entsCreateClientProp  = ents and ents.CreateClientProp
 local fileExists            = file and file.Exists
@@ -122,6 +121,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".mcspawn"  , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
   languageAdd("tool."..gsToolNameL..".surfsnap" , "Snaps the piece to the surface the player is pointing at")
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
+  languageAdd("tool."..gsToolNameL..".pntasist" , "Controls rendering the tool snap point assistant") 
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
   languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
   languageAdd("cleaned."..gsToolNameL.."s", "Cleaned up all Pieces")
@@ -164,6 +164,7 @@ TOOL.ClientConVar = {
   [ "gravity"   ] = "1",
   [ "adviser"   ] = "1",
   [ "activrad"  ] = "50",
+  [ "pntasist"  ] = "0",
   [ "surfsnap"  ] = "0",
   [ "exportdb"  ] = "0",
   [ "offsetup"  ] = "0",
@@ -204,6 +205,10 @@ end
 
 function TOOL:GetOffsetUp()
   return (self:GetClientNumber("offsetup") or 0)
+end
+
+function TOOL:GetPointAssist()
+  return (self:GetClientNumber("pntasist") or 0)
 end
 
 function TOOL:GetFreeze()
@@ -378,15 +383,21 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.SpawnMC:     <"..tostring(self:GetSpawnMC())..">"..sDelim
         sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Adviser:     <"..tostring(self:GetAdviser())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.OffsetUp:    <"..tostring(self:GetOffsetUp())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.GhostHold:   <"..tostring(self:GetGhostHolder())..">"..sDelim        
         sDu = sDu..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.DevMode:     <"..tostring(self:GetDeveloperMode())..">"..sDelim
         sDu = sDu..sSpace.."  HD.BndErrMod:   <"..tostring(self:GetBoundErrorMode())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
         sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
@@ -690,7 +701,6 @@ function TOOL:DrawHUD()
   local plyd   = (stTrace.HitPos - ply:GetPos()):Length()
   local trEnt  = stTrace.Entity
   local model  = self:GetModel()
-  local maxrad = asmlib.GetCoVar("maxactrad", "FLT")
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
@@ -702,21 +712,23 @@ function TOOL:DrawHUD()
     local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
-      local ID, Origin, Radius, Up = 1, Vector(), Vector(), Vector(0,0,actrad)
+      if(self:GetPointAssist() == 0) then return end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+      if(not trRec) then return end
+      local ID, O, R = 1, Vector(), (actrad * ply:GetRight())
       local stPOA = asmlib.LocatePOA(trRec,ID)
       while(stPOA) do
-        asmlib.SetVector(Origin,stPOA.O)
-        Origin:Rotate(trEnt:GetAngles())
-        Origin:Add(trEnt:GetPos())
-        Radius:Set(Origin)
-        Radius:Add(Up)
-        local scOrigin = Origin:ToScreen()
-        local scRadius = Radius:ToScreen()
-        local modX = (scRadius.x - scOrigin.x); modX = modX * modX
-        local modY = (scRadius.y - scOrigin.y); modY = modY * modY
-        local modR = mathSqrt(modX + modY)
-        goMonitor:DrawCircle(scOrigin, modR,"y")
+        asmlib.SetVector(O,stPOA.O)
+        O:Rotate(trEnt:GetAngles())
+        O:Add(trEnt:GetPos())
+        local Op = O:ToScreen()
+        O:Add(R); ID = ID + 1
+        local Rp = O:ToScreen()
+        local mX = (Rp.x - Op.x); mX = mX * mX
+        local mY = (Rp.y - Op.y); mY = mY * mY
+        local mR = mathSqrt(mX + mY)
+        goMonitor:DrawCircle(Op, mR,"y")
+        stPOA = asmlib.LocatePOA(trRec,ID)
       end; return
     end
     stSpawn.F:Mul(30)
@@ -725,7 +737,7 @@ function TOOL:DrawHUD()
     stSpawn.R:Add(stSpawn.OPos)
     stSpawn.U:Mul(30)
     stSpawn.U:Add(stSpawn.OPos)
-    local RadScale = mathClamp((ratiom * stSpawn.RLen) / (maxrad * plyd),1,ratioc)
+    local RadScale = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
     local Os = stSpawn.OPos:ToScreen()
     local Ss = stSpawn.SPos:ToScreen()
     local Xs = stSpawn.F:ToScreen()
@@ -956,20 +968,21 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][7 ]  = gsToolPrefL.."count"
   Combo["CVars"][8 ]  = gsToolPrefL.."freeze"
   Combo["CVars"][9 ]  = gsToolPrefL.."adviser"
-  Combo["CVars"][10]  = gsToolPrefL.."igntype"
-  Combo["CVars"][11]  = gsToolPrefL.."spnflat"
-  Combo["CVars"][12]  = gsToolPrefL.."pointid"
-  Combo["CVars"][13]  = gsToolPrefL.."pnextid"
-  Combo["CVars"][14]  = gsToolPrefL.."nextpic"
-  Combo["CVars"][15]  = gsToolPrefL.."nextyaw"
-  Combo["CVars"][16]  = gsToolPrefL.."nextrol"
-  Combo["CVars"][17]  = gsToolPrefL.."ghosthold"
-  Combo["CVars"][18]  = gsToolPrefL.."ydegsnp"
-  Combo["CVars"][19]  = gsToolPrefL.."mcspawn"
-  Combo["CVars"][20]  = gsToolPrefL.."activrad"
-  Combo["CVars"][21]  = gsToolPrefL.."nocollide"
-  Combo["CVars"][22]  = gsToolPrefL.."gravity"
-  Combo["CVars"][23]  = gsToolPrefL.."physmater"
+  Combo["CVars"][10]  = gsToolPrefL.."adviser"
+  Combo["CVars"][11]  = gsToolPrefL.."igntype"
+  Combo["CVars"][12]  = gsToolPrefL.."spnflat"
+  Combo["CVars"][13]  = gsToolPrefL.."pointid"
+  Combo["CVars"][14]  = gsToolPrefL.."pnextid"
+  Combo["CVars"][15]  = gsToolPrefL.."nextpic"
+  Combo["CVars"][16]  = gsToolPrefL.."nextyaw"
+  Combo["CVars"][17]  = gsToolPrefL.."nextrol"
+  Combo["CVars"][18]  = gsToolPrefL.."ghosthold"
+  Combo["CVars"][19]  = gsToolPrefL.."ydegsnp"
+  Combo["CVars"][20]  = gsToolPrefL.."mcspawn"
+  Combo["CVars"][21]  = gsToolPrefL.."activrad"
+  Combo["CVars"][22]  = gsToolPrefL.."nocollide"
+  Combo["CVars"][23]  = gsToolPrefL.."gravity"
+  Combo["CVars"][24]  = gsToolPrefL.."physmater"
 
   CPanel:AddControl("ComboBox",Combo)
   CurY = CurY + 25
@@ -1224,6 +1237,11 @@ function TOOL.BuildCPanel(CPanel)
             Command = gsToolPrefL.."adviser"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
 
+  pItem = CPanel:AddControl("Checkbox", {
+            Label   = "Draw assistant",
+            Command = gsToolPrefL.."pntasist"})
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
+  
   pItem = CPanel:AddControl("Checkbox", {
             Label   = "Draw holder ghost",
             Command = gsToolPrefL.."ghosthold"})
