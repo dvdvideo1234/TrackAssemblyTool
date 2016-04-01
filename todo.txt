@@ -1,7 +1,0 @@
-V - Checked
-X - Fail
-D - Discontinued
-N - Not applicable
-? - Not yet tested
-
-? Use the value of the golden ratio to initialize the circles in the adviser

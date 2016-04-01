@@ -121,7 +121,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".mcspawn"  , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
   languageAdd("tool."..gsToolNameL..".surfsnap" , "Snaps the piece to the surface the player is pointing at")
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
-  languageAdd("tool."..gsToolNameL..".pntasist" , "Controls rendering the tool snap point assistant") 
+  languageAdd("tool."..gsToolNameL..".pntasist" , "Controls rendering the tool snap point assistant")
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
   languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
   languageAdd("cleaned."..gsToolNameL.."s", "Cleaned up all Pieces")
@@ -391,7 +391,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.GhostHold:   <"..tostring(self:GetGhostHolder())..">"..sDelim        
+        sDu = sDu..sSpace.."  HD.GhostHold:   <"..tostring(self:GetGhostHolder())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
@@ -1241,7 +1241,7 @@ function TOOL.BuildCPanel(CPanel)
             Label   = "Draw assistant",
             Command = gsToolPrefL.."pntasist"})
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
-  
+
   pItem = CPanel:AddControl("Checkbox", {
             Label   = "Draw holder ghost",
             Command = gsToolPrefL.."ghosthold"})

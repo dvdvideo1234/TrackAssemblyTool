@@ -24,7 +24,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.225")
+asmlib.SetOpVar("TOOL_VERSION","5.226")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -116,11 +116,10 @@ if(CLIENT) then
           while(iNdex <= iSize) do
             vItem = pnElements:Select(iNdex)
             if(IsValid(vItem.Panel)) then
-              vItem.Panel:Remove()
-              asmlib.LogInstance("OPEN_FRAME: Deleted panel ID #"..iNdex)
+              vItem.Panel:Remove(); vItem = "and panel"
             end
             pnElements:Delete(iNdex)
-            asmlib.LogInstance("OPEN_FRAME: Deleted entry ID #"..iNdex)
+            asmlib.LogInstance("OPEN_FRAME: Deleted entry "..vItem.." ID #"..iNdex)
             iNdex = iNdex + 1
           end
           pnFrame:Remove()

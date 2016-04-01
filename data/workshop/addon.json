@@ -1,0 +1,20 @@
+{
+  "title"   :  "Track Assembly Tool",
+  "type"    :  "tool",
+  "tags"    :  [ "fun", "build" ],
+  "ignore"  :
+  [
+    "*.psd",
+    "*.vcproj",
+    "*.svn*",
+    "*.git*",
+    "*hooks*",
+    "*data*",
+    "license",
+    "workshop_publish.bat",
+    "addon.txt",
+    "key.txt",
+    "readme.md",
+    "icon.jpg"
+  ]
+}

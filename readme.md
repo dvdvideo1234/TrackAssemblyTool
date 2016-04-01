@@ -5,7 +5,7 @@ TrackAssembly
 
 **IF YOU HAPPEN TO FIND REUPLOADS WITH DIFFERENT ORIGIN REPORT THEM TO ME IMMIDEATELY !!!**
 
-![TrackAssemblyTool](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/screenshot.jpg)
+![TrackAssemblyTool](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/screenshot.jpg)
 
 
 On the Steam WS: http://steamcommunity.com/sharedfiles/filedetails/?id=287012681
@@ -45,7 +45,7 @@ A: Just subscribe to the workshop item:
        you will update the piece's bodygroups/skin.
    Pressing DUCK ( Default: Ctrl ) + ATTACK1 ( Default: Left mouse button )
      Will select the trace model to use as a piece for building.
-   Pressing SPEED ( Default: Shift ) + ATTACK1 ( Default: Left mouse button ) 
+   Pressing SPEED ( Default: Shift ) + ATTACK1 ( Default: Left mouse button )
      Will stack as many pieces as shown by the slider "Pieces count".
    Pressing ATTACK2 ( Default: Right mouse button )
      Will increment the chosen active position of the piece that you're holding.
@@ -86,7 +86,17 @@ A: Just subscribe to the workshop item:
      map ground if the additional angle offsets are zeros. If not they will be added to the result angle.
    The "Origin from mass-centre" check-box if checked, will align the piece spawned to its mass-centre.
    The "Snap to trace surface" check-box if checked, will snap the chosen track directly to the trace surface.
+```
+![SurfSnap](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.png)
+```
    The "Draw adviser" check-box if checked, will draw a composition of lines and circles to assist you with the building.
+```
+![DrawAdvaiser](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/snapadvaiser.png)
+```
+   The "Draw assistant" check-box if checked, will draw a circles to assist you where the active points are.
+```
+![PointAssist](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/pointassist.png)
+```
    The "Draw holder ghost" check-box if checked, will render the the current piece that you are holding at the moment.
    When building a track using a different than the default way is needed you may use:
      UCS Pitch/Yaw/Roll are angle offsets used for orientating the base coordinate system in order to snap the piece as the user desires.
@@ -98,7 +108,7 @@ A: First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that
    the tool supports will be represented here as a "manual" or something.
    That's what is this FAQ for anyway ...
 
-Q: Which addons did you work on?
+Q: Which add-ons did you work on?
 A: Here they are, with available status, why I did not do some of them ( in the time of developing ):
     1) PHX Monorails,
     2) PHX Regular Tracks ( Ignore "switcher_2" missing part of the collision model),
@@ -122,7 +132,8 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    20) Mr. Train's G-Gauge rails
    21) Ron's 56 gauge rails ( Removed by the add-on owner. Discontinued )
    22) Ron's 2ft track pack
-   
+   23) PHX Tubes ( In DEV 0% Done )
+
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
 N: Which add-ons did you work on?
@@ -158,11 +169,11 @@ A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
    ERROR   -> Clients are not allowed to stack/spawn out of the map bounds. Error message is displayed.
    Other value will be treated as "LOG".
    But remember young samurai, this variable is only server side, and because of that
-   you can only access it via single player or set it in the "server.vdf" gmod start-up file. 
+   you can only access it via single player or set it in the "server.vdf" gmod start-up file.
    May the force be with you and your server !
 N: The error is logged if the logs are enabled !
    ( See:  Hay, how should I proceed when I am experiencing errors points 10 - 12 ).
-   
+
 Q: Does this thing have any wire extensions and how can I control then
    when my clients are abusing them ?
 A: Yes it does. You can enable/disable the wire extension using the
@@ -246,7 +257,7 @@ A: Well, when a server owners set the "trackasmlib_maxfruse" to a higher value, 
    http://lmgtfy.com/?q=lua+string+library+pattern+matching
 
 Q: Hay, how should I proceed when I am experiencing errors ?
-A: First of all if the the error origin is not the TA, 
+A: First of all if the the error origin is not the TA,
     I can't pretty much help you with it, but I will do my best
     If the error is related to the TA then:
     1) Delete database ( if any ) located in ..common\GarrysMod\garrysmod\data\trackassembly\*.*
@@ -274,7 +285,7 @@ A: Yes, you can. For every active point, you have to add a line in the table PIE
     3) Server: Point the crosshair anywhere on the map, then hit RELOAD ( Default: R )
     4) Client: Just bring up the Frequently used pieces screen, then click the "Export client's DB" button
     5) Use Excel or another table editing program to edit the files sv_*.txt and cl_*.txt
-    6) After you are done, proceed as below [Excel 2010] 
+    6) After you are done, proceed as below [Excel 2010]
     6) [Excel 2010] File -> Save As -> Navigate to the DSV folder if you are not in there already
     7) [Excel 2010] File name: *TRACKASSEMBLY_PIECES.txt
     8) [Excel 2010] Save as type: "Text (Tab delimited)(*.txt)"

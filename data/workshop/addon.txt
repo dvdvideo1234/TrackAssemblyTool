@@ -1,0 +1,6 @@
+"AddonInfo"
+{
+  "name" "Track Assembly Tool"
+  "author_name" "DVD"
+  "info" "Assembles a track for vehicles to run on xD"
+}
