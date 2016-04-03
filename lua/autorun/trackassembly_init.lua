@@ -24,7 +24,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.226")
+asmlib.SetOpVar("TOOL_VERSION","5.227")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -501,22 +501,22 @@ else
   asmlib.InsertRecord({"models/props_phx/trains/monorail_curve.mdl", "#", "Turn 90", 2, "", "-605.42602539063,-1.3489999771118,13.798999786377", "0,90,0"})
   asmlib.DefaultType("PHX Metal")
   asmlib.SettingsModelToName("SET",nil,{"track_","straight_"},nil)
-  asmlib.InsertRecord({"models/props_phx/trains/track_32.mdl",   "#", "#", 1, "-0.32699999213219,-61.528999328613,8.71399974823", "15.77799987793,-0.0099999997764826,9.2080001831055", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_32.mdl",   "#", "#", 2, "-0.32699999213219,61.528999328613,8.71399974823", "-16.245000839233,0.018999999389052,9.2309999465942", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/track_64.mdl",   "#", "#", 1, "", "32.005001068115,0.018999999389052,9.2170000076294", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_64.mdl",   "#", "#", 2, "", "-32.005001068115,-0.021999999880791,9.2170000076294", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/track_128.mdl",  "#", "#", 1, "", "63.759998321533,0.0089999996125698,9.206000328064", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_128.mdl",  "#", "#", 2, "", "-64.245002746582,-0.0089999996125698,9.206000328064", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/track_256.mdl",  "#", "#", 1, "", "127.76000213623,0.10800000280142,9.2629995346069", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_256.mdl",  "#", "#", 2, "", "-128.25,-0.017000000923872,9.2239999771118", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/track_512.mdl",  "#", "#", 1, "", "255.75999450684,0.026000000536442,9.2019996643066", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_512.mdl",  "#", "#", 2, "", "-256.24798583984,-0.025000000372529,9.2220001220703", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/track_1024.mdl", "#", "#", 1, "", "511.75900268555,0.075000002980232,9.1809997558594", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_1024.mdl", "#", "#", 2, "", "-512.24499511719,-0.025000000372529,9.2390003204346", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/track_2048.mdl", "#", "#", 1, "", "1023.7600097656,0.0089999996125698,9.2040004730225", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_2048.mdl", "#", "#", 2, "", "-1024.2469482422,-0.14499999582767,9.2040004730225", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/track_4096.mdl", "#", "#", 1, "", "2047.7600097656,-0.0080000003799796,9.2209997177124", ""})
-  asmlib.InsertRecord({"models/props_phx/trains/track_4096.mdl", "#", "#", 2, "", "-2048.2451171875,-0.22100000083447,9.2209997177124", "0,180,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/track_32.mdl" , "#", "#", 1, "-0.327,-61.529,8.714", " 15.760,0,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_32.mdl" , "#", "#", 2, "-0.327, 61.529,8.714", "-16.245,0,9.215", "0,180,0"})  
+  asmlib.InsertRecord({"models/props_phx/trains/track_64.mdl" , "#", "#", 1, "", " 32.005,0,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_64.mdl" , "#", "#", 2, "", "-32.005,0,9.215", "0,180,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/track_128.mdl", "#", "#", 1, "", " 63.760,0,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_128.mdl", "#", "#", 2, "", "-64.245,0,9.215", "0,180,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/track_256.mdl", "#", "#", 1, "", " 127.76,0,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_256.mdl", "#", "#", 2, "", "-128.25,0,9.215", "0,180,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/track_512.mdl", "#", "#", 1, "", " 255.760,0,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_512.mdl", "#", "#", 2, "", "-256.247,0,9.215", "0,180,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/track_1024.mdl", "#", "#", 1, "", " 511.760,0.002,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_1024.mdl", "#", "#", 2, "", "-512.245,0.002,9.215", "0,180,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/track_2048.mdl", "#", "#", 1, "", " 1023.760, 0.001,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_2048.mdl", "#", "#", 2, "", "-1024.247,-0.109,9.215", "0,180,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/track_4096.mdl", "#", "#", 1, "", " 2047.760,0.004,9.215", ""})
+  asmlib.InsertRecord({"models/props_phx/trains/track_4096.mdl", "#", "#", 2, "", "-2048.243,-0.22483,9.215", "0,180,0"})
   asmlib.DefaultType("PHX Regular")
   asmlib.SettingsModelToName("SET",{1,6})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_1x.mdl", "#", "#", 1, "", "79.93, 0, 12.544", ""})
@@ -1671,6 +1671,48 @@ else
   asmlib.InsertRecord({"models/ron/2ft/xjunctions/x_junction_unswitched.mdl", "#", "#", 2, "", "   0, 62,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/xjunctions/x_junction_unswitched.mdl", "#", "#", 3, "", "-704, 62,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/xjunctions/x_junction_unswitched.mdl", "#", "#", 4, "", "-704,-62,6.016", "0,-180,0"})
+  asmlib.DefaultType("PHX Tubes 1x1")
+  ---- Works ---
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x1x90.mdl", "#", "#", 1, "", "0,0,0", "90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x1x90.mdl", "#", "#", 2, "", "0,23.725,23.725", "0,90,90"})
+  --------------  
+  
+  
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1.mdl", "#", "#", 1, "", "0,0,47.450", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1.mdl", "#", "#", 2, "", ""          , "90,0,0"})
+  
+
+  
+ 
+  
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2.mdl", "#", "#", 1, "", "0,0,94.900", "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2.mdl", "#", "#", 2, "", ""          , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3.mdl", "#", "#", 1, "", "0,0,142.35", "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3.mdl", "#", "#", 2, "", ""          , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4.mdl", "#", "#", 1, "", "0,0,189.80", "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4.mdl", "#", "#", 2, "", ""          , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8.mdl", "#", "#", 1, "", "0,0,379.60", "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8.mdl", "#", "#", 2, "", ""          , " 90,-180,180"})
+
+
+  
+  
+  
+  asmlib.DefaultType("PHX Tubes 2x2")
+  ---- Works ---
+  --------------  
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05.mdl"    , "#", "#", 1, "", "0,0, 11.8625", "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05.mdl"    , "#", "#", 2, "", "0,0,-11.8625", " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1.mdl"     , "#", "#", 1, "", "0,0, 23.726" , "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1.mdl"     , "#", "#", 2, "", "0,0,-23.726" , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2.mdl"     , "#", "#", 1, "", "0,0, 47.45"  , "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2.mdl"     , "#", "#", 2, "", "0,0,-47.45"  , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4.mdl"     , "#", "#", 1, "", "0,0, 94.9"   , "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4.mdl"     , "#", "#", 2, "", "0,0,-94.9"   , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8.mdl"     , "#", "#", 1, "", "0,0, 189.8"  , "-90,   0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8.mdl"     , "#", "#", 2, "", "0,0,-189.8"  , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 1, "", ""            , "-90,   0,180"})  
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 2, "", "0,0,-47.45"  , " 90,-180,180"})
 end
 
 if(file.Exists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then

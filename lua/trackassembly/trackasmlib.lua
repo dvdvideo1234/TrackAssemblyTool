@@ -860,13 +860,13 @@ function GetFrequentModels(snCount)
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not IsExistent(defTable)) then
     return StatusLog(nil,"GetFrequentModels: Missing table definition") end
-  local Cache = libCache[defTable.Name]
-  if(not IsExistent(Cache)) then
+  local tCache = libCache[defTable.Name]
+  if(not IsExistent(tCache)) then
     return StatusLog(nil,"GetFrequentModels: Missing table cache space") end
   local iInd, tmNow = 1, Time()
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
   tableEmpty(frUsed)
-  for Model, Record in pairs(Cache) do
+  for Model, Record in pairs(tCache) do
     if(IsExistent(Record.Used) and IsExistent(Record.Kept) and Record.Kept > 0) then
       iInd = PushSortValues(frUsed,snCount,tmNow-Record.Used,{
                [defTable[1][1]] = Model,
@@ -1533,24 +1533,23 @@ end
 local function SQLBuildCreate(defTable)
   if(not defTable) then
     return SQLBuildError("SQLBuildCreate: Missing table definition") end
-  local namTable = defTable.Name
   local indTable = defTable.Index
   if(not defTable[1]) then
-    return SQLBuildError("SQLBuildCreate: Missing table definition is empty for "..namTable) end
+    return SQLBuildError("SQLBuildCreate: Missing table definition is empty for "..defTable.Name) end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return SQLBuildError("SQLBuildCreate: Missing table "..namTable.." field definitions") end
+    return SQLBuildError("SQLBuildCreate: Missing table "..defTable.Name.." field definitions") end
   local Ind = 1
   local Command  = {}
-  Command.Drop   = "DROP TABLE "..namTable..";"
-  Command.Delete = "DELETE FROM "..namTable..";"
-  Command.Create = "CREATE TABLE "..namTable.." ( "
+  Command.Drop   = "DROP TABLE "..defTable.Name..";"
+  Command.Delete = "DELETE FROM "..defTable.Name..";"
+  Command.Create = "CREATE TABLE "..defTable.Name.." ( "
   while(defTable[Ind]) do
     local v = defTable[Ind]
     if(not v[1]) then
-      return SQLBuildError("SQLBuildCreate: Missing Table "..namTable
+      return SQLBuildError("SQLBuildCreate: Missing Table "..defTable.Name
                           .."'s field #"..tostring(Ind)) end
     if(not v[2]) then
-      return SQLBuildError("SQLBuildCreate: Missing Table "..namTable
+      return SQLBuildError("SQLBuildCreate: Missing Table "..defTable.Name
                                   .."'s field type #"..tostring(Ind)) end
     Command.Create = Command.Create..stringUpper(v[1]).." "..stringUpper(v[2])
     if(defTable[Ind+1]) then Command.Create = Command.Create ..", " end
@@ -1570,27 +1569,27 @@ local function SQLBuildCreate(defTable)
       local vI = indTable[Ind]
       if(type(vI) ~= "table") then
         return SQLBuildError("SQLBuildCreate: Index creator mismatch on "
-          ..namTable.." value "..vI.." is not a table for index ["..tostring(Ind).."]") end
+          ..defTable.Name.." value "..vI.." is not a table for index ["..tostring(Ind).."]") end
       local FieldsU = ""
       local FieldsC = ""
-      Command.Index[Ind] = "CREATE INDEX IND_"..namTable
+      Command.Index[Ind] = "CREATE INDEX IND_"..defTable.Name
       Cnt = 1
       while(vI[Cnt]) do
         local vF = vI[Cnt]
         if(type(vF) ~= "number") then
           return SQLBuildError("SQLBuildCreate: Index creator mismatch on "
-            ..namTable.." value "..vF.." is not a number for index ["
+            ..defTable.Name.." value "..vF.." is not a number for index ["
             ..tostring(Ind).."]["..tostring(Cnt).."]") end
         if(not defTable[vF]) then
           return SQLBuildError("SQLBuildCreate: Index creator mismatch on "
-            ..namTable..". The table does not have field index #"
+            ..defTable.Name..". The table does not have field index #"
             ..vF..", max is #"..Table.Size) end
         FieldsU = FieldsU.."_" ..stringUpper(defTable[vF][1])
         FieldsC = FieldsC..stringUpper(defTable[vF][1])
         if(vI[Cnt+1]) then FieldsC = FieldsC ..", " end
         Cnt = Cnt + 1
       end
-      Command.Index[Ind] = Command.Index[Ind]..FieldsU.." ON "..namTable.." ( "..FieldsC.." );"
+      Command.Index[Ind] = Command.Index[Ind]..FieldsU.." ON "..defTable.Name.." ( "..FieldsC.." );"
       Ind = Ind + 1
     end
   end
@@ -1600,28 +1599,20 @@ end
 
 local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
   if(not GetOpVar("EN_QUERY_STORE")) then return sQuery end
-  local Val
-  local Base
+  local Val, Base
   if(not defTable) then
     return StatusLog(nil,"SQLStoreQuery: Missing table definition") end
   local tTimer = defTable.Timer
   if(not (tTimer and ((tonumber(tTimer[2]) or 0) > 0))) then
     return StatusLog(sQuery,"SQLStoreQuery: Skipped. Cache persistent forever") end
-  local Field = 1
-  local Where = 1
-  local Order = 1
-  local keyStore = GetOpVar("HASH_QUERY_STORE")
-  local Cache    = libCache[keyStore]
-  local namTable = defTable.Name
-  if(not IsExistent(Cache)) then
-    libCache[keyStore] = {}
-    Cache = libCache[keyStore]
-  end
-  local Place = Cache[namTable]
+  local Field, Where, Order = 1, 1, 1
+  local keyStr = GetOpVar("HASH_QUERY_STORE")
+  local tCache = libCache[keyStr]
+  if(not IsExistent(tCache)) then
+    libCache[keyStr] = {}; tCache = libCache[keyStr] end
+  local Place = tCache[defTable.Name]
   if(not IsExistent(Place)) then
-    Cache[namTable] = {}
-    Place = Cache[namTable]
-  end
+    tCache[defTable.Name] = {}; Place = tCache[defTable.Name] end
   if(tFields) then
     while(tFields[Field]) do
       Val = defTable[tFields[Field]][1]
@@ -1701,9 +1692,8 @@ end
 local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   if(not defTable) then
     return SQLBuildError("SQLBuildSelect: Missing table definition") end
-  local namTable = defTable.Name
   if(not (defTable[1][1] and defTable[1][2])) then
-    return SQLBuildError("SQLBuildSelect: Missing table "..namTable.." field definitions") end
+    return SQLBuildError("SQLBuildSelect: Missing table "..defTable.Name.." field definitions") end
   local Command = SQLStoreQuery(defTable,tFields,tWhere,tOrderBy)
   if(IsString(Command)) then
     SQLBuildError("")
@@ -1716,13 +1706,13 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       if(not IsExistent(v)) then
         return SQLBuildError("SQLBuildSelect: Select index NAN {"
              ..type(tFields[Cnt]).."}<"..tostring(tFields[Cnt])
-             .."> type mismatch in "..namTable) end
+             .."> type mismatch in "..defTable.Name) end
       if(defTable[v]) then
         if(defTable[v][1]) then
           Command = Command..defTable[v][1]
         else
           return SQLBuildError("SQLBuildSelect: Select no such field name by index #"
-            ..v.." in the table "..namTable) end
+            ..v.." in the table "..defTable.Name) end
       end
       if(tFields[Cnt+1]) then
         Command = Command ..", "
@@ -1732,7 +1722,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   else
     Command = Command.."*"
   end
-  Command = Command .." FROM "..namTable
+  Command = Command .." FROM "..defTable.Name
   if(tWhere and
      type(tWhere == "table") and
      type(tWhere[1]) == "table" and
@@ -1748,12 +1738,12 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       t = defTable[k][2]
       if(not (k and v and t) ) then
         return SQLBuildError("SQLBuildSelect: Where clause inconsistent on "
-          ..namTable.." field index, {"..tostring(k)..","..tostring(v)..","..tostring(t)
+          ..defTable.Name.." field index, {"..tostring(k)..","..tostring(v)..","..tostring(t)
           .."} value or type in the table definition") end
       v = MatchType(defTable,v,k,true)
       if(not IsExistent(v)) then
         return SQLBuildError("SQLBuildSelect: Data matching failed on "
-          ..namTable.." field index #"..Cnt.." value <"..tostring(v)..">") end
+          ..defTable.Name.." field index #"..Cnt.." value <"..tostring(v)..">") end
       if(Cnt == 1) then
         Command = Command.." WHERE "..defTable[k][1].." = "..v
       else
@@ -1777,7 +1767,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
         end
       else
         return SQLBuildError("SQLBuildSelect: Order wrong for "
-                           ..namTable .." field index #"..Cnt) end
+                           ..defTable.Name .." field index #"..Cnt) end
         Command = Command..defTable[v][1]..Dire
         if(tOrderBy[Cnt+1]) then
           Command = Command..", "
@@ -1790,18 +1780,14 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
 end
 
 local function SQLBuildInsert(defTable,tInsert,tValues)
-  if(not (defTable and tValues)) then
-    return SQLBuildError("SQLBuildInsert: Missing Table definition or value fields")
-  end
-  local namTable = defTable.Name
+  if(not defTable) then
+    return SQLBuildError("SQLBuildInsert: Missing Table definition") end
+  if(not tValues) then
+    return SQLBuildError("SQLBuildInsert: Missing Table value fields") end
   if(not defTable[1]) then
-    return SQLBuildError("SQLBuildInsert: The table and the chosen fields must not be empty")
-  end
-  if(not (defTable[1][1] and
-          defTable[1][2])
-  ) then
-    return SQLBuildError("SQLBuildInsert: Missing table "..namTable.." field definition")
-  end
+    return SQLBuildError("SQLBuildInsert: The table and the chosen fields must not be empty") end
+  if(not (defTable[1][1] and defTable[1][2])) then
+    return SQLBuildError("SQLBuildInsert: Missing table "..defTable.Name.." field definition") end
   local tInsert = tInsert or {}
   if(not tInsert[1]) then
     local iCnt = 1
@@ -1812,17 +1798,17 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
   end
   local iCnt = 1
   local qVal = " VALUES ( "
-  local qIns = "INSERT INTO "..namTable.." ( "
+  local qIns = "INSERT INTO "..defTable.Name.." ( "
   local Val, Ind, Fld
   while(tInsert[iCnt]) do
     Ind = tInsert[iCnt]
     Fld = defTable[Ind]
     if(not IsExistent(Fld)) then
-      return SQLBuildError("SQLBuildInsert: No such field #"..Ind.." on table "..namTable)
+      return SQLBuildError("SQLBuildInsert: No such field #"..Ind.." on table "..defTable.Name)
     end
     Val = MatchType(defTable,tValues[iCnt],Ind,true)
     if(not IsExistent(Val)) then
-      return SQLBuildError("SQLBuildInsert: Cannot match value <"..tostring(tValues[iCnt]).."> #"..Ind.." on table "..namTable)
+      return SQLBuildError("SQLBuildInsert: Cannot match value <"..tostring(tValues[iCnt]).."> #"..Ind.." on table "..defTable.Name)
     end
     qIns = qIns..Fld[1]
     qVal = qVal..Val
@@ -1848,13 +1834,12 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     return StatusLog(false,"CreateTable: Record definition missing for "..sTable) end
   if(#defTable ~= tableMaxn(defTable)) then
     return StatusLog(false,"CreateTable: Record definition mismatch for "..sTable) end
+  SetOpVar("DEFTABLE_"..sTable,defTable)
   defTable.Size = #defTable
+  defTable.Name = GetOpVar("TOOLNAME_PU")..sTable 
   local sModeDB = GetOpVar("MODE_DATABASE")
   local sTable  = stringUpper(sTable)
-  defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
-  SetOpVar("DEFTABLE_"..sTable,defTable)
-  local symDis = GetOpVar("OPSYM_DISABLE")
-  local namTable = defTable.Name
+  local symDis  = GetOpVar("OPSYM_DISABLE")
   local Cnt, defField = 1, nil
   while(defTable[Cnt]) do
     defField    = defTable[Cnt]
@@ -1862,12 +1847,12 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     defField[4] = DefaultString(tostring(defField[4] or symDis), symDis)
     Cnt = Cnt + 1
   end
-  libCache[namTable] = {}
+  libCache[defTable.Name] = {}
   if(sModeDB == "SQL") then
     defTable.Life = tonumber(defTable.Life) or 0
     local tQ = SQLBuildCreate(defTable)
     if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable: "..SQLBuildError()) end
-    if(bDelete and sqlTableExists(namTable)) then
+    if(bDelete and sqlTableExists(defTable.Name)) then
       local qRez = sqlQuery(tQ.Delete)
       if(not qRez and IsBool(qRez)) then
         LogInstance("CreateTable: Table "..sTable.." is not present. Skipping delete !")
@@ -1883,7 +1868,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
         LogInstance("CreateTable: Table "..sTable.." dropped !")
       end
     end
-    if(sqlTableExists(namTable)) then
+    if(sqlTableExists(defTable.Name)) then
       LogInstance("CreateTable: Table "..sTable.." exists!")
       return true
     else
@@ -1891,7 +1876,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       if(not qRez and IsBool(qRez)) then
         return StatusLog(false,"CreateTable: Table "..sTable
           .." failed to create because of "..sqlLastError()) end
-      if(sqlTableExists(namTable)) then
+      if(sqlTableExists(defTable.Name)) then
         for k, v in pairs(tQ.Index) do
           qRez = sqlQuery(v)
           if(not qRez and IsBool(qRez)) then
@@ -1928,7 +1913,6 @@ function InsertRecord(sTable,tData)
     return StatusLog(false,"InsertRecord: Missing data table for "..sTable) end
   if(not tData[1])   then
     return StatusLog(false,"InsertRecord: Missing data table is empty for "..sTable) end
-  local namTable = defTable.Name
 
   if(sTable == "PIECES") then
     tData[2] = DisableString(tData[2],DefaultType(),"TYPE")
@@ -1952,15 +1936,13 @@ function InsertRecord(sTable,tData)
       return StatusLog(nil,"InsertRecord: Cannot match primary key "
                           ..sTable.." <"..tostring(tData[1]).."> to "
                           ..defTable[1][1].." for "..tostring(snPrimaryKey)) end
-    local Cache = libCache[namTable]
-    if(not IsExistent(Cache)) then
-      return StatusLog(false,"InsertRecord: Cache not allocated for "..namTable) end
+    local tCache = libCache[defTable.Name]
+    if(not IsExistent(tCache)) then
+      return StatusLog(false,"InsertRecord: Cache not allocated for "..defTable.Name) end
     if(sTable == "PIECES") then
-      local tLine = Cache[snPrimaryKey]
+      local tLine = tCache[snPrimaryKey]
       if(not tLine) then
-        Cache[snPrimaryKey] = {}
-        tLine = Cache[snPrimaryKey]
-      end
+        tCache[snPrimaryKey] = {}; tLine = tCache[snPrimaryKey] end
       if(not IsExistent(tLine.Type)) then tLine.Type = tData[2] end
       if(not IsExistent(tLine.Name)) then tLine.Name = tData[3] end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0        end
@@ -1977,11 +1959,9 @@ function InsertRecord(sTable,tData)
       if(nOffsID > tLine.Kept) then tLine.Kept = nOffsID else
         return StatusLog(nil,"InsertRecord: Offset #"..tostring(nOffsID).." sequentiality mismatch") end
     elseif(sTable == "ADDITIONS") then
-      local tLine = Cache[snPrimaryKey]
+      local tLine = tCache[snPrimaryKey]
       if(not tLine) then
-        Cache[snPrimaryKey] = {}
-        tLine = Cache[snPrimaryKey]
-      end
+        tCache[snPrimaryKey] = {}; tLine = tCache[snPrimaryKey] end
       if(not IsExistent(tLine.Kept)) then tLine.Kept = 0 end
       if(not IsExistent(tLine.Slot)) then tLine.Slot = snPrimaryKey end
       local nCnt, sFld, nAddID = 2, "", MatchType(defTable,tData[4],4)
@@ -2003,17 +1983,17 @@ function InsertRecord(sTable,tData)
     elseif(sTable == "PHYSPROPERTIES") then
       local sKeyName = GetOpVar("HASH_PROPERTY_NAMES")
       local sKeyType = GetOpVar("HASH_PROPERTY_TYPES")
-      local tTypes   = Cache[sKeyType]
-      local tNames   = Cache[sKeyName]
+      local tTypes   = tCache[sKeyType]
+      local tNames   = tCache[sKeyName]
       -- Handle the Type
       if(not tTypes) then
-        Cache[sKeyType] = {}
-        tTypes = Cache[sKeyType]
+        tCache[sKeyType] = {}
+        tTypes = tCache[sKeyType]
         tTypes.Kept = 0
       end
       if(not tNames) then
-        Cache[sKeyName] = {}
-        tNames = Cache[sKeyName]
+        tCache[sKeyName] = {}
+        tNames = tCache[sKeyName]
       end
       local iNameID = MatchType(defTable,tData[2],2)
       if(not IsExistent(iNameID)) then -- LineID has to be set properly
@@ -2080,7 +2060,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
   if(not IsExistent(Place[Key])) then
     return StatusLog(nil,"TimerAttach: Data not found") end
   local sModeDB = GetOpVar("MODE_DATABASE")
-  LogInstance("TimerAttach: Called by <"..anyMessage.."> for Place["..tostring(Key).."]")
+  LogInstance("TimerAttach: Called by <"..tostring(anyMessage).."> for Place["..tostring(Key).."]")
   if(sModeDB == "SQL") then
     local nNowTM = Time() -- When is "now" ?
     -- If we have a timer, and it does speak, we advise you send your regards..
@@ -2093,9 +2073,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
     local nLifeTM = tTimer[2]
     if(nLifeTM <= 0) then
       return StatusLog(Place[Key],"TimerAttach: Timer attachment ignored") end
-    local sModeTM = tTimer[1]
-    local bKillRC = tTimer[3]
-    local bCollGB = tTimer[4]
+    local sModeTM, bKillRC, bCollGB = tTimer[1], tTimer[3], tTimer[4]
     LogInstance("TimerAttach: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
       Place[Key].Load = nNowTM
@@ -2213,14 +2191,13 @@ function CacheQueryPiece(sModel)
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then
     return StatusLog(nil,"CacheQueryPiece: Table definition missing") end
-  local namTable = defTable.Name
-  local Cache    = libCache[namTable] -- Match the model casing
-  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
-  if(not IsExistent(Cache)) then
-    return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..namTable..">") end
+  local tCache = libCache[defTable.Name] -- Match the model casing
+  local sModel = MatchType(defTable,sModel,1,false,"",true,true)
+  if(not IsExistent(tCache)) then
+    return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..defTable.Name..">") end
   local caInd    = GetOpVar("NAV_PIECE")
-  if(not IsExistent(caInd[1])) then caInd[1] = namTable end caInd[2] = sModel
-  local stPiece  = Cache[sModel]
+  if(not IsExistent(caInd[1])) then caInd[1] = defTable.Name end caInd[2] = sModel
+  local stPiece  = tCache[sModel]
   if(IsExistent(stPiece) and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
       return TimerRestart(libCache,caInd,defTable,"CacheQueryPiece") end
@@ -2229,9 +2206,7 @@ function CacheQueryPiece(sModel)
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryPiece: Model >> Pool <"..stringToFileName(sModel)..">")
-      Cache[sModel] = {}
-      stPiece = Cache[sModel]
-      stPiece.Kept = 0
+      tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Kept = 0
       local Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
       if(not IsExistent(Q)) then
         return StatusLog(nil,"CacheQueryPiece: Build error <"..SQLBuildError()..">") end
@@ -2275,14 +2250,13 @@ function CacheQueryAdditions(sModel)
   local defTable = GetOpVar("DEFTABLE_ADDITIONS")
   if(not defTable) then
     return StatusLog(nil,"CacheQueryAdditions: Missing table definition") end
-  local namTable = defTable.Name
-  local Cache    = libCache[namTable] -- Match the model casing
-  local sModel   = MatchType(defTable,sModel,1,false,"",true,true)
-  if(not IsExistent(Cache)) then
-    return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..namTable..">") end
-  local caInd    = GetOpVar("NAV_ADDITION")
-  if(not IsExistent(caInd[1])) then caInd[1] = namTable end caInd[2] = sModel
-  local stAddition = Cache[sModel]
+  local tCache = libCache[defTable.Name] -- Match the model casing
+  local sModel = MatchType(defTable,sModel,1,false,"",true,true)
+  if(not IsExistent(tCache)) then
+    return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..defTable.Name..">") end
+  local caInd  = GetOpVar("NAV_ADDITION")
+  if(not IsExistent(caInd[1])) then caInd[1] = defTable.Name end caInd[2] = sModel
+  local stAddition = tCache[sModel]
   if(IsExistent(stAddition) and IsExistent(stAddition.Kept)) then
     if(stAddition.Kept > 0) then
       return TimerRestart(libCache,caInd,defTable,"CacheQueryAdditions") end
@@ -2291,9 +2265,7 @@ function CacheQueryAdditions(sModel)
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryAdditions: Model >> Pool <"..stringToFileName(sModel)..">")
-      Cache[sModel] = {}
-      stAddition = Cache[sModel]
-      stAddition.Kept = 0
+      tCache[sModel] = {}; stAddition = tCache[sModel]; stAddition.Kept = 0
       local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
       if(not IsExistent(Q)) then
         return StatusLog(nil,"CacheQueryAdditions: Build error <"..SQLBuildError()..">") end
@@ -2325,21 +2297,19 @@ function CacheQueryPanel()
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then
     return StatusLog(false,"CacheQueryPanel: Missing table definition") end
-  local namTable = defTable.Name
-  if(not IsExistent(libCache[namTable])) then
-    return StatusLog(nil,"CacheQueryPanel: Cache not allocated for <"..namTable..">") end
-  local caInd    = GetOpVar("NAV_PANEL")
-  local keyPanel = GetOpVar("HASH_USER_PANEL")
-  if(not IsExistent(caInd[1])) then caInd[1] = keyPanel end
-  local stPanel  = libCache[keyPanel]
+  if(not IsExistent(libCache[defTable.Name])) then
+    return StatusLog(nil,"CacheQueryPanel: Cache not allocated for <"..defTable.Name..">") end
+  local caInd  = GetOpVar("NAV_PANEL")
+  local keyPan = GetOpVar("HASH_USER_PANEL")
+  if(not IsExistent(caInd[1])) then caInd[1] = keyPan end
+  local stPanel  = libCache[keyPan]
   if(IsExistent(stPanel) and IsExistent(stPanel.Kept)) then
     LogInstance("CacheQueryPanel: From Pool")
     if(stPanel.Kept > 0) then
       return TimerRestart(libCache,caInd,defTable,"CacheQueryPanel") end
     return nil
   else
-    libCache[keyPanel] = {}
-    stPanel = libCache[keyPanel]
+    libCache[keyPan] = {}; stPanel = libCache[keyPan]
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
@@ -2357,11 +2327,15 @@ function CacheQueryPanel()
       end
       return TimerAttach(libCache,caInd,defTable,"CacheQueryPanel")
     elseif(sModeDB == "LUA") then
-      local Cache = libCache[namTable]
+      local tCache = libCache[defTable.Name]
       local tData = {}
       local iNdex = 0
-      for sModel, tRecord in pairs(Cache) do
-        tData[sModel] = {[defTable[1][1]] = sModel, [defTable[2][1]] = tRecord.Type, [defTable[3][1]] = tRecord.Name}
+      for sModel, tRecord in pairs(tCache) do
+        tData[sModel] = {
+          [defTable[1][1]] = sModel,
+          [defTable[2][1]] = tRecord.Type,
+          [defTable[3][1]] = tRecord.Name
+        }
       end
       local tSorted = Sort(tData,nil,{defTable[2][1],defTable[3][1]})
       if(not tSorted) then
@@ -2382,20 +2356,19 @@ function CacheQueryProperty(sType)
   local defTable = GetOpVar("DEFTABLE_PHYSPROPERTIES")
   if(not defTable) then
     return StatusLog(nil,"CacheQueryProperty: Missing table definition") end
-  local namTable = defTable.Name
-  local Cache    = libCache[namTable]
-  if(not Cache) then
-    return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..namTable..">") end
+  local tCache = libCache[defTable.Name]
+  if(not tCache) then
+    return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..defTable.Name..">") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and not IsEmptyString(sType)) then
     local sType   = MatchType(defTable,sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
-    local arNames = Cache[keyName]
+    local arNames = tCache[keyName]
     local caInd   = GetOpVar("NAV_PROPERTY_NAMES")
-    if(not IsExistent(caInd[1])) then caInd[1] = namTable; caInd[2] = keyName end caInd[3] = sType
+    if(not IsExistent(caInd[1])) then
+      caInd[1] = defTable.Name; caInd[2] = keyName end caInd[3] = sType
     if(not IsExistent(arNames)) then
-      Cache[keyName] = {}
-      arNames = Cache[keyName]
+      tCache[keyName] = {}; arNames = tCache[keyName]
     end
     local stName = arNames[sType]
     if(IsExistent(stName) and IsExistent(stName.Kept)) then
@@ -2405,9 +2378,7 @@ function CacheQueryProperty(sType)
       return nil
     else
       if(sModeDB == "SQL") then
-        arNames[sType] = {}
-        stName = arNames[sType]
-        stName.Kept = 0
+        arNames[sType] = {}; stName = arNames[sType]; stName.Kept = 0
         local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
         if(not IsExistent(Q)) then
           return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: <"..SQLBuildError()..">") end
@@ -2429,9 +2400,9 @@ function CacheQueryProperty(sType)
     end
   else
     local keyType = GetOpVar("HASH_PROPERTY_TYPES")
-    local stType  = Cache[keyType]
+    local stType  = tCache[keyType]
     local caInd   = GetOpVar("NAV_PROPERTY_TYPES")
-    if(not IsExistent(caInd[1])) then caInd[1] = namTable; caInd[2] = keyType end
+    if(not IsExistent(caInd[1])) then caInd[1] = defTable.Name; caInd[2] = keyType end
     if(IsExistent(stType) and IsExistent(stType.Kept)) then
       LogInstance("CacheQueryProperty: Types << Pool")
       if(stType.Kept > 0) then
@@ -2439,9 +2410,7 @@ function CacheQueryProperty(sType)
       return nil
     else
       if(sModeDB == "SQL") then
-        Cache[keyType] = {}
-        stType = Cache[keyType]
-        stType.Kept = 0
+        tCache[keyType] = {}; stType = tCache[keyType]; stType.Kept = 0
         local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
         if(not IsExistent(Q)) then
           return StatusLog(nil,"CacheQueryProperty: Build error: <"..SQLBuildError()..">") end
@@ -2500,15 +2469,12 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"ImportFromDSV: Missing table definition for <"..sTable..">") end
-  local namTable = defTable.Name
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..(sPrefix or GetInstPref())..namTable..".txt"
+        fName = fName..(sPrefix or GetInstPref())..defTable.Name..".txt"
   local F = fileOpen(fName, "r", "DATA")
   if(not F) then return StatusLog(false,"ImportFromDSV: fileOpen("..fName..".txt) Failed") end
-  local Line = ""
-  local TabLen = stringLen(namTable)
-  local LinLen = 0
-  local ComCnt = 0
+  local TabLen = stringLen(defTable.Name)
+  local Line, LinLen, ComCnt = "", 0, 0
   local SymOff = GetOpVar("OPSYM_DISABLE")
   local Ch = "X" -- Just to be something
   while(Ch) do
@@ -2520,17 +2486,15 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
         Line = stringSub(Line,1,LinLen-1)
         LinLen = LinLen - 1
       end
-      if(not (stringSub(Line,1,1) == SymOff)) then
-        if(stringSub(Line,1,TabLen) == namTable) then
-          local Data = stringExplode(sDelim,stringSub(Line,TabLen+2,LinLen))
-          for k,v in pairs(Data) do
-            local vLen = stringLen(v)
-            if(stringSub(v,1,1) == "\"" and stringSub(v,vLen,vLen) == "\"") then
-              Data[k] = stringSub(v,2,vLen-1)
-            end
+      if((stringSub(Line,1,1) ~= SymOff) and (stringSub(Line,1,TabLen) == defTable.Name)) then
+        local Data = stringExplode(sDelim,stringSub(Line,TabLen+2,LinLen))
+        for k,v in pairs(Data) do
+          local vLen = stringLen(v)
+          if(stringSub(v,1,1) == "\"" and stringSub(v,vLen,vLen) == "\"") then
+            Data[k] = stringSub(v,2,vLen-1)
           end
-          if(bCommit) then InsertRecord(sTable,Data) end
         end
+        if(bCommit) then InsertRecord(sTable,Data) end
       end
       Line = ""
     else
@@ -2549,17 +2513,15 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   if(not defTable) then
     return StatusLog(false,"ExportIntoFile: Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")
-  local namTable = defTable.Name
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   if    (sMethod == "DSV") then fName = fName..GetOpVar("DIRPATH_DSV")
   elseif(sMethod == "INS") then fName = fName..GetOpVar("DIRPATH_EXP")
   else return StatusLog(false,"Missed export method: <"..sMethod..">") end
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..(sPrefix or GetInstPref())..namTable..".txt"
+  fName = fName..(sPrefix or GetInstPref())..defTable.Name..".txt"
   local F = fileOpen(fName, "w", "DATA" )
   if(not F) then return StatusLog(false,"ExportIntoFile: fileOpen("..fName..") Failed") end
-  local sData = ""
-  local sTemp = ""
+  local sData, sTemp = "", ""
   local sModeDB = GetOpVar("MODE_DATABASE")
   F:Write("# ExportIntoFile( "..sMethod.." ): "..osDate().." [ "..sModeDB.." ]".."\n")
   F:Write("# Data settings: "..GetFieldsName(defTable,sDelim).."\n")
@@ -2577,7 +2539,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     if(not (qData and qData[1])) then
       return StatusLog(false,"ExportIntoFile: No data found <"..Q..">") end
     local iCnt, iInd, qRec = 1, 1, nil
-    if    (sMethod == "DSV") then sData = namTable..sDelim
+    if    (sMethod == "DSV") then sData = defTable.Name..sDelim
     elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
     while(qData[iCnt]) do
       iInd  = 1
@@ -2588,33 +2550,29 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
         if(defTable[iInd + 1]) then sTemp = sTemp..sDelim end
         iInd = iInd + 1
       end
-      if(sMethod == "DSV") then
-        sTemp = sTemp.."\n"
-      elseif(sMethod == "INS") then
-        sTemp = sTemp.."})\n"
-      end
+      if    (sMethod == "DSV") then sTemp = sTemp.."\n"
+      elseif(sMethod == "INS") then sTemp = sTemp.."})\n" end
       F:Write(sTemp)
       iCnt = iCnt + 1
     end
   elseif(sModeDB == "LUA") then
-    local Cache = libCache[namTable]
-    if(not IsExistent(Cache)) then
-      return StatusLog(false,"ExportIntoFile: Table <"..namTable.."> cache not allocated") end
+    local tCache = libCache[defTable.Name]
+    if(not IsExistent(tCache)) then
+      return StatusLog(false,"ExportIntoFile: Table <"..defTable.Name.."> cache not allocated") end
     if(sTable == "PIECES") then
       local tData = {}
-      local iInd iNdex = 1,1
-      for sModel, tRecord in pairs(Cache) do
+      for sModel, tRecord in pairs(tCache) do
         sData = tRecord.Type..tRecord.Name..sModel
         tData[sModel] = {[defTable[1][1]] = sData}
       end
       local tSorted = Sort(tData,nil,{defTable[1][1]})
       if(not tSorted) then
         return StatusLog(false,"ExportIntoFile: Cannot sort cache data") end
-      iNdex = 1
+      local iInd iNdex = 1, 1
       while(tSorted[iNdex]) do
-        iInd = 1
-        tData = Cache[tSorted[iNdex].Key]
-        if    (sMethod == "DSV") then sData = namTable..sDelim
+        iInd  = 1
+        tData = tCache[tSorted[iNdex].Key]
+        if    (sMethod == "DSV") then sData = defTable.Name..sDelim
         elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
         sData = sData..MatchType(defTable,tSorted[iNdex].Key,1,true,"\"")..sDelim..
                        MatchType(defTable,tData.Type,2,true,"\"")..sDelim..
@@ -2634,8 +2592,8 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       end
     elseif(sTable == "ADDITIONS") then
       local iNdex, tData
-      for sModel, tRecord in pairs(Cache) do
-        if    (sMethod == "DSV") then sData = namTable..sDelim..sModel..sDelim
+      for sModel, tRecord in pairs(tCache) do
+        if    (sMethod == "DSV") then sData = defTable.Name..sDelim..sModel..sDelim
         elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
         iNdex = 1
         while(tRecord[iNdex]) do -- Data is already inserted, there will be no crash
@@ -2658,19 +2616,19 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
         end
       end
     elseif(sTable == "PHYSPROPERTIES") then
-      local tTypes = Cache[GetOpVar("HASH_PROPERTY_TYPES")]
-      local tNames = Cache[GetOpVar("HASH_PROPERTY_NAMES")]
+      local tTypes = tCache[GetOpVar("HASH_PROPERTY_TYPES")]
+      local tNames = tCache[GetOpVar("HASH_PROPERTY_NAMES")]
       if(not (tTypes or tNames)) then
         return StatusLog(false,"ExportIntoFile: No data found") end
-      local iInd, iCnt = 1, 1
-      local sType, sName = "", ""
       local tType
+      local iInd , iCnt  = 1 , 1
+      local sType, sName = "", ""
       while(tTypes[iInd]) do
         sType = tTypes[iInd]
         tType = tNames[sType]
         if(not tType) then return
           StatusLog(false,"ExportIntoFile: Missing index #"..iInd.." on type <"..sType..">") end
-        if    (sMethod == "DSV") then sData = namTable..sDelim
+        if    (sMethod == "DSV") then sData = defTable.Name..sDelim
         elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
         iCnt = 1
         while(tType[iCnt]) do -- The number is already inserted, there will be no crash
@@ -2766,7 +2724,6 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180)
   stSpawn.HPos:Mul(-1)
   stSpawn.HPos:Set(DecomposeByAngle(stSpawn.HPos,stSpawn.HAng))
-  NegAngle(stSpawn.HAng)
   -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)
   stSpawn.SPos:Add((stPOA.O[csA] * stSpawn.HPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
@@ -2774,9 +2731,9 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   stSpawn.SPos:Add((stPOA.O[csC] * stSpawn.HPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
   -- Spawn Angle
   stSpawn.SAng:Set(stSpawn.OAng)
-  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.HAng[caP] * stPOA.A[csA])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * stPOA.A[csB])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.HAng[caR] * stPOA.A[csC])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up()     ,-stSpawn.HAng[caY] * stPOA.A[csB])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Right()  ,-stSpawn.HAng[caP] * stPOA.A[csA])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Forward(),-stSpawn.HAng[caR] * stPOA.A[csC])
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
@@ -3102,13 +3059,17 @@ function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
     return StatusLog(true,"ApplyPhysicalAnchor: Base constraint ignored") end
   if(nWe ~= 0) then -- Weld
     local nWe = constraintWeld(ePiece, eBase, 0, 0, 0, false, false)
-    ePiece:DeleteOnRemove(nWe)
-     eBase:DeleteOnRemove(nWe)
+    if(nWe and nWe:IsValid()) then
+      ePiece:DeleteOnRemove(nWe)
+       eBase:DeleteOnRemove(nWe)
+    else LogInstance("ApplyPhysicalAnchor: Weld ignored") end
   end
   if(nNc ~= 0) then -- NoCollide
     local nNc = constraintNoCollide(ePiece, eBase, 0, 0)
-    ePiece:DeleteOnRemove(nNc)
-     eBase:DeleteOnRemove(nNc)
+    if(nNc and nNc:IsValid()) then
+      ePiece:DeleteOnRemove(nNc)
+       eBase:DeleteOnRemove(nNc)
+    else LogInstance("ApplyPhysicalAnchor: NoCollide ignored") end
   end
   return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end

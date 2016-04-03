@@ -42,7 +42,8 @@ A: Just subscribe to the workshop item:
        If "Enable ghosting" is checked the ghost track piece will be
          rendered to assist you with the building.
      When you are not looking at one of track piece's pre-defined active points,
-       you will update the piece's bodygroups/skin.
+       Pressing USE ( Default: E ) Applies the physical settings/properties on a piece.
+       If not, you will update the piece's bodygroups/skin.
    Pressing DUCK ( Default: Ctrl ) + ATTACK1 ( Default: Left mouse button )
      Will select the trace model to use as a piece for building.
    Pressing SPEED ( Default: Shift ) + ATTACK1 ( Default: Left mouse button )

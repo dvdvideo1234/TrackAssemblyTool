@@ -512,12 +512,22 @@ function TOOL:LeftClick(stTrace)
 
   local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-  if(not stSpawn) then -- Not aiming into an active point
-    local IDs = stringExplode(gsSymDir,bgskids)
-    if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
-      return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Bodygroup/Skin): Failed")) end
-    trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
-    return asmlib.StatusLog(true,"TOOL:LeftClick(Bodygroup/Skin): Success")
+  if(not stSpawn) then -- Not aiming into an active point update properties
+    if(asmlib.LoadKeyPly(ply,"USE")) then -- Physical
+      if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)) end
+      print(trEnt,anEnt)
+      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide)) then
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical anchor",ePiece)) end
+      trEnt:GetPhysicsObject():SetMass(mass)
+      return asmlib.StatusLog(true,"TOOL:LeftClick(Physical): Success")
+    else -- Visual
+      local IDs = stringExplode(gsSymDir,bgskids)
+      if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Bodygroup/Skin): Failed")) end
+      trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
+      return asmlib.StatusLog(true,"TOOL:LeftClick(Bodygroup/Skin): Success")
+    end
   end
 
   if(asmlib.LoadKeyPly(ply,"SPEED") and hdRec.Kept > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
@@ -716,8 +726,10 @@ function TOOL:DrawHUD()
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
       if(not trRec) then return end
       local ID, O, R = 1, Vector(), (actrad * ply:GetRight())
-      local stPOA = asmlib.LocatePOA(trRec,ID)
-      while(stPOA) do
+      while(ID <= trRec.Kept) do
+        local stPOA = asmlib.LocatePOA(trRec,ID)
+        if(not stPOA) then
+          return asmlib.StatusLog(nil,"DrawHUD: Cannot assist point #"..tostring(ID)) end
         asmlib.SetVector(O,stPOA.O)
         O:Rotate(trEnt:GetAngles())
         O:Add(trEnt:GetPos())
@@ -728,7 +740,6 @@ function TOOL:DrawHUD()
         local mY = (Rp.y - Op.y); mY = mY * mY
         local mR = mathSqrt(mX + mY)
         goMonitor:DrawCircle(Op, mR,"y")
-        stPOA = asmlib.LocatePOA(trRec,ID)
       end; return
     end
     stSpawn.F:Mul(30)
@@ -745,7 +756,7 @@ function TOOL:DrawHUD()
     local Zs = stSpawn.U:ToScreen()
     local Pp = stSpawn.TPnt:ToScreen()
     local Tp = stTrace.HitPos:ToScreen()
-    if(stSpawn.HRec.Offs[pnextid] and stSpawn.HRec.Kept > 1) then
+    if(asmlib.LocatePOA(stSpawn.HRec,pnextid) and stSpawn.HRec.Kept > 1) then
       local vNext = Vector()
             asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
             vNext:Rotate(stSpawn.SAng)
