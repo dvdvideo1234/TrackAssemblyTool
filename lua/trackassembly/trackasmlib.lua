@@ -1153,7 +1153,7 @@ local function TransferPOA(stOffset,sMode)
   if    (sMode == "V") then stOffset[cvX] = arPOA[1]; stOffset[cvY] = arPOA[2]; stOffset[cvZ] = arPOA[3]
   elseif(sMode == "A") then stOffset[caP] = arPOA[1]; stOffset[caY] = arPOA[2]; stOffset[caR] = arPOA[3]
   else return StatusLog(nil,"TransferPOA: Missed mode "..sMode) end
-  stOffset[csA] = arPOA[4]; stOffset[csB] = arPOA[5]; stOffset[csC] = arPOA[6]; stOffset[csD] = arPOA[7]
+  stOffset[csA] = arPOA[4]; stOffset[csB] = arPOA[5]; stOffset[csC] = arPOA[6]
   return arPOA
 end
 
@@ -1231,15 +1231,19 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     tOffs[iID].A = {}
     tOffs        = tOffs[iID]
   end
-  if((sO ~= "") and (sO ~= "NULL")) then DecodePOA(sO) else ReloadPOA() end
+  local symDis = GetOpVar("OPSYM_DISABLE")
+  ---------------- Origin ----------------
+  if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.O,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
-  if((sP ~= "") and (sP ~= "NULL")) then DecodePOA(sP) end
+  ---------------- Point ----------------
+  if(stringSub(sP,1,1) == symDis) then
+    sP = stringSub(sP,2,-1); tOffs.P[csD] = true else tOffs.P[csD] = false end
+  if((sP ~= "NULL") and not IsEmptyString(sP)) then DecodePOA(sP) end
   if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
-    return StatusLog(nil,"RegisterPOA: Cannot transfer point")
-  end -- In the POA array still persists the decoded Origin
-  if(stringSub(sP,1,1) == GetOpVar("OPSYM_DISABLE")) then tOffs.P[csD] = true else tOffs.P[csD] = false end
-  if((sA ~= "") and (sA ~= "NULL")) then DecodePOA(sA) else ReloadPOA() end
+    return StatusLog(nil,"RegisterPOA: Cannot transfer point") end
+  ---------------- Angle ----------------
+  if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.A,"A"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
   return tOffs
@@ -2730,10 +2734,10 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   stSpawn.SPos:Add((stPOA.O[csB] * stSpawn.HPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
   stSpawn.SPos:Add((stPOA.O[csC] * stSpawn.HPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
   -- Spawn Angle
-  stSpawn.SAng:Set(stSpawn.OAng)
-  stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up()     ,-stSpawn.HAng[caY] * stPOA.A[csB])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Right()  ,-stSpawn.HAng[caP] * stPOA.A[csA])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Forward(),-stSpawn.HAng[caR] * stPOA.A[csC])
+  stSpawn.SAng:Set(stSpawn.OAng); NegAngle(stSpawn.HAng)
+  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * stPOA.A[csB])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.HAng[caP] * stPOA.A[csA])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.HAng[caR] * stPOA.A[csC])
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
