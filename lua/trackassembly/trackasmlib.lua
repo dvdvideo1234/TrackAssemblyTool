@@ -415,123 +415,155 @@ end
 
 ------------- ANGLE ---------------
 function ToAngle(aBase)
-  return Angle((aBase[caP] or 0), (aBase[caY] or 0), (aBase[caR] or 0))
+  if(not aBase) then return StatusLog(nil,"ToAngle: Base invalid") end
+  return Angle((tonumber(aBase[caP]) or 0), (tonumber(aBase[caY]) or 0), (tonumber(aBase[caR]) or 0))
 end
 
 function ExpAngle(aBase)
-  return (aBase[caP] or 0), (aBase[caY] or 0), (aBase[caR] or 0)
+  if(not aBase) then return StatusLog(nil,"ExpAngle: Base invalid") end
+  return (tonumber(aBase[caP]) or 0), (tonumber(aBase[caY]) or 0), (tonumber(aBase[caR]) or 0)
 end
 
-function AddAngle(aBase, adbAdd)
-  aBase[caP] = aBase[caP] + adbAdd[caP]
-  aBase[caY] = aBase[caY] + adbAdd[caY]
-  aBase[caR] = aBase[caR] + adbAdd[caR]
+function AddAngle(aBase, aUnit)
+  if(not aBase) then return StatusLog(nil,"AddAngle: Base invalid") end
+  if(not aUnit) then return StatusLog(nil,"AddAngle: Unit invalid") end
+  aBase[caP] = (tonumber(aBase[caP]) or 0) + (tonumber(aUnit[caP]) or 0)
+  aBase[caY] = (tonumber(aBase[caY]) or 0) + (tonumber(aUnit[caY]) or 0)
+  aBase[caR] = (tonumber(aBase[caR]) or 0) + (tonumber(aUnit[caR]) or 0)
 end
 
 function AddAnglePYR(aBase, nP, nY, nR)
-  aBase[caP] = aBase[caP] + (nP or 0)
-  aBase[caY] = aBase[caY] + (nY or 0)
-  aBase[caR] = aBase[caR] + (nR or 0)
+  if(not aBase) then return StatusLog(nil,"AddAnglePYR: Base invalid") end
+  aBase[caP] = (tonumber(aBase[caP]) or 0) + (tonumber(nP) or 0)
+  aBase[caY] = (tonumber(aBase[caY]) or 0) + (tonumber(nY) or 0)
+  aBase[caR] = (tonumber(aBase[caR]) or 0) + (tonumber(nR) or 0)
 end
 
-function SubAngle(aBase, adbSub)
-  aBase[caP] = aBase[caP] - adbSub[caP]
-  aBase[caY] = aBase[caY] - adbSub[caY]
-  aBase[caR] = aBase[caR] - adbSub[caR]
+function SubAngle(aBase, aUnit)
+  if(not aBase) then return StatusLog(nil,"SubAngle: Base invalid") end
+  if(not aUnit) then return StatusLog(nil,"SubAngle: Unit invalid") end
+  aBase[caP] = (tonumber(aBase[caP]) or 0) - (tonumber(aUnit[caP]) or 0)
+  aBase[caY] = (tonumber(aBase[caY]) or 0) - (tonumber(aUnit[caY]) or 0)
+  aBase[caR] = (tonumber(aBase[caR]) or 0) - (tonumber(aUnit[caR]) or 0)
 end
 
 function SubAnglePYR(aBase, nP, nY, nR)
-  aBase[caP] = aBase[caP] - (nP or 0)
-  aBase[caY] = aBase[caY] - (nY or 0)
-  aBase[caR] = aBase[caR] - (nR or 0)
+  if(not aBase) then return StatusLog(nil,"SubAnglePYR: Base invalid") end
+  aBase[caP] = (tonumber(aBase[caP]) or 0) - (tonumber(nP) or 0)
+  aBase[caY] = (tonumber(aBase[caY]) or 0) - (tonumber(nY) or 0)
+  aBase[caR] = (tonumber(aBase[caR]) or 0) - (tonumber(nR) or 0)
 end
 
 function NegAngle(aBase)
-  aBase[caP] = -aBase[caP]
-  aBase[caY] = -aBase[caY]
-  aBase[caR] = -aBase[caR]
+  if(not aBase ) then return StatusLog(nil,"NegAngle: Base invalid") end
+  aBase[caP] = -(tonumber(aBase[caP]) or 0)
+  aBase[caY] = -(tonumber(aBase[caY]) or 0)
+  aBase[caR] = -(tonumber(aBase[caR]) or 0)
 end
 
-function SetAngle(aBase, adbSet)
-  aBase[caP] = adbSet[caP]
-  aBase[caY] = adbSet[caY]
-  aBase[caR] = adbSet[caR]
+function SetAngle(aBase, aUnit)
+  if(not aBase) then return StatusLog(nil,"SetAngle: Base invalid") end
+  if(not aUnit) then return StatusLog(nil,"SetAngle: Unit invalid") end
+  aBase[caP] = (tonumber(aUnit[caP]) or 0)
+  aBase[caY] = (tonumber(aUnit[caY]) or 0)
+  aBase[caR] = (tonumber(aUnit[caR]) or 0)
 end
 
 function SetAnglePYR(aBase, nP, nY, nR)
-  aBase[caP] = (nP or 0)
-  aBase[caY] = (nY or 0)
-  aBase[caR] = (nR or 0)
+  if(not aBase) then return StatusLog(nil,"SetAnglePYR: Base invalid") end
+  aBase[caP] = (tonumber(nP) or 0)
+  aBase[caY] = (tonumber(nY) or 0)
+  aBase[caR] = (tonumber(nR) or 0)
 end
 
 ------------- VECTOR ---------------
 
 function ToVector(vBase)
-  return Vector((vBase[cvX] or 0), (vBase[cvY] or 0), (vBase[cvZ] or 0))
+  if(not vBase) then return StatusLog(nil,"ToVector: Base invalid") end
+  return Vector((tonumber(vBase[cvX]) or 0), (tonumber(vBase[cvY]) or 0), (tonumber(vBase[cvZ]) or 0))
 end
 
 function ExpVector(vBase)
-  return (vBase[cvX] or 0), (vBase[cvY] or 0), (vBase[cvZ] or 0)
+  if(not vBase) then return StatusLog(nil,"ExpVector: Base invalid") end
+  return (tonumber(vBase[cvX]) or 0), (tonumber(vBase[cvY]) or 0), (tonumber(vBase[cvZ]) or 0)
 end
 
-function GetLengthVector(vdbBase)
-  local X = (vdbBase[cvX] or 0); X = X * X
-  local Y = (vdbBase[cvY] or 0); Y = Y * Y
-  local Z = (vdbBase[cvZ] or 0); Z = Z * Z
-  return mathSqrt(X+Y+Z)
+function GetLengthVector(vBase)
+  if(not vBase) then return StatusLog(nil,"GetLengthVector: Base invalid") end
+  local X = (tonumber(vBase[cvX]) or 0); X = X * X
+  local Y = (tonumber(vBase[cvY]) or 0); Y = Y * Y
+  local Z = (tonumber(vBase[cvZ]) or 0); Z = Z * Z
+  return mathSqrt(X + Y + Z)
 end
 
-function RoundVector(vBase,nRound)
-  local X = vBase[cvX] or 0; X = RoundValue(X,nRound or 0.1); vBase[cvX] = X
-  local Y = vBase[cvY] or 0; Y = RoundValue(Y,nRound or 0.1); vBase[cvY] = Y
-  local Z = vBase[cvZ] or 0; Z = RoundValue(Z,nRound or 0.1); vBase[cvZ] = Z
+function RoundVector(vBase,nvRound)
+  if(not vBase) then return StatusLog(nil,"RoundVector: Base invalid") end
+  local R = tonumber(nvRound)
+  if(not IsExistent(R)) then
+    return StatusLog(nil,"RoundVector: Round NAN {"..type(nvRound).."}<"..tostring(nvRound)..">") end
+  local X = (tonumber(vBase[cvX]) or 0); X = RoundValue(X,R); vBase[cvX] = X
+  local Y = (tonumber(vBase[cvY]) or 0); Y = RoundValue(Y,R); vBase[cvY] = Y
+  local Z = (tonumber(vBase[cvZ]) or 0); Z = RoundValue(Z,R); vBase[cvZ] = Z
 end
 
-function AddVector(vBase, vdbAdd)
-  vBase[cvX] = vBase[cvX] + vdbAdd[cvX]
-  vBase[cvY] = vBase[cvY] + vdbAdd[cvY]
-  vBase[cvZ] = vBase[cvZ] + vdbAdd[cvZ]
+function AddVector(vBase, vUnit)
+  if(not vBase) then return StatusLog(nil,"AddVector: Base invalid") end
+  if(not vUnit) then return StatusLog(nil,"AddVector: Unit invalid") end
+  vBase[cvX] = (tonumber(vBase[cvX]) or 0) + (tonumber(vUnit[cvX]) or 0)
+  vBase[cvY] = (tonumber(vBase[cvY]) or 0) + (tonumber(vUnit[cvY]) or 0)
+  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) + (tonumber(vUnit[cvZ]) or 0)
 end
 
 function AddVectorXYZ(vBase, nX, nY, nZ)
-  vBase[cvX] = vBase[cvX] + (nX or 0)
-  vBase[cvY] = vBase[cvY] + (nY or 0)
-  vBase[cvZ] = vBase[cvZ] + (nZ or 0)
+  if(not vBase) then return StatusLog(nil,"AddVectorXYZ: Base invalid") end
+  vBase[cvX] = (tonumber(vBase[cvX]) or 0) + (tonumber(nX) or 0)
+  vBase[cvY] = (tonumber(vBase[cvY]) or 0) + (tonumber(nY) or 0)
+  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) + (tonumber(nZ) or 0)
 end
 
-function SubVector(vBase, vdbSub)
-  vBase[cvX] = vBase[cvX] - vdbSub[cvX]
-  vBase[cvY] = vBase[cvY] - vdbSub[cvY]
-  vBase[cvZ] = vBase[cvZ] - vdbSub[cvZ]
+function SubVector(vBase, vUnit)
+  if(not vBase) then return StatusLog(nil,"SubVector: Base invalid") end
+  if(not vUnit) then return StatusLog(nil,"SubVector: Unit invalid") end
+  vBase[cvX] = (tonumber(vBase[cvX]) or 0) - (tonumber(vUnit[cvX]) or 0)
+  vBase[cvY] = (tonumber(vBase[cvY]) or 0) - (tonumber(vUnit[cvY]) or 0)
+  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(vUnit[cvZ]) or 0)
 end
 
 function SubVectorXYZ(vBase, nX, nY, nZ)
-  vBase[cvX] = vBase[cvX] - (nX or 0)
-  vBase[cvY] = vBase[cvY] - (nY or 0)
-  vBase[cvZ] = vBase[cvZ] - (nZ or 0)
+  if(not vBase) then return StatusLog(nil,"SubVectorXYZ: Base invalid") end
+  vBase[cvX] = (tonumber(vBase[cvX]) or 0) - (tonumber(nX) or 0)
+  vBase[cvY] = (tonumber(vBase[cvY]) or 0) - (tonumber(nY) or 0)
+  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(nZ) or 0)
 end
 
 function NegVector(vBase)
-  vBase[cvX] = -vBase[cvX]
-  vBase[cvY] = -vBase[cvY]
-  vBase[cvZ] = -vBase[cvZ]
+  if(not vBase) then return StatusLog(nil,"NegVector: Base invalid") end
+  vBase[cvX] = -(tonumber(vBase[cvX]) or 0)
+  vBase[cvY] = -(tonumber(vBase[cvY]) or 0)
+  vBase[cvZ] = -(tonumber(vBase[cvZ]) or 0)
 end
 
-function SetVector(vVec, vdbSet)
-  vVec[cvX] = vdbSet[cvX]
-  vVec[cvY] = vdbSet[cvY]
-  vVec[cvZ] = vdbSet[cvZ]
+function SetVector(vBase, vUnit)
+  if(not vBase) then return StatusLog(nil,"SetVector: Base invalid") end
+  if(not vUnit) then return StatusLog(nil,"SetVector: Unit invalid") end
+  vBase[cvX] = (tonumber(vUnit[cvX]) or 0)
+  vBase[cvY] = (tonumber(vUnit[cvY]) or 0)
+  vBase[cvZ] = (tonumber(vUnit[cvZ]) or 0)
 end
 
-function SetVectorXYZ(vVec, nX, nY, nZ)
-  vVec[cvX] = (nX or 0)
-  vVec[cvY] = (nY or 0)
-  vVec[cvZ] = (nZ or 0)
+function SetVectorXYZ(vBase, nX, nY, nZ)
+  if(not vBase) then return StatusLog(nil,"SetVector: Base invalid") end
+  vBase[cvX] = (tonumber(nX or 0))
+  vBase[cvY] = (tonumber(nY or 0))
+  vBase[cvZ] = (tonumber(nZ or 0))
 end
 
-function DecomposeByAngle(V,A)
-  if(not ( V and A ) ) then return Vector() end
-  return Vector(V:DotProduct(A:Forward()), V:DotProduct(A:Right()), V:DotProduct(A:Up()))
+function DecomposeByAngle(vBase,aUnit)
+  if(not vBase) then return StatusLog(Vector(),"DecomposeByAngle: Base invalid") end
+  if(not aUnit) then return StatusLog(Vector(),"DecomposeByAngle: Unit invalid") end
+  return Vector(vBase:DotProduct(aUnit:Forward()),
+                vBase:DotProduct(aUnit:Right()),
+                vBase:DotProduct(aUnit:Up()))
 end
 
 ---------- OOP -----------------
@@ -902,18 +934,10 @@ function SnapValue(nvVal, nvSnap)
   if(not IsExistent(nSnap)) then
     return StatusLog(0,"SnapValue: Convert snap NAN {"..type(nvSnap).."}<"..tostring(nvSnap)..">") end
   if(nSnap == 0) then return nVal end
-  local Rez
-  local Snp = mathAbs(nSnap)
-  local Val = mathAbs(nVal)
-  local Rst = Val % Snp
-  if((Snp-Rst) < Rst) then
-    Rez = Val+Snp-Rst
-  else
-    Rez = Val-Rst
-  end
-  if(nVal < 0) then
-    return -Rez;
-  end
+  local Snp, Val = mathAbs(nSnap), mathAbs(nVal)
+  local Rst, Rez = (Val % Snp), 0
+  if((Snp - Rst) < Rst) then Rez = Val + Snp - Rst else Rez = Val - Rst end
+  if(nVal < 0) then return -Rez; end
   return Rez;
 end
 
@@ -924,11 +948,9 @@ function GetMCWorldOffset(oEnt)
   local Phys = oEnt:GetPhysicsObject()
   if(not (Phys and Phys:IsValid())) then
     return StatusLog(Vector(0,0,0),"GetMCWorldOffset: Phys object Invalid") end
-  local aAng = oEnt:GetAngles()
-  local vMCL = Phys:GetMassCenter()
-  local vRez = Vector()
-        vRez:Add(-vMCL[cvX] * aAng:Forward())
-        vRez:Add(-vMCL[cvY] * aAng:Right())
+  local vRez = Phys:GetMassCenter()
+        vRez[cvX] = -vRez[cvX]; vRez[cvY] = -vRez[cvY]; vRez[cvZ] = 0
+        vRez:Rotate(oEnt:GetAngles())
   return vRez
 end
 
@@ -966,37 +988,44 @@ function IncDecPointID(ivPointID,sDir,rPiece)
   local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPointID: Point ID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
-  if(not IsExistent(LocatePOA(rPiece,iPointID))) then
+  local stPOA = LocatePOA(rPiece,iPointID)
+  if(not IsExistent(stPOA)) then
     return StatusLog(1,"IncDecPointID: Point ID #"..tostring(iPointID).." not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
-  if    (sDir == "+") then nDir = 1
+  if    (sDir == "+") then nDir =  1
   elseif(sDir == "-") then nDir = -1
-  else return StatusLog(iPointID,"IncDecPointID: Direction <"..sDir.."> mismatch") end
-  iPointID = iPointID + nDir
-  iPointID = RollValue(iPointID,1,rPiece.Kept)
-  if(rPiece.Offs[iPointID].P[csD]) then iPointID = iPointID + nDir end
-  return RollValue(iPointID,1,rPiece.Kept)
+  else return StatusLog(iPointID,"IncDecPointID: Direction <"..sDir.."> mismatch") end  
+  iPointID = RollValue(iPointID + nDir,1,rPiece.Kept)
+  stPOA    = LocatePOA(rPiece,iPointID) -- Skip disabled O ( Origin )
+  while(stPOA and stPOA.O[csD]) do
+    LogInstance("IncDecPointID: Point ID #"..tostring(iPointID).." disabled")
+    iPointID = RollValue(iPointID + nDir,1,rPiece.Kept)
+    stPOA    = LocatePOA(rPiece,iPointID) -- Skip disabled O ( Origin )
+  end; iPointID = RollValue(iPointID,1,rPiece.Kept)
+  if(not IsExistent(LocatePOA(rPiece,iPointID))) then
+    return StatusLog(1,"IncDecPointID["..sDir.."]: Offset PnextID #"..tostring(iPointID).." not located") end
+  return iPointID
 end
 
 function IncDecPnextID(ivPnextID,ivPointID,sDir,rPiece)
-  local iPnextID = tonumber(ivPnextID)
-  local iPointID = tonumber(ivPointID)
-  if(not IsExistent(iPnextID)) then
-    return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(ivPnextID).."}<"..tostring(ivPnextID)..">") end
+  local iPointID, iPnextID = tonumber(ivPointID), tonumber(ivPnextID)
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
-  if(not IsExistent(LocatePOA(rPiece,iPnextID))) then
-    return StatusLog(1,"IncDecPointID: Offset PnextID #"..tostring(iPnextID).." not located") end
+  if(not IsExistent(iPnextID)) then
+    return StatusLog(1,"IncDecPnextID: PnextID NAN {"..type(ivPnextID).."}<"..tostring(ivPnextID)..">") end
   if(not IsExistent(LocatePOA(rPiece,iPointID))) then
     return StatusLog(1,"IncDecPointID: Offset PointID #"..tostring(iPointID).." not located") end
+  if(not IsExistent(LocatePOA(rPiece,iPnextID))) then
+    return StatusLog(1,"IncDecPointID: Offset PnextID #"..tostring(iPnextID).." not located") end
   local sDir, nDir = stringSub(tostring(sDir),1,1), 0
   if    (sDir == "+") then nDir =  1
   elseif(sDir == "-") then nDir = -1
   else return StatusLog(iPnextID,"IncDecPnextID: Direction <"..sDir.."> mismatch") end
-  iPnextID = iPnextID + nDir
-  iPnextID = RollValue(iPnextID,1,rPiece.Kept)
-  if(iPnextID == iPointID) then iPnextID = iPnextID + nDir end
-  return RollValue(iPnextID,1,rPiece.Kept)
+  iPnextID = RollValue(iPnextID + nDir,1,rPiece.Kept)
+  if(iPnextID == iPointID) then iPnextID = RollValue(iPnextID + nDir,1,rPiece.Kept) end
+  if(not IsExistent(LocatePOA(rPiece,iPnextID))) then
+    return StatusLog(1,"IncDecPointID["..sDir.."]: Offset PnextID #"..tostring(iPnextID).." not located") end  
+  return iPnextID
 end
 
 function PointOffsetUp(oEnt,ivPointID)
@@ -1153,49 +1182,37 @@ local function TransferPOA(stOffset,sMode)
   if    (sMode == "V") then stOffset[cvX] = arPOA[1]; stOffset[cvY] = arPOA[2]; stOffset[cvZ] = arPOA[3]
   elseif(sMode == "A") then stOffset[caP] = arPOA[1]; stOffset[caY] = arPOA[2]; stOffset[caR] = arPOA[3]
   else return StatusLog(nil,"TransferPOA: Missed mode "..sMode) end
-  stOffset[csA] = arPOA[4]; stOffset[csB] = arPOA[5]; stOffset[csC] = arPOA[6]
+  stOffset[csA] = arPOA[4]; stOffset[csB] = arPOA[5]; stOffset[csC] = arPOA[6]; stOffset[csD] = arPOA[7]
   return arPOA
 end
 
 local function DecodePOA(sStr)
   if(not IsString(sStr)) then
     return StatusLog(nil,"DecodePOA: Argument {"..type(sStr).."}<"..tostring(sStr).."> not string") end
-  local DatInd = 1
-  local ComCnt = 0
-  local Len    = stringLen(sStr)
+  local sCh = ""
+  local dInd, iSep = 1, 0
+  local S, E, iCnt = 1, 1, 1
+  local strLen = stringLen(sStr)
   local symOff = GetOpVar("OPSYM_DISABLE")
   local symRev = GetOpVar("OPSYM_REVSIGN")
   local symSep = GetOpVar("OPSYM_SEPARATOR")
   local arPOA  = GetOpVar("ARRAY_DECODEPOA")
-  local Ch = ""
-  local S = 1
-  local E = 1
-  local Cnt = 1
   ReloadPOA()
-  if(stringSub(sStr,Cnt,Cnt) == symOff) then
-    arPOA[7] = true
-    Cnt = Cnt + 1
-    S   = S   + 1
+  if(stringSub(sStr,iCnt,iCnt) == symOff) then
+    arPOA[7] = true; iCnt = iCnt + 1; S = S + 1 end
+  while(iCnt <= strLen) do
+    sCh = stringSub(sStr,iCnt,iCnt)
+    if(sCh == symRev) then
+      arPOA[3+dInd] = -arPOA[3+dInd]; S = S + 1
+    elseif(sCh == symSep) then
+      iSep = iSep + 1; E = iCnt - 1
+      if(iSep > 2) then break end
+      arPOA[dInd] = tonumber(stringSub(sStr,S,E)) or 0
+      dInd = dInd + 1; S = iCnt + 1; E = S
+    else E = E + 1 end
+    iCnt = iCnt + 1
   end
-  while(Cnt <= Len) do
-    Ch = stringSub(sStr,Cnt,Cnt)
-    if(Ch == symRev) then
-      arPOA[3+DatInd] = -arPOA[3+DatInd]
-      S   = S + 1
-    elseif(Ch == symSep) then
-      ComCnt = ComCnt + 1
-      E = Cnt - 1
-      if(ComCnt > 2) then break end
-      arPOA[DatInd] = tonumber(stringSub(sStr,S,E)) or 0
-      DatInd = DatInd + 1
-      S = Cnt + 1
-      E = S
-    else
-      E = E + 1
-    end
-    Cnt = Cnt + 1
-  end
-  arPOA[DatInd] = tonumber(stringSub(sStr,S,E)) or 0
+  arPOA[dInd] = tonumber(stringSub(sStr,S,E)) or 0
   return arPOA
 end
 
@@ -1231,17 +1248,19 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     tOffs[iID].A = {}
     tOffs        = tOffs[iID]
   end
-  local symDis = GetOpVar("OPSYM_DISABLE")
   ---------------- Origin ----------------
   if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.O,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
   ---------------- Point ----------------
-  if(stringSub(sP,1,1) == symDis) then
-    sP = stringSub(sP,2,-1); tOffs.P[csD] = true else tOffs.P[csD] = false end
-  if((sP ~= "NULL") and not IsEmptyString(sP)) then DecodePOA(sP) end
+  local sD = stringGsub(sP,GetOpVar("OPSYM_DISABLE"),"")
+  if((sP ~= "NULL") and not IsEmptyString(sP)) then DecodePOA(sP) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer point") end
+  if((sD == "NULL") or IsEmptyString(sD)) then -- If empty use origin
+    tOffs.P[cvX] = tOffs.O[cvX]; tOffs.P[cvY] = tOffs.O[cvY]; tOffs.P[cvZ] = tOffs.O[cvZ];
+    tOffs.P[csA] = tOffs.O[csA]; tOffs.P[csB] = tOffs.O[csB]; tOffs.P[csC] = tOffs.O[csC];
+  end
   ---------------- Angle ----------------
   if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.A,"A"))) then
@@ -2169,7 +2188,7 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
     if    (CLIENT) then vMin, vMax = oEnt:GetRenderBounds()
     elseif(SERVER) then vMin, vMax = oEnt:OBBMins(), oEnt:OBBMaxs()
     else return StatusLog(nil,"CacheBoxLayout: Wrong instance") end
-    Box.Ang = Angle()  -- Layout entity angle
+    Box.Ang = Angle () -- Layout entity angle
     Box.Cen = Vector() -- Layout entity centre
     Box.Cen:Set(vMax); Box.Cen:Add(vMin); Box.Cen:Mul(0.5)
     Box.Eye = oEnt:LocalToWorld(Box.Cen) -- Layout camera eye
@@ -2702,8 +2721,8 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   local ihdPointID = tonumber(ivhdPointID)
   if(not IsExistent(ihdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Index NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end
-  local stPOA = LocatePOA(hdRec,ihdPointID)
-  if(not IsExistent(stPOA)) then
+  local hdPOA = LocatePOA(hdRec,ihdPointID)
+  if(not IsExistent(hdPOA)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
   local stSpawn = GetOpVar("STRUCT_SPAWN")
   local ucsPos = ucsPos or stSpawn.OPos
@@ -2721,23 +2740,23 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   -- Get Holder model data
-  SetVector(stSpawn.HPnt,stPOA.P)
-  SetVector(stSpawn.HPos,stPOA.O)
-  SetAngle (stSpawn.HAng,stPOA.A)
+  SetVector(stSpawn.HPnt,hdPOA.P)
+  SetVector(stSpawn.HPos,hdPOA.O) -- Use {0,0,0} for disabled A (Angle)
+  if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng,hdPOA.A) end
   -- Calculate spawn relation
   stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180)
   stSpawn.HPos:Mul(-1)
   stSpawn.HPos:Set(DecomposeByAngle(stSpawn.HPos,stSpawn.HAng))
   -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((stPOA.O[csA] * stSpawn.HPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
-  stSpawn.SPos:Add((stPOA.O[csB] * stSpawn.HPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
-  stSpawn.SPos:Add((stPOA.O[csC] * stSpawn.HPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
+  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
+  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
+  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
   -- Spawn Angle
   stSpawn.SAng:Set(stSpawn.OAng); NegAngle(stSpawn.HAng)
-  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * stPOA.A[csB])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.HAng[caP] * stPOA.A[csA])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.HAng[caR] * stPOA.A[csC])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * hdPOA.A[csB])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.HAng[caP] * hdPOA.A[csA])
+  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.HAng[caR] * hdPOA.A[csC])
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
@@ -2803,24 +2822,29 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     local stPOA = LocatePOA(trRec,ID)
     if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
-    SetVector(vTemp,stPOA.P)
-    vTemp:Rotate(stSpawn.TAng)
-    vTemp:Add(stSpawn.TPos)
-    vTemp:Sub(trHitPos)
-    local trAcDis = vTemp:Length()
-    if(trAcDis < stSpawn.RLen) then
-      trPOA        = stPOA
-      stSpawn.TID  = ID
-      stSpawn.RLen = trAcDis
-      stSpawn.TPnt:Set(vTemp)
-      stSpawn.TPnt:Add(trHitPos)
+    if(not stPOA.P[csD]) then -- Skip the disabled P
+      SetVector(vTemp,stPOA.P)
+      vTemp[cvX] = vTemp[cvX] * stPOA.P[csA]
+      vTemp[cvY] = vTemp[cvY] * stPOA.P[csB]
+      vTemp[cvZ] = vTemp[cvZ] * stPOA.P[csC]
+      vTemp:Rotate(stSpawn.TAng)
+      vTemp:Add(stSpawn.TPos)
+      vTemp:Sub(trHitPos)
+      local trAcDis = vTemp:Length()
+      if(trAcDis < stSpawn.RLen) then
+        trPOA        = stPOA
+        stSpawn.TID  = ID
+        stSpawn.RLen = trAcDis
+        stSpawn.TPnt:Set(vTemp)
+        stSpawn.TPnt:Add(trHitPos)
+      end
     end
   end
   if(not IsExistent(trPOA)) then
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
   -- Found the active point ID on trEnt. Initialize origins
-  SetVector(stSpawn.OPos,trPOA.O)
-  SetAngle (stSpawn.OAng,trPOA.A)
+  SetVector(stSpawn.OPos,trPOA.O) -- Use {0,0,0} for disabled A (Angle)
+  if(trPOA.A[csD]) then SetAnglePYR(stSpawn.OAng) else SetAngle(stSpawn.OAng,trPOA.A) end
   stSpawn.OPos:Rotate(stSpawn.TAng)
   stSpawn.OPos:Add(stSpawn.TPos)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))

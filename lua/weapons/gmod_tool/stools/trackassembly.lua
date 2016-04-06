@@ -620,7 +620,6 @@ function TOOL:RightClick(stTrace)
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not hdRec) then
     return asmlib.StatusLog(false,"TOOL:RightClick(): Model <"..model.."> not a piece") end
-  asmlib.Print(hdRec,"hdRec")
   local pointid, pnextid = self:GetPointID()
   local pointbu = pointid
   asmlib.LoadKeyPly(ply)

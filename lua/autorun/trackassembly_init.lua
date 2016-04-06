@@ -24,7 +24,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.228")
+asmlib.SetOpVar("TOOL_VERSION","5.229")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -106,20 +106,18 @@ if(CLIENT) then
             pnElements:Insert(4,{Label = { "DTextEntry" ,"Enter Pattern" ,"Enter a pattern here and hit enter to preform a search"}})
             pnElements:Insert(5,{Label = { "DComboBox"  ,"Select Column" ,"Choose which list column you want to preform a search on"}})
       ------------ Manage the invalid panels -------------------
-      local iNdex, iSize, vItem = 1, pnElements:GetSize(), nil
+      local iNdex, iSize, sItem, vItem = 1, pnElements:GetSize(), "", nil
       while(iNdex <= iSize) do
         vItem = pnElements:Select(iNdex)
         vItem.Panel = vguiCreate(vItem.Label[1],pnFrame)
         if(not IsValid(vItem.Panel)) then
-          asmlib.LogInstance("OPEN_FRAME: Failed to create ID #"..iNdex)
+          asmlib.LogInstance("OPEN_FRAME: Failed to create ID #"..tonumber(iNdex))
           iNdex, vItem = 1, nil
           while(iNdex <= iSize) do
-            vItem = pnElements:Select(iNdex)
-            if(IsValid(vItem.Panel)) then
-              vItem.Panel:Remove(); vItem = "and panel"
-            end
+            vItem, sItem = pnElements:Select(iNdex), ""
+            if(IsValid(vItem.Panel)) then vItem.Panel:Remove(); sItem = "and panel " end
             pnElements:Delete(iNdex)
-            asmlib.LogInstance("OPEN_FRAME: Deleted entry "..vItem.." ID #"..iNdex)
+            asmlib.LogInstance("OPEN_FRAME: Deleted entry "..sItem.."ID #"..tonumber(iNdex))
             iNdex = iNdex + 1
           end
           pnFrame:Remove()
@@ -347,6 +345,17 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
 },true,true)
 
+------ POPULATE DB ------
+--[[ TA parametrization legend
+Disabling of a component is preformed by using "OPSYM_DISABLE"
+Disabling P    - The ID is ignored when searching for active one
+Disabling O    - The ID can not selected by the holder via right click
+Disabling A    - The ID angle is treated as {0,0,0}
+Disabling Type - makes it use the value of DefaultType()
+Disabling Name - makes it generate it using the model
+Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
+When table name is not provided to InsertRecord() it uses the value of DefaultTable()
+]]-- 
 if(file.Exists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PIECES from DSV")
   asmlib.ImportFromDSV("PIECES","\t",true)
@@ -366,6 +375,9 @@ else
     asmlib.InsertRecord({"models/hunter/blocks/cube05x05x05.mdl"   , "#", "x2", 1, "", "", ""})
     asmlib.InsertRecord({"models/hunter/blocks/cube075x075x075.mdl", "#", "x3", 1, "", "", ""})
     asmlib.InsertRecord({"models/hunter/blocks/cube1x1x1.mdl"      , "#", "x4", 1, "", "", ""})
+    asmlib.DefaultType("Develop Test")
+    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "#@-90,  0,180"})
+    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "@90,180,180"})
   end
   asmlib.DefaultType("SligWolf's Rerailers")
   asmlib.InsertRecord({"models/props_phx/trains/sw_rerailer_1.mdl", "#", "Short Single", 1, "-190.55299377441,0,25.193000793457", "211.41400146484,0.014999999664724,-5.3949999809265", ""})
@@ -596,39 +608,39 @@ else
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_1.mdl", "#", "#", 1, "", "74.8, -0.013, -9.758", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_1.mdl", "#", "#", 2, "", "-59.846, 0.021, 45.855", "@-45,180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_2.mdl", "#", "#", 1, "", "-148.199, 0.021, -24.085", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_2.mdl", "#", "#", 2, "", "121.828, -0.004, 88.131", "-45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_2.mdl", "#", "#", 2, "", "121.828, -0.004, 88.131", "@-45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_3.mdl", "#", "#", 1, "", "-221.204, 0.005, -38.364", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_3.mdl", "#", "#", 2, "", "183.612, -0.018, 129.084", "-45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_3.mdl", "#", "#", 2, "", "183.612, -0.018, 129.084", "@-45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_4.mdl", "#", "#", 1, "", "-293.8, -0.013, -52.661", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_4.mdl", "#", "#", 2, "", "245.168, -0.007, 170.857", "-45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_4.mdl", "#", "#", 2, "", "245.168, -0.007, 170.857", "@-45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_1.mdl", "#", "#", 1, "", "75, -0.016, -9.757", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_1.mdl", "#", "#", 2, "", "-115.988, 0.017, 181.075", "@-90,0,180"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_2.mdl", "#", "#", 1, "", "233.158, 0.013, 358.192", "-90,180,180"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_2.mdl", "#", "#", 2, "", "-148.198, -0.013, -24.085", "0,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_2.mdl", "#", "#", 1, "", "-148.198, -0.013, -24.085", "0,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_2.mdl", "#", "#", 2, "", " 233.158,  0.013, 358.192", "@-90, 180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_3.mdl", "#", "#", 1, "", "-221.1, -0.013, -38.366", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_3.mdl", "#", "#", 2, "", "351.2, -0.013, 533.582", "-90,-180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_3.mdl", "#", "#", 2, "", "351.2, -0.013, 533.582", "@-90,-180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_4.mdl", "#", "#", 1, "", "-293.701, -0.013, -52.661", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_4.mdl", "#", "#", 2, "", "468.482, -0.013, 710.225", "-90,-180,180"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_1.mdl", "#", "#", 1, "", "72.814, -0.013, -16.992","22.5,0,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_1.mdl", "#", "#", 2, "", "-73.8, -0.013, 11.999", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_2.mdl", "#", "#", 1, "", "134.806, -0.011, -36.762", "22.5,0,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_2.mdl", "#", "#", 2, "", "-148.626, -0.013, 19.51", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_3.mdl", "#", "#", 1, "", "-224.899, 0.01, 25.763", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_3.mdl", "#", "#", 2, "", "202.547, -0.014, -57.473", "22.5,0,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_4.mdl", "#", "#", 1, "", "-300.319, 0.017, 32.11", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_4.mdl", "#", "#", 2, "", "268.6, 0.052, -77.783", "22.5,0,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_1.mdl", "#", "#", 1, "", "-71.199, -0.013, 18.809", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_1.mdl", "#", "#", 2, "", "63.815, -0.021, -37.126", "45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_4.mdl", "#", "#", 2, "", "468.482, -0.013, 710.225", "@-90,-180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_1.mdl", "#", "#", 1, "", " -73.800, -0.013,  11.999", "  0,180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_1.mdl", "#", "#", 2, "", "  72.814, -0.013, -16.992", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_2.mdl", "#", "#", 1, "", "-148.626, -0.013,  19.510", "  0,180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_2.mdl", "#", "#", 2, "", " 134.806, -0.011, -36.762", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_3.mdl", "#", "#", 1, "", "-224.899,  0.010,  25.763", "  0,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_3.mdl", "#", "#", 2, "", " 202.547, -0.014, -57.473", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_4.mdl", "#", "#", 1, "", "-300.319,  0.017,  32.110", "  0,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_4.mdl", "#", "#", 2, "", " 268.600,  0.052, -77.783", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_1.mdl", "#", "#", 1, "", "-71.199, -0.013,  18.809", "0,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_1.mdl", "#", "#", 2, "", " 63.815, -0.021, -37.126", "@45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_2.mdl", "#", "#", 1, "", "-144.8, -0.013, 33.103", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_2.mdl", "#", "#", 2, "", "125.217, -0.014, -78.778", "45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_2.mdl", "#", "#", 2, "", "125.217, -0.014, -78.778", "@45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_3.mdl", "#", "#", 1, "", "217.199, -0.013, 47.332", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_3.mdl", "#", "#", 2, "", "-187.587, 0.003, -120.127", "@45,-180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_4.mdl", "#", "#", 1, "", "290.79, -0.013, 61.604", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_4.mdl", "#", "#", 2, "", "-249.142, 0.017, -161.855", "@45, 180, 0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_1.mdl", "#", "#", 1, "", "-70.793, -0.038, 18.807", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_1.mdl", "#", "#", 2, "", "119.415, -0.013, -171.482", "90,-180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_1.mdl", "#", "#", 1, "", "-70.793, -0.038,   18.807", "0,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_1.mdl", "#", "#", 2, "", "119.415, -0.013, -171.482", "@90,-180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_2.mdl", "#", "#", 1, "", "-144.804, -0.013, 33.103", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_2.mdl", "#", "#", 2, "", "237.418, -0.013, -349.306", "90,180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_2.mdl", "#", "#", 2, "", "237.418, -0.013, -349.306", "@90,180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_3.mdl", "#", "#", 1, "", "217.199, -0.013, 47.332", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_3.mdl", "#", "#", 2, "", "-355.101, 0.01, -524.496", "@90,0,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 1, "", "290.8, -0.013, 61.604", ""})
