@@ -739,7 +739,7 @@ function TOOL:DrawHUD()
         local mX = (Rp.x - Op.x); mX = mX * mX
         local mY = (Rp.y - Op.y); mY = mY * mY
         local mR = mathSqrt(mX + mY)
-        goMonitor:DrawCircle(Op, mR,"y")
+        goMonitor:DrawCircle(Op, mR,"y","LIN",{250})
       end; return
     end
     stSpawn.F:Mul(30)
