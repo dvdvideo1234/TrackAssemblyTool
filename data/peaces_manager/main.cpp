@@ -1,29 +1,13 @@
-#include <iostream>
-#include <stdio.h>
-#include <string.h>
-#include <malloc.h>
-#include "string_stack.h"
-#define BUFF_LEN 100000
-#define PATH_LEN 1000
-
-// For example <"models/props/something.mdl">
-// <"models/> OR what the model in the line starts with
-#define MATCH_MODEL_STR "\"models/"
-// <.mdl"> OR what the model in the line ends with
-#define MATCH_MODEL_END ".mdl\""
-
-// <asmlib.DefaultType("PHX Metal")>
-// A new track type starts from this line ( e.g. "PHX Metal" )
-#define MATCH_START_NEW_TYPE "asmlib.DefaultType(\""
-
+#include "main.h"
 
 using namespace sstack;
+using namespace smatch;
 
 FILE *I, *D, *DA, *AD;
 
 int mainExit(int errID, const char * const errFormat)
 {
-  if(errID < 0){ printf(errFormat,sstack::sstackErrMsg(errID)); }
+  if(errID < 0){ printf(errFormat,sstack::getErrorMessage(errID)); }
   fclose(I);
   fclose(D);
   fclose(DA);
@@ -31,7 +15,7 @@ int mainExit(int errID, const char * const errFormat)
   return 0;
 }
 
-char *pathToGmod(char *strData)
+char *swapSlash(char *strData)
 {
   char ch;
   unsigned int i = 0;
@@ -39,10 +23,40 @@ char *pathToGmod(char *strData)
   {
     ch = strData[i];
     if  (ch == '\\'){ strData[i] = '/'; }
-    else if(ch >= 'A' && ch <= 'Z'){ strData[i] |= ' '; }
     i++;
   }
   return strData;
+}
+
+char *lowerPath(char *strData)
+{
+  char ch;
+  unsigned int i = 0;
+  while(strData[i] != '\0')
+  {
+    ch = strData[i];
+    if(ch >= 'A' && ch <= 'Z'){ strData[i] |= ' '; }
+    i++;
+  }
+  return strData;
+}
+
+char *getAddonName(char *strPath, char *strName)
+{
+  char *cS = strstr(strPath,MATCH_MODEL_DIR);
+  char *cE = cS-2;
+  memset(strName,'\0',PATH_LEN);
+  if(cS != NULL)
+  {
+    cS -= 2;
+    while(*cS != '/'){ cS--; } cS++;
+    strncpy(strName,cS,(int)(cE-cS)+1);
+  }
+  else{
+    printf("getAddonName: Path not a valid model!\n");
+    return NULL;
+  }
+  return strName;
 }
 
 char *trimAll(char *strData)
@@ -64,25 +78,39 @@ char *trimAll(char *strData)
 }
 
 int main(int argc, char **argv)
+//int main(void)
 {
-  sstack::cstrStack Addon, DataBase;
+  /*
+  int argc = 4;
+  char argv[4][500];
+  strcpy(argv[0], "chewpath.exe");
+  strcpy(argv[1], "O:\\Documents\\CodeBlocks-Projs\\chewpath\\bin\\Debug\\");
+  strcpy(argv[2], "models_list.txt");
+  strcpy(argv[3], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\lua\\autorun\\trackassembly_init.lua");
+  */
+
+  sstack::cStringStack  DataBase;
+  smatch::cMatchStack   Matches;
+  smatch::stMatch      *Match;
   unsigned char F;
   int Cnt, Len, Err;
   char *S, *E, *F1, *F2, *F3;
-  char resuPath[PATH_LEN]  = {0};
-  char fName[PATH_LEN]     = {0};
+  char resPath [PATH_LEN]  = {0};
+  char dbsPath [PATH_LEN]  = {0};
+  char addName [PATH_LEN]  = {0};
+  char fName   [PATH_LEN]  = {0};
 
-  printf("\nargc: <%d>",argc);
+  printf("argc: <%d>\n",argc);
   for(Cnt = 0; Cnt < argc; Cnt++)
   {
     trimAll(argv[Cnt]);
-    printf("\nargv[%d] = <%s>",Cnt, argv[Cnt]);
+    printf("strcpy(argv[%d], \"%s\");\n",Cnt, argv[Cnt]);
   }
 
-  if(argc < 5)
+  if(argc < 4)
   {
     printf("\nToo few parameters.\n");
-    printf("Call with /base_path/, /model_list/, /db_file/ /add-on_type/! \n");
+    printf("Call with /base_path/, /model_list/, /db_file/ ! \n");
     return mainExit(0,"");
   }
 
@@ -93,11 +121,11 @@ int main(int argc, char **argv)
   D = fopen(argv[3],"rt");
 
   strcpy(fName,argv[1]);
-  strcpy(fName,"db-addon.txt");
+  strcat(fName,"db-addon.txt");
   DA = fopen(fName,"wt");
 
   strcpy(fName,argv[1]);
-  strcpy(fName,"addon-db.txt");
+  strcat(fName,"addon-db.txt");
   AD = fopen(fName,"wt");
 
   if(NULL == I)
@@ -124,55 +152,85 @@ int main(int argc, char **argv)
     AD = stdout;
   }
 
-  Cnt = strlen(argv[1]);
-  while(fgets(resuPath,PATH_LEN,I))
+  // Add-ons model paths
+  while(fgets(resPath,PATH_LEN,I))
   {
-    trimAll(resuPath);
-    strcpy(resuPath,&(resuPath[Cnt]));
-    pathToGmod(resuPath);
-    Err = Addon.putString(resuPath);
-    if(Err < 0){ return mainExit(Err,"main(I): putString: <%s>"); }
-  }
-
-  while(fgets(resuPath,PATH_LEN,D))
-  {
-    trimAll(resuPath);
-    Cnt = strlen(resuPath);
-    F1 = strstr(resuPath,MATCH_START_NEW_TYPE);
-    F2 = strstr(resuPath,argv[4]);
-    F3 = strstr(resuPath,"end"); // Closing the IF statement in LUA
-    if(!F &&  F1 != NULL &&  F2 != NULL){ F = 1; }
-    if( F && (F1 != NULL || (F3 != NULL && Cnt == 3)) &&  F2 == NULL ){ F = 0; }
-    if(F)
-    {
-      S = strstr(resuPath,MATCH_MODEL_STR);
-      if(S != NULL)
+    swapSlash(trimAll(resPath));
+    getAddonName(resPath,addName);
+    lowerPath(resPath);
+    Match = Matches.registerMatch(addName);
+    // printf("Addon name registered: <%s>\n",addName);
+    if(Match != NULL)
+    { // A match has been registered on the database rows
+      rewind(D); // Reset the stream to search for data
+      while(fgets(dbsPath,PATH_LEN,D))
       {
-        S++;
-        E = strstr(S,MATCH_MODEL_END);
-        if(E != NULL)
-        {
-          Len = (E - S + 4);
-          strncpy(resuPath,S,Len);
-          resuPath[Len] = '\0';
-          pathToGmod(resuPath);
-          if(DataBase.findStringID(0,resuPath) == SSTACK_NOT_FOUND)
+        swapSlash(trimAll(dbsPath));
+        Cnt = strlen(dbsPath);
+        F1 = strstr(dbsPath,MATCH_START_NEW_TYPE);
+        F2 = strstr(dbsPath,Match->Name);
+        F3 = strstr(dbsPath,"end"); // Closing the IF statement in LUA
+        if(!F &&  F1 != NULL &&  F2 != NULL){ F = 1; }
+        if( F && (F1 != NULL || (F3 != NULL && Cnt == 3)) &&  F2 == NULL ){ F = 0; }
+        if(F)
+        { // printf("\n 2 <%s>",dbsPath);
+          S = strstr(dbsPath,MATCH_MODEL_DIR);
+          if(S != NULL)
           {
-            Err = DataBase.putString(resuPath);
-            if(Err < 0){ return mainExit(Err,"main(D): putString: <%s>"); }
+            E = strstr(S,MATCH_MODEL_END);
+            if(E != NULL)
+            {
+              E[4] = '\0'; // ".mdl\0"
+              // printf(DA,"DB <%s>\n",dbsPath);
+              if((Match->Dbase).findStringID(0,S) == SSTACK_NOT_FOUND)
+              {
+                // printf("\nDba Count: %d",(Match->Dbase).getCount());
+                // printf("\nAdd Count: %d",(Match->Addon).getCount());
+                Err = (Match->Dbase).putString(S);
+                if(Err < 0){ return mainExit(Err,"main(D): putString: <%s>"); }
+              }
+            }
           }
         }
       }
     }
+
+    strcpy(resPath,strstr(resPath,MATCH_MODEL_DIR));
+    Matches.addModelAddon(addName,resPath);
   }
 
-  fprintf(AD,"%s\n\n","These models were removed by the extension creator/owner.");
-  Err = Addon.printMismatch(&DataBase,AD);
-  if(Err < 0){ return mainExit(Err,"main(AD): printMismatch: <%s>"); }
+  // Matches.printAddons();
+  // Matches.printDbases();
 
-  fprintf(DA,"%s\n\n","These models are missing in the database. Insert them.");
-  Err = DataBase.printMismatch(&Addon,DA);
-  if(Err < 0){ return mainExit(Err,"main(DA): printMismatch: <%s>"); }
+  Len = Matches.getCount();
+
+  // printf("Matches count #%d\n",Len);
+
+  Cnt = 0;
+  fprintf(AD,"These models were removed by the extension creator/owner.\n\n");
+  while(Cnt < Len)
+  {
+    Match = Matches.navigateMatchID(Cnt);
+    if(Match != NULL)
+    {
+      Err = (Match->Addon).printMismatch(&(Match->Dbase),Cnt,Match->Name,AD);
+      if(Err < 0){ return mainExit(Err,"main(AD): printMismatch: <%s>"); }
+    }
+    Cnt++;
+  }
+
+  Cnt = 0;
+  fprintf(DA,"These models are missing in the database. Insert them.\n");
+  while(Cnt < Len)
+  {
+    Match = Matches.navigateMatchID(Cnt);
+    if(Match != NULL)
+    {
+      Err = (Match->Dbase).printMismatch(&(Match->Addon),Cnt,Match->Name,DA);
+      if(Err < 0){ return mainExit(Err,"main(DA): printMismatch: <%s>"); }
+    }
+    Cnt++;
+  }
 
   return mainExit(0,"");
 }

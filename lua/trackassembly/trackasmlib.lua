@@ -567,9 +567,10 @@ end
 function DecomposeByAngle(vBase,aUnit)
   if(not vBase) then return StatusLog(Vector(),"DecomposeByAngle: Base invalid") end
   if(not aUnit) then return StatusLog(Vector(),"DecomposeByAngle: Unit invalid") end
-  return Vector(vBase:DotProduct(aUnit:Forward()),
-                vBase:DotProduct(aUnit:Right()),
-                vBase:DotProduct(aUnit:Up()))
+  local X = vBase:DotProduct(aUnit:Forward())
+  local Y = vBase:DotProduct(aUnit:Right())
+  local Z = vBase:DotProduct(aUnit:Up())
+  SetVectorXYZ(vBase,X,Y,Z)
 end
 
 ---------- OOP -----------------
@@ -721,12 +722,12 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
     return 1
   end
   function self:DrawLine(xyS,xyE,keyColor,sMeth,tArg)
+    self:SetColor(keyColor)
     if(not (xyS and xyE)) then return end
     if(not (xyS.x and xyS.y and xyE.x and xyE.y)) then return end
     if(self:Enclose(xyS) == -1 or self:Enclose(xyE) == -1) then return end
     local sdrwMeth = tostring(sMeth or "API")
     if(sdrwMeth == "API") then
-      self:SetColor(keyColor)
       surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
     elseif(sdrwMeth == "LIN") then
       local nIter = tonumber(tArg[1]) or 0
@@ -754,12 +755,12 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
       if(nIter <= 0) then return end
       local nCurAng = 0
       local nMaxRot = (GetOpVar("MAX_ROTATION") * mathPi / 180)
-      local nItStep = nMaxRot / nIter
+      local nStpRot = nMaxRot / nIter
       local xyOld, xyNew, xyRad = {x=0,y=0}, {x=0,y=0}, {x=nRad,y=0}
             xyOld.x = xyPos.x + xyRad.x
             xyOld.y = xyPos.y + xyRad.y
       while(nIter > 0) do
-        nCurAng = nCurAng + nItStep
+        nCurAng = nCurAng + nStpRot
         local nSin, nCos = mathSin(nCurAng), mathCos(nCurAng)
         xyNew.x = xyPos.x + (xyRad.x * nCos - xyRad.y * nSin)
         xyNew.y = xyPos.y + (xyRad.x * nSin + xyRad.y * nCos)
@@ -1070,7 +1071,7 @@ function PointOffsetUp(oEnt,ivPointID)
   SetAngle(aDiffBB,hdPnt.A)
   aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
   SubVector(vDiffBB,hdPnt.O)
-  vDiffBB:Set(DecomposeByAngle(vDiffBB,aDiffBB))
+  DecomposeByAngle(vDiffBB,aDiffBB)
   return mathAbs(vDiffBB[cvZ])
 end
 
@@ -1160,37 +1161,46 @@ local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
   return arPOA
 end
 
-local function IsEqualPOA(stOffsetA,stOffsetB)
-  if(not IsExistent(stOffsetA)) then
-    return StatusLog(false,"EqualPOA: Missing OffsetA") end
-  if(not IsExistent(stOffsetB)) then
-    return StatusLog(false,"EqualPOA: Missing OffsetB") end
-  for iInd, kComp in pairs(stOffsetA) do
-    if(iInd ~= csD and stOffsetB[iInd] ~= kComp) then return false end
+local function IsEqualPOA(staPOA,stbPOA)
+  if(not IsExistent(staPOA)) then
+    return StatusLog(false,"EqualPOA: Missing offset A") end
+  if(not IsExistent(stbPOA)) then
+    return StatusLog(false,"EqualPOA: Missing offset B") end
+  for kKey, vComp in pairs(staPOA) do
+    if(kKey ~= csD and stbPOA[kKey] ~= vComp) then return false end
   end
   return true
 end
 
-local function StringPOA(arPOA,sOffs)
+local function IsZeroPOA(stPOA,sOffs)
+  if(not IsString(sOffs)) then
+    return StatusLog(nil,"IsZeroPOA: Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string") end
+  if(not IsExistent(stPOA)) then
+    return StatusLog(nil,"IsZeroPOA: Missing offset") end
+  local ctA, ctB, ctC
+  if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
+  elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
+  else return StatusLog(nil,"IsZeroPOA: Missed offset mode "..sOffs) end
+  if(stPOA[ctA] == 0 and stPOA[ctB] == 0 and stPOA[ctC] == 0) then return true end
+  return false
+end
+
+local function StringPOA(stPOA,sOffs)
   if(not IsString(sOffs)) then
     return StatusLog(nil,"StringPOA: Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string") end
-  if(not IsExistent(arPOA)) then
+  if(not IsExistent(stPOA)) then
     return StatusLog(nil,"StringPOA: Missing Offsets") end
   local symRevs = GetOpVar("OPSYM_REVSIGN")
   local symDisa = GetOpVar("OPSYM_DISABLE")
   local symSepa = GetOpVar("OPSYM_SEPARATOR")
   local sModeDB = GetOpVar("MODE_DATABASE")
-  local Result = ((arPOA[csD] and symDisa) or "")
-  if(sOffs == "V") then
-    Result = Result..((arPOA[csA] == -1) and symRevs or "")..tostring(arPOA[cvX])..symSepa
-                   ..((arPOA[csB] == -1) and symRevs or "")..tostring(arPOA[cvY])..symSepa
-                   ..((arPOA[csC] == -1) and symRevs or "")..tostring(arPOA[cvZ])
-  elseif(sOffs == "A") then
-    Result = Result..((arPOA[csA] == -1) and symRevs or "")..tostring(arPOA[caP])..symSepa
-                   ..((arPOA[csB] == -1) and symRevs or "")..tostring(arPOA[caY])..symSepa
-                   ..((arPOA[csC] == -1) and symRevs or "")..tostring(arPOA[caR])
-  else return StatusLog("","StringPOA: Missed offset mode "..sOffs) end
-  return stringGsub(Result," ","") -- Get rid of the spaces
+  if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
+  elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
+  else return StatusLog(nil,"StringPOA: Missed offset mode "..sOffs) end
+  return stringGsub((stPOA[csD] and symDisa or "")  -- Get rid of the spaces
+                 ..((stPOA[csA] == -1) and symRevs or "")..tostring(stPOA[ctA])..symSepa
+                 ..((stPOA[csB] == -1) and symRevs or "")..tostring(stPOA[ctB])..symSepa
+                 ..((stPOA[csC] == -1) and symRevs or "")..tostring(stPOA[ctC])," ","")
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -2506,21 +2516,20 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
         fName = fName..(sPrefix or GetInstPref())..defTable.Name..".txt"
   local F = fileOpen(fName, "r", "DATA")
   if(not F) then return StatusLog(false,"ImportFromDSV: fileOpen("..fName..".txt) Failed") end
-  local TabLen = stringLen(defTable.Name)
-  local Line, LinLen, ComCnt = "", 0, 0
-  local SymOff = GetOpVar("OPSYM_DISABLE")
-  local sChar  = "X" -- Just to be something
+  local symOff = GetOpVar("OPSYM_DISABLE")
+  local tabLen = stringLen(defTable.Name)
+  local sLine, sChar, lenLine = "", "X", 0
   while(sChar) do
     sChar = F:Read(1)
     if(not sChar) then return end
     if(sChar == "\n") then
-      LinLen = stringLen(Line)
-      if(stringSub(Line,LinLen,LinLen) == "\r") then
-        Line = stringSub(Line,1,LinLen-1)
-        LinLen = LinLen - 1
+      lenLine = stringLen(sLine)
+      if(stringSub(sLine,lenLine,lenLine) == "\r") then
+        sLine = stringSub(sLine,1,lenLine-1)
+        lenLine = lenLine - 1
       end
-      if((stringSub(Line,1,1) ~= SymOff) and (stringSub(Line,1,TabLen) == defTable.Name)) then
-        local Data = stringExplode(sDelim,stringSub(Line,TabLen+2,LinLen))
+      if((stringSub(sLine,1,1) ~= symOff) and (stringSub(sLine,1,tabLen) == defTable.Name)) then
+        local Data = stringExplode(sDelim,stringSub(sLine,tabLen+2,lenLine))
         for k,v in pairs(Data) do
           local vLen = stringLen(v)
           if(stringSub(v,1,1) == "\"" and stringSub(v,vLen,vLen) == "\"") then
@@ -2529,8 +2538,8 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
         end
         if(bCommit) then InsertRecord(sTable,Data) end
       end
-      Line = ""
-    else Line = Line..sChar end
+      sLine = ""
+    else sLine = sLine..sChar end
   end
   F:Close()
 end
@@ -2553,7 +2562,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   local F = fileOpen(fName, "w", "DATA" )
   if(not F) then return StatusLog(false,"ExportIntoFile: fileOpen("..fName..") Failed") end
   local sData, sTemp = "", ""
-  local sModeDB = GetOpVar("MODE_DATABASE")
+  local sModeDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
   F:Write("# ExportIntoFile( "..sMethod.." ): "..osDate().." [ "..sModeDB.." ]".."\n")
   F:Write("# Data settings: "..GetFieldsName(defTable,sDelim).."\n")
   if(sModeDB == "SQL") then
@@ -2607,13 +2616,13 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
         elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
         sData = sData..MatchType(defTable,tSorted[iNdex].Key,1,true,"\"")..sDelim..
                        MatchType(defTable,tData.Type,2,true,"\"")..sDelim..
-                       MatchType(defTable,tData.Name,3,true,"\"")..sDelim
+                       MatchType(defTable,((ModelToName(tSorted[iNdex].Key) == tData.Name) and symOff or tData.Name),3,true,"\"")..sDelim
         -- Matching crashes only for numbers
         while(tData.Offs[iInd]) do -- The number is already inserted, so there will be no crash
           sTemp = sData..MatchType(defTable,iInd,4,true,"\"")..sDelim..
-                        "\""..StringPOA(tData.Offs[iInd].P,"V").."\""..sDelim..
-                        "\""..StringPOA(tData.Offs[iInd].O,"V").."\""..sDelim..
-                        "\""..StringPOA(tData.Offs[iInd].A,"A").."\""
+                        "\""..(IsEqualPOA(tData.Offs[iInd].P,tData.Offs[iInd].O) and "" or StringPOA(tData.Offs[iInd].P,"V")).."\""..sDelim..
+                        "\""..  StringPOA(tData.Offs[iInd].O,"V").."\""..sDelim..
+                        "\""..( IsZeroPOA(tData.Offs[iInd].A,"A") and "" or StringPOA(tData.Offs[iInd].A,"A")).."\""
           if    (sMethod == "DSV") then sTemp = sTemp.."\n"
           elseif(sMethod == "INS") then sTemp = sTemp.."})\n" end
           F:Write(sTemp)
@@ -2732,13 +2741,10 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   local hdPOA = LocatePOA(hdRec,ihdPointID)
   if(not IsExistent(hdPOA)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
-  local stSpawn = GetOpVar("STRUCT_SPAWN")
-  local ucsPos = ucsPos or stSpawn.OPos
-  local ucsAng = ucsAng or stSpawn.OAng
-  stSpawn.HRec = hdRec
+  local stSpawn = GetOpVar("STRUCT_SPAWN"); stSpawn.HRec = hdRec
+  if(ucsPos) then SetVector(stSpawn.OPos,ucsPos) end
+  if(ucsAng) then SetAngle (stSpawn.OAng,ucsAng) end
   -- Initialize F, R, U Copy the UCS like that to support database POA
-  SetVector(stSpawn.OPos,ucsPos)
-  SetAngle (stSpawn.OAng,ucsAng)
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
@@ -2749,12 +2755,11 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   stSpawn.U:Set(stSpawn.OAng:Up())
   -- Get Holder model data
   SetVector(stSpawn.HPnt,hdPOA.P)
-  SetVector(stSpawn.HPos,hdPOA.O) -- Use {0,0,0} for disabled A (Angle)
+  SetVector(stSpawn.HPos,hdPOA.O); NegVector(stSpawn.HPos) -- Origin to Position
   if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng,hdPOA.A) end
   -- Calculate spawn relation
-  stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180)
-  stSpawn.HPos:Mul(-1)
-  stSpawn.HPos:Set(DecomposeByAngle(stSpawn.HPos,stSpawn.HAng))
+  stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),-180)
+  DecomposeByAngle(stSpawn.HPos,stSpawn.HAng)
   -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)
   stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
@@ -2858,8 +2863,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten and enFlatten ~= 0) then
-    stSpawn.OAng[caP] = 0
-    stSpawn.OAng[caR] = 0
+    stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0
   end
   return GetNormalSpawn(nil,nil,shdModel,ihdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end

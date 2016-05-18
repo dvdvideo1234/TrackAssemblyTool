@@ -1,6 +1,7 @@
 #ifndef __STRING_STACK_H_
   #define __STRING_STACK_H_
 
+  #define SSTACK_STRLN 500
   #define SSTACK_DEPTH 10000
   #define SSTACK_SUCCESS      0
   #define SSTACK_INVALID_ID  -1
@@ -13,32 +14,28 @@
   {
     typedef struct st_string
     {
-      int   Len;
+       int  Len;
+       int  Cnt;
       char *Data;
     } stString;
 
     typedef class string_stack
     {
-        private:
-          int Count;
-          int Log;
-    stString *Stack[SSTACK_DEPTH];
-        public:
-            int getCount(void){ return Count; }
-            int putString(const char *strData);
-      stString *getString(int iID);
-            int findStringID(int iID, const char * strData);
-            int printMismatch(struct string_stack *Other, FILE *File);
-           void print(int iID);
-                string_stack(void);
-               ~string_stack(void);
+      private:
+            int  Count;
+       stString *Stack[SSTACK_DEPTH];
+      public:
+            int  getCount(void){ return Count; }
+            int  putString(const char *strData);
+       stString *getString(int iID);
+            int  findStringID(int iID, const char * strData);
+            int  printMismatch(struct string_stack *Other, int AdID, const char *AdName, FILE *File);
+           void  print(int iID);
+           void  initStack(void){ Count = 0; };
+                 string_stack(void){ Count = 0; };
+                ~string_stack(void);
 
-    } cstrStack;
-
-    string_stack::string_stack(void)
-    {
-      Count = 0;
-    }
+    } cStringStack;
 
     string_stack::~string_stack(void)
     {
@@ -53,26 +50,26 @@
 
     int string_stack::putString(const char *strData)
     {
-      if(Count >= SSTACK_DEPTH)
+      if(!(Count >= 0 || Count < SSTACK_DEPTH))
       {
-        printf("putString: Stack overflow\n");
+        printf("putString: Stack overflow with %d\n",Count);
         return SSTACK_INVALID_ID;
       }
-      stString *String = (struct st_string*)malloc(sizeof(struct st_string));
-      if(SSTACK_INV_POINTER == String)
+      stString *pItem = (stString*)malloc(sizeof(stString));
+      if(SSTACK_INV_POINTER == pItem)
       {
         printf("putString: Failed to allocate memory for a string structure\n");
         return SSTACK_MALLOC_FAIL;
       }
-      String->Len  = strlen(strData);
-      String->Data = (char*)malloc((String->Len + 1) * sizeof(char));
-      if(SSTACK_INV_POINTER == String->Data)
+      pItem->Len  = strlen(strData);
+      pItem->Data = (char*)malloc(SSTACK_STRLN * sizeof(char));
+      if(SSTACK_INV_POINTER == pItem->Data)
       {
         printf("putString: Failed to allocate memory for a string\n");
         return SSTACK_MALLOC_FAIL;
       }
-      strcpy(String->Data,strData);
-      Stack[Count++] = String;
+      strcpy(pItem->Data,strData);
+      Stack[Count++] = pItem;
       return (Count-1);
     }
 
@@ -86,7 +83,7 @@
     {
       if(!(iID >= 0 || iID < Count))
         { printf("print: No such ID #%d\n",iID ); return; }
-      printf("[%u]=(%u)<%s>\n",iID,Stack[iID]->Len, Stack[iID]->Data);
+      printf("[%u]=(%u)<%s>\n",iID, strlen(Stack[iID]->Data), Stack[iID]->Data);
       return;
     }
 
@@ -105,7 +102,7 @@
       return SSTACK_NOT_FOUND;
     }
 
-    int string_stack::printMismatch(struct string_stack *Other, FILE *File)
+    int string_stack::printMismatch(struct string_stack *Other, int AdID, const char *AdName, FILE *File)
     {
       if(SSTACK_INV_POINTER == Other)
         { printf("printMismatch: Other stack missing\n"); return SSTACK_INVALID_OP; }
@@ -113,11 +110,13 @@
       int oCount = Other->getCount();
       int oItem  = 0, iStatus = 0;
       stString *strOther;
+      fprintf(File,"\nGenerating report for #%d <%s>:\n\n",AdID,AdName);
       while(oItem < oCount)
       {
         strOther = Other->getString(oItem);
         if(NULL != strOther)
         {
+          // fprintf(File,"Try: #%d <%s> --> <%s>\n",AdID,AdName,strOther->Data);
           iStatus = findStringID(0,strOther->Data);
           if(SSTACK_NOT_FOUND == iStatus)
           {
@@ -129,7 +128,7 @@
       return SSTACK_SUCCESS;
     }
 
-    const char * const sstackErrMsg(int iErr)
+    const char * const getErrorMessage(int iErr)
     {
       switch(iErr)
       {
