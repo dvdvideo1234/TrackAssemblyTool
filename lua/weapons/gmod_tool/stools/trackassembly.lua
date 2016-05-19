@@ -24,6 +24,7 @@ local mathFloor             = math and math.floor
 local entsCreate            = ents and ents.Create
 local entsCreateClientProp  = ents and ents.CreateClientProp
 local fileExists            = file and file.Exists
+local fileDelete            = file and file.Delete
 local stringLen             = string and string.len
 local stringRep             = string and string.rep
 local stringSub             = string and string.sub
@@ -75,6 +76,7 @@ local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gsVersion   = asmlib.GetOpVar("TOOL_VERSION")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
+local gsQueryStr  = asmlib.GetOpVar("EN_QUERY_STORE")
 
 --- Render Base Colours
 local conPalette = asmlib.MakeContainer("Colours")
@@ -137,7 +139,7 @@ end
 TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
 TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
 TOOL.Command    = nil -- Command on click (nil for default)
-TOOL.ConfigName = nil -- Config file name (nil for default)
+TOOL.ConfigName = nil -- Configure file name (nil for default)
 
 TOOL.ClientConVar = {
   [ "weld"      ] = "1",
@@ -174,6 +176,52 @@ TOOL.ClientConVar = {
   [ "nocollide" ] = "1",
   [ "physmater" ] = "metal"
 }
+
+function TOOL:FactoryReset()
+  local ply = self:GetOwner()
+  asmlib.ConCommandPly(ply, "weld"     , "1")
+  asmlib.ConCommandPly(ply, "mass"     , "25000")
+  asmlib.ConCommandPly(ply, "model"    , "models/props_phx/trains/tracks/track_1x.mdl")
+  asmlib.ConCommandPly(ply, "nextx"    , "0")
+  asmlib.ConCommandPly(ply, "nexty"    , "0")
+  asmlib.ConCommandPly(ply, "nextz"    , "0")
+  asmlib.ConCommandPly(ply, "count"    , "5")
+  asmlib.ConCommandPly(ply, "freeze"   , "0")
+  asmlib.ConCommandPly(ply, "anchor"   , gsNoAnchor,)
+  asmlib.ConCommandPly(ply, "igntype"  , "0")
+  asmlib.ConCommandPly(ply, "spnflat"  , "0")
+  asmlib.ConCommandPly(ply, "ydegsnp"  , "45")
+  asmlib.ConCommandPly(ply, "pointid"  , "1")
+  asmlib.ConCommandPly(ply, "pnextid"  , "2")
+  asmlib.ConCommandPly(ply, "nextpic"  , "0")
+  asmlib.ConCommandPly(ply, "nextyaw"  , "0")
+  asmlib.ConCommandPly(ply, "nextrol"  , "0")
+  asmlib.ConCommandPly(ply, "logsmax"  , "0")
+  asmlib.ConCommandPly(ply, "logfile"  , "",)
+  asmlib.ConCommandPly(ply, "mcspawn"  , "0")
+  asmlib.ConCommandPly(ply, "bgskids"  , "")
+  asmlib.ConCommandPly(ply, "gravity"  , "1")
+  asmlib.ConCommandPly(ply, "adviser"  , "1")
+  asmlib.ConCommandPly(ply, "activrad" , "45")
+  asmlib.ConCommandPly(ply, "pntasist" , "0")
+  asmlib.ConCommandPly(ply, "surfsnap" , "0")
+  asmlib.ConCommandPly(ply, "exportdb" , "0")
+  asmlib.ConCommandPly(ply, "offsetup" , "0")
+  asmlib.ConCommandPly(ply, "ignphysgn", "1")
+  asmlib.ConCommandPly(ply, "ghosthold", "1")
+  asmlib.ConCommandPly(ply, "maxstatts", "3")
+  asmlib.ConCommandPly(ply, "nocollide", "1")
+  asmlib.ConCommandPly(ply, "physmater", "metal")
+  asmlib.ConCommandPly(ply, "maxactrad", "40")
+  asmlib.ConCommandPly(ply, "enwiremod", "1")
+  asmlib.ConCommandPly(ply, "devmode"  , "0")
+  asmlib.ConCommandPly(ply, "maxstcnt" , "200")
+  asmlib.ConCommandPly(ply, "bnderrmod", "LOG")
+  asmlib.ConCommandPly(ply, "maxfruse" , "50")
+  asmlib.ConCommandPly(ply, "modedb"   , "LUA")
+  asmlib.ConCommandPly(ply, "enqstore" , "1")
+  asmlib.ConCommandPly(ply, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
+end
 
 function TOOL:GetModel()
   return (self:GetClientInfo("model") or "")
@@ -397,15 +445,19 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.DevMode:     <"..tostring(self:GetDeveloperMode())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.BndErrMod:   <"..tostring(self:GetBoundErrorMode())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxARadius:  <"..tostring(asmlib.GetCoVar("maxactrad","INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetCoVar("enwiremod","INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetCoVar("devmode"  ,"INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxStackCnt: <"..tostring(asmlib.GetCoVar("maxstcnt" ,"INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.BoundErrMod: <"..tostring(asmlib.GetCoVar("bnderrmod","STR"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetCoVar("modedb" ,"STR"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnableStore: <"..tostring(gsQueryStr)..","..tostring(asmlib.GetCoVar("enqstore","INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetCoVar("timermode","STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
         sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
         sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
         sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
-  if(hdEnt and hdEnt:IsValid()) then
-    hdEnt:Remove()
-  end
+  if(hdEnt and hdEnt:IsValid()) then hdEnt:Remove() end
   return sDu
 end
 
@@ -449,18 +501,18 @@ function TOOL:LeftClick(stTrace)
       local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
         ePiece:SetAngles(aAng)
-        local vPos = asmlib.GetMCWorldOffset(ePiece)
+        local vCen = asmlib.GetCenterMC(ePiece)
         local vOBB = ePiece:OBBMins()
-              vPos:Add(stTrace.HitPos)
-              vPos:Add(offsetup * stTrace.HitNormal)
-              vPos:Add(nextx * aAng:Forward())
-              vPos:Add(nexty * aAng:Right())
-              vPos:Add(nextz * aAng:Up())
+              vCen:Add(stTrace.HitPos)
+              vCen:Add(offsetup * stTrace.HitNormal)
+              vCen:Add(nextx * aAng:Forward())
+              vCen:Add(nexty * aAng:Right())
+              vCen:Add(nextz * aAng:Up())
         aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
         aAng:RotateAroundAxis(aAng:Right()  , nextpic)
         aAng:RotateAroundAxis(aAng:Forward(), nextrol)
         ePiece:SetAngles(aAng)
-        if(not asmlib.SetBoundPos(ePiece,vPos,ply,bnderrmod)) then
+        if(not asmlib.SetBoundPos(ePiece,vCen,ply,bnderrmod)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid",ePiece)) end
       else -- Spawn on Active point
         local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
@@ -659,12 +711,12 @@ function TOOL:Reload(stTrace)
     asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile())
     if(self:GetExportDB() ~= 0) then
       asmlib.LogInstance("TOOL:Reload(World): Exporting DB")
-      asmlib.ExportIntoFile("PIECES",",","INS")
-      asmlib.ExportIntoFile("ADDITIONS",",","INS")
-      asmlib.ExportIntoFile("PHYSPROPERTIES",",","INS")
-      asmlib.ExportIntoFile("PIECES","\t","DSV")
-      asmlib.ExportIntoFile("ADDITIONS","\t","DSV")
-      asmlib.ExportIntoFile("PHYSPROPERTIES","\t","DSV")
+      asmlib.StoreExternalDatabase("PIECES",",","INS")
+      asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
+      asmlib.StoreExternalDatabase("PHYSPROPERTIES",",","INS")
+      asmlib.StoreExternalDatabase("PIECES","\t","DSV")
+      asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
+      asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
     end
     return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
   elseif(trEnt and trEnt:IsValid()) then
@@ -685,8 +737,13 @@ end
 
 function TOOL:Holster()
   self:ReleaseGhostEntity()
-  if(self.GhostEntity and self.GhostEntity:IsValid()) then
-    self.GhostEntity:Remove()
+  if(self.GhostEntity and self.GhostEntity:IsValid()) then self.GhostEntity:Remove() end
+  if(self:GetDeveloperMode() ~= 0 and stringLower(self:GetBodyGroupSkin()) == "server-factory-reset") then
+    self:FactoryReset();
+    asmlib.DeleteExternalDatabase("PIECES","DSV")
+    asmlib.DeleteExternalDatabase("ADDITIONS","DSV")
+    asmlib.DeleteExternalDatabase("PHYSPROPERTIES","DSV")
+    asmlib.PrintNotifyPly(self:GetOwner(),"Track assembly factory reset complete!","UNDO")
   end
 end
 
@@ -1302,9 +1359,9 @@ function TOOL:UpdateGhost(oEnt, oPly)
   if(not stTrace) then return end
   local trEnt = stTrace.Entity
   if(stTrace.HitWorld) then
-    local model   = self:GetModel()
-    local mcspawn = self:GetSpawnMC()
-    local ydegsnp = self:GetYawSnap()
+    local model    = self:GetModel()
+    local mcspawn  = self:GetSpawnMC()
+    local ydegsnp  = self:GetYawSnap()
     local surfsnap = self:GetSurfaceSnap()
     local pointid, pnextid = self:GetPointID()
     local nextx, nexty, nextz = self:GetPosOffsets()
@@ -1312,26 +1369,26 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local aAng  = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then
       oEnt:SetAngles(aAng)
-      local vPos = asmlib.GetMCWorldOffset(oEnt)
+      local vCen = asmlib.GetCenterMC(oEnt)
       local vOBB = oEnt:OBBMins()
-            vPos:Add(stTrace.HitPos)
-            vPos:Add(-vOBB[cvZ] * stTrace.HitNormal)
-            vPos:Add(nextx * aAng:Forward())
-            vPos:Add(nexty * aAng:Right())
-            vPos:Add(nextz * aAng:Up())
+            vCen:Add(stTrace.HitPos)
+            vCen:Add(-vOBB[cvZ] * stTrace.HitNormal)
+            vCen:Add(nextx * aAng:Forward())
+            vCen:Add(nexty * aAng:Right())
+            vCen:Add(nextz * aAng:Up())
       asmlib.ConCommandPly(oPly,"offsetup",-vOBB[cvZ])
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
       oEnt:SetAngles(aAng)
-      oEnt:SetPos(vPos)
+      oEnt:SetPos(vCen)
       oEnt:SetNoDraw(false)
     else
-      local pntUp = (asmlib.PointOffsetUp(oEnt,pointid) or 0)
-      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + pntUp * stTrace.HitNormal,aAng,model,
-                        pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      local pointUp = (asmlib.PointOffsetUp(oEnt,pointid) or 0)
+      local stSpawn =  asmlib.GetNormalSpawn(stTrace.HitPos + pointUp * stTrace.HitNormal,aAng,model,
+                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        asmlib.ConCommandPly(oPly,"offsetup",pntUp)
+        asmlib.ConCommandPly(oPly,"offsetup",pointUp)
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
         oEnt:SetNoDraw(false)

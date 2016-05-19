@@ -373,7 +373,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
-  SetOpVar("DIRPATH_EXP","exp"..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("DIRPATH_INS","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_LOG","")
   SetOpVar("MISS_NOID","N")    -- No ID selected
@@ -962,13 +962,13 @@ function SnapValue(nvVal, nvSnap)
   return nRez;
 end
 
-function GetMCWorldOffset(oEnt)
+function GetCenterMC(oEnt)
   -- Set the ENT's Angles first!
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(Vector(0,0,0),"GetMCWorldOffset: Entity Invalid") end
+    return StatusLog(Vector(0,0,0),"GetCenterMC: Entity Invalid") end
   local Phys = oEnt:GetPhysicsObject()
   if(not (Phys and Phys:IsValid())) then
-    return StatusLog(Vector(0,0,0),"GetMCWorldOffset: Phys object Invalid") end
+    return StatusLog(Vector(0,0,0),"GetCenterMC: Phys object Invalid") end
   local vRez = Phys:GetMassCenter()
         vRez[cvX] = -vRez[cvX]; vRez[cvY] = -vRez[cvY]; vRez[cvZ] = 0
         vRez:Rotate(oEnt:GetAngles())
@@ -2506,16 +2506,16 @@ end
  * sDelim  = Delimiter CHAR data separator
  * bCommit = true to insert the read values
 ]]--
-function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
+function ImportDSV(sTable,sDelim,bCommit,sPrefix)
   if(not IsString(sTable)) then
-    return StatusLog(false,"ImportFromDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
+    return StatusLog(false,"ImportDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
-    return StatusLog(false,"ImportFromDSV: Missing table definition for <"..sTable..">") end
+    return StatusLog(false,"ImportDSV: Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..(sPrefix or GetInstPref())..defTable.Name..".txt"
+        fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
   local F = fileOpen(fName, "r", "DATA")
-  if(not F) then return StatusLog(false,"ImportFromDSV: fileOpen("..fName..".txt) Failed") end
+  if(not F) then return StatusLog(false,"ImportDSV: fileOpen("..fName..".txt) Failed") end
   local symOff = GetOpVar("OPSYM_DISABLE")
   local tabLen = stringLen(defTable.Name)
   local sLine, sChar, lenLine = "", "X", 0
@@ -2544,26 +2544,43 @@ function ImportFromDSV(sTable,sDelim,bCommit,sPrefix)
   F:Close()
 end
 
-function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
+function DeleteExternalDatabase(sTable,sMethod,sPrefix)
   if(not IsString(sTable)) then
-    return StatusLog(false,"ExportIntoFile: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
+    return StatusLog(false,"DeleteDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   if(not IsString(sMethod)) then
-    return StatusLog(false,"ExportIntoFile: Export mode {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
+    return StatusLog(false,"DeleteDSV: Delete method {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
-    return StatusLog(false,"ExportIntoFile: Missing table definition for <"..sTable..">") end
+    return StatusLog(false,"DeleteDSV: Missing table definition for <"..sTable..">") end
+  local fName = GetOpVar("DIRPATH_BAS")
+  if(not GetOpVar("DIRPATH_"..sMethod)) then
+    return StatusLog(false,"DeleteDSV: Directory index <"..sMethod.."> missing") end
+  fName = fName..GetOpVar("DIRPATH_"..sMethod) 
+  fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
+  if(fileExists(fName,"DATA")) then fileDelete(fName) end
+  return StatusLog(true,"DeleteDSV: Success")
+end
+
+function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
+  if(not IsString(sTable)) then
+    return StatusLog(false,"StoreExternalDatabase: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
+  if(not IsString(sMethod)) then
+    return StatusLog(false,"StoreExternalDatabase: Export mode {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
+  local defTable = GetOpVar("DEFTABLE_"..sTable)
+  if(not defTable) then
+    return StatusLog(false,"StoreExternalDatabase: Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  if    (sMethod == "DSV") then fName = fName..GetOpVar("DIRPATH_DSV")
-  elseif(sMethod == "INS") then fName = fName..GetOpVar("DIRPATH_EXP")
-  else return StatusLog(false,"Missed export method: <"..sMethod..">") end
+  if(not GetOpVar("DIRPATH_"..sMethod)) then
+    return StatusLog(false,"StoreExternalDatabase: Directory index <"..sMethod.."> missing") end
+  fName = fName..GetOpVar("DIRPATH_"..sMethod)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..(sPrefix or GetInstPref())..defTable.Name..".txt"
+  fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
   local F = fileOpen(fName, "w", "DATA" )
-  if(not F) then return StatusLog(false,"ExportIntoFile: fileOpen("..fName..") Failed") end
+  if(not F) then return StatusLog(false,"StoreExternalDatabase: fileOpen("..fName..") Failed") end
   local sData, sTemp = "", ""
   local sModeDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
-  F:Write("# ExportIntoFile( "..sMethod.." ): "..osDate().." [ "..sModeDB.." ]".."\n")
+  F:Write("# StoreExternalDatabase( "..sMethod.." ): "..osDate().." [ "..sModeDB.." ]".."\n")
   F:Write("# Data settings: "..GetFieldsName(defTable,sDelim).."\n")
   if(sModeDB == "SQL") then
     local Q = ""
@@ -2571,13 +2588,13 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
     elseif(sTable == "ADDITIONS"     ) then Q = SQLBuildSelect(defTable,nil,nil,{1,4})
     elseif(sTable == "PHYSPROPERTIES") then Q = SQLBuildSelect(defTable,nil,nil,{1,2})
     else                                    Q = SQLBuildSelect(defTable,nil,nil,nil) end
-    if(not IsExistent(Q)) then return StatusLog(false,"ExportIntoFile: Build error <"..SQLBuildError()..">") end
+    if(not IsExistent(Q)) then return StatusLog(false,"StoreExternalDatabase: Build error <"..SQLBuildError()..">") end
     F:Write("# Query ran: <"..Q..">\n")
     local qData = sqlQuery(Q)
     if(not qData and IsBool(qData)) then
-      return StatusLog(nil,"ExportIntoFile: SQL exec error <"..sqlLastError()..">") end
+      return StatusLog(nil,"StoreExternalDatabase: SQL exec error <"..sqlLastError()..">") end
     if(not (qData and qData[1])) then
-      return StatusLog(false,"ExportIntoFile: No data found <"..Q..">") end
+      return StatusLog(false,"StoreExternalDatabase: No data found <"..Q..">") end
     local iCnt, iInd, qRec = 1, 1, nil
     if    (sMethod == "DSV") then sData = defTable.Name..sDelim
     elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
@@ -2598,7 +2615,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
   elseif(sModeDB == "LUA") then
     local tCache = libCache[defTable.Name]
     if(not IsExistent(tCache)) then
-      return StatusLog(false,"ExportIntoFile: Table <"..defTable.Name.."> cache not allocated") end
+      return StatusLog(false,"StoreExternalDatabase: Table <"..defTable.Name.."> cache not allocated") end
     if(sTable == "PIECES") then
       local tData = {}
       for sModel, tRecord in pairs(tCache) do
@@ -2607,7 +2624,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       end
       local tSorted = Sort(tData,nil,{defTable[1][1]})
       if(not tSorted) then
-        return StatusLog(false,"ExportIntoFile: Cannot sort cache data") end
+        return StatusLog(false,"StoreExternalDatabase: Cannot sort cache data") end
       local iInd iNdex = 1, 1
       while(tSorted[iNdex]) do
         iInd  = 1
@@ -2659,7 +2676,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
       local tTypes = tCache[GetOpVar("HASH_PROPERTY_TYPES")]
       local tNames = tCache[GetOpVar("HASH_PROPERTY_NAMES")]
       if(not (tTypes or tNames)) then
-        return StatusLog(false,"ExportIntoFile: No data found") end
+        return StatusLog(false,"StoreExternalDatabase: No data found") end
       local tType
       local iInd , iCnt  = 1 , 1
       local sType, sName = "", ""
@@ -2667,7 +2684,7 @@ function ExportIntoFile(sTable,sDelim,sMethod,sPrefix)
         sType = tTypes[iInd]
         tType = tNames[sType]
         if(not tType) then return
-          StatusLog(false,"ExportIntoFile: Missing index #"..iInd.." on type <"..sType..">") end
+          StatusLog(false,"StoreExternalDatabase: Missing index #"..iInd.." on type <"..sType..">") end
         if    (sMethod == "DSV") then sData = defTable.Name..sDelim
         elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
         iCnt = 1

@@ -24,7 +24,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.232")
+asmlib.SetOpVar("TOOL_VERSION","5.233")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -180,12 +180,12 @@ if(CLIENT) then
         local ExportDB     = asmlib.GetCoVar("exportdb","INT")
         if(ExportDB ~= 0) then
           asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
-          asmlib.ExportIntoFile("PIECES",",","INS")
-          asmlib.ExportIntoFile("ADDITIONS",",","INS")
-          asmlib.ExportIntoFile("PHYSPROPERTIES",",","INS")
-          asmlib.ExportIntoFile("PIECES","\t","DSV")
-          asmlib.ExportIntoFile("ADDITIONS","\t","DSV")
-          asmlib.ExportIntoFile("PHYSPROPERTIES","\t","DSV")
+          asmlib.StoreExternalDatabase("PIECES",",","INS")
+          asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
+          asmlib.StoreExternalDatabase("PHYSPROPERTIES",",","INS")
+          asmlib.StoreExternalDatabase("PIECES","\t","DSV")
+          asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
+          asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
         end
       end
       ------------- ComboBox ---------------
@@ -355,7 +355,7 @@ When table name is not provided to InsertRecord() it uses the value of DefaultTa
 ]]--
 if(file.Exists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PIECES from DSV")
-  asmlib.ImportFromDSV("PIECES","\t",true)
+  asmlib.ImportDSV("PIECES","\t",true)
 else
   asmlib.LogInstance(gsToolNameU..": DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
@@ -2203,7 +2203,7 @@ end
 
 if(file.Exists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from DSV")
-  asmlib.ImportFromDSV("PHYSPROPERTIES","\t",true)
+  asmlib.ImportDSV("PHYSPROPERTIES","\t",true)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from LUA")
   asmlib.DefaultTable("PHYSPROPERTIES")
@@ -2310,7 +2310,7 @@ end
 
 if(file.Exists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from DSV")
-  asmlib.ImportFromDSV("ADDITIONS","\t",true)
+  asmlib.ImportDSV("ADDITIONS","\t",true)
 else
   asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from LUA")
   asmlib.DefaultTable("ADDITIONS")
