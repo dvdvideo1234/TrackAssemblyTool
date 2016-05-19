@@ -2546,19 +2546,19 @@ end
 
 function DeleteExternalDatabase(sTable,sMethod,sPrefix)
   if(not IsString(sTable)) then
-    return StatusLog(false,"DeleteDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
+    return StatusLog(false,"DeleteExternalDatabase: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   if(not IsString(sMethod)) then
-    return StatusLog(false,"DeleteDSV: Delete method {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
+    return StatusLog(false,"DeleteExternalDatabase: Delete method {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
-    return StatusLog(false,"DeleteDSV: Missing table definition for <"..sTable..">") end
+    return StatusLog(false,"DeleteExternalDatabase: Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")
   if(not GetOpVar("DIRPATH_"..sMethod)) then
-    return StatusLog(false,"DeleteDSV: Directory index <"..sMethod.."> missing") end
+    return StatusLog(false,"DeleteExternalDatabase: Directory index <"..sMethod.."> missing") end
   fName = fName..GetOpVar("DIRPATH_"..sMethod) 
   fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
   if(fileExists(fName,"DATA")) then fileDelete(fName) end
-  return StatusLog(true,"DeleteDSV: Success")
+  return StatusLog(true,"DeleteExternalDatabase: Success")
 end
 
 function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
