@@ -43,8 +43,10 @@ local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntit
 --- Because Vec[1] is actually faster than Vec.X
 --- Store a pointer to our module
 local asmlib = trackasmlib
+
 --- Vector Component indexes ---
 local cvX, cvY, cvZ = asmlib.GetIndexes("V")
+
 --- Angle Component indexes ---
 local caP, caY, caR = asmlib.GetIndexes("A")
 
@@ -136,6 +138,8 @@ if(SERVER) then
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 
+concommandAdd(gsToolPrefL.."sysreset", asmlib.GetActionCode("FACTORY_RESET"))
+
 TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
 TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
 TOOL.Command    = nil -- Command on click (nil for default)
@@ -176,52 +180,6 @@ TOOL.ClientConVar = {
   [ "nocollide" ] = "1",
   [ "physmater" ] = "metal"
 }
-
-function TOOL:FactoryReset()
-  local ply = self:GetOwner()
-  asmlib.ConCommandPly(ply, "weld"     , "1")
-  asmlib.ConCommandPly(ply, "mass"     , "25000")
-  asmlib.ConCommandPly(ply, "model"    , "models/props_phx/trains/tracks/track_1x.mdl")
-  asmlib.ConCommandPly(ply, "nextx"    , "0")
-  asmlib.ConCommandPly(ply, "nexty"    , "0")
-  asmlib.ConCommandPly(ply, "nextz"    , "0")
-  asmlib.ConCommandPly(ply, "count"    , "5")
-  asmlib.ConCommandPly(ply, "freeze"   , "0")
-  asmlib.ConCommandPly(ply, "anchor"   , gsNoAnchor,)
-  asmlib.ConCommandPly(ply, "igntype"  , "0")
-  asmlib.ConCommandPly(ply, "spnflat"  , "0")
-  asmlib.ConCommandPly(ply, "ydegsnp"  , "45")
-  asmlib.ConCommandPly(ply, "pointid"  , "1")
-  asmlib.ConCommandPly(ply, "pnextid"  , "2")
-  asmlib.ConCommandPly(ply, "nextpic"  , "0")
-  asmlib.ConCommandPly(ply, "nextyaw"  , "0")
-  asmlib.ConCommandPly(ply, "nextrol"  , "0")
-  asmlib.ConCommandPly(ply, "logsmax"  , "0")
-  asmlib.ConCommandPly(ply, "logfile"  , "",)
-  asmlib.ConCommandPly(ply, "mcspawn"  , "0")
-  asmlib.ConCommandPly(ply, "bgskids"  , "")
-  asmlib.ConCommandPly(ply, "gravity"  , "1")
-  asmlib.ConCommandPly(ply, "adviser"  , "1")
-  asmlib.ConCommandPly(ply, "activrad" , "45")
-  asmlib.ConCommandPly(ply, "pntasist" , "0")
-  asmlib.ConCommandPly(ply, "surfsnap" , "0")
-  asmlib.ConCommandPly(ply, "exportdb" , "0")
-  asmlib.ConCommandPly(ply, "offsetup" , "0")
-  asmlib.ConCommandPly(ply, "ignphysgn", "1")
-  asmlib.ConCommandPly(ply, "ghosthold", "1")
-  asmlib.ConCommandPly(ply, "maxstatts", "3")
-  asmlib.ConCommandPly(ply, "nocollide", "1")
-  asmlib.ConCommandPly(ply, "physmater", "metal")
-  asmlib.ConCommandPly(ply, "maxactrad", "40")
-  asmlib.ConCommandPly(ply, "enwiremod", "1")
-  asmlib.ConCommandPly(ply, "devmode"  , "0")
-  asmlib.ConCommandPly(ply, "maxstcnt" , "200")
-  asmlib.ConCommandPly(ply, "bnderrmod", "LOG")
-  asmlib.ConCommandPly(ply, "maxfruse" , "50")
-  asmlib.ConCommandPly(ply, "modedb"   , "LUA")
-  asmlib.ConCommandPly(ply, "enqstore" , "1")
-  asmlib.ConCommandPly(ply, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
-end
 
 function TOOL:GetModel()
   return (self:GetClientInfo("model") or "")
@@ -717,7 +675,7 @@ function TOOL:Reload(stTrace)
       asmlib.StoreExternalDatabase("PIECES","\t","DSV")
       asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
       asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
-    end
+    end    
     return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
@@ -738,13 +696,6 @@ end
 function TOOL:Holster()
   self:ReleaseGhostEntity()
   if(self.GhostEntity and self.GhostEntity:IsValid()) then self.GhostEntity:Remove() end
-  if(self:GetDeveloperMode() ~= 0 and stringLower(self:GetBodyGroupSkin()) == "server-factory-reset") then
-    self:FactoryReset();
-    asmlib.DeleteExternalDatabase("PIECES","DSV")
-    asmlib.DeleteExternalDatabase("ADDITIONS","DSV")
-    asmlib.DeleteExternalDatabase("PHYSPROPERTIES","DSV")
-    asmlib.PrintNotifyPly(self:GetOwner(),"Track assembly factory reset complete!","UNDO")
-  end
 end
 
 function TOOL:DrawHUD()

@@ -24,7 +24,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.234")
+asmlib.SetOpVar("TOOL_VERSION","5.235")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -51,16 +51,70 @@ asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetCoVar("modedb","STR"))
 asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetCoVar("enqstore","INT") ~= 0) and true or false)
 
 ------ GLOBAL VARIABLES ------
-local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
-local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
-local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
-local gsPathBAS   = asmlib.GetOpVar("DIRPATH_BAS")
-local gsPathDSV   = asmlib.GetOpVar("DIRPATH_DSV")
-local gsFullDSV   = gsPathBAS..gsPathDSV..asmlib.GetInstPref()..gsToolPrefU
+local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
+                    asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetCoVar("timermode","STR"))
 
 -------- ACTIONS  ----------
+asmlib.SetAction("FACTORY_RESET",
+  function(oPly,oCom,oArgs)
+    if(asmlib.GetCoVar("devmode" ,"INT") == 0) then
+      return asmlib.StatusLog(true,"FACTORY_RESET: Developer mode disabled")
+    local cmd = tostring(oArgs[1])
+    if(cmd == "reset") then
+      local anchor = asmlib.GetOpVar("MISS_NOID")..asmlib.GetOpVar("OPSYM_REVSIGN")..asmlib.GetOpVar("MISS_NOMD")
+      asmlib.ConCommandPly(oPly, "weld"     , "1")
+      asmlib.ConCommandPly(oPly, "mass"     , "25000")
+      asmlib.ConCommandPly(oPly, "model"    , "models/props_phx/trains/tracks/track_1x.mdl")
+      asmlib.ConCommandPly(oPly, "nextx"    , "0")
+      asmlib.ConCommandPly(oPly, "nexty"    , "0")
+      asmlib.ConCommandPly(oPly, "nextz"    , "0")
+      asmlib.ConCommandPly(oPly, "count"    , "5")
+      asmlib.ConCommandPly(oPly, "freeze"   , "0")
+      asmlib.ConCommandPly(oPly, "anchor"   , anchor)
+      asmlib.ConCommandPly(oPly, "igntype"  , "0")
+      asmlib.ConCommandPly(oPly, "spnflat"  , "0")
+      asmlib.ConCommandPly(oPly, "ydegsnp"  , "45")
+      asmlib.ConCommandPly(oPly, "pointid"  , "1")
+      asmlib.ConCommandPly(oPly, "pnextid"  , "2")
+      asmlib.ConCommandPly(oPly, "nextpic"  , "0")
+      asmlib.ConCommandPly(oPly, "nextyaw"  , "0")
+      asmlib.ConCommandPly(oPly, "nextrol"  , "0")
+      asmlib.ConCommandPly(oPly, "logsmax"  , "0")
+      asmlib.ConCommandPly(oPly, "logfile"  , "",)
+      asmlib.ConCommandPly(oPly, "mcspawn"  , "0")
+      asmlib.ConCommandPly(oPly, "bgskids"  , "0/0")
+      asmlib.ConCommandPly(oPly, "gravity"  , "1")
+      asmlib.ConCommandPly(oPly, "adviser"  , "1")
+      asmlib.ConCommandPly(oPly, "activrad" , "45")
+      asmlib.ConCommandPly(oPly, "pntasist" , "0")
+      asmlib.ConCommandPly(oPly, "surfsnap" , "0")
+      asmlib.ConCommandPly(oPly, "exportdb" , "0")
+      asmlib.ConCommandPly(oPly, "offsetup" , "0")
+      asmlib.ConCommandPly(oPly, "ignphysgn", "1")
+      asmlib.ConCommandPly(oPly, "ghosthold", "1")
+      asmlib.ConCommandPly(oPly, "maxstatts", "3")
+      asmlib.ConCommandPly(oPly, "nocollide", "1")
+      asmlib.ConCommandPly(oPly, "physmater", "metal")
+      asmlib.ConCommandPly(oPly, "maxactrad", "150")
+      asmlib.ConCommandPly(oPly, "enwiremod", "1")
+      asmlib.ConCommandPly(oPly, "devmode"  , "0")
+      asmlib.ConCommandPly(oPly, "maxstcnt" , "200")
+      asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
+      asmlib.ConCommandPly(oPly, "maxfruse" , "50")
+      asmlib.ConCommandPly(oPly, "modedb"   , "LUA")
+      asmlib.ConCommandPly(oPly, "enqstore" , "1")
+      asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
+      asmlib.PrintNotifyPly(ply,gsToolNameU.." Convar reset complete!","UNDO")
+    elseif(cmd == "delete")
+      asmlib.DeleteExternalDatabase("PIECES","DSV")
+      asmlib.DeleteExternalDatabase("ADDITIONS","DSV")
+      asmlib.DeleteExternalDatabase("PHYSPROPERTIES","DSV")
+      asmlib.PrintNotifyPly(ply,gsToolNameU.." Exported database deleted!","UNDO")
+    else return asmlib.StatusLog(true,"FACTORY_RESET: Command <"..cmd.."> skipped") end
+  end)
+
 if(SERVER) then
   asmlib.SetAction("DUPE_PHYS_SETTINGS",
     function(oPly,oEnt,tData) -- Duplicator wrapper

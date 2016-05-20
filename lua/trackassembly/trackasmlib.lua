@@ -2910,10 +2910,7 @@ function AttachAdditions(ePiece)
       local OffPos = Record[defTable[5][1]]
       if(not IsString(OffPos)) then
         return StatusLog(false,"AttachAdditions: Position {"..type(OffPos).."}<"..tostring(OffPos).."> not string") end
-      if(OffPos       and
-         OffPos ~= "" and
-         OffPos ~= "NULL"
-      ) then
+      if(OffPos and OffPos ~= "" and OffPos ~= "NULL") then
         local AdditionPos = Vector()
         local arConv = DecodePOA(OffPos)
         arConv[1] = arConv[1] * arConv[4]
@@ -2932,10 +2929,7 @@ function AttachAdditions(ePiece)
       local OffAng = Record[defTable[6][1]]
       if(not IsString(OffAng)) then
         return StatusLog(false,"AttachAdditions: Angle {"..type(OffAng).."}<"..tostring(OffAng).."> not string") end
-      if(OffAng       and
-         OffAng ~= "" and
-         OffAng ~= "NULL"
-      ) then
+      if(OffAng and OffAng ~= "" and OffAng ~= "NULL") then
         local AdditionAng = Angle()
         local arConv = DecodePOA(OffAng)
         AdditionAng[caP] = arConv[1] * arConv[4] + LocalAng[caP]
@@ -3086,22 +3080,16 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   ePiece:DrawShadow(false)
   ePiece:PhysWake()
   local phPiece = ePiece:GetPhysicsObject()
-  if(not (phPiece and phPiece:IsValid())) then
-    ePiece:Remove()
-    return StatusLog(nil,"MakePiece: Entity phys object invalid")
-  end
+  if(not (phPiece and phPiece:IsValid())) then ePiece:Remove()
+    return StatusLog(nil,"MakePiece: Entity phys object invalid") end
   phPiece:EnableMotion(false)
   phPiece:SetMass(mathClamp(tonumber(nMass) or 1,1,GetOpVar("MAX_MASS")))
   local BgSk = stringExplode(GetOpVar("OPSYM_DIRECTORY"),(sBgSkIDs or ""))
   ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
-  if(not AttachBodyGroups(ePiece,BgSk[1] or "")) then
-    ePiece:Remove()
-    return StatusLog(nil,"MakePiece: Failed to attach bodygroups")
-  end
-  if(not AttachAdditions(ePiece)) then
-    ePiece:Remove()
-    return StatusLog(nil,"MakePiece: Failed to attach additions")
-  end
+  if(not AttachBodyGroups(ePiece,BgSk[1] or "")) then ePiece:Remove()
+    return StatusLog(nil,"MakePiece: Failed to attach bodygroups") end
+  if(not AttachAdditions(ePiece)) then ePiece:Remove()
+    return StatusLog(nil,"MakePiece: Failed to attach additions") end
   return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
 end
 
