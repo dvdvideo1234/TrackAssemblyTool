@@ -2557,8 +2557,23 @@ function DeleteExternalDatabase(sTable,sMethod,sPrefix)
     return StatusLog(false,"DeleteExternalDatabase: Directory index <"..sMethod.."> missing") end
   fName = fName..GetOpVar("DIRPATH_"..sMethod) 
   fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
-  if(fileExists(fName,"DATA")) then fileDelete(fName) end
+  if(not fileExists(fName,"DATA")) then
+    return StatusLog(true,"DeleteExternalDatabase: File <"..fName.."> missing") end
+  fileDelete(fName)
   return StatusLog(true,"DeleteExternalDatabase: Success")
+end
+
+function DeleteDirectoryPath(sMethod)
+  if(not IsString(sMethod)) then
+    return StatusLog(false,"DeleteDirectoryPath: Delete method {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
+  local fName = GetOpVar("DIRPATH_BAS")
+  if(not GetOpVar("DIRPATH_"..sMethod)) then
+    return StatusLog(false,"DeleteDirectoryPath: Directory index <"..sMethod.."> missing") end
+  fName = fName..GetOpVar("DIRPATH_"..sMethod)
+  if(not fileExists(fName,"DATA")) then
+    return StatusLog(true,"DeleteDirectoryPath: Directory <"..fName.."> missing") end
+  fileDelete(fName)
+  return StatusLog(true,"DeleteDirectoryPath: Success")
 end
 
 function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
@@ -2775,7 +2790,7 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   SetVector(stSpawn.HPos,hdPOA.O); NegVector(stSpawn.HPos) -- Origin to Position
   if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng,hdPOA.A) end
   -- Calculate spawn relation
-  stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),-180)
+  stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180)
   DecomposeByAngle(stSpawn.HPos,stSpawn.HAng)
   -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)

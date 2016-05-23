@@ -12,6 +12,7 @@ local LocalPlayer           = LocalPlayer
 local RunConsoleCommand     = RunConsoleCommand
 local RestoreCursorPosition = RestoreCursorPosition
 local osDate                = os and os.date
+local vguiCreate            = vgui and vgui.Create
 local gameSinglePlayer      = game and game.SinglePlayer
 local utilTraceLine         = util and util.TraceLine
 local utilIsValidModel      = util and util.IsValidModel
@@ -108,7 +109,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".activrad" , "Minimum distance needed to select an active point")
   languageAdd("tool."..gsToolNameL..".count"    , "Maximum number of pieces to create while stacking")
   languageAdd("tool."..gsToolNameL..".ydegsnp"  , "Snap the first piece spawned at this much degrees")
-  languageAdd("tool."..gsToolNameL..".resetoffs", "Click to reset the additional offsets")
+  languageAdd("tool."..gsToolNameL..".resetvars", "Click to reset the additional values")
   languageAdd("tool."..gsToolNameL..".nextpic"  , "Additional origin angular pitch offset")
   languageAdd("tool."..gsToolNameL..".nextyaw"  , "Additional origin angular yaw offset")
   languageAdd("tool."..gsToolNameL..".nextrol"  , "Additional origin angular roll offset")
@@ -129,16 +130,14 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
   languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
   languageAdd("cleaned."..gsToolNameL.."s", "Cleaned up all Pieces")
-  concommandAdd(gsToolPrefL.."resetoffs", asmlib.GetActionCode("RESET_OFFSETS"))
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
+  concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
 end
 
 if(SERVER) then
   cleanupRegister(gsToolNameU.."s")
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
-
-concommandAdd(gsToolPrefL.."sysreset", asmlib.GetActionCode("FACTORY_RESET"))
 
 TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
 TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
@@ -153,7 +152,7 @@ TOOL.ClientConVar = {
   [ "nexty"     ] = "0",
   [ "nextz"     ] = "0",
   [ "count"     ] = "5",
-  [ "freeze"    ] = "0",
+  [ "freeze"    ] = "1",
   [ "anchor"    ] = gsNoAnchor,
   [ "igntype"   ] = "0",
   [ "spnflat"   ] = "0",
@@ -174,7 +173,7 @@ TOOL.ClientConVar = {
   [ "surfsnap"  ] = "0",
   [ "exportdb"  ] = "0",
   [ "offsetup"  ] = "0",
-  [ "ignphysgn" ] = "1",
+  [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "1",
   [ "maxstatts" ] = "3",
   [ "nocollide" ] = "1",
@@ -1008,7 +1007,7 @@ function TOOL.BuildCPanel(CPanel)
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
-  local pTree = vgui.Create("DTree")
+  local pTree = vguiCreate("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 250)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
@@ -1057,13 +1056,13 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.LogInstance("Found #"..tostring(Cnt-1).." piece items.")
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
-  local pComboPhysType = vgui.Create("DComboBox")
+  local pComboPhysType = vguiCreate("DComboBox")
         pComboPhysType:SetPos(2, CurY)
         pComboPhysType:SetTall(18)
         pComboPhysType:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phytype"))
         pComboPhysType:SetValue("<Select Surface Material TYPE>")
         CurY = CurY + pComboPhysType:GetTall() + 2
-  local pComboPhysName = vgui.Create("DComboBox")
+  local pComboPhysName = vguiCreate("DComboBox")
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
@@ -1102,7 +1101,7 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.LogInstance("Found #"..(CntTyp-1).." material types.")
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
-  local pText = vgui.Create("DTextEntry")
+  local pText = vguiCreate("DTextEntry")
         pText:SetPos(2, CurY)
         pText:SetTall(18)
         pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
@@ -1153,10 +1152,10 @@ function TOOL.BuildCPanel(CPanel)
   pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
 
   pItem = CPanel:AddControl("Button", {
-            Label   = "V Reset Offset Values V",
-            Command = gsToolPrefL.."resetoffs",
-            Text    = "Reset All Offsets" })
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetoffs"))
+            Label   = "V Reset variables V",
+            Command = gsToolPrefL.."resetvars",
+            Text    = "Reset variables" })
+  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))
 
   pItem = CPanel:AddControl("Slider", {
             Label   = "Origin pitch:",
