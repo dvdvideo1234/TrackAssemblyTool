@@ -9,14 +9,15 @@ interval(20)
 
 function number isOuter(Lft, Rgh, Percent, MaxRange)
 {
-    # print("isOuter "+Lft+" "+Rgh)
+    Rez = 0
     T  = abs(Lft-Rgh)
     Pd = ((Percent / 100) * MaxRange)
     Pu = MaxRange - Pd
-    if(T   > Pd){ return 1 }
-    if(Lft > Pu){ return 1 }
-    if(Rgh > Pu){ return 1 }
-    return 0
+    if(T   > Pd){ Rez = 1 }
+    if(Lft > Pu){ Rez = 1 }
+    if(Rgh > Pu){ Rez = 1 }
+   # print("isOuter "+Rez+" ["+round(T,2)+">"+round(Pd)+"] "+round(Lft,2)+">"+round(Pu)+"  "+round(Rgh,2)+">"+round(Pu,2))
+    return Rez
 }
 
 function array clampTrace(Pos:vector,Width,Fwd:vector,Rgh:vector,Len,Holo1,Holo2)
@@ -45,14 +46,14 @@ if(first() || dupefinished())
     OutagePercentTolerance = 5
         
     # Set this delta forward to slow fasten the process
-    DF = 0.3
+    DF = 0.5
     
     # Track piece width
-    TrackPieceW = 120
-    TrackPieceH = 50
+    TrackPieceW = 1000
+    TrackPieceH = 500
         
     #Generate the origin with an inset
-    TrackOriginInset = 0.0001
+    TrackOriginInset = 0.001
     
     # Tolerance if the error gained when generating an actibe point
     TrackOriginTolerance = 10^-12
@@ -174,18 +175,32 @@ if(StraightUp != 0 && Interval == 0)
 {
     PosL = Cen - TrackPieceW * R
     PosR = Cen + TrackPieceW * R
+   # holoPos(2,PosL), holoPos(3,PosR)
     VRL = clampTrace(Cen,TrackPieceW,F,R,TrackRangerMaxW,0,0)
     VR  = VRL[1,number] , VL  = VRL[2,number], VDM = VRL[3,number]
+   # DL = rangerOffset(TrackRangerMaxW,PosL,  R):distance()
+   # DR = rangerOffset(TrackRangerMaxW,PosR, -R):distance()
     VDP = clampTrace(Cen + Prg - TrackOriginInset * F,TrackPieceH,F,U,TrackRangerMaxH,5,6)
     PU = VDP[1,number], PD = VDP[2,number], PDW = VDP[4,number]
-    
+
     VDC = clampTrace(Cen,TrackPieceH,F,U,TrackRangerMaxH,7,8)
+    
+    # print(VDC[1,number],PU, ARC[1,number])
     
     if((VDC[1,number] < ARC[1,number]) && (VDC[2,number] < ARC[2,number]))
     {
         ARC = VDC
     }
     
+#[
+    PosU = Cen + TrackPieceH * U + Prg - TrackOriginInset * F
+    PosD = Cen - TrackPieceH * U + Prg - TrackOriginInset * F
+    
+    holoPos(5,PosU), holoPos(6,PosD)    
+    DU = rangerOffset(TrackRangerMaxH,PosU, -U):distance()
+    DD = rangerOffset(TrackRangerMaxH,PosD,  U):distance()
+]#
+  
     if(isOuter(VL,VR,OutagePercentTolerance,TrackRangerMaxW))
     {
         Time = 100
@@ -198,21 +213,28 @@ if(StraightUp != 0 && Interval == 0)
           DF = DF * 1.7
         }
         DF =  0.5 * DF
+      #  print(_HUD_PRINTTALK,"Switch!")
     }else{        
         holoPos(1,Cen) holoColor(1,vec(0,255,255))
-        PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
+        # BEGIN Defintition formulas
         
-        # BEGIN Definition formulas
+        # Use this 2 beam tracks outside
+        # PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
+        # TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
+        # TrackExtraSide  = PRL[3,number]
         
-        # Use this for 2 beam tracks
+        
+        # Use this for 2 beam tracks inside
+         PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
          TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
          TrackExtraSide  = PRL[3,number]
         
-        #Use this for monorail
+        #Use ths for monorail
+        # PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
         # TrackExtraDepth = ARC[1,number] + ARC[4,number]
         # TrackExtraSide  = PRL[3,number]
         
-        # END Definition formulas
+        # END Defintition formulas
         
         ORG = Cen + TrackPieceH * U
         ORG = ORG - TrackExtraSide * R
@@ -221,7 +243,8 @@ if(StraightUp != 0 && Interval == 0)
         A = round(Base:toLocal((F):toAngle(U)))
         
         S = toString(abs(DF)-abs(TrackOriginTolerance)):sub(1,1)
-        
+       
+     # print(S+" "+DF)              
         if(S == "-")
         {
             print("Origin: "+toString(O)+" Angle: "+toString(A)+" ["+toString(DF)+"]")

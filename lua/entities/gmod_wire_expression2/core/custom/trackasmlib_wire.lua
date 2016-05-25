@@ -281,7 +281,7 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   if(not (phthis and phthis:IsValid())) then return nil end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
   if(not stRecord) then return nil end
-  local sBgpID  = asmlib.GetPropBodyGrp(this)..
+  local sBgpID  = asmlib.GetPropBodyGroup(this)..
                   asmlib.GetOpVar("OPSYM_DIRECTORY")..
                   asmlib.GetPropSkin(this)
   return asmlib.MakePiece(this:GetModel(),

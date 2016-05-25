@@ -344,13 +344,15 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   SetOpVar("TYPEMT_SCREEN",{})
   SetOpVar("TYPEMT_CONTAINER",{})
-  if(not (IsString(sName) and IsString(sPurpose))) then
-    return StatusPrint(false,"InitAssembly: Expecting string argument"
-             .." {"..type(sName)..","..type(sPurpose).."}") end
+  if(not IsString(sName)) then
+    return StatusPrint(false,"InitAssembly: Name <"..tostring(sName).."> not string") end
+  if(not IsString(sPurpose)) then
+    return StatusPrint(false,"InitAssembly: Purpose <"..tostring(sPurpose).."> not string") end
   if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then
     return StatusPrint(false,"InitAssembly: Name invalid") end
   if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then
     return StatusPrint(false,"InitAssembly: Purpose invalid") end
+  SetOpVar("TIME_INIT",Time())
   SetOpVar("MAX_MASS",50000)
   SetOpVar("MAX_LINEAR",1000)
   SetOpVar("MAX_ROTATION",360)
@@ -359,7 +361,6 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("LOG_LOGFILE","")
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
-  SetOpVar("TIME_EPOCH",Time())
   SetOpVar("OPSYM_DISABLE","#")
   SetOpVar("OPSYM_REVSIGN","@")
   SetOpVar("OPSYM_DIVIDER","_")
@@ -390,10 +391,10 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
   SetOpVar("NAV_PIECE",{})
+  SetOpVar("NAV_PANEL",{})
   SetOpVar("NAV_ADDITION",{})
   SetOpVar("NAV_PROPERTY_NAMES",{})
   SetOpVar("NAV_PROPERTY_TYPES",{})
-  SetOpVar("NAV_PANEL",{})
   SetOpVar("STRUCT_SPAWN",{
     F    = Vector(),
     R    = Vector(),
@@ -2105,14 +2106,12 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
   local sModeDB = GetOpVar("MODE_DATABASE")
   LogInstance("TimerAttach: Called by <"..tostring(anyMessage).."> for Place["..tostring(Key).."]")
   if(sModeDB == "SQL") then
-    local nNowTM = Time() -- When is "now" ?
-    -- If we have a timer, and it does speak, we advise you send your regards..
-    local tTimer = defTable.Timer
+    -- Get the proper line count to avoid doing in every caching function"
+    if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end
+    local nNowTM, tTimer = Time(), defTable.Timer -- See that there is a timer and get "now"
     if(not IsExistent(tTimer)) then
       return StatusLog(Place[Key],"TimerAttach: Missing timer settings") end
     Place[Key].Used = nNowTM -- Make the first selected deletable to avoid phantom records
-    -- Get the proper line count to avoid doing in every caching function"
-    if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end
     local nLifeTM = tTimer[2]
     if(nLifeTM <= 0) then
       return StatusLog(Place[Key],"TimerAttach: Timer attachment ignored") end
@@ -2561,19 +2560,6 @@ function DeleteExternalDatabase(sTable,sMethod,sPrefix)
     return StatusLog(true,"DeleteExternalDatabase: File <"..fName.."> missing") end
   fileDelete(fName)
   return StatusLog(true,"DeleteExternalDatabase: Success")
-end
-
-function DeleteDirectoryPath(sMethod)
-  if(not IsString(sMethod)) then
-    return StatusLog(false,"DeleteDirectoryPath: Delete method {"..type(sMethod).."}<"..tostring(sMethod).."> not string") end
-  local fName = GetOpVar("DIRPATH_BAS")
-  if(not GetOpVar("DIRPATH_"..sMethod)) then
-    return StatusLog(false,"DeleteDirectoryPath: Directory index <"..sMethod.."> missing") end
-  fName = fName..GetOpVar("DIRPATH_"..sMethod)
-  if(not fileExists(fName,"DATA")) then
-    return StatusLog(true,"DeleteDirectoryPath: Directory <"..fName.."> missing") end
-  fileDelete(fName)
-  return StatusLog(true,"DeleteDirectoryPath: Success")
 end
 
 function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
@@ -3034,7 +3020,7 @@ function GetPropSkin(oEnt)
   return StatusLog(tostring(Skin),"GetPropSkin: Success "..tostring(skEn))
 end
 
-function GetPropBodyGrp(oEnt)
+function GetPropBodyGroup(oEnt)
   local bgEnt = GetEntityOrTrace(oEnt)
   if(not IsExistent(bgEnt)) then
     return StatusLog("","GetPropBodyGrp: Failed to gather entity") end

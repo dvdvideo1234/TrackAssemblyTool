@@ -133,7 +133,7 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    20) Mr. Train's G-Gauge rails
    21) Ron's 56 gauge rails ( Removed by the add-on owner. Discontinued )
    22) Ron's 2ft track pack
-   23) PHX Tubes ( In DEV 0% Done )
+   23) PHX Tubes
 
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
@@ -159,6 +159,17 @@ A: Remember when I got suggestions to do the switchers.
    This is an easy way of indicating which NEXT active position ( of some... )
    is chosen when stacking is in place. The end of the line with the green
    circle points to the next active position that is chosen.
+
+Q: Dude I've messed up my console variables, how can I factory-reset them ?
+A: Easy. First you need to enable the developer mode via "trackassembly_devmode 1"
+   Then in the bodygroup/skin text box ( or "trackassembly_bgskids" variable ) enter:
+   "reset cvars":
+     reset all cvars to the factory default settings
+   "delete"
+     followed by space for deleting the exported database without quitting
+     the game, followed by either "cl" or "sv" or both, separated by space
+     to delete the client or server or both instance generated databases
+N: The console variables being set in this question will be reset also
 
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?

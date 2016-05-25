@@ -46,8 +46,8 @@ end
 if(sEnd == "DOS") then sEnd = "\r\n" end
 if(sEnd == "UNX") then sEnd = "\n"   end
 io.write("------------------ OPEN FILE ------------------\n")
-local fOut = io.open(sOut,"w+")
-local fInp = io.open(sInp,"r+")
+local fOut = io.open(sOut,"wb")
+local fInp = io.open(sInp,"rb")
 if(not fOut) then
   io.write("File "..sOut.." not found\n")
   return false
@@ -92,7 +92,7 @@ while(sI) do
       end
     end
   end; nL = nL + 1
-  fOut:write(sI..sEnd)
+  fOut:write(sI,sEnd)
   sI = fInp:read()
 end
 io.write("------------------ FINISH ------------------\n")

@@ -169,7 +169,7 @@ TOOL.ClientConVar = {
   [ "gravity"   ] = "1",
   [ "adviser"   ] = "1",
   [ "activrad"  ] = "50",
-  [ "pntasist"  ] = "0",
+  [ "pntasist"  ] = "1",
   [ "surfsnap"  ] = "0",
   [ "exportdb"  ] = "0",
   [ "offsetup"  ] = "0",
@@ -1108,7 +1108,7 @@ function TOOL.BuildCPanel(CPanel)
         pText:SetText(asmlib.DefaultString(asmlib.GetCoVar("bgskids", "STR"),"Write selection code here. For example 1,0,0,2,1/3"))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
-            local sTX = asmlib.GetPropBodyGrp()..gsSymDir..asmlib.GetPropSkin()
+            local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()
             pnSelf:SetText(sTX)
             pnSelf:SetValue(sTX)
           elseif(nKeyEnum == KEY_ENTER) then
