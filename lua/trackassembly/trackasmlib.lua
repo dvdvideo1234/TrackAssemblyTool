@@ -2554,7 +2554,7 @@ function DeleteExternalDatabase(sTable,sMethod,sPrefix)
   local fName = GetOpVar("DIRPATH_BAS")
   if(not GetOpVar("DIRPATH_"..sMethod)) then
     return StatusLog(false,"DeleteExternalDatabase: Directory index <"..sMethod.."> missing") end
-  fName = fName..GetOpVar("DIRPATH_"..sMethod) 
+  fName = fName..GetOpVar("DIRPATH_"..sMethod)
   fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
   if(not fileExists(fName,"DATA")) then
     return StatusLog(true,"DeleteExternalDatabase: File <"..fName.."> missing") end

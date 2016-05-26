@@ -674,7 +674,7 @@ function TOOL:Reload(stTrace)
       asmlib.StoreExternalDatabase("PIECES","\t","DSV")
       asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
       asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
-    end    
+    end
     return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
@@ -1371,8 +1371,7 @@ function TOOL:Think()
   if(self:GetGhostHolder() ~= 0 and utilIsValidModel(model)) then
     if (not self.GhostEntity or
         not self.GhostEntity:IsValid() or
-            self.GhostEntity:GetModel() ~= model
-    ) then -- If none ...
+            self.GhostEntity:GetModel() ~= model) then -- If none ...
       self:MakeGhostEntity(model)
     end
     self:UpdateGhost(self.GhostEntity, self:GetOwner())

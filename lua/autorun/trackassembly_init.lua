@@ -26,7 +26,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.237")
+asmlib.SetOpVar("TOOL_VERSION","5.238")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -626,7 +626,7 @@ else
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch.mdl", "#", "Switch Right", 3, "", "-158.311737,338.107941, 11.218994", "0,135,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 1, "", " 829.880005,  -0.001465, 11.218994", ""})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 2, "", "-370.037262,  -0.000456, 11.218994", "0,-180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 3, "", "-158.311356,-338.111572, 11.218994", "0,-135,0"}) 
+  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 3, "", "-158.311356,-338.111572, 11.218994", "0,-135,0"})
   asmlib.DefaultType("SProps")
   asmlib.SettingsModelToName("SET",nil,{"track_s0","straight_"},{"","x"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 1, "", " 0,0,7.624", ""})
@@ -1146,7 +1146,7 @@ else
   asmlib.InsertRecord({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 1, "", "5056, 219.145, 992.765", ""})
   asmlib.InsertRecord({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 2, "", "-576, 219.145, 992.765", "0, 180,0"})
   asmlib.DefaultType("StephenTechno's Buildings Single")
-  asmlib.SettingsModelToName("SET",{1,3})  
+  asmlib.SettingsModelToName("SET",{1,3})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_2road_dl_sdw_1x2.mdl", "#", "#", 1, "", "0,0,3.03125", ""})

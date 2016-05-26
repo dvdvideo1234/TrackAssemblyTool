@@ -1,0 +1,6 @@
+*.h    text eol=lf
+*.cpp  text eol=lf
+*.lua  text eol=lf
+*.json text eol=lf
+*.bat  text eol=crlf
+*.md   text eol=lf

@@ -17,7 +17,7 @@ title Addon %Name% updater/publisher
 echo Press Crtl+C to terminate !
 echo Press a key if you do not want to wait !
 echo Rinning in %RevPath%.
-echo Npp Find --\h{1,}\r\n-- replace --\r\n-- in dos format before commit !
+echo Npp Find --\h{1,}\n-- replace --\n-- in dos format before commit !
 echo.
 
 timeout 3
