@@ -26,7 +26,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.238")
+asmlib.SetOpVar("TOOL_VERSION","5.239")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)

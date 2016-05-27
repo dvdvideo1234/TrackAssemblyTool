@@ -638,20 +638,14 @@ function TOOL:RightClick(stTrace)
   end
   if(asmlib.LoadKeyPly(ply,"DUCK")) then -- Crouch ( Ctrl )
     if(asmlib.LoadKeyPly(ply,"SPEED")) then -- Run ( Left Shift )
-      pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",hdRec)
-    else
-      pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",hdRec)
-    end
+         pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",hdRec)
+    else pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",hdRec) end
   else -- Not Crouch ( Ctrl )
     if(asmlib.LoadKeyPly(ply,"SPEED")) then -- Run ( Left Shift )
-      pointid = asmlib.IncDecPointID(pointid,"-",hdRec)
-    else
-      pointid = asmlib.IncDecPointID(pointid,"+",hdRec)
-    end
+         pointid = asmlib.IncDecPointID(pointid,"-",hdRec)
+    else pointid = asmlib.IncDecPointID(pointid,"+",hdRec) end
   end
-  if(pointid == pnextid) then
-    pnextid = pointbu
-  end
+  if(pointid == pnextid) then pnextid = pointbu end
   asmlib.ConCommandPly(ply,"pnextid",pnextid)
   asmlib.ConCommandPly(ply,"pointid",pointid)
   return asmlib.StatusLog(true,"TOOL:RightClick(): Success")
@@ -749,12 +743,9 @@ function TOOL:DrawHUD()
         goMonitor:DrawCircle(Op, mR,"y","LIN",{250})
       end; return
     end
-    stSpawn.F:Mul(30)
-    stSpawn.F:Add(stSpawn.OPos)
-    stSpawn.R:Mul(30)
-    stSpawn.R:Add(stSpawn.OPos)
-    stSpawn.U:Mul(30)
-    stSpawn.U:Add(stSpawn.OPos)
+    stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
+    stSpawn.R:Mul(30); stSpawn.R:Add(stSpawn.OPos)
+    stSpawn.U:Mul(30); stSpawn.U:Add(stSpawn.OPos)
     local RadScale = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
     local Os = stSpawn.OPos:ToScreen()
     local Ss = stSpawn.SPos:ToScreen()
@@ -810,15 +801,9 @@ function TOOL:DrawHUD()
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-      local F = aAng:Forward()
-            F:Mul(30)
-            F:Add(vPos)
-      local R = aAng:Right()
-            R:Mul(30)
-            R:Add(vPos)
-      local U = aAng:Up()
-            U:Mul(30)
-            U:Add(vPos)
+      local F = aAng:Forward(); F:Mul(30); F:Add(vPos)
+      local R = aAng:Right()  ; R:Mul(30); R:Add(vPos)
+      local U = aAng:Up()     ; U:Mul(30); U:Add(vPos)
       local Os = vPos:ToScreen()
       local Xs = F:ToScreen()
       local Ys = R:ToScreen()
@@ -840,12 +825,9 @@ function TOOL:DrawHUD()
       local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
-      stSpawn.F:Mul(30)
-      stSpawn.F:Add(stSpawn.OPos)
-      stSpawn.R:Mul(30)
-      stSpawn.R:Add(stSpawn.OPos)
-      stSpawn.U:Mul(30)
-      stSpawn.U:Add(stSpawn.OPos)
+      stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
+      stSpawn.R:Mul(30); stSpawn.R:Add(stSpawn.OPos)
+      stSpawn.U:Mul(30); stSpawn.U:Add(stSpawn.OPos)
       local Os = stSpawn.OPos:ToScreen()
       local Ss = stSpawn.SPos:ToScreen()
       local Xs = stSpawn.F:ToScreen()
@@ -938,9 +920,7 @@ function TOOL:DrawToolScreen(w, h)
     if(trRec) then
       trMaxCN = trRec.Kept
       trModel = stringToFileName(trModel)
-    else
-      trModel = "["..gsNoMD.."]"..stringToFileName(trModel)
-    end
+    else trModel = "["..gsNoMD.."]"..stringToFileName(trModel) end
   end
   model  = stringToFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
@@ -959,8 +939,7 @@ function TOOL:DrawToolScreen(w, h)
   local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
   local xyPos = {x = cPos, y = cPos}
   if(trRLen) then
-    goToolScr:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y")
-  end
+    goToolScr:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
   goToolScr:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c")
   goToolScr:DrawCircle(xyPos, nRad, "m")
   goToolScr:DrawText(osDate(),"w")
@@ -1001,22 +980,20 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][22]  = gsToolPrefL.."nocollide"
   Combo["CVars"][23]  = gsToolPrefL.."gravity"
   Combo["CVars"][24]  = gsToolPrefL.."physmater"
-
   CPanel:AddControl("ComboBox",Combo)
   CurY = CurY + 25
-  local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
+
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
-  local pTree = vguiCreate("DTree")
+  local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
+  local pTree    = vguiCreate("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 250)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
         pTree:SetIndentSize(0)
-  local pFolders = {}
-  local pNode, pItem
-  local Cnt = 1
-  while(Panel[Cnt]) do
-    local Rec = Panel[Cnt]
+  local iCnt, pFolders, pNode, pItem = 1, {}
+  while(Panel[iCnt]) do
+    local Rec = Panel[iCnt]
     local Mod = Rec[defTable[1][1]]
     local Typ = Rec[defTable[2][1]]
     local Nam = Rec[defTable[3][1]]
@@ -1029,15 +1006,12 @@ function TOOL.BuildCPanel(CPanel)
         pItem.InternalDoClick = function() end
         pItem.DoClick = function() return false end
         pItem.Label.UpdateColours = function(pSelf)
-          return pSelf:SetTextStyleColor(conPalette:Select("tx"))
-        end
+          return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
         pFolders[Typ] = pItem
       end
       if(pFolders[Typ]) then
         pItem = pFolders[Typ]
-      else
-        pItem = pTree
-      end
+      else pItem = pTree end
       pNode = pItem:AddNode(Nam)
       pNode:SetName(Nam)
       pNode.Icon:SetImage("icon16/control_play_blue.png")
@@ -1049,11 +1023,11 @@ function TOOL.BuildCPanel(CPanel)
     else
       asmlib.PrintInstance("Piece <"..Mod.."> from extension <"..Typ.."> not available .. SKIPPING !")
     end
-    Cnt = Cnt + 1
+    iCnt = iCnt + 1
   end
   CPanel:AddItem(pTree)
   CurY = CurY + pTree:GetTall() + 2
-  asmlib.LogInstance("Found #"..tostring(Cnt-1).." piece items.")
+  asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.")
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local pComboPhysType = vguiCreate("DComboBox")
@@ -1090,9 +1064,7 @@ function TOOL.BuildCPanel(CPanel)
           end
           CntNam = CntNam + 1
         end
-      else
-        asmlib.PrintInstance("Property type <"..sVal.."> has no names available")
-      end
+      else asmlib.PrintInstance("Property type <"..sVal.."> has no names available") end
     end
     CntTyp = CntTyp + 1
   end
