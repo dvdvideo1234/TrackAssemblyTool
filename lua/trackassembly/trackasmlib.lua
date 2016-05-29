@@ -185,6 +185,25 @@ function IsNumber(anyValue)
   return ((tonumber(anyValue) and true) or false)
 end
 
+function IsPlayer(anyValue)
+  if(not IsExistent(anyValue)) then return false end
+  if(not IsValid   (anyValue)) then return false end
+  if(not anyValue:IsPlayer( )) then return false end
+  return true
+end
+
+function IsOther(oEnt)
+  if(not oEnt)           then return true end
+  if(not oEnt:IsValid()) then return true end
+  if(oEnt:IsPlayer())    then return true end
+  if(oEnt:IsVehicle())   then return true end
+  if(oEnt:IsNPC())       then return true end
+  if(oEnt:IsRagdoll())   then return true end
+  if(oEnt:IsWeapon())    then return true end
+  if(oEnt:IsWidget())    then return true end
+  return false
+end
+
 ------------------ LOGS ------------------------
 
 local function FormatNumberMax(nNum,nMax)
@@ -804,18 +823,6 @@ function CallAction(sKey,A1,A2,A3,A4)
   return libAction[sKey].Act(A1,A2,A3,A4,libAction[sKey].Dat)
 end
 
-function IsOther(oEnt)
-  if(not oEnt)           then return true end
-  if(not oEnt:IsValid()) then return true end
-  if(oEnt:IsPlayer())    then return true end
-  if(oEnt:IsVehicle())   then return true end
-  if(oEnt:IsNPC())       then return true end
-  if(oEnt:IsRagdoll())   then return true end
-  if(oEnt:IsWeapon())    then return true end
-  if(oEnt:IsWidget())    then return true end
-  return false
-end
-
 local function AddLineListView(pnListView,frUsed,ivNdex)
   if(not IsExistent(pnListView)) then
     return StatusLog(nil,"LineAddListView: Missing panel") end
@@ -1417,15 +1424,15 @@ end
 ------------------------- PLAYER -----------------------------------
 
 function ConCommandPly(pPly,sCvar,snValue)
-  if(not pPly) then return StatusLog("","ConCommandPly: Player invalid") end
+  if(not IsPlayer(pPly)) then return StatusLog("","ConCommandPly: Player <"..type(pPly)"> invalid") end
   if(not IsString(sCvar)) then
     return StatusLog("","ConCommandPly: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
   return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(snValue).."\n")
 end
 
 function PrintNotifyPly(pPly,sText,sNotifType)
-  if(not pPly) then
-    return StatusLog(false,"PrintNotifyPly: Player invalid") end
+  if(not IsPlayer(pPly)) then
+    return StatusLog(false,"PrintNotifyPly: Player <"..type(pPly)"> invalid") end
   if(SERVER) then
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
     pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
@@ -1447,7 +1454,7 @@ function UndoAddEntityPly(oEnt)
 end
 
 function UndoFinishPly(pPly,anyMessage)
-  if(not pPly) then return StatusLog(false,"UndoFinishPly: Player invalid") end
+  if(not IsPlayer(pPly)) then return StatusLog(false,"UndoFinishPly: Player <"..type(pPly)"> invalid") end
   pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathFloor(mathRandom(3))..".wav")
   undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(anyMessage or ""))
   undoSetPlayer(pPly)
@@ -1462,8 +1469,8 @@ function LoadKeyPly(pPly, sKey)
     libCache[keyPly] = {}
     plyCache = libCache[keyPly]
   end
-  if(not pPly) then
-    return StatusLog(false,"LoadKeyPly: Player not available") end
+  if(not IsPlayer(pPly)) then
+    return StatusLog(false,"LoadKeyPly: Player <"..type(pPly)"> not available") end
   local spName   = pPly:GetName()
   local plyPlace = plyCache[spName]
   if(not IsExistent(plyPlace)) then
@@ -2719,7 +2726,7 @@ end
 ]]--
 function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
   local aAng = Angle()
-  if(not oPly) then return aAng end
+  if(not IsPlayer(oPly)) then return aAng end
   local nSnap = tonumber(nSnap) or 0
   if(nSnap and (nSnap ~= 0)) then -- Snap to the surface
     local oTrace = oTrace
@@ -2993,17 +3000,17 @@ end
 
 local function GetEntityOrTrace(oEnt)
   if(oEnt and oEnt:IsValid()) then return oEnt end
-  local Ply = LocalPlayer()
-  if(not IsExistent(Ply)) then
-    return StatusLog(nil,"GetEntityOrTrace: Player missing") end
-  local Trace = Ply:GetEyeTrace()
-  if(not IsExistent(Trace)) then
+  local pPly = LocalPlayer()
+  if(not IsPlayer(pPly)) then
+    return StatusLog(nil,"GetEntityOrTrace: Player <"..type(pPly)"> missing") end
+  local stTrace = pPly:GetEyeTrace()
+  if(not IsExistent(stTrace)) then
     return StatusLog(nil,"GetEntityOrTrace: Trace missing") end
-  if(not Trace.Hit) then -- Boolean
+  if(not stTrace.Hit) then -- Boolean
     return StatusLog(nil,"GetEntityOrTrace: Trace not hit") end
-  if(Trace.HitWorld) then -- Boolean
+  if(stTrace.HitWorld) then -- Boolean
     return StatusLog(nil,"GetEntityOrTrace: Trace hit world") end
-  local trEnt = Trace.Entity
+  local trEnt = stTrace.Entity
   if(not (trEnt and trEnt:IsValid())) then
     return StatusLog(nil,"GetEntityOrTrace: Trace entity invalid") end
   return StatusLog(trEnt,"GetEntityOrTrace: Success "..tostring(trEnt))
@@ -3151,15 +3158,15 @@ end
 
 function SetBoundPos(ePiece,vPos,oPly,sMode)
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"Piece:SetBoundPos: Entity invalid") end
+    return StatusLog(false,"SetBoundPos: Entity invalid") end
   if(not vPos) then
-    return StatusLog(false,"Piece:SetBoundPos: Position invalid") end
-  if(not oPly) then
-    return StatusLog(false,"Piece:SetBoundPos: Player invalid") end
+    return StatusLog(false,"SetBoundPos: Position invalid") end
+  if(not IsPlayer(oPly)) then
+    return StatusLog(false,"SetBoundPos: Player <"..type(oPly)"> invalid") end
   local sMode = tostring(sMode or "LOG")
   if(sMode == "OFF") then
     ePiece:SetPos(vPos)
-    return StatusLog(true,"Piece:SetBoundPos("..sMode..") Tuned off")
+    return StatusLog(true,"SetBoundPos("..sMode..") Tuned off")
   end
   if(utilIsInWorld(vPos)) then -- Error mode is "LOG" by default
     ePiece:SetPos(vPos)
@@ -3167,9 +3174,9 @@ function SetBoundPos(ePiece,vPos,oPly,sMode)
     ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
       PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
-    return StatusLog(false,"Piece:SetBoundPos("..sMode.."): Position out of map bounds")
+    return StatusLog(false,"SetBoundPos("..sMode.."): Position out of map bounds")
   end
-  return StatusLog(true,"Piece:SetBoundPos("..sMode.."): Success")
+  return StatusLog(true,"SetBoundPos("..sMode.."): Success")
 end
 
 function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
