@@ -114,6 +114,7 @@ local stringFormat          = string and string.format
 local stringExplode         = string and string.Explode
 local stringImplode         = string and string.Implode
 local stringToFileName      = string and string.GetFileFromFilename
+local gamemodeCall          = gamemode and gamemode.Call
 local surfaceSetFont        = surface and surface.SetFont
 local surfaceDrawLine       = surface and surface.DrawLine
 local surfaceDrawText       = surface and surface.DrawText
@@ -129,7 +130,6 @@ local constraintWeld        = constraint and constraint.Weld
 local constraintNoCollide   = constraint and constraint.NoCollide
 local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
-
 ---------------- CASHES SPACE --------------------
 
 local libCache  = {} -- Used to cache stuff in a Pool
@@ -403,6 +403,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("FILE_MODEL","%.mdl")
+  SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
@@ -587,9 +588,9 @@ end
 function DecomposeByAngle(vBase,aUnit)
   if(not vBase) then return StatusLog(Vector(),"DecomposeByAngle: Base invalid") end
   if(not aUnit) then return StatusLog(Vector(),"DecomposeByAngle: Unit invalid") end
-  local X = vBase:DotProduct(aUnit:Forward())
-  local Y = vBase:DotProduct(aUnit:Right())
-  local Z = vBase:DotProduct(aUnit:Up())
+  local X = vBase:Dot(aUnit:Forward())
+  local Y = vBase:Dot(aUnit:Right())
+  local Z = vBase:Dot(aUnit:Up())
   SetVectorXYZ(vBase,X,Y,Z)
 end
 
@@ -3066,8 +3067,13 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   return StatusLog(true,"AttachBodyGroups: Success")
 end
 
-function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
+function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   if(CLIENT) then return StatusLog(nil,"MakePiece: Working on client") end
+  if(not IsPlayer(pPly)) then
+    return StatusLog(nil,"MakePiece: Player missing <"..tostring(pPly)..">") end
+  local sLimit = GetOpVar("CVAR_LIMITNAME")
+  if(not pPly:CheckLimit(sLimit)) then
+    return StatusLog(nil,"MakePiece: Limit reached <"..sLimit..">") end
   local stPiece = CacheQueryPiece(sModel)
   if(not IsExistent(stPiece)) then
     return StatusLog(nil,"MakePiece: Record missing <"..sModel..">") end
@@ -3098,6 +3104,9 @@ function MakePiece(sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     return StatusLog(nil,"MakePiece: Failed to attach bodygroups") end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Failed to attach additions") end
+  pPly:AddCount(sLimit, ePiece)
+  pPly:AddCleanup(sLimit, ePiece)
+  gamemodeCall("PlayerSpawnedProp",pPly,sModel,ePiece)
   return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
 end
 
@@ -3156,17 +3165,17 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
 end
 
-function SetBoundPos(ePiece,vPos,oPly,sMode)
+function SetPosBound(ePiece,vPos,oPly,sMode)
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"SetBoundPos: Entity invalid") end
+    return StatusLog(false,"SetPosBound: Entity invalid") end
   if(not vPos) then
-    return StatusLog(false,"SetBoundPos: Position invalid") end
+    return StatusLog(false,"SetPosBound: Position invalid") end
   if(not IsPlayer(oPly)) then
-    return StatusLog(false,"SetBoundPos: Player <"..type(oPly)"> invalid") end
+    return StatusLog(false,"SetPosBound: Player <"..type(oPly)"> invalid") end
   local sMode = tostring(sMode or "LOG")
   if(sMode == "OFF") then
     ePiece:SetPos(vPos)
-    return StatusLog(true,"SetBoundPos("..sMode..") Tuned off")
+    return StatusLog(true,"SetPosBound("..sMode..") Tuned off")
   end
   if(utilIsInWorld(vPos)) then -- Error mode is "LOG" by default
     ePiece:SetPos(vPos)
@@ -3174,9 +3183,9 @@ function SetBoundPos(ePiece,vPos,oPly,sMode)
     ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
       PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
-    return StatusLog(false,"SetBoundPos("..sMode.."): Position out of map bounds")
+    return StatusLog(false,"SetPosBound("..sMode.."): Position out of map bounds")
   end
-  return StatusLog(true,"SetBoundPos("..sMode.."): Success")
+  return StatusLog(true,"SetPosBound("..sMode.."): Success")
 end
 
 function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)

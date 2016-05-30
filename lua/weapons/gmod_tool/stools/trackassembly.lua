@@ -135,7 +135,7 @@ if(CLIENT) then
 end
 
 if(SERVER) then
-  cleanupRegister(gsToolNameU.."s")
+  cleanupRegister(asmlib.GetOpVar("CVAR_LIMITNAME")
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 
@@ -453,7 +453,7 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld) then -- Spawn it on the map ...
-    local ePiece = asmlib.MakePiece(model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
+    local ePiece = asmlib.MakePiece(ply,model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
       if(mcspawn ~= 0) then
@@ -469,7 +469,7 @@ function TOOL:LeftClick(stTrace)
         aAng:RotateAroundAxis(aAng:Right()  , nextpic)
         aAng:RotateAroundAxis(aAng:Forward(), nextrol)
         ePiece:SetAngles(aAng)
-        if(not asmlib.SetBoundPos(ePiece,vCen,ply,bnderrmod)) then
+        if(not asmlib.SetPosBound(ePiece,vCen,ply,bnderrmod)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid",ePiece)) end
       else -- Spawn on Active point
         local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
@@ -477,7 +477,7 @@ function TOOL:LeftClick(stTrace)
         if(not stSpawn) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): No spawn data",ePiece)) end
         ePiece:SetAngles(stSpawn.SAng)
-        if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod)) then
+        if(not asmlib.SetPosBound(ePiece,stSpawn.SPos,ply,bnderrmod)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid",ePiece)) end
       end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
@@ -553,10 +553,10 @@ function TOOL:LeftClick(stTrace)
     asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count).." )")
     while(iNdex <= count) do
       local sIterat = "["..tostring(iNdex).."]"
-      ePieceN = asmlib.MakePiece(model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
+      ePieceN = asmlib.MakePiece(ply,model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
       if(ePieceN) then
         ePieceN:SetAngles(stSpawn.SAng)
-        if(not asmlib.SetBoundPos(ePieceN,stSpawn.SPos,ply,bnderrmod)) then
+        if(not asmlib.SetPosBound(ePieceN,stSpawn.SPos,ply,bnderrmod)) then
           asmlib.UndoFinishPly(ply,sIterat) -- Make it shoot but throw the error
           return asmlib.StatusLog(true,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Position irrelevant"))
         end -- Set position is valid
@@ -597,10 +597,10 @@ function TOOL:LeftClick(stTrace)
     asmlib.UndoFinishPly(ply)
     return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success stacking")
   else
-    local ePiece = asmlib.MakePiece(model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
+    local ePiece = asmlib.MakePiece(ply,model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       ePiece:SetAngles(stSpawn.SAng)
-      if(not asmlib.SetBoundPos(ePiece,stSpawn.SPos,ply,bnderrmod)) then
+      if(not asmlib.SetPosBound(ePiece,stSpawn.SPos,ply,bnderrmod)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Position irrelevant")) end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings failed")) end

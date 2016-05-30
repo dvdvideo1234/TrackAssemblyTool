@@ -26,7 +26,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.240")
+asmlib.SetOpVar("TOOL_VERSION","5.241")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -40,8 +40,9 @@ asmlib.MakeCoVar("enwiremod", "1"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIV
 asmlib.MakeCoVar("devmode"  , "0"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle developer mode on/off server side")
 asmlib.MakeCoVar("maxstcnt" , "200", {1,200} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
-  asmlib.MakeCoVar("bnderrmod", "LOG",   nil   ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
-  asmlib.MakeCoVar("maxfruse" , "50" , {1,100} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
+  asmlib.MakeCoVar("bnderrmod"        , "LOG",   nil   ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
+  asmlib.MakeCoVar("maxfruse"         , "50" , {1,100} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
+  asmlib.MakeCoVar("sbox_max"..GetOpVar("CVAR_LIMITNAME"),"2000",nil,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to be spawned")
 end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeCoVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")

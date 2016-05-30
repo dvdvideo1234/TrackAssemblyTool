@@ -11,7 +11,8 @@ local stringUpper = string and string.upper
 local stringLen   = string and string.len
 
 ----- Get extension enabled flag
-local enFlag = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
+local plPlayer = LocalPlayer()
+local enFlag   = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
 local anyTrue  = 1
 local anyFalse = 0
 --------- Pieces ----------
@@ -50,8 +51,8 @@ end
 
 __e2setcost(100)
 e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel  , number hdPointID,
-                                                number nActRadius, number enFlatten, number enIgnTyp ,
-                                                vector ucsOffPos , vector ucsOffAng)
+                                              number nActRadius, number enFlatten, number enIgnTyp ,
+                                              vector ucsOffPos , vector ucsOffAng)
   if(not (this and this:IsValid() and enFlag)) then return {} end
   local stSpawn = asmlib.GetEntitySpawn(this,trHitPos,hdModel,hdPointID,
                                         nActRadius,enFlatten,enIgnTyp,
@@ -268,10 +269,11 @@ end
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
   if(not enFlag) then return nil end
-  return asmlib.MakePiece(sModel,Vector(vPos[1],vPos[2],vPos[3]),
-                                 Angle (aAng[1],aAng[2],aAng[3]),
-                                 nMass or 50000,sBgpID or "",
-                                 Color(nR or 255, nG or 255, nB or 255, nA or 255))
+  return asmlib.MakePiece(plPlayer,sModel,
+                          Vector(vPos[1],vPos[2],vPos[3]),
+                          Angle (aAng[1],aAng[2],aAng[3]),
+                          nMass or 50000,sBgpID or "",
+                          Color(nR or 255, nG or 255, nB or 255, nA or 255))
 end
 
 __e2setcost(50)
