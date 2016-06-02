@@ -128,14 +128,17 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
   languageAdd("tool."..gsToolNameL..".pntasist" , "Controls rendering the tool snap point assistant")
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
-  languageAdd("cleanup."..gsToolNameL     , "Undone assembly")
-  languageAdd("cleaned."..gsToolNameL.."s", "Cleaned up all Pieces")
+  languageAdd("Cleanup_"..gsToolNameL, "Track pieces")
+  languageAdd("Cleaned_"..gsToolNameL, "Cleaned up all track pieces")
+ -- languageAdd("cleanup."..asmlib.GetOpVar("CVAR_LIMITNAME"), "Undone track assembly")
+ -- languageAdd("cleaned."..asmlib.GetOpVar("CVAR_LIMITNAME"), "Cleaned up all track assembly")
+  languageAdd("SBoxLimit_"..asmlib.GetOpVar("CVAR_LIMITNAME"), "You've hit the Spawned tracks limit!")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
 end
 
 if(SERVER) then
-  cleanupRegister(asmlib.GetOpVar("CVAR_LIMITNAME")
+  cleanupRegister(asmlib.GetOpVar("CVAR_LIMITNAME"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 

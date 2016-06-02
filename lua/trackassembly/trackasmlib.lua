@@ -3072,8 +3072,10 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   if(not IsPlayer(pPly)) then
     return StatusLog(nil,"MakePiece: Player missing <"..tostring(pPly)..">") end
   local sLimit = GetOpVar("CVAR_LIMITNAME")
-  if(not pPly:CheckLimit(sLimit)) then
-    return StatusLog(nil,"MakePiece: Limit reached <"..sLimit..">") end
+  if(not pPly:CheckLimit(sLimit)) then -- Returns false if the limit is hit
+    return StatusLog(nil,"MakePiece: Track limit reached") end
+  if(not pPly:CheckLimit("props")) then -- Check the props too
+    return StatusLog(nil,"MakePiece: Prop limit reached") end
   local stPiece = CacheQueryPiece(sModel)
   if(not IsExistent(stPiece)) then
     return StatusLog(nil,"MakePiece: Record missing <"..sModel..">") end
@@ -3104,9 +3106,11 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     return StatusLog(nil,"MakePiece: Failed to attach bodygroups") end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Failed to attach additions") end
-  pPly:AddCount(sLimit, ePiece)
-  pPly:AddCleanup(sLimit, ePiece)
-  gamemodeCall("PlayerSpawnedProp",pPly,sModel,ePiece)
+  -- pPly:AddCleanup sets the ownership
+  pPly:AddCount  (sLimit , ePiece)
+  pPly:AddCount  ("props", ePiece)
+  pPly:AddCleanup(sLimit , ePiece)
+  pPly:AddCleanup("props", ePiece)
   return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
 end
 

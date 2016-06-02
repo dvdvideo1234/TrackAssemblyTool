@@ -4,6 +4,7 @@ local asmlib      = trackasmlib
 local Vector      = Vector
 local Angle       = Angle
 local Color       = Color
+local LocalPlayer = LocalPlayer
 local tonumber    = tonumber
 local tostring    = tostring
 local stringSub   = string and string.sub
