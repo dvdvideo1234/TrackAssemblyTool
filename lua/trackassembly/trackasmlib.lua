@@ -185,22 +185,22 @@ function IsNumber(anyValue)
   return ((tonumber(anyValue) and true) or false)
 end
 
-function IsPlayer(anyValue)
-  if(not IsExistent(anyValue)) then return false end
-  if(not IsValid   (anyValue)) then return false end
-  if(not anyValue:IsPlayer( )) then return false end
+function IsPlayer(oPly)
+  if(not IsExistent(oPly)) then return false end
+  if(not oPly:IsValid  ()) then return false end
+  if(not oPly:IsPlayer ()) then return false end
   return true
 end
 
 function IsOther(oEnt)
-  if(not oEnt)           then return true end
-  if(not oEnt:IsValid()) then return true end
-  if(oEnt:IsPlayer())    then return true end
-  if(oEnt:IsVehicle())   then return true end
-  if(oEnt:IsNPC())       then return true end
-  if(oEnt:IsRagdoll())   then return true end
-  if(oEnt:IsWeapon())    then return true end
-  if(oEnt:IsWidget())    then return true end
+  if(not IsExistent(oEnt)) then return true end
+  if(not oEnt:IsValid())   then return true end
+  if(oEnt:IsPlayer())      then return true end
+  if(oEnt:IsVehicle())     then return true end
+  if(oEnt:IsNPC())         then return true end
+  if(oEnt:IsRagdoll())     then return true end
+  if(oEnt:IsWeapon())      then return true end
+  if(oEnt:IsWidget())      then return true end
   return false
 end
 
@@ -407,7 +407,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
-  SetOpVar("HASH_PLAYER_KEYDOWN","PLAYER_KEYDOWN")
+  SetOpVar("HASH_PLAYER_INFO","PLAYER_INFO")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
   SetOpVar("NAV_PIECE",{})
@@ -1464,45 +1464,41 @@ function UndoFinishPly(pPly,anyMessage)
 end
 
 function LoadKeyPly(pPly, sKey)
-  local keyPly   = GetOpVar("HASH_PLAYER_KEYDOWN")
+  local keyPly   = GetOpVar("HASH_PLAYER_INFO")
   local plyCache = libCache[keyPly]
   if(not IsExistent(plyCache)) then
-    libCache[keyPly] = {}
-    plyCache = libCache[keyPly]
-  end
+    libCache[keyPly] = {}; plyCache = libCache[keyPly] end
   if(not IsPlayer(pPly)) then
     return StatusLog(false,"LoadKeyPly: Player <"..type(pPly)"> not available") end
-  local spName   = pPly:GetName()
-  local plyPlace = plyCache[spName]
+  local plyNick  = pPly:Nick()
+  local plyPlace = plyCache[plyNick]
   if(not IsExistent(plyPlace)) then
-    plyCache[spName] = {
-      ["ALTLFT"]  = false,
-      ["ALTRGH"]  = false,
-      ["ATTLFT"]  = false,
-      ["ATTRGH"]  = false,
-      ["FORWARD"] = false,
-      ["BACK"]    = false,
-      ["MOVELFT"] = false,
-      ["MOVERGH"] = false,
-      ["RELOAD"]  = false,
-      ["USE"]     = false,
-      ["DUCK"]    = false,
-      ["JUMP"]    = false,
-      ["SPEED"]   = false,
-      ["SCORE"]   = false,
-      ["ZOOM"]    = false,
-      ["LEFT"]    = false,
-      ["RIGHT"]   = false,
-      ["WALK"]    = false
+    plyCache[plyNick] = {
+      ["ALTLFT"]    = false,
+      ["ALTRGH"]    = false,
+      ["ATTLFT"]    = false,
+      ["ATTRGH"]    = false,
+      ["FORWARD"]   = false,
+      ["BACK"]      = false,
+      ["MOVELFT"]   = false,
+      ["MOVERGH"]   = false,
+      ["RELOAD"]    = false,
+      ["USE"]       = false,
+      ["DUCK"]      = false,
+      ["JUMP"]      = false,
+      ["SPEED"]     = false,
+      ["SCORE"]     = false,
+      ["ZOOM"]      = false,
+      ["LEFT"]      = false,
+      ["RIGHT"]     = false,
+      ["WALK"]      = false
     }
-    plyPlace = plyCache[spName]
+    plyPlace = plyCache[plyNick]
   end
   if(IsExistent(sKey)) then
     if(not IsString(sKey)) then
       return StatusLog(false,"LoadKeyPly: Key hash {"..type(sKey).."}<"..tostring(sKey).."> not string") end
-    if(sKey == "DEBUG") then
-      return plyPlace
-    end
+    if(sKey == "DEBUG") then return plyPlace end
     LogInstance("LoadKeyPly: NamePK <"..sKey.."> = "..tostring(plyPlace[sKey]))
     return plyPlace[sKey]
   end
@@ -1524,7 +1520,7 @@ function LoadKeyPly(pPly, sKey)
   plyPlace["LEFT"]    = pPly:KeyDown(IN_LEFT      )
   plyPlace["RIGHT"]   = pPly:KeyDown(IN_RIGHT     )
   plyPlace["WALK"]    = pPly:KeyDown(IN_WALK      )
-  return StatusLog(true,"LoadKeyPly: Player <"..spName.."> keys loaded")
+  return StatusLog(true,"LoadKeyPly: Player <"..plyNick.."> keys loaded")
 end
 
 -------------------------- BUILDSQL ------------------------------
@@ -3069,15 +3065,15 @@ end
 
 function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   if(CLIENT) then return StatusLog(nil,"MakePiece: Working on client") end
-  if(not IsPlayer(pPly)) then
+  if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     return StatusLog(nil,"MakePiece: Player missing <"..tostring(pPly)..">") end
-  local sLimit = GetOpVar("CVAR_LIMITNAME")
-  if(not pPly:CheckLimit(sLimit)) then -- Returns false if the limit is hit
+  local sLimit = GetOpVar("CVAR_LIMITNAME") -- Get limit name
+  if(not pPly:CheckLimit(sLimit)) then -- Check TA interanl limit
     return StatusLog(nil,"MakePiece: Track limit reached") end
-  if(not pPly:CheckLimit("props")) then -- Check the props too
+  if(not pPly:CheckLimit("props")) then -- Check the props limit
     return StatusLog(nil,"MakePiece: Prop limit reached") end
   local stPiece = CacheQueryPiece(sModel)
-  if(not IsExistent(stPiece)) then
+  if(not IsExistent(stPiece)) then -- Not present in the database
     return StatusLog(nil,"MakePiece: Record missing <"..sModel..">") end
   local ePiece = entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then
@@ -3106,11 +3102,10 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     return StatusLog(nil,"MakePiece: Failed to attach bodygroups") end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Failed to attach additions") end
-  -- pPly:AddCleanup sets the ownership
-  pPly:AddCount  (sLimit , ePiece)
-  pPly:AddCount  ("props", ePiece)
-  pPly:AddCleanup(sLimit , ePiece)
-  pPly:AddCleanup("props", ePiece)
+  pPly:AddCount  (sLimit , ePiece) -- Register it to the TA internal limit
+  pPly:AddCount  ("props", ePiece) -- Register it to the props also
+  pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
+  pPly:AddCleanup("props", ePiece) -- To be deleted with clearing props
   return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
 end
 

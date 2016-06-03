@@ -949,10 +949,24 @@ function TOOL:DrawToolScreen(w, h)
 end
 
 function TOOL.BuildCPanel(CPanel)
-  Header = CPanel:AddControl( "Header", {Text        = languageGetPhrase("tool."..gsToolNameL..".name"),
-                                         Description = languageGetPhrase("tool."..gsToolNameL..".desc")})
-  local CurY = Header:GetTall() + 2
+  local CurY = 0 -- pItem is the current panel created
+  pItem = CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
+  CurY = CurY + pItem:GetTall() + 2
 
+  pItem = CPanel:Help(languageGetPhrase("tool."..gsToolNameL..".desc"))
+  CurY = CurY + pItem:GetTall() + 2
+
+  pItem = vguiCreate("ControlPresets")
+  pItem:SetPos(2, CurY)
+  pItem:SetLabel("Presets")
+  pItem:SetPreset(gsToolNameL)
+  for k, v in pairs(self.ClientConVar) do
+    pItem:AddConVar(k)
+  end; CurY = CurY + pItem:GetTall() + 2
+  pItem:Update()
+  CPanel:AddItem(pItem)
+
+  --[[
   local Combo         = {}
   Combo["Label"]      = "#Presets"
   Combo["MenuButton"] = "1"
@@ -983,8 +997,10 @@ function TOOL.BuildCPanel(CPanel)
   Combo["CVars"][22]  = gsToolPrefL.."nocollide"
   Combo["CVars"][23]  = gsToolPrefL.."gravity"
   Combo["CVars"][24]  = gsToolPrefL.."physmater"
-  CPanel:AddControl("ComboBox",Combo)
-  CurY = CurY + 25
+  pItem = CPanel:AddControl("ComboBox",Combo)
+  CurY = CurY + pItem:GetTall() + 2
+
+  ]]--
 
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
@@ -994,7 +1010,7 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetSize(2, 250)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
         pTree:SetIndentSize(0)
-  local iCnt, pFolders, pNode, pItem = 1, {}
+  local iCnt, pFolders, pNode = 1, {}
   while(Panel[iCnt]) do
     local Rec = Panel[iCnt]
     local Mod = Rec[defTable[1][1]]
@@ -1049,19 +1065,16 @@ function TOOL.BuildCPanel(CPanel)
   if(not Property) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty") end
   asmlib.Print(Property,"Property")
   local CntTyp = 1
-  local qNames, Type
   while(Property[CntTyp]) do
-    Type = Property[CntTyp]
-    pComboPhysType:AddChoice(Type)
+    pComboPhysType:AddChoice(Property[CntTyp])
     pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
-      qNames = asmlib.CacheQueryProperty(sVal)
+      local qNames = asmlib.CacheQueryProperty(sVal)
       if(qNames) then
         pComboPhysName:Clear()
         pComboPhysName:SetValue("<Select Surface Material NAME>")
         local CntNam = 1
         while(qNames[CntNam]) do
-          local Nam = qNames[CntNam]
-          pComboPhysName:AddChoice(Nam)
+          pComboPhysName:AddChoice(qNames[CntNam])
           pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
             RunConsoleCommand(gsToolPrefL.."physmater", sVal)
           end
@@ -1094,151 +1107,52 @@ function TOOL.BuildCPanel(CPanel)
         CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Piece mass:",
-            Type    = "Integer",
-            Min     = 1,
-            Max     = gnMaxMass,
-            Command = gsToolPrefL.."mass"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Active radius:",
-            Type    = "Float",
-            Min     = 1,
-            Max     = asmlib.GetCoVar("maxactrad", "FLT"),
-            Command = gsToolPrefL.."activrad"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Pieces count:",
-            Type    = "Integer",
-            Min     = 1,
-            Max     = asmlib.GetCoVar("maxstcnt", "INT"),
-            Command = gsToolPrefL.."count"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Yaw snap amount:",
-            Type    = "Float",
-            Min     = 0,
-            Max     = gnMaxOffRot,
-            Command = gsToolPrefL.."ydegsnp"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
-
-  pItem = CPanel:AddControl("Button", {
-            Label   = "V Reset variables V",
-            Command = gsToolPrefL.."resetvars",
-            Text    = "Reset variables" })
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Origin pitch:",
-            Type    = "Float",
-            Min     = -gnMaxOffRot,
-            Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextpic"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Origin yaw:",
-            Type    = "Float",
-            Min     = -gnMaxOffRot,
-            Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextyaw"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Origin roll:",
-            Type    = "Float",
-            Min     = -gnMaxOffRot,
-            Max     =  gnMaxOffRot,
-            Command = gsToolPrefL.."nextrol"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Offset X:",
-            Type    = "Float",
-            Min     = -gnMaxOffLin,
-            Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextx"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Offset Y:",
-            Type    = "Float",
-            Min     = -gnMaxOffLin,
-            Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nexty"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
-
-  pItem = CPanel:AddControl("Slider", {
-            Label   = "Offset Z:",
-            Type    = "Float",
-            Min     = -gnMaxOffLin,
-            Max     =  gnMaxOffLin,
-            Command = gsToolPrefL.."nextz"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Weld",
-            Command = gsToolPrefL.."weld"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "NoCollide",
-            Command = gsToolPrefL.."nocollide"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Freeze on spawn",
-            Command = gsToolPrefL.."freeze"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Ignore physics gun grab",
-            Command = gsToolPrefL.."ignphysgn"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Apply piece gravity",
-            Command = gsToolPrefL.."gravity"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".gravity"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Ignore track type",
-            Command = gsToolPrefL.."igntype"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntype"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Spawn horizontally",
-            Command = gsToolPrefL.."spnflat"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Origin from mass-centre",
-            Command = gsToolPrefL.."mcspawn"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Snap to trace surface",
-            Command = gsToolPrefL.."surfsnap"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Draw adviser",
-            Command = gsToolPrefL.."adviser"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Draw assistant",
-            Command = gsToolPrefL.."pntasist"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
-
-  pItem = CPanel:AddControl("Checkbox", {
-            Label   = "Draw holder ghost",
-            Command = gsToolPrefL.."ghosthold"})
-  pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
+  pItem = CPanel:NumSlider("Piece mass:", gsToolPrefL.."mass", 1, gnMaxMass  , 0)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
+  pItem = CPanel:NumSlider("Active radius:", gsToolPrefL.."activrad", 1, asmlib.GetCoVar("maxactrad", "FLT"), 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
+  pItem = CPanel:NumSlider("Pieces count:", gsToolPrefL.."count"    , 1, asmlib.GetCoVar("maxstcnt" , "INT"), 0)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
+  pItem = CPanel:NumSlider("Yaw snap amount:", gsToolPrefL.."ydegsnp", 1, gnMaxOffRot, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
+  pItem = CPanel:Button("V Reset variables V", gsToolPrefL.."resetvars")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))
+  pItem = CPanel:NumSlider("Origin pitch:", gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
+  pItem = CPanel:NumSlider("Origin yaw:"  , gsToolPrefL.."nextyaw" , -gnMaxOffRot, gnMaxOffRot, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
+  pItem = CPanel:NumSlider("Origin roll:" , gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
+  pItem = CPanel:NumSlider("Offset X:", gsToolPrefL.."nextx", -gnMaxOffLin, gnMaxOffLin, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
+  pItem = CPanel:NumSlider("Offset Y:", gsToolPrefL.."nexty", -gnMaxOffLin, gnMaxOffLin, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
+  pItem = CPanel:NumSlider("Offset Z:", gsToolPrefL.."nextz", -gnMaxOffLin, gnMaxOffLin, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
+  pItem = CPanel:CheckBox("Weld", gsToolPrefL.."weld")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
+  pItem = CPanel:CheckBox("NoCollide", gsToolPrefL.."nocollide")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
+  pItem = CPanel:CheckBox("Freeze on spawn", gsToolPrefL.."freeze")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
+  pItem = CPanel:CheckBox("Ignore physics gun grab", gsToolPrefL.."ignphysgn")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))
+  pItem = CPanel:CheckBox("Apply piece gravity", gsToolPrefL.."gravity")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".gravity"))
+  pItem = CPanel:CheckBox("Ignore track type", gsToolPrefL.."igntype")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntype"))
+  pItem = CPanel:CheckBox("Spawn horizontally", gsToolPrefL.."spnflat")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
+  pItem = CPanel:CheckBox("Origin from mass-centre", gsToolPrefL.."mcspawn")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
+  pItem = CPanel:CheckBox("Snap to trace surface", gsToolPrefL.."surfsnap")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
+  pItem = CPanel:CheckBox("Draw adviser", gsToolPrefL.."adviser")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
+  pItem = CPanel:CheckBox("Draw assistant", gsToolPrefL.."pntasist")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
+  pItem = CPanel:CheckBox("Draw holder ghost", gsToolPrefL.."ghosthold")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
 end
 
 function TOOL:MakeGhostEntity(sModel)

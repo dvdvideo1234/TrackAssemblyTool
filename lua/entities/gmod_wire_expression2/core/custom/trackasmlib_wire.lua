@@ -4,20 +4,19 @@ local asmlib      = trackasmlib
 local Vector      = Vector
 local Angle       = Angle
 local Color       = Color
-local LocalPlayer = LocalPlayer
 local tonumber    = tonumber
 local tostring    = tostring
 local stringSub   = string and string.sub
 local stringUpper = string and string.upper
 local stringLen   = string and string.len
+local mathClamp   = math and math.Clamp
 
 ----- Get extension enabled flag
-local plPlayer = LocalPlayer()
 local enFlag   = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
 local anyTrue  = 1
 local anyFalse = 0
---------- Pieces ----------
 
+--------- Pieces ----------
 __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
   if(not (this and this:IsValid() and enFlag)) then return "" end
@@ -178,7 +177,6 @@ e2function number entity:trackasmlibGetPointsCount()
 end
 
 ---------- Additions ------------
-
 __e2setcost(30)
 e2function number trackasmlibHasAdditions(string sModel)
   if(not enFlag) then return anyFalse end
@@ -248,7 +246,6 @@ e2function array entity:trackasmlibGetAdditionsLine(number nLine)
 end
 
 ------------ PhysProperties ------------
-
 __e2setcost(15)
 e2function array trackasmlibGetProperty(string sType)
   if(not enFlag) then return {} end
@@ -266,20 +263,24 @@ e2function array trackasmlibGetProperty()
 end
 
 ----------- Piece creator --------------
-
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
   if(not enFlag) then return nil end
-  return asmlib.MakePiece(plPlayer,sModel,
+  if(not asmlib.IsPlayer(self.player)) then return nil end
+  return asmlib.MakePiece(self.player,sModel,
                           Vector(vPos[1],vPos[2],vPos[3]),
                           Angle (aAng[1],aAng[2],aAng[3]),
                           nMass or 50000,sBgpID or "",
-                          Color(nR or 255, nG or 255, nB or 255, nA or 255))
+                          Color(mathClamp(nR or 255,0,255),
+                                mathClamp(nG or 255,0,255),
+                                mathClamp(nB or 255,0,255),
+                                mathClamp(nA or 255,0,255)))
 end
 
 __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   if(not (this and this:IsValid() and enFlag)) then return nil end
+  if(not asmlib.IsPlayer(self.player)) then return nil end
   local phthis = this:GetPhysicsObject()
   if(not (phthis and phthis:IsValid())) then return nil end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
@@ -287,7 +288,7 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   local sBgpID  = asmlib.GetPropBodyGroup(this)..
                   asmlib.GetOpVar("OPSYM_DIRECTORY")..
                   asmlib.GetPropSkin(this)
-  return asmlib.MakePiece(this:GetModel(),
+  return asmlib.MakePiece(self.player,this:GetModel(),
                 Vector(vPos[1],vPos[2],vPos[3]),
                 Angle (aAng[1],aAng[2],aAng[3]),
                 phthis:GetMass(),sBgpID,this:GetColor())
