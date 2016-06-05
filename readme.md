@@ -171,6 +171,17 @@ A: Easy. First you need to enable the developer mode via "trackassembly_devmode 
      to delete the client or server or both instance generated databases
 N: The console variables being set in this question will be reset also
 
+Q: Dude how can I control the spawned tracks in multilayer
+A: Easy. The track pieces are props, so they are registered to:
+   1) Variable "sbox_maxprops"     the maximum props on the server
+   2) Variable "sbox_maxasmtracks" a variable for the maximum things spawned via TA
+   You can trigger these limits independently from one another. For example:
+   "maxprops" is 50 and "maxasmtracks" is 30 will trigger maxasmtracks
+   "maxprops" is 30 and "maxasmtracks" is 50 will trigger maxprops
+   "maxprops" is 50 and "maxasmtracks" is 50 will trigger maxasmtracks
+N: If you want a server with many props and less tracks, then lower maxasmtracks
+   Default value is 1500 for "maxasmtracks" to relay on the props limit
+
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?
 A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
@@ -272,8 +283,8 @@ Q: Hay, how should I proceed when I am experiencing errors ?
 A: First of all if the the error origin is not the TA,
     I can't pretty much help you with it, but I will do my best
     If the error is related to the TA then:
-    1) Delete database ( if any ) located in ..common\GarrysMod\garrysmod\data\trackassembly\*.*
-    2) Delete the TA's *.gma file
+    1) Delete database ( if any ) located in ..common\GarrysMod\garrysmod\data\trackassembly\dsv\*.*
+    2) Delete the TA's *.gma file from garrysmod\addons
     3) Delete the cache "..\GarrysMod\garrysmod\cache"
     4) In the game library, right click on Gmod and select "Properties"
     5) Navigate to "Local Files" and click "Verify integrity of the game cache"

@@ -26,6 +26,7 @@ local entsCreate            = ents and ents.Create
 local entsCreateClientProp  = ents and ents.CreateClientProp
 local fileExists            = file and file.Exists
 local fileDelete            = file and file.Delete
+local tableGetKeys          = table and table.GetKeys
 local stringLen             = string and string.len
 local stringRep             = string and string.rep
 local stringSub             = string and string.sub
@@ -96,6 +97,8 @@ local conPalette = asmlib.MakeContainer("Colours")
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
 
+cleanupRegister(asmlib.GetOpVar("CVAR_LIMITNAME"))
+
 if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".category" , "Construction")
   languageAdd("tool."..gsToolNameL..".name"     , gsNameInitF.." "..gsNamePerpF)
@@ -128,17 +131,14 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
   languageAdd("tool."..gsToolNameL..".pntasist" , "Controls rendering the tool snap point assistant")
   languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
-  languageAdd("Cleanup_"..gsToolNameL, "Track pieces")
-  languageAdd("Cleaned_"..gsToolNameL, "Cleaned up all track pieces")
- -- languageAdd("cleanup."..asmlib.GetOpVar("CVAR_LIMITNAME"), "Undone track assembly")
- -- languageAdd("cleaned."..asmlib.GetOpVar("CVAR_LIMITNAME"), "Cleaned up all track assembly")
+  languageAdd("Cleanup_"..asmlib.GetOpVar("CVAR_LIMITNAME"), gsNameInitF.." "..asmlib.GetOpVar("NAME_PERP").." pieces")
+  languageAdd("Cleaned_"..asmlib.GetOpVar("CVAR_LIMITNAME"), "Cleaned up all track pieces")
   languageAdd("SBoxLimit_"..asmlib.GetOpVar("CVAR_LIMITNAME"), "You've hit the Spawned tracks limit!")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
 end
 
 if(SERVER) then
-  cleanupRegister(asmlib.GetOpVar("CVAR_LIMITNAME"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 
@@ -948,59 +948,19 @@ function TOOL:DrawToolScreen(w, h)
   goToolScr:DrawText(osDate(),"w")
 end
 
+local ConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel)
-  local CurY = 0 -- pItem is the current panel created
-  pItem = CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
-  CurY = CurY + pItem:GetTall() + 2
-
+  local CurY, pItem = 0 -- pItem is the current panel created
+  CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help(languageGetPhrase("tool."..gsToolNameL..".desc"))
   CurY = CurY + pItem:GetTall() + 2
 
-  pItem = vguiCreate("ControlPresets")
-  pItem:SetPos(2, CurY)
-  pItem:SetLabel("Presets")
-  pItem:SetPreset(gsToolNameL)
-  for k, v in pairs(self.ClientConVar) do
-    pItem:AddConVar(k)
-  end; CurY = CurY + pItem:GetTall() + 2
-  pItem:Update()
-  CPanel:AddItem(pItem)
-
-  --[[
-  local Combo         = {}
-  Combo["Label"]      = "#Presets"
-  Combo["MenuButton"] = "1"
-  Combo["Folder"]     = gsToolNameL
-  Combo["CVars"]      = {}
-  Combo["CVars"][0 ]  = gsToolPrefL.."weld"
-  Combo["CVars"][1 ]  = gsToolPrefL.."ignphysgn"
-  Combo["CVars"][2 ]  = gsToolPrefL.."mass"
-  Combo["CVars"][3 ]  = gsToolPrefL.."model"
-  Combo["CVars"][4 ]  = gsToolPrefL.."nextx"
-  Combo["CVars"][5 ]  = gsToolPrefL.."nexty"
-  Combo["CVars"][6 ]  = gsToolPrefL.."nextz"
-  Combo["CVars"][7 ]  = gsToolPrefL.."count"
-  Combo["CVars"][8 ]  = gsToolPrefL.."freeze"
-  Combo["CVars"][9 ]  = gsToolPrefL.."adviser"
-  Combo["CVars"][10]  = gsToolPrefL.."adviser"
-  Combo["CVars"][11]  = gsToolPrefL.."igntype"
-  Combo["CVars"][12]  = gsToolPrefL.."spnflat"
-  Combo["CVars"][13]  = gsToolPrefL.."pointid"
-  Combo["CVars"][14]  = gsToolPrefL.."pnextid"
-  Combo["CVars"][15]  = gsToolPrefL.."nextpic"
-  Combo["CVars"][16]  = gsToolPrefL.."nextyaw"
-  Combo["CVars"][17]  = gsToolPrefL.."nextrol"
-  Combo["CVars"][18]  = gsToolPrefL.."ghosthold"
-  Combo["CVars"][19]  = gsToolPrefL.."ydegsnp"
-  Combo["CVars"][20]  = gsToolPrefL.."mcspawn"
-  Combo["CVars"][21]  = gsToolPrefL.."activrad"
-  Combo["CVars"][22]  = gsToolPrefL.."nocollide"
-  Combo["CVars"][23]  = gsToolPrefL.."gravity"
-  Combo["CVars"][24]  = gsToolPrefL.."physmater"
-  pItem = CPanel:AddControl("ComboBox",Combo)
-  CurY = CurY + pItem:GetTall() + 2
-
-  ]]--
+  pItem = CPanel:AddControl( "ComboBox",{
+              MenuButton = 1,
+              Folder     = gsToolNameL,
+              Options    = {["#Default"] = ConVarList},
+              CVars      = tableGetKeys(ConVarList)
+          }); CurY = CurY + pItem:GetTall() + 2
 
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
