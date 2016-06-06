@@ -6,15 +6,17 @@ local Angle       = Angle
 local Color       = Color
 local tonumber    = tonumber
 local tostring    = tostring
+local mathClamp   = math and math.Clamp
 local stringSub   = string and string.sub
 local stringUpper = string and string.upper
 local stringLen   = string and string.len
-local mathClamp   = math and math.Clamp
 
 ----- Get extension enabled flag
-local enFlag   = ((tonumber(asmlib.GetCoVar("enwiremod","INT")) or 0) ~= 0) and true or false
+local enFlag   = ((tonumber(asmlib.GetAsmVar("enwiremod","INT")) or 0) ~= 0) and true or false
 local anyTrue  = 1
 local anyFalse = 0
+local maxMass  = asmlib.GetOpVar("MAX_MASS")
+local maxColor = 255
 
 --------- Pieces ----------
 __e2setcost(50)
@@ -267,14 +269,9 @@ __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
   if(not enFlag) then return nil end
   if(not asmlib.IsPlayer(self.player)) then return nil end
-  return asmlib.MakePiece(self.player,sModel,
-                          Vector(vPos[1],vPos[2],vPos[3]),
-                          Angle (aAng[1],aAng[2],aAng[3]),
-                          nMass or 50000,sBgpID or "",
-                          Color(mathClamp(nR or 255,0,255),
-                                mathClamp(nG or 255,0,255),
-                                mathClamp(nB or 255,0,255),
-                                mathClamp(nA or 255,0,255)))
+  return asmlib.MakePiece(self.player,sModel,Vector(vPos[1],vPos[2],vPos[3]),Angle(aAng[1],aAng[2],aAng[3]),
+           mathClamp(nMass,1,maxMass),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
+                                                   mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)))
 end
 
 __e2setcost(50)
@@ -286,12 +283,9 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
   if(not stRecord) then return nil end
   local sBgpID  = asmlib.GetPropBodyGroup(this)..
-                  asmlib.GetOpVar("OPSYM_DIRECTORY")..
-                  asmlib.GetPropSkin(this)
-  return asmlib.MakePiece(self.player,this:GetModel(),
-                Vector(vPos[1],vPos[2],vPos[3]),
-                Angle (aAng[1],aAng[2],aAng[3]),
-                phthis:GetMass(),sBgpID,this:GetColor())
+                  asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
+  return asmlib.MakePiece(self.player,this:GetModel(),Vector(vPos[1],vPos[2],vPos[3]),
+                Angle (aAng[1],aAng[2],aAng[3]),phthis:GetMass(),sBgpID,this:GetColor())
 end
 
 __e2setcost(15)

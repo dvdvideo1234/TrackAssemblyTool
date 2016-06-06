@@ -164,14 +164,14 @@ Q: Dude I've messed up my console variables, how can I factory-reset them ?
 A: Easy. First you need to enable the developer mode via "trackassembly_devmode 1"
    Then in the bodygroup/skin text box ( or "trackassembly_bgskids" variable ) enter:
    "reset cvars":
-     reset all cvars to the factory default settings
+     Resets all cvars to the factory default settings
    "delete"
-     followed by space for deleting the exported database without quitting
+     Followed by a space for deleting the exported database without quitting
      the game, followed by either "cl" or "sv" or both, separated by space
      to delete the client or server or both instance generated databases
 N: The console variables being set in this question will be reset also
 
-Q: Dude how can I control the spawned tracks in multilayer
+Q: Dude how can I control the spawned pieces in multiplayer
 A: Easy. The track pieces are props, so they are registered to:
    1) Variable "sbox_maxprops"     the maximum props on the server
    2) Variable "sbox_maxasmtracks" a variable for the maximum things spawned via TA

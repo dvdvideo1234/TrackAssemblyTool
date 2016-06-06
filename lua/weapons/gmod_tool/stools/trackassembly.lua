@@ -8,24 +8,17 @@ local Vector                = Vector
 local IsValid               = IsValid
 local tostring              = tostring
 local tonumber              = tonumber
+local GetConVar             = GetConVar
 local LocalPlayer           = LocalPlayer
 local RunConsoleCommand     = RunConsoleCommand
-local RestoreCursorPosition = RestoreCursorPosition
 local osDate                = os and os.date
 local vguiCreate            = vgui and vgui.Create
-local gameSinglePlayer      = game and game.SinglePlayer
 local utilTraceLine         = util and util.TraceLine
 local utilIsValidModel      = util and util.IsValidModel
-local utilPrecacheModel     = util and util.PrecacheModel
-local utilIsValidRagdoll    = util and util.IsValidRagdoll
 local utilGetPlayerTrace    = util and util.GetPlayerTrace
 local mathSqrt              = math and math.sqrt
 local mathClamp             = math and math.Clamp
-local mathFloor             = math and math.floor
-local entsCreate            = ents and ents.Create
-local entsCreateClientProp  = ents and ents.CreateClientProp
 local fileExists            = file and file.Exists
-local fileDelete            = file and file.Delete
 local tableGetKeys          = table and table.GetKeys
 local stringLen             = string and string.len
 local stringRep             = string and string.rep
@@ -100,37 +93,51 @@ local conPalette = asmlib.MakeContainer("Colours")
 cleanupRegister(asmlib.GetOpVar("CVAR_LIMITNAME"))
 
 if(CLIENT) then
-  languageAdd("tool."..gsToolNameL..".category" , "Construction")
-  languageAdd("tool."..gsToolNameL..".name"     , gsNameInitF.." "..gsNamePerpF)
-  languageAdd("tool."..gsToolNameL..".desc"     , "Assembles a track for vehicles to run on")
-  languageAdd("tool."..gsToolNameL..".0"        , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
-  languageAdd("tool."..gsToolNameL..".tree"     , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
-  languageAdd("tool."..gsToolNameL..".phytype"  , "Select physical properties type of the ones listed here")
-  languageAdd("tool."..gsToolNameL..".phyname"  , "Select physical properties name to use when creating the track as this will affect the surface friction")
-  languageAdd("tool."..gsToolNameL..".bgskids"  , "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
-  languageAdd("tool."..gsToolNameL..".mass"     , "How heavy the piece spawned will be")
-  languageAdd("tool."..gsToolNameL..".activrad" , "Minimum distance needed to select an active point")
-  languageAdd("tool."..gsToolNameL..".count"    , "Maximum number of pieces to create while stacking")
-  languageAdd("tool."..gsToolNameL..".ydegsnp"  , "Snap the first piece spawned at this much degrees")
-  languageAdd("tool."..gsToolNameL..".resetvars", "Click to reset the additional values")
-  languageAdd("tool."..gsToolNameL..".nextpic"  , "Additional origin angular pitch offset")
-  languageAdd("tool."..gsToolNameL..".nextyaw"  , "Additional origin angular yaw offset")
-  languageAdd("tool."..gsToolNameL..".nextrol"  , "Additional origin angular roll offset")
-  languageAdd("tool."..gsToolNameL..".nextx"    , "Additional origin linear X offset")
-  languageAdd("tool."..gsToolNameL..".nexty"    , "Additional origin linear Y offset")
-  languageAdd("tool."..gsToolNameL..".nextz"    , "Additional origin linear Z offset")
-  languageAdd("tool."..gsToolNameL..".gravity"  , "Controls the gravity on the piece spawned")
-  languageAdd("tool."..gsToolNameL..".weld"     , "Creates welds between pieces or pieces/anchor")
-  languageAdd("tool."..gsToolNameL..".ignphysgn", "Ignores physics gun grab on the piece spawned/snapped/stacked")
-  languageAdd("tool."..gsToolNameL..".nocollide", "Puts a no-collide between pieces or pieces/anchor")
-  languageAdd("tool."..gsToolNameL..".freeze"   , "Makes the piece spawn in a frozen state")
-  languageAdd("tool."..gsToolNameL..".igntype"  , "Makes the tool ignore the different piece types on snapping/stacking")
-  languageAdd("tool."..gsToolNameL..".spnflat"  , "The next piece will be spawned/snapped/stacked horizontally")
-  languageAdd("tool."..gsToolNameL..".mcspawn"  , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
-  languageAdd("tool."..gsToolNameL..".surfsnap" , "Snaps the piece to the surface the player is pointing at")
-  languageAdd("tool."..gsToolNameL..".adviser"  , "Controls rendering the tool position/angle adviser")
-  languageAdd("tool."..gsToolNameL..".pntasist" , "Controls rendering the tool snap point assistant")
-  languageAdd("tool."..gsToolNameL..".ghosthold", "Controls rendering the tool ghosted holder piece")
+
+  TOOL.Information = {
+    { name = "info",  stage = 1   },
+    { name = "left"         },
+    { name = "right"        },
+    { name = "right_use",   icon2 = "gui/e.png" },
+    { name = "reload"       }
+  }
+
+  languageAdd("tool."..gsToolNameL..".1"         , "Assembles a train track" )
+  languageAdd("tool."..gsToolNameL..".left"      , "Spawn a track to assembble. Hold shift to stack")
+  languageAdd("tool."..gsToolNameL..".right"     , "Switch assembly points. Hold shift for versa")
+  languageAdd("tool."..gsToolNameL..".right_use" , "Open frequently used pieces menu")
+  languageAdd("tool."..gsToolNameL..".reload"    , "Remove a track. Hold shift to select an anchor")
+  languageAdd("tool."..gsToolNameL..".category"  , "Construction")
+  languageAdd("tool."..gsToolNameL..".name"      , gsNameInitF.." "..gsNamePerpF)
+  languageAdd("tool."..gsToolNameL..".desc"      , "Assembles a track for vehicles to run on")
+--  languageAdd("tool."..gsToolNameL..".0"         , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
+  languageAdd("tool."..gsToolNameL..".tree"      , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
+  languageAdd("tool."..gsToolNameL..".phytype"   , "Select physical properties type of the ones listed here")
+  languageAdd("tool."..gsToolNameL..".phyname"   , "Select physical properties name to use when creating the track as this will affect the surface friction")
+  languageAdd("tool."..gsToolNameL..".bgskids"   , "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
+  languageAdd("tool."..gsToolNameL..".mass"      , "How heavy the piece spawned will be")
+  languageAdd("tool."..gsToolNameL..".activrad"  , "Minimum distance needed to select an active point")
+  languageAdd("tool."..gsToolNameL..".count"     , "Maximum number of pieces to create while stacking")
+  languageAdd("tool."..gsToolNameL..".ydegsnp"   , "Snap the first piece spawned at this much degrees")
+  languageAdd("tool."..gsToolNameL..".resetvars" , "Click to reset the additional values")
+  languageAdd("tool."..gsToolNameL..".nextpic"   , "Additional origin angular pitch offset")
+  languageAdd("tool."..gsToolNameL..".nextyaw"   , "Additional origin angular yaw offset")
+  languageAdd("tool."..gsToolNameL..".nextrol"   , "Additional origin angular roll offset")
+  languageAdd("tool."..gsToolNameL..".nextx"     , "Additional origin linear X offset")
+  languageAdd("tool."..gsToolNameL..".nexty"     , "Additional origin linear Y offset")
+  languageAdd("tool."..gsToolNameL..".nextz"     , "Additional origin linear Z offset")
+  languageAdd("tool."..gsToolNameL..".gravity"   , "Controls the gravity on the piece spawned")
+  languageAdd("tool."..gsToolNameL..".weld"      , "Creates welds between pieces or pieces/anchor")
+  languageAdd("tool."..gsToolNameL..".ignphysgn" , "Ignores physics gun grab on the piece spawned/snapped/stacked")
+  languageAdd("tool."..gsToolNameL..".nocollide" , "Puts a no-collide between pieces or pieces/anchor")
+  languageAdd("tool."..gsToolNameL..".freeze"    , "Makes the piece spawn in a frozen state")
+  languageAdd("tool."..gsToolNameL..".igntype"   , "Makes the tool ignore the different piece types on snapping/stacking")
+  languageAdd("tool."..gsToolNameL..".spnflat"   , "The next piece will be spawned/snapped/stacked horizontally")
+  languageAdd("tool."..gsToolNameL..".mcspawn"   , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
+  languageAdd("tool."..gsToolNameL..".surfsnap"  , "Snaps the piece to the surface the player is pointing at")
+  languageAdd("tool."..gsToolNameL..".adviser"   , "Controls rendering the tool position/angle adviser")
+  languageAdd("tool."..gsToolNameL..".pntasist"  , "Controls rendering the tool snap point assistant")
+  languageAdd("tool."..gsToolNameL..".ghosthold" , "Controls rendering the tool ghosted holder piece")
   languageAdd("Cleanup_"..asmlib.GetOpVar("CVAR_LIMITNAME"), gsNameInitF.." "..asmlib.GetOpVar("NAME_PERP").." pieces")
   languageAdd("Cleaned_"..asmlib.GetOpVar("CVAR_LIMITNAME"), "Cleaned up all track pieces")
   languageAdd("SBoxLimit_"..asmlib.GetOpVar("CVAR_LIMITNAME"), "You've hit the Spawned tracks limit!")
@@ -188,7 +195,7 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetCount()
-  return mathClamp(self:GetClientNumber("count"),1,asmlib.GetCoVar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("count"),1,asmlib.GetAsmVar("maxstcnt", "INT"))
 end
 
 function TOOL:GetMass()
@@ -196,7 +203,7 @@ function TOOL:GetMass()
 end
 
 function TOOL:GetDeveloperMode()
-  return asmlib.GetCoVar("devmode" ,"INT")
+  return asmlib.GetAsmVar("devmode" ,"INT")
 end
 
 function TOOL:GetPosOffsets()
@@ -269,7 +276,7 @@ function TOOL:GetPointID()
 end
 
 function TOOL:GetActiveRadius()
-  return mathClamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetCoVar("maxactrad", "FLT"))
+  return mathClamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetAsmVar("maxactrad", "FLT"))
 end
 
 function TOOL:GetYawSnap()
@@ -297,7 +304,7 @@ function TOOL:GetPhysMeterial()
 end
 
 function TOOL:GetBoundErrorMode()
-  return asmlib.GetCoVar("bnderrmod" ,"STR")
+  return asmlib.GetAsmVar("bnderrmod" ,"STR")
 end
 
 function TOOL:GetSurfaceSnap()
@@ -365,7 +372,9 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."Dumping logs state:"..sDelim
         sDu = sDu..sSpace.."  LogsMax:        <"..tostring(iMaxlog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
-        sDu = sDu..sSpace.."  LogFile:        <"..tostring(sFleLog)..">"..sDelim
+        sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
+        sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
+        sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME")):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim
         sDu = sDu..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
         sDu = sDu..sSpace.."  IN.USE:         <"..tostring(plyKeys["USE"])..">"..sDelim
@@ -405,14 +414,14 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxARadius:  <"..tostring(asmlib.GetCoVar("maxactrad","INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetCoVar("enwiremod","INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetCoVar("devmode"  ,"INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxStackCnt: <"..tostring(asmlib.GetCoVar("maxstcnt" ,"INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.BoundErrMod: <"..tostring(asmlib.GetCoVar("bnderrmod","STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetCoVar("modedb" ,"STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnableStore: <"..tostring(gsQueryStr)..","..tostring(asmlib.GetCoVar("enqstore","INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetCoVar("timermode","STR"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxARadius:  <"..tostring(asmlib.GetAsmVar("maxactrad","INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetAsmVar("enwiremod","INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetAsmVar("devmode"  ,"INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxStackCnt: <"..tostring(asmlib.GetAsmVar("maxstcnt" ,"INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.BoundErrMod: <"..tostring(asmlib.GetAsmVar("bnderrmod","STR"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmVar("modedb" ,"STR"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnableStore: <"..tostring(gsQueryStr)..","..tostring(asmlib.GetAsmVar("enqstore","INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetAsmVar("timermode","STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
         sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
         sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
@@ -636,7 +645,7 @@ function TOOL:RightClick(stTrace)
   local pointbu = pointid
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld and asmlib.LoadKeyPly(ply,"USE")) then
-    asmlib.ConCommandPly(ply,"openframe",asmlib.GetCoVar("maxfruse" ,"INT"))
+    asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
     return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
   end
   if(asmlib.LoadKeyPly(ply,"DUCK")) then -- Crouch ( Ctrl )
@@ -927,7 +936,7 @@ function TOOL:DrawToolScreen(w, h)
   end
   model  = stringToFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
-  maxrad = asmlib.GetCoVar("maxactrad", "FLT")
+  maxrad = asmlib.GetAsmVar("maxactrad", "FLT")
   goToolScr:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   goToolScr:DrawText("HM: " ..(model      or gsNoAV),"m")
   goToolScr:DrawText("ID: ["..(trMaxCN    or gsNoID)
@@ -967,7 +976,7 @@ function TOOL.BuildCPanel(CPanel)
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local pTree    = vguiCreate("DTree")
         pTree:SetPos(2, CurY)
-        pTree:SetSize(2, 250)
+        pTree:SetSize(2, 300)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
         pTree:SetIndentSize(0)
   local iCnt, pFolders, pNode = 1, {}
@@ -1019,7 +1028,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
-        pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetCoVar("physmater","STR"),"<Select Surface Material NAME>"))
+        pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),"<Select Surface Material NAME>"))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local Property = asmlib.CacheQueryProperty()
   if(not Property) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty") end
@@ -1053,7 +1062,7 @@ function TOOL.BuildCPanel(CPanel)
         pText:SetPos(2, CurY)
         pText:SetTall(18)
         pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
-        pText:SetText(asmlib.DefaultString(asmlib.GetCoVar("bgskids", "STR"),"Write selection code here. For example 1,0,0,2,1/3"))
+        pText:SetText(asmlib.DefaultString(asmlib.GetAsmVar("bgskids", "STR"),"Write selection code here. For example 1,0,0,2,1/3"))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()
@@ -1069,9 +1078,9 @@ function TOOL.BuildCPanel(CPanel)
 
   pItem = CPanel:NumSlider("Piece mass:", gsToolPrefL.."mass", 1, gnMaxMass  , 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
-  pItem = CPanel:NumSlider("Active radius:", gsToolPrefL.."activrad", 1, asmlib.GetCoVar("maxactrad", "FLT"), 3)
+  pItem = CPanel:NumSlider("Active radius:", gsToolPrefL.."activrad", 1, asmlib.GetAsmVar("maxactrad", "FLT"), 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
-  pItem = CPanel:NumSlider("Pieces count:", gsToolPrefL.."count"    , 1, asmlib.GetCoVar("maxstcnt" , "INT"), 0)
+  pItem = CPanel:NumSlider("Pieces count:", gsToolPrefL.."count"    , 1, asmlib.GetAsmVar("maxstcnt" , "INT"), 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
   pItem = CPanel:NumSlider("Yaw snap amount:", gsToolPrefL.."ydegsnp", 1, gnMaxOffRot, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
@@ -1113,41 +1122,6 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
   pItem = CPanel:CheckBox("Draw holder ghost", gsToolPrefL.."ghosthold")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
-end
-
-function TOOL:MakeGhostEntity(sModel)
-  -- Check for invalid model
-  if(not utilIsValidModel(sModel)) then return end
-  utilPrecacheModel(sModel)
-  -- We do ghosting serverside in single player
-  -- It's done clientside in multiplayer
-  if(SERVER and not gameSinglePlayer()) then return end
-  if(CLIENT and     gameSinglePlayer()) then return end
-  -- Release the old ghost entity
-  self:ReleaseGhostEntity()
-  if(CLIENT) then
-    self.GhostEntity = entsCreateClientProp(sModel)
-  else
-    if(utilIsValidRagdoll(sModel)) then
-      self.GhostEntity = entsCreate("prop_dynamic")
-    else
-      self.GhostEntity = entsCreate("prop_physics")
-    end
-  end
-  -- If there are too many entities we might not spawn..
-  if(not self.GhostEntity:IsValid()) then
-    self.GhostEntity = nil
-    return
-  end
-  self.GhostEntity:SetModel(sModel)
-  self.GhostEntity:SetPos(VEC_ZERO)
-  self.GhostEntity:SetAngles(ANG_ZERO)
-  self.GhostEntity:Spawn()
-  self.GhostEntity:SetSolid(SOLID_VPHYSICS);
-  self.GhostEntity:SetMoveType(MOVETYPE_NONE)
-  self.GhostEntity:SetNotSolid(true);
-  self.GhostEntity:SetRenderMode(RENDERMODE_TRANSALPHA)
-  self.GhostEntity:SetColor(conPalette:Select("gh"))
 end
 
 function TOOL:UpdateGhost(oEnt, oPly)
@@ -1221,7 +1195,8 @@ function TOOL:Think()
     if (not self.GhostEntity or
         not self.GhostEntity:IsValid() or
             self.GhostEntity:GetModel() ~= model) then -- If none ...
-      self:MakeGhostEntity(model)
+      self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
+      self.GhostEntity:SetColor(conPalette:Select("gh"))
     end
     self:UpdateGhost(self.GhostEntity, self:GetOwner())
   else

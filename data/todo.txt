@@ -5,9 +5,4 @@ N - Not applicable
 ? - Not yet tested
 
 ? Make TA export the database in Unix format
-V Make the player own the track spawned
-  Check what these return
-      ["USERID"]    = pPly:UserID(),
-      ["STEAMID"]   = pPly:SteamID(),
-      ["UNIQUEID"]  = pPly:UniqueID(),
-      ["STEAMID64"] = pPly:SteamID64()
+

@@ -47,91 +47,93 @@ local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
 local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 
 ---------------- Localizing needed functions ----------------
-local next                  = next
-local type                  = type
-local Angle                 = Angle
-local Color                 = Color
-local pairs                 = pairs
-local print                 = print
-local tobool                = tobool
-local Vector                = Vector
-local include               = include
-local IsValid               = IsValid
-local require               = require
-local Time                  = SysTime
-local tonumber              = tonumber
-local tostring              = tostring
-local GetConVar             = GetConVar
-local LocalPlayer           = LocalPlayer
-local CreateConVar          = CreateConVar
-local getmetatable          = getmetatable
-local setmetatable          = setmetatable
-local collectgarbage        = collectgarbage
-local osClock               = os and os.clock
-local osDate                = os and os.date
-local sqlQuery              = sql and sql.Query
-local sqlLastError          = sql and sql.LastError
-local sqlTableExists        = sql and sql.TableExists
-local utilTraceLine         = util and util.TraceLine
-local utilIsInWorld         = util and util.IsInWorld
-local utilIsValidModel      = util and util.IsValidModel
-local utilGetPlayerTrace    = util and util.GetPlayerTrace
-local entsCreate            = ents and ents.Create
-local fileOpen              = file and file.Open
-local fileExists            = file and file.Exists
-local fileAppend            = file and file.Append
-local fileDelete            = file and file.Delete
-local fileCreateDir         = file and file.CreateDir
-local mathPi                = math and math.pi
-local mathAbs               = math and math.abs
-local mathSin               = math and math.sin
-local mathCos               = math and math.cos
-local mathCeil              = math and math.ceil
-local mathModf              = math and math.modf
-local mathSqrt              = math and math.sqrt
-local mathFloor             = math and math.floor
-local mathClamp             = math and math.Clamp
-local mathRandom            = math and math.random
-local undoCreate            = undo and undo.Create
-local undoFinish            = undo and undo.Finish
-local undoAddEntity         = undo and undo.AddEntity
-local undoSetPlayer         = undo and undo.SetPlayer
-local undoSetCustomUndoText = undo and undo.SetCustomUndoText
-local timerStop             = timer and timer.Stop
-local timerStart            = timer and timer.Start
-local timerExists           = timer and timer.Exists
-local timerCreate           = timer and timer.Create
-local timerDestroy          = timer and timer.Destroy
-local tableEmpty            = table and table.Empty
-local tableMaxn             = table and table.maxn
-local stringLen             = string and string.len
-local stringSub             = string and string.sub
-local stringFind            = string and string.find
-local stringGsub            = string and string.gsub
-local stringUpper           = string and string.upper
-local stringLower           = string and string.lower
-local stringFormat          = string and string.format
-local stringExplode         = string and string.Explode
-local stringImplode         = string and string.Implode
-local stringToFileName      = string and string.GetFileFromFilename
-local gamemodeCall          = gamemode and gamemode.Call
-local surfaceSetFont        = surface and surface.SetFont
-local surfaceDrawLine       = surface and surface.DrawLine
-local surfaceDrawText       = surface and surface.DrawText
-local surfaceDrawCircle     = surface and surface.DrawCircle
-local surfaceSetTexture     = surface and surface.SetTexture
-local surfaceSetTextPos     = surface and surface.SetTextPos
-local surfaceGetTextSize    = surface and surface.GetTextSize
-local surfaceGetTextureID   = surface and surface.GetTextureID
-local surfaceSetDrawColor   = surface and surface.SetDrawColor
-local surfaceSetTextColor   = surface and surface.SetTextColor
-local constructSetPhysProp  = construct and construct.SetPhysProp
-local constraintWeld        = constraint and constraint.Weld
-local constraintNoCollide   = constraint and constraint.NoCollide
+local next                    = next
+local type                    = type
+local Angle                   = Angle
+local Color                   = Color
+local pairs                   = pairs
+local print                   = print
+local tobool                  = tobool
+local Vector                  = Vector
+local include                 = include
+local IsValid                 = IsValid
+local require                 = require
+local Time                    = SysTime
+local tonumber                = tonumber
+local tostring                = tostring
+local GetConVar               = GetConVar
+local LocalPlayer             = LocalPlayer
+local CreateConVar            = CreateConVar
+local getmetatable            = getmetatable
+local setmetatable            = setmetatable
+local collectgarbage          = collectgarbage
+local osClock                 = os and os.clock
+local osDate                  = os and os.date
+local sqlQuery                = sql and sql.Query
+local sqlLastError            = sql and sql.LastError
+local sqlTableExists          = sql and sql.TableExists
+local utilTraceLine           = util and util.TraceLine
+local utilIsInWorld           = util and util.IsInWorld
+local utilIsValidModel        = util and util.IsValidModel
+local utilGetPlayerTrace      = util and util.GetPlayerTrace
+local entsCreate              = ents and ents.Create
+local fileOpen                = file and file.Open
+local fileExists              = file and file.Exists
+local fileAppend              = file and file.Append
+local fileDelete              = file and file.Delete
+local fileCreateDir           = file and file.CreateDir
+local mathPi                  = math and math.pi
+local mathAbs                 = math and math.abs
+local mathSin                 = math and math.sin
+local mathCos                 = math and math.cos
+local mathCeil                = math and math.ceil
+local mathModf                = math and math.modf
+local mathSqrt                = math and math.sqrt
+local mathFloor               = math and math.floor
+local mathClamp               = math and math.Clamp
+local mathRandom              = math and math.random
+local undoCreate              = undo and undo.Create
+local undoFinish              = undo and undo.Finish
+local undoAddEntity           = undo and undo.AddEntity
+local undoSetPlayer           = undo and undo.SetPlayer
+local undoSetCustomUndoText   = undo and undo.SetCustomUndoText
+local timerStop               = timer and timer.Stop
+local timerStart              = timer and timer.Start
+local timerExists             = timer and timer.Exists
+local timerCreate             = timer and timer.Create
+local timerDestroy            = timer and timer.Destroy
+local tableEmpty              = table and table.Empty
+local tableMaxn               = table and table.maxn
+local stringLen               = string and string.len
+local stringSub               = string and string.sub
+local stringFind              = string and string.find
+local stringGsub              = string and string.gsub
+local stringUpper             = string and string.upper
+local stringLower             = string and string.lower
+local stringFormat            = string and string.format
+local stringExplode           = string and string.Explode
+local stringImplode           = string and string.Implode
+local stringToFileName        = string and string.GetFileFromFilename
+local renderDrawLine          = render and render.DrawLine
+local renderDrawSphere        = render and render.DrawSphere
+local renderSetColorMaterial  = render and render.SetColorMaterial
+local surfaceSetFont          = surface and surface.SetFont
+local surfaceDrawLine         = surface and surface.DrawLine
+local surfaceDrawText         = surface and surface.DrawText
+local surfaceDrawCircle       = surface and surface.DrawCircle
+local surfaceSetTexture       = surface and surface.SetTexture
+local surfaceSetTextPos       = surface and surface.SetTextPos
+local surfaceGetTextSize      = surface and surface.GetTextSize
+local surfaceGetTextureID     = surface and surface.GetTextureID
+local surfaceSetDrawColor     = surface and surface.SetDrawColor
+local surfaceSetTextColor     = surface and surface.SetTextColor
+local constructSetPhysProp    = construct and construct.SetPhysProp
+local constraintWeld          = constraint and constraint.Weld
+local constraintNoCollide     = constraint and constraint.NoCollide
 local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
----------------- CASHES SPACE --------------------
 
+---------------- CASHES SPACE --------------------
 local libCache  = {} -- Used to cache stuff in a Pool
 local libAction = {} -- Used to attach external function to the lib
 local libOpVars = {} -- Used to Store operational Variable Values
@@ -139,7 +141,6 @@ local libOpVars = {} -- Used to Store operational Variable Values
 module("trackasmlib")
 
 ---------------------------- PRIMITIVES ----------------------------
-
 function Delay(nAdd)
   local nAdd = tonumber(nAdd) or 0
   if(nAdd > 0) then
@@ -205,7 +206,6 @@ function IsOther(oEnt)
 end
 
 ------------------ LOGS ------------------------
-
 local function FormatNumberMax(nNum,nMax)
   local nNum = tonumber(nNum)
   local nMax = tonumber(nMax)
@@ -789,6 +789,23 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
         xyOld.x, xyOld.y = xyNew.x, xyNew.y
         nIter = nIter - 1;
       end
+    end
+  end
+  function self:RenderSphere(xyzPos,nRad,keyColor,sMeth,tArg)
+    local sdrwMeth = tostring(sMeth or "API")
+    local keyColor = keyColor or ColorKey; ColorKey = keyColor
+    local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
+    if(sdrwMeth == "API") then
+      render.SetColorMaterial() 
+      render.DrawSphere(xyzPos,nRad,30,30,rgbColor)
+    end
+  end
+  function self:RenderLine(xyzS,xyzE,keyColor,sMeth,tArg)
+    local sdrwMeth = tostring(sMeth or "API")
+    local keyColor = keyColor or ColorKey; ColorKey = keyColor
+    local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
+    if(sdrwMeth == "API") then
+      render.DrawLine(xyzS,xyzE,rgbColor,false)
     end
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
@@ -1426,7 +1443,7 @@ end
 
 function ConCommandPly(pPly,sCvar,snValue)
   if(not IsPlayer(pPly)) then return StatusLog("","ConCommandPly: Player <"..type(pPly)"> invalid") end
-  if(not IsString(sCvar)) then
+  if(not IsString(sCvar)) then -- Make it like so the space will not be forgotten
     return StatusLog("","ConCommandPly: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
   return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(snValue).."\n")
 end
@@ -1434,7 +1451,7 @@ end
 function PrintNotifyPly(pPly,sText,sNotifType)
   if(not IsPlayer(pPly)) then
     return StatusLog(false,"PrintNotifyPly: Player <"..type(pPly)"> invalid") end
-  if(SERVER) then
+  if(SERVER) then -- Send notification to client that something happened
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
     pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
   end
@@ -2337,8 +2354,9 @@ function CacheQueryAdditions(sModel)
 end
 
 ----------------------- PANEL QUERY -------------------------------
-
---- Used to Populate the CPanel Tree
+--[[
+ * Caches the date needed to populate the CPanel tree
+]]--
 function CacheQueryPanel()
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not defTable) then
@@ -2397,7 +2415,11 @@ function CacheQueryPanel()
   end
 end
 
---- Used to Populate the CPanel Phys Materials
+--[[
+ * Used to Populate the CPanel Phys Materials
+ * If type is chosen, it gets the names for the type
+ * If type is not chosen, it gets a list of all types
+]]--
 function CacheQueryProperty(sType)
   local defTable = GetOpVar("DEFTABLE_PHYSPROPERTIES")
   if(not defTable) then
@@ -2479,7 +2501,6 @@ function CacheQueryProperty(sType)
 end
 
 ---------------------- EXPORT --------------------------------
-
 local function GetFieldsName(defTable,sDelim)
   if(not IsExistent(sDelim)) then return "" end
   local sDelim  = stringSub(tostring(sDelim),1,1)
@@ -2711,7 +2732,6 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
 end
 
 ----------------------------- SNAPPING ------------------------------
-
 --[[
  * This function calculates the cross product normal angle of
  * a player by a given trace. If the trace is missing it takes player trace
@@ -3102,10 +3122,8 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     return StatusLog(nil,"MakePiece: Failed to attach bodygroups") end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Failed to attach additions") end
-  pPly:AddCount  (sLimit , ePiece) -- Register it to the TA internal limit
-  pPly:AddCount  ("props", ePiece) -- Register it to the props also
-  pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
-  pPly:AddCleanup("props", ePiece) -- To be deleted with clearing props
+  pPly:AddCount  (sLimit , ePiece); pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
+  pPly:AddCount  ("props", ePiece); pPly:AddCleanup("props", ePiece) -- To be deleted with clearing props
   return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
 end
 
@@ -3187,13 +3205,13 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
   return StatusLog(true,"SetPosBound("..sMode.."): Success")
 end
 
-function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
+function MakeAsmVar(sShortName, sValue, tBorder, nFlags, sInfo)
   if(not IsString(sShortName)) then
-    return StatusLog(nil,"MakeCvar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
+    return StatusLog(nil,"MakeAsmVar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
   if(not IsExistent(sValue)) then
-    return StatusLog(nil,"MakeCvar: Wrong default value <"..tostring(sValue)..">") end
+    return StatusLog(nil,"MakeAsmVar: Wrong default value <"..tostring(sValue)..">") end
   if(not IsString(sInfo)) then
-    return StatusLog(nil,"MakeCvar: CVar info {"..type(sInfo).."}<"..tostring(sInfo).."> not string") end
+    return StatusLog(nil,"MakeAsmVar: CVar info {"..type(sInfo).."}<"..tostring(sInfo).."> not string") end
   local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
   if(tBorder and (type(tBorder) == "table") and tBorder[1] and tBorder[2]) then
     local Border = GetOpVar("TABLE_BORDERS")
@@ -3202,15 +3220,15 @@ function MakeCoVar(sShortName, sValue, tBorder, nFlags, sInfo)
   return CreateConVar(sVar, sValue, nFlags, sInfo)
 end
 
-function GetCoVar(sShortName, sMode)
+function GetAsmVar(sShortName, sMode)
   if(not IsString(sShortName)) then
-    return StatusLog(nil,"GetCoVar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
+    return StatusLog(nil,"GetAsmVar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
   if(not IsString(sMode)) then
-    return StatusLog(nil,"GetCoVar: CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
+    return StatusLog(nil,"GetAsmVar: CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
   local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
   local CVar = GetConVar(sVar)
   if(not IsExistent(CVar)) then
-    return StatusLog(nil,"GetCoVar("..sShortName..", "..sMode.."): Missing CVar object") end
+    return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missing CVar object") end
   if    (sMode == "INT") then
     return (tonumber(BorderValue(CVar:GetInt(),"cvar_"..sVar)) or 0)
   elseif(sMode == "FLT") then
@@ -3226,5 +3244,5 @@ function GetCoVar(sShortName, sMode)
   elseif(sMode == "NAM") then
     return CVar:GetName()
   end
-  return StatusLog(nil,"GetCoVar("..sShortName..", "..sMode.."): Missed mode")
+  return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
 end
