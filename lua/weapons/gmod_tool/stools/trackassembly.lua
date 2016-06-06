@@ -85,7 +85,7 @@ local conPalette = asmlib.MakeContainer("Colours")
       conPalette:Insert("y" ,Color(255,255, 0 ,255))
       conPalette:Insert("w" ,Color(255,255,255,255))
       conPalette:Insert("k" ,Color( 0 , 0 , 0 ,255))
-      conPalette:Insert("gh",Color(255,255,255,240)) -- self.GhostEntity
+      conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
       conPalette:Insert("tx",Color(80 ,80 ,80 ,255)) -- Panel mode names
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
@@ -103,14 +103,13 @@ if(CLIENT) then
   }
 
   languageAdd("tool."..gsToolNameL..".1"         , "Assembles a train track" )
-  languageAdd("tool."..gsToolNameL..".left"      , "Spawn a track to assembble. Hold shift to stack")
+  languageAdd("tool."..gsToolNameL..".left"      , "Spawn/snap a track. Hold shift to stack")
   languageAdd("tool."..gsToolNameL..".right"     , "Switch assembly points. Hold shift for versa")
   languageAdd("tool."..gsToolNameL..".right_use" , "Open frequently used pieces menu")
   languageAdd("tool."..gsToolNameL..".reload"    , "Remove a track. Hold shift to select an anchor")
   languageAdd("tool."..gsToolNameL..".category"  , "Construction")
   languageAdd("tool."..gsToolNameL..".name"      , gsNameInitF.." "..gsNamePerpF)
   languageAdd("tool."..gsToolNameL..".desc"      , "Assembles a track for vehicles to run on")
---  languageAdd("tool."..gsToolNameL..".0"         , "Left Click to continue the track, Right to change active position, Reload to remove a piece")
   languageAdd("tool."..gsToolNameL..".tree"      , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
   languageAdd("tool."..gsToolNameL..".phytype"   , "Select physical properties type of the ones listed here")
   languageAdd("tool."..gsToolNameL..".phyname"   , "Select physical properties name to use when creating the track as this will affect the surface friction")
@@ -537,7 +536,6 @@ function TOOL:LeftClick(stTrace)
     if(asmlib.LoadKeyPly(ply,"USE")) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)) end
-      print(trEnt,anEnt)
       if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical anchor",ePiece)) end
       trEnt:GetPhysicsObject():SetMass(mass)
@@ -554,7 +552,7 @@ function TOOL:LeftClick(stTrace)
   if(asmlib.LoadKeyPly(ply,"SPEED") and hdRec.Kept > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
-    local ePieceO, ePieceN
+    local ePieceO, ePieceN = trEnt
     local iNdex, iTrys = 1, staatts
     local vTemp, trPos = Vector(), trEnt:GetPos()
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
@@ -1104,7 +1102,7 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
   pItem = CPanel:CheckBox("Freeze on spawn", gsToolPrefL.."freeze")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
-  pItem = CPanel:CheckBox("Ignore physics gun grab", gsToolPrefL.."ignphysgn")
+  pItem = CPanel:CheckBox("Ignore physics gun", gsToolPrefL.."ignphysgn")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))
   pItem = CPanel:CheckBox("Apply piece gravity", gsToolPrefL.."gravity")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".gravity"))
@@ -1128,6 +1126,7 @@ function TOOL:UpdateGhost(oEnt, oPly)
   if(not (oEnt and oEnt:IsValid())) then return end
   oEnt:SetNoDraw(true)
   oEnt:DrawShadow(false)
+  oEnt:SetColor(conPalette:Select("gh"))
   local stTrace = utilTraceLine(utilGetPlayerTrace(oPly))
   if(not stTrace) then return end
   local trEnt = stTrace.Entity
@@ -1196,7 +1195,6 @@ function TOOL:Think()
         not self.GhostEntity:IsValid() or
             self.GhostEntity:GetModel() ~= model) then -- If none ...
       self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
-      self.GhostEntity:SetColor(conPalette:Select("gh"))
     end
     self:UpdateGhost(self.GhostEntity, self:GetOwner())
   else

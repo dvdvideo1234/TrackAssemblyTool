@@ -796,8 +796,8 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
     local keyColor = keyColor or ColorKey; ColorKey = keyColor
     local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
     if(sdrwMeth == "API") then
-      render.SetColorMaterial() 
-      render.DrawSphere(xyzPos,nRad,30,30,rgbColor)
+      renderSetColorMaterial()
+      renderDrawSphere(xyzPos,nRad,30,30,rgbColor)
     end
   end
   function self:RenderLine(xyzS,xyzE,keyColor,sMeth,tArg)
@@ -805,7 +805,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
     local keyColor = keyColor or ColorKey; ColorKey = keyColor
     local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
     if(sdrwMeth == "API") then
-      render.DrawLine(xyzS,xyzE,rgbColor,false)
+      renderDrawLine(xyzS,xyzE,rgbColor,false)
     end
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
