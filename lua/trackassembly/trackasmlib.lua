@@ -57,6 +57,7 @@ local tobool                  = tobool
 local Vector                  = Vector
 local include                 = include
 local IsValid                 = IsValid
+local Material                = Material
 local require                 = require
 local Time                    = SysTime
 local tonumber                = tonumber
@@ -116,7 +117,7 @@ local stringImplode           = string and string.Implode
 local stringToFileName        = string and string.GetFileFromFilename
 local renderDrawLine          = render and render.DrawLine
 local renderDrawSphere        = render and render.DrawSphere
-local renderSetColorMaterial  = render and render.SetColorMaterial
+local renderSetMaterial       = render and render.SetMaterial
 local surfaceSetFont          = surface and surface.SetFont
 local surfaceDrawLine         = surface and surface.DrawLine
 local surfaceDrawText         = surface and surface.DrawText
@@ -643,25 +644,16 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
   if(SERVER) then return nil end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
-  if(eW <= 0 or eH <= 0) then return nil end
-  if(type(conPalette) ~= "table") then return nil end
-  local White  = Color(255,255,255,255)
-  local Palette
-  local ColorKey
-  local Text = {}
-        Text.Font = "Trebuchet18"
-        Text.DrawX = 0
-        Text.DrawY = 0
-        Text.ScrW  = 0
-        Text.ScrH  = 0
-        Text.LastW = 0
-        Text.LastH = 0
-  if(getmetatable(conPalette) == GetOpVar("TYPEMT_CONTAINER")) then
-    Palette = conPalette
-  end
-  local Texture = {}
-        Texture.Path = "vgui/white"
-        Texture.ID   = surfaceGetTextureID(Texture.Path)
+  if(sW < 0 or sH < 0) then return StatusLog(nil,"MakeScreen: Start dimension mismatch") end
+  if(eW < 0 or eH < 0) then return StatusLog(nil,"MakeScreen: End dimension mismatch") end
+  if(getmetatable(conPalette) ~= GetOpVar("TYPEMT_CONTAINER"))
+    then return StatusLog(nil,"MakeScreen: Palette not container") end
+  local Palette, ColorKey = conPalette
+  local White   = Color(255,255,255,255)
+  local DrawMeth, DrawArgs, Text = {}, {}, {}
+  Text.DrawX, Text.DrawY = 0, 0
+  Text.ScrW , Text.ScrH  = 0, 0
+  Text.LastW, Text.LastH = 0, 0
   local self = {}
   function self:GetSize() return (eW-sW), (eH-sH) end
   function self:GetCenter(nX,nY)
@@ -676,64 +668,45 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
     local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
     surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
     surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
+    return rgbColor
   end
-  function self:SetTexture(sTexture)
-    if(not IsString(sTexture)) then return end
-    if(IsEmptyString(sTexture)) then return end
-    Texture.Path = sTexture
-    Texture.ID   = surfaceGetTextureID(Texture.Path)
-  end
-  function self:GetTexture() return Texture.ID, Texture.Path end
-  function self:DrawBackGround(keyColor)
-    self:SetColor(keyColor)
-    surfaceSetTexture(Texture.ID)
-    surfaceDrawTexturedRect(sW,sH,eW-sW,eH-sH)
-  end
-  function self:DrawRect(nX,nY,nW,nH,keyColor)
-    self:SetColor(keyColor)
-    surfaceSetTexture(Texture.ID)
-    surfaceDrawTexturedRect(nX,nY,nW,nH)
+  function self:SetDrawParam(sMeth,tArg,anyKey)
+    sMeth = tostring(sMeth or DrawMeth[anyKey]); DrawMeth[anyKey] = sMeth
+    tArg  =         (tArg  or DrawArgs[anyKey]); DrawArgs[anyKey] = tArg
+    if(stringFind(anyKey,"DrawText") then surfaceSetFont(tArg[1] or "Trebuchet18") end
+    return sMeth, tArg
   end
   function self:SetTextEdge(nX,nY)
     Text.DrawX = (tonumber(nX) or 0)
     Text.DrawY = (tonumber(nY) or 0)
-    Text.ScrW  = 0
-    Text.ScrH  = 0
-    Text.LastW = 0
-    Text.LastH = 0
-  end
-  function self:SetFont(sFont)
-    if(not IsString(sFont)) then return end
-    Text.Font = sFont or "Trebuchet18"
-    surfaceSetFont(Text.Font)
+    Text.ScrW , Text.ScrH  = 0, 0
+    Text.LastW, Text.LastH = 0, 0
   end
   function self:GetTextState(nX,nY,nW,nH)
     return (Text.DrawX + (nX or 0)), (Text.DrawY + (nY or 0)),
            (Text.ScrW  + (nW or 0)), (Text.ScrH  + (nH or 0)),
             Text.LastW, Text.LastH
   end
-  function self:DrawText(sText,keyColor)
-    surfaceSetTextPos(Text.DrawX,Text.DrawY)
-    self:SetColor(keyColor)
-    surfaceDrawText(sText)
-    Text.LastW, Text.LastH = surfaceGetTextSize(sText)
-    Text.DrawY = Text.DrawY + Text.LastH
-    if(Text.LastW > Text.ScrW) then
-      Text.ScrW = Text.LastW
-    end
-    Text.ScrH = Text.DrawY
+  function self:DrawText(sText,keyColor,sMeth,tArg)
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawText")
+    if(sMeth == "SURF") then
+      surfaceSetTextPos(Text.DrawX,Text.DrawY); surfaceDrawText(sText)
+      Text.LastW, Text.LastH = surfaceGetTextSize(sText)
+      Text.DrawY = Text.DrawY + Text.LastH
+      if(Text.LastW > Text.ScrW) then Text.ScrW = Text.LastW end
+      Text.ScrH = Text.DrawY
+    else return StatusLog(nil,"MakeScreen.DrawText: Draw method <"..sMeth.."> invalid") end
   end
   function self:DrawTextAdd(sText,keyColor)
-    surfaceSetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
-    self:SetColor(keyColor)
-    surfaceDrawText(sText)
-    local LastW, LastH = surfaceGetTextSize(sText)
-    Text.LastW = Text.LastW + LastW
-    Text.LastH = LastH
-    if(Text.LastW > Text.ScrW) then
-      Text.ScrW = Text.LastW
-    end
-    Text.ScrH = Text.DrawY
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawText")
+    if(sMeth == "SURF") then
+      surfaceSetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
+      surfaceDrawText(sText)
+      local LastW, LastH = surfaceGetTextSize(sText)
+      Text.LastW, Text.LastH = (Text.LastW + LastW), LastH
+      if(Text.LastW > Text.ScrW) then Text.ScrW = Text.LastW end
+      Text.ScrH = Text.DrawY
+    else return StatusLog(nil,"MakeScreen.DrawTextAdd: Draw method <"..sMeth.."> invalid") end
   end
   function self:Enclose(xyPnt)
     if(xyPnt.x < sW) then return -1 end
@@ -742,71 +715,74 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
     if(xyPnt.y > eH) then return -1 end
     return 1
   end
-  function self:DrawLine(xyS,xyE,keyColor,sMeth,tArg)
-    self:SetColor(keyColor)
-    if(not (xyS and xyE)) then return end
-    if(not (xyS.x and xyS.y and xyE.x and xyE.y)) then return end
-    if(self:Enclose(xyS) == -1 or self:Enclose(xyE) == -1) then return end
-    local sdrwMeth = tostring(sMeth or "API")
-    if(sdrwMeth == "API") then
-      surfaceDrawLine(xyS.x,xyS.y,xyE.x,xyE.y)
-    elseif(sdrwMeth == "LIN") then
-      local nIter = tonumber(tArg[1]) or 0
+  function self:DrawLine(pS,pE,keyColor,sMeth,tArg)
+    if(not (pS and pE)) then return end
+    local rgbColor = self:SetColor(keyColor)
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawLine")
+    if(sMeth == "SURF") then
+      if(self:Enclose(pS) == -1) then
+        return StatusLog(nil,"MakeScreen.DrawLine: Start out of border") end
+      if(self:Enclose(pE) == -1) then
+        return StatusLog(nil,"MakeScreen.DrawLine: End out of border") end
+      surfaceDrawLine(pS.x,pS.y,pE.x,pE.y)
+    elseif(sMeth == "SEGM") then
+      if(self:Enclose(pS) == -1) then
+        return StatusLog(nil,"MakeScreen.DrawLine: Start out of border") end
+      if(self:Enclose(pE) == -1) then
+        return StatusLog(nil,"MakeScreen.DrawLine: End out of border") end
+      local nIter = mathClamp((tonumber(tArg[1]) or 1),1,200)
       if(nIter <= 0) then return end
-      local nLx, nLy = (xyE.x - xyS.x), (xyE.y - xyS.y)
+      local nLx, nLy = (pE.x - pS.x), (pE.y - pS.y)
       local xyD = {x = (nLx / nIter), y = (nLy / nIter)}
-      local xyOld, xyNew = {x = xyS.x, y = xyS.y}, {x = 0,y = 0}
+      local xyOld, xyNew = {x = pS.x, y = pS.y}, {x = 0,y = 0}
       while(nIter > 0) do
         xyNew.x = xyOld.x + xyD.x
         xyNew.y = xyOld.y + xyD.y
-        self:DrawLine(xyOld,xyNew,keyColor)
-        surfaceDrawCircle(xyNew.x, xyNew.y, 10, Color(255,0,0))
+        surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
         xyOld.x, xyOld.y = xyNew.x, xyNew.y
         nIter = nIter - 1;
       end
-    end
+    elseif(sMeth == "CAM3") then
+      renderDrawLine(pS,pE,rgbColor,(tArg[1] and true or false))
+    else return StatusLog(nil,"MakeScreen.DrawLine: Draw method <"..sMeth.."> invalid") end
   end
-  function self:DrawCircle(xyPos,nRad,keyColor,sMeth,tArg)
-    local sdrwMeth = tostring(sMeth or "API")
-    local keyColor = keyColor or ColorKey; ColorKey = keyColor
-    local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
-    if(sdrwMeth == "API") then surfaceDrawCircle(xyPos.x, xyPos.y, nRad, rgbColor)
-    elseif(sdrwMeth == "LIN") then
-      local nIter = tonumber(tArg[1]) or 0
-      if(nIter <= 0) then return end
-      local nCurAng = 0
-      local nMaxRot = (GetOpVar("MAX_ROTATION") * mathPi / 180)
-      local nStpRot = nMaxRot / nIter
+  function self:DrawRect(pS,pE,keyColor,sMeth,tArg)
+    local rgbColor = self:SetColor(keyColor)
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawRect")
+    if(sMeth == "SURF") then
+      if(self:Enclose(pS) == -1) then
+        return StatusLog(nil,"MakeScreen.DrawRect: Start out of border") end
+      if(self:Enclose(pE) == -1) then
+        return StatusLog(nil,"MakeScreen.DrawRect: End out of border") end
+      surfaceSetTexture(surfaceGetTextureID(tostring(tArg[1])))
+      surfaceDrawTexturedRect(pS.x,pS.y,pE.x-pS.x,pE.y-pS.y)
+    else return StatusLog(nil,"MakeScreen.DrawRect: Draw method <"..sMeth.."> invalid") end
+  end
+  function self:DrawCircle(pC,nRad,keyColor,sMeth,tArg)
+    local rgbColor = self:SetColor(keyColor)
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawCircle")
+    if(sMeth == "SURF") then surfaceDrawCircle(pC.x, pC.y, nRad, rgbColor)
+    elseif(sMeth == "SEGM") then
+      local nItr = mathClamp((tonumber(tArg[1]) or 1),1,200)
+      local nMax = (GetOpVar("MAX_ROTATION") * mathPi / 180)
+      local nStp, nAng = (nMax / nItr), 0
       local xyOld, xyNew, xyRad = {x=0,y=0}, {x=0,y=0}, {x=nRad,y=0}
-            xyOld.x = xyPos.x + xyRad.x
-            xyOld.y = xyPos.y + xyRad.y
-      while(nIter > 0) do
-        nCurAng = nCurAng + nStpRot
-        local nSin, nCos = mathSin(nCurAng), mathCos(nCurAng)
-        xyNew.x = xyPos.x + (xyRad.x * nCos - xyRad.y * nSin)
-        xyNew.y = xyPos.y + (xyRad.x * nSin + xyRad.y * nCos)
-        self:DrawLine(xyOld,xyNew,keyColor)
+            xyOld.x = pC.x + xyRad.x
+            xyOld.y = pC.y + xyRad.y
+      while(nItr > 0) do
+        nAng = nAng + nStp
+        local nSin, nCos = mathSin(nAng), mathCos(nAng)
+        xyNew.x = pC.x + (xyRad.x * nCos - xyRad.y * nSin)
+        xyNew.y = pC.y + (xyRad.x * nSin + xyRad.y * nCos)
+        self:DrawLine(xyOld,xyNew,ColorKey)
         xyOld.x, xyOld.y = xyNew.x, xyNew.y
-        nIter = nIter - 1;
+        nItr = nItr - 1;
       end
-    end
-  end
-  function self:RenderSphere(xyzPos,nRad,keyColor,sMeth,tArg)
-    local sdrwMeth = tostring(sMeth or "API")
-    local keyColor = keyColor or ColorKey; ColorKey = keyColor
-    local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
-    if(sdrwMeth == "API") then
-      renderSetColorMaterial()
-      renderDrawSphere(xyzPos,nRad,30,30,rgbColor)
-    end
-  end
-  function self:RenderLine(xyzS,xyzE,keyColor,sMeth,tArg)
-    local sdrwMeth = tostring(sMeth or "API")
-    local keyColor = keyColor or ColorKey; ColorKey = keyColor
-    local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
-    if(sdrwMeth == "API") then
-      renderDrawLine(xyzS,xyzE,rgbColor,false)
-    end
+    elseif(sMeth == "CAM3") then -- It is a projection of a sphere
+      renderSetMaterial(Material(tostring(tArg[1] or "color")))
+      renderDrawSphere (pC,nRad,mathClamp(tArg[2] or 1,1,200),
+                                mathClamp(tArg[3] or 1,1,200),rgbColor)
+    else return StatusLog(nil,"MakeScreen.DrawCircle: Draw method <"..sMeth.."> invalid") end
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
   return self
@@ -3246,3 +3222,4 @@ function GetAsmVar(sShortName, sMode)
   end
   return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
 end
+

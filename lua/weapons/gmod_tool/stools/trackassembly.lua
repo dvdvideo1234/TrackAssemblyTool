@@ -102,7 +102,7 @@ if(CLIENT) then
     { name = "reload"       }
   }
 
-  languageAdd("tool."..gsToolNameL..".1"         , "Assembles a train track" )
+  languageAdd("tool."..gsToolNameL..".1"         , "Assembles a prop-segmented track" )
   languageAdd("tool."..gsToolNameL..".left"      , "Spawn/snap a track. Hold shift to stack")
   languageAdd("tool."..gsToolNameL..".right"     , "Switch assembly points. Hold shift for versa")
   languageAdd("tool."..gsToolNameL..".right_use" , "Open frequently used pieces menu")
@@ -708,9 +708,7 @@ function TOOL:DrawHUD()
                   surface.ScreenWidth(),
                   surface.ScreenHeight(),conPalette)
     if(not goMonitor) then
-      return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen")
-    end
-    goMonitor:SetFont("Trebuchet24")
+      return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen") end
   end
   local adv = self:GetAdviser()
   if(adv == 0) then return end
@@ -750,7 +748,7 @@ function TOOL:DrawHUD()
         local mX = (Rp.x - Op.x); mX = mX * mX
         local mY = (Rp.y - Op.y); mY = mY * mY
         local mR = mathSqrt(mX + mY)
-        goMonitor:DrawCircle(Op, mR,"y","LIN",{250})
+        goMonitor:DrawCircle(Op, mR,"y","SEGM",{150})
       end; return
     end
     stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
@@ -764,6 +762,17 @@ function TOOL:DrawHUD()
     local Zs = stSpawn.U:ToScreen()
     local Pp = stSpawn.TPnt:ToScreen()
     local Tp = stTrace.HitPos:ToScreen()
+    -- Draw Elements
+    goMonitor:DrawLine(Os,Xs,"r","SURF")
+    goMonitor:DrawLine(Os,Pp)
+    goMonitor:DrawCircle(Pp, RadScale / 2,"SURF")
+    goMonitor:DrawLine(Os,Ys,"g")
+    goMonitor:DrawLine(Os,Zs,"b")
+    goMonitor:DrawCircle(Os, RadScale,"y")
+    goMonitor:DrawLine(Os,Tp)
+    goMonitor:DrawCircle(Tp, RadScale / 2)
+    goMonitor:DrawLine(Os,Ss,"m")
+    goMonitor:DrawCircle(Ss, RadScale,"c")
     if(asmlib.LocatePOA(stSpawn.HRec,pnextid) and stSpawn.HRec.Kept > 1) then
       local vNext = Vector()
             asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
@@ -774,21 +783,10 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Np,"g")
       goMonitor:DrawCircle(Np, RadScale / 2, "g")
     end
-    -- Draw Elements
-    goMonitor:DrawLine(Os,Xs,"r")
-    goMonitor:DrawLine(Os,Pp)
-    goMonitor:DrawCircle(Pp, RadScale / 2)
-    goMonitor:DrawLine(Os,Ys,"g")
-    goMonitor:DrawLine(Os,Zs,"b")
-    goMonitor:DrawCircle(Os, RadScale,"y")
-    goMonitor:DrawLine(Os,Tp)
-    goMonitor:DrawCircle(Tp, RadScale / 2)
-    goMonitor:DrawLine(Os,Ss,"m")
-    goMonitor:DrawCircle(Ss, RadScale,"c")
     if(self:GetDeveloperMode() == 0) then return end
     local x,y = goMonitor:GetCenter(10,10)
     goMonitor:SetTextEdge(x,y)
-    goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k")
+    goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k","SURF")
     goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos))
     goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
     goMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
@@ -819,16 +817,16 @@ function TOOL:DrawHUD()
       local Ys = R:ToScreen()
       local Zs = U:ToScreen()
       local Tp = stTrace.HitPos:ToScreen()
-      goMonitor:DrawLine(Os,Xs,"r")
+      goMonitor:DrawLine(Os,Xs,"r","SURF")
       goMonitor:DrawLine(Os,Ys,"g")
       goMonitor:DrawLine(Os,Zs,"b")
       goMonitor:DrawLine(Os,Tp,"y")
-      goMonitor:DrawCircle(Tp, RadScale / 2)
+      goMonitor:DrawCircle(Tp, RadScale / 2,"SURF")
       goMonitor:DrawCircle(Os, RadScale)
       if(self:GetDeveloperMode() == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
-      goMonitor:DrawText("Org POS: "..tostring(vPos),"k")
+      goMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF")
       goMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
@@ -845,6 +843,17 @@ function TOOL:DrawHUD()
       local Zs = stSpawn.U:ToScreen()
       local Pp = stSpawn.HPnt:ToScreen()
       local Tp = stTrace.HitPos:ToScreen()
+      -- Draw Elements
+      goMonitor:DrawLine(Os,Xs,"r","SURF")
+      goMonitor:DrawLine(Os,Pp)
+      goMonitor:DrawCircle(Pp, RadScale / 2,"SURF")
+      goMonitor:DrawLine(Os,Ys,"g")
+      goMonitor:DrawLine(Os,Zs,"b")
+      goMonitor:DrawLine(Os,Ss,"m")
+      goMonitor:DrawCircle(Ss, RadScale, "c")
+      goMonitor:DrawCircle(Os, RadScale, "y")
+      goMonitor:DrawLine(Os,Tp)
+      goMonitor:DrawCircle(Tp, RadScale / 2)
       if(stSpawn.HRec.Kept > 1 and stSpawn.HRec.Offs[pnextid]) then
         local vNext = Vector()
               asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
@@ -855,21 +864,10 @@ function TOOL:DrawHUD()
         goMonitor:DrawLine(Os,Np,"g")
         goMonitor:DrawCircle(Np,RadScale / 2)
       end
-      -- Draw Elements
-      goMonitor:DrawLine(Os,Xs,"r")
-      goMonitor:DrawLine(Os,Pp)
-      goMonitor:DrawCircle(Pp, RadScale / 2)
-      goMonitor:DrawLine(Os,Ys,"g")
-      goMonitor:DrawLine(Os,Zs,"b")
-      goMonitor:DrawLine(Os,Ss,"m")
-      goMonitor:DrawCircle(Ss, RadScale, "c")
-      goMonitor:DrawCircle(Os, RadScale, "y")
-      goMonitor:DrawLine(Os,Tp)
-      goMonitor:DrawCircle(Tp, RadScale / 2)
       if(self:GetDeveloperMode() == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
-      goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k")
+      goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k","SURF")
       goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
       goMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
       goMonitor:DrawText("Mod ANG: "..tostring(stSpawn.HAng))
@@ -884,21 +882,19 @@ function TOOL:DrawToolScreen(w, h)
   if(not goToolScr) then
     goToolScr = asmlib.MakeScreen(0,0,w,h,conPalette)
     if(not goToolScr) then
-      return asmlib.StatusPrint(nil,"DrawToolScreen: Invalid screen")
-    end
+      return asmlib.StatusPrint(nil,"DrawToolScreen: Invalid screen") end
   end
-  goToolScr:DrawBackGround("k")
-  goToolScr:SetFont("Trebuchet24")
+  goToolScr:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
   goToolScr:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()
   local anInfo, anEnt = self:GetAnchor()
   local tInfo = stringExplode(gsSymRev,anInfo)
   if(not (stTrace and stTrace.Hit)) then
-    goToolScr:DrawText("Trace status: Invalid","r")
+    goToolScr:DrawText("Trace status: Invalid","r","SURF","Trebuchet24")
     goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
     return
   end
-  goToolScr:DrawText("Trace status: Valid","g")
+  goToolScr:DrawText("Trace status: Valid","g","SURF","Trebuchet24")
   goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
@@ -948,11 +944,11 @@ function TOOL:DrawToolScreen(w, h)
   local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
   local xyPos = {x = cPos, y = cPos}
-  if(trRLen) then
-    goToolScr:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
-  goToolScr:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c")
+  goToolScr:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   goToolScr:DrawCircle(xyPos, nRad, "m")
   goToolScr:DrawText(osDate(),"w")
+  if(trRLen) then
+    goToolScr:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
 end
 
 local ConVarList = TOOL:BuildConVarList()

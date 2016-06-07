@@ -11,6 +11,6 @@
         O:Rotate(trEnt:GetAngles())
         O:Add(trEnt:GetPos()); ID = ID + 1
         cam.Start3D( LocalPlayer():EyePos(), LocalPlayer():EyeAngles() )
-        goMonitor:RenderSphere(O, actrad, "as")
+        goMonitor:DrawCircle(O, actrad, "as", "CAM3", {"color",50,50})
         cam.End3D()
       end; return
