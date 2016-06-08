@@ -75,8 +75,8 @@ local gsVersion   = asmlib.GetOpVar("TOOL_VERSION")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gsQueryStr  = asmlib.GetOpVar("EN_QUERY_STORE")
 
---- Render Base Colours
-local conPalette = asmlib.MakeContainer("Colours")
+--- Base rendering colors
+local conPalette = asmlib.MakeContainer("Colors")
       conPalette:Insert("r" ,Color(255, 0 , 0 ,255))
       conPalette:Insert("g" ,Color( 0 ,255, 0 ,255))
       conPalette:Insert("b" ,Color( 0 , 0 ,255,255))

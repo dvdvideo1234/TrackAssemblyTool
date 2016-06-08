@@ -404,6 +404,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("FILE_MODEL","%.mdl")
+  SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
@@ -598,30 +599,24 @@ end
 ---------- OOP -----------------
 
 function MakeContainer(sInfo,sDefKey)
-  local Curs = 0
-  local Data = {}
+  local Curs, Data = 0, {}
   local sSel, sIns, sDel, sMet = "", "", "", ""
-  local Info = tostring(sInfo or "Store Container")
-  local Key  = sDefKey or "(!_+*#-$@DEFKEY@$-#*+_!)"
+  local Info = tostring(sInfo or "Storage container")
+  local Key  = sDefKey or GetOpVar("OOP_DEFAULTKEY")
   local self = {}
   function self:GetInfo() return Info end
   function self:GetSize() return Curs end
   function self:GetData() return Data end
   function self:Insert(nsKey,anyValue)
-    sIns = nsKey or Key
-    sMet = "I"
-    if(not IsExistent(Data[sIns])) then
-      Curs = Curs + 1
-    end
+    sIns = nsKey or Key; sMet = "I"
+    if(not IsExistent(Data[sIns])) then Curs = Curs + 1; end
     Data[sIns] = anyValue
   end
   function self:Select(nsKey)
-    sSel = nsKey or Key
-    return Data[sSel]
+    sSel = nsKey or Key; return Data[sSel]
   end
   function self:Delete(nsKey,fnDel)
-    sDel = nsKey or Key
-    sMet = "D"
+    sDel = nsKey or Key; sMet = "D"
     if(IsExistent(Data[sDel])) then
       if(IsExistent(fnDel)) then
         fnDel(Data[sDel])
@@ -640,16 +635,31 @@ function MakeContainer(sInfo,sDefKey)
   return self
 end
 
-function MakeScreen(sW,sH,eW,eH,conPalette)
+--[[
+ * Creates a creen opbect better user api fro drawing on the gmod screens
+ * The drawing methods are the following:
+ * SURF - Uses the surface library to draw dirctly
+ * SEGM - Uses the surface library to draw line segment interpolations
+ * CAM3 - Uses the render  library to draw shapes in 3D space
+ * Operation keys for storing initial arguments are the following:
+ * TXT - Drawing text
+ * LIN - Drawing lines
+ * REC - Drawing a rectangle
+ * CIR - Drawing a circle
+]]--
+function MakeScreen(sW,sH,eW,eH,conColors)
   if(SERVER) then return nil end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
-  if(sW < 0 or sH < 0) then return StatusLog(nil,"MakeScreen: Start dimension mismatch") end
-  if(eW < 0 or eH < 0) then return StatusLog(nil,"MakeScreen: End dimension mismatch") end
-  if(getmetatable(conPalette) ~= GetOpVar("TYPEMT_CONTAINER"))
-    then return StatusLog(nil,"MakeScreen: Palette not container") end
-  local Palette, ColorKey = conPalette
-  local White   = Color(255,255,255,255)
+  if(sW < 0 or sH < 0) then return StatusLog(nil,"MakeScreen: Start dimension invalid") end
+  if(eW < 0 or eH < 0) then return StatusLog(nil,"MakeScreen: End dimension invalid") end
+  local Colors = {List = conColors, Key = "", Def = Color(255,255,255,255)}
+  if(Colors.List) then -- Container check
+    if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
+      then return StatusLog(nil,"MakeScreen: Color list not container") end
+  else -- Color list is not present then create one
+    Colors.List = MakeContainer("Colors")
+  end
   local DrawMeth, DrawArgs, Text = {}, {}, {}
   Text.DrawX, Text.DrawY = 0, 0
   Text.ScrW , Text.ScrH  = 0, 0
@@ -662,18 +672,28 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
     nH = (nH / 2) + (tonumber(nY) or 0)
     return nW, nH
   end
-  function self:SetColor(keyColor)
-    if(not keyColor) then return end
-    local keyColor = keyColor or ColorKey; ColorKey = keyColor
-    local rgbColor = (Palette and keyColor) and Palette:Select(keyColor) or White
-    surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
-    surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
+  function self:SetColor(keyColor,sMeth)
+    if(not IsExistent(keyColor)) then return StatusLog(nil,"MakeScreen.SetColor: Indexing skipped") end
+    if(not IsString(sMeth)) then return StatusLog(nil,"MakeScreen.SetColor: Method <"..tostring(method).."> invalid") end
+    local rgbColor = Colors.List:Select(keyColor)
+    if(not IsExistent(rgbColor)) then rgbColor = Colors.Def end
+    if(sMeth == "SURF" or sMeth == "SEGM") then
+      if(Colors.Key ~= keyColor) then -- Update the color only on change
+        surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
+        surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
+      end -- The drawing color for these two methods uses surface library
+    end -- Register the key used
+    Colors.Key = keyColor;
     return rgbColor
   end
-  function self:SetDrawParam(sMeth,tArg,anyKey)
-    sMeth = tostring(sMeth or DrawMeth[anyKey]); DrawMeth[anyKey] = sMeth
-    tArg  =         (tArg  or DrawArgs[anyKey]); DrawArgs[anyKey] = tArg
-    if(stringFind(anyKey,"DrawText") then surfaceSetFont(tArg[1] or "Trebuchet18") end
+  function self:SetDrawParam(sMeth,tArg,sKey)
+    sMeth = tostring(sMeth or DrawMeth[sKey])
+    tArg  =         (tArg  or DrawArgs[sKey])
+    if(sMeth == "SURF") then
+      if(sKey == "TXT" and tArg ~= DrawArgs[sKey]) then
+        surfaceSetFont(tArg[1] or "Default") end -- Time to set the font again
+    end
+    DrawMeth[sKey] = sMeth; DrawArgs[sKey] = tArg
     return sMeth, tArg
   end
   function self:SetTextEdge(nX,nY)
@@ -688,7 +708,8 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
             Text.LastW, Text.LastH
   end
   function self:DrawText(sText,keyColor,sMeth,tArg)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawText")
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"TXT")
+    self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrawX,Text.DrawY); surfaceDrawText(sText)
       Text.LastW, Text.LastH = surfaceGetTextSize(sText)
@@ -697,8 +718,9 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
       Text.ScrH = Text.DrawY
     else return StatusLog(nil,"MakeScreen.DrawText: Draw method <"..sMeth.."> invalid") end
   end
-  function self:DrawTextAdd(sText,keyColor)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawText")
+  function self:DrawTextAdd(sText,keyColor,sMeth,tArg)
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"TXT")
+    self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
       surfaceDrawText(sText)
@@ -717,8 +739,8 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
   end
   function self:DrawLine(pS,pE,keyColor,sMeth,tArg)
     if(not (pS and pE)) then return end
-    local rgbColor = self:SetColor(keyColor)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawLine")
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"LIN")
+    local rgbColor    = self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
         return StatusLog(nil,"MakeScreen.DrawLine: Start out of border") end
@@ -748,7 +770,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
   end
   function self:DrawRect(pS,pE,keyColor,sMeth,tArg)
     local rgbColor = self:SetColor(keyColor)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawRect")
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"REC")
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
         return StatusLog(nil,"MakeScreen.DrawRect: Start out of border") end
@@ -760,7 +782,7 @@ function MakeScreen(sW,sH,eW,eH,conPalette)
   end
   function self:DrawCircle(pC,nRad,keyColor,sMeth,tArg)
     local rgbColor = self:SetColor(keyColor)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"DrawCircle")
+    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"CIR")
     if(sMeth == "SURF") then surfaceDrawCircle(pC.x, pC.y, nRad, rgbColor)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArg[1]) or 1),1,200)
