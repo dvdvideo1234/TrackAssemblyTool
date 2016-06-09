@@ -710,6 +710,7 @@ function TOOL:DrawHUD()
     if(not goMonitor) then
       return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen") end
   end
+  goMonitor:SetColor("reset","SURF")
   local adv = self:GetAdviser()
   if(adv == 0) then return end
   local ply = LocalPlayer()
@@ -748,7 +749,7 @@ function TOOL:DrawHUD()
         local mX = (Rp.x - Op.x); mX = mX * mX
         local mY = (Rp.y - Op.y); mY = mY * mY
         local mR = mathSqrt(mX + mY)
-        goMonitor:DrawCircle(Op, mR,"y","SEGM",{150})
+        goMonitor:DrawCircle(Op, mR,"y","SEGM",{15})
       end; return
     end
     stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
@@ -765,7 +766,7 @@ function TOOL:DrawHUD()
     -- Draw Elements
     goMonitor:DrawLine(Os,Xs,"r","SURF")
     goMonitor:DrawLine(Os,Pp)
-    goMonitor:DrawCircle(Pp, RadScale / 2,"SURF")
+    goMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
     goMonitor:DrawLine(Os,Ys,"g")
     goMonitor:DrawLine(Os,Zs,"b")
     goMonitor:DrawCircle(Os, RadScale,"y")
@@ -786,7 +787,7 @@ function TOOL:DrawHUD()
     if(self:GetDeveloperMode() == 0) then return end
     local x,y = goMonitor:GetCenter(10,10)
     goMonitor:SetTextEdge(x,y)
-    goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k","SURF")
+    goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k","SURF",{"Trebuchet18"})
     goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos))
     goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
     goMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
@@ -821,12 +822,12 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Ys,"g")
       goMonitor:DrawLine(Os,Zs,"b")
       goMonitor:DrawLine(Os,Tp,"y")
-      goMonitor:DrawCircle(Tp, RadScale / 2,"SURF")
+      goMonitor:DrawCircle(Tp, RadScale / 2,"y","SURF")
       goMonitor:DrawCircle(Os, RadScale)
       if(self:GetDeveloperMode() == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
-      goMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF")
+      goMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
       goMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
@@ -846,7 +847,7 @@ function TOOL:DrawHUD()
       -- Draw Elements
       goMonitor:DrawLine(Os,Xs,"r","SURF")
       goMonitor:DrawLine(Os,Pp)
-      goMonitor:DrawCircle(Pp, RadScale / 2,"SURF")
+      goMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
       goMonitor:DrawLine(Os,Ys,"g")
       goMonitor:DrawLine(Os,Zs,"b")
       goMonitor:DrawLine(Os,Ss,"m")
@@ -867,7 +868,7 @@ function TOOL:DrawHUD()
       if(self:GetDeveloperMode() == 0) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
-      goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k","SURF")
+      goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k","SURF",{"Trebuchet18"})
       goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
       goMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
       goMonitor:DrawText("Mod ANG: "..tostring(stSpawn.HAng))
@@ -884,17 +885,18 @@ function TOOL:DrawToolScreen(w, h)
     if(not goToolScr) then
       return asmlib.StatusPrint(nil,"DrawToolScreen: Invalid screen") end
   end
+  goToolScr:SetColor("reset","SURF")
   goToolScr:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
   goToolScr:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()
   local anInfo, anEnt = self:GetAnchor()
   local tInfo = stringExplode(gsSymRev,anInfo)
   if(not (stTrace and stTrace.Hit)) then
-    goToolScr:DrawText("Trace status: Invalid","r","SURF","Trebuchet24")
+    goToolScr:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
     goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
     return
   end
-  goToolScr:DrawText("Trace status: Valid","g","SURF","Trebuchet24")
+  goToolScr:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
   goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)

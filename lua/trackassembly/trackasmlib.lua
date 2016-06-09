@@ -673,28 +673,27 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     return nW, nH
   end
   function self:SetColor(keyColor,sMeth)
+    local keyColor = keyColor or Colors.Key
     if(not IsExistent(keyColor)) then return StatusLog(nil,"MakeScreen.SetColor: Indexing skipped") end
     if(not IsString(sMeth)) then return StatusLog(nil,"MakeScreen.SetColor: Method <"..tostring(method).."> invalid") end
     local rgbColor = Colors.List:Select(keyColor)
     if(not IsExistent(rgbColor)) then rgbColor = Colors.Def end
-    if(sMeth == "SURF" or sMeth == "SEGM") then
-      if(Colors.Key ~= keyColor) then -- Update the color only on change
-        surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
-        surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
-      end -- The drawing color for these two methods uses surface library
-    end -- Register the key used
-    Colors.Key = keyColor;
-    return rgbColor
+    if(Colors.Key ~= keyColor) then -- Update the color only on change
+      surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
+      surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
+      Colors.Key = keyColor;
+    end -- The drawing color for these two methods uses surface library
+    return rgbColor, keyColor
   end
-  function self:SetDrawParam(sMeth,tArg,sKey)
+  function self:SetDrawParam(sMeth,tArgs,sKey)
     sMeth = tostring(sMeth or DrawMeth[sKey])
-    tArg  =         (tArg  or DrawArgs[sKey])
+    tArgs =         (tArgs or DrawArgs[sKey])
     if(sMeth == "SURF") then
-      if(sKey == "TXT" and tArg ~= DrawArgs[sKey]) then
-        surfaceSetFont(tArg[1] or "Default") end -- Time to set the font again
+      if(sKey == "TXT" and tArgs ~= DrawArgs[sKey]) then
+        surfaceSetFont(tArgs[1] or "Default") end -- Time to set the font again
     end
-    DrawMeth[sKey] = sMeth; DrawArgs[sKey] = tArg
-    return sMeth, tArg
+    DrawMeth[sKey] = sMeth; DrawArgs[sKey] = tArgs
+    return sMeth, tArgs
   end
   function self:SetTextEdge(nX,nY)
     Text.DrawX = (tonumber(nX) or 0)
@@ -707,8 +706,8 @@ function MakeScreen(sW,sH,eW,eH,conColors)
            (Text.ScrW  + (nW or 0)), (Text.ScrH  + (nH or 0)),
             Text.LastW, Text.LastH
   end
-  function self:DrawText(sText,keyColor,sMeth,tArg)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"TXT")
+  function self:DrawText(sText,keyColor,sMeth,tArgs)
+    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"TXT")
     self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrawX,Text.DrawY); surfaceDrawText(sText)
@@ -718,8 +717,8 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       Text.ScrH = Text.DrawY
     else return StatusLog(nil,"MakeScreen.DrawText: Draw method <"..sMeth.."> invalid") end
   end
-  function self:DrawTextAdd(sText,keyColor,sMeth,tArg)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"TXT")
+  function self:DrawTextAdd(sText,keyColor,sMeth,tArgs)
+    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"TXT")
     self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
@@ -737,10 +736,10 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     if(xyPnt.y > eH) then return -1 end
     return 1
   end
-  function self:DrawLine(pS,pE,keyColor,sMeth,tArg)
+  function self:DrawLine(pS,pE,keyColor,sMeth,tArgs)
     if(not (pS and pE)) then return end
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"LIN")
-    local rgbColor    = self:SetColor(keyColor, sMeth)
+    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"LIN")
+    local rgbCl, keyCl = self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
         return StatusLog(nil,"MakeScreen.DrawLine: Start out of border") end
@@ -752,7 +751,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         return StatusLog(nil,"MakeScreen.DrawLine: Start out of border") end
       if(self:Enclose(pE) == -1) then
         return StatusLog(nil,"MakeScreen.DrawLine: End out of border") end
-      local nIter = mathClamp((tonumber(tArg[1]) or 1),1,200)
+      local nIter = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       if(nIter <= 0) then return end
       local nLx, nLy = (pE.x - pS.x), (pE.y - pS.y)
       local xyD = {x = (nLx / nIter), y = (nLy / nIter)}
@@ -765,27 +764,27 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         nIter = nIter - 1;
       end
     elseif(sMeth == "CAM3") then
-      renderDrawLine(pS,pE,rgbColor,(tArg[1] and true or false))
+      renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
     else return StatusLog(nil,"MakeScreen.DrawLine: Draw method <"..sMeth.."> invalid") end
   end
-  function self:DrawRect(pS,pE,keyColor,sMeth,tArg)
-    local rgbColor = self:SetColor(keyColor)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"REC")
+  function self:DrawRect(pS,pE,keyColor,sMeth,tArgs)
+    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"REC")
+    self:SetColor(keyColor,sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
         return StatusLog(nil,"MakeScreen.DrawRect: Start out of border") end
       if(self:Enclose(pE) == -1) then
         return StatusLog(nil,"MakeScreen.DrawRect: End out of border") end
-      surfaceSetTexture(surfaceGetTextureID(tostring(tArg[1])))
+      surfaceSetTexture(surfaceGetTextureID(tostring(tArgs[1])))
       surfaceDrawTexturedRect(pS.x,pS.y,pE.x-pS.x,pE.y-pS.y)
     else return StatusLog(nil,"MakeScreen.DrawRect: Draw method <"..sMeth.."> invalid") end
   end
-  function self:DrawCircle(pC,nRad,keyColor,sMeth,tArg)
-    local rgbColor = self:SetColor(keyColor)
-    local sMeth, tArg = self:SetDrawParam(sMeth,tArg,"CIR")
-    if(sMeth == "SURF") then surfaceDrawCircle(pC.x, pC.y, nRad, rgbColor)
+  function self:DrawCircle(pC,nRad,keyColor,sMeth,tArgs)
+    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"CIR")
+    local rgbCl, keyCl = self:SetColor(keyColor,sMeth)
+    if(sMeth == "SURF") then surfaceDrawCircle(pC.x, pC.y, nRad, rgbCl)
     elseif(sMeth == "SEGM") then
-      local nItr = mathClamp((tonumber(tArg[1]) or 1),1,200)
+      local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       local nMax = (GetOpVar("MAX_ROTATION") * mathPi / 180)
       local nStp, nAng = (nMax / nItr), 0
       local xyOld, xyNew, xyRad = {x=0,y=0}, {x=0,y=0}, {x=nRad,y=0}
@@ -796,14 +795,14 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         local nSin, nCos = mathSin(nAng), mathCos(nAng)
         xyNew.x = pC.x + (xyRad.x * nCos - xyRad.y * nSin)
         xyNew.y = pC.y + (xyRad.x * nSin + xyRad.y * nCos)
-        self:DrawLine(xyOld,xyNew,ColorKey)
+        surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
         xyOld.x, xyOld.y = xyNew.x, xyNew.y
         nItr = nItr - 1;
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
       renderSetMaterial(Material(tostring(tArg[1] or "color")))
       renderDrawSphere (pC,nRad,mathClamp(tArg[2] or 1,1,200),
-                                mathClamp(tArg[3] or 1,1,200),rgbColor)
+                                mathClamp(tArg[3] or 1,1,200),rgbCl)
     else return StatusLog(nil,"MakeScreen.DrawCircle: Draw method <"..sMeth.."> invalid") end
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
