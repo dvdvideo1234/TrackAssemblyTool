@@ -710,7 +710,7 @@ function TOOL:DrawHUD()
     if(not goMonitor) then
       return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen") end
   end
-  goMonitor:SetColor("reset","SURF")
+  goMonitor:SetColor()
   local adv = self:GetAdviser()
   if(adv == 0) then return end
   local ply = LocalPlayer()
@@ -749,7 +749,7 @@ function TOOL:DrawHUD()
         local mX = (Rp.x - Op.x); mX = mX * mX
         local mY = (Rp.y - Op.y); mY = mY * mY
         local mR = mathSqrt(mX + mY)
-        goMonitor:DrawCircle(Op, mR,"y","SEGM",{15})
+        goMonitor:DrawCircle(Op, mR,"y","SEGM",{100})
       end; return
     end
     stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
@@ -885,7 +885,7 @@ function TOOL:DrawToolScreen(w, h)
     if(not goToolScr) then
       return asmlib.StatusPrint(nil,"DrawToolScreen: Invalid screen") end
   end
-  goToolScr:SetColor("reset","SURF")
+  goToolScr:SetColor()
   goToolScr:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
   goToolScr:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()

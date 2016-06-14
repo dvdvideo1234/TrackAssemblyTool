@@ -636,9 +636,9 @@ function MakeContainer(sInfo,sDefKey)
 end
 
 --[[
- * Creates a creen opbect better user api fro drawing on the gmod screens
+ * Creates a screen object better user api fro drawing on the gmod screens
  * The drawing methods are the following:
- * SURF - Uses the surface library to draw dirctly
+ * SURF - Uses the surface library to draw directly
  * SEGM - Uses the surface library to draw line segment interpolations
  * CAM3 - Uses the render  library to draw shapes in 3D space
  * Operation keys for storing initial arguments are the following:
@@ -653,7 +653,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(sW < 0 or sH < 0) then return StatusLog(nil,"MakeScreen: Start dimension invalid") end
   if(eW < 0 or eH < 0) then return StatusLog(nil,"MakeScreen: End dimension invalid") end
-  local Colors = {List = conColors, Key = "", Def = Color(255,255,255,255)}
+  local Colors = {List = conColors, Key = GetOpVar("OOP_DEFAULTKEY"), Default = Color(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
       then return StatusLog(nil,"MakeScreen: Color list not container") end
@@ -668,17 +668,22 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   function self:GetSize() return (eW-sW), (eH-sH) end
   function self:GetCenter(nX,nY)
     local nW, nH = self:GetSize()
-    nW = (nW / 2) + (tonumber(nX) or 0)
-    nH = (nH / 2) + (tonumber(nY) or 0)
-    return nW, nH
+    cX = (nW / 2) + (tonumber(nX) or 0)
+    cY = (nH / 2) + (tonumber(nY) or 0)
+    return cX, cY
   end
   function self:SetColor(keyColor,sMeth)
+    if(not IsExistent(keyColor) and not IsExistent(sMeth)) then
+      Colors.Key = GetOpVar("OOP_DEFAULTKEY")
+      return StatusLog("MakeScreen.SetColor: Color reset") end
     local keyColor = keyColor or Colors.Key
-    if(not IsExistent(keyColor)) then return StatusLog(nil,"MakeScreen.SetColor: Indexing skipped") end
-    if(not IsString(sMeth)) then return StatusLog(nil,"MakeScreen.SetColor: Method <"..tostring(method).."> invalid") end
+    if(not IsExistent(keyColor)) then
+      return StatusLog(nil,"MakeScreen.SetColor: Indexing skipped") end
+    if(not IsString  (   sMeth)) then
+      return StatusLog(nil,"MakeScreen.SetColor: Method <"..tostring(method).."> invalid") end
     local rgbColor = Colors.List:Select(keyColor)
-    if(not IsExistent(rgbColor)) then rgbColor = Colors.Def end
-    if(Colors.Key ~= keyColor) then -- Update the color only on change
+    if(not IsExistent(rgbColor)) then rgbColor = Colors.Default end
+    if(tostring(Colors.Key) ~= tostring(keyColor)) then -- Update the color only on change
       surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
       surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
       Colors.Key = keyColor;
@@ -690,7 +695,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     tArgs =         (tArgs or DrawArgs[sKey])
     if(sMeth == "SURF") then
       if(sKey == "TXT" and tArgs ~= DrawArgs[sKey]) then
-        surfaceSetFont(tArgs[1] or "Default") end -- Time to set the font again
+        surfaceSetFont(tostring(tArgs[1] or "Default")) end -- Time to set the font again
     end
     DrawMeth[sKey] = sMeth; DrawArgs[sKey] = tArgs
     return sMeth, tArgs
@@ -800,9 +805,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         nItr = nItr - 1;
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
-      renderSetMaterial(Material(tostring(tArg[1] or "color")))
-      renderDrawSphere (pC,nRad,mathClamp(tArg[2] or 1,1,200),
-                                mathClamp(tArg[3] or 1,1,200),rgbCl)
+      renderSetMaterial(Material(tostring(tArgs[1] or "color")))
+      renderDrawSphere (pC,nRad,mathClamp(tArgs[2] or 1,1,200),
+                                mathClamp(tArgs[3] or 1,1,200),rgbCl)
     else return StatusLog(nil,"MakeScreen.DrawCircle: Draw method <"..sMeth.."> invalid") end
   end
   setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
@@ -3157,25 +3162,18 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   local nGr = tonumber(nGr) or 0
   local sPh = tostring(sPh or "")
   LogInstance("ApplyPhysicalSettings: {"..nPi..","..nFr..","..nGr..","..sPh.."}")
-  if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalSettings: Piece entity not valid") end
-  -- Initialize dupe settings using this array
-  local dataSettings = {}
-  if(nPi ~= 0) then
-    ePiece.PhysgunDisabled = true
-    ePiece:SetUnFreezable(true)
-    ePiece:SetMoveType(MOVETYPE_VPHYSICS)
-    dataSettings[1] = 1 -- Enabled
-  end
-  local pyPiece = ePiece:GetPhysicsObject()
-  if(not (pyPiece and pyPiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalSettings: Piece physical object not valid") end
-  if(nFr ~=  0) then pyPiece:EnableMotion(false) else pyPiece:EnableMotion(true) end
-  if(nGr ~=  0) then constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = true })
-                else constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = false}) end
-  if(sPh ~= "") then constructSetPhysProp(nil,ePiece,0,pyPiece,{Material = sPh}) end
-  if(tableMaxn(dataSettings) > 0) then -- Are there any settings to be saved
-    duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",dataSettings) end
+  if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
+    return StatusLog(false,"ApplyPhysicalSettings: Piece entity invalid for <"..tostring(ePiece)..">") end
+  local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
+  if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
+    return StatusLog(false,"ApplyPhysicalSettings: Piece physical object invalid for <"..tostring(ePiece)..">") end
+  local arSettings = {nPi,nFr,nGr,sPh}  -- Initialize dupe settings using this array
+  ePiece.PhysgunDisabled = (nPi ~= 0)   -- If enabled stop the player from grabbing a track piece
+  ePiece:SetUnFreezable(nPi ~= 0)       -- If enabled stop the player from hitting reload to mess it all up
+  ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
+  pyPiece:EnableMotion(nFr == 0)        -- If frozen motion is disabled
+  constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = (nGr ~= 0), Material = sPh})
+  duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
 end
 

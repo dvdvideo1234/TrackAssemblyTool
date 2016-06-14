@@ -14,3 +14,9 @@
         goMonitor:DrawCircle(O, actrad, "as", "CAM3", {"color",50,50})
         cam.End3D()
       end; return
+      
+  cam.Start3D(ply:EyePos(), ply:EyeAngles())
+  goMonitor:DrawCircle(O, actrad,"xx","CAM3",{"color",50,50})
+  goMonitor:DrawLine  (O, O + R * 10,"r","CAM3",{true})
+  goMonitor:DrawLine  (O, O - R * 10,"b","CAM3")
+  cam.End3D()
