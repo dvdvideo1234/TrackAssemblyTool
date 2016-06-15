@@ -661,16 +661,16 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     Colors.List = MakeContainer("Colors")
   end
   local DrawMeth, DrawArgs, Text = {}, {}, {}
-  Text.DrawX, Text.DrawY = 0, 0
-  Text.ScrW , Text.ScrH  = 0, 0
-  Text.LastW, Text.LastH = 0, 0
+  Text.DrwX, Text.DrwY = 0, 0
+  Text.ScrW, Text.ScrH = 0, 0
+  Text.LstW, Text.LstH = 0, 0
   local self = {}
   function self:GetSize() return (eW-sW), (eH-sH) end
   function self:GetCenter(nX,nY)
     local nW, nH = self:GetSize()
-    cX = (nW / 2) + (tonumber(nX) or 0)
-    cY = (nH / 2) + (tonumber(nY) or 0)
-    return cX, cY
+    local nX = (nW / 2) + (tonumber(nX) or 0)
+    local nY = (nH / 2) + (tonumber(nY) or 0)
+    return nX, nY
   end
   function self:SetColor(keyColor,sMeth)
     if(not IsExistent(keyColor) and not IsExistent(sMeth)) then
@@ -701,37 +701,37 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     return sMeth, tArgs
   end
   function self:SetTextEdge(nX,nY)
-    Text.DrawX = (tonumber(nX) or 0)
-    Text.DrawY = (tonumber(nY) or 0)
-    Text.ScrW , Text.ScrH  = 0, 0
-    Text.LastW, Text.LastH = 0, 0
+    Text.ScrW, Text.ScrH = 0, 0
+    Text.LstW, Text.LstH = 0, 0
+    Text.DrwX = (tonumber(nX) or 0)
+    Text.DrwY = (tonumber(nY) or 0)
   end
   function self:GetTextState(nX,nY,nW,nH)
-    return (Text.DrawX + (nX or 0)), (Text.DrawY + (nY or 0)),
+    return (Text.DrwX + (nX or 0)), (Text.DrwY + (nY or 0)),
            (Text.ScrW  + (nW or 0)), (Text.ScrH  + (nH or 0)),
-            Text.LastW, Text.LastH
+            Text.LstW, Text.LstH
   end
   function self:DrawText(sText,keyColor,sMeth,tArgs)
     local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"TXT")
     self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
-      surfaceSetTextPos(Text.DrawX,Text.DrawY); surfaceDrawText(sText)
-      Text.LastW, Text.LastH = surfaceGetTextSize(sText)
-      Text.DrawY = Text.DrawY + Text.LastH
-      if(Text.LastW > Text.ScrW) then Text.ScrW = Text.LastW end
-      Text.ScrH = Text.DrawY
+      surfaceSetTextPos(Text.DrwX,Text.DrwY); surfaceDrawText(sText)
+      Text.LstW, Text.LstH = surfaceGetTextSize(sText)
+      Text.DrwY = Text.DrwY + Text.LstH
+      if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
+      Text.ScrH = Text.DrwY
     else return StatusLog(nil,"MakeScreen.DrawText: Draw method <"..sMeth.."> invalid") end
   end
   function self:DrawTextAdd(sText,keyColor,sMeth,tArgs)
     local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"TXT")
     self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
-      surfaceSetTextPos(Text.DrawX + Text.LastW,Text.DrawY - Text.LastH)
+      surfaceSetTextPos(Text.DrwX + Text.LstW,Text.DrwY - Text.LstH)
       surfaceDrawText(sText)
-      local LastW, LastH = surfaceGetTextSize(sText)
-      Text.LastW, Text.LastH = (Text.LastW + LastW), LastH
-      if(Text.LastW > Text.ScrW) then Text.ScrW = Text.LastW end
-      Text.ScrH = Text.DrawY
+      local LstW, LstH = surfaceGetTextSize(sText)
+      Text.LstW, Text.LstH = (Text.LstW + LstW), LstH
+      if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
+      Text.ScrH = Text.DrwY
     else return StatusLog(nil,"MakeScreen.DrawTextAdd: Draw method <"..sMeth.."> invalid") end
   end
   function self:Enclose(xyPnt)
