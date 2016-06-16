@@ -90,9 +90,9 @@
     int string_stack::findStringID(int iID, const char *strData)
     {
       if(SSTACK_INV_POINTER == strData)
-        { printf("findString: No data\n"); return SSTACK_INVALID_ID; }
+        { printf("findStringID: No data\n"); return SSTACK_INVALID_ID; }
       if(!(iID >= 0 || iID < Count))
-        { printf("findString: No such ID #%d\n",iID ); return SSTACK_INVALID_ID; }
+        { printf("findStringID: No such ID #%d\n",iID ); return SSTACK_INVALID_ID; }
       while(iID < Count)
       {
         if(SSTACK_INV_POINTER != strstr(Stack[iID]->Data,strData))

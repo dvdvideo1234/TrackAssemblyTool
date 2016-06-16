@@ -56,7 +56,7 @@
       while(Cnt < Count)
       { // printf("<%s>=<%s> <%d>\n",Stack[Cnt]->Name,strAddon,Cnt);
         if(!strcmp(Stack[Cnt]->Name,strAddon))
-        { // printf("registerAddon: Addon <%s> exists under ID #%d!\n",strAddon,Cnt);
+        { // printf("navigateMatch: Addon <%s> exists under ID #%d!\n",strAddon,Cnt);
           return Stack[Cnt];
         }
         Cnt++;
@@ -71,29 +71,26 @@
       pItem = (stMatch*)malloc(sizeof(stMatch));
       if(MSTACK_INV_POINTER == pItem)
       {
-        printf("registerAddon: Failed to allocate memory for an add-on <%s>!\n",strAddon);
+        printf("registerMatch: Failed to allocate memory for an add-on <%s>!\n",strAddon);
         return MSTACK_INV_POINTER;
       }
       pItem->Addon.initStack();
       pItem->Dbase.initStack();
       strcpy(pItem->Name,strAddon);
-      printf("Registered: [%d] <%s>\n",Count,pItem->Name);
+      printf("registerMatch: Registered [%d] <%s>\n",Count,pItem->Name);
       Stack[Count++] = pItem;
       return pItem;
     }
 
     stMatch *match_stack::addModelAddon(const char *strAddon, const char *strModel)
     {
-     // printf("addModelAddon(<%s>, <%s>)\n",strAddon,strModel);
       stMatch *pItem = navigateMatch(strAddon);
       if(pItem == MSTACK_INV_POINTER)
       {
         printf("addModelAddon: Failed to locate addon <%s> !\n",strAddon);
         return MSTACK_INV_POINTER;
       }
-     // printf("addModelAddon Before %d\n",pItem->Addon.getCount());
       pItem->Addon.putString(strModel);
-     // printf("addModelAddon After  %d\n",pItem->Addon.getCount());
       return pItem;
     }
 
@@ -102,7 +99,7 @@
       stMatch *pItem = navigateMatch(strAddon);
       if(pItem == MSTACK_INV_POINTER)
       {
-        printf("addModelAddon: Failed to locate an add-on <%s> !\n",strAddon);
+        printf("addModelDbase: Failed to locate an add-on <%s> !\n",strAddon);
         return MSTACK_INV_POINTER;
       }
       pItem->Dbase.putString(strModel);
