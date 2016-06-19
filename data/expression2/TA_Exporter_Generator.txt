@@ -49,8 +49,8 @@ if(first() || dupefinished())
     DF = 0.5
     
     # Track piece width
-    TrackPieceW = 1000
-    TrackPieceH = 500
+    TrackPieceW = 50
+    TrackPieceH = 20
         
     #Generate the origin with an inset
     TrackOriginInset = 0.001
@@ -81,6 +81,9 @@ if(first() || dupefinished())
     {
         ALR = clampTrace(CPos,TrackPieceH,F,U,TrackRangerMaxH,0,0), CR = ALR[1,number], CL = ALR[2,number]
         StraightUp = -(abs(TrackRangerMaxH - abs(CR + CL)) / 2)
+        
+        # If it's too deep can be adjusted manually
+        StraightUp = -2
     } 
     DF = abs(DF)
     Interval = abs(Interval)
@@ -175,14 +178,13 @@ if(StraightUp != 0 && Interval == 0)
 {
     PosL = Cen - TrackPieceW * R
     PosR = Cen + TrackPieceW * R
-   # holoPos(2,PosL), holoPos(3,PosR)
+
     VRL = clampTrace(Cen,TrackPieceW,F,R,TrackRangerMaxW,0,0)
     VR  = VRL[1,number] , VL  = VRL[2,number], VDM = VRL[3,number]
-   # DL = rangerOffset(TrackRangerMaxW,PosL,  R):distance()
-   # DR = rangerOffset(TrackRangerMaxW,PosR, -R):distance()
+
     VDP = clampTrace(Cen + Prg - TrackOriginInset * F,TrackPieceH,F,U,TrackRangerMaxH,5,6)
     PU = VDP[1,number], PD = VDP[2,number], PDW = VDP[4,number]
-
+  
     VDC = clampTrace(Cen,TrackPieceH,F,U,TrackRangerMaxH,7,8)
     
     # print(VDC[1,number],PU, ARC[1,number])
@@ -191,19 +193,10 @@ if(StraightUp != 0 && Interval == 0)
     {
         ARC = VDC
     }
-    
-#[
-    PosU = Cen + TrackPieceH * U + Prg - TrackOriginInset * F
-    PosD = Cen - TrackPieceH * U + Prg - TrackOriginInset * F
-    
-    holoPos(5,PosU), holoPos(6,PosD)    
-    DU = rangerOffset(TrackRangerMaxH,PosU, -U):distance()
-    DD = rangerOffset(TrackRangerMaxH,PosD,  U):distance()
-]#
-  
+      
     if(isOuter(VL,VR,OutagePercentTolerance,TrackRangerMaxW))
     {
-        Time = 100
+        Time = 10
         Dev:setColor(255,255,255,255)
         while(isOuter(VL,VR,OutagePercentTolerance,TrackRangerMaxW) && (Time > 0))
         {
@@ -218,13 +211,12 @@ if(StraightUp != 0 && Interval == 0)
         holoPos(1,Cen) holoColor(1,vec(0,255,255))
         # BEGIN Defintition formulas
         
-        # Use this 2 beam tracks outside
+        # Use his for roads
         # PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
         # TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
         # TrackExtraSide  = PRL[3,number]
-        
-        
-        # Use this for 2 beam tracks inside
+         
+        # Use this for 2 beam tracks
          PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
          TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
          TrackExtraSide  = PRL[3,number]
@@ -236,15 +228,14 @@ if(StraightUp != 0 && Interval == 0)
         
         # END Defintition formulas
         
-        ORG = Cen + TrackPieceH * U
+        ORG = Cen + TrackPieceH    * U
         ORG = ORG - TrackExtraSide * R
         
         O = round(Base:toLocalAxis(ORG - Base:pos() -(TrackOriginInset * F) + (-TrackExtraDepth)*U ),6)
         A = round(Base:toLocal((F):toAngle(U)))
         
         S = toString(abs(DF)-abs(TrackOriginTolerance)):sub(1,1)
-       
-     # print(S+" "+DF)              
+          
         if(S == "-")
         {
             print("Origin: "+toString(O)+" Angle: "+toString(A)+" ["+toString(DF)+"]")
@@ -254,4 +245,3 @@ if(StraightUp != 0 && Interval == 0)
         Cen = Cen + DF * F
     }
 }
-

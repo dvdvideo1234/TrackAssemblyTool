@@ -27,7 +27,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.253")
+asmlib.SetOpVar("TOOL_VERSION","5.254")
 asmlib.SetLogControl(0,"")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
@@ -1639,7 +1639,7 @@ else
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_left_3.mdl", "#", "#", 1, "", "0,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_left_3.mdl", "#", "#", 2, "", "-486.814,-96.707,6.016", "0,-157.5,0"})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_left_4.mdl", "#", "#", 1, "", "0,0,6.016", ""})
-  asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_left_4.mdl", "#", "#", 2, "", "-534.192,-106.258,6.016", "0,-157.5,0"})
+  asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_left_4.mdl", "#", "#", 2, "", "-532.889,-105.687,6.016", "0,-157.5,0"})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_1.mdl", "#", "#", 1, "", "0,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_1.mdl", "#", "#", 2, "", "-391.846,77.978,6.016", "0,157.5,0"})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_2.mdl", "#", "#", 1, "", "0,0,6.016", ""})
@@ -1647,7 +1647,7 @@ else
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_3.mdl", "#", "#", 1, "", "0,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_3.mdl", "#", "#", 2, "", "-486.814,96.707,6.016", "0,157.5,0"})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_4.mdl", "#", "#", 1, "", "0,0,6.016", ""})
-  asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_4.mdl", "#", "#", 2, "", "-534.192,106.258,6.016", "0,157.5,0"})
+  asmlib.InsertRecord({"models/ron/2ft/curves/curve_225_right_4.mdl", "#", "#", 2, "", "-532.866,105.763,6.016", "0,157.5,0"})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_45_left_1.mdl", "#", "#", 1, "", "0,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_45_left_1.mdl", "#", "#", 2, "", "-724.122,-299.876,6.016", "0,-135,0"})
   asmlib.InsertRecord({"models/ron/2ft/curves/curve_45_left_2.mdl", "#", "#", 1, "", "0,0,6.016", ""})
