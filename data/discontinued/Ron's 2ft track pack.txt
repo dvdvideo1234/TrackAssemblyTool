@@ -1,0 +1,8 @@
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_3_grass.mdl", "#", "#", 1, "", "0,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_3_grass.mdl", "#", "#", 2, "", "-1272,-1272,6.016", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_4_grass.mdl", "#", "#", 1, "", "0,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_4_grass.mdl", "#", "#", 2, "", "-1396,-1396,6.016", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_3_street.mdl", "#", "#", 1, "", "0,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_3_street.mdl", "#", "#", 2, "", "-1272,-1272,6.016", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_4_street.mdl", "#", "#", 1, "", "0,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_curve_90_4_street.mdl", "#", "#", 2, "", "-1396,-1396,6.016", "0,-90,0"})
