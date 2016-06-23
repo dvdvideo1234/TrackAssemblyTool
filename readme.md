@@ -69,19 +69,19 @@ A: Just subscribe to the workshop item:
      When pressing it on world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
      When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
    If you want to obtain different grip behaviour for a wheel-powered/sliding train,
-     you have to use the surface material drop-down menus as you select first "TYPE" then "NAME".
-   In the text field you have to type bodygroup/skin selection code or generate one using
-     the SCORE ( Default: TAB ) key while pointing to a prop with bodygroups/skins set
-     by Garry's mod entity right click menu. Press "ENTER" in the text field if you
+     you must use the surface material drop-down menus as you select first "TYPE" then "NAME".
+   If you want to use desired bodygroups and/or skins on a piece, in the text field you must type bodygroup/skin
+     selection code or generate one using the SCORE ( Default: TAB ) key while pointing to a prop with
+     bodygroups/skins set by Garry's mod entity right click menu. Press "ENTER" in the text field if you
      are happy with the selection to apply it.
    Piece mass slider is used to set the mass of the next track piece to be spawned.
    Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
    Pieces count shows the maximum number of pieces to be stacked.
    The "Yaw snap amount" slider is used to snap the first piece ( Requested by Magnum )
-     to a user-defined angle ( Usually 45 ) for the track building to become easier. The
+     to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
      whole track build will be snapped also, because you are building it relative to the first piece.
-   The force limit slider ( Requested by The Arbitor 90 ) controls the maximum force to be applied
-     on the weld jont between the two pieces connected break apart. You can use this to build collapsablale
+   The force limit slider ( Requested by The Arbitor 90 ) defines the maximum force to be applied
+     on the weld joint between two pieces connected before it breaks. You can use this to build collapsablale
      track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
    The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
      because they are defined by their own and not going to be explained further.
