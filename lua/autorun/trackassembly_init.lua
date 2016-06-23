@@ -27,13 +27,17 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.254")
-asmlib.SetLogControl(0,"")
+asmlib.SetOpVar("TOOL_VERSION","5.255")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.SetOpVar("LOG_ONLY",nil)
 asmlib.SetOpVar("LOG_SKIP",{"QuickSort","ModelToName","GetEntitySpawn: Not hitting active point","CacheQueryPiece: Record not located", "GetEntitySpawn: Trace model missing"})
+
+------ CONFIGURE LOGGING ------
+asmlib.MakeAsmVar("logsmax"  , {0,1}, nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Maximum logging lines to be printed")
+asmlib.MakeAsmVar("logfile"  , ""   , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "File to store the logs ( if any )")
+asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeAsmVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
@@ -47,7 +51,7 @@ if(SERVER) then
 end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeAsmVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-asmlib.MakeAsmVar("enqstore" ,   1  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable cache for built queries")
+asmlib.MakeAsmVar("enqstore" ,   1  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
 
 ------ CONFIGURE MODES -----
@@ -113,6 +117,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "surfsnap" , "0")
         asmlib.ConCommandPly(oPly, "exportdb" , "0")
         asmlib.ConCommandPly(oPly, "offsetup" , "0")
+        asmlib.ConCommandPly(oPly, "maxforce" , "0")
         asmlib.ConCommandPly(oPly, "ignphysgn", "0")
         asmlib.ConCommandPly(oPly, "ghosthold", "1")
         asmlib.ConCommandPly(oPly, "maxstatts", "3")

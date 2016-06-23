@@ -128,10 +128,10 @@ local surfaceGetTextSize      = surface and surface.GetTextSize
 local surfaceGetTextureID     = surface and surface.GetTextureID
 local surfaceSetDrawColor     = surface and surface.SetDrawColor
 local surfaceSetTextColor     = surface and surface.SetTextColor
+local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
 local constructSetPhysProp    = construct and construct.SetPhysProp
 local constraintWeld          = constraint and constraint.Weld
 local constraintNoCollide     = constraint and constraint.NoCollide
-local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
@@ -376,6 +376,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("MAX_MASS",50000)
   SetOpVar("MAX_LINEAR",1000)
   SetOpVar("MAX_ROTATION",360)
+  SetOpVar("MAX_FORCE",100000)
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGFILE","")
@@ -3129,28 +3130,27 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
   return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
 end
 
-function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc)
+function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc,nFm)
   if(CLIENT) then return StatusLog(true,"ApplyPhysicalAnchor: Working on client") end
   local nWe = tonumber(nWe) or 0
   local nNc = tonumber(nNc) or 0
-  LogInstance("ApplyPhysicalAnchor: {"..nWe..","..nNc.."}")
+  local nFm = tonumber(nFm) or 0
+  LogInstance("ApplyPhysicalAnchor: {"..nWe..","..nNc..","..nFm.."}")
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalAnchor: Piece entity not valid") end
+    return StatusLog(false,"ApplyPhysicalAnchor: Piece <"..tostring(ePiece).."> not valid") end
   if(not (eBase and eBase:IsValid())) then
-    return StatusLog(true,"ApplyPhysicalAnchor: Base constraint ignored") end
-  if(nWe ~= 0) then -- Weld
-    local nWe = constraintWeld(ePiece, eBase, 0, 0, 0, false, false)
-    if(nWe and nWe:IsValid()) then
-      ePiece:DeleteOnRemove(nWe)
-       eBase:DeleteOnRemove(nWe)
-    else LogInstance("ApplyPhysicalAnchor: Weld ignored") end
-  end
-  if(nNc ~= 0) then -- NoCollide
+    return StatusLog(true,"ApplyPhysicalAnchor: Base <"..tostring(eBase).."> constraint ignored") end
+  if(nNc ~= 0) then -- NoCollide should be made separately
     local nNc = constraintNoCollide(ePiece, eBase, 0, 0)
     if(nNc and nNc:IsValid()) then
-      ePiece:DeleteOnRemove(nNc)
-       eBase:DeleteOnRemove(nNc)
+      ePiece:DeleteOnRemove(nNc); eBase:DeleteOnRemove(nNc)
     else LogInstance("ApplyPhysicalAnchor: NoCollide ignored") end
+  end
+  if(nWe ~= 0) then -- Weld with the force limit here V
+    local nWe = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
+    if(nWe and nWe:IsValid()) then
+      ePiece:DeleteOnRemove(nWe); eBase:DeleteOnRemove(nWe)
+    else LogInstance("ApplyPhysicalAnchor: Weld ignored") end
   end
   return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end
@@ -3180,16 +3180,16 @@ end
 function SetPosBound(ePiece,vPos,oPly,sMode)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"SetPosBound: Entity invalid") end
-  if(not vPos) then
-    return StatusLog(false,"SetPosBound: Position invalid") end
+  if(not IsExistent(vPos)) then
+    return StatusLog(false,"SetPosBound: Position missing") end
   if(not IsPlayer(oPly)) then
-    return StatusLog(false,"SetPosBound: Player <"..type(oPly)"> invalid") end
-  local sMode = tostring(sMode or "LOG")
+    return StatusLog(false,"SetPosBound: Player <"..tostring(oPly)"> invalid") end
+  local sMode = tostring(sMode or "LOG") -- Error mode is "LOG" by default
   if(sMode == "OFF") then
     ePiece:SetPos(vPos)
     return StatusLog(true,"SetPosBound("..sMode..") Tuned off")
   end
-  if(utilIsInWorld(vPos)) then -- Error mode is "LOG" by default
+  if(utilIsInWorld(vPos)) then
     ePiece:SetPos(vPos)
   else
     ePiece:Remove()

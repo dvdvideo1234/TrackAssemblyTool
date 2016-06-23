@@ -69,8 +69,8 @@ A: Just subscribe to the workshop item:
      When pressing it on world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
      When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
    If you want to obtain different grip behaviour for a wheel-powered/sliding train,
-     you may use the surface material drop-down menus as you select first "TYPE" then "NAME".
-   In the text field you may type bodygroup/skin selection code or generate one using
+     you have to use the surface material drop-down menus as you select first "TYPE" then "NAME".
+   In the text field you have to type bodygroup/skin selection code or generate one using
      the SCORE ( Default: TAB ) key while pointing to a prop with bodygroups/skins set
      by Garry's mod entity right click menu. Press "ENTER" in the text field if you
      are happy with the selection to apply it.
@@ -78,8 +78,11 @@ A: Just subscribe to the workshop item:
    Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
    Pieces count shows the maximum number of pieces to be stacked.
    The "Yaw snap amount" slider is used to snap the first piece ( Requested by Magnum )
-     to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
+     to a user-defined angle ( Usually 45 ) for the track building to become easier. The
      whole track build will be snapped also, because you are building it relative to the first piece.
+   The force limit slider ( Requested by The Arbitor 90 ) controls the maximum force to be applied
+     on the weld jont between the two pieces connected break apart. You can use this to build collapsablale
+     track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
    The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
      because they are defined by their own and not going to be explained further.
    The "Ignore track type" check-box if checked, will enable snapping between pieces of a different type.
@@ -317,6 +320,8 @@ A: Yes, you can. For every active point, you have to add a line in the table PIE
    11) [Excel 2010] Click "Yes" and close Excel
    12) [Excel 2010] It will want you to save it again, so just click "Don't Save"
    13) [Excel 2010] You are good to go
+   If you have trouble with this step by step tutorial, maybe this will help
+     https://www.youtube.com/watch?v=Pz0_RGwgfaY
 N: After adding these models, the database can be exported again.
    This will generate export data, that can be located under "../data/trackassembly/exp/"
    If you want me to review your custom models/addon, please provide these inserts to me.
@@ -331,5 +336,5 @@ A: No I will not give you my permission to do that... Why ...
    So please don't!
 
 ```
-Just CLK the subscribe to the button above. And also Thumbs Up ! XD
+Just CLK the subscribe to the button above and you are good to go! Thumbs Up ! XD
 

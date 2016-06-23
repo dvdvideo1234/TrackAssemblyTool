@@ -52,6 +52,7 @@ local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 --- Global References
 local goToolScr
 local goMonitor
+local gnMaxForce  = asmlib.GetOpVar("MAX_FORCE")
 local gnMaxMass   = asmlib.GetOpVar("MAX_MASS")
 local gnMaxOffLin = asmlib.GetOpVar("MAX_LINEAR")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
@@ -60,6 +61,7 @@ local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
+local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsNameInitF = asmlib.GetOpVar("NAME_INIT")
       gsNameInitF = stringUpper(stringSub(gsNameInitF,1,1))..stringSub(gsNameInitF,2,-1)
 local gsNamePerpF = asmlib.GetOpVar("NAME_PERP")
@@ -77,20 +79,20 @@ local gsQueryStr  = asmlib.GetOpVar("EN_QUERY_STORE")
 
 --- Base rendering colors
 local conPalette = asmlib.MakeContainer("Colors")
-      conPalette:Insert("r" ,Color(255, 0 , 0 ,255))
-      conPalette:Insert("g" ,Color( 0 ,255, 0 ,255))
-      conPalette:Insert("b" ,Color( 0 , 0 ,255,255))
-      conPalette:Insert("c" ,Color( 0 ,255,255,255))
-      conPalette:Insert("m" ,Color(255, 0 ,255,255))
-      conPalette:Insert("y" ,Color(255,255, 0 ,255))
+      conPalette:Insert("r" ,Color(255,  0,  0,255))
+      conPalette:Insert("g" ,Color(  0,255,  0,255))
+      conPalette:Insert("b" ,Color(  0,  0,255,255))
+      conPalette:Insert("c" ,Color(  0,255,255,255))
+      conPalette:Insert("m" ,Color(255,  0,255,255))
+      conPalette:Insert("y" ,Color(255,255,  0,255))
       conPalette:Insert("w" ,Color(255,255,255,255))
-      conPalette:Insert("k" ,Color( 0 , 0 , 0 ,255))
+      conPalette:Insert("k" ,Color(  0,  0,  0,255))
       conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
-      conPalette:Insert("tx",Color(80 ,80 ,80 ,255)) -- Panel mode names
+      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel mode names
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
-      conPalette:Insert("db",Color(220,164,52 ,255)) -- Database mode
+      conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
 
-cleanupRegister(asmlib.GetOpVar("CVAR_LIMITNAME"))
+cleanupRegister(gsLimitName)
 
 if(CLIENT) then
 
@@ -127,6 +129,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".nextz"     , "Additional origin linear Z offset")
   languageAdd("tool."..gsToolNameL..".gravity"   , "Controls the gravity on the piece spawned")
   languageAdd("tool."..gsToolNameL..".weld"      , "Creates welds between pieces or pieces/anchor")
+  languageAdd("tool."..gsToolNameL..".maxforce"  , "Controls how much force is needed to break the weld")
   languageAdd("tool."..gsToolNameL..".ignphysgn" , "Ignores physics gun grab on the piece spawned/snapped/stacked")
   languageAdd("tool."..gsToolNameL..".nocollide" , "Puts a no-collide between pieces or pieces/anchor")
   languageAdd("tool."..gsToolNameL..".freeze"    , "Makes the piece spawn in a frozen state")
@@ -137,9 +140,9 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".adviser"   , "Controls rendering the tool position/angle adviser")
   languageAdd("tool."..gsToolNameL..".pntasist"  , "Controls rendering the tool snap point assistant")
   languageAdd("tool."..gsToolNameL..".ghosthold" , "Controls rendering the tool ghosted holder piece")
-  languageAdd("Cleanup_"..asmlib.GetOpVar("CVAR_LIMITNAME"), gsNameInitF.." "..asmlib.GetOpVar("NAME_PERP").." pieces")
-  languageAdd("Cleaned_"..asmlib.GetOpVar("CVAR_LIMITNAME"), "Cleaned up all track pieces")
-  languageAdd("SBoxLimit_"..asmlib.GetOpVar("CVAR_LIMITNAME"), "You've hit the Spawned tracks limit!")
+  languageAdd("Cleanup_"..gsLimitName, gsNameInitF.." "..asmlib.GetOpVar("NAME_PERP").." pieces")
+  languageAdd("Cleaned_"..gsLimitName, "Cleaned up all track pieces")
+  languageAdd("SBoxLimit_"..gsLimitName, "You've hit the Spawned tracks limit!")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
 end
@@ -171,8 +174,6 @@ TOOL.ClientConVar = {
   [ "nextpic"   ] = "0",
   [ "nextyaw"   ] = "0",
   [ "nextrol"   ] = "0",
-  [ "logsmax"   ] = "0",
-  [ "logfile"   ] = "",
   [ "mcspawn"   ] = "0",
   [ "bgskids"   ] = "",
   [ "gravity"   ] = "1",
@@ -182,6 +183,7 @@ TOOL.ClientConVar = {
   [ "surfsnap"  ] = "0",
   [ "exportdb"  ] = "0",
   [ "offsetup"  ] = "0",
+  [ "maxforce"  ] = "0",
   [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "1",
   [ "maxstatts" ] = "3",
@@ -258,11 +260,11 @@ function TOOL:GetExportDB()
 end
 
 function TOOL:GetLogLines()
-  return (self:GetClientNumber("logsmax") or 0)
+  return (asmlib.GetAsmVar("logsmax","INT") or 0)
 end
 
 function TOOL:GetLogFile()
-  return (self:GetClientInfo("logfile") or "")
+  return (asmlib.GetAsmVar("logfile","STR") or "")
 end
 
 function TOOL:GetAdviser()
@@ -280,6 +282,10 @@ end
 
 function TOOL:GetYawSnap()
   return mathClamp(self:GetClientNumber("ydegsnp"),0,gnMaxOffRot)
+end
+
+function TOOL:GetMaxForce()
+  return mathClamp(self:GetClientNumber("maxforce"),0,gnMaxForce)
 end
 
 function TOOL:GetWeld()
@@ -373,7 +379,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
         sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
-        sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME")):GetInt())..">"..sDelim
+        sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim
         sDu = sDu..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
         sDu = sDu..sSpace.."  IN.USE:         <"..tostring(plyKeys["USE"])..">"..sDelim
@@ -400,6 +406,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Adviser:     <"..tostring(self:GetAdviser())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxForce:    <"..tostring(self:GetMaxForce())..">"..sDelim
         sDu = sDu..sSpace.."  HD.OffsetUp:    <"..tostring(self:GetOffsetUp())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
@@ -447,6 +454,7 @@ function TOOL:LeftClick(stTrace)
   local ydegsnp    = self:GetYawSnap()
   local gravity    = self:GetGravity()
   local offsetup   = self:GetOffsetUp()
+  local maxforce   = self:GetMaxForce()
   local nocollide  = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
@@ -463,11 +471,11 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadKeyPly(ply)
-  if(stTrace.HitWorld) then -- Spawn it on the map ...
+  if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local ePiece = asmlib.MakePiece(ply,model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
-      if(mcspawn ~= 0) then
+      if(mcspawn ~= 0) then  -- Spawn on mass centre
         ePiece:SetAngles(aAng)
         local vCen = asmlib.GetCenterMC(ePiece)
         local vOBB = ePiece:OBBMins()
@@ -493,7 +501,7 @@ function TOOL:LeftClick(stTrace)
       end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical settings",ePiece)) end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide)) then
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,maxforce)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical anchor",ePiece)) end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.UndoAddEntityPly(ePiece)
@@ -536,7 +544,7 @@ function TOOL:LeftClick(stTrace)
     if(asmlib.LoadKeyPly(ply,"USE")) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)) end
-      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide)) then
+      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,maxforce)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical anchor",ePiece)) end
       trEnt:GetPhysicsObject():SetMass(mass)
       return asmlib.StatusLog(true,"TOOL:LeftClick(Physical): Success")
@@ -549,7 +557,7 @@ function TOOL:LeftClick(stTrace)
     end
   end
 
-  if(asmlib.LoadKeyPly(ply,"SPEED") and hdRec.Kept > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(asmlib.LoadKeyPly(ply,"SPEED") and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -572,9 +580,9 @@ function TOOL:LeftClick(stTrace)
         end -- Set position is valid
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply physical settings failed")) end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,maxforce)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply weld failed")) end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,maxforce)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply no-collide failed")) end
         asmlib.SetVector(vTemp,hdOffs.P)
         vTemp:Rotate(stSpawn.SAng)
@@ -588,25 +596,20 @@ function TOOL:LeftClick(stTrace)
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Stacking has invalid user data"))
         end -- Spawn data is valid for the current iteration iNdex
         ePieceO = ePieceN
-        iNdex = iNdex + 1
-        iTrys = staatts
+        iNdex   = iNdex + 1
+        iTrys   = staatts
       else
-        iTrys = iTrys - 1
+        iTrys   = iTrys - 1
       end
       if(iTrys <= 0) then
         asmlib.PrintNotifyPly(ply,"Spawn attempts ran off!","ERROR")
         asmlib.UndoFinishPly(ply,sIterat)
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Allocate memory failed"))
       end -- We still have enough memory to preform the stacking
-      if(hdRec.Kept == 1) then
-        asmlib.LogInstance("TOOL:LeftClick(Stack)"..sIterat..": Player "..ply:GetName()
-          .." tried to stack a piece <"..fnmodel.."> with only one active point")
-        break -- If holder's model has only one point, we cannot stack
-      end
     end
     asmlib.UndoFinishPly(ply)
     return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success stacking")
-  else
+  else -- Switch the tool mode ( Snapping )
     local ePiece = asmlib.MakePiece(ply,model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
     if(ePiece) then
       ePiece:SetAngles(stSpawn.SAng)
@@ -614,9 +617,9 @@ function TOOL:LeftClick(stTrace)
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Position irrelevant")) end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings failed")) end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil)) then -- Weld all created to the anchor/previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,maxforce)) then -- Weld all created to the anchor/previous
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply weld failed")) end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide)) then       -- NoCollide all to previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,maxforce)) then       -- NoCollide all to previous
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply no-collide failed")) end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Snap prop )")
       asmlib.UndoAddEntityPly(ePiece)
@@ -1094,6 +1097,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
   pItem = CPanel:NumSlider("Offset Z:", gsToolPrefL.."nextz", -gnMaxOffLin, gnMaxOffLin, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
+  pItem = CPanel:NumSlider("Force limit:", gsToolPrefL.."maxforce", 0, gnMaxForce, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".maxforce"))
   pItem = CPanel:CheckBox("Weld", gsToolPrefL.."weld")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
   pItem = CPanel:CheckBox("NoCollide", gsToolPrefL.."nocollide")
