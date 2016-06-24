@@ -88,7 +88,7 @@ local conPalette = asmlib.MakeContainer("Colors")
       conPalette:Insert("w" ,Color(255,255,255,255))
       conPalette:Insert("k" ,Color(  0,  0,  0,255))
       conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
-      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel mode names
+      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
 
@@ -301,7 +301,7 @@ function TOOL:GetSpawnMC()
 end
 
 function TOOL:GetStackAttempts()
-  return (mathClamp(self:GetClientNumber("maxstaatts"),1,5))
+  return (mathClamp(self:GetClientNumber("maxstatts"),1,5))
 end
 
 function TOOL:GetPhysMeterial()
@@ -355,12 +355,12 @@ function TOOL:GetAnchor()
 end
 
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
-  local sDelim  = "\n"
+  local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
+  if(iMaxlog == 0) then return "Status N/A" end
+  local ply, sDelim  = self:GetOwner(), "\n"
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
   local sFleLog = asmlib.GetOpVar("LOG_LOGFILE")
-  local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
   local sSpace  = stringRep(" ",6 + stringLen(tostring(iMaxlog)))
-  local ply     = self:GetOwner()
   local plyKeys = asmlib.LoadKeyPly(ply,"DEBUG")
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
@@ -462,7 +462,7 @@ function TOOL:LeftClick(stTrace)
   local physmater  = self:GetPhysMeterial()
   local actrad     = self:GetActiveRadius()
   local bgskids    = self:GetBodyGroupSkin()
-  local staatts    = self:GetStackAttempts()
+  local maxstatts  = self:GetStackAttempts()
   local ignphysgn  = self:GetIgnorePhysgun()
   local bnderrmod  = self:GetBoundErrorMode()
   local fnmodel    = stringToFileName(model)
@@ -472,33 +472,26 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
-    local ePiece = asmlib.MakePiece(ply,model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
-    if(ePiece) then
-      local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
-      if(mcspawn ~= 0) then  -- Spawn on mass centre
-        ePiece:SetAngles(aAng)
-        local vCen = asmlib.GetCenterMC(ePiece)
-        local vOBB = ePiece:OBBMins()
-              vCen:Add(stTrace.HitPos)
-              vCen:Add(offsetup * stTrace.HitNormal)
-              vCen:Add(nextx * aAng:Forward())
-              vCen:Add(nexty * aAng:Right())
-              vCen:Add(nextz * aAng:Up())
-        aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
-        aAng:RotateAroundAxis(aAng:Right()  , nextpic)
-        aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-        ePiece:SetAngles(aAng)
-        if(not asmlib.SetPosBound(ePiece,vCen,ply,bnderrmod)) then
-          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid",ePiece)) end
-      else -- Spawn on Active point
-        local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
-                          pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-        if(not stSpawn) then
-          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): No spawn data",ePiece)) end
-        ePiece:SetAngles(stSpawn.SAng)
-        if(not asmlib.SetPosBound(ePiece,stSpawn.SPos,ply,bnderrmod)) then
-          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Bound position invalid",ePiece)) end
-      end
+    local vPos, aAng = Vector(), asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
+    if(mcspawn ~= 0) then  -- Spawn on mass centre
+      local vPos:Add(stTrace.HitPos)
+            vPos:Add(offsetup * stTrace.HitNormal)
+            vPos:Add(nextz * aAng:Up())
+            vPos:Add(nexty * aAng:Right())
+            vPos:Add(nextx * aAng:Forward())
+            aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+            aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+            aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+    else
+      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
+                        pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      if(not stSpawn) then -- Make sure it persists to set it afterwards
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Cannot obtain spawn data")) end
+      vPos:Set(stSpawn.SPos); aAng:Set(stSpawn.SAng)
+    end
+    local ePiece = asmlib.MakePiece(ply,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+    if(ePiece) then -- Adjust the position if necessary when created correctly
+      if(mcspawn ~= 0) then vPos:Add(asmlib.GetCenterMC(ePiece)); ePiece:SetPos(vPos) end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical settings",ePiece)) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,maxforce)) then
@@ -540,7 +533,7 @@ function TOOL:LeftClick(stTrace)
 
   local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-  if(not stSpawn) then -- Not aiming into an active point update properties
+  if(not stSpawn) then -- Not aiming into an active point update settings/properties
     if(asmlib.LoadKeyPly(ply,"USE")) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)) end
@@ -561,23 +554,18 @@ function TOOL:LeftClick(stTrace)
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
-    local iNdex, iTrys = 1, staatts
+    local iNdex, iTrys = 1, maxstatts
     local vTemp, trPos = Vector(), trEnt:GetPos()
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
-    if(not hdOffs) then
+    if(not hdOffs) then -- Make sure it is present
       asmlib.PrintNotifyPly(ply,"Cannot find next PointID !","ERROR")
       return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack): Missing next point ID"))
-    end -- Validate existent next point ID
+    end -- Validated existent next point ID
     asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count).." )")
     while(iNdex <= count) do
       local sIterat = "["..tostring(iNdex).."]"
-      ePieceN = asmlib.MakePiece(ply,model,trPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
-      if(ePieceN) then
-        ePieceN:SetAngles(stSpawn.SAng)
-        if(not asmlib.SetPosBound(ePieceN,stSpawn.SPos,ply,bnderrmod)) then
-          asmlib.UndoFinishPly(ply,sIterat) -- Make it shoot but throw the error
-          return asmlib.StatusLog(true,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Position irrelevant"))
-        end -- Set position is valid
+      ePieceN = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+      if(ePieceN) then -- Set position is valid
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply physical settings failed")) end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,maxforce)) then
@@ -590,31 +578,23 @@ function TOOL:LeftClick(stTrace)
         asmlib.UndoAddEntityPly(ePieceN)
         stSpawn = asmlib.GetEntitySpawn(ePieceN,vTemp,model,pointid,
                     actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-        if(not stSpawn) then
+        if(not stSpawn) then -- Look both ways in a one way street :D
           asmlib.PrintNotifyPly(ply,"Cannot obtain spawn data!","ERROR")
           asmlib.UndoFinishPly(ply,sIterat)
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Stacking has invalid user data"))
         end -- Spawn data is valid for the current iteration iNdex
-        ePieceO = ePieceN
-        iNdex   = iNdex + 1
-        iTrys   = staatts
-      else
-        iTrys   = iTrys - 1
-      end
+        ePieceO, iNdex, iTrys = ePieceN, (iNdex + 1), maxstatts
+      else iTrys = iTrys - 1 end
       if(iTrys <= 0) then
-        asmlib.PrintNotifyPly(ply,"Spawn attempts ran off!","ERROR")
-        asmlib.UndoFinishPly(ply,sIterat)
-        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Allocate memory failed"))
+        asmlib.UndoFinishPly(ply,sIterat) --  Make it shoot but throw the error
+        return asmlib.StatusLog(true,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": All stack attempts failed"))
       end -- We still have enough memory to preform the stacking
     end
     asmlib.UndoFinishPly(ply)
     return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success stacking")
   else -- Switch the tool mode ( Snapping )
-    local ePiece = asmlib.MakePiece(ply,model,stTrace.HitPos,ANG_ZERO,mass,bgskids,conPalette:Select("w"))
+    local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
-      ePiece:SetAngles(stSpawn.SAng)
-      if(not asmlib.SetPosBound(ePiece,stSpawn.SPos,ply,bnderrmod)) then
-        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Position irrelevant")) end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings failed")) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,maxforce)) then -- Weld all created to the anchor/previous
@@ -700,7 +680,7 @@ function TOOL:Reload(stTrace)
 end
 
 function TOOL:Holster()
-  self:ReleaseGhostEntity()
+  self:ReleaseGhostEntity() -- Remove the ghost prop to save memory
   if(self.GhostEntity and self.GhostEntity:IsValid()) then self.GhostEntity:Remove() end
 end
 
@@ -835,7 +815,7 @@ function TOOL:DrawHUD()
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
       local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
-                        pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
       stSpawn.R:Mul(30); stSpawn.R:Add(stSpawn.OPos)
@@ -973,12 +953,13 @@ function TOOL.BuildCPanel(CPanel)
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
+  local subTypes = asmlib.GetOpVar("TABLE_SUBTYPES")
   local pTree    = vguiCreate("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 300)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
         pTree:SetIndentSize(0)
-  local iCnt, pFolders, pNode = 1, {}
+  local iCnt, pFolders, pSubtype, pNode = 1, {}, {}
   while(Panel[iCnt]) do
     local Rec = Panel[iCnt]
     local Mod = Rec[defTable[1][1]]
@@ -986,22 +967,35 @@ function TOOL.BuildCPanel(CPanel)
     local Nam = Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
       if(Typ ~= "" and not pFolders[Typ]) then
-        -- No Folder, Make one xD
-        pItem = pTree:AddNode(Typ)
+        pItem = pTree:AddNode(Typ) -- No type folder made already
         pItem:SetName(Typ)
-        pItem.Icon:SetImage("icon16/disconnect.png")
+        pItem.Icon:SetImage("icon16/database_connect.png")
         pItem.InternalDoClick = function() end
         pItem.DoClick = function() return false end
         pItem.Label.UpdateColours = function(pSelf)
           return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
         pFolders[Typ] = pItem
+      end -- Reset the primary tree node pointer
+      if(pFolders[Typ]) then pItem = pFolders[Typ] else pItem = pTree end
+      -- Register the subtype if definition functional is given
+      if(subTypes[Typ]) then -- There is a subtype definition
+        if(not pSubtype[Typ]) then pSubtype[Typ] = {} end
+        local Sub = subTypes[Typ](Mod)
+        if(Sub ~= "" and not pSubtype[Typ][Sub]) then -- No subtype folder made already
+          pItem = pItem:AddNode(Sub) -- The item pointer will refer to the new directory
+          pItem:SetName(Sub)
+          pItem.Icon:SetImage("icon16/folder.png")
+          pItem.InternalDoClick = function() end
+          pItem.DoClick = function() return false end
+          pItem.Label.UpdateColours = function(pSelf)
+            return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
+          pSubtype[Typ][Sub] = pItem
+        end
       end
-      if(pFolders[Typ]) then
-        pItem = pFolders[Typ]
-      else pItem = pTree end
+      -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode:SetName(Nam)
-      pNode.Icon:SetImage("icon16/control_play_blue.png")
+      pNode.Icon:SetImage("icon16/brick.png")
       pNode.DoClick = function(pSelf)
         RunConsoleCommand(gsToolPrefL.."model"  , Mod)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)

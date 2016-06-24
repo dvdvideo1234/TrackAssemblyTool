@@ -15,8 +15,11 @@ local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
+local stringSub            = string and string.sub
 local stringFind           = string and string.find
 local stringGsub           = string and string.gsub
+local stringUpper          = string and string.upper
+local stringLower          = string and string.lower
 local stringExplode        = string and string.Explode
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
@@ -27,7 +30,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.256")
+asmlib.SetOpVar("TOOL_VERSION","5.257")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -1601,7 +1604,9 @@ else
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_right_1024.mdl", "#", "#", 2, "", "651.898,-651.899,3.016", "0,-90,0"})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
-  asmlib.DefaultType("Ron's 2ft track pack")
+  asmlib.DefaultType("Ron's 2ft track pack", function(m)
+    local r = stringGsub(m,"models/ron/2ft/",""); r = stringSub(r,1,stringFind(r,"/")-1);
+    return stringUpper(stringSub(r,1,1))..stringLower(stringSub(r,2,-1)); end)
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer.mdl", "#", "#", 1, "", "64,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",1,""," 32,0,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",2,"","-32,0,6.016","0,-180,0"})

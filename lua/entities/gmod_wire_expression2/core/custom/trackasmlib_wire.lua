@@ -17,6 +17,7 @@ local anyFalse = 0
 local maxColor = 255
 local maxMass  = asmlib.GetOpVar("MAX_MASS")
 local enFlag   = ((tonumber(asmlib.GetAsmVar("enwiremod","INT")) or 0) ~= 0) and true or false
+local bndErr   = (tostring(asmlib.GetAsmVar("bnderrmod" ,"STR")) or "")
 
 --------- Pieces ----------
 __e2setcost(50)
@@ -271,7 +272,7 @@ e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, n
   if(not asmlib.IsPlayer(self.player)) then return nil end
   return asmlib.MakePiece(self.player,sModel,Vector(vPos[1],vPos[2],vPos[3]),Angle(aAng[1],aAng[2],aAng[3]),
            mathClamp(nMass,1,maxMass),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
-                                                   mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)))
+                                                   mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)),bndErr)
 end
 
 __e2setcost(50)
@@ -285,7 +286,7 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   local sBgpID  = asmlib.GetPropBodyGroup(this)..
                   asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
   return asmlib.MakePiece(self.player,this:GetModel(),Vector(vPos[1],vPos[2],vPos[3]),
-                Angle (aAng[1],aAng[2],aAng[3]),phthis:GetMass(),sBgpID,this:GetColor())
+                Angle (aAng[1],aAng[2],aAng[3]),phthis:GetMass(),sBgpID,this:GetColor(),bndErr)
 end
 
 __e2setcost(15)

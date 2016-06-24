@@ -404,6 +404,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
+  SetOpVar("TABLE_SUBTYPES",{})
   SetOpVar("FILE_MODEL","%.mdl")
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
@@ -1428,16 +1429,20 @@ function SettingsModelToName(sMode, gCut, gSub, gApp)
   end
 end
 
-function DefaultType(anyType)
+function DefaultType(anyType,fooSubtype)
   if(not IsExistent(anyType)) then
-    return GetOpVar("DEFAULT_TYPE") or "" end
+    return (GetOpVar("DEFAULT_TYPE") or "") end
+  if(type(fooSubtype) == "function") then
+    local Sub = GetOpVar("TABLE_SUBTYPES")
+          Sub[anyType] = fooSubtype
+  end
   SetOpVar("DEFAULT_TYPE",tostring(anyType))
   SettingsModelToName("CLR")
 end
 
 function DefaultTable(anyTable)
   if(not IsExistent(anyTable)) then
-    return GetOpVar("DEFAULT_TABLE") or "" end
+    return (GetOpVar("DEFAULT_TABLE") or "") end
   SetOpVar("DEFAULT_TABLE",anyTable)
   SettingsModelToName("CLR")
 end
@@ -3086,7 +3091,28 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   return StatusLog(true,"AttachBodyGroups: Success")
 end
 
-function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
+local function SetPosBound(ePiece,vPos,oPly,sMode)
+  if(not (ePiece and ePiece:IsValid())) then
+    return StatusLog(false,"SetPosBound: Entity invalid") end
+  if(not IsExistent(vPos)) then
+    return StatusLog(false,"SetPosBound: Position missing") end
+  if(not IsPlayer(oPly)) then
+    return StatusLog(false,"SetPosBound: Player <"..tostring(oPly)"> invalid") end
+  local sMode = tostring(sMode or "LOG") -- Error mode is "LOG" by default
+  if(sMode == "OFF") then
+    ePiece:SetPos(vPos)
+    return StatusLog(true,"SetPosBound("..sMode..") Tuned off")
+  end
+  if(utilIsInWorld(vPos)) then ePiece:SetPos(vPos) else
+    ePiece:Remove()
+    if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
+      PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
+    return StatusLog(false,"SetPosBound("..sMode.."): Position "..tostring(vPos).." out of map bounds")
+  end
+  return StatusLog(true,"SetPosBound("..sMode.."): Success")
+end
+
+function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(CLIENT) then return StatusLog(nil,"MakePiece: Working on client") end
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     return StatusLog(nil,"MakePiece: Player missing <"..tostring(pPly)..">") end
@@ -3097,16 +3123,17 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     return StatusLog(nil,"MakePiece: Prop limit reached") end
   local stPiece = CacheQueryPiece(sModel)
   if(not IsExistent(stPiece)) then -- Not present in the database
-    return StatusLog(nil,"MakePiece: Record missing <"..sModel..">") end
+    return StatusLog(nil,"MakePiece: Record missing for <"..sModel..">") end
   local ePiece = entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(nil,"MakePiece: Entity invalid") end
+    return StatusLog(nil,"MakePiece: Piece <"..tostring(ePiece).."> invalid") end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
-  ePiece:SetPos(vPos or GetOpVar("VEC_ZERO"))
+  if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly)) then
+    return StatusLog(nil,pPly:Nick().." spawned <"..sModel.."> outside of bounds") end
   ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
   ePiece:Spawn()
   ePiece:Activate()
@@ -3125,9 +3152,9 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor)
     return StatusLog(nil,"MakePiece: Failed to attach bodygroups") end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Failed to attach additions") end
-  pPly:AddCount  (sLimit , ePiece); pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
-  pPly:AddCount  ("props", ePiece); pPly:AddCleanup("props", ePiece) -- To be deleted with clearing props
-  return StatusLog(ePiece,"MakePiece: Success "..tostring(ePiece))
+  pPly:AddCount(sLimit , ePiece); pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
+  pPly:AddCount("props", ePiece); pPly:AddCleanup("props", ePiece) -- To be deleted with clearing props
+  return StatusLog(ePiece,"MakePiece: "..tostring(ePiece)..sModel)
 end
 
 function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc,nFm)
@@ -3175,29 +3202,6 @@ function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = (nGr ~= 0), Material = sPh})
   duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
-end
-
-function SetPosBound(ePiece,vPos,oPly,sMode)
-  if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"SetPosBound: Entity invalid") end
-  if(not IsExistent(vPos)) then
-    return StatusLog(false,"SetPosBound: Position missing") end
-  if(not IsPlayer(oPly)) then
-    return StatusLog(false,"SetPosBound: Player <"..tostring(oPly)"> invalid") end
-  local sMode = tostring(sMode or "LOG") -- Error mode is "LOG" by default
-  if(sMode == "OFF") then
-    ePiece:SetPos(vPos)
-    return StatusLog(true,"SetPosBound("..sMode..") Tuned off")
-  end
-  if(utilIsInWorld(vPos)) then
-    ePiece:SetPos(vPos)
-  else
-    ePiece:Remove()
-    if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
-      PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
-    return StatusLog(false,"SetPosBound("..sMode.."): Position out of map bounds")
-  end
-  return StatusLog(true,"SetPosBound("..sMode.."): Success")
 end
 
 function MakeAsmVar(sShortName, sValue, tBorder, nFlags, sInfo)
