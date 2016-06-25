@@ -172,7 +172,7 @@ function IsString(anyValue)
   return (getmetatable(anyValue) == GetOpVar("TYPEMT_STRING"))
 end
 
-local function IsEmptyString(anyValue)
+function IsEmptyString(anyValue)
   if(not IsString(anyValue)) then return false end
   return (anyValue == "")
 end
@@ -677,7 +677,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   function self:SetColor(keyColor,sMeth)
     if(not IsExistent(keyColor) and not IsExistent(sMeth)) then
       Colors.Key = GetOpVar("OOP_DEFAULTKEY")
-      return StatusLog("MakeScreen.SetColor: Color reset") end
+      return StatusLog(nil,"MakeScreen.SetColor: Color reset") end
     local keyColor = keyColor or Colors.Key
     if(not IsExistent(keyColor)) then
       return StatusLog(nil,"MakeScreen.SetColor: Indexing skipped") end
@@ -1001,7 +1001,6 @@ function GetCenterMC(oEnt)
     return StatusLog(Vector(0,0,0),"GetCenterMC: Phys object Invalid") end
   local vRez = Phys:GetMassCenter()
         vRez[cvX] = -vRez[cvX]; vRez[cvY] = -vRez[cvY]; vRez[cvZ] = 0
-        vRez:Rotate(oEnt:GetAngles())
   return vRez
 end
 
@@ -1029,8 +1028,8 @@ local function BorderValue(nsVal,sName)
   local Border = GetOpVar("TABLE_BORDERS")
         Border = Border[sName]
   if(IsExistent(Border)) then
-    if    (nsVal < Border[1]) then return Border[1]
-    elseif(nsVal > Border[2]) then return Border[2] end
+    if(Border[1] and nsVal < Border[1]) then return Border[1] end
+    if(Border[2] and nsVal > Border[2]) then return Border[2] end
   end
   return nsVal
 end
@@ -3107,7 +3106,7 @@ local function SetPosBound(ePiece,vPos,oPly,sMode)
     ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
       PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
-    return StatusLog(false,"SetPosBound("..sMode.."): Position "..tostring(vPos).." out of map bounds")
+    return StatusLog(false,"SetPosBound("..sMode.."): Position ["..tostring(vPos).."] out of map bounds")
   end
   return StatusLog(true,"SetPosBound("..sMode.."): Success")
 end

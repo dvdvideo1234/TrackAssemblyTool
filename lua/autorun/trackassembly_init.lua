@@ -30,16 +30,25 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.257")
+asmlib.SetOpVar("TOOL_VERSION","5.258")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.SetOpVar("LOG_ONLY",nil)
-asmlib.SetOpVar("LOG_SKIP",{"QuickSort","ModelToName","GetEntitySpawn: Not hitting active point","CacheQueryPiece: Record not located", "GetEntitySpawn: Trace model missing"})
+asmlib.SetOpVar("LOG_SKIP",{
+  "QuickSort",
+  "ModelToName",
+  "GetEntitySpawn: Not hitting active point",
+  "CacheQueryPiece: Record not located",
+  "GetEntitySpawn: Trace model missing",
+  "MakeScreen.SetColor: Color reset",
+  "MakeScreen.DrawLine: Start out of border",
+  "MakeScreen.DrawLine: End out of border"
+})
 
 ------ CONFIGURE LOGGING ------
-asmlib.MakeAsmVar("logsmax"  , {0,1}, nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , ""   , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logsmax"  , "0" , {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Maximum logging lines to be printed")
+asmlib.MakeAsmVar("logfile"  , ""  , nil , bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "File to store the logs ( if any )")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
@@ -1606,7 +1615,7 @@ else
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
   asmlib.DefaultType("Ron's 2ft track pack", function(m)
     local r = stringGsub(m,"models/ron/2ft/",""); r = stringSub(r,1,stringFind(r,"/")-1);
-    return stringUpper(stringSub(r,1,1))..stringLower(stringSub(r,2,-1)); end)
+    return stringGsub(stringUpper(stringSub(r,1,1))..stringLower(stringSub(r,2,-1)),"_"," "); end)
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer.mdl", "#", "#", 1, "", "64,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",1,""," 32,0,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",2,"","-32,0,6.016","0,-180,0"})

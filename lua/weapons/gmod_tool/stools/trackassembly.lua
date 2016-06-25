@@ -356,7 +356,7 @@ end
 
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
-  if(iMaxlog == 0) then return "Status N/A" end
+  if(not (iMaxlog > 0)) then return "Status N/A" end
   local ply, sDelim  = self:GetOwner(), "\n"
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
   local sFleLog = asmlib.GetOpVar("LOG_LOGFILE")
@@ -377,7 +377,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."Dumping logs state:"..sDelim
         sDu = sDu..sSpace.."  LogsMax:        <"..tostring(iMaxlog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
-        sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
+        sDu = sDu..sSpace.."  LogFile:        <"..tostring(sFleLog)..">"..sDelim
         sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim
@@ -472,16 +472,12 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.LoadKeyPly(ply)
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
-    local vPos, aAng = Vector(), asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
+    local vPos = Vector(nextx,nexty,nextz + offsetup)
+    local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then  -- Spawn on mass centre
-      local vPos:Add(stTrace.HitPos)
-            vPos:Add(offsetup * stTrace.HitNormal)
-            vPos:Add(nextz * aAng:Up())
-            vPos:Add(nexty * aAng:Right())
-            vPos:Add(nextx * aAng:Forward())
-            aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
-            aAng:RotateAroundAxis(aAng:Right()  , nextpic)
-            aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+      aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+      aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+      aAng:RotateAroundAxis(aAng:Forward(), nextrol)
     else
       local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -491,7 +487,12 @@ function TOOL:LeftClick(stTrace)
     end
     local ePiece = asmlib.MakePiece(ply,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then -- Adjust the position if necessary when created correctly
-      if(mcspawn ~= 0) then vPos:Add(asmlib.GetCenterMC(ePiece)); ePiece:SetPos(vPos) end
+      if(mcspawn ~= 0) then
+        vPos:Add(asmlib.GetCenterMC(ePiece));
+        vPos:Rotate(aAng)
+        vPos:Add(stTrace.HitPos)
+        ePiece:SetPos(vPos)
+      end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical settings",ePiece)) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,maxforce)) then
@@ -956,7 +957,7 @@ function TOOL.BuildCPanel(CPanel)
   local subTypes = asmlib.GetOpVar("TABLE_SUBTYPES")
   local pTree    = vguiCreate("DTree")
         pTree:SetPos(2, CurY)
-        pTree:SetSize(2, 300)
+        pTree:SetSize(2, 400)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
         pTree:SetIndentSize(0)
   local iCnt, pFolders, pSubtype, pNode = 1, {}, {}
@@ -980,17 +981,20 @@ function TOOL.BuildCPanel(CPanel)
       -- Register the subtype if definition functional is given
       if(subTypes[Typ]) then -- There is a subtype definition
         if(not pSubtype[Typ]) then pSubtype[Typ] = {} end
-        local Sub = subTypes[Typ](Mod)
-        if(Sub ~= "" and not pSubtype[Typ][Sub]) then -- No subtype folder made already
-          pItem = pItem:AddNode(Sub) -- The item pointer will refer to the new directory
-          pItem:SetName(Sub)
-          pItem.Icon:SetImage("icon16/folder.png")
-          pItem.InternalDoClick = function() end
-          pItem.DoClick = function() return false end
-          pItem.Label.UpdateColours = function(pSelf)
-            return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
-          pSubtype[Typ][Sub] = pItem
-        end
+        local nmSub = subTypes[Typ](Mod)
+        local pnSub = pSubtype[Typ][nmSub]
+        if(not pnSub) then
+          if(not asmlib.IsEmptyString(nmSub)) then -- No subtype folder made already
+            pItem = pItem:AddNode(nmSub) -- The item pointer will refer to the new directory
+            pItem:SetName(nmSub)
+            pItem.Icon:SetImage("icon16/folder.png")
+            pItem.InternalDoClick = function() end
+            pItem.DoClick = function() return false end
+            pItem.Label.UpdateColours = function(pSelf)
+              return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
+            pSubtype[Typ][nmSub] = pItem
+          end
+        else pItem = pnSub end
       end
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
@@ -1138,20 +1142,17 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local aAng  = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
     if(mcspawn ~= 0) then
       oEnt:SetAngles(aAng)
-      local vCen = asmlib.GetCenterMC(oEnt)
       local vOBB = oEnt:OBBMins()
-            vCen:Add(stTrace.HitPos)
-            vCen:Add(-vOBB[cvZ] * stTrace.HitNormal)
-            vCen:Add(nextx * aAng:Forward())
-            vCen:Add(nexty * aAng:Right())
-            vCen:Add(nextz * aAng:Up())
+      local vCen = asmlib.GetCenterMC(oEnt)
+            vCen[cvX] = vCen[cvX] + nextx
+            vCen[cvY] = vCen[cvY] + nexty
+            vCen[cvZ] = vCen[cvZ] + nextz -vOBB[cvZ]
       asmlib.ConCommandPly(oPly,"offsetup",-vOBB[cvZ])
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-      oEnt:SetAngles(aAng)
-      oEnt:SetPos(vCen)
-      oEnt:SetNoDraw(false)
+      vCen:Rotate(aAng); vCen:Add(stTrace.HitPos)
+      oEnt:SetPos(vCen); oEnt:SetAngles(aAng); oEnt:SetNoDraw(false)
     else
       local pointUp = (asmlib.PointOffsetUp(oEnt,pointid) or 0)
       local stSpawn =  asmlib.GetNormalSpawn(stTrace.HitPos + pointUp * stTrace.HitNormal,aAng,model,
