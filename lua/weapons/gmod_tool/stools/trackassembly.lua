@@ -129,7 +129,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".nextz"     , "Additional origin linear Z offset")
   languageAdd("tool."..gsToolNameL..".gravity"   , "Controls the gravity on the piece spawned")
   languageAdd("tool."..gsToolNameL..".weld"      , "Creates welds between pieces or pieces/anchor")
-  languageAdd("tool."..gsToolNameL..".maxforce"  , "Controls how much force is needed to break the weld")
+  languageAdd("tool."..gsToolNameL..".forcelim"  , "Controls how much force is needed to break the weld")
   languageAdd("tool."..gsToolNameL..".ignphysgn" , "Ignores physics gun grab on the piece spawned/snapped/stacked")
   languageAdd("tool."..gsToolNameL..".nocollide" , "Puts a no-collide between pieces or pieces/anchor")
   languageAdd("tool."..gsToolNameL..".freeze"    , "Makes the piece spawn in a frozen state")
@@ -183,7 +183,7 @@ TOOL.ClientConVar = {
   [ "surfsnap"  ] = "0",
   [ "exportdb"  ] = "0",
   [ "offsetup"  ] = "0",
-  [ "maxforce"  ] = "0",
+  [ "forcelim"  ] = "0",
   [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "1",
   [ "maxstatts" ] = "3",
@@ -284,8 +284,8 @@ function TOOL:GetYawSnap()
   return mathClamp(self:GetClientNumber("ydegsnp"),0,gnMaxOffRot)
 end
 
-function TOOL:GetMaxForce()
-  return mathClamp(self:GetClientNumber("maxforce"),0,gnMaxForce)
+function TOOL:GetForceLimit()
+  return mathClamp(self:GetClientNumber("forcelim"),0,gnMaxForce)
 end
 
 function TOOL:GetWeld()
@@ -406,7 +406,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Adviser:     <"..tostring(self:GetAdviser())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxForce:    <"..tostring(self:GetMaxForce())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxForce:    <"..tostring(self:GetForceLimit())..">"..sDelim
         sDu = sDu..sSpace.."  HD.OffsetUp:    <"..tostring(self:GetOffsetUp())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
@@ -454,10 +454,10 @@ function TOOL:LeftClick(stTrace)
   local ydegsnp    = self:GetYawSnap()
   local gravity    = self:GetGravity()
   local offsetup   = self:GetOffsetUp()
-  local maxforce   = self:GetMaxForce()
   local nocollide  = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
+  local forcelim   = self:GetForceLimit()
   local surfsnap   = self:GetSurfaceSnap()
   local physmater  = self:GetPhysMeterial()
   local actrad     = self:GetActiveRadius()
@@ -495,7 +495,7 @@ function TOOL:LeftClick(stTrace)
       end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical settings",ePiece)) end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,maxforce)) then
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,forcelim)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical anchor",ePiece)) end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.UndoAddEntityPly(ePiece)
@@ -538,7 +538,7 @@ function TOOL:LeftClick(stTrace)
     if(asmlib.LoadKeyPly(ply,"USE")) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)) end
-      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,maxforce)) then
+      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,forcelim)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical anchor",ePiece)) end
       trEnt:GetPhysicsObject():SetMass(mass)
       return asmlib.StatusLog(true,"TOOL:LeftClick(Physical): Success")
@@ -569,9 +569,9 @@ function TOOL:LeftClick(stTrace)
       if(ePieceN) then -- Set position is valid
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply physical settings failed")) end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,maxforce)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,forcelim)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply weld failed")) end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,maxforce)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,forcelim)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply no-collide failed")) end
         asmlib.SetVector(vTemp,hdOffs.P)
         vTemp:Rotate(stSpawn.SAng)
@@ -598,9 +598,9 @@ function TOOL:LeftClick(stTrace)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings failed")) end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,maxforce)) then -- Weld all created to the anchor/previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply weld failed")) end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,maxforce)) then       -- NoCollide all to previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,forcelim)) then       -- NoCollide all to previous
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply no-collide failed")) end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Snap prop )")
       asmlib.UndoAddEntityPly(ePiece)
@@ -1095,8 +1095,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
   pItem = CPanel:NumSlider("Offset Z:", gsToolPrefL.."nextz", -gnMaxOffLin, gnMaxOffLin, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-  pItem = CPanel:NumSlider("Force limit:", gsToolPrefL.."maxforce", 0, gnMaxForce, 3)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".maxforce"))
+  pItem = CPanel:NumSlider("Force limit:", gsToolPrefL.."forcelim", 0, gnMaxForce, 3)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".forcelim"))
   pItem = CPanel:CheckBox("Weld", gsToolPrefL.."weld")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
   pItem = CPanel:CheckBox("NoCollide", gsToolPrefL.."nocollide")

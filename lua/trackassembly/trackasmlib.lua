@@ -1104,48 +1104,51 @@ function PointOffsetUp(oEnt,ivPointID)
   return mathAbs(vDiffBB[cvZ])
 end
 
-function ModelToName(sModel)
+function ModelToName(sModel,bNoSettings)
   if(not IsString(sModel)) then
     return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..tostring(sModel)..">") end
   if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
   local fCh, bCh, Cnt = "", "", 1
   local sSymDiv = GetOpVar("OPSYM_DIVIDER")
   local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local sModel  = stringGsub(stringToFileName(sModel),GetOpVar("FILE_MODEL"),"")
+  local sModel  = (stringSub(sModel,1,1) ~= sSymDir) and (sSymDir..sModel)
+        sModel  =  stringGsub(stringToFileName(sModel),GetOpVar("FILE_MODEL"),"")
   local gModel  = stringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
-  local tCut, tSub, tApp = SettingsModelToName("GET")
-  if(tCut and tCut[1]) then
-    while(tCut[Cnt] and tCut[Cnt+1]) do
-      fCh = tonumber(tCut[Cnt])
-      bCh = tonumber(tCut[Cnt+1])
-      if(not (IsExistent(fCh) and IsExistent(bCh))) then
-        return StatusLog("","ModelToName: Cannot cut the model in {"
-                 ..tostring(tCut[Cnt])..","..tostring(tCut[Cnt+1]).."} for "..sModel)
+  if(not bNoSettings) then
+    local tCut, tSub, tApp = SettingsModelToName("GET")
+    if(tCut and tCut[1]) then
+      while(tCut[Cnt] and tCut[Cnt+1]) do
+        fCh = tonumber(tCut[Cnt])
+        bCh = tonumber(tCut[Cnt+1])
+        if(not (IsExistent(fCh) and IsExistent(bCh))) then
+          return StatusLog("","ModelToName: Cannot cut the model in {"
+                   ..tostring(tCut[Cnt])..","..tostring(tCut[Cnt+1]).."} for "..sModel)
+        end
+        LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} << "..gModel)
+        gModel = stringGsub(gModel,stringSub(sModel,fCh,bCh),"")
+        LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} >> "..gModel)
+        Cnt = Cnt + 2
       end
-      LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} << "..gModel)
-      gModel = stringGsub(gModel,stringSub(sModel,fCh,bCh),"")
-      LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} >> "..gModel)
-      Cnt = Cnt + 2
+      Cnt = 1
     end
-    Cnt = 1
-  end
-  -- Replace the unneeded parts by finding an in-string gModel
-  if(tSub and tSub[1]) then
-    while(tSub[Cnt]) do
-      fCh = tostring(tSub[Cnt]   or "")
-      bCh = tostring(tSub[Cnt+1] or "")
-      LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} << "..gModel)
-      gModel = stringGsub(gModel,fCh,bCh)
-      LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
-      Cnt = Cnt + 2
+    -- Replace the unneeded parts by finding an in-string gModel
+    if(tSub and tSub[1]) then
+      while(tSub[Cnt]) do
+        fCh = tostring(tSub[Cnt]   or "")
+        bCh = tostring(tSub[Cnt+1] or "")
+        LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} << "..gModel)
+        gModel = stringGsub(gModel,fCh,bCh)
+        LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
+        Cnt = Cnt + 2
+      end
+      Cnt = 1
     end
-    Cnt = 1
-  end
-  -- Append something if needed
-  if(tApp and tApp[1]) then
-    LogInstance("ModelToName[APP]: {"..tostring(tApp[Cnt])..", "..tostring(tApp[Cnt+1]).."} << "..gModel)
-    gModel = tostring(tApp[1] or "")..gModel..tostring(tApp[2] or "")
-    LogInstance("ModelToName[APP]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
+    -- Append something if needed
+    if(tApp and tApp[1]) then
+      LogInstance("ModelToName[APP]: {"..tostring(tApp[Cnt])..", "..tostring(tApp[Cnt+1]).."} << "..gModel)
+      gModel = tostring(tApp[1] or "")..gModel..tostring(tApp[2] or "")
+      LogInstance("ModelToName[APP]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
+    end
   end
   -- Trigger the capital-space using the divider
   if(stringSub(gModel,1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
@@ -1155,9 +1158,7 @@ function ModelToName(sModel)
     if(fCh > bCh) then
       sModel = sModel..stringSub(gModel,bCh+2,fCh-1)
     end
-    if(not IsEmptyString(sModel)) then
-      sModel = sModel.." "
-    end
+    if(not IsEmptyString(sModel)) then sModel = sModel.." " end
     sModel = sModel..stringUpper(stringSub(gModel,fCh+1,fCh+1))
     bCh = fCh
     fCh = stringFind(gModel,sSymDiv,fCh+1)
@@ -1431,12 +1432,12 @@ end
 function DefaultType(anyType,fooSubtype)
   if(not IsExistent(anyType)) then
     return (GetOpVar("DEFAULT_TYPE") or "") end
+  SettingsModelToName("CLR")
   if(type(fooSubtype) == "function") then
     local Sub = GetOpVar("TABLE_SUBTYPES")
           Sub[anyType] = fooSubtype
   end
   SetOpVar("DEFAULT_TYPE",tostring(anyType))
-  SettingsModelToName("CLR")
 end
 
 function DefaultTable(anyTable)
