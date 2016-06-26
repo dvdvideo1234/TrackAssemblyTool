@@ -1109,11 +1109,10 @@ function ModelToName(sModel,bNoSettings)
     return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..tostring(sModel)..">") end
   if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
   local fCh, bCh, Cnt = "", "", 1
-  local sSymDiv = GetOpVar("OPSYM_DIVIDER")
-  local sSymDir = GetOpVar("OPSYM_DIRECTORY")
-  local sModel  = (stringSub(sModel,1,1) ~= sSymDir) and (sSymDir..sModel)
-        sModel  =  stringGsub(stringToFileName(sModel),GetOpVar("FILE_MODEL"),"")
-  local gModel  = stringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
+  local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
+  local sModel = (stringSub(sModel,1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
+        sModel =  stringGsub(stringToFileName(sModel),GetOpVar("FILE_MODEL"),"")
+  local gModel =  stringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
   if(not bNoSettings) then
     local tCut, tSub, tApp = SettingsModelToName("GET")
     if(tCut and tCut[1]) then
