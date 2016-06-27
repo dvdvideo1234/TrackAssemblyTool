@@ -954,13 +954,13 @@ function TOOL.BuildCPanel(CPanel)
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
-  local subTypes = asmlib.GetOpVar("TABLE_SUBTYPES")
+  local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree")
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 400)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".tree"))
         pTree:SetIndentSize(0)
-  local iCnt, pFolders, pSubtype, pNode = 1, {}, {}
+  local iCnt, pFolders, pCategory, pNode = 1, {}, {}
   while(Panel[iCnt]) do
     local Rec = Panel[iCnt]
     local Mod = Rec[defTable[1][1]]
@@ -979,22 +979,22 @@ function TOOL.BuildCPanel(CPanel)
       end -- Reset the primary tree node pointer
       if(pFolders[Typ]) then pItem = pFolders[Typ] else pItem = pTree end
       -- Register the subtype if definition functional is given
-      if(subTypes[Typ]) then -- There is a subtype definition
-        if(not pSubtype[Typ]) then pSubtype[Typ] = {} end
-        local nmSub = subTypes[Typ](Mod)
-        local pnSub = pSubtype[Typ][nmSub]
-        if(not pnSub) then
-          if(not asmlib.IsEmptyString(nmSub)) then -- No subtype folder made already
-            pItem = pItem:AddNode(nmSub) -- The item pointer will refer to the new directory
-            pItem:SetName(nmSub)
+      if(catTypes[Typ]) then -- There is a subtype definition
+        if(not pCategory[Typ]) then pCategory[Typ] = {} end
+        local nmCat = catTypes[Typ](Mod)
+        local pnCat = pCategory[Typ][nmCat]
+        if(not pnCat) then
+          if(not asmlib.IsEmptyString(nmCat)) then -- No subtype folder made already
+            pItem = pItem:AddNode(nmCat) -- The item pointer will refer to the new directory
+            pItem:SetName(nmCat)
             pItem.Icon:SetImage("icon16/folder.png")
             pItem.InternalDoClick = function() end
             pItem.DoClick = function() return false end
             pItem.Label.UpdateColours = function(pSelf)
               return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
-            pSubtype[Typ][nmSub] = pItem
+            pCategory[Typ][nmCat] = pItem
           end
-        else pItem = pnSub end
+        else pItem = pnCat end
       end
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)

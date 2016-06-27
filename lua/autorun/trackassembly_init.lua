@@ -30,7 +30,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.260")
+asmlib.SetOpVar("TOOL_VERSION","5.261")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -459,7 +459,10 @@ else
   asmlib.InsertRecord({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Middle Double", 2, "-1882.106, 0, 3.031", "-2367.072, 0, -5.412", "0,-180,0"})
   asmlib.InsertRecord({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 1, "-221.409, 0, 3.031", "219.412, 0, -5.411", ""})
   asmlib.InsertRecord({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 2, "-1103.05, 0, 0.009", "-1543.871, 0, -5.411", "0,-180,0"})
-  asmlib.DefaultType("SligWolf's Minis")
+  asmlib.DefaultType("SligWolf's Minis",function(m)
+    local r = stringGsub(stringGsub(m,"models/minitrains/",""),"_","/")
+    local s = stringFind(r,"/") or stringFind(r,"%."); r = (s and stringSub(r,1,s-1) or "other")
+    if(r == "sw") then r = "buffer" end; return asmlib.ModelToName(r,true); end)
   asmlib.InsertRecord({"models/minitrains/straight_16.mdl",   "#", "#", 1, "", "0, -8.507, 1", ""})
   asmlib.InsertRecord({"models/minitrains/straight_16.mdl",   "#", "#", 2, "", "-16, -8.507, 1", "0,-180,0"})
   asmlib.InsertRecord({"models/minitrains/straight_32.mdl",   "#", "#", 1, "", "0, -8.507, 1", ""})
@@ -642,7 +645,10 @@ else
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 1, "", " 829.880005,  -0.001465, 11.218994", ""})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 2, "", "-370.037262,  -0.000456, 11.218994", "0,-180,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 3, "", "-158.311356,-338.111572, 11.218994", "0,-135,0"})
-  asmlib.DefaultType("SProps")
+  asmlib.DefaultType("SProps",function(m)
+    local r = stringGsub(stringGsub(m,"models/sprops/trans/train/",""),"_","/")
+    if(stringFind(r,"track/")) then r = stringGsub(r,"track/","") end; local s = stringSub(r,1,1); if(s == "s") then r = "straight" end;
+    if(s == "t") then r = "turn" end; if(s == "h") then r = "ramp" end; return asmlib.ModelToName(r,true) end)
   asmlib.SettingsModelToName("SET",nil,{"track_s0","straight_"},{"","x"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 1, "", " 0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 2, "", "-162,0,7.624", "0,180,0"})
@@ -669,7 +675,9 @@ else
   asmlib.InsertRecord({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 1, "", "0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 2, "", "-825,825,7.624", "0,90,0"})
   asmlib.InsertRecord({"models/sprops/trans/train/rerailer.mdl",     "#", "#", 1, "-1088.178,0,19.886", "-1280.383,0,7.618", "0,180,0"})
-  asmlib.DefaultType("XQM Coaster")
+  asmlib.DefaultType("XQM Coaster",function(m)
+    local r = stringGsub(stringGsub(m,"models/xqm/coastertrack/",""),"_","/"); local s = stringFind(r,"/");
+    r = (s and stringSub(r,1,s-1) or "other"); return asmlib.ModelToName(r,true); end)
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 1, "", "75.790,-0.013,-2.414", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003.923,26.580", "@-22.5,180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 1, "", "149.8, -0.013, -9.62", ""})
@@ -938,7 +946,10 @@ else
   asmlib.InsertRecord({"models/props_phx/misc/iron_beam3.mdl", "#", "#", 2, "", "-94.079, 0.002, 5.002", "0,180,0"})
   asmlib.InsertRecord({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 1, "", " 175.507, 0.001, 5.002",  "0, 0,0"})
   asmlib.InsertRecord({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 2, "", "-201.413, 0.001, 5.002", "0,180,0"})
-  asmlib.DefaultType("XQM Ball Rails")
+  asmlib.DefaultType("XQM Ball Rails",function(m)
+    local r = stringGsub(stringGsub(m,"models/xqm/rails/",""),"_","/")
+    local s = stringFind(r,"/"); r = (s and stringSub(r,1,s-1) or "other")
+    return asmlib.ModelToName(r,true); end)
   asmlib.InsertRecord({"models/xqm/rails/tunnel_1.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
   asmlib.InsertRecord({"models/xqm/rails/tunnel_1.mdl", "#", "#", 2, "", "-6, 0, -2.25", "0,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/tunnel_2.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
@@ -1162,7 +1173,7 @@ else
   asmlib.InsertRecord({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 2, "", "-576, 219.145, 992.765", "0, 180,0"})
   asmlib.DefaultType("StephenTechno's Buildings",function(m)
     local r = stringGsub(stringGsub(m,"models/buildingspack/",""),"_","/")
-    local p = stringFind(r,"/"); r = (p and stringSub(r,1,p-1) or "")
+    local s = stringFind(r,"/"); r = (s and stringSub(r,1,s-1) or "other")
     if(stringFind(r,"emptylots")) then r = "empty_lots" end
     if(stringFind(r,"roadsdw"  )) then r = stringGsub(r,"roadsdw","double_") end
     if(stringFind(r,"roadsw"   )) then r = stringGsub(r,"roadsw" ,"single_") end
@@ -1427,7 +1438,7 @@ else
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 3, "", "-256,10,0.016", "0,180,0"})
   asmlib.DefaultType("Mr.Train's G-Gauge",function(m)
     local r = stringGsub(stringGsub(m,"models/props/g_gauge/track/g_gauge_track_",""),"_","/")
-    local p = stringFind(r,"/"); r = (p and stringSub(r,1,p-1) or "other")
+    local s = stringFind(r,"/"); r = (s and stringSub(r,1,s-1) or "other")
     if(r == "s") then r = "curve"..r end; return asmlib.ModelToName(r,true) end)
   asmlib.SettingsModelToName("SET",nil,{"g_gauge_track_",""},nil)
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 1, "", " 16,0,1.516", ""})

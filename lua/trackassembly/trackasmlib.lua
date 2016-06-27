@@ -404,7 +404,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("TABLE_SUBTYPES",{})
+  SetOpVar("TABLE_CATEGORIES",{})
   SetOpVar("FILE_MODEL","%.mdl")
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
@@ -1428,13 +1428,13 @@ function SettingsModelToName(sMode, gCut, gSub, gApp)
   end
 end
 
-function DefaultType(anyType,fooSubtype)
+function DefaultType(anyType,fooCateg)
   if(not IsExistent(anyType)) then
     return (GetOpVar("DEFAULT_TYPE") or "") end
   SettingsModelToName("CLR")
-  if(type(fooSubtype) == "function") then
-    local Sub = GetOpVar("TABLE_SUBTYPES")
-          Sub[anyType] = fooSubtype
+  if(type(fooCateg) == "function") then
+    local Categ = GetOpVar("TABLE_CATEGORIES")
+          Categ[anyType] = fooCateg
   end
   SetOpVar("DEFAULT_TYPE",tostring(anyType))
 end
