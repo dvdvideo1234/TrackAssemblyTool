@@ -142,7 +142,7 @@ Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
 N: Which add-ons did you work on?
 
-Q: Are there going to be more of those?
+Q: Are there going to be more of these?
 A: Yes, I developed my dynamic database, so I can insert any model I want.
    When I have free time I will make more, because its a lot of data I insert in the DB
 
@@ -153,6 +153,28 @@ A: Well, It depends what do you mean by "create".
    I will be more then happy to add them in to the TrackAssembly Tool if their collision model meets
    the minimum requirements.
    ( Made a model once, but it turned out quite nasty xD, so better leave the job to the right people.)
+
+Q: Could you make the tool so there will be categories for my addon?
+A: Well, yeah, technically I can map any path given. However these with properly
+   ordered folders are easier to handle. Here are some good and bad practices for folder aligment.
+   Legend of the path elements used in a model:
+     "/"          --> Slash represents directory divider ( Like in D:/Steam/common/Garry'smod )
+     "#"          --> Any kind of delimiter valid for a file name( Like dashes, underscores etc.)
+     %addonname%  --> Name of your addon (For example: SPros)
+     %category%   --> Category, which you want your pices to be divided by ( Like straight, curves, raps, bridges etc.)
+     %piecename%  --> The file name of the piece created in the addon ( Ending with *.mdl of cource)
+   The good practices ( The category should be bordered by delimiters ):
+      models/%addonname%/tracks/%category%/%piecename%.mdl
+      models/%addonname%/%category%/%piecename%.mdl
+      models/%addonname%/%category%#%piecename%.mdl
+   Examples: (#="_", %addonname%="ron/2ft", %category%="tram", %piecename%="%category%_32_grass.mdl")
+      models/ron/2ft/tram/tram_32_grass.mdl ( The "tram" is taken right after "models/ron/2ft/" )
+   The the bad practices ( The category is missing or not strongly defined. There is not enough information given):
+      models/%addonname%/tracks/%piecename%.mdl
+      models/%addonname%/%piecename%#255#down.mdl
+      models/%addonname%/03#1#asd#%piecename%#90.mdl
+   Examples: (#="_", %addonname%="props_phx", %piecename%="track_128.mdl")
+      models/props_phx/trains/track_128.mdl ( Here, the category "straight" is not present at all )
 
 Q: Where are the trains/vehicles, are there any of these?
 A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
@@ -165,19 +187,20 @@ A: Remember when I got suggestions to do the switchers.
 
 Q: Dude I've messed up my console variables, how can I factory-reset them ?
 A: Easy. First you need to enable the developer mode via "trackassembly_devmode 1"
-   Then in the bodygroup/skin text box ( or "trackassembly_bgskids" variable ) enter:
-   "reset cvars":
+   Then in the bodygroup/skin text box ( or "trackassembly_bgskids" variable ) type:
+   "reset cvars"
      Resets all cvars to the factory default settings
    "delete"
      Followed by a space for deleting the exported database without quitting
      the game, followed by either "cl" or "sv" or both, separated by space
      to delete the client or server or both instance generated databases
+   Press enter to apply an option from these above and click the "Reset variables" button.
 N: The console variables being set in this question will be reset also
 
 Q: Dude how can I control the spawned pieces in multiplayer
 A: Easy. The track pieces are props, so they are registered to:
-   1) Variable "sbox_maxprops"     the maximum props on the server
-   2) Variable "sbox_maxasmtracks" a variable for the maximum things spawned via TA
+   1) Variable "sbox_maxprops"     The maximum props on the server
+   2) Variable "sbox_maxasmtracks" A variable for the maximum things spawned via TA
    You can trigger these limits independently from one another. For example:
    "maxprops" is 50 and "maxasmtracks" is 30 will trigger maxasmtracks
    "maxprops" is 30 and "maxasmtracks" is 50 will trigger maxprops

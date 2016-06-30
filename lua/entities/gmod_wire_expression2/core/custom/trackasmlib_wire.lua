@@ -16,8 +16,8 @@ local anyTrue  = 1
 local anyFalse = 0
 local maxColor = 255
 local maxMass  = asmlib.GetOpVar("MAX_MASS")
-local enFlag   = ((tonumber(asmlib.GetAsmVar("enwiremod","INT")) or 0) ~= 0) and true or false
-local bndErr   = (tostring(asmlib.GetAsmVar("bnderrmod" ,"STR")) or "")
+local enFlag   = ((tonumber(asmlib.GetAsmVar("enwiremod","INT")) or  0) ~= 0) and true or false
+local bndErr   =  (tostring(asmlib.GetAsmVar("bnderrmod","STR")) or "")
 
 --------- Pieces ----------
 __e2setcost(50)
