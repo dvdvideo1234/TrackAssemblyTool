@@ -110,7 +110,7 @@ A: Just subscribe to the workshop item:
 Q: What will happen if something gets updated?
 A: First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that
    the tool supports will be represented here as a "manual" or something.
-   That's what is this FAQ for anyway ...
+   That's what is this FAQ for anyway ( Though most people don't bother to read it before asking )...
 
 Q: Which add-ons did you work on?
 A: Here they are, with available status, why I did not do some of them ( in the time of developing ):
@@ -137,6 +137,7 @@ A: Here they are, with available status, why I did not do some of them ( in the 
    21) Ron's 56 gauge rails ( Removed by the add-on owner. Discontinued )
    22) Ron's 2ft track pack
    23) PHX Tubes
+   24) Magnum's second track pack ( Ignore, it's not designed to be a prop )
 
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
@@ -210,7 +211,7 @@ N: If you want a server with many props and less tracks, then lower maxasmtracks
 
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?
-A: Easy, :D Just set "trackassembly_bnderrmod" to one of the following values
+A: Easy. Just set "trackassembly_bnderrmod" to one of the following values
    OFF     -> Clients are allowed to stack/spawn out of the map bounds without restriction
    LOG     -> Clients are not allowed to stack/spawn out of the map bounds. The error is logged.
    HINT    -> Clients are not allowed to stack/spawn out of the map bounds. Hunt message is displayed.

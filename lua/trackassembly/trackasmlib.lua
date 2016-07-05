@@ -282,14 +282,18 @@ function LogInstance(anyStuff)
     end
     if(not logMe) then return end
   end -- Only the chosen messages are processed
-  local sModeDB  = GetOpVar("MODE_DATABASE")
-  if(SERVER) then
-    Log("SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
-  elseif(CLIENT) then
-    Log("CLIENT > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
-  else
-    Log("NOINST > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
+  local sSors = ""
+  if(GetOpVar("LOG_DEBUGEN")) then
+    local sInfo = debugGetinfo(3) or {}
+    sSors = sSors..(sInfo.linedefined and "["..sInfo.linedefined.."]" or "[n/a]")
+    sSors = sSors..(sInfo.name and sInfo.name or "Main")
+    sSors = sSors..(sInfo.currentline and ("["..sInfo.currentline.."]") or "[n/a]")
+    sSors = sSors..(sInfo.nparams and (" #"..sInfo.nparams) or " #N")
+    sSors = sSors..(sInfo.source and (" "..sInfo.source) or " @N")
   end
+  local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
+  local sModeDB = GetOpVar("MODE_DATABASE")
+  Log(sInst.." > "..sTrac..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
 end
 
 function StatusPrint(anyStatus,sError)
@@ -380,6 +384,7 @@ function InitAssembly(sName,sPurpose)
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGFILE","")
+  SetOpVar("LOG_DEBUGEN",true)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
   SetOpVar("OPSYM_DISABLE","#")
