@@ -1503,24 +1503,24 @@ function LoadKeyPly(pPly, sKey)
   local plyPlace = plyCache[plyNick]
   if(not IsExistent(plyPlace)) then
     plyCache[plyNick] = {
-      ["ALTLFT"]    = false,
-      ["ALTRGH"]    = false,
-      ["ATTLFT"]    = false,
-      ["ATTRGH"]    = false,
-      ["FORWARD"]   = false,
-      ["BACK"]      = false,
-      ["MOVELFT"]   = false,
-      ["MOVERGH"]   = false,
-      ["RELOAD"]    = false,
-      ["USE"]       = false,
-      ["DUCK"]      = false,
-      ["JUMP"]      = false,
-      ["SPEED"]     = false,
-      ["SCORE"]     = false,
-      ["ZOOM"]      = false,
-      ["LEFT"]      = false,
-      ["RIGHT"]     = false,
-      ["WALK"]      = false
+      ["ALTLFT"]  = false,
+      ["ALTRGH"]  = false,
+      ["ATTLFT"]  = false,
+      ["ATTRGH"]  = false,
+      ["FORWARD"] = false,
+      ["BACK"]    = false,
+      ["MOVELFT"] = false,
+      ["MOVERGH"] = false,
+      ["RELOAD"]  = false,
+      ["USE"]     = false,
+      ["DUCK"]    = false,
+      ["JUMP"]    = false,
+      ["SPEED"]   = false,
+      ["SCORE"]   = false,
+      ["ZOOM"]    = false,
+      ["LEFT"]    = false,
+      ["RIGHT"]   = false,
+      ["WALK"]    = false
     }
     plyPlace = plyCache[plyNick]
   end
@@ -2573,11 +2573,9 @@ function ImportDSV(sTable,sDelim,bCommit,sPrefix)
           end
         end
         if(bCommit) then InsertRecord(sTable,Data) end
-      end
-      sLine = ""
+      end; sLine = ""
     else sLine = sLine..sChar end
-  end
-  F:Close()
+  end; F:Close()
 end
 
 function DeleteExternalDatabase(sTable,sMethod,sPrefix)
@@ -3249,4 +3247,3 @@ function GetAsmVar(sShortName, sMode)
   end
   return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
 end
-
