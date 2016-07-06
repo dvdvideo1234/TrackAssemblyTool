@@ -940,16 +940,14 @@ end
 local ConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel)
   local CurY, pItem = 0 -- pItem is the current panel created
-  CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
-  pItem = CPanel:Help(languageGetPhrase("tool."..gsToolNameL..".desc"))
-  CurY = CurY + pItem:GetTall() + 2
-
+  pItem = CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name")); CurY = CurY + pItem:GetTall() + 2
+  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc")); CurY = CurY + pItem:GetTall() + 2
+  
   pItem = CPanel:AddControl( "ComboBox",{
               MenuButton = 1,
               Folder     = gsToolNameL,
               Options    = {["#Default"] = ConVarList},
-              CVars      = tableGetKeys(ConVarList)
-          }); CurY = CurY + pItem:GetTall() + 2
+              CVars      = tableGetKeys(ConVarList)}); CurY = CurY + pItem:GetTall() + 2
 
   local Panel = asmlib.CacheQueryPanel()
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
@@ -1005,9 +1003,7 @@ function TOOL.BuildCPanel(CPanel)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end
-    else
-      asmlib.PrintInstance("Piece <"..Mod.."> from extension <"..Typ.."> not available .. SKIPPING !")
-    end
+    else asmlib.PrintInstance("Piece <"..Mod.."> from extension <"..Typ.."> not available .. SKIPPING !") end
     iCnt = iCnt + 1
   end
   CPanel:AddItem(pTree)
