@@ -3230,20 +3230,12 @@ function GetAsmVar(sShortName, sMode)
   local CVar = GetConVar(sVar)
   if(not IsExistent(CVar)) then
     return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missing CVar object") end
-  if    (sMode == "INT") then
-    return (tonumber(BorderValue(CVar:GetInt(),"cvar_"..sVar)) or 0)
-  elseif(sMode == "FLT") then
-    return (tonumber(BorderValue(CVar:GetFloat(),"cvar_"..sVar)) or 0)
-  elseif(sMode == "STR") then
-    return tostring(CVar:GetString() or "")
-  elseif(sMode == "BUL") then
-    return (CVar:GetBool() or false)
-  elseif(sMode == "DEF") then
-    return CVar:GetDefault()
-  elseif(sMode == "INF") then
-    return CVar:GetHelpText()
-  elseif(sMode == "NAM") then
-    return CVar:GetName()
-  end
-  return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
+  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  ,"cvar_"..sVar)) or 0)
+  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(),"cvar_"..sVar)) or 0)
+  elseif(sMode == "STR") then return  tostring(CVar:GetString() or "")
+  elseif(sMode == "BUL") then return (CVar:GetBool() or false)
+  elseif(sMode == "DEF") then return  CVar:GetDefault()
+  elseif(sMode == "INF") then return  CVar:GetHelpText()
+  elseif(sMode == "NAM") then return  CVar:GetName()
+  end; return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
 end
