@@ -364,7 +364,7 @@ function SetIndexes(sType,I1,I2,I3,I4)
   return StatusLog(true,"SetIndexes["..sType.."]: Success")
 end
 
-function InitAssembly(sName,sPurpose)
+function Init(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   SetOpVar("TYPEMT_SCREEN",{})
   SetOpVar("TYPEMT_CONTAINER",{})
@@ -373,18 +373,14 @@ function InitAssembly(sName,sPurpose)
   if(not IsString(sPurpose)) then
     return StatusPrint(false,"InitAssembly: Purpose <"..tostring(sPurpose).."> not string") end
   if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then
-    return StatusPrint(false,"InitAssembly: Name invalid") end
+    return StatusPrint(false,"InitAssembly: Name invalid <"..sName..">") end
   if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then
-    return StatusPrint(false,"InitAssembly: Purpose invalid") end
+    return StatusPrint(false,"InitAssembly: Purpose invalid <"..sPurpose..">") end
   SetOpVar("TIME_INIT",Time())
-  SetOpVar("MAX_MASS",50000)
-  SetOpVar("MAX_LINEAR",1000)
-  SetOpVar("MAX_ROTATION",360)
-  SetOpVar("MAX_FORCE",100000)
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGFILE","")
-  SetOpVar("LOG_DEBUGEN",true)
+  SetOpVar("MAX_ROTATION",360)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
   SetOpVar("OPSYM_DISABLE","#")

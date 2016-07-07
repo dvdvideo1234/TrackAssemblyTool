@@ -50,11 +50,7 @@ local VEC_ZERO = asmlib.GetOpVar("VEC_ZERO")
 local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
-local goToolScr
-local goMonitor
-local gnMaxForce  = asmlib.GetOpVar("MAX_FORCE")
-local gnMaxMass   = asmlib.GetOpVar("MAX_MASS")
-local gnMaxOffLin = asmlib.GetOpVar("MAX_LINEAR")
+local goToolScr, goMonitor
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
@@ -201,7 +197,7 @@ function TOOL:GetCount()
 end
 
 function TOOL:GetMass()
-  return mathClamp(self:GetClientNumber("mass"),1,gnMaxMass)
+  return mathClamp(self:GetClientNumber("mass"),1,asmlib.GetAsmVar("maxmass"  ,"FLT"))
 end
 
 function TOOL:GetDeveloperMode()
@@ -209,9 +205,10 @@ function TOOL:GetDeveloperMode()
 end
 
 function TOOL:GetPosOffsets()
-  return (mathClamp(self:GetClientNumber("nextx") or 0,-gnMaxOffLin,gnMaxOffLin)),
-         (mathClamp(self:GetClientNumber("nexty") or 0,-gnMaxOffLin,gnMaxOffLin)),
-         (mathClamp(self:GetClientNumber("nextz") or 0,-gnMaxOffLin,gnMaxOffLin))
+  local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
+  return (mathClamp(self:GetClientNumber("nextx") or 0,-nMaxOffLin,nMaxOffLin)),
+         (mathClamp(self:GetClientNumber("nexty") or 0,-nMaxOffLin,nMaxOffLin)),
+         (mathClamp(self:GetClientNumber("nextz") or 0,-nMaxOffLin,nMaxOffLin))
 end
 
 function TOOL:GetAngOffsets()
@@ -286,7 +283,7 @@ function TOOL:GetYawSnap()
 end
 
 function TOOL:GetForceLimit()
-  return mathClamp(self:GetClientNumber("forcelim"),0,gnMaxForce)
+  return mathClamp(self:GetClientNumber("forcelim"),0,asmlib.GetAsmVar("maxforce" ,"FLT"))
 end
 
 function TOOL:GetWeld()
@@ -1071,7 +1068,7 @@ function TOOL.BuildCPanel(CPanel)
         CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
-  pItem = CPanel:NumSlider("Piece mass:", gsToolPrefL.."mass", 1, gnMaxMass  , 0)
+  pItem = CPanel:NumSlider("Piece mass:", gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass"  ,"FLT")  , 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
   pItem = CPanel:NumSlider("Active radius:", gsToolPrefL.."activrad", 1, asmlib.GetAsmVar("maxactrad", "FLT"), 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
@@ -1087,13 +1084,14 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
   pItem = CPanel:NumSlider("Origin roll:" , gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
-  pItem = CPanel:NumSlider("Offset X:", gsToolPrefL.."nextx", -gnMaxOffLin, gnMaxOffLin, 3)
+  local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
+  pItem = CPanel:NumSlider("Offset X:", gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
-  pItem = CPanel:NumSlider("Offset Y:", gsToolPrefL.."nexty", -gnMaxOffLin, gnMaxOffLin, 3)
+  pItem = CPanel:NumSlider("Offset Y:", gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
-  pItem = CPanel:NumSlider("Offset Z:", gsToolPrefL.."nextz", -gnMaxOffLin, gnMaxOffLin, 3)
+  pItem = CPanel:NumSlider("Offset Z:", gsToolPrefL.."nextz", -nMaxOffLin, nMaxOffLin, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-  pItem = CPanel:NumSlider("Force limit:", gsToolPrefL.."forcelim", 0, gnMaxForce, 3)
+  pItem = CPanel:NumSlider("Force limit:", gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".forcelim"))
   pItem = CPanel:CheckBox("Weld", gsToolPrefL.."weld")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))

@@ -29,8 +29,8 @@ local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModif
 local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
-asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.270")
+asmlib.Init("track","assembly")
+asmlib.SetOpVar("TOOL_VERSION","5.271")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -47,28 +47,32 @@ asmlib.SetOpVar("LOG_SKIP",{
 })
 
 ------ CONFIGURE LOGGING ------
+asmlib.SetOpVar("LOG_DEBUGEN",true)
 asmlib.MakeAsmVar("logsmax"  , "0" , {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , ""  , nil , bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logfile"  , ""  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "File to store the logs ( if any )")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeAsmVar("maxactrad", "150", {1,500} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
-asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 } ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle developer mode on/off server side")
-asmlib.MakeAsmVar("maxstcnt" , "200", {1,200} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
+asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle developer mode on/off server side")
+asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxforce" , "100000",  {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxactrad", "150", {1,500}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
 if(SERVER) then
   CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum number of tracks to be spawned")
-  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil   ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
-  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100} ,bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
+  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
+  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
 end
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeAsmVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 asmlib.MakeAsmVar("enqstore" ,   1  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
 
------- CONFIGURE MODES -----
-asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb","STR"))
-asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetAsmVar("enqstore","INT") ~= 0) and true or false)
+------ CONFIGURE INTERNALS -----
+asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
+asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetAsmVar("enqstore", "INT") ~= 0) and true or false)
 
 ------ GLOBAL VARIABLES ------
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
@@ -77,13 +81,11 @@ local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetAsmVar("timermode","STR"))
 
 -------- ACTIONS  ----------
-
 if(SERVER) then
   asmlib.SetAction("DUPE_PHYS_SETTINGS",
     function(oPly,oEnt,tData) -- Duplicator wrapper
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
-        return asmlib.StatusLog(false,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt))
-      end
+        return asmlib.StatusLog(false,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)) end
       return asmlib.StatusLog(true,"DUPE_PHYS_SETTINGS: Success")
     end)
 end
@@ -415,14 +417,15 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 
 ------ POPULATE DB ------
 --[[ TA parametrization legend
-Disabling of a component is preformed by using "OPSYM_DISABLE"
-Disabling P    - The ID is ignored when searching for active one
-Disabling O    - The ID can not selected by the holder via right click
-Disabling A    - The ID angle is treated as {0,0,0}
-Disabling Type - makes it use the value of DefaultType()
-Disabling Name - makes it generate it using the model
-Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
-When table name is not provided to InsertRecord() it uses the value of DefaultTable()
+  Disabling of a component is preformed by using "OPSYM_DISABLE"
+  Disabling P    - The ID is ignored when searching for active point
+  Disabling O    - The ID can not selected by the holder via right click
+  Disabling A    - The ID angle is treated as {0,0,0}
+  Disabling Type - Makes it use the value of DefaultType()
+  Disabling Name - Makes it generate it using the model via ModelToName()
+  Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
+  First  argument of DefaultTable() is used to provide default table name for InsertRecord()
+  Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PIECES from DSV")
