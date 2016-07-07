@@ -2786,7 +2786,7 @@ end
 function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   local hdRec = CacheQueryPiece(shdModel)
   if(not IsExistent(hdRec)) then
-    return StatusLog(nil,"GetNormalSpawn: No record located") end
+    return StatusLog(nil,"GetNormalSpawn: No record located for <"..shdModel..">") end
   local ihdPointID = tonumber(ivhdPointID)
   if(not IsExistent(ihdPointID)) then
     return StatusLog(nil,"GetNormalSpawn: Index NAN {"..type(ivhdPointID).."}<"..tostring(ivhdPointID)..">") end

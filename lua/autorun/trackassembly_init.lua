@@ -30,7 +30,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.269")
+asmlib.SetOpVar("TOOL_VERSION","5.270")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -91,7 +91,7 @@ end
 if(CLIENT) then
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)
-      local devmode = asmlib.GetAsmVar("devmode" ,"INT")
+      local devmode = asmlib.GetAsmVar("devmode", "INT")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
       asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode)..asmlib.GetOpVar("OPSYM_DISABLE")..tostring(command).."}")
       asmlib.ConCommandPly(oPly,"nextx"  , 0)
@@ -249,9 +249,9 @@ if(CLIENT) then
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
         asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
-        asmlib.SetLogControl(asmlib.GetAsmVar("logsmax", "INT"),
-                             asmlib.GetAsmVar("logfile", "STR"))
-        local ExportDB     = asmlib.GetAsmVar("exportdb","INT")
+        asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),
+                             asmlib.GetAsmVar("logfile" , "STR"))
+        local ExportDB     = asmlib.GetAsmVar("exportdb", "INT")
         if(ExportDB ~= 0) then
           asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
           asmlib.StoreExternalDatabase("PIECES",",","INS")
