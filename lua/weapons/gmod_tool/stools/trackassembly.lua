@@ -117,6 +117,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".phyname"   , "Select physical properties name to use when creating the track as this will affect the surface friction")
   languageAdd("tool."..gsToolNameL..".bgskids"   , "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
   languageAdd("tool."..gsToolNameL..".mass"      , "How heavy the piece spawned will be")
+  languageAdd("tool."..gsToolNameL..".model"     , "Select the piece model to be used")
   languageAdd("tool."..gsToolNameL..".activrad"  , "Minimum distance needed to select an active point")
   languageAdd("tool."..gsToolNameL..".count"     , "Maximum number of pieces to create while stacking")
   languageAdd("tool."..gsToolNameL..".ydegsnp"   , "Snap the first piece spawned at this much degrees")
@@ -940,9 +941,9 @@ end
 local ConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel)
   local CurY, pItem = 0 -- pItem is the current panel created
-  pItem = CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name")); CurY = CurY + pItem:GetTall() + 2
+          CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc")); CurY = CurY + pItem:GetTall() + 2
-  
+
   pItem = CPanel:AddControl( "ComboBox",{
               MenuButton = 1,
               Folder     = gsToolNameL,
@@ -997,6 +998,7 @@ function TOOL.BuildCPanel(CPanel)
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode:SetName(Nam)
+      pNode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
       pNode.Icon:SetImage("icon16/brick.png")
       pNode.DoClick = function(pSelf)
         RunConsoleCommand(gsToolPrefL.."model"  , Mod)

@@ -30,7 +30,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitAssembly("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.268")
+asmlib.SetOpVar("TOOL_VERSION","5.269")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -145,10 +145,8 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "enqstore" , "1")
         asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
         asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
-      elseif(stringFind(bgskids,"delete ") == 1) then
-        local indWord = 1
-        local insPref = stringGsub(bgskids,"delete ","")
-        local expWord = stringExplode(" ",insPref)
+      elseif(stringSub(bgskids,1,7) == "delete ") then
+        local indWord, expWord = 1, stringExplode(" ",stringSub(bgskids,8,-1))
         while(expWord[indWord]) do
          local sWord = expWord[indWord]
          asmlib.DeleteExternalDatabase("PIECES","DSV",sWord.."_")
