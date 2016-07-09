@@ -491,7 +491,7 @@ function TOOL:LeftClick(stTrace)
     local ePiece = asmlib.MakePiece(ply,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(mcspawn ~= 0) then -- Adjust the position when created correctly
-        asmlib.SetVector(vPos,nextx,nexty,nextz)
+        asmlib.SetVectorXYZ(vPos,nextx,nexty,nextz)
         vPos:Add(asmlib.GetCenterMC(ePiece)); vPos:Rotate(aAng);
         vPos:Add(ePiece:GetPos()); ePiece:SetPos(vPos)
       end

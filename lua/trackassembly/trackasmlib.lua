@@ -105,6 +105,7 @@ local timerCreate             = timer and timer.Create
 local timerDestroy            = timer and timer.Destroy
 local tableEmpty              = table and table.Empty
 local tableMaxn               = table and table.maxn
+local debugGetinfo            = debug and debug.getinfo
 local stringLen               = string and string.len
 local stringSub               = string and string.sub
 local stringFind              = string and string.find
@@ -293,7 +294,7 @@ function LogInstance(anyStuff)
   end
   local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sModeDB = GetOpVar("MODE_DATABASE")
-  Log(sInst.." > "..sTrac..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
+  Log(sInst.." > "..sSors..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
 end
 
 function StatusPrint(anyStatus,sError)
@@ -3143,7 +3144,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(not (phPiece and phPiece:IsValid())) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Entity phys object invalid") end
   phPiece:EnableMotion(false)
-  phPiece:SetMass(mathClamp(tonumber(nMass) or 1,1,GetOpVar("MAX_MASS")))
+  local Mass = (tonumber(nMass) or 1); phPiece:SetMass((Mass >= 1) and Mass or 1)
   local BgSk = stringExplode(GetOpVar("OPSYM_DIRECTORY"),(sBgSkIDs or ""))
   ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
   if(not AttachBodyGroups(ePiece,BgSk[1] or "")) then ePiece:Remove()
