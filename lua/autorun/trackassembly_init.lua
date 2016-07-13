@@ -30,7 +30,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.275")
+asmlib.SetOpVar("TOOL_VERSION","5.276")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -41,6 +41,7 @@ asmlib.SetOpVar("LOG_SKIP",{
   "GetEntitySpawn: Not hitting active point",
   "CacheQueryPiece: Record not located",
   "GetEntitySpawn: Trace model missing",
+  "GetEntitySpawn: Types different",
   "MakeScreen.SetColor: Color reset",
   "MakeScreen.DrawLine: Start out of border",
   "MakeScreen.DrawLine: End out of border"
@@ -97,12 +98,12 @@ if(CLIENT) then
       local devmode = asmlib.GetAsmVar("devmode", "INT")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
       asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode)..asmlib.GetOpVar("OPSYM_DISABLE")..tostring(command).."}")
-      asmlib.ConCommandPly(oPly,"nextx"  , 0)
-      asmlib.ConCommandPly(oPly,"nexty"  , 0)
-      asmlib.ConCommandPly(oPly,"nextz"  , 0)
-      asmlib.ConCommandPly(oPly,"nextpic", 0)
-      asmlib.ConCommandPly(oPly,"nextyaw", 0)
-      asmlib.ConCommandPly(oPly,"nextrol", 0)
+      asmlib.ConCommandPly(oPly,"nextx"  , "0")
+      asmlib.ConCommandPly(oPly,"nexty"  , "0")
+      asmlib.ConCommandPly(oPly,"nextz"  , "0")
+      asmlib.ConCommandPly(oPly,"nextpic", "0")
+      asmlib.ConCommandPly(oPly,"nextyaw", "0")
+      asmlib.ConCommandPly(oPly,"nextrol", "0")
       if(devmode == 0) then
         return asmlib.StatusLog(true,"RESET_VARIABLES: Developer mode disabled") end
       if(bgskids == "reset cvars") then -- Reset the limit also
@@ -121,8 +122,6 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "ydegsnp"  , "45")
         asmlib.ConCommandPly(oPly, "pointid"  , "1")
         asmlib.ConCommandPly(oPly, "pnextid"  , "2")
-        asmlib.ConCommandPly(oPly, "logsmax"  , "0")
-        asmlib.ConCommandPly(oPly, "logfile"  , "")
         asmlib.ConCommandPly(oPly, "mcspawn"  , "0")
         asmlib.ConCommandPly(oPly, "bgskids"  , "0/0")
         asmlib.ConCommandPly(oPly, "gravity"  , "1")
@@ -138,15 +137,20 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxstatts", "3")
         asmlib.ConCommandPly(oPly, "nocollide", "1")
         asmlib.ConCommandPly(oPly, "physmater", "metal")
-        asmlib.ConCommandPly(oPly, "maxactrad", "150")
+        asmlib.ConCommandPly(oPly, "logsmax"  , "0")
+        asmlib.ConCommandPly(oPly, "logfile"  , "")
+        asmlib.ConCommandPly(oPly, "modedb"   , "SQL")
+        asmlib.ConCommandPly(oPly, "enqstore" , "1")
+        asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
         asmlib.ConCommandPly(oPly, "enwiremod", "1")
         asmlib.ConCommandPly(oPly, "devmode"  , "0")
+        asmlib.ConCommandPly(oPly, "maxmass"  , "50000")
+        asmlib.ConCommandPly(oPly, "maxlinear", "250")
+        asmlib.ConCommandPly(oPly, "maxforce" , "100000")
+        asmlib.ConCommandPly(oPly, "maxactrad", "150")
         asmlib.ConCommandPly(oPly, "maxstcnt" , "200")
         asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
         asmlib.ConCommandPly(oPly, "maxfruse" , "50")
-        asmlib.ConCommandPly(oPly, "modedb"   , "LUA")
-        asmlib.ConCommandPly(oPly, "enqstore" , "1")
-        asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
         asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
       elseif(stringSub(bgskids,1,7) == "delete ") then
         local indWord, expWord = 1, stringExplode(" ",stringSub(bgskids,8,-1))
@@ -166,8 +170,7 @@ if(CLIENT) then
     function(oPly,oCom,oArgs)
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1])
       if(not asmlib.IsExistent(frUsed)) then
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to retrieve most frequent models ["..tostring(oArgs[1]).."]")
-      end
+        return asmlib.StatusLog(false,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
       local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
       if(not defTable) then return StatusLog(false,"OPEN_FRAME: Missing definition for table PIECES") end
       local pnFrame = vguiCreate("DFrame")

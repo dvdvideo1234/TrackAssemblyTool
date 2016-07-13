@@ -2863,13 +2863,13 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   if(not IsExistent(hdOffs)) then
     return StatusLog(nil,"GetEntitySpawn: Holder point invalid #"..tostring(ihdPointID)) end
   -- If there is no Type field exit immediately
-  if(not IsExistent(trRec.Type)) then
-    return StatusLog(nil,"GetEntitySpawn: Trace type missing") end
-  if(not IsExistent(hdRec.Type)) then
-    return StatusLog(nil,"GetEntitySpawn: Holder type missing") end
+  if(not (IsExistent(trRec.Type) and IsString(trRec.Type))) then
+    return StatusLog(nil,"GetEntitySpawn: Trace type invalid <"..tostring(trRec.Type)..">") end
+  if(not (IsExistent(hdRec.Type) and IsString(hdRec.Type))) then
+    return StatusLog(nil,"GetEntitySpawn: Holder type invalid <"..tostring(hdRec.Type)..">"") end
   -- If the types are different and disabled
-  if((not enIgnTyp or enIgnTyp == 0) and trRec.Type ~= hdRec.Type ) then
-    return StatusLog(nil,"GetEntitySpawn: Types are different") end
+  if((not enIgnTyp or enIgnTyp == 0) and trRec.Type ~= hdRec.Type) then
+    return StatusLog(nil,"GetEntitySpawn: Types different <"..tostring(trRec.Type)..","..tostring(trRec.Type)..">") end
   -- We have the next Piece Offset
   local vTemp = Vector()
   local stSpawn, trPOA = GetOpVar("STRUCT_SPAWN")
