@@ -502,7 +502,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.UndoAddEntityPly(ePiece)
       asmlib.UndoFinishPly(ply)
-      return asmlib.StatusLog(true,"TOOL:LeftClick(World): Success hit world")
+      return asmlib.StatusLog(true,"TOOL:LeftClick(World): Success")
     end
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to create"))
   end
