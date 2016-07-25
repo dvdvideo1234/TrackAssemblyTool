@@ -30,7 +30,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.277")
+asmlib.SetOpVar("TOOL_VERSION","5.278")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2521,6 +2521,25 @@ else
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 2, "", "0,0,-379.6"   , "@ 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 1, "", "0, 94.9,0" , "0,90,90"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 2, "", "0,0,-94.9" , "@90,-180,180"})
+  asmlib.DefaultType("G Scale Track Pack") -- 1.015999
+  asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 1, "", " 4 ,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 2, "", "-4 ,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s0016.mdl", "#", "#", 1, "", " 8 ,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0016.mdl", "#", "#", 2, "", "-8 ,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 1, "", " 16 ,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 2, "", "-16 ,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s0032_transition.mdl", "#", "#", 1, "", " 16 ,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0032_transition.mdl", "#", "#", 2, "", "-16 ,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 1, "", " 32 ,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 2, "", "-32 ,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s0128.mdl", "#", "#", 1, "", " 64 ,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0128.mdl", "#", "#", 2, "", "-64 ,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s0256.mdl", "#", "#", 1, "", " 128,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0256.mdl", "#", "#", 2, "", "-128,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s0512.mdl", "#", "#", 1, "", " 256,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s0512.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/straight/s1024.mdl", "#", "#", 1, "", " 512,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/straight/s1024.mdl", "#", "#", 2, "", "-512,0,1.016", "0,-180,0"})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
