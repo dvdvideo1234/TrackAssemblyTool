@@ -130,6 +130,7 @@ local surfaceGetTextureID     = surface and surface.GetTextureID
 local surfaceSetDrawColor     = surface and surface.SetDrawColor
 local surfaceSetTextColor     = surface and surface.SetTextColor
 local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
+local languageAdd             = language and language.Add
 local constructSetPhysProp    = construct and construct.SetPhysProp
 local constraintWeld          = constraint and constraint.Weld
 local constraintNoCollide     = constraint and constraint.NoCollide
@@ -406,6 +407,7 @@ function Init(sName,sPurpose)
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("TABLE_BORDERS",{})
+  SetOpVar("TABLE_LOCALIFY",{})
   SetOpVar("TABLE_CATEGORIES",{})
   SetOpVar("FILE_MODEL","%.mdl")
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
@@ -3235,4 +3237,26 @@ function GetAsmVar(sShortName, sMode)
   elseif(sMode == "INF") then return  CVar:GetHelpText()
   elseif(sMode == "NAM") then return  CVar:GetName()
   end; return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
+end
+
+function SetLocalify(sCode, sPhrase, sDetails)
+  if(not IsString(sCode)) then
+    return StatusLog(nil,"SetLocalify: Language code <"..tostring(sCode).."> invalid") end
+  if(not IsString(sPhrase)) then
+    return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sPhrase).."> invalid") end
+  local Language = GetOpVar("TABLE_LOCALIFY")
+  if(not IsExistent(Language[sCode])) then Language[sCode] = {}; end
+        Language = Language[sCode]; Language[sPhrase] = sDetails
+end
+
+function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+  if(not IsString(sCode)) then -- https://en.wikipedia.org/wiki/ISO_639-2
+    return StatusLog(nil,"InitLocalify: Laguage code <"..tostring(sCode).."> invalid") end
+  local Language = GetOpVar("TABLE_LOCALIFY")
+  if(not IsExistent(Language[sCode])) then
+    return StatusLog(nil,"GetLocalify: Language not found for <"..sCode..">") end
+        Language = Language[sCode]
+  for phrase, detail in Language do
+    languageAdd(phrase, detail)
+  end
 end

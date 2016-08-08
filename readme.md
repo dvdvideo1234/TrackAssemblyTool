@@ -114,30 +114,45 @@ A: First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that
 
 Q: Which add-ons did you work on?
 A: Here they are, with available status, why I did not do some of them ( in the time of developing ):
-    1) PHX Monorails,
+    1) PHX Monorails
     2) PHX Regular Tracks ( Ignore "switcher_2" missing part of the collision model),
     3) SligWolf's Rerailers old and new(1,2,3)
+      https://steamcommunity.com/sharedfiles/filedetails/?id=132843280
     4) SProps
+      https://steamcommunity.com/sharedfiles/filedetails/?id=173482196
     5) PHX XQM Coaster tracks
     6) SligWolf's Mini train tracks and switchers
+      https://steamcommunity.com/sharedfiles/filedetails/?id=149759773
     7) PHX Road Pieces ( including ramps big and small )
     8) PHX Monorail Iron Beams
     9) PHX XQM BallRails
    10) Magnum's gauge rails
+      https://steamcommunity.com/sharedfiles/filedetails/?id=290130567
    11) Metrostroi rails ( Ignore, twisted collision models )
    12) Shinji85's BodybroupRail pieces
+      https://steamcommunity.com/sharedfiles/filedetails/?id=326640186
    13) gm_trainset map props ( Ignore, it's not designed to be a prop )
    14) SligWolf's Railcar
+      https://steamcommunity.com/sharedfiles/filedetails/?id=173717507
    15) Some Bridges
    16) gm_sunsetgulch map props ( Ignore, it's not designed to be a prop )
    17) StevenTechno's Buildings pack
+      https://steamcommunity.com/sharedfiles/filedetails/?id=331192490
    18) Mr. Train's M-Gauge rails
+      https://steamcommunity.com/sharedfiles/filedetails/?id=517442747
    19) Bobsters's two gauge rails
+      https://steamcommunity.com/sharedfiles/filedetails/?id=489114511
    20) Mr. Train's G-Gauge rails
+      https://steamcommunity.com/sharedfiles/filedetails/?id=590574800
    21) Ron's 56 gauge rails ( Removed by the add-on owner. Discontinued )
    22) Ron's 2ft track pack
+      http://steamcommunity.com/sharedfiles/filedetails/?id=634000136
    23) PHX Tubes
    24) Magnum's second track pack ( Ignore, it's not designed to be a prop )
+   25) qwertyaaa's G Scale Track Pack ( In dev 27 % done )
+      http://steamcommunity.com/sharedfiles/filedetails/?id=718239260
+   26) SligWolf's ModelPack ( In dev 1% done)
+      https://steamcommunity.com/sharedfiles/filedetails/?id=147812851
 
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
@@ -315,6 +330,16 @@ A: Well, when a server owners set the "trackasmlib_maxfruse" to a higher value, 
    pieces, whatever desired field value is matched by the pattern given. The pattern is a standard
    Lua one, which is supported by the string.* library an you can also google it ;)
    http://lmgtfy.com/?q=lua+string+library+pattern+matching
+
+Q: May I become a volanteer to translate the script to my native language and how can I use translations ?
+A: Yes you may, though always make sure to use upper case abreviation for
+   the language codes provided by: https://www.loc.gov/standards/iso639-2/php/code_list.php
+   If you want to translate it into Bulgarian for example ( my native ) you must duplicate all the
+   translations like seen below. I took English transation and translated it to Bulgarian.
+   English  : asmlib.SetLocalify("ENG","tool."..gsToolNameL..".activrad_con" , "Active radius:")
+   Bulgarian: asmlib.SetLocalify("BUL","tool."..gsToolNameL..".activrad_con" , "Активен радиус:")
+   After you are done with that you can adjust "trackassembly_localify <Your langage abreviation here>"
+   to apply it and restart the game to load the variable
 
 Q: Hay, how should I proceed when I am experiencing errors ?
 A: First of all if the the error origin is not the TA,
