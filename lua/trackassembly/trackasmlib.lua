@@ -3256,7 +3256,7 @@ function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_
   if(not IsExistent(Language[sCode])) then
     return StatusLog(nil,"GetLocalify: Language not found for <"..sCode..">") end
         Language = Language[sCode]
-  for phrase, detail in Language do
+  for phrase, detail in pairs(Language) do
     languageAdd(phrase, detail)
   end
 end
