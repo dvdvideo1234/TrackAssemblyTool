@@ -3239,24 +3239,23 @@ function GetAsmVar(sShortName, sMode)
   end; return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
 end
 
-function SetLocalify(sCode, sPhrase, sDetails)
+function SetLocalify(sCode, sPhrase, sDetail)
   if(not IsString(sCode)) then
     return StatusLog(nil,"SetLocalify: Language code <"..tostring(sCode).."> invalid") end
   if(not IsString(sPhrase)) then
     return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sPhrase).."> invalid") end
-  local Language = GetOpVar("TABLE_LOCALIFY")
-  if(not IsExistent(Language[sCode])) then Language[sCode] = {}; end
-        Language = Language[sCode]; Language[sPhrase] = sDetails
+  local Localify = GetOpVar("TABLE_LOCALIFY")
+  if(not IsExistent(Localify[sCode])) then Localify[sCode] = {}; end
+  Localify[sCode][sPhrase] = sDetail
 end
 
 function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
   if(not IsString(sCode)) then -- https://en.wikipedia.org/wiki/ISO_639-2
     return StatusLog(nil,"InitLocalify: Laguage code <"..tostring(sCode).."> invalid") end
-  local Language = GetOpVar("TABLE_LOCALIFY")
-  if(not IsExistent(Language[sCode])) then
+  local Localify = GetOpVar("TABLE_LOCALIFY")
+  if(not IsExistent(Localify[sCode])) then
     return StatusLog(nil,"GetLocalify: Language not found for <"..sCode..">") end
-        Language = Language[sCode]
-  for phrase, detail in pairs(Language) do
+  for phrase, detail in pairs(Localify[sCode]) do
     languageAdd(phrase, detail)
   end
 end
