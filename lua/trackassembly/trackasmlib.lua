@@ -70,6 +70,7 @@ local setmetatable            = setmetatable
 local collectgarbage          = collectgarbage
 local osClock                 = os and os.clock
 local osDate                  = os and os.date
+local bitBand                 = bit and bit.band
 local sqlQuery                = sql and sql.Query
 local sqlLastError            = sql and sql.LastError
 local sqlTableExists          = sql and sql.TableExists
@@ -409,13 +410,13 @@ function Init(sName,sPurpose)
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_LOCALIFY",{})
   SetOpVar("TABLE_CATEGORIES",{})
+  SetOpVar("TABLE_PLAYER_KEYS",{})
   SetOpVar("FILE_MODEL","%.mdl")
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
-  SetOpVar("HASH_PLAYER_INFO","PLAYER_INFO")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
   SetOpVar("NAV_PIECE",{})
@@ -843,10 +844,10 @@ function GetActionData(sKey)
   return libAction[sKey].Dat
 end
 
-function CallAction(sKey,A1,A2,A3,A4)
+function CallAction(sKey,...)
   if(not (sKey and IsString(sKey))) then return false end
   if(not (libAction and libAction[sKey])) then return false end
-  return libAction[sKey].Act(A1,A2,A3,A4,libAction[sKey].Dat)
+  return libAction[sKey].Act(libAction[sKey].Dat,...)
 end
 
 local function AddLineListView(pnListView,frUsed,ivNdex)
@@ -1491,64 +1492,57 @@ function UndoFinishPly(pPly,anyMessage)
   return true
 end
 
-function LoadKeyPly(pPly, sKey)
-  local keyPly   = GetOpVar("HASH_PLAYER_INFO")
-  local plyCache = libCache[keyPly]
-  if(not IsExistent(plyCache)) then
-    libCache[keyPly] = {}; plyCache = libCache[keyPly] end
+function ReadKeyPly(pPly)
+  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
   if(not IsPlayer(pPly)) then
-    return StatusLog(false,"LoadKeyPly: Player <"..type(pPly)"> not available") end
+    return StatusLog(false,"ReadKeyPly: Player <"..type(pPly)"> not available") end
   local plyNick  = pPly:Nick()
-  local plyPlace = plyCache[plyNick]
+  local plyPlace = plyKeys[plyNick]
+  if(not IsExistent(plyPlace)) then plyKeys[plyNick] = {}; plyPlace = plyKeys[plyNick] end
+  local ucmdPressed = pPly:GetCurrentCommand()
+  if(not IsExistent(ucmdPressed)) then
+    return StatusLog(false,"ReadKeyPly: Command not obtained correctly") end
+  plyPlace["M_DX"]   = ucmdPressed:GetMouseX()
+  plyPlace["M_DY"]   = ucmdPressed:GetMouseY()
+  plyPlace["K_BTN"]  = ucmdPressed:GetButtons()
+  plyPlace["M_DSCR"] = ucmdPressed:GetMouseWheel()
+  return StatusLog(true,"ReadKeyPly: Player <"..plyNick.."> keys loaded")
+end
+
+function GetMouseWheelPly(pPly)
+  if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
+    return StatusLog(false,"DeltaMousePly: Player <"..type(pPly)"> not available") end
+  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
+  local plyNick  = pPly:Nick()
+  local plyPlace = plyKeys[plyNick]
   if(not IsExistent(plyPlace)) then
-    plyCache[plyNick] = {
-      ["ALTLFT"]  = false,
-      ["ALTRGH"]  = false,
-      ["ATTLFT"]  = false,
-      ["ATTRGH"]  = false,
-      ["FORWARD"] = false,
-      ["BACK"]    = false,
-      ["MOVELFT"] = false,
-      ["MOVERGH"] = false,
-      ["RELOAD"]  = false,
-      ["USE"]     = false,
-      ["DUCK"]    = false,
-      ["JUMP"]    = false,
-      ["SPEED"]   = false,
-      ["SCORE"]   = false,
-      ["ZOOM"]    = false,
-      ["LEFT"]    = false,
-      ["RIGHT"]   = false,
-      ["WALK"]    = false
-    }
-    plyPlace = plyCache[plyNick]
-  end
-  if(IsExistent(sKey)) then
-    if(not IsString(sKey)) then
-      return StatusLog(false,"LoadKeyPly: Key hash {"..type(sKey).."}<"..tostring(sKey).."> not string") end
-    if(sKey == "DEBUG") then return plyPlace end
-    LogInstance("LoadKeyPly: NamePK <"..sKey.."> = "..tostring(plyPlace[sKey]))
-    return plyPlace[sKey]
-  end
-  plyPlace["ALTLFT"]  = pPly:KeyDown(IN_ALT1      )
-  plyPlace["ALTRGH"]  = pPly:KeyDown(IN_ALT2      )
-  plyPlace["ATTLFT"]  = pPly:KeyDown(IN_ATTACK    )
-  plyPlace["ATTRGH"]  = pPly:KeyDown(IN_ATTACK2   )
-  plyPlace["FORWARD"] = pPly:KeyDown(IN_FORWARD   )
-  plyPlace["BACK"]    = pPly:KeyDown(IN_BACK      )
-  plyPlace["MOVELFT"] = pPly:KeyDown(IN_MOVELEFT  )
-  plyPlace["MOVERGH"] = pPly:KeyDown(IN_MOVERIGHT )
-  plyPlace["RELOAD"]  = pPly:KeyDown(IN_RELOAD    )
-  plyPlace["USE"]     = pPly:KeyDown(IN_USE       )
-  plyPlace["DUCK"]    = pPly:KeyDown(IN_DUCK      )
-  plyPlace["JUMP"]    = pPly:KeyDown(IN_JUMP      )
-  plyPlace["SPEED"]   = pPly:KeyDown(IN_SPEED     )
-  plyPlace["SCORE"]   = pPly:KeyDown(IN_SCORE     )
-  plyPlace["ZOOM"]    = pPly:KeyDown(IN_ZOOM      )
-  plyPlace["LEFT"]    = pPly:KeyDown(IN_LEFT      )
-  plyPlace["RIGHT"]   = pPly:KeyDown(IN_RIGHT     )
-  plyPlace["WALK"]    = pPly:KeyDown(IN_WALK      )
-  return StatusLog(true,"LoadKeyPly: Player <"..plyNick.."> keys loaded")
+    return StatusLog(false,"DeltaMousePly: <"..plyNick.."> nomands not loaded") end
+  return plyPlace["M_DSCR"]
+end
+
+function GetMouseDeltaPly(pPly)
+  if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
+    return StatusLog(false,"GetMouseDeltaPly: Player <"..type(pPly)"> not available") end
+  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
+  local plyNick  = pPly:Nick()
+  local plyPlace = plyKeys[plyNick]
+  if(not IsExistent(plyPlace)) then
+    return StatusLog(false,"GetMouseDeltaPly: <"..plyNick.."> nomands not loaded") end
+  return plyPlace["M_DX"], plyPlace["M_DY"]
+end
+
+function CheckButtonPly(pPly, ivInKey)
+  if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/Enums/IN
+    return StatusLog(false,"CheckButtonPly: Player <"..type(pPly)"> not available") end
+  local iInKey = tonumber(ivInKey)
+  if(not IsExistent(iInKey)) then
+    return StatusLog(false,"CheckButtonPly: Input key {"..type(ivInKey)"}<"..tostring(ivInKey).."> invalid") end
+  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
+  local plyNick  = pPly:Nick()
+  local plyPlace = plyKeys[plyNick]
+  if(not IsExistent(plyPlace)) then
+    return StatusLog(false,"CheckButtonPly: Player <"..plyNick.."> commands not loaded") end
+  return (bitBand(plyPlace["K_BTN"],iInKey) ~= 0)
 end
 
 -------------------------- BUILDSQL ------------------------------
@@ -2690,14 +2684,14 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
         iNdex = 1
         while(tRecord[iNdex]) do -- Data is already inserted, there will be no crash
           tData = tRecord[iNdex]
-          sTemp = sData..MatchType(defTable,tData[defTable[2 ][1]],2 ,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[3 ][1]],3 ,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[4 ][1]],4 ,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[5 ][1]],5 ,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[6 ][1]],6 ,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[7 ][1]],7 ,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[8 ][1]],8 ,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[9 ][1]],9 ,true,"\"")..sDelim..
+          sTemp = sData..MatchType(defTable,tData[defTable[2 ][1]], 2,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[3 ][1]], 3,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[4 ][1]], 4,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[5 ][1]], 5,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[6 ][1]], 6,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[7 ][1]], 7,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[8 ][1]], 8,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[9 ][1]], 9,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[10][1]],10,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[11][1]],11,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[12][1]],12,true,"\"")

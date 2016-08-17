@@ -11,10 +11,12 @@ local IsValid              = IsValid
 local tonumber             = tonumber
 local tostring             = tostring
 local CreateConVar         = CreateConVar
+local RunConsoleCommand    = RunConsoleCommand
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
+local inputIsKeyDown       = input and input.IsKeyDown
 local stringSub            = string and string.sub
 local stringFind           = string and string.find
 local stringGsub           = string and string.gsub
@@ -30,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.284")
+asmlib.SetOpVar("TOOL_VERSION","5.286")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -44,7 +46,9 @@ asmlib.SetOpVar("LOG_SKIP",{
   "GetEntitySpawn: Types different",
   "MakeScreen.SetColor: Color reset",
   "MakeScreen.DrawLine: Start out of border",
-  "MakeScreen.DrawLine: End out of border"
+  "MakeScreen.DrawLine: End out of border",
+  "POINT_SELECT: Bind not pressed",
+  "POINT_SELECT: Active key missing"
 })
 
 ------ CONFIGURE LOGGING ------
@@ -78,6 +82,7 @@ asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
 asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetAsmVar("enqstore", "INT") ~= 0) and true or false)
 
 ------ GLOBAL VARIABLES ------
+local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
@@ -96,6 +101,37 @@ if(SERVER) then
 end
 
 if(CLIENT) then
+asmlib.SetAction("POINT_SELECT",
+    function(oPly,oBind,oPress)
+      if(not oPress) then return asmlib.StatusLog(false,"POINT_SELECT: Bind not pressed") end
+      local actSwep = oPly:GetActiveWeapon()
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(false,"POINT_SELECT: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(false,"POINT_SELECT: Swep not tool") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(false,"POINT_SELECT: Swep different") end
+      local actTool = actSwep:GetToolObject() -- Shitch functionality of the mouse wheel only for TA
+      if(not actTool) then return asmlib.StatusLog(false,"POINT_SELECT: Tool invalid") end
+      if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(false,"POINT_SELECT: Active key missing") end
+      if((oBind == "invnext") or (oBind == "invprev")) then
+        local actKey  = inputIsKeyDown(KEY_LSHIFT)
+        local actMod  = actTool:GetModel()
+        local actRec  = asmlib.CacheQueryPiece(actMod)
+        local pointid, pnextid = actTool:GetPointID()
+        local pointbu = pointid -- Create backup
+        if    (oBind == "invnext") then -- Process scroll down
+          if(actKey) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",actRec)
+          else            pointid = asmlib.IncDecPointID(pointid,"-",actRec) end
+        elseif(oBind == "invprev") then -- Process scroll up
+          if(actKey) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",actRec)
+          else            pointid = asmlib.IncDecPointID(pointid,"+",actRec) end
+        end -- Apply changes for the active points
+        if(pointid == pnextid) then pnextid = pointbu end
+        RunConsoleCommand(gsToolPrefL.."pnextid",pnextid)
+        RunConsoleCommand(gsToolPrefL.."pointid",pointid)
+        return asmlib.StatusLog(true,"POINT_SELECT("..oBind.."): Success")
+      end -- Override only the scrolling
+      return asmlib.StatusLog(false,"POINT_SELECT("..oBind.."): Skipped")
+    end)
+
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)
       local devmode = asmlib.GetAsmVar("devmode", "INT")
@@ -2535,14 +2571,12 @@ else
   asmlib.InsertRecord({"models/gscale/straight/s0016.mdl", "#", "#", 2, "", " -16,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  ---vv To be tested when the addon gets updated
   asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  ---^^
   asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 2, "", " -64,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0128.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
@@ -2632,7 +2666,7 @@ else
   asmlib.InsertRecord({"models/gscale/siding/r225_s.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
-  asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})  
+  asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
