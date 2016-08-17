@@ -474,13 +474,7 @@ function TOOL:LeftClick(stTrace)
   if(not asmlib.IsPhysTrace(stTrace)) then
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace not physical object")) end
 
-  local trModel = trEnt:GetModel()
-
-  -- No need stacking relative to non-persistent props or using them...
-  local trRec = asmlib.CacheQueryPiece(trModel)
   local hdRec = asmlib.CacheQueryPiece(model)
-
-  if(not trRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace model not piece")) end
 
   if(not hdRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Holder model not piece")) end
 
@@ -590,6 +584,8 @@ function TOOL:RightClick(stTrace)
   if(not asmlib.IsPhysTrace(stTrace)) then
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Trace not physical object")) end
   local trModel = trEnt:GetModel() -- Select prop model to continue the track
+  local trRec   = asmlib.CacheQueryPiece(trModel)
+  if(not trRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Trace model not piece")) end
   asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(trModel).." selected !","UNDO")
   asmlib.ConCommandPly(ply,"model",trModel)
   asmlib.ConCommandPly(ply,"pointid",1)
