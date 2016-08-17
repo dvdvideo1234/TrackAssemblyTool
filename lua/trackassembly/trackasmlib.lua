@@ -2506,6 +2506,7 @@ function CacheQueryProperty(sType)
 end
 
 ---------------------- EXPORT --------------------------------
+
 local function GetFieldsName(defTable,sDelim)
   if(not IsExistent(sDelim)) then return "" end
   local sDelim  = stringSub(tostring(sDelim),1,1)
@@ -2527,13 +2528,11 @@ local function GetFieldsName(defTable,sDelim)
 end
 
 --[[
- * Save/Load the DB Using Excel or
- * anything that supports delimiter
- * separated digital tables
- * sPrefix = Something that separates exported table from the rest ( e.g. db_ )
- * sTable  = Definition KEY to export to
- * sDelim  = Delimiter CHAR data separator
- * bCommit = true to insert the read values
+ * Import table data from DSV database created earlier
+ * sTable  = Definition KEY to import
+ * sDelim  = Delimiter separating the values
+ * bCommit = Calls InsertRecord() when set to true
+ * sPrefix = Prefix used on importing ( if any )
 ]]--
 function ImportDSV(sTable,sDelim,bCommit,sPrefix)
   if(not IsString(sTable)) then
@@ -2571,6 +2570,13 @@ function ImportDSV(sTable,sDelim,bCommit,sPrefix)
   end; F:Close()
 end
 
+--[[
+ * Save/Load the DB Using Excel or
+ * anything that supports delimiter separated digital tables
+ * sTable  = Definition KEY to export
+ * sMethod = Export method to be used ( either INS or DSV )
+ * sPrefix = Prefix used on exporting ( if any )
+]]--
 function DeleteExternalDatabase(sTable,sMethod,sPrefix)
   if(not IsString(sTable)) then
     return StatusLog(false,"DeleteExternalDatabase: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
@@ -2684,14 +2690,14 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
         iNdex = 1
         while(tRecord[iNdex]) do -- Data is already inserted, there will be no crash
           tData = tRecord[iNdex]
-          sTemp = sData..MatchType(defTable,tData[defTable[2 ][1]], 2,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[3 ][1]], 3,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[4 ][1]], 4,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[5 ][1]], 5,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[6 ][1]], 6,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[7 ][1]], 7,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[8 ][1]], 8,true,"\"")..sDelim..
-                         MatchType(defTable,tData[defTable[9 ][1]], 9,true,"\"")..sDelim..
+          sTemp = sData..MatchType(defTable,tData[defTable[ 2][1]], 2,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[ 3][1]], 3,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[ 4][1]], 4,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[ 5][1]], 5,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[ 6][1]], 6,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[ 7][1]], 7,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[ 8][1]], 8,true,"\"")..sDelim..
+                         MatchType(defTable,tData[defTable[ 9][1]], 9,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[10][1]],10,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[11][1]],11,true,"\"")..sDelim..
                          MatchType(defTable,tData[defTable[12][1]],12,true,"\"")

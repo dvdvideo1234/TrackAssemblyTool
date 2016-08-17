@@ -32,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.286")
+asmlib.SetOpVar("TOOL_VERSION","5.287")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -108,7 +108,7 @@ asmlib.SetAction("POINT_SELECT",
       if(not IsValid(actSwep)) then return asmlib.StatusLog(false,"POINT_SELECT: Swep invalid") end
       if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(false,"POINT_SELECT: Swep not tool") end
       if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(false,"POINT_SELECT: Swep different") end
-      local actTool = actSwep:GetToolObject() -- Shitch functionality of the mouse wheel only for TA
+      local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
       if(not actTool) then return asmlib.StatusLog(false,"POINT_SELECT: Tool invalid") end
       if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(false,"POINT_SELECT: Active key missing") end
       if((oBind == "invnext") or (oBind == "invprev")) then
@@ -460,15 +460,15 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 
 ------ POPULATE DB ------
 --[[ TA parametrization legend
-  Disabling of a component is preformed by using "OPSYM_DISABLE"
-  Disabling P    - The ID is ignored when searching for active point
-  Disabling O    - The ID can not selected by the holder via right click
-  Disabling A    - The ID angle is treated as {0,0,0}
-  Disabling Type - Makes it use the value of DefaultType()
-  Disabling Name - Makes it generate it using the model via ModelToName()
-  Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
-  First  argument of DefaultTable() is used to provide default table name for InsertRecord()
-  Second argument of DefaultTable() is used to generate track categories for the processed addon
+ * Disabling of a component is preformed by using "OPSYM_DISABLE"
+ * Disabling P    - The ID is ignored when searching for active point
+ * Disabling O    - The ID cannot be selected by the holder
+ * Disabling A    - The ID angle is treated as {0,0,0}
+ * Disabling Type - Makes it use the value of DefaultType()
+ * Disabling Name - Makes it generate it using the model via ModelToName()
+ * Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
+ * First  argument of DefaultTable() is used to provide default table name for InsertRecord()
+ * Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PIECES from DSV")
