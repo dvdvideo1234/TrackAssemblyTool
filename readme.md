@@ -31,14 +31,25 @@ A: Just subscribe to the workshop item:
    You can find the tool in the "Constriction" section of Garry's mod "Q" menu under the name of "Track Assembly".
    On the right in the tool's menu, you can locate the track pieces tree.
    Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
-   Pressing USE ( Default: E ) + PREV_WEAPON ( Default: Mouse wheel up )
-       Will increment the chosen active position of the piece that you're holding.
-     When pressing SPEED ( Default: Shift )
-       Will increment the chosen next position of the piece that you're holding.
-   Pressing USE ( Default: E ) + NEXT_WEAPON ( Default: Mouse wheel down )
-       Will decrement the chosen active position of the piece that you're holding.
-     When pressing SPEED ( Default: Shift )
-       Will decrement the chosen next position of the piece that you're holding.
+   If "trackassembly_enpntmscr" is set to <>0
+     Pressing USE ( Default: E ) + NEXT_WEAPON ( Default: Mouse wheel down )
+         Will increment the chosen active position of the piece that you're holding.
+       When pressing SPEED ( Default: Shift )
+         Will increment the chosen next position of the piece that you're holding.
+     Pressing USE ( Default: E ) + PREV_WEAPON ( Default: Mouse wheel up )
+         Will decrement the chosen active position of the piece that you're holding.
+       When pressing SPEED ( Default: Shift )
+         Will decrement the chosen next position of the piece that you're holding.
+   If "trackassembly_enpntmscr" is set to =0
+     Pressing ATTACK2 ( Default: Right mouse button )
+         Will increment the chosen active position of the piece that you're holding.
+       When pressing DUCK ( Default: Shift )
+         Will increment the chosen next position of the piece that you're holding.
+
+     Pressing Right click
+         Will decrement the chosen active position of the piece that you're holding.
+       When pressing SPEED ( Default: Shift )
+         Will decrement the chosen next position of the piece that you're holding.
    Pressing ATTACK1 ( Default: Left mouse button )
      When you are looking at the world the piece will just be spawned on the map.
      When you are looking at one of track piece's pre-defined active points

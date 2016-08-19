@@ -32,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.288")
+asmlib.SetOpVar("TOOL_VERSION","5.289")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -60,8 +60,9 @@ asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeAsmVar("localify" , "ENG", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "The current language chosen")
 asmlib.MakeAsmVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-asmlib.MakeAsmVar("enqstore" ,   1  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
+asmlib.MakeAsmVar("enqstore" ,   1  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
+asmlib.MakeAsmVar("enpntmscr",   1  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable selecting active points via mouse scroll")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
@@ -79,7 +80,7 @@ end
 
 ------ CONFIGURE INTERNALS -----
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
-asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetAsmVar("enqstore", "INT") ~= 0) and true or false)
+asmlib.SetOpVar("EN_QUERY_STORE", asmlib.GetAsmVar("enqstore", "BUL"))
 
 ------ GLOBAL VARIABLES ------
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -101,36 +102,25 @@ if(SERVER) then
 end
 
 if(CLIENT) then
-asmlib.SetAction("POINT_SELECT",
-    function(oPly,oBind,oPress)
-      if(not oPress) then return asmlib.StatusLog(false,"POINT_SELECT: Bind not pressed") end
+  asmlib.SetAction("POINT_SCROLL",
+    function(oPly,oBind,oPress) -- Must have the same parameters as the hook
+      local actData = asmlib.GetActionData("POINT_SCROLL")
+      if(not (actData and actData.isEnabled)) then
+        return asmlib.StatusLog(false,"POINT_SCROLL: Scroll disabled") end
+      if(not oPress) then return asmlib.StatusLog(false,"POINT_SCROLL: Bind not pressed") end
       local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then return asmlib.StatusLog(false,"POINT_SELECT: Swep invalid") end
-      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(false,"POINT_SELECT: Swep not tool") end
-      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(false,"POINT_SELECT: Swep different") end
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(false,"POINT_SCROLL: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(false,"POINT_SCROLL: Swep not tool") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(false,"POINT_SCROLL: Swep different") end
       local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
-      if(not actTool) then return asmlib.StatusLog(false,"POINT_SELECT: Tool invalid") end
-      if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(false,"POINT_SELECT: Active key missing") end
+      if(not actTool) then return asmlib.StatusLog(false,"POINT_SCROLL: Tool invalid") end
+      if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(false,"POINT_SCROLL: Active key missing") end
       if((oBind == "invnext") or (oBind == "invprev")) then
-        local actKey  = inputIsKeyDown(KEY_LSHIFT)
-        local actMod  = actTool:GetModel()
-        local actRec  = asmlib.CacheQueryPiece(actMod)
-        local pointid, pnextid = actTool:GetPointID()
-        local pointbu = pointid -- Create backup
-        if    (oBind == "invnext") then -- Process scroll down
-          if(actKey) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",actRec)
-          else            pointid = asmlib.IncDecPointID(pointid,"-",actRec) end
-        elseif(oBind == "invprev") then -- Process scroll up
-          if(actKey) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",actRec)
-          else            pointid = asmlib.IncDecPointID(pointid,"+",actRec) end
-        end -- Apply changes for the active points
-        if(pointid == pnextid) then pnextid = pointbu end
-        RunConsoleCommand(gsToolPrefL.."pnextid",pnextid)
-        RunConsoleCommand(gsToolPrefL.."pointid",pointid)
-        return asmlib.StatusLog(true,"POINT_SELECT("..oBind.."): Success")
-      end -- Override only the scrolling
-      return asmlib.StatusLog(false,"POINT_SELECT("..oBind.."): Skipped")
-    end)
+        local Dir = ((oBind == "invnext") and 1) or ((oBind == "invprev") and -1) or 0
+        actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
+      end -- Override only the scrolling in the case of track assembly
+      return asmlib.StatusLog(false,"POINT_SCROLL("..oBind.."): Skipped")
+    end, {isEnabled = asmlib.GetAsmVar("enpntmscr", "BUL")}) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)

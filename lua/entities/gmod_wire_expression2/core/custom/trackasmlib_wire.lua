@@ -12,12 +12,11 @@ local stringUpper = string and string.upper
 local stringLen   = string and string.len
 
 ----- Get extension enabled flag
-local anyTrue  = 1
-local anyFalse = 0
 local maxColor = 255
+local anyTrue, anyFalse = 1, 0
 local maxMass  = asmlib.GetOpVar("MAX_MASS")
-local enFlag   = ((tonumber(asmlib.GetAsmVar("enwiremod","INT")) or  0) ~= 0) and true or false
-local bndErr   =  (tostring(asmlib.GetAsmVar("bnderrmod","STR")) or "")
+local enFlag   = asmlib.GetAsmVar("enwiremod","BUL")
+local bndErr   = asmlib.GetAsmVar("bnderrmod","STR")
 
 --------- Pieces ----------
 __e2setcost(50)

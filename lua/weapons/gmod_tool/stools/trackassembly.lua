@@ -70,6 +70,7 @@ local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gsVersion   = asmlib.GetOpVar("TOOL_VERSION")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gsQueryStr  = asmlib.GetOpVar("EN_QUERY_STORE")
+local gbScrollPnt = asmlib.GetActionData("POINT_SCROLL") and asmlib.GetActionData("POINT_SCROLL").isEnabled
 
 --- Base rendering colors
 local conPalette = asmlib.MakeContainer("Colors")
@@ -101,7 +102,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".name"      , "Track Assembly")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
-  hookAdd("PlayerBindPress", gsToolPrefL.."playerbindpress", asmlib.GetActionCode("POINT_SELECT"))
+  if(gbScrollPnt) then hookAdd("PlayerBindPress", gsToolPrefL.."playerbindpress", asmlib.GetActionCode("POINT_SCROLL")) end
 end
 
 if(SERVER) then
@@ -274,6 +275,27 @@ function TOOL:GetSurfaceSnap()
   return (self:GetClientNumber("surfsnap") or 0)
 end
 
+function TOOL:SwitchPoint(nDir,bIsNext)
+  local actDir  = (tonumber(nDir) or 0)
+        actDir  = (actDir > 0 and 1) or (actDir < 0 and -1) or 0
+  if(actDir == 0) then return asmlib.StatusLog(false,"SwitchPoint: Skipped switching") end
+  local actRec  = asmlib.CacheQueryPiece(self:GetModel())
+  local pointid, pnextid = self:GetPointID()
+  local pointbu = pointid -- Create backup
+  if    (nDir > 0) then -- Process increment
+    if(bIsNext) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",actRec)
+    else             pointid = asmlib.IncDecPointID(pointid,"+",actRec) end
+  elseif(nDir < 0) then -- Process scroll up
+    if(bIsNext) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",actRec)
+    else             pointid = asmlib.IncDecPointID(pointid,"-",actRec) end
+  end -- Apply changes for the active points
+  if(pointid == pnextid) then pnextid = pointbu end
+  RunConsoleCommand(gsToolPrefL.."pnextid",pnextid)
+  RunConsoleCommand(gsToolPrefL.."pointid",pointid)
+  asmlib.LogInstance(true,"TOOL:SwitchPoint("..tostring(nDir)..","..tostring(bIsNext).."): Success")
+  return pointid, pnextid
+end
+
 function TOOL:SetAnchor(stTrace)
   self:ClearAnchor()
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace invalid") end
@@ -396,6 +418,17 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
   if(hdEnt and hdEnt:IsValid()) then hdEnt:Remove() end
   return sDu
+end
+
+function TOOL:SelectModel(sModel)
+  local trRec = asmlib.CacheQueryPiece(sModel)
+  if(not trRec) then
+    return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")) end
+  asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(sModel).." selected !","UNDO")
+  asmlib.ConCommandPly (ply,"model"  ,sModel)
+  asmlib.ConCommandPly (ply,"pointid",1)
+  asmlib.ConCommandPly (ply,"pnextid",2)
+  return asmlib.StatusLog(true,"TOOL:SelectModel: Success <"..sModel.."> selected")
 end
 
 function TOOL:LeftClick(stTrace)
@@ -564,33 +597,24 @@ end
 function TOOL:RightClick(stTrace)
   if(CLIENT) then return asmlib.StatusLog(true,"TOOL:RightClick(): Working on client") end
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:RightClick(): Trace missing") end
-  local ply   = self:GetOwner()
-  local model = self:GetModel()
-  local hdRec = asmlib.CacheQueryPiece(model)
-  if(not hdRec) then
-    return asmlib.StatusLog(false,"TOOL:RightClick(): Model <"..model.."> not a piece") end
-  local pointid, pnextid = self:GetPointID()
-  local pointbu = pointid
-  asmlib.ReadKeyPly(ply)
-  if(stTrace.HitWorld and asmlib.CheckButtonPly(ply,IN_USE)) then
-    asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
-    return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
-  end
   local trEnt = stTrace.Entity
-  if(not (trEnt and trEnt:IsValid())) then
-    return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Trace entity invalid")) end
-  if(asmlib.IsOther(trEnt)) then
-    return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Trace other object")) end
-  if(not asmlib.IsPhysTrace(stTrace)) then
-    return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Trace not physical object")) end
-  local trModel = trEnt:GetModel() -- Select prop model to continue the track
-  local trRec   = asmlib.CacheQueryPiece(trModel)
-  if(not trRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Trace model not piece")) end
-  asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(trModel).." selected !","UNDO")
-  asmlib.ConCommandPly(ply,"model",trModel)
-  asmlib.ConCommandPly(ply,"pointid",1)
-  asmlib.ConCommandPly(ply,"pnextid",2)
-  return asmlib.StatusLog(true,"TOOL:RightClick(): Success <"..trModel.."> selected")
+  local ply   = self:GetOwner()
+  if(stTrace.HitWorld) then
+    if(asmlib.CheckButtonPly(ply,IN_USE)) then
+      asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
+      return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
+    end
+  elseif(trEnt and trEnt:IsValid()) then
+    if(gbScrollPnt) then
+      if(not self:SelectModel(trEnt:GetModel())) then
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Model not piece")) and
+      return asmlib.StatusLog(true,"TOOL:RightClick(Prop): Success")
+    end
+  end
+  if(not gbScrollPnt) then
+    local Dir = (asmlib.CheckButtonPly(ply,IN_SPEED) and -1) or 1
+    self:SwitchPoint(Dir,asmlib.CheckButtonPly(ply,IN_DUCK))
+  end
 end
 
 function TOOL:Reload(stTrace)
