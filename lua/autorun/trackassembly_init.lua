@@ -32,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.289")
+asmlib.SetOpVar("TOOL_VERSION","5.290")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -59,10 +59,9 @@ asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeAsmVar("localify" , "ENG", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "The current language chosen")
-asmlib.MakeAsmVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
+asmlib.MakeAsmVar("modedb"   , "LUA", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
 asmlib.MakeAsmVar("enqstore" ,   1  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
-asmlib.MakeAsmVar("enpntmscr",   1  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable selecting active points via mouse scroll")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
@@ -104,23 +103,24 @@ end
 if(CLIENT) then
   asmlib.SetAction("POINT_SCROLL",
     function(oPly,oBind,oPress) -- Must have the same parameters as the hook
-      local actData = asmlib.GetActionData("POINT_SCROLL")
-      if(not (actData and actData.isEnabled)) then
-        return asmlib.StatusLog(false,"POINT_SCROLL: Scroll disabled") end
-      if(not oPress) then return asmlib.StatusLog(false,"POINT_SCROLL: Bind not pressed") end
+      if(not oPress) then return asmlib.StatusLog(nil,"POINT_SCROLL: Bind not pressed") end
       local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then return asmlib.StatusLog(false,"POINT_SCROLL: Swep invalid") end
-      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(false,"POINT_SCROLL: Swep not tool") end
-      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(false,"POINT_SCROLL: Swep different") end
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"POINT_SCROLL: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(nil,"POINT_SCROLL: Swep not tool") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(nil,"POINT_SCROLL: Tool different") end
+      -- Here player is holding the track assembly tool
       local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
-      if(not actTool) then return asmlib.StatusLog(false,"POINT_SCROLL: Tool invalid") end
-      if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(false,"POINT_SCROLL: Active key missing") end
+      if(not actTool) then return asmlib.StatusLog(nil,"POINT_SCROLL: Tool invalid") end
+      if(not actTool:GetScrollMouse()) then return asmlib.StatusLog(nil,"POINT_SCROLL: Scrolling disabled") end
+      if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(nil,"POINT_SCROLL: Active key missing") end
+      -- Process the scroll events here
       if((oBind == "invnext") or (oBind == "invprev")) then
         local Dir = ((oBind == "invnext") and 1) or ((oBind == "invprev") and -1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
-      end -- Override only the scrolling in the case of track assembly
-      return asmlib.StatusLog(false,"POINT_SCROLL("..oBind.."): Skipped")
-    end, {isEnabled = asmlib.GetAsmVar("enpntmscr", "BUL")}) -- Read client configuration
+        return asmlib.StatusLog(true,"POINT_SCROLL("..oBind.."): Processed")
+      end -- Override only the scrolling in track assembly and skip touching anything else
+      return asmlib.StatusLog(nil,"POINT_SCROLL("..oBind.."): Skipped")
+    end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)
@@ -166,9 +166,10 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxstatts", "3")
         asmlib.ConCommandPly(oPly, "nocollide", "1")
         asmlib.ConCommandPly(oPly, "physmater", "metal")
+        asmlib.ConCommandPly(oPly, "enpntmscr", "1")
         asmlib.ConCommandPly(oPly, "logsmax"  , "0")
         asmlib.ConCommandPly(oPly, "logfile"  , "")
-        asmlib.ConCommandPly(oPly, "modedb"   , "SQL")
+        asmlib.ConCommandPly(oPly, "modedb"   , "LUA")
         asmlib.ConCommandPly(oPly, "enqstore" , "1")
         asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
         asmlib.ConCommandPly(oPly, "enwiremod", "1")
@@ -2657,6 +2658,17 @@ else
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
+  asmlib.DefaultType("Ron's Minitrain Props")
+  asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 2, "", "-1, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/2.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/2.mdl",   "#", "#", 2, "", "-2, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/4.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/4.mdl",   "#", "#", 2, "", "-4, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/8.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/8.mdl",   "#", "#", 2, "", "-8, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/scenery/tunnel_64.mdl",   "#", "#", 1, "", "  0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/scenery/tunnel_64.mdl",   "#", "#", 2, "", "-64, 8.507, 1", "0,-180,0"})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then

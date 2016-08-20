@@ -70,7 +70,6 @@ local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gsVersion   = asmlib.GetOpVar("TOOL_VERSION")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gsQueryStr  = asmlib.GetOpVar("EN_QUERY_STORE")
-local gbScrollPnt = asmlib.GetActionData("POINT_SCROLL") and asmlib.GetActionData("POINT_SCROLL").isEnabled
 
 --- Base rendering colors
 local conPalette = asmlib.MakeContainer("Colors")
@@ -88,31 +87,6 @@ local conPalette = asmlib.MakeContainer("Colors")
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
 
 cleanupRegister(gsLimitName)
-
-if(CLIENT) then
-  TOOL.Information = {
-    { name = "info",  stage = 1   },
-    { name = "left"         },
-    { name = "right"        },
-    { name = "right_use",   icon2 = "gui/e.png" },
-    { name = "reload"       }
-  }
-  asmlib.InitLocalify(asmlib.GetAsmVar("localify", "STR"))
-  languageAdd("tool."..gsToolNameL..".category"  , "Construction")
-  languageAdd("tool."..gsToolNameL..".name"      , "Track Assembly")
-  concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
-  concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
-  if(gbScrollPnt) then hookAdd("PlayerBindPress", gsToolPrefL.."playerbindpress", asmlib.GetActionCode("POINT_SCROLL")) end
-end
-
-if(SERVER) then
-  duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
-end
-
-TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
-TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
-TOOL.Command    = nil -- Command on click (nil for default)
-TOOL.ConfigName = nil -- Configure file name (nil for default)
 
 TOOL.ClientConVar = {
   [ "weld"      ] = "1",
@@ -146,8 +120,34 @@ TOOL.ClientConVar = {
   [ "ghosthold" ] = "1",
   [ "maxstatts" ] = "3",
   [ "nocollide" ] = "1",
-  [ "physmater" ] = "metal"
+  [ "physmater" ] = "metal",
+  [ "enpntmscr" ] = "1"
 }
+
+if(CLIENT) then
+  TOOL.Information = {
+    { name = "info",  stage = 1   },
+    { name = "left"         },
+    { name = "right"        },
+    { name = "right_use",   icon2 = "gui/e.png" },
+    { name = "reload"       }
+  }
+  asmlib.InitLocalify(asmlib.GetAsmVar("localify", "STR"))
+  languageAdd("tool."..gsToolNameL..".category"  , "Construction")
+  languageAdd("tool."..gsToolNameL..".name"      , "Track Assembly")
+  concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
+  concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
+  hookAdd("PlayerBindPress", gsToolPrefL.."playerbindpress", asmlib.GetActionCode("POINT_SCROLL"))
+end
+
+if(SERVER) then
+  duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
+end
+
+TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
+TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
+TOOL.Command    = nil -- Command on click (nil for default)
+TOOL.ConfigName = nil -- Configure file name (nil for default)
 
 function TOOL:GetModel()
   return (self:GetClientInfo("model") or "")
@@ -275,6 +275,10 @@ function TOOL:GetSurfaceSnap()
   return (self:GetClientNumber("surfsnap") or 0)
 end
 
+function TOOL:GetScrollMouse()
+  return asmlib.GetAsmVar("enpntmscr","BUL")
+end
+
 function TOOL:SwitchPoint(nDir,bIsNext)
   local actDir  = (tonumber(nDir) or 0)
         actDir  = (actDir > 0 and 1) or (actDir < 0 and -1) or 0
@@ -285,14 +289,14 @@ function TOOL:SwitchPoint(nDir,bIsNext)
   if    (nDir > 0) then -- Process increment
     if(bIsNext) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",actRec)
     else             pointid = asmlib.IncDecPointID(pointid,"+",actRec) end
-  elseif(nDir < 0) then -- Process scroll up
+  elseif(nDir < 0) then -- Process decrement
     if(bIsNext) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",actRec)
     else             pointid = asmlib.IncDecPointID(pointid,"-",actRec) end
   end -- Apply changes for the active points
   if(pointid == pnextid) then pnextid = pointbu end
   RunConsoleCommand(gsToolPrefL.."pnextid",pnextid)
   RunConsoleCommand(gsToolPrefL.."pointid",pointid)
-  asmlib.LogInstance(true,"TOOL:SwitchPoint("..tostring(nDir)..","..tostring(bIsNext).."): Success")
+  asmlib.LogInstance("TOOL:SwitchPoint("..tostring(nDir)..","..tostring(bIsNext).."): Success")
   return pointid, pnextid
 end
 
@@ -424,6 +428,7 @@ function TOOL:SelectModel(sModel)
   local trRec = asmlib.CacheQueryPiece(sModel)
   if(not trRec) then
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")) end
+  local ply = self:GetOwner()
   asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(sModel).." selected !","UNDO")
   asmlib.ConCommandPly (ply,"model"  ,sModel)
   asmlib.ConCommandPly (ply,"pointid",1)
@@ -597,23 +602,32 @@ end
 function TOOL:RightClick(stTrace)
   if(CLIENT) then return asmlib.StatusLog(true,"TOOL:RightClick(): Working on client") end
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:RightClick(): Trace missing") end
-  local trEnt = stTrace.Entity
-  local ply   = self:GetOwner()
+  local trEnt     = stTrace.Entity
+  local ply       = self:GetOwner()
+  local enpntmscr = self:GetScrollMouse()
+  asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
     if(asmlib.CheckButtonPly(ply,IN_USE)) then
       asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
       return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
     end
   elseif(trEnt and trEnt:IsValid()) then
-    if(gbScrollPnt) then
+    if(enpntmscr) then
       if(not self:SelectModel(trEnt:GetModel())) then
-        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Prop): Model not piece")) and
-      return asmlib.StatusLog(true,"TOOL:RightClick(Prop): Success")
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")) end
+      return asmlib.StatusLog(true,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Success")
+    else
+      if(asmlib.CheckButtonPly(ply,IN_USE)) then
+        if(not self:SelectModel(trEnt:GetModel())) then
+          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")) end
+        return asmlib.StatusLog(true,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Success")
+      end
     end
   end
-  if(not gbScrollPnt) then
+  if(not enpntmscr) then
     local Dir = (asmlib.CheckButtonPly(ply,IN_SPEED) and -1) or 1
     self:SwitchPoint(Dir,asmlib.CheckButtonPly(ply,IN_DUCK))
+    return asmlib.StatusLog(true,"TOOL:RightClick(Point): Success")
   end
 end
 

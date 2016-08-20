@@ -43,12 +43,11 @@ A: Just subscribe to the workshop item:
    If "trackassembly_enpntmscr" is set to =0
      Pressing ATTACK2 ( Default: Right mouse button )
          Will increment the chosen active position of the piece that you're holding.
-       When pressing DUCK ( Default: Shift )
+       When pressing DUCK ( Default: Ctrl )
          Will increment the chosen next position of the piece that you're holding.
-
-     Pressing Right click
+     Pressing ATTACK2 ( Default: Right mouse button ) + SPEED ( Default: Shift )
          Will decrement the chosen active position of the piece that you're holding.
-       When pressing SPEED ( Default: Shift )
+       When pressing DUCK ( Default: Ctrl )
          Will decrement the chosen next position of the piece that you're holding.
    Pressing ATTACK1 ( Default: Left mouse button )
      When you are looking at the world the piece will just be spawned on the map.
@@ -164,7 +163,9 @@ A: Here they are, with available status, why I did not do some of them ( at the 
       http://steamcommunity.com/sharedfiles/filedetails/?id=718239260
    26) SligWolf's ModelPack ( In dev 1% done)
       https://steamcommunity.com/sharedfiles/filedetails/?id=147812851
-
+   27) Ron's Minitrain Props
+      http://steamcommunity.com/sharedfiles/filedetails/?id=728833183
+   
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
 N: Which add-ons did you work on?
