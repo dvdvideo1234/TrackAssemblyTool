@@ -1,8 +1,8 @@
 @name TA Exporter Generator
 @inputs
 @outputs [Dev Chip Base]:entity [F Cen Prg]:vector Time Test PU PD
-@persist Time DF StraightUp Interval TrackPieceW TrackRangerMaxW TrackPieceH TrackRangerMaxH TrackOriginInset TrackOriginTolerance
-@persist [Cen Prg ORG F R U]:vector [Prop Mod]:string [Dev Chip Base]:entity ARC:array OutagePercentTolerance Test
+@persist Time DF StraightUp Interval TrackPieceW TrackRangerMaxW TrackPieceH TrackRangerMaxH TrackOriginInset TrackOriginTolerance:string
+@persist [Cen Prg ORG F R U]:vector [Prop Mod]:string [Dev Chip Base]:entity ARC:array OutagePercentTolerance
 @trigger none
 
 interval(20)
@@ -46,17 +46,17 @@ if(first() || dupefinished())
     OutagePercentTolerance = 5
 
     # Set this delta forward to slow fasten the process
-    DF = -0.1
+    DF = 0.1
 
     # Track piece width
-    TrackPieceW = 50
+    TrackPieceW = 120
     TrackPieceH = 20
 
     #Generate the origin with an inset
-    TrackOriginInset = 0.001
+    TrackOriginInset = 0.00001
 
     # Tolerance if the error gained when generating an actibe point
-    TrackOriginTolerance = 10^-10
+    TrackOriginTolerance = "e-014"
 
     Time = 0
     Chip = entity()
@@ -94,7 +94,7 @@ if(first() || dupefinished())
         Mode = "INS"
         Type = "#"
         Name = "#"
-        PID  = 2
+        PID  = "PID"
 
         if(Mode == "DSV")
         {
@@ -106,7 +106,7 @@ if(first() || dupefinished())
                 Del+Mod+
                 Del+Type+
                 Del+Name+
-                Del+toString(PID)+
+                Del+PID+
                 Del+P+
                 Del+toString(O):replace("[",""):replace("]","")+
                 Del+toString(A):replace("[",""):replace("]","")
@@ -121,7 +121,7 @@ if(first() || dupefinished())
                 "\""+Mod+"\""+Del+
                 "\""+Type+"\""+Del+
                 "\""+Name+"\""+Del+
-                toString(PID)+Del+
+                PID+Del+
                 "\""+P+"\""+Del+
                 "\""+toString(O):replace("[",""):replace("]","")+"\""+Del+
                 "\""+toString(A):replace("[",""):replace("]","")+"\"})"
@@ -216,7 +216,7 @@ if(StraightUp != 0 && Interval == 0)
           DF = DF * 1.7
         }
         DF =  0.5 * DF
-      #  print(_HUD_PRINTTALK,"Switch!")
+        # print(_HUD_PRINTTALK,"Switch: "+toString(DF))
     }else{
         holoPos(1,Cen) holoColor(1,vec(0,255,255))
         # BEGIN Defintition formulas
@@ -228,11 +228,11 @@ if(StraightUp != 0 && Interval == 0)
 
 
         # Use this for 2 beam tracks
-         PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
-         TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
-         TrackExtraSide  = PRL[3,number]
+        PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
+        TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
+        TrackExtraSide  = PRL[3,number]
 
-        #Use ths for monorail
+        # Use ths for monorail
         # PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
         # TrackExtraDepth = ARC[1,number] + ARC[4,number]
         # TrackExtraSide  = PRL[3,number]
@@ -245,12 +245,14 @@ if(StraightUp != 0 && Interval == 0)
         O = round(Base:toLocalAxis(ORG - Base:pos() -(TrackOriginInset * F) + (-TrackExtraDepth)*U ),6)
         A = round(Base:toLocal((F):toAngle(U)),6)
 
-        S = toString(abs(DF)-abs(TrackOriginTolerance)):sub(1,1)
+        S = toString(DF):find(TrackOriginTolerance)
 
-        if(S == "-")
+        if(S > 0)
         {
             print("Origin: "+toString(O)+" Angle: "+toString(A)+" ["+toString(DF)+"]")
             selfDestruct()
+        }else{
+           # print(_HUD_PRINTTALK,"D: "+toString(DF))
         }
         holoPos(2,Base:pos() + O:rotate(Base:angles()))
         Cen = Cen + DF * F

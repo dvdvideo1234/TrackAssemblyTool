@@ -162,7 +162,7 @@ function TOOL:GetMass()
 end
 
 function TOOL:GetDeveloperMode()
-  return asmlib.GetAsmVar("devmode" ,"INT")
+  return asmlib.GetAsmVar("devmode" ,"BUL")
 end
 
 function TOOL:GetPosOffsets()
@@ -183,7 +183,7 @@ function TOOL:GetOffsetUp()
 end
 
 function TOOL:GetPointAssist()
-  return (self:GetClientNumber("pntasist") or 0)
+  return ((self:GetClientNumber("pntasist") or 0) ~= 0)
 end
 
 function TOOL:GetFreeze()
@@ -203,7 +203,7 @@ function TOOL:GetGravity()
 end
 
 function TOOL:GetGhostHolder()
-  return (self:GetClientNumber("ghosthold") or 0)
+  return ((self:GetClientNumber("ghosthold") or 0) ~= 0)
 end
 
 function TOOL:GetNoCollide()
@@ -211,7 +211,7 @@ function TOOL:GetNoCollide()
 end
 
 function TOOL:GetSpawnFlat()
-  return (self:GetClientNumber("spnflat") or 0)
+  return ((self:GetClientNumber("spnflat") or 0) ~= 0)
 end
 
 function TOOL:GetExportDB()
@@ -227,7 +227,7 @@ function TOOL:GetLogFile()
 end
 
 function TOOL:GetAdviser()
-  return (self:GetClientNumber("adviser") or 0)
+  return ((self:GetClientNumber("adviser") or 0) ~= 0)
 end
 
 function TOOL:GetPointID()
@@ -256,7 +256,7 @@ function TOOL:GetIgnorePhysgun()
 end
 
 function TOOL:GetSpawnMC()
-  return self:GetClientNumber("mcspawn") or 0
+  return ((self:GetClientNumber("mcspawn") or 0) ~= 0)
 end
 
 function TOOL:GetStackAttempts()
@@ -474,7 +474,7 @@ function TOOL:LeftClick(stTrace)
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector()
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
-    if(mcspawn ~= 0) then  -- Spawn on mass centre
+    if(mcspawn) then  -- Spawn on mass centre
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
@@ -488,7 +488,7 @@ function TOOL:LeftClick(stTrace)
     end
     local ePiece = asmlib.MakePiece(ply,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
-      if(mcspawn ~= 0) then -- Adjust the position when created correctly
+      if(mcspawn) then -- Adjust the position when created correctly
         asmlib.SetVectorXYZ(vPos,nextx,nexty,nextz)
         vPos:Add(asmlib.GetCenterMC(ePiece)); vPos:Rotate(aAng);
         vPos:Add(ePiece:GetPos()); ePiece:SetPos(vPos)
@@ -638,8 +638,8 @@ function TOOL:Reload(stTrace)
   local trEnt = stTrace.Entity
   asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
+    if(self:GetDeveloperMode()) then asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then self:ClearAnchor() end
-    asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile())
     if(self:GetExportDB() ~= 0) then
       asmlib.LogInstance("TOOL:Reload(World): Exporting DB")
       asmlib.StoreExternalDatabase("PIECES",",","INS")
@@ -682,8 +682,7 @@ function TOOL:DrawHUD()
       return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen") end
   end
   goMonitor:SetColor()
-  local adv = self:GetAdviser()
-  if(adv == 0) then return end
+  if(not self:GetAdviser()) then return end
   local ply = LocalPlayer()
   local stTrace = ply:GetEyeTrace()
   if(not stTrace) then return end
@@ -703,7 +702,7 @@ function TOOL:DrawHUD()
     local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
-      if(self:GetPointAssist() == 0) then return end
+      if(not self:GetPointAssist()) then return end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
       if(not trRec) then return end
       local ID, O, R = 1, Vector(), (actrad * ply:GetRight())
@@ -755,7 +754,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Np,"g")
       goMonitor:DrawCircle(Np, RadScale / 2, "g")
     end
-    if(self:GetDeveloperMode() == 0) then return end
+    if(not self:GetDeveloperMode()) then return end
     local x,y = goMonitor:GetCenter(10,10)
     goMonitor:SetTextEdge(x,y)
     goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k","SURF",{"Trebuchet18"})
@@ -767,12 +766,11 @@ function TOOL:DrawHUD()
     goMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
   elseif(stTrace.HitWorld) then
     local offsetup = self:GetOffsetUp()
-    local mcspawn  = self:GetSpawnMC()
     local ydegsnp  = self:GetYawSnap()
     local surfsnap = self:GetSurfaceSnap()
     local RadScale = mathClamp(ratiom / plyd,1,ratioc)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
-    if(mcspawn ~= 0) then -- Relative to MC
+    if(self:GetSpawnMC()) then -- Relative to MC
       local vPos = Vector()
             vPos:Set(stTrace.HitPos + offsetup * stTrace.HitNormal)
             vPos:Add(nextx * aAng:Forward())
@@ -795,7 +793,7 @@ function TOOL:DrawHUD()
       goMonitor:DrawLine(Os,Tp,"y")
       goMonitor:DrawCircle(Tp, RadScale / 2,"y","SURF")
       goMonitor:DrawCircle(Os, RadScale)
-      if(self:GetDeveloperMode() == 0) then return end
+      if(not self:GetDeveloperMode()) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
       goMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
@@ -836,7 +834,7 @@ function TOOL:DrawHUD()
         goMonitor:DrawLine(Os,Np,"g")
         goMonitor:DrawCircle(Np,RadScale / 2)
       end
-      if(self:GetDeveloperMode() == 0) then return end
+      if(not self:GetDeveloperMode()) then return end
       local x,y = goMonitor:GetCenter(10,10)
       goMonitor:SetTextEdge(x,y)
       goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k","SURF",{"Trebuchet18"})
@@ -1057,6 +1055,7 @@ function TOOL.BuildCPanel(CPanel)
         CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
+  local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass"  ,"FLT")  , 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 1, asmlib.GetAsmVar("maxactrad", "FLT"), 3)
@@ -1065,7 +1064,7 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ydegsnp_con"), gsToolPrefL.."ydegsnp", 1, gnMaxOffRot, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
-  pItem = CPanel:Button(languageGetPhrase    ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
+  pItem = CPanel:Button   (languageGetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextpic_con"), gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
@@ -1073,7 +1072,6 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextrol_con"), gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
-  local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextx_con"), gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nexty_con"), gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 3)
@@ -1082,29 +1080,29 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 3)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".forcelim"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".nocollide_con"), gsToolPrefL.."nocollide")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".nocollide_con"), gsToolPrefL.."nocollide")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".freeze_con"), gsToolPrefL.."freeze")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".freeze_con"), gsToolPrefL.."freeze")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".ignphysgn_con"), gsToolPrefL.."ignphysgn")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".ignphysgn_con"), gsToolPrefL.."ignphysgn")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".gravity_con"), gsToolPrefL.."gravity")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".gravity_con"), gsToolPrefL.."gravity")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".gravity"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".igntype_con"), gsToolPrefL.."igntype")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".igntype_con"), gsToolPrefL.."igntype")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntype"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".spnflat_con"), gsToolPrefL.."spnflat")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".spnflat_con"), gsToolPrefL.."spnflat")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".mcspawn_con"), gsToolPrefL.."mcspawn")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".mcspawn_con"), gsToolPrefL.."mcspawn")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".surfsnap_con"), gsToolPrefL.."surfsnap")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".surfsnap_con"), gsToolPrefL.."surfsnap")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".adviser_con"), gsToolPrefL.."adviser")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".adviser_con"), gsToolPrefL.."adviser")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".pntasist_con"), gsToolPrefL.."pntasist")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".pntasist_con"), gsToolPrefL.."pntasist")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
-  pItem = CPanel:CheckBox(languageGetPhrase  ("tool."..gsToolNameL..".ghosthold_con"), gsToolPrefL.."ghosthold")
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".ghosthold_con"), gsToolPrefL.."ghosthold")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
 end
 
@@ -1118,20 +1116,19 @@ function TOOL:UpdateGhost(oEnt, oPly)
   local trEnt = stTrace.Entity
   if(stTrace.HitWorld) then
     local model    = self:GetModel()
-    local mcspawn  = self:GetSpawnMC()
     local ydegsnp  = self:GetYawSnap()
     local surfsnap = self:GetSurfaceSnap()
     local pointid, pnextid = self:GetPointID()
     local nextx, nexty, nextz = self:GetPosOffsets()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local aAng  = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
-    if(mcspawn ~= 0) then
+    if(self:GetSpawnMC()) then
       oEnt:SetAngles(aAng)
       local vOBB = oEnt:OBBMins()
       local vCen = asmlib.GetCenterMC(oEnt)
             vCen[cvX] = vCen[cvX] + nextx
             vCen[cvY] = vCen[cvY] + nexty
-            vCen[cvZ] = vCen[cvZ] + nextz -vOBB[cvZ]
+            vCen[cvZ] = vCen[cvZ] + nextz  -vOBB[cvZ]
       asmlib.ConCommandPly(oPly,"offsetup",-vOBB[cvZ])
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
@@ -1173,10 +1170,10 @@ end
 
 function TOOL:Think()
   local model = self:GetModel()
-  if(self:GetGhostHolder() ~= 0 and utilIsValidModel(model)) then
-    if (not self.GhostEntity or
+  if(self:GetGhostHolder() and utilIsValidModel(model)) then
+    if (not self.GhostEntity or -- Ghost irrelevant
         not self.GhostEntity:IsValid() or
-            self.GhostEntity:GetModel() ~= model) then -- If none ...
+            self.GhostEntity:GetModel() ~= model) then
       self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
     end
     self:UpdateGhost(self.GhostEntity, self:GetOwner())

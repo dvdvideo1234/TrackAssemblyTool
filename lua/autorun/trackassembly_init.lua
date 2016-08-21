@@ -32,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.290")
+asmlib.SetOpVar("TOOL_VERSION","5.291")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -124,7 +124,7 @@ if(CLIENT) then
 
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)
-      local devmode = asmlib.GetAsmVar("devmode", "INT")
+      local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
       asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode)..asmlib.GetOpVar("OPSYM_DISABLE")..tostring(command).."}")
       asmlib.ConCommandPly(oPly,"nextx"  , "0")
@@ -133,8 +133,9 @@ if(CLIENT) then
       asmlib.ConCommandPly(oPly,"nextpic", "0")
       asmlib.ConCommandPly(oPly,"nextyaw", "0")
       asmlib.ConCommandPly(oPly,"nextrol", "0")
-      if(devmode == 0) then
+      if(not devmode) then
         return asmlib.StatusLog(true,"RESET_VARIABLES: Developer mode disabled") end
+      asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
       if(bgskids == "reset cvars") then -- Reset the limit also
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         local anchor = asmlib.GetOpVar("MISS_NOID")..
@@ -285,10 +286,7 @@ if(CLIENT) then
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
         asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
-        asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),
-                             asmlib.GetAsmVar("logfile" , "STR"))
-        local ExportDB     = asmlib.GetAsmVar("exportdb", "INT")
-        if(ExportDB ~= 0) then
+        if(asmlib.GetAsmVar("exportdb", "BUL")) then
           asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
           asmlib.StoreExternalDatabase("PIECES",",","INS")
           asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
@@ -467,7 +465,7 @@ if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
 else
   asmlib.LogInstance(gsToolNameU..": DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
-  if(asmlib.GetAsmVar("devmode" ,"INT") ~= 0) then
+  if(asmlib.GetAsmVar("devmode" ,"BUL")) then
     asmlib.DefaultType("Develop Sprops")
     asmlib.InsertRecord({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1, "", "", ""})
     asmlib.InsertRecord({"models/sprops/cuboids/height12/size_1/cube_12x12x12.mdl", "#", "x2", 1, "", "", ""})
@@ -2658,7 +2656,9 @@ else
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
-  asmlib.DefaultType("Ron's Minitrain Props")
+  asmlib.DefaultType("Ron's Minitrain Props",function(m)
+    local r = stringGsub(m,"models/ron/minitrains/",""); r = stringSub(r,1,stringFind(r,"/")-1);
+    return asmlib.ModelToName(r,true); end)
   asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
   asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 2, "", "-1, 8.507, 1", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/minitrains/straight/2.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
@@ -2669,6 +2669,72 @@ else
   asmlib.InsertRecord({"models/ron/minitrains/straight/8.mdl",   "#", "#", 2, "", "-8, 8.507, 1", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/minitrains/scenery/tunnel_64.mdl",   "#", "#", 1, "", "  0, 8.507, 1", ""})
   asmlib.InsertRecord({"models/ron/minitrains/scenery/tunnel_64.mdl",   "#", "#", 2, "", "-64, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1.mdl", "#", "#", 1, "", "0, 0.5,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1.mdl", "#", "#", 2, "", "0,-0.5,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_2.mdl", "#", "#", 1, "", "0, 1,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_2.mdl", "#", "#", 2, "", "0,-1,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_4.mdl", "#", "#", 1, "", "0, 2,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_4.mdl", "#", "#", 2, "", "0,-2,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_8.mdl", "#", "#", 1, "", "0, 4,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_8.mdl", "#", "#", 2, "", "0,-4,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_16.mdl", "#", "#", 1, "", "0, 8,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_16.mdl", "#", "#", 2, "", "0,-8,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_32.mdl", "#", "#", 1, "", "0, 16,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_32.mdl", "#", "#", 2, "", "0,-16,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_64.mdl", "#", "#", 1, "", "0, 32,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_64.mdl", "#", "#", 2, "", "0,-32,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_128.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_128.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_256.mdl", "#", "#", 1, "", "0, 128,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_256.mdl", "#", "#", 2, "", "0,-128,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_512.mdl", "#", "#", 1, "", "0, 256,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_512.mdl", "#", "#", 2, "", "0,-256,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1024.mdl", "#", "#", 1, "", "0, 512,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1024.mdl", "#", "#", 2, "", "0,-512,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_1.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_1.mdl", "#", "#", 2, "", "138.5,138.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_2.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_2.mdl", "#", "#", 2, "", "168.5,168.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_3.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_3.mdl", "#", "#", 2, "", "198.5,198.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_4.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_4.mdl", "#", "#", 2, "", "228.5,228.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_5.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_5.mdl", "#", "#", 2, "", "258.5,258.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_6.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_6.mdl", "#", "#", 2, "", "288.5,288.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_1.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_1.mdl", "#", "#", 2, "", "40.565710805663,97.934289194337,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_2.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_2.mdl", "#", "#", 2, "", "49.352507370067,119.14749262993,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_3.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_3.mdl", "#", "#", 2, "", "58.13930393447,140.360696065530,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_4.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_4.mdl", "#", "#", 2, "", "66.926100498874,161.57389950113,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_5.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_5.mdl", "#", "#", 2, "", "75.712897063277,182.78710293672,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_6.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_6.mdl", "#", "#", 2, "", "84.499693627681,204.00030637232,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_1.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_1.mdl", "#", "#", 2, "", "10.542684747187,53.001655382565,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_2.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_2.mdl", "#", "#", 2, "", "12.826298771848,64.482158353518,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_3.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_3.mdl", "#", "#", 2, "", "15.109912796510,75.962661324470,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_4.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_4.mdl", "#", "#", 2, "", "17.393526821171,87.443164295423,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_5.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_5.mdl", "#", "#", 2, "", "19.677140845832,98.923667266376,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_6.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_6.mdl", "#", "#", 2, "", "21.960754870494,110.40417023733,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_128.mdl", "#", "#", 1, "", "0,  0, 1", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_128.mdl", "#", "#", 2, "", "0,144,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_256.mdl", "#", "#", 1, "", "0,  0, 1", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_256.mdl", "#", "#", 2, "", "0,272,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 1, "", "0,  0, 1", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 2, "", "0,528,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then

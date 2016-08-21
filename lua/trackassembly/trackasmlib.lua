@@ -210,21 +210,12 @@ function IsOther(oEnt)
 end
 
 ------------------ LOGS ------------------------
+
 local function FormatNumberMax(nNum,nMax)
   local nNum = tonumber(nNum)
   local nMax = tonumber(nMax)
   if(not (nNum and nMax)) then return "" end
   return stringFormat("%"..stringLen(tostring(mathFloor(nMax))).."d",nNum)
-end
-
-function SetLogControl(nLines,sFile)
-  SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("LOG_LOGFILE",tostring(sFile or ""))
-  SetOpVar("LOG_MAXLOGS",mathFloor(tonumber(nLines) or 0))
-  if(not fileExists(GetOpVar("DIRPATH_BAS"),"DATA") and
-     not IsEmptyString(GetOpVar("LOG_LOGFILE"))) then
-    fileCreateDir(GetOpVar("DIRPATH_BAS"))
-  end
 end
 
 local function Log(anyStuff)
@@ -344,6 +335,17 @@ function Print(tT,sS)
       Print(v,Key)
     end
   end
+end
+
+function SetLogControl(nLines,sFile)
+  SetOpVar("LOG_CURLOGS",0)
+  SetOpVar("LOG_LOGFILE",tostring(sFile or ""))
+  SetOpVar("LOG_MAXLOGS",mathFloor(tonumber(nLines) or 0))
+  if(not fileExists(GetOpVar("DIRPATH_BAS"),"DATA") and
+     not IsEmptyString(GetOpVar("LOG_LOGFILE"))) then
+    fileCreateDir(GetOpVar("DIRPATH_BAS"))
+  end
+  PrintInstance("SetLogControl("..tostring(GetOpVar("LOG_MAXLOGS"))..","..GetOpVar("LOG_LOGFILE")..")")
 end
 
 ----------------- INITAIALIZATION -----------------
@@ -2919,9 +2921,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   stSpawn.OPos:Add(stSpawn.TPos)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
-  if(enFlatten and enFlatten ~= 0) then
-    stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0
-  end
+  if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
   return GetNormalSpawn(nil,nil,shdModel,ihdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end
 

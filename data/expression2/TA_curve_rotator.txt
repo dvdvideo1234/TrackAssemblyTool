@@ -1,0 +1,32 @@
+@name TA_curve_rotator
+@inputs
+@outputs
+@persist [O V R]:vector2 SignAng Length Iter
+@trigger
+
+runOnTick(1)
+
+if(first() || dupefinished())
+{
+    # The length of the curve goes here
+    Length = 198.5
+
+    # The angle sign it will be rotated to
+    SignAng  = -1
+
+    # Origin of the rotation
+    O = vec2(Length,0)
+
+    # Initial vector to be rotated
+    V = vec2(-Length,0)
+
+    # Do not touch
+    print("\n\n")
+    print("R 225: "+toString(V:rotate(SignAng * 22.5) + O))
+    print("R 450: "+toString(V:rotate(SignAng * 45.0) + O))
+    print("R 900: "+toString(V:rotate(SignAng * 90.0) + O))
+
+    selfDestruct()
+}
+
+

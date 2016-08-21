@@ -366,11 +366,13 @@ A: First of all if the error origin is not the TA,
     7) Done ! It all should work now. If not, proceed as below ( 8 - 14 )
     8) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
     9) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
-   10) Point to the world in-game hold SPEED ( Default: Shift ) + RELOAD ( Default: R )
-   11) Now the hardest part - While in-game do some stuff and make it crash again.
-   12) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
-   13) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
-   14) If you don't bother using the workshop ( Yeah, I hate it too ), then please use the GitHub link instead.
+   10) Enable developer mode via "trackassembly_devmode 1"
+   11) Server: Point to the world in-game and press RELOAD ( Default: R )
+   12) Client: Click the "Reset Variables" button
+   13) Now the hardest part - While in-game do some stuff and make it crash again.
+   14) Navigate to ..Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\trackasmlib_log.txt
+   15) Report the log and the error to https://github.com/dvdvideo1234/TrackAssemblyTool/issues
+   16) If you don't bother using the workshop ( Yeah, I hate it too ), then please use the GitHub link instead.
        Be sure to download only a stable release version: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
        GitHub: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master
        SVN     https://github.com/dvdvideo1234/TrackAssemblyTool/trunk
