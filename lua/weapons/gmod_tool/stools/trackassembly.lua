@@ -137,7 +137,7 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".name"      , "Track Assembly")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
-  hookAdd("PlayerBindPress", gsToolPrefL.."playerbindpress", asmlib.GetActionCode("POINT_SCROLL"))
+  hookAdd("PlayerBindPress", gsToolPrefL.."playerbindpress", asmlib.GetActionCode("BIND_PRESS"))
 end
 
 if(SERVER) then
@@ -280,23 +280,15 @@ function TOOL:GetScrollMouse()
 end
 
 function TOOL:SwitchPoint(nDir,bIsNext)
-  local actDir  = (tonumber(nDir) or 0)
-        actDir  = (actDir > 0 and 1) or (actDir < 0 and -1) or 0
-  if(actDir == 0) then return asmlib.StatusLog(false,"SwitchPoint: Skipped switching") end
-  local actRec  = asmlib.CacheQueryPiece(self:GetModel())
+  local Rec = asmlib.CacheQueryPiece(self:GetModel())
   local pointid, pnextid = self:GetPointID()
   local pointbu = pointid -- Create backup
-  if    (nDir > 0) then -- Process increment
-    if(bIsNext) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"+",actRec)
-    else             pointid = asmlib.IncDecPointID(pointid,"+",actRec) end
-  elseif(nDir < 0) then -- Process decrement
-    if(bIsNext) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,"-",actRec)
-    else             pointid = asmlib.IncDecPointID(pointid,"-",actRec) end
-  end -- Apply changes for the active points
+  if(bIsNext) then pnextid = asmlib.IncDecPnextID(pnextid,pointid,Dir,Rec)
+  else             pointid = asmlib.IncDecPointID(pointid,Dir,Rec) end
   if(pointid == pnextid) then pnextid = pointbu end
   RunConsoleCommand(gsToolPrefL.."pnextid",pnextid)
   RunConsoleCommand(gsToolPrefL.."pointid",pointid)
-  asmlib.LogInstance("TOOL:SwitchPoint("..tostring(nDir)..","..tostring(bIsNext).."): Success")
+  asmlib.LogInstance("TOOL:SwitchPoint("..tostring(Dir)..","..tostring(bIsNext).."): Success")
   return pointid, pnextid
 end
 

@@ -1047,17 +1047,15 @@ local function BorderValue(nsVal,sName)
   return nsVal
 end
 
-function IncDecPointID(ivPointID,sDir,rPiece)
+function IncDecPointID(ivPointID,nDir,rPiece)
   local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPointID: Point ID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
   local stPOA = LocatePOA(rPiece,iPointID)
   if(not IsExistent(stPOA)) then
     return StatusLog(1,"IncDecPointID: Point ID #"..tostring(iPointID).." not located") end
-  local sDir, nDir = stringSub(tostring(sDir),1,1), 0
-  if    (sDir == "+") then nDir =  1
-  elseif(sDir == "-") then nDir = -1
-  else return StatusLog(iPointID,"IncDecPointID: Direction <"..sDir.."> mismatch") end
+  local Dir = (tonumber(nDir) or 0); Dir = ((Dir > 0) and 1) or ((Dir < 0) and -1) or 0
+  if(Dir == 0) then return StatusLog(iPointID,"IncDecPointID: Direction mismatch") end
   iPointID = RollValue(iPointID + nDir,1,rPiece.Kept)
   stPOA    = LocatePOA(rPiece,iPointID) -- Skip disabled O ( Origin )
   while(stPOA and stPOA.O[csD]) do
@@ -1066,11 +1064,11 @@ function IncDecPointID(ivPointID,sDir,rPiece)
     stPOA    = LocatePOA(rPiece,iPointID) -- Skip disabled O ( Origin )
   end; iPointID = RollValue(iPointID,1,rPiece.Kept)
   if(not IsExistent(LocatePOA(rPiece,iPointID))) then
-    return StatusLog(1,"IncDecPointID["..sDir.."]: Offset PnextID #"..tostring(iPointID).." not located") end
+    return StatusLog(1,"IncDecPointID["..tostring(Dir).."]: Offset PnextID #"..tostring(iPointID).." not located") end
   return iPointID
 end
 
-function IncDecPnextID(ivPnextID,ivPointID,sDir,rPiece)
+function IncDecPnextID(ivPnextID,ivPointID,nDir,rPiece)
   local iPointID, iPnextID = tonumber(ivPointID), tonumber(ivPnextID)
   if(not IsExistent(iPointID)) then
     return StatusLog(1,"IncDecPnextID: PointID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">") end
@@ -1080,14 +1078,12 @@ function IncDecPnextID(ivPnextID,ivPointID,sDir,rPiece)
     return StatusLog(1,"IncDecPointID: Offset PointID #"..tostring(iPointID).." not located") end
   if(not IsExistent(LocatePOA(rPiece,iPnextID))) then
     return StatusLog(1,"IncDecPointID: Offset PnextID #"..tostring(iPnextID).." not located") end
-  local sDir, nDir = stringSub(tostring(sDir),1,1), 0
-  if    (sDir == "+") then nDir =  1
-  elseif(sDir == "-") then nDir = -1
-  else return StatusLog(iPnextID,"IncDecPnextID: Direction <"..sDir.."> mismatch") end
-  iPnextID = RollValue(iPnextID + nDir,1,rPiece.Kept)
-  if(iPnextID == iPointID) then iPnextID = RollValue(iPnextID + nDir,1,rPiece.Kept) end
+  local Dir = (tonumber(nDir) or 0); Dir = ((Dir > 0) and 1) or ((Dir < 0) and -1) or 0
+  if(Dir == 0) then return StatusLog(iPnextID,"IncDecPnextID: Direction mismatch") end
+  iPnextID = RollValue(iPnextID + Dir,1,rPiece.Kept)
+  if(iPnextID == iPointID) then iPnextID = RollValue(iPnextID + Dir,1,rPiece.Kept) end
   if(not IsExistent(LocatePOA(rPiece,iPnextID))) then
-    return StatusLog(1,"IncDecPointID["..sDir.."]: Offset PnextID #"..tostring(iPnextID).." not located") end
+    return StatusLog(1,"IncDecPointID["..tostring(Dir).."]: Offset PnextID #"..tostring(iPnextID).." not located") end
   return iPnextID
 end
 
@@ -3252,7 +3248,7 @@ function SetLocalify(sCode, sPhrase, sDetail)
     return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sPhrase).."> invalid") end
   local Localify = GetOpVar("TABLE_LOCALIFY")
   if(not IsExistent(Localify[sCode])) then Localify[sCode] = {}; end
-  Localify[sCode][sPhrase] = sDetail
+  Localify[sCode][sPhrase] = tostring(sDetail)
 end
 
 function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes

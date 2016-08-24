@@ -32,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.291")
+asmlib.SetOpVar("TOOL_VERSION","5.292")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -58,19 +58,23 @@ asmlib.MakeAsmVar("logfile"  , ""  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XB
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeAsmVar("localify" , "ENG", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "The current language chosen")
 asmlib.MakeAsmVar("modedb"   , "LUA", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
-asmlib.MakeAsmVar("enqstore" ,   1  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
+asmlib.MakeAsmVar("enqstore" , "1", {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
+asmlib.MakeAsmVar("devmode"  , "0", {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Toggle developer mode on/off server side")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
-asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle developer mode on/off server side")
 asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum mass that can be appied on a piece")
 asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum linear offset os the piece")
 asmlib.MakeAsmVar("maxforce" , "100000",  {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum force limit when creating welds")
 asmlib.MakeAsmVar("maxactrad", "150", {1,500}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
 asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+
+if(CLIENT) then
+  asmlib.MakeAsmVar("localify" , "ENG", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "The current language chosen")
+end
+
 if(SERVER) then
   CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum number of tracks to be spawned")
   asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
@@ -101,25 +105,31 @@ if(SERVER) then
 end
 
 if(CLIENT) then
-  asmlib.SetAction("POINT_SCROLL",
-    function(oPly,oBind,oPress) -- Must have the same parameters as the hook
-      if(not oPress) then return asmlib.StatusLog(nil,"POINT_SCROLL: Bind not pressed") end
+  asmlib.SetAction("BIND_PRESS",
+    function(oPly,sBind,bPress) -- Must have the same parameters as the hook
+      if(not bPress) then return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
       local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"POINT_SCROLL: Swep invalid") end
-      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(nil,"POINT_SCROLL: Swep not tool") end
-      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(nil,"POINT_SCROLL: Tool different") end
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"BIND_PRESS: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool different") end
       -- Here player is holding the track assembly tool
       local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
-      if(not actTool) then return asmlib.StatusLog(nil,"POINT_SCROLL: Tool invalid") end
-      if(not actTool:GetScrollMouse()) then return asmlib.StatusLog(nil,"POINT_SCROLL: Scrolling disabled") end
-      if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(nil,"POINT_SCROLL: Active key missing") end
-      -- Process the scroll events here
-      if((oBind == "invnext") or (oBind == "invprev")) then
-        local Dir = ((oBind == "invnext") and 1) or ((oBind == "invprev") and -1) or 0
+      if(not actTool) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
+      if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
+        if(not actTool:GetScrollMouse()) then return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Scrolling disabled") end
+        if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Active key missing") end
+        local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
-        return asmlib.StatusLog(true,"POINT_SCROLL("..oBind.."): Processed")
-      end -- Override only the scrolling in track assembly and skip touching anything else
-      return asmlib.StatusLog(nil,"POINT_SCROLL("..oBind.."): Skipped")
+        return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
+      if(sBind == "alt") then -- Shortcut to close the frequent models panel
+        if(not inputIsKeyDown(KEY_Q)) then return asmlib.StatusLog(nil,"BIND_PRESS(Close): Active key missing") end
+        local actFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
+        if(not asmlib.IsExistent(actFrame)) then return asmlib.StatusLog(nil,"BIND_PRESS(Close): Frame missing") end
+        if(not IsValid(actFrame)) then return asmlib.StatusLog(nil,"BIND_PRESS(Close): Frame not valid") end
+        actFrame.OnClose() -- Removing the frame is the same like pressing close
+        return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
+      end -- Override only for TA and skip touching anything else
+      return asmlib.StatusLog(nil,"BIND_PRESS("..sBind.."): Skipped")
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
@@ -212,7 +222,7 @@ if(CLIENT) then
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"     ,"Click to export the client database as a file"}})
             pnElements:Insert(2,{Label = { "DListView"  ,"Routine Items" ,"The list of your frequently used track pieces"}})
-            pnElements:Insert(3,{Label = { "DModelPanel","Piece Display" ,"The model of your track piece is displayed here"}})
+            pnElements:Insert(3,{Label = { "DAdjustableModelPanel","Piece Display" ,"The model of your track piece is displayed here"}})
             pnElements:Insert(4,{Label = { "DTextEntry" ,"Enter Pattern" ,"Enter a pattern here and hit enter to preform a search"}})
             pnElements:Insert(5,{Label = { "DComboBox"  ,"Select Column" ,"Choose which list column you want to preform a search on"}})
       ------------ Manage the invalid panels -------------------
@@ -273,7 +283,7 @@ if(CLIENT) then
         end
         pnFrame:Remove(); collectgarbage()
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
-      end
+      end; asmlib.SetOpVar("PANEL_FREQUENT_MODELS",pnFrame)
       ------------ Button --------------
       xyPos.x = xyZero.x + xyDelta.x
       xyPos.y = xyZero.y + xyDelta.y
@@ -2552,7 +2562,10 @@ else
   asmlib.DefaultType("G Scale Track Pack", function(m)
     local r = stringGsub(m,"models/gscale/",""); r = stringSub(r,1,stringFind(r,"/")-1);
     if    (r == "j") then r = "J-Switcher"
-    elseif(r == "s") then r = "S-Switcher" end
+    elseif(r == "s") then r = "S-Switcher"
+    elseif(r == "c0512") then r = "Curve 512"
+    elseif(r == "ibeam") then r = "Iron Beam"
+    elseif(r == "ramp313") then r = "Ramp 313" end
     return asmlib.ModelToName(r,true); end)
   asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 2, "", "  -8,0,1.016", "0,-180,0"})
@@ -2560,12 +2573,6 @@ else
   asmlib.InsertRecord({"models/gscale/straight/s0016.mdl", "#", "#", 2, "", " -16,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 2, "", " -64,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0128.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
@@ -2576,6 +2583,12 @@ else
   asmlib.InsertRecord({"models/gscale/straight/s0512.mdl", "#", "#", 2, "", "-512,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s1024.mdl", "#", "#", 1, "", "    0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s1024.mdl", "#", "#", 2, "", "-1024,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/c0512/225l.mdl", "#", "#", 1, "", " 0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/c0512/225l.mdl", "#", "#", 2, "", "-196.060471,-39.081982,1.016", "0,-157.5,0"})
   asmlib.InsertRecord({"models/gscale/c0512/225r.mdl", "#", "#", 1, "", " 0,0,1.016", ""})
