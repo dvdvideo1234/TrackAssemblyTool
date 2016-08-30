@@ -32,11 +32,11 @@ A: Just subscribe to the workshop item:
    On the right in the tool's menu, you can locate the track pieces tree.
    Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
    If "trackassembly_enpntmscr" is set to <>0
-     Pressing USE ( Default: E ) + NEXT_WEAPON ( Default: Mouse wheel down )
+     Pressing ALT + NEXT_WEAPON ( Default: Mouse wheel down )
          Will increment the chosen active position of the piece that you're holding.
        When pressing SPEED ( Default: Shift )
          Will increment the chosen next position of the piece that you're holding.
-     Pressing USE ( Default: E ) + PREV_WEAPON ( Default: Mouse wheel up )
+     Pressing ALT + PREV_WEAPON ( Default: Mouse wheel up )
          Will decrement the chosen active position of the piece that you're holding.
        When pressing SPEED ( Default: Shift )
          Will decrement the chosen next position of the piece that you're holding.

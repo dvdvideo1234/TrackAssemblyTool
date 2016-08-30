@@ -1170,7 +1170,7 @@ function TOOL:Think()
                self.GhostEntity:IsValid() and
                self.GhostEntity:GetModel() == model)) then
         self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
-      end
+      end -- In client single player the grost is skipped
       self:UpdateGhost(self.GhostEntity, self:GetOwner())
     else
       self:ReleaseGhostEntity()
