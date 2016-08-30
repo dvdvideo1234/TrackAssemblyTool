@@ -22,6 +22,7 @@ local mathClamp             = math and math.Clamp
 local fileExists            = file and file.Exists
 local hookAdd               = hook and hook.Add
 local tableGetKeys          = table and table.GetKeys
+local inputIsKeyDown        = input and input.IsKeyDown
 local stringLen             = string and string.len
 local stringRep             = string and string.rep
 local stringSub             = string and string.sub
@@ -280,6 +281,7 @@ function TOOL:GetScrollMouse()
 end
 
 function TOOL:SwitchPoint(nDir,bIsNext)
+  local Dir = (tonumber(nDir) or 0)
   local Rec = asmlib.CacheQueryPiece(self:GetModel())
   local pointid, pnextid = self:GetPointID()
   local pointbu = pointid -- Create backup
@@ -1161,18 +1163,28 @@ function TOOL:UpdateGhost(oEnt, oPly)
 end
 
 function TOOL:Think()
-  local model = self:GetModel()
-  if(self:GetGhostHolder() and utilIsValidModel(model)) then
-    if (not self.GhostEntity or -- Ghost irrelevant
-        not self.GhostEntity:IsValid() or
-            self.GhostEntity:GetModel() ~= model) then
-      self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
+  local model = self:GetModel() -- Ghost irrelevant
+  if(utilIsValidModel(model)) then
+    if(self:GetGhostHolder()) then
+      if (not (self.GhostEntity and
+               self.GhostEntity:IsValid() and
+               self.GhostEntity:GetModel() == model)) then
+        self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
+      end
+      self:UpdateGhost(self.GhostEntity, self:GetOwner())
+    else
+      self:ReleaseGhostEntity()
+      if(self.GhostEntity and self.GhostEntity:IsValid()) then
+        self.GhostEntity:Remove()
+      end
     end
-    self:UpdateGhost(self.GhostEntity, self:GetOwner())
-  else
-    self:ReleaseGhostEntity()
-    if(self.GhostEntity and self.GhostEntity:IsValid()) then
-      self.GhostEntity:Remove()
+    if(CLIENT and inputIsKeyDown(KEY_LALT)) then
+      if(inputIsKeyDown(KEY_E)) then
+        local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
+        if(pnFrame and IsValid(pnFrame)) then
+          pnFrame.OnClose()
+        end
+      end
     end
   end
 end

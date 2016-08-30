@@ -32,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.292")
+asmlib.SetOpVar("TOOL_VERSION","5.293")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -113,20 +113,13 @@ if(CLIENT) then
       if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
       if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool different") end
       -- Here player is holding the track assembly tool
+      if(not inputIsKeyDown(KEY_LALT)) then return asmlib.StatusLog(nil,"BIND_PRESS: Active key missing") end
       local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
       if(not actTool) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
       if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
         if(not actTool:GetScrollMouse()) then return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Scrolling disabled") end
-        if(not inputIsKeyDown(KEY_E)) then return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Active key missing") end
         local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
-        return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
-      if(sBind == "alt") then -- Shortcut to close the frequent models panel
-        if(not inputIsKeyDown(KEY_Q)) then return asmlib.StatusLog(nil,"BIND_PRESS(Close): Active key missing") end
-        local actFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
-        if(not asmlib.IsExistent(actFrame)) then return asmlib.StatusLog(nil,"BIND_PRESS(Close): Frame missing") end
-        if(not IsValid(actFrame)) then return asmlib.StatusLog(nil,"BIND_PRESS(Close): Frame not valid") end
-        actFrame.OnClose() -- Removing the frame is the same like pressing close
         return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
       end -- Override only for TA and skip touching anything else
       return asmlib.StatusLog(nil,"BIND_PRESS("..sBind.."): Skipped")
@@ -222,7 +215,7 @@ if(CLIENT) then
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"     ,"Click to export the client database as a file"}})
             pnElements:Insert(2,{Label = { "DListView"  ,"Routine Items" ,"The list of your frequently used track pieces"}})
-            pnElements:Insert(3,{Label = { "DAdjustableModelPanel","Piece Display" ,"The model of your track piece is displayed here"}})
+            pnElements:Insert(3,{Label = { "DModelPanel","Piece Display" ,"The model of your track piece is displayed here"}})
             pnElements:Insert(4,{Label = { "DTextEntry" ,"Enter Pattern" ,"Enter a pattern here and hit enter to preform a search"}})
             pnElements:Insert(5,{Label = { "DComboBox"  ,"Select Column" ,"Choose which list column you want to preform a search on"}})
       ------------ Manage the invalid panels -------------------
@@ -281,7 +274,7 @@ if(CLIENT) then
           pnElements:Delete(iNdex)
           iNdex = iNdex + 1
         end
-        pnFrame:Remove(); collectgarbage()
+        pnFrame:Remove(); asmlib.SetOpVar("PANEL_FREQUENT_MODELS",nil); collectgarbage()
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
       end; asmlib.SetOpVar("PANEL_FREQUENT_MODELS",pnFrame)
       ------------ Button --------------
