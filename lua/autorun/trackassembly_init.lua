@@ -14,6 +14,9 @@ local CreateConVar         = CreateConVar
 local RunConsoleCommand    = RunConsoleCommand
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
+local mathClamp            = math and math.Clamp
+local hookAdd              = hook and hook.Add
+local utilTraceLine        = util and util.TraceLine
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
 local inputIsKeyDown       = input and input.IsKeyDown
@@ -33,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.296")
+asmlib.SetOpVar("TOOL_VERSION","5.297")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -54,37 +57,37 @@ asmlib.SetOpVar("LOG_SKIP",{
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
-local gbIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
+local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
 -- Server tells the client what value to use
-local gbServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
+local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
 
 ------ CONFIGURE LOGGING ------
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmVar("logsmax"  , "0" , {0}, gbIndependentUsed, "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , ""  , nil, gbIndependentUsed, "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logsmax"  , "0" , {0}, gnIndependentUsed, "Maximum logging lines to be printed")
+asmlib.MakeAsmVar("logfile"  , ""  , nil, gnIndependentUsed, "File to store the logs ( if any )")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
 ------ CONFIGURE VARIABLES ------
-asmlib.MakeAsmVar("modedb"   , "LUA",     nil, gbIndependentUsed, "Database operating mode")
-asmlib.MakeAsmVar("enqstore" , "1"  , {0, 1 }, gbIndependentUsed, "Enable caching for built queries")
-asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, gbIndependentUsed, "Toggle developer mode on/off server side")
-asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gbIndependentUsed, "Memory management setting when DB mode is SQL")
+asmlib.MakeAsmVar("modedb"   , "LUA",     nil, gnIndependentUsed, "Database operating mode")
+asmlib.MakeAsmVar("enqstore" , "1"  , {0, 1 }, gnIndependentUsed, "Enable caching for built queries")
+asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
-asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gbServerControled, "Maximum mass that can be appied on a piece")
-asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gbServerControled, "Maximum linear offset os the piece")
-asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gbServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gbServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, gbServerControled, "Maximum pieces to spawn in stack mode")
-asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gbServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gnServerControled, "Maximum mass that can be appied on a piece")
+asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gnServerControled, "Maximum linear offset os the piece")
+asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gnServerControled, "Maximum force limit when creating welds")
+asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, gnServerControled, "Maximum pieces to spawn in stack mode")
+asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
 
 if(CLIENT) then
-  asmlib.MakeAsmVar("localify", "ENG", nil, gbIndependentUsed, "The current language chosen")
+  asmlib.MakeAsmVar("localify", "ENG", nil, gnIndependentUsed, "The current language chosen")
 end
 
 if(SERVER) then
-  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , gbServerControled, "Unreasonable position error handling mode")
-  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, gbServerControled, "Maximum frequent pieces to be listed")
-  CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", gbServerControled, "Maximum number of tracks to be spawned")
+  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
+  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
+  CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", gnServerControled, "Maximum number of tracks to be spawned")
 end
 
 ------ CONFIGURE INTERNALS -----
@@ -92,6 +95,7 @@ asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
 asmlib.SetOpVar("EN_QUERY_STORE", asmlib.GetAsmVar("enqstore", "BUL"))
 
 ------ GLOBAL VARIABLES ------
+local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
@@ -99,6 +103,78 @@ local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetAsmVar("timermode","STR"))
+
+-------- HOOKS -----------
+
+local function trackPhysgunSnap(pPly, trEnt)
+  if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
+    return asmlib.StatusLog(nil,"trackPhysgunSnap: Extension disabled") end
+  if(not asmlib.IsPlayer(pPly)) then
+    return asmlib.StatusLog(nil,"trackPhysgunSnap: Player invalid") end
+  if(not (trEnt and trEnt:IsValid())) then
+    return asmlib.StatusLog(nil,"trackPhysgunSnap: Trace entity invalid") end
+  local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+  if(not trRec) then
+    return asmlib.StatusLog(nil,"trackPhysgunSnap: Trace not piece") end
+  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
+  local nMaxOffLin   = asmlib.GetAsmVar("maxlinear","FLT")
+  local bnderrmod    = asmlib.GetAsmVar("bnderrmod" ,"STR")
+  local activrad     = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
+  local spnflat      = (pPly:GetInfoNum(gsToolPrefL.."spnflat", 0) ~= 0)
+  local igntype      = (pPly:GetInfoNum(gsToolPrefL.."igntype", 0) ~= 0)
+  local nextx        = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextx"  , 0),-nMaxOffLin , nMaxOffLin)
+  local nexty        = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nexty"  , 0),-nMaxOffLin , nMaxOffLin)
+  local nextz        = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextz"  , 0),-nMaxOffLin , nMaxOffLin)
+  local nextpic      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextpic", 0),-gnMaxOffRot,gnMaxOffRot)
+  local nextyaw      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw", 0),-gnMaxOffRot,gnMaxOffRot)
+  local nextrol      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol", 0),-gnMaxOffRot,gnMaxOffRot)
+  local ignphysgn    = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0))
+  local freeze       = (pPly:GetInfoNum(gsToolPrefL.."freeze"   , 0))
+  local gravity      = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0))
+  local physmater    = (pPly:GetInfo   (gsToolPrefL.."physmater", "metal"))
+  local weld         = (pPly:GetInfoNum(gsToolPrefL.."weld"     , 0))
+  local nocollide    = (pPly:GetInfoNum(gsToolPrefL.."nocollide", 0))
+  local forcelim     = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim" , 0),0,asmlib.GetAsmVar("maxforce" ,"FLT"))
+  local oPos, oEnd, oAng   = Vector(), Vector(), Angle()
+  for trID = 1, trRec.Kept, 1 do
+    local trPOA = asmlib.LocatePOA(trRec,trID)
+    if(not trPOA) then
+      return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed locating "..trID.." of "..trRec.Kept) end
+    asmlib.SetVector(oPos, trPOA.O)
+    asmlib.SetAngle (oAng, trPOA.A)
+    oPos:Rotate(trAng); oPos:Add(trPos)
+    oAng:Set(trEnt:LocalToWorldAngles(oAng))
+    oEnd:Set(oAng:Forward()); oEnd:Mul(activrad); oEnd:Add(oPos)
+    local oTr = utilTraceLine({
+      start  = oPos,
+      endpos = oEnd,
+      mask   = MASK_SOLID,
+      filter = function(oPiece) -- Only valid props which are not the main entity
+        if(oPiece and oPiece:IsValid() and oPiece:GetClass() == "prop_physics" and oPiece ~= trEnt) then return true end
+      end
+    })
+    if(oTr and oTr.Hit) then -- When hits the distance will be less than the active radius
+      local oEnt    = oTr.Entity
+      local stSpawn = asmlib.GetEntitySpawn(oEnt,oTr.HitPos,trRec.Slot,trID,
+                        activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      if(stSpawn) then
+        if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
+          return StatusLog(nil,"trackPhysgunSnap: "..pPly:Nick().." snapped <"..sModel.."> outside bounds") end
+        trEnt:SetAngles(stSpawn.SAng)
+        if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
+          return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed to apply physical settings") end
+        if(not asmlib.ApplyPhysicalAnchor(trEnt,oEnt,weld,nocollide,forcelim)) then
+          return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed to apply physical anchor") end
+        break -- The first one to be traced will be snapped on physgun mouse release
+      end
+    end
+  end
+end
+
+hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", function(pPly, trEnt)
+  local r, e = pcall(trackPhysgunSnap, pPly, trEnt)
+  if(not r) then asmlib.PrintInstance("PHYSGUN_DROP: "..e) end
+end)
 
 -------- ACTIONS  ----------
 if(SERVER) then

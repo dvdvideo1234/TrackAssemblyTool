@@ -3094,7 +3094,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   return StatusLog(true,"AttachBodyGroups: Success")
 end
 
-local function SetPosBound(ePiece,vPos,oPly,sMode)
+function SetPosBound(ePiece,vPos,oPly,sMode)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"SetPosBound: Entity invalid") end
   if(not IsExistent(vPos)) then
@@ -3257,6 +3257,7 @@ function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_
   local Localify = GetOpVar("TABLE_LOCALIFY")
   if(not IsExistent(Localify[sCode])) then
     return StatusLog(nil,"GetLocalify: Language not found for <"..sCode..">") end
+  LogInstance("InitLocalify: Code <"..sCode..">")
   for phrase, detail in pairs(Localify[sCode]) do
     languageAdd(phrase, detail)
   end
