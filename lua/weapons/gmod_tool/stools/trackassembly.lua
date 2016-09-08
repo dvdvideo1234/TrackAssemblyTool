@@ -122,7 +122,8 @@ TOOL.ClientConVar = {
   [ "maxstatts" ] = "3",
   [ "nocollide" ] = "1",
   [ "physmater" ] = "metal",
-  [ "enpntmscr" ] = "1"
+  [ "enpntmscr" ] = "1",
+  [ "engunsnap" ] = "0"
 }
 
 if(CLIENT) then
@@ -1098,6 +1099,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".ghosthold_con"), gsToolPrefL.."ghosthold")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".engunsnap"))
 end
 
 function TOOL:UpdateGhost(oEnt, oPly)

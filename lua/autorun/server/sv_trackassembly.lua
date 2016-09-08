@@ -23,7 +23,7 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 
 local function trackPhysgunSnap(pPly, trEnt)
-  if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
+  if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
     return asmlib.StatusLog(nil,"trackPhysgunSnap: Extension disabled") end
   if(not asmlib.IsPlayer(pPly)) then
     return asmlib.StatusLog(nil,"trackPhysgunSnap: Player invalid") end
@@ -81,7 +81,6 @@ local function trackPhysgunSnap(pPly, trEnt)
           return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed to apply physical settings") end
         if(not asmlib.ApplyPhysicalAnchor(trEnt,oEnt,weld,nocollide,forcelim)) then
           return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed to apply physical anchor")) end
-
         break -- The first one to be traced will be snapped on physgun mouse release
       end
     end
@@ -92,8 +91,3 @@ hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", function(pPly, trEnt)
   local r, e = pcall(trackPhysgunSnap, pPly, trEnt)
   if(not r) then asmlib.PrintInstance("PHYSGUN_DROP: "..e) end
 end)
-
-
-
-
-

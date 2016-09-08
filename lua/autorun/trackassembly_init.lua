@@ -25,6 +25,7 @@ local stringLower          = string and string.lower
 local stringExplode        = string and string.Explode
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
+local languageGetPhrase    = language and language.GetPhrase
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -32,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.295")
+asmlib.SetOpVar("TOOL_VERSION","5.296")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -83,7 +84,6 @@ end
 if(SERVER) then
   asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , gbServerControled, "Unreasonable position error handling mode")
   asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, gbServerControled, "Maximum frequent pieces to be listed")
-  asmlib.MakeAsmVar("engunsnap", " 0" , {0,  1}, gbServerControled, "Enables the physgun grab-snap extension")
   CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", gbServerControled, "Maximum number of tracks to be spawned")
 end
 
@@ -219,11 +219,11 @@ if(CLIENT) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create base frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"     ,"Click to export the client database as a file"}})
-            pnElements:Insert(2,{Label = { "DListView"  ,"Routine Items" ,"The list of your frequently used track pieces"}})
-            pnElements:Insert(3,{Label = { "DModelPanel","Piece Display" ,"The model of your track piece is displayed here"}})
-            pnElements:Insert(4,{Label = { "DTextEntry" ,"Enter Pattern" ,"Enter a pattern here and hit enter to preform a search"}})
-            pnElements:Insert(5,{Label = { "DComboBox"  ,"Select Column" ,"Choose which list column you want to preform a search on"}})
+            pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"     , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
+            pnElements:Insert(2,{Label = { "DListView"  ,"Routine Items" , languageGetPhrase("tool."..gsToolNameL..".pn_routine")}})
+            pnElements:Insert(3,{Label = { "DModelPanel","Piece Display" , languageGetPhrase("tool."..gsToolNameL..".pn_display")}})
+            pnElements:Insert(4,{Label = { "DTextEntry" ,"Enter Pattern" , languageGetPhrase("tool."..gsToolNameL..".pn_pattern")}})
+            pnElements:Insert(5,{Label = { "DComboBox"  ,"Select Column" , languageGetPhrase("tool."..gsToolNameL..".pn_srchcol")}})
       ------------ Manage the invalid panels -------------------
       local iNdex, iSize, sItem, vItem = 1, pnElements:GetSize(), "", nil
       while(iNdex <= iSize) do
@@ -265,7 +265,7 @@ if(CLIENT) then
       xyPos.y = (scrH / 4)
       xySiz.x = 750
       xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
-      pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." v."..asmlib.GetOpVar("TOOL_VERSION"))
+      pnFrame:SetTitle(languageGetPhrase("tool."..gsToolNameL..".pn_routine_hd")..oPly:Nick().." {"..asmlib.GetOpVar("TOOL_VERSION").."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
@@ -2872,7 +2872,7 @@ else
 end
 
 ------ CONFIGURE TRANSLATIONS ------ https://www.loc.gov/standards/iso639-2/php/code_list.php
-if(CLIENT) then --- con >> control, def >> deafault
+if(CLIENT) then --- con >> control, def >> deafault, hd >> header
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".1"            , "Assembles a prop-segmented track")
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".left"         , "Spawn/snap a piece. Hold shift to stack")
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".right"        , "Switch assembly points. Hold shift for versa")
@@ -2935,6 +2935,14 @@ if(CLIENT) then --- con >> control, def >> deafault
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pntasist_con" , "Draw assistant")
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ghosthold"    , "Controls rendering the tool ghosted holder piece")
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ghosthold_con", "Draw holder ghost")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".engunsnap"    , "Controls snapping when the piece is dropped by the player physgun")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".engunsnap_con", "Enable physgun snap")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_export"    , "Click to export the client database as a file")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine"   , "The list of your frequently used track pieces")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine_hd", "Frequent pieces by: ")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_display"   , "The model of your track piece is displayed here")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_pattern"   , "Enter a pattern here and hit enter to preform a search")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_srchcol"   , "Choose which list column you want to preform a search on")
   asmlib.SetLocalify("ENG","Cleanup_"..gsLimitName               , "Track assembly pieces")
   asmlib.SetLocalify("ENG","Cleaned_"..gsLimitName               , "Cleaned up all track pieces")
   asmlib.SetLocalify("ENG","SBoxLimit_"..gsLimitName             , "You've hit the Spawned tracks limit!")
@@ -3001,6 +3009,14 @@ if(CLIENT) then --- con >> control, def >> deafault
   asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pntasist_con" , "Изобразявай асистента")
   asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ghosthold"    , "Управлява изобразяването на парчето сянка")
   asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ghosthold_con", "Изобразявай парче сянка")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".engunsnap"    , "Управлява залепването когато парчето е изпуснато с физическото оръдие на играча")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".engunsnap_con", "Залепване при изпускане")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_export"    , "Цъкнете за да съхраните базата данни на файл")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine"   , "Списъкът с редовно използваните ви парчета трасе")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine_hd", "Редовни парчета на: ")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_display"   , "Моделът на вашето парче трасе се показва тук")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_pattern"   , "Въведете шаблон тук и натиснете ентър за да извършите търсене")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_srchcol"   , "Изберете по коя колона да извършите търсене")
   asmlib.SetLocalify("BUL","Cleanup_"..gsLimitName               , "Сглобени парчета трасе")
   asmlib.SetLocalify("BUL","Cleaned_"..gsLimitName               , "Всички парчета трасе са почистени")
   asmlib.SetLocalify("BUL","SBoxLimit_"..gsLimitName             , "Достигнахте границата на създадените парчета трасе!")
