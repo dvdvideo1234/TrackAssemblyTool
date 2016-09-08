@@ -32,7 +32,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.294")
+asmlib.SetOpVar("TOOL_VERSION","5.295")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -51,34 +51,40 @@ asmlib.SetOpVar("LOG_SKIP",{
   "POINT_SELECT: Active key missing"
 })
 
+------ VARIABLE FLAGS ------
+-- Client and server have independent value
+local gbIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
+-- Server tells the client what value to use
+local gbServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
+
 ------ CONFIGURE LOGGING ------
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmVar("logsmax"  , "0" , {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , ""  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logsmax"  , "0" , {0}, gbIndependentUsed, "Maximum logging lines to be printed")
+asmlib.MakeAsmVar("logfile"  , ""  , nil, gbIndependentUsed, "File to store the logs ( if any )")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
------- CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeAsmVar("modedb"   , "LUA", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
-asmlib.MakeAsmVar("enqstore" , "1", {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
-asmlib.MakeAsmVar("devmode"  , "0", {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Toggle developer mode on/off server side")
+------ CONFIGURE VARIABLES ------
+asmlib.MakeAsmVar("modedb"   , "LUA",     nil, gbIndependentUsed, "Database operating mode")
+asmlib.MakeAsmVar("enqstore" , "1"  , {0, 1 }, gbIndependentUsed, "Enable caching for built queries")
+asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, gbIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gbIndependentUsed, "Memory management setting when DB mode is SQL")
 
------- CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
-asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum mass that can be appied on a piece")
-asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum linear offset os the piece")
-asmlib.MakeAsmVar("maxforce" , "100000",  {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum force limit when creating welds")
-asmlib.MakeAsmVar("maxactrad", "150", {1,500}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gbServerControled, "Maximum mass that can be appied on a piece")
+asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gbServerControled, "Maximum linear offset os the piece")
+asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gbServerControled, "Maximum force limit when creating welds")
+asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gbServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, gbServerControled, "Maximum pieces to spawn in stack mode")
+asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gbServerControled, "Toggle the wire extension on/off server side")
 
 if(CLIENT) then
-  asmlib.MakeAsmVar("localify" , "ENG", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "The current language chosen")
+  asmlib.MakeAsmVar("localify", "ENG", nil, gbIndependentUsed, "The current language chosen")
 end
 
 if(SERVER) then
-  CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum number of tracks to be spawned")
-  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
-  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
+  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , gbServerControled, "Unreasonable position error handling mode")
+  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, gbServerControled, "Maximum frequent pieces to be listed")
+  asmlib.MakeAsmVar("engunsnap", " 0" , {0,  1}, gbServerControled, "Enables the physgun grab-snap extension")
+  CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", gbServerControled, "Maximum number of tracks to be spawned")
 end
 
 ------ CONFIGURE INTERNALS -----

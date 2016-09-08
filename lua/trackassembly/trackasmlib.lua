@@ -2553,7 +2553,7 @@ function ImportDSV(sTable,sDelim,bCommit,sPrefix)
   local sLine, sChar, lenLine = "", "X", 0
   while(sChar) do
     sChar = F:Read(1)
-    if(not sChar) then return end
+    if(not sChar) then break end -- Exit the loop and close the file
     if(sChar == "\n") then
       lenLine = stringLen(sLine)
       if(stringSub(sLine,lenLine,lenLine) == "\r") then
@@ -2874,7 +2874,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   if(not (IsExistent(hdRec.Type) and IsString(hdRec.Type))) then
     return StatusLog(nil,"GetEntitySpawn: Holder type invalid <"..tostring(hdRec.Type)..">") end
   -- If the types are different and disabled
-  if((not enIgnTyp or enIgnTyp == 0) and trRec.Type ~= hdRec.Type) then
+  if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
     return StatusLog(nil,"GetEntitySpawn: Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">") end
   -- We have the next Piece Offset
   local vTemp = Vector()
@@ -3136,7 +3136,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
   if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly,sMode)) then
-    return StatusLog(nil,"MakePiece: "..pPly:Nick().." spawned <"..sModel.."> outside of map bounds") end
+    return StatusLog(nil,"MakePiece: "..pPly:Nick().." spawned <"..sModel.."> outside bounds") end
   ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
   ePiece:Spawn()
   ePiece:Activate()

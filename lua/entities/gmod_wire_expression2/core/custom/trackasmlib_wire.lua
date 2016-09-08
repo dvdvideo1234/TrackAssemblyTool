@@ -57,9 +57,8 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
                                               vector ucsOffPos , vector ucsOffAng)
   if(not (this and this:IsValid() and enFlag)) then return {} end
   local stSpawn = asmlib.GetEntitySpawn(this,trHitPos,hdModel,hdPointID,
-                                        nActRadius,enFlatten,enIgnTyp,
-                                        ucsPos[1],ucsPos[2],ucsPos[3],
-                                        ucsAng[1],ucsAng[2],ucsAng[3])
+                                        nActRadius,(enFlatten ~= 0),(enIgnTyp ~= 0),
+                                        ucsPos[1],ucsPos[2],ucsPos[3],ucsAng[1],ucsAng[2],ucsAng[3])
   if(not stSpawn) then return {} end
   return {stSpawn.SPos, stSpawn.SAng}
 end

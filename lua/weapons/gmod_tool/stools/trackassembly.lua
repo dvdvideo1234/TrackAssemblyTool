@@ -192,7 +192,7 @@ function TOOL:GetFreeze()
 end
 
 function TOOL:GetIgnoreType()
-  return (self:GetClientNumber("igntype") or 0)
+  return ((self:GetClientNumber("igntype") or 0) ~= 0)
 end
 
 function TOOL:GetBodyGroupSkin()
