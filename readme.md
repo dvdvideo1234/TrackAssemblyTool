@@ -122,10 +122,10 @@ A: First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that
    the tool supports will be represented here as a "manual" or something.
    That's what is this FAQ for anyway ( Though most people don't bother to read it before asking )...
 
-Q: Which add-ons did you work on?
+Q: Which addons did you work on?
 A: Here they are, with available status, why I did not do some of them ( at the time of developing ):
     1) PHX Monorails
-    2) PHX Regular Tracks ( Ignore "switcher_2" missing part of the collision model),
+    2) PHX Regular Tracks ( For "switcher_2" [X] is inserted in the name as it misses collision meshes ),
     3) SligWolf's Rerailers old and new(1,2,3)
       https://steamcommunity.com/sharedfiles/filedetails/?id=132843280
     4) SProps
@@ -154,7 +154,7 @@ A: Here they are, with available status, why I did not do some of them ( at the 
       https://steamcommunity.com/sharedfiles/filedetails/?id=489114511
    20) Mr. Train's G-Gauge rails
       https://steamcommunity.com/sharedfiles/filedetails/?id=590574800
-   21) Ron's 56 gauge rails ( Removed by the add-on owner. Discontinued )
+   21) Ron's 56 gauge rails ( Removed by the addon owner. Discontinued )
    22) Ron's 2ft track pack
       http://steamcommunity.com/sharedfiles/filedetails/?id=634000136
    23) PHX Tubes
@@ -165,10 +165,13 @@ A: Here they are, with available status, why I did not do some of them ( at the 
       https://steamcommunity.com/sharedfiles/filedetails/?id=147812851
    27) Ron's Minitrain Props
       http://steamcommunity.com/sharedfiles/filedetails/?id=728833183
-   
+
+Q: Where are the trains/vehicles, are there any of these?
+A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
+
 Q: Dude the rails are not showing in the menu, what should I do ?
 A: SUBSCRIBE TO THE OWNER OF THE ADDON !!!!
-N: Which add-ons did you work on?
+N: Which addons did you work on?
 
 Q: Are there going to be more of these?
 A: Yes, I developed my dynamic database, so I can insert any model I want.
@@ -204,8 +207,13 @@ A: Well, yeah, technically I can map any path given. However these with properly
    Examples: (#="_", %addonname%="props_phx", %piecename%="track_128.mdl")
       models/props_phx/trains/track_128.mdl ( Here, the category "straight" is not present at all )
 
-Q: Where are the trains/vehicles, are there any of these?
-A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
+Q: Hey, remember that rollercoaster assistant addon, that was snapping pieces when you got
+   them close to each other and they magically connect. Does this script has a feature like this ?
+A: Yes, it does. When looking at the panel in the right, there is a checkbox labeled
+   "Enable physgun snap" that you must check. This makes the server to perform some
+   traces relative to the active points of the piece and search for other pieces to snap to.
+   If the snapping conditions are present, it will snap the trace piece on physgun release at
+   that end, which the server trace hits.
 
 Q: What is this green line into the advisor, what is it for ?
 A: Remember when I got suggestions to do the switchers.
@@ -271,7 +279,7 @@ A: Here is the list of the maximum value tweaks ( prefixed with "trackassembly_"
    "maxactrad" - Controls the vastness of the active point search area
    "maxstcnt"  - Controls the maximum pieces that can be spawned in stacking mode
    "maxfruse"  - Controls the maximum records that can be located under the frequent pieces list
-N: For further track, spawn control refer to: "Dude how can I control the spawned pieces in multiplayer"
+N: For further track spawn control refer to: "Dude how can I control the spawned pieces in multiplayer"
 
 Q: Hey, you said that we can switch the tool database between Lua or SQL. Is it working yet ?
    I want to use Lua mode because I've got third-party SQLite server. How can I switch to Lua mode ?
@@ -330,7 +338,7 @@ Q: Does this script stores the created queries for later use. Can I disable/enab
 A: Yes you can. Just set the trackassembly_enqstore to 0/<>0 respectively.
 
 Q: Hey, there is a textbox and a dropdown menu next to the "ExportDB" button. What are these for ?
-A: Well, when a server owners set the "trackasmlib_maxfruse" to a higher value, a slider appears.
+A: Well, when a server owners set the "trackassembly_maxfruse" to a higher value, a slider appears.
    If the client has used many pieces during his/her routine, he/she cannot possibly locate the ones
    he/she needs, especially, when they are at the bottom of the list as "not frequently used" pieces.
    That's why it was needed some kind of a filter. With the drop-down menu, you can chose whatever
@@ -404,11 +412,11 @@ N: After adding these models, the database can be exported again.
 
 Q: May I PUT this thing in another third party website ?
 A: No I will not give you my permission to do that... Why ...
-   That way you will upload some half-baked tool, waste your time with stupid
+   That way you will upload some half-baked malicious tool, waste your time with stupid
    things and confuse everybody with this so-called "unofficial" version of the TrackAssembly tool.
    Not to mention that the stunned people will NOT GET ANY updates!
    The best you can do is just point to the original GIT repository avoiding any version mismatches and confusions.
    So please don't upload the script to any other sites. I mean it!
 
 ```
-Just CLK the subscribe to the button above and you are good to go! Thumbs Up ! XD
+Just click the subscribe button above and you are good to go! Thumbs Up ! XD

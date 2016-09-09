@@ -71,21 +71,7 @@ local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gsVersion   = asmlib.GetOpVar("TOOL_VERSION")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gsQueryStr  = asmlib.GetOpVar("EN_QUERY_STORE")
-
---- Base rendering colors
-local conPalette = asmlib.MakeContainer("Colors")
-      conPalette:Insert("r" ,Color(255,  0,  0,255))
-      conPalette:Insert("g" ,Color(  0,255,  0,255))
-      conPalette:Insert("b" ,Color(  0,  0,255,255))
-      conPalette:Insert("c" ,Color(  0,255,255,255))
-      conPalette:Insert("m" ,Color(255,  0,255,255))
-      conPalette:Insert("y" ,Color(255,255,  0,255))
-      conPalette:Insert("w" ,Color(255,255,255,255))
-      conPalette:Insert("k" ,Color(  0,  0,  0,255))
-      conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
-      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
-      conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
-      conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
+local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
 
 cleanupRegister(gsLimitName)
 
@@ -139,10 +125,12 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".name"      , "Track Assembly")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
-  hookAdd("PlayerBindPress", gsToolPrefL.."playerbindpress", asmlib.GetActionCode("BIND_PRESS"))
+  hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
+  hookAdd("DrawOverlay"    , gsToolPrefL.."draw_overlay"     , asmlib.GetActionCode("DRAW_OVERLAY"))
 end
 
 if(SERVER) then
+  hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 
@@ -1182,7 +1170,7 @@ function TOOL:Think()
       end
     end
     if(CLIENT and inputIsKeyDown(KEY_LALT)) then
-      if(inputIsKeyDown(KEY_E)) then
+      if(inputIsKeyDown(KEY_E)) then -- Close the routine panel shorcut
         local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
         if(pnFrame and IsValid(pnFrame)) then
           pnFrame.OnClose()

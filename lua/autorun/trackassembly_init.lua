@@ -15,19 +15,23 @@ local RunConsoleCommand    = RunConsoleCommand
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
 local mathClamp            = math and math.Clamp
-local hookAdd              = hook and hook.Add
 local utilTraceLine        = util and util.TraceLine
+local utilGetPlayerTrace   = util and util.GetPlayerTrace
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
 local inputIsKeyDown       = input and input.IsKeyDown
+local inputIsMouseDown     = input and input.IsMouseDown
 local stringSub            = string and string.sub
 local stringFind           = string and string.find
 local stringGsub           = string and string.gsub
 local stringUpper          = string and string.upper
 local stringLower          = string and string.lower
 local stringExplode        = string and string.Explode
+local surfaceDrawLine      = surface and surface.DrawLine
+local surfaceDrawCircle    = surface and surface.DrawCircle
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
+local surfaceSetDrawColor  = surface and surface.SetDrawColor
 local languageGetPhrase    = language and language.GetPhrase
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
@@ -36,7 +40,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.297")
+asmlib.SetOpVar("TOOL_VERSION","5.298")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -95,6 +99,7 @@ asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
 asmlib.SetOpVar("EN_QUERY_STORE", asmlib.GetAsmVar("enqstore", "BUL"))
 
 ------ GLOBAL VARIABLES ------
+local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
@@ -103,78 +108,19 @@ local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetAsmVar("timermode","STR"))
-
--------- HOOKS -----------
-
-local function trackPhysgunSnap(pPly, trEnt)
-  if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
-    return asmlib.StatusLog(nil,"trackPhysgunSnap: Extension disabled") end
-  if(not asmlib.IsPlayer(pPly)) then
-    return asmlib.StatusLog(nil,"trackPhysgunSnap: Player invalid") end
-  if(not (trEnt and trEnt:IsValid())) then
-    return asmlib.StatusLog(nil,"trackPhysgunSnap: Trace entity invalid") end
-  local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-  if(not trRec) then
-    return asmlib.StatusLog(nil,"trackPhysgunSnap: Trace not piece") end
-  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
-  local nMaxOffLin   = asmlib.GetAsmVar("maxlinear","FLT")
-  local bnderrmod    = asmlib.GetAsmVar("bnderrmod" ,"STR")
-  local activrad     = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
-  local spnflat      = (pPly:GetInfoNum(gsToolPrefL.."spnflat", 0) ~= 0)
-  local igntype      = (pPly:GetInfoNum(gsToolPrefL.."igntype", 0) ~= 0)
-  local nextx        = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextx"  , 0),-nMaxOffLin , nMaxOffLin)
-  local nexty        = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nexty"  , 0),-nMaxOffLin , nMaxOffLin)
-  local nextz        = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextz"  , 0),-nMaxOffLin , nMaxOffLin)
-  local nextpic      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextpic", 0),-gnMaxOffRot,gnMaxOffRot)
-  local nextyaw      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw", 0),-gnMaxOffRot,gnMaxOffRot)
-  local nextrol      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol", 0),-gnMaxOffRot,gnMaxOffRot)
-  local ignphysgn    = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0))
-  local freeze       = (pPly:GetInfoNum(gsToolPrefL.."freeze"   , 0))
-  local gravity      = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0))
-  local physmater    = (pPly:GetInfo   (gsToolPrefL.."physmater", "metal"))
-  local weld         = (pPly:GetInfoNum(gsToolPrefL.."weld"     , 0))
-  local nocollide    = (pPly:GetInfoNum(gsToolPrefL.."nocollide", 0))
-  local forcelim     = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim" , 0),0,asmlib.GetAsmVar("maxforce" ,"FLT"))
-  local oPos, oEnd, oAng   = Vector(), Vector(), Angle()
-  for trID = 1, trRec.Kept, 1 do
-    local trPOA = asmlib.LocatePOA(trRec,trID)
-    if(not trPOA) then
-      return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed locating "..trID.." of "..trRec.Kept) end
-    asmlib.SetVector(oPos, trPOA.O)
-    asmlib.SetAngle (oAng, trPOA.A)
-    oPos:Rotate(trAng); oPos:Add(trPos)
-    oAng:Set(trEnt:LocalToWorldAngles(oAng))
-    oEnd:Set(oAng:Forward()); oEnd:Mul(activrad); oEnd:Add(oPos)
-    local oTr = utilTraceLine({
-      start  = oPos,
-      endpos = oEnd,
-      mask   = MASK_SOLID,
-      filter = function(oPiece) -- Only valid props which are not the main entity
-        if(oPiece and oPiece:IsValid() and oPiece:GetClass() == "prop_physics" and oPiece ~= trEnt) then return true end
-      end
-    })
-    if(oTr and oTr.Hit) then -- When hits the distance will be less than the active radius
-      local oEnt    = oTr.Entity
-      local stSpawn = asmlib.GetEntitySpawn(oEnt,oTr.HitPos,trRec.Slot,trID,
-                        activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-      if(stSpawn) then
-        if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
-          return StatusLog(nil,"trackPhysgunSnap: "..pPly:Nick().." snapped <"..sModel.."> outside bounds") end
-        trEnt:SetAngles(stSpawn.SAng)
-        if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-          return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed to apply physical settings") end
-        if(not asmlib.ApplyPhysicalAnchor(trEnt,oEnt,weld,nocollide,forcelim)) then
-          return asmlib.StatusLog(nil,"trackPhysgunSnap: Failed to apply physical anchor") end
-        break -- The first one to be traced will be snapped on physgun mouse release
-      end
-    end
-  end
-end
-
-hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", function(pPly, trEnt)
-  local r, e = pcall(trackPhysgunSnap, pPly, trEnt)
-  if(not r) then asmlib.PrintInstance("PHYSGUN_DROP: "..e) end
-end)
+local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
+      conPalette:Insert("r" ,Color(255,  0,  0,255))
+      conPalette:Insert("g" ,Color(  0,255,  0,255))
+      conPalette:Insert("b" ,Color(  0,  0,255,255))
+      conPalette:Insert("c" ,Color(  0,255,255,255))
+      conPalette:Insert("m" ,Color(255,  0,255,255))
+      conPalette:Insert("y" ,Color(255,255,  0,255))
+      conPalette:Insert("w" ,Color(255,255,255,255))
+      conPalette:Insert("k" ,Color(  0,  0,  0,255))
+      conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
+      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
+      conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
+      conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -183,6 +129,58 @@ if(SERVER) then
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
         return asmlib.StatusLog(false,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)) end
       return asmlib.StatusLog(true,"DUPE_PHYS_SETTINGS: Success")
+    end)
+
+  asmlib.SetAction("PHYSGUN_DROP",
+    function(pPly, trEnt)
+      if(not asmlib.IsPlayer(pPly)) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Player invalid") end
+      if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Snapping disabled") end
+      if(not (trEnt and trEnt:IsValid())) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace entity invalid") end
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+      if(not trRec) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
+      local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
+      local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
+      local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0))
+      local freeze     = (pPly:GetInfoNum(gsToolPrefL.."freeze"   , 0))
+      local gravity    = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0))
+      local weld       = (pPly:GetInfoNum(gsToolPrefL.."weld"     , 0))
+      local nocollide  = (pPly:GetInfoNum(gsToolPrefL.."nocollide", 0))
+      local spnflat    = (pPly:GetInfoNum(gsToolPrefL.."spnflat"  , 0) ~= 0)
+      local igntype    = (pPly:GetInfoNum(gsToolPrefL.."igntype"  , 0) ~= 0)
+      local physmater  = (pPly:GetInfo   (gsToolPrefL.."physmater", "metal"))
+      local nextx      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextx"   , 0),-nMaxOffLin , nMaxOffLin)
+      local nexty      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nexty"   , 0),-nMaxOffLin , nMaxOffLin)
+      local nextz      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextz"   , 0),-nMaxOffLin , nMaxOffLin)
+      local nextpic    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextpic" , 0),-gnMaxOffRot,gnMaxOffRot)
+      local nextyaw    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw" , 0),-gnMaxOffRot,gnMaxOffRot)
+      local nextrol    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol" , 0),-gnMaxOffRot,gnMaxOffRot)
+      local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmVar("maxforce" , "FLT"))
+      local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
+      local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
+      for ID = 1, trRec.Kept, 1 do
+        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
+        if(oTr and oTr.Hit and (activrad * oTr.Fraction < trRad)) then -- Hits distance shorter than the active radius
+          if(oTr.Entity and oTr.Entity:IsValid()) then trRad, trID, trTr = (activrad * oTr.Fraction), ID, oTr end
+        end
+      end -- The trace with the shortest distance is found
+      if(trTr and trTr.Hit and (trID > 0) and (trID <= trRec.Kept)) then
+        local stSpawn = asmlib.GetEntitySpawn(trTr.Entity,trTr.HitPos,trRec.Slot,trID,
+                          activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+        if(stSpawn) then
+          if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
+            return StatusLog(nil,"PHYSGUN_DROP: "..pPly:Nick().." snapped <"..sModel.."> outside bounds") end
+          trEnt:SetAngles(stSpawn.SAng)
+          if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
+            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical settings") end
+          if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,forcelim)) then
+            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical anchor") end
+          break -- The first one to be traced will be snapped on physgun mouse release
+        end
+      end
     end)
 end
 
@@ -491,6 +489,55 @@ if(CLIENT) then
       pnFrame:SetVisible(true); pnFrame:Center()
       pnFrame:MakePopup()     ; collectgarbage()
       return asmlib.StatusLog(true,"OPEN_FRAME: Success")
+    end)
+
+  asmlib.SetAction("DRAW_OVERLAY",
+    function()
+      if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
+        return asmlib.StatusLog(nil,"DRAW_OVERLAY: Drawing disabled") end
+      local oPly = LocalPlayer()
+      if(not asmlib.IsPlayer(pPly)) then
+        return asmlib.StatusLog(nil,"DRAW_OVERLAY: Player invalid") end
+      local actSwep = oPly:GetActiveWeapon()
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"DRAW_OVERLAY: Swep invalid") end
+      if(actSwep:GetClass() ~= "weapon_physgun") then return asmlib.StatusLog(nil,"DRAW_OVERLAY: Swep not physgun") end
+      if(not inputIsMouseDown(MOUSE_LEFT)) then -- Now the user is holding the physgun
+        return asmlib.StatusLog(nil,"DRAW_OVERLAY: Not holding") end
+      local oTr = utilTraceLine(utilGetPlayerTrace(oPly))
+      if(oTr and oTr.Hit) then
+        local trEnt = oTr.Entity
+        if(not (trEnt and trEnt:IsValid())) then
+          return asmlib.StatusLog(nil,"DRAW_OVERLAY: Trace entity invalid") end
+        local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+        if(not trRec) then
+          return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
+        local oPos, oAng = Vector(), Angle()
+        local ratioc = (gnRatio - 1) * 100
+        local ratiom = (gnRatio * 1000)
+        local plyd   = (stTrace.HitPos - ply:GetPos()):Length()
+        local radScl = mathClamp(ratiom / plyd,1,ratioc)
+        for trID = 1, trRec.Kept, 1 do
+          local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
+          if(oTr and oTr.Hit) then -- Draw the hit different
+            local trE = oTr.Entity
+            local xyO = oDt.start:ToScreen()
+            local xyE = oDt.endpos:ToScreen()
+            if(oEnt and oEnt:IsValid()) then
+              local xyH = oTr.HitPos:ToScreen()
+              surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
+              surfaceSetDrawColor(conPalette:Select("g"))
+              surfaceDrawLine(xyO.x, xyO.y, xyH.x, xyH.y)
+              surfaceDrawCircle(xyH.x, xyH.y, radScl, conPalette:Select("g"))
+              surfaceSetDrawColor(conPalette:Select("r"))
+              surfaceDrawLine(xyH.x, xyH.y, xyE.x, xyE.y)
+            else
+              surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
+              surfaceSetDrawColor(conPalette:Select("r"))
+              surfaceDrawLine(xyO.x, xyO.y, xyE.x, xyE.y)
+            end
+          end
+        end
+      end
     end)
 end
 

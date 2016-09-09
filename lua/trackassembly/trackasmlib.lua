@@ -41,6 +41,7 @@ local IN_WALK      = IN_WALK
 local IN_ZOOM      = IN_ZOOM
 
 ---------------- Localizing ENT Properties ----------------
+local MASK_SOLID            = MASK_SOLID
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
 local MOVETYPE_VPHYSICS     = MOVETYPE_VPHYSICS
 local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
@@ -421,6 +422,12 @@ function Init(sName,sPurpose)
   SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
+  SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
+    start  = wPos,        -- Start position of the trace
+    endpos = wEnd,        -- End position of the trace
+    mask   = MASK_SOLID,  -- Mask telling it what to hit
+    filter = function(oEnt) -- Only valid props which are not the main entity or world
+      if(oEnt and oEnt:IsValid() and oEnt:GetClass() == "prop_physics" and oEnt ~= trEnt) then return true end end })
   SetOpVar("NAV_PIECE",{})
   SetOpVar("NAV_PANEL",{})
   SetOpVar("NAV_ADDITION",{})
@@ -2919,6 +2926,29 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
   return GetNormalSpawn(nil,nil,shdModel,ihdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
+end
+
+--[[
+ * This function performs a trace relative to the entity point chosen
+ * trEnt     = Entity chosen for the trace
+ * ivPointID = Point ID selected for its model
+ * nLen      = Lenght of the trace
+]]--
+function GetTraceEntityPoint(trEnt, ivPointID, nLen)
+  if(not (trEnt and trEnt:IsValid())) then
+    return StatusLog(nil,"GetTraceEntityPoint: Trace entity invalid") end
+  local nLen = (tonumber(nLen) or 0); if(nLen <= 0) then
+    return StatusLog(nil,"GetTraceEntityPoint: Distance skipped") end
+  local trRec = CacheQueryPiece(trEnt:GetModel())
+  if(not trRec) then return StatusLog(nil,"GetTraceEntityPoint: Trace not piece") end
+  local stPOA = LocatePOA(trRec, ivPointID)
+  if(not IsExistent(stPOA)) then
+    return StatusLog(nil,"GetTraceEntityPoint: Point <"..tostring(ivPointID).."> invalid")
+  local trDt, wAng = GetOpVar("TRACE_DATA"), Angle()
+  SetVector(trDt.start, trPOA.O); trDt.start:Rotate(trEnt:GetAngles()); trDt.start:Add(trEnt:GetPos())
+  SetAngle (wAng, trPOA.A); wAng:Set(trEnt:LocalToWorldAngles(wAng))
+  trDt.endpos:Set(wAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
+  return utilTraceLine(trDt), trDt
 end
 
 function AttachAdditions(ePiece)
