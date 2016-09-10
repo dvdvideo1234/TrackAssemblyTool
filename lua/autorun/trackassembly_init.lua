@@ -39,8 +39,8 @@ local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModif
 local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
-asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.298")
+asmlib.InitBase("track","assembly")
+asmlib.SetOpVar("TOOL_VERSION","5.299")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -491,29 +491,29 @@ if(CLIENT) then
       return asmlib.StatusLog(true,"OPEN_FRAME: Success")
     end)
 
-  asmlib.SetAction("DRAW_OVERLAY",
+  asmlib.SetAction("PHYSGUN_DRAW",
     function()
       if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
-        return asmlib.StatusLog(nil,"DRAW_OVERLAY: Drawing disabled") end
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Extension disabled") end
+      if(not asmlib.GetAsmVar("pntasist", "BUL")) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Assistant disabled") end
       local oPly = LocalPlayer()
       if(not asmlib.IsPlayer(pPly)) then
-        return asmlib.StatusLog(nil,"DRAW_OVERLAY: Player invalid") end
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Player invalid") end
       local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"DRAW_OVERLAY: Swep invalid") end
-      if(actSwep:GetClass() ~= "weapon_physgun") then return asmlib.StatusLog(nil,"DRAW_OVERLAY: Swep not physgun") end
-      if(not inputIsMouseDown(MOUSE_LEFT)) then -- Now the user is holding the physgun
-        return asmlib.StatusLog(nil,"DRAW_OVERLAY: Not holding") end
-      local oTr = utilTraceLine(utilGetPlayerTrace(oPly))
-      if(oTr and oTr.Hit) then
-        local trEnt = oTr.Entity
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
+      if(actSwep:GetClass() ~= "weapon_physgun") then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
+      if(not inputIsMouseDown(MOUSE_LEFT)) then -- Now the user is holding the physgun left button
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Not holding") end
+      local actTr = utilTraceLine(utilGetPlayerTrace(oPly))
+      if(actTr and actTr.Hit) then
+        local trEnt = actTr.Entity
         if(not (trEnt and trEnt:IsValid())) then
-          return asmlib.StatusLog(nil,"DRAW_OVERLAY: Trace entity invalid") end
+          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
         local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
         if(not trRec) then
-          return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
-        local oPos, oAng = Vector(), Angle()
-        local ratioc = (gnRatio - 1) * 100
-        local ratiom = (gnRatio * 1000)
+          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
+        local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
         local plyd   = (stTrace.HitPos - ply:GetPos()):Length()
         local radScl = mathClamp(ratiom / plyd,1,ratioc)
         for trID = 1, trRec.Kept, 1 do
@@ -528,7 +528,7 @@ if(CLIENT) then
               surfaceSetDrawColor(conPalette:Select("g"))
               surfaceDrawLine(xyO.x, xyO.y, xyH.x, xyH.y)
               surfaceDrawCircle(xyH.x, xyH.y, radScl, conPalette:Select("g"))
-              surfaceSetDrawColor(conPalette:Select("r"))
+              surfaceSetDrawColor(conPalette:Select("y"))
               surfaceDrawLine(xyH.x, xyH.y, xyE.x, xyE.y)
             else
               surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))

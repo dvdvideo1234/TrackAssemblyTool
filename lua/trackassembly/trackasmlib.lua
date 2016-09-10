@@ -370,18 +370,18 @@ function SetIndexes(sType,I1,I2,I3,I4)
   return StatusLog(true,"SetIndexes["..sType.."]: Success")
 end
 
-function Init(sName,sPurpose)
+function InitBase(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   SetOpVar("TYPEMT_SCREEN",{})
   SetOpVar("TYPEMT_CONTAINER",{})
   if(not IsString(sName)) then
-    return StatusPrint(false,"InitAssembly: Name <"..tostring(sName).."> not string") end
+    return StatusPrint(false,"InitBase: Name <"..tostring(sName).."> not string") end
   if(not IsString(sPurpose)) then
-    return StatusPrint(false,"InitAssembly: Purpose <"..tostring(sPurpose).."> not string") end
+    return StatusPrint(false,"InitBase: Purpose <"..tostring(sPurpose).."> not string") end
   if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then
-    return StatusPrint(false,"InitAssembly: Name invalid <"..sName..">") end
+    return StatusPrint(false,"InitBase: Name invalid <"..sName..">") end
   if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then
-    return StatusPrint(false,"InitAssembly: Purpose invalid <"..sPurpose..">") end
+    return StatusPrint(false,"InitBase: Purpose invalid <"..sPurpose..">") end
   SetOpVar("TIME_INIT",Time())
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
@@ -455,7 +455,7 @@ function Init(sName,sPurpose)
     TPos = Vector(), -- O
     TAng = Angle ()  -- A
   })
-  return StatusPrint(true,"InitAssembly: Success")
+  return StatusPrint(true,"InitBase: Success")
 end
 
 ------------- ANGLE ---------------
@@ -2944,10 +2944,10 @@ function GetTraceEntityPoint(trEnt, ivPointID, nLen)
   local stPOA = LocatePOA(trRec, ivPointID)
   if(not IsExistent(stPOA)) then
     return StatusLog(nil,"GetTraceEntityPoint: Point <"..tostring(ivPointID).."> invalid")
-  local trDt, wAng = GetOpVar("TRACE_DATA"), Angle()
+  local trDt, trAng = GetOpVar("TRACE_DATA"), Angle()
   SetVector(trDt.start, trPOA.O); trDt.start:Rotate(trEnt:GetAngles()); trDt.start:Add(trEnt:GetPos())
-  SetAngle (wAng, trPOA.A); wAng:Set(trEnt:LocalToWorldAngles(wAng))
-  trDt.endpos:Set(wAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
+  SetAngle (trAng     , trPOA.A); trAng:Set(trEnt:LocalToWorldAngles(trAng))
+  trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
   return utilTraceLine(trDt), trDt
 end
 
