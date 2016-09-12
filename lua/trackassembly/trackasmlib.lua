@@ -255,7 +255,8 @@ function PrintInstance(anyStuff)
 end
 
 function LogInstance(anyStuff)
-  if(GetOpVar("LOG_MAXLOGS") <= 0) then return end
+  local logMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
+  if(logMax and (logMax <= 0)) then return end
   local anyStuff = tostring(anyStuff)
   local logStats = GetOpVar("LOG_SKIP")
   if(logStats and logStats[1]) then
@@ -423,11 +424,11 @@ function InitBase(sName,sPurpose)
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
-    start  = wPos,        -- Start position of the trace
-    endpos = wEnd,        -- End position of the trace
+    start  = Vector(),    -- Start position of the trace
+    endpos = Vector(),    -- End position of the trace
     mask   = MASK_SOLID,  -- Mask telling it what to hit
     filter = function(oEnt) -- Only valid props which are not the main entity or world
-      if(oEnt and oEnt:IsValid() and oEnt:GetClass() == "prop_physics" and oEnt ~= trEnt) then return true end end })
+      if(oEnt and oEnt:IsValid() and oEnt:GetClass() == "prop_physics" and oEnt ~= GetOpVar("TRACE_FILTER")) then return true end end })
   SetOpVar("NAV_PIECE",{})
   SetOpVar("NAV_PANEL",{})
   SetOpVar("NAV_ADDITION",{})
@@ -2941,10 +2942,10 @@ function GetTraceEntityPoint(trEnt, ivPointID, nLen)
     return StatusLog(nil,"GetTraceEntityPoint: Distance skipped") end
   local trRec = CacheQueryPiece(trEnt:GetModel())
   if(not trRec) then return StatusLog(nil,"GetTraceEntityPoint: Trace not piece") end
-  local stPOA = LocatePOA(trRec, ivPointID)
-  if(not IsExistent(stPOA)) then
-    return StatusLog(nil,"GetTraceEntityPoint: Point <"..tostring(ivPointID).."> invalid")
-  local trDt, trAng = GetOpVar("TRACE_DATA"), Angle()
+  local trPOA = LocatePOA(trRec, ivPointID)
+  if(not IsExistent(trPOA)) then
+    return StatusLog(nil,"GetTraceEntityPoint: Point <"..tostring(ivPointID).."> invalid") end
+  local trDt, trAng = GetOpVar("TRACE_DATA"), Angle(); SetOpVar("TRACE_FILTER",trEnt)
   SetVector(trDt.start, trPOA.O); trDt.start:Rotate(trEnt:GetAngles()); trDt.start:Add(trEnt:GetPos())
   SetAngle (trAng     , trPOA.A); trAng:Set(trEnt:LocalToWorldAngles(trAng))
   trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)

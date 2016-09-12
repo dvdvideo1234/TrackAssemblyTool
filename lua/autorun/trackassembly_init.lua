@@ -40,7 +40,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.299")
+asmlib.SetOpVar("TOOL_VERSION","5.300")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -162,7 +162,7 @@ if(SERVER) then
       local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
       local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
       for ID = 1, trRec.Kept, 1 do
-        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
+        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, ID, activrad)
         if(oTr and oTr.Hit and (activrad * oTr.Fraction < trRad)) then -- Hits distance shorter than the active radius
           if(oTr.Entity and oTr.Entity:IsValid()) then trRad, trID, trTr = (activrad * oTr.Fraction), ID, oTr end
         end
@@ -172,13 +172,12 @@ if(SERVER) then
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
           if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
-            return StatusLog(nil,"PHYSGUN_DROP: "..pPly:Nick().." snapped <"..sModel.."> outside bounds") end
+            return StatusLog(nil,"PHYSGUN_DROP: "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds") end
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
             return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical settings") end
           if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,forcelim)) then
             return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical anchor") end
-          break -- The first one to be traced will be snapped on physgun mouse release
         end
       end
     end)
@@ -495,46 +494,48 @@ if(CLIENT) then
     function()
       if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Extension disabled") end
-      if(not asmlib.GetAsmVar("pntasist", "BUL")) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Assistant disabled") end
+      if(not asmlib.GetAsmVar("adviser", "BUL")) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Adviser disabled") end
       local oPly = LocalPlayer()
-      if(not asmlib.IsPlayer(pPly)) then
+      if(not asmlib.IsPlayer(oPly)) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Player invalid") end
       local actSwep = oPly:GetActiveWeapon()
       if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
       if(actSwep:GetClass() ~= "weapon_physgun") then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
-      if(not inputIsMouseDown(MOUSE_LEFT)) then -- Now the user is holding the physgun left button
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Not holding") end
+      -- If the player is not holding the track with then say goodby tho this action
+      if(not inputIsMouseDown(MOUSE_LEFT)) then return end
+      --  return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Not holding") end
+      -- Now the user is holding the physgun left button
       local actTr = utilTraceLine(utilGetPlayerTrace(oPly))
-      if(actTr and actTr.Hit) then
-        local trEnt = actTr.Entity
-        if(not (trEnt and trEnt:IsValid())) then
-          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
-        local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-        if(not trRec) then
-          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
-        local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
-        local plyd   = (stTrace.HitPos - ply:GetPos()):Length()
-        local radScl = mathClamp(ratiom / plyd,1,ratioc)
-        for trID = 1, trRec.Kept, 1 do
-          local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
-          if(oTr and oTr.Hit) then -- Draw the hit different
-            local trE = oTr.Entity
-            local xyO = oDt.start:ToScreen()
-            local xyE = oDt.endpos:ToScreen()
-            if(oEnt and oEnt:IsValid()) then
-              local xyH = oTr.HitPos:ToScreen()
-              surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
-              surfaceSetDrawColor(conPalette:Select("g"))
-              surfaceDrawLine(xyO.x, xyO.y, xyH.x, xyH.y)
-              surfaceDrawCircle(xyH.x, xyH.y, radScl, conPalette:Select("g"))
-              surfaceSetDrawColor(conPalette:Select("y"))
-              surfaceDrawLine(xyH.x, xyH.y, xyE.x, xyE.y)
-            else
-              surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
-              surfaceSetDrawColor(conPalette:Select("r"))
-              surfaceDrawLine(xyO.x, xyO.y, xyE.x, xyE.y)
-            end
+      if(not (actTr and actTr.Hit)) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace invalid") end
+      local trEnt = actTr.Entity; print(actTr.Hit, trEnt, trEnt:IsValid(), IsValid(trEnt))
+      if(not (trEnt and trEnt:IsValid())) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+      if(not trRec) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
+      local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
+      local plyd   = (actTr.HitPos - oPly:GetPos()):Length()
+      local radScl = mathClamp(ratiom / plyd,1,ratioc)
+      for trID = 1, trRec.Kept, 1 do
+        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, asmlib.GetAsmVar("activrad", "FLT"))
+        if(oTr and oTr.Hit) then -- Draw the hit different
+          local trE = oTr.Entity
+          local xyO = oDt.start:ToScreen()
+          local xyE = oDt.endpos:ToScreen()
+          if(oEnt and oEnt:IsValid()) then
+            local xyH = oTr.HitPos:ToScreen()
+            surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
+            surfaceSetDrawColor(conPalette:Select("g"))
+            surfaceDrawLine(xyO.x, xyO.y, xyH.x, xyH.y)
+            surfaceDrawCircle(xyH.x, xyH.y, radScl, conPalette:Select("g"))
+            surfaceSetDrawColor(conPalette:Select("y"))
+            surfaceDrawLine(xyH.x, xyH.y, xyE.x, xyE.y)
+          else
+            surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
+            surfaceSetDrawColor(conPalette:Select("r"))
+            surfaceDrawLine(xyO.x, xyO.y, xyE.x, xyE.y)
           end
         end
       end
