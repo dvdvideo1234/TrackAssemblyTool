@@ -222,11 +222,19 @@ end
 local function Log(anyStuff)
   local nMaxLogs = GetOpVar("LOG_MAXLOGS")
   if(nMaxLogs <= 0) then return end
+  local logLast  = GetOpVar("LOG_LOGLAST")
+  local logData  = tostring(anyStuff)
+  local nCurLogs = GetOpVar("LOG_CURLOGS")
+  if(logLast == logData) then
+    nCurLogs = nCurLogs + 1
+    SetOpVar("LOG_CURLOGS",nCurLogs); return
+  end
+  SetOpVar("LOG_LOGLAST",logData)
   local sLogFile = GetOpVar("LOG_LOGFILE")
   local nCurLogs = GetOpVar("LOG_CURLOGS")
   if(sLogFile ~= "") then
     local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
-    fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff).."\n")
+    fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData.."\n")
     nCurLogs = nCurLogs + 1
     if(nCurLogs > nMaxLogs) then
       fileDelete(fName)
@@ -234,7 +242,7 @@ local function Log(anyStuff)
     end
     SetOpVar("LOG_CURLOGS",nCurLogs)
   else
-    print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..tostring(anyStuff))
+    print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData)
     nCurLogs = nCurLogs + 1
     if(nCurLogs > nMaxLogs) then
       nCurLogs = 0
@@ -387,6 +395,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGFILE","")
+  SetOpVar("LOG_LOGLAST","")
   SetOpVar("MAX_ROTATION",360)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())

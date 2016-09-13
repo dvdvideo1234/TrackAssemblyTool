@@ -215,6 +215,18 @@ A: Yes, it does. When looking at the panel in the right, there is a checkbox lab
    If the snapping conditions are present, it will snap the trace piece on physgun release at
    that end, which the server trace hits.
 
+Q: Can you tell me how to read the physgun snap legend drawn on the screen ?
+A: Easy. Here are some things to know for never getting confused with this:
+   If the line with the middle circle is green, that means a valid prop entity is traced
+     The green circle shows where the trace hit and the yellow what part of trace is inside the prop  
+   If the line is yellow, that means the trace has hit someting else
+     The yellow circle shows again where the trace hit and the red line the part inside the non-prop
+   If there is a red line with yellow circle, then there is an active point there, which is searching
+     for props to snap to when you drop the piece with the physgun.
+N: You can also disable the drawing by unchecking the "Draw adviser" checkbox
+   or unchecking the option for "Enable physgun snap", making it pointles to be drawn without the
+   base option enabled.
+     
 Q: What is this green line into the advisor, what is it for ?
 A: Remember when I got suggestions to do the switchers.
    This is an easy way of indicating which NEXT active position ( of some... )

@@ -40,7 +40,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.300")
+asmlib.SetOpVar("TOOL_VERSION","5.301")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -502,41 +502,51 @@ if(CLIENT) then
       local actSwep = oPly:GetActiveWeapon()
       if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
       if(actSwep:GetClass() ~= "weapon_physgun") then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
-      -- If the player is not holding the track with then say goodby tho this action
       if(not inputIsMouseDown(MOUSE_LEFT)) then return end
-      --  return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Not holding") end
-      -- Now the user is holding the physgun left button
       local actTr = utilTraceLine(utilGetPlayerTrace(oPly))
-      if(not (actTr and actTr.Hit)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace invalid") end
-      local trEnt = actTr.Entity; print(actTr.Hit, trEnt, trEnt:IsValid(), IsValid(trEnt))
+      if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
+      if(not actTr.Hit) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not hit") end
+      if(actTr.HitWorld) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace world") end
+      local trEnt = actTr.Entity
       if(not (trEnt and trEnt:IsValid())) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
       if(not trRec) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
+      local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
-      local plyd   = (actTr.HitPos - oPly:GetPos()):Length()
-      local radScl = mathClamp(ratiom / plyd,1,ratioc)
+      if(not actMonitor) then
+        local scrW = surfaceScreenWidth()
+        local scrH = surfaceScreenHeight()
+        actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
+        if(not actMonitor) then
+          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Invalid screen") end
+        asmlib.SetOpVar("MONITOR_GAME", actMonitor)
+        asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
+      end -- Make shure we have a valid game monitor for the draw OOP
       for trID = 1, trRec.Kept, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, asmlib.GetAsmVar("activrad", "FLT"))
+        local xyO = oDt.start:ToScreen()
+        local xyE = oDt.endpos:ToScreen()
+        local rdS = mathClamp(ratiom / (oDt.start - oPly:GetPos()):Length(),1,ratioc)
         if(oTr and oTr.Hit) then -- Draw the hit different
           local trE = oTr.Entity
-          local xyO = oDt.start:ToScreen()
-          local xyE = oDt.endpos:ToScreen()
-          if(oEnt and oEnt:IsValid()) then
-            local xyH = oTr.HitPos:ToScreen()
-            surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
-            surfaceSetDrawColor(conPalette:Select("g"))
-            surfaceDrawLine(xyO.x, xyO.y, xyH.x, xyH.y)
-            surfaceDrawCircle(xyH.x, xyH.y, radScl, conPalette:Select("g"))
-            surfaceSetDrawColor(conPalette:Select("y"))
-            surfaceDrawLine(xyH.x, xyH.y, xyE.x, xyE.y)
+          local xyH = oTr.HitPos:ToScreen()
+          actMonitor:SetColor()
+          if(trE and trE:IsValid()) then
+            actMonitor:DrawCircle(xyO, rdS, "y", "SURF")
+            actMonitor:DrawLine  (xyO, xyH, "g", "SURF")
+            actMonitor:DrawCircle(xyH, rdS, "g")
+            actMonitor:DrawLine  (xyH, xyE, "y")
           else
-            surfaceDrawCircle(xyO.x, xyO.y, radScl, conPalette:Select("y"))
-            surfaceSetDrawColor(conPalette:Select("r"))
-            surfaceDrawLine(xyO.x, xyO.y, xyE.x, xyE.y)
+            actMonitor:DrawCircle(xyO, rdS, "y", "SURF")
+            actMonitor:DrawLine  (xyO, xyH, "y", "SURF")
+            actMonitor:DrawCircle(xyH, rdS, "y")
+            actMonitor:DrawLine  (xyH, xyE, "r")
           end
+        else
+          actMonitor:DrawCircle(xyO, rdS, "y", "SURF")
+          actMonitor:DrawLine  (xyO, xyE, "r", "SURF")
         end
       end
     end)

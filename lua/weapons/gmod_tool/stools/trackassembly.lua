@@ -53,7 +53,6 @@ local VEC_ZERO = asmlib.GetOpVar("VEC_ZERO")
 local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
-local goToolScr, goMonitor
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
@@ -657,14 +656,17 @@ end
 
 function TOOL:DrawHUD()
   if(SERVER) then return end
-  if(not goMonitor) then
-    goMonitor = asmlib.MakeScreen(0,0,
+  local hudMonitor = asmlib.GetOpVar("MONITOR_GAME")
+  if(not hudMonitor) then
+    hudMonitor = asmlib.MakeScreen(0,0,
                   surface.ScreenWidth(),
                   surface.ScreenHeight(),conPalette)
-    if(not goMonitor) then
-      return asmlib.StatusPrint(nil,"DrawHUD: Invalid screen") end
+    if(not hudMonitor) then
+      return asmlib.StatusLog(nil,"DrawHUD: Invalid screen") end
+    asmlib.SetOpVar("MONITOR_GAME", hudMonitor)
+    asmlib.LogInstance("DrawHUD: Create screen")
   end
-  goMonitor:SetColor()
+  hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
   local ply = LocalPlayer()
   local stTrace = ply:GetEyeTrace()
@@ -702,7 +704,7 @@ function TOOL:DrawHUD()
         local mX = (Rp.x - Op.x); mX = mX * mX
         local mY = (Rp.y - Op.y); mY = mY * mY
         local mR = mathSqrt(mX + mY)
-        goMonitor:DrawCircle(Op, mR,"y","SEGM",{100})
+        hudMonitor:DrawCircle(Op, mR,"y","SEGM",{100})
       end; return
     end
     stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
@@ -717,16 +719,16 @@ function TOOL:DrawHUD()
     local Pp = stSpawn.TPnt:ToScreen()
     local Tp = stTrace.HitPos:ToScreen()
     -- Draw Elements
-    goMonitor:DrawLine(Os,Xs,"r","SURF")
-    goMonitor:DrawLine(Os,Pp)
-    goMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
-    goMonitor:DrawLine(Os,Ys,"g")
-    goMonitor:DrawLine(Os,Zs,"b")
-    goMonitor:DrawCircle(Os, RadScale,"y")
-    goMonitor:DrawLine(Os,Tp)
-    goMonitor:DrawCircle(Tp, RadScale / 2)
-    goMonitor:DrawLine(Os,Ss,"m")
-    goMonitor:DrawCircle(Ss, RadScale,"c")
+    hudMonitor:DrawLine(Os,Xs,"r","SURF")
+    hudMonitor:DrawLine(Os,Pp)
+    hudMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
+    hudMonitor:DrawLine(Os,Ys,"g")
+    hudMonitor:DrawLine(Os,Zs,"b")
+    hudMonitor:DrawCircle(Os, RadScale,"y")
+    hudMonitor:DrawLine(Os,Tp)
+    hudMonitor:DrawCircle(Tp, RadScale / 2)
+    hudMonitor:DrawLine(Os,Ss,"m")
+    hudMonitor:DrawCircle(Ss, RadScale,"c")
     if(asmlib.LocatePOA(stSpawn.HRec,pnextid) and stSpawn.HRec.Kept > 1) then
       local vNext = Vector()
             asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
@@ -734,19 +736,19 @@ function TOOL:DrawHUD()
             vNext:Add(stSpawn.SPos)
       local Np = vNext:ToScreen()
       -- Draw Next Point
-      goMonitor:DrawLine(Os,Np,"g")
-      goMonitor:DrawCircle(Np, RadScale / 2, "g")
+      hudMonitor:DrawLine(Os,Np,"g")
+      hudMonitor:DrawCircle(Np, RadScale / 2, "g")
     end
     if(not self:GetDeveloperMode()) then return end
-    local x,y = goMonitor:GetCenter(10,10)
-    goMonitor:SetTextEdge(x,y)
-    goMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k","SURF",{"Trebuchet18"})
-    goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos))
-    goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
-    goMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
-    goMonitor:DrawText("Mod ANG: "..tostring(stSpawn.HAng))
-    goMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
-    goMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
+    local x,y = hudMonitor:GetCenter(10,10)
+    hudMonitor:SetTextEdge(x,y)
+    hudMonitor:DrawText("Act Rad: "..tostring(stSpawn.RLen),"k","SURF",{"Trebuchet18"})
+    hudMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos))
+    hudMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
+    hudMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
+    hudMonitor:DrawText("Mod ANG: "..tostring(stSpawn.HAng))
+    hudMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
+    hudMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
   elseif(stTrace.HitWorld) then
     local offsetup = self:GetOffsetUp()
     local ydegsnp  = self:GetYawSnap()
@@ -770,17 +772,17 @@ function TOOL:DrawHUD()
       local Ys = R:ToScreen()
       local Zs = U:ToScreen()
       local Tp = stTrace.HitPos:ToScreen()
-      goMonitor:DrawLine(Os,Xs,"r","SURF")
-      goMonitor:DrawLine(Os,Ys,"g")
-      goMonitor:DrawLine(Os,Zs,"b")
-      goMonitor:DrawLine(Os,Tp,"y")
-      goMonitor:DrawCircle(Tp, RadScale / 2,"y","SURF")
-      goMonitor:DrawCircle(Os, RadScale)
+      hudMonitor:DrawLine(Os,Xs,"r","SURF")
+      hudMonitor:DrawLine(Os,Ys,"g")
+      hudMonitor:DrawLine(Os,Zs,"b")
+      hudMonitor:DrawLine(Os,Tp,"y")
+      hudMonitor:DrawCircle(Tp, RadScale / 2,"y","SURF")
+      hudMonitor:DrawCircle(Os, RadScale)
       if(not self:GetDeveloperMode()) then return end
-      local x,y = goMonitor:GetCenter(10,10)
-      goMonitor:SetTextEdge(x,y)
-      goMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
-      goMonitor:DrawText("Org ANG: "..tostring(aAng))
+      local x,y = hudMonitor:GetCenter(10,10)
+      hudMonitor:SetTextEdge(x,y)
+      hudMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
+      hudMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
       local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
@@ -797,16 +799,16 @@ function TOOL:DrawHUD()
       local Pp = stSpawn.HPnt:ToScreen()
       local Tp = stTrace.HitPos:ToScreen()
       -- Draw Elements
-      goMonitor:DrawLine(Os,Xs,"r","SURF")
-      goMonitor:DrawLine(Os,Pp)
-      goMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
-      goMonitor:DrawLine(Os,Ys,"g")
-      goMonitor:DrawLine(Os,Zs,"b")
-      goMonitor:DrawLine(Os,Ss,"m")
-      goMonitor:DrawCircle(Ss, RadScale, "c")
-      goMonitor:DrawCircle(Os, RadScale, "y")
-      goMonitor:DrawLine(Os,Tp)
-      goMonitor:DrawCircle(Tp, RadScale / 2)
+      hudMonitor:DrawLine(Os,Xs,"r","SURF")
+      hudMonitor:DrawLine(Os,Pp)
+      hudMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
+      hudMonitor:DrawLine(Os,Ys,"g")
+      hudMonitor:DrawLine(Os,Zs,"b")
+      hudMonitor:DrawLine(Os,Ss,"m")
+      hudMonitor:DrawCircle(Ss, RadScale, "c")
+      hudMonitor:DrawCircle(Os, RadScale, "y")
+      hudMonitor:DrawLine(Os,Tp)
+      hudMonitor:DrawCircle(Tp, RadScale / 2)
       if(stSpawn.HRec.Kept > 1 and stSpawn.HRec.Offs[pnextid]) then
         local vNext = Vector()
               asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
@@ -814,51 +816,54 @@ function TOOL:DrawHUD()
               vNext:Add(stSpawn.SPos)
         local Np = vNext:ToScreen()
         -- Draw Next Point
-        goMonitor:DrawLine(Os,Np,"g")
-        goMonitor:DrawCircle(Np,RadScale / 2)
+        hudMonitor:DrawLine(Os,Np,"g")
+        hudMonitor:DrawCircle(Np,RadScale / 2)
       end
       if(not self:GetDeveloperMode()) then return end
-      local x,y = goMonitor:GetCenter(10,10)
-      goMonitor:SetTextEdge(x,y)
-      goMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k","SURF",{"Trebuchet18"})
-      goMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
-      goMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
-      goMonitor:DrawText("Mod ANG: "..tostring(stSpawn.HAng))
-      goMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
-      goMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
+      local x,y = hudMonitor:GetCenter(10,10)
+      hudMonitor:SetTextEdge(x,y)
+      hudMonitor:DrawText("Org POS: "..tostring(stSpawn.OPos),"k","SURF",{"Trebuchet18"})
+      hudMonitor:DrawText("Org ANG: "..tostring(stSpawn.OAng))
+      hudMonitor:DrawText("Mod POS: "..tostring(stSpawn.HPos))
+      hudMonitor:DrawText("Mod ANG: "..tostring(stSpawn.HAng))
+      hudMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
+      hudMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
     end
   end
 end
 
 function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
-  if(not goToolScr) then
-    goToolScr = asmlib.MakeScreen(0,0,w,h,conPalette)
-    if(not goToolScr) then
-      return asmlib.StatusPrint(nil,"DrawToolScreen: Invalid screen") end
+  local scrTool = asmlib.GetOpVar("MONITOR_TOOL")
+  if(not scrTool) then
+    scrTool = asmlib.MakeScreen(0,0,w,h,conPalette)
+    if(not scrTool) then
+      return asmlib.StatusLog("DrawToolScreen: Invalid screen") end
+    asmlib.SetOpVar("MONITOR_TOOL", scrTool)
+    asmlib.LogInstance("DrawToolScreen: Create screen")
   end
-  goToolScr:SetColor()
-  goToolScr:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
-  goToolScr:SetTextEdge(0,0)
+  scrTool:SetColor()
+  scrTool:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
+  scrTool:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()
   local anInfo, anEnt = self:GetAnchor()
   local tInfo = stringExplode(gsSymRev,anInfo)
   if(not (stTrace and stTrace.Hit)) then
-    goToolScr:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
-    goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
+    scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
+    scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
     return
   end
-  goToolScr:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
-  goToolScr:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
+  scrTool:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
+  scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not hdRec) then
-    goToolScr:DrawText("Holds Model: Invalid","r")
-    goToolScr:DrawTextAdd("  ["..gsModeDataB.."]","db")
+    scrTool:DrawText("Holds Model: Invalid","r")
+    scrTool:DrawTextAdd("  ["..gsModeDataB.."]","db")
     return
   end
-  goToolScr:DrawText("Holds Model: Valid","g")
-  goToolScr:DrawTextAdd("  ["..gsModeDataB.."]","db")
+  scrTool:DrawText("Holds Model: Valid","g")
+  scrTool:DrawTextAdd("  ["..gsModeDataB.."]","db")
   local trEnt   = stTrace.Entity
   local actrad  = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
@@ -885,24 +890,24 @@ function TOOL:DrawToolScreen(w, h)
   model  = stringToFileName(model)
   actrad = asmlib.RoundValue(actrad,0.01)
   maxrad = asmlib.GetAsmVar("maxactrad", "FLT")
-  goToolScr:DrawText("TM: " ..(trModel    or gsNoAV),"y")
-  goToolScr:DrawText("HM: " ..(model      or gsNoAV),"m")
-  goToolScr:DrawText("ID: ["..(trMaxCN    or gsNoID)
+  scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")
+  scrTool:DrawText("HM: " ..(model      or gsNoAV),"m")
+  scrTool:DrawText("ID: ["..(trMaxCN    or gsNoID)
                     .."] "  ..(trOID      or gsNoID)
                     .." >> "..(pointid    or gsNoID)
                     .. " (" ..(pnextid    or gsNoID)
                     ..") [" ..(hdRec.Kept or gsNoID).."]","g")
-  goToolScr:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
-  goToolScr:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
-  local txX, txY, txW, txH, txsX, txsY = goToolScr:GetTextState()
+  scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
+  scrTool:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
+  local txX, txY, txW, txH, txsX, txsY = scrTool:GetTextState()
   local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
   local xyPos = {x = cPos, y = cPos}
-  goToolScr:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
-  goToolScr:DrawCircle(xyPos, nRad, "m")
-  goToolScr:DrawText(osDate(),"w")
+  scrTool:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
+  scrTool:DrawCircle(xyPos, nRad, "m")
+  scrTool:DrawText(osDate(),"w")
   if(trRLen) then
-    goToolScr:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
+    scrTool:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
 end
 
 local ConVarList = TOOL:BuildConVarList()
