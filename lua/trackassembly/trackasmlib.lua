@@ -226,12 +226,9 @@ local function Log(anyStuff)
   local logData  = tostring(anyStuff)
   local nCurLogs = GetOpVar("LOG_CURLOGS")
   if(logLast == logData) then
-    nCurLogs = nCurLogs + 1
-    SetOpVar("LOG_CURLOGS",nCurLogs); return
-  end
+    SetOpVar("LOG_CURLOGS",nCurLogs + 1); return end
   SetOpVar("LOG_LOGLAST",logData)
   local sLogFile = GetOpVar("LOG_LOGFILE")
-  local nCurLogs = GetOpVar("LOG_CURLOGS")
   if(sLogFile ~= "") then
     local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
     fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData.."\n")
@@ -239,15 +236,13 @@ local function Log(anyStuff)
     if(nCurLogs > nMaxLogs) then
       fileDelete(fName)
       nCurLogs = 0
-    end
-    SetOpVar("LOG_CURLOGS",nCurLogs)
+    end; SetOpVar("LOG_CURLOGS",nCurLogs)
   else
     print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData)
     nCurLogs = nCurLogs + 1
     if(nCurLogs > nMaxLogs) then
       nCurLogs = 0
-    end
-    SetOpVar("LOG_CURLOGS",nCurLogs)
+    end; SetOpVar("LOG_CURLOGS",nCurLogs)
   end
 end
 
@@ -436,7 +431,7 @@ function InitBase(sName,sPurpose)
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
     mask   = MASK_SOLID,  -- Mask telling it what to hit
-    filter = function(oEnt) -- Only valid props which are not the main entity or world
+    filter = function(oEnt) -- Only valid props which are not the main entity or world or TRACE_FILTER ( if set )
       if(oEnt and oEnt:IsValid() and oEnt:GetClass() == "prop_physics" and oEnt ~= GetOpVar("TRACE_FILTER")) then return true end end })
   SetOpVar("NAV_PIECE",{})
   SetOpVar("NAV_PANEL",{})

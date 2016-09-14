@@ -31,7 +31,7 @@ A: Just subscribe to the workshop item:
    You can find the tool in the "Constriction" section of Garry's mod "Q" menu under the name of "Track Assembly".
    On the right in the tool's menu, you can locate the track pieces tree.
    Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
-   If "trackassembly_enpntmscr" is set to <>0
+   If "trackassembly_enpntmscr" is set to "1"
      Pressing ALT + NEXT_WEAPON ( Default: Mouse wheel down )
          Will increment the chosen active position of the piece that you're holding.
        When pressing SPEED ( Default: Shift )
@@ -40,7 +40,7 @@ A: Just subscribe to the workshop item:
          Will decrement the chosen active position of the piece that you're holding.
        When pressing SPEED ( Default: Shift )
          Will decrement the chosen next position of the piece that you're holding.
-   If "trackassembly_enpntmscr" is set to =0
+   If "trackassembly_enpntmscr" is set to "0"
      Pressing ATTACK2 ( Default: Right mouse button )
          Will increment the chosen active position of the piece that you're holding.
        When pressing DUCK ( Default: Ctrl )
@@ -218,18 +218,18 @@ A: Yes, it does. When looking at the panel in the right, there is a checkbox lab
 Q: Can you tell me how to read the physgun snap legend drawn on the screen ?
 A: Easy. Here are some things to know for never getting confused with this:
    If the line with the middle circle is green, that means a valid prop entity is traced
-     The green circle shows where the trace hit and the yellow what part of trace is inside the prop  
-   If the line is yellow, that means the trace has hit someting else
-     The yellow circle shows again where the trace hit and the red line the part inside the non-prop
+     The green circle shows where the trace hits and the yellow what part of trace is inside the prop
+   If the line is yellow, that means the trace has hit someting else ( For example the world )
+     The yellow circle shows again where the trace hits and the red line the part inside the non-prop
    If there is a red line with yellow circle, then there is an active point there, which is searching
-     for props to snap to when you drop the piece with the physgun.
+     for props to snap to when you drop ( release the left click ) the piece with the physgun.
 N: You can also disable the drawing by unchecking the "Draw adviser" checkbox
    or unchecking the option for "Enable physgun snap", making it pointles to be drawn without the
-   base option enabled.
-     
-Q: What is this green line into the advisor, what is it for ?
+   base option enabled. To enable the drawing, both must be enabled ( Adviser and snapping ).
+
+Q: What is this green line/circle into the base advisor, what is it for ?
 A: Remember when I got suggestions to do the switchers.
-   This is an easy way of indicating which NEXT active position ( of some... )
+   This is an easy way of indicating which next active position ( of some )
    is chosen when stacking is in place. The end of the line with the green
    circle points to the next active position that is chosen.
 
@@ -279,7 +279,7 @@ A: Yes it does. You can enable/disable the wire extension using the
 Q: What do the tool versions represent?
 A: The first number will get an increase when a new major update has arrived.
    The second number is the commit number in the repository, related to
-   some smaller changes and fixes. For example rearranging the code,
+   some smaller changes and fixes. For example rearranging the code, new features,
    performance optimizations, doing the same thing ,but in more "elegant"
    way and such.
 
@@ -301,10 +301,11 @@ A: You can do the following:
    3) Press enter and restart Gmod.
    4) Look at the tool screen. After holder's model validation, it shall write the new mode.
    5) Done. You are now in LUA mode.
-N: SQL is still the best option for using the tool with, because only
-   a few models have to stay in the cache for a given amount
-   of time, rather than the whole database forever ( till the server is up that is .. ),
-   so please use SQL mode when possible if you want to save some amount of RAM.
+N: SQL is still the best option for using the tool with for servers, because only a few models have to
+   stay in the cache for a given amount of time, rather than the whole database forever ( till the server
+   is up that is ), so please use SQL mode when possible if you want to save some amount of RAM.
+   LUA mode is used as a default option, because some people have third party SQL servers, which messes with
+   the sql.* library of the game and does not allow me to create the needed sql tables and records properly.
 
 Q: Can I do something about my server's performance and how can I configure the memory manager properly?
 A: You can choose a memory management algorithm by setting trackassembly_timermode to "mode@life@clear@collect"
