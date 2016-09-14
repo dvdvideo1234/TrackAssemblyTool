@@ -11,10 +11,16 @@ local IsValid              = IsValid
 local tonumber             = tonumber
 local tostring             = tostring
 local CreateConVar         = CreateConVar
+local RunConsoleCommand    = RunConsoleCommand
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
+local mathClamp            = math and math.Clamp
+local utilTraceLine        = util and util.TraceLine
+local utilGetPlayerTrace   = util and util.GetPlayerTrace
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
+local inputIsKeyDown       = input and input.IsKeyDown
+local inputIsMouseDown     = input and input.IsMouseDown
 local stringSub            = string and string.sub
 local stringFind           = string and string.find
 local stringGsub           = string and string.gsub
@@ -23,14 +29,15 @@ local stringLower          = string and string.lower
 local stringExplode        = string and string.Explode
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
+local languageGetPhrase    = language and language.GetPhrase
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
 local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
-asmlib.Init("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.283")
+asmlib.InitBase("track","assembly")
+asmlib.SetOpVar("TOOL_VERSION","5.302")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -44,46 +51,73 @@ asmlib.SetOpVar("LOG_SKIP",{
   "GetEntitySpawn: Types different",
   "MakeScreen.SetColor: Color reset",
   "MakeScreen.DrawLine: Start out of border",
-  "MakeScreen.DrawLine: End out of border"
+  "MakeScreen.DrawLine: End out of border",
+  "POINT_SELECT: Bind not pressed",
+  "POINT_SELECT: Active key missing"
 })
+
+------ VARIABLE FLAGS ------
+-- Client and server have independent value
+local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
+-- Server tells the client what value to use
+local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
 
 ------ CONFIGURE LOGGING ------
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmVar("logsmax"  , "0" , {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , ""  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logsmax"  , "0" , {0}, gnIndependentUsed, "Maximum logging lines to be printed")
+asmlib.MakeAsmVar("logfile"  , ""  , nil, gnIndependentUsed, "File to store the logs ( if any )")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
------- CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeAsmVar("localify" , "ENG", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "The current language chosen")
-asmlib.MakeAsmVar("modedb"   , "SQL", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Database operating mode")
-asmlib.MakeAsmVar("enqstore" ,   1  , nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Enable caching for built queries")
-asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY), "Memory management setting when DB mode is SQL")
+------ CONFIGURE VARIABLES ------
+asmlib.MakeAsmVar("modedb"   , "LUA",     nil, gnIndependentUsed, "Database operating mode")
+asmlib.MakeAsmVar("enqstore" , "1"  , {0, 1 }, gnIndependentUsed, "Enable caching for built queries")
+asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
------- CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle the wire extension on/off server side")
-asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Toggle developer mode on/off server side")
-asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum mass that can be appied on a piece")
-asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum linear offset os the piece")
-asmlib.MakeAsmVar("maxforce" , "100000",  {0}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum force limit when creating welds")
-asmlib.MakeAsmVar("maxactrad", "150", {1,500}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum active radius to search for a point ID")
-asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum pieces to spawn in stack mode")
+asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gnServerControled, "Maximum mass that can be appied on a piece")
+asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gnServerControled, "Maximum linear offset os the piece")
+asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gnServerControled, "Maximum force limit when creating welds")
+asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, gnServerControled, "Maximum pieces to spawn in stack mode")
+asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
+
+if(CLIENT) then
+  asmlib.MakeAsmVar("localify", "ENG", nil, gnIndependentUsed, "The current language chosen")
+end
+
 if(SERVER) then
-  CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum number of tracks to be spawned")
-  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Unreasonable position error handling mode")
-  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY), "Maximum frequent pieces to be listed")
+  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
+  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
+  CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", gnServerControled, "Maximum number of tracks to be spawned")
 end
 
 ------ CONFIGURE INTERNALS -----
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
-asmlib.SetOpVar("EN_QUERY_STORE",(asmlib.GetAsmVar("enqstore", "INT") ~= 0) and true or false)
+asmlib.SetOpVar("EN_QUERY_STORE", asmlib.GetAsmVar("enqstore", "BUL"))
 
 ------ GLOBAL VARIABLES ------
+local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
+local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
+local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetAsmVar("timermode","STR"))
+local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
+      conPalette:Insert("r" ,Color(255,  0,  0,255))
+      conPalette:Insert("g" ,Color(  0,255,  0,255))
+      conPalette:Insert("b" ,Color(  0,  0,255,255))
+      conPalette:Insert("c" ,Color(  0,255,255,255))
+      conPalette:Insert("m" ,Color(255,  0,255,255))
+      conPalette:Insert("y" ,Color(255,255,  0,255))
+      conPalette:Insert("w" ,Color(255,255,255,255))
+      conPalette:Insert("k" ,Color(  0,  0,  0,255))
+      conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
+      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
+      conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
+      conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -93,12 +127,83 @@ if(SERVER) then
         return asmlib.StatusLog(false,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)) end
       return asmlib.StatusLog(true,"DUPE_PHYS_SETTINGS: Success")
     end)
+
+  asmlib.SetAction("PHYSGUN_DROP",
+    function(pPly, trEnt)
+      if(not asmlib.IsPlayer(pPly)) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Player invalid") end
+      if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Snapping disabled") end
+      if(not (trEnt and trEnt:IsValid())) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace entity invalid") end
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+      if(not trRec) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
+      local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
+      local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
+      local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0))
+      local freeze     = (pPly:GetInfoNum(gsToolPrefL.."freeze"   , 0))
+      local gravity    = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0))
+      local weld       = (pPly:GetInfoNum(gsToolPrefL.."weld"     , 0))
+      local nocollide  = (pPly:GetInfoNum(gsToolPrefL.."nocollide", 0))
+      local spnflat    = (pPly:GetInfoNum(gsToolPrefL.."spnflat"  , 0) ~= 0)
+      local igntype    = (pPly:GetInfoNum(gsToolPrefL.."igntype"  , 0) ~= 0)
+      local physmater  = (pPly:GetInfo   (gsToolPrefL.."physmater", "metal"))
+      local nextx      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextx"   , 0),-nMaxOffLin , nMaxOffLin)
+      local nexty      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nexty"   , 0),-nMaxOffLin , nMaxOffLin)
+      local nextz      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextz"   , 0),-nMaxOffLin , nMaxOffLin)
+      local nextpic    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextpic" , 0),-gnMaxOffRot,gnMaxOffRot)
+      local nextyaw    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw" , 0),-gnMaxOffRot,gnMaxOffRot)
+      local nextrol    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol" , 0),-gnMaxOffRot,gnMaxOffRot)
+      local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmVar("maxforce" , "FLT"))
+      local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
+      local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
+      for ID = 1, trRec.Kept, 1 do
+        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, ID, activrad)
+        if(oTr and oTr.Hit and (activrad * oTr.Fraction < trRad)) then -- Hits distance shorter than the active radius
+          if(oTr.Entity and oTr.Entity:IsValid()) then trRad, trID, trTr = (activrad * oTr.Fraction), ID, oTr end
+        end
+      end -- The trace with the shortest distance is found
+      if(trTr and trTr.Hit and (trID > 0) and (trID <= trRec.Kept)) then
+        local stSpawn = asmlib.GetEntitySpawn(trTr.Entity,trTr.HitPos,trRec.Slot,trID,
+                          activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+        if(stSpawn) then
+          if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
+            return StatusLog(nil,"PHYSGUN_DROP: "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds") end
+          trEnt:SetAngles(stSpawn.SAng)
+          if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
+            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical settings") end
+          if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,forcelim)) then
+            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical anchor") end
+        end
+      end
+    end)
 end
 
 if(CLIENT) then
+  asmlib.SetAction("BIND_PRESS",
+    function(oPly,sBind,bPress) -- Must have the same parameters as the hook
+      if(not bPress) then return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
+      local actSwep = oPly:GetActiveWeapon()
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"BIND_PRESS: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool different") end
+      -- Here player is holding the track assembly tool
+      if(not inputIsKeyDown(KEY_LALT)) then return asmlib.StatusLog(nil,"BIND_PRESS: Active key missing") end
+      local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
+      if(not actTool) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
+      if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
+        if(not actTool:GetScrollMouse()) then return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Scrolling disabled") end
+        local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
+        actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
+        return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
+      end -- Override only for TA and skip touching anything else
+      return asmlib.StatusLog(nil,"BIND_PRESS("..sBind.."): Skipped")
+    end) -- Read client configuration
+
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)
-      local devmode = asmlib.GetAsmVar("devmode", "INT")
+      local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
       asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode)..asmlib.GetOpVar("OPSYM_DISABLE")..tostring(command).."}")
       asmlib.ConCommandPly(oPly,"nextx"  , "0")
@@ -107,8 +212,9 @@ if(CLIENT) then
       asmlib.ConCommandPly(oPly,"nextpic", "0")
       asmlib.ConCommandPly(oPly,"nextyaw", "0")
       asmlib.ConCommandPly(oPly,"nextrol", "0")
-      if(devmode == 0) then
+      if(not devmode) then
         return asmlib.StatusLog(true,"RESET_VARIABLES: Developer mode disabled") end
+      asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
       if(bgskids == "reset cvars") then -- Reset the limit also
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         local anchor = asmlib.GetOpVar("MISS_NOID")..
@@ -140,9 +246,11 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxstatts", "3")
         asmlib.ConCommandPly(oPly, "nocollide", "1")
         asmlib.ConCommandPly(oPly, "physmater", "metal")
+        asmlib.ConCommandPly(oPly, "enpntmscr", "1")
+        asmlib.ConCommandPly(oPly, "engunsnap", "0")
         asmlib.ConCommandPly(oPly, "logsmax"  , "0")
         asmlib.ConCommandPly(oPly, "logfile"  , "")
-        asmlib.ConCommandPly(oPly, "modedb"   , "SQL")
+        asmlib.ConCommandPly(oPly, "modedb"   , "LUA")
         asmlib.ConCommandPly(oPly, "enqstore" , "1")
         asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
         asmlib.ConCommandPly(oPly, "enwiremod", "1")
@@ -182,11 +290,11 @@ if(CLIENT) then
         return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create base frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{Label = { "DButton"    ,"Export DB"     ,"Click to export the client database as a file"}})
-            pnElements:Insert(2,{Label = { "DListView"  ,"Routine Items" ,"The list of your frequently used track pieces"}})
-            pnElements:Insert(3,{Label = { "DModelPanel","Piece Display" ,"The model of your track piece is displayed here"}})
-            pnElements:Insert(4,{Label = { "DTextEntry" ,"Enter Pattern" ,"Enter a pattern here and hit enter to preform a search"}})
-            pnElements:Insert(5,{Label = { "DComboBox"  ,"Select Column" ,"Choose which list column you want to preform a search on"}})
+            pnElements:Insert(1,{Label = { "DButton"    ,languageGetPhrase("tool."..gsToolNameL..".pn_export_lb") , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
+            pnElements:Insert(2,{Label = { "DListView"  ,languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_routine")}})
+            pnElements:Insert(3,{Label = { "DModelPanel",languageGetPhrase("tool."..gsToolNameL..".pn_display_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_display")}})
+            pnElements:Insert(4,{Label = { "DTextEntry" ,languageGetPhrase("tool."..gsToolNameL..".pn_pattern_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_pattern")}})
+            pnElements:Insert(5,{Label = { "DComboBox"  ,languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_srchcol")}})
       ------------ Manage the invalid panels -------------------
       local iNdex, iSize, sItem, vItem = 1, pnElements:GetSize(), "", nil
       while(iNdex <= iSize) do
@@ -228,7 +336,7 @@ if(CLIENT) then
       xyPos.y = (scrH / 4)
       xySiz.x = 750
       xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
-      pnFrame:SetTitle("Frequent pieces by "..oPly:GetName().." v."..asmlib.GetOpVar("TOOL_VERSION"))
+      pnFrame:SetTitle(languageGetPhrase("tool."..gsToolNameL..".pn_routine_hd")..oPly:Nick().." {"..asmlib.GetOpVar("TOOL_VERSION").."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
@@ -243,9 +351,9 @@ if(CLIENT) then
           pnElements:Delete(iNdex)
           iNdex = iNdex + 1
         end
-        pnFrame:Remove(); collectgarbage()
+        pnFrame:Remove(); asmlib.SetOpVar("PANEL_FREQUENT_MODELS",nil); collectgarbage()
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
-      end
+      end; asmlib.SetOpVar("PANEL_FREQUENT_MODELS",pnFrame)
       ------------ Button --------------
       xyPos.x = xyZero.x + xyDelta.x
       xyPos.y = xyZero.y + xyDelta.y
@@ -258,10 +366,7 @@ if(CLIENT) then
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
         asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
-        asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),
-                             asmlib.GetAsmVar("logfile" , "STR"))
-        local ExportDB     = asmlib.GetAsmVar("exportdb", "INT")
-        if(ExportDB ~= 0) then
+        if(asmlib.GetAsmVar("exportdb", "BUL")) then
           asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
           asmlib.StoreExternalDatabase("PIECES",",","INS")
           asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
@@ -281,17 +386,17 @@ if(CLIENT) then
       pnComboBox:SetPos(xyPos.x,xyPos.y)
       pnComboBox:SetSize(xySiz.x,xySiz.y)
       pnComboBox:SetVisible(true)
-      pnComboBox:SetValue("<Search BY>")
-      pnComboBox:AddChoice("Model",defTable[1][1])
-      pnComboBox:AddChoice("Type" ,defTable[2][1])
-      pnComboBox:AddChoice("Name" ,defTable[3][1])
-      pnComboBox:AddChoice("Act"  ,defTable[4][1])
+      pnComboBox:SetValue(pnElements:Select(5).Label[2])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTable[1][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTable[2][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTable[3][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTable[4][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
         asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.."<"..sVal..">"..tostring(anyData))
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel --------------
-      xySiz.x = 250 -- Display model properly
+      xySiz.x = 250 -- Display the model properly
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xyPos.x, xyPos.y = pnComboBox:GetPos()
       xyPos.x = xyTmp.x - xySiz.x - xyDelta.x
@@ -358,10 +463,10 @@ if(CLIENT) then
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(xyPos.x,xyPos.y)
       pnListView:SetSize(xySiz.x,xySiz.y)
-      pnListView:AddColumn("Used" ):SetFixedWidth(wUse) -- (1)
-      pnListView:AddColumn("Act"  ):SetFixedWidth(wAct) -- (2)
-      pnListView:AddColumn("Type" ):SetFixedWidth(wTyp) -- (3)
-      pnListView:AddColumn("Model"):SetFixedWidth(wMod) -- (4)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb1")):SetFixedWidth(wUse) -- (1)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb2")):SetFixedWidth(wAct) -- (2)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wMod) -- (4)
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
                       pnModelPanel:SetModel(uiMod)
@@ -381,6 +486,67 @@ if(CLIENT) then
       pnFrame:SetVisible(true); pnFrame:Center()
       pnFrame:MakePopup()     ; collectgarbage()
       return asmlib.StatusLog(true,"OPEN_FRAME: Success")
+    end)
+
+  asmlib.SetAction("PHYSGUN_DRAW",
+    function()
+      if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Extension disabled") end
+      if(not asmlib.GetAsmVar("adviser", "BUL")) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Adviser disabled") end
+      local oPly = LocalPlayer()
+      if(not asmlib.IsPlayer(oPly)) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Player invalid") end
+      local actSwep = oPly:GetActiveWeapon()
+      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
+      if(actSwep:GetClass() ~= "weapon_physgun") then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
+      if(not inputIsMouseDown(MOUSE_LEFT)) then return end
+      local actTr = utilTraceLine(utilGetPlayerTrace(oPly))
+      if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
+      if(not actTr.Hit) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not hit") end
+      if(actTr.HitWorld) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace world") end
+      local trEnt = actTr.Entity
+      if(not (trEnt and trEnt:IsValid())) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+      if(not trRec) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
+      local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
+      local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
+      if(not actMonitor) then
+        local scrW = surfaceScreenWidth()
+        local scrH = surfaceScreenHeight()
+        actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
+        if(not actMonitor) then
+          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Invalid screen") end
+        asmlib.SetOpVar("MONITOR_GAME", actMonitor)
+        asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
+      end -- Make shure we have a valid game monitor for the draw OOP
+      for trID = 1, trRec.Kept, 1 do
+        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, asmlib.GetAsmVar("activrad", "FLT"))
+        local xyO = oDt.start:ToScreen()
+        local xyE = oDt.endpos:ToScreen()
+        local rdS = mathClamp(ratiom / (oDt.start - oPly:GetPos()):Length(),1,ratioc)
+        if(oTr and oTr.Hit) then -- Draw the hit different
+          local trE = oTr.Entity
+          local xyH = oTr.HitPos:ToScreen()
+          actMonitor:SetColor()
+          if(trE and trE:IsValid()) then
+            actMonitor:DrawCircle(xyO, rdS, "y", "SURF")
+            actMonitor:DrawLine  (xyO, xyH, "g", "SURF")
+            actMonitor:DrawCircle(xyH, rdS, "g")
+            actMonitor:DrawLine  (xyH, xyE, "y")
+          else
+            actMonitor:DrawCircle(xyO, rdS, "y", "SURF")
+            actMonitor:DrawLine  (xyO, xyH, "y", "SURF")
+            actMonitor:DrawCircle(xyH, rdS, "y")
+            actMonitor:DrawLine  (xyH, xyE, "r")
+          end
+        else
+          actMonitor:DrawCircle(xyO, rdS, "y", "SURF")
+          actMonitor:DrawLine  (xyO, xyE, "r", "SURF")
+        end
+      end
     end)
 end
 
@@ -424,15 +590,15 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 
 ------ POPULATE DB ------
 --[[ TA parametrization legend
-  Disabling of a component is preformed by using "OPSYM_DISABLE"
-  Disabling P    - The ID is ignored when searching for active point
-  Disabling O    - The ID can not selected by the holder via right click
-  Disabling A    - The ID angle is treated as {0,0,0}
-  Disabling Type - Makes it use the value of DefaultType()
-  Disabling Name - Makes it generate it using the model via ModelToName()
-  Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
-  First  argument of DefaultTable() is used to provide default table name for InsertRecord()
-  Second argument of DefaultTable() is used to generate track categories for the processed addon
+ * Disabling of a component is preformed by using "OPSYM_DISABLE"
+ * Disabling P    - The ID is ignored when searching for active point
+ * Disabling O    - The ID cannot be selected by the holder
+ * Disabling A    - The ID angle is treated as {0,0,0}
+ * Disabling Type - Makes it use the value of DefaultType()
+ * Disabling Name - Makes it generate it using the model via ModelToName()
+ * Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
+ * First  argument of DefaultTable() is used to provide default table name for InsertRecord()
+ * Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PIECES from DSV")
@@ -440,7 +606,7 @@ if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
 else
   asmlib.LogInstance(gsToolNameU..": DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
-  if(asmlib.GetAsmVar("devmode" ,"INT") ~= 0) then
+  if(asmlib.GetAsmVar("devmode" ,"BUL")) then
     asmlib.DefaultType("Develop Sprops")
     asmlib.InsertRecord({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1, "", "", ""})
     asmlib.InsertRecord({"models/sprops/cuboids/height12/size_1/cube_12x12x12.mdl", "#", "x2", 1, "", "", ""})
@@ -2527,7 +2693,10 @@ else
   asmlib.DefaultType("G Scale Track Pack", function(m)
     local r = stringGsub(m,"models/gscale/",""); r = stringSub(r,1,stringFind(r,"/")-1);
     if    (r == "j") then r = "J-Switcher"
-    elseif(r == "s") then r = "S-Switcher" end
+    elseif(r == "s") then r = "S-Switcher"
+    elseif(r == "c0512") then r = "Curve 512"
+    elseif(r == "ibeam") then r = "Iron Beam"
+    elseif(r == "ramp313") then r = "Ramp 313" end
     return asmlib.ModelToName(r,true); end)
   asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 2, "", "  -8,0,1.016", "0,-180,0"})
@@ -2535,14 +2704,6 @@ else
   asmlib.InsertRecord({"models/gscale/straight/s0016.mdl", "#", "#", 2, "", " -16,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0032.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  ---vv To be tested when the addon gets updated
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
-  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
-  ---^^
   asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0064.mdl", "#", "#", 2, "", " -64,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0128.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
@@ -2553,6 +2714,12 @@ else
   asmlib.InsertRecord({"models/gscale/straight/s0512.mdl", "#", "#", 2, "", "-512,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s1024.mdl", "#", "#", 1, "", "    0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s1024.mdl", "#", "#", 2, "", "-1024,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_1.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_s_2.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
+  asmlib.InsertRecord({"models/gscale/transition/t0032_q_t.mdl", "#", "#", 2, "", " -32,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/c0512/225l.mdl", "#", "#", 1, "", " 0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/c0512/225l.mdl", "#", "#", 2, "", "-196.060471,-39.081982,1.016", "0,-157.5,0"})
   asmlib.InsertRecord({"models/gscale/c0512/225r.mdl", "#", "#", 1, "", " 0,0,1.016", ""})
@@ -2632,7 +2799,86 @@ else
   asmlib.InsertRecord({"models/gscale/siding/r225_s.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
-  asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})  
+  asmlib.InsertRecord({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
+  asmlib.DefaultType("Ron's Minitrain Props",function(m)
+    local r = stringGsub(m,"models/ron/minitrains/",""); r = stringSub(r,1,stringFind(r,"/")-1);
+    return asmlib.ModelToName(r,true); end)
+  asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 2, "", "-1, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/2.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/2.mdl",   "#", "#", 2, "", "-2, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/4.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/4.mdl",   "#", "#", 2, "", "-4, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/8.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/straight/8.mdl",   "#", "#", 2, "", "-8, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/scenery/tunnel_64.mdl",   "#", "#", 1, "", "  0, 8.507, 1", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/scenery/tunnel_64.mdl",   "#", "#", 2, "", "-64, 8.507, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1.mdl", "#", "#", 1, "", "0, 0.5,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1.mdl", "#", "#", 2, "", "0,-0.5,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_2.mdl", "#", "#", 1, "", "0, 1,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_2.mdl", "#", "#", 2, "", "0,-1,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_4.mdl", "#", "#", 1, "", "0, 2,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_4.mdl", "#", "#", 2, "", "0,-2,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_8.mdl", "#", "#", 1, "", "0, 4,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_8.mdl", "#", "#", 2, "", "0,-4,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_16.mdl", "#", "#", 1, "", "0, 8,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_16.mdl", "#", "#", 2, "", "0,-8,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_32.mdl", "#", "#", 1, "", "0, 16,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_32.mdl", "#", "#", 2, "", "0,-16,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_64.mdl", "#", "#", 1, "", "0, 32,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_64.mdl", "#", "#", 2, "", "0,-32,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_128.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_128.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_256.mdl", "#", "#", 1, "", "0, 128,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_256.mdl", "#", "#", 2, "", "0,-128,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_512.mdl", "#", "#", 1, "", "0, 256,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_512.mdl", "#", "#", 2, "", "0,-256,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1024.mdl", "#", "#", 1, "", "0, 512,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/elevation_1024.mdl", "#", "#", 2, "", "0,-512,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_1.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_1.mdl", "#", "#", 2, "", "138.5,138.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_2.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_2.mdl", "#", "#", 2, "", "168.5,168.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_3.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_3.mdl", "#", "#", 2, "", "198.5,198.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_4.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_4.mdl", "#", "#", 2, "", "228.5,228.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_5.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_5.mdl", "#", "#", 2, "", "258.5,258.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_6.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_90_6.mdl", "#", "#", 2, "", "288.5,288.5,33", ""})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_1.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_1.mdl", "#", "#", 2, "", "40.565710805663,97.934289194337,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_2.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_2.mdl", "#", "#", 2, "", "49.352507370067,119.14749262993,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_3.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_3.mdl", "#", "#", 2, "", "58.13930393447,140.360696065530,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_4.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_4.mdl", "#", "#", 2, "", "66.926100498874,161.57389950113,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_5.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_5.mdl", "#", "#", 2, "", "75.712897063277,182.78710293672,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_6.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_45_6.mdl", "#", "#", 2, "", "84.499693627681,204.00030637232,33", "0,45,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_1.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_1.mdl", "#", "#", 2, "", "10.542684747187,53.001655382565,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_2.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_2.mdl", "#", "#", 2, "", "12.826298771848,64.482158353518,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_3.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_3.mdl", "#", "#", 2, "", "15.109912796510,75.962661324470,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_4.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_4.mdl", "#", "#", 2, "", "17.393526821171,87.443164295423,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_5.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_5.mdl", "#", "#", 2, "", "19.677140845832,98.923667266376,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_6.mdl", "#", "#", 1, "", "0,0,33", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/curves/elevation_225_6.mdl", "#", "#", 2, "", "21.960754870494,110.40417023733,33", "0,67.5,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_128.mdl", "#", "#", 1, "", "0,  0, 1", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_128.mdl", "#", "#", 2, "", "0,144,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_256.mdl", "#", "#", 1, "", "0,  0, 1", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_256.mdl", "#", "#", 2, "", "0,272,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 1, "", "0,  0, 1", "0,-90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 2, "", "0,528,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
+  asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
@@ -2758,138 +3004,246 @@ else
 end
 
 ------ CONFIGURE TRANSLATIONS ------ https://www.loc.gov/standards/iso639-2/php/code_list.php
-if(CLIENT) then --- con >> control, def >> deafault
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".1"            , "Assembles a prop-segmented track")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".left"         , "Spawn/snap a piece. Hold shift to stack")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".right"        , "Switch assembly points. Hold shift for versa")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".right_use"    , "Open frequently used pieces menu")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".reload"       , "Remove a piece. Hold shift to select an anchor")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".desc"         , "Assembles a track for vehicles to run on")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phytype"      , "Select physical properties type of the ones listed here")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phytype_def"  , "<Select Surface Material TYPE>")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phyname"      , "Select physical properties name to use when creating the track as this will affect the surface friction")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phyname_def"  , "<Select Surface Material NAME>")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".bgskids"      , "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".bgskids_def"  , "Write selection code here. For example 1,0,0,2,1/3")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mass"         , "How heavy the piece spawned will be")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mass_con"     , "Piece mass:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".model"        , "Select the piece model to be used")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".model_con"    , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".activrad"     , "Minimum distance needed to select an active point")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".activrad_con" , "Active radius:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".count"        , "Maximum number of pieces to create while stacking")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".count_con"    , "Pieces count:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ydegsnp"      , "Snap the first piece spawned at this much degrees")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ydegsnp_con"  , "Yaw snap amount:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".resetvars"    , "Click to reset the additional values")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".resetvars_con", "V Reset variables V")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextpic"      , "Additional origin angular pitch offset")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextpic_con"  , "Origin pitch:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextyaw"      , "Additional origin angular yaw offset")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextyaw_con"  , "Origin yaw:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextrol"      , "Additional origin angular roll offset")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextrol_con"  , "Origin roll:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextx"        , "Additional origin linear X offset")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextx_con"    , "Offset X:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nexty"        , "Additional origin linear Y offset")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nexty_con"    , "Offset Y:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextz"        , "Additional origin linear Z offset")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextz_con"    , "Offset Z:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".gravity"      , "Controls the gravity on the piece spawned")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".gravity_con"  , "Apply piece gravity")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".weld"         , "Creates welds between pieces or pieces/anchor")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".weld_con"     , "Weld")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".forcelim"     , "Controls how much force is needed to break the weld")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".forcelim_con" , "Force limit:")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ignphysgn"    , "Ignores physics gun grab on the piece spawned/snapped/stacked")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ignphysgn_con", "Ignore physics gun")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nocollide"    , "Puts a no-collide between pieces or pieces/anchor")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nocollide_con", "NoCollide")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".freeze"       , "Makes the piece spawn in a frozen state")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".freeze_con"   , "Freeze on spawn")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".igntype"      , "Makes the tool ignore the different piece types on snapping/stacking")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".igntype_con"  , "Ignore track type")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".spnflat"      , "The next piece will be spawned/snapped/stacked horizontally")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".spnflat_con"  , "Spawn horizontally")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mcspawn"      , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mcspawn_con"  , "Origin from mass-centre")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".surfsnap"     , "Snaps the piece to the surface the player is pointing at")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".surfsnap_con" , "Snap to trace surface")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".adviser"      , "Controls rendering the tool position/angle adviser")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".adviser_con"  , "Draw adviser")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pntasist"     , "Controls rendering the tool snap point assistant")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pntasist_con" , "Draw assistant")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ghosthold"    , "Controls rendering the tool ghosted holder piece")
-  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ghosthold_con", "Draw holder ghost")
-  asmlib.SetLocalify("ENG","Cleanup_"..gsLimitName               , "Track assembly pieces")
-  asmlib.SetLocalify("ENG","Cleaned_"..gsLimitName               , "Cleaned up all track pieces")
-  asmlib.SetLocalify("ENG","SBoxLimit_"..gsLimitName             , "You've hit the Spawned tracks limit!")
+if(CLIENT) then --- con >> control, def >> deafault, hd >> header
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".1"             , "Assembles a prop-segmented track")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".left"          , "Spawn/snap a piece. Hold shift to stack")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".right"         , "Switch assembly points. Hold shift for versa")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".right_use"     , "Open frequently used pieces menu")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".reload"        , "Remove a piece. Hold shift to select an anchor")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".desc"          , "Assembles a track for vehicles to run on")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phytype"       , "Select physical properties type of the ones listed here")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phytype_def"   , "<Select Surface Material TYPE>")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phyname"       , "Select physical properties name to use when creating the track as this will affect the surface friction")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".phyname_def"   , "<Select Surface Material NAME>")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".bgskids"       , "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".bgskids_def"   , "Write selection code here. For example 1,0,0,2,1/3")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mass"          , "How heavy the piece spawned will be")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mass_con"      , "Piece mass:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".model"         , "Select the piece model to be used")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".model_con"     , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".activrad"      , "Minimum distance needed to select an active point")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".activrad_con"  , "Active radius:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".count"         , "Maximum number of pieces to create while stacking")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".count_con"     , "Pieces count:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ydegsnp"       , "Snap the first piece spawned at this much degrees")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ydegsnp_con"   , "Yaw snap amount:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".resetvars"     , "Click to reset the additional values")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".resetvars_con" , "V Reset variables V")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextpic"       , "Additional origin angular pitch offset")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextpic_con"   , "Origin pitch:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextyaw"       , "Additional origin angular yaw offset")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextyaw_con"   , "Origin yaw:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextrol"       , "Additional origin angular roll offset")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextrol_con"   , "Origin roll:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextx"         , "Additional origin linear X offset")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextx_con"     , "Offset X:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nexty"         , "Additional origin linear Y offset")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nexty_con"     , "Offset Y:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextz"         , "Additional origin linear Z offset")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nextz_con"     , "Offset Z:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".gravity"       , "Controls the gravity on the piece spawned")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".gravity_con"   , "Apply piece gravity")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".weld"          , "Creates welds between pieces or pieces/anchor")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".weld_con"      , "Weld")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".forcelim"      , "Controls how much force is needed to break the weld")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".forcelim_con"  , "Force limit:")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ignphysgn"     , "Ignores physics gun grab on the piece spawned/snapped/stacked")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ignphysgn_con" , "Ignore physics gun")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nocollide"     , "Puts a no-collide between pieces or pieces/anchor")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".nocollide_con" , "NoCollide")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".freeze"        , "Makes the piece spawn in a frozen state")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".freeze_con"    , "Freeze on spawn")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".igntype"       , "Makes the tool ignore the different piece types on snapping/stacking")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".igntype_con"   , "Ignore track type")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".spnflat"       , "The next piece will be spawned/snapped/stacked horizontally")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".spnflat_con"   , "Spawn horizontally")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mcspawn"       , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".mcspawn_con"   , "Origin from mass-centre")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".surfsnap"      , "Snaps the piece to the surface the player is pointing at")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".surfsnap_con"  , "Snap to trace surface")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".adviser"       , "Controls rendering the tool position/angle adviser")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".adviser_con"   , "Draw adviser")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pntasist"      , "Controls rendering the tool snap point assistant")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pntasist_con"  , "Draw assistant")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ghosthold"     , "Controls rendering the tool ghosted holder piece")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".ghosthold_con" , "Draw holder ghost")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".engunsnap"     , "Controls snapping when the piece is dropped by the player physgun")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".engunsnap_con" , "Enable physgun snap")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_export"     , "Click to export the client database as a file")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_export_lb"  , "Export DB")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine"    , "The list of your frequently used track pieces")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine_hd" , "Frequent pieces by: ")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_display"    , "The model of your track piece is displayed here")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_pattern"    , "Enter a pattern here and hit enter to preform a search")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_srchcol"    , "Choose which list column you want to preform a search on")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_srchcol_lb" , "<Search by>")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_srchcol_lb1", "Model")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_srchcol_lb2", "Type")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_srchcol_lb3", "Name")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_srchcol_lb4", "End")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine_lb" , "Routine Items")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine_lb1", "Used")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine_lb2", "End")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine_lb3", "Type")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_routine_lb4", "Model")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_display_lb" , "Piece Display")
+  asmlib.SetLocalify("ENG","tool."..gsToolNameL..".pn_pattern_lb" , "Enter Pattern")
+  asmlib.SetLocalify("ENG","Cleanup_"..gsLimitName                , "Track assembly pieces")
+  asmlib.SetLocalify("ENG","Cleaned_"..gsLimitName                , "Cleaned up all track pieces")
+  asmlib.SetLocalify("ENG","SBoxLimit_"..gsLimitName              , "You've hit the Spawned tracks limit!")
 
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".1"            , "Сглобява сегментно трасе от предмети")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".left"         , "Създава/Залепва парче. Задръжте шифт за да натрупате")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".right"        , "Сменяне на точките на сглобка. Задръжте шифт за на обратно")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".right_use"    , "Отваря менюто с най-често използваните парчета")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".reload"       , "Премахва парче. Задръжте шифт за да изберете опора")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".desc"         , "Сглобява трасе по което да вървят превозните средства")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phytype"      , "Изберете типа на физическите свойства от дадените тук")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phytype_def"  , "<Избери тип на повърхността>")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phyname"      , "Изберете името на физическите свойства което да се използва при създаване на трасе като това ще повлияе на повърхностното триене")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phyname_def"  , "<Избери име на повърхността>")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".bgskids"      , "Селекционен код за избор на Бодигруп/Скин > Ентър за да приемете, Таб за да попълните автоматично от тресирания")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".bgskids_def"  , "Запишете селекционен код тук. Например 1,0,0,2,1/3")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mass"         , "Колко тежко ще бъде създаденото парче")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mass_con"     , "Маса на парчето:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".model"        , "Изберете модел на парчето")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".model_con"    , "Изберете парче за да започнете/продължите трасето си избирайки типа в дървото и кликайки на листо")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".activrad"     , "Минимално разстояние за да се избере активна точка")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".activrad_con" , "Активен радиус:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".count"        , "Максимален брой парчета които може да се създадат при натрупване")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".count_con"    , "Брой парчета:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ydegsnp"      , "Залепете първото създадено парче на толкова градуса")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ydegsnp_con"  , "Залепване по азимут:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".resetvars"    , "Цъкнете за да нулирате допълнителните стойности")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".resetvars_con", "V Нулиране на променливите V")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextpic"      , "Допълнително отместване на началото по тангаж")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextpic_con"  , "Тангаж на началото:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextyaw"      , "Допълнително отместване на началото по азимут")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextyaw_con"  , "Азимут на началото:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextrol"      , "Допълнително отместване на началото по крен")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextrol_con"  , "Крен на началото:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextx"        , "Допълнително отместване на началото по абсциса")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextx_con"    , "Отместване по абсциса:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nexty"        , "Допълнително отместване на началото по ордината")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nexty_con"    , "Отместване по ордината:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextz"        , "Допълнително отместване на началото по апликата")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextz_con"    , "Отместване по апликата:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".gravity"      , "Управлява гравитацията върху създаденото парче")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".gravity_con"  , "Приложи гравитация върху парчето")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".weld"         , "Създава заварки между парчетата или парчета/опора")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".weld_con"     , "Заварка")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".forcelim"     , "Управлява колко сила е необходима за да се счупи заварката")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".forcelim_con" , "Граница на сила:")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ignphysgn"    , "Пренебрегва хващането с физическо оръдие на парчето създадено/залепено/натрупано")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ignphysgn_con", "Пренебрегни хващането с физическо оръдие")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nocollide"    , "Създава не-сблъсък между парчетата или парчета/опора")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nocollide_con", "Не-сблъсък")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".freeze"       , "Създава парчето в замразено състояние")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".freeze_con"   , "Замрази при създаване")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".igntype"      , "Пренебрегва различните типове парчета при лепене/натрупване")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".igntype_con"  , "Пренебрегни типа на парчето")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".spnflat"      , "Следващото парче ще бъде създадено/залепено/натрупано хоризонтално")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".spnflat_con"  , "Създай хоризонтално")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mcspawn"      , "Създава парчето в масовия център, иначе спрямо избраната активна точка")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mcspawn_con"  , "Начало от масовия център")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".surfsnap"     , "Залепи парчето по повърхнината към която сочи потребителя")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".surfsnap_con" , "Залепи по повърхнината")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".adviser"      , "Управлява изобразяването на позиционен/ъглов съветник")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".adviser_con"  , "Изобразявай съветника")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pntasist"     , "Управлява изобразяването на асистента за лепене")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pntasist_con" , "Изобразявай асистента")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ghosthold"    , "Управлява изобразяването на парчето сянка")
-  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ghosthold_con", "Изобразявай парче сянка")
-  asmlib.SetLocalify("BUL","Cleanup_"..gsLimitName               , "Сглобени парчета трасе")
-  asmlib.SetLocalify("BUL","Cleaned_"..gsLimitName               , "Всички парчета трасе са почистени")
-  asmlib.SetLocalify("BUL","SBoxLimit_"..gsLimitName             , "Достигнахте границата на създадените парчета трасе!")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".1"             , "Сглобява сегментно трасе от предмети")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".left"          , "Създава/Залепва парче. Задръжте шифт за да натрупате")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".right"         , "Сменяне на точките на сглобка. Задръжте шифт за на обратно")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".right_use"     , "Отваря менюто с най-често използваните парчета")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".reload"        , "Премахва парче. Задръжте шифт за да изберете опора")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".desc"          , "Сглобява трасе по което да вървят превозните средства")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phytype"       , "Изберете типа на физическите свойства от дадените тук")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phytype_def"   , "<Избери тип на повърхността>")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phyname"       , "Изберете името на физическите свойства което да се използва при създаване на трасе като това ще повлияе на повърхностното триене")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".phyname_def"   , "<Избери име на повърхността>")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".bgskids"       , "Селекционен код за избор на Бодигруп/Скин > Ентър за да приемете, Таб за да попълните автоматично от тресирания")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".bgskids_def"   , "Запишете селекционен код тук. Например 1,0,0,2,1/3")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mass"          , "Колко тежко ще бъде създаденото парче")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mass_con"      , "Маса на парчето:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".model"         , "Изберете модел на парчето")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".model_con"     , "Изберете парче за да започнете/продължите трасето си избирайки типа в дървото и кликайки на листо")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".activrad"      , "Минимално разстояние за да се избере активна точка")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".activrad_con"  , "Активен радиус:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".count"         , "Максимален брой парчета които може да се създадат при натрупване")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".count_con"     , "Брой парчета:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ydegsnp"       , "Залепете първото създадено парче на толкова градуса")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ydegsnp_con"   , "Залепване по азимут:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".resetvars"     , "Цъкнете за да нулирате допълнителните стойности")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".resetvars_con" , "V Нулиране на променливите V")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextpic"       , "Допълнително отместване на началото по тангаж")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextpic_con"   , "Тангаж на началото:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextyaw"       , "Допълнително отместване на началото по азимут")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextyaw_con"   , "Азимут на началото:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextrol"       , "Допълнително отместване на началото по крен")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextrol_con"   , "Крен на началото:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextx"         , "Допълнително отместване на началото по абсциса")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextx_con"     , "Отместване по абсциса:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nexty"         , "Допълнително отместване на началото по ордината")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nexty_con"     , "Отместване по ордината:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextz"         , "Допълнително отместване на началото по апликата")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nextz_con"     , "Отместване по апликата:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".gravity"       , "Управлява гравитацията върху създаденото парче")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".gravity_con"   , "Приложи гравитация върху парчето")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".weld"          , "Създава заварки между парчетата или парчета/опора")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".weld_con"      , "Заварка")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".forcelim"      , "Управлява колко сила е необходима за да се счупи заварката")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".forcelim_con"  , "Граница на сила:")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ignphysgn"     , "Пренебрегва хващането с физическо оръдие на парчето създадено/залепено/натрупано")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ignphysgn_con" , "Пренебрегни хващането с физическо оръдие")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nocollide"     , "Създава не-сблъсък между парчетата или парчета/опора")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".nocollide_con" , "Не-сблъсък")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".freeze"        , "Създава парчето в замразено състояние")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".freeze_con"    , "Замрази при създаване")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".igntype"       , "Пренебрегва различните типове парчета при лепене/натрупване")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".igntype_con"   , "Пренебрегни типа на парчето")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".spnflat"       , "Следващото парче ще бъде създадено/залепено/натрупано хоризонтално")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".spnflat_con"   , "Създай хоризонтално")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mcspawn"       , "Създава парчето в масовия център, иначе спрямо избраната активна точка")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".mcspawn_con"   , "Начало от масовия център")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".surfsnap"      , "Залепи парчето по повърхнината към която сочи потребителя")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".surfsnap_con"  , "Залепи по повърхнината")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".adviser"       , "Управлява изобразяването на позиционен/ъглов съветник")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".adviser_con"   , "Изобразявай съветника")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pntasist"      , "Управлява изобразяването на асистента за лепене")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pntasist_con"  , "Изобразявай асистента")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ghosthold"     , "Управлява изобразяването на парчето сянка")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".ghosthold_con" , "Изобразявай парче сянка")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".engunsnap"     , "Управлява залепването когато парчето е изпуснато с физическото оръдие на играча")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".engunsnap_con" , "Залепване при изпускане")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_export"     , "Цъкнете за да съхраните базата данни на файл")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_export_lb"  , "Съхрани DB")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine"    , "Списъкът с редовно използваните ви парчета трасе")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine_hd" , "Редовни парчета на: ")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_display"    , "Моделът на вашето парче трасе се показва тук")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_pattern"    , "Въведете шаблон тук и натиснете ентър за да извършите търсене")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_srchcol"    , "Изберете по коя колона да извършите търсене")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_srchcol_lb" , "<Търси по>")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_srchcol_lb1", "Модел")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_srchcol_lb2", "Тип")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_srchcol_lb3", "Име")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_srchcol_lb4", "Ръб")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine_lb" , "Рутинни обекти")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine_lb1", "Стар")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine_lb2", "Ръб")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine_lb3", "Тип")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_routine_lb4", "Модел")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_display_lb" , "Дисплей за парчето")
+  asmlib.SetLocalify("BUL","tool."..gsToolNameL..".pn_pattern_lb" , "Въведете шаблон")
+  asmlib.SetLocalify("BUL","Cleanup_"..gsLimitName                , "Сглобени парчета трасе")
+  asmlib.SetLocalify("BUL","Cleaned_"..gsLimitName                , "Всички парчета трасе са почистени")
+  asmlib.SetLocalify("BUL","SBoxLimit_"..gsLimitName              , "Достигнахте границата на създадените парчета трасе!")
+
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".1"             , "Assemble une piste segmenté")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".left"          , "Créer/aligner une pièce. Maintenez SHIFT pour empiler")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".right"         , "Changer de point de rassemblement. Maintenez SHIFT pour le verso")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".right_use"     , "Ouvrir le menu des pièces utilisés fréquemment")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".reload"        , "Retirer une pièce. Maintenez SHIFT pour sélectionner une ancre")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".desc"          , "Assemble une piste auquel les véhicules peuvent rouler dessus")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".phytype"       , "Sélectionnez une des propriétés physiques dans la liste")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".phytype_def"   , "<Sélectionner un TYPE de matériau de surface>")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".phyname"       , "Sélectionnez une des noms de propriétés physiques à utiliser lorsque qu'une piste sera créée. Ceci va affecter la friction de la surface")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".phyname_def"   , "<Sélectionner un NOM de matériau de surface>")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".bgskids"       , "Cette ensemble de code est delimité par une virgule pour chaque Bodygroup/Skin IDs > ENTRÉE pour accepter, TAB pour copier depuis la trace")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".bgskids_def"   , "Écrivez le code de sélection ici. Par exemple 1,0,0,2,1/3")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".mass"          , "À quel point la pièce créée sera lourd")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".mass_con"      , "Masse de la pièce:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".model"         , "Sélectionner le modèle de la pièce à utiliser")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".model_con"     , "Sélectionnez une pièce pour commencer/continuer votre piste avec, en étendant un type et en cliquant sur un nœud")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".activrad"      , "Distance minimum nécessaire pour sélectionner un point actif")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".activrad_con"  , "Rayon actif:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".count"         , "Nombre maximum de pièces à créer pendant l'empilement")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".count_con"     , "Nombre de pièces:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".ydegsnp"       , "Aligner la première pièce créée sur ce degré")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".ydegsnp_con"   , "Alignement du lacet:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".resetvars"     , "Cliquez pour réinitialiser les valeurs supplémentaires")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".resetvars_con" , "V Réinitialiser les variables V")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextpic"       , "Décalage angulaire supplémentaire sur la position initial du tangage")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextpic_con"   , "Angle du tangage:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextyaw"       , "Décalage angulaire supplémentaire sur la position initial du lacet")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextyaw_con"   , "Angle du lacet:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextrol"       , "Décalage angulaire supplémentaire sur la position initial du roulis")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextrol_con"   , "Angle du roulis:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextx"         , "Décalage linéaire supplémentaire sur la position initial de X")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextx_con"     , "Décalage en X:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nexty"         , "Décalage linéaire supplémentaire sur la position initial de Y")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nexty_con"     , "Décalage en Y:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextz"         , "Décalage linéaire supplémentaire sur la position initial de Z")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nextz_con"     , "Décalage en Z:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".gravity"       , "Contrôle la gravité sur la pièce créée")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".gravity_con"   , "Appliquer la gravité sur la pièce")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".weld"          , "Créer une soudure entre les pièces/ancres")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".weld_con"      , "Souder")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".forcelim"      , "Force nécessaire pour casser la soudure")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".forcelim_con"  , "Limite de force:")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".ignphysgn"     , "Ignore la saisie du pistolet physiques sur la pièce créée/alignée/empilé")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".ignphysgn_con" , "Ignorer le pistolet physiques")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nocollide"     , "Faire en sorte, que les pièces/ancres, ne puissent jamais entrer en collision")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".nocollide_con" , "Pas de collisions")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".freeze"        , "La pièce qui sera créée, sera dans un état gelé")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".freeze_con"    , "Geler dès la création")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".igntype"       , "Faire ignorer à l'outil, les différents types de pièce dès l'alignement/empilement")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".igntype_con"   , "Ignorer le type de piste")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".spnflat"       , "La prochaine pièce sera créée/alignée/empilé horizontalement")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".spnflat_con"   , "Créer horizontalement")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".mcspawn"       , "Créer la pièce vers le barycentre, sinon, la créer relativement vers le point active choisi")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".mcspawn_con"   , "Partir du barycentre")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".surfsnap"      , "Aligne la pièce vers la surface auquel le joueur vise actuellement")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".surfsnap_con"  , "Aligner vers la surface tracé")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".adviser"       , "Montrer le conseiller de position/angle de l'outil")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".adviser_con"   , "Montrer le conseiller")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".pntasist"      , "Montrer l'assistant d'alignement de l'outil")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".pntasist_con"  , "Montrer l'assistant")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".ghosthold"     , "Montrer un aperçu de la pièce active")
+  asmlib.SetLocalify("FRA","tool."..gsToolNameL..".ghosthold_con" , "Activer l'aperçu de l'outil")
+  asmlib.SetLocalify("FRA","Cleanup_"..gsLimitName                , "Pièces du Track assembly")
+  asmlib.SetLocalify("FRA","Cleaned_"..gsLimitName                , "Pistes nettoyées")
+  asmlib.SetLocalify("FRA","SBoxLimit_"..gsLimitName              , "Vous avez atteint la limite des pistes créées!")
 end
 -------- CACHE PANEL STUFF ---------
 asmlib.CacheQueryPanel()
