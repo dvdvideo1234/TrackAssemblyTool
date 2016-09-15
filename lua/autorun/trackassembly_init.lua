@@ -37,7 +37,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.303")
+asmlib.SetOpVar("TOOL_VERSION","5.305")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2879,6 +2879,37 @@ else
   asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 2, "", "0,528,33", "0, 90,0"})
   asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
   asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
+  asmlib.DefaultType("Sligwolf's Mini hover tracks")
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 1, "", " 104, 32,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 2, "", "-104, 32,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_mid.mdl"       , "#", "#", 1, "", " 208, 32,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_mid.mdl"       , "#", "#", 2, "", "-208, 32,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_long.mdl"      , "#", "#", 1, "", " 312, 32,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_long.mdl"      , "#", "#", 2, "", "-312, 32,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_small.mdl"     , "#", "#", 1, "", " 104,-16,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_small.mdl"     , "#", "#", 2, "", "-104,-16,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_mid.mdl"       , "#", "#", 1, "", " 208,-16,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_mid.mdl"       , "#", "#", 2, "", "-208,-16,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_long.mdl"      , "#", "#", 1, "", " 312,-16,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_long.mdl"      , "#", "#", 2, "", "-312,-16,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_splitter.mdl"  , "#", "#", 1, "", "-104, 80 ,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_splitter.mdl"  , "#", "#", 2, "", " 312, 30 ,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_splitter.mdl"  , "#", "#", 3, "", " 312, 130,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_splitter_i.mdl", "#", "#", 1, "", " 104,-80 ,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_splitter_i.mdl", "#", "#", 2, "", "-312,-30 ,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_splitter_i.mdl", "#", "#", 3, "", "-312,-130,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_to_x4.mdl"     , "#", "#", 1, "", " 104, 16 ,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_to_x4.mdl"     , "#", "#", 2, "", "-312, 16 ,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_to_x4_i.mdl"   , "#", "#", 1, "", " 104, 16 ,5.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x8_to_x4_i.mdl"   , "#", "#", 2, "", "-312, 16 ,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x4.mdl"           , "#", "#", 1, "", " 52, 32,1.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x4.mdl"           , "#", "#", 2, "", "-52, 32,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x4_i.mdl"         , "#", "#", 1, "", " 52, 32,1.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x4_i.mdl"         , "#", "#", 2, "", "-52, 32,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8.mdl"           , "#", "#", 1, "", " 52,-16,1.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8.mdl"           , "#", "#", 2, "", "-52,-16,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8_i.mdl"         , "#", "#", 1, "", " 52,-16,1.81", ""})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8_i.mdl"         , "#", "#", 2, "", "-52,-16,5.81", "0,180,0"})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
@@ -3004,7 +3035,7 @@ else
 end
 
 ------ CONFIGURE TRANSLATIONS ------ https://www.loc.gov/standards/iso639-2/php/code_list.php
-if(CLIENT) then --- con >> control, def >> deafault, hd >> header
+if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".1"             , "Assembles a prop-segmented track")
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".left"          , "Spawn/snap a piece. Hold shift to stack")
   asmlib.SetLocalify("ENG","tool."..gsToolNameL..".right"         , "Switch assembly points. Hold shift for versa")
