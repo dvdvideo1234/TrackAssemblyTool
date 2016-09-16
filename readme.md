@@ -161,7 +161,7 @@ A: Here they are, with available status, why I did not do some of them ( at the 
    24) Magnum's second track pack ( Ignore, it's not designed to be a prop )
    25) qwertyaaa's G Scale Track Pack
       http://steamcommunity.com/sharedfiles/filedetails/?id=718239260
-   26) SligWolf's ModelPack ( In dev 30% done)
+   26) SligWolf's ModelPack ( In dev 35% done)
       https://steamcommunity.com/sharedfiles/filedetails/?id=147812851
    27) Ron's Minitrain Props
       http://steamcommunity.com/sharedfiles/filedetails/?id=728833183

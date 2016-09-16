@@ -37,7 +37,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.305")
+asmlib.SetOpVar("TOOL_VERSION","5.306")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2910,6 +2910,14 @@ else
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8.mdl"           , "#", "#", 2, "", "-52,-16,5.81", "0,180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8_i.mdl"         , "#", "#", 1, "", " 52,-16,1.81", ""})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8_i.mdl"         , "#", "#", 2, "", "-52,-16,5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small.mdl"            , "#", "#", 1, "", "-26, 28, 5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small.mdl"            , "#", "#", 2, "", "157.1996,28,83.378784", "-52.5,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small_i.mdl"          , "#", "#", 1, "", "-26, 28, 5.81", "0,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small_i.mdl"          , "#", "#", 2, "", "157.1996,28,83.378784", "-52.5,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp.mdl"                  , "#", "#", 1, "", "-26,-20,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp.mdl"                  , "#", "#", 2, "", "157.184906,-20,83.365128", "-52.5,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_i.mdl"                , "#", "#", 1, "", "-26,-20,5.81", "0,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_i.mdl"                , "#", "#", 2, "", "157.184906,-20,83.365128", "-52.5,0,0"})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then

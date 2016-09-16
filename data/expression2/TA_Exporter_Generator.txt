@@ -100,8 +100,8 @@ if(first() || dupefinished())
         {
             Del = "\t"
             P = "NULL"
+            A = round(Base:toLocal(Dev:angles()),2)
             O = round(Base:toLocalAxis(Dev:pos() - Base:pos()),6)
-            A = round(Dev:angles(),2)
             Ins = "TRACKASSEMBLY_PIECES"+
                 Del+Mod+
                 Del+Type+
@@ -115,7 +115,7 @@ if(first() || dupefinished())
         {
             Del  = ", "
             P = ""
-            A = round(Dev:angles(),2)
+            A = round(Base:toLocal(Dev:angles()),2)
             O = round(Base:toLocalAxis(Dev:pos() - Base:pos()),6)
             Ins = "  asmlib.InsertRecord({"+
                 "\""+Mod+"\""+Del+
