@@ -1,8 +1,8 @@
 @name TA Exporter Generator
-@inputs
+@inputs 
 @outputs [Dev Chip Base]:entity [F Cen Prg]:vector Time Test PU PD
 @persist Time DF StraightUp Interval TrackPieceW TrackRangerMaxW TrackPieceH TrackRangerMaxH TrackOriginInset TrackOriginTolerance:string
-@persist [Cen Prg ORG F R U]:vector [Prop Mod]:string [Dev Chip Base]:entity ARC:array OutagePercentTolerance
+@persist [Cen Prg ORG F R U]:vector [Prop Mod]:string [Dev Chip Base]:entity ARC:array OutagePercentTolerance PointID
 @trigger none
 
 interval(20)
@@ -33,31 +33,90 @@ function array clampTrace(Pos:vector,Width,Fwd:vector,Rgh:vector,Len,Holo1,Holo2
     return array(ARR,ARL,ADRL,ADDW)
 }
 
-if(first() || dupefinished())
+function void printPoint(Mode:string, Hash:string, Point:number, Org:vector, Ang:angle)
 {
+    # Change storage mode
+    Mode = "INS"
+    Type = "#"
+    Name = "#"
+    PID  = toString(floor(abs(Point)))
+    
+    Ang = round(Ang,2)
+    Org = round(Org,6)
+    Org = Org:setZ(5.81)
+
+    StrAng = toString(Ang):replace("[",""):replace("]","")
+    StrOrg = toString(Org):replace("[",""):replace("]","")
+        
+    if(Ang:pitch() == 0 && Ang:yaw() == 0 && Ang:roll() == 0)   
+    {
+        StrAng = ""
+    }
+    
+    if(Org:x() == 0 && Org:y() == 0 && Org:z() == 0)   
+    {
+        StrOrg = ""
+    }
+
+
+    if(Mode == "DSV")
+    {
+        Del = "\t"
+        P = "NULL"
+        Ins = "TRACKASSEMBLY_PIECES"+
+            Del+Hash+
+            Del+Type+
+            Del+Name+
+            Del+PID+
+            Del+P+
+            Del+StrOrg+
+            Del+StrAng
+    }
+    elseif(Mode == "INS")
+    {
+        Del  = ", "
+        P = ""
+        Ins = "  asmlib.InsertRecord({"+
+            "\""+Hash+"\""+Del+
+            "\""+Type+"\""+Del+
+            "\""+Name+"\""+Del+
+            PID+Del+
+            "\""+P+"\""+Del+
+            "\""+StrOrg+"\""+Del+
+            "\""+StrAng+"\"})"
+    }
+    print(_HUD_PRINTTALK,Ins)
+    
+}
+
+if(first() || dupefinished())
+{   
     # What model to search for UP vector offset
     Prop = "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"
-
+    
+    # Point ID to be exported
+    PointID = 1
+    
     # Set the Interval to be positive
     # Click to generate an active point
-    Interval = 10
-
+    Interval = 0
+    
     # Outage %
     OutagePercentTolerance = 5
-
+        
     # Set this delta forward to slow fasten the process
-    DF = 0.1
-
+    DF = 0.4 * sign(PointID)
+    
     # Track piece width
-    TrackPieceW = 120
+    TrackPieceW = 200
     TrackPieceH = 20
-
+        
     #Generate the origin with an inset
-    TrackOriginInset = 0.00001
-
+    TrackOriginInset = 0.0001
+    
     # Tolerance if the error gained when generating an actibe point
-    TrackOriginTolerance = "e-014"
-
+    TrackOriginTolerance = "e-010"
+        
     Time = 0
     Chip = entity()
     CPos = Chip:pos()
@@ -72,8 +131,8 @@ if(first() || dupefinished())
     Dev:setColor(0,255,0,255)
     TrackRangerMaxW = TrackPieceW * 2
     TrackRangerMaxH = TrackPieceH * 2
-
-    # Set to > 0 for straight rails and place it between the beams
+     
+    # Set to > 0 for straight rails and place it between the beams 
     # The angle must be [0,0,0]
     UpVec = Dev:pos() - CPos
     StraightUp = UpVec:dot(U)
@@ -81,55 +140,21 @@ if(first() || dupefinished())
     {
         ALR = clampTrace(CPos,TrackPieceH,F,U,TrackRangerMaxH,0,0), CR = ALR[1,number], CL = ALR[2,number]
         StraightUp = -(abs(TrackRangerMaxH - abs(CR + CL)) / 2)
-
+        
         # If it's too deep can be adjusted manually
         StraightUp = -2
-    }
+    } 
     DF = abs(DF)
     Interval = abs(Interval)
-
+    
     if(Interval > 0)
-    {
-        # Change storage mode
-        Mode = "INS"
-        Type = "#"
-        Name = "#"
-        PID  = "PID"
-
-        if(Mode == "DSV")
-        {
-            Del = "\t"
-            P = "NULL"
-            A = round(Base:toLocal(Dev:angles()),2)
-            O = round(Base:toLocalAxis(Dev:pos() - Base:pos()),6)
-            Ins = "TRACKASSEMBLY_PIECES"+
-                Del+Mod+
-                Del+Type+
-                Del+Name+
-                Del+PID+
-                Del+P+
-                Del+toString(O):replace("[",""):replace("]","")+
-                Del+toString(A):replace("[",""):replace("]","")
-        }
-        elseif(Mode == "INS")
-        {
-            Del  = ", "
-            P = ""
-            A = round(Base:toLocal(Dev:angles()),2)
-            O = round(Base:toLocalAxis(Dev:pos() - Base:pos()),6)
-            Ins = "  asmlib.InsertRecord({"+
-                "\""+Mod+"\""+Del+
-                "\""+Type+"\""+Del+
-                "\""+Name+"\""+Del+
-                PID+Del+
-                "\""+P+"\""+Del+
-                "\""+toString(O):replace("[",""):replace("]","")+"\""+Del+
-                "\""+toString(A):replace("[",""):replace("]","")+"\"})"
-        }
-        print(_HUD_PRINTTALK,Ins)
+    {        
+        A = Base:toLocal(Dev:angles())
+        O = Base:toLocalAxis(Dev:pos() - Base:pos())
+        printPoint("INS",Mod,PointID,O,A)
         Time = Interval
     }
-
+    
     if(StraightUp != 0 && Interval == 0)
     {
         holoCreate(1,CPos, 0.1*vec(1,1,1))
@@ -140,21 +165,21 @@ if(first() || dupefinished())
         holoCreate(6,CPos, 0.3*vec(1,1,1))
         holoCreate(7,CPos, 0.3*vec(1,1,1))
         holoCreate(8,CPos, 0.3*vec(1,1,1))
-
+                
         Time = 0
         Pos = Base:pos()
         Cen = CPos + StraightUp * U
         VRL = clampTrace(Cen,TrackPieceW,F,R,TrackRangerMaxW,3,4)
         Cen = Cen - VRL[3,number] * R
         Prg = (CPos - Cen):dot(R) * R
-
+        
         PosL = Cen - TrackPieceW * R
         PosR = Cen + TrackPieceW * R
         PosU = CPos + TrackPieceH * U
         PosD = CPos - TrackPieceH * U
-
+        
         ARC = clampTrace(Cen,TrackPieceH,F,U,TrackRangerMaxH,7,8)
-
+        
         holoPos(1,Cen) holoColor(1,vec(255,0,0))
         holoPos(2,Cen + (TrackOriginInset * F)) holoColor(2,vec(255,255,0))
         holoPos(3,PosL) holoColor(3,vec(0,255,0)) holoAng(3,F:toAngle( R)) holoModel(3,"cone")
@@ -164,7 +189,6 @@ if(first() || dupefinished())
         holoPos(7,PosU) holoColor(7,vec(255,0,255)) holoAng(7,F:toAngle( -U)) holoModel(7,"cone")
         holoPos(8,PosD) holoColor(8,vec(255,0,255)) holoAng(8,F:toAngle(  U)) holoModel(8,"cone")
 
-        print("Rail beam misplacement [Offset/glu] " + Mod)
         print("Rail beam height inset [Offset/glu] " + toString(StraightUp))
     }
 }
@@ -194,16 +218,16 @@ if(StraightUp != 0 && Interval == 0)
 
     VDP = clampTrace(Cen + Prg - TrackOriginInset * F,TrackPieceH,F,U,TrackRangerMaxH,5,6)
     PU = VDP[1,number], PD = VDP[2,number], PDW = VDP[4,number]
-
+  
     VDC = clampTrace(Cen,TrackPieceH,F,U,TrackRangerMaxH,7,8)
-
+    
     # print(VDC[1,number],PU, ARC[1,number])
-
+    
     if((VDC[1,number] < ARC[1,number]) && (VDC[2,number] < ARC[2,number]))
     {
         ARC = VDC
     }
-
+      
     if(isOuter(VL,VR,OutagePercentTolerance,TrackRangerMaxW))
     {
         Time = 10
@@ -217,39 +241,39 @@ if(StraightUp != 0 && Interval == 0)
         }
         DF =  0.5 * DF
         # print(_HUD_PRINTTALK,"Switch: "+toString(DF))
-    }else{
+    }else{        
         holoPos(1,Cen) holoColor(1,vec(0,255,255))
         # BEGIN Defintition formulas
-
+        
         # Use his for roads
-        # PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
-        # TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
-        # TrackExtraSide  = PRL[3,number]
-
-
-        # Use this for 2 beam tracks
-        PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
+        PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
         TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
         TrackExtraSide  = PRL[3,number]
-
+        
+        
+        # Use this for 2 beam tracks
+        # PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
+        # TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
+        # TrackExtraSide  = PRL[3,number]
+        
         # Use ths for monorail
         # PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
         # TrackExtraDepth = ARC[1,number] + ARC[4,number]
         # TrackExtraSide  = PRL[3,number]
-
+        
         # END Defintition formulas
-
+        
         ORG = Cen + TrackPieceH    * U
         ORG = ORG - TrackExtraSide * R
-
-        O = round(Base:toLocalAxis(ORG - Base:pos() -(TrackOriginInset * F) + (-TrackExtraDepth)*U ),6)
-        A = round(Base:toLocal((F):toAngle(U)),6)
-
+        
+        O = Base:toLocalAxis(ORG - Base:pos() -(TrackOriginInset * F) + (-TrackExtraDepth)*U )
+        A = Base:toLocal((F):toAngle(U))
+        
         S = toString(DF):find(TrackOriginTolerance)
-
+          
         if(S > 0)
         {
-            print("Origin: "+toString(O)+" Angle: "+toString(A)+" ["+toString(DF)+"]")
+            printPoint("INS",Mod,PointID,O,A)
             selfDestruct()
         }else{
            # print(_HUD_PRINTTALK,"D: "+toString(DF))
