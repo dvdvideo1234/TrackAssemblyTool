@@ -161,7 +161,7 @@ A: Here they are, with available status, why I did not do some of them ( at the 
    24) Magnum's second track pack ( Ignore, it's not designed to be a prop )
    25) qwertyaaa's G Scale Track Pack
       http://steamcommunity.com/sharedfiles/filedetails/?id=718239260
-   26) SligWolf's ModelPack ( In dev 35% done)
+   26) SligWolf's ModelPack ( Mini hover tracks )
       https://steamcommunity.com/sharedfiles/filedetails/?id=147812851
    27) Ron's Minitrain Props
       http://steamcommunity.com/sharedfiles/filedetails/?id=728833183
@@ -219,6 +219,8 @@ Q: Can you tell me how to read the physgun snap legend drawn on the screen ?
 A: Easy. Here are some things to know for never getting confused with this:
    If the line with the middle circle is green, that means a valid prop entity is traced
      The green circle shows where the trace hits and the yellow what part of trace is inside the prop
+     If in this case the trace is a valid piece, the origin and raduis to the point selected are drawn using
+     a cyan circle and margenta line respectively, always shorter than the active radius
    If the line is yellow, that means the trace has hit someting else ( For example the world )
      The yellow circle shows again where the trace hits and the red line the part inside the non-prop
    If there is a red line with yellow circle, then there is an active point there, which is searching
