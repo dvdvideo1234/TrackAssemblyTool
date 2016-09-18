@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.307")
+asmlib.SetOpVar("TOOL_VERSION","5.308")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2896,9 +2896,8 @@ else
   asmlib.InsertRecord({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 2, "", "0,528,33", "0, 90,0"})
   asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
   asmlib.InsertRecord({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
-  asmlib.DefaultType("Sligwolf's Mini hover tracks",function(m)
-    local r = stringGsub(m,"models/sligwolf/minihover/hover_",""); r = stringGmatch(r,"%a+");
-    return asmlib.ModelToName(r,true); end)
+  asmlib.DefaultType("Sligwolf's Mini hover tracks", function(m) local r = stringGsub(m,"models/sligwolf/minihover/hover_","");
+    local f = stringGmatch(r,"%a+"); r = f and tostring(f()) or "other"; return asmlib.ModelToName(r,true); end)
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 1, "", " 104, 32,5.81", ""})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 2, "", "-104, 32,5.81", "0,-180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_mid.mdl"       , "#", "#", 1, "", " 208, 32,5.81", ""})
