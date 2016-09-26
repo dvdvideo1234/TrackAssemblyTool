@@ -220,7 +220,9 @@ A: Easy. Here are some things to know for never getting confused with this:
    If the line with the middle circle is green, that means a valid prop entity is traced
      The green circle shows where the trace hits and the yellow what part of trace is inside the prop
      If in this case the trace is a valid piece, the origin and raduis to the point selected are drawn using
-     a cyan circle and margenta line respectively, always shorter than the active radius
+     a yellow circle line, always shorter than the active radius. After that the spawn position and distance
+     are drawn by using cyan circle and margenta line respectively. The forward and the up direction vectors
+     of the origin are drawn using red and blue lines respectively.
    If the line is yellow, that means the trace has hit someting else ( For example the world )
      The yellow circle shows again where the trace hits and the red line the part inside the non-prop
    If there is a red line with yellow circle, then there is an active point there, which is searching

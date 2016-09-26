@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.309")
+asmlib.SetOpVar("TOOL_VERSION","5.310")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -499,8 +499,10 @@ if(CLIENT) then
       if(not asmlib.IsPlayer(oPly)) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Player invalid") end
       local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
-      if(actSwep:GetClass() ~= "weapon_physgun") then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
+      if(not IsValid(actSwep)) then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
+      if(actSwep:GetClass() ~= "weapon_physgun") then
+        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
       if(not inputIsMouseDown(MOUSE_LEFT)) then return end
       local actTr = utilTraceLine(utilGetPlayerTrace(oPly))
       if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
@@ -522,18 +524,18 @@ if(CLIENT) then
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
       end -- Make shure we have a valid game monitor for the draw OOP
-      local actRadious = asmlib.GetAsmVar("activrad", "FLT")
-      local actIgnType = asmlib.GetAsmVar("igntype" , "BUL")
-      local actSpnFlat = asmlib.GetAsmVar("spnflat" , "BUL")
-      local actVX, actVY, actVZ = asmlib.GetAsmVar("nextx"   , "FLT"),
-                                  asmlib.GetAsmVar("nexty"   , "FLT"),
-                                  asmlib.GetAsmVar("nextz"   , "FLT")
-      local actAP, actAY, actAR = asmlib.GetAsmVar("nextpic" , "FLT"),
-                                  asmlib.GetAsmVar("nextyaw" , "FLT"),
-                                  asmlib.GetAsmVar("nextrol" , "FLT")
+      local nextx     = asmlib.GetAsmVar("nextx", "FLT")
+      local nexty     = asmlib.GetAsmVar("nexty", "FLT")
+      local nextz     = asmlib.GetAsmVar("nextz", "FLT")
+      local nextpic   = asmlib.GetAsmVar("nextpic", "FLT")
+      local nextyaw   = asmlib.GetAsmVar("nextyaw", "FLT")
+      local nextrol   = asmlib.GetAsmVar("nextrol", "FLT")
+      local igntype   = asmlib.GetAsmVar("igntype", "BUL")
+      local spnflat   = asmlib.GetAsmVar("spnflat", "BUL")
+      local activrad  = asmlib.GetAsmVar("activrad", "FLT")
       local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
       for trID = 1, trRec.Kept, 1 do
-        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, actRadious)
+        local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS = oDt.start:ToScreen()
         local xyE = oDt.endpos:ToScreen()
         local rdS = mathClamp(ratiom / (oDt.start - oPly:GetPos()):Length(),1,ratioc)
@@ -546,12 +548,21 @@ if(CLIENT) then
             actMonitor:DrawLine  (xyS, xyH, "g", "SURF")
             actMonitor:DrawCircle(xyH, rdS, "g")
             actMonitor:DrawLine  (xyH, xyE, "y")
-            actSpawn = asmlib.GetEntitySpawn(trE,oTr.HitPos,trRec.Slot,trID,actRadious,
-                          actSpnFlat,actIgnType, actVX, actVY, actVZ, actAP, actAY, actAR)
+            actSpawn = asmlib.GetEntitySpawn(trE,oTr.HitPos,trRec.Slot,trID,activrad,
+                         spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
             if(actSpawn) then
+              actSpawn.F:Mul(30); actSpawn.F:Add(actSpawn.OPos)
+              actSpawn.U:Mul(15); actSpawn.U:Add(actSpawn.OPos)
               local xyO = actSpawn.OPos:ToScreen()
-              actMonitor:DrawLine  (xyO, xyH, "m")
-              actMonitor:DrawCircle(xyO, rdS, "c")
+              local xyF = actSpawn.F:ToScreen()
+              local xyU = actSpawn.U:ToScreen()
+              local xyS = actSpawn.SPos:ToScreen()
+              actMonitor:DrawLine  (xyO, xyH)
+              actMonitor:DrawCircle(xyO, rdS)
+              actMonitor:DrawLine  (xyO, xyF, "r")
+              actMonitor:DrawLine  (xyO, xyU, "b")
+              actMonitor:DrawLine  (xyO, xyS, "m")
+              actMonitor:DrawCircle(xyS, rdS, "c")
             end
           else
             actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
