@@ -414,12 +414,13 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
-  SetOpVar("TABLE_FREQUENT_MODELS",{})
+  SetOpVar("LOCALIFY_TABLE",{})
+  SetOpVar("LOCALIFY_AUTO","en")
+  SetOpVar("FILE_MODEL","%.mdl")
   SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("TABLE_LOCALIFY",{})
   SetOpVar("TABLE_CATEGORIES",{})
   SetOpVar("TABLE_PLAYER_KEYS",{})
-  SetOpVar("FILE_MODEL","%.mdl")
+  SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
@@ -609,8 +610,8 @@ function SetVectorXYZ(vBase, nX, nY, nZ)
 end
 
 function DecomposeByAngle(vBase,aUnit)
-  if(not vBase) then return StatusLog(Vector(),"DecomposeByAngle: Base invalid") end
-  if(not aUnit) then return StatusLog(Vector(),"DecomposeByAngle: Unit invalid") end
+  if(not vBase) then return StatusLog(nil,"DecomposeByAngle: Base invalid") end
+  if(not aUnit) then return StatusLog(nil,"DecomposeByAngle: Unit invalid") end
   local X = vBase:Dot(aUnit:Forward())
   local Y = vBase:Dot(aUnit:Right())
   local Z = vBase:Dot(aUnit:Up())
@@ -3281,19 +3282,17 @@ function SetLocalify(sCode, sPhrase, sDetail)
     return StatusLog(nil,"SetLocalify: Language code <"..tostring(sCode).."> invalid") end
   if(not IsString(sPhrase)) then
     return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sPhrase).."> invalid") end
-  local Localify = GetOpVar("TABLE_LOCALIFY")
-  if(not IsExistent(Localify[sCode])) then Localify[sCode] = {}; end
-  Localify[sCode][sPhrase] = tostring(sDetail)
+  local tPool = GetOpVar("LOCALIFY_TABLE")
+  if(not IsExistent(tPool[sCode])) then tPool[sCode] = {}; end
+  tPool[sCode][sPhrase] = tostring(sDetail)
 end
 
 function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-  if(not IsString(sCode)) then -- https://en.wikipedia.org/wiki/ISO_639-2
-    return StatusLog(nil,"InitLocalify: Laguage code <"..tostring(sCode).."> invalid") end
-  local Localify = GetOpVar("TABLE_LOCALIFY")
-  if(not IsExistent(Localify[sCode])) then
-    return StatusLog(nil,"GetLocalify: Language not found for <"..sCode..">") end
-  LogInstance("InitLocalify: Code <"..sCode..">")
-  for phrase, detail in pairs(Localify[sCode]) do
-    languageAdd(phrase, detail)
-  end
+  local tPool = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
+  local sCode = tostring(sCode or "") -- English is used when missing
+        sCode = tPool[sCode] and sCode or GetOpVar("LOCALIFY_AUTO")
+  if(not IsExistent(tPool[sCode])) then
+    return StatusLog(nil,"InitLocalify: Code <"..sCode.."> invalid") end
+  LogInstance("InitLocalify: Code <"..sCode.."> selected")
+  for phrase, detail in pairs(tPool[sCode]) do languageAdd(phrase, detail) end
 end

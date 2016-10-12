@@ -119,7 +119,7 @@ if(CLIENT) then
     { name = "right_use",   icon2 = "gui/e.png" },
     { name = "reload"       }
   }
-  asmlib.InitLocalify(asmlib.GetAsmVar("localify", "STR"))
+  asmlib.InitLocalify(GetConVar("gmod_language"):GetString())
   languageAdd("tool."..gsToolNameL..".category"  , "Construction")
   languageAdd("tool."..gsToolNameL..".name"      , "Track Assembly")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))

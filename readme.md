@@ -369,14 +369,13 @@ A: Well, when a server owners set the "trackassembly_maxfruse" to a higher value
    http://lmgtfy.com/?q=lua+string+library+pattern+matching
 
 Q: May I become a volunteer to translate the script to my native language and how can I use translations ?
-A: Yes you may, though always make sure to use upper case abbreviation for
-   the language codes provided by https://www.loc.gov/standards/iso639-2/php/code_list.php
+A: Yes you may, though always make sure to use the abbreviation for the language codes provided
+   by https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes ( Column "ISO 639-1" )
    If you want to translate it into Bulgarian for example ( my native ) you must duplicate all the
    translations like seen below. I took English translation and translated it to Bulgarian.
-   English  : asmlib.SetLocalify("ENG","tool."..gsToolNameL..".activrad_con" , "Active radius:")
-   Bulgarian: asmlib.SetLocalify("BUL","tool."..gsToolNameL..".activrad_con" , "Активен радиус:")
-   After you are done with that you can adjust "trackassembly_localify <Your langage abreviation here>"
-   to apply it and restart the game to load the variable
+   English  : asmlib.SetLocalify("en","tool."..gsToolNameL..".activrad_con" , "Active radius:")
+   Bulgarian: asmlib.SetLocalify("bg","tool."..gsToolNameL..".activrad_con" , "Активен радиус:")
+   Change the language used by the game ( cvar "gmod_language" ) to your native. Done !
 
 Q: Hey, how should I proceed when I am experiencing errors ?
 A: First of all if the error origin is not the TA,
