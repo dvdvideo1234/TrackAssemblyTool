@@ -120,8 +120,7 @@ if(CLIENT) then
     { name = "reload"       }
   }
   asmlib.InitLocalify(GetConVar("gmod_language"):GetString())
-  languageAdd("tool."..gsToolNameL..".category"  , "Construction")
-  languageAdd("tool."..gsToolNameL..".name"      , "Track Assembly")
+  languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))

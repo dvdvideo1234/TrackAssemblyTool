@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.311")
+asmlib.SetOpVar("TOOL_VERSION","5.312")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -3131,6 +3131,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("en","tool."..gsToolNameL..".right_use"     , "Open frequently used pieces menu")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".reload"        , "Remove a piece. Hold shift to select an anchor")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".desc"          , "Assembles a track for vehicles to run on")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".name"          , "Track assembly")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".phytype"       , "Select physical properties type of the ones listed here")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".phytype_def"   , "<Select Surface Material TYPE>")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".phyname"       , "Select physical properties name to use when creating the track as this will affect the surface friction")
@@ -3218,6 +3219,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".right_use"     , "Отваря менюто с най-често използваните парчета")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".reload"        , "Премахва парче. Задръжте шифт за да изберете опора")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".desc"          , "Сглобява трасе по което да вървят превозните средства")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".name"          , "Монтаж на трасе")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".phytype"       , "Изберете типа на физическите свойства от дадените тук")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".phytype_def"   , "<Избери тип на повърхността>")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".phyname"       , "Изберете името на физическите свойства което да се използва при създаване на трасе като това ще повлияе на повърхностното триене")
@@ -3305,6 +3307,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".right_use"     , "Ouvrir le menu des pièces utilisés fréquemment")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".reload"        , "Retirer une pièce. Maintenez SHIFT pour sélectionner une ancre")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".desc"          , "Assemble une piste auquel les véhicules peuvent rouler dessus")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".name"          , "Assembleur à piste")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".phytype"       , "Sélectionnez une des propriétés physiques dans la liste")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".phytype_def"   , "<Sélectionner un TYPE de matériau de surface>")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".phyname"       , "Sélectionnez une des noms de propriétés physiques à utiliser lorsque qu'une piste sera créée. Ceci va affecter la friction de la surface")

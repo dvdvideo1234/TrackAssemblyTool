@@ -28,7 +28,7 @@ A: Just subscribe to the workshop item:
      or download the last stable release:
      https://github.com/dvdvideo1234/TrackAssemblyTool/releases
      and extract it inside ..\GarrysMod\garrysmod\addons
-   You can find the tool in the "Constriction" section of Garry's mod "Q" menu under the name of "Track Assembly".
+   You can find the tool in the "Constriction" section of Garry's mod "Q" menu under the name of "Track assembly".
    On the right in the tool's menu, you can locate the track pieces tree.
    Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
    If "trackassembly_enpntmscr" is set to "1"
@@ -181,7 +181,7 @@ Q: Will you create more models in the future?
 A: Well, It depends on what you mean by "create".
    If it is for the making of the 3D models, then NO ( big one ) I've got no experience in
    that stuff neither am I a 3D artist. Other than that if the models are created by the 3D artists,
-   I will be more then happy to add them into the TrackAssembly Tool if their collision model meets
+   I will be more then happy to add them into the Track assembly tool if their collision model meets
    the minimum requirements.
    ( Made a model once, but it turned out quite nasty xD, so better leave the job to the right people.)
 
@@ -429,7 +429,7 @@ N: After adding these models, the database can be exported again.
 Q: May I PUT this thing in another third party website ?
 A: No I will not give you my permission to do that... Why ...
    That way you will upload some half-baked malicious tool, waste your time with stupid
-   things and confuse everybody with this so-called "unofficial" version of the TrackAssembly tool.
+   things and confuse everybody with this so-called "unofficial" version of the Track assembly tool.
    Not to mention that the stunned people will NOT GET ANY updates!
    The best you can do is just point to the original GIT repository avoiding any version mismatches and confusions.
    So please don't upload the script to any other sites. I mean it!
