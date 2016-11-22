@@ -228,9 +228,8 @@ local function Log(anyStuff)
   if(logLast == logData) then SetOpVar("LOG_CURLOGS",nCurLogs); return end
   SetOpVar("LOG_LOGLAST",logData)
   local sLogFile = GetOpVar("LOG_LOGFILE")
-  local enabFile = (stringSub(sLogFile,1,1) ~= GetOpVar("OPSYM_DISABLE"))
-  local fakeFile = IsExistent(stringFind(sLogFile,GetOpVar("FILE_PATTERN")))
-  if(not fakeFile and enabFile and sLogFile ~= "") then
+  local enabFile = (not IsExistent(stringFind(sLogFile,GetOpVar("FILE_PATTERN"))))
+  if(enabFile and sLogFile ~= "") then
     local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
     if(nCurLogs > nMaxLogs) then nCurLogs = 0; fileDelete(fName) end
     fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData.."\n")
@@ -1466,9 +1465,9 @@ end
 ------------------------- PLAYER -----------------------------------
 
 function ConCommandPly(pPly,sCvar,snValue)
-  if(not IsPlayer(pPly)) then return StatusLog("","ConCommandPly: Player <"..type(pPly)"> invalid") end
+  if(not IsPlayer(pPly)) then return StatusLog(nil,"ConCommandPly: Player <"..type(pPly)"> invalid") end
   if(not IsString(sCvar)) then -- Make it like so the space will not be forgotten
-    return StatusLog("","ConCommandPly: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
+    return StatusLog(nil,"ConCommandPly: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
   return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(snValue).."\n")
 end
 

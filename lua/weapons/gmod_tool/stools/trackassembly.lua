@@ -839,7 +839,7 @@ function TOOL:DrawToolScreen(w, h)
   if(not scrTool) then
     scrTool = asmlib.MakeScreen(0,0,w,h,conPalette)
     if(not scrTool) then
-      return asmlib.StatusLog("DrawToolScreen: Invalid screen") end
+      return asmlib.StatusLog(nil,"DrawToolScreen: Invalid screen") end
     asmlib.SetOpVar("MONITOR_TOOL", scrTool)
     asmlib.LogInstance("DrawToolScreen: Create screen")
   end
