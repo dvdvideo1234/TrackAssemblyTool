@@ -224,26 +224,20 @@ local function Log(anyStuff)
   if(nMaxLogs <= 0) then return end
   local logLast  = GetOpVar("LOG_LOGLAST")
   local logData  = tostring(anyStuff)
-  local nCurLogs = GetOpVar("LOG_CURLOGS")
-  if(logLast == logData) then
-    SetOpVar("LOG_CURLOGS",nCurLogs + 1); return end
+  local nCurLogs = GetOpVar("LOG_CURLOGS") + 1
+  if(logLast == logData) then SetOpVar("LOG_CURLOGS",nCurLogs); return end
   SetOpVar("LOG_LOGLAST",logData)
   local sLogFile = GetOpVar("LOG_LOGFILE")
-  if(sLogFile ~= "") then
+  local enabFile = (stringSub(sLogFile,1,1) ~= GetOpVar("OPSYM_DISABLE"))
+  local fakeFile = IsExistent(stringFind(sLogFile,GetOpVar("FILE_PATTERN")))
+  if(not fakeFile and enabFile and sLogFile ~= "") then
     local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
+    if(nCurLogs > nMaxLogs) then nCurLogs = 0; fileDelete(fName) end
     fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData.."\n")
-    nCurLogs = nCurLogs + 1
-    if(nCurLogs > nMaxLogs) then
-      fileDelete(fName)
-      nCurLogs = 0
-    end; SetOpVar("LOG_CURLOGS",nCurLogs)
-  else
+  else -- The current has values 1..nMaxLogs(0)
+    if(nCurLogs > nMaxLogs) then nCurLogs = 0 end
     print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData)
-    nCurLogs = nCurLogs + 1
-    if(nCurLogs > nMaxLogs) then
-      nCurLogs = 0
-    end; SetOpVar("LOG_CURLOGS",nCurLogs)
-  end
+  end; SetOpVar("LOG_CURLOGS",nCurLogs)
 end
 
 function PrintInstance(anyStuff)
@@ -417,6 +411,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("LOCALIFY_TABLE",{})
   SetOpVar("LOCALIFY_AUTO","en")
   SetOpVar("FILE_MODEL","%.mdl")
+  SetOpVar("FILE_PATTERN","[^%w_]") -- Only alphanumeric with nderscore
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_CATEGORIES",{})
   SetOpVar("TABLE_PLAYER_KEYS",{})
@@ -2107,18 +2102,18 @@ end
 
 local function NavigateTable(oLocation,tKeys)
   if(not IsExistent(oLocation)) then
-    return StatusLog(nil,"NavigateTable: Location missing") end
+    return nil, StatusLog(nil,"NavigateTable: Location missing") end
   if(not IsExistent(tKeys)) then
-    return StatusLog(nil,"NavigateTable: Key table missing") end
+    return nil, StatusLog(nil,"NavigateTable: Key table missing") end
   if(not IsExistent(tKeys[1])) then
-    return StatusLog(nil,"NavigateTable: First key missing") end
+    return nil, StatusLog(nil,"NavigateTable: First key missing") end
   local oPlace, kKey, iCnt = oLocation, tKeys[1], 1
   while(tKeys[iCnt]) do
     kKey = tKeys[iCnt]
     if(tKeys[iCnt+1]) then
       oPlace = oPlace[kKey]
       if(not IsExistent(oPlace)) then
-        return StatusLog(nil,"NavigateTable: Key #"..tostring(kKey).." irrelevant to location") end
+        return nil, StatusLog(nil,"NavigateTable: Key #"..tostring(kKey).." irrelevant to location") end
     end
     iCnt = iCnt + 1
   end
