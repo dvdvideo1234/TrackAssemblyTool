@@ -175,7 +175,7 @@ function TOOL:GetPointAssist()
 end
 
 function TOOL:GetFreeze()
-  return (self:GetClientNumber("freeze") or 0)
+  return ((self:GetClientNumber("freeze") or 0) ~= 0)
 end
 
 function TOOL:GetIgnoreType()
@@ -187,7 +187,7 @@ function TOOL:GetBodyGroupSkin()
 end
 
 function TOOL:GetGravity()
-  return (self:GetClientNumber("gravity") or 0)
+  return ((self:GetClientNumber("gravity") or 0) ~= 0)
 end
 
 function TOOL:GetGhostHolder()
@@ -195,7 +195,7 @@ function TOOL:GetGhostHolder()
 end
 
 function TOOL:GetNoCollide()
-  return (self:GetClientNumber("nocollide") or 0)
+  return ((self:GetClientNumber("nocollide") or 0) ~= 0)
 end
 
 function TOOL:GetSpawnFlat()
@@ -203,7 +203,7 @@ function TOOL:GetSpawnFlat()
 end
 
 function TOOL:GetExportDB()
-  return (self:GetClientNumber("exportdb") or 0)
+  return ((self:GetClientNumber("exportdb") or 0) ~= 0)
 end
 
 function TOOL:GetLogLines()
@@ -236,11 +236,11 @@ function TOOL:GetForceLimit()
 end
 
 function TOOL:GetWeld()
-  return (self:GetClientNumber("weld") or 0)
+  return ((self:GetClientNumber("weld") or 0) ~= 0)
 end
 
 function TOOL:GetIgnorePhysgun()
-  return (self:GetClientNumber("ignphysgn") or 0)
+  return ((self:GetClientNumber("ignphysgn") or 0) ~= 0)
 end
 
 function TOOL:GetSpawnMC()
@@ -388,8 +388,8 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmVar("modedb" ,"STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.EnableStore: <"..tostring(gsQueryStr)..","..tostring(asmlib.GetAsmVar("enqstore","INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetAsmVar("timermode","STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetAsmVar("enwiremod","INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetAsmVar("devmode"  ,"INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetAsmVar("enwiremod","BUL"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetAsmVar("devmode"  ,"BUL"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxMass:     <"..tostring(asmlib.GetAsmVar("maxmass"  ,"INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxLinear:   <"..tostring(asmlib.GetAsmVar("maxlinear","INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxForce:    <"..tostring(asmlib.GetAsmVar("maxforce" ,"INT"))..">"..sDelim
@@ -623,7 +623,7 @@ function TOOL:Reload(stTrace)
   if(stTrace.HitWorld) then
     if(self:GetDeveloperMode()) then asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then self:ClearAnchor() end
-    if(self:GetExportDB() ~= 0) then
+    if(self:GetExportDB()) then
       asmlib.LogInstance("TOOL:Reload(World): Exporting DB")
       asmlib.StoreExternalDatabase("PIECES",",","INS")
       asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
@@ -631,6 +631,7 @@ function TOOL:Reload(stTrace)
       asmlib.StoreExternalDatabase("PIECES","\t","DSV")
       asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
       asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
+      asmlib.ConCommandPly(ply, "exportdb", 0)
     end
     return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
   elseif(trEnt and trEnt:IsValid()) then

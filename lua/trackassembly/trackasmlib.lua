@@ -102,6 +102,7 @@ local undoSetPlayer           = undo and undo.SetPlayer
 local undoSetCustomUndoText   = undo and undo.SetCustomUndoText
 local timerStop               = timer and timer.Stop
 local timerStart              = timer and timer.Start
+local timerSimple             = timer and timer.Simple
 local timerExists             = timer and timer.Exists
 local timerCreate             = timer and timer.Create
 local timerDestroy            = timer and timer.Destroy
@@ -227,12 +228,10 @@ local function Log(anyStuff)
   local nCurLogs = GetOpVar("LOG_CURLOGS") + 1
   if(logLast == logData) then SetOpVar("LOG_CURLOGS",nCurLogs); return end
   SetOpVar("LOG_LOGLAST",logData)
-  local sLogFile = GetOpVar("LOG_LOGFILE")
-  local enabFile = (not IsExistent(stringFind(sLogFile,GetOpVar("FILE_PATTERN"))))
-  if(enabFile and sLogFile ~= "") then
-    local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_LOG")..sLogFile..".txt"
+  if(GetOpVar("LOG_LOGFILE")) then
+    local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_log.txt"
     if(nCurLogs > nMaxLogs) then nCurLogs = 0; fileDelete(fName) end
-    fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData.."\n")
+    fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." ["..osDate().."] "..logData.."\n")
   else -- The current has values 1..nMaxLogs(0)
     if(nCurLogs > nMaxLogs) then nCurLogs = 0 end
     print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData)
@@ -242,11 +241,11 @@ end
 function PrintInstance(anyStuff)
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(SERVER) then
-    print("SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
+    print("["..osDate().."] SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   elseif(CLIENT) then
-    print("CLIENT > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
+    print("["..osDate().."] CLIENT > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   else
-    print("NOINST > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
+    print("["..osDate().."] NOINST > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   end
 end
 
@@ -258,20 +257,14 @@ function LogInstance(anyStuff)
   if(logStats and logStats[1]) then
     local iNdex = 1
     while(logStats[iNdex]) do
-      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then return end
-      iNdex = iNdex + 1
-    end
+      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then return end; iNdex = iNdex + 1 end
   end -- Should the current log being skipped
   logStats = GetOpVar("LOG_ONLY")
   if(logStats and logStats[1]) then
     local iNdex = 1
     local logMe = false
     while(logStats[iNdex]) do
-      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then
-        logMe = true
-      end
-      iNdex = iNdex + 1
-    end
+      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then logMe = true end; iNdex = iNdex + 1 end
     if(not logMe) then return end
   end -- Only the chosen messages are processed
   local sSors = ""
@@ -335,15 +328,15 @@ function Print(tT,sS)
   end
 end
 
-function SetLogControl(nLines,sFile)
+function SetLogControl(nLines,bFile)
   SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("LOG_LOGFILE",tostring(sFile or ""))
+  SetOpVar("LOG_LOGFILE",tobool(bFile))
   SetOpVar("LOG_MAXLOGS",mathFloor(tonumber(nLines) or 0))
   if(not fileExists(GetOpVar("DIRPATH_BAS"),"DATA") and
      not IsEmptyString(GetOpVar("LOG_LOGFILE"))) then
     fileCreateDir(GetOpVar("DIRPATH_BAS"))
   end
-  PrintInstance("SetLogControl("..tostring(GetOpVar("LOG_MAXLOGS"))..","..GetOpVar("LOG_LOGFILE")..")")
+  PrintInstance("SetLogControl("..tostring(GetOpVar("LOG_MAXLOGS"))..","..tostring(GetOpVar("LOG_LOGFILE"))..")")
 end
 
 ----------------- INITAIALIZATION -----------------
@@ -382,6 +375,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("TIME_INIT",Time())
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
+  SetOpVar("DELAY_FREEZE",0.00001)
   SetOpVar("LOG_LOGFILE","")
   SetOpVar("LOG_LOGLAST","")
   SetOpVar("MAX_ROTATION",360)
@@ -402,7 +396,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_INS","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
-  SetOpVar("DIRPATH_LOG","")
   SetOpVar("MISS_NOID","N")    -- No ID selected
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
@@ -410,7 +403,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("LOCALIFY_TABLE",{})
   SetOpVar("LOCALIFY_AUTO","en")
   SetOpVar("FILE_MODEL","%.mdl")
-  SetOpVar("FILE_PATTERN","[^%w_]") -- Only alphanumeric with nderscore
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_CATEGORIES",{})
   SetOpVar("TABLE_PLAYER_KEYS",{})
@@ -3190,49 +3182,50 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   return StatusLog(ePiece,"MakePiece: "..tostring(ePiece)..sModel)
 end
 
-function ApplyPhysicalAnchor(ePiece,eBase,nWe,nNc,nFm)
+function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   if(CLIENT) then return StatusLog(true,"ApplyPhysicalAnchor: Working on client") end
-  local nWe = tonumber(nWe) or 0
-  local nNc = tonumber(nNc) or 0
+  local bWe = tobool(bWe) or false
+  local bNc = tobool(bNc) or false
   local nFm = tonumber(nFm) or 0
-  LogInstance("ApplyPhysicalAnchor: {"..nWe..","..nNc..","..nFm.."}")
+  LogInstance("ApplyPhysicalAnchor: {"..tostring(nWe)..","..tostring(bNc)..","..tostring(nFm).."}")
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalAnchor: Piece <"..tostring(ePiece).."> not valid") end
   if(not (eBase and eBase:IsValid())) then
     return StatusLog(true,"ApplyPhysicalAnchor: Base <"..tostring(eBase).."> constraint ignored") end
-  if(nNc ~= 0) then -- NoCollide should be made separately
-    local nNc = constraintNoCollide(ePiece, eBase, 0, 0)
-    if(nNc and nNc:IsValid()) then
-      ePiece:DeleteOnRemove(nNc); eBase:DeleteOnRemove(nNc)
+  if(bNc) then -- NoCollide should be made separately
+    local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
+    if(cnN and cnN:IsValid()) then
+      ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
     else LogInstance("ApplyPhysicalAnchor: NoCollide ignored") end
   end
-  if(nWe ~= 0) then -- Weld with the force limit here V
-    local nWe = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
-    if(nWe and nWe:IsValid()) then
-      ePiece:DeleteOnRemove(nWe); eBase:DeleteOnRemove(nWe)
-    else LogInstance("ApplyPhysicalAnchor: Weld ignored") end
+  if(bWe) then -- Weld with the force limit here V
+    local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
+    if(cnW and cnW:IsValid()) then
+      ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
+    else LogInstance("ApplyPhysicalAnchor: Weld ignored "..tostring(cnW)) end
   end
   return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end
 
-function ApplyPhysicalSettings(ePiece,nPi,nFr,nGr,sPh)
+function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   if(CLIENT) then return StatusLog(true,"ApplyPhysicalSettings: Working on client") end
-  local nPi = tonumber(nPi) or 0
-  local nFr = tonumber(nFr) or 0
-  local nGr = tonumber(nGr) or 0
+  local bPi = tobool(bPi) or false
+  local bFr = tobool(bFr) or false
+  local bGr = tobool(bGr) or false
   local sPh = tostring(sPh or "")
-  LogInstance("ApplyPhysicalSettings: {"..nPi..","..nFr..","..nGr..","..sPh.."}")
+  LogInstance("ApplyPhysicalSettings: {"..tostring(bPi)..","..tostring(bFr)..","..tostring(bGr)..","..sPh.."}")
   if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
     return StatusLog(false,"ApplyPhysicalSettings: Piece entity invalid for <"..tostring(ePiece)..">") end
   local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
   if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
     return StatusLog(false,"ApplyPhysicalSettings: Piece physical object invalid for <"..tostring(ePiece)..">") end
-  local arSettings = {nPi,nFr,nGr,sPh}  -- Initialize dupe settings using this array
-  ePiece.PhysgunDisabled = (nPi ~= 0)   -- If enabled stop the player from grabbing a track piece
-  ePiece:SetUnFreezable(nPi ~= 0)       -- If enabled stop the player from hitting reload to mess it all up
+  local arSettings = {bPi,nFr,bGr,sPh}  -- Initialize dupe settings using this array
+  ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
+  ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
   ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
-  pyPiece:EnableMotion(nFr == 0)        -- If frozen motion is disabled
-  constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = (nGr ~= 0), Material = sPh})
+  timerSimple(GetOpVar("DELAY_FREEZE"), function() -- If frozen motion is disabled
+    LogInstance("ApplyPhysicalSettings: Freeze"); pyPiece:EnableMotion(not bFr) end )
+  constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
 end

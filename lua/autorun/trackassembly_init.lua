@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.314")
+asmlib.SetOpVar("TOOL_VERSION","5.315")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -54,7 +54,9 @@ asmlib.SetOpVar("LOG_SKIP",{
   "MakeScreen.DrawLine: Start out of border",
   "MakeScreen.DrawLine: End out of border",
   "POINT_SELECT: Bind not pressed",
-  "POINT_SELECT: Active key missing"
+  "POINT_SELECT: Active key missing",
+  "PHYSGUN_DRAW: Physgun not hold",
+  "BIND_PRESS: Swep not tool"
 })
 
 ------ VARIABLE FLAGS ------
@@ -65,8 +67,8 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY
 
 ------ CONFIGURE LOGGING ------
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmVar("logsmax"  , "0" , {0}, gnIndependentUsed, "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , ""  , nil, gnIndependentUsed, "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logsmax"  , "0" , {0}   , gnIndependentUsed, "Maximum logging lines to be printed")
+asmlib.MakeAsmVar("logfile"  , "0" , {0, 1}, gnIndependentUsed, "File to store the logs ( if any )")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 
 ------ CONFIGURE VARIABLES ------
@@ -138,11 +140,11 @@ if(SERVER) then
         return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
       local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
       local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
-      local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0))
-      local freeze     = (pPly:GetInfoNum(gsToolPrefL.."freeze"   , 0))
-      local gravity    = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0))
-      local weld       = (pPly:GetInfoNum(gsToolPrefL.."weld"     , 0))
-      local nocollide  = (pPly:GetInfoNum(gsToolPrefL.."nocollide", 0))
+      local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0) ~= 0)
+      local freeze     = (pPly:GetInfoNum(gsToolPrefL.."freeze"   , 0) ~= 0)
+      local gravity    = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0) ~= 0)
+      local weld       = (pPly:GetInfoNum(gsToolPrefL.."weld"     , 0) ~= 0)
+      local nocollide  = (pPly:GetInfoNum(gsToolPrefL.."nocollide", 0) ~= 0)
       local spnflat    = (pPly:GetInfoNum(gsToolPrefL.."spnflat"  , 0) ~= 0)
       local igntype    = (pPly:GetInfoNum(gsToolPrefL.."igntype"  , 0) ~= 0)
       local physmater  = (pPly:GetInfo   (gsToolPrefL.."physmater", "metal"))
@@ -371,6 +373,7 @@ if(CLIENT) then
           asmlib.StoreExternalDatabase("PIECES","\t","DSV")
           asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
           asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
+          asmlib.ConCommandPly(oPly, "exportdb", 0)
         end
       end
       ------------- ComboBox ---------------
@@ -1261,14 +1264,14 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_double_bumper.mdl", "#", "#", 2, "", "0,-128,7.346", ""})
   asmlib.SettingsModelToName("SET",{1,5})
   --- Shinji85 Curve ---
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R1.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R1.mdl", "#", "#", 2, "", "-1060.12341 ,139.56763 ,7.346", "0,165,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R2.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R2.mdl", "#", "#", 2, "", "-993.86572 ,130.84471 ,7.346", "0,165,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R3.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R3.mdl", "#", "#", 2, "", "-927.60797 ,122.1218 ,7.346", "0,165,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_CC.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_CC.mdl", "#", "#", 2, "", "-966.40515 ,128, 7.346", "0,165,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r1.mdl", "#", "#", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r1.mdl", "#", "#", 2, "", "-1060.12341 ,139.56763 ,7.346", "0,165,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r2.mdl", "#", "#", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r2.mdl", "#", "#", 2, "", "-993.86572 ,130.84471 ,7.346", "0,165,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r3.mdl", "#", "#", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r3.mdl", "#", "#", 2, "", "-927.60797 ,122.1218 ,7.346", "0,165,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_cc.mdl", "#", "#", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_cc.mdl", "#", "#", 2, "", "-966.40515 ,128, 7.346", "0,165,0"})
   --- Shinji85 Switch ---
   asmlib.SettingsModelToName("SET",{1,5},{"r_","right_","l_","left_"},nil)
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl", "#", "#", 1, "", "0,0,7.346", ""})
@@ -1283,20 +1286,20 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 2, "", "-494.55,0,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 3, "", "-33.129,-123.63866,7.346", "0,-30,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 4, "", "-461.42175,123.63649,7.346", "0,150,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_Cx.mdl", "#", "Counter X", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_Cx.mdl", "#", "Counter X", 2, "", "-362.51361,0,7.346", "0,180,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_CS.mdl", "#", "Counter Switch", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_CS.mdl", "#", "Counter Switch", 2, "", "-908.81165,0,7.346", "0,180,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_Cxfix.mdl", "#", "Counter X Fix", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_Cxfix.mdl", "#", "Counter X Fix", 2, "", "-149.48648,0,7.346", "0,180,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_CSfix.mdl", "#", "Counter Switch Fix", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_CSfix.mdl", "#", "Counter Switch Fix", 2, "", "-115.18847,0,7.346", "0,180,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R11.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R11.mdl", "#", "#", 2, "", "-1086.11584 ,449.88458 ,7.346", "0,135,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R12.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R12.mdl", "#", "#", 2, "", "-905.09656 ,374.90414 ,7.346", "0,135,0"})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R13.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.InsertRecord({"models/shinji85/train/rail_curve_R13.mdl", "#", "#", 2, "", "-724.07727 ,299.92276 ,7.346", "0,135,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_cx.mdl", "#", "Counter X", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_cx.mdl", "#", "Counter X", 2, "", "-362.51361,0,7.346", "0,180,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_cs.mdl", "#", "Counter Switch", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_cs.mdl", "#", "Counter Switch", 2, "", "-908.81165,0,7.346", "0,180,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_cxfix.mdl", "#", "Counter X Fix", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_cxfix.mdl", "#", "Counter X Fix", 2, "", "-149.48648,0,7.346", "0,180,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_csfix.mdl", "#", "Counter Switch Fix", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_csfix.mdl", "#", "Counter Switch Fix", 2, "", "-115.18847,0,7.346", "0,180,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r11.mdl", "#", "#", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r11.mdl", "#", "#", 2, "", "-1086.11584 ,449.88458 ,7.346", "0,135,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r12.mdl", "#", "#", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r12.mdl", "#", "#", 2, "", "-905.09656 ,374.90414 ,7.346", "0,135,0"})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r13.mdl", "#", "#", 1, "", "0,0,7.346", ""})
+  asmlib.InsertRecord({"models/shinji85/train/rail_curve_r13.mdl", "#", "#", 2, "", "-724.07727 ,299.92276 ,7.346", "0,135,0"})
   asmlib.DefaultType("Sligwof's Railcar")
   asmlib.InsertRecord({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 1, "", "500,0,0", ""})
   asmlib.InsertRecord({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 2, "", "-2673,0,0", "0,180,0"})
@@ -1869,6 +1872,8 @@ else
   asmlib.InsertRecord({"models/ron/2ft/straight/straight_128.mdl" , "#", "#", 2, "", "-64 ,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/straight/straight_256.mdl" , "#", "#", 1, "", " 128,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/straight/straight_256.mdl" , "#", "#", 2, "", "-128,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/straight/straight_320_junction.mdl" , "#", "#", 1, "", " 160,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/straight/straight_320_junction.mdl" , "#", "#", 2, "", "-160,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/straight/straight_512.mdl" , "#", "#", 1, "", " 256,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/straight/straight_512.mdl" , "#", "#", 2, "", "-256,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/straight/straight_1024.mdl", "#", "#", 1, "", " 512,0,6.016", ""})
@@ -2237,6 +2242,10 @@ else
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_1024_grass.mdl", "#", "#", 2, "", "-512,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_32_street.mdl"  , "#", "#", 1, "", " 16 ,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_32_street.mdl"  , "#", "#", 2, "", "-16 ,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_grass_normal.mdl"  , "#", "#", 1, "", " 16 ,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_grass_normal.mdl"  , "#", "#", 2, "", "-16 ,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_normal_street.mdl"  , "#", "#", 1, "", " 16 ,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_normal_street.mdl"  , "#", "#", 2, "", "-16 ,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_64_street.mdl"  , "#", "#", 1, "", " 32 ,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_64_street.mdl"  , "#", "#", 2, "", "-32 ,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_128_street.mdl" , "#", "#", 1, "", " 64 ,0,6.016", ""})
@@ -2327,6 +2336,14 @@ else
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_n_junction_right_unswitched.mdl", "#", "#", 1, "", "  0 ,-62,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_n_junction_right_unswitched.mdl", "#", "#", 2, "", "-704,-62,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_n_junction_right_unswitched.mdl", "#", "#", 3, "", "-704, 62,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_switched.mdl"  , "#", "#", 1, "", "   0,-62,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_switched.mdl"  , "#", "#", 2, "", "   0, 62,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_switched.mdl"  , "#", "#", 3, "", "-704, 62,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_switched.mdl"  , "#", "#", 4, "", "-704,-62,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_unswitched.mdl", "#", "#", 1, "", "   0,-62,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_unswitched.mdl", "#", "#", 2, "", "   0, 62,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_unswitched.mdl", "#", "#", 3, "", "-704, 62,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/tram/tram_x_junction_unswitched.mdl", "#", "#", 4, "", "-704,-62,6.016", "0,-180,0"})
   asmlib.DefaultType("PHX Tubes Miscellaneous",function(m)
     local r = stringGsub(stringGsub(m,"models/props_phx/construct/",""),"_","/")
     return asmlib.ModelToName(stringSub(r,1,stringFind(r,"/")-1),true) end) --- Tubes Metal ---

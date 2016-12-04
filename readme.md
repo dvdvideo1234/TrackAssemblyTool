@@ -389,8 +389,7 @@ A: First of all if the error origin is not the TA,
     6) Enter Gmod and while in-game open the console and paste "trackassembly_exportdb 0" ( without the quotes )
     7) Done ! It all should work now. If not, proceed as below ( 8 - 14 )
     8) Enable the logs via the console "trackassembly_logsmax 10000" hit enter
-    9) Enable the log file via the console "trackassembly_logfile trackasmlib_log" hit enter
-       ( Or include non alphanumeric character in the file name to make it print in the console "#trackasmlib_log" )
+    9) Enable the log file via the console "trackassembly_logfile 1" hit enter
    10) Enable developer mode via "trackassembly_devmode 1"
    11) Server: Point to the world in-game and press RELOAD ( Default: R )
    12) Client: Click the "Reset Variables" button

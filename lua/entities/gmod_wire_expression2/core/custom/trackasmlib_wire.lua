@@ -293,7 +293,7 @@ e2function entity entity:trackasmlibApplyPhysicalAnchor(entity eBase, number nWe
   if(not (eBase and eBase:IsValid())) then return anyFalse end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
   if(not stRecord) then return anyFalse end
-  return asmlib.ApplyPhysicalAnchor(this,eBase,nWe,nNc) and anyTrue or anyFalse
+  return asmlib.ApplyPhysicalAnchor(this,eBase,(nWe~=0),(nNc~=0)) and anyTrue or anyFalse
 end
 
 __e2setcost(15)
@@ -301,7 +301,7 @@ e2function entity entity:trackasmlibApplyPhysicalSettings(number nPi, number nFr
   if(not (this and this:IsValid() and enFlag)) then return anyFalse end
   local stRecord = asmlib.CacheQueryPiece(this:GetModel())
   if(not stRecord) then return anyFalse end
-  return asmlib.ApplyPhysicalSettings(this,nPi,nFr,nGr,sPh) and anyTrue or anyFalse
+  return asmlib.ApplyPhysicalSettings(this,(nPi~=0),(nFr~=0),(nGr~=0),sPh) and anyTrue or anyFalse
 end
 
 __e2setcost(35)
