@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.315")
+asmlib.SetOpVar("TOOL_VERSION","5.316")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -46,6 +46,8 @@ asmlib.SetOpVar("LOG_ONLY",nil)
 asmlib.SetOpVar("LOG_SKIP",{
   "QuickSort",
   "ModelToName",
+  "DrawToolScreen: Invalid screen",
+  "DrawHUD: Invalid screen",
   "GetEntitySpawn: Not hitting active point",
   "CacheQueryPiece: Record not located",
   "GetEntitySpawn: Trace model missing",
@@ -56,7 +58,10 @@ asmlib.SetOpVar("LOG_SKIP",{
   "POINT_SELECT: Bind not pressed",
   "POINT_SELECT: Active key missing",
   "PHYSGUN_DRAW: Physgun not hold",
-  "BIND_PRESS: Swep not tool"
+  "PHYSGUN_DRAW: Swep not physgun",
+  "MakeScreen: Color list not container",
+  "BIND_PRESS: Swep not tool",
+  "BIND_PRESS: Tool different"
 })
 
 ------ VARIABLE FLAGS ------
@@ -73,7 +78,6 @@ asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile
 
 ------ CONFIGURE VARIABLES ------
 asmlib.MakeAsmVar("modedb"   , "LUA",     nil, gnIndependentUsed, "Database operating mode")
-asmlib.MakeAsmVar("enqstore" , "1"  , {0, 1 }, gnIndependentUsed, "Enable caching for built queries")
 asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, gnIndependentUsed, "Toggle developer mode on/off server side")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
@@ -92,7 +96,6 @@ end
 
 ------ CONFIGURE INTERNALS -----
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
-asmlib.SetOpVar("EN_QUERY_STORE", asmlib.GetAsmVar("enqstore", "BUL"))
 
 ------ GLOBAL VARIABLES ------
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -588,7 +591,8 @@ asmlib.CreateTable("PIECES",{
   [4] = {"LINEID", "INTEGER", "FLR",  nil },
   [5] = {"POINT" , "TEXT"   ,  nil ,  nil },
   [6] = {"ORIGIN", "TEXT"   ,  nil ,  nil },
-  [7] = {"ANGLE" , "TEXT"   ,  nil ,  nil }
+  [7] = {"ANGLE" , "TEXT"   ,  nil ,  nil },
+  [8] = {"CLASS" , "TEXT"   ,  nil ,  nil }
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
@@ -619,11 +623,12 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 ------ POPULATE DB ------
 --[[ TA parametrization legend
  * Disabling of a component is preformed by using "OPSYM_DISABLE"
- * Disabling P    - The ID is ignored when searching for active point
- * Disabling O    - The ID cannot be selected by the holder
- * Disabling A    - The ID angle is treated as {0,0,0}
- * Disabling Type - Makes it use the value of DefaultType()
- * Disabling Name - Makes it generate it using the model via ModelToName()
+ * Disabling P     - The ID is ignored when searching for active point
+ * Disabling O     - The ID cannot be selected by the holder
+ * Disabling A     - The ID angle is treated as {0,0,0}
+ * Disabling Type  - Makes it use the value of DefaultType()
+ * Disabling Name  - Makes it generate it using the model via ModelToName()
+ * Disabling Class - Makes it usethe default prop_dynamic
  * Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
  * First  argument of DefaultTable() is used to provide default table name for InsertRecord()
  * Second argument of DefaultTable() is used to generate track categories for the processed addon
@@ -1839,8 +1844,14 @@ else
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
   asmlib.DefaultType("Ron's 2ft track pack", function(m)
-    local r = stringGsub(m,"models/ron/2ft/",""); r = stringSub(r,1,stringFind(r,"/")-1);
-    return asmlib.ModelToName(r,true); end)
+    local t = stringGsub(m,"models/ron/2ft/","")
+    local r, n = stringSub(t,1,stringFind(t,"/")-1)
+    if(r == "luajunctions") then
+      n = stringGsub(m,"models/ron/2ft/luajunctions/","")
+      n = stringGsub(stringGsub(n,"/junction.mdl",""),"junctions/","junction_")
+      n = asmlib.ModelToName(n,true)
+    end
+    return asmlib.ModelToName(r,true), n end)
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer.mdl", "#", "#", 1, "", "64,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",1,""," 32,0,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",2,"","-32,0,6.016","0,-180,0"})
@@ -1858,8 +1869,8 @@ else
   asmlib.InsertRecord({"models/ron/2ft/misc/90crossing.mdl", "#", "#", 2, "", "  0, 64,6.016", "0,90,0"})
   asmlib.InsertRecord({"models/ron/2ft/misc/90crossing.mdl", "#", "#", 3, "", "-64,  0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/misc/90crossing.mdl", "#", "#", 4, "", "  0,-64,6.016", "0,-90,0"})
-  asmlib.InsertRecord({"models/ron/2ft/misc/track_damaged.mdl","Ron's 2ft track pack","#",1,""," 64,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/misc/track_damaged.mdl","Ron's 2ft track pack","#",2,"","-64,0,6.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/misc/track_damaged.mdl","#","#",1,""," 64,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/misc/track_damaged.mdl","#","#",2,"","-64,0,6.016","0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/misc/track_barrier_opened.mdl","#","#",1,""," 64,0,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/misc/track_barrier_opened.mdl","#","#",2,"","-64,0,6.016","0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/misc/track_barrier_closed.mdl","#","#",1,""," 64,0,6.016",""})
@@ -2078,6 +2089,33 @@ else
   asmlib.InsertRecord({"models/ron/2ft/embankment/embankment_curve_90_sided_m_4.mdl", "#", "#", 2, "", "-1396,-1396,6.016", "0,-90,0"})
   asmlib.InsertRecord({"models/ron/2ft/embankment/embankment_bridge_sided_m.mdl" , "#", "Embankment Bridge Sided Mirrored", 1, "", " 64 ,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/embankment/embankment_bridge_sided_m.mdl" , "#", "Embankment Bridge Sided Mirrored", 2, "", "-64 ,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/junctions/left/junction.mdl", "#", "#", 1, "", "0,  0,6.016", "0,-90,0","r2ftp_junction_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/junctions/left/junction.mdl", "#", "#", 2, "", "0,384,6.016", "0, 90,0","r2ftp_junction_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/junctions/left/junction.mdl", "#", "#", 3, "", "-77.994,391.842,6.016", "0,112.5,0","r2ftp_junction_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/junctions/right/junction.mdl", "#", "#", 1, "", "0,  0,6.016", "0,-90,0", "r2ftp_junction_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/junctions/right/junction.mdl", "#", "#", 2, "", "0,384,6.016", "0, 90,0", "r2ftp_junction_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/junctions/right/junction.mdl", "#", "#", 3, "", "77.994,391.842,6.016", "0,67.5,0", "r2ftp_junction_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/n_junctions/left/n_junction.mdl" , "#", "#", 1, "", " 0  , 0 ,6.016", "0,-90,0", "r2ftp_junction_n_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/n_junctions/left/n_junction.mdl" , "#", "#", 2, "", " 0  ,384,6.016", "0, 90,0", "r2ftp_junction_n_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/n_junctions/left/n_junction.mdl" , "#", "#", 3, "", "-124,704,6.016", "0, 90,0", "r2ftp_junction_n_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/n_junctions/right/n_junction.mdl"  , "#", "#", 1, "", "0  ,0  ,6.016", "0,-90,0", "r2ftp_junction_n_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/n_junctions/right/n_junction.mdl"  , "#", "#", 2, "", "0  ,384,6.016", "0, 90,0", "r2ftp_junction_n_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/n_junctions/right/n_junction.mdl"  , "#", "#", 3, "", "124,704,6.016", "0, 90,0", "r2ftp_junction_n_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl" , "#", "#", 1, "", "0   ,   0,6.016", "0,-90,0", "r2ftp_junction_s_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl" , "#", "#", 2, "", "0   , 384,6.016", "0, 90,0", "r2ftp_junction_s_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl" , "#", "#", 3, "", "-124 ,704,6.016", "0, 90,0", "r2ftp_junction_s_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl" , "#", "#", 4, "", "-124 ,320,6.016", "0,-90,0", "r2ftp_junction_s_left"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl"  , "#", "#", 1, "", "0  ,  0,6.016", "0,-90,0", "r2ftp_junction_s_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl"  , "#", "#", 2, "", "0  ,384,6.016", "0, 90,0", "r2ftp_junction_s_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl"  , "#", "#", 3, "", "124,704,6.016", "0, 90,0", "r2ftp_junction_s_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl"  , "#", "#", 4, "", "124,320,6.016", "0,-90,0", "r2ftp_junction_s_right"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/y_junctions/y_junction.mdl", "#", "#", 1, "", "0,0,6.016", "0,-90,0", "r2ftp_junction_y"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/y_junctions/y_junction.mdl", "#", "#", 2, "", " 77.969124,391.794891,6.016", "0, 67.5,0", "r2ftp_junction_y"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/y_junctions/y_junction.mdl", "#", "#", 3, "", "-77.969093,391.794952,6.016", "0,112.5,0", "r2ftp_junction_y"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/x_junctions/x_junction.mdl", "#", "#", 1, "", " 62,  0,6.016", "0,-90,0", "r2ftp_junction_x"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/x_junctions/x_junction.mdl", "#", "#", 2, "", " 62,704,6.016", "0, 90,0", "r2ftp_junction_x"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/x_junctions/x_junction.mdl", "#", "#", 3, "", "-62,704,6.016", "0, 90,0", "r2ftp_junction_x"})
+  asmlib.InsertRecord({"models/ron/2ft/luajunctions/x_junctions/x_junction.mdl", "#", "#", 4, "", "-62,  0,6.016", "0,-90,0", "r2ftp_junction_x"})
   asmlib.InsertRecord({"models/ron/2ft/station/platform_1024_2_track.mdl","#","#",1,"","512,-124,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/station/platform_1024_2_track.mdl","#","#",2,"","512,124,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/station/platform_1024_2_track.mdl","#","#",3,"","-512,124,6.016","0,-180,0"})
@@ -2176,58 +2214,58 @@ else
   asmlib.InsertRecord({"models/ron/2ft/road_crossings/road_crossing_side.mdl","#","#",2,"","-128,0,6.016","0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/road_crossings/road_crossing.mdl","#","#",1,"","128,0,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/road_crossings/road_crossing.mdl","#","#",2,"","-128,0,6.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_1.mdl","Ron's 2ft track pack","#",2,"","-32,0,8.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_1.mdl","Ron's 2ft track pack","#",2,"","-64,0,10.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_1.mdl","Ron's 2ft track pack","#",2,"","-128,0,14.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_1.mdl","Ron's 2ft track pack","#",2,"","-256,0,22.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_1.mdl","Ron's 2ft track pack","#",2,"","-512,0,38.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_1.mdl","Ron's 2ft track pack","#",2,"","-1024,0,70.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_1.mdl","Ron's 2ft track pack","#",2,"","-64,0,9.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_1.mdl","Ron's 2ft track pack","#",1,"","64,0,3.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_1.mdl","Ron's 2ft track pack","#",2,"","0,0,6.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","-32,0,8.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","-64,0,10.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","-128,0,14.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","-256,0,22.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","-512,0,38.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","-1024,0,70.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","-64,0,9.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_1.mdl","Ron's 2ft track pack","#",1,"","64,0,3.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_1.mdl","Ron's 2ft track pack","#",2,"","0,0,6.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 32 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 32 Embankment Sided Mirrored 1",2,"","-32,0,8.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 64 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 64 Embankment Sided Mirrored 1",2,"","-64,0,10.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 128 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 128 Embankment Sided Mirrored 1",2,"","-128,0,14.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 256 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 256 Embankment Sided Mirrored 1",2,"","-256,0,22.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 512 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 512 Embankment Sided Mirrored 1",2,"","-512,0,38.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 1024 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp 1024 Embankment Sided Mirrored 1",2,"","-1024,0,70.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp Start Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp Start Embankment Sided Mirrored 1",2,"","-64,0,9.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp End Embankment Sided Mirrored 1",1,"","64,0,3.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_m_1.mdl","Ron's 2ft track pack","Ramp End Embankment Sided Mirrored 1",2,"","0,0,6.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_1024.mdl","Ron's 2ft track pack","#",1,""," 512,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_1024.mdl","Ron's 2ft track pack","#",2,"","-512,0,6.016","0,-180,0"})
-  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_512.mdl","Ron's 2ft track pack","#",1,""," 256,0,6.016",""})
-  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_512.mdl","Ron's 2ft track pack","#",2,"","-256,0,6.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_1.mdl","#","#",2,"","-32,0,8.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_1.mdl","#","#",2,"","-64,0,10.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_1.mdl","#","#",2,"","-128,0,14.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_1.mdl","#","#",2,"","-256,0,22.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_1.mdl","#","#",2,"","-512,0,38.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_1.mdl","#","#",2,"","-1024,0,70.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_1.mdl","#","#",2,"","-64,0,9.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_1.mdl","#","#",1,"","64,0,3.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_1.mdl","#","#",2,"","0,0,6.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_1.mdl","#","#",2,"","-32,0,8.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_1.mdl","#","#",2,"","-64,0,10.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_1.mdl","#","#",2,"","-128,0,14.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_1.mdl","#","#",2,"","-256,0,22.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_1.mdl","#","#",2,"","-512,0,38.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_1.mdl","#","#",2,"","-1024,0,70.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_1.mdl","#","#",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_1.mdl","#","#",2,"","-64,0,9.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_1.mdl","#","#",1,"","64,0,3.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_1.mdl","#","#",2,"","0,0,6.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_m_1.mdl","#","Ramp 32 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_32_embankment_sided_m_1.mdl","#","Ramp 32 Embankment Sided Mirrored 1",2,"","-32,0,8.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_m_1.mdl","#","Ramp 64 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_64_embankment_sided_m_1.mdl","#","Ramp 64 Embankment Sided Mirrored 1",2,"","-64,0,10.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_m_1.mdl","#","Ramp 128 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_128_embankment_sided_m_1.mdl","#","Ramp 128 Embankment Sided Mirrored 1",2,"","-128,0,14.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_m_1.mdl","#","Ramp 256 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_256_embankment_sided_m_1.mdl","#","Ramp 256 Embankment Sided Mirrored 1",2,"","-256,0,22.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_m_1.mdl","#","Ramp 512 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_512_embankment_sided_m_1.mdl","#","Ramp 512 Embankment Sided Mirrored 1",2,"","-512,0,38.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_m_1.mdl","#","Ramp 1024 Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_1024_embankment_sided_m_1.mdl","#","Ramp 1024 Embankment Sided Mirrored 1",2,"","-1024,0,70.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_m_1.mdl","#","Ramp Start Embankment Sided Mirrored 1",1,"","0,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_start_embankment_sided_m_1.mdl","#","Ramp Start Embankment Sided Mirrored 1",2,"","-64,0,9.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_m_1.mdl","#","Ramp End Embankment Sided Mirrored 1",1,"","64,0,3.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/ramps/ramp_end_embankment_sided_m_1.mdl","#","Ramp End Embankment Sided Mirrored 1",2,"","0,0,6.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_1024.mdl","#","#",1,""," 512,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_1024.mdl","#","#",2,"","-512,0,6.016","0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_512.mdl","#","#",1,""," 256,0,6.016",""})
+  asmlib.InsertRecord({"models/ron/2ft/viaduct/viaduct_512.mdl","#","#",2,"","-256,0,6.016","0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_32_grass.mdl"  , "#", "#", 1, "", " 16 ,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_32_grass.mdl"  , "#", "#", 2, "", "-16 ,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/tram/tram_64_grass.mdl"  , "#", "#", 1, "", " 32 ,0,6.016", ""})

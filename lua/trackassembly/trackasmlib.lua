@@ -403,6 +403,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("LOCALIFY_TABLE",{})
   SetOpVar("LOCALIFY_AUTO","en")
   SetOpVar("FILE_MODEL","%.mdl")
+  SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_CATEGORIES",{})
   SetOpVar("TABLE_PLAYER_KEYS",{})
@@ -411,15 +412,18 @@ function InitBase(sName,sPurpose)
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
-  SetOpVar("HASH_QUERY_STORE",GetOpVar("TOOLNAME_PU").."QHASH_QUERY")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
+  SetOpVar("TRACE_CLASS", {["prop_physics"]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
     mask   = MASK_SOLID,  -- Mask telling it what to hit
     filter = function(oEnt) -- Only valid props which are not the main entity or world or TRACE_FILTER ( if set )
-      if(oEnt and oEnt:IsValid() and oEnt:GetClass() == "prop_physics" and oEnt ~= GetOpVar("TRACE_FILTER")) then return true end end })
+      if(oEnt and
+         oEnt:IsValid() and
+         oEnt ~= GetOpVar("TRACE_FILTER") and
+         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("NAV_PIECE",{})
   SetOpVar("NAV_PANEL",{})
   SetOpVar("NAV_ADDITION",{})
@@ -1670,96 +1674,41 @@ local function SQLBuildCreate(defTable)
   return Command
 end
 
-local function SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,sQuery)
-  if(not GetOpVar("EN_QUERY_STORE")) then return sQuery end
-  local Val, Base
-  if(not defTable) then
-    return StatusLog(nil,"SQLStoreQuery: Missing table definition") end
-  local tTimer = defTable.Timer
-  if(not (tTimer and ((tonumber(tTimer[2]) or 0) > 0))) then
-    return StatusLog(sQuery,"SQLStoreQuery: Skipped. Cache persistent forever") end
-  local Field, Where, Order = 1, 1, 1
-  local keyStr = GetOpVar("HASH_QUERY_STORE")
-  local tCache = libCache[keyStr]
-  if(not IsExistent(tCache)) then
-    libCache[keyStr] = {}; tCache = libCache[keyStr] end
-  local Place = tCache[defTable.Name]
-  if(not IsExistent(Place)) then
-    tCache[defTable.Name] = {}; Place = tCache[defTable.Name] end
-  if(tFields) then
-    while(tFields[Field]) do
-      Val = defTable[tFields[Field]][1]
-      if(not IsExistent(Val)) then
-        return StatusLog(nil,"SQLStoreQuery: Missing field key for #"..tostring(Field)) end
-      if(Place[Val]) then
-        Place = Place[Val]
-      elseif(sQuery) then
-        Base = Place
-        Place[Val] = {}
-        Place = Place[Val]
-      else
-        return nil
-      end
-      if(not Place) then return nil end
-      Field = Field + 1
-    end
-  else
-    Val = "ALL_FIELDS"
-    if(Place[Val]) then
-      Place = Place[Val]
-    elseif(sQuery) then
-      Base = Place
-      Place[Val] = {}
-      Place = Place[Val]
+function SQLFetchSelect(sHash,...)
+  local tStore, tVal, sQ = GetOpVar("QUERY_STORE"), {...}, ""
+  if(tStore[sHash]) then
+    tStore = tStore[sHash]
+    iCnt   = #tStore
+    for ID = 1, (iCnt - 1) do
+      if(not tVal[ID]) then
+        return StatusLog(nil, "SQLFetchSelect: Not enough <"..tostring(sHash).."> values ["..tostring(ID).."]") end
+      sQ = sQ..tStore[ID]..tostring(tVal[ID])
+    end; return sQ..tStore[iCnt]
+  else return StatusLog(nil, "SQLFetchSelect: Storage missing for <"..sHash..">") end
+end
+
+function SQLStoreSelect(sHash,sQuery)
+  if(not sHash) then
+    return StatusLog(nil, "SQLStoreSelect: Store hash missing") end
+  if(not sQuery) then
+    return StatusLog(nil, "SQLStoreSelect: Store query missing") end
+  local tStore, sB, sQ, sV = GetOpVar("QUERY_STORE"), " = ", ""
+        tStore[sHash]  = stringExplode(sB,sQuery); tStore = tStore[sHash]
+  for ID = 2, #tStore do
+    tStore[ID-1], sV = tStore[ID-1]..sB, tStore[ID]
+    if(stringSub(sV,1,1) == "'") then
+      tStore[ID-1] = tStore[ID-1].."'"
+      local nE = stringFind(sV,"'",2)
+      if(not nE) then
+        return StatusLog(nil, "SQLStoreSelect: Value quote mismatch ["..ID.."]<"..sV..">") end
+      tStore[ID] = stringSub(sV,nE,-1)
     else
-      return nil
+      local nE = stringFind(sV,"%s",1)
+      if(not nE) then
+        return StatusLog(nil, "SQLStoreSelect: Value space mismatch ["..ID.."]<"..sV..">") end
+      tStore[ID] = stringSub(sV,nE,-1)
     end
-  end
-  if(tOrderBy) then
-    while(tOrderBy[Order]) do
-      Val = tOrderBy[Order]
-      if(Place[Val]) then
-        Base = Place
-        Place = Place[Val]
-      elseif(sQuery) then
-        Base = Place
-        Place[Val] = {}
-        Place = Place[Val]
-      else return StatusLog(nil,"SQLStoreQuery: Missing order field key for #"..tostring(Order)) end
-      Order = Order + 1
-    end
-  end
-  if(tWhere) then
-    while(tWhere[Where]) do
-      Val = defTable[tWhere[Where][1]][1]
-      if(not IsExistent(Val)) then
-        return StatusLog(nil,"SQLStoreQuery: Missing where field key for #"..tostring(Where)) end
-      if(Place[Val]) then
-        Base = Place
-        Place = Place[Val]
-      elseif(sQuery) then
-        Base = Place
-        Place[Val] = {}
-        Place = Place[Val]
-      else
-        return nil
-      end
-      Val = tWhere[Where][2]
-      if(not IsExistent(Val)) then
-        return StatusLog(nil,"SQLStoreQuery: Missing where value key for #"..tostring(Where)) end
-      if(Place[Val]) then
-        Base = Place
-        Place = Place[Val]
-      elseif(sQuery) then
-        Base = Place
-        Place[Val] = {}
-        Place = Place[Val]
-      end
-      Where = Where + 1
-    end
-  end
-  if(sQuery) then Base[Val] = sQuery end
-  return Base[Val]
+  end; return tStore
 end
 
 local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
@@ -1767,12 +1716,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
     return SQLBuildError("SQLBuildSelect: Missing table definition") end
   if(not (defTable[1][1] and defTable[1][2])) then
     return SQLBuildError("SQLBuildSelect: Missing table "..defTable.Name.." field definitions") end
-  local Command = SQLStoreQuery(defTable,tFields,tWhere,tOrderBy)
-  if(IsString(Command)) then
-    SQLBuildError("")
-    return Command
-  else Command = "SELECT " end
-  local Cnt = 1
+  local Command, Cnt = "SELECT ", 1
   if(tFields) then
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])
@@ -1781,20 +1725,14 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
              ..type(tFields[Cnt]).."}<"..tostring(tFields[Cnt])
              .."> type mismatch in "..defTable.Name) end
       if(defTable[v]) then
-        if(defTable[v][1]) then
-          Command = Command..defTable[v][1]
-        else
-          return SQLBuildError("SQLBuildSelect: Select no such field name by index #"
-            ..v.." in the table "..defTable.Name) end
+        if(defTable[v][1]) then Command = Command..defTable[v][1]
+        else return SQLBuildError("SQLBuildSelect: Select no such field name by index #"
+          ..v.." in the table "..defTable.Name) end
       end
-      if(tFields[Cnt+1]) then
-        Command = Command ..", "
-      end
+      if(tFields[Cnt+1]) then Command = Command ..", " end
       Cnt = Cnt + 1
     end
-  else
-    Command = Command.."*"
-  end
+  else Command = Command.."*" end
   Command = Command .." FROM "..defTable.Name
   if(tWhere and
      type(tWhere == "table") and
@@ -1806,9 +1744,9 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   ) then
     Cnt = 1
     while(tWhere[Cnt]) do
-      k = tonumber(tWhere[Cnt][1])
-      v = tWhere[Cnt][2]
-      t = defTable[k][2]
+      local k = tonumber(tWhere[Cnt][1])
+      local v = tWhere[Cnt][2]
+      local t = defTable[k][2]
       if(not (k and v and t) ) then
         return SQLBuildError("SQLBuildSelect: Where clause inconsistent on "
           ..defTable.Name.." field index, {"..tostring(k)..","..tostring(v)..","..tostring(t)
@@ -1817,11 +1755,8 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       if(not IsExistent(v)) then
         return SQLBuildError("SQLBuildSelect: Data matching failed on "
           ..defTable.Name.." field index #"..Cnt.." value <"..tostring(v)..">") end
-      if(Cnt == 1) then
-        Command = Command.." WHERE "..defTable[k][1].." = "..v
-      else
-        Command = Command.." AND "..defTable[k][1].." = "..v
-      end
+      if(Cnt == 1) then Command = Command.." WHERE "..defTable[k][1].." = "..v
+      else              Command = Command.." AND "  ..defTable[k][1].." = "..v end
       Cnt = Cnt + 1
     end
   end
@@ -1832,24 +1767,15 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
     while(tOrderBy[Cnt]) do
       local v = tOrderBy[Cnt]
       if(v ~= 0) then
-        if(v > 0) then
-          Dire = " ASC"
-        else
-          Dire = " DESC"
-          v = -v
-        end
-      else
-        return SQLBuildError("SQLBuildSelect: Order wrong for "
-                           ..defTable.Name .." field index #"..Cnt) end
-        Command = Command..defTable[v][1]..Dire
-        if(tOrderBy[Cnt+1]) then
-          Command = Command..", "
-        end
+        if(v > 0) then Dire = " ASC"
+        else Dire, tOrderBy[Cnt] = " DESC", -v end
+      else return SQLBuildError("SQLBuildSelect: Order wrong for "
+        ..defTable.Name .." field index #"..Cnt) end
+      Command = Command..defTable[v][1]..Dire
+      if(tOrderBy[Cnt+1]) then Command = Command..", " end
       Cnt = Cnt + 1
     end
-  end
-  SQLBuildError("")
-  return SQLStoreQuery(defTable,tFields,tWhere,tOrderBy,Command..";")
+  end SQLBuildError(""); return Command..";"
 end
 
 local function SQLBuildInsert(defTable,tInsert,tValues)
@@ -1965,12 +1891,12 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   end
 end
 
-function InsertRecord(sTable,tData)
+function InsertRecord(sTable,arLine)
   if(not IsExistent(sTable)) then
     return StatusLog(false,"InsertRecord: Missing table name/values")
   end
   if(type(sTable) == "table") then
-    tData  = sTable
+    arLine = sTable
     sTable = DefaultTable()
     if(not (IsExistent(sTable) and sTable ~= "")) then
       return StatusLog(false,"InsertRecord: Missing table default name for "..sTable) end
@@ -1982,21 +1908,27 @@ function InsertRecord(sTable,tData)
     return StatusLog(false,"InsertRecord: Missing table definition for "..sTable) end
   if(not defTable[1])  then
     return StatusLog(false,"InsertRecord: Missing table definition is empty for "..sTable) end
-  if(not tData)      then
+  if(not arLine)      then
     return StatusLog(false,"InsertRecord: Missing data table for "..sTable) end
-  if(not tData[1])   then
+  if(not arLine[1])   then
     return StatusLog(false,"InsertRecord: Missing data table is empty for "..sTable) end
 
   if(sTable == "PIECES") then
-    tData[2] = DisableString(tData[2],DefaultType(),"TYPE")
-    tData[3] = DisableString(tData[3],ModelToName(tData[1]),"MODEL")
+    local trClass = GetOpVar("TRACE_CLASS")
+    arLine[2] = DisableString(arLine[2],DefaultType(),"TYPE")
+    arLine[3] = DisableString(arLine[3],ModelToName(arLine[1]),"MODEL")
+    arLine[8] = DisableString(arLine[8],nil,nil)
+    if(IsString(arLine[8]) and not trClass[arLine[8]]) then
+      trClass[arLine[8]] = true -- Register the class provided
+      LogInstance("InsertRecord: Register trace <"..tostring(arLine[8])..">")
+    end -- Add the special class to the trace list
   elseif(sTable == "PHYSPROPERTIES") then
-    tData[1] = DisableString(tData[1],DefaultType(),"TYPE")
+    arLine[1] = DisableString(arLine[1],DefaultType(),"TYPE")
   end
 
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
-    local Q = SQLBuildInsert(defTable,nil,tData)
+    local Q = SQLBuildInsert(defTable,nil,arLine)
     if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: Build error <"..SQLBuildError()..">") end
     local qRez = sqlQuery(Q)
     if(not qRez and IsBool(qRez)) then
@@ -2004,55 +1936,56 @@ function InsertRecord(sTable,tData)
               ..sqlLastError().."> Query ran <"..Q..">") end
     return true
   elseif(sModeDB == "LUA") then
-    local snPrimaryKey = MatchType(defTable,tData[1],1)
+    local snPrimaryKey = MatchType(defTable,arLine[1],1)
     if(not IsExistent(snPrimaryKey)) then -- If primary key becomes a number
       return StatusLog(nil,"InsertRecord: Cannot match primary key "
-                          ..sTable.." <"..tostring(tData[1]).."> to "
+                          ..sTable.." <"..tostring(arLine[1]).."> to "
                           ..defTable[1][1].." for "..tostring(snPrimaryKey)) end
     local tCache = libCache[defTable.Name]
     if(not IsExistent(tCache)) then
       return StatusLog(false,"InsertRecord: Cache not allocated for "..defTable.Name) end
     if(sTable == "PIECES") then
-      local tLine = tCache[snPrimaryKey]
-      if(not tLine) then
-        tCache[snPrimaryKey] = {}; tLine = tCache[snPrimaryKey] end
-      if(not IsExistent(tLine.Type)) then tLine.Type = tData[2] end
-      if(not IsExistent(tLine.Name)) then tLine.Name = tData[3] end
-      if(not IsExistent(tLine.Kept)) then tLine.Kept = 0        end
-      if(not IsExistent(tLine.Slot)) then tLine.Slot = snPrimaryKey end
-      local nOffsID = MatchType(defTable,tData[4],4) -- LineID has to be set properly
+      local stData = tCache[snPrimaryKey]
+      if(not stData) then
+        tCache[snPrimaryKey] = {}; stData = tCache[snPrimaryKey] end
+      if(not IsExistent(stData.Type)) then stData.Type = arLine[2] end
+      if(not IsExistent(stData.Name)) then stData.Name = arLine[3] end
+      if(not IsExistent(stData.Unit)) then stData.Unit = arLine[8] end
+      if(not IsExistent(stData.Kept)) then stData.Kept = 0        end
+      if(not IsExistent(stData.Slot)) then stData.Slot = snPrimaryKey end
+      local nOffsID = MatchType(defTable,arLine[4],4) -- LineID has to be set properly
       if(not IsExistent(nOffsID)) then
         return StatusLog(nil,"InsertRecord: Cannot match "
-                            ..sTable.." <"..tostring(tData[4]).."> to "
+                            ..sTable.." <"..tostring(arLine[4]).."> to "
                             ..defTable[4][1].." for "..tostring(snPrimaryKey))
       end
-      local stRezul = RegisterPOA(tLine,nOffsID,tData[5],tData[6],tData[7])
+      local stRezul = RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
       if(not IsExistent(stRezul)) then
         return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID).." for "..tostring(snPrimaryKey)) end
-      if(nOffsID > tLine.Kept) then tLine.Kept = nOffsID else
+      if(nOffsID > stData.Kept) then stData.Kept = nOffsID else
         return StatusLog(nil,"InsertRecord: Offset #"..tostring(nOffsID).." sequentiality mismatch") end
     elseif(sTable == "ADDITIONS") then
-      local tLine = tCache[snPrimaryKey]
-      if(not tLine) then
-        tCache[snPrimaryKey] = {}; tLine = tCache[snPrimaryKey] end
-      if(not IsExistent(tLine.Kept)) then tLine.Kept = 0 end
-      if(not IsExistent(tLine.Slot)) then tLine.Slot = snPrimaryKey end
-      local nCnt, sFld, nAddID = 2, "", MatchType(defTable,tData[4],4)
+      local stData = tCache[snPrimaryKey]
+      if(not stData) then
+        tCache[snPrimaryKey] = {}; stData = tCache[snPrimaryKey] end
+      if(not IsExistent(stData.Kept)) then stData.Kept = 0 end
+      if(not IsExistent(stData.Slot)) then stData.Slot = snPrimaryKey end
+      local nCnt, sFld, nAddID = 2, "", MatchType(defTable,arLine[4],4)
       if(not IsExistent(nAddID)) then -- LineID has to be set properly
         return StatusLog(nil,"InsertRecord: Cannot match "
-                            ..sTable.." <"..tostring(tData[4]).."> to "
+                            ..sTable.." <"..tostring(arLine[4]).."> to "
                             ..defTable[4][1].." for "..tostring(snPrimaryKey)) end
-      tLine[nAddID] = {}
+      stData[nAddID] = {}
       while(nCnt <= defTable.Size) do
         sFld = defTable[nCnt][1]
-        tLine[nAddID][sFld] = MatchType(defTable,tData[nCnt],nCnt)
-        if(not IsExistent(tLine[nAddID][sFld])) then  -- ADDITIONS is full of numbers
+        stData[nAddID][sFld] = MatchType(defTable,arLine[nCnt],nCnt)
+        if(not IsExistent(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
           return StatusLog(nil,"InsertRecord: Cannot match "
-                    ..sTable.." <"..tostring(tData[nCnt]).."> to "
+                    ..sTable.." <"..tostring(arLine[nCnt]).."> to "
                     ..defTable[nCnt][1].." for "..tostring(snPrimaryKey)) end
         nCnt = nCnt + 1
       end
-      tLine.Kept = nAddID
+      stData.Kept = nAddID
     elseif(sTable == "PHYSPROPERTIES") then
       local sKeyName = GetOpVar("HASH_PROPERTY_NAMES")
       local sKeyType = GetOpVar("HASH_PROPERTY_TYPES")
@@ -2068,10 +2001,10 @@ function InsertRecord(sTable,tData)
         tCache[sKeyName] = {}
         tNames = tCache[sKeyName]
       end
-      local iNameID = MatchType(defTable,tData[2],2)
+      local iNameID = MatchType(defTable,arLine[2],2)
       if(not IsExistent(iNameID)) then -- LineID has to be set properly
         return StatusLog(nil,"InsertRecord: Cannot match "
-                            ..sTable.." <"..tostring(tData[2]).."> to "
+                            ..sTable.." <"..tostring(arLine[2]).."> to "
                             ..defTable[2][1].." for "..tostring(snPrimaryKey)) end
       if(not IsExistent(tNames[snPrimaryKey])) then
         -- If a new type is inserted
@@ -2082,7 +2015,7 @@ function InsertRecord(sTable,tData)
         tNames[snPrimaryKey].Slot = snPrimaryKey
       end -- MatchType crashes only on numbers
       tNames[snPrimaryKey].Kept = iNameID
-      tNames[snPrimaryKey][iNameID] = MatchType(defTable,tData[3],3)
+      tNames[snPrimaryKey][iNameID] = MatchType(defTable,arLine[3],3)
     else
       return StatusLog(false,"InsertRecord: No settings for table "..sTable)
     end
@@ -2278,7 +2211,11 @@ function CacheQueryPiece(sModel)
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryPiece: Model >> Pool <"..stringToFileName(sModel)..">")
       tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Kept = 0
-      local Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
+      local Q = SQLFetchSelect("CacheQueryPiece", sModel)
+      if(not Q) then
+        Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
+        Print(SQLStoreSelect("CacheQueryPiece",Q), "CacheQueryPiece: SQLStoreSelect")
+      end
       if(not IsExistent(Q)) then
         return StatusLog(nil,"CacheQueryPiece: Build error <"..SQLBuildError()..">") end
       local qData = sqlQuery(Q)
@@ -2290,6 +2227,7 @@ function CacheQueryPiece(sModel)
       stPiece.Slot = sModel
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
+      stPiece.Unit = qData[1][defTable[8][1]]
       local qRec, qRez
       while(qData[stPiece.Kept]) do
         qRec = qData[stPiece.Kept]
@@ -2337,7 +2275,11 @@ function CacheQueryAdditions(sModel)
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryAdditions: Model >> Pool <"..stringToFileName(sModel)..">")
       tCache[sModel] = {}; stAddition = tCache[sModel]; stAddition.Kept = 0
-      local Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
+      local Q = SQLFetchSelect("CacheQueryAdditions", sModel)
+      if(not Q) then
+        Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
+        Print(SQLStoreSelect("CacheQueryAdditions",Q), "CacheQueryAdditions: SQLStoreSelect")
+      end
       if(not IsExistent(Q)) then
         return StatusLog(nil,"CacheQueryAdditions: Build error <"..SQLBuildError()..">") end
       local qData = sqlQuery(Q)
@@ -2665,8 +2607,7 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
         return StatusLog(false,"StoreExternalDatabase: Cannot sort cache data") end
       local iInd iNdex = 1, 1
       while(tSorted[iNdex]) do
-        iInd  = 1
-        tData = tCache[tSorted[iNdex].Key]
+        iInd, tData  = 1, tCache[tSorted[iNdex].Key]
         if    (sMethod == "DSV") then sData = defTable.Name..sDelim
         elseif(sMethod == "INS") then sData = "  asmlib.InsertRecord(\""..sTable.."\", {" end
         sData = sData..MatchType(defTable,tSorted[iNdex].Key,1,true,"\"")..sDelim..
@@ -2677,7 +2618,8 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
           sTemp = sData..MatchType(defTable,iInd,4,true,"\"")..sDelim..
                         "\""..(IsEqualPOA(tData.Offs[iInd].P,tData.Offs[iInd].O) and "" or StringPOA(tData.Offs[iInd].P,"V")).."\""..sDelim..
                         "\""..  StringPOA(tData.Offs[iInd].O,"V").."\""..sDelim..
-                        "\""..( IsZeroPOA(tData.Offs[iInd].A,"A") and "" or StringPOA(tData.Offs[iInd].A,"A")).."\""
+                        "\""..( IsZeroPOA(tData.Offs[iInd].A,"A") and "" or StringPOA(tData.Offs[iInd].A,"A")).."\""..sDelim..
+                        "\""..(tData.Unit and tData.Unit or "").."\""
           if    (sMethod == "DSV") then sTemp = sTemp.."\n"
           elseif(sMethod == "INS") then sTemp = sTemp.."})\n" end
           F:Write(sTemp)
@@ -3149,7 +3091,10 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local stPiece = CacheQueryPiece(sModel)
   if(not IsExistent(stPiece)) then -- Not present in the database
     return StatusLog(nil,"MakePiece: Record missing for <"..sModel..">") end
-  local ePiece = entsCreate("prop_physics")
+  local bcUnit = (IsString(stPiece.Unit) and
+    (stPiece.Unit ~= "NULL") and not IsEmptyString(stPiece.Unit))
+  LogInstance("MakePiece: Unit("..tostring(bcUnit)..") <"..tostring(stPiece.Unit)..">")
+  local ePiece = bcUnit and entsCreate(stPiece.Unit) or entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(nil,"MakePiece: Piece <"..tostring(ePiece).."> invalid") end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)

@@ -951,13 +951,13 @@ function TOOL.BuildCPanel(CPanel)
         pFolders[Typ] = pItem
       end -- Reset the primary tree node pointer
       if(pFolders[Typ]) then pItem = pFolders[Typ] else pItem = pTree end
-      -- Register the subtype if definition functional is given
-      if(catTypes[Typ]) then -- There is a subtype definition
+      -- Register the category if definition functional is given
+      if(catTypes[Typ]) then -- There is a category definition
         if(not pCategory[Typ]) then pCategory[Typ] = {} end
-        local nmCat = catTypes[Typ](Mod)
+        local nmCat, mnNam = catTypes[Typ](Mod)
         local pnCat = pCategory[Typ][nmCat]
         if(not pnCat) then
-          if(not asmlib.IsEmptyString(nmCat)) then -- No subtype folder made already
+          if(not asmlib.IsEmptyString(nmCat)) then -- No category folder made already
             pItem = pItem:AddNode(nmCat) -- The item pointer will refer to the new directory
             pItem:SetName(nmCat)
             pItem.Icon:SetImage("icon16/folder.png")
@@ -968,7 +968,8 @@ function TOOL.BuildCPanel(CPanel)
             pCategory[Typ][nmCat] = pItem
           end
         else pItem = pnCat end
-      end
+        if(mnNam and mnNam ~= "") then Nam = mnNam end
+      end -- Custom name to override via category
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode:SetName(Nam)
