@@ -261,8 +261,7 @@ function LogInstance(anyStuff)
   end -- Should the current log being skipped
   logStats = GetOpVar("LOG_ONLY")
   if(logStats and logStats[1]) then
-    local iNdex = 1
-    local logMe = false
+    local iNdex, logMe = 1, false
     while(logStats[iNdex]) do
       if(stringFind(anyStuff,tostring(logStats[iNdex]))) then logMe = true end; iNdex = iNdex + 1 end
     if(not logMe) then return end
@@ -294,37 +293,25 @@ end
 function Print(tT,sS)
   if(not IsExistent(tT)) then
     return StatusLog(nil,"Print: {nil, name="..tostring(sS or "\"Data\"").."}") end
-  local S = type(sS)
-  local T = type(tT)
-  local Key = ""
+  local S, T, Key = type(sS), type(tT), ""
   if    (S == "string") then S = sS
   elseif(S == "number") then S = tostring(sS)
   else                       S = "Data" end
   if(T ~= "table") then
-    LogInstance("{"..T.."}["..tostring(sS or "N/A").."] = "..tostring(tT))
-    return
-  end
+    LogInstance("{"..T.."}["..tostring(sS or "N/A").."] = "..tostring(tT)); return end
   T = tT
   if(next(T) == nil) then
-    LogInstance(S.." = {}")
-    return
-  end
+    LogInstance(S.." = {}"); return end
   LogInstance(S)
   for k,v in pairs(T) do
     if(type(k) == "string") then
       Key = S.."[\""..k.."\"]"
-    else
-      Key = S.."["..tostring(k).."]"
-    end
+    else Key = S.."["..tostring(k).."]" end
     if(type(v) ~= "table") then
       if(type(v) == "string") then
         LogInstance(Key.." = \""..v.."\"")
-      else
-        LogInstance(Key.." = "..tostring(v))
-      end
-    else
-      Print(v,Key)
-    end
+      else LogInstance(Key.." = "..tostring(v)) end
+    else Print(v,Key) end
   end
 end
 
@@ -1415,13 +1402,6 @@ end
 
 ------------- VARIABLE INTERFACES --------------
 
-local function SQLBuildError(anyError)
-  if(not IsExistent(anyError)) then
-    return GetOpVar("SQL_BUILD_ERR") or "" end
-  SetOpVar("SQL_BUILD_ERR", tostring(anyError))
-  return nil -- Nothing assembled
-end
-
 function SettingsModelToName(sMode, gCut, gSub, gApp)
   if(not IsString(sMode)) then
     return StatusLog(false,"SettingsModelToName: Mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
@@ -1435,9 +1415,7 @@ function SettingsModelToName(sMode, gCut, gSub, gApp)
     SetOpVar("TABLE_GCUT_MODEL",{})
     SetOpVar("TABLE_GSUB_MODEL",{})
     SetOpVar("TABLE_GAPP_MODEL",{})
-  else
-    return StatusLog(false,"SettingsModelToName: Wrong mode name "..sMode)
-  end
+  else return StatusLog(false,"SettingsModelToName: Wrong mode name "..sMode) end
 end
 
 function DefaultType(anyType,fooCateg)
@@ -1447,8 +1425,7 @@ function DefaultType(anyType,fooCateg)
   if(type(fooCateg) == "function") then
     local Categ = GetOpVar("TABLE_CATEGORIES")
           Categ[anyType] = fooCateg
-  end
-  SetOpVar("DEFAULT_TYPE",tostring(anyType))
+  end; SetOpVar("DEFAULT_TYPE",tostring(anyType))
 end
 
 function DefaultTable(anyTable)
@@ -1473,8 +1450,7 @@ function PrintNotifyPly(pPly,sText,sNotifType)
   if(SERVER) then -- Send notification to client that something happened
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
     pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
-  end
-  return StatusLog(true,"PrintNotifyPly: Success")
+  end; return StatusLog(true,"PrintNotifyPly: Success")
 end
 
 function UndoCratePly(anyMessage)
@@ -1486,8 +1462,7 @@ end
 function UndoAddEntityPly(oEnt)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(false,"UndoAddEntityPly: Entity invalid") end
-  undoAddEntity(oEnt)
-  return true
+  undoAddEntity(oEnt); return true
 end
 
 function UndoFinishPly(pPly,anyMessage)
@@ -1611,12 +1586,12 @@ end
 
 local function SQLBuildCreate(defTable)
   if(not defTable) then
-    return SQLBuildError("SQLBuildCreate: Missing table definition") end
+    return StatusLog(nil, "SQLBuildCreate: Missing table definition") end
   local indTable = defTable.Index
   if(not defTable[1]) then
-    return SQLBuildError("SQLBuildCreate: Missing table definition is empty for "..defTable.Name) end
+    return StatusLog(nil, "SQLBuildCreate: Missing table definition is empty for "..defTable.Name) end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return SQLBuildError("SQLBuildCreate: Missing table "..defTable.Name.." field definitions") end
+    return StatusLog(nil, "SQLBuildCreate: Missing table "..defTable.Name.." field definitions") end
   local Command, iInd = {}, 1
   Command.Drop   = "DROP TABLE "..defTable.Name..";"
   Command.Delete = "DELETE FROM "..defTable.Name..";"
@@ -1624,10 +1599,10 @@ local function SQLBuildCreate(defTable)
   while(defTable[iInd]) do
     local v = defTable[iInd]
     if(not v[1]) then
-      return SQLBuildError("SQLBuildCreate: Missing Table "..defTable.Name
+      return StatusLog(nil, "SQLBuildCreate: Missing Table "..defTable.Name
                           .."'s field #"..tostring(iInd)) end
     if(not v[2]) then
-      return SQLBuildError("SQLBuildCreate: Missing Table "..defTable.Name
+      return StatusLog(nil, "SQLBuildCreate: Missing Table "..defTable.Name
                                   .."'s field type #"..tostring(iInd)) end
     Command.Create = Command.Create..stringUpper(v[1]).." "..stringUpper(v[2])
     if(defTable[iInd+1]) then Command.Create = Command.Create ..", " end
@@ -1645,7 +1620,7 @@ local function SQLBuildCreate(defTable)
     while(indTable[iInd]) do
       local vI = indTable[iInd]
       if(type(vI) ~= "table") then
-        return SQLBuildError("SQLBuildCreate: Index creator mismatch on "
+        return StatusLog(nil, "SQLBuildCreate: Index creator mismatch on "
           ..defTable.Name.." value "..vI.." is not a table for index ["..tostring(iInd).."]") end
       local FieldsU = ""
       local FieldsC = ""
@@ -1654,11 +1629,11 @@ local function SQLBuildCreate(defTable)
       while(vI[iCnt]) do
         local vF = vI[iCnt]
         if(type(vF) ~= "number") then
-          return SQLBuildError("SQLBuildCreate: Index creator mismatch on "
+          return StatusLog(nil, "SQLBuildCreate: Index creator mismatch on "
             ..defTable.Name.." value "..vF.." is not a number for index ["
             ..tostring(iInd).."]["..tostring(iCnt).."]") end
         if(not defTable[vF]) then
-          return SQLBuildError("SQLBuildCreate: Index creator mismatch on "
+          return StatusLog(nil, "SQLBuildCreate: Index creator mismatch on "
             ..defTable.Name..". The table does not have field index #"
             ..vF..", max is #"..Table.Size) end
         FieldsU = FieldsU.."_" ..stringUpper(defTable[vF][1])
@@ -1669,66 +1644,63 @@ local function SQLBuildCreate(defTable)
       Command.Index[iInd] = Command.Index[iInd]..FieldsU.." ON "..defTable.Name.." ( "..FieldsC.." );"
       iInd = iInd + 1
     end
-  end
-  SQLBuildError("")
-  return Command
+  end; return Command
 end
 
-function SQLFetchSelect(sHash,...)
-  local tStore, tVal, sQ = GetOpVar("QUERY_STORE"), {...}, ""
-  if(tStore[sHash]) then
-    tStore = tStore[sHash]
-    iCnt   = #tStore
-    for ID = 1, (iCnt - 1) do
-      if(not tVal[ID]) then
-        return StatusLog(nil, "SQLFetchSelect: Not enough <"..tostring(sHash).."> values ["..tostring(ID).."]") end
-      sQ = sQ..tStore[ID]..tostring(tVal[ID])
-    end; return sQ..tStore[iCnt]
-  else return StatusLog(nil, "SQLFetchSelect: Storage missing for <"..sHash..">") end
+local function SQLFetchSelect(sHash,...)
+  local tStore, nCnt = GetOpVar("QUERY_STORE"), #{...}
+  if(not tStore[sHash]) then
+    return StatusLog(nil, "SQLFetchSelect: Storage missing for <"..sHash..">") end
+  tStore = tStore[sHash]
+  if(tStore.Cnt ~= nCnt) then
+    return StatusLog(nil, "SQLFetchSelect: Fetched <"..sHash.."> with #"
+      ..tostring(nCnt).." requires #"..tostring(tStore.Cnt)) end
+  return stringFormat(tStore.Stmt,...)
 end
 
-function SQLStoreSelect(sHash,sQuery)
+local function SQLStoreSelect(sHash,sQuery)
   if(not sHash) then
     return StatusLog(nil, "SQLStoreSelect: Store hash missing") end
   if(not sQuery) then
     return StatusLog(nil, "SQLStoreSelect: Store query missing") end
   local tStore, sB, sQ, sV = GetOpVar("QUERY_STORE"), " = ", ""
-        tStore[sHash]  = stringExplode(sB,sQuery); tStore = tStore[sHash]
-  for ID = 2, #tStore do
-    tStore[ID-1], sV = tStore[ID-1]..sB, tStore[ID]
-    if(stringSub(sV,1,1) == "'") then
-      tStore[ID-1] = tStore[ID-1].."'"
-      local nE = stringFind(sV,"'",2)
-      if(not nE) then
+  if(not tStore[sHash]) then tStore[sHash] = {Cnt = 0, Stmt = ""} end tStore = tStore[sHash]
+  local tBoom = stringExplode(sB, sQuery); tStore.Stmt = tBoom[1]
+  for ID = 2, #tBoom do tStore.Cnt = tStore.Cnt + 1
+    local sV = tBoom[ID]
+    local nS = stringFind(sV,"%s")
+    local sC = stringSub(sV,1,1)
+    if(sC == "'") then
+      if(stringSub(sV,nS-1,nS-1) ~= "'") then
         return StatusLog(nil, "SQLStoreSelect: Value quote mismatch ["..ID.."]<"..sV..">") end
-      tStore[ID] = stringSub(sV,nE,-1)
+      tStore.Stmt = tStore.Stmt..sB..sC.."%s"..stringSub(sV,nS-1,-1)
     else
-      local nE = stringFind(sV,"%s",1)
-      if(not nE) then
+      if(not nS) then
         return StatusLog(nil, "SQLStoreSelect: Value space mismatch ["..ID.."]<"..sV..">") end
-      tStore[ID] = stringSub(sV,nE,-1)
+      tStore.Stmt = tStore.Stmt..sB.."%d"..stringSub(sV,nS,-1)
     end
   end; return tStore
 end
 
 local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   if(not defTable) then
-    return SQLBuildError("SQLBuildSelect: Missing table definition") end
+    return StatusLog(nil, "SQLBuildSelect: Missing table definition") end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return SQLBuildError("SQLBuildSelect: Missing table "..defTable.Name.." field definitions") end
+    return StatusLog(nil, "SQLBuildSelect: Missing table "..defTable.Name.." field definitions") end
   local Command, Cnt = "SELECT ", 1
   if(tFields) then
     while(tFields[Cnt]) do
       local v = tonumber(tFields[Cnt])
       if(not IsExistent(v)) then
-        return SQLBuildError("SQLBuildSelect: Select index NAN {"
+        return StatusLog(nil, "SQLBuildSelect: Index NAN {"
              ..type(tFields[Cnt]).."}<"..tostring(tFields[Cnt])
              .."> type mismatch in "..defTable.Name) end
-      if(defTable[v]) then
-        if(defTable[v][1]) then Command = Command..defTable[v][1]
-        else return SQLBuildError("SQLBuildSelect: Select no such field name by index #"
+      if(not defTable[v]) then
+        return StatusLog(nil, "SQLBuildSelect: Missing field by index #"
           ..v.." in the table "..defTable.Name) end
-      end
+      if(defTable[v][1]) then Command = Command..defTable[v][1]
+      else return StatusLog(nil, "SQLBuildSelect: Mising field name by index #"
+        ..v.." in the table "..defTable.Name) end
       if(tFields[Cnt+1]) then Command = Command ..", " end
       Cnt = Cnt + 1
     end
@@ -1748,12 +1720,12 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
       local v = tWhere[Cnt][2]
       local t = defTable[k][2]
       if(not (k and v and t) ) then
-        return SQLBuildError("SQLBuildSelect: Where clause inconsistent on "
+        return StatusLog(nil, "SQLBuildSelect: Where clause inconsistent on "
           ..defTable.Name.." field index, {"..tostring(k)..","..tostring(v)..","..tostring(t)
           .."} value or type in the table definition") end
       v = MatchType(defTable,v,k,true)
       if(not IsExistent(v)) then
-        return SQLBuildError("SQLBuildSelect: Data matching failed on "
+        return StatusLog(nil, "SQLBuildSelect: Data matching failed on "
           ..defTable.Name.." field index #"..Cnt.." value <"..tostring(v)..">") end
       if(Cnt == 1) then Command = Command.." WHERE "..defTable[k][1].." = "..v
       else              Command = Command.." AND "  ..defTable[k][1].." = "..v end
@@ -1762,66 +1734,49 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
   end
   if(tOrderBy and (type(tOrderBy) == "table")) then
     local Dire = ""
-    Command = Command.." ORDER BY "
-    Cnt = 1
+    Command, Cnt = Command.." ORDER BY ", 1
     while(tOrderBy[Cnt]) do
       local v = tOrderBy[Cnt]
       if(v ~= 0) then
         if(v > 0) then Dire = " ASC"
         else Dire, tOrderBy[Cnt] = " DESC", -v end
-      else return SQLBuildError("SQLBuildSelect: Order wrong for "
+      else return StatusLog(nil, "SQLBuildSelect: Order wrong for "
         ..defTable.Name .." field index #"..Cnt) end
       Command = Command..defTable[v][1]..Dire
       if(tOrderBy[Cnt+1]) then Command = Command..", " end
       Cnt = Cnt + 1
     end
-  end SQLBuildError(""); return Command..";"
+  end; return Command..";"
 end
 
 local function SQLBuildInsert(defTable,tInsert,tValues)
   if(not defTable) then
-    return SQLBuildError("SQLBuildInsert: Missing Table definition") end
+    return StatusLog(nil, "SQLBuildInsert: Missing Table definition") end
   if(not tValues) then
-    return SQLBuildError("SQLBuildInsert: Missing Table value fields") end
+    return StatusLog(nil, "SQLBuildInsert: Missing Table value fields") end
   if(not defTable[1]) then
-    return SQLBuildError("SQLBuildInsert: The table and the chosen fields must not be empty") end
+    return StatusLog(nil, "SQLBuildInsert: The table and the chosen fields must not be empty") end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return SQLBuildError("SQLBuildInsert: Missing table "..defTable.Name.." field definition") end
+    return StatusLog(nil, "SQLBuildInsert: Missing table "..defTable.Name.." field definition") end
   local tInsert = tInsert or {}
   if(not tInsert[1]) then
     local iCnt = 1
     while(defTable[iCnt]) do
-      tInsert[iCnt] = iCnt
-      iCnt = iCnt + 1
-    end
+      tInsert[iCnt] = iCnt; iCnt = iCnt + 1 end
   end
-  local iCnt = 1
-  local qVal = " VALUES ( "
+  local iCnt, qVal = 1, " VALUES ( "
   local qIns = "INSERT INTO "..defTable.Name.." ( "
-  local Val, iInd, dFld
   while(tInsert[iCnt]) do
-    iInd = tInsert[iCnt]
-    dFld = defTable[iInd]
-    if(not IsExistent(dFld)) then
-      return SQLBuildError("SQLBuildInsert: No such field #"..iInd.." on table "..defTable.Name)
-    end
-    Val = MatchType(defTable,tValues[iCnt],iInd,true)
-    if(not IsExistent(Val)) then
-      return SQLBuildError("SQLBuildInsert: Cannot match value <"..tostring(tValues[iCnt]).."> #"..iInd.." on table "..defTable.Name)
-    end
-    qIns = qIns..dFld[1]
-    qVal = qVal..Val
-    if(tInsert[iCnt+1]) then
-      qIns = qIns ..", "
-      qVal = qVal ..", "
-    else
-      qIns = qIns .." ) "
-      qVal = qVal .." );"
-    end
-    iCnt = iCnt + 1
-  end
-  SQLBuildError("")
-  return qIns..qVal
+    local iIns = tInsert[iCnt]; local sIns = defTable[iIns]
+    if(not IsExistent(sIns)) then
+      return StatusLog(nil, "SQLBuildInsert: No such field #"..iIns.." on table "..defTable.Name) end
+    local vVal = MatchType(defTable,tValues[iCnt],iIns,true)
+    if(not IsExistent(vVal)) then
+      return StatusLog(nil, "SQLBuildInsert: Cannot match value <"..tostring(tValues[iCnt]).."> #"..iInd.." on table "..defTable.Name) end
+    qIns, qVal = qIns..sIns[1], qVal..tostring(vVal)
+    if(tInsert[iCnt+1]) then qIns, qVal = qIns ..", " , qVal ..", "
+    else qIns, qVal = qIns .." ) ", qVal .." );" end; iCnt = iCnt + 1
+  end; return qIns..qVal
 end
 
 function CreateTable(sTable,defTable,bDelete,bReload)
@@ -1850,7 +1805,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   if(sModeDB == "SQL") then
     defTable.Life = tonumber(defTable.Life) or 0
     local tQ = SQLBuildCreate(defTable)
-    if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable: "..SQLBuildError()) end
+    if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable: Build statement failed") end
     if(bDelete and sqlTableExists(defTable.Name)) then
       local qRez = sqlQuery(tQ.Delete)
       if(not qRez and IsBool(qRez)) then
@@ -1929,7 +1884,7 @@ function InsertRecord(sTable,arLine)
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
     local Q = SQLBuildInsert(defTable,nil,arLine)
-    if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: Build error <"..SQLBuildError()..">") end
+    if(not IsExistent(Q)) then return StatusLog(false,"InsertRecord: Build statement failed") end
     local qRez = sqlQuery(Q)
     if(not qRez and IsBool(qRez)) then
        return StatusLog(false,"InsertRecord: Failed to insert a record because of <"
@@ -2080,21 +2035,16 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
     local sModeTM, bKillRC, bCollGB = tTimer[1], tTimer[3], tTimer[4]
     LogInstance("TimerAttach: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
-      Place[Key].Load = nNowTM
       for k, v in pairs(Place) do
-        if(IsExistent(v.Load) and IsExistent(v.Used) and  ((nNowTM - v.Used) > nLifeTM)) then
+        if(IsExistent(v.Used) and ((nNowTM - v.Used) > nLifeTM)) then
           LogInstance("TimerAttach: ("..tostring(RoundValue(nNowTM - v.Used,0.01)).." > "..tostring(nLifeTM)..") > Dead")
-          if(bKillRC) then
-            LogInstance("TimerAttach: Killed <"..tostring(k)..">")
-            Place[k] = nil
-          end
+          if(bKillRC) then -- Look for others that are gonna meet their doom
+            Place[k] = nil; LogInstance("TimerAttach: Killed <"..tostring(k)..">") end
         end
       end
       if(bCollGB) then
-        collectgarbage()
-        LogInstance("TimerAttach: Garbage collected")
-      end
-      return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."].Load = "..tostring(RoundValue(nNowTM,0.01)))
+        collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
+      return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."] @"..tostring(RoundValue(nNowTM,0.01)))
     elseif(sModeTM == "OBJ") then
       local TimerID = stringImplode(GetOpVar("OPSYM_DIVIDER"),tKeys)
       LogInstance("TimerAttach: TimID <"..TimerID..">")
@@ -2102,26 +2052,15 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
       timerCreate(TimerID, nLifeTM, 1, function()
         LogInstance("TimerAttach["..TimerID.."]("..nLifeTM..") > Dead")
         if(bKillRC) then
-          LogInstance("TimerAttach: Killed <"..Key..">")
-          Place[Key] = nil
-        end
-        timerStop(TimerID)
-        timerDestroy(TimerID)
+          Place[Key] = nil; LogInstance("TimerAttach: Killed <"..Key..">") end
+        timerStop(TimerID); timerDestroy(TimerID)
         if(bCollGB) then
-          collectgarbage()
-          LogInstance("TimerAttach: Garbage collected")
-        end
-      end)
-      timerStart(TimerID)
-      return Place[Key]
-    else
-      return StatusLog(Place[Key],"TimerAttach: Timer mode not found <"..sModeTM..">")
-    end
+          collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
+      end); timerStart(TimerID); return Place[Key]
+    else return StatusLog(Place[Key],"TimerAttach: Timer mode not found <"..sModeTM..">") end
   elseif(sModeDB == "LUA") then
     return StatusLog(Place[Key],"TimerAttach: Memory manager not available")
-  else
-    return StatusLog(nil,"TimerAttach: Wrong database mode")
-  end
+  else return StatusLog(nil,"TimerAttach: Wrong database mode") end
 end
 
 local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
@@ -2177,8 +2116,7 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
     Box.Cam = Vector(); Box.Cam:Set(Box.Eye)  -- Layout camera position
     AddVectorXYZ(Box.Cam,Box.Len*(tonumber(nCamX) or 0),0,Box.Len*(tonumber(nCamZ) or 0))
     LogInstance("CacheBoxLayout: "..tostring(Box.Cen).." # "..tostring(Box.Len))
-  end; Box.Ang[caY] = (tonumber(nRot) or 0) * Time()
-  return Box
+  end; Box.Ang[caY] = (tonumber(nRot) or 0) * Time(); return Box
 end
 
 --------------------------- PIECE QUERY -----------------------------
@@ -2211,13 +2149,13 @@ function CacheQueryPiece(sModel)
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryPiece: Model >> Pool <"..stringToFileName(sModel)..">")
       tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Kept = 0
-      local Q = SQLFetchSelect("CacheQueryPiece", sModel)
+      local Q = SQLFetchSelect("stmtPieces", sModel)
       if(not Q) then
         Q = SQLBuildSelect(defTable,nil,{{1,sModel}},{4})
-        Print(SQLStoreSelect("CacheQueryPiece",Q), "CacheQueryPiece: SQLStoreSelect")
+        if(not IsExistent(Q)) then
+          return StatusLog(nil,"CacheQueryPiece: Build statement failed") end
+        Print(SQLStoreSelect("stmtPieces", Q), "stmtPieces")
       end
-      if(not IsExistent(Q)) then
-        return StatusLog(nil,"CacheQueryPiece: Build error <"..SQLBuildError()..">") end
       local qData = sqlQuery(Q)
       if(not qData and IsBool(qData)) then
         return StatusLog(nil,"CacheQueryPiece: SQL exec error <"..sqlLastError()..">") end
@@ -2228,20 +2166,17 @@ function CacheQueryPiece(sModel)
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
       stPiece.Unit = qData[1][defTable[8][1]]
-      local qRec, qRez
       while(qData[stPiece.Kept]) do
-        qRec = qData[stPiece.Kept]
-        qRez = RegisterPOA(stPiece,
+        local qRec = qData[stPiece.Kept]
+        local qRez = RegisterPOA(stPiece,
                            stPiece.Kept,
                            qRec[defTable[5][1]],
                            qRec[defTable[6][1]],
                            qRec[defTable[7][1]])
         if(not IsExistent(qRez)) then
-          return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for <"..sModel..">")
-        end
+          return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for <"..sModel..">") end
         stPiece.Kept = stPiece.Kept + 1
-      end
-      return TimerAttach(libCache,caInd,defTable,"CacheQueryPiece")
+      end; return TimerAttach(libCache,caInd,defTable,"CacheQueryPiece")
     elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryPiece: Record not located")
     else return StatusLog(nil,"CacheQueryPiece: Wrong database mode <"..sModeDB..">") end
   end
@@ -2275,13 +2210,13 @@ function CacheQueryAdditions(sModel)
     if(sModeDB == "SQL") then
       LogInstance("CacheQueryAdditions: Model >> Pool <"..stringToFileName(sModel)..">")
       tCache[sModel] = {}; stAddition = tCache[sModel]; stAddition.Kept = 0
-      local Q = SQLFetchSelect("CacheQueryAdditions", sModel)
+      local Q = SQLFetchSelect("stmtAdditions", sModel)
       if(not Q) then
         Q = SQLBuildSelect(defTable,{2,3,4,5,6,7,8,9,10,11,12},{{1,sModel}},{4})
-        Print(SQLStoreSelect("CacheQueryAdditions",Q), "CacheQueryAdditions: SQLStoreSelect")
+        if(not IsExistent(Q)) then
+          return StatusLog(nil,"CacheQueryAdditions: Build statement failed") end
+        Print(SQLStoreSelect("stmtAdditions", Q), "stmtAdditions")
       end
-      if(not IsExistent(Q)) then
-        return StatusLog(nil,"CacheQueryAdditions: Build error <"..SQLBuildError()..">") end
       local qData = sqlQuery(Q)
       if(not qData and IsBool(qData)) then
         return StatusLog(nil,"CacheQueryAdditions: SQL exec error <"..sqlLastError()..">") end
@@ -2328,7 +2263,7 @@ function CacheQueryPanel()
     if(sModeDB == "SQL") then
       local Q = SQLBuildSelect(defTable,{1,2,3},{{4,1}},{2,3})
       if(not IsExistent(Q)) then
-        return StatusLog(nil,"CacheQueryPanel: Build error: <"..SQLBuildError()..">") end
+        return StatusLog(nil,"CacheQueryPanel: Build statement failed") end
       local qData = sqlQuery(Q)
       if(not qData and IsBool(qData)) then
         return StatusLog(nil,"CacheQueryPanel: SQL exec error <"..sqlLastError()..">") end
@@ -2397,21 +2332,23 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         arNames[sType] = {}; stName = arNames[sType]; stName.Kept = 0
-        local Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
-        if(not IsExistent(Q)) then
-          return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build error: <"..SQLBuildError()..">") end
+        local Q = SQLFetchSelect("stmtPropertyNames", sType)
+        if(not Q) then
+          Q = SQLBuildSelect(defTable,{3},{{1,sType}},{2})
+          if(not IsExistent(Q)) then
+            return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build statement failed") end
+          Print(SQLStoreSelect("stmtPropertyNames", Q), "stmtPropertyNames")
+        end
         local qData = sqlQuery(Q)
         if(not qData and IsBool(qData)) then
           return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found <"..Q..">") end
-        stName.Kept = 1
-        stName.Slot = sType
+        stName.Kept, stName.Slot = 1, sType
         while(qData[stName.Kept]) do
           stName[stName.Kept] = qData[stName.Kept][defTable[3][1]]
           stName.Kept = stName.Kept + 1
-        end
-        LogInstance("CacheQueryProperty["..sType.."]: Names >> Pool")
+        end; LogInstance("CacheQueryProperty["..sType.."]: Names >> Pool")
         return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Record not located")
       else return StatusLog(nil,"CacheQueryProperty["..sType.."]: Wrong database mode <"..sModeDB..">") end
@@ -2429,9 +2366,13 @@ function CacheQueryProperty(sType)
     else
       if(sModeDB == "SQL") then
         tCache[keyType] = {}; stType = tCache[keyType]; stType.Kept = 0
-        local Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
-        if(not IsExistent(Q)) then
-          return StatusLog(nil,"CacheQueryProperty: Build error: <"..SQLBuildError()..">") end
+        local Q = SQLFetchSelect("stmtPropertyTypes", 1)
+        if(not Q) then
+          Q = SQLBuildSelect(defTable,{1},{{2,1}},{1})
+          if(not IsExistent(Q)) then
+            return StatusLog(nil,"CacheQueryProperty: Build statement failed") end
+          Print(SQLStoreSelect("stmtPropertyTypes", Q), "stmtPropertyTypes")
+        end
         local qData = sqlQuery(Q)
         if(not qData and IsBool(qData)) then
           return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
@@ -2568,7 +2509,7 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
     elseif(sTable == "ADDITIONS"     ) then Q = SQLBuildSelect(defTable,nil,nil,{1,4})
     elseif(sTable == "PHYSPROPERTIES") then Q = SQLBuildSelect(defTable,nil,nil,{1,2})
     else                                    Q = SQLBuildSelect(defTable,nil,nil,nil) end
-    if(not IsExistent(Q)) then return StatusLog(false,"StoreExternalDatabase: Build error <"..SQLBuildError()..">") end
+    if(not IsExistent(Q)) then return StatusLog(false,"StoreExternalDatabase: Build statement failed") end
     F:Write("# Query ran: <"..Q..">\n")
     local qData = sqlQuery(Q)
     if(not qData and IsBool(qData)) then

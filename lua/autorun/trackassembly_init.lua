@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.316")
+asmlib.SetOpVar("TOOL_VERSION","5.317")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -628,7 +628,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
  * Disabling A     - The ID angle is treated as {0,0,0}
  * Disabling Type  - Makes it use the value of DefaultType()
  * Disabling Name  - Makes it generate it using the model via ModelToName()
- * Disabling Class - Makes it usethe default prop_dynamic
+ * Disabling Class - Makes it use the default /prop_physics/
  * Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
  * First  argument of DefaultTable() is used to provide default table name for InsertRecord()
  * Second argument of DefaultTable() is used to generate track categories for the processed addon

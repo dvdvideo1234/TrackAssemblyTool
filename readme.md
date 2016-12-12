@@ -351,8 +351,15 @@ A: You can choose a memory management algorithm by setting trackassembly_timermo
      Used: When server has enough memory for the timers OR
            the record has to be deleted at the exact moment the life passes.
 
-Q: Does this script stores the created queries for later use. Can I disable/enable this option ?
-A: Yes you can. Just set the trackassembly_enqstore to 0/<>0 respectively.
+Q: Does this script stores the created queries for later use ?
+A: Yes. That way it performs faster statements generation with very little memory consumed.
+   Statement storage is based on caller name ( Good example is "CacheQueryPiece" ) where
+   the program tries to retrieve the generated query, without going trough the troble to
+   concatenate all fields. This job is alredy stored in a table and if a request arrives,
+   the statement is generated with liner complexity proportional to the items in the where
+   clause ( For the most expensive function "CacheQueryPiece", the request is done using
+   the model, so this table has two sequantial statements divided/exploded on the model
+   provided "SQLFetchSelect(<statement_hash>, <where_clause_data>)" )
 
 Q: Hey, there is a textbox and a dropdown menu next to the "ExportDB" button. What are these for ?
 A: Well, when a server owners set the "trackassembly_maxfruse" to a higher value, a slider appears.
