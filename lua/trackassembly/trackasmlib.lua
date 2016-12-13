@@ -952,13 +952,13 @@ function GetFrequentModels(snCount)
   local iInd, tmNow = 1, Time()
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
   tableEmpty(frUsed)
-  for Model, Record in pairs(tCache) do
-    if(IsExistent(Record.Used) and IsExistent(Record.Kept) and Record.Kept > 0) then
-      iInd = PushSortValues(frUsed,snCount,tmNow-Record.Used,{
-               [defTable[1][1]] = Model,
-               [defTable[2][1]] = Record.Type,
-               [defTable[3][1]] = Record.Name,
-               [defTable[4][1]] = Record.Kept
+  for mod, rec in pairs(tCache) do
+    if(IsExistent(rec.Used) and IsExistent(rec.Kept) and rec.Kept > 0) then
+      iInd = PushSortValues(frUsed,snCount,tmNow-rec.Used,{
+               [defTable[1][1]] = mod,
+               [defTable[2][1]] = rec.Type,
+               [defTable[3][1]] = rec.Name,
+               [defTable[4][1]] = rec.Kept
              })
       if(iInd < 1) then return StatusLog(nil,"GetFrequentModels: Array index out of border") end
     end
@@ -2598,12 +2598,10 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
       local tNames = tCache[GetOpVar("HASH_PROPERTY_NAMES")]
       if(not (tTypes or tNames)) then
         return StatusLog(false,"StoreExternalDatabase: No data found") end
-      local tType
       local iInd , iCnt  = 1 , 1
-      local sType, sName = "", ""
       while(tTypes[iInd]) do
-        sType = tTypes[iInd]
-        tType = tNames[sType]
+        local sType = tTypes[iInd]
+        local tType = tNames[sType]
         if(not tType) then return
           StatusLog(false,"StoreExternalDatabase: Missing index #"..iInd.." on type <"..sType..">") end
         if    (sMethod == "DSV") then sData = defTable.Name..sDelim
@@ -2615,15 +2613,11 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
                          MatchType(defTable,tType[iCnt],3,true,"\"")
           if    (sMethod == "DSV") then sTemp = sTemp.."\n"
           elseif(sMethod == "INS") then sTemp = sTemp.."})\n" end
-          F:Write(sTemp)
-          iCnt = iCnt + 1
-        end
-        iInd = iInd + 1
+          F:Write(sTemp); iCnt = iCnt + 1
+        end; iInd = iInd + 1
       end
     end
-  end
-  F:Flush()
-  F:Close()
+  end; F:Flush(); F:Close()
 end
 
 ----------------------------- SNAPPING ------------------------------
@@ -2651,10 +2645,8 @@ function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
   else -- Get only the player yaw, pitch and roll are not needed
     local nYSnap = tonumber(nYSnap) or 0
     if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
-      aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap)
-    end
-  end
-  return aAng
+      aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap) end
+  end; return aAng
 end
 
 --[[
@@ -2829,106 +2821,78 @@ end
 function AttachAdditions(ePiece)
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"AttachAdditions: Piece invalid") end
-  local LocalAng = ePiece:GetAngles()
-  local LocalPos = ePiece:GetPos()
-  local LocalMod = ePiece:GetModel()
-  local stAddition = CacheQueryAdditions(LocalMod)
+  local aAngLoc = ePiece:GetAngles()
+  local vPosLoc = ePiece:GetPos()
+  local sModLoc = ePiece:GetModel()
+  local stAddition = CacheQueryAdditions(sModLoc)
   if(not IsExistent(stAddition)) then
-    return StatusLog(true,"AttachAdditions: Model <"..LocalMod.."> has no additions") end
-  LogInstance("AttachAdditions: Called for model <"..LocalMod..">")
-  local Cnt = 1
-  local defTable = GetOpVar("DEFTABLE_ADDITIONS")
+    return StatusLog(true,"AttachAdditions: Model <"..sModLoc.."> has no additions") end
+  LogInstance("AttachAdditions: Called for model <"..sModLoc..">")
+  local Cnt, defTable = 1, GetOpVar("DEFTABLE_ADDITIONS")
   while(stAddition[Cnt]) do
-    local Record = stAddition[Cnt]
-    LogInstance("\n\nEnt [ "..Record[defTable[4][1]].." ] INFO : ")
-    local Addition = entsCreate(Record[defTable[3][1]])
-    if(Addition and Addition:IsValid()) then
-      LogInstance("Addition Class: "..Record[defTable[3][1]])
-      if(fileExists(Record[defTable[2][1]], "GAME")) then
-        Addition:SetModel(Record[defTable[2][1]])
-        LogInstance("Addition:SetModel("..Record[defTable[2][1]]..")")
-      else return StatusLog(false,"AttachAdditions: No such attachment model "..Record[defTable[2][1]]) end
-      local OffPos = Record[defTable[5][1]]
+    local arRec = stAddition[Cnt]
+    LogInstance("\n\nEnt [ "..arRec[defTable[4][1]].." ] INFO : ")
+    local eAddition = entsCreate(arRec[defTable[3][1]])
+    if(eAddition and eAddition:IsValid()) then
+      LogInstance("Addition Class: "..arRec[defTable[3][1]])
+      local AdModel = tostring(arRec[defTable[2][1]])
+      if(fileExists(AdModel, "GAME")) then
+        eAddition:SetModel(AdModel) LogInstance("Addition:SetModel("..AdModel..")")
+      else return StatusLog(false,"AttachAdditions: No such attachment model "..AdModel) end
+      local OffPos = arRec[defTable[5][1]]
       if(not IsString(OffPos)) then
         return StatusLog(false,"AttachAdditions: Position {"..type(OffPos).."}<"..tostring(OffPos).."> not string") end
       if(OffPos and OffPos ~= "" and OffPos ~= "NULL") then
-        local AdditionPos = Vector()
-        local arConv = DecodePOA(OffPos)
+        local vAddPos, arConv = Vector(), DecodePOA(OffPos)
         arConv[1] = arConv[1] * arConv[4]
         arConv[2] = arConv[2] * arConv[5]
         arConv[3] = arConv[3] * arConv[6]
-        AdditionPos:Set(LocalPos)
-        AdditionPos:Add(arConv[1] * LocalAng:Forward())
-        AdditionPos:Add(arConv[2] * LocalAng:Right())
-        AdditionPos:Add(arConv[3] * LocalAng:Up())
-        Addition:SetPos(AdditionPos)
-        LogInstance("Addition:SetPos(AdditionPos)")
-      else
-        Addition:SetPos(LocalPos)
-        LogInstance("Addition:SetPos(LocalPos)")
-      end
-      local OffAng = Record[defTable[6][1]]
+        vAddPos:Set(vPosLoc)
+        vAddPos:Add(arConv[1] * aAngLoc:Forward())
+        vAddPos:Add(arConv[2] * aAngLoc:Right())
+        vAddPos:Add(arConv[3] * aAngLoc:Up())
+        eAddition:SetPos(vAddPos); LogInstance("Addition:SetPos(Param)")
+      else eAddition:SetPos(vPosLoc); LogInstance("Addition:SetPos(Local)") end
+      local OffAng = arRec[defTable[6][1]]
       if(not IsString(OffAng)) then
         return StatusLog(false,"AttachAdditions: Angle {"..type(OffAng).."}<"..tostring(OffAng).."> not string") end
       if(OffAng and OffAng ~= "" and OffAng ~= "NULL") then
-        local AdditionAng = Angle()
-        local arConv = DecodePOA(OffAng)
-        AdditionAng[caP] = arConv[1] * arConv[4] + LocalAng[caP]
-        AdditionAng[caY] = arConv[2] * arConv[5] + LocalAng[caY]
-        AdditionAng[caR] = arConv[3] * arConv[6] + LocalAng[caR]
-        Addition:SetAngles(AdditionAng)
-        LogInstance("Addition:SetAngles(AdditionAng)")
-      else
-        Addition:SetAngles(LocalAng)
-        LogInstance("Addition:SetAngles(LocalAng)")
-      end
-      local MoveType = (tonumber(Record[defTable[7][1]]) or -1)
-      if(MoveType >= 0) then
-        Addition:SetMoveType(MoveType)
-        LogInstance("Addition:SetMoveType("..MoveType..")")
-      end
-      local PhysInit = (tonumber(Record[defTable[8][1]]) or -1)
-      if(PhysInit >= 0) then
-        Addition:PhysicsInit(PhysInit)
-        LogInstance("Addition:PhysicsInit("..PhysInit..")")
-      end
-      if((tonumber(Record[defTable[9][1]]) or -1) >= 0) then
-        Addition:DrawShadow(false)
-        LogInstance("Addition:DrawShadow(false)")
-      end
-      Addition:SetParent( ePiece )
-      LogInstance("Addition:SetParent(ePiece)")
-      Addition:Spawn()
-      LogInstance("Addition:Spawn()")
-      phAddition = Addition:GetPhysicsObject()
+        local aAddAng, arConv = Angle(), DecodePOA(OffAng)
+        aAddAng[caP] = arConv[1] * arConv[4] + aAngLoc[caP]
+        aAddAng[caY] = arConv[2] * arConv[5] + aAngLoc[caY]
+        aAddAng[caR] = arConv[3] * arConv[6] + aAngLoc[caR]
+        eAddition:SetAngles(aAddAng); LogInstance("Addition:SetAngles(Param)")
+      else eAddition:SetAngles(aAngLoc); LogInstance("Addition:SetAngles(Local)") end
+      local MoveType = (tonumber(arRec[defTable[7][1]]) or -1)
+      if(MoveType >= 0) then eAddition:SetMoveType(MoveType)
+        LogInstance("Addition:SetMoveType("..MoveType..")") end
+      local PhysInit = (tonumber(arRec[defTable[8][1]]) or -1)
+      if(PhysInit >= 0) then eAddition:PhysicsInit(PhysInit)
+        LogInstance("Addition:PhysicsInit("..PhysInit..")") end
+      local DrShadow = ((tonumber(arRec[defTable[9][1]]) or -1) >= 0)
+      eAddition:DrawShadow(DrShadow); LogInstance("Addition:DrawShadow("..tostring(DrShadow)..")")
+      eAddition:SetParent(ePiece); LogInstance("Addition:SetParent(ePiece)")
+      eAddition:Spawn(); LogInstance("Addition:Spawn()")
+      phAddition = eAddition:GetPhysicsObject()
       if(phAddition and phAddition:IsValid()) then
-        if((tonumber(Record[defTable[10][1]]) or -1) >= 0) then
-          phAddition:EnableMotion(false)
-          LogInstance("phAddition:EnableMotion(false)")
-        end
-        if((tonumber(Record[defTable[11][1]]) or -1) >= 0) then
-          phAddition:Sleep()
-          LogInstance("phAddition:Sleep()")
-        end
+        local EnMotion = (tonumber(arRec[defTable[10][1]]) or 0)
+        if(EnMotion ~= 0) then EnMotion = (EnMotion > 0); phAddition:EnableMotion(EnMotion)
+          LogInstance("phAddition:EnableMotion("..tostring(EnMotion)..")") end
+        local EnSleep = (tonumber(arRec[defTable[11][1]]) or 0)
+        if(EnSleep > 0) then phAddition:Sleep(); LogInstance("phAddition:Sleep()") end
       end
-      Addition:Activate()
-      LogInstance("Addition:Activate()")
-      ePiece:DeleteOnRemove(Addition)
-      LogInstance("ePiece:DeleteOnRemove(Addition)")
-      local Solid = (tonumber(Record[defTable[12][1]]) or -1)
-      if(Solid >= 0) then
-        Addition:SetSolid(Solid)
-        LogInstance("Addition:SetSolid("..Solid..")")
-      end
+      eAddition:Activate(); LogInstance("Addition:Activate()")
+      ePiece:DeleteOnRemove(eAddition); LogInstance("ePiece:DeleteOnRemove(Addition)")
+      local Solid = (tonumber(arRec[defTable[12][1]]) or -1)
+      if(Solid >= 0) then eAddition:SetSolid(Solid)
+        LogInstance("Addition:SetSolid("..tostring(Solid)..")") end
     else
       return StatusLog(false,"Failed to allocate Addition #"..Cnt.." memory:"
           .."\n     Modelbse: "..stAddition[Cnt][defTable[1][1]]
           .."\n     Addition: "..stAddition[Cnt][defTable[2][1]]
           .."\n     ENTclass: "..stAddition[Cnt][defTable[3][1]])
-    end
-    Cnt = Cnt + 1
-  end
-  return StatusLog(true,"AttachAdditions: Success")
+    end; Cnt = Cnt + 1
+  end; return StatusLog(true,"AttachAdditions: Success")
 end
 
 local function GetEntityOrTrace(oEnt)
@@ -2995,8 +2959,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
     LogInstance("ePiece:SetBodygroup("..tostring(itrBG.id)..","..tostring(itrID)..") ["..tostring(maxID).."]")
     ePiece:SetBodygroup(itrBG.id,itrID)
     iCnt = iCnt + 1
-  end
-  return StatusLog(true,"AttachBodyGroups: Success")
+  end; return StatusLog(true,"AttachBodyGroups: Success")
 end
 
 function SetPosBound(ePiece,vPos,oPly,sMode)
@@ -3016,8 +2979,7 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
       PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
     return StatusLog(false,"SetPosBound("..sMode.."): Position ["..tostring(vPos).."] out of map bounds")
-  end
-  return StatusLog(true,"SetPosBound("..sMode.."): Success")
+  end; return StatusLog(true,"SetPosBound("..sMode.."): Success")
 end
 
 function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
@@ -3070,9 +3032,7 @@ end
 
 function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   if(CLIENT) then return StatusLog(true,"ApplyPhysicalAnchor: Working on client") end
-  local bWe = tobool(bWe) or false
-  local bNc = tobool(bNc) or false
-  local nFm = tonumber(nFm) or 0
+  local bWe, bNc, nFm = (tobool(bWe) or false), (tobool(bNc) or false), (tonumber(nFm) or 0)
   LogInstance("ApplyPhysicalAnchor: {"..tostring(nWe)..","..tostring(bNc)..","..tostring(nFm).."}")
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalAnchor: Piece <"..tostring(ePiece).."> not valid") end
@@ -3089,16 +3049,13 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
     if(cnW and cnW:IsValid()) then
       ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
     else LogInstance("ApplyPhysicalAnchor: Weld ignored "..tostring(cnW)) end
-  end
-  return StatusLog(true,"ApplyPhysicalAnchor: Success")
+  end; return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end
 
 function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   if(CLIENT) then return StatusLog(true,"ApplyPhysicalSettings: Working on client") end
-  local bPi = tobool(bPi) or false
-  local bFr = tobool(bFr) or false
-  local bGr = tobool(bGr) or false
-  local sPh = tostring(sPh or "")
+  local bPi, bFr = (tobool(bPi) or false), (tobool(bFr) or false)
+  local bGr, sPh = (tobool(bGr) or false),  tostring(sPh or "")
   LogInstance("ApplyPhysicalSettings: {"..tostring(bPi)..","..tostring(bFr)..","..tostring(bGr)..","..sPh.."}")
   if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
     return StatusLog(false,"ApplyPhysicalSettings: Piece entity invalid for <"..tostring(ePiece)..">") end
@@ -3109,6 +3066,8 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
   ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
   ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
+  -- Delay the freeze by a tiny amout because on physgun snap the piece
+  -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_FREEZE"), function() -- If frozen motion is disabled
     LogInstance("ApplyPhysicalSettings: Freeze"); pyPiece:EnableMotion(not bFr) end )
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
@@ -3116,38 +3075,37 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
 end
 
-function MakeAsmVar(sShortName, sValue, tBorder, nFlags, sInfo)
-  if(not IsString(sShortName)) then
-    return StatusLog(nil,"MakeAsmVar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
+function MakeAsmVar(sName, sValue, tBorder, nFlags, sInfo)
+  if(not IsString(sName)) then
+    return StatusLog(nil,"MakeAsmVar: CVar name {"..type(sName).."}<"..tostring(sName).."> not string") end
   if(not IsExistent(sValue)) then
     return StatusLog(nil,"MakeAsmVar: Wrong default value <"..tostring(sValue)..">") end
   if(not IsString(sInfo)) then
     return StatusLog(nil,"MakeAsmVar: CVar info {"..type(sInfo).."}<"..tostring(sInfo).."> not string") end
-  local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
+  local sLow = stringLower(sName)
   if(tBorder and (type(tBorder) == "table") and tBorder[1] and tBorder[2]) then
     local Border = GetOpVar("TABLE_BORDERS")
-    Border["cvar_"..sVar] = tBorder
-  end
-  return CreateConVar(sVar, sValue, nFlags, sInfo)
+    Border["cvar_"..sLow] = tBorder
+  end; return CreateConVar(GetOpVar("TOOLNAME_PL")..sLow, sValue, nFlags, sInfo)
 end
 
-function GetAsmVar(sShortName, sMode)
-  if(not IsString(sShortName)) then
-    return StatusLog(nil,"GetAsmVar: CVar name {"..type(sShortName).."}<"..tostring(sShortName).."> not string") end
+function GetAsmVar(sName, sMode)
+  if(not IsString(sName)) then
+    return StatusLog(nil,"GetAsmVar: CVar name {"..type(sName).."}<"..tostring(sName).."> not string") end
   if(not IsString(sMode)) then
     return StatusLog(nil,"GetAsmVar: CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
-  local sVar = GetOpVar("TOOLNAME_PL")..stringLower(sShortName)
-  local CVar = GetConVar(sVar)
+  local sLow = stringLower(sName)
+  local CVar = GetConVar(GetOpVar("TOOLNAME_PL")..sLow)
   if(not IsExistent(CVar)) then
-    return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missing CVar object") end
-  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  ,"cvar_"..sVar)) or 0)
-  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(),"cvar_"..sVar)) or 0)
+    return StatusLog(nil,"GetAsmVar("..sName..", "..sMode.."): Missing CVar object") end
+  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  ,"cvar_"..sLow)) or 0)
+  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(),"cvar_"..sLow)) or 0)
   elseif(sMode == "STR") then return  tostring(CVar:GetString() or "")
   elseif(sMode == "BUL") then return  CVar:GetBool()
   elseif(sMode == "DEF") then return  CVar:GetDefault()
   elseif(sMode == "INF") then return  CVar:GetHelpText()
   elseif(sMode == "NAM") then return  CVar:GetName()
-  end; return StatusLog(nil,"GetAsmVar("..sShortName..", "..sMode.."): Missed mode")
+  end; return StatusLog(nil,"GetAsmVar("..sName..", "..sMode.."): Missed mode")
 end
 
 function SetLocalify(sCode, sPhrase, sDetail)

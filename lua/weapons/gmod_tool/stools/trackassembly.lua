@@ -32,6 +32,8 @@ local stringLower           = string and string.lower
 local stringExplode         = string and string.Explode
 local stringToFileName      = string and string.GetFileFromFilename
 local cleanupRegister       = cleanup and cleanup.Register
+local surfaceScreenWidth    = surface and surface.ScreenWidth
+local surfaceScreenHeight   = surface and surface.ScreenHeight
 local languageAdd           = language and language.Add
 local languageGetPhrase     = language and language.GetPhrase
 local concommandAdd         = concommand and concommand.Add
@@ -660,15 +662,14 @@ function TOOL:DrawHUD()
   if(SERVER) then return end
   local hudMonitor = asmlib.GetOpVar("MONITOR_GAME")
   if(not hudMonitor) then
-    hudMonitor = asmlib.MakeScreen(0,0,
-                  surface.ScreenWidth(),
-                  surface.ScreenHeight(),conPalette)
+    local scrW = surfaceScreenWidth()
+    local scrH = surfaceScreenHeight()
+    hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
     if(not hudMonitor) then
       return asmlib.StatusLog(nil,"DrawHUD: Invalid screen") end
     asmlib.SetOpVar("MONITOR_GAME", hudMonitor)
     asmlib.LogInstance("DrawHUD: Create screen")
-  end
-  hudMonitor:SetColor()
+  end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
   local ply = LocalPlayer()
   local stTrace = ply:GetEyeTrace()
@@ -732,10 +733,8 @@ function TOOL:DrawHUD()
     hudMonitor:DrawLine(Os,Ss,"m")
     hudMonitor:DrawCircle(Ss, RadScale,"c")
     if(asmlib.LocatePOA(stSpawn.HRec,pnextid) and stSpawn.HRec.Kept > 1) then
-      local vNext = Vector()
-            asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
-            vNext:Rotate(stSpawn.SAng)
-            vNext:Add(stSpawn.SPos)
+      local vNext = Vector(); asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
+            vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
       local Np = vNext:ToScreen()
       -- Draw Next Point
       hudMonitor:DrawLine(Os,Np,"g")
@@ -895,10 +894,10 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   scrTool:DrawText("HM: " ..(model      or gsNoAV),"m")
   scrTool:DrawText("ID: ["..(trMaxCN    or gsNoID)
-                    .."] "  ..(trOID      or gsNoID)
-                    .." >> "..(pointid    or gsNoID)
-                    .. " (" ..(pnextid    or gsNoID)
-                    ..") [" ..(hdRec.Kept or gsNoID).."]","g")
+                  .."] "  ..(trOID      or gsNoID)
+                  .." >> "..(pointid    or gsNoID)
+                  .. " (" ..(pnextid    or gsNoID)
+                  ..") [" ..(hdRec.Kept or gsNoID).."]","g")
   scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
   scrTool:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
   local txX, txY, txW, txH, txsX, txsY = scrTool:GetTextState()
@@ -1016,12 +1015,10 @@ function TOOL.BuildCPanel(CPanel)
           pComboPhysName:AddChoice(qNames[CntNam])
           pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
             RunConsoleCommand(gsToolPrefL.."physmater", sVal)
-          end
-          CntNam = CntNam + 1
+          end; CntNam = CntNam + 1
         end
       else asmlib.PrintInstance("Property type <"..sVal.."> has no names available") end
-    end
-    CntTyp = CntTyp + 1
+    end; CntTyp = CntTyp + 1
   end
   CPanel:AddItem(pComboPhysType)
   CPanel:AddItem(pComboPhysName)
@@ -1042,8 +1039,7 @@ function TOOL.BuildCPanel(CPanel)
             local sTX = pnSelf:GetValue() or ""
             RunConsoleCommand(gsToolPrefL.."bgskids",sTX)
           end
-        end
-        CurY = CurY + pText:GetTall() + 2
+        end; CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
   local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
@@ -1119,25 +1115,17 @@ function TOOL:UpdateGhost(oEnt, oPly)
       oEnt:SetAngles(aAng)
       local vOBB = oEnt:OBBMins()
       local vCen = asmlib.GetCenterMC(oEnt)
-            vCen[cvX] = vCen[cvX] + nextx
-            vCen[cvY] = vCen[cvY] + nexty
-            vCen[cvZ] = vCen[cvZ] + nextz  -vOBB[cvZ]
-      asmlib.ConCommandPly(oPly,"offsetup",-vOBB[cvZ])
+                   asmlib.AddVectorXYZ(vCen, nextx, nexty, nextz-vOBB[cvZ])
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
       vCen:Rotate(aAng); vCen:Add(stTrace.HitPos)
       oEnt:SetPos(vCen); oEnt:SetAngles(aAng); oEnt:SetNoDraw(false)
     else
-      local pointUp = (asmlib.PointOffsetUp(oEnt,pointid) or 0)
-      local stSpawn =  asmlib.GetNormalSpawn(stTrace.HitPos + pointUp * stTrace.HitNormal,aAng,model,
-                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + self:GetOffsetUp() * stTrace.HitNormal,
+                        aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        asmlib.ConCommandPly(oPly,"offsetup",pointUp)
-        oEnt:SetAngles(stSpawn.SAng)
-        oEnt:SetPos(stSpawn.SPos)
-        oEnt:SetNoDraw(false)
-      end
+        oEnt:SetAngles(stSpawn.SAng); oEnt:SetPos(stSpawn.SPos); oEnt:SetNoDraw(false) end
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
@@ -1153,10 +1141,7 @@ function TOOL:UpdateGhost(oEnt, oPly)
       local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        oEnt:SetPos(stSpawn.SPos)
-        oEnt:SetAngles(stSpawn.SAng)
-        oEnt:SetNoDraw(false)
-      end
+        oEnt:SetPos(stSpawn.SPos); oEnt:SetAngles(stSpawn.SAng); oEnt:SetNoDraw(false) end
     end
   end
 end
@@ -1164,26 +1149,27 @@ end
 function TOOL:Think()
   local model = self:GetModel() -- Ghost irrelevant
   if(utilIsValidModel(model)) then
+    local ply = self:GetOwner()
+    local gho = self.GhostEntity
     if(self:GetGhostHolder()) then
-      if (not (self.GhostEntity and
-               self.GhostEntity:IsValid() and
-               self.GhostEntity:GetModel() == model)) then
+      if(not (gho and gho:IsValid() and gho:GetModel() == model)) then
         self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
-      end -- In client single player the grost is skipped
-      self:UpdateGhost(self.GhostEntity, self:GetOwner())
-    else
-      self:ReleaseGhostEntity()
-      if(self.GhostEntity and self.GhostEntity:IsValid()) then
-        self.GhostEntity:Remove()
-      end
-    end
-    if(CLIENT and inputIsKeyDown(KEY_LALT)) then
-      if(inputIsKeyDown(KEY_E)) then -- Close the routine panel shorcut
-        local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
-        if(pnFrame and IsValid(pnFrame)) then
-          pnFrame.OnClose()
+        local gho = self.GhostEntity
+        if(gho and gho:IsValid()) then
+          if(self:GetSpawnMC()) then -- Distance for the piece spawned on the ground
+            local vOBB = gho:OBBMins()
+            asmlib.ConCommandPly(ply, "offsetup", -vOBB[cvZ])
+          else -- Refresh the variable when model changes to unload the network
+            local pointid, pnextid = self:GetPointID()
+            local pointUp = (asmlib.PointOffsetUp(gho, pointid) or 0)
+            asmlib.ConCommandPly(ply, "offsetup", pointUp)
+          end; asmlib.LogInstance("TOOL.Think: OffsetUp <"..tostring(pointUp)..">")
         end
-      end
-    end
+      end; self:UpdateGhost(gho, ply) -- In client single player the grost is skipped
+    else self:ReleaseGhostEntity() end -- Delete the ghost entity when ghosting is disabled
+    if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
+      local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
+      if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end
+    end -- Shortcut for closing the routine pieces
   end
 end

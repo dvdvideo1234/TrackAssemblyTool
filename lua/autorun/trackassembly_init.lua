@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.317")
+asmlib.SetOpVar("TOOL_VERSION","5.318")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -3171,12 +3171,12 @@ else
   asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from LUA")
   asmlib.DefaultTable("ADDITIONS")
   --- Shinji's Switchers ---
-  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,-1,-1,-1})
-  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,1,1,SOLID_VPHYSICS})
-  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,-1,SOLID_NONE})
-  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,-1,-1,-1,-1})
-  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,1,1,SOLID_VPHYSICS})
-  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,-1,SOLID_NONE})
+  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,1,0,-1,-1})
+  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,1,-1,1,SOLID_VPHYSICS})
+  asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,1, 0,-1,SOLID_NONE})
+  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,1,0,-1,-1})
+  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,1,-1,1,SOLID_VPHYSICS})
+  asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,1, 0,-1,SOLID_NONE})
 end
 
 ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes  ( Column "ISO 639-1" )
