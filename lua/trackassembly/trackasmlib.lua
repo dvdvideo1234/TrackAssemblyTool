@@ -1077,29 +1077,26 @@ function IncDecPnextID(ivPnextID,ivPointID,nDir,rPiece)
   return iPnextID
 end
 
-function PointOffsetUp(oEnt,ivPointID)
+function GetPointElevation(oEnt,ivPointID)
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(nil,"PointOffsetUp: Entity Invalid") end
+    return StatusLog(nil,"GetPointElevation: Entity Invalid") end
   local sModel = oEnt:GetModel()
   local iPointID = tonumber(ivPointID)
   if(not IsExistent(iPointID)) then
-    return StatusLog(nil,"PointOffsetUp: PointID NAN {"
+    return StatusLog(nil,"GetPointElevation: PointID NAN {"
              ..type(ivPointID).."}<"..tostring(ivPointID).."> for <"..sModel..">") end
   local hdRec = CacheQueryPiece(sModel)
   if(not IsExistent(hdRec)) then
-    return StatusLog(nil,"PointOffsetUp: Record not found for <"..sModel..">") end
+    return StatusLog(nil,"GetPointElevation: Record not found for <"..sModel..">") end
   local hdPnt = LocatePOA(hdRec,iPointID)
   if(not IsExistent(hdPnt)) then
-    return StatusLog(nil,"PointOffsetUp: Point #"..tostring(iPointID)
+    return StatusLog(nil,"GetPointElevation: Point #"..tostring(iPointID)
              .." not located on model <"..sModel..">") end
   if(not (hdPnt.O and hdPnt.A)) then
-    return StatusLog(nil,"PointOffsetUp: Invalid POA #"..tostring(iPointID).." for <"..sModel..">") end
-  local aDiffBB = Angle()
-  local vDiffBB = oEnt:OBBMins()
-  SetAngle(aDiffBB,hdPnt.A)
-  aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
-  SubVector(vDiffBB,hdPnt.O)
-  DecomposeByAngle(vDiffBB,aDiffBB)
+    return StatusLog(nil,"GetPointElevation: Invalid POA #"..tostring(iPointID).." for <"..sModel..">") end
+  local aDiffBB, vDiffBB = Angle(), oEnt:OBBMins()
+  SetAngle(aDiffBB,hdPnt.A) ; aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
+  SubVector(vDiffBB,hdPnt.O); DecomposeByAngle(vDiffBB,aDiffBB)
   return mathAbs(vDiffBB[cvZ])
 end
 

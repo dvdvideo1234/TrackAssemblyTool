@@ -98,11 +98,11 @@ TOOL.ClientConVar = {
   [ "bgskids"   ] = "",
   [ "gravity"   ] = "1",
   [ "adviser"   ] = "1",
+  [ "elevpnt"   ] = "0",
   [ "activrad"  ] = "50",
   [ "pntasist"  ] = "1",
   [ "surfsnap"  ] = "0",
   [ "exportdb"  ] = "0",
-  [ "offsetup"  ] = "0",
   [ "forcelim"  ] = "0",
   [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "1",
@@ -168,8 +168,8 @@ function TOOL:GetAngOffsets()
          (mathClamp(self:GetClientNumber("nextrol") or 0,-gnMaxOffRot,gnMaxOffRot))
 end
 
-function TOOL:GetOffsetUp()
-  return (self:GetClientNumber("offsetup") or 0)
+function TOOL:GetElevation()
+  return (self:GetClientNumber("elevpnt") or 0)
 end
 
 function TOOL:GetPointAssist()
@@ -374,7 +374,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Adviser:     <"..tostring(self:GetAdviser())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ForceLimit:  <"..tostring(self:GetForceLimit())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.OffsetUp:    <"..tostring(self:GetOffsetUp())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.OffsetUp:    <"..tostring(self:GetElevation())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
@@ -436,7 +436,7 @@ function TOOL:LeftClick(stTrace)
   local mcspawn    = self:GetSpawnMC()
   local ydegsnp    = self:GetYawSnap()
   local gravity    = self:GetGravity()
-  local offsetup   = self:GetOffsetUp()
+  local elevpnt    = self:GetElevation()
   local nocollide  = self:GetNoCollide()
   local spnflat    = self:GetSpawnFlat()
   local igntype    = self:GetIgnoreType()
@@ -463,7 +463,7 @@ function TOOL:LeftClick(stTrace)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
       vPos:Set(stTrace.HitPos)
     else
-      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
+      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + elevpnt * stTrace.HitNormal,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then -- Make sure it persists to set it afterwards
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(World): Cannot obtain spawn data")) end
@@ -751,14 +751,14 @@ function TOOL:DrawHUD()
     hudMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
     hudMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
   elseif(stTrace.HitWorld) then
-    local offsetup = self:GetOffsetUp()
     local ydegsnp  = self:GetYawSnap()
+    local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()
     local RadScale = mathClamp(ratiom / plyd,1,ratioc)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(self:GetSpawnMC()) then -- Relative to MC
       local vPos = Vector()
-            vPos:Set(stTrace.HitPos + offsetup * stTrace.HitNormal)
+            vPos:Set(stTrace.HitPos + elevpnt * stTrace.HitNormal)
             vPos:Add(nextx * aAng:Forward())
             vPos:Add(nexty * aAng:Right())
             vPos:Add(nextz * aAng:Up())
@@ -786,7 +786,7 @@ function TOOL:DrawHUD()
       hudMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + offsetup * stTrace.HitNormal,aAng,model,
+      local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + elevpnt * stTrace.HitNormal,aAng,model,
                          pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       stSpawn.F:Mul(30); stSpawn.F:Add(stSpawn.OPos)
@@ -1122,7 +1122,7 @@ function TOOL:UpdateGhost(oEnt, oPly)
       vCen:Rotate(aAng); vCen:Add(stTrace.HitPos)
       oEnt:SetPos(vCen); oEnt:SetAngles(aAng); oEnt:SetNoDraw(false)
     else
-      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + self:GetOffsetUp() * stTrace.HitNormal,
+      local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + self:GetElevation() * stTrace.HitNormal,
                         aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
         oEnt:SetAngles(stSpawn.SAng); oEnt:SetPos(stSpawn.SPos); oEnt:SetNoDraw(false) end
@@ -1146,30 +1146,34 @@ function TOOL:UpdateGhost(oEnt, oPly)
   end
 end
 
+function TOOL:ElevateGhost(oEnt)
+  if(oEnt and oEnt:IsValid()) then
+    if(self:GetSpawnMC()) then -- Distance for the piece spawned on the ground
+      local vobdbox = oEnt:OBBMins()
+      asmlib.ConCommandPly(ply, "elevpnt", -vobdbox[cvZ])
+    else -- Refresh the variable when model changes to unload the network
+      local pointid = self:GetPointID()
+      local elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
+      asmlib.ConCommandPly(ply, "elevpnt", elevpnt)
+    end; asmlib.LogInstance("TOOL.ElevateGhost: <"..tostring(elevpnt)..">")
+  end
+end
+
 function TOOL:Think()
   local model = self:GetModel() -- Ghost irrelevant
   if(utilIsValidModel(model)) then
     local ply = self:GetOwner()
-    local gho = self.GhostEntity
     if(self:GetGhostHolder()) then
-      if(not (gho and gho:IsValid() and gho:GetModel() == model)) then
+      if(not (self.GhostEntity and
+              self.GhostEntity:IsValid() and
+              self.GhostEntity:GetModel() == model)) then
         self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
-        local gho = self.GhostEntity
-        if(gho and gho:IsValid()) then
-          if(self:GetSpawnMC()) then -- Distance for the piece spawned on the ground
-            local vOBB = gho:OBBMins()
-            asmlib.ConCommandPly(ply, "offsetup", -vOBB[cvZ])
-          else -- Refresh the variable when model changes to unload the network
-            local pointid, pnextid = self:GetPointID()
-            local pointUp = (asmlib.PointOffsetUp(gho, pointid) or 0)
-            asmlib.ConCommandPly(ply, "offsetup", pointUp)
-          end; asmlib.LogInstance("TOOL.Think: OffsetUp <"..tostring(pointUp)..">")
-        end
-      end; self:UpdateGhost(gho, ply) -- In client single player the grost is skipped
+        self:ElevateGhost(self.GhostEntity) -- E-le-va-tion ! Yes U2
+      end; self:UpdateGhost(self.GhostEntity, ply) -- In client single player the grost is skipped
     else self:ReleaseGhostEntity() end -- Delete the ghost entity when ghosting is disabled
     if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
       local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
-      if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end
+      if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
     end -- Shortcut for closing the routine pieces
   end
 end
