@@ -1435,7 +1435,7 @@ end
 ------------------------- PLAYER -----------------------------------
 
 function ConCommandPly(pPly,sCvar,snValue)
-  if(not IsPlayer(pPly)) then return StatusLog(nil,"ConCommandPly: Player <"..type(pPly)"> invalid") end
+  if(not IsPlayer(pPly)) then return StatusLog(nil,"ConCommandPly: Player <"..type(pPly).."> invalid") end
   if(not IsString(sCvar)) then -- Make it like so the space will not be forgotten
     return StatusLog(nil,"ConCommandPly: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
   return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(snValue).."\n")
@@ -2866,8 +2866,9 @@ function AttachAdditions(ePiece)
       local PhysInit = (tonumber(arRec[defTable[8][1]]) or -1)
       if(PhysInit >= 0) then eAddition:PhysicsInit(PhysInit)
         LogInstance("Addition:PhysicsInit("..PhysInit..")") end
-      local DrShadow = ((tonumber(arRec[defTable[9][1]]) or -1) >= 0)
-      eAddition:DrawShadow(DrShadow); LogInstance("Addition:DrawShadow("..tostring(DrShadow)..")")
+      local DrShadow = (tonumber(arRec[defTable[9][1]]) or 0)
+      if(DrShadow ~= 0) then DrShadow = (DrShadow > 0)
+        eAddition:DrawShadow(DrShadow); LogInstance("Addition:DrawShadow("..tostring(DrShadow)..")") end 
       eAddition:SetParent(ePiece); LogInstance("Addition:SetParent(ePiece)")
       eAddition:Spawn(); LogInstance("Addition:Spawn()")
       phAddition = eAddition:GetPhysicsObject()

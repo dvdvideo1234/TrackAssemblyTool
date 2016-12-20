@@ -388,7 +388,6 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmVar("modedb" ,"STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnableStore: <"..tostring(gsQueryStr)..","..tostring(asmlib.GetAsmVar("enqstore","INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetAsmVar("timermode","STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetAsmVar("enwiremod","BUL"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetAsmVar("devmode"  ,"BUL"))..">"..sDelim
@@ -1146,16 +1145,18 @@ function TOOL:UpdateGhost(oEnt, oPly)
   end
 end
 
-function TOOL:ElevateGhost(oEnt)
+function TOOL:ElevateGhost(oPly, oEnt)
+  if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
+    return asmlib.StatusLog(nil, "TOOL.ElevateGhost: Player invalid <"..tostring(oPly)..">") end
+  local mcspawn, elevpnt = self:GetSpawnMC()
   if(oEnt and oEnt:IsValid()) then
-    if(self:GetSpawnMC()) then -- Distance for the piece spawned on the ground
-      local vobdbox = oEnt:OBBMins()
-      asmlib.ConCommandPly(ply, "elevpnt", -vobdbox[cvZ])
+    if(mcspawn) then -- Distance for the piece spawned on the ground
+      local vobdbox = oEnt:OBBMins(); elevpnt = -vobdbox[cvZ]
     else -- Refresh the variable when model changes to unload the network
-      local pointid = self:GetPointID()
-      local elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
-      asmlib.ConCommandPly(ply, "elevpnt", elevpnt)
-    end; asmlib.LogInstance("TOOL.ElevateGhost: <"..tostring(elevpnt)..">")
+      local pointid, pnextid = self:GetPointID()
+            elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
+    end; asmlib.ConCommandPly(oPly, "elevpnt", elevpnt)
+    asmlib.LogInstance("TOOL.ElevateGhost("..tostring(mcspawn).."): <"..tostring(elevpnt)..">")
   end
 end
 
@@ -1168,7 +1169,7 @@ function TOOL:Think()
               self.GhostEntity:IsValid() and
               self.GhostEntity:GetModel() == model)) then
         self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
-        self:ElevateGhost(self.GhostEntity) -- E-le-va-tion ! Yes U2
+        self:ElevateGhost(ply, self.GhostEntity)   -- E-le-va-tion ! Yes U2
       end; self:UpdateGhost(self.GhostEntity, ply) -- In client single player the grost is skipped
     else self:ReleaseGhostEntity() end -- Delete the ghost entity when ghosting is disabled
     if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then

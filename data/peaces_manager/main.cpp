@@ -3,7 +3,7 @@
 using namespace sstack;
 using namespace smatch;
 
-FILE *I, *D, *DA, *AD;
+FILE *I, *D, *DA, *AD, *R;
 
 int mainExit(int errID, const char * const errFormat)
 {
@@ -12,6 +12,7 @@ int mainExit(int errID, const char * const errFormat)
   fclose(D);
   fclose(DA);
   fclose(AD);
+  fclose(R);
   return 0;
 }
 
@@ -41,19 +42,20 @@ char *lowerPath(char *strData)
   return strData;
 }
 
-char *getAddonName(char *strPath, char *strName)
+char *getModelAddon(char *strPath, char * const strModel, char * const strName)
 {
-  char *cS = strstr(strPath,MATCH_MODEL_DIR);
-  char *cE = cS-2;
-  memset(strName,'\0',PATH_LEN);
-  if(cS != NULL)
+  char *cM = strstr(strPath,MATCH_MODEL_DIR), *cS, *cE;
+  memset(strName ,0,PATH_LEN);
+  memset(strModel,0,PATH_LEN);
+  if(cM != NULL)
   {
-    cS -= 2;
+    cS = cM; cS -= 2; cE = cS;
     while(*cS != '/'){ cS--; } cS++;
-    strncpy(strName,cS,(int)(cE-cS)+1);
+    strncpy(strName ,cS,(int)(cE-cS)+1);
+    strncpy(strModel,cM, strlen(cM) +1); lowerPath(strModel);
   }
   else{
-    printf("getAddonName: Path not a valid model!\n");
+    printf("getModelAddon: Path not a valid model!\n");
     return NULL;
   }
   return strName;
@@ -88,8 +90,7 @@ int main(int argc, char **argv)
   strcpy(argv[2], "models_list.txt");
   strcpy(argv[3], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\lua\\autorun\\trackassembly_init.lua");
   */
-
-  sstack::cStringStack  DataBase;
+  sstack::cStringStack  Ignored;
   smatch::cMatchStack   Matches;
   smatch::stMatch      *Match;
   unsigned char F;
@@ -98,13 +99,14 @@ int main(int argc, char **argv)
   char resPath [PATH_LEN]  = {0};
   char dbsPath [PATH_LEN]  = {0};
   char addName [PATH_LEN]  = {0};
+  char addModel[PATH_LEN]  = {0};
   char fName   [PATH_LEN]  = {0};
 
   printf("argc: <%d>\n",argc);
   for(Cnt = 0; Cnt < argc; Cnt++)
   {
     trimAll(argv[Cnt]);
-    printf("strcpy(argv[%d], \"%s\");\n",Cnt, argv[Cnt]);
+    printf("argv[%d]=\"%s\"\n",Cnt, argv[Cnt]);
   }
 
   if(argc < 4)
@@ -112,6 +114,26 @@ int main(int argc, char **argv)
     printf("\nToo few parameters.\n");
     printf("Call with /base_path/, /model_list/, /db_file/ ! \n");
     return mainExit(0,"");
+  }
+
+  strcpy(fName,argv[1]);
+  strcat(fName,"models_ignored.txt");
+  R = fopen(fName ,"rt");
+  if(R != NULL)
+  {
+    printf("Ignored models given <models_ignored.txt>\n");
+
+    while(fgets(resPath,PATH_LEN,R))
+    {
+      lowerPath(trimAll(resPath));
+      if(Ignored.findStringID(0,resPath) == SSTACK_NOT_FOUND)
+      {
+        Err = Ignored.putString(resPath);
+        if(Err < 0){ return mainExit(Err,"main(R): putString: <%s>"); }
+        printf("Ignore: <%s>\n",resPath);
+      }
+    }
+    strcpy(resPath, "");
   }
 
   strcpy(fName,argv[1]);
@@ -156,8 +178,7 @@ int main(int argc, char **argv)
   while(fgets(resPath,PATH_LEN,I))
   {
     swapSlash(trimAll(resPath));
-    getAddonName(resPath,addName);
-    lowerPath(resPath);
+    getModelAddon(resPath,addModel,addName);
     Match = Matches.registerMatch(addName);
     // printf("Addon name registered: <%s>\n",addName);
     if(Match != NULL)
@@ -173,7 +194,7 @@ int main(int argc, char **argv)
         if(!F &&  F1 != NULL &&  F2 != NULL){ F = 1; }
         if( F && (F1 != NULL || (F3 != NULL && Cnt == 3)) &&  F2 == NULL ){ F = 0; }
         if(F)
-        { // printf("\n 2 <%s>",dbsPath);
+        { // printf("\n DB Read: <%s>",dbsPath);
           S = strstr(dbsPath,MATCH_MODEL_DIR);
           if(S != NULL)
           {
@@ -181,7 +202,7 @@ int main(int argc, char **argv)
             if(E != NULL)
             {
               E[4] = '\0'; // ".mdl\0"
-              // printf(DA,"DB <%s>\n",dbsPath);
+              // printf(DA,"DB Model <%s>\n",dbsPath);
               if((Match->Dbase).findStringID(0,S) == SSTACK_NOT_FOUND)
               {
                 // printf("\nDba Count: %d",(Match->Dbase).getCount());
@@ -195,8 +216,12 @@ int main(int argc, char **argv)
       }
     }
 
-    strcpy(resPath,strstr(resPath,MATCH_MODEL_DIR));
-    Matches.addModelAddon(addName,resPath);
+    // printf("Addon path {%s}<%s>\n",addName,addModel);
+
+    if(Ignored.findStringID(0,addModel) == SSTACK_NOT_FOUND)
+    {
+      Matches.addModelAddon(addName,addModel);
+    }
   }
 
   // Matches.printAddons();
@@ -207,7 +232,7 @@ int main(int argc, char **argv)
   // printf("Matches count #%d\n",Len);
 
   Cnt = 0;
-  fprintf(AD,"These models were removed by the extension creator/owner.\n\n");
+  fprintf(AD,"These models were removed by the extension creator/owner.\n");
   while(Cnt < Len)
   {
     Match = Matches.navigateMatchID(Cnt);

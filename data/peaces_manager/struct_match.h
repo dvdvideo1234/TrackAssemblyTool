@@ -84,13 +84,16 @@
 
     stMatch *match_stack::addModelAddon(const char *strAddon, const char *strModel)
     {
+     // printf("addModelAddon(<%s>, <%s>)\n",strAddon,strModel);
       stMatch *pItem = navigateMatch(strAddon);
       if(pItem == MSTACK_INV_POINTER)
       {
         printf("addModelAddon: Failed to locate addon <%s> !\n",strAddon);
         return MSTACK_INV_POINTER;
       }
+     // printf("addModelAddon Before %d\n",pItem->Addon.getCount());
       pItem->Addon.putString(strModel);
+     // printf("addModelAddon After  %d\n",pItem->Addon.getCount());
       return pItem;
     }
 
