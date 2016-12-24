@@ -87,7 +87,7 @@
       return;
     }
 
-    int string_stack::findStringID(int iID, const char *strData)
+    int string_stack::findStringID(int iID, const char * const strData)
     {
       if(SSTACK_INV_POINTER == strData)
         { printf("findStringID: No data\n"); return SSTACK_INVALID_ID; }

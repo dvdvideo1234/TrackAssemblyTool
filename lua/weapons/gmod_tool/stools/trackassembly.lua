@@ -731,11 +731,11 @@ function TOOL:DrawHUD()
     hudMonitor:DrawCircle(Tp, RadScale / 2)
     hudMonitor:DrawLine(Os,Ss,"m")
     hudMonitor:DrawCircle(Ss, RadScale,"c")
-    if(asmlib.LocatePOA(stSpawn.HRec,pnextid) and stSpawn.HRec.Kept > 1) then
-      local vNext = Vector(); asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
+    local nxtPoint = asmlib.LocatePOA(stSpawn.HRec,pnextid)
+    if(nxtPoint and stSpawn.HRec.Kept > 1) then
+      local vNext = Vector(); asmlib.SetVector(vNext,nxtPoint.O)
             vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
-      local Np = vNext:ToScreen()
-      -- Draw Next Point
+      local Np = vNext:ToScreen() -- Draw Next Point
       hudMonitor:DrawLine(Os,Np,"g")
       hudMonitor:DrawCircle(Np, RadScale / 2, "g")
     end
@@ -978,7 +978,7 @@ function TOOL.BuildCPanel(CPanel)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end
-    else asmlib.PrintInstance("Piece <"..Mod.."> from extension <"..Typ.."> not available .. SKIPPING !") end
+    else asmlib.LogInstance("Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !") end
     iCnt = iCnt + 1
   end
   CPanel:AddItem(pTree)

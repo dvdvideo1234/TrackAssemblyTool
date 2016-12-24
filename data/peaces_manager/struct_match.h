@@ -1,8 +1,8 @@
 #ifndef __STRUCT_MATCH_H_
   #define __STRUCT_MATCH_H_
   #include "string_stack.h"
-  #define MSTACK_DILEN       200
-  #define MSTACK_DEPTH       10000
+  #define MSTACK_ADLEN       500
+  #define MSTACK_DEPTH       20000
   #define MSTACK_INV_POINTER NULL
 
   namespace smatch
@@ -10,7 +10,7 @@
 
     typedef struct st_match
     {
-      char    Name[MSTACK_DILEN];
+      char    Name[MSTACK_ADLEN];
       sstack::cStringStack Addon;
       sstack::cStringStack Dbase;
     } stMatch;

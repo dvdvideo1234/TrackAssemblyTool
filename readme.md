@@ -165,6 +165,8 @@ A: Here they are, with available status, why I did not do some of them ( at the 
       https://steamcommunity.com/sharedfiles/filedetails/?id=147812851
    27) Ron's Minitrain Props
       http://steamcommunity.com/sharedfiles/filedetails/?id=728833183
+   28) Battleship's abandoned rails
+      http://steamcommunity.com/sharedfiles/filedetails/?id=807162936
 
 Q: Where are the trains/vehicles, are there any of these?
 A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD

@@ -7,13 +7,12 @@ FILE *I, *D, *DA, *AD, *R;
 
 int mainExit(int errID, const char * const errFormat)
 {
-  if(errID < 0){ printf(errFormat,sstack::getErrorMessage(errID)); }
+  if(errID != 0){ printf(errFormat,sstack::getErrorMessage(errID)); }
   fclose(I);
   fclose(D);
   fclose(DA);
   fclose(AD);
-  fclose(R);
-  return 0;
+  return errID;
 }
 
 char *swapSlash(char *strData)
@@ -42,19 +41,19 @@ char *lowerPath(char *strData)
   return strData;
 }
 
-char *getModelAddon(char *strPath, char * const strModel, char * const strName)
+char *getModelAddon(char *strPath, char *strModel, char *strName)
 {
-  char *cM = strstr(strPath,MATCH_MODEL_DIR), *cS, *cE;
-  memset(strName ,0,PATH_LEN);
-  memset(strModel,0,PATH_LEN);
+  char *cS, *cE, *cM;
+  cM = strstr(strPath,MATCH_MODEL_DIR);
   if(cM != NULL)
   {
+    memset(strName ,0,PATH_LEN);
+    memset(strModel,0,PATH_LEN);
     cS = cM; cS -= 2; cE = cS;
     while(*cS != '/'){ cS--; } cS++;
     strncpy(strName ,cS,(int)(cE-cS)+1);
     strncpy(strModel,cM, strlen(cM) +1); lowerPath(strModel);
-  }
-  else{
+  }else{
     printf("getModelAddon: Path not a valid model!\n");
     return NULL;
   }
@@ -82,14 +81,15 @@ char *trimAll(char *strData)
 int main(int argc, char **argv)
 //int main(void)
 {
-  /*
+/*
   int argc = 4;
   char argv[4][500];
   strcpy(argv[0], "chewpath.exe");
   strcpy(argv[1], "O:\\Documents\\CodeBlocks-Projs\\chewpath\\bin\\Debug\\");
   strcpy(argv[2], "models_list.txt");
   strcpy(argv[3], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\lua\\autorun\\trackassembly_init.lua");
-  */
+  strcpy(argv[4], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\data\\peaces_manager\\models_ignored.txt");
+*/
   sstack::cStringStack  Ignored;
   smatch::cMatchStack   Matches;
   smatch::stMatch      *Match;
@@ -116,24 +116,25 @@ int main(int argc, char **argv)
     return mainExit(0,"");
   }
 
-  strcpy(fName,argv[1]);
-  strcat(fName,"models_ignored.txt");
-  R = fopen(fName ,"rt");
-  if(R != NULL)
+  if(argc > 4)
   {
-    printf("Ignored models given <models_ignored.txt>\n");
-
-    while(fgets(resPath,PATH_LEN,R))
+    strcpy(fName,argv[4]);
+    if((R = fopen(fName ,"rt")) != NULL)
     {
-      lowerPath(trimAll(resPath));
-      if(Ignored.findStringID(0,resPath) == SSTACK_NOT_FOUND)
+      printf("Ignored models given <%s>\n",fName);
+
+      while(fgets(resPath,PATH_LEN,R))
       {
-        Err = Ignored.putString(resPath);
-        if(Err < 0){ return mainExit(Err,"main(R): putString: <%s>"); }
-        printf("Ignore: <%s>\n",resPath);
+        lowerPath(trimAll(resPath));
+        if(Ignored.findStringID(0,resPath) == SSTACK_NOT_FOUND)
+        {
+          Err = Ignored.putString(resPath);
+          if(Err < 0){ return mainExit(Err,"main(R): putString: <%s>"); }
+          printf("Ignore: <%s>\n",resPath);
+        }
       }
+      strcpy(resPath, ""); fclose(R);
     }
-    strcpy(resPath, "");
   }
 
   strcpy(fName,argv[1]);
@@ -178,7 +179,8 @@ int main(int argc, char **argv)
   while(fgets(resPath,PATH_LEN,I))
   {
     swapSlash(trimAll(resPath));
-    getModelAddon(resPath,addModel,addName);
+    if(NULL == getModelAddon(resPath,addModel,addName))
+      { return printf("main(getModelAddon): Path invalid <%s>\n", resPath); }
     Match = Matches.registerMatch(addName);
     // printf("Addon name registered: <%s>\n",addName);
     if(Match != NULL)

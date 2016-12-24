@@ -6,8 +6,7 @@
 #include "string_stack.h"
 #include "struct_match.h"
 
-#define BUFF_LEN 100000
-#define PATH_LEN 1000
+#define PATH_LEN SSTACK_STRLN
 
 // For example <"models/props/something.mdl">
 // <models> OR what the model in the line starts with
