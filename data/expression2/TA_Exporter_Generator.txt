@@ -100,7 +100,7 @@ if(first() || dupefinished())
     # Prop = "models/hunter/blocks/cube025x025x025.mdl"
 
     # Point ID to be exported
-    PointID = 0
+    PointID = 1
 
     # What segment type are we processing
     # road     --> Roads ( PHX roads )
@@ -128,11 +128,11 @@ if(first() || dupefinished())
     DF = 0.4 * sign(PointID)
 
     # Track piece width
-    TrackPieceW = 82
-    TrackPieceH = 35
+    TrackPieceW = 100
+    TrackPieceH = 20
 
     #Generate the origin with an inset
-    TrackOriginInset = 0.1
+    TrackOriginInset = 0.0001
 
     # Tolerance if the error gained when generating an actibe point
     TrackOriginTolerance = "e-012"
@@ -284,17 +284,19 @@ if(Interval > 0)
             TrackExtraSide  = PRL[3,number]
         }else{ print(_HUD_PRINTTALK,"Segment type: " + TypeSegment + " not developed") }
 
-        ORG = Cen + TrackPieceH    * U
-        ORG = ORG - TrackExtraSide * R
+        ORG = Cen + TrackPieceH      * U
+        ORG = ORG - TrackExtraSide   * R
+        ORG = ORG - TrackExtraDepth  * U
+        ORG = ORG - TrackOriginInset * F
 
-        O = Base:toLocalAxis(ORG - Base:pos() -(TrackOriginInset * F) + (-TrackExtraDepth)*U )
+        O = Base:toLocalAxis(ORG - Base:pos())
         A = Base:toLocal((F):toAngle(U))
 
         S = toString(DF):find(TrackOriginTolerance)
 
         if(S > 0)
         {
-            printPoint(InsertTypeDB,Mod,PointID,O,A,ReferencedZ)
+            printPoint(InsertTypeDB,Mod,PointID,O+TrackOriginInset*F,A,ReferencedZ)
             selfDestruct()
         }
         holoPos(2,Base:pos() + O:rotate(Base:angles()))
