@@ -374,7 +374,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Adviser:     <"..tostring(self:GetAdviser())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ForceLimit:  <"..tostring(self:GetForceLimit())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.OffsetUp:    <"..tostring(self:GetElevation())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Elevation:   <"..tostring(self:GetElevation())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
@@ -415,7 +415,7 @@ function TOOL:SelectModel(sModel)
   asmlib.ConCommandPly (ply,"model"  ,sModel)
   asmlib.ConCommandPly (ply,"pointid",1)
   asmlib.ConCommandPly (ply,"pnextid",2)
-  return asmlib.StatusLog(true,"TOOL:SelectModel: Success <"..sModel.."> selected")
+  return asmlib.StatusLog(true,"TOOL:SelectModel: Success <"..sModel..">")
 end
 
 function TOOL:LeftClick(stTrace)
@@ -560,7 +560,7 @@ function TOOL:LeftClick(stTrace)
       end -- We still have enough memory to preform the stacking
     end
     asmlib.UndoFinishPly(ply)
-    return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success stacking")
+    return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success")
   else -- Switch the tool mode ( Snapping )
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then

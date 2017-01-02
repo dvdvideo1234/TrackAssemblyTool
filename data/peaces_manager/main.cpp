@@ -126,7 +126,7 @@ int main(int argc, char **argv)
       while(fgets(resPath,PATH_LEN,R))
       {
         lowerPath(trimAll(resPath));
-        if(Ignored.findStringID(0,resPath) == SSTACK_NOT_FOUND)
+        if((Ignored.findStringID(0,resPath) == SSTACK_NOT_FOUND) && (resPath[0] != '#') && !strncmp(resPath,MATCH_MODEL_DIR,6))
         {
           Err = Ignored.putString(resPath);
           if(Err < 0){ return mainExit(Err,"main(R): putString: <%s>"); }

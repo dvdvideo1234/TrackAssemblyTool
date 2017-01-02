@@ -1,0 +1,54 @@
+     1 [01/01/17 17:21:40] SERVER > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PIECES from DSV
+     2 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_left>
+     3 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_right>
+     4 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_left>
+     5 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_right>
+     6 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_left>
+     7 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_right>
+     8 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_x>
+     9 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_y>
+    10 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PHYSPROPERTIES from DSV
+    11 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB ADDITIONS from DSV
+    12 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] CacheQueryProperty: Types << Pool
+     1 [01/01/17 17:21:41] CLIENT > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PIECES from DSV
+     2 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_left>
+     3 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_right>
+     4 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_left>
+     5 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_right>
+     6 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_left>
+     7 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_right>
+     8 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_x>
+     9 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_y>
+    10 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PHYSPROPERTIES from DSV
+    11 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB ADDITIONS from DSV
+    12 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] CacheQueryProperty: Types << Pool
+    13 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
+    23 [01/01/17 17:21:46] CLIENT > TRACKASSEMBLY [LUA] InitLocalify: Code <en> selected
+    25 [01/01/17 17:21:48] CLIENT > TRACKASSEMBLY [LUA] DrawToolScreen: Create screen
+    26 [01/01/17 17:21:48] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
+   420 [01/01/17 17:21:55] CLIENT > TRACKASSEMBLY [LUA] DrawHUD: Create screen
+   421 [01/01/17 17:21:55] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
+  1759 [01/01/17 17:22:30] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
+  1760 [01/01/17 17:22:30] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
+    13 [01/01/17 17:22:46] SERVER > TRACKASSEMBLY [LUA] TOOL.ElevateGhost(false): <6.9277763366699>
+  2422 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
+    14 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ReadKeyPly: Player <[BA][Sk$Bh]Trick or treat KID!> keys loaded
+    15 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] MakePiece: Unit(true) <r2ftp_junction_s_right>
+    16 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] SetPosBound(LOG): Success
+    17 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] AttachBodyGroups: <0>
+    18 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ePiece:SetBodygroup(0,0) [0]
+    19 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] AttachBodyGroups: Success
+    20 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] CacheQueryAdditions: Record not located
+    21 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] AttachAdditions: Model <models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl> has no additions
+    22 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] MakePiece: Entity [87][r2ftp_junction_s_right]models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl
+    23 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: {false,true,false,water}
+    24 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: Success
+    25 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalAnchor: {nil,true,0}
+    26 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalAnchor: Base <nil> constraint ignored
+    27 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] TOOL:LeftClick(World): Success
+  2423 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
+    28 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: Freeze
+  2455 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
+  2456 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
+  2459 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
+  2460 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled

@@ -3,6 +3,7 @@
 @outputs [Dev Chip Base]:entity [F Cen Prg]:vector Time Test PU PD
 @persist Time DF StraightUp Interval TrackPieceW TrackRangerMaxW TrackPieceH TrackRangerMaxH TrackOriginInset TrackOriginTolerance:string
 @persist [Cen Prg ORG F R U]:vector [Prop Mod]:string [Dev Chip Base]:entity ARC:array OutagePercentTolerance PointID
+@persist ReferencedZ InsertTypeDB:string TypeSegment:string PrintCount PrintTime
 @trigger none
 
 interval(20)
@@ -33,7 +34,7 @@ function array clampTrace(Pos:vector,Width,Fwd:vector,Rgh:vector,Len,Holo1,Holo2
     return array(ARR,ARL,ADRL,ADDW)
 }
 
-function void printPoint(Mode:string, Hash:string, Point:number, Org:vector, Ang:angle)
+function void printPoint(Mode:string, Hash:string, Point:number, Org:vector, Ang:angle, DirZ)
 {
     # Change storage mode
     Type = "#"
@@ -41,8 +42,12 @@ function void printPoint(Mode:string, Hash:string, Point:number, Org:vector, Ang
     PID  = toString(floor(abs(Point)))
 
     Ang = round(Ang,2)
-    Org = round(Org,6)
-    Org = Org:setZ(5.81)
+    Org = round(Org,5)
+
+    if(DirZ != 0)
+    {
+        Org = Org:setZ(DirZ)
+    }
 
     StrAng = toString(Ang):replace("[",""):replace("]","")
     StrOrg = toString(Org):replace("[",""):replace("]","")
@@ -90,31 +95,47 @@ function void printPoint(Mode:string, Hash:string, Point:number, Org:vector, Ang
 
 if(first() || dupefinished())
 {
-    # What model to search for UP vector offset
+    # What model to search for vector offset
     Prop = "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"
+    # Prop = "models/hunter/blocks/cube025x025x025.mdl"
 
     # Point ID to be exported
-    PointID = 1
+    PointID = 0
+
+    # What segment type are we processing
+    # road     --> Roads ( PHX roads )
+    # monorail --> PHX monorail
+    # genaeral --> The two beam tracks segmentnts that we all love and joy
+    TypeSegment = "genaeral"
+
+    # Set this to <>0 for direct Z local offset
+    ReferencedZ = -16.110403
+
+    # What mode will the point be exportet as
+    InsertTypeDB = "INS"
 
     # Set the Interval to be positive
     # Click to generate an active point
-    Interval = 0
+    Interval = (PointID == 0) * 10
 
-    # Outage %
-    OutagePercentTolerance = 5
+    # Outage % Defines hos sensitive the algorithm is
+    OutagePercentTolerance = 3
+
+    # Prints the delta if this many switches were made
+    PrintCount = 0
 
     # Set this delta forward to slow fasten the process
     DF = 0.4 * sign(PointID)
 
     # Track piece width
-    TrackPieceW = 200
-    TrackPieceH = 20
+    TrackPieceW = 82
+    TrackPieceH = 35
 
     #Generate the origin with an inset
-    TrackOriginInset = 0.0001
+    TrackOriginInset = 0.1
 
     # Tolerance if the error gained when generating an actibe point
-    TrackOriginTolerance = "e-010"
+    TrackOriginTolerance = "e-012"
 
     Time = 0
     Chip = entity()
@@ -130,7 +151,8 @@ if(first() || dupefinished())
     Dev:setColor(0,255,0,255)
     TrackRangerMaxW = TrackPieceW * 2
     TrackRangerMaxH = TrackPieceH * 2
-
+    PrintCount = abs(PrintCount)
+    PrintTime  = PrintCount
     # Set to > 0 for straight rails and place it between the beams
     # The angle must be [0,0,0]
     UpVec = Dev:pos() - CPos
@@ -150,7 +172,7 @@ if(first() || dupefinished())
     {
         A = Base:toLocal(Dev:angles())
         O = Base:toLocalAxis(Dev:pos() - Base:pos())
-        printPoint("INS",Mod,PointID,O,A)
+        printPoint(InsertTypeDB,Mod,PointID,O,A,ReferencedZ)
         Time = Interval
     }
 
@@ -203,12 +225,9 @@ if(Interval > 0)
     }
     else
     {
-        Time = Time - abs(DF)
+        Time = Time - 1
     }
-}
-
-if(StraightUp != 0 && Interval == 0)
-{
+}elseif(StraightUp != 0 && Interval == 0){
     PosL = Cen - TrackPieceW * R
     PosR = Cen + TrackPieceW * R
 
@@ -227,6 +246,10 @@ if(StraightUp != 0 && Interval == 0)
         ARC = VDC
     }
 
+    if(PrintCount != 0){
+        PrintTime = PrintTime - 1
+    }
+
     if(isOuter(VL,VR,OutagePercentTolerance,TrackRangerMaxW))
     {
         Time = 10
@@ -239,28 +262,27 @@ if(StraightUp != 0 && Interval == 0)
           DF = DF * 1.7
         }
         DF =  0.5 * DF
-        # print(_HUD_PRINTTALK,"Switch: "+toString(DF))
+        if(PrintTime == 0 && PrintCount != 0){
+            print(_HUD_PRINTTALK,"Delta: "+toString(DF))
+            PrintTime = PrintCount
+        }
     }else{
         holoPos(1,Cen) holoColor(1,vec(0,255,255))
         # BEGIN Defintition formulas
 
-        # Use his for roads
-        PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
-        TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
-        TrackExtraSide  = PRL[3,number]
-
-
-        # Use this for 2 beam tracks
-        # PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
-        # TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
-        # TrackExtraSide  = PRL[3,number]
-
-        # Use ths for monorail
-        # PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
-        # TrackExtraDepth = ARC[1,number] + ARC[4,number]
-        # TrackExtraSide  = PRL[3,number]
-
-        # END Defintition formulas
+        if(TypeSegment == "road"){
+            PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
+            TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
+            TrackExtraSide  = PRL[3,number]
+        }elseif(TypeSegment == "monorail"){
+            PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
+            TrackExtraDepth = ARC[1,number] + ARC[4,number]
+            TrackExtraSide  = PRL[3,number]
+        }elseif(TypeSegment == "genaeral"){
+            PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
+            TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
+            TrackExtraSide  = PRL[3,number]
+        }else{ print(_HUD_PRINTTALK,"Segment type: " + TypeSegment + " not developed") }
 
         ORG = Cen + TrackPieceH    * U
         ORG = ORG - TrackExtraSide * R
@@ -272,12 +294,14 @@ if(StraightUp != 0 && Interval == 0)
 
         if(S > 0)
         {
-            printPoint("INS",Mod,PointID,O,A)
+            printPoint(InsertTypeDB,Mod,PointID,O,A,ReferencedZ)
             selfDestruct()
-        }else{
-           # print(_HUD_PRINTTALK,"D: "+toString(DF))
         }
         holoPos(2,Base:pos() + O:rotate(Base:angles()))
         Cen = Cen + DF * F
+        if(PrintTime == 0 && PrintCount != 0){
+            print(_HUD_PRINTTALK,"Delta: "+toString(DF))
+            PrintTime = PrintCount
+        }
     }
 }

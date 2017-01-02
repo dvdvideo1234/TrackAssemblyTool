@@ -1,3 +1,4 @@
+# Ron's 2ft track pack
 models/ron/2ft/signals/1_tafel.mdl
 models/ron/2ft/signals/2_light.mdl
 models/ron/2ft/signals/2_tafel.mdl
@@ -47,3 +48,14 @@ models/ron/2ft/turntable/turntable_big_track_0.mdl
 models/ron/2ft/turntable/turntable_big_track_1.mdl
 models/ron/2ft/turntable/turntable_big_track_2.mdl
 models/ron/2ft/turntable/turntable_big_track_3.mdl
+
+#Ron's Transrapid
+models/ron/maglev/train/slider.mdl
+
+#Battleship's abandoned rails
+models/craptrax/switch_left_std/points_left_jam_std.mdl
+models/craptrax/switch_left_std/points_left_straight_std.mdl
+models/craptrax/switch_left_std/points_left_turn_std.mdl
+models/craptrax/switch_right_std/points_right_jam_std.mdl
+models/craptrax/switch_right_std/points_right_straight_std.mdl
+models/craptrax/switch_right_std/points_right_turn_std.mdl
