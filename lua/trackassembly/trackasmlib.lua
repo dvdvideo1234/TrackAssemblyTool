@@ -363,7 +363,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("TIME_INIT",Time())
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("DELAY_FREEZE",0.00001)
+  SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("LOG_LOGFILE","")
   SetOpVar("LOG_LOGLAST","")
   SetOpVar("MAX_ROTATION",360)
@@ -3069,7 +3069,7 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
   if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
     return StatusLog(false,"ApplyPhysicalSettings: Piece physical object invalid for <"..tostring(ePiece)..">") end
-  local arSettings = {bPi,nFr,bGr,sPh}  -- Initialize dupe settings using this array
+  local arSettings = {bPi,bFr,bGr,sPh}  -- Initialize dupe settings using this array
   ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
   ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
   ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop

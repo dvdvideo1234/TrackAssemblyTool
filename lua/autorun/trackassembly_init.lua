@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.323")
+asmlib.SetOpVar("TOOL_VERSION","5.324")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -3085,7 +3085,7 @@ else
   asmlib.InsertRecord({"models/craptrax/straight8x/straight_8x_nodamage.mdl", "#", "#", 1, "", " 512,0,-16.110403", ""})
   asmlib.InsertRecord({"models/craptrax/straight8x/straight_8x_nodamage.mdl", "#", "#", 2, "", "-512,0,-16.110403", "0,180,0"})
   asmlib.InsertRecord({"models/craptrax/straight8x/straight_8x_damaged.mdl" , "#", "#", 1, "", " 512,0,-16.110403", ""})
-  asmlib.InsertRecord({"models/craptrax/straight8x/straight_8x_damaged.mdl" , "#", "#", 2, "", "-512,0,-16.110403", "0,180,0"})  
+  asmlib.InsertRecord({"models/craptrax/straight8x/straight_8x_damaged.mdl" , "#", "#", 2, "", "-512,0,-16.110403", "0,180,0"})
   asmlib.InsertRecord({"models/craptrax/curver1/curve_r1_nodamage.mdl"  , "#", "#", 1, "", "0,0,-16.110403", ""})
   asmlib.InsertRecord({"models/craptrax/curver1/curve_r1_nodamage.mdl"  , "#", "#", 2, "", "-1060.13232,139.53517,-16.110403", "0,165,0"})
   asmlib.InsertRecord({"models/craptrax/curver1/curve_r1_damaged.mdl"   , "#", "#", 1, "", "0,0,-16.110403", ""})

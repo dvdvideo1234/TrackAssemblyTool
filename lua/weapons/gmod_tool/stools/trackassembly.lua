@@ -360,7 +360,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Kept or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  TR.File:        <"..stringToFileName(tostring(trModel or gsNoAV))..">"..sDelim
+        sDu = sDu..sSpace.."  TR.File:        <"..(trModel and stringToFileName(tostring(trModel)) or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
         sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
         sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Kept or gsNoID).."]"..sDelim
@@ -411,10 +411,15 @@ function TOOL:SelectModel(sModel)
   if(not trRec) then
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")) end
   local ply = self:GetOwner()
+  local pointid, pnextid = self:GetPointID()
   asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(sModel).." selected !","UNDO")
   asmlib.ConCommandPly (ply,"model"  ,sModel)
-  asmlib.ConCommandPly (ply,"pointid",1)
-  asmlib.ConCommandPly (ply,"pnextid",2)
+  if(not (trRec.Kept >= pointid and
+          trRec.Kept >= pnextid and
+          pointid    ~= pnextid and
+          pointid    > 0 and pnextid > 0)) then pointid, pnextid = 1, 2 end
+  asmlib.ConCommandPly (ply,"pointid", pointid)
+  asmlib.ConCommandPly (ply,"pnextid", pnextid)
   return asmlib.StatusLog(true,"TOOL:SelectModel: Success <"..sModel..">")
 end
 
@@ -425,29 +430,29 @@ function TOOL:LeftClick(stTrace)
     return asmlib.StatusLog(false,"TOOL:LeftClick(): Trace missing") end
   if(not stTrace.Hit) then
     return asmlib.StatusLog(false,"TOOL:LeftClick(): Trace not hit") end
-  local trEnt      = stTrace.Entity
-  local weld       = self:GetWeld()
-  local mass       = self:GetMass()
-  local model      = self:GetModel()
-  local count      = self:GetCount()
-  local ply        = self:GetOwner()
-  local freeze     = self:GetFreeze()
-  local mcspawn    = self:GetSpawnMC()
-  local ydegsnp    = self:GetYawSnap()
-  local gravity    = self:GetGravity()
-  local elevpnt    = self:GetElevation()
-  local nocollide  = self:GetNoCollide()
-  local spnflat    = self:GetSpawnFlat()
-  local igntype    = self:GetIgnoreType()
-  local forcelim   = self:GetForceLimit()
-  local surfsnap   = self:GetSurfaceSnap()
-  local physmater  = self:GetPhysMeterial()
-  local actrad     = self:GetActiveRadius()
-  local bgskids    = self:GetBodyGroupSkin()
-  local maxstatts  = self:GetStackAttempts()
-  local ignphysgn  = self:GetIgnorePhysgun()
-  local bnderrmod  = self:GetBoundErrorMode()
-  local fnmodel    = stringToFileName(model)
+  local trEnt     = stTrace.Entity
+  local weld      = self:GetWeld()
+  local mass      = self:GetMass()
+  local model     = self:GetModel()
+  local count     = self:GetCount()
+  local ply       = self:GetOwner()
+  local freeze    = self:GetFreeze()
+  local mcspawn   = self:GetSpawnMC()
+  local ydegsnp   = self:GetYawSnap()
+  local gravity   = self:GetGravity()
+  local elevpnt   = self:GetElevation()
+  local nocollide = self:GetNoCollide()
+  local spnflat   = self:GetSpawnFlat()
+  local igntype   = self:GetIgnoreType()
+  local forcelim  = self:GetForceLimit()
+  local surfsnap  = self:GetSurfaceSnap()
+  local physmater = self:GetPhysMeterial()
+  local actrad    = self:GetActiveRadius()
+  local bgskids   = self:GetBodyGroupSkin()
+  local maxstatts = self:GetStackAttempts()
+  local ignphysgn = self:GetIgnorePhysgun()
+  local bnderrmod = self:GetBoundErrorMode()
+  local fnmodel   = stringToFileName(model)
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
