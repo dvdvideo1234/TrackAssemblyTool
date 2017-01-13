@@ -3024,7 +3024,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local phPiece = ePiece:GetPhysicsObject()
   if(not (phPiece and phPiece:IsValid())) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Entity phys object invalid") end
-  phPiece:EnableMotion(false)
+  phPiece:EnableMotion(false); ePiece.owner = pPly
   local Mass = (tonumber(nMass) or 1); phPiece:SetMass((Mass >= 1) and Mass or 1)
   local BgSk = stringExplode(GetOpVar("OPSYM_DIRECTORY"),(sBgSkIDs or ""))
   ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
