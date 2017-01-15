@@ -38,14 +38,16 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.325")
+asmlib.SetOpVar("TOOL_VERSION","5.326")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 asmlib.SetOpVar("LOG_ONLY",nil)
 asmlib.SetOpVar("LOG_SKIP",{
   "QuickSort",
-  "ModelToName",
+  "ModelToName%[CUT%]",
+  "ModelToName%[SUB%]",
+  "ModelToName%[APP%]",
   "DrawToolScreen: Invalid screen",
   "DrawHUD: Invalid screen",
   "GetEntitySpawn: Not hitting active point",
@@ -1715,9 +1717,10 @@ else
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_turn_left_45.mdl"   , "#", "#", 2, "", "-98.326,98.323,1.516", "0,-135,0"})
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 1, "", "263.75, 248.25,1.516", ""})
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 2, "", "-248.25,-263.75,1.516", "0,-90,0"})
-  asmlib.DefaultType("Bobster's two feet rails",function(m)
-    local r = stringGsub(stringGsub(m,"models/bobsters_trains/rails/2ft/",""),"_","/")
-    local s = stringFind(r,"/"); r = (s and stringSub(r,1,s-1) or "other"); return asmlib.ModelToName(r,true) end)
+  asmlib.DefaultType("Bobster's two feet rails",[[function(m)
+    local r = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("_","/")
+    local s = r:find("/"); r = (s and r:sub(1,s-1) or "other");
+          r = r:gsub("^%l", string.upper); return r end]])
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 1, "0,-32,1.5", "8,0,3.017", ""})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 2, "0,32,1.5", "-8,0,3.017", "0,180,0"})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016", ""})

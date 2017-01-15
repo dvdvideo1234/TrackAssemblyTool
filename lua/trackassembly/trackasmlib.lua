@@ -67,6 +67,7 @@ local tostring                = tostring
 local GetConVar               = GetConVar
 local LocalPlayer             = LocalPlayer
 local CreateConVar            = CreateConVar
+local CompileString           = CompileString
 local getmetatable            = getmetatable
 local setmetatable            = setmetatable
 local collectgarbage          = collectgarbage
@@ -390,7 +391,8 @@ function InitBase(sName,sPurpose)
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   SetOpVar("LOCALIFY_TABLE",{})
   SetOpVar("LOCALIFY_AUTO","en")
-  SetOpVar("FILE_MODEL","%.mdl")
+  SetOpVar("MODELNAM_FILE","%.mdl")
+  SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_CATEGORIES",{})
@@ -1105,23 +1107,22 @@ function ModelToName(sModel,bNoSettings)
   if(not IsString(sModel)) then
     return StatusLog("","ModelToName: Argument {"..type(sModel).."}<"..tostring(sModel)..">") end
   if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
-  local fCh, bCh, Cnt = "", "", 1
   local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
-  local sModel = (stringSub(sModel,1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
-        sModel =  stringGsub(stringToFileName(sModel),GetOpVar("FILE_MODEL"),"")
-  local gModel =  stringSub(sModel,1,-1) -- Create a copy so we can select cut-off parts later on
+  local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
+        sModel =  stringToFileName(sModel):gsub(GetOpVar("MODELNAM_FILE"),"")
+  local gModel =  sModel:sub(1,-1) -- Create a copy so we can select cut-off parts later on
   if(not bNoSettings) then
-    local tCut, tSub, tApp = SettingsModelToName("GET")
+    local tCut, Cnt, tSub, tApp = SettingsModelToName("GET"), 1
     if(tCut and tCut[1]) then
       while(tCut[Cnt] and tCut[Cnt+1]) do
-        fCh = tonumber(tCut[Cnt])
-        bCh = tonumber(tCut[Cnt+1])
+        local fCh = tonumber(tCut[Cnt])
+        local bCh = tonumber(tCut[Cnt+1])
         if(not (IsExistent(fCh) and IsExistent(bCh))) then
           return StatusLog("","ModelToName: Cannot cut the model in {"
                    ..tostring(tCut[Cnt])..","..tostring(tCut[Cnt+1]).."} for "..sModel)
         end
         LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} << "..gModel)
-        gModel = stringGsub(gModel,stringSub(sModel,fCh,bCh),"")
+        gModel = gModel:gsub(sModel:sub(fCh,bCh),"")
         LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} >> "..gModel)
         Cnt = Cnt + 2
       end
@@ -1130,10 +1131,10 @@ function ModelToName(sModel,bNoSettings)
     -- Replace the unneeded parts by finding an in-string gModel
     if(tSub and tSub[1]) then
       while(tSub[Cnt]) do
-        fCh = tostring(tSub[Cnt]   or "")
-        bCh = tostring(tSub[Cnt+1] or "")
+        local fCh = tostring(tSub[Cnt]   or "")
+        local bCh = tostring(tSub[Cnt+1] or "")
         LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} << "..gModel)
-        gModel = stringGsub(gModel,fCh,bCh)
+        gModel = gModel:gsub(fCh,bCh)
         LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
         Cnt = Cnt + 2
       end
@@ -1149,17 +1150,7 @@ function ModelToName(sModel,bNoSettings)
   -- Trigger the capital-space using the divider
   if(stringSub(gModel,1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
   -- Here in gModel we have: _aaaaa_bbbb_ccccc
-  fCh, bCh, sModel = stringFind(gModel,sSymDiv,1), 1, ""
-  while(fCh) do
-    if(fCh > bCh) then
-      sModel = sModel..stringSub(gModel,bCh+2,fCh-1)
-    end
-    if(not IsEmptyString(sModel)) then sModel = sModel.." " end
-    sModel = sModel..stringUpper(stringSub(gModel,fCh+1,fCh+1))
-    bCh = fCh
-    fCh = stringFind(gModel,sSymDiv,fCh+1)
-  end
-  return sModel..stringSub(gModel,bCh+2,-1)
+  return gModel:gsub("_%w",GetOpVar("MODELNAM_FUNC")):sub(2,-1)
 end
 
 function LocatePOA(oRec, ivPointID)
@@ -1416,14 +1407,21 @@ function SettingsModelToName(sMode, gCut, gSub, gApp)
   else return StatusLog(false,"SettingsModelToName: Wrong mode name "..sMode) end
 end
 
-function DefaultType(anyType,fooCateg)
+function DefaultType(anyType,fCat)
   if(not IsExistent(anyType)) then
-    return (GetOpVar("DEFAULT_TYPE") or "") end
-  SettingsModelToName("CLR")
-  if(type(fooCateg) == "function") then
-    local Categ = GetOpVar("TABLE_CATEGORIES")
-          Categ[anyType] = fooCateg
-  end; SetOpVar("DEFAULT_TYPE",tostring(anyType))
+    local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
+    local tCat = GetOpVar("TABLE_CATEGORIES")[sTyp]
+    return sTyp, (tCat and tCat.Cmp)
+  end; SettingsModelToName("CLR")
+  local sTyp = tostring(anyType); SetOpVar("DEFAULT_TYPE", sTyp)
+  if(IsExistent(fCat)) then
+    local tCat = GetOpVar("TABLE_CATEGORIES")
+    if(type(fCat) == "function") then
+      tCat[sTyp] = {Cmp = fCat}
+    elseif(type(fCat) == "string") then
+      tCat[sTyp] = {Txt = fCat, Cmp = CompileString("return ("..fCat..")", sTyp)()}
+    end
+  end
 end
 
 function DefaultTable(anyTable)
@@ -1777,7 +1775,6 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   end
   libCache[defTable.Name] = {}
   if(sModeDB == "SQL") then
-    defTable.Life = tonumber(defTable.Life) or 0
     local tQ = SQLBuildCreate(defTable)
     if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable: Build statement failed") end
     if(bDelete and sqlTableExists(defTable.Name)) then
@@ -1814,10 +1811,10 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       else
         return StatusLog(false,"CreateTable: Table "..sTable..
           " failed to create because of "..sqlLastError().." Query ran > "..tQ.Create) end
-    end
-  elseif(sModeDB == "LUA") then sModeDB = "LUA" else -- Just to do something here.
-    return StatusLog(false,"CreateTable: Wrong database mode <"..sModeDB..">")
-  end
+    end; LogInstance("Created "..defTable.Name)
+  elseif(sModeDB == "LUA") then
+    LogInstance("CreateTable: Created "..defTable.Name)
+  else return StatusLog(false,"CreateTable: Wrong database mode <"..sModeDB..">") end
 end
 
 function InsertRecord(sTable,arLine)
@@ -3003,7 +3000,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     return StatusLog(nil,"MakePiece: Record missing for <"..sModel..">") end
   local bcUnit = (IsString(stPiece.Unit) and
     (stPiece.Unit ~= "NULL") and not IsEmptyString(stPiece.Unit))
-  LogInstance("MakePiece: Unit("..tostring(bcUnit)..") <"..tostring(stPiece.Unit)..">")
+  LogInstance("MakePiece: Unit("..tostring(bcUnit)..") <"..tostring(stPiece.Unit or "")..">")
   local ePiece = bcUnit and entsCreate(stPiece.Unit) or entsCreate("prop_physics")
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(nil,"MakePiece: Piece <"..tostring(ePiece).."> invalid") end
@@ -3108,7 +3105,7 @@ function GetAsmVar(sName, sMode)
   if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  ,"cvar_"..sLow)) or 0)
   elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(),"cvar_"..sLow)) or 0)
   elseif(sMode == "STR") then return  tostring(CVar:GetString() or "")
-  elseif(sMode == "BUL") then return  CVar:GetBool()
+  elseif(sMode == "BUL") then return (CVar:GetBool() or false)
   elseif(sMode == "DEF") then return  CVar:GetDefault()
   elseif(sMode == "INF") then return  CVar:GetHelpText()
   elseif(sMode == "NAM") then return  CVar:GetName()

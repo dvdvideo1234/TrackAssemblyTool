@@ -69,9 +69,7 @@ local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVSIGN")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
-local gsVersion   = asmlib.GetOpVar("TOOL_VERSION")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
-local gsQueryStr  = asmlib.GetOpVar("EN_QUERY_STORE")
 local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
 
 cleanupRegister(gsLimitName)
@@ -957,21 +955,23 @@ function TOOL.BuildCPanel(CPanel)
       -- Register the category if definition functional is given
       if(catTypes[Typ]) then -- There is a category definition
         if(not pCategory[Typ]) then pCategory[Typ] = {} end
-        local nmCat, mnNam = catTypes[Typ](Mod)
-        local pnCat = pCategory[Typ][nmCat]
-        if(not pnCat) then
-          if(not asmlib.IsEmptyString(nmCat)) then -- No category folder made already
-            pItem = pItem:AddNode(nmCat) -- The item pointer will refer to the new directory
-            pItem:SetName(nmCat)
-            pItem.Icon:SetImage("icon16/folder.png")
-            pItem.InternalDoClick = function() end
-            pItem.DoClick = function() return false end
-            pItem.Label.UpdateColours = function(pSelf)
-              return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
-            pCategory[Typ][nmCat] = pItem
-          end
-        else pItem = pnCat end
-        if(mnNam and mnNam ~= "") then Nam = mnNam end
+        local bSuc, nmCat, mnNam = pcall(catTypes[Typ].Cmp, Mod)
+        if(bSuc) then -- If the call is successful in protected mode
+          local pnCat = pCategory[Typ][nmCat]
+          if(not pnCat) then
+            if(not asmlib.IsEmptyString(nmCat)) then -- No category folder made already
+              pItem = pItem:AddNode(nmCat) -- The item pointer will refer to the new directory
+              pItem:SetName(nmCat)
+              pItem.Icon:SetImage("icon16/folder.png")
+              pItem.InternalDoClick = function() end
+              pItem.DoClick = function() return false end
+              pItem.Label.UpdateColours = function(pSelf)
+                return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
+              pCategory[Typ][nmCat] = pItem
+            end
+          else pItem = pnCat end
+          if(mnNam and mnNam ~= "") then Nam = mnNam end
+        end
       end -- Custom name to override via category
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
