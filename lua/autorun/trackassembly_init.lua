@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.326")
+asmlib.SetOpVar("TOOL_VERSION","5.327")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -371,6 +371,7 @@ if(CLIENT) then
         asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
         if(asmlib.GetAsmVar("exportdb", "BUL")) then
           asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
+          asmlib.StoreExternalCategory(3)
           asmlib.StoreExternalDatabase("PIECES",",","INS")
           asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
           asmlib.StoreExternalDatabase("PHYSPROPERTIES",",","INS")
@@ -622,7 +623,14 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 },true,true)
 
 ------ POPULATE DB ------
---[[ TA parametrization legend
+
+--[[ Categories are only needed client side ]]--
+if(CLIENT and fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
+  asmlib.LogInstance(gsToolNameU..": DB CATEGORY from DSV")
+  asmlib.ImportCategory(3)
+else asmlib.LogInstance(gsToolNameU..": DB CATEGORY from LUA") end
+
+--[[ Track pieces parametrization legend
  * Disabling of a component is preformed by using "OPSYM_DISABLE"
  * Disabling P     - The ID is ignored when searching for active point
  * Disabling O     - The ID cannot be selected by the holder

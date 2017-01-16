@@ -1411,15 +1411,20 @@ function DefaultType(anyType,fCat)
   if(not IsExistent(anyType)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local tCat = GetOpVar("TABLE_CATEGORIES")[sTyp]
-    return sTyp, (tCat and tCat.Cmp)
+    return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
   end; SettingsModelToName("CLR")
-  local sTyp = tostring(anyType); SetOpVar("DEFAULT_TYPE", sTyp)
-  if(IsExistent(fCat)) then
+  SetOpVar("DEFAULT_TYPE", tostring(anyType))
+  if(CLIENT and IsExistent(fCat)) then -- Categories for the panel
+    local sTyp = GetOpVar("DEFAULT_TYPE")
     local tCat = GetOpVar("TABLE_CATEGORIES")
     if(type(fCat) == "function") then
-      tCat[sTyp] = {Cmp = fCat}
+      tCat[sTyp] = {Txt = GetOpVar("MISS_NOAV"), Cmp = fCat}
     elseif(type(fCat) == "string") then
-      tCat[sTyp] = {Txt = fCat, Cmp = CompileString("return ("..fCat..")", sTyp)()}
+      tCat[sTyp] = {Txt = fCat}
+      tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
+      local suc, tCat[sTyp].Cmp = pcall(tCat[sTyp].Cmp)
+      if(not suc) then
+        return StatusLog(nil, "DefaultType: Compilation failed <"..sTyp..">") end
     end
   end
 end
@@ -2414,6 +2419,70 @@ local function GetFieldsName(defTable,sDelim)
     iCount = iCount + 1
   end
   return sResult
+end
+
+function StoreExternalCategory(vEq, sPrefix)
+  local nEq = tonumber(vEq) or 0
+  if(nEq <= 0) then
+    return StatusLog(nil, "StoreExternalCategory: Wrong equality <"..tostring(vEq)..">") end
+  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+        fName = fName..tostring(sPrefix or GetInstPref())
+        fName = fName..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
+  local ioF  = fileOpen(fName, "w", "DATA")
+  if(not F) then return StatusLog(false,"StoreExternalCategory: fileOpen("..fName..".txt) Failed") end
+  local sEq, nLen = ("="):rep(nEq), (nEq+2)
+  local tCat = GetOpVar("TABLE_CATEGORIES")
+  F:Write("# StoreExternalCategory( "..tostring(nEq).." ): "..osDate().." [ "..sModeDB.." ]".."\n")
+  for cat, rec in pairs(tCat) do
+    if(IsString(rec.Txt)) then
+      local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
+      if(not rec.Txt:find("\n")) then
+        return StatusLog(nil, "StoreExternalCategory: Category one-liner <"..cat..">") end
+      F:Write(exp.."\n")
+    else StatusLog(nil, "StoreExternalCategory: Category <"..cat.."> code <"..tostring(rec.Txt).."> invalid ") end
+  end; F:Flush(); F:Close()
+end
+
+function ImportCategory(vEq, sPrefix)
+  local nEq = tonumber(vEq) or 0
+  if(nEq <= 0) then
+    return StatusLog(nil,"ImportCategory: Wrong equality <"..tostring(vEq)..">") end
+  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+        fName = fName..tostring(sPrefix or GetInstPref())
+        fName = fName..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
+  local F = fileOpen(fName, "r", "DATA")
+  if(not F) then return StatusLog(false,"ImportCategory: fileOpen("..fName..".txt) Failed") end
+  local sEq, sLin, nLen = ("="):rep(nEq), "", (nEq+2)
+  local cFr, cBk, sCh = "["..sEq.."[", "]"..sEq.."]", "X"
+  local tCat = GetOpVar("TABLE_CATEGORIES")
+  local sPar, isPar = "", false
+  while(sCh) do
+    sCh = F:Read(1)
+    if(not sCh) then break end
+    if(sCh == "\n") then
+      if(sLin:sub(-1,-1) == "\r") then
+        sLin = sLin:sub(1,-2) end
+      local sFr, sBk = sLin:sub(1,nLen), sLin:sub(-nLen,-1)
+      if(sFr == cFr and sBk == cBk) then
+        return StatusLog(nil, "ImportCategory: Category one-liner <"..sLin..">")
+      elseif(sFr == cFr and not isPar) then
+        sPar, isPar = sLin:sub(nLen+1,-1).."\n", true
+      elseif(sBk == cBk and isPar) then
+        sPar, isPar = sPar..sLin:sub(1,-nLen-1), false
+        local tBoo = stringExplode(sEq,sPar)
+        local key, txt = tBoo[1], tBoo[2]
+        if(key == "") then
+          return StatusLog(nil, "ImportCategory: Name missing <"..txt..">") end
+        if(not txt:find("function")) then
+          return StatusLog(nil, "ImportCategory: Function missing <"..key..">") end
+        tCat[key] = {}; tCat[key].Txt = txt:Trim()
+        tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
+        local suc, tCat[key].Cmp = pcall(tCat[key].Cmp)
+        if(not suc) then
+          return StatusLog(nil, "ImportCategory: Compilation fail <"..key..">") end
+      else sPar = sPar..sLin.."\n" end; sLin = ""
+    else sLin = sLin..sCh end
+  end; F:Close(); return tCat
 end
 
 --[[
