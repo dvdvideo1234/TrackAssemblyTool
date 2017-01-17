@@ -50,6 +50,7 @@ local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 ---------------- Localizing needed functions ----------------
 local next                    = next
 local type                    = type
+local pcall                   = pcall
 local Angle                   = Angle
 local Color                   = Color
 local pairs                   = pairs
@@ -1439,7 +1440,8 @@ end
 function DefaultType(anyType,fCat)
   if(not IsExistent(anyType)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
-    local tCat = GetOpVar("TABLE_CATEGORIES")[sTyp]
+    local tCat = GetOpVar("TABLE_CATEGORIES")
+          tCat = tCat and tCat[sTyp] or nil
     return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
   end; SettingsModelToName("CLR")
   SetOpVar("DEFAULT_TYPE", tostring(anyType))
@@ -1447,13 +1449,15 @@ function DefaultType(anyType,fCat)
     local sTyp = GetOpVar("DEFAULT_TYPE")
     local tCat = GetOpVar("TABLE_CATEGORIES")
     if(type(fCat) == "function") then
-      tCat[sTyp] = {Txt = GetOpVar("MISS_NOAV"), Cmp = fCat}
+      tCat[sTyp] = {Cmp = fCat}
     elseif(type(fCat) == "string") then
-      tCat[sTyp] = {Txt = fCat}
+      tCat[sTyp] = {}
+      tCat[sTyp].Txt = fCat
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
-      local suc, tCat[sTyp].Cmp = pcall(tCat[sTyp].Cmp)
+      local suc, out = pcall(tCat[sTyp].Cmp)
       if(not suc) then
         return StatusLog(nil, "DefaultType: Compilation failed <"..sTyp..">") end
+      tCat[sTyp].Cmp = out
     end
   end
 end
@@ -2457,11 +2461,12 @@ function StoreExternalCategory(vEq, sPrefix)
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..tostring(sPrefix or GetInstPref())
         fName = fName..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
-  local ioF  = fileOpen(fName, "w", "DATA")
+  local F = fileOpen(fName, "w", "DATA")
   if(not F) then return StatusLog(false,"StoreExternalCategory: fileOpen("..fName..".txt) Failed") end
   local sEq, nLen = ("="):rep(nEq), (nEq+2)
   local tCat = GetOpVar("TABLE_CATEGORIES")
-  F:Write("# StoreExternalCategory( "..tostring(nEq).." ): "..osDate().." [ "..sModeDB.." ]".."\n")
+  local sMod = GetOpVar("MODE_DATABASE")
+  F:Write("# StoreExternalCategory( "..tostring(nEq).." ): "..osDate().." [ "..sMod.." ]".."\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
       local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
@@ -2506,9 +2511,10 @@ function ImportCategory(vEq, sPrefix)
           return StatusLog(nil, "ImportCategory: Function missing <"..key..">") end
         tCat[key] = {}; tCat[key].Txt = txt:Trim()
         tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
-        local suc, tCat[key].Cmp = pcall(tCat[key].Cmp)
+        local suc, out = pcall(tCat[key].Cmp)
         if(not suc) then
           return StatusLog(nil, "ImportCategory: Compilation fail <"..key..">") end
+        tCat[key].Cmp = out
       else sPar = sPar..sLin.."\n" end; sLin = ""
     else sLin = sLin..sCh end
   end; F:Close(); return tCat

@@ -960,27 +960,15 @@ function TOOL.BuildCPanel(CPanel)
         if(bSuc) then
           local pCurr = pCateg[Typ]
           if(type(ptCat) == "table" and ptCat[1]) then
-            local iCnt = 1;
-            while(ptCat[iCnt]) do
+            local iCnt = 1; while(ptCat[iCnt]) do
               local sCat = tostring(ptCat[iCnt])
-              asmlib.StatusLog(nil, "Ind: <"..sCat..">")
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
               else -- Create the last needed node regarding pItem
                 pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
-          else -- Table with non-sequential keys then default string
-            local sCat = tostring(ptCat)
-            if(not asmlib.IsEmptyString(sCat)) then
-              if(not pCurr[sCat]) then
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
-              else
-                pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
-              end
-            end
-          end
-          if(psNam and psNam ~= "") then Nam = psNam end
+          end; if(psNam and psNam ~= "") then Nam = psNam end
         end
       end -- Custom name to override via category
       -- Register the node asociated with the track piece
