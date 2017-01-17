@@ -934,7 +934,7 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetSize(2, 400)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model_con"))
         pTree:SetIndentSize(0)
-  local iCnt, pFolders, pCategory, pNode = 1, {}, {}
+  local iCnt, pFolders, pCateg, pNode = 1, {}, {}
   while(Panel[iCnt]) do
     local Rec = Panel[iCnt]
     local Mod = Rec[defTable[1][1]]
@@ -954,23 +954,33 @@ function TOOL.BuildCPanel(CPanel)
       if(pFolders[Typ]) then pItem = pFolders[Typ] else pItem = pTree end
       -- Register the category if definition functional is given
       if(catTypes[Typ]) then -- There is a category definition
-        if(not pCategory[Typ]) then pCategory[Typ] = {} end
-        local bSuc, nmCat, mnNam = pcall(catTypes[Typ].Cmp, Mod)
-        if(bSuc) then -- If the call is successful in protected mode
-          local pnCat = pCategory[Typ][nmCat]
-          if(not pnCat) then
-            if(not asmlib.IsEmptyString(nmCat)) then -- No category folder made already
-              pItem = pItem:AddNode(nmCat) -- The item pointer will refer to the new directory
-              pItem:SetName(nmCat)
-              pItem.Icon:SetImage("icon16/folder.png")
-              pItem.InternalDoClick = function() end
-              pItem.DoClick = function() return false end
-              pItem.Label.UpdateColours = function(pSelf)
-                return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
-              pCategory[Typ][nmCat] = pItem
+        if(not pCateg[Typ]) then pCateg[Typ] = {} end
+        local bSuc, ptCat, psNam = pcall(catTypes[Typ].Cmp, Mod)
+        -- If the call is successful in protected mode and a folder table is present
+        if(bSuc) then
+          local pCurr = pCateg[Typ]
+          if(type(ptCat) == "table" and ptCat[1]) then
+            local iCnt = 1;
+            while(ptCat[iCnt]) do
+              local sCat = tostring(ptCat[iCnt])
+              asmlib.StatusLog(nil, "Ind: <"..sCat..">")
+              if(pCurr[sCat]) then -- Jump next if already created
+                pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
+              else -- Create the last needed node regarding pItem
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
+              end; iCnt = iCnt + 1;
             end
-          else pItem = pnCat end
-          if(mnNam and mnNam ~= "") then Nam = mnNam end
+          else -- Table with non-sequential keys then default string
+            local sCat = tostring(ptCat)
+            if(not asmlib.IsEmptyString(sCat)) then
+              if(not pCurr[sCat]) then
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
+              else
+                pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
+              end
+            end
+          end
+          if(psNam and psNam ~= "") then Nam = psNam end
         end
       end -- Custom name to override via category
       -- Register the node asociated with the track piece

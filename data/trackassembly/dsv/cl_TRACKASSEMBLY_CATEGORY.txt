@@ -1,0 +1,8 @@
+[===[Bobster's two feet rails===function(m)
+  local r = m:gsub("goldels/bobsters_trains/rails/2ft/",""):gsub("_","/")
+  local s = r:find("/"); r = (s and r:sub(1,s-1) or "other");
+        r = r:gsub("^%l", string.upper); return r end]===]
+[===[Test===function(m)
+    local r = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("_","/")
+    local s = r:find("/"); r = (s and r:sub(1,s-1) or "other");
+          r = r:gsub("^%l", string.upper); return r end]===]

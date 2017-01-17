@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.327")
+asmlib.SetOpVar("TOOL_VERSION","5.328")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -1728,7 +1728,7 @@ else
   asmlib.DefaultType("Bobster's two feet rails",[[function(m)
     local r = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("_","/")
     local s = r:find("/"); r = (s and r:sub(1,s-1) or "other");
-          r = r:gsub("^%l", string.upper); return r end]])
+          r = r:gsub("^%l", string.upper); return {r,"test"} end]])
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 1, "0,-32,1.5", "8,0,3.017", ""})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 2, "0,32,1.5", "-8,0,3.017", "0,180,0"})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016", ""})

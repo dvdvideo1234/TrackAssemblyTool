@@ -395,7 +395,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("TABLE_CATEGORIES",{})
+  SetOpVar("TABLE_CATEGORIES", CLIENT and {} or nil)
   SetOpVar("TABLE_PLAYER_KEYS",{})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
@@ -919,6 +919,35 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
   end
   pnListView:SetVisible(true)
   return StatusLog(true,"UpdateListView: Crated #"..tostring(iNdex-1))
+end
+
+function GetDirectoryObj(pCurr, vName)
+  if(not pCurr) then
+    return StatusLog(nil,"GetDirectoryObj: Location invalid") end
+  local sName = tostring(vName or "")
+        sName = IsEmptyString(sName) and "Other" or sName
+  if(not pCurr[sName]) then
+    return StatusLog(nil,"GetDirectoryObj: Name missing <"..sName..">") end
+  return pCurr[sName], pCurr[sName].__ObjPanel__
+end
+
+function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
+  if(not IsValid(pnBase)) then
+    return StatusLog(nil,"SetDirectoryObj: Base panel invalid") end
+  if(not pCurr) then
+    return StatusLog(nil,"SetDirectoryObj: Location invalid") end
+  local sName = tostring(vName or "")
+        sName = IsEmptyString(sName) and "Other" or sName
+  local pItem = pnBase:AddNode(sName)
+  pCurr[sName] = {}; pCurr[sName].__ObjPanel__ = pItem
+  pItem:SetName(sName)
+  pItem.Icon:SetImage(tostring(sImage or "icon16/folder.png"))
+  pItem.InternalDoClick = function() end
+  pItem.DoClick         = function() return false end
+  pItem.DoRightClick    = function() return false end
+  pItem.Label.UpdateColours = function(pSelf)
+    return pSelf:SetTextStyleColor(txCol or Color(0,0,0,255)) end
+  return pCurr[sName], pItem
 end
 
 local function PushSortValues(tTable,snCnt,nsValue,tData)
