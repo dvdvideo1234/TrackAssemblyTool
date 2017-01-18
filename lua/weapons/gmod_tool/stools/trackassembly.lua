@@ -959,9 +959,12 @@ function TOOL.BuildCPanel(CPanel)
         -- If the call is successful in protected mode and a folder table is present
         if(bSuc) then
           local pCurr = pCateg[Typ]
-          if(type(ptCat) == "table" and ptCat[1]) then
+          if(asmlib.IsEmptyString(ptCat)) then ptCat = nil end
+          if(ptCat and type(ptCat) ~= "table") then ptCat = {ptCat} end
+          if(ptCat and ptCat[1]) then
             local iCnt = 1; while(ptCat[iCnt]) do
               local sCat = tostring(ptCat[iCnt])
+              if(asmlib.IsEmptyString(sCat)) then sCat = "Other" end
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
               else -- Create the last needed node regarding pItem

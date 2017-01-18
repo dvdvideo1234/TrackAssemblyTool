@@ -1448,17 +1448,15 @@ function DefaultType(anyType,fCat)
   if(CLIENT and IsExistent(fCat)) then -- Categories for the panel
     local sTyp = GetOpVar("DEFAULT_TYPE")
     local tCat = GetOpVar("TABLE_CATEGORIES")
-    if(type(fCat) == "function") then
-      tCat[sTyp] = {Cmp = fCat}
-    elseif(type(fCat) == "string") then
+    if(IsString(fCat)) then
       tCat[sTyp] = {}
       tCat[sTyp].Txt = fCat
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local suc, out = pcall(tCat[sTyp].Cmp)
       if(not suc) then
-        return StatusLog(nil, "DefaultType: Compilation failed <"..sTyp..">") end
+        return StatusLog(nil, "DefaultType["..sTyp.."]: Compilation failed <"..fCat..">") end
       tCat[sTyp].Cmp = out
-    end
+    else return StatusLog(nil,"DefaultType["..sTyp.."]: Avoided "..type(fCat).." <"..tostring(fCat)..">") end
   end
 end
 
