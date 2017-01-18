@@ -1445,19 +1445,16 @@ function DefaultType(anyType,fCat)
     return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
   end; SettingsModelToName("CLR")
   SetOpVar("DEFAULT_TYPE", tostring(anyType))
-  if(CLIENT and IsExistent(fCat)) then -- Categories for the panel
+  if(CLIENT and IsString(fCat)) then -- Categories for the panel
     local sTyp = GetOpVar("DEFAULT_TYPE")
     local tCat = GetOpVar("TABLE_CATEGORIES")
-    if(IsString(fCat)) then
-      tCat[sTyp] = {}
-      tCat[sTyp].Txt = fCat
-      tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
-      local suc, out = pcall(tCat[sTyp].Cmp)
-      if(not suc) then
-        return StatusLog(nil, "DefaultType["..sTyp.."]: Compilation failed <"..fCat..">") end
-      tCat[sTyp].Cmp = out
-    else return StatusLog(nil,"DefaultType["..sTyp.."]: Avoided "..type(fCat).." <"..tostring(fCat)..">") end
-  end
+    tCat[sTyp] = {}; tCat[sTyp].Txt = fCat
+    tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
+    local suc, out = pcall(tCat[sTyp].Cmp)
+    if(not suc) then
+      return StatusLog(nil, "DefaultType["..sTyp.."]: Compilation failed <"..fCat..">") end
+    tCat[sTyp].Cmp = out
+  else return StatusLog(nil,"DefaultType["..sTyp.."]: Avoided "..type(fCat).." <"..tostring(fCat)..">") end
 end
 
 function DefaultTable(anyTable)
