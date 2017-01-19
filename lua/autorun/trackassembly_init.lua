@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.331")
+asmlib.SetOpVar("TOOL_VERSION","5.332")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -48,6 +48,7 @@ asmlib.SetOpVar("LOG_SKIP",{
   "ModelToName%[CUT%]",
   "ModelToName%[SUB%]",
   "ModelToName%[APP%]",
+  "DefaultType: Avoided",
   "DrawToolScreen: Invalid screen",
   "DrawHUD: Invalid screen",
   "GetEntitySpawn: Not hitting active point",
@@ -61,9 +62,11 @@ asmlib.SetOpVar("LOG_SKIP",{
   "POINT_SELECT: Active key missing",
   "PHYSGUN_DRAW: Physgun not hold",
   "PHYSGUN_DRAW: Swep not physgun",
+  "PHYSGUN_DRAW: Extension disabled",
   "MakeScreen: Color list not container",
   "BIND_PRESS: Swep not tool",
-  "BIND_PRESS: Tool different"
+  "BIND_PRESS: Tool different",
+  "BIND_PRESS: Active key missing"
 })
 
 ------ VARIABLE FLAGS ------
@@ -108,6 +111,8 @@ local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
+local gsFullEXT   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
+                    "ex_"..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetAsmVar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
       conPalette:Insert("r" ,Color(255,  0,  0,255))
@@ -625,10 +630,12 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 ------ POPULATE DB ------
 
 --[[ Categories are only needed client side ]]--
-if(CLIENT and fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB CATEGORY from DSV")
-  asmlib.ImportCategory(3)
-else asmlib.LogInstance(gsToolNameU..": DB CATEGORY from LUA") end
+if(CLIENT) then
+  if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
+    asmlib.LogInstance(gsToolNameU..": DB CATEGORY from DSV")
+    asmlib.ImportCategory(3)
+  else asmlib.LogInstance(gsToolNameU..": DB CATEGORY from LUA") end
+end
 
 --[[ Track pieces parametrization legend
  * Disabling of a component is preformed by using "OPSYM_DISABLE"
@@ -681,8 +688,7 @@ else
     local s = r:find("/") or r:find("%.");
     r = (s and r:sub(1,s-1) or "other"); o = {r}
     if(r == "sw") then o = {"buffer"} end;
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   asmlib.InsertRecord({"models/minitrains/straight_16.mdl",   "#", "#", 1, "", "0, -8.507, 1", ""})
   asmlib.InsertRecord({"models/minitrains/straight_16.mdl",   "#", "#", 2, "", "-16, -8.507, 1", "0,-180,0"})
   asmlib.InsertRecord({"models/minitrains/straight_32.mdl",   "#", "#", 1, "", "0, -8.507, 1", ""})
@@ -870,8 +876,7 @@ else
     if(r:find("track/")) then r = r:gsub("track/","") end;
     local s = r:sub(1,1); if(s == "s") then return {"Straight"}
     elseif(s == "t") then return {"Turn"}
-    elseif(s == "h") then return {"Ramp"} else return nil end
-  end]])
+    elseif(s == "h") then return {"Ramp"} else return nil end end]])
   asmlib.SettingsModelToName("SET",nil,{"track_s0","straight_"},{"","x"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 1, "", " 0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 2, "", "-162,0,7.624", "0,180,0"})
@@ -902,8 +907,7 @@ else
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/xqm/coastertrack/",""):gsub("_","/")
     local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r}
-  end]])
+    return r and {r} end]])
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 1, "", "75.790,-0.013,-2.414", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003.923,26.580", "@-22.5,180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 1, "", "149.8, -0.013, -9.62", ""})
@@ -1176,8 +1180,7 @@ else
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/xqm/rails/",""):gsub("_","/")
     local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r} or nil
-  end]])
+    return r and {r} or nil end]])
   asmlib.InsertRecord({"models/xqm/rails/tunnel_1.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
   asmlib.InsertRecord({"models/xqm/rails/tunnel_1.mdl", "#", "#", 2, "", "-6, 0, -2.25", "0,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/tunnel_2.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
@@ -1198,7 +1201,7 @@ else
   asmlib.InsertRecord({"models/xqm/rails/straight_8.mdl", "#", "#", 2, "", "-90, 0, -2.25", "0,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/straight_16.mdl","#", "#", 1, "", "6, 0, -2.25", ""})
   asmlib.InsertRecord({"models/xqm/rails/straight_16.mdl","#", "#", 2, "", "-186, 0, -2.25", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/rails/funnel.mdl","#", "#", 1, "", "2.206, 0.003, 4.282", "90,0,180"})
+  asmlib.InsertRecord({"models/xqm/rails/funnel.mdl","#", "#", 1, "", "2.206, 0.003, 4.282", "@90,0,180"})
   asmlib.InsertRecord({"models/xqm/rails/slope_down_15.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
   asmlib.InsertRecord({"models/xqm/rails/slope_down_15.mdl", "#", "#", 2, "", "-20.245, -0.018, -4.13", "@15,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_down_30.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
@@ -1407,8 +1410,7 @@ else
     elseif(r:find("roadsdw")) then r = r:gsub("roadsdw","double_")
     elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end
     if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   asmlib.SettingsModelToName("SET",{1,3})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,180,0"})
@@ -1599,8 +1601,7 @@ else
     local r = m:gsub("models/props/m_gauge/track/m_gauge_",""):gsub("_","/")
     local s = r:find("/"); r = tonumber(r:sub(1,1)) and "straight" or (s and r:sub(1,s-1) or "")
     if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   asmlib.SettingsModelToName("SET",nil,{"m_gauge","straight"},nil)
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 1, "", "16,0,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 2, "", "-16,0,0.016", "0,-180,0"})
@@ -1677,8 +1678,7 @@ else
     local o, n = {(s and r:sub(1,s-1) or "other")}, r:sub(s+1,-1)
     if(o[1] == "s") then o[1] = "curves" end
     n = n and ("_"..n):gsub("_%w",conv):sub(2,-1) or nil
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]])
   asmlib.SettingsModelToName("SET",nil,{"g_gauge_track_",""},nil)
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 1, "", " 16,0,1.516", ""})
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 2, "", "-16,0,1.516", "0,-180,0"})
@@ -1763,8 +1763,7 @@ else
       local r = r:sub(s+1,-1); r = r:gsub("switch/","")
       local e = r:find("/"); r = e and r:sub(1,e-1) or nil; o = {g,r}
     else o = {g} end
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 1, "0,-32,1.5", "8,0,3.017", ""})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 2, "0,32,1.5", "-8,0,3.017", "0,180,0"})
   asmlib.InsertRecord({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016", ""})
@@ -1902,7 +1901,9 @@ else
     elseif(g == "straight") then
       n, o = r:sub(s+1,-1):gsub("straight_",""):gsub("%.mdl",""), {g}
     elseif(g == "embankment") then
-      n, o = r:sub(s+1,-1):gsub("embankment_",""):gsub("%.mdl",""), {g}
+      local e = r:sub(s+1,-1):gsub("embankment_","")
+      local s = e:find("%A")
+      n, o = e:gsub("%.mdl",""), {g,((s > 1) and (e:sub(1,s-1)) or nil)}
     elseif(g == "ramps") then
       n, o = r:sub(s+1,-1):gsub("ramp_",""):gsub("%.mdl",""), {g}
     elseif(g == "tram") then
@@ -1916,8 +1917,7 @@ else
     elseif(g == "curves") then
       n, o = r:sub(s+1,-1):gsub("curve_",""):gsub("%.mdl",""), {g}
     else o = {g} end; n = n and ("_"..n):gsub("_%w",conv):sub(2,-1)
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]])
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer.mdl", "#", "#", 1, "", "64,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",1,""," 32,0,6.016",""})
   asmlib.InsertRecord({"models/ron/2ft/misc/buffer_2.mdl","#","Buffer SH2",2,"","-32,0,6.016","0,-180,0"})
@@ -2057,6 +2057,10 @@ else
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_pillar.mdl" , "#", "#", 2, "", "-128,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_end.mdl", "#", "#", 1, "", " 64,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_end.mdl", "#", "#", 2, "", "-64,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_32.mdl", "#", "#", 1, "", " 16,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_32.mdl", "#", "#", 2, "", "-16,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_64.mdl", "#", "#", 1, "", " 32,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_64.mdl", "#", "#", 2, "", "-32,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_128.mdl", "#", "#", 1, "", " 64,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_128.mdl", "#", "#", 2, "", "-64,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_256.mdl", "#", "#", 1, "", " 128,0,6.016", ""})
@@ -2065,6 +2069,20 @@ else
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_512.mdl", "#", "#", 2, "", "-256,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_1024.mdl", "#", "#", 1, "", " 512,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_1024.mdl", "#", "#", 2, "", "-512,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_end.mdl", "#", "#", 1, "", " 64,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_end.mdl", "#", "#", 2, "", "-64,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_32.mdl", "#", "#", 1, "", " 16,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_32.mdl", "#", "#", 2, "", "-16,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_64.mdl", "#", "#", 1, "", " 32,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_64.mdl", "#", "#", 2, "", "-32,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_128.mdl", "#", "#", 1, "", " 64,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_128.mdl", "#", "#", 2, "", "-64,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_256.mdl", "#", "#", 1, "", " 128,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_256.mdl", "#", "#", 2, "", "-128,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_512.mdl", "#", "#", 1, "", " 256,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_512.mdl", "#", "#", 2, "", "-256,0,6.016", "0,-180,0"})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_1024.mdl", "#", "#", 1, "", " 512,0,6.016", ""})
+  asmlib.InsertRecord({"models/ron/2ft/bridges/bridge_2_1024.mdl", "#", "#", 2, "", "-512,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/station/platform_128.mdl", "#", "#", 1, "", " 64,0,6.016", ""})
   asmlib.InsertRecord({"models/ron/2ft/station/platform_128.mdl", "#", "#", 2, "", "-64,0,6.016", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/2ft/station/platform_256.mdl", "#", "#", 1, "", " 128,0,6.016", ""})
@@ -2440,8 +2458,8 @@ else
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]]) --- Tubes Metal ---
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  --- Tubes Metal ---
   asmlib.InsertRecord({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
   asmlib.InsertRecord({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
   asmlib.InsertRecord({"models/props_phx/construct/metal_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
@@ -2559,8 +2577,7 @@ else
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/hunter/","")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   asmlib.InsertRecord({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
   asmlib.InsertRecord({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
   asmlib.InsertRecord({"models/hunter/misc/platehole1x1b.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
@@ -2832,14 +2849,16 @@ else
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 2, "", "0,0,-379.6"   , "@ 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 1, "", "0, 94.9,0" , "0,90,90"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 2, "", "0,0,-94.9" , "@90,-180,180"})
-  asmlib.DefaultType("G Scale Track Pack", function(m)
-    local r = stringGsub(m,"models/gscale/",""); r = stringSub(r,1,stringFind(r,"/")-1);
+  asmlib.DefaultType("G Scale Track Pack",[[function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/gscale/","")
+    local s = r:find("/"); r = s and r:sub(1,s-1) or nil
     if    (r == "j") then r = "J-Switcher"
     elseif(r == "s") then r = "S-Switcher"
     elseif(r == "c0512") then r = "Curve 512"
     elseif(r == "ibeam") then r = "Iron Beam"
-    elseif(r == "ramp313") then r = "Ramp 313" end
-    return asmlib.ModelToName(r,true); end)
+    elseif(r == "ramp313") then r = "Ramp 313"
+    else r = ("_"..r):gsub("_%w", conv):sub(2,-1) end return {r} end]])
   asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
   asmlib.InsertRecord({"models/gscale/straight/s0008.mdl", "#", "#", 2, "", "  -8,0,1.016", "0,-180,0"})
   asmlib.InsertRecord({"models/gscale/straight/s0016.mdl", "#", "#", 1, "", "   0,0,1.016", ""})
@@ -2946,8 +2965,7 @@ else
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/ron/minitrains/","")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
   asmlib.InsertRecord({"models/ron/minitrains/straight/1.mdl",   "#", "#", 2, "", "-1, 8.507, 1", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/minitrains/straight/2.mdl",   "#", "#", 1, "", " 0, 8.507, 1", ""})
@@ -3028,8 +3046,7 @@ else
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/sligwolf/minihover/hover_","")
     local s = r:gmatch("%a+"); o = {s and tostring(s()) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o
-  end]])
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 1, "", " 104, 32,5.81", ""})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 2, "", "-104, 32,5.81", "0,-180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_straight_x4_mid.mdl"       , "#", "#", 1, "", " 208, 32,5.81", ""})
@@ -3124,8 +3141,11 @@ else
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_curve_3_90.mdl"            , "#", "#", 2, "", "528,431.999939,5.81", "0,90,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 1, "", "9.2e-005,95.999756,5.81", "0,180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 2, "", "527.999756,-431.999878,5.81", "0,-90,0"})
-  asmlib.DefaultType("Transrapid", function(m) local r = stringGsub(m,"models/ron/maglev/","");
-    local s = stringFind(r, "/"); r = s and stringSub(r, 1, s-1) or "other"; return asmlib.ModelToName(r,true); end)
+  asmlib.DefaultType("Transrapid",[[function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/ron/maglev/","");
+    local s = r:find("/"); r = s and r:sub(1, s-1) or nil
+    return {(r and (("_"..r):gsub("_%w",conv):sub(2,-1)) or nil)} end]])
   asmlib.InsertRecord({"models/ron/maglev/support/support_a.mdl", "#", "#", 1, "", "0,0,3.984", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 1, "", " 64,0,3.984", ""})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 2, "", "-64,0,3.984", "0,-180,0"})
@@ -3145,10 +3165,11 @@ else
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_4096.mdl", "#", "#", 2, "", "-2048,0,3.984", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 1, "", " 2048,0,3.984", ""})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 2, "", "-2048,0,3.984", "0,-180,0"})
-  asmlib.DefaultType("Battleship's abandoned rails", function(m)
-    local r = stringGsub(m,"models/craptrax/","")
-    local b = stringFind(r,"[^%a]"); r = b and stringSub(r,1,b-1) or "other"
-    return asmlib.ModelToName(r,true); end)
+  asmlib.DefaultType("Battleship's abandoned rails",[[function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/craptrax/","")
+    local s = r:find("[^%a]"); r = s and r:sub(1,s-1) or nil
+    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1) or nil)} end]])
   asmlib.InsertRecord({"models/craptrax/straight1x/straight_1x_nodamage.mdl", "#", "#", 1, "", " 64,0,-16.110403", ""})
   asmlib.InsertRecord({"models/craptrax/straight1x/straight_1x_nodamage.mdl", "#", "#", 2, "", "-64,0,-16.110403", "0,-180,0"})
   asmlib.InsertRecord({"models/craptrax/straight1x/straight_1x_damaged.mdl" , "#", "#", 1, "", " 64,0,-16.110403", ""})
@@ -3199,6 +3220,12 @@ else
   asmlib.InsertRecord({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 1, "", " 512, 3e-005,-16.110403", ""})
   asmlib.InsertRecord({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 2, "", "-512,-3e-005,-16.110403", "0,180,0"})
   asmlib.InsertRecord({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 3, "", "-454.48437,128.0936,-16.110403", "0,165,0"})
+end
+
+-- Extra PIECES
+if(fileExists(gsFullEXT.."PIECES.txt", "DATA")) then
+  asmlib.LogInstance(gsToolNameU..": DB PIECES from EXT")
+  asmlib.ImportDSV("PIECES","\t",true,"ex_")
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
@@ -3308,6 +3335,12 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   asmlib.InsertRecord({"#", 20, "combine_glass"           })
 end
 
+-- Extra PHYSPROPERTIES
+if(fileExists(gsFullEXT.."PHYSPROPERTIES.txt", "DATA")) then
+  asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from EXT")
+  asmlib.ImportDSV("PHYSPROPERTIES","\t",true,"ex_")
+end
+
 if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from DSV")
   asmlib.ImportDSV("ADDITIONS","\t",true)
@@ -3321,6 +3354,12 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,-1,0,-1,-1})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,1,SOLID_VPHYSICS})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
+end
+
+-- Extra ADDITIONS
+if(fileExists(gsFullEXT.."ADDITIONS.txt", "DATA")) then
+  asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from EXT")
+  asmlib.ImportDSV("ADDITIONS","\t",true,"ex_")
 end
 
 ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes  ( Column "ISO 639-1" )

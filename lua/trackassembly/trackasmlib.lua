@@ -1445,16 +1445,18 @@ function DefaultType(anyType,fCat)
     return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
   end; SettingsModelToName("CLR")
   SetOpVar("DEFAULT_TYPE", tostring(anyType))
-  if(CLIENT and IsString(fCat)) then -- Categories for the panel
+  if(CLIENT) then
     local sTyp = GetOpVar("DEFAULT_TYPE")
-    local tCat = GetOpVar("TABLE_CATEGORIES")
-    tCat[sTyp] = {}; tCat[sTyp].Txt = fCat
-    tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
-    local suc, out = pcall(tCat[sTyp].Cmp)
-    if(not suc) then
-      return StatusLog(nil, "DefaultType["..sTyp.."]: Compilation failed <"..fCat..">") end
-    tCat[sTyp].Cmp = out
-  else return StatusLog(nil,"DefaultType["..sTyp.."]: Avoided "..type(fCat).." <"..tostring(fCat)..">") end
+    if(IsString(fCat)) then -- Categories for the panel
+      local tCat = GetOpVar("TABLE_CATEGORIES")
+      tCat[sTyp] = {}; tCat[sTyp].Txt = fCat
+      tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
+      local suc, out = pcall(tCat[sTyp].Cmp)
+      if(not suc) then
+        return StatusLog(nil, "DefaultType: Compilation failed <"..fCat.."> ["..sTyp.."]") end
+      tCat[sTyp].Cmp = out
+    else return StatusLog(nil,"DefaultType: Avoided "..type(fCat).." <"..tostring(fCat).."> ["..sTyp.."]") end
+  end
 end
 
 function DefaultTable(anyTable)
@@ -2545,14 +2547,12 @@ function ImportDSV(sTable,sDelim,bCommit,sPrefix)
         lenLine = lenLine - 1
       end
       if((stringSub(sLine,1,1) ~= symOff) and (stringSub(sLine,1,tabLen) == defTable.Name)) then
-        local Data = stringExplode(sDelim,stringSub(sLine,tabLen+2,lenLine))
-        for k,v in pairs(Data) do
-          local vLen = stringLen(v)
-          if(stringSub(v,1,1) == "\"" and stringSub(v,vLen,vLen) == "\"") then
-            Data[k] = stringSub(v,2,vLen-1)
-          end
+        local tData = stringExplode(sDelim,stringSub(sLine,tabLen+2,lenLine))
+        for k,v in pairs(tData) do
+          if(stringSub(v,1,1) == "\"" and stringSub(v,-1,-1) == "\"") then
+            tData[k] = stringSub(v,2,-2) end
         end
-        if(bCommit) then InsertRecord(sTable,Data) end
+        if(bCommit) then InsertRecord(sTable,tData) end
       end; sLine = ""
     else sLine = sLine..sChar end
   end; F:Close()

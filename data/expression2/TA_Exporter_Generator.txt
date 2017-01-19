@@ -61,33 +61,39 @@ function void printPoint(Mode:string, Hash:string, Point:number, Org:vector, Ang
     {
         StrOrg = ""
     }
-
-
+    
+    StrCls = entity():isConstrainedTo(1):type()
+    if(StrCls == "prop_physics"){ StrCls = "" }
+    
+    
+    StrPnt = "NULL"
+    
     if(Mode == "DSV")
     {
         Del = "\t"
-        P = "NULL"
         Ins = "TRACKASSEMBLY_PIECES"+
             Del+Hash+
-            Del+Type+
-            Del+Name+
+            Del+"\""+Type+"\""+
+            Del+"\""+Name+"\""+
             Del+PID+
-            Del+P+
-            Del+StrOrg+
-            Del+StrAng
+            Del+"\""+StrPnt+"\""+
+            Del+"\""+StrOrg+"\""+
+            Del+"\""+StrAng+"\""+
+            Del+"\""+StrCls+"\""
     }
     elseif(Mode == "INS")
     {
         Del  = ", "
-        P = ""
         Ins = "  asmlib.InsertRecord({"+
             "\""+Hash+"\""+Del+
             "\""+Type+"\""+Del+
             "\""+Name+"\""+Del+
             PID+Del+
-            "\""+P+"\""+Del+
+            "\""+StrPnt+"\""+Del+
             "\""+StrOrg+"\""+Del+
-            "\""+StrAng+"\"})"
+            "\""+StrAng+"\""+Del+
+            "\""+StrCls+"\""+Del
+            "})"
     }
     print(_HUD_PRINTTALK,Ins)
 
@@ -100,8 +106,8 @@ if(first() || dupefinished())
     # Prop = "models/hunter/blocks/cube025x025x025.mdl"
 
     # Point ID to be exported
-    PointID = 1
-
+    PointID = 0
+    
     # What segment type are we processing
     # road     --> Roads ( PHX roads )
     # monorail --> PHX monorail
@@ -109,10 +115,10 @@ if(first() || dupefinished())
     TypeSegment = "genaeral"
 
     # Set this to <>0 for direct Z local offset
-    ReferencedZ = -16.110403
+    ReferencedZ = 0
 
     # What mode will the point be exportet as
-    InsertTypeDB = "INS"
+    InsertTypeDB = "DSV"
 
     # Set the Interval to be positive
     # Click to generate an active point
@@ -288,7 +294,7 @@ if(Interval > 0)
         ORG = ORG - TrackExtraSide   * R
         ORG = ORG - TrackExtraDepth  * U
         ORG = ORG - TrackOriginInset * F
-
+        
         O = Base:toLocalAxis(ORG - Base:pos())
         A = Base:toLocal((F):toAngle(U))
 
