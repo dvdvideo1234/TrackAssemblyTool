@@ -435,6 +435,14 @@ N: After adding these models, the database can be exported again.
    Whether it is for PIECES, ADDITIONS, PHYSPROPERTIES, these files will be generated with
    the instance prefix also ( cl_*.txt and sv_*.txt ). Please provide me the client side file.
 
+Q: Hey, I am making a track pack and as you may know the workshop does not support *.txt files
+   shipping. That's why I need to make a lua file which synchronizes the tracks from my addon on
+   the server and the client. How can I add my custom models on startup, so they can be added to
+   the pieces list ?
+A: This is actually quite easy since version /5.333/ There is this /SynchronizeExtendedDSV/
+   function, which does exactly that. You have to call it on auto-run like this:
+   https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/autorun_add_pieces.lua
+
 Q: May I PUT this thing in another third party website ?
 A: No I will not give you my permission to do that... Why ...
    That way you will upload some half-baked malicious tool, waste your time with stupid

@@ -2734,8 +2734,12 @@ function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
     return StatusLog(false,"SynchronizeExtendedDSV: Missing table definition for <"..sTable.."> from <"..sAddon..">") end
-  local sName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")..tostring(sPref or GetInstPref())..defTable.Name..".txt"
-  local I, fData, smOff = fileOpen(sName, "r", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
+  local fName = GetOpVar("DIRPATH_BAS")
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  fName = fName..GetOpVar("DIRPATH_DSV")
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  fName = fName..tostring(sPref or GetInstPref())..defTable.Name..".txt"
+  local I, fData, smOff = fileOpen(fName, "r", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
   if(I) then
     local sLine, sCh  = "", "X"
     while(sCh) do
@@ -2806,8 +2810,8 @@ function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
   local tSort = Sort(tableGetKeys(fData))
   if(not tSort) then
     return StatusLog(false,"SynchronizeExtendedDSV: Sorting failed from <"..sAddon..">") end
-  local O = fileOpen(sName, "w" ,"DATA")
-  if(not O) then return StatusLog(false,"SynchronizeExtendedDSV: Write fileOpen("..sName..") failed from <"..sAddon..">") end
+  local O = fileOpen(fName, "w" ,"DATA")
+  if(not O) then return StatusLog(false,"SynchronizeExtendedDSV: Write fileOpen("..fName..") failed from <"..sAddon..">") end
   O:Write("# SynchronizeExtendedDSV: "..osDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   O:Write("# Data settings:\t"..GetFieldsName(defTable,sDelim).."\n")
   for rcID = 1, #tSort do
