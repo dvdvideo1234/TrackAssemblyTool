@@ -2,5 +2,5 @@
 # Data settings: MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS
 TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_wire1x1.mdl	"Test-TYPE"	#	1	"NULL"	"23.70087,-0.00488,2.96593"	""	""
 TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_wire1x1.mdl	"Test-TYPE"	#	2	"NULL"	"-23.75415,-0.00488,2.96593"	"0,180,0"	""
-TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_wire1x2.mdl	"PHX Monorail"	#	1	"NULL"	"-0.02664,-23.73248,2.96593"	"0,-90,0"	""
-TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_wire1x2.mdl	"PHX Monorail"	#	2	"NULL"	"-0.02664,71.17773,2.96593"	"0,90,0"	""
+TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_wire1x2.mdl	"Test-TYPE"	#	1	"NULL"	"-0.02664,-23.73248,2.96593"	"0,-90,0"	""
+TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_wire1x2.mdl	"Test-TYPE"	#	2	"NULL"	"-0.02664,71.17773,2.96593"	"0,90,0"	""

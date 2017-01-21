@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.332")
+asmlib.SetOpVar("TOOL_VERSION","5.333")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -111,8 +111,6 @@ local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
-local gsFullEXT   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
-                    "ex_"..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetAsmVar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
       conPalette:Insert("r" ,Color(255,  0,  0,255))
@@ -634,7 +632,7 @@ if(CLIENT) then
   if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
     asmlib.LogInstance(gsToolNameU..": DB CATEGORY from DSV")
     asmlib.ImportCategory(3)
-  else asmlib.LogInstance(gsToolNameU..": DB CATEGORY from LUA") end
+  else asmlib.LogInstance(gsToolNameU..": DB CATEGORY skip DSV") end
 end
 
 --[[ Track pieces parametrization legend
@@ -3222,12 +3220,6 @@ else
   asmlib.InsertRecord({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 3, "", "-454.48437,128.0936,-16.110403", "0,165,0"})
 end
 
--- Extra PIECES
-if(fileExists(gsFullEXT.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PIECES from EXT")
-  asmlib.ImportDSV("PIECES","\t",true,"ex_")
-end
-
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from DSV")
   asmlib.ImportDSV("PHYSPROPERTIES","\t",true)
@@ -3335,12 +3327,6 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   asmlib.InsertRecord({"#", 20, "combine_glass"           })
 end
 
--- Extra PHYSPROPERTIES
-if(fileExists(gsFullEXT.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from EXT")
-  asmlib.ImportDSV("PHYSPROPERTIES","\t",true,"ex_")
-end
-
 if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
   asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from DSV")
   asmlib.ImportDSV("ADDITIONS","\t",true)
@@ -3354,12 +3340,6 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,-1,0,-1,-1})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,1,SOLID_VPHYSICS})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
-end
-
--- Extra ADDITIONS
-if(fileExists(gsFullEXT.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from EXT")
-  asmlib.ImportDSV("ADDITIONS","\t",true,"ex_")
 end
 
 ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes  ( Column "ISO 639-1" )
@@ -3628,9 +3608,6 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("fr","Cleaned_"..gsLimitName                , "Pistes nettoyées")
   asmlib.SetLocalify("fr","SBoxLimit_"..gsLimitName              , "Vous avez atteint la limite des pistes créées!")
 end
--------- CACHE PANEL STUFF ---------
-asmlib.CacheQueryPanel()
-asmlib.CacheQueryProperty()
+
 asmlib.PrintInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"))
 collectgarbage()
-
