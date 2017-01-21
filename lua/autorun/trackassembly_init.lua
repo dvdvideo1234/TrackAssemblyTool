@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.334")
+asmlib.SetOpVar("TOOL_VERSION","5.335")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -3522,7 +3522,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   -- French
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".1"             , "Assemble une piste segmenté")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".left"          , "Créer/aligner une pièce. Maintenez SHIFT pour empiler")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".right"         , "Changer de point de rassemblement. Maintenez SHIFT pour le verso (Rapide: ALT + SCROLL)")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".right"         , "Changer de point de rassemblement. Maintenez SHIFT pour le verso (Rapide: ALT + MOLETTE)")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".right_use"     , "Ouvrir le menu des pièces utilisés fréquemment")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".reload"        , "Retirer une pièce. Maintenez SHIFT pour sélectionner une ancre")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".desc"          , "Assemble une piste auquel les véhicules peuvent rouler dessus")
