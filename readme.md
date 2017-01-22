@@ -439,10 +439,14 @@ Q: Hey, I am making a track pack and as you may know the workshop does not suppo
    shipping. That's why I need to make a lua file which synchronizes the tracks from my addon on
    the server and the client. How can I add my custom models on startup, so they can be added to
    the pieces list ?
-A: This is actually quite easy since version /5.333/ There is this /SynchronizeExtendedDSV/
-   function, which does exactly that. You have to call it on auto-run like this:
+A: This is actually quite easy since version /5.333/ There is this /SynchronizeDSV/
+   function, which does exactly that. Every question you may have for creating such script
+   is explained in the example below, where you have to call it on auto-run
+   ( For example: your_addon/lua/autorun/your_script.lua ) like this:
    https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/autorun_add_pieces.lua
-N: When all of your script goes according to the plan you will have this:
+   After you test your script and it does work with TA you can add it to your track pack,
+   upload it to the workshop without any hassle as it is (*.lua) file and it will not be rejected.
+N: When all your script goes according to the plan you will have this:
 ```
 ![AddonScriptAdd](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/track_addon.jpg)
 ```
