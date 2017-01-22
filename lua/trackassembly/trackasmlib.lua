@@ -2515,47 +2515,6 @@ function ImportCategory(vEq, sPrefix)
 end
 
 --[[
- * Import table data from DSV database created earlier
- * sTable  = Definition KEY to import
- * sDelim  = Delimiter separating the values
- * bCommit = Calls InsertRecord() when set to true
- * sPrefix = Prefix used on importing ( if any )
-]]--
-function ImportDSV(sTable,sDelim,bCommit,sPrefix)
-  if(not IsString(sTable)) then
-    return StatusLog(false,"ImportDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
-    return StatusLog(false,"ImportDSV: Missing table definition for <"..sTable..">") end
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
-  local F = fileOpen(fName, "rb", "DATA")
-  if(not F) then return StatusLog(false,"ImportDSV: fileOpen("..fName..") failed") end
-  local symOff = GetOpVar("OPSYM_DISABLE")
-  local nLen = defTable.Name:len()
-  local sLine, sChar, nLin = "", "X", 0
-  while(sChar) do
-    sChar = F:Read(1)
-    if(not sChar) then break end -- Exit the loop and close the file
-    if(sChar == "\n") then
-      nLin = sLine:len(sLine)
-      if(sLine:sub(nLin,nLin) == "\r") then
-        sLine = sLine:sub(1,nLin-1)
-        nLin = nLin - 1
-      end
-      if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
-        local tData = stringExplode(sDelim,sLine:sub(nLen+2,nLin))
-        for k,v in pairs(tData) do
-          if(v:sub(1,1) == "\"" and v:sub(-1,-1) == "\"") then
-            tData[k] = v:sub(2,-2) end
-        end
-        if(bCommit) then InsertRecord(sTable,tData) end
-      end; sLine = ""
-    else sLine = sLine..sChar end
-  end; F:Close()
-end
-
---[[
  * Save/Load the DB Using Excel or
  * anything that supports delimiter separated digital tables
  * sTable  = Definition KEY to export
@@ -2720,6 +2679,47 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
 end
 
 --[[
+ * Import table data from DSV database created earlier
+ * sTable  = Definition KEY to import
+ * sDelim  = Delimiter separating the values
+ * bCommit = Calls InsertRecord() when set to true
+ * sPrefix = Prefix used on importing ( if any )
+]]--
+function ImportDSV(sTable,sDelim,bCommit,sPrefix)
+  if(not IsString(sTable)) then
+    return StatusLog(false,"ImportDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
+  local defTable = GetOpVar("DEFTABLE_"..sTable)
+  if(not defTable) then
+    return StatusLog(false,"ImportDSV: Missing table definition for <"..sTable..">") end
+  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+        fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
+  local F = fileOpen(fName, "rb", "DATA")
+  if(not F) then return StatusLog(false,"ImportDSV: fileOpen("..fName..") failed") end
+  local symOff = GetOpVar("OPSYM_DISABLE")
+  local nLen = defTable.Name:len()
+  local sLine, sChar, nLin = "", "X", 0
+  while(sChar) do
+    sChar = F:Read(1)
+    if(not sChar) then break end -- Exit the loop and close the file
+    if(sChar == "\n") then
+      nLin = sLine:len(sLine)
+      if(sLine:sub(nLin,nLin) == "\r") then
+        sLine = sLine:sub(1,nLin-1)
+        nLin = nLin - 1
+      end
+      if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
+        local tData = stringExplode(sDelim,sLine:sub(nLen+2,nLin))
+        for k,v in pairs(tData) do
+          if(v:sub(1,1) == "\"" and v:sub(-1,-1) == "\"") then
+            tData[k] = v:sub(2,-2) end
+        end
+        if(bCommit) then InsertRecord(sTable,tData) end
+      end; sLine = ""
+    else sLine = sLine..sChar end
+  end; F:Close()
+end
+
+--[[
  * This function synchronizes extended database records loaded by the server and client
  * It is used my addon creators when they want to add extra piecs to TA
  * sTable > The table you want to sync
@@ -2833,7 +2833,62 @@ function SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
         sData = sData..sDelim..tostring(vMatch)
       end; O:Write(sCash..sData.."\n"); sData = ""
     end
-  end O:Flush(); O:Close(); return true
+  end O:Flush(); O:Close(); return StatusLog(true,"SynchronizeDSV: Success <"..sAddon..">")
+end
+
+function RegisterDSV(sPrefix, sAddon)
+  if(CLIENT) then return StatusLog(true,"RegisterDSV: CLIENT <"..sAddon..">") end
+  if(not IsString(sAddon)) then
+    return StatusLog(false,"RegisterDSV: Addon {"..type(sAddon).."}<"
+      ..tostring(sAddon).."> not string") end
+  if(IsEmptyString(sAddon)) then return StatusLog(false,"RegisterDSV: Addon empty") end
+  if(not IsString(sPrefix)) then
+    return StatusLog(false,"RegisterDSV: Prefix {"..type(sPrefix).."}<"
+      ..tostring(sPrefix).."> not string from "..sAddon) end
+  if(IsEmptyString(sPrefix)) then return StatusLog(false,"RegisterDSV: Prefix empty from "..sAddon) end
+  local fName = GetOpVar("DIRPATH_BAS")
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  fName = fName.."trackasmlib_dsv.txt"
+  local F = fileOpen(fName, "ab" ,"DATA")
+  if(not F) then return StatusLog(false,"RegisterDSV: fileOpen("..fName..") failed from <"..sAddon..">") end
+  F:Write(sPrefix:Trim().."\n"); F:Flush(); F:Close()
+  return StatusLog(true,"RegisterDSV: Success <"..sAddon..">")
+end
+
+function ProcessDSV()
+  local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_dsv.txt"
+  local F = fileOpen(fName, "rb" ,"DATA")
+  if(not F) then return StatusLog(false,"ProcessDSV: fileOpen("..fName..") failed") end
+  local sCh, sLine, sPath = "X", "", ""
+  local sDr, sPu = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV"), GetOpVar("TOOLNAME_PU")
+  while(sCh) do
+    sCh = F:Read(1)
+    if(not sCh) then break end
+    if(sCh == "\n") then
+      sLine = sLine:Trim()
+      if(not IsEmptyString(sLine)) then
+        sPath = sDr..sLine..sPu
+        if(CLIENT) then
+          if(fileExists(sPath.."CATEGORY.txt", "DATA")) then
+            ImportCategory(3, sLine)
+            LogInstance("ProcessDSV("..sLine.."): CATEGORY")
+          end
+        end
+        if(fileExists(sPath.."PIECES.txt", "DATA")) then
+          ImportDSV("PIECES", "\t", true, sLine)
+          LogInstance("ProcessDSV("..sLine.."): PIECES")
+        end
+        if(fileExists(sPath.."ADDITIONS.txt", "DATA")) then
+          ImportDSV("ADDITIONS", "\t", true, sLine)
+          LogInstance("ProcessDSV("..sLine.."): ADDITIONS")
+        end
+        if(fileExists(sPath.."PHYSPROPERTIES.txt", "DATA")) then
+          ImportDSV("PHYSPROPERTIES", "\t", true, sLine)
+          LogInstance("ProcessDSV("..sLine.."): PHYSPROPERTIES")
+        end
+      end; sLine = ""
+    else sLine = sLine..sCh end
+  end; F:Close(); return StatusLog(true,"ProcessDSV: Success")
 end
 
 ----------------------------- SNAPPING ------------------------------

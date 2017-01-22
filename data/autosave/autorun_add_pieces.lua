@@ -10,7 +10,7 @@ local myAddon = "Test's track pack" -- Your addon name goes here
 local myType  = myAddon -- The type your addon resides in TA with
 
 --[[
- * For actually prodicing an error you can replace the /print/
+ * For actually prodice an error you can replace the /print/
  * statement with one of following api calls:
  * http://wiki.garrysmod.com/page/Global/error
  * http://wiki.garrysmod.com/page/Global/Error
@@ -18,24 +18,35 @@ local myType  = myAddon -- The type your addon resides in TA with
 ]]
 local myError = print
 
--- This is used for addon relation prefix don't touch it 
+-- This is used for addon relation prefix don't touch it
 local sPrefix = myAddon:gsub("[^%w]","_")
 
 -- This is the script path. It tells TA who wants to add these models
 -- Do not touch this also, it is used for debigging
 local sScript = debug.getinfo(1)
       sScript = sScript and sScript.source or "N/A"
-      
--- Here the DSV folder is constructed don't touch it 
+
+-- Here the DSV folder is constructed don't touch it
 local sDSV = trackasmlib.GetOpVar("DIRPATH_BAS")..
              trackasmlib.GetOpVar("DIRPATH_DSV")..sPrefix..
              trackasmlib.GetOpVar("TOOLNAME_PU")
-             
--- Tell TA what custom scrip we just called don't touch it 
+
+-- Tell TA what custom scrip we just called don't touch it
 trackasmlib.LogInstance(">>> "..sScript)
 
 -- Annd with what parameters I was called ;)
 trackasmlib.LogInstance("Status: {"..myAddon..", "..sPrefix.."}")
+
+--[[
+ * Register the addon to the auto-load prefix list when the
+ * PIECES file is missing. The auto-load list is located in
+ * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
+ * A.k.a the DATA folder of Garry's mod
+]]--
+if(not file.Exists(sDSV.."PIECES.txt", "DATA")) then
+  if(not trackasmlib.RegisterDSV(sPrefix, myAddon)) then
+    myError("Failed to register DSV: "..sScript) end
+end
 
 --[[
  * This is used if you want to make internal categories for your addon
@@ -65,7 +76,7 @@ local myCategory ={
 
 --[[
  * This logic statement is needed for reporting the error in the console if the
- * process fails. 
+ * process fails.
  @ bSuccess = StoreExternalCategory(nInd, sPref, tData, sAddon)
  * nInd   > The index equal indent format to be stored with ( generally = 3 )
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
@@ -75,12 +86,7 @@ local myCategory ={
 ]]--
 if(CLIENT) then
   if(not trackasmlib.StoreExternalCategory(3, sPrefix, myCategory, sAddon)) then
-    myError("Failed to synchronize category: "..sScript) -- < Change error here
-  else           
-    if(file.Exists(sDSV.."CATEGORY.txt", "DATA")) then  -- The categories of your stuff
-      trackasmlib.LogInstance("Autorun("..myAddon.."): CATEGORY from DSV")
-      trackasmlib.ImportCategory(3, sPrefix, myCategory)
-    else trackasmlib.LogInstance("Autorun("..myAddon.."): CATEGORY skip DSV") end
+    myError("Failed to synchronize category: "..sScript)
   end
 end
 
@@ -95,7 +101,7 @@ end
  {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
  TYPE   > This string is the name of the type your stuff will reside in the panel
           Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable
-          If it is emty uses the string /TYPE/, so make sure you fill this         
+          If it is emty uses the string /TYPE/, so make sure you fill this
  NAME   > This is the name of your track piece. Put /#/ here to be auto-generated form
           the model ( from the last slash to the file extension )
  LINEID > This is the ID of the point that can be selected for building. They must be
@@ -108,7 +114,7 @@ end
  ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
           An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
  CLASS  > This string is filled up when your entity class is not /prop_physics/ but something else
-          used by ents.Create of the gmod ents api library. Keep this empty if your stuff is a normal prop 
+          used by ents.Create of the gmod ents api library. Keep this empty if your stuff is a normal prop
 ]]--
 local myTable = {
   ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack
@@ -123,7 +129,7 @@ local myTable = {
 
 --[[
  * This logic statement is needed for reporting the error in the console if the
- * process fails. 
+ * process fails.
  @ bSuccess = SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
  * sTable > The table you want to sync
  * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
@@ -136,13 +142,8 @@ local myTable = {
  * sAddon > Ahh, yes, finally the addon. Here you must put your addon name, so if anything
  *          goes wrong with the lua file, the addon name will be reported in the logs
 ]]--
-if(not trackasmlib.SynchronizeDSV("PIECES","\t",true,myTable,sPrefix,myAddon)) then
-  myError("Failed to synchronize prack pieces: "..sScript) -- < Change error here
-else
-  if(file.Exists(sDSV.."PIECES.txt", "DATA")) then  -- And the data registered
-    trackasmlib.LogInstance("Autorun("..myAddon.."): PIECES from DSV")
-    trackasmlib.ImportDSV("PIECES","\t",true,sPrefix)
-  else trackasmlib.LogInstance("Autorun("..myAddon.."): PIECES skip DSV") end
+if(not trackasmlib.SynchronizeDSV("PIECES", "\t", true, myTable, sPrefix, myAddon)) then
+  myError("Failed to synchronize prack pieces: "..sScript)
 end
 
 trackasmlib.LogInstance("<<< "..sScript)
