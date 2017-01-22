@@ -77,22 +77,22 @@ local gsFullEXT   = asmlib.GetOpVar("DIRPATH_BAS")
 
              --- Load extended parameterixation ( if any )
 if(fileExists(gsFullEXT.."CATEGORY.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB CATEGORY from EXT")
+  asmlib.LogInstance("Tool: DB CATEGORY from EXT")
   asmlib.ImportCategory(3,"ex_")
 end
 
 if(fileExists(gsFullEXT.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PIECES from EXT")
+  asmlib.LogInstance("Tool: DB PIECES from EXT")
   asmlib.ImportDSV("PIECES","\t",true,"ex_")
 end
 
 if(fileExists(gsFullEXT.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from EXT")
+  asmlib.LogInstance("Tool: DB PHYSPROPERTIES from EXT")
   asmlib.ImportDSV("PHYSPROPERTIES","\t",true,"ex_")
 end
 
 if(fileExists(gsFullEXT.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from EXT")
+  asmlib.LogInstance("Tool: DB ADDITIONS from EXT")
   asmlib.ImportDSV("ADDITIONS","\t",true,"ex_")
 end
 

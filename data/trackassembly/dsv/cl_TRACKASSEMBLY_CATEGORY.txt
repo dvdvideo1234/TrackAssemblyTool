@@ -1,4 +1,4 @@
-# StoreExternalCategory( 3 ): 01/19/17 00:07:38 [ LUA ]
+# StoreExternalCategory( 3 ): 01/22/17 17:15:05 [ LUA ]
 [===[SligWolf's Minis===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/minitrains/",""):gsub("_","/")
