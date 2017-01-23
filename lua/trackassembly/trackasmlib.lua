@@ -78,6 +78,7 @@ local bitBand                 = bit and bit.band
 local sqlQuery                = sql and sql.Query
 local sqlLastError            = sql and sql.LastError
 local sqlTableExists          = sql and sql.TableExists
+local gameSinglePlayer        = game and game.SinglePlayer
 local utilTraceLine           = util and util.TraceLine
 local utilIsInWorld           = util and util.IsInWorld
 local utilIsValidModel        = util and util.IsValidModel
@@ -295,11 +296,11 @@ function StatusLog(anyStatus,sError)
 end
 
 function Print(tT,sS)
-  local vS, vT, vK, cK = type(sS), type(tT), tostring(sS), ""
+  local vS, vT, vK, cK = type(sS), type(tT), tostring(sS or "Data"), ""
   if(vT ~= "table") then
-    LogInstance("{"..vT.."}["..tostring(sS or "Data").."] = <"..tostring(tT)..">"); return end
-  if(next(tT) == nil) then
-    LogInstance(vK.." = {}"); return end
+    LogInstance("{"..vT.."}["..vK.."] = <"..tostring(tT)..">"); return end
+  LogInstance(vK.." = {}")
+  if(next(tT) == nil) then return end
   for k, v in pairs(tT) do
     if(type(k) == "string") then
       cK = vK.."[\""..k.."\"]"
@@ -2425,6 +2426,13 @@ end
 
 ---------------------- EXPORT --------------------------------
 
+local function StripDSV(vVal)
+  local sVal = tostring(vVal or ""):Trim()
+  if(sVal:sub( 1, 1) == "\"") then sVal = sVal:sub(2,-1) end
+  if(sVal:sub(-1,-1) == "\"") then sVal = sVal:sub(1,-2) end
+  return sVal:Trim()
+end
+
 local function GetFieldsName(defTable,sDelim)
   if(not IsExistent(sDelim)) then return "" end
   local sDelim  = stringSub(tostring(sDelim),1,1)
@@ -2474,7 +2482,7 @@ end
 function ImportCategory(vEq, sPrefix)
   local nEq = tonumber(vEq) or 0
   if(nEq <= 0) then
-    return StatusLog(nil,"ImportCategory: Wrong equality <"..tostring(vEq)..">") end
+    return StatusLog(false,"ImportCategory: Wrong equality <"..tostring(vEq)..">") end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..tostring(sPrefix or GetInstPref())
         fName = fName..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
@@ -2491,27 +2499,27 @@ function ImportCategory(vEq, sPrefix)
       if(sLin:sub(-1,-1) == "\r") then
         sLin = sLin:sub(1,-2) end
       local sFr, sBk = sLin:sub(1,nLen), sLin:sub(-nLen,-1)
-      if(sFr == cFr and sBk == cBk) then
-        return StatusLog(nil, "ImportCategory: Category one-liner <"..sLin..">")
+      if(sFr == cFr and sBk == cBk) then F:Close()
+        return StatusLog(false, "ImportCategory: Category one-liner <"..sLin..">")
       elseif(sFr == cFr and not isPar) then
         sPar, isPar = sLin:sub(nLen+1,-1).."\n", true
       elseif(sBk == cBk and isPar) then
         sPar, isPar = sPar..sLin:sub(1,-nLen-1), false
         local tBoo = stringExplode(sEq,sPar)
         local key, txt = tBoo[1], tBoo[2]
-        if(key == "") then
-          return StatusLog(nil, "ImportCategory: Name missing <"..txt..">") end
-        if(not txt:find("function")) then
-          return StatusLog(nil, "ImportCategory: Function missing <"..key..">") end
+        if(key == "") then F:Close()
+          return StatusLog(false, "ImportCategory: Name missing <"..txt..">") end
+        if(not txt:find("function")) then F:Close()
+          return StatusLog(false, "ImportCategory: Function missing <"..key..">") end
         tCat[key] = {}; tCat[key].Txt = txt:Trim()
         tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
         local suc, out = pcall(tCat[key].Cmp)
-        if(not suc) then
-          return StatusLog(nil, "ImportCategory: Compilation fail <"..key..">") end
+        if(not suc) then F:Close()
+          return StatusLog(false, "ImportCategory: Compilation fail <"..key..">") end
         tCat[key].Cmp = out
       else sPar = sPar..sLin.."\n" end; sLin = ""
     else sLin = sLin..sCh end
-  end; F:Close(); return tCat
+  end; F:Close(); return StatusLog(true, "ImportCategory: Compilation fail <"..key..">")
 end
 
 --[[
@@ -2697,26 +2705,20 @@ function ImportDSV(sTable,sDelim,bCommit,sPrefix)
   if(not F) then return StatusLog(false,"ImportDSV: fileOpen("..fName..") failed") end
   local symOff = GetOpVar("OPSYM_DISABLE")
   local nLen = defTable.Name:len()
-  local sLine, sChar, nLin = "", "X", 0
-  while(sChar) do
-    sChar = F:Read(1)
-    if(not sChar) then break end -- Exit the loop and close the file
-    if(sChar == "\n") then
-      nLin = sLine:len(sLine)
-      if(sLine:sub(nLin,nLin) == "\r") then
-        sLine = sLine:sub(1,nLin-1)
-        nLin = nLin - 1
-      end
+  local sLine, sCh = "", "X"
+  while(sCh) do
+    sCh = F:Read(1)
+    if(not sCh) then break end -- Exit the loop and close the file
+    if(sCh == "\n") then
+      sLine = sLine:Trim()
       if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
-        local tData = stringExplode(sDelim,sLine:sub(nLen+2,nLin))
-        for k,v in pairs(tData) do
-          if(v:sub(1,1) == "\"" and v:sub(-1,-1) == "\"") then
-            tData[k] = v:sub(2,-2) end
-        end
-        if(bCommit) then InsertRecord(sTable,tData) end
+        local tData = stringExplode(sDelim,sLine:sub(nLen+2,-1))
+        for k, _ in pairs(tData) do
+          tData[k] = StripDSV(tData[k]) end
+        if(bCommit) then InsertRecord(sTable, tData) end
       end; sLine = ""
-    else sLine = sLine..sChar end
-  end; F:Close()
+    else sLine = sLine..sCh end
+  end; F:Close(); return StatusLog(true, "ImportDSV: Success")
 end
 
 --[[
@@ -2754,10 +2756,7 @@ function SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
           local tLine = stringExplode(sDelim,sLine)
           if(tLine[1] == defTable.Name) then
             for i = 1, #tLine do
-              if(tLine[i]:sub( 1, 1) == "\"") then tLine[i] = tLine[i]:sub(2,-1) end
-              if(tLine[i]:sub(-1,-1) == "\"") then tLine[i] = tLine[i]:sub(1,-2) end
-              tLine[i] = tLine[i]:Trim()
-            end
+              tLine[i] = StripDSV(tLine[i]) end
             local sKey = tLine[2]
             if(not fData[sKey]) then fData[sKey] = {Kept = 0} end
               tKey = fData[sKey]
@@ -2837,15 +2836,18 @@ function SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
 end
 
 function RegisterDSV(sPrefix, sAddon)
-  if(CLIENT) then return StatusLog(true,"RegisterDSV: CLIENT <"..sAddon..">") end
+  if(CLIENT and gameSinglePlayer()) then
+    return StatusLog(true,"RegisterDSV: Single client <"..sAddon..">") end
   if(not IsString(sAddon)) then
     return StatusLog(false,"RegisterDSV: Addon {"..type(sAddon).."}<"
       ..tostring(sAddon).."> not string") end
-  if(IsEmptyString(sAddon)) then return StatusLog(false,"RegisterDSV: Addon empty") end
+  if(IsEmptyString(sAddon)) then
+    return StatusLog(false,"RegisterDSV: Addon empty") end
   if(not IsString(sPrefix)) then
     return StatusLog(false,"RegisterDSV: Prefix {"..type(sPrefix).."}<"
       ..tostring(sPrefix).."> not string from "..sAddon) end
-  if(IsEmptyString(sPrefix)) then return StatusLog(false,"RegisterDSV: Prefix empty from "..sAddon) end
+  if(IsEmptyString(sPrefix)) then
+    return StatusLog(false,"RegisterDSV: Prefix empty from "..sAddon) end
   local fName = GetOpVar("DIRPATH_BAS")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName.."trackasmlib_dsv.txt"
@@ -2859,33 +2861,39 @@ function ProcessDSV()
   local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_dsv.txt"
   local F = fileOpen(fName, "rb" ,"DATA")
   if(not F) then return StatusLog(false,"ProcessDSV: fileOpen("..fName..") failed") end
-  local sCh, sLine, sPath = "X", "", ""
+  local sCh, sLine, sPath, tProcess = "X", "", "", {}
   local sDr, sPu = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV"), GetOpVar("TOOLNAME_PU")
   while(sCh) do
     sCh = F:Read(1)
     if(not sCh) then break end
     if(sCh == "\n") then
       sLine = sLine:Trim()
-      if(not IsEmptyString(sLine)) then
-        sPath = sDr..sLine..sPu
-        if(CLIENT) then
-          if(fileExists(sPath.."CATEGORY.txt", "DATA")) then
-            ImportCategory(3, sLine)
-            LogInstance("ProcessDSV("..sLine.."): CATEGORY")
+      if(not IsEmptyString(sLine)) then -- Is there something
+        if(not tProcess[sLine]) then -- If not processed already
+          sPath = sDr..sLine..sPu
+          if(CLIENT) then
+            if(fileExists(sPath.."CATEGORY.txt", "DATA")) then
+              if(not ImportCategory(3, sLine)) then F:Close()
+                return StatusLog(false,"ProcessDSV("..sLine.."): Failed CATEGORY") end
+              LogInstance("ProcessDSV("..sLine.."): CATEGORY")
+            end
           end
-        end
-        if(fileExists(sPath.."PIECES.txt", "DATA")) then
-          ImportDSV("PIECES", "\t", true, sLine)
-          LogInstance("ProcessDSV("..sLine.."): PIECES")
-        end
-        if(fileExists(sPath.."ADDITIONS.txt", "DATA")) then
-          ImportDSV("ADDITIONS", "\t", true, sLine)
-          LogInstance("ProcessDSV("..sLine.."): ADDITIONS")
-        end
-        if(fileExists(sPath.."PHYSPROPERTIES.txt", "DATA")) then
-          ImportDSV("PHYSPROPERTIES", "\t", true, sLine)
-          LogInstance("ProcessDSV("..sLine.."): PHYSPROPERTIES")
-        end
+          if(fileExists(sPath.."PIECES.txt", "DATA")) then
+            if(not ImportDSV("PIECES", "\t", true, sLine)) then F:Close()
+              return StatusLog(false,"ProcessDSV("..sLine.."): Failed PIECES") end
+            LogInstance("ProcessDSV("..sLine.."): PIECES")
+          end
+          if(fileExists(sPath.."ADDITIONS.txt", "DATA")) then
+            if(not ImportDSV("ADDITIONS", "\t", true, sLine)) then F:Close()
+              return StatusLog(false,"ProcessDSV("..sLine.."): Failed ADDITIONS") end
+            LogInstance("ProcessDSV("..sLine.."): ADDITIONS")
+          end
+          if(fileExists(sPath.."PHYSPROPERTIES.txt", "DATA")) then
+            if(not ImportDSV("PHYSPROPERTIES", "\t", true, sLine)) then F:Close()
+              return StatusLog(false,"ProcessDSV("..sLine.."): Failed PHYSPROPERTIES") end
+            LogInstance("ProcessDSV("..sLine.."): PHYSPROPERTIES")
+          end; tProcess[sLine] = true
+        else LogInstance("ProcessDSV("..sLine.."): Already processed") end
       end; sLine = ""
     else sLine = sLine..sCh end
   end; F:Close(); return StatusLog(true,"ProcessDSV: Success")
