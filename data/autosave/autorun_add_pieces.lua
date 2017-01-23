@@ -1,6 +1,6 @@
 --[[
- * The perpose of this Lua file is to add your track pack pieces to the
- * trackassembly tool, so they can appear in the tool selection menu
+ * The purpose of this Lua file is to add your track pack pieces to the
+ * track assembly tool, so they can appear in the tool selection menu
 ]]--
 
 -- Change this to your addon name
@@ -10,31 +10,31 @@ local myAddon = "Test's track pack" -- Your addon name goes here
 local myType  = myAddon -- The type your addon resides in TA with
 
 --[[
- * For actually prodice an error you can replace the /print/
- * statement with one of following api calls:
+ * For actually produce an error you can replace the /print/
+ * statement with one of following API calls:
  * http://wiki.garrysmod.com/page/Global/error
  * http://wiki.garrysmod.com/page/Global/Error
  * http://wiki.garrysmod.com/page/Global/ErrorNoHalt
 ]]
 local myError = print
 
--- This is used for addon relation prefix don't touch it
+-- This is used for addon relation prefix. Fingers away from it
 local sPrefix = myAddon:gsub("[^%w]","_")
 
 -- This is the script path. It tells TA who wants to add these models
--- Do not touch this also, it is used for debigging
+-- Do not touch this also, it is used for debugging
 local sScript = debug.getinfo(1)
       sScript = sScript and sScript.source or "N/A"
 
--- Here the DSV folder is constructed don't touch it
+-- Here the DSV folder is constructed don't touch this
 local sDSV = trackasmlib.GetOpVar("DIRPATH_BAS")..
              trackasmlib.GetOpVar("DIRPATH_DSV")..sPrefix..
              trackasmlib.GetOpVar("TOOLNAME_PU")
 
--- Tell TA what custom scrip we just called don't touch it
+-- Tell TA what custom script we just called don't touch it
 trackasmlib.LogInstance(">>> "..sScript)
 
--- Annd with what parameters I was called ;)
+-- And what parameters I was called with ;)
 trackasmlib.LogInstance("Status: {"..myAddon..", "..sPrefix.."}")
 
 --[[
@@ -52,10 +52,10 @@ end
  * This is used if you want to make internal categories for your addon
  * You must make a function as a string under the hash of your addon
  * The function must take only one argument and that is the model
- * For every sub-category of your track pieces you must return a table
+ * For every sub-category of your track pieces, you must return a table
  * with that much elements or return a /nil/ value to add the piece to
- * the root of your branch. You can also return a second argument if you
- * want to override track piece name.
+ * the root of your branch. You can also return a second value if you
+ * want to override the track piece name.
 ]]--
 local myCategory ={
   [myType] = {Txt = [[
@@ -75,14 +75,14 @@ local myCategory ={
 }
 
 --[[
- * This logic statement is needed for reporting the error in the console if the
+* This logic statement is needed for reporting the error in the console if the
  * process fails.
  @ bSuccess = StoreExternalCategory(nInd, sPref, tData, sAddon)
  * nInd   > The index equal indent format to be stored with ( generally = 3 )
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
  * tData  > The category functional definition you want to use to divide your stuff with
  * sAddon > Ahh, yes, finally the addon. Here you must put your addon name, so if anything
- *          goes wrong with the lua file, the addon name will be reported in the logs
+ *          goes wrong with the Lua file, the addon name will be reported in the logs
 ]]--
 if(CLIENT) then
   if(not trackasmlib.StoreExternalCategory(3, sPrefix, myCategory, sAddon)) then
@@ -91,30 +91,30 @@ if(CLIENT) then
 end
 
 --[[
- Create a table and populate it as shown below
- In the square brackets goes your model,
- and then for every active point you must have one array of
- strings, where the elements match the following data settings.
- You can use the reverse sign event /@/ to reverse any component of the
- parameterization and also the disable event /#/ to make TA auto-fill
- the value provided
- {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
- TYPE   > This string is the name of the type your stuff will reside in the panel
-          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable
-          If it is emty uses the string /TYPE/, so make sure you fill this
- NAME   > This is the name of your track piece. Put /#/ here to be auto-generated form
-          the model ( from the last slash to the file extension )
- LINEID > This is the ID of the point that can be selected for building. They must be
-          sequential
- POINT  > This is the position vector that TA searhes and selects.
-          An empty string is treated as the ORIGIN.
-          Disabling this using the disable event makes it hidden when the active point is searched for
- ORIGIN > This is the origin relative to which the next track piece position is calculated
-          An empty string is treated as {0,0,0}. Disabling this makes it non-selectable by the holder
- ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
-          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
- CLASS  > This string is filled up when your entity class is not /prop_physics/ but something else
-          used by ents.Create of the gmod ents api library. Keep this empty if your stuff is a normal prop
+ * Create a table and populate it as shown below
+ * In the square brackets goes your model,
+ * and then for every active point, you must have one array of
+ * strings, where the elements match the following data settings.
+ * You can use the reverse sign event /@/ to reverse any component of the
+ * parameterization and also the disable event /#/ to make TA auto-fill
+ * the value provided
+ * {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
+ * TYPE   > This string is the name of the type your stuff will reside in the panel
+ *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable
+ *          If it is emty uses the string /TYPE/, so make sure you fill this
+ * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
+ *          the model ( from the last slash to the file extension )
+ * LINEID > This is the ID of the point that can be selected for building. They must be
+ *          sequential
+ * POINT  > This is the position vector that TA searches and selects.
+ *          An empty string is treatedas the ORIGIN.
+ *          Disabling this using the disable event makes it hidden when the active point is searched for
+ * ORIGIN > This is the origin relative to which the next track piece position is calculated
+ *          An empty string is treated as {0,0,0}. Disabling this makes it non-selectable by the holder
+ * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
+ *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
+ * CLASS  > This string is filled up when your entity class is not /prop_physics/ but something else
+ *          used by ents.Create of the gmod ents api library. Keep this empty if your stuff is a normal prop
 ]]--
 local myTable = {
   ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack
@@ -134,16 +134,16 @@ local myTable = {
  * sTable > The table you want to sync
  * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
  * bRepl  > If set to /true/, makes the api to replace the repeting models with
-            these of your addon. This is nice when you canostanty update your track packs
+            these of your addon. This is nice when you constantly update your track packs
             If set to /false/ keeps the current model in the
             database and ignores yours if they are the same file.
- * tData  > A data table like the one descibed above
+ * tData  > A data table like the one described above
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
  * sAddon > Ahh, yes, finally the addon. Here you must put your addon name, so if anything
- *          goes wrong with the lua file, the addon name will be reported in the logs
+ *          goes wrong with the Lua file, the addon name will be reported in the logs
 ]]--
 if(not trackasmlib.SynchronizeDSV("PIECES", "\t", true, myTable, sPrefix, myAddon)) then
-  myError("Failed to synchronize prack pieces: "..sScript)
+  myError("Failed to synchronize track pieces: "..sScript)
 end
 
 trackasmlib.LogInstance("<<< "..sScript)
