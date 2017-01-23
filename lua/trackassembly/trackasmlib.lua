@@ -78,6 +78,7 @@ local bitBand                 = bit and bit.band
 local sqlQuery                = sql and sql.Query
 local sqlLastError            = sql and sql.LastError
 local sqlTableExists          = sql and sql.TableExists
+local gameSinglePlayer        = game and game.SinglePlayer
 local utilTraceLine           = util and util.TraceLine
 local utilIsInWorld           = util and util.IsInWorld
 local utilIsValidModel        = util and util.IsValidModel
@@ -295,11 +296,11 @@ function StatusLog(anyStatus,sError)
 end
 
 function Print(tT,sS)
-  local vS, vT, vK, cK = type(sS), type(tT), tostring(sS), ""
+  local vS, vT, vK, cK = type(sS), type(tT), tostring(sS or "Data"), ""
   if(vT ~= "table") then
-    LogInstance("{"..vT.."}["..tostring(sS or "Data").."] = <"..tostring(tT)..">"); return end
-  if(next(tT) == nil) then
-    LogInstance(vK.." = {}"); return end
+    LogInstance("{"..vT.."}["..vK.."] = <"..tostring(tT)..">"); return end
+  LogInstance(vK.." = {}")
+  if(next(tT) == nil) then return end
   for k, v in pairs(tT) do
     if(type(k) == "string") then
       cK = vK.."[\""..k.."\"]"
@@ -1575,15 +1576,15 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
       elseif(sModeDB == "LUA") then snOut = "NULL"
       else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB..">") end
     end
-    if    (defField[3] == "LOW") then snOut = stringLower(snOut)
-    elseif(defField[3] == "CAP") then snOut = stringUpper(snOut) end
+    if    (defField[3] == "LOW") then snOut = snOut:lower()
+    elseif(defField[3] == "CAP") then snOut = snOut:upper() end
     if(not bStopRevise and sModeDB == "SQL" and defField[4] == "QMK") then
-      snOut = stringGsub(snOut,"'","''")
+      snOut = snOut:gsub("'","''")
     end
     if(bQuoted) then
       local sqChar
       if(sQuote) then
-        sqChar = stringSub(tostring(sQuote),1,1)
+        sqChar = tostring(sQuote):sub(1,1)
       else
         if    (sModeDB == "SQL") then sqChar = "'"
         elseif(sModeDB == "LUA") then sqChar = "\"" end
@@ -2425,6 +2426,13 @@ end
 
 ---------------------- EXPORT --------------------------------
 
+local function StripDSV(vVal)
+  local sVal = tostring(vVal or ""):Trim()
+  if(sVal:sub( 1, 1) == "\"") then sVal = sVal:sub(2,-1) end
+  if(sVal:sub(-1,-1) == "\"") then sVal = sVal:sub(1,-2) end
+  return sVal:Trim()
+end
+
 local function GetFieldsName(defTable,sDelim)
   if(not IsExistent(sDelim)) then return "" end
   local sDelim  = stringSub(tostring(sDelim),1,1)
@@ -2445,37 +2453,40 @@ local function GetFieldsName(defTable,sDelim)
   return sResult
 end
 
-function StoreExternalCategory(vEq, sPrefix)
-  local nEq = tonumber(vEq) or 0
+function StoreExternalCategory(vEq, sPrefix, tSource, sAddon)
+  local nEq   = tonumber(vEq) or 0
+  local sName = tostring(sAddon or GetOpVar("MISS_NOAV"))
   if(nEq <= 0) then
-    return StatusLog(nil, "StoreExternalCategory: Wrong equality <"..tostring(vEq)..">") end
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..tostring(sPrefix or GetInstPref())
-        fName = fName..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
-  local F = fileOpen(fName, "w", "DATA")
-  if(not F) then return StatusLog(false,"StoreExternalCategory: fileOpen("..fName..".txt) Failed") end
+    return StatusLog(false, "StoreExternalCategory: Wrong equality <"..tostring(vEq).."> from "..sName) end
+  local fName = GetOpVar("DIRPATH_BAS")
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  fName = fName..GetOpVar("DIRPATH_DSV")
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  fName = fName..tostring(sPrefix or GetInstPref())..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
+  local F = fileOpen(fName, "wb", "DATA")
+  if(not F) then return StatusLog(false,"StoreExternalCategory: fileOpen("..fName..") failed from "..sName) end
   local sEq, nLen = ("="):rep(nEq), (nEq+2)
-  local tCat = GetOpVar("TABLE_CATEGORIES")
   local sMod = GetOpVar("MODE_DATABASE")
+  local tCat = (type(tSource) == "table") and tSource or GetOpVar("TABLE_CATEGORIES")
   F:Write("# StoreExternalCategory( "..tostring(nEq).." ): "..osDate().." [ "..sMod.." ]".."\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
       local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
-      if(not rec.Txt:find("\n")) then
-        return StatusLog(nil, "StoreExternalCategory: Category one-liner <"..cat..">") end
+      if(not rec.Txt:find("\n")) then F:Flush(); F:Close()
+        return StatusLog(false, "StoreExternalCategory: Category one-liner <"..cat.."> from "..sName) end
       F:Write(exp.."\n")
-    else StatusLog(nil, "StoreExternalCategory: Category <"..cat.."> code <"..tostring(rec.Txt).."> invalid ") end
-  end; F:Flush(); F:Close()
+    else F:Flush(); F:Close(); StatusLog(false, "StoreExternalCategory: Category <"..cat.."> code <"..tostring(rec.Txt).."> invalid from "..sName) end
+  end; F:Flush(); F:Close(); return StatusLog(true, "StoreExternalCategory: Success")
 end
 
 function ImportCategory(vEq, sPrefix)
   local nEq = tonumber(vEq) or 0
   if(nEq <= 0) then
-    return StatusLog(nil,"ImportCategory: Wrong equality <"..tostring(vEq)..">") end
+    return StatusLog(false,"ImportCategory: Wrong equality <"..tostring(vEq)..">") end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..tostring(sPrefix or GetInstPref())
         fName = fName..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
-  local F = fileOpen(fName, "r", "DATA")
+  local F = fileOpen(fName, "rb", "DATA")
   if(not F) then return StatusLog(false,"ImportCategory: fileOpen("..fName..") failed") end
   local sEq, sLin, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk, sCh = "["..sEq.."[", "]"..sEq.."]", "X"
@@ -2488,68 +2499,27 @@ function ImportCategory(vEq, sPrefix)
       if(sLin:sub(-1,-1) == "\r") then
         sLin = sLin:sub(1,-2) end
       local sFr, sBk = sLin:sub(1,nLen), sLin:sub(-nLen,-1)
-      if(sFr == cFr and sBk == cBk) then
-        return StatusLog(nil, "ImportCategory: Category one-liner <"..sLin..">")
+      if(sFr == cFr and sBk == cBk) then F:Close()
+        return StatusLog(false, "ImportCategory: Category one-liner <"..sLin..">")
       elseif(sFr == cFr and not isPar) then
         sPar, isPar = sLin:sub(nLen+1,-1).."\n", true
       elseif(sBk == cBk and isPar) then
         sPar, isPar = sPar..sLin:sub(1,-nLen-1), false
         local tBoo = stringExplode(sEq,sPar)
         local key, txt = tBoo[1], tBoo[2]
-        if(key == "") then
-          return StatusLog(nil, "ImportCategory: Name missing <"..txt..">") end
-        if(not txt:find("function")) then
-          return StatusLog(nil, "ImportCategory: Function missing <"..key..">") end
+        if(key == "") then F:Close()
+          return StatusLog(false, "ImportCategory: Name missing <"..txt..">") end
+        if(not txt:find("function")) then F:Close()
+          return StatusLog(false, "ImportCategory: Function missing <"..key..">") end
         tCat[key] = {}; tCat[key].Txt = txt:Trim()
         tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
         local suc, out = pcall(tCat[key].Cmp)
-        if(not suc) then
-          return StatusLog(nil, "ImportCategory: Compilation fail <"..key..">") end
+        if(not suc) then F:Close()
+          return StatusLog(false, "ImportCategory: Compilation fail <"..key..">") end
         tCat[key].Cmp = out
       else sPar = sPar..sLin.."\n" end; sLin = ""
     else sLin = sLin..sCh end
-  end; F:Close(); return tCat
-end
-
---[[
- * Import table data from DSV database created earlier
- * sTable  = Definition KEY to import
- * sDelim  = Delimiter separating the values
- * bCommit = Calls InsertRecord() when set to true
- * sPrefix = Prefix used on importing ( if any )
-]]--
-function ImportDSV(sTable,sDelim,bCommit,sPrefix)
-  if(not IsString(sTable)) then
-    return StatusLog(false,"ImportDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
-    return StatusLog(false,"ImportDSV: Missing table definition for <"..sTable..">") end
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
-  local F = fileOpen(fName, "r", "DATA")
-  if(not F) then return StatusLog(false,"ImportDSV: fileOpen("..fName..") failed") end
-  local symOff = GetOpVar("OPSYM_DISABLE")
-  local nLen = defTable.Name:len()
-  local sLine, sChar, nLin = "", "X", 0
-  while(sChar) do
-    sChar = F:Read(1)
-    if(not sChar) then break end -- Exit the loop and close the file
-    if(sChar == "\n") then
-      nLin = sLine:len(sLine)
-      if(sLine:sub(nLin,nLin) == "\r") then
-        sLine = sLine:sub(1,nLin-1)
-        nLin = nLin - 1
-      end
-      if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
-        local tData = stringExplode(sDelim,sLine:sub(nLen+2,nLin))
-        for k,v in pairs(tData) do
-          if(v:sub(1,1) == "\"" and v:sub(-1,-1) == "\"") then
-            tData[k] = v:sub(2,-2) end
-        end
-        if(bCommit) then InsertRecord(sTable,tData) end
-      end; sLine = ""
-    else sLine = sLine..sChar end
-  end; F:Close()
+  end; F:Close(); return StatusLog(true, "ImportCategory: Compilation fail <"..key..">")
 end
 
 --[[
@@ -2593,7 +2563,7 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
   fName = fName..GetOpVar("DIRPATH_"..sMethod)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
-  local F = fileOpen(fName, "w", "DATA" )
+  local F = fileOpen(fName, "wb", "DATA" )
   if(not F) then return StatusLog(false,"StoreExternalDatabase: fileOpen("..fName..") failed") end
   local sData, sTemp = "", ""
   local sModeDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
@@ -2717,6 +2687,41 @@ function StoreExternalDatabase(sTable,sDelim,sMethod,sPrefix)
 end
 
 --[[
+ * Import table data from DSV database created earlier
+ * sTable  = Definition KEY to import
+ * sDelim  = Delimiter separating the values
+ * bCommit = Calls InsertRecord() when set to true
+ * sPrefix = Prefix used on importing ( if any )
+]]--
+function ImportDSV(sTable,sDelim,bCommit,sPrefix)
+  if(not IsString(sTable)) then
+    return StatusLog(false,"ImportDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
+  local defTable = GetOpVar("DEFTABLE_"..sTable)
+  if(not defTable) then
+    return StatusLog(false,"ImportDSV: Missing table definition for <"..sTable..">") end
+  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+        fName = fName..tostring(sPrefix or GetInstPref())..defTable.Name..".txt"
+  local F = fileOpen(fName, "rb", "DATA")
+  if(not F) then return StatusLog(false,"ImportDSV: fileOpen("..fName..") failed") end
+  local symOff = GetOpVar("OPSYM_DISABLE")
+  local nLen = defTable.Name:len()
+  local sLine, sCh = "", "X"
+  while(sCh) do
+    sCh = F:Read(1)
+    if(not sCh) then break end -- Exit the loop and close the file
+    if(sCh == "\n") then
+      sLine = sLine:Trim()
+      if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
+        local tData = stringExplode(sDelim,sLine:sub(nLen+2,-1))
+        for k, _ in pairs(tData) do
+          tData[k] = StripDSV(tData[k]) end
+        if(bCommit) then InsertRecord(sTable, tData) end
+      end; sLine = ""
+    else sLine = sLine..sCh end
+  end; F:Close(); return StatusLog(true, "ImportDSV: Success")
+end
+
+--[[
  * This function synchronizes extended database records loaded by the server and client
  * It is used my addon creators when they want to add extra piecs to TA
  * sTable > The table you want to sync
@@ -2726,20 +2731,20 @@ end
  * sPref  > The external data prefix to be used
  * sAddon > Who is adding these records to the table
 ]]--
-function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
+function SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
   if(not IsString(sAddon)) then
-    return StatusLog(false,"SynchronizeExtendedDSV: Addon {"..type(sAddon).."}<"..tostring(sAddon).."> not string") end
+    return StatusLog(false,"SynchronizeDSV: Addon {"..type(sAddon).."}<"..tostring(sAddon).."> not string") end
   if(not IsString(sTable)) then
-    return StatusLog(false,"SynchronizeExtendedDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string from <"..sAddon..">") end
+    return StatusLog(false,"SynchronizeDSV: Table {"..type(sTable).."}<"..tostring(sTable).."> not string from <"..sAddon..">") end
   local defTable = GetOpVar("DEFTABLE_"..sTable)
   if(not defTable) then
-    return StatusLog(false,"SynchronizeExtendedDSV: Missing table definition for <"..sTable.."> from <"..sAddon..">") end
+    return StatusLog(false,"SynchronizeDSV: Missing table definition for <"..sTable.."> from <"..sAddon..">") end
   local fName = GetOpVar("DIRPATH_BAS")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..tostring(sPref or GetInstPref())..defTable.Name..".txt"
-  local I, fData, smOff = fileOpen(fName, "r", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
+  local I, fData, smOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
   if(I) then
     local sLine, sCh  = "", "X"
     while(sCh) do
@@ -2751,10 +2756,7 @@ function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
           local tLine = stringExplode(sDelim,sLine)
           if(tLine[1] == defTable.Name) then
             for i = 1, #tLine do
-              if(tLine[i]:sub( 1, 1) == "\"") then tLine[i] = tLine[i]:sub(2,-1) end
-              if(tLine[i]:sub(-1,-1) == "\"") then tLine[i] = tLine[i]:sub(1,-2) end
-              tLine[i] = tLine[i]:Trim()
-            end
+              tLine[i] = StripDSV(tLine[i]) end
             local sKey = tLine[2]
             if(not fData[sKey]) then fData[sKey] = {Kept = 0} end
               tKey = fData[sKey]
@@ -2763,20 +2765,20 @@ function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
             elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = tonumber(vID) or 0
             elseif(sTable == "PHYSPROPERTIES") then  vID = tLine[3]; nID = tonumber(vID) or 0 end
             if((tKey.Kept < 0) or (nID <= tKey.Kept) or ((nID - tKey.Kept) ~= 1)) then
-              I:Close(); return StatusLog(false,"SynchronizeExtendedDSV: Read pont ID #"..
+              I:Close(); return StatusLog(false,"SynchronizeDSV: Read pont ID #"..
                 tostring(vID).." desynchronized <"..sKey.."> of <"..sTable.."> from <"..sAddon..">") end
             tKey.Kept = nID; tKey[tKey.Kept] = {}
             local kKey, nCnt = tKey[tKey.Kept], 3
             while(tLine[nCnt]) do -- Do a value matching without automatic quotes
-              local vMatch = MatchType(defTable,tLine[nCnt],nCnt-1,false)
+              local vMatch = MatchType(defTable,tLine[nCnt],nCnt-1,true,"\"",true)
               if(not IsExistent(vMatch)) then
-                I:Close(); return StatusLog(false,"SynchronizeExtendedDSV: Read matching failed <"
+                I:Close(); return StatusLog(false,"SynchronizeDSV: Read matching failed <"
                   ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "..defTable[nCnt-1][1].."> of <"
                     ..defTable.."> from <"..sAddon..">")
               end; kKey[nCnt-2] = vMatch; nCnt = nCnt + 1
             end
           else I:Close()
-            return StatusLog(false,"SynchronizeExtendedDSV: Read table name mismatch <"..sTable.."> from <"..sAddon..">") end
+            return StatusLog(false,"SynchronizeDSV: Read table name mismatch <"..sTable.."> from <"..sAddon..">") end
         end; sLine = ""
       else sLine = sLine..sCh end
     end; I:Close()
@@ -2789,12 +2791,12 @@ function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
       elseif(sTable == "ADDITIONS") then vID = tRec[3]; nID = tonumber(vID) or 0
       elseif(sTable == "PHYSPROPERTIES") then vID = tRec[1]; nID = tonumber(vID) or 0 end
       if(pnID ~= nID) then
-        return StatusLog(false,"SynchronizeExtendedDSV: Given pont ID #"..
+        return StatusLog(false,"SynchronizeDSV: Given pont ID #"..
           tostring(vID).." desynchronized <"..mod.."> of "..sTable.." from <"..sAddon..">") end
       for nCnt = 1, #tRec do -- Do a value matching without automatic quotes
-        local vMatch = MatchType(defTable,tRec[nCnt],nCnt+1,false)
+        local vMatch = MatchType(defTable,tRec[nCnt],nCnt+1,true,"\"",true)
         if(not IsExistent(vMatch)) then
-          return StatusLog(false,"SynchronizeExtendedDSV: Given matching failed <"
+          return StatusLog(false,"SynchronizeDSV: Given matching failed <"
             ..tostring(tRec[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTable[nCnt+1][1].."> of "
               ..sTable.." from <"..sAddon..">")
         end
@@ -2809,10 +2811,10 @@ function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
   end
   local tSort = Sort(tableGetKeys(fData))
   if(not tSort) then
-    return StatusLog(false,"SynchronizeExtendedDSV: Sorting failed from <"..sAddon..">") end
-  local O = fileOpen(fName, "w" ,"DATA")
-  if(not O) then return StatusLog(false,"SynchronizeExtendedDSV: Write fileOpen("..fName..") failed from <"..sAddon..">") end
-  O:Write("# SynchronizeExtendedDSV: "..osDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
+    return StatusLog(false,"SynchronizeDSV: Sorting failed from <"..sAddon..">") end
+  local O = fileOpen(fName, "wb" ,"DATA")
+  if(not O) then return StatusLog(false,"SynchronizeDSV: Write fileOpen("..fName..") failed from <"..sAddon..">") end
+  O:Write("# SynchronizeDSV: "..osDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   O:Write("# Data settings:\t"..GetFieldsName(defTable,sDelim).."\n")
   for rcID = 1, #tSort do
     local mod = tSort[rcID].Val
@@ -2821,16 +2823,80 @@ function SynchronizeExtendedDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
     for pnID = 1, rec.Kept do
       local tItem = rec[pnID]
       for nCnt = 1, #tItem do
-        local vMatch = MatchType(defTable,tItem[nCnt],nCnt+1,true,"\"")
+        local vMatch = MatchType(defTable,tItem[nCnt],nCnt+1,true,"\"",true)
         if(not IsExistent(vMatch)) then
           O:Flush(); O:Close()
-          return StatusLog(false,"SynchronizeExtendedDSV: Write matching failed <"
+          return StatusLog(false,"SynchronizeDSV: Write matching failed <"
             ..tostring(tItem[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTable[nCnt+1][1].."> of "..sTable.." from <"..sAddon..">")
         end
         sData = sData..sDelim..tostring(vMatch)
       end; O:Write(sCash..sData.."\n"); sData = ""
     end
-  end O:Flush(); O:Close(); return true
+  end O:Flush(); O:Close(); return StatusLog(true,"SynchronizeDSV: Success <"..sAddon..">")
+end
+
+function RegisterDSV(sPrefix, sAddon)
+  if(CLIENT and gameSinglePlayer()) then
+    return StatusLog(true,"RegisterDSV: Single client <"..sAddon..">") end
+  if(not IsString(sAddon)) then
+    return StatusLog(false,"RegisterDSV: Addon {"..type(sAddon).."}<"
+      ..tostring(sAddon).."> not string") end
+  if(IsEmptyString(sAddon)) then
+    return StatusLog(false,"RegisterDSV: Addon empty") end
+  if(not IsString(sPrefix)) then
+    return StatusLog(false,"RegisterDSV: Prefix {"..type(sPrefix).."}<"
+      ..tostring(sPrefix).."> not string from "..sAddon) end
+  if(IsEmptyString(sPrefix)) then
+    return StatusLog(false,"RegisterDSV: Prefix empty from "..sAddon) end
+  local fName = GetOpVar("DIRPATH_BAS")
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  fName = fName.."trackasmlib_dsv.txt"
+  local F = fileOpen(fName, "ab" ,"DATA")
+  if(not F) then return StatusLog(false,"RegisterDSV: fileOpen("..fName..") failed from <"..sAddon..">") end
+  F:Write(sPrefix:Trim().."\n"); F:Flush(); F:Close()
+  return StatusLog(true,"RegisterDSV: Success <"..sAddon..">")
+end
+
+function ProcessDSV()
+  local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_dsv.txt"
+  local F = fileOpen(fName, "rb" ,"DATA")
+  if(not F) then return StatusLog(false,"ProcessDSV: fileOpen("..fName..") failed") end
+  local sCh, sLine, sPath, tProcess = "X", "", "", {}
+  local sDr, sPu = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV"), GetOpVar("TOOLNAME_PU")
+  while(sCh) do
+    sCh = F:Read(1)
+    if(not sCh) then break end
+    if(sCh == "\n") then
+      sLine = sLine:Trim()
+      if(not IsEmptyString(sLine)) then -- Is there something
+        if(not tProcess[sLine]) then -- If not processed already
+          sPath = sDr..sLine..sPu
+          if(CLIENT) then
+            if(fileExists(sPath.."CATEGORY.txt", "DATA")) then
+              if(not ImportCategory(3, sLine)) then F:Close()
+                return StatusLog(false,"ProcessDSV("..sLine.."): Failed CATEGORY") end
+              LogInstance("ProcessDSV("..sLine.."): CATEGORY")
+            end
+          end
+          if(fileExists(sPath.."PIECES.txt", "DATA")) then
+            if(not ImportDSV("PIECES", "\t", true, sLine)) then F:Close()
+              return StatusLog(false,"ProcessDSV("..sLine.."): Failed PIECES") end
+            LogInstance("ProcessDSV("..sLine.."): PIECES")
+          end
+          if(fileExists(sPath.."ADDITIONS.txt", "DATA")) then
+            if(not ImportDSV("ADDITIONS", "\t", true, sLine)) then F:Close()
+              return StatusLog(false,"ProcessDSV("..sLine.."): Failed ADDITIONS") end
+            LogInstance("ProcessDSV("..sLine.."): ADDITIONS")
+          end
+          if(fileExists(sPath.."PHYSPROPERTIES.txt", "DATA")) then
+            if(not ImportDSV("PHYSPROPERTIES", "\t", true, sLine)) then F:Close()
+              return StatusLog(false,"ProcessDSV("..sLine.."): Failed PHYSPROPERTIES") end
+            LogInstance("ProcessDSV("..sLine.."): PHYSPROPERTIES")
+          end; tProcess[sLine] = true
+        else LogInstance("ProcessDSV("..sLine.."): Already processed") end
+      end; sLine = ""
+    else sLine = sLine..sCh end
+  end; F:Close(); return StatusLog(true,"ProcessDSV: Success")
 end
 
 ----------------------------- SNAPPING ------------------------------

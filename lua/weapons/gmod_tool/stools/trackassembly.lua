@@ -55,6 +55,7 @@ local VEC_ZERO = asmlib.GetOpVar("VEC_ZERO")
 local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
+local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
@@ -71,29 +72,9 @@ local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
-local gsFullEXT   = asmlib.GetOpVar("DIRPATH_BAS")
-                  ..asmlib.GetOpVar("DIRPATH_DSV")..
-             "ex_"..asmlib.GetOpVar("TOOLNAME_PU")
 
-             --- Load extended parameterixation ( if any )
-if(fileExists(gsFullEXT.."CATEGORY.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB CATEGORY from EXT")
-  asmlib.ImportCategory(3,"ex_")
-end
-
-if(fileExists(gsFullEXT.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PIECES from EXT")
-  asmlib.ImportDSV("PIECES","\t",true,"ex_")
-end
-
-if(fileExists(gsFullEXT.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from EXT")
-  asmlib.ImportDSV("PHYSPROPERTIES","\t",true,"ex_")
-end
-
-if(fileExists(gsFullEXT.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from EXT")
-  asmlib.ImportDSV("ADDITIONS","\t",true,"ex_")
+if(not asmlib.ProcessDSV()) then
+  asmlib.LogInstance("Processing data list failed <"..gsDataRoot.."trackasmlib_dsv.txt>")
 end
 
 cleanupRegister(gsLimitName)

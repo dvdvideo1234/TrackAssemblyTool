@@ -1,5 +1,5 @@
-# StoreExternalDatabase( DSV ): 01/19/17 00:07:38 [ LUA ]
-# Data settings: MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS
+# StoreExternalDatabase( DSV ): 01/22/17 17:15:05 [ LUA ]
+# Data settings:	MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS
 TRACKASSEMBLY_PIECES	"models/craptrax/curve_cs_std/curve_cs_std_damaged.mdl"	"Battleship's abandoned rails"	"#"	1	""	"0,0,-16.110403"	""	""
 TRACKASSEMBLY_PIECES	"models/craptrax/curve_cs_std/curve_cs_std_damaged.mdl"	"Battleship's abandoned rails"	"#"	2	""	"-966.40771,127.97242,-16.110403"	"0,165,0"	""
 TRACKASSEMBLY_PIECES	"models/craptrax/curve_cs_std/curve_cs_std_nodamage.mdl"	"Battleship's abandoned rails"	"#"	1	""	"0,0,-16.110403"	""	""

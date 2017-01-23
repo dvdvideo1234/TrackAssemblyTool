@@ -1,54 +1,140 @@
-     1 [01/01/17 17:21:40] SERVER > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PIECES from DSV
-     2 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_left>
-     3 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_right>
-     4 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_left>
-     5 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_right>
-     6 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_left>
-     7 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_right>
-     8 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_x>
-     9 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_y>
-    10 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PHYSPROPERTIES from DSV
-    11 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB ADDITIONS from DSV
-    12 [01/01/17 17:21:41] SERVER > TRACKASSEMBLY [LUA] CacheQueryProperty: Types << Pool
-     1 [01/01/17 17:21:41] CLIENT > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PIECES from DSV
-     2 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_left>
-     3 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_right>
-     4 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_left>
-     5 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_right>
-     6 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_left>
-     7 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_right>
-     8 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_x>
-     9 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_y>
-    10 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB PHYSPROPERTIES from DSV
-    11 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] TRACKASSEMBLY: DB ADDITIONS from DSV
-    12 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] CacheQueryProperty: Types << Pool
-    13 [01/01/17 17:21:42] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
-    23 [01/01/17 17:21:46] CLIENT > TRACKASSEMBLY [LUA] InitLocalify: Code <en> selected
-    25 [01/01/17 17:21:48] CLIENT > TRACKASSEMBLY [LUA] DrawToolScreen: Create screen
-    26 [01/01/17 17:21:48] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
-   420 [01/01/17 17:21:55] CLIENT > TRACKASSEMBLY [LUA] DrawHUD: Create screen
-   421 [01/01/17 17:21:55] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
-  1759 [01/01/17 17:22:30] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
-  1760 [01/01/17 17:22:30] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
-    13 [01/01/17 17:22:46] SERVER > TRACKASSEMBLY [LUA] TOOL.ElevateGhost(false): <6.9277763366699>
-  2422 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
-    14 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ReadKeyPly: Player <[BA][Sk$Bh]Trick or treat KID!> keys loaded
-    15 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] MakePiece: Unit(true) <r2ftp_junction_s_right>
-    16 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] SetPosBound(LOG): Success
-    17 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] AttachBodyGroups: <0>
-    18 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ePiece:SetBodygroup(0,0) [0]
-    19 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] AttachBodyGroups: Success
-    20 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] CacheQueryAdditions: Record not located
-    21 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] AttachAdditions: Model <models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl> has no additions
-    22 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] MakePiece: Entity [87][r2ftp_junction_s_right]models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl
-    23 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: {false,true,false,water}
-    24 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: Success
-    25 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalAnchor: {nil,true,0}
-    26 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalAnchor: Base <nil> constraint ignored
-    27 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] TOOL:LeftClick(World): Success
-  2423 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
-    28 [01/01/17 17:22:47] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: Freeze
-  2455 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
-  2456 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
-  2459 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] BIND_PRESS: Active key missing
-  2460 [01/01/17 17:22:47] CLIENT > TRACKASSEMBLY [LUA] PHYSGUN_DRAW: Extension disabled
+     1 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PIECES deleted !
+     2 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PIECES dropped !
+     3 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PIECES created !
+     4 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS deleted !
+     5 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS dropped !
+     6 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Indexed Table ADDITIONS created !
+     7 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES deleted !
+     8 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES dropped !
+     9 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PHYSPROPERTIES created !
+    10 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] Init: DB PIECES from LUA
+    11 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPieces> missing
+    12 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    13 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_left>
+    14 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_right>
+    15 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_left>
+    16 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_right>
+    17 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_left>
+    18 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_right>
+    19 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_y>
+    20 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_x>
+    21 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] Init: DB PHYSPROPERTIES from LUA
+    22 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPhysproperties> missing
+    23 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    24 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    25 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] Init: DB ADDITIONS from LUA
+    26 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertAdditions> missing
+    27 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    28 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    29 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
+    30 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] >>> @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
+    31 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] Status: {Test's track pack, Test_s_track_pack}
+    32 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] RegisterDSV: Success <Test's track pack>
+    33 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SynchronizeDSV: Success <Test's track pack>
+    34 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] <<< @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
+    35 [01/23/17 00:04:03] SERVER > TRACKASSEMBLY [SQL] ProcessDSV(Test_s_track_pack): PIECES
+    36 [01/23/17 00:04:03] SERVER > TRACKASSEMBLY [SQL] ProcessDSV: Success
+     1 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PIECES deleted !
+     2 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PIECES dropped !
+     3 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PIECES created !
+     4 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS deleted !
+     5 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS dropped !
+     6 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Indexed Table ADDITIONS created !
+     7 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES deleted !
+     8 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES dropped !
+     9 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PHYSPROPERTIES created !
+    10 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] Init: DB CATEGORY skip DSV
+    11 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] Init: DB PIECES from LUA
+    12 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPieces> missing
+    13 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    14 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_left>
+    15 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_right>
+    16 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_left>
+    17 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_right>
+    18 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_left>
+    19 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_right>
+    20 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_y>
+    21 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_x>
+    22 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] Init: DB PHYSPROPERTIES from LUA
+    23 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPhysproperties> missing
+    24 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    25 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    26 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] Init: DB ADDITIONS from LUA
+    27 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertAdditions> missing
+    28 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    29 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    30 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
+    31 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] >>> @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
+    32 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] Status: {Test's track pack, Test_s_track_pack}
+    33 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] StoreExternalCategory: Success
+    34 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SynchronizeDSV: Success <Test's track pack>
+    35 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] <<< @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
+    36 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] ProcessDSV(Test_s_track_pack): CATEGORY
+    37 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] ProcessDSV(Test_s_track_pack): PIECES
+    38 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] ProcessDSV: Success
+    39 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] InitLocalify: Code <en> selected
+    40 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPanel> missing
+    41 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    42 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPanel"] = "SELECT MODEL, TYPE, NAME FROM TRACKASSEMBLY_PIECES WHERE LINEID = %d ORDER BY TYPE ASC, NAME ASC;"
+    43 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    44 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
+    45 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryPanel> for Place[TRACKASSEMBLY_USER_PANEL]
+    46 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (1800) true, true
+    47 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
+    48 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Place[TRACKASSEMBLY_USER_PANEL] @562.95
+    49 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0128.mdl> .. SKIPPING !
+    50 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0256.mdl> .. SKIPPING !
+    51 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0512.mdl> .. SKIPPING !
+    52 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s1024.mdl> .. SKIPPING !
+    53 [01/23/17 00:12:17] CLIENT > TRACKASSEMBLY [SQL] Extension <Ron's 2ft track pack> missing <models/ron/2ft/bridges/bridge_32.mdl> .. SKIPPING !
+    54 [01/23/17 00:12:17] CLIENT > TRACKASSEMBLY [SQL] Extension <Ron's 2ft track pack> missing <models/ron/2ft/bridges/bridge_64.mdl> .. SKIPPING !
+    55 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Found #1098 piece items.
+    56 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPropertyTypes> missing
+    57 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
+    58 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPropertyTypes"] = "SELECT TYPE FROM TRACKASSEMBLY_PHYSPROPERTIES WHERE LINEID = %d ORDER BY TYPE ASC;"
+    59 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    60 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPanel"] = "SELECT MODEL, TYPE, NAME FROM TRACKASSEMBLY_PIECES WHERE LINEID = %d ORDER BY TYPE ASC, NAME ASC;"
+    61 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    62 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] CacheQueryProperty: Types >> Pool
+    63 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryProperty> for Place[PROPERTY_TYPES]
+    64 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (600) true, true
+    65 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
+    66 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Place[PROPERTY_TYPES] @566.31
+    67 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[1] = "Concrete"
+    68 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[2] = "Frozen"
+    69 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[3] = "Liquid"
+    70 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[4] = "Manufactured"
+    71 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[5] = "Metal"
+    72 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[6] = "Miscellaneous"
+    73 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[7] = "Organic"
+    74 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[8] = "Special"
+    75 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[9] = "Terrain"
+    76 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[10] = "Wood"
+    77 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property["Used"] = 566.30595434845
+    78 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property["Kept"] = 10
+    79 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Found #10 material types.
+    37 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] CacheQueryPiece: Model >> Pool <window1x2.mdl>
+    38 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPiece> missing
+    39 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    40 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPiece"] = "SELECT * FROM TRACKASSEMBLY_PIECES WHERE MODEL = %s ORDER BY LINEID ASC;"
+    41 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    42 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
+    43 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryPiece> for Place[models/props_phx/construct/windows/window1x2.mdl]
+    44 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (1800) true, true
+    45 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
+    46 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: Place[models/props_phx/construct/windows/window1x2.mdl] @566.53
+    47 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TOOL.ElevateGhost(false): <3.010507106781>
+    80 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] DrawToolScreen: Create screen
+    81 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] CacheQueryPiece: Model >> Pool <window1x2.mdl>
+    82 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPiece> missing
+    83 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
+    84 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPiece"] = "SELECT * FROM TRACKASSEMBLY_PIECES WHERE MODEL = %s ORDER BY LINEID ASC;"
+    85 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPropertyTypes"] = "SELECT TYPE FROM TRACKASSEMBLY_PHYSPROPERTIES WHERE LINEID = %d ORDER BY TYPE ASC;"
+    86 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
+    87 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPanel"] = "SELECT MODEL, TYPE, NAME FROM TRACKASSEMBLY_PIECES WHERE LINEID = %d ORDER BY TYPE ASC, NAME ASC;"
+    88 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
+    89 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryPiece> for Place[models/props_phx/construct/windows/window1x2.mdl]
+    90 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (1800) true, true
+    91 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
+    92 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Place[models/props_phx/construct/windows/window1x2.mdl] @566.62
+    93 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] DrawHUD: Create screen

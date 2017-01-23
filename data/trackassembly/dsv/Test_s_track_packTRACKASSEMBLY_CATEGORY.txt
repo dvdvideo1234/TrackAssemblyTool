@@ -1,0 +1,13 @@
+# StoreExternalCategory( 3 ): 01/22/17 17:04:27 [ LUA ]
+[===[Test's track pack===function(m)
+      local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
+      local s = r:find("/"); r = s and r:sub(1,s-1) or nil
+      local n = nil
+      if(r) then
+        if(r ==  "metal" ) then n = "My metal plate" end
+        if(r == "windows") then n = "My glass plate" end
+      end
+      r = r and r:gsub("^%l", string.upper) or nil
+      p = r and {r} or nil
+      return p, n
+    end]===]

@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.335")
+asmlib.SetOpVar("TOOL_VERSION","5.339")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -630,9 +630,9 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
   if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
-    asmlib.LogInstance(gsToolNameU..": DB CATEGORY from DSV")
+    asmlib.LogInstance("Init: DB CATEGORY from DSV")
     asmlib.ImportCategory(3)
-  else asmlib.LogInstance(gsToolNameU..": DB CATEGORY skip DSV") end
+  else asmlib.LogInstance("Init: DB CATEGORY skip DSV") end
 end
 
 --[[ Track pieces parametrization legend
@@ -648,10 +648,10 @@ end
  * Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PIECES from DSV")
+  asmlib.LogInstance("Init: DB PIECES from DSV")
   asmlib.ImportDSV("PIECES","\t",true)
 else
-  asmlib.LogInstance(gsToolNameU..": DB PIECES from LUA")
+  asmlib.LogInstance("Init: DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
   if(asmlib.GetAsmVar("devmode" ,"BUL")) then
     asmlib.DefaultType("Develop Sprops")
@@ -3221,10 +3221,10 @@ else
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from DSV")
+  asmlib.LogInstance("Init: DB PHYSPROPERTIES from DSV")
   asmlib.ImportDSV("PHYSPROPERTIES","\t",true)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
-  asmlib.LogInstance(gsToolNameU..": DB PHYSPROPERTIES from LUA")
+  asmlib.LogInstance("Init: DB PHYSPROPERTIES from LUA")
   asmlib.DefaultTable("PHYSPROPERTIES")
   asmlib.DefaultType("Special")
   asmlib.InsertRecord({"#", 1 , "default"             })
@@ -3328,10 +3328,10 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
 end
 
 if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from DSV")
+  asmlib.LogInstance("Init: DB ADDITIONS from DSV")
   asmlib.ImportDSV("ADDITIONS","\t",true)
 else
-  asmlib.LogInstance(gsToolNameU..": DB ADDITIONS from LUA")
+  asmlib.LogInstance("Init: DB ADDITIONS from LUA")
   asmlib.DefaultTable("ADDITIONS")
   --- Shinji's Switchers ---
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,0,-1,-1})
