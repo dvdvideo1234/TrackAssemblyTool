@@ -19,23 +19,18 @@ local myType  = myAddon -- The type your addon resides in TA with
 local myError = print
 
 -- This is used for addon relation prefix. Fingers away from it
-local sPrefix = myAddon:gsub("[^%w]","_")
+local myPrefix = myAddon:gsub("[^%w]","_")
 
 -- This is the script path. It tells TA who wants to add these models
 -- Do not touch this also, it is used for debugging
-local sScript = debug.getinfo(1)
-      sScript = sScript and sScript.source or "N/A"
-
--- Here the DSV folder is constructed don't touch this
-local sDSV = trackasmlib.GetOpVar("DIRPATH_BAS")..
-             trackasmlib.GetOpVar("DIRPATH_DSV")..sPrefix..
-             trackasmlib.GetOpVar("TOOLNAME_PU")
+local myScript = debug.getinfo(1)
+      myScript = myScript and myScript.source or "N/A"
 
 -- Tell TA what custom script we just called don't touch it
-trackasmlib.LogInstance(">>> "..sScript)
+trackasmlib.LogInstance(">>> "..myScript)
 
 -- And what parameters I was called with ;)
-trackasmlib.LogInstance("Status: {"..myAddon..", "..sPrefix.."}")
+trackasmlib.LogInstance("Status: {"..myAddon..", "..myPrefix.."}")
 
 --[[
  * Register the addon to the auto-load prefix list when the
@@ -43,10 +38,9 @@ trackasmlib.LogInstance("Status: {"..myAddon..", "..sPrefix.."}")
  * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
  * A.k.a the DATA folder of Garry's mod
 ]]--
-if(not file.Exists(sDSV.."PIECES.txt", "DATA")) then
-  if(not trackasmlib.RegisterDSV(sPrefix, myAddon)) then
-    myError("Failed to register DSV: "..sScript) end
-end
+if(not trackasmlib.RegisterDSV(myPrefix, myScript)) then
+  myError("Failed to register DSV: "..myScript)
+end -- Third argument is the delimiter. The default tab is used
 
 --[[
  * This is used if you want to make internal categories for your addon
@@ -77,16 +71,14 @@ local myCategory ={
 --[[
 * This logic statement is needed for reporting the error in the console if the
  * process fails.
- @ bSuccess = StoreExternalCategory(nInd, sPref, tData, sAddon)
+ @ bSuccess = StoreExternalCategory(nInd, sPref, tData)
  * nInd   > The index equal indent format to be stored with ( generally = 3 )
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
  * tData  > The category functional definition you want to use to divide your stuff with
- * sAddon > Ahh, yes, finally the addon. Here you must put your addon name, so if anything
- *          goes wrong with the Lua file, the addon name will be reported in the logs
 ]]--
 if(CLIENT) then
-  if(not trackasmlib.StoreExternalCategory(3, sPrefix, myCategory, sAddon)) then
-    myError("Failed to synchronize category: "..sScript)
+  if(not trackasmlib.StoreExternalCategory(3, myPrefix, myCategory)) then
+    myError("Failed to synchronize category: "..myScript)
   end
 end
 
@@ -118,19 +110,19 @@ end
 ]]--
 local myTable = {
   ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack
-    {myType ,"#", 1, "","-0.02664,-47.455105,2.96593","0,-90,0",""}, -- The first point parameter
-    {myType ,"#", 2, "","-0.02664, 47.455105,2.96593","0, 90,0",""}  -- The second point parameter
+    {myType ,"#", 1, "","0,-47.455105,1.482965","0,-90,0",""}, -- The first point parameter
+    {myType ,"#", 2, "","0, 47.455105,1.482965","0, 90,0",""}  -- The second point parameter
   },
   ["models/props_phx/construct/windows/window1x2.mdl"] = {
-    {myType ,"#", 1, "","-0.02664,-23.73248,2.96593","0,-90,0",""},
-    {myType ,"#", 2, "","-0.02664, 71.17773,2.96593","0, 90,0",""}
+    {myType ,"#", 1, "","0,-23.73248,1.482965","0,-90,0",""},
+    {myType ,"#", 2, "","0, 71.17773,1.482965","0, 90,0",""}
   }
 }
 
 --[[
  * This logic statement is needed for reporting the error in the console if the
  * process fails.
- @ bSuccess = SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref, sAddon)
+ @ bSuccess = SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref)
  * sTable > The table you want to sync
  * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
  * bRepl  > If set to /true/, makes the api to replace the repeting models with
@@ -139,11 +131,9 @@ local myTable = {
             database and ignores yours if they are the same file.
  * tData  > A data table like the one described above
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
- * sAddon > Ahh, yes, finally the addon. Here you must put your addon name, so if anything
- *          goes wrong with the Lua file, the addon name will be reported in the logs
 ]]--
-if(not trackasmlib.SynchronizeDSV("PIECES", "\t", true, myTable, sPrefix, myAddon)) then
-  myError("Failed to synchronize track pieces: "..sScript)
+if(not trackasmlib.SynchronizeDSV("PIECES", "\t", true, myTable, myPrefix)) then
+  myError("Failed to synchronize track pieces: "..myScript)
 end
 
-trackasmlib.LogInstance("<<< "..sScript)
+trackasmlib.LogInstance("<<< "..myScript)

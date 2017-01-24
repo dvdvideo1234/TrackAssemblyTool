@@ -61,13 +61,12 @@ function void printPoint(Mode:string, Hash:string, Point:number, Org:vector, Ang
     {
         StrOrg = ""
     }
-    
+
     StrCls = entity():isConstrainedTo(1):type()
     if(StrCls == "prop_physics"){ StrCls = "" }
-    
-    
-    StrPnt = "NULL"
-    
+
+    StrPnt = ""
+
     if(Mode == "DSV")
     {
         Del = "\t"
@@ -103,16 +102,19 @@ if(first() || dupefinished())
 {
     # What model to search for vector offset
     Prop = "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"
-    # Prop = "models/hunter/blocks/cube025x025x025.mdl"
 
     # Point ID to be exported
+    # Set this to 0 to use direct point generation based on the model given
+    # Set this to <>0 to use point generation via iterative binary search
+    # Set this to positive to make the algorithm trace forward
+    # Set this to negative to make the algorithm trace backwards
     PointID = 0
-    
+
     # What segment type are we processing
     # road     --> Roads ( PHX roads )
     # monorail --> PHX monorail
-    # genaeral --> The two beam tracks segmentnts that we all love and joy
-    TypeSegment = "genaeral"
+    # general  --> The two beam tracks segmentnts that we all love and joy
+    TypeSegment = "general"
 
     # Set this to <>0 for direct Z local offset
     ReferencedZ = 0
@@ -120,27 +122,36 @@ if(first() || dupefinished())
     # What mode will the point be exportet as
     InsertTypeDB = "DSV"
 
-    # Set the Interval to be positive
-    # Click to generate an active point
+    # Automatically managed via the point ID
+    # If positive uses direct point generation
     Interval = (PointID == 0) * 10
 
-    # Outage % Defines hos sensitive the algorithm is
+    # Outage % Defines how sensitive the algorithm is
+    # Lesser number means more sensitive
     OutagePercentTolerance = 3
 
     # Prints the delta if this many switches were made
+    # The higher the number it will wait more before it prints
     PrintCount = 0
 
-    # Set this delta forward to slow fasten the process
+    # This is automatically managed by the point ID selected
+    # Set the coefficient before the sign() to adjust the process speed
+    # The fighed the number the less iteration are made
     DF = 0.4 * sign(PointID)
 
-    # Track piece width
+    # Track piece width and height
+    # The bigger the numbers the more cross section your track piece has
     TrackPieceW = 100
     TrackPieceH = 20
 
-    #Generate the origin with an inset
+    # Generate the origin with an inset
+    # This is used for bad model ends where the program cannot start sometimes
+    # Keep this to the minimum if your tracks are quite good and you want accuracy
     TrackOriginInset = 0.0001
 
-    # Tolerance if the error gained when generating an actibe point
+    # Tolerance of the error gained when generating an active point
+    # This translates to 10 to the power of negative something..
+    # The higher the power the less error algorithm has
     TrackOriginTolerance = "e-012"
 
     Time = 0
@@ -284,7 +295,7 @@ if(Interval > 0)
             PRL = clampTrace(Cen - TrackOriginInset * F ,TrackPieceW,F,R,TrackRangerMaxW,3,4)
             TrackExtraDepth = ARC[1,number] + ARC[4,number]
             TrackExtraSide  = PRL[3,number]
-        }elseif(TypeSegment == "genaeral"){
+        }elseif(TypeSegment == "general"){
             PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
             TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
             TrackExtraSide  = PRL[3,number]
@@ -294,7 +305,7 @@ if(Interval > 0)
         ORG = ORG - TrackExtraSide   * R
         ORG = ORG - TrackExtraDepth  * U
         ORG = ORG - TrackOriginInset * F
-        
+
         O = Base:toLocalAxis(ORG - Base:pos())
         A = Base:toLocal((F):toAngle(U))
 

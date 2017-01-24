@@ -73,7 +73,7 @@ local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
 
-if(not asmlib.ProcessDSV()) then
+if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   asmlib.LogInstance("Processing data list failed <"..gsDataRoot.."trackasmlib_dsv.txt>")
 end
 
