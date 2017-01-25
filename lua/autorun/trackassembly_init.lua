@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.339")
+asmlib.SetOpVar("TOOL_VERSION","5.340")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -269,15 +269,14 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
         asmlib.ConCommandPly(oPly, "maxfruse" , "50")
         asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
-      elseif(stringSub(bgskids,1,7) == "delete ") then
-        local indWord, expWord = 1, stringExplode(" ",stringSub(bgskids,8,-1))
-        while(expWord[indWord]) do
-         local sWord = expWord[indWord]
-         asmlib.DeleteExternalDatabase("PIECES","DSV",sWord.."_")
-         asmlib.DeleteExternalDatabase("ADDITIONS","DSV",sWord.."_")
-         asmlib.DeleteExternalDatabase("PHYSPROPERTIES","DSV",sWord.."_")
-         asmlib.LogInstance("RESET_VARIABLES: Match <"..sWord..">")
-         indWord = indWord + 1
+      elseif(bgskids:sub(1,7) == "delete ") then
+        local tPref = stringExplode(" ",stringSub(bgskids,8,-1))
+        for iCnt = 1, #tPref do
+          local vPr = tPref[iCnt]
+          asmlib.RemoveDSV("PIECES", vPr)
+          asmlib.RemoveDSV("ADDITIONS", vPr)
+          asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
+          asmlib.LogInstance("RESET_VARIABLES: Match <"..vPr..">")
         end
       else return asmlib.StatusLog(true,"RESET_VARIABLES: Command <"..bgskids.."> skipped") end
       return asmlib.StatusLog(true,"RESET_VARIABLES: Success")
@@ -373,14 +372,11 @@ if(CLIENT) then
       pnButton.DoClick = function()
         asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
         if(asmlib.GetAsmVar("exportdb", "BUL")) then
-          asmlib.LogInstance("OPEN_FRAME: Button Exporting DB")
-          asmlib.StoreExternalCategory(3)
-          asmlib.StoreExternalDatabase("PIECES",",","INS")
-          asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
-          asmlib.StoreExternalDatabase("PHYSPROPERTIES",",","INS")
-          asmlib.StoreExternalDatabase("PIECES","\t","DSV")
-          asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
-          asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
+          asmlib.LogInstance("OPEN_FRAME: Button Export DB")
+          asmlib.ExportCategory(3)
+          asmlib.ExportDSV("PIECES")
+          asmlib.ExportDSV("ADDITIONS")
+          asmlib.ExportDSV("PHYSPROPERTIES")
           asmlib.ConCommandPly(oPly, "exportdb", 0)
         end
       end

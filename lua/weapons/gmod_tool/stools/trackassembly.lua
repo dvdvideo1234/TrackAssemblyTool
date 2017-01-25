@@ -634,12 +634,9 @@ function TOOL:Reload(stTrace)
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then self:ClearAnchor() end
     if(self:GetExportDB()) then
       asmlib.LogInstance("TOOL:Reload(World): Exporting DB")
-      asmlib.StoreExternalDatabase("PIECES",",","INS")
-      asmlib.StoreExternalDatabase("ADDITIONS",",","INS")
-      asmlib.StoreExternalDatabase("PHYSPROPERTIES",",","INS")
-      asmlib.StoreExternalDatabase("PIECES","\t","DSV")
-      asmlib.StoreExternalDatabase("ADDITIONS","\t","DSV")
-      asmlib.StoreExternalDatabase("PHYSPROPERTIES","\t","DSV")
+      asmlib.ExportDSV("PIECES")
+      asmlib.ExportDSV("ADDITIONS")
+      asmlib.ExportDSV("PHYSPROPERTIES")
       asmlib.ConCommandPly(ply, "exportdb", 0)
     end
     return asmlib.StatusLog(true,"TOOL:Reload(World): Success")

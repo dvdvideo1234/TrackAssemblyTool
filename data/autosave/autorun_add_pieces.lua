@@ -18,6 +18,8 @@ local myType  = myAddon -- The type your addon resides in TA with
 ]]
 local myError = print
 
+----------------------------------------------------------------------------------
+
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_")
 
@@ -37,8 +39,12 @@ trackasmlib.LogInstance("Status: {"..myAddon..", "..myPrefix.."}")
  * PIECES file is missing. The auto-load list is located in
  * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
  * A.k.a the DATA folder of Garry's mod
+ * @bSuccess RegisterDSV(sProg, sPref, sDelim)
+ * sProg  > The program which registered the DSV
+ * sPref  > The external data prefix to be added ( default instance prefix )
+ * sDelim > The delimiter to be used for processing ( default tab )
 ]]--
-if(not trackasmlib.RegisterDSV(myPrefix, myScript)) then
+if(not trackasmlib.RegisterDSV(myScript, myPrefix)) then
   myError("Failed to register DSV: "..myScript)
 end -- Third argument is the delimiter. The default tab is used
 
@@ -69,15 +75,16 @@ local myCategory ={
 }
 
 --[[
-* This logic statement is needed for reporting the error in the console if the
+ * This logic statement is needed for reporting the error in the console if the
  * process fails.
- @ bSuccess = StoreExternalCategory(nInd, sPref, tData)
+ @ bSuccess = ExportCategory(nInd, tData, sPref)
  * nInd   > The index equal indent format to be stored with ( generally = 3 )
- * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
  * tData  > The category functional definition you want to use to divide your stuff with
+ * sPref  > An export file custom prefix. For synchronizing
+ * it must be related to your addon ( default is tab )
 ]]--
 if(CLIENT) then
-  if(not trackasmlib.StoreExternalCategory(3, myPrefix, myCategory)) then
+  if(not trackasmlib.ExportCategory(3, myCategory, myPrefix)) then
     myError("Failed to synchronize category: "..myScript)
   end
 end
@@ -122,18 +129,21 @@ local myTable = {
 --[[
  * This logic statement is needed for reporting the error in the console if the
  * process fails.
- @ bSuccess = SynchronizeDSV(sTable, sDelim, bRepl, tData, sPref)
+ @ bSuccess = SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
  * sTable > The table you want to sync
- * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
+ * tData  > A data table like the one described above
  * bRepl  > If set to /true/, makes the api to replace the repeting models with
             these of your addon. This is nice when you constantly update your track packs
             If set to /false/ keeps the current model in the
             database and ignores yours if they are the same file.
- * tData  > A data table like the one described above
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
+ * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
 ]]--
-if(not trackasmlib.SynchronizeDSV("PIECES", "\t", true, myTable, myPrefix)) then
+if(not trackasmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
   myError("Failed to synchronize track pieces: "..myScript)
-end
+else -- You are saving me from all the work for manually generatin these
+  if(trackasmlib.TranslateDSV("PIECES", myPrefix)) then
+    myError("Failed to translate DSV into Lua: "..myScript) end
+end -- Now we have Lua inserts and DSV
 
 trackasmlib.LogInstance("<<< "..myScript)
