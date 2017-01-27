@@ -1,6 +1,6 @@
-# SynchronizeDSV: 01/22/17 17:04:27 [LUA]
+# SynchronizeDSV(Test_s_track_pack): 01/27/17 21:42:18 [SQL]
 # Data settings:	MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS
-TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_plate1x2.mdl	"Test's track pack"	"#"	1	"NULL"	"-0.02664,-47.455105,2.96593"	"0,-90,0"	"NULL"
-TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_plate1x2.mdl	"Test's track pack"	"#"	2	"NULL"	"-0.02664, 47.455105,2.96593"	"0, 90,0"	"NULL"
-TRACKASSEMBLY_PIECES	models/props_phx/construct/windows/window1x2.mdl	"Test's track pack"	"#"	1	"NULL"	"-0.02664,-23.73248,2.96593"	"0,-90,0"	"NULL"
-TRACKASSEMBLY_PIECES	models/props_phx/construct/windows/window1x2.mdl	"Test's track pack"	"#"	2	"NULL"	"-0.02664, 71.17773,2.96593"	"0, 90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_plate1x2.mdl	"Test's track pack"	"#"	1	"NULL"	"0,-47.455105,1.482965"	"0,-90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/props_phx/construct/metal_plate1x2.mdl	"Test's track pack"	"#"	2	"NULL"	"0, 47.455105,1.482965"	"0, 90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/props_phx/construct/windows/window1x2.mdl	"Test's track pack"	"#"	1	"NULL"	"0,-23.73248,1.482965"	"0,-90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/props_phx/construct/windows/window1x2.mdl	"Test's track pack"	"#"	2	"NULL"	"0, 71.17773,1.482965"	"0, 90,0"	"NULL"

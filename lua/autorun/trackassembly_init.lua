@@ -38,7 +38,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.340")
+asmlib.SetOpVar("TOOL_VERSION","5.341")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -370,9 +370,9 @@ if(CLIENT) then
       pnButton:SetSize(xySiz.x, xySiz.y)
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
-        asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText().."> clicked")
+        asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText()..">")
         if(asmlib.GetAsmVar("exportdb", "BUL")) then
-          asmlib.LogInstance("OPEN_FRAME: Button Export DB")
+          asmlib.LogInstance("OPEN_FRAME: Export DB")
           asmlib.ExportCategory(3)
           asmlib.ExportDSV("PIECES")
           asmlib.ExportDSV("ADDITIONS")
@@ -628,7 +628,7 @@ if(CLIENT) then
   if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
     asmlib.LogInstance("Init: DB CATEGORY from DSV")
     asmlib.ImportCategory(3)
-  else asmlib.LogInstance("Init: DB CATEGORY skip DSV") end
+  else asmlib.LogInstance("Init: DB CATEGORY from LUA") end
 end
 
 --[[ Track pieces parametrization legend
@@ -645,7 +645,7 @@ end
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance("Init: DB PIECES from DSV")
-  asmlib.ImportDSV("PIECES","\t",true)
+  asmlib.ImportDSV("PIECES", true)
 else
   asmlib.LogInstance("Init: DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
@@ -3218,7 +3218,7 @@ end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
   asmlib.LogInstance("Init: DB PHYSPROPERTIES from DSV")
-  asmlib.ImportDSV("PHYSPROPERTIES","\t",true)
+  asmlib.ImportDSV("PHYSPROPERTIES", true)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   asmlib.LogInstance("Init: DB PHYSPROPERTIES from LUA")
   asmlib.DefaultTable("PHYSPROPERTIES")
@@ -3325,7 +3325,7 @@ end
 
 if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
   asmlib.LogInstance("Init: DB ADDITIONS from DSV")
-  asmlib.ImportDSV("ADDITIONS","\t",true)
+  asmlib.ImportDSV("ADDITIONS", true)
 else
   asmlib.LogInstance("Init: DB ADDITIONS from LUA")
   asmlib.DefaultTable("ADDITIONS")

@@ -2468,7 +2468,7 @@ function ExportCategory(vEq, tData, sPref)
   local F = fileOpen(fName, "wb", "DATA")
   if(not F) then return StatusLog(false,"ExportCategory("..sPref.."): fileOpen("..fName..") failed from") end
   local sEq, nLen, sMod = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
-  local tCat = (type(tSrc) == "table") and tSrc or GetOpVar("TABLE_CATEGORIES")
+  local tCat = (type(tData) == "table") and tData or GetOpVar("TABLE_CATEGORIES")
   F:Write("# ExportCategory( "..tostring(nEq).." )("..sPref.."): "..osDate().." [ "..sMod.." ]".."\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
@@ -2579,13 +2579,13 @@ function ExportDSV(sTable, sPref, sDelim)
     elseif(sTable == "ADDITIONS"     ) then Q = SQLBuildSelect(defTable,nil,nil,{1,4})
     elseif(sTable == "PHYSPROPERTIES") then Q = SQLBuildSelect(defTable,nil,nil,{1,2})
     else                                    Q = SQLBuildSelect(defTable,nil,nil,nil) end
-    if(not IsExistent(Q)) then; F:Flush(); F:Close()
+    if(not IsExistent(Q)) then F:Flush(); F:Close()
       return StatusLog(false,"ExportDSV("..sPref.."): Build statement failed") end
     F:Write("# Query ran: <"..Q..">\n")
     local qData = sqlQuery(Q)
-    if(not qData and IsBool(qData)) then; F:Flush(); F:Close()
+    if(not qData and IsBool(qData)) then F:Flush(); F:Close()
       return StatusLog(nil,"ExportDSV: SQL exec error <"..sqlLastError()..">") end
-    if(not (qData and qData[1])) then; F:Flush(); F:Close()
+    if(not (qData and qData[1])) then F:Flush(); F:Close()
       return StatusLog(false,"ExportDSV: No data found <"..Q..">") end
     local sData, sTab = "", defTable.Name
     for iCnt = 1, #qData do
@@ -2597,7 +2597,7 @@ function ExportDSV(sTable, sPref, sDelim)
     end -- Matching will not crash as it is matched during insertion
   elseif(sModeDB == "LUA") then
     local tCache = libCache[defTable.Name]
-    if(not IsExistent(tCache)) then; F:Flush(); F:Close()
+    if(not IsExistent(tCache)) then F:Flush(); F:Close()
       return StatusLog(false,"ExportDSV("..sPref
               .."): Table <"..defTable.Name.."> cache not allocated") end
     if(sTable == "PIECES") then
@@ -2607,7 +2607,7 @@ function ExportDSV(sTable, sPref, sDelim)
         tData[sModel] = {[defTable[1][1]] = sSort}
       end
       local tSorted = Sort(tData,nil,{defTable[1][1]})
-      if(not tSorted) then; F:Flush(); F:Close()
+      if(not tSorted) then F:Flush(); F:Close()
         return StatusLog(false,"ExportDSV("..sPref.."): Cannot sort cache data") end
       for iIdx = 1, #tSorted do
         local stRec = tSorted[iIdx]
@@ -2641,12 +2641,12 @@ function ExportDSV(sTable, sPref, sDelim)
     elseif(sTable == "PHYSPROPERTIES") then
       local tTypes = tCache[GetOpVar("HASH_PROPERTY_TYPES")]
       local tNames = tCache[GetOpVar("HASH_PROPERTY_NAMES")]
-      if(not (tTypes or tNames)) then; F:Flush(); F:Close()
+      if(not (tTypes or tNames)) then F:Flush(); F:Close()
         return StatusLog(false,"ExportDSV("..sPref.."): No data found") end
       for iInd = 1, tTypes.Kept do
         local sType = tTypes[iInd]
         local tType = tNames[sType]
-        if(not tType) then; F:Flush(); F:Close()
+        if(not tType) then F:Flush(); F:Close()
           return StatusLog(false,"ExportDSV("..sPref
             .."): Missing index #"..iInd.." on type <"..sType..">") end
         for iCnt = 1, tType.Kept do
@@ -2686,7 +2686,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
       sLine = sLine:Trim()
       if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
         local tData = stringExplode(sDelim,sLine:sub(nLen+2,-1))
-        for key, val in pairs(tData) do tData[key] = StripValue(val) end
+        for iCnt = 1, defTable.Size do
+          tData[iCnt] = StripValue(tData[iCnt]) end
         if(bComm) then InsertRecord(sTable, tData) end
       end; sLine = ""
     else sLine = sLine..sCh end
@@ -2858,9 +2859,6 @@ function RegisterDSV(sProg, sPref, sDelim)
   if(IsEmptyString(sPref)) then
     return StatusLog(false,"RegisterDSV("..sPref.."): Prefix empty") end
   local sBas = GetOpVar("DIRPATH_BAS")
-  local sDsv = sBas..GetOpVar("DIRPATH_DSV")..sPref..GetOpVar("TOOLNAME_PU")
-  if(fileExists(sDsv.."PIECES.txt","DATA")) then
-    return StatusLog(true, "RegisterDSV("..sPref.."): Already registered") end
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
   local fName = sBas.."trackasmlib_dsv.txt"
   local F = fileOpen(fName, "ab" ,"DATA")

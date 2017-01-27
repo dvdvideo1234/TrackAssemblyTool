@@ -23,6 +23,12 @@ local myError = print
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_")
 
+-- This is the path to your DSV
+local myDsv = trackasmlib.GetOpVar("DIRPATH_BAS")..
+              trackasmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
+              trackasmlib.GetOpVar("TOOLNAME_PU")
+local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
+
 -- This is the script path. It tells TA who wants to add these models
 -- Do not touch this also, it is used for debugging
 local myScript = debug.getinfo(1)
@@ -32,22 +38,26 @@ local myScript = debug.getinfo(1)
 trackasmlib.LogInstance(">>> "..myScript)
 
 -- And what parameters I was called with ;)
-trackasmlib.LogInstance("Status: {"..myAddon..", "..myPrefix.."}")
+trackasmlib.LogInstance("Status("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
 
 --[[
  * Register the addon to the auto-load prefix list when the
  * PIECES file is missing. The auto-load list is located in
  * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
  * A.k.a the DATA folder of Garry's mod
- * @bSuccess RegisterDSV(sProg, sPref, sDelim)
+ *
+ * @bSuccess = RegisterDSV(sProg, sPref, sDelim)
  * sProg  > The program which registered the DSV
  * sPref  > The external data prefix to be added ( default instance prefix )
  * sDelim > The delimiter to be used for processing ( default tab )
 ]]--
-if(not trackasmlib.RegisterDSV(myScript, myPrefix)) then
-  myError("Failed to register DSV: "..myScript)
-end -- Third argument is the delimiter. The default tab is used
-
+if(myFlag) then
+  trackasmlib.LogInstance("RegisterDSV skip <"..myPrefix..">")
+else
+  if(not trackasmlib.RegisterDSV(myScript, myPrefix)) then
+    myError("Failed to register DSV: "..myScript)
+  end -- Third argument is the delimiter. The default tab is used
+end
 --[[
  * This is used if you want to make internal categories for your addon
  * You must make a function as a string under the hash of your addon
@@ -77,6 +87,7 @@ local myCategory ={
 --[[
  * This logic statement is needed for reporting the error in the console if the
  * process fails.
+ *
  @ bSuccess = ExportCategory(nInd, tData, sPref)
  * nInd   > The index equal indent format to be stored with ( generally = 3 )
  * tData  > The category functional definition you want to use to divide your stuff with
@@ -129,6 +140,7 @@ local myTable = {
 --[[
  * This logic statement is needed for reporting the error in the console if the
  * process fails.
+ *
  @ bSuccess = SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
  * sTable > The table you want to sync
  * tData  > A data table like the one described above
@@ -136,6 +148,11 @@ local myTable = {
             these of your addon. This is nice when you constantly update your track packs
             If set to /false/ keeps the current model in the
             database and ignores yours if they are the same file.
+ * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
+ * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
+ *
+ @ bSuccess = TranslateDSV(sTable, sPref, sDelim)
+ * sTable > The table you want to translate to Lua script
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
  * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
 ]]--

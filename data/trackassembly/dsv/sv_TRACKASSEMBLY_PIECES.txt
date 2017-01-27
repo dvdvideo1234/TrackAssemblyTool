@@ -1,4 +1,4 @@
-# StoreExternalDatabase( DSV ): 01/22/17 17:15:10 [ LUA ]
+# ExportDSV: 01/27/17 21:05:27 [ LUA ]
 # Data settings:	MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS
 TRACKASSEMBLY_PIECES	"models/craptrax/curve_cs_std/curve_cs_std_damaged.mdl"	"Battleship's abandoned rails"	"#"	1	""	"0,0,-16.110403"	""	""
 TRACKASSEMBLY_PIECES	"models/craptrax/curve_cs_std/curve_cs_std_damaged.mdl"	"Battleship's abandoned rails"	"#"	2	""	"-966.40771,127.97242,-16.110403"	"0,165,0"	""
@@ -2044,6 +2044,10 @@ TRACKASSEMBLY_PIECES	"models/buildingspack/misc/6_4skyscraper3.mdl"	"StephenTech
 TRACKASSEMBLY_PIECES	"models/buildingspack/misc/6_4skyscraper3.mdl"	"StephenTechno's Buildings"	"Skyscraper3"	8	""	"-340,-1832,3.03125"	"0,-90,0"	""
 TRACKASSEMBLY_PIECES	"models/buildingspack/recreational/5_2stripclub.mdl"	"StephenTechno's Buildings"	"Stripclub"	1	""	"-268,736,3.03125"	"0,90,0"	""
 TRACKASSEMBLY_PIECES	"models/buildingspack/recreational/5_2stripclub.mdl"	"StephenTechno's Buildings"	"Stripclub"	2	""	"-268,-736,3.03125"	"0,-90,0"	""
+TRACKASSEMBLY_PIECES	"models/props_phx/construct/metal_plate1x2.mdl"	"Test's track pack"	"#"	1	""	"0,-47.455105,1.482965"	"0,-90,0"	"NULL"
+TRACKASSEMBLY_PIECES	"models/props_phx/construct/metal_plate1x2.mdl"	"Test's track pack"	"#"	2	""	"0,47.455105,1.482965"	"0,90,0"	"NULL"
+TRACKASSEMBLY_PIECES	"models/props_phx/construct/windows/window1x2.mdl"	"Test's track pack"	"#"	1	""	"0,-23.73248,1.482965"	"0,-90,0"	"NULL"
+TRACKASSEMBLY_PIECES	"models/props_phx/construct/windows/window1x2.mdl"	"Test's track pack"	"#"	2	""	"0,71.17773,1.482965"	"0,90,0"	"NULL"
 TRACKASSEMBLY_PIECES	"models/ron/maglev/track/straight/straight_1024_support.mdl"	"Transrapid"	"#"	1	""	"512,0,3.984"	""	""
 TRACKASSEMBLY_PIECES	"models/ron/maglev/track/straight/straight_1024_support.mdl"	"Transrapid"	"#"	2	""	"-512,0,3.984"	"0,-180,0"	""
 TRACKASSEMBLY_PIECES	"models/ron/maglev/track/straight/straight_1024.mdl"	"Transrapid"	"#"	1	""	"512,0,3.984"	""	""
