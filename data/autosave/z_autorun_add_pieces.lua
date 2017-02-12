@@ -1,6 +1,11 @@
 --[[
  * The purpose of this Lua file is to add your track pack pieces to the
- * track assembly tool, so they can appear in the tool selection menu
+ * track assembly tool, so they can appear in the tool selection menu.
+ * Why the name starts with /z/ you may ask. When Gmod loads the game
+ * it goes trough all the Lua addons alphabetically. 
+ * That means your file name ( The file you are reading right now )
+ * must be greater alphabetically than /trackasmlib/, so the API of the
+ * module can be loaded before you can use it like seen below.
 ]]--
 
 -- Change this to your addon name
@@ -159,7 +164,7 @@ local myTable = {
 if(not trackasmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
   myError("Failed to synchronize track pieces: "..myScript)
 else -- You are saving me from all the work for manually generatin these
-  if(trackasmlib.TranslateDSV("PIECES", myPrefix)) then
+  if(not trackasmlib.TranslateDSV("PIECES", myPrefix)) then
     myError("Failed to translate DSV into Lua: "..myScript) end
 end -- Now we have Lua inserts and DSV
 

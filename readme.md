@@ -443,7 +443,7 @@ A: This is actually quite easy since version /5.333/ There is this /SynchronizeD
    function, which does exactly that. Every question you may have for creating such script
    is explained in the example below, where you have to call it on auto-run
    ( For example: your_addon/lua/autorun/your_script.lua ) like this:
-   https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/autorun_add_pieces.lua
+   https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua
    After you test your script and it does work with TA you can add it to your track pack,
    upload it to the workshop without any hassle as it is (*.lua) file and it will not be rejected.
 N: When all your script goes according to the plan you will have this:
