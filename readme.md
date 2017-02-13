@@ -439,10 +439,19 @@ Q: Hey, I am making a track pack and as you may know the workshop does not suppo
    shipping. That's why I need to make a lua file which synchronizes the tracks from my addon on
    the server and the client. How can I add my custom models on startup, so they can be added to
    the pieces list ?
-A: This is actually quite easy since version /5.333/ There is this /SynchronizeDSV/
-   function, which does exactly that. Every question you may have for creating such script
-   is explained in the example below, where you have to call it on auto-run
-   ( For example: your_addon/lua/autorun/your_script.lua ) like this:
+A: You must add your addon to the auto-load pieces list located in "/data/trackassembly/trackasmlib_dsv.txt"
+   This registers your (*.txt) files for automatic database insertion during tool script initialization.
+   To disable an addon from loading its pieces in the database, you can always comment it via a
+   hashtag (#) in front of the line definition that you want disabled. The addon registered multiple
+   times will not be loaded on startup until the user makes a review of the auto-load list for the
+   repeating sequences for the given prefix. The adding is done using the function /RegisterDSV/.
+   Beware that you need a lock file not to add the same addon on both client and server.
+   After this is ready you must add your pieces. You must create you own Lua file which generates
+   the table data in DSV format ( tab delimited ). There is this /SynchronizeDSV/
+   function, which does exactly that. It's always good to have the pieces table used for a locking file.
+   If you want to use categories for your custom pieces list, you must use the /ExportCategory/ function.
+   Every question you may have for creating such script is explained in the example below,
+   where you have to call it on auto-run ( For example: your_addon/lua/autorun/your_script.lua ) like this:
    https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua
    After you test your script and it does work with TA you can add it to your track pack,
    upload it to the workshop without any hassle as it is (*.lua) file and it will not be rejected.
