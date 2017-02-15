@@ -2491,7 +2491,7 @@ function ImportCategory(vEq, sPref)
   if(not F) then return StatusLog(false,"ImportCategory: fileOpen("..fName..") failed") end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk, sCh = "["..sEq.."[", "]"..sEq.."]", "X"
-  local tCat = GetOpVar("TABLE_CATEGORIES")
+  local tCat, syOff = GetOpVar("TABLE_CATEGORIES"), GetOpVar("OPSYM_DISABLE")
   local sPar, isPar = "", false
   while(sCh) do
     sCh = F:Read(1)
@@ -2499,24 +2499,25 @@ function ImportCategory(vEq, sPref)
     if(sCh == "\n") then
       sLine = sLine:Trim()
       local sFr, sBk = sLine:sub(1,nLen), sLine:sub(-nLen,-1)
-      if(sFr == cFr and sBk == cBk) then F:Close()
-        return StatusLog(false, "ImportCategory: Category one-liner <"..sLine..">")
-      elseif(sFr == cFr and not isPar) then
+      if(sFr == cFr and sBk == cBk) then
+        sLine, isPar, sPar = sLine:sub(nLen+1,-1), true, "" end  
+      if(sFr == cFr and not isPar) then
         sPar, isPar = sLine:sub(nLen+1,-1).."\n", true
       elseif(sBk == cBk and isPar) then
         sPar, isPar = sPar..sLine:sub(1,-nLen-1), false
         local tBoo = stringExplode(sEq, sPar)
-        local key, txt = tBoo[1], tBoo[2]
-        if(key == "") then F:Close()
-          return StatusLog(false, "ImportCategory: Name missing <"..txt..">") end
-        if(not txt:find("function")) then F:Close()
-          return StatusLog(false, "ImportCategory: Function missing <"..key..">") end
-        tCat[key] = {}; tCat[key].Txt = txt:Trim()
-        tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
-        local suc, out = pcall(tCat[key].Cmp)
-        if(not suc) then F:Close()
-          return StatusLog(false, "ImportCategory: Compilation fail <"..key..">") end
-        tCat[key].Cmp = out
+        local key, txt = tBoo[1]:Trim(), tBoo[2]
+        if(not IsEmptyString(key)) then
+          if(txt:find("function")) then
+            if(key:sub(1,1) ~= syOff) then
+              tCat[key] = {}; tCat[key].Txt = txt:Trim()
+              tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
+              local suc, out = pcall(tCat[key].Cmp)
+              if(suc) then tCat[key].Cmp = out else
+                tCat[key].Cmp = StatusLog(nil, "ImportCategory: Compilation fail <"..key..">") end
+            else LogInstance("ImportCategory: Key skipped <"..key..">") end
+          else LogInstance("ImportCategory: Function missing <"..key..">") end
+        else LogInstance("ImportCategory: Name missing <"..txt..">") end
       else sPar = sPar..sLine.."\n" end; sLine = ""
     else sLine = sLine..sCh end
   end; F:Close(); return StatusLog(true, "ImportCategory: Success")
@@ -3151,9 +3152,11 @@ function AttachAdditions(ePiece)
     if(eAddition and eAddition:IsValid()) then
       LogInstance("Addition Class: "..arRec[defTable[3][1]])
       local AdModel = tostring(arRec[defTable[2][1]])
-      if(fileExists(AdModel, "GAME")) then
-        eAddition:SetModel(AdModel) LogInstance("Addition:SetModel("..AdModel..")")
-      else return StatusLog(false,"AttachAdditions: No such attachment model "..AdModel) end
+      if(not fileExists(AdModel, "GAME")) then
+        return StatusLog(false,"AttachAdditions: Missing attachment file "..AdModel) end
+      if(not utilIsValidModel(AdModel)) then
+        return StatusLog(false,"AttachAdditions: Invalid attachment model "..AdModel) end
+      eAddition:SetModel(AdModel) LogInstance("Addition:SetModel("..AdModel..")")
       local OffPos = arRec[defTable[5][1]]
       if(not IsString(OffPos)) then
         return StatusLog(false,"AttachAdditions: Position {"..type(OffPos).."}<"..tostring(OffPos).."> not string") end
