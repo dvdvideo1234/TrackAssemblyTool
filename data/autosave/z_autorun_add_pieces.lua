@@ -111,17 +111,16 @@ if(trackasmlib) then
    * strings, where the elements match the following data settings.
    * You can use the reverse sign event /@/ to reverse any component of the
    * parameterization and also the disable event /#/ to make TA auto-fill
-   * the value provided
-   * {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
+   * the value provided {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
    * TYPE   > This string is the name of the type your stuff will reside in the panel
    *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable
    *          If it is emty uses the string /TYPE/, so make sure you fill this
    * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
    *          the model ( from the last slash to the file extension )
    * LINEID > This is the ID of the point that can be selected for building. They must be
-   *          sequential
+   *          sequential and mandatory
    * POINT  > This is the position vector that TA searches and selects.
-   *          An empty string is treatedas the ORIGIN.
+   *          An empty string is treated as taking the ORIGIN.
    *          Disabling this using the disable event makes it hidden when the active point is searched for
    * ORIGIN > This is the origin relative to which the next track piece position is calculated
    *          An empty string is treated as {0,0,0}. Disabling this makes it non-selectable by the holder
@@ -148,8 +147,8 @@ if(trackasmlib) then
    @ bSuccess = SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
    * sTable > The table you want to sync
    * tData  > A data table like the one described above
-   * bRepl  > If set to /true/, makes the api to replace the repeting models with
-              these of your addon. This is nice when you constantly update your track packs
+   * bRepl  > If set to /true/, makes the api to replace the repeating models with
+              these of your addon. This is nice when you are constantly updating your track packs
               If set to /false/ keeps the current model in the
               database and ignores yours if they are the same file.
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon

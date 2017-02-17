@@ -416,13 +416,13 @@ function TOOL:SelectModel(sModel)
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
   asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(sModel).." selected !","UNDO")
-  asmlib.ConCommandPly (ply,"model"  ,sModel)
   if(not (trRec.Kept >= pointid and
           trRec.Kept >= pnextid and
           pointid    ~= pnextid and
           pointid    > 0 and pnextid > 0)) then pointid, pnextid = 1, 2 end
   asmlib.ConCommandPly (ply,"pointid", pointid)
   asmlib.ConCommandPly (ply,"pnextid", pnextid)
+  asmlib.ConCommandPly (ply, "model" , sModel)
   return asmlib.StatusLog(true,"TOOL:SelectModel: Success <"..sModel..">")
 end
 
@@ -589,7 +589,7 @@ end
 
 --[[
  * If tells what will happen if the RightClick of the mouse is pressed
- * Changes the active point chosen by the holder
+ * Changes the active point chosen by the holder or copy the model
 ]]--
 function TOOL:RightClick(stTrace)
   if(CLIENT) then return asmlib.StatusLog(true,"TOOL:RightClick(): Working on client") end
@@ -973,9 +973,9 @@ function TOOL.BuildCPanel(CPanel)
                 pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
-          end; if(psNam and psNam ~= "") then Nam = psNam end
-        end
-      end -- Custom name to override via category
+          end; if(psNam and not asmlib.IsEmptyString(psNam)) then Nam = tostring(psNam) end
+        end -- Custom name to override via category
+      end
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode:SetName(Nam)

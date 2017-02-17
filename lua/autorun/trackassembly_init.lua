@@ -11,6 +11,7 @@ local IsValid              = IsValid
 local tonumber             = tonumber
 local tostring             = tostring
 local CreateConVar         = CreateConVar
+local SetClipboardText     = SetClipboardText
 local RunConsoleCommand    = RunConsoleCommand
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
@@ -38,7 +39,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.346")
+asmlib.SetOpVar("TOOL_VERSION","5.347")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -212,7 +213,8 @@ if(CLIENT) then
     function(oPly,oCom,oArgs)
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
-      asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode)..asmlib.GetOpVar("OPSYM_DISABLE")..tostring(command).."}")
+      local symOff  = asmlib.GetOpVar("OPSYM_DISABLE")
+      asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode)..symOff..tostring(command).."}")
       asmlib.ConCommandPly(oPly,"nextx"  , "0")
       asmlib.ConCommandPly(oPly,"nexty"  , "0")
       asmlib.ConCommandPly(oPly,"nextz"  , "0")
@@ -270,7 +272,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxfruse" , "50")
         asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
       elseif(bgskids:sub(1,7) == "delete ") then
-        local tPref = stringExplode(" ",stringSub(bgskids,8,-1))
+        local tPref = stringExplode(" ",bgskids:sub(8,-1))
         for iCnt = 1, #tPref do
           local vPr = tPref[iCnt]
           asmlib.RemoveDSV("PIECES", vPr)
@@ -437,12 +439,11 @@ if(CLIENT) then
       pnTextEntry:SetSize(xySiz.x,xySiz.y)
       pnTextEntry:SetVisible(true)
       pnTextEntry.OnEnter = function(pnSelf)
-        local sName, sField = pnComboBox:GetSelected()
-              sName    = tostring(sName  or "")
-              sField   = tostring(sField or "")
-        local sPattern = tostring(pnSelf:GetValue() or "")
-        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattern)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sName.."#"..sField.."#"..sPattern.."}")
+        local sPattr = tostring(pnSelf:GetValue() or "")
+        local sAbrev, sField = pnComboBox:GetSelected()
+              sAbrev, sField = tostring(sAbrev or ""), tostring(sField or "")
+        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattr)) then
+          return asmlib.StatusLog(false,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sAbrev.."#"..sField.."#"..sPattr.."}")
         end
       end
       ------------ ListView --------------
@@ -459,8 +460,8 @@ if(CLIENT) then
       ------------------------------------
       local wUse = mathFloor(0.120377559 * xySiz.x)
       local wAct = mathFloor(0.047460893 * xySiz.x)
-      local wTyp = mathFloor(0.214127559 * xySiz.x)
-      local wMod = xySiz.x - wUse - wAct - wTyp
+      local wTyp = mathFloor(0.314127559 * xySiz.x)
+      local wNam = xySiz.x - wUse - wAct - wTyp
       pnListView:SetParent(pnFrame)
       pnListView:SetVisible(false)
       pnListView:SetSortable(true)
@@ -470,26 +471,31 @@ if(CLIENT) then
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb1")):SetFixedWidth(wUse) -- (1)
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb2")):SetFixedWidth(wAct) -- (2)
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wMod) -- (4)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
+      pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
-        local uiMod = pnLine:GetColumnText(4) -- Forth index is actually the model in the table
+        local uiAct = tonumber(pnLine:GetColumnText(2) or 0 ) -- The active points count to be used for change
+        local uiMod = tostring(pnLine:GetColumnText(5) or "") -- Forth index is actually the model in the table
                       pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
         if(not asmlib.IsExistent(uiBox)) then
           return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
-        pnModelPanel:SetLookAt(uiBox.Eye)
-        pnModelPanel:SetCamPos(uiBox.Cam)
-        asmlib.ConCommandPly(oPly, "model" ,uiMod)
-        asmlib.ConCommandPly(oPly,"pointid",  1  )
-        asmlib.ConCommandPly(oPly,"pnextid",  2  )
-      end
+        pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
+        local pointid, pnextid = asmlib.GetAsmVar("pointid","INT"), asmlib.GetAsmVar("pnextid","INT")
+        if(not (uiAct   >= pointid and
+                uiAct   >= pnextid and
+                pointid ~= pnextid and
+                pointid > 0 and pnextid > 0)) then pointid, pnextid = 1, 2 end
+        asmlib.ConCommandPly(oPly,"pointid", pointid)
+        asmlib.ConCommandPly(oPly,"pnextid", pnextid)
+        asmlib.ConCommandPly(oPly, "model" , uiMod)
+      end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
+      function pnListView.OnRowRightClick(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5)) end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed") end
-      ------------ Show the completed panel --------------
-      pnFrame:SetVisible(true); pnFrame:Center()
-      pnFrame:MakePopup()     ; collectgarbage()
-      return asmlib.StatusLog(true,"OPEN_FRAME: Success")
+      pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
+      return asmlib.StatusLog(true,"OPEN_FRAME: Success") -- Show the completed panel
     end)
 
   asmlib.SetAction("PHYSGUN_DRAW",
@@ -2855,7 +2861,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb1", "Used")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb2", "End")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb3", "Type")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb4", "Model")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb4", "Name")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_display_lb" , "Piece Display")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_pattern_lb" , "Enter pattern")
   asmlib.SetLocalify("en","Cleanup_"..gsLimitName                , "Track assembly pieces")
@@ -2943,7 +2949,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb1", "Срок")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb2", "Ръб")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb3", "Тип")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb4", "Модел")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb4", "Име")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_display_lb" , "Дисплей за парчето")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_pattern_lb" , "Въведете шаблон")
   asmlib.SetLocalify("bg","Cleanup_"..gsLimitName                , "Сглобени парчета трасе")
@@ -3031,7 +3037,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb1", "Utilisé")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb2", "Fin")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb3", "Type")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb4", "Modèle")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb4", "Nom")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_display_lb" , "Affichage pièce")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_pattern_lb" , "Entrer Modèle")
   asmlib.SetLocalify("fr","Cleanup_"..gsLimitName                , "Pièces du Track assembly")
@@ -3119,7 +3125,7 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb1", "Срок")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb2", "Конец")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb3", "Тип")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb4", "Модель")
+  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb4", "Имя")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_display_lb" , "Кусок показ")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_pattern_lb" , "Введите шаблон")
   asmlib.SetLocalify("ru","Cleanup_"..gsLimitName                , "Трек сборки куски")

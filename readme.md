@@ -292,7 +292,7 @@ A: The first number will get an increase when a new major update has arrived.
 Q: I want to use custom maximum limit tweaks for my server. Could you recommend appropriate cvars ?
 A: Here is the list of the maximum value tweaks ( prefixed with "trackassembly_" of course ):
    "maxmass"   - Controls the mass upper limit of the piece spawned ( the lower bound is "1" )
-   "maxlinear" - Controls the maximum offset that can be allied by next x,y,z linear offsets
+   "maxlinear" - Controls the maximum offset that can be applied by next x,y,z linear offsets
    "maxforce"  - Controls the force limit upper border on the welds made between pieces
    "maxactrad" - Controls the vastness of the active point search area
    "maxstcnt"  - Controls the maximum pieces that can be spawned in stacking mode

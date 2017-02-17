@@ -865,11 +865,13 @@ local function AddLineListView(pnListView,frUsed,ivNdex)
     return StatusLog(nil,"LineAddListView: Missing table definition") end
   local sModel = tValue.Table[defTable[1][1]]
   local sType  = tValue.Table[defTable[2][1]]
+  local sName  = tValue.Table[defTable[3][1]]
   local nAct   = tValue.Table[defTable[4][1]]
   local nUsed  = RoundValue(tValue.Value,0.001)
-  local pnRec  = pnListView:AddLine(nUsed,nAct,sType,sModel)
+  local pnRec  = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
   if(not IsExistent(pnRec)) then
     return StatusLog(nil,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..tostring(iNdex)) end
+  pnRec:SetTooltip(sModel)
   return pnRec, tValue
 end
 
@@ -2500,7 +2502,7 @@ function ImportCategory(vEq, sPref)
       sLine = sLine:Trim()
       local sFr, sBk = sLine:sub(1,nLen), sLine:sub(-nLen,-1)
       if(sFr == cFr and sBk == cBk) then
-        sLine, isPar, sPar = sLine:sub(nLen+1,-1), true, "" end  
+        sLine, isPar, sPar = sLine:sub(nLen+1,-1), true, "" end
       if(sFr == cFr and not isPar) then
         sPar, isPar = sLine:sub(nLen+1,-1).."\n", true
       elseif(sBk == cBk and isPar) then
@@ -2865,8 +2867,8 @@ function RegisterDSV(sProg, sPref, sDelim)
   local F = fileOpen(fName, "ab" ,"DATA")
   if(not F) then return StatusLog(false,"RegisterDSV("
     ..sPref.."): fileOpen("..fName..") failed") end
-  local sMis, sDelim = GetOpVar("MISS_NOAV"), tostring(sDelim or "\t"):sub(1,1)
-  F:Write(sPref:Trim()..sDelim..tostring(sProg or sMis).."\n"); F:Flush(); F:Close()
+  local sMiss, sDelim = GetOpVar("MISS_NOAV"), tostring(sDelim or "\t"):sub(1,1)
+  F:Write(sPref:Trim()..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
   return StatusLog(true,"RegisterDSV("..sPref.."): Success")
 end
 
@@ -2916,21 +2918,21 @@ function ProcessDSV(sDelim)
       local dir = tab[tab.Cnt].File
       if(CLIENT) then
         if(fileExists(dir.."CATEGORY.txt", "DATA")) then
-          if(not ImportCategory(3, prf)) then F:Close()
-            return StatusLog(false,"ProcessDSV("..prf.."): Failed CATEGORY") end
+          if(not ImportCategory(3, prf)) then
+            LogInstance("ProcessDSV("..prf.."): Failed CATEGORY") end
         end
       end
       if(fileExists(dir.."PIECES.txt", "DATA")) then
-        if(not ImportDSV("PIECES", true, prf)) then F:Close()
-          return StatusLog(false,"ProcessDSV("..prf.."): Failed PIECES") end
+        if(not ImportDSV("PIECES", true, prf)) then
+          LogInstance("ProcessDSV("..prf.."): Failed PIECES") end
       end
       if(fileExists(dir.."ADDITIONS.txt", "DATA")) then
-        if(not ImportDSV("ADDITIONS", true, prf)) then F:Close()
-          return StatusLog(false,"ProcessDSV("..prf.."): Failed ADDITIONS") end
+        if(not ImportDSV("ADDITIONS", true, prf)) then
+          LogInstance("ProcessDSV("..prf.."): Failed ADDITIONS") end
       end
       if(fileExists(dir.."PHYSPROPERTIES.txt", "DATA")) then
-        if(not ImportDSV("PHYSPROPERTIES", true, prf)) then F:Close()
-          return StatusLog(false,"ProcessDSV("..prf.."): Failed PHYSPROPERTIES") end
+        if(not ImportDSV("PHYSPROPERTIES", true, prf)) then
+          LogInstance("ProcessDSV("..prf.."): Failed PHYSPROPERTIES") end
       end
     end
   end; return StatusLog(true,"ProcessDSV: Success")
