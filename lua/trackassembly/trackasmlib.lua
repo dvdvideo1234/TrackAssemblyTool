@@ -68,6 +68,7 @@ local tostring                = tostring
 local GetConVar               = GetConVar
 local LocalPlayer             = LocalPlayer
 local CreateConVar            = CreateConVar
+local SetClipboardText        = SetClipboardText
 local CompileString           = CompileString
 local getmetatable            = getmetatable
 local setmetatable            = setmetatable
@@ -849,30 +850,28 @@ end
 
 local function AddLineListView(pnListView,frUsed,ivNdex)
   if(not IsExistent(pnListView)) then
-    return StatusLog(nil,"LineAddListView: Missing panel") end
+    return StatusLog(false,"LineAddListView: Missing panel") end
   if(not IsValid(pnListView)) then
-    return StatusLog(nil,"LineAddListView: Invalid panel") end
+    return StatusLog(false,"LineAddListView: Invalid panel") end
   if(not IsExistent(frUsed)) then
-    return StatusLog(nil,"LineAddListView: Missing data") end
+    return StatusLog(false,"LineAddListView: Missing data") end
   local iNdex = tonumber(ivNdex)
   if(not IsExistent(iNdex)) then
-    return StatusLog(nil,"LineAddListView: Index NAN {"..type(ivNdex).."}<"..tostring(ivNdex)..">") end
+    return StatusLog(false,"LineAddListView: Index NAN {"..type(ivNdex).."}<"..tostring(ivNdex)..">") end
   local tValue = frUsed[iNdex]
   if(not IsExistent(tValue)) then
-    return StatusLog(nil,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
+    return StatusLog(false,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
   local defTable = GetOpVar("DEFTABLE_PIECES")
   if(not IsExistent(defTable)) then
-    return StatusLog(nil,"LineAddListView: Missing table definition") end
+    return StatusLog(false,"LineAddListView: Missing table definition") end
   local sModel = tValue.Table[defTable[1][1]]
   local sType  = tValue.Table[defTable[2][1]]
   local sName  = tValue.Table[defTable[3][1]]
   local nAct   = tValue.Table[defTable[4][1]]
   local nUsed  = RoundValue(tValue.Value,0.001)
-  local pnRec  = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
-  if(not IsExistent(pnRec)) then
-    return StatusLog(nil,"LineAddListView: Failed to create a ListView line for <"..sModel.."> #"..tostring(iNdex)) end
-  pnRec:SetTooltip(sModel)
-  return pnRec, tValue
+  local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
+        pnLine:SetTooltip(sModel)
+  return true
 end
 
 --[[
@@ -893,29 +892,23 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
       return StatusLog(false,"UpdateListView: Invalid ListView") end
     pnListView:SetVisible(false)
     pnListView:Clear()
-  else
-    return StatusLog(false,"UpdateListView: Missing ListView")
-  end
+  else return StatusLog(false,"UpdateListView: Missing ListView") end
   local sField   = tostring(sField   or "")
   local sPattern = tostring(sPattern or "")
   local iNdex, pnRec, sData = 1, nil, nil
   while(frUsed[iNdex]) do
     if(IsEmptyString(sPattern)) then
-      pnRec = AddLineListView(pnListView,frUsed,iNdex)
-      if(not IsExistent(pnRec)) then
+      if(not AddLineListView(pnListView,frUsed,iNdex)) then
         return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex)) end
     else
       sData = tostring(frUsed[iNdex].Table[sField] or "")
       if(stringFind(sData,sPattern)) then
-        pnRec = AddLineListView(pnListView,frUsed,iNdex)
-        if(not IsExistent(pnRec)) then
+        if(not AddLineListView(pnListView,frUsed,iNdex)) then
           return StatusLog(false,"UpdateListView: Failed to add line <"
-                   ..sData.."> pattern <"..sPattern.."> on <"..sField.."> #"..tostring(iNdex)) end
+            ..sData.."> pattern <"..sPattern.."> on <"..sField.."> #"..tostring(iNdex)) end
       end
-    end
-    iNdex = iNdex + 1
-  end
-  pnListView:SetVisible(true)
+    end; iNdex = iNdex + 1
+  end; pnListView:SetVisible(true)
   return StatusLog(true,"UpdateListView: Crated #"..tostring(iNdex-1))
 end
 
@@ -942,7 +935,7 @@ function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
   pItem.Icon:SetImage(tostring(sImage or "icon16/folder.png"))
   pItem.InternalDoClick = function() end
   pItem.DoClick         = function() return false end
-  pItem.DoRightClick    = function() return false end
+  pItem.DoRightClick    = function() SetClipboardText(sName) end
   pItem.Label.UpdateColours = function(pSelf)
     return pSelf:SetTextStyleColor(txCol or Color(0,0,0,255)) end
   return pCurr[sName], pItem
@@ -1065,6 +1058,18 @@ local function BorderValue(nsVal,sName)
     if(Border[2] and nsVal > Border[2]) then return Border[2] end
   end
   return nsVal
+end
+
+function SnapReview(ivPointID, ivPnextID, ivMax)
+  local iPointID = tonumber(ivPointID); if(not IsExistent(iPointID)) then
+    return StatusLog(1,"SnapReview: Point ID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">"), 2 end
+  local iPnextID = tonumber(ivPnextID); if(not IsExistent(iPnextID)) then
+    return StatusLog(1,"SnapReview: Nex ID NAN {"..type(ivPnextID).."}<"..tostring(ivPnextID)..">"), 2 end
+  local iMax = tonumber(ivMax)        ; if(not IsExistent(iMax)) then
+    return StatusLog(1,"SnapReview: Max ID NAN {"..type(ivMax).."}<"..tostring(ivMax)..">"), 2 end
+  if(not (iMax >= iPointID and iMax >= iPnextID and iPointID ~= iPnextID and
+    iPointID > 0 and iPnextID > 0)) then iPointID, iPnextID = 1, 2 end
+  return StatusLog(iPointID, "SnapReview: Success"), iPnextID
 end
 
 function IncDecPointID(ivPointID,nDir,rPiece)

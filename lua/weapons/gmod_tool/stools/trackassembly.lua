@@ -10,6 +10,7 @@ local tostring              = tostring
 local tonumber              = tonumber
 local GetConVar             = GetConVar
 local LocalPlayer           = LocalPlayer
+local SetClipboardText      = SetClipboardText
 local RunConsoleCommand     = RunConsoleCommand
 local osDate                = os and os.date
 local vguiCreate            = vgui and vgui.Create
@@ -415,11 +416,8 @@ function TOOL:SelectModel(sModel)
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")) end
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
+        pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Kept)
   asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(sModel).." selected !","UNDO")
-  if(not (trRec.Kept >= pointid and
-          trRec.Kept >= pnextid and
-          pointid    ~= pnextid and
-          pointid    > 0 and pnextid > 0)) then pointid, pnextid = 1, 2 end
   asmlib.ConCommandPly (ply,"pointid", pointid)
   asmlib.ConCommandPly (ply,"pnextid", pnextid)
   asmlib.ConCommandPly (ply, "model" , sModel)
@@ -979,13 +977,14 @@ function TOOL.BuildCPanel(CPanel)
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode:SetName(Nam)
+      pNode.DoRightClick = function() SetClipboardText(Mod) end
       pNode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
       pNode.Icon:SetImage("icon16/brick.png")
       pNode.DoClick = function(pSelf)
-        RunConsoleCommand(gsToolPrefL.."model"  , Mod)
+        RunConsoleCommand(gsToolPrefL.. "model" , Mod)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
-      end
+      end -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !") end
     iCnt = iCnt + 1
   end
