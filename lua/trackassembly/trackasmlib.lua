@@ -931,11 +931,10 @@ function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
         sName = IsEmptyString(sName) and "Other" or sName
   local pItem = pnBase:AddNode(sName)
   pCurr[sName] = {}; pCurr[sName].__ObjPanel__ = pItem
-  pItem:SetName(sName)
   pItem.Icon:SetImage(tostring(sImage or "icon16/folder.png"))
   pItem.InternalDoClick = function() end
   pItem.DoClick         = function() return false end
-  pItem.DoRightClick    = function() SetClipboardText(sName) end
+  pItem.DoRightClick    = function() SetClipboardText(pItem:GetText()) end
   pItem.Label.UpdateColours = function(pSelf)
     return pSelf:SetTextStyleColor(txCol or Color(0,0,0,255)) end
   return pCurr[sName], pItem
@@ -1056,20 +1055,20 @@ local function BorderValue(nsVal,sName)
   if(IsExistent(Border)) then
     if(Border[1] and nsVal < Border[1]) then return Border[1] end
     if(Border[2] and nsVal > Border[2]) then return Border[2] end
-  end
-  return nsVal
+  end; return nsVal
 end
 
-function SnapReview(ivPointID, ivPnextID, ivMax)
-  local iPointID = tonumber(ivPointID); if(not IsExistent(iPointID)) then
-    return StatusLog(1,"SnapReview: Point ID NAN {"..type(ivPointID).."}<"..tostring(ivPointID)..">"), 2 end
-  local iPnextID = tonumber(ivPnextID); if(not IsExistent(iPnextID)) then
-    return StatusLog(1,"SnapReview: Nex ID NAN {"..type(ivPnextID).."}<"..tostring(ivPnextID)..">"), 2 end
-  local iMax = tonumber(ivMax)        ; if(not IsExistent(iMax)) then
-    return StatusLog(1,"SnapReview: Max ID NAN {"..type(ivMax).."}<"..tostring(ivMax)..">"), 2 end
-  if(not (iMax >= iPointID and iMax >= iPnextID and iPointID ~= iPnextID and
-    iPointID > 0 and iPnextID > 0)) then iPointID, iPnextID = 1, 2 end
-  return StatusLog(iPointID, "SnapReview: Success"), iPnextID
+function SnapReview(ivPointID, ivPnextID, ivMaxKept)
+  local iMaxKept = tonumber(ivMaxKept) or 0
+  local iPointID = tonumber(ivPointID) or 0
+  local iPnextID = tonumber(ivPnextID) or 0
+  if(iMaxKept <= 0) then return 1, 2 end
+  if(iPointID <= 0) then return 1, 2 end
+  if(iPnextID <= 0) then return 1, 2 end
+  if(iPointID  > iMaxKept) then return 1, 2 end
+  if(iPnextID  > iMaxKept) then return 1, 2 end -- One active point
+  if(iPointID == iPnextID) then return 1, 2 end
+  return iPointID, iPnextID
 end
 
 function IncDecPointID(ivPointID,nDir,rPiece)
@@ -3074,7 +3073,6 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
     return StatusLog(nil,"GetEntitySpawn: Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">") end
   -- We have the next Piece Offset
-  local vTemp = Vector()
   local stSpawn, trPOA = GetOpVar("STRUCT_SPAWN")
         stSpawn.TRec = trRec
         stSpawn.RLen = nActRadius
@@ -3088,6 +3086,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
     if(not stPOA.P[csD]) then -- Skip the disabled P
+      local vTemp = Vector()
       SetVector(vTemp,stPOA.P)
       vTemp[cvX] = vTemp[cvX] * stPOA.P[csA]
       vTemp[cvY] = vTemp[cvY] * stPOA.P[csB]

@@ -976,7 +976,6 @@ function TOOL.BuildCPanel(CPanel)
       end
       -- Register the node asociated with the track piece
       pNode = pItem:AddNode(Nam)
-      pNode:SetName(Nam)
       pNode.DoRightClick = function() SetClipboardText(Mod) end
       pNode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
       pNode.Icon:SetImage("icon16/brick.png")
