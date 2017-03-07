@@ -1,5 +1,6 @@
 ----- Localizing the asmlib module
 local asmlib      = trackasmlib
+
 ----- Localizing needed functions
 local Vector      = Vector
 local Angle       = Angle
@@ -7,9 +8,6 @@ local Color       = Color
 local tonumber    = tonumber
 local tostring    = tostring
 local mathClamp   = math and math.Clamp
-local stringSub   = string and string.sub
-local stringUpper = string and string.upper
-local stringLen   = string and string.len
 
 ----- Get extension enabled flag
 local maxColor = 255
@@ -17,38 +15,38 @@ local anyTrue, anyFalse = 1, 0
 local maxMass  = asmlib.GetOpVar("MAX_MASS")
 local enFlag   = asmlib.GetAsmVar("enwiremod","BUL")
 local bndErr   = asmlib.GetAsmVar("bnderrmod","STR")
+local cvX, cvY, cvZ      = asmlib.GetIndexes("V")
+local caP, caY, caR      = asmlib.GetIndexes("A")
+local csA, csB, csC, csD = asmlib.GetIndexes("S")
 
 --------- Pieces ----------
 __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
   if(not (this and this:IsValid() and enFlag)) then return "" end
   if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
-  local C1, C2, C3 = asmlib.GetIndexes("V")
   local ucsPos = ucsEnt:GetPos()
-  local sO = tostring(ucsPos[C1])..","..tostring(ucsPos[C2])..","..tostring(ucsPos[C3])
-        C1, C2, C3 = asmlib.GetIndexes("A")
+  local sO = tostring(ucsPos[cvX])..","..tostring(ucsPos[cvY])..","..tostring(ucsPos[cvZ])
   local ucsAng = ucsEnt:GetAngles()
-  local sA = tostring(ucsAng[C1])..", "..tostring(ucsAng[C2])..", "..tostring(ucsAng[C3])
+  local sA = tostring(ucsAng[caP])..","..tostring(ucsAng[caY])..","..tostring(ucsAng[caR])
   return "asmlib.InsertRecord({\""..this:GetModel().."\", \""..sType..
          "\", \""..sName.."\", "..tostring(nPoint or 0)..", \""..sP..
-         "\", \""..sO.."\", \""..sA.."\"})"
+         "\", \""..sO.."\", \""..sA.."\", \""..(this:GetClass() ~= "prop_physics" and this:GetClass() or "").."\"})"
 end
 
 __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sType, string sName, number nPoint, string sP, string sDelim)
   if(not (this and this:IsValid() and enFlag)) then return "" end
   if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
-  local sDelim = stringSub(sDelim,1,1)
-  if(not (stringLen(sDelim) > 0)) then return "" end
-  local C1, C2, C3 = asmlib.GetIndexes("V")
+  local sDelim = sDelim:sub(1,1)
+  if(asmlib.IsEmptyString(sDelim)) then return "" end
   local ucsPos = ucsEnt:GetPos()
-  local sO = tostring(ucsPos[C1])..","..tostring(ucsPos[C2])..","..tostring(ucsPos[C3])
-        C1, C2, C3 = asmlib.GetIndexes("A")
+  local sO = tostring(ucsPos[cvX])..","..tostring(ucsPos[cvY])..","..tostring(ucsPos[cvZ])
   local ucsAng = ucsEnt:GetAngles()
-  local sA = tostring(ucsAng[C1])..","..tostring(ucsAng[C2])..","..tostring(ucsAng[C3])
+  local sA = tostring(ucsAng[caP])..","..tostring(ucsAng[caY])..","..tostring(ucsAng[caR])
   return "TRACKASSEMBLY_PIECES"..sDelim.."\""..this:GetModel().."\""..sDelim.."\""..
          sType.."\""..sDelim.."\""..sName.."\""..sDelim..tostring(nPoint or 0)..
-         sDelim.."\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""
+         sDelim.."\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..
+         sDelim.."\""..(this:GetClass() ~= "prop_physics" and this:GetClass() or "").."\""
 end
 
 __e2setcost(100)
@@ -88,51 +86,42 @@ e2function number entity:trackasmlibIsPiece()
   if(stRecord) then return anyTrue else return anyFalse end
 end
 
-__e2setcost(120)
+__e2setcost(80)
 e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA)
   if(not enFlag) then return {} end
   local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(sModel),nOffset)
   if(not stPOA) then return {} end
-  local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
-  local arResult = {}
-  local C1, C2, C3, C4
-  if    (sPOA == "P") then C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "O") then C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "A") then C1, C2, C3 = asmlib.GetIndexes("A")
-  else return arResult end
-  arResult[1] = stPOA[sPOA][C1]
+  local sPOA = tostring(sPOA):upper():sub(1,1)
+  local arResult, C1, C2, C3 = {}
+  if    (sPOA == "P") then C1, C2, C3 = cvX, cvY, cvZ
+  elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
+  elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arResult end
   arResult[1] = stPOA[sPOA][C1]
   arResult[2] = stPOA[sPOA][C2]
   arResult[3] = stPOA[sPOA][C3]
-  C1, C2, C3, C4 = asmlib.GetIndexes("S")
-  arResult[4] = stPOA[sPOA][C1]
-  arResult[5] = stPOA[sPOA][C2]
-  arResult[6] = stPOA[sPOA][C3]
-  arResult[7] = stPOA[sPOA][C4] and 1 or 0
-  return arResult
+  arResult[4] = stPOA[sPOA][csA]
+  arResult[5] = stPOA[sPOA][csB]
+  arResult[6] = stPOA[sPOA][csC]
+  arResult[7] =(stPOA[sPOA][csD] and 1 or 0); return arResult
 end
 
-__e2setcost(120)
+__e2setcost(80)
 e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
   if(not (this and this:IsValid() and enFlag)) then return {} end
   local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(this:GetModel()),nOffset)
   if(not stPOA) then return {} end
-  local sPOA = stringSub(stringUpper(tostring(sPOA)),1,1)
-  local arResult = {}
-  local C1, C2, C3, C4
-  if    (sPOA == "P") then C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "O") then C1, C2, C3 = asmlib.GetIndexes("V")
-  elseif(sPOA == "A") then C1, C2, C3 = asmlib.GetIndexes("A")
-  else return arResult end
+  local sPOA = tostring(sPOA):upper():sub(1,1)
+  local arResult, C1, C2, C3 = {}
+  if    (sPOA == "P") then C1, C2, C3 = cvX, cvY, cvZ
+  elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
+  elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arResult end
   arResult[1] = stPOA[sPOA][C1]
   arResult[2] = stPOA[sPOA][C2]
   arResult[3] = stPOA[sPOA][C3]
-  C1, C2, C3, C4 = asmlib.GetIndexes("S")
-  arResult[4] = stPOA[sPOA][C1]
-  arResult[5] = stPOA[sPOA][C2]
-  arResult[6] = stPOA[sPOA][C3]
-  arResult[7] = stPOA[sPOA][C4] and 1 or 0
-  return arResult
+  arResult[4] = stPOA[sPOA][csA]
+  arResult[5] = stPOA[sPOA][csB]
+  arResult[6] = stPOA[sPOA][csC]
+  arResult[7] =(stPOA[sPOA][csD] and 1 or 0); return arResult
 end
 
 __e2setcost(30)
@@ -222,8 +211,7 @@ e2function array trackasmlibGetAdditionsLine(string sModel, number nLine)
   while(defAddit[cntField]) do
     arAdditionsLine[cntField-1] = stRecord[defAddit[cntField][1]]
     cntField = cntField + 1
-  end
-  return arAdditionsLine
+  end; return arAdditionsLine
 end
 
 __e2setcost(60)
@@ -231,8 +219,7 @@ e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   if(not (this and this:IsValid() and enFlag)) then return {} end
   local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS")
   if(not defAddit) then
-    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition")
-  end
+    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition") end
   local stRecord = asmlib.CacheQueryAdditions(this:GetModel())
   if(not stRecord) then return {} end
   if(not stRecord[nLine]) then return {} end
@@ -242,8 +229,7 @@ e2function array entity:trackasmlibGetAdditionsLine(number nLine)
   while(defAddit[cntField]) do
     arAdditionsLine[cntField-1] = stRecord[defAddit[cntField][1]]
     cntField = cntField + 1
-  end
-  return arAdditionsLine
+  end; return arAdditionsLine
 end
 
 ------------ PhysProperties ------------
