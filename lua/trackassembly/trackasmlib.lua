@@ -115,13 +115,6 @@ local tableEmpty              = table and table.Empty
 local tableMaxn               = table and table.maxn
 local tableGetKeys            = table and table.GetKeys
 local debugGetinfo            = debug and debug.getinfo
-local stringLen               = string and string.len
-local stringSub               = string and string.sub
-local stringFind              = string and string.find
-local stringGsub              = string and string.gsub
-local stringUpper             = string and string.upper
-local stringLower             = string and string.lower
-local stringFormat            = string and string.format
 local stringExplode           = string and string.Explode
 local stringImplode           = string and string.Implode
 local stringToFileName        = string and string.GetFileFromFilename
@@ -223,7 +216,7 @@ local function FormatNumberMax(nNum,nMax)
   local nNum = tonumber(nNum)
   local nMax = tonumber(nMax)
   if(not (nNum and nMax)) then return "" end
-  return stringFormat("%"..stringLen(tostring(mathFloor(nMax))).."d",nNum)
+  return ("%"..(tostring(mathFloor(nMax))):len().."d"):format(nNum)
 end
 
 local function Log(anyStuff)
@@ -263,13 +256,13 @@ function LogInstance(anyStuff)
   if(logStats and logStats[1]) then
     local iNdex = 1
     while(logStats[iNdex]) do
-      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then return end; iNdex = iNdex + 1 end
+      if(anyStuff:find(tostring(logStats[iNdex]))) then return end; iNdex = iNdex + 1 end
   end -- Should the current log being skipped
   logStats = GetOpVar("LOG_ONLY")
   if(logStats and logStats[1]) then
     local iNdex, logMe = 1, false
     while(logStats[iNdex]) do
-      if(stringFind(anyStuff,tostring(logStats[iNdex]))) then logMe = true end; iNdex = iNdex + 1 end
+      if(anyStuff:find(tostring(logStats[iNdex]))) then logMe = true end; iNdex = iNdex + 1 end
     if(not logMe) then return end
   end -- Only the chosen messages are processed
   local sSors = ""
@@ -354,9 +347,9 @@ function InitBase(sName,sPurpose)
     return StatusPrint(false,"InitBase: Name <"..tostring(sName).."> not string") end
   if(not IsString(sPurpose)) then
     return StatusPrint(false,"InitBase: Purpose <"..tostring(sPurpose).."> not string") end
-  if(IsEmptyString(sName) or tonumber(stringSub(sName,1,1))) then
+  if(IsEmptyString(sName) or tonumber(sName:sub(1,1))) then
     return StatusPrint(false,"InitBase: Name invalid <"..sName..">") end
-  if(IsEmptyString(sPurpose) or tonumber(stringSub(sPurpose,1,1))) then
+  if(IsEmptyString(sPurpose) or tonumber(sPurpose:sub(1,1))) then
     return StatusPrint(false,"InitBase: Purpose invalid <"..sPurpose..">") end
   SetOpVar("TIME_INIT",Time())
   SetOpVar("LOG_MAXLOGS",0)
@@ -373,10 +366,10 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("GOLDEN_RATIO",1.61803398875)
-  SetOpVar("NAME_INIT",stringLower(sName))
-  SetOpVar("NAME_PERP",stringLower(sPurpose))
-  SetOpVar("TOOLNAME_NL",stringLower(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
-  SetOpVar("TOOLNAME_NU",stringUpper(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")))
+  SetOpVar("NAME_INIT",sName:lower())
+  SetOpVar("NAME_PERP",sPurpose:lower())
+  SetOpVar("TOOLNAME_NL",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):lower())
+  SetOpVar("TOOLNAME_NU",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):upper())
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
@@ -902,7 +895,7 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
         return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex)) end
     else
       sData = tostring(frUsed[iNdex].Table[sField] or "")
-      if(stringFind(sData,sPattern)) then
+      if(sData:find(sPattern)) then
         if(not AddLineListView(pnListView,frUsed,iNdex)) then
           return StatusLog(false,"UpdateListView: Failed to add line <"
             ..sData.."> pattern <"..sPattern.."> on <"..sField.."> #"..tostring(iNdex)) end
@@ -1150,38 +1143,32 @@ function ModelToName(sModel,bNoSettings)
         local bCh = tonumber(tCut[Cnt+1])
         if(not (IsExistent(fCh) and IsExistent(bCh))) then
           return StatusLog("","ModelToName: Cannot cut the model in {"
-                   ..tostring(tCut[Cnt])..","..tostring(tCut[Cnt+1]).."} for "..sModel)
-        end
-        LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} << "..gModel)
+                   ..tostring(tCut[Cnt])..","..tostring(tCut[Cnt+1]).."} for "..sModel) end
         gModel = gModel:gsub(sModel:sub(fCh,bCh),"")
         LogInstance("ModelToName[CUT]: {"..tostring(tCut[Cnt])..", "..tostring(tCut[Cnt+1]).."} >> "..gModel)
         Cnt = Cnt + 2
-      end
-      Cnt = 1
+      end; Cnt = 1
     end
     -- Replace the unneeded parts by finding an in-string gModel
     if(tSub and tSub[1]) then
       while(tSub[Cnt]) do
         local fCh = tostring(tSub[Cnt]   or "")
         local bCh = tostring(tSub[Cnt+1] or "")
-        LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} << "..gModel)
         gModel = gModel:gsub(fCh,bCh)
         LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
         Cnt = Cnt + 2
-      end
-      Cnt = 1
+      end; Cnt = 1
     end
     -- Append something if needed
     if(tApp and tApp[1]) then
-      LogInstance("ModelToName[APP]: {"..tostring(tApp[Cnt])..", "..tostring(tApp[Cnt+1]).."} << "..gModel)
       gModel = tostring(tApp[1] or "")..gModel..tostring(tApp[2] or "")
       LogInstance("ModelToName[APP]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
     end
   end
-  -- Trigger the capital-space using the divider
-  if(stringSub(gModel,1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
+  -- Trigger the capital spacing using the divider
+  if(gModel:sub(1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
   -- Here in gModel we have: _aaaaa_bbbb_ccccc
-  return gModel:gsub("_%w",GetOpVar("MODELNAM_FUNC")):sub(2,-1)
+  return gModel:gsub(sSymDiv.."%w",GetOpVar("MODELNAM_FUNC")):sub(2,-1)
 end
 
 function LocatePOA(oRec, ivPointID)
@@ -1245,10 +1232,10 @@ local function StringPOA(stPOA,sOffs)
   if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
   elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
   else return StatusLog(nil,"StringPOA: Missed offset mode "..sOffs) end
-  return stringGsub((stPOA[csD] and symDisa or "")  -- Get rid of the spaces
-                 ..((stPOA[csA] == -1) and symRevs or "")..tostring(stPOA[ctA])..symSepa
-                 ..((stPOA[csB] == -1) and symRevs or "")..tostring(stPOA[ctB])..symSepa
-                 ..((stPOA[csC] == -1) and symRevs or "")..tostring(stPOA[ctC])," ","")
+  return ((stPOA[csD] and symDisa or "")  -- Get rid of the spaces
+       ..((stPOA[csA] == -1) and symRevs or "")..tostring(stPOA[ctA])..symSepa
+       ..((stPOA[csB] == -1) and symRevs or "")..tostring(stPOA[ctB])..symSepa
+       ..((stPOA[csC] == -1) and symRevs or "")..tostring(stPOA[ctC])):gsub(" ","")
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -1270,28 +1257,26 @@ local function DecodePOA(sStr)
   local sCh = ""
   local dInd, iSep = 1, 0
   local S, E, iCnt = 1, 1, 1
-  local strLen = stringLen(sStr)
+  local strLen = sStr:len()
   local symOff = GetOpVar("OPSYM_DISABLE")
   local symRev = GetOpVar("OPSYM_REVSIGN")
   local symSep = GetOpVar("OPSYM_SEPARATOR")
   local arPOA  = GetOpVar("ARRAY_DECODEPOA")
   ReloadPOA()
-  if(stringSub(sStr,iCnt,iCnt) == symOff) then
+  if(sStr:sub(iCnt,iCnt) == symOff) then
     arPOA[7] = true; iCnt = iCnt + 1; S = S + 1 end
   while(iCnt <= strLen) do
-    sCh = stringSub(sStr,iCnt,iCnt)
+    sCh = sStr:sub(iCnt,iCnt)
     if(sCh == symRev) then
       arPOA[3+dInd] = -arPOA[3+dInd]; S = S + 1
     elseif(sCh == symSep) then
       iSep = iSep + 1; E = iCnt - 1
       if(iSep > 2) then break end
-      arPOA[dInd] = tonumber(stringSub(sStr,S,E)) or 0
+      arPOA[dInd] = tonumber(sStr:sub(S,E)) or 0
       dInd = dInd + 1; S = iCnt + 1; E = S
     else E = E + 1 end
     iCnt = iCnt + 1
-  end
-  arPOA[dInd] = tonumber(stringSub(sStr,S,E)) or 0
-  return arPOA
+  end; arPOA[dInd] = (tonumber(sStr:sub(S,E)) or 0); return arPOA
 end
 
 local function RegisterPOA(stPiece, ivID, sP, sO, sA)
@@ -1331,7 +1316,7 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   if(not IsExistent(TransferPOA(tOffs.O,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
   ---------------- Point ----------------
-  local sD = stringGsub(sP,GetOpVar("OPSYM_DISABLE"),"")
+  local sD = sP:gsub(GetOpVar("OPSYM_DISABLE"),"")
   if((sP ~= "NULL") and not IsEmptyString(sP)) then DecodePOA(sP) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer point") end
@@ -1402,7 +1387,7 @@ end
 
 function DisableString(sBase, anyDisable, anyDefault)
   if(IsString(sBase)) then
-    local sFirst = stringSub(sBase,1,1)
+    local sFirst = sBase:sub(1,1)
     if(sFirst ~= GetOpVar("OPSYM_DISABLE") and not IsEmptyString(sBase)) then
       return sBase
     elseif(sFirst == GetOpVar("OPSYM_DISABLE")) then
@@ -1638,7 +1623,7 @@ local function SQLBuildCreate(defTable)
     if(not v[2]) then
       return StatusLog(nil, "SQLBuildCreate: Missing Table "..defTable.Name
                                   .."'s field type #"..tostring(iInd)) end
-    Command.Create = Command.Create..stringUpper(v[1]).." "..stringUpper(v[2])
+    Command.Create = Command.Create..v[1]:upper().." "..v[2]:upper()
     if(defTable[iInd+1]) then Command.Create = Command.Create ..", " end
     iInd = iInd + 1
   end
@@ -1670,8 +1655,8 @@ local function SQLBuildCreate(defTable)
           return StatusLog(nil, "SQLBuildCreate: Index creator mismatch on "
             ..defTable.Name..". The table does not have field index #"
             ..vF..", max is #"..Table.Size) end
-        FieldsU = FieldsU.."_" ..stringUpper(defTable[vF][1])
-        FieldsC = FieldsC..stringUpper(defTable[vF][1])
+        FieldsU = FieldsU.."_" ..(defTable[vF][1]):upper()
+        FieldsC = FieldsC..(defTable[vF][1]):upper()
         if(vI[iCnt+1]) then FieldsC = FieldsC ..", " end
         iCnt = iCnt + 1
       end
@@ -1691,7 +1676,7 @@ local function SQLCacheStmt(sHash,sStmt,...)
     tStore[sHash] = tostring(sStmt); Print(tStore,"SQLCacheStmt: stmt") end
   local sStmt = tStore[sHash]
   if(not sStmt) then return StatusLog(nil, "SQLCacheStmt: Store stmt <"..sHash.."> missing") end
-  return stringFormat(sStmt,...)
+  return sStmt:format(...)
 end
 
 local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
@@ -1800,7 +1785,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   defTable.Size = #defTable
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
   local sModeDB = GetOpVar("MODE_DATABASE")
-  local sTable  = stringUpper(sTable)
+  local sTable  = sTable:upper()
   local symDis  = GetOpVar("OPSYM_DISABLE")
   local iCnt, defField = 1, nil
   while(defTable[iCnt]) do
@@ -3263,8 +3248,7 @@ function GetPropBodyGroup(oEnt)
   while(BGs[iCnt]) do
     sRez = sRez..symSep..tostring(bgEnt:GetBodygroup(BGs[iCnt].id) or 0)
     iCnt = iCnt + 1
-  end
-  sRez = stringSub(sRez,2,-1)
+  end; sRez = sRez:sub(2,-1)
   Print(BGs,"GetPropBodyGrp: BGs")
   return StatusLog(sRez,"GetPropBodyGrp: Success <"..sRez..">")
 end
@@ -3407,7 +3391,7 @@ function MakeAsmVar(sName, sValue, tBorder, nFlags, sInfo)
     return StatusLog(nil,"MakeAsmVar: Wrong default value <"..tostring(sValue)..">") end
   if(not IsString(sInfo)) then
     return StatusLog(nil,"MakeAsmVar: CVar info {"..type(sInfo).."}<"..tostring(sInfo).."> not string") end
-  local sLow = stringLower(sName)
+  local sLow = sName:lower()
   if(tBorder and (type(tBorder) == "table") and tBorder[1] and tBorder[2]) then
     local Border = GetOpVar("TABLE_BORDERS")
     Border["cvar_"..sLow] = tBorder
@@ -3419,7 +3403,7 @@ function GetAsmVar(sName, sMode)
     return StatusLog(nil,"GetAsmVar: CVar name {"..type(sName).."}<"..tostring(sName).."> not string") end
   if(not IsString(sMode)) then
     return StatusLog(nil,"GetAsmVar: CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
-  local sLow = stringLower(sName)
+  local sLow = sName:lower()
   local CVar = GetConVar(GetOpVar("TOOLNAME_PL")..sLow)
   if(not IsExistent(CVar)) then
     return StatusLog(nil,"GetAsmVar("..sName..", "..sMode.."): Missing CVar object") end

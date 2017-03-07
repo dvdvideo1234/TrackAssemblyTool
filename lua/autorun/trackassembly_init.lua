@@ -22,12 +22,6 @@ local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
 local inputIsKeyDown       = input and input.IsKeyDown
 local inputIsMouseDown     = input and input.IsMouseDown
-local stringSub            = string and string.sub
-local stringFind           = string and string.find
-local stringGsub           = string and string.gsub
-local stringUpper          = string and string.upper
-local stringLower          = string and string.lower
-local stringGmatch         = string and string.gmatch
 local stringExplode        = string and string.Explode
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
@@ -39,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.349")
+asmlib.SetOpVar("TOOL_VERSION","5.350")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)

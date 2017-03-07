@@ -24,12 +24,6 @@ local fileExists            = file and file.Exists
 local hookAdd               = hook and hook.Add
 local tableGetKeys          = table and table.GetKeys
 local inputIsKeyDown        = input and input.IsKeyDown
-local stringLen             = string and string.len
-local stringRep             = string and string.rep
-local stringSub             = string and string.sub
-local stringGsub            = string and string.gsub
-local stringUpper           = string and string.upper
-local stringLower           = string and string.lower
 local stringExplode         = string and string.Explode
 local stringToFileName      = string and string.GetFileFromFilename
 local cleanupRegister       = cleanup and cleanup.Register
@@ -64,7 +58,7 @@ local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", stringUpper)..": "
+local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", string.upper)..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
@@ -331,7 +325,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local ply, sDelim  = self:GetOwner(), "\n"
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
   local sFleLog = asmlib.GetOpVar("LOG_LOGFILE")
-  local sSpace  = stringRep(" ",6 + stringLen(tostring(iMaxlog)))
+  local sSpace  = (" "):rep(6 + tostring(iMaxlog):len())
   local plyKeys = asmlib.ReadKeyPly(ply)
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
@@ -352,7 +346,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim
-        sDu = sDu..sSpace.."  Player:         "..stringGsub(tostring(ply),"Player%s","")..sDelim
+        sDu = sDu..sSpace.."  Player:         "..tostring(ply):gsub("Player%s","")..sDelim
         sDu = sDu..sSpace.."  IN.USE:         <"..tostring(asmlib.CheckButtonPly(ply,IN_USE))..">"..sDelim
         sDu = sDu..sSpace.."  IN.DUCK:        <"..tostring(asmlib.CheckButtonPly(ply,IN_DUCK))..">"..sDelim
         sDu = sDu..sSpace.."  IN.SPEED:       <"..tostring(asmlib.CheckButtonPly(ply,IN_SPEED))..">"..sDelim
@@ -636,8 +630,7 @@ function TOOL:Reload(stTrace)
       asmlib.ExportDSV("ADDITIONS")
       asmlib.ExportDSV("PHYSPROPERTIES")
       asmlib.ConCommandPly(ply, "exportdb", 0)
-    end
-    return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
+    end; return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
