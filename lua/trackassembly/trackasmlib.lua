@@ -628,7 +628,7 @@ function MakeContainer(sInfo,sDefKey)
 end
 
 --[[
- * Creates a screen object better user api fro drawing on the gmod screens
+ * Creates a screen object better user api for drawing on the gmod screens
  * The drawing methods are the following:
  * SURF - Uses the surface library to draw directly
  * SEGM - Uses the surface library to draw line segment interpolations
@@ -688,9 +688,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     if(sMeth == "SURF") then
       if(sKey == "TXT" and tArgs ~= DrawArgs[sKey]) then
         surfaceSetFont(tostring(tArgs[1] or "Default")) end -- Time to set the font again
-    end
-    DrawMeth[sKey] = sMeth; DrawArgs[sKey] = tArgs
-    return sMeth, tArgs
+    end; DrawMeth[sKey], DrawArgs[sKey] = sMeth, tArgs; return sMeth, tArgs
   end
   function self:SetTextEdge(nX,nY)
     Text.ScrW, Text.ScrH = 0, 0
@@ -730,8 +728,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     if(xyPnt.x < sW) then return -1 end
     if(xyPnt.x > eW) then return -1 end
     if(xyPnt.y < sH) then return -1 end
-    if(xyPnt.y > eH) then return -1 end
-    return 1
+    if(xyPnt.y > eH) then return -1 end; return 1
   end
   function self:DrawLine(pS,pE,keyColor,sMeth,tArgs)
     if(not (pS and pE)) then return end
@@ -812,8 +809,7 @@ function SetAction(sKey,fAct,tDat)
   if(not (fAct and type(fAct) == "function")) then
     return StatusLog(nil,"SetAction: Act {"..type(fAct).."}<"..tostring(fAct).."> not function") end
   if(not libAction[sKey]) then libAction[sKey] = {} end
-  libAction[sKey].Act = fAct
-  libAction[sKey].Dat = tDat
+  libAction[sKey].Act, libAction[sKey].Dat = fAct, tDat
   return true
 end
 
@@ -1203,8 +1199,7 @@ local function IsEqualPOA(staPOA,stbPOA)
     return StatusLog(false,"EqualPOA: Missing offset B") end
   for kKey, vComp in pairs(staPOA) do
     if(kKey ~= csD and stbPOA[kKey] ~= vComp) then return false end
-  end
-  return true
+  end; return true
 end
 
 local function IsZeroPOA(stPOA,sOffs)
@@ -1254,15 +1249,12 @@ end
 local function DecodePOA(sStr)
   if(not IsString(sStr)) then
     return StatusLog(nil,"DecodePOA: Argument {"..type(sStr).."}<"..tostring(sStr).."> not string") end
-  local sCh = ""
-  local dInd, iSep = 1, 0
-  local S, E, iCnt = 1, 1, 1
-  local strLen = sStr:len()
+  local strLen = sStr:len(); ReloadPOA()
   local symOff = GetOpVar("OPSYM_DISABLE")
   local symRev = GetOpVar("OPSYM_REVSIGN")
   local symSep = GetOpVar("OPSYM_SEPARATOR")
   local arPOA  = GetOpVar("ARRAY_DECODEPOA")
-  ReloadPOA()
+  local S, E, iCnt, dInd, iSep, sCh = 1, 1, 1, 1, 0, ""
   if(sStr:sub(iCnt,iCnt) == symOff) then
     arPOA[7] = true; iCnt = iCnt + 1; S = S + 1 end
   while(iCnt <= strLen) do
@@ -1393,8 +1385,7 @@ function DisableString(sBase, anyDisable, anyDefault)
     elseif(sFirst == GetOpVar("OPSYM_DISABLE")) then
       return anyDisable
     end
-  end
-  return anyDefault
+  end; return anyDefault
 end
 
 function DefaultString(sBase, sDefault)
@@ -1793,8 +1784,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     defField[3] = DefaultString(tostring(defField[3] or symDis), symDis)
     defField[4] = DefaultString(tostring(defField[4] or symDis), symDis)
     iCnt = iCnt + 1
-  end
-  libCache[defTable.Name] = {}
+  end; libCache[defTable.Name] = {}
   if(sModeDB == "SQL") then
     local tQ = SQLBuildCreate(defTable)
     if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable: Build statement failed") end
@@ -1815,8 +1805,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       end
     end
     if(sqlTableExists(defTable.Name)) then
-      LogInstance("CreateTable: Table "..sTable.." exists!")
-      return true
+      return StatusLog(true,"CreateTable: Table "..sTable.." exists!")
     else
       local qRez = sqlQuery(tQ.Create)
       if(not qRez and IsBool(qRez)) then
@@ -2005,10 +1994,8 @@ local function NavigateTable(oLocation,tKeys)
       oPlace = oPlace[kKey]
       if(not IsExistent(oPlace)) then
         return nil, StatusLog(nil,"NavigateTable: Key #"..tostring(kKey).." irrelevant to location") end
-    end
-    iCnt = iCnt + 1
-  end
-  return oPlace, kKey
+    end; iCnt = iCnt + 1
+  end; return oPlace, kKey
 end
 
 function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps the defaults
@@ -2181,12 +2168,10 @@ function CacheQueryPiece(sModel)
       stPiece.Unit = qData[1][defTable[8][1]]
       while(qData[stPiece.Kept]) do
         local qRec = qData[stPiece.Kept]
-        local qRez = RegisterPOA(stPiece,
-                           stPiece.Kept,
-                           qRec[defTable[5][1]],
-                           qRec[defTable[6][1]],
-                           qRec[defTable[7][1]])
-        if(not IsExistent(qRez)) then
+        if(not IsExistent(RegisterPOA(stPiece,stPiece.Kept,
+                                      qRec[defTable[5][1]],
+                                      qRec[defTable[6][1]],
+                                      qRec[defTable[7][1]]))) then
           return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for <"..sModel..">") end
         stPiece.Kept = stPiece.Kept + 1
       end; return TimerAttach(libCache,caInd,defTable,"CacheQueryPiece")
