@@ -1614,7 +1614,7 @@ local function SQLBuildCreate(defTable)
     if(not v[2]) then
       return StatusLog(nil, "SQLBuildCreate: Missing Table "..defTable.Name
                                   .."'s field type #"..tostring(iInd)) end
-    Command.Create = Command.Create..v[1]:upper().." "..v[2]:upper()
+    Command.Create = Command.Create..(v[1]):upper().." "..(v[2]):upper()
     if(defTable[iInd+1]) then Command.Create = Command.Create ..", " end
     iInd = iInd + 1
   end
@@ -1772,13 +1772,13 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     return StatusLog(false,"CreateTable: Record definition missing for "..sTable) end
   if(#defTable ~= tableMaxn(defTable)) then
     return StatusLog(false,"CreateTable: Record definition mismatch for "..sTable) end
+  local sTable  = sTable:upper()
+  local sModeDB = GetOpVar("MODE_DATABASE")
+  local symDis  = GetOpVar("OPSYM_DISABLE")
+  local iCnt, defField = 1, nil
   SetOpVar("DEFTABLE_"..sTable,defTable)
   defTable.Size = #defTable
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
-  local sModeDB = GetOpVar("MODE_DATABASE")
-  local sTable  = sTable:upper()
-  local symDis  = GetOpVar("OPSYM_DISABLE")
-  local iCnt, defField = 1, nil
   while(defTable[iCnt]) do
     defField    = defTable[iCnt]
     defField[3] = DefaultString(tostring(defField[3] or symDis), symDis)
@@ -1821,7 +1821,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       else
         return StatusLog(false,"CreateTable: Table "..sTable..
           " failed to create because of "..sqlLastError().." Query ran > "..tQ.Create) end
-    end; LogInstance("Created "..defTable.Name)
+    end; LogInstance("CreateTable: Created "..defTable.Name)
   elseif(sModeDB == "LUA") then
     LogInstance("CreateTable: Created "..defTable.Name)
   else return StatusLog(false,"CreateTable: Wrong database mode <"..sModeDB..">") end
@@ -1870,24 +1870,24 @@ function InsertRecord(sTable,arLine)
     if(sTable == "PIECES") then
       Q = SQLCacheStmt("stmtInsertPieces", nil, unpack(arLine))
       if(not Q) then
-        local Stmt = SQLBuildInsert(defTable,nil,{"%s","%s","%s","%d","%s","%s","%s","%s"})
-        if(not IsExistent(Stmt)) then
+        local sStmt = SQLBuildInsert(defTable,nil,{"%s","%s","%s","%d","%s","%s","%s","%s"})
+        if(not IsExistent(sStmt)) then
           return StatusLog(nil,"InsertRecord: Build statement <"..sTable.."> failed") end
-        Q = SQLCacheStmt("stmtInsertPieces", Stmt, unpack(arLine)) end
+        Q = SQLCacheStmt("stmtInsertPieces", sStmt, unpack(arLine)) end
     elseif(sTable == "ADDITIONS") then
       Q = SQLCacheStmt("stmtInsertAdditions", nil, unpack(arLine))
       if(not Q) then
-        local Stmt = SQLBuildInsert(defTable,nil,{"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"})
-        if(not IsExistent(Stmt)) then
+        local sStmt = SQLBuildInsert(defTable,nil,{"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"})
+        if(not IsExistent(sStmt)) then
           return StatusLog(nil,"InsertRecord: Build statement <"..sTable.."> failed") end
-        Q = SQLCacheStmt("stmtInsertAdditions", Stmt, unpack(arLine)) end
+        Q = SQLCacheStmt("stmtInsertAdditions", sStmt, unpack(arLine)) end
     elseif(sTable == "PHYSPROPERTIES") then
       Q = SQLCacheStmt("stmtInsertPhysproperties", nil, unpack(arLine))
       if(not Q) then
-        Stmt = SQLBuildInsert(defTable,nil,{"%s","%d","%s"})
-        if(not IsExistent(Stmt)) then
+        sStmt = SQLBuildInsert(defTable,nil,{"%s","%d","%s"})
+        if(not IsExistent(sStmt)) then
           return StatusLog(nil,"InsertRecord: Build statement <"..sTable.."> failed") end
-        Q = SQLCacheStmt("stmtInsertPhysproperties", Stmt, unpack(arLine)) end
+        Q = SQLCacheStmt("stmtInsertPhysproperties", sStmt, unpack(arLine)) end
     else return StatusLog(false, "InsertRecord: Missed query pattern for <"..sTable..">") end
     if(not IsExistent(Q)) then
       return StatusLog(false, "InsertRecord: Internal cache error <"..sTable..">")end
@@ -1924,7 +1924,7 @@ function InsertRecord(sTable,arLine)
       if(not IsExistent(stRezul)) then
         return StatusLog(nil,"InsertRecord: Cannot process offset #"..tostring(nOffsID).." for "..tostring(snPrimaryKey)) end
       if(nOffsID > stData.Kept) then stData.Kept = nOffsID else
-        return StatusLog(nil,"InsertRecord: Offset #"..tostring(nOffsID).." sequentiality mismatch") end
+        return StatusLog(nil,"InsertRecord: Offset #"..tostring(nOffsID).." sequential mismatch") end
     elseif(sTable == "ADDITIONS") then
       local stData = tCache[snPrimaryKey]
       if(not stData) then
@@ -1945,8 +1945,7 @@ function InsertRecord(sTable,arLine)
                     ..sTable.." <"..tostring(arLine[nCnt]).."> to "
                     ..defTable[nCnt][1].." for "..tostring(snPrimaryKey)) end
         nCnt = nCnt + 1
-      end
-      stData.Kept = nAddID
+      end; stData.Kept = nAddID
     elseif(sTable == "PHYSPROPERTIES") then
       local sKeyName = GetOpVar("HASH_PROPERTY_NAMES")
       local sKeyType = GetOpVar("HASH_PROPERTY_TYPES")
@@ -2022,8 +2021,6 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
   local sModeDB = GetOpVar("MODE_DATABASE")
   LogInstance("TimerAttach: Called by <"..tostring(anyMessage).."> for Place["..tostring(Key).."]")
   if(sModeDB == "SQL") then
-    -- Get the proper line count to avoid doing in every caching function"
-    if(IsExistent(Place[Key].Kept)) then Place[Key].Kept = Place[Key].Kept - 1 end
     local nNowTM, tTimer = Time(), defTable.Timer -- See that there is a timer and get "now"
     if(not IsExistent(tTimer)) then
       return StatusLog(Place[Key],"TimerAttach: Missing timer settings") end
@@ -2161,19 +2158,19 @@ function CacheQueryPiece(sModel)
         return StatusLog(nil,"CacheQueryPiece: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPiece: No data found <"..Q..">") end
-      stPiece.Kept = 1 --- Found at least one record
+      stPiece.Kept = 0; local iCnt = 1 --- Notrhing registered yet
       stPiece.Slot = sModel
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
       stPiece.Unit = qData[1][defTable[8][1]]
-      while(qData[stPiece.Kept]) do
-        local qRec = qData[stPiece.Kept]
-        if(not IsExistent(RegisterPOA(stPiece,stPiece.Kept,
+      while(qData[iCnt]) do
+        local qRec = qData[iCnt]
+        if(not IsExistent(RegisterPOA(stPiece,iCnt,
                                       qRec[defTable[5][1]],
                                       qRec[defTable[6][1]],
                                       qRec[defTable[7][1]]))) then
           return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Kept).." for <"..sModel..">") end
-        stPiece.Kept = stPiece.Kept + 1
+        stPiece.Kept, iCnt = iCnt, (iCnt + 1)
       end; return TimerAttach(libCache,caInd,defTable,"CacheQueryPiece")
     elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryPiece: Record not located")
     else return StatusLog(nil,"CacheQueryPiece: Wrong database mode <"..sModeDB..">") end
@@ -2221,15 +2218,14 @@ function CacheQueryAdditions(sModel)
         return StatusLog(nil,"CacheQueryAdditions: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryAdditions: No data found <"..Q..">") end
-      stAddition.Kept = 1
+      stAddition.Kept = 0; local iCnt = 1
       stAddition.Slot = sModel
-      while(qData[stAddition.Kept]) do
-        local qRec = qData[stAddition.Kept]
-        stAddition[stAddition.Kept] = {}
+      while(qData[iCnt]) do
+        local qRec = qData[iCnt]
+        stAddition[iCnt] = {}
         for Field, Val in pairs(qRec) do
-          stAddition[stAddition.Kept][Field] = Val
-        end
-        stAddition.Kept = stAddition.Kept + 1
+          stAddition[iCnt][Field] = Val
+        end; stAddition.Kept, iCnt = iCnt, (iCnt + 1)
       end
       return TimerAttach(libCache,caInd,defTable,"CacheQueryAdditions")
     elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryAdditions: Record not located")
@@ -2272,30 +2268,25 @@ function CacheQueryPanel()
         return StatusLog(nil,"CacheQueryPanel: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPanel: No data found <"..Q..">") end
-      stPanel.Kept = 1
-      while(qData[stPanel.Kept]) do
-        stPanel[stPanel.Kept] = qData[stPanel.Kept]
-        stPanel.Kept = stPanel.Kept + 1
+      stPanel.Kept = 1; local iCnt = 1
+      while(qData[iCnt]) do
+        stPanel[iCnt] = qData[iCnt]
+        stPanel.Kept, iCnt = iCnt, (iCnt + 1)
       end
       return TimerAttach(libCache,caInd,defTable,"CacheQueryPanel")
     elseif(sModeDB == "LUA") then
-      local tCache = libCache[defTable.Name]
-      local tData = {}
-      local iNdex = 0
-      for sModel, tRecord in pairs(tCache) do
-        tData[sModel] = {
-          [defTable[1][1]] = sModel,
-          [defTable[2][1]] = tRecord.Type,
-          [defTable[3][1]] = tRecord.Name
-        }
-      end
-      local tSorted = Sort(tData,nil,{defTable[2][1],defTable[3][1]})
+      local tCache  = libCache[defTable.Name]
+      local tSorted = Sort(tCache,nil,{"Type","Name"})
       if(not tSorted) then
         return StatusLog(nil,"CacheQueryPanel: Cannot sort cache data") end
-      iNdex = 1
-      while(tSorted[iNdex]) do
-        stPanel[iNdex] = tData[tSorted[iNdex].Key]
-        iNdex = iNdex + 1
+      stPanel.Kept = 0; local iCnt = 1
+      while(tSorted[iCnt]) do
+        local vSort = tSorted[iCnt]
+        stPanel[iCnt] = {
+          [defTable[1][1]] = vSort.Key,
+          [defTable[2][1]] = tCache[vSort.Key].Type,
+          [defTable[3][1]] = tCache[vSort.Key].Name
+        }; stPanel.Kept, iCnt = iCnt, (iCnt + 1)
       end
       return stPanel
     else return StatusLog(nil,"CacheQueryPanel: Wrong database mode <"..sModeDB..">") end
@@ -2348,10 +2339,10 @@ function CacheQueryProperty(sType)
           return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found <"..Q..">") end
-        stName.Kept, stName.Slot = 1, sType
-        while(qData[stName.Kept]) do
-          stName[stName.Kept] = qData[stName.Kept][defTable[3][1]]
-          stName.Kept = stName.Kept + 1
+        stName.Kept, stName.Slot = 0, sType; local iCnt = 1
+        while(qData[iCnt]) do
+          stName[iCnt] = qData[iCnt][defTable[3][1]]
+          stName.Kept, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("CacheQueryProperty["..sType.."]: Names >> Pool")
         return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
       elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Record not located")
@@ -2382,10 +2373,10 @@ function CacheQueryProperty(sType)
           return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty: No data found <"..Q..">") end
-        stType.Kept = 1
-        while(qData[stType.Kept]) do
-          stType[stType.Kept] = qData[stType.Kept][defTable[1][1]]
-          stType.Kept = stType.Kept + 1
+        stType.Kept = 0; local iCnt = 1
+        while(qData[iCnt]) do
+          stType[iCnt] = qData[iCnt][defTable[1][1]]
+          stPanel.Kept, iCnt = iCnt, (iCnt + 1)
         end
         LogInstance("CacheQueryProperty: Types >> Pool")
         return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
@@ -2467,7 +2458,7 @@ function ImportCategory(vEq, sPref)
   if(not F) then return StatusLog(false,"ImportCategory: fileOpen("..fName..") failed") end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk, sCh = "["..sEq.."[", "]"..sEq.."]", "X"
-  local tCat, syOff = GetOpVar("TABLE_CATEGORIES"), GetOpVar("OPSYM_DISABLE")
+  local tCat, symOff = GetOpVar("TABLE_CATEGORIES"), GetOpVar("OPSYM_DISABLE")
   local sPar, isPar = "", false
   while(sCh) do
     sCh = F:Read(1)
@@ -2485,7 +2476,7 @@ function ImportCategory(vEq, sPref)
         local key, txt = tBoo[1]:Trim(), tBoo[2]
         if(not IsEmptyString(key)) then
           if(txt:find("function")) then
-            if(key:sub(1,1) ~= syOff) then
+            if(key:sub(1,1) ~= symOff) then
               tCat[key] = {}; tCat[key].Txt = txt:Trim()
               tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
               local suc, out = pcall(tCat[key].Cmp)
@@ -2500,10 +2491,9 @@ function ImportCategory(vEq, sPref)
 end
 
 --[[
- * Save/Load the DB Using Excel or
- * anything that supports delimiter separated digital tables
- * sTable > Definition KEY to export
- * sPref  > Prefix used on exporting ( if any )
+ * This function deleates DSV associated with a given prefix
+ * sTable > Extermal table database to export
+ * sPref  > Prefix used on exporting ( if any ) else instance is used
 ]]--
 function RemoveDSV(sTable, sPref)
   local sPref = tostring(sPref or GetInstPref())

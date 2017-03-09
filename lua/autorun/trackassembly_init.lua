@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.352")
+asmlib.SetOpVar("TOOL_VERSION","5.353")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -207,8 +207,7 @@ if(CLIENT) then
     function(oPly,oCom,oArgs)
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
-      local symOff  = asmlib.GetOpVar("OPSYM_DISABLE")
-      asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode)..symOff..tostring(command).."}")
+      asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode).."@"..tostring(command).."}")
       asmlib.ConCommandPly(oPly,"nextx"  , "0")
       asmlib.ConCommandPly(oPly,"nexty"  , "0")
       asmlib.ConCommandPly(oPly,"nextz"  , "0")
