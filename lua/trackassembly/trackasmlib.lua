@@ -2491,7 +2491,7 @@ function ImportCategory(vEq, sPref)
 end
 
 --[[
- * This function deleates DSV associated with a given prefix
+ * This function removes DSV associated with a given prefix
  * sTable > Extermal table database to export
  * sPref  > Prefix used on exporting ( if any ) else instance is used
 ]]--
@@ -3314,28 +3314,6 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   return StatusLog(ePiece,"MakePiece: "..tostring(ePiece)..sModel)
 end
 
-function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
-  if(CLIENT) then return StatusLog(true,"ApplyPhysicalAnchor: Working on client") end
-  local bWe, bNc, nFm = (tobool(bWe) or false), (tobool(bNc) or false), (tonumber(nFm) or 0)
-  LogInstance("ApplyPhysicalAnchor: {"..tostring(nWe)..","..tostring(bNc)..","..tostring(nFm).."}")
-  if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(false,"ApplyPhysicalAnchor: Piece <"..tostring(ePiece).."> not valid") end
-  if(not (eBase and eBase:IsValid())) then
-    return StatusLog(true,"ApplyPhysicalAnchor: Base <"..tostring(eBase).."> constraint ignored") end
-  if(bNc) then -- NoCollide should be made separately
-    local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
-    if(cnN and cnN:IsValid()) then
-      ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
-    else LogInstance("ApplyPhysicalAnchor: NoCollide ignored") end
-  end
-  if(bWe) then -- Weld with the force limit here V
-    local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
-    if(cnW and cnW:IsValid()) then
-      ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
-    else LogInstance("ApplyPhysicalAnchor: Weld ignored "..tostring(cnW)) end
-  end; return StatusLog(true,"ApplyPhysicalAnchor: Success")
-end
-
 function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   if(CLIENT) then return StatusLog(true,"ApplyPhysicalSettings: Working on client") end
   local bPi, bFr = (tobool(bPi) or false), (tobool(bFr) or false)
@@ -3357,6 +3335,28 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
+end
+
+function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
+  if(CLIENT) then return StatusLog(true,"ApplyPhysicalAnchor: Working on client") end
+  local bWe, bNc, nFm = (tobool(bWe) or false), (tobool(bNc) or false), (tonumber(nFm) or 0)
+  LogInstance("ApplyPhysicalAnchor: {"..tostring(nWe)..","..tostring(bNc)..","..tostring(nFm).."}")
+  if(not (ePiece and ePiece:IsValid())) then
+    return StatusLog(false,"ApplyPhysicalAnchor: Piece <"..tostring(ePiece).."> not valid") end
+  if(not (eBase and eBase:IsValid())) then
+    return StatusLog(true,"ApplyPhysicalAnchor: Base <"..tostring(eBase).."> constraint ignored") end
+  if(bNc) then -- NoCollide should be made separately
+    local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
+    if(cnN and cnN:IsValid()) then
+      ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
+    else LogInstance("ApplyPhysicalAnchor: NoCollide ignored") end
+  end
+  if(bWe) then -- Weld using force limit given here V
+    local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
+    if(cnW and cnW:IsValid()) then
+      ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
+    else LogInstance("ApplyPhysicalAnchor: Weld ignored "..tostring(cnW)) end
+  end; return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end
 
 function MakeAsmVar(sName, sValue, tBorder, nFlags, sInfo)
