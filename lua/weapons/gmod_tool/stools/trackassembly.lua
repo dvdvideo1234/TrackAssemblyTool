@@ -837,8 +837,7 @@ function TOOL:DrawToolScreen(w, h)
       return asmlib.StatusLog(nil,"DrawToolScreen: Invalid screen") end
     asmlib.SetOpVar("MONITOR_TOOL", scrTool)
     asmlib.LogInstance("DrawToolScreen: Create screen")
-  end
-  scrTool:SetColor()
+  end; scrTool:SetColor()
   scrTool:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
   scrTool:SetTextEdge(0,0)
   local stTrace = LocalPlayer():GetEyeTrace()
@@ -935,14 +934,14 @@ function TOOL.BuildCPanel(CPanel)
     local Nam = Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
       if(Typ ~= "" and not pFolders[Typ]) then
-        pItem = pTree:AddNode(Typ) -- No type folder made already
-        pItem:SetName(Typ)
-        pItem.Icon:SetImage("icon16/database_connect.png")
-        pItem.InternalDoClick = function() end
-        pItem.DoClick = function() return false end
-        pItem.Label.UpdateColours = function(pSelf)
-          return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
-        pFolders[Typ] = pItem
+        local pRoot = pTree:AddNode(Typ) -- No type folder made already
+              pRoot.Icon:SetImage("icon16/database_connect.png")
+              pRoot.InternalDoClick = function() end
+              pRoot.DoClick         = function() return false end
+              pRoot.DoRightClick    = function() SetClipboardText(pRoot:GetText()) end
+              pRoot.Label.UpdateColours = function(pSelf)
+                return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
+        pFolders[Typ] = pRoot
       end -- Reset the primary tree node pointer
       if(pFolders[Typ]) then pItem = pFolders[Typ] else pItem = pTree end
       -- Register the category if definition functional is given

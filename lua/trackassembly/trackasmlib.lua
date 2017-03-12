@@ -2315,8 +2315,7 @@ function CacheQueryProperty(sType)
     if(not IsExistent(caInd[1])) then
       caInd[1] = defTable.Name; caInd[2] = keyName end caInd[3] = sType
     if(not IsExistent(arNames)) then
-      tCache[keyName] = {}; arNames = tCache[keyName]
-    end
+      tCache[keyName] = {}; arNames = tCache[keyName] end
     local stName = arNames[sType]
     if(IsExistent(stName) and IsExistent(stName.Kept)) then
       LogInstance("CacheQueryProperty["..sType.."]: Names << Pool")
@@ -2327,12 +2326,12 @@ function CacheQueryProperty(sType)
       if(sModeDB == "SQL") then
         local qType = MatchType(defTable,sType,1,true)
         arNames[sType] = {}; stName = arNames[sType]; stName.Kept = 0
-        local Q = SQLCacheStmt("stmtSelectPropertyNames", nil, sType)
+        local Q = SQLCacheStmt("stmtSelectPropertyNames", nil, qType)
         if(not Q) then
           local sStmt = SQLBuildSelect(defTable,{3},{{1,"%s"}},{2})
           if(not IsExistent(sStmt)) then
             return StatusLog(nil,"CacheQueryProperty["..sType.."]: Build statement failed") end
-          Q = SQLCacheStmt("stmtSelectPropertyNames", sStmt, sType)
+          Q = SQLCacheStmt("stmtSelectPropertyNames", sStmt, qType)
         end
         local qData = sqlQuery(Q)
         if(not qData and IsBool(qData)) then
@@ -2376,7 +2375,7 @@ function CacheQueryProperty(sType)
         stType.Kept = 0; local iCnt = 1
         while(qData[iCnt]) do
           stType[iCnt] = qData[iCnt][defTable[1][1]]
-          stPanel.Kept, iCnt = iCnt, (iCnt + 1)
+          stType.Kept, iCnt = iCnt, (iCnt + 1)
         end
         LogInstance("CacheQueryProperty: Types >> Pool")
         return TimerAttach(libCache,caInd,defTable,"CacheQueryProperty")
