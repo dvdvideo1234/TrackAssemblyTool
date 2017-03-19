@@ -2719,16 +2719,19 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       else sLine = sLine..sCh end
     end; I:Close()
   else LogInstance("SynchronizeDSV("..fPref.."): Creating file <"..fName..">") end
-  for mod, rec in pairs(tData) do -- Check the given table
+  for key, rec in pairs(tData) do -- Check the given table
     for pnID = 1, #rec do
       local tRec = rec[pnID]
       local nID, vID = 0 -- Where the lime ID mut be read from
-      if    (sTable == "PIECES") then vID = tRec[3]; nID = tonumber(vID) or 0
+      if(sTable == "PIECES") then
+        vID = tRec[3]; nID = tonumber(vID) or 0
+        if(pnID ~= nID) then
+          return StatusLog(false,"SynchronizeDSV("..fPref.."): Given pont ID #"..
+            tostring(vID).." desynchronized <"..key.."> of "..sTable) end
+        if(not fileExists(key, "GAME")) then
+          LogInstance("SynchronizeDSV("..fPref.."): Missing piece <"..key..">") end
       elseif(sTable == "ADDITIONS") then vID = tRec[3]; nID = tonumber(vID) or 0
       elseif(sTable == "PHYSPROPERTIES") then vID = tRec[1]; nID = tonumber(vID) or 0 end
-      if(pnID ~= nID) then
-        return StatusLog(false,"SynchronizeDSV("..fPref.."): Given pont ID #"..
-          tostring(vID).." desynchronized <"..mod.."> of "..sTable) end
       for nCnt = 1, #tRec do -- Do a value matching without automatic quotes
         local vMatch = MatchType(defTable,tRec[nCnt],nCnt+1,true,"\"",true)
         if(not IsExistent(vMatch)) then
@@ -2737,12 +2740,10 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
               ..defTable[nCnt+1][1].."> of "..sTable)
         end
       end
-    end
-  end
-  for mod, rec in pairs(tData) do -- Synchronize extended DSV
-    if((fData[mod] and bRepl) or not fData[mod]) then
-      fData[mod] = rec
-      fData[mod].Kept = #rec
+    end -- Register the read line to the output file
+    if((fData[key] and bRepl) or not fData[key]) then
+      fData[key] = rec
+      fData[key].Kept = #rec
     end
   end
   local tSort = Sort(tableGetKeys(fData))
@@ -2753,9 +2754,9 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   O:Write("# SynchronizeDSV("..fPref.."): "..osDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   O:Write("# Data settings:\t"..GetColumns(defTable,sDelim).."\n")
   for rcID = 1, #tSort do
-    local mod = tSort[rcID].Val
-    local rec = fData[mod]
-    local sCash, sData = defTable.Name..sDelim..mod, ""
+    local key = tSort[rcID].Val
+    local rec = fData[key]
+    local sCash, sData = defTable.Name..sDelim..key, ""
     for pnID = 1, rec.Kept do
       local tItem = rec[pnID]
       for nCnt = 1, #tItem do

@@ -661,9 +661,9 @@ function TOOL:DrawHUD()
     local scrH = surfaceScreenHeight()
     hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
     if(not hudMonitor) then
-      return asmlib.StatusLog(nil,"DrawHUD: Invalid screen") end
+      return asmlib.StatusLog(nil,"TOOL:DrawHUD: Invalid screen") end
     asmlib.SetOpVar("MONITOR_GAME", hudMonitor)
-    asmlib.LogInstance("DrawHUD: Create screen")
+    asmlib.LogInstance("TOOL:DrawHUD: Create screen")
   end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
   local ply = LocalPlayer()
@@ -692,7 +692,7 @@ function TOOL:DrawHUD()
       while(ID <= trRec.Kept) do
         local stPOA = asmlib.LocatePOA(trRec,ID)
         if(not stPOA) then
-          return asmlib.StatusLog(nil,"DrawHUD: Cannot assist point #"..tostring(ID)) end
+          return asmlib.StatusLog(nil,"TOOL:DrawHUD: Cannot assist point #"..tostring(ID)) end
         asmlib.SetVector(O,stPOA.O)
         O:Rotate(trEnt:GetAngles())
         O:Add(trEnt:GetPos())
@@ -834,9 +834,9 @@ function TOOL:DrawToolScreen(w, h)
   if(not scrTool) then
     scrTool = asmlib.MakeScreen(0,0,w,h,conPalette)
     if(not scrTool) then
-      return asmlib.StatusLog(nil,"DrawToolScreen: Invalid screen") end
+      return asmlib.StatusLog(nil,"TOOL:DrawToolScreen: Invalid screen") end
     asmlib.SetOpVar("MONITOR_TOOL", scrTool)
-    asmlib.LogInstance("DrawToolScreen: Create screen")
+    asmlib.LogInstance("TOOL:DrawToolScreen: Create screen")
   end; scrTool:SetColor()
   scrTool:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
   scrTool:SetTextEdge(0,0)
@@ -918,7 +918,7 @@ function TOOL.BuildCPanel(CPanel)
               CVars      = tableGetKeys(ConVarList)}); CurY = CurY + pItem:GetTall() + 2
 
   local Panel = asmlib.CacheQueryPanel()
-  if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Panel population empty") end
+  if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Panel population empty") end
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree")
@@ -976,7 +976,7 @@ function TOOL.BuildCPanel(CPanel)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end -- SnapReview is ignored because a query must be executed for points count
-    else asmlib.LogInstance("Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !") end
+    else asmlib.LogInstance("TOOL:BuildCPanel: Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !") end
     iCnt = iCnt + 1
   end
   CPanel:AddItem(pTree)
@@ -997,29 +997,27 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
         CurY = CurY + pComboPhysName:GetTall() + 2
   local Property = asmlib.CacheQueryProperty()
-  if(not Property) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel(cPanel): Property population empty") end
-  asmlib.Print(Property,"Property")
-  local CntTyp = 1
-  while(Property[CntTyp]) do
-    pComboPhysType:AddChoice(Property[CntTyp])
+  if(not Property) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Property population empty") end
+  local iTyp = 1
+  while(Property[iTyp]) do
+    pComboPhysType:AddChoice(Property[iTyp])
     pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
       local qNames = asmlib.CacheQueryProperty(sVal)
       if(qNames) then
         pComboPhysName:Clear()
         pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
-        local CntNam = 1
-        while(qNames[CntNam]) do
-          pComboPhysName:AddChoice(qNames[CntNam])
+        local iNam = 1
+        while(qNames[iNam]) do
+          pComboPhysName:AddChoice(qNames[iNam])
           pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
             RunConsoleCommand(gsToolPrefL.."physmater", sVal)
-          end; CntNam = CntNam + 1
+          end; iNam = iNam + 1
         end
-      else asmlib.PrintInstance("Property type <"..sVal.."> has no names available") end
-    end; CntTyp = CntTyp + 1
+      else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names unavailable") end
+    end; iTyp = iTyp + 1
   end
   CPanel:AddItem(pComboPhysType)
-  CPanel:AddItem(pComboPhysName)
-  asmlib.LogInstance("Found #"..(CntTyp-1).." material types.")
+  CPanel:AddItem(pComboPhysName); asmlib.Print(Property,"TOOL:BuildCPanel: Property")
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local pText = vguiCreate("DTextEntry")
