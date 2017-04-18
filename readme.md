@@ -155,7 +155,7 @@ A: Here they are, with available status, why I did not do some of them ( at the 
    20) Mr. Train's G-Gauge rails
       https://steamcommunity.com/sharedfiles/filedetails/?id=590574800
    21) Ron's 56 gauge rails ( Removed by the addon owner. Discontinued )
-   22) Ron's 2ft track pack
+   22) Ron's 2ft track pack ( Maintained by the owner )
       http://steamcommunity.com/sharedfiles/filedetails/?id=634000136
    23) PHX Tubes
    24) Magnum's second track pack ( Ignore, it's not designed to be a prop )
@@ -167,6 +167,8 @@ A: Here they are, with available status, why I did not do some of them ( at the 
       http://steamcommunity.com/sharedfiles/filedetails/?id=728833183
    28) Battleship's abandoned rails
       http://steamcommunity.com/sharedfiles/filedetails/?id=807162936
+   29) Ron's G-Scale track pack ( Maintained by the owner )
+      https://steamcommunity.com/sharedfiles/filedetails/?id=865735701
 
 Q: Where are the trains/vehicles, are there any of these?
 A: Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
@@ -353,15 +355,14 @@ A: You can choose a memory management algorithm by setting trackassembly_timermo
      Used: When server has enough memory for the timers OR
            the record has to be deleted at the exact moment the life passes.
 
-Q: Does this script stores the created queries for later use ?
+Q: Does this script store the created queries for later use ?
 A: Yes. That way it performs faster statements generation with very little memory consumed.
    Statement storage is based on caller name ( Good example is "CacheQueryPiece" ) where
-   the program tries to retrieve the generated query, without going trough the troble to
-   concatenate all fields. This job is alredy stored in a table and if a request arrives,
-   the statement is generated with liner complexity proportional to the items in the where
-   clause ( For the most expensive function "CacheQueryPiece", the request is done using
-   the model, so this table has two sequantial statements divided/exploded on the model
-   provided "SQLFetchSelect(<statement_hash>, <where_clause_data>)" )
+   the program tries to retrieve the generated query, without going trough the trouble to
+   concatenate all the fields. For the most expensive function "CacheQueryPiece", the request
+   is done using the model, so in the statement it is substituted as an argument provided
+   to "SQLCacheStmt(<hash>, <stmt>, <arguments>)" ). That way the base statement
+   is stored once and formatted everytime it needs to be used.
 
 Q: Hey, there is a textbox and a dropdown menu next to the "ExportDB" button. What are these for ?
 A: Well, when a server owners set the "trackassembly_maxfruse" to a higher value, a slider appears.
