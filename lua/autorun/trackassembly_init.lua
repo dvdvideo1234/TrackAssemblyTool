@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.357")
+asmlib.SetOpVar("TOOL_VERSION","5.358")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2567,9 +2567,9 @@ else
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 2, "", "527.999756,-431.999878,5.81", "0,-90,0"})
   asmlib.DefaultType("Transrapid",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/ron/maglev/","");
-    local s = r:find("/"); r = s and r:sub(1, s-1) or nil
-    return {(r and (("_"..r):gsub("_%w",conv):sub(2,-1)) or nil)} end]])
+    local r = m:gsub("models/ron/maglev/",""):gsub("[\\/]([^\\/]+)$","");
+    if(r:find("track")) then r = r:gsub("track/","")
+    elseif(r:find("support")) then r = nil end; return r and {r} end]])
   asmlib.InsertRecord({"models/ron/maglev/support/support_a.mdl", "#", "#", 1, "", "0,0,3.984", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 1, "", " 64,0,3.984", ""})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 2, "", "-64,0,3.984", "0,-180,0"})
@@ -2898,13 +2898,13 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".gravity"       , "Управлява гравитацията върху създаденото парче")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".gravity_con"   , "Приложи гравитация върху парчето")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".weld"          , "Създава заварки между парчетата или парчета/опора")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".weld_con"      , "Заварка")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".weld_con"      , "Създай заварка")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".forcelim"      , "Управлява колко сила е необходима за да се счупи заварката")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".forcelim_con"  , "Граница на сила:")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".forcelim_con"  , "Якост на заварката:")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".ignphysgn"     , "Пренебрегва хващането с физическо оръдие на парчето създадено/залепено/натрупано")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".ignphysgn_con" , "Пренебрегни хващането с физическо оръдие")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".nocollide"     , "Създава не-сблъсък между парчетата или парчета/опора")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nocollide_con" , "Не-сблъсък")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nocollide_con" , "Създай не-сблъсък")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".freeze"        , "Създава парчето в замразено състояние")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".freeze_con"    , "Замрази при създаване")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".igntype"       , "Пренебрегва различните типове парчета при лепене/натрупване")
