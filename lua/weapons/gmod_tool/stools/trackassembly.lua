@@ -108,7 +108,9 @@ TOOL.ClientConVar = {
   [ "nocollide" ] = "1",
   [ "physmater" ] = "metal",
   [ "enpntmscr" ] = "1",
-  [ "engunsnap" ] = "0"
+  [ "engunsnap" ] = "0",
+  [ "appangfst" ] = "0",
+  [ "applinfst" ] = "0"
 }
 
 if(CLIENT) then
@@ -136,6 +138,14 @@ TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..
 TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
 TOOL.Command    = nil -- Command on click (nil for default)
 TOOL.ConfigName = nil -- Configure file name (nil for default)
+
+function TOOL:ApplyAngularFirst()
+  return ((self:GetClientNumber("appangfst") or 0) ~= 0)
+end
+
+function TOOL:ApplyLinearFirst()
+  return ((self:GetClientNumber("applinfst") or 0) ~= 0)
+end
 
 function TOOL:GetModel()
   return (self:GetClientInfo("model") or "")
@@ -378,6 +388,8 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
         sDu = sDu..sSpace.."  HD.GhostHold:   <"..tostring(self:GetGhostHolder())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
@@ -447,6 +459,8 @@ function TOOL:LeftClick(stTrace)
   local maxstatts = self:GetStackAttempts()
   local ignphysgn = self:GetIgnorePhysgun()
   local bnderrmod = self:GetBoundErrorMode()
+  local appangfst = self:ApplyAngularFirst()
+  local applinfst = self:ApplyLinearFirst()
   local fnmodel   = stringToFileName(model)
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
@@ -545,6 +559,8 @@ function TOOL:LeftClick(stTrace)
         vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos())
         asmlib.UndoAddEntityPly(ePieceN)
+        if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
+        if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
         stSpawn = asmlib.GetEntitySpawn(ePieceN,vTemp,model,pointid,
                     actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then -- Look both ways in a one way street :D
@@ -1040,27 +1056,27 @@ function TOOL.BuildCPanel(CPanel)
   local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass"  ,"FLT")  , 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 1, asmlib.GetAsmVar("maxactrad", "FLT"), 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 1, asmlib.GetAsmVar("maxactrad", "FLT"), 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".count_con"), gsToolPrefL.."count"    , 1, asmlib.GetAsmVar("maxstcnt" , "INT"), 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ydegsnp_con"), gsToolPrefL.."ydegsnp", 1, gnMaxOffRot, 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ydegsnp_con"), gsToolPrefL.."ydegsnp", 1, gnMaxOffRot, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
   pItem = CPanel:Button   (languageGetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextpic_con"), gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextpic_con"), gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextyaw_con"), gsToolPrefL.."nextyaw" , -gnMaxOffRot, gnMaxOffRot, 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextyaw_con"), gsToolPrefL.."nextyaw" , -gnMaxOffRot, gnMaxOffRot, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextrol_con"), gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextrol_con"), gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextx_con"), gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextx_con"), gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nexty_con"), gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nexty_con"), gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextz_con"), gsToolPrefL.."nextz", -nMaxOffLin, nMaxOffLin, 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextz_con"), gsToolPrefL.."nextz", -nMaxOffLin, nMaxOffLin, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 3)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".forcelim"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
@@ -1080,6 +1096,10 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".surfsnap_con"), gsToolPrefL.."surfsnap")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".appangfst_con"), gsToolPrefL.."appangfst")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".appangfst"))
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".applinfst_con"), gsToolPrefL.."applinfst")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".applinfst"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".adviser_con"), gsToolPrefL.."adviser")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".pntasist_con"), gsToolPrefL.."pntasist")
