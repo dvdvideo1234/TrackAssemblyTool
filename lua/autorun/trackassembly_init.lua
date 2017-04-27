@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.360")
+asmlib.SetOpVar("TOOL_VERSION","5.361")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2571,7 +2571,7 @@ else
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/ron/maglev/",""):gsub("[\\/]([^\\/]+)$","");
     if(r:find("track")) then r = r:gsub("track/","")
-    elseif(r:find("support")) then r = nil end; return r and {r} end]])
+    elseif(r:find("support")) then r = nil end; return r and {("_"..r):gsub("_%w",conv):sub(2,-1)} end]])
   asmlib.InsertRecord({"models/ron/maglev/support/support_a.mdl", "#", "#", 1, "", "0,0,3.984", "0,-180,0"})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 1, "", " 64,0,3.984", ""})
   asmlib.InsertRecord({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 2, "", "-64,0,3.984", "0,-180,0"})
@@ -2646,6 +2646,37 @@ else
   asmlib.InsertRecord({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 1, "", " 512, 3e-005,-16.110403", ""})
   asmlib.InsertRecord({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 2, "", "-512,-3e-005,-16.110403", "0,180,0"})
   asmlib.InsertRecord({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 3, "", "-454.48437,128.0936,-16.110403", "0,165,0"})
+  asmlib.DefaultType("AlexCookie's 2ft track pack",[[function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/alexcookie/2ft/",""):gsub("[\\/]([^\\/]+)$","");
+    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1))} end]])
+  asmlib.InsertRecord({"models/alexcookie/2ft/misc/end1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_32.mdl", "#", "#", 1, "", "32,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_32.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_64.mdl", "#", "#", 1, "", "64,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_64.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_128.mdl", "#", "#", 1, "", "128,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_128.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_256.mdl", "#", "#", 1, "", "256,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_256.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_512.mdl", "#", "#", 1, "", "512,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_512.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_1024.mdl", "#", "#", 1, "", "1024,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/straight/straight_1024.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/curve/curve_90_512.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/curve/curve_90_512.mdl", "#", "#", 2, "", "-480,-480,13.04688", "0,-90,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_0.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_0.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_0.mdl", "#", "#", 3, "", "-480,-480,13.04688", "0,-90,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_1.mdl", "#", "#", 3, "", "-480,-480,13.04688", "0,-90,0", ""}) 
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_0.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_0.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_0.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""}) 
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
