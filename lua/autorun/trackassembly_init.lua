@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.361")
+asmlib.SetOpVar("TOOL_VERSION","5.362")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2670,13 +2670,13 @@ else
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_0.mdl", "#", "#", 3, "", "-480,-480,13.04688", "0,-90,0", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
-  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_1.mdl", "#", "#", 3, "", "-480,-480,13.04688", "0,-90,0", ""}) 
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_left_1.mdl", "#", "#", 3, "", "-480,-480,13.04688", "0,-90,0", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_0.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_0.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_0.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
-  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""}) 
+  asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""})
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then

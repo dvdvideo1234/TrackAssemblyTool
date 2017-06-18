@@ -3340,7 +3340,7 @@ end
 function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   if(CLIENT) then return StatusLog(true,"ApplyPhysicalAnchor: Working on client") end
   local bWe, bNc, nFm = (tobool(bWe) or false), (tobool(bNc) or false), (tonumber(nFm) or 0)
-  LogInstance("ApplyPhysicalAnchor: {"..tostring(nWe)..","..tostring(bNc)..","..tostring(nFm).."}")
+  LogInstance("ApplyPhysicalAnchor: {"..tostring(bWe)..","..tostring(bNc)..","..tostring(nFm).."}")
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(false,"ApplyPhysicalAnchor: Piece <"..tostring(ePiece).."> not valid") end
   if(not (eBase and eBase:IsValid())) then
