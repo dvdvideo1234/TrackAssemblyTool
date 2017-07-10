@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.362")
+asmlib.SetOpVar("TOOL_VERSION","5.363")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -3044,10 +3044,10 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".mcspawn_con"   , "Partir du barycentre")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".surfsnap"      , "Aligne la pièce vers la surface auquel le joueur vise actuellement")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".surfsnap_con"  , "Aligner vers la surface tracé")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".appangfst"     , "Appliquer les décalage angulaire seulement de le pièce premier")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".appangfst_con" , "Appliquer angulaire de le premier")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".applinfst"     , "Appliquer les décalage linéaire seulement de le pièce premier")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".applinfst_con" , "Appliquer linéaire de le premier")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".appangfst"     , "Appliquer les décalages angulaires seulement sur la première pièce")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".appangfst_con" , "Appliquer angulaire en premier")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".applinfst"     , "Appliquer les décalages linéaires seulement sur la première pièce")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".applinfst_con" , "Appliquer linéaire en premier")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".adviser"       , "Montrer le conseiller de position/angle de l'outil")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".adviser_con"   , "Montrer le conseiller")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pntasist"      , "Montrer l'assistant d'alignement de l'outil")
