@@ -1,0 +1,8 @@
+  asmlib.InsertRecord({"models/minitrains/switch_double_right.mdl", "#", "#", 1, "", "16, 21.512, 1", ""})
+  asmlib.InsertRecord({"models/minitrains/switch_double_right.mdl", "#", "#", 2, "", "-144, 21.513, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/minitrains/switch_double_right.mdl", "#", "#", 3, "", "16, -8.515, 1", ""})
+  asmlib.InsertRecord({"models/minitrains/switch_double_right.mdl", "#", "#", 4, "", "-144, -8.514, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/minitrains/switch_double_left.mdl", "#", "#", 1, "", "16, 21.512, 1", ""})
+  asmlib.InsertRecord({"models/minitrains/switch_double_left.mdl", "#", "#", 2, "", "-144, 21.513, 1", "0,-180,0"})
+  asmlib.InsertRecord({"models/minitrains/switch_double_left.mdl", "#", "#", 3, "", "16, -8.515, 1", ""})
+  asmlib.InsertRecord({"models/minitrains/switch_double_left.mdl", "#", "#", 4, "", "-144, -8.514, 1", "0,-180,0"})
