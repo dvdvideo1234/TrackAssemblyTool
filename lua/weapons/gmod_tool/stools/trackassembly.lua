@@ -916,7 +916,8 @@ function TOOL:DrawToolScreen(w, h)
   local xyPos = {x = cPos, y = cPos}
   scrTool:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPos, nRad, "m")
-  scrTool:DrawText(osDate(),"w")
+  scrTool:DrawText("Date: "..osDate(asmlib.GetOpVar("DATE_FORMAT")),"w")
+  scrTool:DrawText("Time: "..osDate(asmlib.GetOpVar("TIME_FORMAT")),"w")
   if(trRLen) then
     scrTool:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
 end
@@ -1161,7 +1162,7 @@ function TOOL:UpdateGhost(oEnt, oPly)
   end
 end
 
-function TOOL:ElevateGhost(oPly, oEnt)
+function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
     return asmlib.StatusLog(nil, "TOOL.ElevateGhost: Player invalid <"..tostring(oPly)..">") end
   local mcspawn, elevpnt = self:GetSpawnMC()
@@ -1185,7 +1186,7 @@ function TOOL:Think()
               self.GhostEntity:IsValid() and
               self.GhostEntity:GetModel() == model)) then
         self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
-        self:ElevateGhost(ply, self.GhostEntity)   -- E-le-va-tion ! Yes U2
+        self:ElevateGhost(self.GhostEntity, ply)   -- E-le-va-tion ! Yes U2
       end; self:UpdateGhost(self.GhostEntity, ply) -- In client single player the grost is skipped
     else self:ReleaseGhostEntity() end -- Delete the ghost entity when ghosting is disabled
     if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then

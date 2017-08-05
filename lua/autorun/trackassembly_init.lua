@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.364")
+asmlib.SetOpVar("TOOL_VERSION","5.365")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -2481,7 +2481,7 @@ else
   asmlib.InsertRecord({"models/sligwolf/rails/curve_225.mdl", "#", "#", 1, "", "0,-46,6.625", ""})
   asmlib.InsertRecord({"models/sligwolf/rails/curve_225.mdl", "#", "#", 2, "", "-766.13226318359,-198.39318847656,6.625", "0,-157.5,0"})
   asmlib.InsertRecord({"models/sligwolf/rails/curve_45.mdl" , "#", "#", 1, "", "0,-46,6.625", ""})
-  asmlib.InsertRecord({"models/sligwolf/rails/curve_45.mdl" , "#", "#", 2, "", "-1415.6279296875,-632.37231445313,6.625", "0,-135,0"}) 
+  asmlib.InsertRecord({"models/sligwolf/rails/curve_45.mdl" , "#", "#", 2, "", "-1415.6279296875,-632.37231445313,6.625", "0,-135,0"})
   asmlib.InsertRecord({"models/sligwolf/rails/curve_90.mdl" , "#", "#", 1, "", "0,-46,6.625", ""})
   asmlib.InsertRecord({"models/sligwolf/rails/curve_90.mdl" , "#", "#", 2, "", "-2002,-2048,6.625", "0,-90,0"})
   asmlib.InsertRecord({"models/sligwolf/rails/switch_225_y.mdl", "#", "#", 1, "", "0,-46,6.625", "","gmod_sw_modelpack_switch_y"})
