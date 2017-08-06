@@ -14,9 +14,6 @@ set emd_chew_dbase=%emd_chew_addon%\TrackAssemblyTool_GIT\lua\autorun\trackassem
 :: The path to the skipped models list
 set emd_chew_skip=%emd_chew_addon%\TrackAssemblyTool_GIT\data\peaces_manager\models_ignored.txt
 
-:: Output file for models list
-set emd_chew_modls=models_list.txt
-
 :: Location of "gmad.exe"
 set emd_chew_binloc=F:\Games\Steam\steamapps\common\GarrysMod\bin
 
@@ -24,15 +21,20 @@ set emd_chew_binloc=F:\Games\Steam\steamapps\common\GarrysMod\bin
 set emd_chew_addcnt=2
 
 :: GMA addtons to be processed
-set emd_chew_addlst[1]=rons_2ft_trackpack_634000136
-set emd_chew_addlst[2]=battleships_abandoned_rails(penn_central_simulator_2017)(early_alpha)_807162936
-
+set emd_chew_addlst[1]=sligwolfs_minitrains_149759773
+set emd_chew_addlst[2]=sligwolfs_modelpack_147812851
 :: Folder list for extraction and the directories they will be extracted
-set emd_chew_adddir[1]=Ron's 2ft track pack
-set emd_chew_adddir[2]=Battleship's abandoned rails
+set emd_chew_adddir[1]=SligWolf's Minitrains
+set emd_chew_adddir[2]=SligWolf's Minihover$SligWolf's White Rails
+
+:: AUTOMATIC STUFF ::
+
+:: Output file for models list
+set emd_chew_modls=models_list
+set emd_clog_lfile=system_log
 
 :: Refresh model report
-del %emd_chew_pathb%%emd_chew_modls%
+del %emd_chew_pathb%%emd_chew_modls%.txt
 
 :: Extract the GMA addons in the matching folders
 for /L %%k in (1,1,%emd_chew_addcnt%) do (
@@ -42,13 +44,14 @@ for /L %%k in (1,1,%emd_chew_addcnt%) do (
 )
 
 :: Get all the model files in the current direcory
-dir /a-d /b /s *.mdl >> %emd_chew_pathb%%emd_chew_modls%
+dir /a-d /b /s *.mdl >> %emd_chew_pathb%%emd_chew_modls%.txt
 
 :: Refresh output files
 del %emd_chew_pathb%addon-db.txt
 del %emd_chew_pathb%db-addon.txt
 
 :: Chewing the paths uses base path relative to the executable
-call %emd_chew_pathb%chewpath.exe %emd_chew_pathb% %emd_chew_modls% %emd_chew_dbase% %emd_chew_skip%
+echo Rinning pieces manager
+call %emd_chew_pathb%chewpath.exe %emd_chew_pathb% %emd_chew_dbase% %emd_chew_skip% %emd_clog_lfile%
 
 timeout 300

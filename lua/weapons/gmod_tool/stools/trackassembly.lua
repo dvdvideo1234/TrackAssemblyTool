@@ -917,7 +917,7 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPos, nRad, "m")
   scrTool:DrawText("Date: "..osDate(asmlib.GetOpVar("DATE_FORMAT")),"w")
-  scrTool:DrawText("Time: "..osDate(asmlib.GetOpVar("TIME_FORMAT")),"w")
+  scrTool:DrawText("Time: "..osDate(asmlib.GetOpVar("TIME_FORMAT")))
   if(trRLen) then
     scrTool:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
 end
