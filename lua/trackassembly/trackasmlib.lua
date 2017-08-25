@@ -114,6 +114,7 @@ local timerDestroy            = timer and timer.Destroy
 local tableEmpty              = table and table.Empty
 local tableMaxn               = table and table.maxn
 local tableGetKeys            = table and table.GetKeys
+local tableInsert             = table and table.insert
 local debugGetinfo            = debug and debug.getinfo
 local stringExplode           = string and string.Explode
 local stringImplode           = string and string.Implode
@@ -411,6 +412,7 @@ function InitBase(sName,sPurpose)
          oEnt:IsValid() and
          oEnt ~= GetOpVar("TRACE_FILTER") and
          GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
+  SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   SetOpVar("NAV_PIECE",{})
   SetOpVar("NAV_PANEL",{})
   SetOpVar("NAV_ADDITION",{})
@@ -584,6 +586,57 @@ function SetVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvX] = (tonumber(nX or 0))
   vBase[cvY] = (tonumber(nY or 0))
   vBase[cvZ] = (tonumber(nZ or 0))
+end
+
+--[[
+This function calculates 3x3 determinant of the arguments below
+Takes three row vectors as arguments:
+  vR1 = {a b c}
+  vR2 = {d e f}
+  vR3 = {g h i}
+Returns a number: The value if the 3x3 determinant
+]]--
+local function DetVector(vR1, vR2, vR3)
+  local a, b, c = vR1.x, vR1.y, vR1.z
+  local d, e, f = vR2.x, vR2.y, vR2.z
+  local g, h, i = vR3.x, vR3.y, vR3.z
+  return ((a*e*i)+(b*f*g)+(d*h*c)-(g*e*c)-(h*f*a)-(d*b*i))
+end
+
+--[[
+This function traces both lines and if they are not parallel
+calculates their point of intersection. Every ray is
+determined by an origin /vO/ and direction /vD/
+On success returns the length and point of the closest
+intersect distance to the orthogonal connecting line.
+The true center is calculated by using the last two return values
+Takes:
+  vO1 --> Position origin of the first ray
+  vD1 --> Direction of the first ray
+  vO2 --> Position origin of the second ray
+  vD2 --> Direction of the second ray
+Returns:
+  f1 --> Intersection fraction of the first ray
+  f2 --> Intersection fraction of the second ray
+  x1 --> Intersection closest position of the first ray
+  x2 --> Intersection closest position of the second ray
+  xx --> Intersection center between x1 an x2
+]]--
+local function GetRayCross(vO1, vD1, vO2, vD2)
+  local d1 = vD1:GetNormalized()
+  if(d1:Length() == 0) then
+    return StatusLog(nil,"GetRayCross: First ray undefined") end
+  local d2 = vD2:GetNormalized()
+  if(d2:Length() == 0) then
+    return StatusLog(nil,"GetRayCross: Second ray undefined") end
+  local dx = d1:Cross(d2)
+  local dn = (dx:Length())^2
+  if(dn == 0) then return StatusLog(nil,"GetRayCross: Rays parallel") end
+  local f1 = DetVector((vO2-vO1),d2,dx) / dn
+  local f2 = DetVector((vO2-vO1),d1,dx) / dn
+  local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
+  local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
+  return f1, f2, x1, x2, xx
 end
 
 function DecomposeByAngle(vBase,aUnit)
@@ -1174,6 +1227,13 @@ function ModelToName(sModel,bNoSettings)
   return gModel:gsub(sSymDiv.."%w",GetOpVar("MODELNAM_FUNC")):sub(2,-1)
 end
 
+--[[
+ * Locates an active point on the piece offset record.
+ * This function is used to check the correct offset and return it.
+ * It also returns the normalized active point ID if needed
+ * oRec      --> Record structure of a track piece
+ * ivPointID --> The POA offset ID to check and locate
+]]--
 function LocatePOA(oRec, ivPointID)
   if(not oRec) then
     return StatusLog(nil,"LocatePOA: Missing record") end
@@ -1184,7 +1244,7 @@ function LocatePOA(oRec, ivPointID)
   if(not IsExistent(stPOA)) then
     return StatusLog(nil,"LocatePOA: Missing ID #"..tostring(iPointID).." <"
              ..tostring(ivPointID).."> for <"..tostring(oRec.Slot)..">") end
-  return stPOA
+  return stPOA, iPointID
 end
 
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
@@ -3090,7 +3150,7 @@ end
  * This function performs a trace relative to the entity point chosen
  * trEnt     = Entity chosen for the trace
  * ivPointID = Point ID selected for its model
- * nLen      = Lenght of the trace
+ * nLen      = Length of the trace
 ]]--
 function GetTraceEntityPoint(trEnt, ivPointID, nLen)
   if(not (trEnt and trEnt:IsValid())) then
@@ -3107,6 +3167,36 @@ function GetTraceEntityPoint(trEnt, ivPointID, nLen)
   SetAngle (trAng     , trPOA.A); trAng:Set(trEnt:LocalToWorldAngles(trAng))
   trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
   return utilTraceLine(trDt), trDt
+end
+
+--[[
+ * This function updates an active ray for a player.
+ * Every player has their own place in the cache.
+ * The dedicated table ca contain rays wit different purpose
+ * oPly      --> Player who wants to register a ray
+ * trEnt     --> The trace entity to register
+ * ivPointID --> Active point ID from the entity origin
+ * sKey      --> String identifier. Used to distinguish rays form one another
+]]--
+function UpdateActiveRay(oPly, trEnt, ivPointID, sKey)
+  if(not IsString(sKey)) then
+    return StatusLog(nil,"UpdateActiveRay: Key invalid <"..tostring(sKey)..">") end
+  if(not IsPlayer(oPly)) then
+    return StatusLog(nil,"UpdateActiveRay: Player invalid <"..tostring(oPly)..">") end
+  if(not (trEnt and trEnt:IsValid())) then
+    return StatusLog(nil,"UpdateActiveRay: Trace entity invalid") end
+  local trRec = CacheQueryPiece(trEnt:GetModel())
+  if(not trRec) then return StatusLog(nil,"UpdateActiveRay: Trace not piece") end
+  local trPOA, trID = LocatePOA(trRec, ivPointID)
+  if(not IsExistent(trPOA)) then -- Get intersection rays list for the player
+    return StatusLog(nil,"UpdateActiveRay: Point <"..tostring(ivPointID).."> invalid") end
+  local tRay, plNam = GetOpVar("RAY_INTERSECT"), oPly:Nick()
+  if(not tRay[plNam]) then tRay[plNam] = {} end; Print(tRay,"RaysLS"); tRay = tRay[plNam]
+  -- Use the angle forward as direction. Stores three directions per object
+  if(not tRay[sKey]) then tRay[sKey] = {Org = Vector(), Ang = Angle()} end stRay = tRay[sKey]
+  stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, trEnt, trID, sKey
+  SetVector(stRay.Org, trPOA.O); stRay.Org:Rotate(trEnt:GetAngles()); stRay.Org:Add(trEnt:GetPos())
+  SetAngle (stRay.Ang, trPOA.A); stRay.Ang:Set(trEnt:LocalToWorldAngles(stRay.Ang)); return stRay;
 end
 
 function AttachAdditions(ePiece)

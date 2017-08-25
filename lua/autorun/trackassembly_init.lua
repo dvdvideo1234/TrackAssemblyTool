@@ -120,6 +120,7 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
+      conPalette:Insert("ry",Color(211, 55,133,255)) -- Ray tracing
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -240,6 +241,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "activrad" , "45")
         asmlib.ConCommandPly(oPly, "pntasist" , "1")
         asmlib.ConCommandPly(oPly, "surfsnap" , "0")
+        asmlib.ConCommandPly(oPly, "enpntrayx", "0")
         asmlib.ConCommandPly(oPly, "appangfst", "0")
         asmlib.ConCommandPly(oPly, "applinfst", "0")
         asmlib.ConCommandPly(oPly, "exportdb" , "0")

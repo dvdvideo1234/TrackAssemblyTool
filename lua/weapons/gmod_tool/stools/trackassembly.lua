@@ -109,6 +109,7 @@ TOOL.ClientConVar = {
   [ "physmater" ] = "metal",
   [ "enpntmscr" ] = "1",
   [ "engunsnap" ] = "0",
+  [ "enpntrayx" ] = "0",
   [ "appangfst" ] = "0",
   [ "applinfst" ] = "0"
 }
@@ -145,6 +146,10 @@ end
 
 function TOOL:ApplyLinearFirst()
   return ((self:GetClientNumber("applinfst") or 0) ~= 0)
+end
+
+function TOOL:GetRayCross()
+  return ((self:GetClientNumber("enpntrayx") or 0) ~= 0)
 end
 
 function TOOL:GetModel()
@@ -447,6 +452,7 @@ function TOOL:LeftClick(stTrace)
   local mcspawn   = self:GetSpawnMC()
   local ydegsnp   = self:GetYawSnap()
   local gravity   = self:GetGravity()
+  local enpntrayx = self:GetRayCross()
   local elevpnt   = self:GetElevation()
   local nocollide = self:GetNoCollide()
   local spnflat   = self:GetSpawnFlat()
@@ -508,11 +514,11 @@ function TOOL:LeftClick(stTrace)
   if(not asmlib.IsPhysTrace(stTrace)) then
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace not physical object")) end
 
-  local hdRec = asmlib.CacheQueryPiece(model)
-  if(not hdRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Holder model not piece")) end
-
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not trRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace model not piece")) end
+
+  local hdRec = asmlib.CacheQueryPiece(model)
+  if(not hdRec) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Holder model not piece")) end
 
   local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -531,6 +537,10 @@ function TOOL:LeftClick(stTrace)
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       return asmlib.StatusLog(true,"TOOL:LeftClick(Bodygroup/Skin): Success")
     end
+  end
+
+  if(enpntrayx) then -- Make a ray intersection spawn
+
   end
 
   if(asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
@@ -604,6 +614,7 @@ function TOOL:RightClick(stTrace)
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:RightClick(): Trace missing") end
   local trEnt     = stTrace.Entity
   local ply       = self:GetOwner()
+  local enpntrayx = self:GetRayCross()
   local enpntmscr = self:GetScrollMouse()
   asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
@@ -612,6 +623,23 @@ function TOOL:RightClick(stTrace)
       return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
     end
   elseif(trEnt and trEnt:IsValid()) then
+    if(enpntrayx) then
+      local model     = self:GetModel()
+      local spnflat   = self:GetSpawnFlat()
+      local igntype   = self:GetIgnoreType()
+      local actrad    = self:GetActiveRadius()
+      local pointid, pnextid = self:GetPointID()
+      local nextx  , nexty  , nextz   = self:GetPosOffsets()
+      local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+      local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
+                        actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      if(not stSpawn) then -- Register the base ray to intersect it with something else
+        return asmlib.StatusLog(false,"TOOL:RightClick(Ray): No active point selected") end
+      if(not asmlib.UpdateActiveRay(ply, trEnt, stSpawn.TID, "BASE")) then
+        return asmlib.StatusLog(false,"TOOL:RightClick(Ray): Failed updating ray") end
+      trEnt:SetColor(conPalette:Select("ry"))
+      return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Success")
+    end
     if(enpntmscr) then
       if(not self:SelectModel(trEnt:GetModel())) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")) end
@@ -1097,6 +1125,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".surfsnap_con"), gsToolPrefL.."surfsnap")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
+  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".enpntrayx_con"), gsToolPrefL.."enpntrayx")
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".enpntrayx"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".appangfst_con"), gsToolPrefL.."appangfst")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".appangfst"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".applinfst_con"), gsToolPrefL.."applinfst")
