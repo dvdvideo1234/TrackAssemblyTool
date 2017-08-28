@@ -1553,9 +1553,8 @@ function ReadKeyPly(pPly)
   local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
   if(not IsPlayer(pPly)) then
     return StatusLog(false,"ReadKeyPly: Player <"..type(pPly)"> not available") end
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
-  if(not IsExistent(plyPlace)) then plyKeys[plyNick] = {}; plyPlace = plyKeys[plyNick] end
+  local plyPlace = plyKeys[pPly]
+  if(not IsExistent(plyPlace)) then plyKeys[pPly] = {}; plyPlace = plyKeys[pPly] end
   local ucmdPressed = pPly:GetCurrentCommand()
   if(not IsExistent(ucmdPressed)) then
     return StatusLog(false,"ReadKeyPly: Command not obtained correctly") end
@@ -1563,28 +1562,24 @@ function ReadKeyPly(pPly)
   plyPlace["M_DY"]   = ucmdPressed:GetMouseY()
   plyPlace["K_BTN"]  = ucmdPressed:GetButtons()
   plyPlace["M_DSCR"] = ucmdPressed:GetMouseWheel()
-  return StatusLog(true,"ReadKeyPly: Player <"..plyNick.."> keys loaded")
+  return StatusLog(true,"ReadKeyPly: "..tostring(pPly).." keys loaded")
 end
 
 function GetMouseWheelPly(pPly)
   if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
     return StatusLog(false,"DeltaMousePly: Player <"..type(pPly)"> not available") end
-  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
+  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"DeltaMousePly: <"..plyNick.."> nomands not loaded") end
+    return StatusLog(false,"DeltaMousePly: "..tostring(pPly).." commands not loaded") end
   return plyPlace["M_DSCR"]
 end
 
 function GetMouseDeltaPly(pPly)
   if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
     return StatusLog(false,"GetMouseDeltaPly: Player <"..type(pPly)"> not available") end
-  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
+  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"GetMouseDeltaPly: <"..plyNick.."> nomands not loaded") end
+    return StatusLog(false,"GetMouseDeltaPly: "..tostring(pPly).." commands not loaded") end
   return plyPlace["M_DX"], plyPlace["M_DY"]
 end
 
@@ -1594,11 +1589,9 @@ function CheckButtonPly(pPly, ivInKey)
   local iInKey = tonumber(ivInKey)
   if(not IsExistent(iInKey)) then
     return StatusLog(false,"CheckButtonPly: Input key {"..type(ivInKey)"}<"..tostring(ivInKey).."> invalid") end
-  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
+  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"CheckButtonPly: Player <"..plyNick.."> commands not loaded") end
+    return StatusLog(false,"CheckButtonPly: Player "..tostring(pPly).." commands not loaded") end
   return (bitBand(plyPlace["K_BTN"],iInKey) ~= 0)
 end
 
@@ -1619,11 +1612,11 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
   local tipField = tostring(defField[2])
   local sModeDB  = GetOpVar("MODE_DATABASE")
   if(tipField == "TEXT") then
-    snOut = tostring(snValue)
-    if(not bStopEmpty and (snOut == "nil" or IsEmptyString(snOut))) then
+    snOut = tostring(snValue or "")
+    if(not bStopEmpty and IsEmptyString(snOut)) then
       if    (sModeDB == "SQL") then snOut = "NULL"
       elseif(sModeDB == "LUA") then snOut = "NULL"
-      else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB..">") end
+      else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB.."> empty") end
     end
     if    (defField[3] == "LOW") then snOut = snOut:lower()
     elseif(defField[3] == "CAP") then snOut = snOut:upper() end
@@ -1633,10 +1626,11 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
     if(bQuoted) then
       local sqChar
       if(sQuote) then
-        sqChar = tostring(sQuote):sub(1,1)
+        sqChar = tostring(sQuote or ""):sub(1,1)
       else
         if    (sModeDB == "SQL") then sqChar = "'"
-        elseif(sModeDB == "LUA") then sqChar = "\"" end
+        elseif(sModeDB == "LUA") then sqChar = "\""
+        else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB.."> quote") end
       end
       snOut = sqChar..snOut..sqChar
     end
@@ -3172,31 +3166,77 @@ end
 --[[
  * This function updates an active ray for a player.
  * Every player has their own place in the cache.
- * The dedicated table ca contain rays wit different purpose
+ * The dedicated table can contain rays with different purpose
  * oPly      --> Player who wants to register a ray
  * trEnt     --> The trace entity to register
  * ivPointID --> Active point ID from the entity origin
  * sKey      --> String identifier. Used to distinguish rays form one another
 ]]--
-function UpdateActiveRay(oPly, trEnt, ivPointID, sKey)
+function UpdateRayTraceID(oPly, trEnt, ivPointID, sKey)
   if(not IsString(sKey)) then
-    return StatusLog(nil,"UpdateActiveRay: Key invalid <"..tostring(sKey)..">") end
+    return StatusLog(nil,"UpdateRayTraceID: Key invalid <"..tostring(sKey)..">") end
   if(not IsPlayer(oPly)) then
-    return StatusLog(nil,"UpdateActiveRay: Player invalid <"..tostring(oPly)..">") end
+    return StatusLog(nil,"UpdateRayTraceID: Player invalid <"..tostring(oPly)..">") end
   if(not (trEnt and trEnt:IsValid())) then
-    return StatusLog(nil,"UpdateActiveRay: Trace entity invalid") end
+    return StatusLog(nil,"UpdateRayTraceID: Trace entity invalid") end
   local trRec = CacheQueryPiece(trEnt:GetModel())
-  if(not trRec) then return StatusLog(nil,"UpdateActiveRay: Trace not piece") end
+  if(not trRec) then return StatusLog(nil,"UpdateRayTraceID: Trace not piece") end
   local trPOA, trID = LocatePOA(trRec, ivPointID)
   if(not IsExistent(trPOA)) then -- Get intersection rays list for the player
-    return StatusLog(nil,"UpdateActiveRay: Point <"..tostring(ivPointID).."> invalid") end
-  local tRay, plNam = GetOpVar("RAY_INTERSECT"), oPly:Nick()
-  if(not tRay[plNam]) then tRay[plNam] = {} end; Print(tRay,"RaysLS"); tRay = tRay[plNam]
-  -- Use the angle forward as direction. Stores three directions per object
-  if(not tRay[sKey]) then tRay[sKey] = {Org = Vector(), Ang = Angle()} end stRay = tRay[sKey]
-  stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, trEnt, trID, sKey
+    return StatusLog(nil,"UpdateRayTraceID: Point <"..tostring(ivPointID).."> invalid") end
+  local tRay = GetOpVar("RAY_INTERSECT")
+  if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
+  local stRay = tRay[sKey]
+  if(not stRay) then -- Use the angle forward as direction. Stores three directions per object
+    tRay[sKey] = {Org = Vector(), Ang = Angle(), ID = trID, Ent = trEnt}; stRay = tRay[sKey] end
+  else stRay.Ent:SetColor(Color(255,255,255,255))
+    stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, trEnt, trID, sKey
+  end
   SetVector(stRay.Org, trPOA.O); stRay.Org:Rotate(trEnt:GetAngles()); stRay.Org:Add(trEnt:GetPos())
-  SetAngle (stRay.Ang, trPOA.A); stRay.Ang:Set(trEnt:LocalToWorldAngles(stRay.Ang)); return stRay;
+  SetAngle (stRay.Ang, trPOA.A); stRay.Ang:Set(trEnt:LocalToWorldAngles(stRay.Ang));
+  Print(tRay,"ActiveRay"); return stRay;
+end
+
+--[[
+ * This function intersects two already cashed rays
+ * Used for generating
+ * sKey1 --> First ray identifier
+ * sKey2 --> Second ray identifier
+]]--
+function IntersectRayTraceID(sKey1,sKey2)
+  if(not IsString(sKey1)) then
+    return StatusLog(nil,"IntersectRayTraceID: Key1 invalid <"..tostring(sKey1)..">") end
+  if(not IsString(sKey2)) then
+    return StatusLog(nil,"IntersectRayTraceID: Key2 invalid <"..tostring(sKey2)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")
+  local stRay1, stRay2 = tRay[sKey1], tRay[sKey2]
+  if(not stRay1) then return StatusLog(nil,"IntersectRayTraceID: No Key1 <"..tostring(sKey1)..">") end
+  if(not stRay2) then return StatusLog(nil,"IntersectRayTraceID: No Key2 <"..tostring(sKey2)..">") end
+  local f1, f2, x1, x2, xx = GetRayCross(stRay1.Org, stRay1.Ang:Forward(), stRay2.Org, stRay2.Ang:Forward())
+  return xx;
+end
+
+--[[
+ * This function finds the intersection for the model itself
+ * as a local vector so it can be placed precisely in the
+ * intersection point when creating
+ * sModel --> The model to calculate intersection point for
+ * nPntID --> Start (chosen) point of the intersection
+ * nNxtID --> End (next) point of the intersection
+]]--
+function IntersectRayModel(sModel nPntID, nNxtID)
+  local mRec = CacheQueryPiece(sModel)
+  if(not mRec) then return StatusLog(nil,"IntersectRayModel: Not piece <"..tostring(sModel)..">") end
+  local stPOA1 = LocatePOA(mRec, nPntID)
+  if(not stPOA1) then return StatusLog(nil,"IntersectRayModel: No start ID <"..tostring(nPntID)..">") end
+  local stPOA2 = LocatePOA(mRec, nNxtID)
+  if(not stPOA2) then return StatusLog(nil,"IntersectRayModel: No end ID <"..tostring(nNxtID)..">") end
+  local vO1, vD1 = stPOA1.O, (-stPOA1.A:Forward())
+  local vO2, vD2 = stPOA2.O, (-stPOA2.A:Forward())
+  local f1, f2, x1, x2, xx = GetRayCross(vO1,vD1,vO2,vD2)
+  if(not xx) then LogInstance("IntersectRayModel: Rays parallel. Attempting subtraction")
+    xx = Vector(); xx:Set(vO2); xx:Sub(vO1); xx:Mul(0.5) end
+  return xx
 end
 
 function AttachAdditions(ePiece)

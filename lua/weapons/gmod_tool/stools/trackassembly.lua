@@ -473,7 +473,7 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.ReadKeyPly(ply)
-  if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
+  if(not enpntrayx and stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector()
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(mcspawn) then  -- Spawn on mass centre
@@ -522,7 +522,7 @@ function TOOL:LeftClick(stTrace)
 
   local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-  if(not stSpawn) then -- Not aiming into an active point update settings/properties
+  if(not enpntrayx and not stSpawn) then -- Not aiming into an active point update settings/properties
     if(asmlib.CheckButtonPly(ply,IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)) end
@@ -539,11 +539,7 @@ function TOOL:LeftClick(stTrace)
     end
   end
 
-  if(enpntrayx) then -- Make a ray intersection spawn
-
-  end
-
-  if(asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(not enpntrayx and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -590,6 +586,14 @@ function TOOL:LeftClick(stTrace)
   else -- Switch the tool mode ( Snapping )
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
+      if(enpntrayx) then -- Make a ray intersection spawn update
+        if(not asmlib.UpdateRayTraceID(ply, trEnt, stSpawn.TID, "ray_origin_cross")) then
+          return asmlib.StatusLog(false,"TOOL:LeftClick(Ray): Failed updating ray") end
+        local xx = asmlib.IntersectRayTraceID("ray_origin_cross", "ray_anchor_cross") -- World
+        local mx = asmlib.IntersectRayModel(model, pointid, pnextid)
+              mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Local to world
+        stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx)
+      end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings failed")) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
@@ -627,15 +631,15 @@ function TOOL:RightClick(stTrace)
       local model     = self:GetModel()
       local spnflat   = self:GetSpawnFlat()
       local igntype   = self:GetIgnoreType()
-      local actrad    = self:GetActiveRadius()
       local pointid, pnextid = self:GetPointID()
+      local activrad  = asmlib.GetAsmVar("maxactrad", "FLT")
       local nextx  , nexty  , nextz   = self:GetPosOffsets()
       local nextpic, nextyaw, nextrol = self:GetAngOffsets()
       local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
-                        actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+                        activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then -- Register the base ray to intersect it with something else
         return asmlib.StatusLog(false,"TOOL:RightClick(Ray): No active point selected") end
-      if(not asmlib.UpdateActiveRay(ply, trEnt, stSpawn.TID, "BASE")) then
+      if(not asmlib.UpdateRayTraceID(ply, trEnt, stSpawn.TID, "ray_anchor_cross")) then
         return asmlib.StatusLog(false,"TOOL:RightClick(Ray): Failed updating ray") end
       trEnt:SetColor(conPalette:Select("ry"))
       return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Success")
@@ -752,7 +756,7 @@ function TOOL:DrawHUD()
     stSpawn.F:Mul(ucs); stSpawn.F:Add(stSpawn.OPos)
     stSpawn.R:Mul(ucs); stSpawn.R:Add(stSpawn.OPos)
     stSpawn.U:Mul(ucs); stSpawn.U:Add(stSpawn.OPos)
-    local RadScale = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
+    local rdScale = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
     local Os = stSpawn.OPos:ToScreen()
     local Ss = stSpawn.SPos:ToScreen()
     local Xs = stSpawn.F:ToScreen()
@@ -763,21 +767,29 @@ function TOOL:DrawHUD()
     -- Draw Elements
     hudMonitor:DrawLine(Os,Xs,"r","SURF")
     hudMonitor:DrawLine(Os,Pp)
-    hudMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
+    hudMonitor:DrawCircle(Pp, rdScale / 2,"r","SURF")
     hudMonitor:DrawLine(Os,Ys,"g")
     hudMonitor:DrawLine(Os,Zs,"b")
-    hudMonitor:DrawCircle(Os, RadScale,"y")
+    hudMonitor:DrawCircle(Os, rdScale,"y")
     hudMonitor:DrawLine(Os,Tp)
-    hudMonitor:DrawCircle(Tp, RadScale / 2)
+    hudMonitor:DrawCircle(Tp, rdScale / 2)
     hudMonitor:DrawLine(Os,Ss,"m")
-    hudMonitor:DrawCircle(Ss, RadScale,"c")
-    local nxtPoint = asmlib.LocatePOA(stSpawn.HRec,pnextid)
-    if(nxtPoint and stSpawn.HRec.Kept > 1) then
-      local vNext = Vector(); asmlib.SetVector(vNext,nxtPoint.O)
+    hudMonitor:DrawCircle(Ss, rdScale,"c")
+    local nxPOA = asmlib.LocatePOA(stSpawn.HRec,pnextid)
+    if(nxPOA and stSpawn.HRec.Kept > 1) then
+      local vNext = Vector(); asmlib.SetVector(vNext,nxPOA.O)
             vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
       local Np = vNext:ToScreen() -- Draw Next Point
       hudMonitor:DrawLine(Os,Np,"g")
-      hudMonitor:DrawCircle(Np, RadScale / 2, "g")
+      hudMonitor:DrawCircle(Np, rdScale / 2, "g")
+      if(enpntrayx) then -- Draw point intersection
+        local xPnt = asmlib.IntersectRayModel(model, pointid, pnextid)
+        xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.OPos)
+        local Ps = xPnt:ToScreen()
+        hudMonitor:DrawLine(Os,Ps,"ry")
+        hudMonitor:DrawLine(Os,Np)
+        hudMonitor:DrawCircle(Ps,rdScale / 2)
+      end
     end
     if(not self:GetDeveloperMode()) then return end
     local x,y = hudMonitor:GetCenter(10,10)
@@ -790,10 +802,11 @@ function TOOL:DrawHUD()
     hudMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
     hudMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
   elseif(stTrace.HitWorld) then
-    local ydegsnp  = self:GetYawSnap()
-    local elevpnt  = self:GetElevation()
-    local surfsnap = self:GetSurfaceSnap()
-    local RadScale = mathClamp(ratiom / plyd,1,ratioc)
+    local ydegsnp   = self:GetYawSnap()
+    local enpntrayx = self:GetRayCross()
+    local elevpnt   = self:GetElevation()
+    local surfsnap  = self:GetSurfaceSnap()
+    local rdScale  = mathClamp(ratiom / plyd,1,ratioc)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(self:GetSpawnMC()) then -- Relative to MC
       local vPos = Vector()
@@ -816,8 +829,8 @@ function TOOL:DrawHUD()
       hudMonitor:DrawLine(Os,Ys,"g")
       hudMonitor:DrawLine(Os,Zs,"b")
       hudMonitor:DrawLine(Os,Tp,"y")
-      hudMonitor:DrawCircle(Tp, RadScale / 2,"y","SURF")
-      hudMonitor:DrawCircle(Os, RadScale)
+      hudMonitor:DrawCircle(Tp, rdScale / 2,"y","SURF")
+      hudMonitor:DrawCircle(Os, rdScale)
       if(not self:GetDeveloperMode()) then return end
       local x,y = hudMonitor:GetCenter(10,10)
       hudMonitor:SetTextEdge(x,y)
@@ -825,8 +838,8 @@ function TOOL:DrawHUD()
       hudMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + elevpnt * stTrace.HitNormal,aAng,model,
-                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + elevpnt * stTrace.HitNormal,
+                         aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       stSpawn.F:Mul(ucs); stSpawn.F:Add(stSpawn.OPos)
       stSpawn.R:Mul(ucs); stSpawn.R:Add(stSpawn.OPos)
@@ -841,23 +854,31 @@ function TOOL:DrawHUD()
       -- Draw Elements
       hudMonitor:DrawLine(Os,Xs,"r","SURF")
       hudMonitor:DrawLine(Os,Pp)
-      hudMonitor:DrawCircle(Pp, RadScale / 2,"r","SURF")
+      hudMonitor:DrawCircle(Pp, rdScale / 2,"r","SURF")
       hudMonitor:DrawLine(Os,Ys,"g")
       hudMonitor:DrawLine(Os,Zs,"b")
       hudMonitor:DrawLine(Os,Ss,"m")
-      hudMonitor:DrawCircle(Ss, RadScale, "c")
-      hudMonitor:DrawCircle(Os, RadScale, "y")
+      hudMonitor:DrawCircle(Ss, rdScale, "c")
+      hudMonitor:DrawCircle(Os, rdScale, "y")
       hudMonitor:DrawLine(Os,Tp)
-      hudMonitor:DrawCircle(Tp, RadScale / 2)
-      if(stSpawn.HRec.Kept > 1 and stSpawn.HRec.Offs[pnextid]) then
-        local vNext = Vector()
-              asmlib.SetVector(vNext,stSpawn.HRec.Offs[pnextid].O)
+      hudMonitor:DrawCircle(Tp, rdScale / 2)
+      local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
+      if(nxPOA and stSpawn.HRec.Kept > 1) then
+        local vNext = Vector() -- Draw next point when available
+              asmlib.SetVector(vNext,nxPOA.O)
               vNext:Rotate(stSpawn.SAng)
               vNext:Add(stSpawn.SPos)
         local Np = vNext:ToScreen()
-        -- Draw Next Point
         hudMonitor:DrawLine(Os,Np,"g")
-        hudMonitor:DrawCircle(Np,RadScale / 2)
+        hudMonitor:DrawCircle(Np,rdScale / 2)
+        if(enpntrayx) then -- Draw point intersection
+          local xPnt = asmlib.IntersectRayModel(model, pointid, pnextid)
+          xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.OPos)
+          local Ps = xPnt:ToScreen()
+          hudMonitor:DrawLine(Os,Ps,"ry")
+          hudMonitor:DrawLine(Os,Np)
+          hudMonitor:DrawCircle(Ps,rdScale / 2)
+        end
       end
       if(not self:GetDeveloperMode()) then return end
       local x,y = hudMonitor:GetCenter(10,10)
