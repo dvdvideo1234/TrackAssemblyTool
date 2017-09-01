@@ -588,55 +588,11 @@ function SetVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvZ] = (tonumber(nZ or 0))
 end
 
---[[
-This function calculates 3x3 determinant of the arguments below
-Takes three row vectors as arguments:
-  vR1 = {a b c}
-  vR2 = {d e f}
-  vR3 = {g h i}
-Returns a number: The value if the 3x3 determinant
-]]--
-local function DetVector(vR1, vR2, vR3)
-  local a, b, c = vR1.x, vR1.y, vR1.z
-  local d, e, f = vR2.x, vR2.y, vR2.z
-  local g, h, i = vR3.x, vR3.y, vR3.z
-  return ((a*e*i)+(b*f*g)+(d*h*c)-(g*e*c)-(h*f*a)-(d*b*i))
-end
-
---[[
-This function traces both lines and if they are not parallel
-calculates their point of intersection. Every ray is
-determined by an origin /vO/ and direction /vD/
-On success returns the length and point of the closest
-intersect distance to the orthogonal connecting line.
-The true center is calculated by using the last two return values
-Takes:
-  vO1 --> Position origin of the first ray
-  vD1 --> Direction of the first ray
-  vO2 --> Position origin of the second ray
-  vD2 --> Direction of the second ray
-Returns:
-  f1 --> Intersection fraction of the first ray
-  f2 --> Intersection fraction of the second ray
-  x1 --> Intersection closest position of the first ray
-  x2 --> Intersection closest position of the second ray
-  xx --> Intersection center between x1 an x2
-]]--
-local function GetRayCross(vO1, vD1, vO2, vD2)
-  local d1 = vD1:GetNormalized()
-  if(d1:Length() == 0) then
-    return StatusLog(nil,"GetRayCross: First ray undefined") end
-  local d2 = vD2:GetNormalized()
-  if(d2:Length() == 0) then
-    return StatusLog(nil,"GetRayCross: Second ray undefined") end
-  local dx = d1:Cross(d2)
-  local dn = (dx:Length())^2
-  if(dn == 0) then return StatusLog(nil,"GetRayCross: Rays parallel") end
-  local f1 = DetVector((vO2-vO1),d2,dx) / dn
-  local f2 = DetVector((vO2-vO1),d1,dx) / dn
-  local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
-  local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
-  return f1, f2, x1, x2, xx
+function MulVectorXYZ(vBase, nX, nY, nZ)
+  if(not vBase) then return StatusLog(nil,"SetVector: Base invalid") end
+  vBase[cvX] = vBase[cvX] * (tonumber(nX or 0))
+  vBase[cvY] = vBase[cvY] * (tonumber(nY or 0))
+  vBase[cvZ] = vBase[cvZ] * (tonumber(nZ or 0))
 end
 
 function DecomposeByAngle(vBase,aUnit)
@@ -3109,21 +3065,13 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
     if(not stPOA.P[csD]) then -- Skip the disabled P
-      local vTemp = Vector()
-      SetVector(vTemp,stPOA.P)
-      vTemp[cvX] = vTemp[cvX] * stPOA.P[csA]
-      vTemp[cvY] = vTemp[cvY] * stPOA.P[csB]
-      vTemp[cvZ] = vTemp[cvZ] * stPOA.P[csC]
-      vTemp:Rotate(stSpawn.TAng)
-      vTemp:Add(stSpawn.TPos)
-      vTemp:Sub(trHitPos)
-      local trAcDis = vTemp:Length()
+      local vTmp = Vector(); SetVector(vTmp, stPOA.P)
+      MulVectorXYZ(vTmp, stPOA.P[csA], stPOA.P[csB], stPOA.P[csC])
+      vTmp:Rotate(stSpawn.TAng); vTmp:Add(stSpawn.TPos); vTmp:Sub(trHitPos)
+      local trAcDis = vTmp:Length()
       if(trAcDis < stSpawn.RLen) then
-        trPOA        = stPOA
-        stSpawn.TID  = ID
-        stSpawn.RLen = trAcDis
-        stSpawn.TPnt:Set(vTemp)
-        stSpawn.TPnt:Add(trHitPos)
+        trPOA, stSpawn.TID, stSpawn.RLen = stPOA, ID, trAcDis
+        stSpawn.TPnt:Set(vTmp); stSpawn.TPnt:Add(trHitPos)
       end
     end
   end
@@ -3132,8 +3080,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   -- Found the active point ID on trEnt. Initialize origins
   SetVector(stSpawn.OPos,trPOA.O) -- Use {0,0,0} for disabled A (Angle)
   if(trPOA.A[csD]) then SetAnglePYR(stSpawn.OAng) else SetAngle(stSpawn.OAng,trPOA.A) end
-  stSpawn.OPos:Rotate(stSpawn.TAng)
-  stSpawn.OPos:Add(stSpawn.TPos)
+  stSpawn.OPos:Rotate(stSpawn.TAng); stSpawn.OPos:Add(stSpawn.TPos)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
@@ -3142,9 +3089,9 @@ end
 
 --[[
  * This function performs a trace relative to the entity point chosen
- * trEnt     = Entity chosen for the trace
- * ivPointID = Point ID selected for its model
- * nLen      = Length of the trace
+ * trEnt     --> Entity chosen for the trace
+ * ivPointID --> Point ID selected for its model
+ * nLen      --> Length of the trace
 ]]--
 function GetTraceEntityPoint(trEnt, ivPointID, nLen)
   if(not (trEnt and trEnt:IsValid())) then
@@ -3164,36 +3111,111 @@ function GetTraceEntityPoint(trEnt, ivPointID, nLen)
 end
 
 --[[
+ * Selects a point ID on the entity based on the hit vector provided
+ * oEnt --> Entity to search the point on
+ * vHit --> World space hit vector to find the closest point to
+]]--
+function GetEntityHitID(oEnt, vHit)
+  if(not (oEnt and oEnt:IsValid())) then
+    return StatusLog(nil,"GetEntityHitID: Trace entity invalid") end
+  local oRec = CacheQueryPiece(oEnt:GetModel())
+  if(not oRec) then return StatusLog(nil,"GetEntityHitID: Trace not piece") end
+  local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
+  local vTmp, nPnt, nMin, oPOA = Vector(), nil, nil, nil
+  for ID = 1, oRec.Kept do -- Ignore the point disabled flag
+    local tPOA, oID = LocatePOA(oRec, ID)
+    if(not IsExistent(tPOA)) then -- Get intersection rays list for the player
+      return StatusLog(nil,"GetEntityHitID: Point <"..tostring(ID).."> invalid") end
+    SetVector(vTmp, tPOA.P) -- Translate point to a world-space
+    MulVectorXYZ(vTmp, tPOA.P[csA], tPOA.P[csB], tPOA.P[csC])
+    vTmp:Rotate(eAng); vTmp:Add(ePos); vTmp:Sub(vHit)
+    if(nPnt and nMin) then
+      if(nMin >= vTmp:Length()) then nPnt, nMin, oPOA = oID, vTmp:Length(), tPOA end
+    else -- The shortest distance if the first one checked until others are looped
+      nPnt, nMin, oPOA = oID, vTmp:Length(), tPOA end
+  end; return nPnt, nMin, oPOA, oRec
+end
+
+--[[
+This function calculates 3x3 determinant of the arguments below
+Takes three row vectors as arguments:
+  vR1 = {a b c}
+  vR2 = {d e f}
+  vR3 = {g h i}
+Returns a number: The value if the 3x3 determinant
+]]--
+local function DetVector(vR1, vR2, vR3)
+  local a, b, c = vR1.x, vR1.y, vR1.z
+  local d, e, f = vR2.x, vR2.y, vR2.z
+  local g, h, i = vR3.x, vR3.y, vR3.z
+  return ((a*e*i)+(b*f*g)+(d*h*c)-(g*e*c)-(h*f*a)-(d*b*i))
+end
+
+--[[
+This function traces both lines and if they are not parallel
+calculates their point of intersection. Every ray is
+determined by an origin /vO/ and direction /vD/
+On success returns the length and point of the closest
+intersect distance to the orthogonal connecting line.
+The true center is calculated by using the last two return values
+Takes:
+  vO1 --> Position origin of the first ray
+  vD1 --> Direction of the first ray
+  vO2 --> Position origin of the second ray
+  vD2 --> Direction of the second ray
+Returns:
+  f1 --> Intersection fraction of the first ray
+  f2 --> Intersection fraction of the second ray
+  x1 --> Intersection closest position of the first ray
+  x2 --> Intersection closest position of the second ray
+  xx --> Intersection center between x1 an x2
+]]--
+local function GetRayIntersect(vO1, vD1, vO2, vD2)
+  local d1 = vD1:GetNormalized()
+  if(d1:Length() == 0) then
+    return StatusLog(nil,"GetRayIntersect: First ray undefined") end
+  local d2 = vD2:GetNormalized()
+  if(d2:Length() == 0) then
+    return StatusLog(nil,"GetRayIntersect: Second ray undefined") end
+  local dx = d1:Cross(d2)
+  local dn = (dx:Length())^2
+  if(dn == 0) then return StatusLog(nil,"GetRayIntersect: Rays parallel") end
+  local f1 = DetVector((vO2-vO1),d2,dx) / dn
+  local f2 = DetVector((vO2-vO1),d1,dx) / dn
+  local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
+  local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
+  return f1, f2, x1, x2, xx
+end
+
+--[[
  * This function updates an active ray for a player.
  * Every player has their own place in the cache.
  * The dedicated table can contain rays with different purpose
- * oPly      --> Player who wants to register a ray
- * trEnt     --> The trace entity to register
- * ivPointID --> Active point ID from the entity origin
- * sKey      --> String identifier. Used to distinguish rays form one another
+ * oPly  --> Player who wants to register a ray
+ * oEnt  --> The trace entity to register the raw with
+ * trHit --> The world position to search for point ID
+ * sKey  --> String identifier. Used to distinguish rays form one another
 ]]--
-function UpdateRayTraceID(oPly, trEnt, ivPointID, sKey)
+function IntersectRayUpdate(oPly, oEnt, vHit, sKey)
   if(not IsString(sKey)) then
-    return StatusLog(nil,"UpdateRayTraceID: Key invalid <"..tostring(sKey)..">") end
+    return StatusLog(nil,"IntersectRayUpdate: Key invalid <"..tostring(sKey)..">") end
   if(not IsPlayer(oPly)) then
-    return StatusLog(nil,"UpdateRayTraceID: Player invalid <"..tostring(oPly)..">") end
-  if(not (trEnt and trEnt:IsValid())) then
-    return StatusLog(nil,"UpdateRayTraceID: Trace entity invalid") end
-  local trRec = CacheQueryPiece(trEnt:GetModel())
-  if(not trRec) then return StatusLog(nil,"UpdateRayTraceID: Trace not piece") end
-  local trPOA, trID = LocatePOA(trRec, ivPointID)
-  if(not IsExistent(trPOA)) then -- Get intersection rays list for the player
-    return StatusLog(nil,"UpdateRayTraceID: Point <"..tostring(ivPointID).."> invalid") end
+    return StatusLog(nil,"IntersectRayUpdate: Player invalid <"..tostring(oPly)..">") end
+  local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit)
+  if(not trID) then
+    return StatusLog(nil,"IntersectRayUpdate: Entity no hit <"..tostring(oEnt).."/"..tostring(vHit)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")
   if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
   local stRay = tRay[sKey]
-  if(not stRay) then -- Use the angle forward as direction. Stores three directions per object
-    tRay[sKey] = {Org = Vector(), Ang = Angle(), ID = trID, Ent = trEnt}; stRay = tRay[sKey] end
+  if(not stRay) then -- Define a ray via origin and direction
+    tRay[sKey] = {Org = Vector(), Dir = Vector(),
+                   ID = trID    , Ent = oEnt    ,
+                  Key = sKey    , Ply = oPly }; stRay = tRay[sKey] end
   else stRay.Ent:SetColor(Color(255,255,255,255))
-    stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, trEnt, trID, sKey
-  end
-  SetVector(stRay.Org, trPOA.O); stRay.Org:Rotate(trEnt:GetAngles()); stRay.Org:Add(trEnt:GetPos())
-  SetAngle (stRay.Ang, trPOA.A); stRay.Ang:Set(trEnt:LocalToWorldAngles(stRay.Ang));
+    stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, oEnt, trID, sKey
+  end; local ryAng = Angle(); SetAngle(ryAng, trPOA.A)
+  ryAng:Set(oEnt:LocalToWorldAngles(ryAng)); SetVector(stRay.Dir, ryAng:Forward())
+  SetVector(stRay.Org, trPOA.O); stRay.Org:Rotate(oEnt:GetAngles()); stRay.Org:Add(oEnt:GetPos())
   Print(tRay,"ActiveRay"); return stRay;
 end
 
@@ -3203,16 +3225,20 @@ end
  * sKey1 --> First ray identifier
  * sKey2 --> Second ray identifier
 ]]--
-function IntersectRayTraceID(sKey1,sKey2)
+function IntersectRayActive(oPly, sKey1, sKey2)
+  if(not IsPlayer(oPly)) then
+    return StatusLog(nil,"IntersectRayActive: Player invalid <"..tostring(oPly)..">") end
   if(not IsString(sKey1)) then
-    return StatusLog(nil,"IntersectRayTraceID: Key1 invalid <"..tostring(sKey1)..">") end
+    return StatusLog(nil,"IntersectRayActive: Key1 invalid <"..tostring(sKey1)..">") end
   if(not IsString(sKey2)) then
-    return StatusLog(nil,"IntersectRayTraceID: Key2 invalid <"..tostring(sKey2)..">") end
-  local tRay = GetOpVar("RAY_INTERSECT")
+    return StatusLog(nil,"IntersectRayActive: Key2 invalid <"..tostring(sKey2)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
+  if(tRay) then return StatusLog(nil,"IntersectRayActive: No player <"..tostring(oPly)..">") end
   local stRay1, stRay2 = tRay[sKey1], tRay[sKey2]
-  if(not stRay1) then return StatusLog(nil,"IntersectRayTraceID: No Key1 <"..tostring(sKey1)..">") end
-  if(not stRay2) then return StatusLog(nil,"IntersectRayTraceID: No Key2 <"..tostring(sKey2)..">") end
-  local f1, f2, x1, x2, xx = GetRayCross(stRay1.Org, stRay1.Ang:Forward(), stRay2.Org, stRay2.Ang:Forward())
+  if(not stRay1) then return StatusLog(nil,"IntersectRayActive: No Key1 <"..tostring(sKey1)..">") end
+  if(not stRay2) then return StatusLog(nil,"IntersectRayActive: No Key2 <"..tostring(sKey2)..">") end
+  local f1, f2, x1, x2, xx = GetRayIntersect(stRay1.Org, stRay1.Dir, stRay2.Org, stRay2.Dir)
+  stRay1.Ent:SetColor(Color(255,255,255,255)); stRay2.Ent:SetColor(Color(255,255,255,255))
   return xx;
 end
 
@@ -3233,10 +3259,10 @@ function IntersectRayModel(sModel nPntID, nNxtID)
   if(not stPOA2) then return StatusLog(nil,"IntersectRayModel: No end ID <"..tostring(nNxtID)..">") end
   local vO1, vD1 = stPOA1.O, (-stPOA1.A:Forward())
   local vO2, vD2 = stPOA2.O, (-stPOA2.A:Forward())
-  local f1, f2, x1, x2, xx = GetRayCross(vO1,vD1,vO2,vD2)
-  if(not xx) then LogInstance("IntersectRayModel: Rays parallel. Attempting subtraction")
-    xx = Vector(); xx:Set(vO2); xx:Sub(vO1); xx:Mul(0.5) end
-  return xx
+  local f1, f2, x1, x2, xx = GetRayIntersect(vO1,vD1,vO2,vD2)
+  -- Attempts taking the mean vector when the rays are parallel for straight tracks
+  if(not xx) then xx = Vector(); xx:Set(vO2); xx:Add(vO1); xx:Mul(0.5) end
+  return xx -- Must return the local vector where the intersection is located
 end
 
 function AttachAdditions(ePiece)

@@ -102,6 +102,7 @@ TOOL.ClientConVar = {
   [ "surfsnap"  ] = "0",
   [ "exportdb"  ] = "0",
   [ "forcelim"  ] = "0",
+  [ "workmode"  ] = "0",
   [ "ignphysgn" ] = "0",
   [ "ghosthold" ] = "1",
   [ "maxstatts" ] = "3",
@@ -109,7 +110,6 @@ TOOL.ClientConVar = {
   [ "physmater" ] = "metal",
   [ "enpntmscr" ] = "1",
   [ "engunsnap" ] = "0",
-  [ "enpntrayx" ] = "0",
   [ "appangfst" ] = "0",
   [ "applinfst" ] = "0"
 }
@@ -148,8 +148,8 @@ function TOOL:ApplyLinearFirst()
   return ((self:GetClientNumber("applinfst") or 0) ~= 0)
 end
 
-function TOOL:GetRayCross()
-  return ((self:GetClientNumber("enpntrayx") or 0) ~= 0)
+function TOOL:GetWorkingMode()
+  return mathClamp(self:GetClientNumber("workmode") or 0, 0, 1)
 end
 
 function TOOL:GetModel()
@@ -452,13 +452,13 @@ function TOOL:LeftClick(stTrace)
   local mcspawn   = self:GetSpawnMC()
   local ydegsnp   = self:GetYawSnap()
   local gravity   = self:GetGravity()
-  local enpntrayx = self:GetRayCross()
   local elevpnt   = self:GetElevation()
   local nocollide = self:GetNoCollide()
   local spnflat   = self:GetSpawnFlat()
   local igntype   = self:GetIgnoreType()
   local forcelim  = self:GetForceLimit()
   local surfsnap  = self:GetSurfaceSnap()
+  local workmode  = self:GetWorkingMode()
   local physmater = self:GetPhysMeterial()
   local actrad    = self:GetActiveRadius()
   local bgskids   = self:GetBodyGroupSkin()
@@ -473,7 +473,7 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   asmlib.ReadKeyPly(ply)
-  if(not enpntrayx and stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
+  if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector()
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(mcspawn) then  -- Spawn on mass centre
@@ -522,7 +522,7 @@ function TOOL:LeftClick(stTrace)
 
   local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-  if(not enpntrayx and not stSpawn) then -- Not aiming into an active point update settings/properties
+  if(not stSpawn) then -- Not aiming into an active point update settings/properties
     if(asmlib.CheckButtonPly(ply,IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)) end
@@ -539,7 +539,7 @@ function TOOL:LeftClick(stTrace)
     end
   end
 
-  if(not enpntrayx and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -586,10 +586,10 @@ function TOOL:LeftClick(stTrace)
   else -- Switch the tool mode ( Snapping )
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
-      if(enpntrayx) then -- Make a ray intersection spawn update
-        if(not asmlib.UpdateRayTraceID(ply, trEnt, stSpawn.TID, "ray_origin_cross")) then
+      if(workmode = 1) then -- Make a ray intersection spawn update
+        if(not asmlib.IntersectRayUpdate(ply, trEnt, stTrace.HitPos, "origin")) then
           return asmlib.StatusLog(false,"TOOL:LeftClick(Ray): Failed updating ray") end
-        local xx = asmlib.IntersectRayTraceID("ray_origin_cross", "ray_anchor_cross") -- World
+        local xx = asmlib.IntersectRayActive(ply, "origin", "anchor")
         local mx = asmlib.IntersectRayModel(model, pointid, pnextid)
               mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Local to world
         stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx)
@@ -618,7 +618,7 @@ function TOOL:RightClick(stTrace)
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:RightClick(): Trace missing") end
   local trEnt     = stTrace.Entity
   local ply       = self:GetOwner()
-  local enpntrayx = self:GetRayCross()
+  local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
@@ -627,21 +627,9 @@ function TOOL:RightClick(stTrace)
       return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
     end
   elseif(trEnt and trEnt:IsValid()) then
-    if(enpntrayx) then
-      local model     = self:GetModel()
-      local spnflat   = self:GetSpawnFlat()
-      local igntype   = self:GetIgnoreType()
-      local pointid, pnextid = self:GetPointID()
-      local activrad  = asmlib.GetAsmVar("maxactrad", "FLT")
-      local nextx  , nexty  , nextz   = self:GetPosOffsets()
-      local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-      local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
-                        activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-      if(not stSpawn) then -- Register the base ray to intersect it with something else
-        return asmlib.StatusLog(false,"TOOL:RightClick(Ray): No active point selected") end
-      if(not asmlib.UpdateRayTraceID(ply, trEnt, stSpawn.TID, "ray_anchor_cross")) then
-        return asmlib.StatusLog(false,"TOOL:RightClick(Ray): Failed updating ray") end
-      trEnt:SetColor(conPalette:Select("ry"))
+    if(workmode == 1) then -- Curve ray fitting
+      if(not asmlib.IntersectRayUpdate(ply, trEnt, stTrace.HitPos, "anchor")) then
+        return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Fail") end
       return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Success")
     end
     if(enpntmscr) then
@@ -722,6 +710,7 @@ function TOOL:DrawHUD()
   local plyd   = (stTrace.HitPos - ply:GetPos()):Length()
   local trEnt  = stTrace.Entity
   local model  = self:GetModel()
+  local workmode = self:GetWorkingMode()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
@@ -782,12 +771,12 @@ function TOOL:DrawHUD()
       local Np = vNext:ToScreen() -- Draw Next Point
       hudMonitor:DrawLine(Os,Np,"g")
       hudMonitor:DrawCircle(Np, rdScale / 2, "g")
-      if(enpntrayx) then -- Draw point intersection
+      if(workmode == 1) then -- Draw point intersection
         local xPnt = asmlib.IntersectRayModel(model, pointid, pnextid)
         xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.OPos)
         local Ps = xPnt:ToScreen()
         hudMonitor:DrawLine(Os,Ps,"ry")
-        hudMonitor:DrawLine(Os,Np)
+        hudMonitor:DrawLine(Ps,Np)
         hudMonitor:DrawCircle(Ps,rdScale / 2)
       end
     end
@@ -802,10 +791,10 @@ function TOOL:DrawHUD()
     hudMonitor:DrawText("Spn POS: "..tostring(stSpawn.SPos))
     hudMonitor:DrawText("Spn ANG: "..tostring(stSpawn.SAng))
   elseif(stTrace.HitWorld) then
-    local ydegsnp   = self:GetYawSnap()
-    local enpntrayx = self:GetRayCross()
-    local elevpnt   = self:GetElevation()
-    local surfsnap  = self:GetSurfaceSnap()
+    local ydegsnp  = self:GetYawSnap()
+    local elevpnt  = self:GetElevation()
+    local surfsnap = self:GetSurfaceSnap()
+    local workmode = self:GetWorkingMode()
     local rdScale  = mathClamp(ratiom / plyd,1,ratioc)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(self:GetSpawnMC()) then -- Relative to MC
@@ -871,12 +860,12 @@ function TOOL:DrawHUD()
         local Np = vNext:ToScreen()
         hudMonitor:DrawLine(Os,Np,"g")
         hudMonitor:DrawCircle(Np,rdScale / 2)
-        if(enpntrayx) then -- Draw point intersection
+        if(workmode == 1) then -- Draw point intersection
           local xPnt = asmlib.IntersectRayModel(model, pointid, pnextid)
           xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.OPos)
           local Ps = xPnt:ToScreen()
           hudMonitor:DrawLine(Os,Ps,"ry")
-          hudMonitor:DrawLine(Os,Np)
+          hudMonitor:DrawLine(Ps,Np)
           hudMonitor:DrawCircle(Ps,rdScale / 2)
         end
       end
@@ -987,7 +976,7 @@ function TOOL.BuildCPanel(CPanel)
   if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Panel population empty") end
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
-  local pTree    = vguiCreate("DTree")
+  local pTree    = vguiCreate("DTree", CPanel)
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 400)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model_con"))
@@ -1050,13 +1039,23 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.")
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
-  local pComboPhysType = vguiCreate("DComboBox")
+  local pComboToolMode = vguiCreate("DComboBox", CPanel)
+        pComboToolMode:SetPos(2, CurY)
+        pComboToolMode:SetTall(18)
+        pComboToolMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".workmode"))
+        pComboToolMode:AddChoice(languageGetPhrase("tool."..gsToolNameL..".workmode_0"), 0 ,true)
+        pComboToolMode:AddChoice(languageGetPhrase("tool."..gsToolNameL..".workmode_1"), 1)
+        pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
+          RunConsoleCommand(gsToolPrefL.."workmode", anyData) end
+        CurY = CurY + pComboToolMode:GetTall() + 2
+
+  local pComboPhysType = vguiCreate("DComboBox", CPanel)
         pComboPhysType:SetPos(2, CurY)
         pComboPhysType:SetTall(18)
         pComboPhysType:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phytype"))
         pComboPhysType:SetValue(languageGetPhrase("tool."..gsToolNameL..".phytype_def"))
         CurY = CurY + pComboPhysType:GetTall() + 2
-  local pComboPhysName = vguiCreate("DComboBox")
+  local pComboPhysName = vguiCreate("DComboBox", CPanel)
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
@@ -1086,7 +1085,7 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddItem(pComboPhysName); asmlib.Print(Property,"TOOL:BuildCPanel: Property")
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
-  local pText = vguiCreate("DTextEntry")
+  local pText = vguiCreate("DTextEntry", CPanel)
         pText:SetPos(2, CurY)
         pText:SetTall(18)
         pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
@@ -1146,8 +1145,6 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mcspawn"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".surfsnap_con"), gsToolPrefL.."surfsnap")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".enpntrayx_con"), gsToolPrefL.."enpntrayx")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".enpntrayx"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".appangfst_con"), gsToolPrefL.."appangfst")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".appangfst"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".applinfst_con"), gsToolPrefL.."applinfst")

@@ -241,7 +241,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "activrad" , "45")
         asmlib.ConCommandPly(oPly, "pntasist" , "1")
         asmlib.ConCommandPly(oPly, "surfsnap" , "0")
-        asmlib.ConCommandPly(oPly, "enpntrayx", "0")
+        asmlib.ConCommandPly(oPly, "workmode" , "0")
         asmlib.ConCommandPly(oPly, "appangfst", "0")
         asmlib.ConCommandPly(oPly, "applinfst", "0")
         asmlib.ConCommandPly(oPly, "exportdb" , "0")
@@ -2830,6 +2830,7 @@ end
 
 ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes  ( Column "ISO 639-1" )
 if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
+  -- English
   asmlib.SetLocalify("en","tool."..gsToolNameL..".1"             , "Assembles a prop-segmented track")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".left"          , "Spawn/snap a piece. Hold shift to stack")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".right"         , "Switch assembly points. Hold shift for versa (Quick: Alt + Scroll)")
@@ -2899,6 +2900,9 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("en","tool."..gsToolNameL..".ghosthold_con" , "Draw holder ghost")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".engunsnap"     , "Controls snapping when the piece is dropped by the player physgun")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".engunsnap_con" , "Enable physgun snap")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode"      , "Change this if you want to use the tool for something else")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode_0"    , "General spawn/snap")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode_1"    , "Curve beam fitting")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_export"     , "Click to export the client database as a file")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_export_lb"  , "Export DB")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine"    , "The list of your frequently used track pieces")
