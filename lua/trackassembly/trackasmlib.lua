@@ -3248,13 +3248,11 @@ function IntersectRayRead(oPly, sKey)
   return stRay -- Obtain personal ray from the cache
 end
 
-function IntersectRayRemove(oPly, sKey)
+function IntersectRayClear(oPly, sKey)
   if(not IsPlayer(oPly)) then
-    return StatusLog(false,"IntersectRayRemove: Player invalid <"..tostring(oPly)..">") end
-  if(not IsString(sKey)) then
-    return StatusLog(false,"IntersectRayRemove: Key invalid <"..tostring(sKey)..">") end
+    return StatusLog(false,"IntersectRayClear: Player invalid <"..tostring(oPly)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then return StatusLog(true,"IntersectRayRemove: Deleted <"..tostring(oPly)..">") end
+  if(not tRay) then return StatusLog(true,"IntersectRayClear: Deleted <"..tostring(oPly)..">") end
   GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage()
 end
 

@@ -435,7 +435,7 @@ function TOOL:SelectModel(sModel)
   return asmlib.StatusLog(true,"TOOL:SelectModel: Success <"..sModel..">")
 end
 
-function TOOL:IntersectRaySnap(ePiece, oEnt, vHit, stSpawn, bLoop)
+function TOOL:IntersectSnap(ePiece, oEnt, vHit, stSpawn, bLoop)
   local ply   = self:GetOwner()
   local model = self:GetModel()
   local pointid, pnextid = self:GetPointID()
@@ -444,13 +444,13 @@ function TOOL:IntersectRaySnap(ePiece, oEnt, vHit, stSpawn, bLoop)
   local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayMake(ply, "origin", "anchor")
   if(not xx) then
     if(not bLoop) then ePiece:Remove(); asmlib.PrintNotifyPly(ply, "Define intersection anchor !", "ERROR")
-      return asmlib.StatusLog(false, self:GetStatus(stTrace,"TOOL:IntersectRaySnap(Ray): Remove by active ray"))
+      return asmlib.StatusLog(false, self:GetStatus(stTrace,"TOOL:IntersectSnap(Ray): Remove by active ray"))
     else return false end
   end
   local mx = asmlib.IntersectRayModel(model, pointid, pnextid)
   if(not mx) then
     if(not bLoop) then ePiece:Remove()
-      return asmlib.StatusLog(false, self:GetStatus(stTrace,"TOOL:IntersectRaySnap(Ray): Removed by model ray"))
+      return asmlib.StatusLog(false, self:GetStatus(stTrace,"TOOL:IntersectSnap(Ray): Removed by model ray"))
     else return false end
   end
   local lx = ((x2 - x1):Length() / 2)
@@ -462,15 +462,32 @@ function TOOL:IntersectRaySnap(ePiece, oEnt, vHit, stSpawn, bLoop)
   stSpawn.SPos:Add(xx); return true
 end
 
-function TOOL:IntersectRayClear()
+function TOOL:IntersectClear()
   local ply   = self:GetOwner()
   local stAnc = asmlib.IntersectRayRead(ply, "anchor")
-  if(not stAnc) then
-    return asmlib.StatusLog(true,"TOOL:Reload(Intersect): Anchor clean") end
-  stAnc.Ent:SetColor(conPalette:Select("w"))
-  asmlib.IntersectRayRemove(ply, "anchor")
-  asmlib.PrintNotifyPly(ply,"Intersection anchor clear !","CLEANUP")
-  return asmlib.StatusLog(true,"TOOL:Reload(Intersect): Anchor cleared")
+  if(stAnc) then
+    stAnc.Ent:SetColor(conPalette:Select("w"))
+    asmlib.PrintNotifyPly(ply,"Intersection anchor clear !","CLEANUP")
+  end; asmlib.IntersectRayClear(ply)
+  return asmlib.StatusLog(true,"TOOL:IntersectClear: Anchor cleared")
+end
+
+function TOOL:IntersectAnchor(oPly, oEnt, vHit)
+  local femod = stringToFileName(oEnt:GetModel())
+  local stRay = asmlib.IntersectRayRead(oPly, "anchor")
+  if(stRay and stRay.Ent and stRay.Ent:IsValid()) then
+    stRay.Ent:SetColor(conPalette:Select("w")) end
+  stRay = asmlib.IntersectRayUpdate(oPly, oEnt, vHit, "anchor")
+  if(not stRay) then
+    return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Fail") end
+  asmlib.PrintNotifyPly(oPly,"Intersection anchor: "..femod.." !","UNDO")
+  stRay.Ent:SetColor(conPalette:Select("ry")); asmlib.Print(tRay,"ActiveRay")
+end
+
+function TOOL:ResetWorkingMode()
+  local workmode = self:GetWorkingMode()
+  if    (workmode == 0) then self:IntersectClear()
+  elseif(workmode == 1) then end
 end
 
 function TOOL:LeftClick(stTrace)
@@ -510,9 +527,8 @@ function TOOL:LeftClick(stTrace)
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  asmlib.ReadKeyPly(ply)
+  asmlib.ReadKeyPly(ply); self:ResetWorkingMode()
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
-    if(workmode == 0) then self:IntersectRayClear() end
     local vPos = Vector()
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(mcspawn) then  -- Spawn on mass centre
@@ -578,7 +594,7 @@ function TOOL:LeftClick(stTrace)
     end
   end
 
-  if(asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(workmode == 0 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -625,9 +641,8 @@ function TOOL:LeftClick(stTrace)
   else -- Switch the tool mode ( Snapping )
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
-      if    (workmode == 0) then self:IntersectRayClear()
-      elseif(workmode == 1) then -- Make a ray intersection spawn update
-        self:IntersectRaySnap(ePiece, trEnt, stTrace.HitPos, stSpawn); ePiece:SetPos(stSpawn.SPos) end
+      if(workmode == 1) then -- Make a ray intersection spawn update
+        self:IntersectSnap(ePiece, trEnt, stTrace.HitPos, stSpawn); ePiece:SetPos(stSpawn.SPos) end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings failed")) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
@@ -654,24 +669,15 @@ function TOOL:RightClick(stTrace)
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
-  asmlib.ReadKeyPly(ply)
+  asmlib.ReadKeyPly(ply); self:ResetWorkingMode()
   if(stTrace.HitWorld) then
     if(asmlib.CheckButtonPly(ply,IN_USE)) then
       asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
       return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
     end
   elseif(trEnt and trEnt:IsValid()) then
-    if    (workmode == 0) then self:IntersectRayClear()
-    elseif(workmode == 1) then -- Curve ray fitting
-      local femod = stringToFileName(trEnt:GetModel())
-      local stRay = asmlib.IntersectRayRead(ply, "anchor")
-      if(stRay and stRay.Ent and stRay.Ent:IsValid()) then
-        stRay.Ent:SetColor(conPalette:Select("w")) end
-      stRay = asmlib.IntersectRayUpdate(ply, trEnt, stTrace.HitPos, "anchor")
-      if(not stRay) then
-        return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Fail") end
-      asmlib.PrintNotifyPly(ply,"Intersection anchor: "..femod.." !","UNDO")
-      stRay.Ent:SetColor(conPalette:Select("ry")); asmlib.Print(tRay,"ActiveRay")
+    if(workmode == 1) then -- Curve ray fitting
+      self:IntersectAnchor(ply, trEnt, stTrace.HitPos)
       return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Success")
     end
     if(enpntmscr) then
@@ -699,9 +705,9 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
-  asmlib.ReadKeyPly(ply)
+  asmlib.ReadKeyPly(ply); self:ResetWorkingMode()
   if(stTrace.HitWorld) then
-    if(workmode == 1) then self:IntersectRayClear()
+    if(workmode == 1) then self:IntersectClear()
       return asmlib.StatusLog(true,"TOOL:Reload(Intersect): Anchor cleared") end
     if(self:GetDeveloperMode()) then asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then self:ClearAnchor() end
@@ -1253,7 +1259,7 @@ function TOOL:UpdateGhost(ePiece, oPly)
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
         if(workmode == 1) then
-          self:IntersectRaySnap(ePiece, trEnt, stTrace.HitPos, stSpawn, true) end
+          self:IntersectSnap(ePiece, trEnt, stTrace.HitPos, stSpawn, true) end
         ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false) end
     end
   end
