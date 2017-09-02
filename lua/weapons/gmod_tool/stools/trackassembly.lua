@@ -435,6 +435,30 @@ function TOOL:SelectModel(sModel)
   return asmlib.StatusLog(true,"TOOL:SelectModel: Success <"..sModel..">")
 end
 
+function TOOL:IntersectRaySnap(ePiece, oEnt, vHit, stSpawn, nAddZ, bLoop)
+  local ply   = self:GetOwner()
+  local model = self:GetModel()
+  local pointid, pnextid = self:GetPointID()
+  if(not asmlib.IntersectRayUpdate(ply, oEnt, vHit, "origin")) then
+    return asmlib.StatusLog(false,"TOOL:LeftClick(Ray): Failed updating ray") end
+  local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayMake(ply, "origin", "anchor")
+  if(not xx) then
+    if(not bLoop) then ePiece:Remove(); asmlib.PrintNotifyPly(ply, "Define intersection anchor !", "ERROR")
+      return asmlib.StatusLog(false, self:GetStatus(stTrace,"TOOL:IntersectRaySnap(Ray): Remove by active ray"))
+    else return false end
+  end
+  local mx = asmlib.IntersectRayModel(model, pointid, pnextid)
+  if(not mx) then
+    if(not bLoop) then ePiece:Remove()
+      return asmlib.StatusLog(false, self:GetStatus(stTrace,"TOOL:IntersectRaySnap(Ray): Removed by model ray"))
+    else return false end
+  end
+  local lx = ((x2 - x1):Length() / 2)
+  local cx = stRay1.Dir:Up(); cx:Mul(mathClamp(tonumber(nAddZ) or 0, -lx, lx))
+  mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate newly created entity local intersection to world
+  stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx); stSpawn.SPos:Add(cx); ePiece:SetPos(stSpawn.SPos)
+end
+
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then
     return asmlib.StatusLog(true,"TOOL:LeftClick(): Working on client") end
@@ -586,14 +610,8 @@ function TOOL:LeftClick(stTrace)
   else -- Switch the tool mode ( Snapping )
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
-      if(workmode = 1) then -- Make a ray intersection spawn update
-        if(not asmlib.IntersectRayUpdate(ply, trEnt, stTrace.HitPos, "origin")) then
-          return asmlib.StatusLog(false,"TOOL:LeftClick(Ray): Failed updating ray") end
-        local xx = asmlib.IntersectRayActive(ply, "origin", "anchor")
-        local mx = asmlib.IntersectRayModel(model, pointid, pnextid)
-              mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Local to world
-        stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx)
-      end
+      if(workmode == 1) then -- Make a ray intersection spawn update
+        self:IntersectRaySnap(ePiece, trEnt, stTrace.HitPos, stSpawn, nextz) end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings failed")) end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
@@ -628,8 +646,15 @@ function TOOL:RightClick(stTrace)
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(workmode == 1) then -- Curve ray fitting
-      if(not asmlib.IntersectRayUpdate(ply, trEnt, stTrace.HitPos, "anchor")) then
+      local femod = stringToFileName(trEnt:GetModel())
+      local stRay = asmlib.IntersectRayRead(ply, "anchor")
+      if(stRay and stRay.Ent and stRay.Ent:IsValid()) then
+        stRay.Ent:SetColor(conPalette:Select("w")) end
+      stRay = asmlib.IntersectRayUpdate(ply, trEnt, stTrace.HitPos, "anchor")
+      if(not stRay) then
         return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Fail") end
+      asmlib.PrintNotifyPly(ply,"Intersection anchor: "..femod.." !","UNDO")
+      stRay.Ent:SetColor(conPalette:Select("ry")); asmlib.Print(tRay,"ActiveRay")
       return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Success")
     end
     if(enpntmscr) then
@@ -654,10 +679,20 @@ end
 function TOOL:Reload(stTrace)
   if(CLIENT) then return asmlib.StatusLog(true,"TOOL:Reload(): Working on client") end
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:Reload(): Invalid trace") end
-  local ply = self:GetOwner()
-  local trEnt = stTrace.Entity
+  local ply      = self:GetOwner()
+  local trEnt    = stTrace.Entity
+  local workmode = self:GetWorkingMode()
   asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
+    if(workmode == 1) then
+      local stAnc = asmlib.IntersectRayRead(ply, "anchor")
+      if(not stAnc) then
+        return asmlib.StatusLog(true,"TOOL:Reload(Intersect): Anchor clean") end
+      stAnc.Ent:SetColor(conPalette:Select("w"))
+      asmlib.IntersectRayRemove(ply, "anchor")
+      asmlib.PrintNotifyPly(ply,"Intersection anchor clear !","CLEANUP")
+      return asmlib.StatusLog(true,"TOOL:Reload(Intersect): Anchor cleared")
+    end
     if(self:GetDeveloperMode()) then asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then self:ClearAnchor() end
     if(self:GetExportDB()) then
@@ -771,13 +806,13 @@ function TOOL:DrawHUD()
       local Np = vNext:ToScreen() -- Draw Next Point
       hudMonitor:DrawLine(Os,Np,"g")
       hudMonitor:DrawCircle(Np, rdScale / 2, "g")
-      if(workmode == 1) then -- Draw point intersection
+     if(workmode == 1) then -- Draw point intersection
         local xPnt = asmlib.IntersectRayModel(model, pointid, pnextid)
-        xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.OPos)
+        xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.SPos)
         local Ps = xPnt:ToScreen()
         hudMonitor:DrawLine(Os,Ps,"ry")
         hudMonitor:DrawLine(Ps,Np)
-        hudMonitor:DrawCircle(Ps,rdScale / 2)
+        hudMonitor:DrawCircle(Ps, 3 * rdScale)
       end
     end
     if(not self:GetDeveloperMode()) then return end
@@ -862,11 +897,11 @@ function TOOL:DrawHUD()
         hudMonitor:DrawCircle(Np,rdScale / 2)
         if(workmode == 1) then -- Draw point intersection
           local xPnt = asmlib.IntersectRayModel(model, pointid, pnextid)
-          xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.OPos)
+          xPnt:Rotate(stSpawn.SAng); xPnt:Add(stSpawn.SPos)
           local Ps = xPnt:ToScreen()
           hudMonitor:DrawLine(Os,Ps,"ry")
           hudMonitor:DrawLine(Ps,Np)
-          hudMonitor:DrawCircle(Ps,rdScale / 2)
+          hudMonitor:DrawCircle(Ps, 3 * rdScale)
         end
       end
       if(not self:GetDeveloperMode()) then return end
@@ -1041,11 +1076,11 @@ function TOOL.BuildCPanel(CPanel)
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local pComboToolMode = vguiCreate("DComboBox", CPanel)
         pComboToolMode:SetPos(2, CurY)
-        pComboToolMode:SetTall(18)
+        pComboToolMode:SetTall(18); RunConsoleCommand(gsToolPrefL.."workmode", 0)
         pComboToolMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".workmode"))
         pComboToolMode:AddChoice(languageGetPhrase("tool."..gsToolNameL..".workmode_0"), 0 ,true)
         pComboToolMode:AddChoice(languageGetPhrase("tool."..gsToolNameL..".workmode_1"), 1)
-        pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
+        pComboToolMode.OnSelect = function(pnSelf, nInd, sVal, anyData)
           RunConsoleCommand(gsToolPrefL.."workmode", anyData) end
         CurY = CurY + pComboToolMode:GetTall() + 2
 
@@ -1081,6 +1116,7 @@ function TOOL.BuildCPanel(CPanel)
       else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names unavailable") end
     end; iTyp = iTyp + 1
   end
+  CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
   CPanel:AddItem(pComboPhysName); asmlib.Print(Property,"TOOL:BuildCPanel: Property")
 
@@ -1159,11 +1195,11 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".engunsnap"))
 end
 
-function TOOL:UpdateGhost(oEnt, oPly)
-  if(not (oEnt and oEnt:IsValid())) then return end
-  oEnt:SetNoDraw(true)
-  oEnt:DrawShadow(false)
-  oEnt:SetColor(conPalette:Select("gh"))
+function TOOL:UpdateGhost(ePiece, oPly)
+  if(not (ePiece and ePiece:IsValid())) then return end
+  ePiece:SetNoDraw(true)
+  ePiece:DrawShadow(false)
+  ePiece:SetColor(conPalette:Select("gh"))
   local stTrace = utilTraceLine(utilGetPlayerTrace(oPly))
   if(not stTrace) then return end
   local trEnt = stTrace.Entity
@@ -1176,36 +1212,39 @@ function TOOL:UpdateGhost(oEnt, oPly)
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local aAng  = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
     if(self:GetSpawnMC()) then
-      oEnt:SetAngles(aAng)
-      local vOBB = oEnt:OBBMins()
-      local vCen = asmlib.GetCenterMC(oEnt)
+      ePiece:SetAngles(aAng)
+      local vOBB = ePiece:OBBMins()
+      local vCen = asmlib.GetCenterMC(ePiece)
                    asmlib.AddVectorXYZ(vCen, nextx, nexty, nextz-vOBB[cvZ])
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
       vCen:Rotate(aAng); vCen:Add(stTrace.HitPos)
-      oEnt:SetPos(vCen); oEnt:SetAngles(aAng); oEnt:SetNoDraw(false)
+      ePiece:SetPos(vCen); ePiece:SetAngles(aAng); ePiece:SetNoDraw(false)
     else
       local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + self:GetElevation() * stTrace.HitNormal,
                         aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        oEnt:SetAngles(stSpawn.SAng); oEnt:SetPos(stSpawn.SPos); oEnt:SetNoDraw(false) end
+        ePiece:SetAngles(stSpawn.SAng); ePiece:SetPos(stSpawn.SPos); ePiece:SetNoDraw(false) end
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(trRec) then
-      local model   = self:GetModel()
-      local spnflat = self:GetSpawnFlat()
-      local igntype = self:GetIgnoreType()
-      local actrad  = self:GetActiveRadius()
+      local model    = self:GetModel()
+      local spnflat  = self:GetSpawnFlat()
+      local igntype  = self:GetIgnoreType()
+      local workmode = self:GetWorkingMode()
+      local actrad   = self:GetActiveRadius()
       local pointid, pnextid = self:GetPointID()
       local nextx, nexty, nextz = self:GetPosOffsets()
       local nextpic, nextyaw, nextrol = self:GetAngOffsets()
       local stSpawn = asmlib.GetEntitySpawn(trEnt,stTrace.HitPos,model,pointid,
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        oEnt:SetPos(stSpawn.SPos); oEnt:SetAngles(stSpawn.SAng); oEnt:SetNoDraw(false) end
+        if(workmode == 1) then
+          self:IntersectRaySnap(ePiece, trEnt, stTrace.HitPos, stSpawn, nextz, true) end
+        ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false) end
     end
   end
 end

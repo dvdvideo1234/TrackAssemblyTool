@@ -371,6 +371,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
+  SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("DATE_FORMAT","%d-%m-%y")
   SetOpVar("TIME_FORMAT","%H:%M:%S")
@@ -3117,9 +3118,9 @@ end
 ]]--
 function GetEntityHitID(oEnt, vHit)
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(nil,"GetEntityHitID: Trace entity invalid") end
+    return StatusLog(nil,"GetEntityHitID: Entity invalid") end
   local oRec = CacheQueryPiece(oEnt:GetModel())
-  if(not oRec) then return StatusLog(nil,"GetEntityHitID: Trace not piece") end
+  if(not oRec) then return StatusLog(nil,"GetEntityHitID: Trace not piece <"..oEnt:GetModel()..">") end
   local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
   local vTmp, nPnt, nMin, oPOA = Vector(), nil, nil, nil
   for ID = 1, oRec.Kept do -- Ignore the point disabled flag
@@ -3137,14 +3138,14 @@ function GetEntityHitID(oEnt, vHit)
 end
 
 --[[
-This function calculates 3x3 determinant of the arguments below
-Takes three row vectors as arguments:
-  vR1 = {a b c}
-  vR2 = {d e f}
-  vR3 = {g h i}
-Returns a number: The value if the 3x3 determinant
+ * This function calculates 3x3 determinant of the arguments below
+ * Takes three row vectors as arguments:
+ *   vR1 = {a b c}
+ *   vR2 = {d e f}
+ *   vR3 = {g h i}
+ * Returns a number: The value if the 3x3 determinant
 ]]--
-local function DetVector(vR1, vR2, vR3)
+local function DeterminantVector(vR1, vR2, vR3)
   local a, b, c = vR1.x, vR1.y, vR1.z
   local d, e, f = vR2.x, vR2.y, vR2.z
   local g, h, i = vR3.x, vR3.y, vR3.z
@@ -3152,36 +3153,48 @@ local function DetVector(vR1, vR2, vR3)
 end
 
 --[[
-This function traces both lines and if they are not parallel
-calculates their point of intersection. Every ray is
-determined by an origin /vO/ and direction /vD/
-On success returns the length and point of the closest
-intersect distance to the orthogonal connecting line.
-The true center is calculated by using the last two return values
-Takes:
-  vO1 --> Position origin of the first ray
-  vD1 --> Direction of the first ray
-  vO2 --> Position origin of the second ray
-  vD2 --> Direction of the second ray
-Returns:
-  f1 --> Intersection fraction of the first ray
-  f2 --> Intersection fraction of the second ray
-  x1 --> Intersection closest position of the first ray
-  x2 --> Intersection closest position of the second ray
-  xx --> Intersection center between x1 an x2
+ * This function traces both lines and if they are not parallel
+ * calculates their point of intersection. Every ray is
+ * determined by an origin /vO/ and direction /vD/
+ * On success returns the length and point of the closest
+ * intersect distance to the orthogonal connecting line.
+ * The true center is calculated by using the last two return values
+ * Takes:
+ *   vO1 --> Position origin of the first ray
+ *   vD1 --> Direction of the first ray
+ *   vO2 --> Position origin of the second ray
+ *   vD2 --> Direction of the second ray
+ * Returns:
+ *   f1 --> Intersection fraction of the first ray
+ *   f2 --> Intersection fraction of the second ray
 ]]--
-local function GetRayIntersect(vO1, vD1, vO2, vD2)
+local function IntersectRay(vO1, vD1, vO2, vD2)
   local d1 = vD1:GetNormalized()
   if(d1:Length() == 0) then
-    return StatusLog(nil,"GetRayIntersect: First ray undefined") end
+    return StatusLog(nil,"IntersectRay: First ray undefined") end
   local d2 = vD2:GetNormalized()
   if(d2:Length() == 0) then
-    return StatusLog(nil,"GetRayIntersect: Second ray undefined") end
+    return StatusLog(nil,"IntersectRay: Second ray undefined") end
   local dx = d1:Cross(d2)
   local dn = (dx:Length())^2
-  if(dn == 0) then return StatusLog(nil,"GetRayIntersect: Rays parallel") end
-  local f1 = DetVector((vO2-vO1),d2,dx) / dn
-  local f2 = DetVector((vO2-vO1),d1,dx) / dn
+  if(dn < GetOpVar("EPSILON_ZERO")) then
+    return StatusLog(nil,"IntersectRay: Rays parallel") end
+  local f1 = DeterminantVector((vO2-vO1),d2,dx) / dn
+  local f2 = DeterminantVector((vO2-vO1),d1,dx) / dn
+  local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
+  local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
+  return f1, f2, x1, x2, xx
+end
+
+local function IntersectRayParallel(vO1, vD1, vO2, vD2)
+  local d1 = vD1:GetNormalized()
+  if(d1:Length() == 0) then
+    return StatusLog(nil,"IntersectRay: First ray undefined") end
+  local d2 = vD2:GetNormalized()
+  if(d2:Length() == 0) then
+    return StatusLog(nil,"IntersectRay: Second ray undefined") end
+  local len    = (vO2 - vO1):Length()
+  local f1, f2 = (len / 2), (len / 2)
   local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
   local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
   return f1, f2, x1, x2, xx
@@ -3208,15 +3221,36 @@ function IntersectRayUpdate(oPly, oEnt, vHit, sKey)
   if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
   local stRay = tRay[sKey]
   if(not stRay) then -- Define a ray via origin and direction
-    tRay[sKey] = {Org = Vector(), Dir = Vector(),
+    tRay[sKey] = {Org = Vector(), Dir = Angle(),
                    ID = trID    , Ent = oEnt    ,
-                  Key = sKey    , Ply = oPly }; stRay = tRay[sKey] end
-  else stRay.Ent:SetColor(Color(255,255,255,255))
+                  Key = sKey    , Ply = oPly }; stRay = tRay[sKey]
+  else
     stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, oEnt, trID, sKey
-  end; local ryAng = Angle(); SetAngle(ryAng, trPOA.A)
-  ryAng:Set(oEnt:LocalToWorldAngles(ryAng)); SetVector(stRay.Dir, ryAng:Forward())
+  end; SetAngle(stRay.Dir, trPOA.A) stRay.Dir:Set(oEnt:LocalToWorldAngles(stRay.Dir))
   SetVector(stRay.Org, trPOA.O); stRay.Org:Rotate(oEnt:GetAngles()); stRay.Org:Add(oEnt:GetPos())
-  Print(tRay,"ActiveRay"); return stRay;
+  return stRay;
+end
+
+function IntersectRayRead(oPly, sKey)
+  if(not IsPlayer(oPly)) then
+    return StatusLog(nil,"IntersectRayMake: Player invalid <"..tostring(oPly)..">") end
+  if(not IsString(sKey)) then
+    return StatusLog(nil,"IntersectRayMake: Key invalid <"..tostring(sKey)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
+  if(not tRay) then return StatusLog(nil,"IntersectRayMake: No player <"..tostring(oPly)..">") end
+  local stRay = tRay[sKey]
+  if(not stRay) then return StatusLog(nil,"IntersectRayMake: No Key <"..sKey..">") end
+  return stRay -- Obtain personal ray from the cache
+end
+
+function IntersectRayRemove(oPly, sKey)
+  if(not IsPlayer(oPly)) then
+    return StatusLog(false,"IntersectRayMake: Player invalid <"..tostring(oPly)..">") end
+  if(not IsString(sKey)) then
+    return StatusLog(false,"IntersectRayMake: Key invalid <"..tostring(sKey)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
+  if(not tRay) then return StatusLog(true,"IntersectRayMake: Deleted <"..tostring(oPly)..">") end
+  GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage()
 end
 
 --[[
@@ -3225,21 +3259,22 @@ end
  * sKey1 --> First ray identifier
  * sKey2 --> Second ray identifier
 ]]--
-function IntersectRayActive(oPly, sKey1, sKey2)
+function IntersectRayMake(oPly, sKey1, sKey2)
   if(not IsPlayer(oPly)) then
-    return StatusLog(nil,"IntersectRayActive: Player invalid <"..tostring(oPly)..">") end
+    return StatusLog(nil,"IntersectRayMake: Player invalid <"..tostring(oPly)..">") end
   if(not IsString(sKey1)) then
-    return StatusLog(nil,"IntersectRayActive: Key1 invalid <"..tostring(sKey1)..">") end
+    return StatusLog(nil,"IntersectRayMake: Key1 invalid <"..tostring(sKey1)..">") end
   if(not IsString(sKey2)) then
-    return StatusLog(nil,"IntersectRayActive: Key2 invalid <"..tostring(sKey2)..">") end
+    return StatusLog(nil,"IntersectRayMake: Key2 invalid <"..tostring(sKey2)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(tRay) then return StatusLog(nil,"IntersectRayActive: No player <"..tostring(oPly)..">") end
+  if(not tRay) then return StatusLog(nil,"IntersectRayMake: No player <"..tostring(oPly)..">") end
   local stRay1, stRay2 = tRay[sKey1], tRay[sKey2]
-  if(not stRay1) then return StatusLog(nil,"IntersectRayActive: No Key1 <"..tostring(sKey1)..">") end
-  if(not stRay2) then return StatusLog(nil,"IntersectRayActive: No Key2 <"..tostring(sKey2)..">") end
-  local f1, f2, x1, x2, xx = GetRayIntersect(stRay1.Org, stRay1.Dir, stRay2.Org, stRay2.Dir)
-  stRay1.Ent:SetColor(Color(255,255,255,255)); stRay2.Ent:SetColor(Color(255,255,255,255))
-  return xx;
+  if(not stRay1) then return StatusLog(nil,"IntersectRayMake: No Key1 <"..tostring(sKey1)..">") end
+  if(not stRay2) then return StatusLog(nil,"IntersectRayMake: No Key2 <"..tostring(sKey2)..">") end
+  local f1, f2, x1, x2, xx = IntersectRay(stRay1.Org, stRay1.Dir:Forward(), stRay2.Org, stRay2.Dir:Forward())
+  if(not xx) then
+    f1, f2, x1, x2, xx = IntersectRayParallel(stRay1.Org, stRay1.Dir:Forward(), stRay2.Org, stRay2.Dir:Forward()) end
+  return xx, x1, x2, stRay1, stRay2
 end
 
 --[[
@@ -3250,18 +3285,22 @@ end
  * nPntID --> Start (chosen) point of the intersection
  * nNxtID --> End (next) point of the intersection
 ]]--
-function IntersectRayModel(sModel nPntID, nNxtID)
+function IntersectRayModel(sModel, nPntID, nNxtID)
   local mRec = CacheQueryPiece(sModel)
   if(not mRec) then return StatusLog(nil,"IntersectRayModel: Not piece <"..tostring(sModel)..">") end
   local stPOA1 = LocatePOA(mRec, nPntID)
   if(not stPOA1) then return StatusLog(nil,"IntersectRayModel: No start ID <"..tostring(nPntID)..">") end
   local stPOA2 = LocatePOA(mRec, nNxtID)
   if(not stPOA2) then return StatusLog(nil,"IntersectRayModel: No end ID <"..tostring(nNxtID)..">") end
-  local vO1, vD1 = stPOA1.O, (-stPOA1.A:Forward())
-  local vO2, vD2 = stPOA2.O, (-stPOA2.A:Forward())
-  local f1, f2, x1, x2, xx = GetRayIntersect(vO1,vD1,vO2,vD2)
+  local aTmp = Angle()
+  SetAngle(aTmp, stPOA1.A)
+  local vO1, vD1 = Vector(), Vector(); SetVector(vO1, stPOA1.O); vD1:Set(-aTmp:Forward())
+  SetAngle(aTmp, stPOA2.A)
+  local vO2, vD2 = Vector(), Vector(); SetVector(vO2, stPOA2.O); vD2:Set(-aTmp:Forward())
+  local f1, f2, x1, x2, xx = IntersectRay(vO1,vD1,vO2,vD2)
   -- Attempts taking the mean vector when the rays are parallel for straight tracks
-  if(not xx) then xx = Vector(); xx:Set(vO2); xx:Add(vO1); xx:Mul(0.5) end
+  if(not xx) then
+    f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
   return xx -- Must return the local vector where the intersection is located
 end
 

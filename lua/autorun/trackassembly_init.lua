@@ -120,7 +120,7 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
-      conPalette:Insert("ry",Color(211, 55,133,255)) -- Ray tracing
+      conPalette:Insert("ry",Color(230,200, 80,255)) -- Ray tracing
 
 -------- ACTIONS  ----------
 if(SERVER) then
