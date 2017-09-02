@@ -439,7 +439,10 @@ function InitBase(sName,sPurpose)
     TID  = 0,
     TPnt = Vector(), -- P
     TPos = Vector(), -- O
-    TAng = Angle ()  -- A
+    TAng = Angle (), -- A
+    --- Offsets ---
+    ANxt = Angle (),
+    PNxt = Vector()
   })
   return StatusPrint(true,"InitBase: Success")
 end
@@ -2976,12 +2979,14 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   if(ucsPos) then SetVector(stSpawn.OPos,ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.OAng,ucsAng) end
   -- Initialize F, R, U Copy the UCS like that to support database POA
+  SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
+  SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
+  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
   stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   -- Get Holder model data
@@ -2993,9 +2998,9 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   DecomposeByAngle(stSpawn.HPos,stSpawn.HAng)
   -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
-  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
-  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
+  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HPos[cvX] + stSpawn.PNxt[cvX]) * stSpawn.F)
+  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HPos[cvY] + stSpawn.PNxt[cvY]) * stSpawn.R)
+  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HPos[cvZ] + stSpawn.PNxt[cvZ]) * stSpawn.U)
   -- Spawn Angle
   stSpawn.SAng:Set(stSpawn.OAng); NegAngle(stSpawn.HAng)
   stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * hdPOA.A[csB])
@@ -3233,23 +3238,23 @@ end
 
 function IntersectRayRead(oPly, sKey)
   if(not IsPlayer(oPly)) then
-    return StatusLog(nil,"IntersectRayMake: Player invalid <"..tostring(oPly)..">") end
+    return StatusLog(nil,"IntersectRayRead: Player invalid <"..tostring(oPly)..">") end
   if(not IsString(sKey)) then
-    return StatusLog(nil,"IntersectRayMake: Key invalid <"..tostring(sKey)..">") end
+    return StatusLog(nil,"IntersectRayRead: Key invalid <"..tostring(sKey)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then return StatusLog(nil,"IntersectRayMake: No player <"..tostring(oPly)..">") end
+  if(not tRay) then return StatusLog(nil,"IntersectRayRead: No player <"..tostring(oPly)..">") end
   local stRay = tRay[sKey]
-  if(not stRay) then return StatusLog(nil,"IntersectRayMake: No Key <"..sKey..">") end
+  if(not stRay) then return StatusLog(nil,"IntersectRayRead: No Key <"..sKey..">") end
   return stRay -- Obtain personal ray from the cache
 end
 
 function IntersectRayRemove(oPly, sKey)
   if(not IsPlayer(oPly)) then
-    return StatusLog(false,"IntersectRayMake: Player invalid <"..tostring(oPly)..">") end
+    return StatusLog(false,"IntersectRayRemove: Player invalid <"..tostring(oPly)..">") end
   if(not IsString(sKey)) then
-    return StatusLog(false,"IntersectRayMake: Key invalid <"..tostring(sKey)..">") end
+    return StatusLog(false,"IntersectRayRemove: Key invalid <"..tostring(sKey)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then return StatusLog(true,"IntersectRayMake: Deleted <"..tostring(oPly)..">") end
+  if(not tRay) then return StatusLog(true,"IntersectRayRemove: Deleted <"..tostring(oPly)..">") end
   GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage()
 end
 
@@ -3535,7 +3540,8 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   -- Delay the freeze by a tiny amout because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_FREEZE"), function() -- If frozen motion is disabled
-    LogInstance("ApplyPhysicalSettings: Freeze"); pyPiece:EnableMotion(not bFr) end )
+    LogInstance("ApplyPhysicalSettings: Freeze");  -- Make shure that the physics are valid
+    if(pyPiece and pyPiece:IsValid()) then pyPiece:EnableMotion(not bFr) end end )
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
