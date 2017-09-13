@@ -386,9 +386,7 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bLoop)
     local lx = mathAbs(dx:Dot(aOrg:Forward()))
     local ly = mathAbs(dy:Dot(aOrg:Right()))
     local lz = mathAbs(dz:Dot(aOrg:Up()))
-    vx = mathClamp(vx, -lx, lx)
-    vy = mathClamp(vy, -ly, ly)
-    vz = mathClamp(vz, -lz, lz)
+    vx, vy, vz = mathClamp(vx, -lx, lx), mathClamp(vy, -ly, ly), mathClamp(vz, -lz, lz)
   end; cx:Mul(vx); cy:Mul(vy); cz:Mul(vz)
   stSpawn.SPos:Add(cx); stSpawn.SPos:Add(cy); stSpawn.SPos:Add(cz); return true
 end
@@ -728,7 +726,7 @@ function TOOL:Reload(stTrace)
       asmlib.ConCommandPly(ply, "exportdb", 0)
     end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
-      if(workmode == 1) then self:ClearAnchor() 
+      if(workmode == 1) then self:ClearAnchor()
         asmlib.LogInstance("TOOL:Reload(Anchor): Clear")
       elseif(workmode == 2) then self:IntersectClear()
         asmlib.LogInstance("TOOL:Reload(Relate): Clear")
@@ -737,7 +735,7 @@ function TOOL:Reload(stTrace)
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
-      return asmlib.StatusLog(false,"TOOL:Reload(Prop): Trace other object") end    
+      return asmlib.StatusLog(false,"TOOL:Reload(Prop): Trace other object") end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
       if(workmode == 1) then -- General anchor
         if(not self:SetAnchor(stTrace)) then
@@ -747,7 +745,7 @@ function TOOL:Reload(stTrace)
         if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:Reload(Prop): Relation set fail")) end
         return asmlib.StatusLog(true,"TOOL:Reload(Prop): Relation set")
-      end  
+      end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(asmlib.IsExistent(trRec)) then trEnt:Remove()
@@ -1048,7 +1046,7 @@ function TOOL:DrawHUD()
           hudMonitor:DrawCircle(Ss, rdScale,"c")
           hudMonitor:DrawCircle(xX, 3 * rdScale, "ry")
           hudMonitor:DrawLine(xX,O1)
-          hudMonitor:DrawLine(xX,O2) 
+          hudMonitor:DrawLine(xX,O2)
           hudMonitor:DrawCircle(O2, rdScale / 2, "g")
         end
       end

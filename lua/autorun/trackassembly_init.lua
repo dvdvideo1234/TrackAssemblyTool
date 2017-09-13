@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.371")
+asmlib.SetOpVar("TOOL_VERSION","5.372")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -61,7 +61,9 @@ asmlib.SetOpVar("LOG_SKIP",{
   "MakeScreen: Color list not container",
   "BIND_PRESS: Swep not tool",
   "BIND_PRESS: Tool different",
-  "BIND_PRESS: Active key missing"
+  "BIND_PRESS: Active key missing",
+  "IntersectRayRead",
+  "IntersectRayClear"
 })
 
 ------ VARIABLE FLAGS ------
