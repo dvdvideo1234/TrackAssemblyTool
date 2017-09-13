@@ -400,6 +400,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
+  SetOpVar("MODE_WORKING", {"SNAP", "CROSS"})
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
@@ -3194,10 +3195,10 @@ end
 local function IntersectRayParallel(vO1, vD1, vO2, vD2)
   local d1 = vD1:GetNormalized()
   if(d1:Length() == 0) then
-    return StatusLog(nil,"IntersectRay: First ray undefined") end
+    return StatusLog(nil,"IntersectRayParallel: First ray undefined") end
   local d2 = vD2:GetNormalized()
   if(d2:Length() == 0) then
-    return StatusLog(nil,"IntersectRay: Second ray undefined") end
+    return StatusLog(nil,"IntersectRayParallel: Second ray undefined") end
   local len    = (vO2 - vO1):Length()
   local f1, f2 = (len / 2), (len / 2)
   local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
@@ -3248,12 +3249,13 @@ function IntersectRayRead(oPly, sKey)
   return stRay -- Obtain personal ray from the cache
 end
 
-function IntersectRayClear(oPly, sKey)
+function IntersectRayClear(oPly)
   if(not IsPlayer(oPly)) then
     return StatusLog(false,"IntersectRayClear: Player invalid <"..tostring(oPly)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then return StatusLog(true,"IntersectRayClear: Deleted <"..tostring(oPly)..">") end
+  if(not tRay) then return StatusLog(true,"IntersectRayClear: Clean") end
   GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage()
+  return StatusLog(true,"IntersectRayClear: Deleted <"..tostring(oPly)..">")
 end
 
 --[[
@@ -3304,7 +3306,7 @@ function IntersectRayModel(sModel, nPntID, nNxtID)
   -- Attempts taking the mean vector when the rays are parallel for straight tracks
   if(not xx) then
     f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
-  return xx -- Must return the local vector where the intersection is located
+  return xx, x1, x2, vO1, vO2
 end
 
 function AttachAdditions(ePiece)
@@ -3612,10 +3614,15 @@ end
 
 function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
   local tPool = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
-  local sCode = tostring(sCode or "") -- English is used when missing
-        sCode = tPool[sCode] and sCode or GetOpVar("LOCALIFY_AUTO")
-  if(not IsExistent(tPool[sCode])) then
-    return StatusLog(nil,"InitLocalify: Code <"..sCode.."> invalid") end
-  LogInstance("InitLocalify: Code <"..sCode.."> selected")
-  for phrase, detail in pairs(tPool[sCode]) do languageAdd(phrase, detail) end
+  local auCod = GetOpVar("LOCALIFY_AUTO")
+  local suCod = tostring(sCode or "") -- English is used when missing
+  local auLng, suLng = tPool[auCod], tPool[suCod]
+  if(not IsExistent(suLng)) then
+    LogInstance("InitLocalify: Missing code <"..suCod..">")
+    suCod, suLng = auCod, auLng
+  end; LogInstance("InitLocalify: Using code <"..auCod..">")
+  for phrase, default in pairs(auLng) do
+    local abrev = suLng[phrase] or default
+    languageAdd(phrase, abrev)
+  end
 end

@@ -136,7 +136,7 @@ A: Here they are, with available status, why I did not do some of them ( at the 
     7) PHX Road Pieces ( including ramps big and small )
     8) PHX Monorail Iron Beams
     9) PHX XQM BallRails
-   10) Magnum's gauge rails
+   10) Magnum's gauge rails ( Owner support has stopped. No updates )
       https://steamcommunity.com/sharedfiles/filedetails/?id=290130567
    11) Metrostroi rails ( Ignore, twisted collision models )
    12) Shinji85's BodybroupRail pieces
