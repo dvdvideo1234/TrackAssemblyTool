@@ -692,22 +692,16 @@ function TOOL:RightClick(stTrace)
       return asmlib.StatusLog(true,"TOOL:RightClick(World): Success open frame")
     end
   elseif(trEnt and trEnt:IsValid()) then
-    if(workmode == 1) then
-      if(enpntmscr) then
+    if(enpntmscr) then
+      if(not self:SelectModel(trEnt:GetModel())) then
+        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")) end
+      return asmlib.StatusLog(true,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Success")
+    else
+      if(asmlib.CheckButtonPly(ply,IN_USE)) then
         if(not self:SelectModel(trEnt:GetModel())) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")) end
         return asmlib.StatusLog(true,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Success")
-      else
-        if(asmlib.CheckButtonPly(ply,IN_USE)) then
-          if(not self:SelectModel(trEnt:GetModel())) then
-            return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")) end
-          return asmlib.StatusLog(true,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Success")
-        end
       end
-    elseif(workmode == 2 and asmlib.CheckButtonPly(ply,IN_USE)) then -- Curve ray fitting
-      if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
-        return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:RightClick(Ray,"..tostring(enpntmscr).."): Relation fail")) end
-      return asmlib.StatusLog(true,"TOOL:RightClick(Ray): Success")
     end
   end
   if(not enpntmscr) then
@@ -725,28 +719,38 @@ function TOOL:Reload(stTrace)
   local workmode = self:GetWorkingMode()
   asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
-    if(workmode == 2) then self:IntersectClear()
-      return asmlib.StatusLog(true,"TOOL:Reload(Relate): Relation clear") end
     if(self:GetDeveloperMode()) then asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
-    if(asmlib.CheckButtonPly(ply,IN_SPEED)) then self:ClearAnchor() end
     if(self:GetExportDB()) then
       asmlib.LogInstance("TOOL:Reload(World): Exporting DB")
       asmlib.ExportDSV("PIECES")
       asmlib.ExportDSV("ADDITIONS")
       asmlib.ExportDSV("PHYSPROPERTIES")
       asmlib.ConCommandPly(ply, "exportdb", 0)
+    end
+    if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
+      if(workmode == 1) then self:ClearAnchor() 
+        asmlib.LogInstance("TOOL:Reload(Anchor): Clear")
+      elseif(workmode == 2) then self:IntersectClear()
+        asmlib.LogInstance("TOOL:Reload(Relate): Clear")
+      end
     end; return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
-      return asmlib.StatusLog(false,"TOOL:Reload(Prop): Trace other object") end
+      return asmlib.StatusLog(false,"TOOL:Reload(Prop): Trace other object") end    
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
-      self:SetAnchor(stTrace)
-      return asmlib.StatusLog(true,"TOOL:Reload(Prop): Anchor set")
+      if(workmode == 1) then -- General anchor
+        if(not self:SetAnchor(stTrace)) then
+          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:Reload(Prop): Anchor set fail")) end
+        return asmlib.StatusLog(true,"TOOL:Reload(Prop): Anchor set")
+      elseif(workmode == 2) then -- Intersect relation
+        if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
+          return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:Reload(Prop): Relation set fail")) end
+        return asmlib.StatusLog(true,"TOOL:Reload(Prop): Relation set")
+      end  
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-    if(asmlib.IsExistent(trRec)) then
-      trEnt:Remove()
+    if(asmlib.IsExistent(trRec)) then trEnt:Remove()
       return asmlib.StatusLog(true,"TOOL:Reload(Prop): Removed a piece")
     end
   end
@@ -754,8 +758,9 @@ function TOOL:Reload(stTrace)
 end
 
 function TOOL:Holster()
+  local gho = self.GhostEntity
   self:ReleaseGhostEntity() -- Remove the ghost prop to save memory
-  if(self.GhostEntity and self.GhostEntity:IsValid()) then self.GhostEntity:Remove() end
+  if(gho and gho:IsValid()) then gho:Remove() end
 end
 
 function TOOL:UpdateGhost(ePiece, oPly)

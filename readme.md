@@ -22,6 +22,18 @@ A: I was always annoyed when building a railroad track in-game, spending a lot o
    Also, another great achievement progress is in place, so 10x guys for helping me, help you, help us all !
    ( Portal quote )
 
+Q: Hey, I cannot align my track crurves properly. Can you help ?
+A: Yep sure. In the right panel, there is a drop-down menu which has a bunch of tool modes listed.
+   Go ahead and select the "Active point intersection". After you change the mode, an intersection
+   relation entity is needed to complete the process. Hitting SPEED + RELOAD ( Default: Shift + R )
+   just like the anchor, will select the relation active point of the entity in question, which is closest
+   to the player hit position. Now trace a track piece and the ghost of the curve will be drawn. You can
+   clamp the spawn position in a box using the primary position flag /applinfst/ ( Apply linear first ) or switch
+   the origin angle with the ray direction angle by using primary angle flag /appangfst/ ( Apply angular first )
+   In this working mode the angular and linear offsets adjust the piece offsets relative to the ray intersection
+   position where the trace and relation rays meet. Press ATTACK1 ( Def: Left click ) if you are happy with where
+   the ghost is located and where the spawn piece will go at.
+
 Q: What are the most important things that I need in order to build a track using this script?
 A: Just subscribe to the workshop item:
      http://steamcommunity.com/sharedfiles/filedetails/?id=287012681
