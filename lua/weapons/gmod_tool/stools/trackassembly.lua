@@ -395,10 +395,10 @@ end
 
 function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, #gtWorkMode)
-  if    (SERVER and workmode == 1) then -- Reset ray list in snap mode
-    self:IntersectClear()
-  elseif(SERVER and workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
-  return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
+  if(SERVER) then -- Perform varios actions to stabilize data across working modes
+    if    (workmode == 1) then self:IntersectClear() -- Reset ray list in snap mode
+    elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
+  end; return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
 end
 
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
@@ -933,19 +933,21 @@ function TOOL:DrawHUD()
       -- TODO: Find a proper way to draw the intersect stuff
       stSpawn.SPos:Set(trEnt:GetNW2Vector("ray_intersect_pos"))
       local xx, x1, x2, vO1, vO2 = asmlib.IntersectRayModel(model, pointid, pnextid)
-      xx:Rotate(stSpawn.SAng); xx:Add(stSpawn.SPos)
-      vO1:Rotate(stSpawn.SAng); vO1:Add(stSpawn.SPos)
-      vO2:Rotate(stSpawn.SAng); vO2:Add(stSpawn.SPos)
-      local xX, Ss = xx:ToScreen(), stSpawn.SPos:ToScreen()
-      local O1, O2 = vO1:ToScreen(), vO2:ToScreen()
-      hudMonitor:DrawLine(Os,Ss,"m")
-      hudMonitor:DrawCircle(Ss, rdScale,"c")
-      hudMonitor:DrawCircle(xX, 3 * rdScale, "ry")
-      hudMonitor:DrawLine(xX,O1)
-      hudMonitor:DrawLine(xX,O2)
-      hudMonitor:DrawLine(Os,O1,"r")
-      hudMonitor:DrawCircle(O1, rdScale / 2)
-      hudMonitor:DrawCircle(O2, rdScale / 2, "g")
+      if(xx) then
+        xx:Rotate(stSpawn.SAng); xx:Add(stSpawn.SPos)
+        vO1:Rotate(stSpawn.SAng); vO1:Add(stSpawn.SPos)
+        vO2:Rotate(stSpawn.SAng); vO2:Add(stSpawn.SPos)
+        local xX, Ss = xx:ToScreen(), stSpawn.SPos:ToScreen()
+        local O1, O2 = vO1:ToScreen(), vO2:ToScreen()
+        hudMonitor:DrawLine(Os,Ss,"m")
+        hudMonitor:DrawCircle(Ss, rdScale,"c")
+        hudMonitor:DrawCircle(xX, 3 * rdScale, "ry")
+        hudMonitor:DrawLine(xX,O1)
+        hudMonitor:DrawLine(xX,O2)
+        hudMonitor:DrawLine(Os,O1,"r")
+        hudMonitor:DrawCircle(O1, rdScale / 2)
+        hudMonitor:DrawCircle(O2, rdScale / 2, "g")
+      end
     end
     if(not self:GetDeveloperMode()) then return end
     local x,y = hudMonitor:GetCenter(10,10)
@@ -1031,17 +1033,19 @@ function TOOL:DrawHUD()
         hudMonitor:DrawCircle(Ss, rdScale,"c")
       elseif(workmode == 2) then -- Draw point intersection
         local xx, x1, x2, vO1, vO2 = asmlib.IntersectRayModel(model, pointid, pnextid)
-        xx:Rotate(stSpawn.SAng); xx:Add(stSpawn.SPos)
-        vO1:Rotate(stSpawn.SAng); vO1:Add(stSpawn.SPos)
-        vO2:Rotate(stSpawn.SAng); vO2:Add(stSpawn.SPos)
-        local xX, Ss = xx:ToScreen(), stSpawn.SPos:ToScreen()
-        local O1, O2 = vO1:ToScreen(), vO2:ToScreen()
-        hudMonitor:DrawLine(Os,Ss,"m")
-        hudMonitor:DrawCircle(Ss, rdScale,"c")
-        hudMonitor:DrawCircle(xX, 3 * rdScale, "ry")
-        hudMonitor:DrawLine(xX,O1)
-        hudMonitor:DrawLine(xX,O2) 
-        hudMonitor:DrawCircle(O2, rdScale / 2, "g")
+        if(xx) then
+          xx:Rotate(stSpawn.SAng); xx:Add(stSpawn.SPos)
+          vO1:Rotate(stSpawn.SAng); vO1:Add(stSpawn.SPos)
+          vO2:Rotate(stSpawn.SAng); vO2:Add(stSpawn.SPos)
+          local xX, Ss = xx:ToScreen(), stSpawn.SPos:ToScreen()
+          local O1, O2 = vO1:ToScreen(), vO2:ToScreen()
+          hudMonitor:DrawLine(Os,Ss,"m")
+          hudMonitor:DrawCircle(Ss, rdScale,"c")
+          hudMonitor:DrawCircle(xX, 3 * rdScale, "ry")
+          hudMonitor:DrawLine(xX,O1)
+          hudMonitor:DrawLine(xX,O2) 
+          hudMonitor:DrawCircle(O2, rdScale / 2, "g")
+        end
       end
       if(not self:GetDeveloperMode()) then return end
       local x,y = hudMonitor:GetCenter(10,10)
