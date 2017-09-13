@@ -120,6 +120,8 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
+      conPalette:Insert("ry",Color(230,200, 80,255)) -- Ray tracing
+      conPalette:Insert("wm",Color(143,244, 66,255)) -- Working mode HUD
 
 -------- ACTIONS  ----------
 if(SERVER) then
@@ -240,6 +242,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "activrad" , "45")
         asmlib.ConCommandPly(oPly, "pntasist" , "1")
         asmlib.ConCommandPly(oPly, "surfsnap" , "0")
+        asmlib.ConCommandPly(oPly, "workmode" , "1")
         asmlib.ConCommandPly(oPly, "appangfst", "0")
         asmlib.ConCommandPly(oPly, "applinfst", "0")
         asmlib.ConCommandPly(oPly, "exportdb" , "0")
@@ -2843,6 +2846,7 @@ end
 
 ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes  ( Column "ISO 639-1" )
 if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
+  -- English
   asmlib.SetLocalify("en","tool."..gsToolNameL..".1"             , "Assembles a prop-segmented track")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".left"          , "Spawn/snap a piece. Hold shift to stack")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".right"         , "Switch assembly points. Hold shift for versa (Quick: Alt + Scroll)")
@@ -2912,6 +2916,9 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("en","tool."..gsToolNameL..".ghosthold_con" , "Draw holder ghost")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".engunsnap"     , "Controls snapping when the piece is dropped by the player physgun")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".engunsnap_con" , "Enable physgun snap")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode"      , "Change this option to select a different working mode")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode_1"    , "General spawn/snap pieces")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode_2"    , "Active point intersection")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_export"     , "Click to export the client database as a file")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_export_lb"  , "Export DB")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine"    , "The list of your frequently used track pieces")
@@ -3004,6 +3011,9 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".ghosthold_con" , "Изобразявай парче сянка")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".engunsnap"     , "Управлява залепването когато парчето е изпуснато с физическото оръдие на играча")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".engunsnap_con" , "Залепване при изпускане")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".workmode"      , "Сменете тази опция за да изберете различен режим на работа")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".workmode_1"    , "Обикновено създаване/залепяне")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".workmode_2"    , "Пресичане на активни точки")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_export"     , "Цъкнете за да съхраните базата данни на файл")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_export_lb"  , "Съхрани DB")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine"    , "Списъкът с редовно използваните ви парчета трасе")
@@ -3096,6 +3106,9 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".ghosthold_con" , "Activer l'aperçu de l'outil")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".engunsnap"     , "Contrôle l'alignement quand la pièce est tombée par le pistolet physique d'un joueur")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".engunsnap_con" , "Activer l'alignement par pistolet physique")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".workmode"      , "Modifiez cette option pour utiliser différents modes de travail")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".workmode_1"    , "Général créer/aligner pieces")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".workmode_2"    , "Intersection de point actif")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_export"     , "Cliquer pour exporter la base de données client dans un fichier")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_export_lb"  , "Exporter")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine"    , "La liste de vos pièces de pistes utilisés fréquemment")
@@ -3188,6 +3201,9 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".ghosthold_con" , "Нарисовать кусок-тень")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".engunsnap"     , "Управляет приклеивание когда кусок выпущен физической пушки пользователя")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".engunsnap_con" , "Приклеивать выпуском")
+  asmlib.SetLocalify("ru","tool."..gsToolNameL..".workmode"      , "Измените эту опцию, чтобы использовать другой рабочий режим")
+  asmlib.SetLocalify("ru","tool."..gsToolNameL..".workmode_1"    , "Общее создание/прилепание куски")
+  asmlib.SetLocalify("ru","tool."..gsToolNameL..".workmode_2"    , "Пересечение активной точки")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_export"     , "Нажмите чтобы сохранить файл базы данных")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_export_lb"  , "Экспорт БД")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine"    , "Список регулярно используемых кусков дороги")

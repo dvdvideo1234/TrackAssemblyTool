@@ -114,6 +114,7 @@ local timerDestroy            = timer and timer.Destroy
 local tableEmpty              = table and table.Empty
 local tableMaxn               = table and table.maxn
 local tableGetKeys            = table and table.GetKeys
+local tableInsert             = table and table.insert
 local debugGetinfo            = debug and debug.getinfo
 local stringExplode           = string and string.Explode
 local stringImplode           = string and string.Implode
@@ -370,6 +371,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
+  SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("DATE_FORMAT","%d-%m-%y")
   SetOpVar("TIME_FORMAT","%H:%M:%S")
@@ -398,6 +400,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
+  SetOpVar("MODE_WORKING", {"SNAP", "CROSS"})
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
@@ -411,6 +414,7 @@ function InitBase(sName,sPurpose)
          oEnt:IsValid() and
          oEnt ~= GetOpVar("TRACE_FILTER") and
          GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
+  SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   SetOpVar("NAV_PIECE",{})
   SetOpVar("NAV_PANEL",{})
   SetOpVar("NAV_ADDITION",{})
@@ -436,7 +440,10 @@ function InitBase(sName,sPurpose)
     TID  = 0,
     TPnt = Vector(), -- P
     TPos = Vector(), -- O
-    TAng = Angle ()  -- A
+    TAng = Angle (), -- A
+    --- Offsets ---
+    ANxt = Angle (),
+    PNxt = Vector()
   })
   return StatusPrint(true,"InitBase: Success")
 end
@@ -584,6 +591,13 @@ function SetVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvX] = (tonumber(nX or 0))
   vBase[cvY] = (tonumber(nY or 0))
   vBase[cvZ] = (tonumber(nZ or 0))
+end
+
+function MulVectorXYZ(vBase, nX, nY, nZ)
+  if(not vBase) then return StatusLog(nil,"SetVector: Base invalid") end
+  vBase[cvX] = vBase[cvX] * (tonumber(nX or 0))
+  vBase[cvY] = vBase[cvY] * (tonumber(nY or 0))
+  vBase[cvZ] = vBase[cvZ] * (tonumber(nZ or 0))
 end
 
 function DecomposeByAngle(vBase,aUnit)
@@ -1174,6 +1188,13 @@ function ModelToName(sModel,bNoSettings)
   return gModel:gsub(sSymDiv.."%w",GetOpVar("MODELNAM_FUNC")):sub(2,-1)
 end
 
+--[[
+ * Locates an active point on the piece offset record.
+ * This function is used to check the correct offset and return it.
+ * It also returns the normalized active point ID if needed
+ * oRec      --> Record structure of a track piece
+ * ivPointID --> The POA offset ID to check and locate
+]]--
 function LocatePOA(oRec, ivPointID)
   if(not oRec) then
     return StatusLog(nil,"LocatePOA: Missing record") end
@@ -1184,7 +1205,7 @@ function LocatePOA(oRec, ivPointID)
   if(not IsExistent(stPOA)) then
     return StatusLog(nil,"LocatePOA: Missing ID #"..tostring(iPointID).." <"
              ..tostring(ivPointID).."> for <"..tostring(oRec.Slot)..">") end
-  return stPOA
+  return stPOA, iPointID
 end
 
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
@@ -1493,9 +1514,8 @@ function ReadKeyPly(pPly)
   local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
   if(not IsPlayer(pPly)) then
     return StatusLog(false,"ReadKeyPly: Player <"..type(pPly)"> not available") end
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
-  if(not IsExistent(plyPlace)) then plyKeys[plyNick] = {}; plyPlace = plyKeys[plyNick] end
+  local plyPlace = plyKeys[pPly]
+  if(not IsExistent(plyPlace)) then plyKeys[pPly] = {}; plyPlace = plyKeys[pPly] end
   local ucmdPressed = pPly:GetCurrentCommand()
   if(not IsExistent(ucmdPressed)) then
     return StatusLog(false,"ReadKeyPly: Command not obtained correctly") end
@@ -1503,28 +1523,24 @@ function ReadKeyPly(pPly)
   plyPlace["M_DY"]   = ucmdPressed:GetMouseY()
   plyPlace["K_BTN"]  = ucmdPressed:GetButtons()
   plyPlace["M_DSCR"] = ucmdPressed:GetMouseWheel()
-  return StatusLog(true,"ReadKeyPly: Player <"..plyNick.."> keys loaded")
+  return StatusLog(true,"ReadKeyPly: "..tostring(pPly).." keys loaded")
 end
 
 function GetMouseWheelPly(pPly)
   if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
     return StatusLog(false,"DeltaMousePly: Player <"..type(pPly)"> not available") end
-  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
+  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"DeltaMousePly: <"..plyNick.."> nomands not loaded") end
+    return StatusLog(false,"DeltaMousePly: "..tostring(pPly).." commands not loaded") end
   return plyPlace["M_DSCR"]
 end
 
 function GetMouseDeltaPly(pPly)
   if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
     return StatusLog(false,"GetMouseDeltaPly: Player <"..type(pPly)"> not available") end
-  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
+  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"GetMouseDeltaPly: <"..plyNick.."> nomands not loaded") end
+    return StatusLog(false,"GetMouseDeltaPly: "..tostring(pPly).." commands not loaded") end
   return plyPlace["M_DX"], plyPlace["M_DY"]
 end
 
@@ -1534,11 +1550,9 @@ function CheckButtonPly(pPly, ivInKey)
   local iInKey = tonumber(ivInKey)
   if(not IsExistent(iInKey)) then
     return StatusLog(false,"CheckButtonPly: Input key {"..type(ivInKey)"}<"..tostring(ivInKey).."> invalid") end
-  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
-  local plyNick  = pPly:Nick()
-  local plyPlace = plyKeys[plyNick]
+  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"CheckButtonPly: Player <"..plyNick.."> commands not loaded") end
+    return StatusLog(false,"CheckButtonPly: Player "..tostring(pPly).." commands not loaded") end
   return (bitBand(plyPlace["K_BTN"],iInKey) ~= 0)
 end
 
@@ -1559,11 +1573,11 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
   local tipField = tostring(defField[2])
   local sModeDB  = GetOpVar("MODE_DATABASE")
   if(tipField == "TEXT") then
-    snOut = tostring(snValue)
-    if(not bStopEmpty and (snOut == "nil" or IsEmptyString(snOut))) then
+    snOut = tostring(snValue or "")
+    if(not bStopEmpty and IsEmptyString(snOut)) then
       if    (sModeDB == "SQL") then snOut = "NULL"
       elseif(sModeDB == "LUA") then snOut = "NULL"
-      else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB..">") end
+      else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB.."> empty") end
     end
     if    (defField[3] == "LOW") then snOut = snOut:lower()
     elseif(defField[3] == "CAP") then snOut = snOut:upper() end
@@ -1573,10 +1587,11 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
     if(bQuoted) then
       local sqChar
       if(sQuote) then
-        sqChar = tostring(sQuote):sub(1,1)
+        sqChar = tostring(sQuote or ""):sub(1,1)
       else
         if    (sModeDB == "SQL") then sqChar = "'"
-        elseif(sModeDB == "LUA") then sqChar = "\"" end
+        elseif(sModeDB == "LUA") then sqChar = "\""
+        else return StatusLog(nil,"MatchType: Wrong database mode <"..sModeDB.."> quote") end
       end
       snOut = sqChar..snOut..sqChar
     end
@@ -2965,12 +2980,14 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   if(ucsPos) then SetVector(stSpawn.OPos,ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.OAng,ucsAng) end
   -- Initialize F, R, U Copy the UCS like that to support database POA
+  SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
+  SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R, (tonumber(ucsAngP) or 0))
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-(tonumber(ucsAngY) or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
+  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
   stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F, (tonumber(ucsAngR) or 0))
+  stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   -- Get Holder model data
@@ -2982,9 +2999,9 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   DecomposeByAngle(stSpawn.HPos,stSpawn.HAng)
   -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HPos[cvX] + (tonumber(ucsPosX) or 0)) * stSpawn.F)
-  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HPos[cvY] + (tonumber(ucsPosY) or 0)) * stSpawn.R)
-  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HPos[cvZ] + (tonumber(ucsPosZ) or 0)) * stSpawn.U)
+  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HPos[cvX] + stSpawn.PNxt[cvX]) * stSpawn.F)
+  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HPos[cvY] + stSpawn.PNxt[cvY]) * stSpawn.R)
+  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HPos[cvZ] + stSpawn.PNxt[cvZ]) * stSpawn.U)
   -- Spawn Angle
   stSpawn.SAng:Set(stSpawn.OAng); NegAngle(stSpawn.HAng)
   stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * hdPOA.A[csB])
@@ -3055,21 +3072,13 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
     if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
     if(not stPOA.P[csD]) then -- Skip the disabled P
-      local vTemp = Vector()
-      SetVector(vTemp,stPOA.P)
-      vTemp[cvX] = vTemp[cvX] * stPOA.P[csA]
-      vTemp[cvY] = vTemp[cvY] * stPOA.P[csB]
-      vTemp[cvZ] = vTemp[cvZ] * stPOA.P[csC]
-      vTemp:Rotate(stSpawn.TAng)
-      vTemp:Add(stSpawn.TPos)
-      vTemp:Sub(trHitPos)
-      local trAcDis = vTemp:Length()
+      local vTmp = Vector(); SetVector(vTmp, stPOA.P)
+      MulVectorXYZ(vTmp, stPOA.P[csA], stPOA.P[csB], stPOA.P[csC])
+      vTmp:Rotate(stSpawn.TAng); vTmp:Add(stSpawn.TPos); vTmp:Sub(trHitPos)
+      local trAcDis = vTmp:Length()
       if(trAcDis < stSpawn.RLen) then
-        trPOA        = stPOA
-        stSpawn.TID  = ID
-        stSpawn.RLen = trAcDis
-        stSpawn.TPnt:Set(vTemp)
-        stSpawn.TPnt:Add(trHitPos)
+        trPOA, stSpawn.TID, stSpawn.RLen = stPOA, ID, trAcDis
+        stSpawn.TPnt:Set(vTmp); stSpawn.TPnt:Add(trHitPos)
       end
     end
   end
@@ -3078,8 +3087,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   -- Found the active point ID on trEnt. Initialize origins
   SetVector(stSpawn.OPos,trPOA.O) -- Use {0,0,0} for disabled A (Angle)
   if(trPOA.A[csD]) then SetAnglePYR(stSpawn.OAng) else SetAngle(stSpawn.OAng,trPOA.A) end
-  stSpawn.OPos:Rotate(stSpawn.TAng)
-  stSpawn.OPos:Add(stSpawn.TPos)
+  stSpawn.OPos:Rotate(stSpawn.TAng); stSpawn.OPos:Add(stSpawn.TPos)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
@@ -3088,9 +3096,9 @@ end
 
 --[[
  * This function performs a trace relative to the entity point chosen
- * trEnt     = Entity chosen for the trace
- * ivPointID = Point ID selected for its model
- * nLen      = Lenght of the trace
+ * trEnt     --> Entity chosen for the trace
+ * ivPointID --> Point ID selected for its model
+ * nLen      --> Length of the trace
 ]]--
 function GetTraceEntityPoint(trEnt, ivPointID, nLen)
   if(not (trEnt and trEnt:IsValid())) then
@@ -3107,6 +3115,198 @@ function GetTraceEntityPoint(trEnt, ivPointID, nLen)
   SetAngle (trAng     , trPOA.A); trAng:Set(trEnt:LocalToWorldAngles(trAng))
   trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
   return utilTraceLine(trDt), trDt
+end
+
+--[[
+ * Selects a point ID on the entity based on the hit vector provided
+ * oEnt --> Entity to search the point on
+ * vHit --> World space hit vector to find the closest point to
+]]--
+function GetEntityHitID(oEnt, vHit)
+  if(not (oEnt and oEnt:IsValid())) then
+    return StatusLog(nil,"GetEntityHitID: Entity invalid") end
+  local oRec = CacheQueryPiece(oEnt:GetModel())
+  if(not oRec) then return StatusLog(nil,"GetEntityHitID: Trace not piece <"..oEnt:GetModel()..">") end
+  local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
+  local vTmp, nPnt, nMin, oPOA = Vector(), nil, nil, nil
+  for ID = 1, oRec.Kept do -- Ignore the point disabled flag
+    local tPOA, oID = LocatePOA(oRec, ID)
+    if(not IsExistent(tPOA)) then -- Get intersection rays list for the player
+      return StatusLog(nil,"GetEntityHitID: Point <"..tostring(ID).."> invalid") end
+    SetVector(vTmp, tPOA.P) -- Translate point to a world-space
+    MulVectorXYZ(vTmp, tPOA.P[csA], tPOA.P[csB], tPOA.P[csC])
+    vTmp:Rotate(eAng); vTmp:Add(ePos); vTmp:Sub(vHit)
+    if(nPnt and nMin) then
+      if(nMin >= vTmp:Length()) then nPnt, nMin, oPOA = oID, vTmp:Length(), tPOA end
+    else -- The shortest distance if the first one checked until others are looped
+      nPnt, nMin, oPOA = oID, vTmp:Length(), tPOA end
+  end; return nPnt, nMin, oPOA, oRec
+end
+
+--[[
+ * This function calculates 3x3 determinant of the arguments below
+ * Takes three row vectors as arguments:
+ *   vR1 = {a b c}
+ *   vR2 = {d e f}
+ *   vR3 = {g h i}
+ * Returns a number: The value if the 3x3 determinant
+]]--
+local function DeterminantVector(vR1, vR2, vR3)
+  local a, b, c = vR1.x, vR1.y, vR1.z
+  local d, e, f = vR2.x, vR2.y, vR2.z
+  local g, h, i = vR3.x, vR3.y, vR3.z
+  return ((a*e*i)+(b*f*g)+(d*h*c)-(g*e*c)-(h*f*a)-(d*b*i))
+end
+
+--[[
+ * This function traces both lines and if they are not parallel
+ * calculates their point of intersection. Every ray is
+ * determined by an origin /vO/ and direction /vD/
+ * On success returns the length and point of the closest
+ * intersect distance to the orthogonal connecting line.
+ * The true center is calculated by using the last two return values
+ * Takes:
+ *   vO1 --> Position origin of the first ray
+ *   vD1 --> Direction of the first ray
+ *   vO2 --> Position origin of the second ray
+ *   vD2 --> Direction of the second ray
+ * Returns:
+ *   f1 --> Intersection fraction of the first ray
+ *   f2 --> Intersection fraction of the second ray
+]]--
+local function IntersectRay(vO1, vD1, vO2, vD2)
+  local d1 = vD1:GetNormalized()
+  if(d1:Length() == 0) then
+    return StatusLog(nil,"IntersectRay: First ray undefined") end
+  local d2 = vD2:GetNormalized()
+  if(d2:Length() == 0) then
+    return StatusLog(nil,"IntersectRay: Second ray undefined") end
+  local dx = d1:Cross(d2)
+  local dn = (dx:Length())^2
+  if(dn < GetOpVar("EPSILON_ZERO")) then
+    return StatusLog(nil,"IntersectRay: Rays parallel") end
+  local f1 = DeterminantVector((vO2-vO1),d2,dx) / dn
+  local f2 = DeterminantVector((vO2-vO1),d1,dx) / dn
+  local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
+  local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
+  return f1, f2, x1, x2, xx
+end
+
+local function IntersectRayParallel(vO1, vD1, vO2, vD2)
+  local d1 = vD1:GetNormalized()
+  if(d1:Length() == 0) then
+    return StatusLog(nil,"IntersectRayParallel: First ray undefined") end
+  local d2 = vD2:GetNormalized()
+  if(d2:Length() == 0) then
+    return StatusLog(nil,"IntersectRayParallel: Second ray undefined") end
+  local len    = (vO2 - vO1):Length()
+  local f1, f2 = (len / 2), (len / 2)
+  local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
+  local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
+  return f1, f2, x1, x2, xx
+end
+
+--[[
+ * This function updates an active ray for a player.
+ * Every player has their own place in the cache.
+ * The dedicated table can contain rays with different purpose
+ * oPly  --> Player who wants to register a ray
+ * oEnt  --> The trace entity to register the raw with
+ * trHit --> The world position to search for point ID
+ * sKey  --> String identifier. Used to distinguish rays form one another
+]]--
+function IntersectRayUpdate(oPly, oEnt, vHit, sKey)
+  if(not IsString(sKey)) then
+    return StatusLog(nil,"IntersectRayUpdate: Key invalid <"..tostring(sKey)..">") end
+  if(not IsPlayer(oPly)) then
+    return StatusLog(nil,"IntersectRayUpdate: Player invalid <"..tostring(oPly)..">") end
+  local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit)
+  if(not trID) then
+    return StatusLog(nil,"IntersectRayUpdate: Entity no hit <"..tostring(oEnt).."/"..tostring(vHit)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")
+  if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
+  local stRay = tRay[sKey]
+  if(not stRay) then -- Define a ray via origin and direction
+    tRay[sKey] = {Org = Vector(), Dir = Angle(),
+                   ID = trID    , Ent = oEnt    ,
+                  Key = sKey    , Ply = oPly }; stRay = tRay[sKey]
+  else
+    stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, oEnt, trID, sKey
+  end; SetAngle(stRay.Dir, trPOA.A) stRay.Dir:Set(oEnt:LocalToWorldAngles(stRay.Dir))
+  SetVector(stRay.Org, trPOA.O); stRay.Org:Rotate(oEnt:GetAngles()); stRay.Org:Add(oEnt:GetPos())
+  return stRay;
+end
+
+function IntersectRayRead(oPly, sKey)
+  if(not IsPlayer(oPly)) then
+    return StatusLog(nil,"IntersectRayRead: Player invalid <"..tostring(oPly)..">") end
+  if(not IsString(sKey)) then
+    return StatusLog(nil,"IntersectRayRead: Key invalid <"..tostring(sKey)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
+  if(not tRay) then return StatusLog(nil,"IntersectRayRead: No player <"..tostring(oPly)..">") end
+  local stRay = tRay[sKey]
+  if(not stRay) then return StatusLog(nil,"IntersectRayRead: No Key <"..sKey..">") end
+  return stRay -- Obtain personal ray from the cache
+end
+
+function IntersectRayClear(oPly)
+  if(not IsPlayer(oPly)) then
+    return StatusLog(false,"IntersectRayClear: Player invalid <"..tostring(oPly)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
+  if(not tRay) then return StatusLog(true,"IntersectRayClear: Clean") end
+  GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage()
+  return StatusLog(true,"IntersectRayClear: Deleted <"..tostring(oPly)..">")
+end
+
+--[[
+ * This function intersects two already cashed rays
+ * Used for generating
+ * sKey1 --> First ray identifier
+ * sKey2 --> Second ray identifier
+]]--
+function IntersectRayMake(oPly, sKey1, sKey2)
+  if(not IsPlayer(oPly)) then
+    return StatusLog(nil,"IntersectRayMake: Player invalid <"..tostring(oPly)..">") end
+  if(not IsString(sKey1)) then
+    return StatusLog(nil,"IntersectRayMake: Key1 invalid <"..tostring(sKey1)..">") end
+  if(not IsString(sKey2)) then
+    return StatusLog(nil,"IntersectRayMake: Key2 invalid <"..tostring(sKey2)..">") end
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
+  if(not tRay) then return StatusLog(nil,"IntersectRayMake: No player <"..tostring(oPly)..">") end
+  local stRay1, stRay2 = tRay[sKey1], tRay[sKey2]
+  if(not stRay1) then return StatusLog(nil,"IntersectRayMake: No Key1 <"..tostring(sKey1)..">") end
+  if(not stRay2) then return StatusLog(nil,"IntersectRayMake: No Key2 <"..tostring(sKey2)..">") end
+  local f1, f2, x1, x2, xx = IntersectRay(stRay1.Org, stRay1.Dir:Forward(), stRay2.Org, stRay2.Dir:Forward())
+  if(not xx) then
+    f1, f2, x1, x2, xx = IntersectRayParallel(stRay1.Org, stRay1.Dir:Forward(), stRay2.Org, stRay2.Dir:Forward()) end
+  return xx, x1, x2, stRay1, stRay2
+end
+
+--[[
+ * This function finds the intersection for the model itself
+ * as a local vector so it can be placed precisely in the
+ * intersection point when creating
+ * sModel --> The model to calculate intersection point for
+ * nPntID --> Start (chosen) point of the intersection
+ * nNxtID --> End (next) point of the intersection
+]]--
+function IntersectRayModel(sModel, nPntID, nNxtID)
+  local mRec = CacheQueryPiece(sModel)
+  if(not mRec) then return StatusLog(nil,"IntersectRayModel: Not piece <"..tostring(sModel)..">") end
+  local stPOA1 = LocatePOA(mRec, nPntID)
+  if(not stPOA1) then return StatusLog(nil,"IntersectRayModel: No start ID <"..tostring(nPntID)..">") end
+  local stPOA2 = LocatePOA(mRec, nNxtID)
+  if(not stPOA2) then return StatusLog(nil,"IntersectRayModel: No end ID <"..tostring(nNxtID)..">") end
+  local aTmp = Angle()
+  SetAngle(aTmp, stPOA1.A)
+  local vO1, vD1 = Vector(), Vector(); SetVector(vO1, stPOA1.O); vD1:Set(-aTmp:Forward())
+  SetAngle(aTmp, stPOA2.A)
+  local vO2, vD2 = Vector(), Vector(); SetVector(vO2, stPOA2.O); vD2:Set(-aTmp:Forward())
+  local f1, f2, x1, x2, xx = IntersectRay(vO1,vD1,vO2,vD2)
+  -- Attempts taking the mean vector when the rays are parallel for straight tracks
+  if(not xx) then
+    f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
+  return xx, x1, x2, vO1, vO2
 end
 
 function AttachAdditions(ePiece)
@@ -3340,7 +3540,8 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   -- Delay the freeze by a tiny amout because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_FREEZE"), function() -- If frozen motion is disabled
-    LogInstance("ApplyPhysicalSettings: Freeze"); pyPiece:EnableMotion(not bFr) end )
+    LogInstance("ApplyPhysicalSettings: Freeze");  -- Make shure that the physics are valid
+    if(pyPiece and pyPiece:IsValid()) then pyPiece:EnableMotion(not bFr) end end )
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
   return StatusLog(true,"ApplyPhysicalSettings: Success")
@@ -3413,10 +3614,15 @@ end
 
 function InitLocalify(sCode) -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
   local tPool = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
-  local sCode = tostring(sCode or "") -- English is used when missing
-        sCode = tPool[sCode] and sCode or GetOpVar("LOCALIFY_AUTO")
-  if(not IsExistent(tPool[sCode])) then
-    return StatusLog(nil,"InitLocalify: Code <"..sCode.."> invalid") end
-  LogInstance("InitLocalify: Code <"..sCode.."> selected")
-  for phrase, detail in pairs(tPool[sCode]) do languageAdd(phrase, detail) end
+  local auCod = GetOpVar("LOCALIFY_AUTO")
+  local suCod = tostring(sCode or "") -- English is used when missing
+  local auLng, suLng = tPool[auCod], tPool[suCod]
+  if(not IsExistent(suLng)) then
+    LogInstance("InitLocalify: Missing code <"..suCod..">")
+    suCod, suLng = auCod, auLng
+  end; LogInstance("InitLocalify: Using code <"..auCod..">")
+  for phrase, default in pairs(auLng) do
+    local abrev = suLng[phrase] or default
+    languageAdd(phrase, abrev)
+  end
 end
