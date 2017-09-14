@@ -3216,9 +3216,9 @@ local function IntersectRayUpdate(stRay)
     return StatusLog(nil,"IntersectRayUpdate: Ray invalid") end
   local ryEnt = stRay.Ent
   if(ryEnt and ryEnt:IsValid()) then
-    local ePos, eAng = stRay.Ent:GetPos(), stRay.Ent:GetAngles()
+    local ePos, eAng = ryEnt:GetPos(), ryEnt:GetAngles()
     stRay.Orw:Set(stRay.Org); stRay.Orw:Rotate(eAng); stRay.Orw:Add(ePos)
-    stRay.Diw:Set(stRay.Ent:LocalToWorldAngles(stRay.Dir))
+    stRay.Diw:Set(ryEnt:LocalToWorldAngles(stRay.Dir))
   end; return stRay
 end
 
