@@ -302,13 +302,13 @@ function TOOL:IntersectClear()
     if(stRay.Ent and stRay.Ent:IsValid()) then
       stRay.Ent:SetColor(conPalette:Select("w")) end
        asmlib.PrintNotifyPly(ply,"Intersection relation clear !","CLEANUP")
-  end; asmlib.IntersectRayClear(ply)
+  end; asmlib.IntersectRayClear(ply, "ray_relate")
   return asmlib.StatusLog(true,"TOOL:IntersectClear(): Relation cleared")
 end
 
 function TOOL:IntersectRelate(oPly, oEnt, vHit)
   self:IntersectClear() -- Clear intersect related player on new relation
-  stRay = asmlib.IntersectRayUpdate(oPly, oEnt, vHit, "ray_relate")
+  stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
   if(not stRay) then
     return asmlib.StatusLog(false,"TOOL:IntersectRelate(): Update fail") end
   if(SERVER) then
@@ -360,9 +360,9 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bLoop)
   local ply   = self:GetOwner()
   local model = self:GetModel()
   local pointid, pnextid = self:GetPointID()
-  if(not asmlib.IntersectRayUpdate(ply, trEnt, vHit, "ray_origin")) then
+  if(not asmlib.IntersectRayCreate(ply, trEnt, vHit, "ray_origin")) then
     return asmlib.StatusLog(false,"TOOL:LeftClick(): Failed updating ray") end
-  local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayMake(ply, "ray_origin", "ray_relate")
+  local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayHash(ply, "ray_origin", "ray_relate")
   if(not xx) then
     if(bLoop) then return false
     else asmlib.PrintNotifyPly(ply, "Define intersection relation !", "ERROR")
@@ -375,14 +375,14 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bLoop)
     else return asmlib.StatusLog(false, "TOOL:IntersectSnap(): Model ray mismatch") end
   end
   local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt[cvX], stSpawn.PNxt[cvY], stSpawn.PNxt[cvZ]
-  if(self:ApplyAngularFirst()) then aOrg = stRay1.Dir end
+  if(self:ApplyAngularFirst()) then aOrg = stRay1.Diw end
   mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate newly created entity local intersection to world
   stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx); -- Update spawn position with the ray intersection
   local cx, cy, cz = aOrg:Forward(), aOrg:Right(), aOrg:Up()
   if(self:ApplyLinearFirst()) then
-    local dx = Vector(); dx:Set(o1); dx:Rotate(stSpawn.SAng); dx:Add(stSpawn.SPos); dx:Sub(stRay1.Org)
-    local dy = Vector(); dy:Set(o2); dy:Rotate(stSpawn.SAng); dy:Add(stSpawn.SPos); dy:Sub(stRay2.Org)
-    local dz = 0.5 * (stRay2.Org - stRay1.Org)
+    local dx = Vector(); dx:Set(o1); dx:Rotate(stSpawn.SAng); dx:Add(stSpawn.SPos); dx:Sub(stRay1.Orw)
+    local dy = Vector(); dy:Set(o2); dy:Rotate(stSpawn.SAng); dy:Add(stSpawn.SPos); dy:Sub(stRay2.Orw)
+    local dz = 0.5 * (stRay2.Orw - stRay1.Orw)
     local lx = mathAbs(dx:Dot(aOrg:Forward()))
     local ly = mathAbs(dy:Dot(aOrg:Right()))
     local lz = mathAbs(dz:Dot(aOrg:Up()))

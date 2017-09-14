@@ -1869,7 +1869,10 @@ function InsertRecord(sTable,arLine)
   if(not arLine)      then
     return StatusLog(false,"InsertRecord: Missing data table for "..sTable) end
   if(not arLine[1])   then
-    return StatusLog(false,"InsertRecord: Missing data table is empty for "..sTable) end
+    for key, val in pairs(arLine) do
+      LogInstance("PK data ["..tostring(key).."] = <"..tostring(val)..">") end
+    return StatusLog(false,"InsertRecord: Missing PK for "..sTable)
+  end
 
   if(sTable == "PIECES") then
     local trClass = GetOpVar("TRACE_CLASS")
@@ -1879,7 +1882,7 @@ function InsertRecord(sTable,arLine)
     if(IsString(arLine[8]) and (arLine[8] ~= "NULL")
        and not trClass[arLine[8]] and not IsEmptyString(arLine[8])) then
       trClass[arLine[8]] = true -- Register the class provided
-      LogInstance("InsertRecord: Register trace <"..tostring(arLine[8])..">")
+      LogInstance("InsertRecord: Register trace <"..tostring(arLine[8]).."@"..arLine[1]..">")
     end -- Add the special class to the trace list
   elseif(sTable == "PHYSPROPERTIES") then
     arLine[1] = DisableString(arLine[1],DefaultType(),"TYPE")
@@ -2727,8 +2730,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
                 tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">") end
             tKey.Kept = nID; tKey[tKey.Kept] = {}
             local kKey, nCnt = tKey[tKey.Kept], 3
-            while(tLine[nCnt]) do -- Do a value matching without automatic quotes
-              local vMatch = MatchType(defTable,tLine[nCnt],nCnt-1,true,"\"",true)
+            while(tLine[nCnt]) do -- Do a value matching without quotes
+              local vMatch = MatchType(defTable,tLine[nCnt],nCnt-1)
               if(not IsExistent(vMatch)) then
                 I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read matching failed <"
                   ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "
@@ -2754,8 +2757,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           LogInstance("SynchronizeDSV("..fPref.."): Missing piece <"..key..">") end
       elseif(sTable == "ADDITIONS") then vID = tRec[3]; nID = tonumber(vID) or 0
       elseif(sTable == "PHYSPROPERTIES") then vID = tRec[1]; nID = tonumber(vID) or 0 end
-      for nCnt = 1, #tRec do -- Do a value matching without automatic quotes
-        local vMatch = MatchType(defTable,tRec[nCnt],nCnt+1,true,"\"",true)
+      for nCnt = 1, #tRec do -- Do a value matching without quotes
+        local vMatch = MatchType(defTable,tRec[nCnt],nCnt+1)
         if(not IsExistent(vMatch)) then
           return StatusLog(false,"SynchronizeDSV("..fPref.."): Given matching failed <"
             ..tostring(tRec[nCnt]).."> to <"..tostring(nCnt+1).." # "
@@ -2763,10 +2766,12 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         end
       end
     end -- Register the read line to the output file
-    if((fData[key] and bRepl) or not fData[key]) then
-      fData[key] = rec
-      fData[key].Kept = #rec
-    end
+    if(bRepl) then
+      if(tData[key]) then -- Update the file with the new data
+        fData[key] = rec
+        fData[key].Kept = #rec
+      end
+    else --[[ Do not modify fData ]] end
   end
   local tSort = Sort(tableGetKeys(fData))
   if(not tSort) then
@@ -3206,35 +3211,46 @@ local function IntersectRayParallel(vO1, vD1, vO2, vD2)
   return f1, f2, x1, x2, xx
 end
 
+local function IntersectRayUpdate(stRay)
+  if(not IsExistent(stRay)) then
+    return StatusLog(nil,"IntersectRayUpdate: Ray invalid") end
+  local ryEnt = stRay.Ent
+  if(ryEnt and ryEnt:IsValid()) then
+    local ePos, eAng = stRay.Ent:GetPos(), stRay.Ent:GetAngles()
+    stRay.Orw:Set(stRay.Org); stRay.Orw:Rotate(eAng); stRay.Orw:Add(ePos)
+    stRay.Diw:Set(stRay.Ent:LocalToWorldAngles(stRay.Dir))
+  end; return stRay
+end
+
 --[[
- * This function updates an active ray for a player.
- * Every player has their own place in the cache.
+ * This function creates/updates an active ray for a player.
+ * Every player has own place in the cache.
  * The dedicated table can contain rays with different purpose
  * oPly  --> Player who wants to register a ray
  * oEnt  --> The trace entity to register the raw with
  * trHit --> The world position to search for point ID
  * sKey  --> String identifier. Used to distinguish rays form one another
 ]]--
-function IntersectRayUpdate(oPly, oEnt, vHit, sKey)
+function IntersectRayCreate(oPly, oEnt, vHit, sKey)
   if(not IsString(sKey)) then
-    return StatusLog(nil,"IntersectRayUpdate: Key invalid <"..tostring(sKey)..">") end
+    return StatusLog(nil,"IntersectRayCreate: Key invalid <"..tostring(sKey)..">") end
   if(not IsPlayer(oPly)) then
-    return StatusLog(nil,"IntersectRayUpdate: Player invalid <"..tostring(oPly)..">") end
+    return StatusLog(nil,"IntersectRayCreate: Player invalid <"..tostring(oPly)..">") end
   local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit)
   if(not trID) then
-    return StatusLog(nil,"IntersectRayUpdate: Entity no hit <"..tostring(oEnt).."/"..tostring(vHit)..">") end
+    return StatusLog(nil,"IntersectRayCreate: Entity no hit <"..tostring(oEnt).."/"..tostring(vHit)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")
   if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
   local stRay = tRay[sKey]
   if(not stRay) then -- Define a ray via origin and direction
-    tRay[sKey] = {Org = Vector(), Dir = Angle(),
-                   ID = trID    , Ent = oEnt    ,
+    tRay[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
+                  Orw = Vector(), Diw = Angle(), -- World direction and origin
+                   ID = trID    , Ent = oEnt   , -- Point ID and entity realtion
                   Key = sKey    , Ply = oPly }; stRay = tRay[sKey]
-  else
+  else -- Update internal settings
     stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, oEnt, trID, sKey
-  end; SetAngle(stRay.Dir, trPOA.A) stRay.Dir:Set(oEnt:LocalToWorldAngles(stRay.Dir))
-  SetVector(stRay.Org, trPOA.O); stRay.Org:Rotate(oEnt:GetAngles()); stRay.Org:Add(oEnt:GetPos())
-  return stRay;
+  end; SetAngle(stRay.Dir, trPOA.A); SetVector(stRay.Org, trPOA.O)
+  return IntersectRayUpdate(stRay)
 end
 
 function IntersectRayRead(oPly, sKey)
@@ -3242,19 +3258,23 @@ function IntersectRayRead(oPly, sKey)
     return StatusLog(nil,"IntersectRayRead: Player invalid <"..tostring(oPly)..">") end
   if(not IsString(sKey)) then
     return StatusLog(nil,"IntersectRayRead: Key invalid <"..tostring(sKey)..">") end
-  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then return StatusLog(nil,"IntersectRayRead: No player <"..tostring(oPly)..">") end
-  local stRay = tRay[sKey]
-  if(not stRay) then return StatusLog(nil,"IntersectRayRead: No Key <"..sKey..">") end
-  return stRay -- Obtain personal ray from the cache
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]; if(not tRay) then
+    return StatusLog(nil,"IntersectRayRead: No player <"..tostring(oPly)..">") end
+  local stRay = tRay[sKey]; if(not stRay) then
+    return StatusLog(nil,"IntersectRayRead: No Key <"..sKey..">") end
+  return IntersectRayUpdate(stRay) -- Obtain personal ray from the cache
 end
 
-function IntersectRayClear(oPly)
+function IntersectRayClear(oPly, sKey)
   if(not IsPlayer(oPly)) then
     return StatusLog(false,"IntersectRayClear: Player invalid <"..tostring(oPly)..">") end
-  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then return StatusLog(true,"IntersectRayClear: Clean") end
-  GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage()
+  local tRay = GetOpVar("RAY_INTERSECT")
+  if(not tRay[oPly]) then return StatusLog(true,"IntersectRayClear: Clean") end
+  if(sKey) then
+    if(not IsString(sKey)) then
+      return StatusLog(true,"IntersectRayClear: Key invalid <"..type(sKey).."/"..tostring(sKey)..">") end
+    tRay[oPly][sKey] = nil; collectgarbage()
+  else tRay[oPly] = nil; collectgarbage() end
   return StatusLog(true,"IntersectRayClear: Deleted <"..tostring(oPly)..">")
 end
 
@@ -3264,21 +3284,14 @@ end
  * sKey1 --> First ray identifier
  * sKey2 --> Second ray identifier
 ]]--
-function IntersectRayMake(oPly, sKey1, sKey2)
-  if(not IsPlayer(oPly)) then
-    return StatusLog(nil,"IntersectRayMake: Player invalid <"..tostring(oPly)..">") end
-  if(not IsString(sKey1)) then
-    return StatusLog(nil,"IntersectRayMake: Key1 invalid <"..tostring(sKey1)..">") end
-  if(not IsString(sKey2)) then
-    return StatusLog(nil,"IntersectRayMake: Key2 invalid <"..tostring(sKey2)..">") end
-  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then return StatusLog(nil,"IntersectRayMake: No player <"..tostring(oPly)..">") end
-  local stRay1, stRay2 = tRay[sKey1], tRay[sKey2]
-  if(not stRay1) then return StatusLog(nil,"IntersectRayMake: No Key1 <"..tostring(sKey1)..">") end
-  if(not stRay2) then return StatusLog(nil,"IntersectRayMake: No Key2 <"..tostring(sKey2)..">") end
-  local f1, f2, x1, x2, xx = IntersectRay(stRay1.Org, stRay1.Dir:Forward(), stRay2.Org, stRay2.Dir:Forward())
+function IntersectRayHash(oPly, sKey1, sKey2)
+  local stRay1 = IntersectRayRead(oPly, sKey1)
+  if(not stRay1) then return StatusLog(nil,"IntersectRayHash: No read <"..tostring(sKey1)..">") end
+  local stRay2 = IntersectRayRead(oPly, sKey2)
+  if(not stRay2) then return StatusLog(nil,"IntersectRayHash: No read <"..tostring(sKey2)..">") end
+  local f1, f2, x1, x2, xx = IntersectRay(stRay1.Orw, stRay1.Diw:Forward(), stRay2.Orw, stRay2.Diw:Forward())
   if(not xx) then
-    f1, f2, x1, x2, xx = IntersectRayParallel(stRay1.Org, stRay1.Dir:Forward(), stRay2.Org, stRay2.Dir:Forward()) end
+    f1, f2, x1, x2, xx = IntersectRayParallel(stRay1.Orw, stRay1.Diw:Forward(), stRay2.Orw, stRay2.Diw:Forward()) end
   return xx, x1, x2, stRay1, stRay2
 end
 
