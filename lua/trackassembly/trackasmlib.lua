@@ -211,7 +211,7 @@ function IsOther(oEnt)
   return false
 end
 
-function GetDateLog()
+function GetDate()
   return (osDate(GetOpVar("DATE_FORMAT"))
    .." "..osDate(GetOpVar("TIME_FORMAT")))
 end
@@ -236,7 +236,7 @@ local function Log(anyStuff)
   if(GetOpVar("LOG_LOGFILE")) then
     local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_log.txt"
     if(nCurLogs > nMaxLogs) then nCurLogs = 0; fileDelete(fName) end
-    fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." ["..GetDateLog().."] "..logData.."\n")
+    fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." ["..GetDate().."] "..logData.."\n")
   else -- The current has values 1..nMaxLogs(0)
     if(nCurLogs > nMaxLogs) then nCurLogs = 0 end
     print(FormatNumberMax(nCurLogs,nMaxLogs).." >> "..logData)
@@ -246,11 +246,11 @@ end
 function PrintInstance(anyStuff)
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(SERVER) then
-    print("["..GetDateLog().."] SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
+    print("["..GetDate().."] SERVER > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   elseif(CLIENT) then
-    print("["..GetDateLog().."] CLIENT > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
+    print("["..GetDate().."] CLIENT > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   else
-    print("["..GetDateLog().."] NOINST > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
+    print("["..GetDate().."] NOINST > "..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..tostring(anyStuff))
   end
 end
 
@@ -2460,7 +2460,7 @@ function ExportCategory(vEq, tData, sPref)
   if(not F) then return StatusLog(false,"ExportCategory("..sPref.."): fileOpen("..fName..") failed from") end
   local sEq, nLen, sMod = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (type(tData) == "table") and tData or GetOpVar("TABLE_CATEGORIES")
-  F:Write("# ExportCategory( "..tostring(nEq).." )("..sPref.."): "..GetDateLog().." [ "..sMod.." ]".."\n")
+  F:Write("# ExportCategory( "..tostring(nEq).." )("..sPref.."): "..GetDate().." [ "..sMod.." ]".."\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
       local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
@@ -2562,7 +2562,7 @@ function ExportDSV(sTable, sPref, sDelim)
       .."): fileOpen("..fName..") failed") end
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sModeDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
-  F:Write("# ExportDSV: "..GetDateLog().." [ "..sModeDB.." ]".."\n")
+  F:Write("# ExportDSV: "..GetDate().." [ "..sModeDB.." ]".."\n")
   F:Write("# Data settings:\t"..GetColumns(defTable,sDelim).."\n")
   if(sModeDB == "SQL") then
     local Q = ""
@@ -2615,7 +2615,7 @@ function ExportDSV(sTable, sPref, sDelim)
                    "\""..(IsEqualPOA(stPnt.P,stPnt.O) and "" or StringPOA(stPnt.P,"V")).."\""..sDelim..
                    "\""..  StringPOA(stPnt.O,"V").."\""..sDelim..
                    "\""..( IsZeroPOA(stPnt.A,"A") and "" or StringPOA(stPnt.A,"A")).."\""..sDelim..
-                   "\""..(tData.Unit and tData.Unit or "").."\"\n")
+                   "\""..(tData.Unit and tostring(tData.Unit or "") or "").."\"\n")
         end
       end
     elseif(sTable == "ADDITIONS") then
@@ -2778,7 +2778,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     return StatusLog(false,"SynchronizeDSV("..fPref.."): Sorting failed") end
   local O = fileOpen(fName, "wb" ,"DATA")
   if(not O) then return StatusLog(false,"SynchronizeDSV("..fPref.."): Write fileOpen("..fName..") failed") end
-  O:Write("# SynchronizeDSV("..fPref.."): "..GetDateLog().." ["..GetOpVar("MODE_DATABASE").."]\n")
+  O:Write("# SynchronizeDSV("..fPref.."): "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   O:Write("# Data settings:\t"..GetColumns(defTable,sDelim).."\n")
   for rcID = 1, #tSort do
     local key = tSort[rcID].Val
@@ -2816,7 +2816,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   if(not D) then return StatusLog(false,"TranslateDSV("..fPref.."): fileOpen("..sNdsv..") failed") end
   local I = fileOpen(sNins, "wb", "DATA")
   if(not I) then return StatusLog(false,"TranslateDSV("..fPref.."): fileOpen("..sNins..") failed") end
-  I:Write("# TranslateDSV("..fPref.."@"..sTable.."): "..GetDateLog().." ["..GetOpVar("MODE_DATABASE").."]\n")
+  I:Write("# TranslateDSV("..fPref.."@"..sTable.."): "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   I:Write("# Data settings:\t"..GetColumns(defTable, sDelim).."\n")
   local sLine, sCh, symOff = "", "X", GetOpVar("OPSYM_DISABLE")
   local sFr, sBk, sHs = "asmlib.InsertRecord(\""..sTable.."\", {", "})\n", (fPref.."@"..sTable)

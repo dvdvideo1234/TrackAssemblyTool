@@ -801,7 +801,7 @@ function TOOL:UpdateGhost(ePiece, oPly)
           oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
           oPly:SetNW2Vector("ray_inter_relaypos", stRay and stRay.Orw or nil)
           oPly:SetNW2Vector("ray_inter_relayang", stRay and stRay.Diw or nil)
-        end  
+        end
         ePiece:SetAngles(stSpawn.SAng); ePiece:SetPos(stSpawn.SPos); ePiece:SetNoDraw(false) end
     end
   elseif(trEnt and trEnt:IsValid()) then
@@ -819,7 +819,7 @@ function TOOL:UpdateGhost(ePiece, oPly)
           oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
           oPly:SetNW2Vector("ray_inter_relaypos", stRay2 and stRay2.Orw or nil)
           oPly:SetNW2Vector("ray_inter_relayang", stRay2 and stRay2.Diw or nil)
-        end  
+        end
         ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
       end
     end
@@ -993,7 +993,7 @@ function TOOL:DrawHUD()
       end
     end
     if(not self:GetDeveloperMode()) then return end
-    self:DrawTextSpawn(hudMonitor, stSpawn, "k","SURF",{"Trebuchet18"}) 
+    self:DrawTextSpawn(hudMonitor, stSpawn, "k","SURF",{"Trebuchet18"})
   elseif(stTrace.HitWorld) then
     local ydegsnp  = self:GetYawSnap()
     local elevpnt  = self:GetElevation()
@@ -1084,7 +1084,7 @@ function TOOL:DrawHUD()
         end
       end
       if(not self:GetDeveloperMode()) then return end
-      self:DrawTextSpawn(hudMonitor, stSpawn, "k","SURF",{"Trebuchet18"}) 
+      self:DrawTextSpawn(hudMonitor, stSpawn, "k","SURF",{"Trebuchet18"})
     end
   end
 end
