@@ -273,7 +273,7 @@ function TOOL:GetBoundErrorMode()
 end
 
 function TOOL:GetSurfaceSnap()
-  return (self:GetClientNumber("surfsnap") or 0)
+  return ((self:GetClientNumber("surfsnap") or 0) ~= 0)
 end
 
 function TOOL:GetScrollMouse()

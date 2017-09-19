@@ -2936,28 +2936,27 @@ end
  * This function calculates the cross product normal angle of
  * a player by a given trace. If the trace is missing it takes player trace
  * It has options for snap to surface and yaw snap
- * oPly          = The player we need the normal angle from
- * oTrace        = A trace structure if nil, it takes oPly's
- * nSnap         = Snap to the trace surface flag
- * nYSnap        = Yaw snap amount
+ * oPly    > The player we need the normal angle from
+ * stTrace > A trace structure if nil, it takes oPly's
+ * bSnap   > Snap to the trace surface flag
+ * nYSnp   > Yaw snap amount
 ]]--
-function GetNormalAngle(oPly, oTrace, nSnap, nYSnap)
+function GetNormalAngle(oPly, stTrace, bSnap, nYSnp)
   local aAng = Angle()
   if(not IsPlayer(oPly)) then return aAng end
-  local nSnap = tonumber(nSnap) or 0
-  if(nSnap and (nSnap ~= 0)) then -- Snap to the surface
-    local oTrace = oTrace
-    if(not (oTrace and oTrace.Hit)) then
-      oTrace = utilTraceLine(utilGetPlayerTrace(oPly))
-      if(not (oTrace and oTrace.Hit)) then return aAng end
+  local nYSn = (tonumber(nYSnp) or 0)
+  if(bSnap) then -- Snap to the surface
+    local stTr = stTrace
+    if(not (stTr and stTr.Hit)) then
+      stTr = utilTraceLine(utilGetPlayerTrace(oPly))
+      if(not (stTr and stTr.Hit)) then return aAng end
     end
-    local vLeft = -oPly:GetAimVector():Angle():Right()
-    aAng:Set(vLeft:Cross(oTrace.HitNormal):AngleEx(oTrace.HitNormal))
-  else -- Get only the player yaw, pitch and roll are not needed
-    local nYSnap = tonumber(nYSnap) or 0
-    if(nYSnap and (nYSnap >= 0) and (nYSnap <= GetOpVar("MAX_ROTATION"))) then
-      aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSnap) end
-  end; return aAng
+    local vUp, vRg = stTr.HitNormal, oPly:GetRight()
+    aAng:Set(vUp:Cross(vRg):AngleEx(vUp))
+  end -- Get only the player yaw, pitch and roll are not needed
+  if(nYSn and (nYSn >= 0) and (nYSn <= GetOpVar("MAX_ROTATION"))) then
+    aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSn) end
+  return aAng
 end
 
 --[[
