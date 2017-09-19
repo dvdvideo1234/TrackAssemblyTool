@@ -237,7 +237,7 @@ function TOOL:GetPointID()
 end
 
 function TOOL:GetActiveRadius()
-  return mathClamp(self:GetClientNumber("activrad") or 1,1,asmlib.GetAsmVar("maxactrad", "FLT"))
+  return mathClamp(self:GetClientNumber("activrad") or 0,0,asmlib.GetAsmVar("maxactrad", "FLT"))
 end
 
 function TOOL:GetYawSnap()
@@ -304,6 +304,7 @@ function TOOL:IntersectClear(bEnb)
   end; asmlib.IntersectRayClear(oPly, "ray_relate")
   if(ntEnb and SERVER) then
     asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP") end
+  oPly:SetNW2Bool  ("ray_inter_relayenb", false)
   oPly:SetNW2Vector("ray_inter_relaypos", nil)
   oPly:SetNW2Vector("ray_inter_relayang", nil)
   return asmlib.StatusLog(true,"TOOL:IntersectClear("..tostring(ntEnb).."): Relation cleared")
@@ -315,6 +316,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit, vNorm)
   if(not stRay) then -- Create/update the ray in question
     return asmlib.StatusLog(false,"TOOL:IntersectRelate(): Update fail") end
   if(SERVER) then
+    oPly:SetNW2Bool  ("ray_inter_relayenb", true)
     oPly:SetNW2Vector("ray_inter_relaypos", stRay.Orw)
     oPly:SetNW2Vector("ray_inter_relayang", stRay.Diw)
     local femod = stringToFileName(oEnt:GetModel())
@@ -371,7 +373,7 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bLoop)
   local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayHash(ply, "ray_origin", "ray_relate")
   if(not xx) then
     if(bLoop) then return nil
-    else asmlib.PrintNotifyPly(ply, "Define intersection relation !", "ERROR")
+    else asmlib.PrintNotifyPly(ply, "Define intersection relation !", "GENERIC")
       return asmlib.StatusLog(nil, "TOOL:IntersectSnap(): Active ray mismatch")
     end
   end
@@ -659,8 +661,9 @@ function TOOL:LeftClick(stTrace)
     return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success")
   else -- Switch the tool mode ( Snapping )
     if(workmode == 2) then -- Make a ray intersection spawn update
-      if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
-        return asmlib.StatusLog(false, self:GetStatus(stTrace,"TOOL:LeftClick(Ray): Intersect snapping fail")) end
+      local stRay1, stRay2 = self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)
+      if(not (stRay1 and stRay2)) then
+        asmlib.LogInstance("TOOL:LeftClick(Ray): Skip intersection sequence. Snapping") end
     end
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
@@ -801,9 +804,11 @@ function TOOL:UpdateGhost(ePiece, oPly)
       if(stSpawn) then
         if(workmode == 2) then
           local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
-          oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
-          oPly:SetNW2Vector("ray_inter_relaypos", stRay and stRay.Orw or nil)
-          oPly:SetNW2Vector("ray_inter_relayang", stRay and stRay.Diw or nil)
+          if(stRay) then
+            oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
+            oPly:SetNW2Vector("ray_inter_relaypos", stRay.Orw)
+            oPly:SetNW2Vector("ray_inter_relayang", stRay.Diw)
+          end
         end
         ePiece:SetAngles(stSpawn.SAng); ePiece:SetPos(stSpawn.SPos); ePiece:SetNoDraw(false) end
     end
@@ -819,9 +824,11 @@ function TOOL:UpdateGhost(ePiece, oPly)
       if(stSpawn) then
         if(workmode == 2) then
           local stRay1, stRay2 = self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
-          oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
-          oPly:SetNW2Vector("ray_inter_relaypos", stRay2 and stRay2.Orw or nil)
-          oPly:SetNW2Vector("ray_inter_relayang", stRay2 and stRay2.Diw or nil)
+          if(stRay1 and stRay2) then
+            oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
+            oPly:SetNW2Vector("ray_inter_relaypos", stRay2.Orw)
+            oPly:SetNW2Vector("ray_inter_relayang", stRay2.Diw)
+          end
         end
         ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
       end
@@ -874,6 +881,7 @@ function TOOL:DrawTextSpawn(oScreen, stSpawn, sCol, sMeth, tArgs)
 end
 
 function TOOL:DrawRelationRay(oScreen, oPly, stSpawn)
+  local bEnb = oPly:GetNW2Bool  ("ray_inter_relayenb")
   local ePos = oPly:GetNW2Vector("ray_inter_relaypos")
   local eAng = oPly:GetNW2Angle ("ray_inter_relayang")
   local sPos, Ss = oPly:GetNW2Vector("ray_inter_spawnpos")
@@ -884,9 +892,12 @@ function TOOL:DrawRelationRay(oScreen, oPly, stSpawn)
     local Re = (ePos + nLn * eAng:Forward()):ToScreen()
     local nR = mathSqrt((Re.x - Rp.x)^2 + (Re.y - Rp.y)^2)
     local Ru = (ePos + nLn * 0.5 * eAng:Up()):ToScreen()
-    oScreen:DrawLine(Rp, Re, "r")
-    oScreen:DrawLine(Rp, Ru, "b")
-    oScreen:DrawCircle(Rp, nR / 6, "y"); return Rp, Re, Ss
+    if(bEnb) then
+      oScreen:DrawLine(Rp, Re, "r")
+      oScreen:DrawLine(Rp, Ru, "b")
+      oScreen:DrawCircle(Rp, nR / 6, "y")
+      return Rp, Re, Ss
+    end; return nil
   end; return nil
 end
 
@@ -1319,11 +1330,11 @@ function TOOL.BuildCPanel(CPanel)
   local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass"  ,"FLT")  , 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 1, asmlib.GetAsmVar("maxactrad", "FLT"), 7)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmVar("maxactrad", "FLT"), 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".count_con"), gsToolPrefL.."count"    , 1, asmlib.GetAsmVar("maxstcnt" , "INT"), 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ydegsnp_con"), gsToolPrefL.."ydegsnp", 1, gnMaxOffRot, 7)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ydegsnp_con"), gsToolPrefL.."ydegsnp", 0, gnMaxOffRot, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
   pItem = CPanel:Button   (languageGetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))

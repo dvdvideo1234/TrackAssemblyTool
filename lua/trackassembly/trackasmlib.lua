@@ -1010,23 +1010,6 @@ function RoundValue(nvExact, nFrac)
   return nFrac * (q + (f > 0.5 and 1 or 0))
 end
 
-function SnapValue(nvVal, nvSnap)
-  if(not nvVal) then return 0 end
-  local nVal = tonumber(nvVal)
-  if(not IsExistent(nVal)) then
-    return StatusLog(0,"SnapValue: Convert value NAN {"..type(nvVal).."}<"..tostring(nvVal)..">") end
-  if(not IsExistent(nvSnap)) then return nVal end
-  local nSnap = tonumber(nvSnap)
-  if(not IsExistent(nSnap)) then
-    return StatusLog(0,"SnapValue: Convert snap NAN {"..type(nvSnap).."}<"..tostring(nvSnap)..">") end
-  if(nSnap == 0) then return nVal end
-  local nvSnp, nvVal = mathAbs(nSnap), mathAbs(nVal)
-  local nRst, nRez = (nvVal % nvSnp), 0
-  if((nvSnp - nRst) < nRst) then nRez = nvVal + nvSnp - nRst else nRez = nvVal - nRst end
-  if(nVal < 0) then return -nRez; end
-  return nRez;
-end
-
 function GetCenterMC(oEnt)
   -- Set the ENT's Angles first!
   if(not (oEnt and oEnt:IsValid())) then
@@ -2953,10 +2936,10 @@ function GetNormalAngle(oPly, stTrace, bSnap, nYSnp)
     end
     local vUp, vRg = stTr.HitNormal, oPly:GetRight()
     aAng:Set(vUp:Cross(vRg):AngleEx(vUp))
-  end -- Get only the player yaw, pitch and roll are not needed
-  if(nYSn and (nYSn >= 0) and (nYSn <= GetOpVar("MAX_ROTATION"))) then
-    aAng[caY] = SnapValue(oPly:GetAimVector():Angle()[caY],nYSn) end
-  return aAng
+  else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
+  if(nYSn and (nYSn > 0) and (nYSn <= GetOpVar("MAX_ROTATION"))) then
+    aAng:SnapTo("yaw", nYSn) -- Snap player yaw, pitch and roll are not needed
+  end; return aAng
 end
 
 --[[
