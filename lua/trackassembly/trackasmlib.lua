@@ -649,7 +649,7 @@ function MakeContainer(sInfo,sDefKey)
 end
 
 --[[
- * Creates a screen object better user api for drawing on the gmod screens
+ * Creates a screen object better user API for drawing on the gmod screens
  * The drawing methods are the following:
  * SURF - Uses the surface library to draw directly
  * SEGM - Uses the surface library to draw line segment interpolations
@@ -2539,7 +2539,7 @@ end
 
 --[[
  * This function exports a given table to DSV file format
- * It is used by the user when he wants to expoert the
+ * It is used by the user when he wants to export the
  * whole database to a delimiter separator format file
  * sTable > The table you want to export
  * sPref  > The external data prefix to be used
@@ -2868,9 +2868,9 @@ end
 --[[
  * This function cycles all the lines made via @RegisterDSV(sPref, sDelim, sProg)
  * or manually added and loads all the content bound by the prefix line read
- * to the databaase. It is used by addon creators when they want automatically
+ * to the database. It is used by addon creators when they want automatically
  * include and auto-process their custom pieces. The addon creator must
- * check if the PIECES file is created befor calling this function
+ * check if the PIECES file is created before calling this function
  * sDelim > The delimiter to be used while processing the DSV list
 ]]--
 function ProcessDSV(sDelim)
@@ -2964,8 +2964,8 @@ end
  * This function is the backbone of the tool snapping and spawning.
  * Anything related to dealing with the track assembly database
  * Calculates SPos, SAng based on the DB inserts and input parameters
- * ucsPos        = Base UCS Pos
- * ucsAng        = Base UCS Ang
+ * ucsPos        = Base UCS position
+ * ucsAng        = Base UCS angle
  * shdModel      = Client Model
  * ivhdPointID   = Client Point ID
  * ucsPos(X,Y,Z) = Offset position

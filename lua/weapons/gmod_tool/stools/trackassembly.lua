@@ -294,17 +294,19 @@ function TOOL:SwitchPoint(nDir,bIsNext)
   return pointid, pnextid
 end
 
-function TOOL:IntersectClear()
+function TOOL:IntersectClear(bEnb)
+  local ntEnb = tobool(bEnb)
   local oPly  = self:GetOwner()
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
   if(stRay and SERVER) then
     if(stRay.Ent and stRay.Ent:IsValid()) then
       stRay.Ent:SetColor(conPalette:Select("w")) end
-       asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP")
   end; asmlib.IntersectRayClear(oPly, "ray_relate")
+  if(ntEnb and SERVER) then
+    asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP") end
   oPly:SetNW2Vector("ray_inter_relaypos", nil)
   oPly:SetNW2Vector("ray_inter_relayang", nil)
-  return asmlib.StatusLog(true,"TOOL:IntersectClear(): Relation cleared")
+  return asmlib.StatusLog(true,"TOOL:IntersectClear("..tostring(ntEnb).."): Relation cleared")
 end
 
 function TOOL:IntersectRelate(oPly, oEnt, vHit, vNorm)
@@ -340,17 +342,18 @@ function TOOL:SetAnchor(stTrace)
   return asmlib.StatusLog(true,"TOOL:SetAnchor("..sAnchor..")")
 end
 
-function TOOL:ClearAnchor()
+function TOOL:ClearAnchor(bEnb)
+  local ntEnb = tobool(bEnb)
   local svEnt = self:GetEnt(1)
   local plPly = self:GetOwner()
   if(svEnt and svEnt:IsValid()) then
     svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
     svEnt:SetColor(conPalette:Select("w"))
-  end
-  self:ClearObjects()
-  asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned !","CLEANUP")
+  end; self:ClearObjects()
+  if(ntEnb and SERVER) then
+    asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned !","CLEANUP") end
   asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
-  return asmlib.StatusLog(true,"TOOL:ClearAnchor(): Anchor cleared")
+  return asmlib.StatusLog(true,"TOOL:ClearAnchor("..tostring(ntEnb).."): Anchor cleared")
 end
 
 function TOOL:GetAnchor()
@@ -730,9 +733,9 @@ function TOOL:Reload(stTrace)
       asmlib.ConCommandPly(ply, "exportdb", 0)
     end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
-      if(workmode == 1) then self:ClearAnchor()
+      if(workmode == 1) then self:ClearAnchor(true)
         asmlib.LogInstance("TOOL:Reload(Anchor): Clear")
-      elseif(workmode == 2) then self:IntersectClear()
+      elseif(workmode == 2) then self:IntersectClear(true)
         asmlib.LogInstance("TOOL:Reload(Relate): Clear")
       end
     end; return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
