@@ -59,7 +59,7 @@ int main(int argc, char **argv)
   {
     common::logSystem(L,"Too few parameters <%d> !",argc);
     common::logSystem(L,"Call with /base_path/, /db_file/, /ignore_list/, /addon_delimiter/ !");
-    return onExit(0,"");
+    return onExit(0,"Finished status: %s");
   }
 
   if(argc > 4 && strcmp(argv[4],""))
@@ -117,14 +117,14 @@ int main(int argc, char **argv)
   if(NULL == I)
   { /// The model list that we must process
     common::logSystem(L,"Cannot open input file <%s>",fName);
-    return onExit(0,"");
+    return onExit(0,"Finished status: %s");
   }
 
   D = fopen(argv[2],"rt");
   if(NULL == D)
   { /// The database which the model list must be compared with
     common::logSystem(L,"Cannot open database file <%s>",argv[2]);
-    return onExit(0,"");
+    return onExit(0,"Finished status: %s");
   }
 
   strcpy(fName,argv[1]);
@@ -154,10 +154,10 @@ int main(int argc, char **argv)
     if(strncmp(resPath,LINE_COMMENT,strlen(LINE_COMMENT)))
     { /// Process the line when it is not commented
       if(NULL == common::getConsistency(resPath,addModel,addName))
-        { common::logSystem(L,"main(getConsistency): Path invalid <%s>", resPath); return onExit(0,""); }
+        { common::logSystem(L,"main(getConsistency): Path invalid <%s>", resPath); return onExit(0,"Finished status: %s"); }
       strcpy(cpBoom, addName); arList = common::strExplode(cpBoom); tiCnt = 0;
       if(arList == NULL) /// Explode the string with replacing the delimiter with a null symbol
-        { common::logSystem(L,"main(strExplode): Explosion invalid <%s><%s>",addName); return onExit(0,""); }
+        { common::logSystem(L,"main(strExplode): Explosion invalid <%s><%s>",addName); return onExit(0,"Finished status: %s"); }
       while(arList[tiCnt] != NULL)
       { /// For every explosion if exploded or not, the name is registered
         adNode = arList[tiCnt];
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
         cuAdd = &(Match->Addon); /// The repeated model path checked
         cuMch = Matches.navigateMatch(adNode);
         if(cuMch == MSTACK_INV_POINTER)
-          { return onExit(teErr,"main(Repeat): Navigation failed"); }
+          { return onExit(0,"main(Repeat): Navigation failed: %s"); }
         cuDbs = &(cuMch->Dbase); /// Database to use for checking
         for(iAd = 0; iAd < cuAdd->getCount(); iAd++)
         {
@@ -276,5 +276,5 @@ int main(int argc, char **argv)
     }
     tiCnt++;
   }
-  return onExit(0,"OK"); // Only this place triggers segmentation fault for some weird reason for /onExit/
+  return onExit(0,"Finished status: %s");
 }

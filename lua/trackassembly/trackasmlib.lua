@@ -2881,7 +2881,7 @@ function ProcessDSV(sDelim)
             local tStore = tProc[fPrf]
             tStore.Cnt = tStore.Cnt + 1 -- Store the count of the repeated prefixes
             tStore[tStore.Cnt] = {Prog = fSrc, File = (sDv..fPrf..sNt)}
-          end -- That user puts there is a problem of his own
+          end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
       else LogInstance("ProcessDSV: Skipped <"..sLine..">") end; sLine = ""
     else sLine = sLine..sCh end
