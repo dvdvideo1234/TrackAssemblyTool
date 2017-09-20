@@ -335,12 +335,12 @@ function GetIndexes(sType)
   else return StatusLog(nil,"GetIndexes: Type <"..sType.."> not found") end
 end
 
-function SetIndexes(sType,I1,I2,I3,I4)
+function SetIndexes(sType,...)
   if(not IsString(sType)) then
     return StatusLog(false,"SetIndexes: Type {"..type(sType).."}<"..tostring(sType).."> not string") end
-  if    (sType == "V") then cvX, cvY, cvZ      = I1, I2, I3
-  elseif(sType == "A") then caP, caY, caR      = I1, I2, I3
-  elseif(sType == "S") then csA, csB, csC, csD = I1, I2, I3, I4
+  if    (sType == "V") then cvX, cvY, cvZ      = ...
+  elseif(sType == "A") then caP, caY, caR      = ...
+  elseif(sType == "S") then csA, csB, csC, csD = ...
   else return StatusLog(false,"SetIndexes: Type <"..sType.."> not found") end
   return StatusLog(true,"SetIndexes["..sType.."]: Success")
 end
@@ -489,11 +489,12 @@ function SubAnglePYR(aBase, nP, nY, nR)
   aBase[caR] = (tonumber(aBase[caR]) or 0) - (tonumber(nR) or 0)
 end
 
-function NegAngle(aBase)
-  if(not aBase ) then return StatusLog(nil,"NegAngle: Base invalid") end
-  aBase[caP] = -(tonumber(aBase[caP]) or 0)
-  aBase[caY] = -(tonumber(aBase[caY]) or 0)
-  aBase[caR] = -(tonumber(aBase[caR]) or 0)
+function NegAngle(vBase, bP, bY, bR)
+  if(not vBase) then return StatusLog(nil,"NegVector: Base invalid") end
+  local P = (tonumber(vBase[caP]) or 0); P = (IsExistent(bP) and (bP and -P or P) or -P)
+  local Y = (tonumber(vBase[caY]) or 0); Y = (IsExistent(bY) and (bY and -Y or Y) or -Y)
+  local R = (tonumber(vBase[caR]) or 0); R = (IsExistent(bR) and (bR and -R or R) or -R)
+  vBase[caP], vBase[caY], vBase[caR] = P, Y, R
 end
 
 function SetAngle(aBase, aUnit)
@@ -571,11 +572,12 @@ function SubVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(nZ) or 0)
 end
 
-function NegVector(vBase)
+function NegVector(vBase, bX, bY, bZ)
   if(not vBase) then return StatusLog(nil,"NegVector: Base invalid") end
-  vBase[cvX] = -(tonumber(vBase[cvX]) or 0)
-  vBase[cvY] = -(tonumber(vBase[cvY]) or 0)
-  vBase[cvZ] = -(tonumber(vBase[cvZ]) or 0)
+  local X = (tonumber(vBase[cvX]) or 0); X = (IsExistent(bX) and (bX and -X or X) or -X)
+  local Y = (tonumber(vBase[cvY]) or 0); Y = (IsExistent(bY) and (bY and -Y or Y) or -Y)
+  local Z = (tonumber(vBase[cvZ]) or 0); Z = (IsExistent(bZ) and (bZ and -Z or Z) or -Z)
+  vBase[cvX], vBase[cvY], vBase[cvZ] = X, Y, Z
 end
 
 function SetVector(vBase, vUnit)
