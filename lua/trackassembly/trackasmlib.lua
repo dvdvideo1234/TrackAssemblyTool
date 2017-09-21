@@ -388,13 +388,38 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
-  SetOpVar("LOCALIFY_TABLE",{})
-  SetOpVar("LOCALIFY_AUTO","en")
+  if(CLIENT) then
+    SetOpVar("LOCALIFY_TABLE",{})
+    SetOpVar("LOCALIFY_AUTO","en")
+    SetOpVar("TABLE_CATEGORIES", {})
+    SetOpVar("STRUCT_SPAWN_KEYS",{
+      {"--- Origin ---", nil },
+      {"F"     ,"VEC", "Forward direction"},
+      {"R"     ,"VEC", "Right direction"},
+      {"U"     ,"VEC", "Up direction"},
+      {"OPos"  ,"VEC", "Origin position"},
+      {"OAng"  ,"ANG", "Origin angles"},
+      {"SPos"  ,"VEC", "Spawn position"},
+      {"SAng"  ,"ANG", "Spawn angles"},
+      {"RLen"  ,"FLT", "Active radius"},
+      {"--- Holder ---", nil },
+      {"HID"   ,"INT", "Point ID"},
+      {"HPnt"  ,"VEC", "Search location"},
+      {"HPos"  ,"VEC", "Custom offset"},
+      {"HAng"  ,"ANG", "Custom angles"},
+      {"--- Traced ---", nil },
+      {"TID"   ,"INT", "Point ID"},
+      {"TPnt"  ,"VEC", "Search location"},
+      {"TPos"  ,"VEC", "Custom offset"},
+      {"TAng"  ,"ANG", "Custom angles"},
+      {"--- Offset ---", nil },
+      {"PNxt"  ,"VEC", "Custom user position"},
+      {"ANxt"  ,"VEC", "Custom user angles"}})
+  end
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("TABLE_CATEGORIES", CLIENT and {} or nil)
   SetOpVar("TABLE_PLAYER_KEYS",{})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
