@@ -293,6 +293,20 @@ A: Easy. Just set "trackassembly_bnderrmod" to one of the following values
 N: The error is logged if the logs are enabled !
    ( See:  Hey, how should I proceed when I am experiencing errors points 10 - 12 ).
 
+Q: Is there any feature which can be used to control which log messages can show up and
+   which will not? I enabled the logs and I do not want certain function to show up in the logs.
+A: You can easily do that by creating settings for the logs. These are nothing more than
+   text files, where contents are matched to the logs you want to skip. The location that you
+   must create these files in is located here: data/trackassembly/trackasmlib_sl<suffix>.txt
+   There are the types of logging settings, where the file <suffix> matches it with down casing:
+   "skip" (trackasmlib_slskip.txt) -> If a log message is found persisting in this list,
+                                      it won't show in the output (a.k.a black listed).
+                                      This is good when a function is called many times and floods
+   "only" (trackasmlib_slonly.txt) -> All other log messages will be blocked besides the ones
+                                      in this list (a.k.a only ones white listed)
+                                      This is good when you wanna see only one single thing
+   These are mine: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_slskip.txt
+
 Q: Does this thing have any wire extensions and how can I control then
    when my clients are abusing them ?
 A: Yes it does. You can enable/disable the wire extension using the

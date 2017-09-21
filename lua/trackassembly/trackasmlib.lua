@@ -324,6 +324,23 @@ function SetLogControl(nLines,bFile)
   PrintInstance("SetLogControl("..tostring(GetOpVar("LOG_MAXLOGS"))..","..tostring(GetOpVar("LOG_LOGFILE"))..")")
 end
 
+function SettingsLogs(sHash)
+  local sKey = tostring(sHash or ""):upper():Trim()
+  if(not (sKey == "SKIP" or sKey == "ONLY")) then
+    return StatusLog(false,"SettingsLogs("..sKey.."): Invalid hash") end
+  local tLogs = GetOpVar("LOG_"..sKey)
+  if(not tLogs) then return StatusLog(true,"SettingsLogs("..sKey.."): Skip table") end
+  local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_sl"..sKey:lower()..".txt"
+  local S = fileOpen(fName, "rb", "DATA")
+  if(S) then
+    local sRow = S:Read()
+    while(sRow) do sRow = sRow:Trim()
+      if(sRow ~= "") then tableInsert(tLogs, sRow) end
+      sRow = S:Read()
+    end; S:Close(); return true
+  else return StatusLog(true,"SettingsLogs("..sKey.."): Missing <"..fName..">") end
+end
+
 ----------------- INITAIALIZATION -----------------
 
 function GetIndexes(sType)
@@ -357,13 +374,15 @@ function InitBase(sName,sPurpose)
     return StatusPrint(false,"InitBase: Name invalid <"..sName..">") end
   if(IsEmptyString(sPurpose) or tonumber(sPurpose:sub(1,1))) then
     return StatusPrint(false,"InitBase: Purpose invalid <"..sPurpose..">") end
-  SetOpVar("TIME_INIT",Time())
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("DELAY_FREEZE",0.01)
+  SetOpVar("LOG_SKIP",{})
+  SetOpVar("LOG_ONLY",{})
   SetOpVar("LOG_LOGFILE","")
   SetOpVar("LOG_LOGLAST","")
+  SetOpVar("TIME_INIT",Time())
   SetOpVar("MAX_ROTATION",360)
+  SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
   SetOpVar("OPSYM_DISABLE","#")

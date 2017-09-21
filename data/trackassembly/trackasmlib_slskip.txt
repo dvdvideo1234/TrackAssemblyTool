@@ -1,0 +1,25 @@
+QuickSort
+ModelToName%[CUT%]
+ModelToName%[SUB%]
+ModelToName%[APP%]
+DefaultType: Avoided
+DrawToolScreen: Invalid screen
+DrawHUD: Invalid screen
+GetEntitySpawn: Not hitting active point
+CacheQueryPiece: Record not located
+GetEntitySpawn: Trace model missing
+GetEntitySpawn: Types different
+MakeScreen.SetColor: Color reset
+MakeScreen.DrawLine: Start out of border
+MakeScreen.DrawLine: End out of border
+POINT_SELECT: Bind not pressed
+POINT_SELECT: Active key missing
+PHYSGUN_DRAW: Physgun not hold
+PHYSGUN_DRAW: Swep not physgun
+PHYSGUN_DRAW: Extension disabled
+MakeScreen: Color list not container
+BIND_PRESS: Swep not tool
+BIND_PRESS: Tool different
+BIND_PRESS: Active key missing
+IntersectRayRead
+IntersectRayClear

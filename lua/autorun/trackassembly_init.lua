@@ -33,38 +33,12 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.382")
+asmlib.SetOpVar("TOOL_VERSION","5.383")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
-asmlib.SetOpVar("LOG_ONLY",nil)
-asmlib.SetOpVar("LOG_SKIP",{
-  "QuickSort",
-  "ModelToName%[CUT%]",
-  "ModelToName%[SUB%]",
-  "ModelToName%[APP%]",
-  "DefaultType: Avoided",
-  "DrawToolScreen: Invalid screen",
-  "DrawHUD: Invalid screen",
-  "GetEntitySpawn: Not hitting active point",
-  "CacheQueryPiece: Record not located",
-  "GetEntitySpawn: Trace model missing",
-  "GetEntitySpawn: Types different",
-  "MakeScreen.SetColor: Color reset",
-  "MakeScreen.DrawLine: Start out of border",
-  "MakeScreen.DrawLine: End out of border",
-  "POINT_SELECT: Bind not pressed",
-  "POINT_SELECT: Active key missing",
-  "PHYSGUN_DRAW: Physgun not hold",
-  "PHYSGUN_DRAW: Swep not physgun",
-  "PHYSGUN_DRAW: Extension disabled",
-  "MakeScreen: Color list not container",
-  "BIND_PRESS: Swep not tool",
-  "BIND_PRESS: Tool different",
-  "BIND_PRESS: Active key missing",
-  "IntersectRayRead",
-  "IntersectRayClear"
-})
+asmlib.SettingsLogs("SKIP")
+asmlib.SettingsLogs("ONLY")
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
