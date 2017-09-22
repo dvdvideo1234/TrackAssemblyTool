@@ -333,11 +333,16 @@ function SettingsLogs(sHash)
   local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_sl"..sKey:lower()..".txt"
   local S = fileOpen(fName, "rb", "DATA")
   if(S) then
-    local sRow = S:Read()
-    while(sRow) do sRow = sRow:Trim()
-      if(sRow ~= "") then tableInsert(tLogs, sRow) end
-      sRow = S:Read()
-    end; S:Close(); return true
+    local sCh, sLine = "X", ""
+    while(sCh) do
+      sCh = S:Read(1)
+      if(not sCh) then break end
+      if(sCh == "\n") then
+        sLine = sLine:Trim()
+        if(sLine ~= "") then
+          tableInsert(tLogs, sLine) end; sLine = ""
+      else sLine = sLine..sCh end
+    end; S:Close(); return StatusLog(true,"SettingsLogs("..sKey.."): Success <"..fName..">")
   else return StatusLog(true,"SettingsLogs("..sKey.."): Missing <"..fName..">") end
 end
 

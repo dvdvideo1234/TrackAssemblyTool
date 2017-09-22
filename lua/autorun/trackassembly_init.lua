@@ -33,12 +33,10 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.383")
+asmlib.SetOpVar("TOOL_VERSION","5.384")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
-asmlib.SettingsLogs("SKIP")
-asmlib.SettingsLogs("ONLY")
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
@@ -51,6 +49,7 @@ asmlib.SetOpVar("LOG_DEBUGEN",false)
 asmlib.MakeAsmVar("logsmax"  , "0" , {0}   , gnIndependentUsed, "Maximum logging lines to be printed")
 asmlib.MakeAsmVar("logfile"  , "0" , {0, 1}, gnIndependentUsed, "File to store the logs ( if any )")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
+asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------ CONFIGURE VARIABLES ------
 asmlib.MakeAsmVar("modedb"   , "LUA",     nil, gnIndependentUsed, "Database operating mode")

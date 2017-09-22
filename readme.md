@@ -495,6 +495,5 @@ A: No I will not give you my permission to do that... Why ...
    Not to mention that the stunned people will NOT GET ANY updates!
    The best you can do is just point to the original GIT repository avoiding any version mismatches and confusions.
    So please don't upload the script to any other sites. I mean it!
-
 ```
 Just click the subscribe button above and you are good to go! Thumbs Up ! XD
