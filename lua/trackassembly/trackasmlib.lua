@@ -1585,11 +1585,9 @@ function CheckButtonPly(pPly, ivInKey)
   if(not IsExistent(iInKey)) then
     return StatusLog(false,"CheckButtonPly: Input key {"..type(ivInKey)"}<"..tostring(ivInKey).."> invalid") end
   local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
-  if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"CheckButtonPly: Player "..tostring(pPly).." commands not loaded") end
-  return (bitBand(plyPlace["K_BTN"],iInKey) ~= 0)
+  if(CLIENT or (SERVER and not IsExistent(plyPlace))) then return pPly:KeyDown(iInKey) end
+  return (bitBand(plyPlace["K_BTN"],iInKey) ~= 0) -- Read the cache
 end
-
 -------------------------- BUILDSQL ------------------------------
 
 local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)

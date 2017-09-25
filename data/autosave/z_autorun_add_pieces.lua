@@ -4,15 +4,17 @@
  * Why the name starts with /z/ you may ask. When Gmod loads the game
  * it goes trough all the Lua addons alphabetically.
  * That means your file name ( The file you are reading right now )
- * must be greater alphabetically than /trackasmlib/, so the API of the
+ * must be greater alphabetically than /asmlib/, so the API of the
  * module can be loaded before you can use it like seen below.
 ]]--
+-- Local reference to the module
+local asmlib = trackasmlib
 
 -- Change this to your addon name
 local myAddon = "Test's track pack" -- Your addon name goes here
 
 -- Change this if you want to use different in-game type
-local myType  = myAddon -- The type your addon resides in TA with
+local myType  = myAddon -- The type your addon resides in the tool with
 
 --[[
  * For actually produce an error you can replace the /print/
@@ -26,11 +28,11 @@ local myError = print
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_")
 
-if(trackasmlib) then
+if(asmlib) then
   -- This is the path to your DSV
-  local myDsv = trackasmlib.GetOpVar("DIRPATH_BAS")..
-                trackasmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
-                trackasmlib.GetOpVar("TOOLNAME_PU")
+  local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
+                asmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
+                asmlib.GetOpVar("TOOLNAME_PU")
   local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
 
   -- This is the script path. It tells TA who wants to add these models
@@ -39,10 +41,10 @@ if(trackasmlib) then
         myScript = myScript and myScript.source or "N/A"
 
   -- Tell TA what custom script we just called don't touch it
-  trackasmlib.LogInstance(">>> "..myScript)
+  asmlib.LogInstance(">>> "..myScript)
 
   -- And what parameters I was called with ;)
-  trackasmlib.LogInstance("Status("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
+  asmlib.LogInstance("Status("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
 
   --[[
    * Register the addon to the auto-load prefix list when the
@@ -56,9 +58,9 @@ if(trackasmlib) then
    * sDelim > The delimiter to be used for processing ( default tab )
   ]]--
   if(myFlag) then
-    trackasmlib.LogInstance("RegisterDSV skip <"..myPrefix..">")
+    asmlib.LogInstance("RegisterDSV skip <"..myPrefix..">")
   else
-    if(not trackasmlib.RegisterDSV(myScript, myPrefix)) then
+    if(not asmlib.RegisterDSV(myScript, myPrefix)) then
       myError("Failed to register DSV: "..myScript)
     end -- Third argument is the delimiter. The default tab is used
   end
@@ -99,7 +101,7 @@ if(trackasmlib) then
    * it must be related to your addon ( default is tab )
   ]]--
   if(CLIENT) then
-    if(not trackasmlib.ExportCategory(3, myCategory, myPrefix)) then
+    if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
       myError("Failed to synchronize category: "..myScript)
     end
   end
@@ -159,14 +161,14 @@ if(trackasmlib) then
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
    * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
   ]]--
-  if(not trackasmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
+  if(not asmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
     myError("Failed to synchronize track pieces: "..myScript)
   else -- You are saving me from all the work for manually generatin these
-    if(not trackasmlib.TranslateDSV("PIECES", myPrefix)) then
+    if(not asmlib.TranslateDSV("PIECES", myPrefix)) then
       myError("Failed to translate DSV into Lua: "..myScript) end
   end -- Now we have Lua inserts and DSV
 
-  trackasmlib.LogInstance("<<< "..myScript)
+  asmlib.LogInstance("<<< "..myScript)
 else
   myError("Failed loading the requred module: "..myScript)
 end
