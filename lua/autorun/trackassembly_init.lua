@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.385")
+asmlib.SetOpVar("TOOL_VERSION","5.386")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -484,7 +484,7 @@ if(CLIENT) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
       if(not inputIsMouseDown(MOUSE_LEFT)) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Physgun not hold") end
-      local actTr = utilTraceLine(utilGetPlayerTrace(oPly))
+      local actTr = asmlib.GetTracePly(oPly)
       if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
       if(not actTr.Hit) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not hit") end
       if(actTr.HitWorld) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace world") end

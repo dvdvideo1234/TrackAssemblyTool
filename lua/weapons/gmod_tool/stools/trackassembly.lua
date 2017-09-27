@@ -298,15 +298,13 @@ function TOOL:IntersectClear(bEnb)
   local ntEnb = tobool(bEnb)
   local oPly  = self:GetOwner()
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
-  if(stRay and SERVER) then
-    if(stRay.Ent and stRay.Ent:IsValid()) then
-      stRay.Ent:SetColor(conPalette:Select("w")) end
+  if(SERVER) then
+    local ryEnt = stRay.Ent
+    if(stRay and ryEnt and ryEnt:IsValid()) then
+        ryEnt:SetColor(conPalette:Select("w")) end
+    if(ntEnb) then asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP") end
+    oPly:SetNW2Bool("ray_inter_relayenb", false)
   end; asmlib.IntersectRayClear(oPly, "ray_relate")
-  if(ntEnb and SERVER) then
-    asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP") end
-  oPly:SetNW2Bool  ("ray_inter_relayenb", false)
-  oPly:SetNW2Vector("ray_inter_relaypos", nil)
-  oPly:SetNW2Vector("ray_inter_relayang", nil)
   return asmlib.StatusLog(true,"TOOL:IntersectClear("..tostring(ntEnb).."): Relation cleared")
 end
 
@@ -316,9 +314,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit, vNorm)
   if(not stRay) then -- Create/update the ray in question
     return asmlib.StatusLog(false,"TOOL:IntersectRelate(): Update fail") end
   if(SERVER) then
-    oPly:SetNW2Bool  ("ray_inter_relayenb", true)
-    oPly:SetNW2Vector("ray_inter_relaypos", stRay.Orw)
-    oPly:SetNW2Vector("ray_inter_relayang", stRay.Diw)
+    oPly:SetNW2Bool("ray_inter_relayenb", true)
     local femod = stringToFileName(oEnt:GetModel())
     asmlib.PrintNotifyPly(oPly,"Intersection relation: "..femod.." !","UNDO")
     stRay.Ent:SetColor(conPalette:Select("ry")); asmlib.Print(tRay,"ActiveRay")
@@ -365,9 +361,8 @@ function TOOL:GetAnchor()
 end
 
 function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bLoop)
-  local ply   = self:GetOwner()
-  local model = self:GetModel()
   local pointid, pnextid = self:GetPointID()
+  local ply, model = self:GetOwner(), self:GetModel()
   if(not asmlib.IntersectRayCreate(ply, trEnt, vHit, "ray_origin")) then
     return asmlib.StatusLog(nil,"TOOL:LeftClick(): Failed updating ray") end
   local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayHash(ply, "ray_origin", "ray_relate")
@@ -402,7 +397,7 @@ end
 
 function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, #gtWorkMode)
-  if(SERVER) then -- Perform varios actions to stabilize data across working modes
+  if(SERVER) then -- Perform various actions to stabilize data across working modes
     if    (workmode == 1) then self:IntersectClear() -- Reset ray list in snap mode
     elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
   end; return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
@@ -415,7 +410,6 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
   local sFleLog = asmlib.GetOpVar("LOG_LOGFILE")
   local sSpace  = (" "):rep(6 + tostring(iMaxlog):len())
-  local plyKeys = asmlib.ReadKeyPly(ply)
   local workmode, workname = self:GetWorkingMode()
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
@@ -548,7 +542,6 @@ function TOOL:LeftClick(stTrace)
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector()
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
@@ -693,7 +686,6 @@ function TOOL:RightClick(stTrace)
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
-  asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
     if(asmlib.CheckButtonPly(ply,IN_USE)) then
       asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
@@ -725,7 +717,6 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
-  asmlib.ReadKeyPly(ply)
   if(stTrace.HitWorld) then
     if(self:GetDeveloperMode()) then asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(self:GetExportDB()) then
@@ -776,7 +767,7 @@ function TOOL:UpdateGhost(ePiece, oPly)
   ePiece:SetNoDraw(true)
   ePiece:DrawShadow(false)
   ePiece:SetColor(conPalette:Select("gh"))
-  local stTrace = utilTraceLine(utilGetPlayerTrace(oPly))
+  local stTrace = asmlib.GetTracePly(oPly)
   if(not stTrace) then return end
   local trEnt = stTrace.Entity
   local model = self:GetModel()
@@ -802,15 +793,8 @@ function TOOL:UpdateGhost(ePiece, oPly)
       local stSpawn = asmlib.GetNormalSpawn(stTrace.HitPos + self:GetElevation() * stTrace.HitNormal,
                         aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        if(workmode == 2) then
-          local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
-          if(stRay) then
-            oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
-            oPly:SetNW2Vector("ray_inter_relaypos", stRay.Orw)
-            oPly:SetNW2Vector("ray_inter_relayang", stRay.Diw)
-          end
-        end
-        ePiece:SetAngles(stSpawn.SAng); ePiece:SetPos(stSpawn.SPos); ePiece:SetNoDraw(false) end
+        ePiece:SetAngles(stSpawn.SAng); ePiece:SetPos(stSpawn.SPos); ePiece:SetNoDraw(false)
+      end
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
@@ -823,13 +807,7 @@ function TOOL:UpdateGhost(ePiece, oPly)
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
         if(workmode == 2) then
-          local stRay1, stRay2 = self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
-          if(stRay1 and stRay2) then
-            oPly:SetNW2Vector("ray_inter_spawnpos", stSpawn.SPos)
-            oPly:SetNW2Vector("ray_inter_relaypos", stRay2.Orw)
-            oPly:SetNW2Vector("ray_inter_relayang", stRay2.Diw)
-          end
-        end
+          self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true) end
         ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
       end
     end
@@ -893,12 +871,9 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
 end
 
 function TOOL:DrawRelationRay(oScreen, oPly, stSpawn)
-  local bEnb = oPly:GetNW2Bool  ("ray_inter_relayenb")
-  local ePos = oPly:GetNW2Vector("ray_inter_relaypos")
-  local eAng = oPly:GetNW2Angle ("ray_inter_relayang")
-  local sPos, Ss = oPly:GetNW2Vector("ray_inter_spawnpos")
-  if(sPos and stSpawn and stSpawn.SPos) then
-    stSpawn.SPos:Set(sPos); Ss = sPos:ToScreen() end
+  local enRay = oPly:GetNW2Bool("ray_inter_relayenb")
+  local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
+
   if(ePos and eAng) then
     local Rp, nLn = ePos:ToScreen(), self:GetActiveRadius()
     local Re = (ePos + nLn * eAng:Forward()):ToScreen()
@@ -927,7 +902,7 @@ function TOOL:DrawHUD()
   end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
   local ply, ucs = LocalPlayer(), 30 -- UCS length
-  local stTrace = ply:GetEyeTrace()
+  local stTrace  = asmlib.GetTracePly(ply)
   if(not stTrace) then return end
   local ratioc = (gnRatio - 1) * 100
   local ratiom = (gnRatio * 1000)
@@ -1127,7 +1102,7 @@ function TOOL:DrawToolScreen(w, h)
   end; scrTool:SetColor()
   scrTool:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
   scrTool:SetTextEdge(0,0)
-  local stTrace = LocalPlayer():GetEyeTrace()
+  local stTrace = asmlib.GetTracePly(LocalPlayer())
   local anInfo, anEnt = self:GetAnchor()
   local tInfo = stringExplode(gsSymRev,anInfo)
   if(not (stTrace and stTrace.Hit)) then

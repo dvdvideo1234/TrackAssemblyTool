@@ -234,7 +234,8 @@ local function Log(anyStuff)
   if(logLast == logData) then SetOpVar("LOG_CURLOGS",nCurLogs); return end
   SetOpVar("LOG_LOGLAST",logData)
   if(GetOpVar("LOG_LOGFILE")) then
-    local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_log.txt"
+    local lbNam = GetOpVar("NAME_LIBRARY")
+    local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_log.txt"
     if(nCurLogs > nMaxLogs) then nCurLogs = 0; fileDelete(fName) end
     fileAppend(fName,FormatNumberMax(nCurLogs,nMaxLogs).." ["..GetDate().."] "..logData.."\n")
   else -- The current has values 1..nMaxLogs(0)
@@ -328,9 +329,9 @@ function SettingsLogs(sHash)
   local sKey = tostring(sHash or ""):upper():Trim()
   if(not (sKey == "SKIP" or sKey == "ONLY")) then
     return StatusLog(false,"SettingsLogs("..sKey.."): Invalid hash") end
-  local tLogs = GetOpVar("LOG_"..sKey)
+  local tLogs, lbNam = GetOpVar("LOG_"..sKey), GetOpVar("NAME_LIBRARY")
   if(not tLogs) then return StatusLog(true,"SettingsLogs("..sKey.."): Skip table") end
-  local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_sl"..sKey:lower()..".txt"
+  local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_sl"..sKey:lower()..".txt"
   local S = fileOpen(fName, "rb", "DATA")
   if(S) then
     local sCh, sLine = "X", ""
@@ -401,6 +402,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("TIME_FORMAT","%H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
   SetOpVar("NAME_PERP",sPurpose:lower())
+  SetOpVar("NAME_LIBRARY", GetOpVar("NAME_INIT").."asmlib")
   SetOpVar("TOOLNAME_NL",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):lower())
   SetOpVar("TOOLNAME_NU",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):upper())
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
@@ -1505,10 +1507,27 @@ function DefaultTable(anyTable)
   SettingsModelToName("CLR")
 end
 
-------------------------- PLAYER -----------------------------------
+function GetTracePly(pPly)
+  if(not IsPlayer(pPly)) then
+    return StatusLog(nil,"GetTracePly: Player <"..tostring(pPly)"> invalid") end
+  local plyTable = GetOpVar("TABLE_PLAYER")
+  local plyPlace, plyTime = plyTable[pPly], Time()
+  if(not IsExistent(plyPlace)) then
+    plyTable[pPly] = {}; plyPlace = plyTable[pPly] end
+  if(not plyPlace["TDM"]) then -- Define trace delta margin
+    plyPlace["TDM"] = 0.02 -- Trace delta time margin
+    plyPlace["NXT"] = plyTime + plyPlace["TDM"] -- Define next trace pending
+    plyPlace["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly)) -- Make a trace
+  end -- Check the trace time margin interval
+  if(plyTime >= plyPlace["NXT"]) then
+    plyPlace["NXT"] = plyTime + plyPlace["TDM"] -- Next trace margin
+    plyPlace["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly))
+  end; return plyPlace["DAT"]
+end
 
 function ConCommandPly(pPly,sCvar,snValue)
-  if(not IsPlayer(pPly)) then return StatusLog(nil,"ConCommandPly: Player <"..type(pPly).."> invalid") end
+  if(not IsPlayer(pPly)) then
+    return StatusLog(nil,"ConCommandPly: Player <"..tostring(pPly).."> invalid") end
   if(not IsString(sCvar)) then -- Make it like so the space will not be forgotten
     return StatusLog(nil,"ConCommandPly: Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string") end
   return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(snValue).."\n")
@@ -1516,7 +1535,7 @@ end
 
 function PrintNotifyPly(pPly,sText,sNotifType)
   if(not IsPlayer(pPly)) then
-    return StatusLog(false,"PrintNotifyPly: Player <"..type(pPly)"> invalid") end
+    return StatusLog(false,"PrintNotifyPly: Player <"..tostring(pPly)"> invalid") end
   if(SERVER) then -- Send notification to client that something happened
     pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
     pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
@@ -1536,7 +1555,8 @@ function UndoAddEntityPly(oEnt)
 end
 
 function UndoFinishPly(pPly,anyMessage)
-  if(not IsPlayer(pPly)) then return StatusLog(false,"UndoFinishPly: Player <"..type(pPly)"> invalid") end
+  if(not IsPlayer(pPly)) then
+    return StatusLog(false,"UndoFinishPly: Player <"..tostring(pPly)"> invalid") end
   pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathFloor(mathRandom(3))..".wav")
   undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(anyMessage or ""))
   undoSetPlayer(pPly)
@@ -1544,50 +1564,56 @@ function UndoFinishPly(pPly,anyMessage)
   return true
 end
 
-function ReadKeyPly(pPly)
-  local plyKeys  = GetOpVar("TABLE_PLAYER_KEYS")
+function CachePressPly(pPly)
   if(not IsPlayer(pPly)) then
-    return StatusLog(false,"ReadKeyPly: Player <"..type(pPly)"> not available") end
-  local plyPlace = plyKeys[pPly]
-  if(not IsExistent(plyPlace)) then plyKeys[pPly] = {}; plyPlace = plyKeys[pPly] end
+    return StatusLog(false,"CachePressPly: Player invalid <"..tostring(pPly)..">") end
+  local plyTable = GetOpVar("TABLE_PLAYER")
+  local plyPlace = plyTable[pPly]
+  if(plyPlace["CMD"]) then return true end -- Already cached
+  if(not IsExistent(plyPlace)) then
+    plyTable[pPly] = {}; plyPlace = plyTable[pPly] end
   local ucmdPressed = pPly:GetCurrentCommand()
   if(not IsExistent(ucmdPressed)) then
-    return StatusLog(false,"ReadKeyPly: Command not obtained correctly") end
-  plyPlace["M_DX"]   = ucmdPressed:GetMouseX()
-  plyPlace["M_DY"]   = ucmdPressed:GetMouseY()
-  plyPlace["K_BTN"]  = ucmdPressed:GetButtons()
-  plyPlace["M_DSCR"] = ucmdPressed:GetMouseWheel()
-  return StatusLog(true,"ReadKeyPly: "..tostring(pPly).." keys loaded")
+    return StatusLog(false,"CachePressPly: Obtained incorrectly") end
+  plyPlace["CMD"] = ucmdPressed
+  return StatusLog(true,"CachePressPly: Cached <"..tostring(pPly)..">")
 end
 
 function GetMouseWheelPly(pPly)
   if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
-    return StatusLog(false,"DeltaMousePly: Player <"..type(pPly)"> not available") end
-  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
+    return StatusLog(false,"DeltaMousePly: Player invalid <"..tostring(pPly)">") end
+  local plyPlace = GetOpVar("TABLE_PLAYER")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"DeltaMousePly: "..tostring(pPly).." commands not loaded") end
-  return plyPlace["M_DSCR"]
+    return StatusLog(false,"DeltaMousePly: Cache missing <"..pPly:Nick()..">") end
+  local ucmdPressed = plyPlace["CMD"]
+  return (ucmdPressed and ucmdPressed:GetMouseWheel() or 0)
 end
 
-function GetMouseDeltaPly(pPly)
+function GetMouseVectorPly(pPly)
   if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
-    return StatusLog(false,"GetMouseDeltaPly: Player <"..type(pPly)"> not available") end
-  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
+    return StatusLog(false,"GetMouseVectorPly: Player <"..tostring(pPly)"> not available") end
+  local plyPlace = GetOpVar("TABLE_PLAYER")[pPly]
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"GetMouseDeltaPly: "..tostring(pPly).." commands not loaded") end
-  return plyPlace["M_DX"], plyPlace["M_DY"]
+    return StatusLog(false,"GetMouseVectorPly: Cache missing <"..pPly:Nick()..">") end
+  local ucmdPressed = plyPlace["CMD"]
+  local ucmdX = (ucmdPressed and ucmdPressed:GetMouseX() or 0)
+  local ucmdY = (ucmdPressed and ucmdPressed:GetMouseY() or 0)
+  return ucmdX, ucmdY
 end
 
 function CheckButtonPly(pPly, ivInKey)
   if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/Enums/IN
-    return StatusLog(false,"CheckButtonPly: Player <"..type(pPly)"> not available") end
+    return StatusLog(false,"CheckButtonPly: Player invalid <"..tostring(pPly)">") end
   local iInKey = tonumber(ivInKey)
   if(not IsExistent(iInKey)) then
     return StatusLog(false,"CheckButtonPly: Input key {"..type(ivInKey)"}<"..tostring(ivInKey).."> invalid") end
-  local plyPlace = GetOpVar("TABLE_PLAYER_KEYS")[pPly]
-  if(CLIENT or (SERVER and not IsExistent(plyPlace))) then return pPly:KeyDown(iInKey) end
-  return (bitBand(plyPlace["K_BTN"],iInKey) ~= 0) -- Read the cache
+  local plyPlace = GetOpVar("TABLE_PLAYER")[pPly]
+  if(CLIENT or (not IsExistent(plyPlace))) then return pPly:KeyDown(iInKey) end
+  local ucmdPressed = plyPlace["CMD"]
+  if(not IsExistent(ucmdPressed)) then return pPly:KeyDown(iInKey) end
+  return (bitBand(ucmdPressed:GetButtons(),iInKey) ~= 0) -- Read the cache
 end
+
 -------------------------- BUILDSQL ------------------------------
 
 local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bStopEmpty)
@@ -2850,8 +2876,9 @@ function TranslateDSV(sTable, sPref, sDelim)
   if(not I) then return StatusLog(false,"TranslateDSV("..fPref.."): fileOpen("..sNins..") failed") end
   I:Write("# TranslateDSV("..fPref.."@"..sTable.."): "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   I:Write("# Data settings:\t"..GetColumns(defTable, sDelim).."\n")
+  local pfLib = GetOpVar("NAME_LIBRARY"):gsub(GetOpVar("NAME_INIT"),"")
   local sLine, sCh, symOff = "", "X", GetOpVar("OPSYM_DISABLE")
-  local sFr, sBk, sHs = "asmlib.InsertRecord(\""..sTable.."\", {", "})\n", (fPref.."@"..sTable)
+  local sFr, sBk, sHs = pfLib..".InsertRecord(\""..sTable.."\", {", "})\n", (fPref.."@"..sTable)
   while(sCh) do
     sCh = D:Read(1)
     if(not sCh) then break end
@@ -2879,8 +2906,9 @@ end
  * sProg  > The program which registered the DSV
  * sPref  > The external data prefix to be added
  * sDelim > The delimiter to be used for processing
+ * bSkip  > Skip addition for the DSV prefix if exists
 ]]--
-function RegisterDSV(sProg, sPref, sDelim)
+function RegisterDSV(sProg, sPref, sDelim, bSkip)
   if(CLIENT and gameSinglePlayer()) then
     return StatusLog(true,"RegisterDSV: Single client") end
   local sPref = tostring(sPref or GetInstPref())
@@ -2888,13 +2916,44 @@ function RegisterDSV(sProg, sPref, sDelim)
     return StatusLog(false,"RegisterDSV("..sPref.."): Prefix empty") end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
-  local fName = sBas.."trackasmlib_dsv.txt"
-  local F = fileOpen(fName, "ab" ,"DATA")
-  if(not F) then return StatusLog(false,"RegisterDSV("
-    ..sPref.."): fileOpen("..fName..") failed") end
+  local lbNam = GetOpVar("NAME_LIBRARY")
+  local fName = (sBas..lbNam.."_dsv.txt")
   local sMiss, sDelim = GetOpVar("MISS_NOAV"), tostring(sDelim or "\t"):sub(1,1)
-  F:Write(sPref:Trim()..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
-  return StatusLog(true,"RegisterDSV("..sPref.."): Success")
+  if(bSkip) then
+    local symOff = GetOpVar("OPSYM_DISABLE")
+    local fPool, sCh, isAct = {}, "X", true
+    local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""
+    if(not F) then return StatusLog(false,"RegisterDSV("
+      ..sPref.."): fileOpen("..fName..") read failed") end
+     while(sCh) do
+      sCh = F:Read(1)
+      if(not sCh) then break end
+      if(sCh == "\n") then sLine = sLine:Trim()
+        if(sLine:sub(1,1) == symOff) then
+          isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
+        local tab = stringExplode(sDelim, sLine)
+        local prf, src = tab[1]:Trim(), tab[2]:Trim()
+        local inf = fPool[prf]
+        if(not inf) then
+          fPool[prf] = {Cnt = 1}; inf = fPool[prf]
+          inf[inf.Cnt] = {src, isAct}
+        else
+          inf.Cnt = inf.Cnt + 1
+          inf[inf.Cnt] = {src, isAct}
+        end; sLine = ""
+      else sLine = sLine..sCh end
+    end; F:Close()
+    if(fPool[sPref]) then
+      local inf = fPool[sPref]
+      for ID = 1, inf.Cnt do local tab = inf[ID]
+        LogInstance("RegisterDSV("..sPref.."): "..(tab[2] and "On " or "Off").." <"..tab[1]..">") end
+      return StatusLog(true,"RegisterDSV("..sPref.."): Skip <"..sProg..">")
+    end
+  end; local F = fileOpen(fName, "ab" ,"DATA")
+  if(not F) then return StatusLog(false,"RegisterDSV("
+    ..sPref.."): fileOpen("..fName..") append failed") end
+  F:Write(sPref..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
+  return StatusLog(true,"RegisterDSV("..sPref.."): Register")
 end
 
 --[[
@@ -2906,7 +2965,8 @@ end
  * sDelim > The delimiter to be used while processing the DSV list
 ]]--
 function ProcessDSV(sDelim)
-  local fName = GetOpVar("DIRPATH_BAS").."trackasmlib_dsv.txt"
+  local lbNam = GetOpVar("NAME_LIBRARY")
+  local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_dsv.txt"
   local F = fileOpen(fName, "rb" ,"DATA")
   if(not F) then return StatusLog(false,"ProcessDSV: fileOpen("..fName..") failed") end
   local sCh, sLine, symOff = "X", "", GetOpVar("OPSYM_DISABLE")
@@ -2980,7 +3040,7 @@ function GetNormalAngle(oPly, stTrace, bSnap, nYSnp)
   if(bSnap) then -- Snap to the surface
     local stTr = stTrace
     if(not (stTr and stTr.Hit)) then
-      stTr = utilTraceLine(utilGetPlayerTrace(oPly))
+      stTr = GetTracePly(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
     end
     local vUp, vRg = stTr.HitNormal, oPly:GetRight()
@@ -3164,19 +3224,19 @@ function GetEntityHitID(oEnt, vHit)
   local oRec = CacheQueryPiece(oEnt:GetModel())
   if(not oRec) then return StatusLog(nil,"GetEntityHitID: Trace not piece <"..oEnt:GetModel()..">") end
   local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
-  local vTmp, nPnt, nMin, oPOA = Vector(), nil, nil, nil
+  local vTmp, nID, nMin, oPOA = Vector(), nil, nil, nil
   for ID = 1, oRec.Kept do -- Ignore the point disabled flag
-    local tPOA, oID = LocatePOA(oRec, ID)
+    local tPOA, tID = LocatePOA(oRec, ID)
     if(not IsExistent(tPOA)) then -- Get intersection rays list for the player
       return StatusLog(nil,"GetEntityHitID: Point <"..tostring(ID).."> invalid") end
     SetVector(vTmp, tPOA.P) -- Translate point to a world-space
     MulVectorXYZ(vTmp, tPOA.P[csA], tPOA.P[csB], tPOA.P[csC])
     vTmp:Rotate(eAng); vTmp:Add(ePos); vTmp:Sub(vHit)
-    if(nPnt and nMin) then
-      if(nMin >= vTmp:Length()) then nPnt, nMin, oPOA = oID, vTmp:Length(), tPOA end
+    if(nID and nMin) then
+      if(nMin >= vTmp:Length()) then nID, nMin, oPOA = tID, vTmp:Length(), tPOA end
     else -- The shortest distance if the first one checked until others are looped
-      nPnt, nMin, oPOA = oID, vTmp:Length(), tPOA end
-  end; return nPnt, nMin, oPOA, oRec
+      nID, nMin, oPOA = tID, vTmp:Length(), tPOA end
+  end; return nID, nMin, oPOA, oRec
 end
 
 --[[
@@ -3276,10 +3336,13 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
   if(not stRay) then -- Define a ray via origin and direction
     tRay[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
                   Orw = Vector(), Diw = Angle(), -- World direction and origin
-                   ID = trID    , Ent = oEnt   , -- Point ID and entity realtion
-                  Key = sKey    , Ply = oPly }; stRay = tRay[sKey]
+                   ID = trID    , Ent = oEnt   , -- Point ID and entity relation
+                  Key = sKey    , Ply = oPly   ,
+                  POA = trPOA   , Rec = trRec, Min = trMin}; stRay = tRay[sKey]
   else -- Update internal settings
-    stRay.Ply, stRay.Ent, stRay.ID, stRay.Key = oPly, oEnt, trID, sKey
+    stRay.Key = sKey
+    stRay.Ply, stRay.Ent, stRay.ID  = oPly , oEnt , trID
+    stRay.POA, stRay.Rec, stRay.Min = trPOA, trRec, trMin
   end; SetAngle(stRay.Dir, trPOA.A); SetVector(stRay.Org, trPOA.O)
   return IntersectRayUpdate(stRay)
 end
@@ -3435,10 +3498,10 @@ end
 
 local function GetEntityOrTrace(oEnt)
   if(oEnt and oEnt:IsValid()) then return oEnt end
-  local pPly = LocalPlayer()
-  if(not IsPlayer(pPly)) then
-    return StatusLog(nil,"GetEntityOrTrace: Player <"..type(pPly)"> missing") end
-  local stTrace = pPly:GetEyeTrace()
+  local oPly = LocalPlayer()
+  if(not IsPlayer(oPly)) then
+    return StatusLog(nil,"GetEntityOrTrace: Player <"..type(oPly)"> missing") end
+  local stTrace = GetTracePly(oPly)
   if(not IsExistent(stTrace)) then
     return StatusLog(nil,"GetEntityOrTrace: Trace missing") end
   if(not stTrace.Hit) then -- Boolean

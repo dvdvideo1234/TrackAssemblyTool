@@ -98,7 +98,7 @@ if(asmlib) then
    * nInd   > The index equal indent format to be stored with ( generally = 3 )
    * tData  > The category functional definition you want to use to divide your stuff with
    * sPref  > An export file custom prefix. For synchronizing
-   * it must be related to your addon ( default is tab )
+   * it must be related to your addon ( default is instance prefix )
   ]]--
   if(CLIENT) then
     if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
@@ -116,7 +116,7 @@ if(asmlib) then
    * the value provided {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
    * TYPE   > This string is the name of the type your stuff will reside in the panel
    *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable
-   *          If it is emty uses the string /TYPE/, so make sure you fill this
+   *          If it is empty uses the string /TYPE/, so make sure you fill this
    * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
    *          the model ( from the last slash to the file extension )
    * LINEID > This is the ID of the point that can be selected for building. They must be
@@ -129,7 +129,7 @@ if(asmlib) then
    * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
    *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
    * CLASS  > This string is filled up when your entity class is not /prop_physics/ but something else
-   *          used by ents.Create of the gmod ents api library. Keep this empty if your stuff is a normal prop
+   *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop
   ]]--
   local myTable = {
     ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack
@@ -149,26 +149,26 @@ if(asmlib) then
    @ bSuccess = SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
    * sTable > The table you want to sync
    * tData  > A data table like the one described above
-   * bRepl  > If set to /true/, makes the api to replace the repeating models with
+   * bRepl  > If set to /true/, makes the API to replace the repeating models with
               these of your addon. This is nice when you are constantly updating your track packs
               If set to /false/ keeps the current model in the
               database and ignores yours if they are the same file.
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
-   * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
+   * sDelim > The delimiter used by the server/client ( default is a tab symbol )
    *
    @ bSuccess = TranslateDSV(sTable, sPref, sDelim)
    * sTable > The table you want to translate to Lua script
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
-   * sDelim > The delimiter used by the server/client ( defaut is a tab symbol )
+   * sDelim > The delimiter used by the server/client ( default is a tab symbol )
   ]]--
   if(not asmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
     myError("Failed to synchronize track pieces: "..myScript)
-  else -- You are saving me from all the work for manually generatin these
+  else -- You are saving me from all the work for manually generation these
     if(not asmlib.TranslateDSV("PIECES", myPrefix)) then
       myError("Failed to translate DSV into Lua: "..myScript) end
   end -- Now we have Lua inserts and DSV
 
   asmlib.LogInstance("<<< "..myScript)
 else
-  myError("Failed loading the requred module: "..myScript)
+  myError("Failed loading the required module: "..myScript)
 end
