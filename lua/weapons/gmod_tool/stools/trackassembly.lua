@@ -928,25 +928,21 @@ function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn, nRad)
   end; return nil
 end
 
-function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, stSpawn, nRad, bPnt)
+function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, nRad)
   local uOrg, uAng, UCS = Vector(), Angle(), 30
   if(vOrg) then uOrg:Set(vOrg) else uOrg:Set(stSpawn.OPos) end
   if(aOrg) then uAng:Set(aOrg) else uAng:Set(stSpawn.OAng) end
-  local Os, Tp, Pp = uOrg:ToScreen(), vHit:ToScreen()
+  local Os, Tp = uOrg:ToScreen(), vHit:ToScreen()
   local Xs = (UCS * uAng:Forward() + uOrg):ToScreen()
   local Ys = (UCS * uAng:Right  () + uOrg):ToScreen()
   local Zs = (UCS * uAng:Up     () + uOrg):ToScreen()
-  if(bPnt) then Pp = stSpawn.TPnt:ToScreen() end
   oScreen:DrawLine(Os,Xs,"r","SURF")
   oScreen:DrawLine(Os,Ys,"g")
   oScreen:DrawLine(Os,Zs,"b")
   oScreen:DrawCircle(Os, nRad,"y")
   oScreen:DrawLine(Os,Tp)
   oScreen:DrawCircle(Tp, nRad / 2)
-  if(Pp) then
-    oScreen:DrawLine(Os,Pp,"r")
-    oScreen:DrawCircle(Pp, nRad / 2)
-  end
+  return Os, Tp
 end
 
 function TOOL:DrawHUD()
@@ -1001,8 +997,11 @@ function TOOL:DrawHUD()
         hudMonitor:DrawCircle(Op, mR,"y","SEGM",{100})
       end; return
     end
-    local rdScale = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
-    self:DrawUCS(hudMonitor, stTrace.HitPos, nil, nil, stSpawn, rdScale, true)
+    local nRad = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
+    local Os, Tp = self:DrawUCS(hudMonitor, stTrace.HitPos, stSpawn.OPos, stSpawn.OAng, stSpawn, nRad, true)
+    local Pp = stSpawn.TPnt:ToScreen()
+    oScreen:DrawLine(Os,Pp,"r")
+    oScreen:DrawCircle(Pp, nRad / 2)
     if(workmode == 1) then
       local nxPOA = asmlib.LocatePOA(stSpawn.HRec,pnextid)
       if(nxPOA and stSpawn.HRec.Kept > 1) then
@@ -1010,14 +1009,14 @@ function TOOL:DrawHUD()
               vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
         local Np = vNext:ToScreen() -- Draw Next Point
         hudMonitor:DrawLine(Os,Np,"g")
-        hudMonitor:DrawCircle(Np, rdScale / 2, "g")
+        hudMonitor:DrawCircle(Np, nRad / 2, "g")
       end
       local Ss = stSpawn.SPos:ToScreen()
       hudMonitor:DrawLine(Os,Ss,"m")
-      hudMonitor:DrawCircle(Ss, rdScale,"c")
+      hudMonitor:DrawCircle(Ss, nRad,"c")
     elseif(workmode == 2) then -- Draw point intersection
-      local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, stSpawn, rdScale)
-      local xX, X1, X2, O1, O2 = self:DrawModelIntersection(hudMonitor, ply, stSpawn, rdScale)
+      local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, stSpawn, nRad)
+      local xX, X1, X2, O1, O2 = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
       if(Rp) then
         hudMonitor:DrawLine(Rp,O2,"g")
         hudMonitor:DrawLine(Os,O1,"r")
@@ -1030,7 +1029,7 @@ function TOOL:DrawHUD()
     local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()
     local workmode = self:GetWorkingMode()
-    local rdScale  = mathClamp(ratiom / plyd,1,ratioc)
+    local nRad = mathClamp(ratiom / plyd,1,ratioc)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
     if(self:GetSpawnMC()) then -- Relative to MC
       local vPos = Vector()
@@ -1041,7 +1040,7 @@ function TOOL:DrawHUD()
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-      self:DrawUCS(hudMonitor, stTrace.HitPos, vPos, aAng, stSpawn, rdScale, false)
+      local Os, Tp = self:DrawUCS(hudMonitor, stTrace.HitPos, vPos, aAng, nRad)
       if(not self:GetDeveloperMode()) then return end
       local x,y = hudMonitor:GetCenter(10,10)
       hudMonitor:SetTextEdge(x,y)
@@ -1052,7 +1051,7 @@ function TOOL:DrawHUD()
       local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
-      self:DrawUCS(hudMonitor, stTrace.HitPos, nil, nil, stSpawn, rdScale, true)
+      local Os, Tp = self:DrawUCS(hudMonitor, stTrace.HitPos, stSpawn.OPos, stSpawn.OAng, nRad)
       if(workmode == 1) then
         local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
         if(nxPOA and stSpawn.HRec.Kept > 1) then
@@ -1062,14 +1061,14 @@ function TOOL:DrawHUD()
                 vNext:Add(stSpawn.SPos)
           local Np = vNext:ToScreen()
           hudMonitor:DrawLine(Os,Np,"g")
-          hudMonitor:DrawCircle(Np,rdScale / 2)
+          hudMonitor:DrawCircle(Np,nRad / 2)
         end
         local Ss = stSpawn.SPos:ToScreen()
         hudMonitor:DrawLine(Os,Ss,"m")
-        hudMonitor:DrawCircle(Ss, rdScale,"c")
+        hudMonitor:DrawCircle(Ss, nRad,"c")
       elseif(workmode == 2) then -- Draw point intersection
-        self:DrawRelateIntersection(hudMonitor, ply, stSpawn, rdScale)
-        self:DrawModelIntersection (hudMonitor, ply, stSpawn, rdScale)
+        self:DrawRelateIntersection(hudMonitor, ply, stSpawn, nRad)
+        self:DrawModelIntersection (hudMonitor, ply, stSpawn, nRad)
       end
       if(not self:GetDeveloperMode()) then return end
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
