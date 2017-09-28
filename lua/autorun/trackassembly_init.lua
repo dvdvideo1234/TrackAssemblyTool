@@ -36,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.389")
+asmlib.SetOpVar("TOOL_VERSION","5.390")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -104,6 +104,10 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
 
 -------- ACTIONS  ----------
 if(SERVER) then
+
+  utilAddNetworkString(gsLibName.."SendIntersectClear")
+  utilAddNetworkString(gsLibName.."SendIntersectRelate")
+  
   asmlib.SetAction("DUPE_PHYS_SETTINGS",
     function(oPly,oEnt,tData) -- Duplicator wrapper
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
@@ -165,7 +169,6 @@ end
 
 if(CLIENT) then
 
-  utilAddNetworkString(gsLibName.."SendIntersectClear")
   asmlib.SetAction("NET_CLEAR_RELATION",
     function(nLen,oPly)
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
@@ -174,7 +177,6 @@ if(CLIENT) then
       return asmlib.StatusLog(nil,"NET_CLEAR_RELATION: Success")
     end) -- Net receive intersect relation clear client-side
 
-  utilAddNetworkString(gsLibName.."SendIntersectRelate")
   asmlib.SetAction("NET_CREATE_RELATION",
     function(nLen,oPly)
       local oEnt, vHit = netReadEntity(), netReadVector()

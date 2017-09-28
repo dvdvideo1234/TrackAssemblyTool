@@ -1,0 +1,50 @@
+[h1] Description [/h1]
+This script can give you the ability to connect prop-segmented track pieces fast. It is optimized and brings the track building time consuming to a minimum. It uses pre-defined active points to snap the segments the best way there is in Garry's Mod
+
+[h1] Feature List [/h1]
+[list]
+ [*] Track curve fitting aligment based on [url=https://www.youtube.com/watch?v=1rsDHU79J50]ray intersection for precise piece layout[/url]
+ [*] Extendable database via [url=https://www.youtube.com/watch?v=Pz0_RGwgfaY]text file[/url] or a [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua]lua script[/url]
+ [*] Extendable database via [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt]text file load list[/url] and [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt]list prefixes[/url] [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt]categories[/url]
+ [*] Switching database storage between Lua table and SQL
+ [*] Spawning pieces on the map
+ [*] Snapping pieces on the map surface ( if checked )
+ [*] Snapping/spawning with [url=https://www.youtube.com/watch?v=e1IK2zJ_Djk]custom user offsets[/url]
+ [*] Snapping/spawning with zero pitch ( good for track leveling )
+ [*] Snapping/spawning at the mass-center or the active point ( if checked )
+ [*] Snapping the first piece yaw to user defined angle
+ [*] Snapping already spawned pieces by [url=https://www.youtube.com/watch?v=BxMlZMMGHrs]using only the physgun[/url]
+ [*] Fast changing the active track ends ( Alt + mouse scroll. Good switching turns direction )
+ [*] Custom user defined active radius based snapping
+ [*] Custom active point and radius location assistant
+ [*] Custom active point position angle and orientation adviser
+ [*] Advanced duplicator can be used on the track created
+ [*] Custom entity properties ( weld, freeze, no-collide )
+ [*] User can disable phys-gun grabbing on a piece ( good for turntables )
+ [*] Ability to list up the most used pieces on the server ( E + Right )
+ [*] Ability to search among the most server popular pieces by [url=https://www.lua.org/pil/20.2.html]Lua patterns[/url]
+ [*] Ability to export server and client database as a file
+ [*] Tool-tips for every button are available and can be translated easily
+ [*] Ability to spawn scripted track switches of other class ( Ron's 2ft )
+ [*] Ability to modify the bodygroups and skins of a track piece ( with duping )
+ [*] Ability to modify track piece [url=https://www.youtube.com/watch?v=ALBnlFeC9tU]suface behavior[/url] ( wood, metal, slime, tire )
+ [*] Ability to extend a track piece spawn with [url=https://www.youtube.com/watch?v=jKGBUNDMN6A]additional entities[/url]
+ [*] Includes integrated wiremod extension
+[/list]
+
+For detailed manual, please refer to Readme.md
+
+Readme: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/readme.md
+
+Git repository: https://github.com/dvdvideo1234/TrackAssemblyTool
+
+Report errors to: https://github.com/dvdvideo1234/TrackAssemblyTool/issues
+
+Releases: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
+
+Reuploading and source stealing will not be tolerated !
+Selling it is also out of option, as the open source suggests !
+
+If you want to support me and you like what I do:
+
+paypal.me/DeyanVasilev
