@@ -928,6 +928,27 @@ function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn, nRad)
   end; return nil
 end
 
+function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, stSpawn, nRad, bPnt)
+  local uOrg, uAng, UCS = Vector(), Angle(), 30
+  if(vOrg) then uOrg:Set(vOrg) else uOrg:Set(stSpawn.OPos) end
+  if(aOrg) then uAng:Set(aOrg) else uAng:Set(stSpawn.OAng) end
+  local Os, Tp, Pp = uOrg:ToScreen(), vHit:ToScreen()
+  local Xs = (UCS * uAng:Forward() + uOrg):ToScreen()
+  local Ys = (UCS * uAng:Right  () + uOrg):ToScreen()
+  local Zs = (UCS * uAng:Up     () + uOrg):ToScreen()
+  if(bPnt) then Pp = stSpawn.TPnt:ToScreen() end
+  oScreen:DrawLine(Os,Xs,"r","SURF")
+  oScreen:DrawLine(Os,Ys,"g")
+  oScreen:DrawLine(Os,Zs,"b")
+  oScreen:DrawCircle(Os, nRad,"y")
+  oScreen:DrawLine(Os,Tp)
+  oScreen:DrawCircle(Tp, nRad / 2)
+  if(Pp) then
+    oScreen:DrawLine(Os,Pp,"r")
+    oScreen:DrawCircle(Pp, nRad / 2)
+  end
+end
+
 function TOOL:DrawHUD()
   if(SERVER) then return end
   local hudMonitor = asmlib.GetOpVar("MONITOR_GAME")
@@ -941,7 +962,7 @@ function TOOL:DrawHUD()
     asmlib.LogInstance("TOOL:DrawHUD: Create screen")
   end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
-  local ply, ucs = LocalPlayer(), 30 -- UCS length
+  local ply = LocalPlayer()
   local stTrace  = asmlib.GetTracePly(ply)
   if(not stTrace) then return end
   local ratioc = (gnRatio - 1) * 100
@@ -980,25 +1001,8 @@ function TOOL:DrawHUD()
         hudMonitor:DrawCircle(Op, mR,"y","SEGM",{100})
       end; return
     end
-    stSpawn.F:Mul(ucs); stSpawn.F:Add(stSpawn.OPos)
-    stSpawn.R:Mul(ucs); stSpawn.R:Add(stSpawn.OPos)
-    stSpawn.U:Mul(ucs); stSpawn.U:Add(stSpawn.OPos)
     local rdScale = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
-    local Os = stSpawn.OPos:ToScreen()
-    local Xs = stSpawn.F:ToScreen()
-    local Ys = stSpawn.R:ToScreen()
-    local Zs = stSpawn.U:ToScreen()
-    local Pp = stSpawn.TPnt:ToScreen()
-    local Tp = stTrace.HitPos:ToScreen()
-    -- Draw Elements
-    hudMonitor:DrawLine(Os,Xs,"r","SURF")
-    hudMonitor:DrawLine(Os,Pp)
-    hudMonitor:DrawCircle(Pp, rdScale / 2,"r","SURF")
-    hudMonitor:DrawLine(Os,Ys,"g")
-    hudMonitor:DrawLine(Os,Zs,"b")
-    hudMonitor:DrawCircle(Os, rdScale,"y")
-    hudMonitor:DrawLine(Os,Tp)
-    hudMonitor:DrawCircle(Tp, rdScale / 2)
+    self:DrawUCS(hudMonitor, stTrace.HitPos, nil, nil, stSpawn, rdScale, true)
     if(workmode == 1) then
       local nxPOA = asmlib.LocatePOA(stSpawn.HRec,pnextid)
       if(nxPOA and stSpawn.HRec.Kept > 1) then
@@ -1037,20 +1041,7 @@ function TOOL:DrawHUD()
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-      local F = aAng:Forward(); F:Mul(ucs); F:Add(vPos)
-      local R = aAng:Right()  ; R:Mul(ucs); R:Add(vPos)
-      local U = aAng:Up()     ; U:Mul(ucs); U:Add(vPos)
-      local Os = vPos:ToScreen()
-      local Xs = F:ToScreen()
-      local Ys = R:ToScreen()
-      local Zs = U:ToScreen()
-      local Tp = stTrace.HitPos:ToScreen()
-      hudMonitor:DrawLine(Os,Xs,"r","SURF")
-      hudMonitor:DrawLine(Os,Ys,"g")
-      hudMonitor:DrawLine(Os,Zs,"b")
-      hudMonitor:DrawLine(Os,Tp,"y")
-      hudMonitor:DrawCircle(Tp, rdScale / 2,"y","SURF")
-      hudMonitor:DrawCircle(Os, rdScale)
+      self:DrawUCS(hudMonitor, stTrace.HitPos, vPos, aAng, stSpawn, rdScale, false)
       if(not self:GetDeveloperMode()) then return end
       local x,y = hudMonitor:GetCenter(10,10)
       hudMonitor:SetTextEdge(x,y)
@@ -1061,24 +1052,7 @@ function TOOL:DrawHUD()
       local stSpawn  = asmlib.GetNormalSpawn(stTrace.HitPos + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
-      stSpawn.F:Mul(ucs); stSpawn.F:Add(stSpawn.OPos)
-      stSpawn.R:Mul(ucs); stSpawn.R:Add(stSpawn.OPos)
-      stSpawn.U:Mul(ucs); stSpawn.U:Add(stSpawn.OPos)
-      local Os = stSpawn.OPos:ToScreen()
-      local Xs = stSpawn.F:ToScreen()
-      local Ys = stSpawn.R:ToScreen()
-      local Zs = stSpawn.U:ToScreen()
-      local Pp = stSpawn.HPnt:ToScreen()
-      local Tp = stTrace.HitPos:ToScreen()
-      -- Draw Elements
-      hudMonitor:DrawLine(Os,Xs,"r","SURF")
-      hudMonitor:DrawLine(Os,Pp)
-      hudMonitor:DrawCircle(Pp, rdScale / 2,"r","SURF")
-      hudMonitor:DrawLine(Os,Ys,"g")
-      hudMonitor:DrawLine(Os,Zs,"b")
-      hudMonitor:DrawCircle(Os, rdScale, "y")
-      hudMonitor:DrawLine(Os,Tp)
-      hudMonitor:DrawCircle(Tp, rdScale / 2)
+      self:DrawUCS(hudMonitor, stTrace.HitPos, nil, nil, stSpawn, rdScale, true)
       if(workmode == 1) then
         local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
         if(nxPOA and stSpawn.HRec.Kept > 1) then
