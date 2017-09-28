@@ -13,11 +13,14 @@ local tostring             = tostring
 local CreateConVar         = CreateConVar
 local SetClipboardText     = SetClipboardText
 local RunConsoleCommand    = RunConsoleCommand
+local netReadEntity        = net and net.ReadEntity
+local netReadVector        = net and net.ReadVector
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
 local mathClamp            = math and math.Clamp
 local utilTraceLine        = util and util.TraceLine
 local utilGetPlayerTrace   = util and util.GetPlayerTrace
+local utilAddNetworkString = util and util.AddNetworkString
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
 local inputIsKeyDown       = input and input.IsKeyDown
@@ -33,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.386")
+asmlib.SetOpVar("TOOL_VERSION","5.387")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -73,6 +76,7 @@ end
 asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
 
 ------ GLOBAL VARIABLES ------
+local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -160,6 +164,27 @@ if(SERVER) then
 end
 
 if(CLIENT) then
+
+  utilAddNetworkString(gsLibName.."SendIntersectClear")
+  asmlib.SetAction("NET_CLEAR_RELATION",
+    function(nLen,oPly)
+      if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
+        return asmlib.StatusLog(nil,"NET_CLEAR_RELATION: Failed clearing ray") end
+      RunConsoleCommand(gsToolPrefL.."drwrelate", 0)
+      return asmlib.StatusLog(nil,"NET_CLEAR_RELATION: Success")
+    end) -- Net receive intersect relation clear client-side
+
+  utilAddNetworkString(gsLibName.."SendIntersectRelate")
+  asmlib.SetAction("NET_CREATE_RELATION",
+    function(nLen,oPly)
+      local oEnt, vHit = netReadEntity(), netReadVector()
+      local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
+      if(not stRay) then
+        return asmlib.StatusLog(nil,"NET_CREATE_RELATION: Failed updating ray") end
+      RunConsoleCommand(gsToolPrefL.."drwrelate", 1)
+      return asmlib.StatusLog(nil,"NET_CREATE_RELATION: Success")
+    end) -- Net receive intersect relation create client-side
+
   asmlib.SetAction("BIND_PRESS",
     function(oPly,sBind,bPress) -- Must have the same parameters as the hook
       if(not bPress) then return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end

@@ -446,7 +446,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("TABLE_PLAYER_KEYS",{})
+  SetOpVar("TABLE_PLAYER",{})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
@@ -803,6 +803,13 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     if(xyPnt.x > eW) then return -1 end
     if(xyPnt.y < sH) then return -1 end
     if(xyPnt.y > eH) then return -1 end; return 1
+  end
+  function self:GetDistance(pS, pE)
+    if(self:Enclose(pS) == -1) then
+      return StatusLog(nil,"MakeScreen.GetDistance: Start out of border") end
+    if(self:Enclose(pE) == -1) then
+      return StatusLog(nil,"MakeScreen.GetDistance: End out of border") end
+    return mathSqrt((pE.x - pS.x)^2 + (pE.y - pS.y)^2)
   end
   function self:DrawLine(pS,pE,keyColor,sMeth,tArgs)
     if(not (pS and pE)) then return end
@@ -3245,7 +3252,7 @@ end
  *   vR1 = {a b c}
  *   vR2 = {d e f}
  *   vR3 = {g h i}
- * Returns a number: The value if the 3x3 determinant
+ * Returns a number: The 3x3 determinant value
 ]]--
 local function DeterminantVector(vR1, vR2, vR3)
   local a, b, c = vR1.x, vR1.y, vR1.z
@@ -3338,7 +3345,7 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
                   Orw = Vector(), Diw = Angle(), -- World direction and origin
                    ID = trID    , Ent = oEnt   , -- Point ID and entity relation
                   Key = sKey    , Ply = oPly   ,
-                  POA = trPOA   , Rec = trRec, Min = trMin}; stRay = tRay[sKey]
+                  POA = trPOA   , Rec = trRec  , Min = trMin}; stRay = tRay[sKey]
   else -- Update internal settings
     stRay.Key = sKey
     stRay.Ply, stRay.Ent, stRay.ID  = oPly , oEnt , trID
@@ -3362,14 +3369,14 @@ end
 function IntersectRayClear(oPly, sKey)
   if(not IsPlayer(oPly)) then
     return StatusLog(false,"IntersectRayClear: Player invalid <"..tostring(oPly)..">") end
-  local tRay = GetOpVar("RAY_INTERSECT")
-  if(not tRay[oPly]) then return StatusLog(true,"IntersectRayClear: Clean") end
+  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
+  if(not tRay) then return StatusLog(true,"IntersectRayClear: Clean") end
   if(sKey) then
     if(not IsString(sKey)) then
-      return StatusLog(true,"IntersectRayClear: Key invalid <"..type(sKey).."/"..tostring(sKey)..">") end
-    tRay[oPly][sKey] = nil; collectgarbage()
-  else tRay[oPly] = nil; collectgarbage() end
-  return StatusLog(true,"IntersectRayClear: Deleted <"..tostring(oPly)..">")
+      return StatusLog(false,"IntersectRayClear: Key invalid <"..type(sKey).."/"..tostring(sKey)..">") end
+    tRay[sKey] = nil; collectgarbage()
+  else GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage() end
+  return StatusLog(true,"IntersectRayClear: Clear {"..tostring(sKey).."}<"..tostring(oPly)..">")
 end
 
 --[[
