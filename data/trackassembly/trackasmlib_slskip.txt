@@ -23,3 +23,5 @@ BIND_PRESS: Tool different
 BIND_PRESS: Active key missing
 IntersectRayRead
 IntersectRayClear
+MakeScreen.GetDistance: Start out of border
+MakeScreen.GetDistance: End out of border

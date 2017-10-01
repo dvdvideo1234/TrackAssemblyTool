@@ -36,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.390")
+asmlib.SetOpVar("TOOL_VERSION","5.391")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -64,7 +64,7 @@ asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gnServerControled, "Maximum linea
 asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, gnServerControled, "Maximum pieces to spawn in stack mode")
-asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off on restart server side")
 
 if(SERVER) then
   asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -107,12 +107,19 @@ if(SERVER) then
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
-  
+
   asmlib.SetAction("DUPE_PHYS_SETTINGS",
     function(oPly,oEnt,tData) -- Duplicator wrapper
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
-        return asmlib.StatusLog(false,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)) end
-      return asmlib.StatusLog(true,"DUPE_PHYS_SETTINGS: Success")
+        return asmlib.StatusLog(nil,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)) end
+      return asmlib.StatusLog(nil,"DUPE_PHYS_SETTINGS: Success")
+    end)
+
+  asmlib.SetAction("PLAYER_QUIT",
+    function(oPly) -- Clear player cache when disconnects
+      if(not asmlib.CacheClearPly(oPly)) then
+        return asmlib.StatusLog(nil,"PLAYER_QUIT: Failed swiping stuff "..tostring(oPly)) end
+      return asmlib.StatusLog(nil,"PLAYER_QUIT: Success")
     end)
 
   asmlib.SetAction("PHYSGUN_DROP",
@@ -170,7 +177,9 @@ end
 if(CLIENT) then
 
   asmlib.SetAction("NET_CLEAR_RELATION",
-    function(nLen,oPly)
+    function(nLen)
+      local oPly = netReadEntity()
+      asmlib.LogInstance("NET_CLEAR_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
         return asmlib.StatusLog(nil,"NET_CLEAR_RELATION: Failed clearing ray") end
       RunConsoleCommand(gsToolPrefL.."drwrelate", 0)
@@ -178,8 +187,9 @@ if(CLIENT) then
     end) -- Net receive intersect relation clear client-side
 
   asmlib.SetAction("NET_CREATE_RELATION",
-    function(nLen,oPly)
-      local oEnt, vHit = netReadEntity(), netReadVector()
+    function(nLen)
+      local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
+      asmlib.LogInstance("NET_CREATE_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
       local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
       if(not stRay) then
         return asmlib.StatusLog(nil,"NET_CREATE_RELATION: Failed updating ray") end
@@ -219,7 +229,7 @@ if(CLIENT) then
       asmlib.ConCommandPly(oPly,"nextyaw", "0")
       asmlib.ConCommandPly(oPly,"nextrol", "0")
       if(not devmode) then
-        return asmlib.StatusLog(true,"RESET_VARIABLES: Developer mode disabled") end
+        return asmlib.StatusLog(nil,"RESET_VARIABLES: Developer mode disabled") end
       asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
       if(bgskids == "reset cvars") then -- Reset the limit also
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
@@ -237,7 +247,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "ydegsnp"  , "45")
         asmlib.ConCommandPly(oPly, "pointid"  , "1")
         asmlib.ConCommandPly(oPly, "pnextid"  , "2")
-        asmlib.ConCommandPly(oPly, "mcspawn"  , "0")
+        asmlib.ConCommandPly(oPly, "spawncn"  , "0")
         asmlib.ConCommandPly(oPly, "bgskids"  , "0/0")
         asmlib.ConCommandPly(oPly, "gravity"  , "1")
         asmlib.ConCommandPly(oPly, "adviser"  , "1")
@@ -280,21 +290,22 @@ if(CLIENT) then
           asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
           asmlib.LogInstance("RESET_VARIABLES: Match <"..vPr..">")
         end
-      else return asmlib.StatusLog(true,"RESET_VARIABLES: Command <"..bgskids.."> skipped") end
-      return asmlib.StatusLog(true,"RESET_VARIABLES: Success")
+      else return asmlib.StatusLog(nil,"RESET_VARIABLES: Command <"..bgskids.."> skipped") end
+      return asmlib.StatusLog(nil,"RESET_VARIABLES: Success")
     end)
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs)
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1])
       if(not asmlib.IsExistent(frUsed)) then
-        return asmlib.StatusLog(false,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
+        return asmlib.StatusLog(nil,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
       local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
-      if(not defTable) then return StatusLog(false,"OPEN_FRAME: Missing definition for table PIECES") end
+      if(not defTable) then
+        return StatusLog(nil,"OPEN_FRAME: Missing definition for table PIECES") end
       local pnFrame = vguiCreate("DFrame")
       if(not IsValid(pnFrame)) then
         pnFrame:Remove()
-        return asmlib.StatusLog(false,"OPEN_FRAME: Failed to create base frame")
+        return asmlib.StatusLog(nil,"OPEN_FRAME: Failed to create base frame")
       end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,languageGetPhrase("tool."..gsToolNameL..".pn_export_lb") , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
@@ -318,7 +329,7 @@ if(CLIENT) then
             iNdex = iNdex + 1
           end
           pnFrame:Remove(); collectgarbage()
-          return StatusLog(false,"OPEN_FRAME: Invalid panel created. Frame removed")
+          return StatusLog(nil,"OPEN_FRAME: Invalid panel created. Frame removed")
         end
         vItem.Panel:SetName(vItem.Label[2])
         vItem.Panel:SetTooltip(vItem.Label[3])
@@ -416,7 +427,7 @@ if(CLIENT) then
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40)
         if(not asmlib.IsExistent(uiBox)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
+          return asmlib.StatusLog(nil,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
         local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
@@ -443,7 +454,7 @@ if(CLIENT) then
         local sAbrev, sField = pnComboBox:GetSelected()
               sAbrev, sField = tostring(sAbrev or ""), tostring(sField or "")
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattr)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sAbrev.."#"..sField.."#"..sPattr.."}")
+          return asmlib.StatusLog(nil,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sAbrev.."#"..sField.."#"..sPattr.."}")
         end
       end
       ------------ ListView --------------
@@ -480,7 +491,7 @@ if(CLIENT) then
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
         if(not asmlib.IsExistent(uiBox)) then
-          return asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
+          return asmlib.StatusLog(nil,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmVar("pointid","INT"), asmlib.GetAsmVar("pnextid","INT")
               pointid, pnextid = asmlib.SnapReview(pointid, pnextid, uiAct)
@@ -490,9 +501,9 @@ if(CLIENT) then
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5)) end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
-        asmlib.StatusLog(false,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed") end
+        return asmlib.StatusLog(nil,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed") end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
-      return asmlib.StatusLog(true,"OPEN_FRAME: Success") -- Show the completed panel
+      return asmlib.StatusLog(nil,"OPEN_FRAME: Success") -- Show the completed panel
     end)
 
   asmlib.SetAction("PHYSGUN_DRAW",
@@ -511,7 +522,7 @@ if(CLIENT) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
       if(not inputIsMouseDown(MOUSE_LEFT)) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Physgun not hold") end
-      local actTr = asmlib.GetTracePly(oPly)
+      local actTr = asmlib.CacheTracePly(oPly)
       if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
       if(not actTr.Hit) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not hit") end
       if(actTr.HitWorld) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace world") end
@@ -2902,8 +2913,8 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("en","tool."..gsToolNameL..".igntype_con"   , "Ignore track type")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".spnflat"       , "The next piece will be spawned/snapped/stacked horizontally")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".spnflat_con"   , "Spawn horizontally")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".mcspawn"       , "Spawns the piece at the mass-centre, else spawns relative to the active point chosen")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".mcspawn_con"   , "Origin from mass-centre")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".spawncn"       , "Spawns the piece at the centre, else spawns relative to the active point chosen")
+  asmlib.SetLocalify("en","tool."..gsToolNameL..".spawncn_con"   , "Origin from centre")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".surfsnap"      , "Snaps the piece to the surface the player is pointing at")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".surfsnap_con"  , "Snap to trace surface")
   asmlib.SetLocalify("en","tool."..gsToolNameL..".appangfst"     , "Apply the angular offsets only on the first piece")
@@ -2997,8 +3008,8 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".igntype_con"   , "Пренебрегни типа на парчето")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".spnflat"       , "Следващото парче ще бъде създадено/залепено/натрупано хоризонтално")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".spnflat_con"   , "Създай хоризонтално")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".mcspawn"       , "Създава парчето в масовия център, иначе спрямо избраната активна точка")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".mcspawn_con"   , "Начало от масовия център")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".spawncn"       , "Създава парчето в центъра, иначе спрямо избраната активна точка")
+  asmlib.SetLocalify("bg","tool."..gsToolNameL..".spawncn_con"   , "Начало спрямо центъра")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".surfsnap"      , "Залепи парчето по повърхнината към която сочи потребителя")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".surfsnap_con"  , "Залепи по повърхнината")
   asmlib.SetLocalify("bg","tool."..gsToolNameL..".appangfst"     , "Приложи ъгловото отместване само върху първото парче за насочване")
@@ -3092,8 +3103,8 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".igntype_con"   , "Ignorer le type de piste")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".spnflat"       , "La prochaine pièce sera créée/alignée/empilé horizontalement")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".spnflat_con"   , "Créer horizontalement")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".mcspawn"       , "Créer la pièce vers le barycentre, sinon, la créer relativement vers le point active choisi")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".mcspawn_con"   , "Partir du barycentre")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".spawncn"       , "Créer la pièce vers le centre, sinon, la créer relativement vers le point active choisi")
+  asmlib.SetLocalify("fr","tool."..gsToolNameL..".spawncn_con"   , "Partir du centre")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".surfsnap"      , "Aligne la pièce vers la surface auquel le joueur vise actuellement")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".surfsnap_con"  , "Aligner vers la surface tracé")
   asmlib.SetLocalify("fr","tool."..gsToolNameL..".appangfst"     , "Appliquer les décalages angulaires seulement sur la première pièce")
@@ -3187,8 +3198,8 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".igntype_con"   , "Игнорировать тип кусков")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".spnflat"       , "Следующий кусок будет создан/приклеен/накоплен по горизонтали")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".spnflat_con"   , "Нагромождать по горизонтали")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".mcspawn"       , "Создание куска в центре тяжести иначе в выбранной активной точке")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".mcspawn_con"   , "Начало центра массы")
+  asmlib.SetLocalify("ru","tool."..gsToolNameL..".spawncn"       , "Создание куска в центре иначе в выбранной активной точке")
+  asmlib.SetLocalify("ru","tool."..gsToolNameL..".spawncn_con"   , "Происхождение из центра")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".surfsnap"      , "Приклеить кусок к поверхности к которой ссылается пользователь")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".surfsnap_con"  , "Приклеивать к поверхности")
   asmlib.SetLocalify("ru","tool."..gsToolNameL..".appangfst"     , "Применять угловое смещение только на первой кусок")

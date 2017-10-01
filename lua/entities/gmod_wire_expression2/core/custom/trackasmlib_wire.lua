@@ -12,9 +12,7 @@ local mathClamp   = math and math.Clamp
 ----- Get extension enabled flag
 local maxColor = 255
 local anyTrue, anyFalse = 1, 0
-local maxMass  = asmlib.GetOpVar("MAX_MASS")
 local enFlag   = asmlib.GetAsmVar("enwiremod","BUL")
-local bndErr   = asmlib.GetAsmVar("bnderrmod","STR")
 local cvX, cvY, cvZ      = asmlib.GetIndexes("V")
 local caP, caY, caR      = asmlib.GetIndexes("A")
 local csA, csB, csC, csD = asmlib.GetIndexes("S")
@@ -54,7 +52,7 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
                                               number nActRadius, number enFlatten, number enIgnTyp ,
                                               vector ucsOffPos , vector ucsOffAng)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local stSpawn = asmlib.GetEntitySpawn(this,trHitPos,hdModel,hdPointID,
+  local stSpawn = asmlib.GetEntitySpawn(self.player,this,trHitPos,hdModel,hdPointID,
                                         nActRadius,(enFlatten ~= 0),(enIgnTyp ~= 0),
                                         ucsPos[1],ucsPos[2],ucsPos[3],ucsAng[1],ucsAng[2],ucsAng[3])
   if(not stSpawn) then return {} end
@@ -65,7 +63,7 @@ __e2setcost(80)
 e2function array trackasmlibSnapNormal(vector ucsPos   , angle ucsAng    , string hdModel,
                                        number hdPointID, vector ucsOffPos, vector ucsOffAng)
   if(not enFlag) then return {} end
-  local stSpawn = asmlib.GetNormalSpawn(ucsPos,ucsAng,hdModel,hdPointID,
+  local stSpawn = asmlib.GetNormalSpawn(self.player,ucsPos,ucsAng,hdModel,hdPointID,
                                         ucsOffPos[1],ucsOffPos[2],ucsOffPos[3],
                                         ucsOffAng[1],ucsOffAng[2],ucsOffAng[3])
   if(not stSpawn) then return {} end
@@ -255,8 +253,8 @@ e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, n
   if(not enFlag) then return nil end
   if(not asmlib.IsPlayer(self.player)) then return nil end
   return asmlib.MakePiece(self.player,sModel,Vector(vPos[1],vPos[2],vPos[3]),Angle(aAng[1],aAng[2],aAng[3]),
-           mathClamp(nMass,1,maxMass),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
-                                                   mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)),bndErr)
+           mathClamp(nMass,1,asmlib.GetAsmVar("maxmass","FLT")),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
+             mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)),asmlib.GetAsmVar("bnderrmod","STR"))
 end
 
 __e2setcost(50)
@@ -269,8 +267,8 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   if(not stRecord) then return nil end
   local sBgpID  = asmlib.GetPropBodyGroup(this)..
                   asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
-  return asmlib.MakePiece(self.player,this:GetModel(),Vector(vPos[1],vPos[2],vPos[3]),
-                Angle (aAng[1],aAng[2],aAng[3]),phthis:GetMass(),sBgpID,this:GetColor(),bndErr)
+  return asmlib.MakePiece(self.player,this:GetModel(),Vector(vPos[1],vPos[2],vPos[3]),Angle(aAng[1],aAng[2],aAng[3]),
+           phthis:GetMass(),sBgpID,this:GetColor(),asmlib.GetAsmVar("bnderrmod","STR"))
 end
 
 __e2setcost(15)

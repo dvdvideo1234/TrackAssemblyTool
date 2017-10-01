@@ -140,9 +140,10 @@ local constraintNoCollide     = constraint and constraint.NoCollide
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
-local libCache  = {} -- Used to cache stuff in a Pool
+local libCache  = {} -- Used to cache stuff in a pool
 local libAction = {} -- Used to attach external function to the lib
-local libOpVars = {} -- Used to Store operational Variable Values
+local libOpVars = {} -- Used to Store operational variable values
+local libPlayer = {} -- Used to allcoate personal space for players
 
 module("trackasmlib")
 
@@ -418,7 +419,7 @@ function InitBase(sName,sPurpose)
     SetOpVar("LOCALIFY_TABLE",{})
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("TABLE_CATEGORIES", {})
-    SetOpVar("STRUCT_SPAWN_KEYS",{
+    SetOpVar("STRUCT_SPAWN",{
       {"--- Origin ---", nil },
       {"F"     ,"VEC", "Forward direction"},
       {"R"     ,"VEC", "Right direction"},
@@ -446,7 +447,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("TABLE_PLAYER",{})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
@@ -471,31 +471,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("NAV_ADDITION",{})
   SetOpVar("NAV_PROPERTY_NAMES",{})
   SetOpVar("NAV_PROPERTY_TYPES",{})
-  SetOpVar("STRUCT_SPAWN",{
-    F    = Vector(),
-    R    = Vector(),
-    U    = Vector(),
-    OPos = Vector(),
-    OAng = Angle (),
-    SPos = Vector(),
-    SAng = Angle (),
-    RLen = 0,
-    --- Holder ---
-    HRec = 0,
-    HID  = 0,
-    HPnt = Vector(), -- P
-    HPos = Vector(), -- O
-    HAng = Angle (), -- A
-    --- Traced ---
-    TRec = 0,
-    TID  = 0,
-    TPnt = Vector(), -- P
-    TPos = Vector(), -- O
-    TAng = Angle (), -- A
-    --- Offsets ---
-    ANxt = Angle (),
-    PNxt = Vector()
-  })
   return StatusPrint(true,"InitBase: Success")
 end
 
@@ -898,7 +873,7 @@ function GetActionCode(sKey)
   if(not (sKey and IsString(sKey))) then
     return StatusLog(nil,"GetActionCode: Key {"..type(sKey).."}<"..tostring(sKey).."> not string") end
   if(not (libAction and libAction[sKey])) then
-    return StatusLog(nil,"GetActionCode: Key not located") end
+    return StatusLog(nil,"GetActionCode: Key missing <"..sKey..">") end
   return libAction[sKey].Act
 end
 
@@ -1070,14 +1045,11 @@ function RoundValue(nvExact, nFrac)
   return nFrac * (q + (f > 0.5 and 1 or 0))
 end
 
-function GetCenterMC(oEnt)
+function GetCenter(oEnt)
   -- Set the ENT's Angles first!
   if(not (oEnt and oEnt:IsValid())) then
-    return StatusLog(Vector(0,0,0),"GetCenterMC: Entity Invalid") end
-  local Phys = oEnt:GetPhysicsObject()
-  if(not (Phys and Phys:IsValid())) then
-    return StatusLog(Vector(0,0,0),"GetCenterMC: Phys object Invalid") end
-  local vRez = Phys:GetMassCenter()
+    return StatusLog(Vector(0,0,0),"GetCenter: Entity Invalid") end
+  local vRez = oEnt:OBBCenter()
         vRez[cvX] = -vRez[cvX]; vRez[cvY] = -vRez[cvY]; vRez[cvZ] = 0
   return vRez
 end
@@ -1514,22 +1486,102 @@ function DefaultTable(anyTable)
   SettingsModelToName("CLR")
 end
 
-function GetTracePly(pPly)
+------------------------- PLAYER -----------------------------------
+
+local function GetPlacePly(pPly)
   if(not IsPlayer(pPly)) then
-    return StatusLog(nil,"GetTracePly: Player <"..tostring(pPly)"> invalid") end
-  local plyTable = GetOpVar("TABLE_PLAYER")
-  local plyPlace, plyTime = plyTable[pPly], Time()
+    return StatusLog(nil,"GetPlacePly: Player <"..tostring(pPly)"> invalid") end
+  local plyPlace = libPlayer[pPly]
   if(not IsExistent(plyPlace)) then
-    plyTable[pPly] = {}; plyPlace = plyTable[pPly] end
-  if(not plyPlace["TDM"]) then -- Define trace delta margin
-    plyPlace["TDM"] = 0.02 -- Trace delta time margin
-    plyPlace["NXT"] = plyTime + plyPlace["TDM"] -- Define next trace pending
-    plyPlace["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly)) -- Make a trace
+    LogInstance("GetPlacePly: Cached <"..pPly:Nick()..">")
+    libPlayer[pPly] = {}; plyPlace = libPlayer[pPly]
+  end; return plyPlace
+end
+
+function CacheSpawnPly(pPly)
+  local plyPlace = GetPlacePly(pPly)
+  if(not IsExistent(plyPlace)) then
+    return StatusLog(nil,"CacheSpawnPly: Place missing") end
+  local plyData = plyPlace["SPAWN"]
+  if(not IsExistent(plyData)) then
+    LogInstance("CacheSpawnPly: Malloc <"..pPly:Nick()..">")
+    plyPlace["SPAWN"] = {}; plyData = plyPlace["SPAWN"]
+    plyData.F    = Vector() -- Origin forward vector
+    plyData.R    = Vector() -- Origin right vector
+    plyData.U    = Vector() -- Origin up vector
+    plyData.OPos = Vector() -- Origin position
+    plyData.OAng = Angle () -- Origin angle
+    plyData.SPos = Vector() -- Gear spawn position
+    plyData.SAng = Angle () -- Gear spawn angle
+    plyData.RLen = 0        -- Trace active radius
+    --- Holder ---
+    plyData.HRec = 0        -- Pointer to the hoder record
+    plyData.HID  = 0        -- Point ID
+    plyData.HPnt = Vector() -- P
+    plyData.HPos = Vector() -- O
+    plyData.HAng = Angle () -- A
+    --- Traced ---
+    plyData.TRec = 0        -- Pointer to the trace record
+    plyData.TID  = 0
+    plyData.TPnt = Vector() -- P
+    plyData.TPos = Vector() -- O
+    plyData.TAng = Angle () -- A
+    --- Offsets ---
+    plyData.ANxt = Angle () -- Origin angle offsets
+    plyData.PNxt = Vector() -- Piece  position offsets
+  end; return plyData
+end
+
+function CacheClearPly(pPly)
+  if(not IsPlayer(pPly)) then
+    return StatusLog(false,"CacheClearPly: Player <"..tostring(pPly)"> invalid") end
+  local plyPlace = libPlayer[pPly]
+  if(not IsExistent(plyPlace)) then
+    return StatusLog(true,"CacheClearPly: Clean") end
+  plyTable[pPly] = nil; collectgarbage(); return true
+end
+
+function GetDistanceHitPly(pPly, vHit)
+  if(not IsPlayer(pPly)) then
+    return StatusLog(nil,"GetDistanceHitPly: Player <"..tostring(pPly)"> invalid") end
+  return (vHit - pPly:GetPos()):Length()
+end
+
+function CacheRadiusPly(pPly, vHit, nSca)
+  local plyPlace = GetPlacePly(pPly)
+  if(not IsExistent(plyPlace)) then
+    return StatusLog(nil,"CacheRadiusPly: Place missing") end
+  local plyData = plyPlace["RADIUS"]
+  if(not IsExistent(plyData)) then
+    LogInstance("CacheRadiusPly: Malloc <"..pPly:Nick()..">")
+    plyPlace["RADIUS"] = {}; plyData = plyPlace["RADIUS"]
+    plyData["MAR"] =  (GetOpVar("GOLDEN_RATIO") * 1000)
+    plyData["LIM"] = ((GetOpVar("GOLDEN_RATIO") - 1) * 100)
+  end
+  local nMul = (tonumber(nSca) or 1) -- Disable scaling on missing or outside
+        nMul = ((nMul <= 1 and nMul >= 0) and nMul or 1)
+  local nMar, nLim = plyData["MAR"], plyData["LIM"]
+  local nDst = GetDistanceHitPly(pPly, vHit)
+  local nRad = ((nDst ~= 0) and mathClamp((nMar / nDst) * nMul, 1, nLim) or 0)
+  return nRad, nDis
+end
+
+function CacheTracePly(pPly)
+  local plyPlace = GetPlacePly(pPly)
+  if(not IsExistent(plyPlace)) then
+    return StatusLog(nil,"CacheTracePly: Place missing") end
+  local plyData, plyTime = plyPlace["TRACE"], Time()
+  if(not IsExistent(plyData)) then -- Define trace delta margin
+    LogInstance("CacheTracePly: Malloc <"..pPly:Nick()..">")
+    plyPlace["TRACE"] = {}; plyData = plyPlace["TRACE"]
+    plyData["TDM"] = 0.02 -- Trace delta time margin
+    plyData["NXT"] = plyTime + plyData["TDM"] -- Define next trace pending
+    plyData["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly)) -- Make a trace
   end -- Check the trace time margin interval
-  if(plyTime >= plyPlace["NXT"]) then
-    plyPlace["NXT"] = plyTime + plyPlace["TDM"] -- Next trace margin
-    plyPlace["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly))
-  end; return plyPlace["DAT"]
+  if(plyTime >= plyData["NXT"]) then
+    plyData["NXT"] = plyTime + plyData["TDM"] -- Next trace margin
+    plyData["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly))
+  end; return plyData["DAT"]
 end
 
 function ConCommandPly(pPly,sCvar,snValue)
@@ -1572,53 +1624,57 @@ function UndoFinishPly(pPly,anyMessage)
 end
 
 function CachePressPly(pPly)
-  if(not IsPlayer(pPly)) then
-    return StatusLog(false,"CachePressPly: Player invalid <"..tostring(pPly)..">") end
-  local plyTable = GetOpVar("TABLE_PLAYER")
-  local plyPlace = plyTable[pPly]
-  if(plyPlace["CMD"]) then return true end -- Already cached
+  local plyPlace = GetPlacePly(pPly)
   if(not IsExistent(plyPlace)) then
-    plyTable[pPly] = {}; plyPlace = plyTable[pPly] end
-  local ucmdPressed = pPly:GetCurrentCommand()
-  if(not IsExistent(ucmdPressed)) then
-    return StatusLog(false,"CachePressPly: Obtained incorrectly") end
-  plyPlace["CMD"] = ucmdPressed
-  return StatusLog(true,"CachePressPly: Cached <"..tostring(pPly)..">")
+    return StatusLog(false,"CachePressPly: Place missing") end
+  local plyData = plyPlace["PRESS"]
+  if(not IsExistent(plyData)) then -- Create predicate command
+    LogInstance("CachePressPly: Malloc <"..pPly:Nick()..">")
+    plyPlace["PRESS"] = {}; plyData = plyPlace["PRESS"]
+    plyData["CMD"] = pPly:GetCurrentCommand()
+    if(not IsExistent(plyData["CMD"])) then
+      return StatusLog(false,"CachePressPly: Command incorrect") end
+  end; return true
 end
 
+-- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
 function GetMouseWheelPly(pPly)
-  if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
-    return StatusLog(false,"DeltaMousePly: Player invalid <"..tostring(pPly)">") end
-  local plyPlace = GetOpVar("TABLE_PLAYER")[pPly]
+  local plyPlace = GetPlacePly(pPly)
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"DeltaMousePly: Cache missing <"..pPly:Nick()..">") end
-  local ucmdPressed = plyPlace["CMD"]
-  return (ucmdPressed and ucmdPressed:GetMouseWheel() or 0)
+    return StatusLog(0,"GetMouseWheelPly: Place missing") end
+  local plyData = plyPlace["PRESS"]
+  if(not IsExistent(plyData)) then
+    return StatusLog(0,"GetMouseWheelPly: Data missing <"..pPly:Nick()..">") end
+  local cmdPress = plyData["CMD"]
+  if(not IsExistent(cmdPress)) then
+    return StatusLog(0,"GetMouseWheelPly: Command missing <"..pPly:Nick()..">") end
+  return (cmdPress and cmdPress:GetMouseWheel() or 0)
 end
 
+-- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
 function GetMouseVectorPly(pPly)
-  if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
-    return StatusLog(false,"GetMouseVectorPly: Player <"..tostring(pPly)"> not available") end
-  local plyPlace = GetOpVar("TABLE_PLAYER")[pPly]
+  local plyPlace = GetPlacePly(pPly)
   if(not IsExistent(plyPlace)) then
-    return StatusLog(false,"GetMouseVectorPly: Cache missing <"..pPly:Nick()..">") end
-  local ucmdPressed = plyPlace["CMD"]
-  local ucmdX = (ucmdPressed and ucmdPressed:GetMouseX() or 0)
-  local ucmdY = (ucmdPressed and ucmdPressed:GetMouseY() or 0)
-  return ucmdX, ucmdY
+    return 0, StatusLog(0,"GetMouseVectorPly: Place missing") end
+  local plyData = plyPlace["PRESS"]
+  if(not IsExistent(plyData)) then
+    return 0, StatusLog(0,"GetMouseVectorPly: Data missing <"..pPly:Nick()..">") end
+  local cmdPress = plyData["CMD"]
+  if(not IsExistent(plyData)) then
+    return 0, StatusLog(0,"GetMouseVectorPly: Command missing <"..pPly:Nick()..">") end
+  return cmdPress:GetMouseX(), cmdPress:GetMouseY()
 end
 
-function CheckButtonPly(pPly, ivInKey)
-  if(not IsPlayer(pPly)) then --- https://wiki.garrysmod.com/page/Enums/IN
-    return StatusLog(false,"CheckButtonPly: Player invalid <"..tostring(pPly)">") end
-  local iInKey = tonumber(ivInKey)
-  if(not IsExistent(iInKey)) then
-    return StatusLog(false,"CheckButtonPly: Input key {"..type(ivInKey)"}<"..tostring(ivInKey).."> invalid") end
-  local plyPlace = GetOpVar("TABLE_PLAYER")[pPly]
-  if(CLIENT or (not IsExistent(plyPlace))) then return pPly:KeyDown(iInKey) end
-  local ucmdPressed = plyPlace["CMD"]
-  if(not IsExistent(ucmdPressed)) then return pPly:KeyDown(iInKey) end
-  return (bitBand(ucmdPressed:GetButtons(),iInKey) ~= 0) -- Read the cache
+-- https://wiki.garrysmod.com/page/Enums/IN
+function CheckButtonPly(pPly, iInKey)
+  local plyPlace, iInKey = GetPlacePly(pPly), (tonumber(iInKey) or 0)
+  if(not IsExistent(plyPlace)) then
+    return StatusLog(false,"GetMouseVectorPly: Place missing") end
+  local plyData = plyPlace["PRESS"]
+  if(not IsExistent(plyData)) then return pPly:KeyDown(iInKey) end
+  local cmdPress = plyData["CMD"]
+  if(not IsExistent(cmdPress)) then return pPly:KeyDown(iInKey) end
+  return (bitBand(cmdPress:GetButtons(),iInKey) ~= 0) -- Read the cache
 end
 
 -------------------------- BUILDSQL ------------------------------
@@ -3069,7 +3125,7 @@ end
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
+function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   local hdRec = CacheQueryPiece(shdModel)
   if(not IsExistent(hdRec)) then
     return StatusLog(nil,"GetNormalSpawn: No record located for <"..shdModel..">") end
@@ -3079,7 +3135,7 @@ function GetNormalSpawn(ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,ucsPo
   local hdPOA = LocatePOA(hdRec,ihdPointID)
   if(not IsExistent(hdPOA)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPointID)) end
-  local stSpawn = GetOpVar("STRUCT_SPAWN"); stSpawn.HRec = hdRec
+  local stSpawn = CacheSpawnPly(oPly); stSpawn.HRec = hdRec
   if(ucsPos) then SetVector(stSpawn.OPos,ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.OAng,ucsAng) end
   -- Initialize F, R, U Copy the UCS like that to support database POA
@@ -3127,7 +3183,7 @@ end
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
+function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPointID,
                         nvActRadius,enFlatten,enIgnTyp,ucsPosX,
                         ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   if(not (trEnt and trHitPos and shdModel and ivhdPointID and nvActRadius)) then
@@ -3162,7 +3218,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
     return StatusLog(nil,"GetEntitySpawn: Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">") end
   -- We have the next Piece Offset
-  local stSpawn, trPOA = GetOpVar("STRUCT_SPAWN")
+  local stSpawn, trPOA = CacheSpawnPly(oPly)
         stSpawn.TRec = trRec
         stSpawn.RLen = nActRadius
         stSpawn.HID  = ihdPointID
@@ -3194,7 +3250,7 @@ function GetEntitySpawn(trEnt,trHitPos,shdModel,ivhdPointID,
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
-  return GetNormalSpawn(nil,nil,shdModel,ihdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
+  return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPointID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end
 
 --[[
@@ -3420,7 +3476,7 @@ function IntersectRayModel(sModel, nPntID, nNxtID)
   -- Attempts taking the mean vector when the rays are parallel for straight tracks
   if(not xx) then
     f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
-  return xx, x1, x2, vO1, vO2
+  return xx, vO1, vO2
 end
 
 function AttachAdditions(ePiece)
