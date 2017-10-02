@@ -36,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.393")
+asmlib.SetOpVar("TOOL_VERSION","5.394")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -87,20 +87,21 @@ local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = stringExplode(asmlib.GetOpVar("OPSYM_DIRECTORY"),asmlib.GetAsmVar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
-      conPalette:Insert("r" ,Color(255,  0,  0,255))
-      conPalette:Insert("g" ,Color(  0,255,  0,255))
-      conPalette:Insert("b" ,Color(  0,  0,255,255))
-      conPalette:Insert("c" ,Color(  0,255,255,255))
-      conPalette:Insert("m" ,Color(255,  0,255,255))
-      conPalette:Insert("y" ,Color(255,255,  0,255))
-      conPalette:Insert("w" ,Color(255,255,255,255))
-      conPalette:Insert("k" ,Color(  0,  0,  0,255))
+      conPalette:Insert("r" ,Color(255,  0,  0,255)) -- Red
+      conPalette:Insert("g" ,Color(  0,255,  0,255)) -- Green
+      conPalette:Insert("b" ,Color(  0,  0,255,255)) -- Blue
+      conPalette:Insert("c" ,Color(  0,255,255,255)) -- Cyan
+      conPalette:Insert("m" ,Color(255,  0,255,255)) -- Magenta
+      conPalette:Insert("y" ,Color(255,255,  0,255)) -- Yellow
+      conPalette:Insert("w" ,Color(255,255,255,255)) -- White
+      conPalette:Insert("k" ,Color(  0,  0,  0,255)) -- Black
       conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
-      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names color
+      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names text color
       conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
       conPalette:Insert("ry",Color(230,200, 80,255)) -- Ray tracing
       conPalette:Insert("wm",Color(143,244, 66,255)) -- Working mode HUD
+      conPalette:Insert("pl",Color(244, 66,113,255)) -- Intersect pillar
 
 -------- ACTIONS  ----------
 if(SERVER) then

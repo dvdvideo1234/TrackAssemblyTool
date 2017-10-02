@@ -944,6 +944,22 @@ function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, nRad)
   return Os, Tp
 end
 
+function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2, nRad)
+  local nL1 = (vX1 - vX):Length()
+  local nL2 = (vX2 - vX):Length()
+  local nLx = (vX2 - vX1):Length()
+  local XX, nR = vX:ToScreen(), (1.5 * nRad)
+  local X1, X2 = vX1:ToScreen(), vX2:ToScreen()
+  oScreen:DrawLine(X1,X2,"ry","SURF")
+  oScreen:DrawCircle(X1, nR,"ry","SURF")
+  oScreen:DrawCircle(X2, nR)
+  if((nL1 > nLx) and (nL2 < nLx) and (nL2 < nL1)) then
+    oScreen:DrawLine(XX,X2,"pl") -- Outside the second ray border
+  elseif((nL2 > nLx) and (nL1 < nLx) and (nL1 < nL2))
+    oScreen:DrawLine(XX,X1,"pl") -- Outside the first ray border
+  end -- Otherwise there is no need to draw the extra line for out of border
+end
+
 function TOOL:DrawHUD()
   if(SERVER) then return end
   local hudMonitor = asmlib.GetOpVar("MONITOR_GAME")
@@ -1015,13 +1031,10 @@ function TOOL:DrawHUD()
       local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, nRad)
       local xX, O1, O2 = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
       if(Rp and xX and vX) then
-        local X1, X2 = vX1:ToScreen(), vX2:ToScreen()
         hudMonitor:DrawLine(Rp,xX,"ry")
-        hudMonitor:DrawLine(X1,X2)
-        hudMonitor:DrawCircle(X1, 1.5 * nRad)
-        hudMonitor:DrawCircle(X2, 1.5 * nRad)
         hudMonitor:DrawLine(Rp,O2,"g")
         hudMonitor:DrawLine(Os,O1,"r")
+        self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2, nRad)
       end
     end
     local Ss = stSpawn.SPos:ToScreen()
