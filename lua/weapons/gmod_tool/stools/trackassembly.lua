@@ -921,8 +921,8 @@ function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn, nRad)
     local O1, O2 = vO1:ToScreen(), vO2:ToScreen()
     oScreen:DrawLine(Os,Ss,"m")
     oScreen:DrawCircle(Ss, nRad,"c")
-    oScreen:DrawCircle(xX, 3 * nRad, "ry")
-    oScreen:DrawLine(xX,O1)
+    oScreen:DrawCircle(xX, 3 * nRad, "b")
+    oScreen:DrawLine(xX,O1,"ry")
     oScreen:DrawLine(xX,O2)
     oScreen:DrawCircle(O1, nRad / 2, "r")
     oScreen:DrawCircle(O2, nRad / 2, "g")
@@ -945,19 +945,13 @@ function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, nRad)
 end
 
 function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2, nRad)
-  local nL1 = (vX1 - vX):Length()
-  local nL2 = (vX2 - vX):Length()
-  local nLx = (vX2 - vX1):Length()
   local XX, nR = vX:ToScreen(), (1.5 * nRad)
   local X1, X2 = vX1:ToScreen(), vX2:ToScreen()
   oScreen:DrawLine(X1,X2,"ry","SURF")
-  oScreen:DrawCircle(X1, nR,"ry","SURF")
-  oScreen:DrawCircle(X2, nR)
-  if((nL1 > nLx) and (nL2 < nLx) and (nL2 < nL1)) then
-    oScreen:DrawLine(XX,X2,"pl") -- Outside the second ray border
-  elseif((nL2 > nLx) and (nL1 < nLx) and (nL1 < nL2))
-    oScreen:DrawLine(XX,X1,"pl") -- Outside the first ray border
-  end -- Otherwise there is no need to draw the extra line for out of border
+  oScreen:DrawCircle(X1, nR,"r","SURF")
+  oScreen:DrawCircle(X2, nR,"g")
+  oScreen:DrawCircle(XX, nR,"b")
+  return XX, X1, X2
 end
 
 function TOOL:DrawHUD()
@@ -1031,10 +1025,12 @@ function TOOL:DrawHUD()
       local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, nRad)
       local xX, O1, O2 = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
       if(Rp and xX and vX) then
+        local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2, nRad)
         hudMonitor:DrawLine(Rp,xX,"ry")
+        hudMonitor:DrawLine(Os,xX)
         hudMonitor:DrawLine(Rp,O2,"g")
         hudMonitor:DrawLine(Os,O1,"r")
-        self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2, nRad)
+        hudMonitor:DrawLine(xX,pXx,"b")
       end
     end
     local Ss = stSpawn.SPos:ToScreen()
