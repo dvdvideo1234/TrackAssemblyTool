@@ -308,24 +308,24 @@ function TOOL:SwitchPoint(nDir,bIsNext)
   return pointid, pnextid
 end
 
-function TOOL:IntersectClear(bRel)
-  local bRel = tobool(bRel)
+function TOOL:IntersectClear(bMute)
   local oPly = self:GetOwner()
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
   if(SERVER) then
     if(stRay) then
       local ryEnt = stRay.Ent
       if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w")) end
-      if(bRel) then
+      if(not bMute) then -- Send client messages when not muted
+        asmlib.LogInstance("TOOL:IntersectClear: Relation cleared")
         asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP")
         netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
       end; asmlib.IntersectRayClear(oPly, "ray_relate")
     end
-  end; return asmlib.StatusLog(true,"TOOL:IntersectClear("..tostring(bRel).."): Relation cleared")
+  end; return true
 end
 
 function TOOL:IntersectRelate(oPly, oEnt, vHit)
-  self:IntersectClear() -- Clear intersect related player on new relation
+  self:IntersectClear(true) -- Clear intersect related player on new relation
   local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
   if(not stRay) then -- Create/update the ray in question
     return asmlib.StatusLog(false,"TOOL:IntersectRelate(): Update fail") end
@@ -338,21 +338,21 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
   end return true
 end
 
-function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bLoop)
+function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
   local pointid, pnextid = self:GetPointID()
   local ply, model = self:GetOwner(), self:GetModel()
   if(not asmlib.IntersectRayCreate(ply, trEnt, vHit, "ray_origin")) then
     return asmlib.StatusLog(nil,"TOOL:LeftClick(): Failed updating ray") end
   local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayHash(ply, "ray_origin", "ray_relate")
   if(not xx) then
-    if(bLoop) then return nil
+    if(bMute) then return nil
     else asmlib.PrintNotifyPly(ply, "Define intersection relation !", "GENERIC")
       return asmlib.StatusLog(nil, "TOOL:IntersectSnap(): Active ray mismatch")
     end
   end
   local mx, o1, o2 = asmlib.IntersectRayModel(model, pointid, pnextid)
   if(not mx) then
-    if(bLoop) then return nil
+    if(bMute) then return nil
     else return asmlib.StatusLog(nil, "TOOL:IntersectSnap(): Model ray mismatch") end
   end
   local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt[cvX], stSpawn.PNxt[cvY], stSpawn.PNxt[cvZ]
@@ -370,7 +370,7 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bLoop)
     vx, vy, vz = mathClamp(vx, -lx, lx), mathClamp(vy, -ly, ly), mathClamp(vz, -lz, lz)
   end; cx:Mul(vx); cy:Mul(vy); cz:Mul(vz)
   stSpawn.SPos:Add(cx); stSpawn.SPos:Add(cy); stSpawn.SPos:Add(cz)
-  return stRay1, stRay2
+  return xx, x1, x2, stRay1, stRay2
 end
 
 function TOOL:SetAnchor(stTrace)
@@ -415,7 +415,7 @@ end
 function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, #gtWorkMode)
   if(SERVER) then -- Perform various actions to stabilize data across working modes
-    if    (workmode == 1) then self:IntersectClear() -- Reset ray list in snap mode
+    if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
     elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
   end; return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
 end
@@ -671,8 +671,7 @@ function TOOL:LeftClick(stTrace)
     return asmlib.StatusLog(true,"TOOL:LeftClick(Stack): Success")
   else -- Switch the tool mode ( Snapping )
     if(workmode == 2) then -- Make a ray intersection spawn update
-      local stRay1, stRay2 = self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)
-      if(not (stRay1 and stRay2)) then
+      if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
         asmlib.LogInstance("TOOL:LeftClick(Ray): Skip intersection sequence. Snapping") end
     end
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
@@ -749,7 +748,7 @@ function TOOL:Reload(stTrace)
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
       if(workmode == 1) then self:ClearAnchor(true)
         asmlib.LogInstance("TOOL:Reload(Anchor): Clear")
-      elseif(workmode == 2) then self:IntersectClear(true)
+      elseif(workmode == 2) then self:IntersectClear()
         asmlib.LogInstance("TOOL:Reload(Relate): Clear")
       end
     end; return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
@@ -1012,11 +1011,15 @@ function TOOL:DrawHUD()
         hudMonitor:DrawCircle(Np, nRad / 2, "g")
       end
     elseif(workmode == 2) then -- Draw point intersection
-      self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
+      local vX, vX1, vX2 = self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
       local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, nRad)
       local xX, O1, O2 = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
-      if(Rp) then
+      if(Rp and xX and vX) then
+        local X1, X2 = vX1:ToScreen(), vX2:ToScreen()
         hudMonitor:DrawLine(Rp,xX,"ry")
+        hudMonitor:DrawLine(X1,X2)
+        hudMonitor:DrawCircle(X1, 1.5 * nRad)
+        hudMonitor:DrawCircle(X2, 1.5 * nRad)
         hudMonitor:DrawLine(Rp,O2,"g")
         hudMonitor:DrawLine(Os,O1,"r")
       end
@@ -1069,7 +1072,7 @@ function TOOL:DrawHUD()
         end
       elseif(workmode == 2) then -- Draw point intersection
         self:DrawRelateIntersection(hudMonitor, ply, nRad)
-        self:DrawModelIntersection (hudMonitor, ply, stSpawn, nRad)
+        self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
       end
       local Ss = stSpawn.SPos:ToScreen()
       hudMonitor:DrawLine(Os,Ss,"m")
