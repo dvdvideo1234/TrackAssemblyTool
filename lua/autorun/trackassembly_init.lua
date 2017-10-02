@@ -36,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.391")
+asmlib.SetOpVar("TOOL_VERSION","5.392")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -199,17 +199,24 @@ if(CLIENT) then
 
   asmlib.SetAction("BIND_PRESS",
     function(oPly,sBind,bPress) -- Must have the same parameters as the hook
-      if(not bPress) then return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
+      if(not bPress) then
+        return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
       local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then return asmlib.StatusLog(nil,"BIND_PRESS: Swep invalid") end
-      if(actSwep:GetClass() ~= "gmod_tool") then return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
-      if(actSwep:GetMode()  ~= gsToolNameL) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool different") end
+      if(not IsValid(actSwep)) then
+        return asmlib.StatusLog(nil,"BIND_PRESS: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then
+        return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then
+        return asmlib.StatusLog(nil,"BIND_PRESS: Tool different") end
       -- Here player is holding the track assembly tool
-      if(not inputIsKeyDown(KEY_LALT)) then return asmlib.StatusLog(nil,"BIND_PRESS: Active key missing") end
+      if(not inputIsKeyDown(KEY_LALT)) then
+        return asmlib.StatusLog(nil,"BIND_PRESS: Active key missing") end
       local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
-      if(not actTool) then return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
+      if(not actTool) then
+        return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
       if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
-        if(not actTool:GetScrollMouse()) then return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Scrolling disabled") end
+        if(not actTool:GetScrollMouse()) then
+          return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Scrolling disabled") end
         local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
         return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
