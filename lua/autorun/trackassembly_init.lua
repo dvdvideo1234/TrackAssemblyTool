@@ -36,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.395")
+asmlib.SetOpVar("TOOL_VERSION","5.396")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -101,7 +101,6 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
       conPalette:Insert("ry",Color(230,200, 80,255)) -- Ray tracing
       conPalette:Insert("wm",Color(143,244, 66,255)) -- Working mode HUD
-      conPalette:Insert("pl",Color(244, 66,113,255)) -- Intersect pillar
 
 -------- ACTIONS  ----------
 if(SERVER) then
