@@ -845,8 +845,8 @@ end
 
 function TOOL:Think()
   local model = self:GetModel()
+  local wormo = self:GetWorkingMode() -- Synchronize the data between the working modes
   if(utilIsValidModel(model)) then -- Chech model validation
-    local wmo = self:GetWorkingMode() -- Synchronize the data between the working modes
     local ply = self:GetOwner()
     local gho = self.GhostEntity
     if(self:GetGhostHolder()) then
