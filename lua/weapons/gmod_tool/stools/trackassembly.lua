@@ -119,8 +119,7 @@ TOOL.ClientConVar = {
   [ "engunsnap" ] = "0",
   [ "workmode"  ] = "0",
   [ "appangfst" ] = "0",
-  [ "applinfst" ] = "0",
-  [ "drwrelate" ] = "0"
+  [ "applinfst" ] = "0"
 }
 
 if(CLIENT) then
@@ -135,8 +134,8 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
-  netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("NET_CLEAR_RELATION"))
-  netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("NET_CREATE_RELATION"))
+  netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
+  netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
 end
@@ -290,10 +289,6 @@ function TOOL:GetScrollMouse()
   return asmlib.GetAsmVar("enpntmscr","BUL")
 end
 
-function TOOL:GetDrawRelationRay()
-  return ((self:GetClientNumber("drwrelate") or 0) ~= 0)
-end
-
 function TOOL:SwitchPoint(nDir,bIsNext)
   local Dir = (tonumber(nDir) or 0)
   local Rec = asmlib.CacheQueryPiece(self:GetModel())
@@ -311,15 +306,16 @@ end
 function TOOL:IntersectClear(bMute)
   local oPly = self:GetOwner()
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
-  if(SERVER) then
-    if(stRay) then
+  if(stRay) then
+    asmlib.IntersectRayClear(oPly, "ray_relate")
+    if(SERVER) then
       local ryEnt = stRay.Ent
       if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w")) end
       if(not bMute) then -- Send client messages when not muted
         asmlib.LogInstance("TOOL:IntersectClear: Relation cleared")
         asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP")
         netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
-      end; asmlib.IntersectRayClear(oPly, "ray_relate")
+      end -- Make sure to delete the realation on both client and server
     end
   end; return true
 end
@@ -329,7 +325,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
   local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
   if(not stRay) then -- Create/update the ray in question
     return asmlib.StatusLog(false,"TOOL:IntersectRelate(): Update fail") end
-  if(SERVER) then
+  if(SERVER) then -- Only the server is allowed to define relation ray
     netStart(gsLibName.."SendIntersectRelate")
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
     local femod = stringToFileName(oEnt:GetModel())
@@ -414,10 +410,10 @@ end
 
 function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, #gtWorkMode)
-  if(SERVER) then -- Perform various actions to stabilize data across working modes
-    if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
-    elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
-  end; return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
+  -- Perform various actions to stabilize data across working modes
+  if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
+  elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
+  return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
 end
 
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
@@ -848,8 +844,9 @@ function TOOL:ElevateGhost(oEnt, oPly)
 end
 
 function TOOL:Think()
-  local model = self:GetModel() -- Ghost irrelevant
-  if(utilIsValidModel(model)) then
+  local model = self:GetModel()
+  if(utilIsValidModel(model)) then -- Chech model validation
+    local wmo = self:GetWorkingMode() -- Synchronize the data between the working modes
     local ply = self:GetOwner()
     local gho = self.GhostEntity
     if(self:GetGhostHolder()) then
@@ -890,21 +887,19 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
 end
 
 function TOOL:DrawRelateIntersection(oScreen, oPly, nRad)
-  if(self:GetDrawRelationRay()) then
-    local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
-    if(stRay) then
-      local rOrg, rDir = stRay.Orw, stRay.Diw
-      local Rp, nLn = rOrg:ToScreen(), self:GetActiveRadius()
-      local Rf = (rOrg + nLn * rDir:Forward()):ToScreen()
-      local Ru = (rOrg + nLn * 0.5 * rDir:Up()):ToScreen()
-      local rF = (oScreen:GetDistance(Rp, Rf) or 0)
-      local rU = 2 * (oScreen:GetDistance(Rp, Ru) or 0)
-      local nR = ((rF > rU) and rF or rU)
-      oScreen:DrawLine(Rp, Rf, "r")
-      oScreen:DrawLine(Rp, Ru, "b")
-      oScreen:DrawCircle(Rp, nR / 6, "y")
-      return Rp, Rf, Ru
-    end; return nil
+  local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
+  if(stRay) then
+    local rOrg, rDir = stRay.Orw, stRay.Diw
+    local Rp, nLn = rOrg:ToScreen(), self:GetActiveRadius()
+    local Rf = (rOrg + nLn * rDir:Forward()):ToScreen()
+    local Ru = (rOrg + nLn * 0.5 * rDir:Up()):ToScreen()
+    local rF = (oScreen:GetDistance(Rp, Rf) or 0)
+    local rU = 2 * (oScreen:GetDistance(Rp, Ru) or 0)
+    local nR = ((rF > rU) and rF or rU)
+    oScreen:DrawLine(Rp, Rf, "r")
+    oScreen:DrawLine(Rp, Ru, "b")
+    oScreen:DrawCircle(Rp, nR / 6, "y")
+    return Rp, Rf, Ru
   end; return nil
 end
 
@@ -1023,8 +1018,8 @@ function TOOL:DrawHUD()
     elseif(workmode == 2) then -- Draw point intersection
       local vX, vX1, vX2 = self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
       local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, nRad)
-      local xX, O1, O2 = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
-      if(Rp and xX and vX) then
+      if(Rp and vX) then
+        local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
         local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2, nRad)
         hudMonitor:DrawLine(Rp,xX,"ry")
         hudMonitor:DrawLine(Os,xX)

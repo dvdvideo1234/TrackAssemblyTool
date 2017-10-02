@@ -36,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.396")
+asmlib.SetOpVar("TOOL_VERSION","5.397")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -176,25 +176,23 @@ end
 
 if(CLIENT) then
 
-  asmlib.SetAction("NET_CLEAR_RELATION",
+  asmlib.SetAction("CLEAR_RELATION",
     function(nLen)
       local oPly = netReadEntity()
-      asmlib.LogInstance("NET_CLEAR_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
+      asmlib.LogInstance("CLEAR_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
-        return asmlib.StatusLog(nil,"NET_CLEAR_RELATION: Failed clearing ray") end
-      RunConsoleCommand(gsToolPrefL.."drwrelate", 0)
-      return asmlib.StatusLog(nil,"NET_CLEAR_RELATION: Success")
+        return asmlib.StatusLog(nil,"CLEAR_RELATION: Failed clearing ray") end
+      return asmlib.StatusLog(nil,"CLEAR_RELATION: Success")
     end) -- Net receive intersect relation clear client-side
 
-  asmlib.SetAction("NET_CREATE_RELATION",
+  asmlib.SetAction("CREATE_RELATION",
     function(nLen)
       local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
-      asmlib.LogInstance("NET_CREATE_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
+      asmlib.LogInstance("CREATE_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
       local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
       if(not stRay) then
-        return asmlib.StatusLog(nil,"NET_CREATE_RELATION: Failed updating ray") end
-      RunConsoleCommand(gsToolPrefL.."drwrelate", 1)
-      return asmlib.StatusLog(nil,"NET_CREATE_RELATION: Success")
+        return asmlib.StatusLog(nil,"CREATE_RELATION: Failed updating ray") end
+      return asmlib.StatusLog(nil,"CREATE_RELATION: Success")
     end) -- Net receive intersect relation create client-side
 
   asmlib.SetAction("BIND_PRESS",
