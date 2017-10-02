@@ -36,7 +36,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.398")
+asmlib.SetOpVar("TOOL_VERSION","5.399")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -433,7 +433,7 @@ if(CLIENT) then
         local uiBox = asmlib.CacheBoxLayout(oEnt,40)
         if(not asmlib.IsExistent(uiBox)) then
           return asmlib.StatusLog(nil,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
-        local stSpawn = asmlib.GetNormalSpawn(asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
+        local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
               stSpawn.SPos:Mul(-1)
