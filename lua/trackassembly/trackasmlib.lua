@@ -116,9 +116,6 @@ local tableMaxn               = table and table.maxn
 local tableGetKeys            = table and table.GetKeys
 local tableInsert             = table and table.insert
 local debugGetinfo            = debug and debug.getinfo
-local stringExplode           = string and string.Explode
-local stringImplode           = string and string.Implode
-local stringToFileName        = string and string.GetFileFromFilename
 local renderDrawLine          = render and render.DrawLine
 local renderDrawSphere        = render and render.DrawSphere
 local renderSetMaterial       = render and render.SetMaterial
@@ -1165,7 +1162,7 @@ function ModelToName(sModel,bNoSettings)
   if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
   local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
   local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
-        sModel =  stringToFileName(sModel):gsub(GetOpVar("MODELNAM_FILE"),"")
+        sModel =  sModel:GetFileFromFilename():gsub(GetOpVar("MODELNAM_FILE"),"")
   local gModel =  sModel:sub(1,-1) -- Create a copy so we can select cut-off parts later on
   if(not bNoSettings) then local Cnt = 1
     local tCut, tSub, tApp = SettingsModelToName("GET")
@@ -2148,7 +2145,7 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
     return StatusLog(nil,"TimerSetting: Timer set missing for setup") end
   if(not IsString(sTimerSet)) then
     return StatusLog(nil,"TimerSetting: Timer set {"..type(sTimerSet).."}<"..tostring(sTimerSet).."> not string") end
-  local tBoom = stringExplode(GetOpVar("OPSYM_REVSIGN"),sTimerSet)
+  local tBoom = GetOpVar("OPSYM_REVSIGN"):Explode(sTimerSet)
   tBoom[1] =   tostring(tBoom[1]  or "CQT")
   tBoom[2] =  (tonumber(tBoom[2]) or 0)
   tBoom[3] = ((tonumber(tBoom[3]) or 0) ~= 0) and true or false
@@ -2188,7 +2185,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
         collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
       return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."] @"..tostring(RoundValue(nNowTM,0.01)))
     elseif(sModeTM == "OBJ") then
-      local TimerID = stringImplode(GetOpVar("OPSYM_DIVIDER"),tKeys)
+      local TimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
       LogInstance("TimerAttach: TimID <"..TimerID..">")
       if(timerExists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
       timerCreate(TimerID, nLifeTM, 1, function()
@@ -2226,7 +2223,7 @@ local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
     if(sModeTM == "CQT") then
       sModeTM = "CQT" -- Just for something to do here and to be known that this is mode CQT
     elseif(sModeTM == "OBJ") then
-      local keyTimerID = stringImplode(GetOpVar("OPSYM_DIVIDER"),tKeys)
+      local keyTimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
       if(not timerExists(keyTimerID)) then
         return StatusLog(nil,"TimerRestart: Timer missing <"..keyTimerID..">") end
       timerStart(keyTimerID)
@@ -2290,7 +2287,7 @@ function CacheQueryPiece(sModel)
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       local qModel = MatchType(defTable,sModel,1,true)
-      LogInstance("CacheQueryPiece: Model >> Pool <"..stringToFileName(sModel)..">")
+      LogInstance("CacheQueryPiece: Model >> Pool <"..sModel:GetFileFromFilename()..">")
       tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Kept = 0
       local Q = SQLCacheStmt("stmtSelectPiece", nil, qModel)
       if(not Q) then
@@ -2350,7 +2347,7 @@ function CacheQueryAdditions(sModel)
     local sModeDB = GetOpVar("MODE_DATABASE")
     if(sModeDB == "SQL") then
       local qModel = MatchType(defTable,sModel,1,true)
-      LogInstance("CacheQueryAdditions: Model >> Pool <"..stringToFileName(sModel)..">")
+      LogInstance("CacheQueryAdditions: Model >> Pool <"..sModel:GetFileFromFilename()..">")
       tCache[sModel] = {}; stAddition = tCache[sModel]; stAddition.Kept = 0
       local Q = SQLCacheStmt("stmtSelectAdditions", nil, qModel)
       if(not Q) then
@@ -2617,7 +2614,7 @@ function ImportCategory(vEq, sPref)
         sPar, isPar = sLine:sub(nLen+1,-1).."\n", true
       elseif(sBk == cBk and isPar) then
         sPar, isPar = sPar..sLine:sub(1,-nLen-1), false
-        local tBoo = stringExplode(sEq, sPar)
+        local tBoo = sEq:Explode(sPar)
         local key, txt = tBoo[1]:Trim(), tBoo[2]
         if(not IsEmptyString(key)) then
           if(txt:find("function")) then
@@ -2797,7 +2794,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
     if(sCh == "\n") then
       sLine = sLine:Trim()
       if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
-        local tData = stringExplode(sDelim,sLine:sub(nLen+2,-1))
+        local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
         for iCnt = 1, defTable.Size do
           tData[iCnt] = StripValue(tData[iCnt]) end
         if(bComm) then InsertRecord(sTable, tData) end
@@ -2836,7 +2833,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       if(sCh == "\n") then
         sLine = sLine:Trim()
         if(sLine:sub(1,1) ~= smOff) then
-          local tLine = stringExplode(sDelim,sLine)
+          local tLine = sDelim:Explode(sLine)
           if(tLine[1] == defTable.Name) then
             for i = 1, #tLine do tLine[i] = StripValue(tLine[i]) end
             local sKey = tLine[2]
@@ -2948,7 +2945,7 @@ function TranslateDSV(sTable, sPref, sDelim)
     if(sCh == "\n") then
       sLine = sLine:gsub(defTable.Name,""):Trim()
       if(sLine:sub(1,1) ~= symOff) then
-        local tBoo, sCat = stringExplode(sDelim, sLine), ""
+        local tBoo, sCat = sDelim:Explode(sLine), ""
         for nCnt = 1, #tBoo do
           local vMatch = MatchType(defTable,StripValue(tBoo[nCnt]),nCnt,true,"\"",true)
           if(not IsExistent(vMatch)) then D:Close(); I:Flush(); I:Close()
@@ -2994,7 +2991,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
       if(sCh == "\n") then sLine = sLine:Trim()
         if(sLine:sub(1,1) == symOff) then
           isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
-        local tab = stringExplode(sDelim, sLine)
+        local tab = sDelim:Explode(sLine)
         local prf, src = tab[1]:Trim(), tab[2]:Trim()
         local inf = fPool[prf]
         if(not inf) then
@@ -3041,7 +3038,7 @@ function ProcessDSV(sDelim)
     if(not sCh) then break end
     if(sCh == "\n") then sLine = sLine:Trim()
       if(sLine:sub(1,1) ~= symOff) then
-        local tInf = stringExplode(sDelim, sLine)
+        local tInf = sDelim:Explode(sLine)
         local fPrf = StripValue(tostring(tInf[1] or ""):Trim())
         local fSrc = StripValue(tostring(tInf[2] or ""):Trim())
         if(not IsEmptyString(fPrf)) then -- Is there something
@@ -3614,7 +3611,7 @@ function AttachBodyGroups(ePiece,sBgrpIDs)
   LogInstance("AttachBodyGroups: <"..sBgrpIDs..">")
   local iCnt = 1
   local BGs = ePiece:GetBodyGroups()
-  local IDs = stringExplode(GetOpVar("OPSYM_SEPARATOR"),sBgrpIDs)
+  local IDs = GetOpVar("OPSYM_SEPARATOR"):Explode(sBgrpIDs)
   while(BGs[iCnt] and IDs[iCnt]) do
     local itrBG = BGs[iCnt]
     local maxID = (ePiece:GetBodygroupCount(itrBG.id) - 1)
@@ -3682,7 +3679,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     return StatusLog(nil,"MakePiece: Entity phys object invalid") end
   phPiece:EnableMotion(false); ePiece.owner = pPly -- Some SPPs actually use this value
   local Mass = (tonumber(nMass) or 1); phPiece:SetMass((Mass >= 1) and Mass or 1)
-  local BgSk = stringExplode(GetOpVar("OPSYM_DIRECTORY"),(sBgSkIDs or ""))
+  local BgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
   ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
   if(not AttachBodyGroups(ePiece,BgSk[1] or "")) then ePiece:Remove()
     return StatusLog(nil,"MakePiece: Failed to attach bodygroups") end

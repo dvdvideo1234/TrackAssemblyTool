@@ -29,8 +29,6 @@ local fileExists            = file and file.Exists
 local hookAdd               = hook and hook.Add
 local tableGetKeys          = table and table.GetKeys
 local inputIsKeyDown        = input and input.IsKeyDown
-local stringExplode         = string and string.Explode
-local stringToFileName      = string and string.GetFileFromFilename
 local cleanupRegister       = cleanup and cleanup.Register
 local surfaceScreenWidth    = surface and surface.ScreenWidth
 local surfaceScreenHeight   = surface and surface.ScreenHeight
@@ -328,7 +326,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
   if(SERVER) then -- Only the server is allowed to define relation ray
     netStart(gsLibName.."SendIntersectRelate")
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
-    local femod = stringToFileName(oEnt:GetModel())
+    local femod = oEnt:GetModel():GetFileFromFilename()
     asmlib.PrintNotifyPly(oPly,"Intersection relation: "..femod.." !","UNDO")
     stRay.Ent:SetColor(conPalette:Select("ry"))
   end return true
@@ -379,7 +377,7 @@ function TOOL:SetAnchor(stTrace)
   if(not (phEnt and phEnt:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace no physics") end
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Player invalid") end
-  local sAnchor = trEnt:EntIndex()..gsSymRev..stringToFileName(trEnt:GetModel())
+  local sAnchor = trEnt:EntIndex()..gsSymRev..trEnt:GetModel():GetFileFromFilename()
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
   trEnt:SetColor(conPalette:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
@@ -455,11 +453,11 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Kept or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  TR.File:        <"..(trModel and stringToFileName(tostring(trModel)) or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.File:        <"..(trModel and tostring(trModel):GetFileFromFilename() or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
         sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
         sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Kept or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.File:        <"..stringToFileName(tostring(hdModel or gsNoAV))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel or gsNoAV):GetFileFromFilename()..">"..sDelim
         sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackCNT:    <"..tostring(self:GetCount())..">"..sDelim
@@ -511,7 +509,7 @@ function TOOL:SelectModel(sModel)
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
         pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Kept)
-  asmlib.PrintNotifyPly(ply,"Model: "..stringToFileName(sModel).." selected !","UNDO")
+  asmlib.PrintNotifyPly(ply,"Model: "..sModel:GetFileFromFilename().." selected !","UNDO")
   asmlib.ConCommandPly (ply,"pointid", pointid)
   asmlib.ConCommandPly (ply,"pnextid", pnextid)
   asmlib.ConCommandPly (ply, "model" , sModel)
@@ -550,7 +548,7 @@ function TOOL:LeftClick(stTrace)
   local bnderrmod = self:GetBoundErrorMode()
   local appangfst = self:ApplyAngularFirst()
   local applinfst = self:ApplyLinearFirst()
-  local fnmodel   = stringToFileName(model)
+  local fnmodel   = model:GetFileFromFilename()
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -613,7 +611,7 @@ function TOOL:LeftClick(stTrace)
       trEnt:GetPhysicsObject():SetMass(mass)
       return asmlib.StatusLog(true,"TOOL:LeftClick(Physical): Success")
     else -- Visual
-      local IDs = stringExplode(gsSymDir,bgskids)
+      local IDs = gsSymDir:Explode(bgskids)
       if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
         return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Bodygroup/Skin): Failed")) end
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
@@ -1102,7 +1100,7 @@ function TOOL:DrawToolScreen(w, h)
   local oPly = LocalPlayer()
   local stTrace = asmlib.CacheTracePly(oPly)
   local anInfo, anEnt = self:GetAnchor()
-  local tInfo = stringExplode(gsSymRev,anInfo)
+  local tInfo = gsSymRev:Explode(anInfo)
   if(not (stTrace and stTrace.Hit)) then
     scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
     scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
@@ -1140,10 +1138,10 @@ function TOOL:DrawToolScreen(w, h)
     end
     if(trRec) then
       trMaxCN = trRec.Kept
-      trModel = stringToFileName(trModel)
-    else trModel = "["..gsNoMD.."]"..stringToFileName(trModel) end
+      trModel = trModel:GetFileFromFilename()
+    else trModel = "["..gsNoMD.."]"..trModel:GetFileFromFilename() end
   end
-  model  = stringToFileName(model)
+  model  = model:GetFileFromFilename()
   actrad = asmlib.RoundValue(actrad,0.01)
   maxrad = asmlib.GetAsmVar("maxactrad", "FLT")
   scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")
