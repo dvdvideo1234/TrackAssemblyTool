@@ -12,10 +12,26 @@ local mathClamp   = math and math.Clamp
 ----- Get extension enabled flag
 local maxColor = 255
 local anyTrue, anyFalse = 1, 0
-local enFlag   = asmlib.GetAsmVar("enwiremod","BUL")
 local cvX, cvY, cvZ      = asmlib.GetIndexes("V")
 local caP, caY, caR      = asmlib.GetIndexes("A")
 local csA, csB, csC, csD = asmlib.GetIndexes("S")
+local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
+local maxMass = asmlib.GetAsmVar("maxmass","FLT")
+local gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
+local enFlag = asmlib.GetAsmVar("enwiremod","BUL")
+
+----- Refresh callbacks global variables
+cvars.AddChangeCallback(gsToolPrefL.."bnderrmod", function()
+  gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
+end)
+
+cvars.AddChangeCallback(gsToolPrefL.."enwiremod", function()
+  enFlag = asmlib.GetAsmVar("enwiremod","BUL")
+end)
+
+cvars.AddChangeCallback(gsToolPrefL.."maxmass", function()
+  maxMass = asmlib.GetAsmVar("maxmass","FLT")
+end)
 
 --------- Pieces ----------
 __e2setcost(50)
@@ -253,8 +269,8 @@ e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, n
   if(not enFlag) then return nil end
   if(not asmlib.IsPlayer(self.player)) then return nil end
   return asmlib.MakePiece(self.player,sModel,Vector(vPos[1],vPos[2],vPos[3]),Angle(aAng[1],aAng[2],aAng[3]),
-           mathClamp(nMass,1,asmlib.GetAsmVar("maxmass","FLT")),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
-             mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)),asmlib.GetAsmVar("bnderrmod","STR"))
+           mathClamp(nMass,1,maxMass),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
+             mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)),gsBErr)
 end
 
 __e2setcost(50)
@@ -268,7 +284,7 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
   local sBgpID  = asmlib.GetPropBodyGroup(this)..
                   asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
   return asmlib.MakePiece(self.player,this:GetModel(),Vector(vPos[1],vPos[2],vPos[3]),Angle(aAng[1],aAng[2],aAng[3]),
-           phthis:GetMass(),sBgpID,this:GetColor(),asmlib.GetAsmVar("bnderrmod","STR"))
+           phthis:GetMass(),sBgpID,this:GetColor(),gsBErr)
 end
 
 __e2setcost(15)
