@@ -3561,7 +3561,7 @@ local function GetEntityOrTrace(oEnt)
   local oPly = LocalPlayer()
   if(not IsPlayer(oPly)) then
     return StatusLog(nil,"GetEntityOrTrace: Player <"..type(oPly)"> missing") end
-  local stTrace = GetTracePly(oPly)
+  local stTrace = CacheTracePly(oPly)
   if(not IsExistent(stTrace)) then
     return StatusLog(nil,"GetEntityOrTrace: Trace missing") end
   if(not stTrace.Hit) then -- Boolean

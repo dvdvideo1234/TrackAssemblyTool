@@ -21,7 +21,13 @@ MakeScreen: Color list not container
 BIND_PRESS: Swep not tool
 BIND_PRESS: Tool different
 BIND_PRESS: Active key missing
+BIND_PRESS: Bind not pressed
+BIND_PRESS(invnext): Processed
+BIND_PRESS(invprev): Processed
+TOOL:SwitchPoint(
 IntersectRayRead
 IntersectRayClear
+RegisterPOA: Exists ID
+InsertRecord: Cannot process offset
 MakeScreen.GetDistance: Start out of border
 MakeScreen.GetDistance: End out of border
