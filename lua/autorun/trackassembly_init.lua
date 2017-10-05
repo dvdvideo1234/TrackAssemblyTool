@@ -18,8 +18,6 @@ local netReadVector        = net and net.ReadVector
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
 local mathClamp            = math and math.Clamp
-local utilTraceLine        = util and util.TraceLine
-local utilGetPlayerTrace   = util and util.GetPlayerTrace
 local utilAddNetworkString = util and util.AddNetworkString
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
@@ -35,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.401")
+asmlib.SetOpVar("TOOL_VERSION","5.402")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
