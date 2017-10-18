@@ -294,21 +294,31 @@ function StatusLog(anyStatus,sError)
   return anyStatus
 end
 
-function Print(tT,sS)
-  local vS, vT, vK, cK = type(sS), type(tT), tostring(sS or "Data"), ""
+
+function Print(tT,sS,tP)
+  local vS, vT, vK, sS = type(sS), type(tT), "", tostring(sS or "Data")
   if(vT ~= "table") then
-    LogInstance("{"..vT.."}["..vK.."] = <"..tostring(tT)..">"); return end
-  LogInstance(vK.." = {}")
-  if(next(tT) == nil) then return end
-  for k, v in pairs(tT) do
+    return StatusLog(nil,"{"..vT.."}["..tostring(sS or "Data").."] = <"..tostring(tT)..">") end
+  if(next(tT) == nil) then
+    return StatusLog(nil,sS.." = {}") end; LogInstance(sS.." = {}")
+  for k,v in pairs(tT) do
     if(type(k) == "string") then
-      cK = vK.."[\""..k.."\"]"
-    else cK = vK.."["..tostring(k).."]" end
+      vK = sS.."[\""..k.."\"]"
+    else sK = tostring(k)
+      if(tP and tP[k]) then sK = tostring(tP[k]) end
+      vK = sS.."["..sK.."]"  
+    end
     if(type(v) ~= "table") then
       if(type(v) == "string") then
-        LogInstance(cK.." = \""..v.."\"")
-      else LogInstance(cK.." = "..tostring(v)) end
-    else Print(v, cK) end
+        LogInstance(vK.." = \""..v.."\"")
+      else sK = tostring(v)
+        if(tP and tP[v]) then sK = tostring(tP[v]) end
+        LogInstance(vK.." = "..sK)
+      end
+    else
+      if(v == tT) then LogInstance(vK.." = "..sS)
+      else Print(v,vK,tP) end
+    end
   end
 end
 
@@ -1572,13 +1582,15 @@ function CacheTracePly(pPly)
     LogInstance("CacheTracePly: Malloc <"..pPly:Nick()..">")
     plyPlace["TRACE"] = {}; plyData = plyPlace["TRACE"]
     plyData["TDM"] = 0.02 -- Trace delta time margin
-    plyData["NXT"] = plyTime + plyData["TDM"] -- Define next trace pending
-    plyData["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly)) -- Make a trace
+    plyData["NXT"] = plyTime + plyData["TDM"]      -- Define next trace pending
+    plyData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
+    plyData["REZ"] = utilTraceLine(plyData["DAT"]) -- Make a trace
   end -- Check the trace time margin interval
   if(plyTime >= plyData["NXT"]) then
-    plyData["NXT"] = plyTime + plyData["TDM"] -- Next trace margin
-    plyData["DAT"] = utilTraceLine(utilGetPlayerTrace(pPly))
-  end; return plyData["DAT"]
+    plyData["NXT"] = plyTime + plyData["TDM"]      -- Next trace margin
+    plyData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
+    plyData["REZ"] = utilTraceLine(plyData["DAT"]) -- Make a trace
+  end; return plyData["REZ"]
 end
 
 function ConCommandPly(pPly,sCvar,snValue)
