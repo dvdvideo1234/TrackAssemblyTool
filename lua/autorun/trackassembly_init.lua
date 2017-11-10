@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.404")
+asmlib.SetOpVar("TOOL_VERSION","5.405")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -60,7 +60,7 @@ asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gnServerControled, "Maximum mass 
 asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gnServerControled, "Maximum linear offset os the piece")
 asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmVar("maxstcnt" , "200", {1,200}, gnServerControled, "Maximum pieces to spawn in stack mode")
+asmlib.MakeAsmVar("maxstcnt" , "200", {1,800}, gnServerControled, "Maximum pieces to spawn in stack mode")
 asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off on restart server side")
 
 if(SERVER) then
