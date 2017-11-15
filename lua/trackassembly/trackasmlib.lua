@@ -215,25 +215,20 @@ function GetDate()
    .." "..osDate(GetOpVar("TIME_FORMAT")))
 end
 
--- Golden retriever reads file line as string
+-- Golden retriever. Retrieves file line as string
 -- But seriously returns the sting line and EOF flag
 local function GetStringFile(pFile)
-  if(not pFile) then
-    return StatusLog("", "GetStringFile: No file"), true end
-  local sCh, sLine = "X", ""
-  while(sCh) do sCh = pFile:Read(1)
-    if(not sCh) then break end
-    if(sCh == "\n") then
-      return sLine:Trim(), false
-    else sLine = sLine..sCh end
-  end; return sLine:Trim(), true
+  if(not pFile) then return StatusLog("", "GetStringFile: No file"), true end
+  local sCh, sLine = "X", "" -- Use a value to start cycle with
+  while(sCh) do sCh = pFile:Read(1); if(not sCh) then break end
+    if(sCh == "\n") then return sLine:Trim(), false else sLine = sLine..sCh end
+  end; return sLine:Trim(), true -- EOF has been reached. Return the last data
 end
 
 ------------------ LOGS ------------------------
 
 local function FormatNumberMax(nNum,nMax)
-  local nNum = tonumber(nNum)
-  local nMax = tonumber(nMax)
+  local nNum, nMax = tonumber(nNum), tonumber(nMax)
   if(not (nNum and nMax)) then return "" end
   return ("%"..(tostring(mathFloor(nMax))):len().."d"):format(nNum)
 end
@@ -241,9 +236,8 @@ end
 local function Log(anyStuff)
   local nMaxLogs = GetOpVar("LOG_MAXLOGS")
   if(nMaxLogs <= 0) then return end
-  local logLast  = GetOpVar("LOG_LOGLAST")
-  local logData  = tostring(anyStuff)
   local nCurLogs = GetOpVar("LOG_CURLOGS") + 1
+  local logLast, logData = GetOpVar("LOG_LOGLAST"), tostring(anyStuff)
   if(logLast == logData) then SetOpVar("LOG_CURLOGS",nCurLogs); return end
   SetOpVar("LOG_LOGLAST",logData)
   if(GetOpVar("LOG_LOGFILE")) then
@@ -271,21 +265,16 @@ end
 function LogInstance(anyStuff)
   local logMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
   if(logMax and (logMax <= 0)) then return end
-  local anyStuff = tostring(anyStuff)
-  local logStats = GetOpVar("LOG_SKIP")
+  local anyStuff, logStats = tostring(anyStuff), GetOpVar("LOG_SKIP")
   if(logStats and logStats[1]) then
-    local iNdex = 1
-    while(logStats[iNdex]) do
+    local iNdex = 1; while(logStats[iNdex]) do
       if(anyStuff:find(tostring(logStats[iNdex]))) then return end; iNdex = iNdex + 1 end
-  end -- Should the current log being skipped
-  logStats = GetOpVar("LOG_ONLY")
+  end; logStats = GetOpVar("LOG_ONLY") -- Should the current log being skipped
   if(logStats and logStats[1]) then
-    local iNdex, logMe = 1, false
-    while(logStats[iNdex]) do
+    local iNdex, logMe = 1, false; while(logStats[iNdex]) do
       if(anyStuff:find(tostring(logStats[iNdex]))) then logMe = true end; iNdex = iNdex + 1 end
     if(not logMe) then return end
-  end -- Only the chosen messages are processed
-  local sSors = ""
+  end; local sSors = "" -- Only the chosen messages are processed
   if(GetOpVar("LOG_DEBUGEN")) then
     local sInfo = debugGetinfo(3) or {}
     sSors = sSors..(sInfo.linedefined and "["..sInfo.linedefined.."]" or "[n/a]")
@@ -300,13 +289,11 @@ function LogInstance(anyStuff)
 end
 
 function StatusPrint(anyStatus,sError)
-  PrintInstance(sError)
-  return anyStatus
+  PrintInstance(sError); return anyStatus
 end
 
 function StatusLog(anyStatus,sError)
-  LogInstance(sError)
-  return anyStatus
+  LogInstance(sError); return anyStatus
 end
 
 function Print(tT,sS,tP)
