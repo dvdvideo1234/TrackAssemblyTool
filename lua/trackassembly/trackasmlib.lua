@@ -2828,7 +2828,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           local sKey = tLine[2]
           if(not fData[sKey]) then fData[sKey] = {Kept = 0} end
             tKey = fData[sKey]
-          local nID, vID = 0 -- Where the lime ID mut be read from
+          local nID, vID = 0 -- Where the lime ID must be read from
           if    (sTable == "PIECES") then vID = tLine[5]; nID = tonumber(vID) or 0
           elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = tonumber(vID) or 0
           elseif(sTable == "PHYSPROPERTIES") then  vID = tLine[3]; nID = tonumber(vID) or 0 end
@@ -2985,8 +2985,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
         end
       end
     end; F:Close()
-    if(fPool[sPref]) then
-      local inf = fPool[sPref]
+    if(fPool[sPref]) then local inf = fPool[sPref]
       for ID = 1, inf.Cnt do local tab = inf[ID]
         LogInstance("RegisterDSV("..sPref.."): "..(tab[2] and "On " or "Off").." <"..tab[1]..">") end
       return StatusLog(true,"RegisterDSV("..sPref.."): Skip <"..sProg..">")
@@ -3039,8 +3038,7 @@ function ProcessDSV(sDelim)
       for i = 1, tab.Cnt do
         PrintInstance("ProcessDSV: Prefix <"..prf.."> "..tab[i].Prog)
       end
-    else
-      local dir = tab[tab.Cnt].File
+    else local dir = tab[tab.Cnt].File
       if(CLIENT) then
         if(fileExists(dir.."CATEGORY.txt", "DATA")) then
           if(not ImportCategory(3, prf)) then
