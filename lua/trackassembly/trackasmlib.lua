@@ -2649,8 +2649,7 @@ function RemoveDSV(sTable, sPref)
         fName = fName..sPref..defTable.Name..".txt"
   if(not fileExists(fName,"DATA")) then
     return StatusLog(true,"RemoveDSV("..sPref.."): File <"..fName.."> missing") end
-  fileDelete(fName)
-  return StatusLog(true,"RemoveDSV("..sPref.."): Success")
+  fileDelete(fName); return StatusLog(true,"RemoveDSV("..sPref.."): Success")
 end
 
 --[[
@@ -2787,8 +2786,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTable.Name:len()
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
-    if(not IsEmptyString(sLine)) then
-      if((sLine:sub(1,1) ~= symOff) and (sLine:sub(1,nLen) == defTable.Name)) then
+    if((not IsEmptyString(sLine)) and (sLine:sub(1,1) ~= symOff)) then
+      if(sLine:sub(1,nLen) == defTable.Name) then
         local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
         for iCnt = 1, defTable.Size do
           tData[iCnt] = StripValue(tData[iCnt]) end
@@ -2822,34 +2821,32 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local I, fData, smOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
   if(I) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
-      if(not IsEmptyString(sLine)) then
-        if(sLine:sub(1,1) ~= smOff) then
-          local tLine = sDelim:Explode(sLine)
-          if(tLine[1] == defTable.Name) then
-            for i = 1, #tLine do tLine[i] = StripValue(tLine[i]) end
-            local sKey = tLine[2]
-            if(not fData[sKey]) then fData[sKey] = {Kept = 0} end
-              tKey = fData[sKey]
-            local nID, vID = 0 -- Where the lime ID mut be read from
-            if    (sTable == "PIECES") then vID = tLine[5]; nID = tonumber(vID) or 0
-            elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = tonumber(vID) or 0
-            elseif(sTable == "PHYSPROPERTIES") then  vID = tLine[3]; nID = tonumber(vID) or 0 end
-            if((tKey.Kept < 0) or (nID <= tKey.Kept) or ((nID - tKey.Kept) ~= 1)) then
-              I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read pont ID #"..
-                tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">") end
-            tKey.Kept = nID; tKey[tKey.Kept] = {}
-            local kKey, nCnt = tKey[tKey.Kept], 3
-            while(tLine[nCnt]) do -- Do a value matching without quotes
-              local vMatch = MatchType(defTable,tLine[nCnt],nCnt-1)
-              if(not IsExistent(vMatch)) then
-                I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read matching failed <"
-                  ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "
-                    ..defTable[nCnt-1][1].."> of <"..sTable..">")
-              end; kKey[nCnt-2] = vMatch; nCnt = nCnt + 1
-            end
-          else I:Close()
-            return StatusLog(false,"SynchronizeDSV("..fPref.."): Read table name mismatch <"..sTable..">") end
-        end
+      if((not IsEmptyString(sLine)) and (sLine:sub(1,1) ~= smOff)) then
+        local tLine = sDelim:Explode(sLine)
+        if(tLine[1] == defTable.Name) then
+          for i = 1, #tLine do tLine[i] = StripValue(tLine[i]) end
+          local sKey = tLine[2]
+          if(not fData[sKey]) then fData[sKey] = {Kept = 0} end
+            tKey = fData[sKey]
+          local nID, vID = 0 -- Where the lime ID mut be read from
+          if    (sTable == "PIECES") then vID = tLine[5]; nID = tonumber(vID) or 0
+          elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = tonumber(vID) or 0
+          elseif(sTable == "PHYSPROPERTIES") then  vID = tLine[3]; nID = tonumber(vID) or 0 end
+          if((tKey.Kept < 0) or (nID <= tKey.Kept) or ((nID - tKey.Kept) ~= 1)) then
+            I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read pont ID #"..
+              tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">") end
+          tKey.Kept = nID; tKey[tKey.Kept] = {}
+          local kKey, nCnt = tKey[tKey.Kept], 3
+          while(tLine[nCnt]) do -- Do a value matching without quotes
+            local vMatch = MatchType(defTable,tLine[nCnt],nCnt-1)
+            if(not IsExistent(vMatch)) then
+              I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read matching failed <"
+                ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "
+                  ..defTable[nCnt-1][1].."> of <"..sTable..">")
+            end; kKey[nCnt-2] = vMatch; nCnt = nCnt + 1
+          end
+        else I:Close()
+          return StatusLog(false,"SynchronizeDSV("..fPref.."): Read table name mismatch <"..sTable..">") end
       end
     end; I:Close()
   else LogInstance("SynchronizeDSV("..fPref.."): Creating file <"..fName..">") end
@@ -2931,19 +2928,17 @@ function TranslateDSV(sTable, sPref, sDelim)
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
   local sFr, sBk, sHs = pfLib..".InsertRecord(\""..sTable.."\", {", "})\n", (fPref.."@"..sTable)
   while(not isEOF) do sLine, isEOF = GetStringFile(D)
-    sLine = sLine:gsub(defTable.Name,""):Trim()
-    if(not IsEmptyString(sLine)) then
-      if(sLine:sub(1,1) ~= symOff) then
-        local tBoo, sCat = sDelim:Explode(sLine), ""
-        for nCnt = 1, #tBoo do
-          local vMatch = MatchType(defTable,StripValue(tBoo[nCnt]),nCnt,true,"\"",true)
-          if(not IsExistent(vMatch)) then D:Close(); I:Flush(); I:Close()
-            return StatusLog(false,"TranslateDSV("..sHs.."): Given matching failed <"
-              ..tostring(tBoo[nCnt]).."> to <"..tostring(nCnt).." # "
-                ..defTable[nCnt][1].."> of "..sTable) end
-          sCat = sCat..", "..tostring(vMatch)
-        end; I:Write(sFr..sCat:sub(3,-1)..sBk)
-      end
+    if((not IsEmptyString(sLine)) and (sLine:sub(1,1) ~= symOff)) then
+      sLine = sLine:gsub(defTable.Name,""):Trim()
+      local tBoo, sCat = sDelim:Explode(sLine), ""
+      for nCnt = 1, #tBoo do
+        local vMatch = MatchType(defTable,StripValue(tBoo[nCnt]),nCnt,true,"\"",true)
+        if(not IsExistent(vMatch)) then D:Close(); I:Flush(); I:Close()
+          return StatusLog(false,"TranslateDSV("..sHs.."): Given matching failed <"
+            ..tostring(tBoo[nCnt]).."> to <"..tostring(nCnt).." # "
+              ..defTable[nCnt][1].."> of "..sTable) end
+        sCat = sCat..", "..tostring(vMatch)
+      end; I:Write(sFr..sCat:sub(3,-1)..sBk)
     end
   end; D:Close(); I:Flush(); I:Close()
   return StatusLog(true,"TranslateDSV("..sHs.."): Success")
