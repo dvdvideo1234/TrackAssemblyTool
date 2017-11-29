@@ -140,7 +140,7 @@ local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModif
 local libCache  = {} -- Used to cache stuff in a pool
 local libAction = {} -- Used to attach external function to the lib
 local libOpVars = {} -- Used to Store operational variable values
-local libPlayer = {} -- Used to allcoate personal space for players
+local libPlayer = {} -- Used to allocate personal space for players
 
 module("trackasmlib")
 
@@ -1167,13 +1167,12 @@ function ModelToName(sModel,bNoSettings)
   local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
   local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
         sModel =  sModel:GetFileFromFilename():gsub(GetOpVar("MODELNAM_FILE"),"")
-  local gModel =  sModel:sub(1,-1) -- Create a copy so we can select cut-off parts later on
+  local gModel =  sModel:sub(1,-1) -- Create a copy so we can select cut-off parts later
   if(not bNoSettings) then local Cnt = 1
     local tCut, tSub, tApp = SettingsModelToName("GET")
     if(tCut and tCut[1]) then
       while(tCut[Cnt] and tCut[Cnt+1]) do
-        local fCh = tonumber(tCut[Cnt])
-        local bCh = tonumber(tCut[Cnt+1])
+        local fCh, bCh = tonumber(tCut[Cnt]), tonumber(tCut[Cnt+1])
         if(not (IsExistent(fCh) and IsExistent(bCh))) then
           return StatusLog("","ModelToName: Cannot cut the model in {"
                    ..tostring(tCut[Cnt])..","..tostring(tCut[Cnt+1]).."} for "..sModel) end
@@ -1185,8 +1184,7 @@ function ModelToName(sModel,bNoSettings)
     -- Replace the unneeded parts by finding an in-string gModel
     if(tSub and tSub[1]) then
       while(tSub[Cnt]) do
-        local fCh = tostring(tSub[Cnt]   or "")
-        local bCh = tostring(tSub[Cnt+1] or "")
+        local fCh, bCh = tostring(tSub[Cnt]   or ""), tostring(tSub[Cnt+1] or "")
         gModel = gModel:gsub(fCh,bCh)
         LogInstance("ModelToName[SUB]: {"..tostring(tSub[Cnt])..", "..tostring(tSub[Cnt+1]).."} >> "..gModel)
         Cnt = Cnt + 2
@@ -1511,7 +1509,7 @@ function CacheSpawnPly(pPly)
     plyData.SAng = Angle () -- Gear spawn angle
     plyData.RLen = 0        -- Trace active radius
     --- Holder ---
-    plyData.HRec = 0        -- Pointer to the hoder record
+    plyData.HRec = 0        -- Pointer to the holder record
     plyData.HID  = 0        -- Point ID
     plyData.HPnt = Vector() -- P
     plyData.HPos = Vector() -- O
@@ -1828,7 +1826,7 @@ local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
         return StatusLog(nil, "SQLBuildSelect: Missing field by index #"
           ..v.." in the table "..defTable.Name) end
       if(defTable[v][1]) then Command = Command..defTable[v][1]
-      else return StatusLog(nil, "SQLBuildSelect: Mising field name by index #"
+      else return StatusLog(nil, "SQLBuildSelect: Missing field name by index #"
         ..v.." in the table "..defTable.Name) end
       if(tFields[Cnt+1]) then Command = Command ..", " end
       Cnt = Cnt + 1
@@ -2302,7 +2300,7 @@ function CacheQueryPiece(sModel)
         return StatusLog(nil,"CacheQueryPiece: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPiece: No data found <"..Q..">") end
-      stPiece.Kept = 0; local iCnt = 1 --- Notrhing registered yet
+      stPiece.Kept = 0; local iCnt = 1 --- Nothing registered yet
       stPiece.Slot = sModel
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
@@ -2799,7 +2797,7 @@ end
 
 --[[
  * This function synchronizes extended database records loaded by the server and client
- * It is used by addon creators when they want to add extra piecs to TA
+ * It is used by addon creators when they want to add extra pieces to TA
  * sTable > The table you want to sync
  * tData  > Data you want to add as extended records for the given table
  * bRepl  > If set to /true/ replaces persisting records with the addon
@@ -2833,7 +2831,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = tonumber(vID) or 0
           elseif(sTable == "PHYSPROPERTIES") then  vID = tLine[3]; nID = tonumber(vID) or 0 end
           if((tKey.Kept < 0) or (nID <= tKey.Kept) or ((nID - tKey.Kept) ~= 1)) then
-            I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read pont ID #"..
+            I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read point ID #"..
               tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">") end
           tKey.Kept = nID; tKey[tKey.Kept] = {}
           local kKey, nCnt = tKey[tKey.Kept], 3
@@ -2853,11 +2851,11 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   for key, rec in pairs(tData) do -- Check the given table
     for pnID = 1, #rec do
       local tRec = rec[pnID]
-      local nID, vID = 0 -- Where the lime ID mut be read from
+      local nID, vID = 0 -- Where the line ID must be read from
       if(sTable == "PIECES") then
         vID = tRec[3]; nID = tonumber(vID) or 0
         if(pnID ~= nID) then
-          return StatusLog(false,"SynchronizeDSV("..fPref.."): Given pont ID #"..
+          return StatusLog(false,"SynchronizeDSV("..fPref.."): Given point ID #"..
             tostring(vID).." desynchronized <"..key.."> of "..sTable) end
         if(not fileExists(key, "GAME")) then
           LogInstance("SynchronizeDSV("..fPref.."): Missing piece <"..key..">") end
