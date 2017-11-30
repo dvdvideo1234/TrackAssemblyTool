@@ -285,7 +285,7 @@ function TOOL:GetScrollMouse()
   return asmlib.GetAsmVar("enpntmscr","BUL")
 end
 
-function TOOL:SwitchPoint(nDir,bIsNext)
+function TOOL:SwitchPoint(nDir, bIsNext)
   local Dir = (tonumber(nDir) or 0)
   local Rec = asmlib.CacheQueryPiece(self:GetModel())
   local pointid, pnextid = self:GetPointID()
@@ -304,14 +304,13 @@ function TOOL:IntersectClear(bMute)
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
   if(stRay) then
     asmlib.IntersectRayClear(oPly, "ray_relate")
-    if(SERVER) then
-      local ryEnt = stRay.Ent
+    if(SERVER) then local ryEnt = stRay.Ent
+      netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
       if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w")) end
       if(not bMute) then -- Send client messages when not muted
         asmlib.LogInstance("TOOL:IntersectClear: Relation cleared")
         asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP")
-        netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
-      end -- Make sure to delete the realation on both client and server
+      end -- Make sure to delete the relation on both client and server
     end
   end; return true
 end
@@ -740,7 +739,7 @@ function TOOL:Reload(stTrace)
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
       if(workmode == 1) then self:ClearAnchor(true)
         asmlib.LogInstance("TOOL:Reload(Anchor): Clear")
-      elseif(workmode == 2) then self:IntersectClear()
+      elseif(workmode == 2) then self:IntersectClear(false)
         asmlib.LogInstance("TOOL:Reload(Relate): Clear")
       end
     end; return asmlib.StatusLog(true,"TOOL:Reload(World): Success")
