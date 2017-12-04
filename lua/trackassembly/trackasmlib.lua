@@ -341,7 +341,7 @@ function SettingsLogs(sHash)
   local tLogs, lbNam = GetOpVar("LOG_"..sKey), GetOpVar("NAME_LIBRARY")
   if(not tLogs) then return StatusLog(true,"SettingsLogs("..sKey.."): Skip table") end
   local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_sl"..sKey:lower()..".txt"
-  local S = fileOpen(fName, "rb", "DATA")
+  local S = fileOpen(fName, "rb", "DATA"); tableEmpty(tLogs)
   if(S) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(S)
       if(not IsEmptyString(sLine)) then tableInsert(tLogs, sLine) end
