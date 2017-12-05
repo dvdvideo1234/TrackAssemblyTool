@@ -227,7 +227,7 @@ int main(int argc, char **argv)
         cuAdd = &(Match->Addon); /// The repeated model path checked
         cuMch = Matches.navigateMatch(adNode);
         if(cuMch == MSTACK_INV_POINTER)
-          { return onExit(SSTACK_INVALID_ID,"main(Repeat): Navigation failed: %s"); }
+          { return onExit(SSTACK_NOT_FOUND,"main(Repeat): Navigation failed: %s"); }
         cuDbs = &(cuMch->Dbase); /// Database to use for checking
         for(iAd = 0; iAd < cuAdd->getCount(); iAd++)
         {
