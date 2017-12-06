@@ -4,7 +4,7 @@
  * Why the name starts with /z/ you may ask. When Gmod loads the game
  * it goes trough all the Lua addons alphabetically.
  * That means your file name ( The file you are reading right now )
- * must be greater alphabetically than /asmlib/, so the API of the
+ * must be greater alphabetically than /trackasmlib/, so the API of the
  * module can be loaded before you can use it like seen below.
 ]]--
 -- Local reference to the module
@@ -13,7 +13,15 @@ local asmlib = trackasmlib
 -- Change this to your addon name
 local myAddon = "Test's track pack" -- Your addon name goes here
 
--- Change this if you want to use different in-game type
+-- The base tool prefix which serves for script running identification
+local myToolp = "TrackAssemblyTool("..myAddon.."): "
+
+--[[
+ * Change this if you want to use different in-game type
+ * You can also use multiple types myType1, myType2,
+ * myType3, ... myType/n when your addon contains
+ * multiple model packs
+]]--
 local myType  = myAddon -- The type your addon resides in the tool with
 
 --[[
@@ -33,6 +41,13 @@ if(asmlib) then
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
                 asmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
                 asmlib.GetOpVar("TOOLNAME_PU")
+  --[[
+   * This flag is used when the track pieces list needs to be processed.
+   * It generally represents the locking file persistence flag. It is
+   * bound to finding a "PIECES" DSV external database for the prefix
+   * of your addon. You can use it for boolean value deciding whenever
+   * or not to run certain events
+  ]]--
   local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
 
   -- This is the script path. It tells TA who wants to add these models
@@ -57,11 +72,11 @@ if(asmlib) then
    * sPref  > The external data prefix to be added ( default instance prefix )
    * sDelim > The delimiter to be used for processing ( default tab )
   ]]--
-  if(myFlag) then
+  if(myFlag) then -- Your DSV must be registered only once when loading for the first time
     asmlib.LogInstance("RegisterDSV skip <"..myPrefix..">")
-  else
-    if(not asmlib.RegisterDSV(myScript, myPrefix)) then
-      myError("Failed to register DSV: "..myScript)
+  else -- If the locking file is not located that means this is the first run of your script
+    if(not asmlib.RegisterDSV(myScript, myPrefix)) then -- Register the DSV prefix and check for error
+      myError(myToolp.."Failed to register DSV: "..myScript) -- Throw the error if fails
     end -- Third argument is the delimiter. The default tab is used
   end
   --[[
@@ -73,7 +88,7 @@ if(asmlib) then
    * the root of your branch. You can also return a second value if you
    * want to override the track piece name.
   ]]--
-  local myCategory ={
+  local myCategory = {
     [myType] = {Txt = [[
       function(m)
         local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
@@ -102,7 +117,7 @@ if(asmlib) then
   ]]--
   if(CLIENT) then
     if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
-      myError("Failed to synchronize category: "..myScript)
+      myError(myToolp.."Failed to synchronize category: "..myScript)
     end
   end
 
@@ -162,13 +177,13 @@ if(asmlib) then
    * sDelim > The delimiter used by the server/client ( default is a tab symbol )
   ]]--
   if(not asmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
-    myError("Failed to synchronize track pieces: "..myScript)
+    myError(myToolp.."Failed to synchronize track pieces: "..myScript)
   else -- You are saving me from all the work for manually generation these
     if(not asmlib.TranslateDSV("PIECES", myPrefix)) then
-      myError("Failed to translate DSV into Lua: "..myScript) end
+      myError(myToolp.."Failed to translate DSV into Lua: "..myScript) end
   end -- Now we have Lua inserts and DSV
 
   asmlib.LogInstance("<<< "..myScript)
 else
-  myError("Failed loading the required module: "..myScript)
+  myError(myToolp.."Failed loading the required module: "..myScript)
 end
