@@ -1946,7 +1946,7 @@ function CreateTable(sTable,defTable,bDelete,bReload)
       else
         return StatusLog(false,"CreateTable: Table "..sTable..
           " failed to create because of "..sqlLastError().." Query ran > "..tQ.Create) end
-    end; LogInstance("CreateTable: Created "..defTable.Name)
+    end
   elseif(sModeDB == "LUA") then
     LogInstance("CreateTable: Created "..defTable.Name)
   else return StatusLog(false,"CreateTable: Wrong database mode <"..sModeDB..">") end
