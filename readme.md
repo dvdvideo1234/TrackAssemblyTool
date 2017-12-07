@@ -419,8 +419,16 @@ Q: Hey, how should I proceed when I am experiencing errors ?
 A: First of all if the error origin is not the TA,
     I can't pretty much help you with it, but I will do my best
     If the error is related to the TA then:
-    1) Delete database ( if any ) located in ..common\GarrysMod\garrysmod\data\trackassembly\dsv\*.*
-    2) Delete the TA's *.gma file from garrysmod\addons
+    1) Delete the external configurations in "..common\GarrysMod\garrysmod\data\trackassembly"
+      1a) Delete database ( if any ) located in "dsv\*.txt".
+          Remember to back up your personal database if any !                 ( optional )
+      1b) Delete the DSV auto-load list located in "trackasmlib_dsv.txt"
+          Remember to back up your personal database if any !                 ( optional )
+      1c) Delete the lua exports ( if any ) located in "ins\*.txt"            ( optional )
+      1d) Delete the Log program settings located in "trackasmlib_sl*.txt"    ( optional )
+      1e) Delete the whole folder if necessary                                ( optional )
+          Remember to back up your personal database !                        ( optional )
+    2) Delete the TA's "*.gma" file from "garrysmod\addons"
     3) Delete the cache "..\GarrysMod\garrysmod\cache"
     4) In the game library, right click on Gmod and select "Properties"
     5) Navigate to "Local Files" and click "Verify integrity of the game cache"
@@ -441,11 +449,14 @@ A: First of all if the error origin is not the TA,
 
 Q: Yo, can I add some personal models to TA ?
 A: Yes, you can. For every active point, you have to add a line in the table PIECES.
+  The first method involves editing the general database. That way your custom track
+  pieces are not divided and are inside the general data pool for client and server.
+  This is good if you want to test something fast.
     1) In the console ( Bring it up with ~ key under ESC ): "trackassembly_exportdb 1" [ press enter ]
     2) Server: Point the crosshair anywhere on the map, then hit SPEED ( Default: Shift ) + RELOAD ( Default: R )
     3) Client: Just bring up the Frequently used pieces screen, then click the "Export client's DB" button
     4) Use Excel or another table editing program to edit the files sv_*.txt and cl_*.txt
-    5) After exporting, tables are located under ..common\GarrysMod\garrysmod\data\trackassembly\dsv\ [DSV Folder]
+    5) After exporting, tables are located under "..common\GarrysMod\garrysmod\data\trackassembly\dsv\" [DSV Folder]
     6) Navigate to the DSV folder using explorer(Windows)/nautilus(Linux) and proceed
     7) Open all *TRACKASSEMBLY_PIECES.txt files and make your edits using tab-delimited [Excel 2010]
     8) [Excel 2010] File -> Save As -> Navigate to the DSV folder if you are not in there already
@@ -458,6 +469,41 @@ A: Yes, you can. For every active point, you have to add a line in the table PIE
    15) [Excel 2010] You are good to go
    If you have trouble with this step by step tutorial, maybe this will help
      https://www.youtube.com/watch?v=Pz0_RGwgfaY
+  The second method involves personal DSV database. This option is mostly used when you want to
+  separate your own stuff from the general data pool. The track pack creators use this method to
+  add their custom track models in the database via Lua script. Let's call <database_prefix> "MyStuff_"
+  ( what's added ) and your addon name "John Doe's trackpack" ( who has added it a.k.a the data exporter )
+    1) Navigate to "..common\GarrysMod\garrysmod\data\trackassembly"
+    2) Open the file "trackasmlib_dsv.txt". If it does not exist then just create it.
+      2a) You can always comment an addon to prevent it loading its pieces to the database via "#"
+          a hash tag symbol in front of the line which you want disabled.
+    3) Inside the file you just have to add the content "<database_prefix>[TAB symbol]<data_exporter>"
+      3a) For the example above you will have "MyStuff_[-->]John Doe's trackpack"
+      3b) The second value is optional, but you will need a tab symbol to separate these
+          two if you put it there. If you don't put it, you need only the prefix
+    4) Open the file "dsv\MyStuff_TRACKASSEMBLY_PIECES.txt"
+       If it does not exist then just create it. This file is mandatory. Now insert
+       your track piece models and they will be loaded during the tool initialization
+    https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt
+    5) Open the file "dsv\MyStuff_TRACKASSEMBLY_CATEGORY.txt". If it does not exist then just create it.
+       This is optional ! It is done when you want to use classification categories for your database
+       The format contains open definition delimiter, closing one and a separator.
+       Between these you must have your addon name and a function defined as a string
+       The string opening the definition is "[===["
+       The string used for delimiter is "==="
+       The closing sequence for the definition is "]===]" and it means that the definition ends.
+       Between 5b) and 5c) you must have the addon name (ex. John Doe's trackpack)
+       Between 5c) and 5d) you must have an actual Lua function written as string "function(m) ( do some stuff ) end"
+       Where the "m" parameter is dynamically populated with the track piece model path.
+       You must use that value to extract the category you need. Usually this is one of the directories
+    https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt
+    6) Open the file "dsv\MyStuff_TRACKASSEMBLY_ADDITIONS.txt"
+       This is optional ! If it does not exist then just create it. This file hold definitions of what props
+       must be spawned with the track pieces. The are like scenery, button and stuff.
+       A good example for an addon which uses ADDITIONS parameters is "Shinji's track pack"
+    7) Open the file "dsv\MyStuff_TRACKASSEMBLY_PHYSPROPERTIES.txt"
+       This is optional ! If it does not exist then just create it. This part is optional if you heed
+       additional physical properties
 N: After adding these models, the database can be exported again.
    This will generate export data, that can be located under "../data/trackassembly/exp/"
    If you want me to review your custom models/addon, please provide these inserts to me.
