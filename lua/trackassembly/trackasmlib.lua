@@ -1900,14 +1900,14 @@ function CreateTable(sTable,defTable,bDelete,bReload)
   local sTable  = sTable:upper()
   local sModeDB = GetOpVar("MODE_DATABASE")
   local symDis  = GetOpVar("OPSYM_DISABLE")
-  local iCnt, defField = 1, nil
+  local iCnt, defCol = 1, nil
   SetOpVar("DEFTABLE_"..sTable,defTable)
   defTable.Size = #defTable
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
   while(defTable[iCnt]) do
-    defField    = defTable[iCnt]
-    defField[3] = DefaultString(tostring(defField[3] or symDis), symDis)
-    defField[4] = DefaultString(tostring(defField[4] or symDis), symDis)
+    defCol    = defTable[iCnt]
+    defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
+    defCol[4] = DefaultString(tostring(defCol[4] or symDis), symDis)
     iCnt = iCnt + 1
   end; libCache[defTable.Name] = {}
   if(sModeDB == "SQL") then
