@@ -14,7 +14,7 @@ local asmlib = trackasmlib
 local myAddon = "Test's track pack" -- Your addon name goes here
 
 -- The base tool prefix which serves for script running identification
-local myToolp = "TrackAssemblyTool("..myAddon.."): "
+local myToolp = "TrackAssemblyTool("..myAddon..")"
 
 --[[
  * Change this if you want to use different in-game type
@@ -46,7 +46,9 @@ if(asmlib) then
    * It generally represents the locking file persistence flag. It is
    * bound to finding a "PIECES" DSV external database for the prefix
    * of your addon. You can use it for boolean value deciding whenever
-   * or not to run certain events
+   * or not to run certain events. For example you can stop exporting
+   * your local database every time Gmod loads, but then the user will
+   * skip the available updates of your addon until he/she deletes the DSVs
   ]]--
   local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
 
@@ -60,6 +62,19 @@ if(asmlib) then
 
   -- And what parameters I was called with ;)
   asmlib.LogInstance("Status("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
+
+  --[[
+   * This function defines what happens when there is an error present
+   * Usually you can tell Gmod that you want it to generate an error
+   * and throw the message to the log also. In this case you will not
+   * have to change the change the function name in lots of places
+   * when you need it to do something else
+  --]]
+  local function myThrowError(vMesg)
+    local sMesg = tostring(vMesg)                  -- Make sure the message is string
+    asmlib.LogInstance(sMesg)                      -- Output the message into the logs
+    myError(myScript.." > "..myToolp..": "..sMesg) -- Generate an error in the console ( optional )
+  end
 
   --[[
    * Register the addon to the auto-load prefix list when the
@@ -76,7 +91,7 @@ if(asmlib) then
     asmlib.LogInstance("RegisterDSV skip <"..myPrefix..">")
   else -- If the locking file is not located that means this is the first run of your script
     if(not asmlib.RegisterDSV(myScript, myPrefix)) then -- Register the DSV prefix and check for error
-      myError(myToolp.."Failed to register DSV: "..myScript) -- Throw the error if fails
+      myThrowError("Failed to register DSV") -- Throw the error if fails
     end -- Third argument is the delimiter. The default tab is used
   end
   --[[
@@ -117,7 +132,7 @@ if(asmlib) then
   ]]--
   if(CLIENT) then
     if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
-      myError(myToolp.."Failed to synchronize category: "..myScript)
+      myThrowError("Failed to synchronize category")
     end
   end
 
@@ -177,13 +192,13 @@ if(asmlib) then
    * sDelim > The delimiter used by the server/client ( default is a tab symbol )
   ]]--
   if(not asmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
-    myError(myToolp.."Failed to synchronize track pieces: "..myScript)
+    myThrowError("Failed to synchronize track pieces")
   else -- You are saving me from all the work for manually generation these
     if(not asmlib.TranslateDSV("PIECES", myPrefix)) then
-      myError(myToolp.."Failed to translate DSV into Lua: "..myScript) end
+      myThrowError("Failed to translate DSV into Lua") end
   end -- Now we have Lua inserts and DSV
 
   asmlib.LogInstance("<<< "..myScript)
 else
-  myError(myToolp.."Failed loading the required module: "..myScript)
+  myError(myScript.." > "..myToolp..": Failed loading the required module")
 end
