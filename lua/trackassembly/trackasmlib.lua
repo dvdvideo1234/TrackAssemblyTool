@@ -2147,7 +2147,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
   if(not IsExistent(Place[Key])) then
     return StatusLog(nil,"TimerAttach: Data not found") end
   local sModeDB = GetOpVar("MODE_DATABASE")
-  LogInstance("TimerAttach: Called by <"..tostring(anyMessage).."> for Place["..tostring(Key).."]")
+  LogInstance("TimerAttach: Called by <"..tostring(anyMessage).."> for ["..tostring(Key).."]")
   if(sModeDB == "SQL") then
     local nNowTM, tTimer = Time(), defTable.Timer -- See that there is a timer and get "now"
     if(not IsExistent(tTimer)) then
@@ -2168,7 +2168,7 @@ local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
       end
       if(bCollGB) then
         collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
-      return StatusLog(Place[Key],"TimerAttach: Place["..tostring(Key).."] @"..tostring(RoundValue(nNowTM,0.01)))
+      return StatusLog(Place[Key],"TimerAttach: ["..tostring(Key).."] @"..tostring(RoundValue(nNowTM,0.01)))
     elseif(sModeTM == "OBJ") then
       local TimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
       LogInstance("TimerAttach: TimID <"..TimerID..">")
