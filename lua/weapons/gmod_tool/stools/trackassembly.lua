@@ -883,19 +883,52 @@ end
 
 function TOOL:DrawRelateIntersection(oScreen, oPly, nRad)
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
-  if(stRay) then
-    local rOrg, rDir = stRay.Orw, stRay.Diw
-    local Rp, nLn = rOrg:ToScreen(), self:GetActiveRadius()
-    local Rf = (rOrg + nLn * rDir:Forward()):ToScreen()
-    local Ru = (rOrg + nLn * 0.5 * rDir:Up()):ToScreen()
-    local rF = (oScreen:GetDistance(Rp, Rf) or 0)
-    local rU = 2 * (oScreen:GetDistance(Rp, Ru) or 0)
-    local nR = ((rF > rU) and rF or rU)
-    oScreen:DrawLine(Rp, Rf, "r")
-    oScreen:DrawLine(Rp, Ru, "b")
-    oScreen:DrawCircle(Rp, nR / 6, "y")
-    return Rp, Rf, Ru
-  end; return nil
+  if(not stRay) then return end
+  local rOrg, rDir = stRay.Orw, stRay.Diw
+  local Rp, nLn = rOrg:ToScreen(), self:GetActiveRadius()
+  local Rf = (rOrg + nLn * rDir:Forward()):ToScreen()
+  local Ru = (rOrg + nLn * 0.5 * rDir:Up()):ToScreen()
+  local rF = (oScreen:GetDistance(Rp, Rf) or 0)
+  local rU = 2 * (oScreen:GetDistance(Rp, Ru) or 0)
+  local nR = ((rF > rU) and rF or rU)
+  oScreen:DrawLine(Rp, Rf, "r")
+  oScreen:DrawLine(Rp, Ru, "b")
+  oScreen:DrawCircle(Rp, nR / 6, "y")
+  return Rp, Rf, Ru
+end
+
+function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, nRad)
+  local vTmp, trLen, trPOA =  Vector(), 0, nil
+  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
+  local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+  if(not trRec) then return end
+  for ID = 1, trRec.Kept do
+    local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
+      return asmlib.StatusLog(nil,"TOOL:DrawRelateAssist: Cannot locate #"..tostring(ID)) end
+    asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos); vTmp:Sub(trHit)
+    if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
+  end; asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
+  local hP, pO = trHit:ToScreen(), vTmp:ToScreen()
+  oScreen:DrawLine(hP, pO, "y")
+  oScreen:DrawCircle(pO, nRad / 3, "y")
+  oScreen:DrawCircle(hP, nRad / 1.5)
+end
+
+function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
+  local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+  if(not trRec) then return end
+  local O, R = Vector(), (nActRad * oPly:GetRight())
+  for ID = 1, trRec.Kept do
+    local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
+      return asmlib.StatusLog(nil,"TOOL:DrawSnapAssist: Cannot locate #"..tostring(ID)) end
+    asmlib.SetVector(O,stPOA.O); O:Rotate(trAng); O:Add(trPos)
+    local Op = O:ToScreen(); O:Add(R)
+    local Rp = O:ToScreen()
+    local mX = (Rp.x - Op.x); mX = mX * mX
+    local mY = (Rp.y - Op.y); mY = mY * mY
+    local mR = mathSqrt(mX + mY)
+    oScreen:DrawCircle(Op, mR,"y","SEGM",{100})
+  end
 end
 
 function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn, nRad)
@@ -957,14 +990,12 @@ function TOOL:DrawHUD()
     asmlib.LogInstance("TOOL:DrawHUD: Create screen")
   end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
-  local ply = LocalPlayer()
-  local stTrace  = asmlib.CacheTracePly(ply)
+  local ply, model = LocalPlayer(), self:GetModel()
+  local stTrace = asmlib.CacheTracePly(ply)
   if(not stTrace) then return end
-  local ratioc = (gnRatio - 1) * 100
-  local ratiom = (gnRatio * 1000)
-  local plyd   = (stTrace.HitPos - ply:GetPos()):Length()
-  local trEnt  = stTrace.Entity
-  local model  = self:GetModel()
+  local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
+  local trEnt, trHit = stTrace.Entity, stTrace.HitPos
+  local plyd = (trHit - ply:GetPos()):Length()
   local workmode = self:GetWorkingMode()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
@@ -975,29 +1006,15 @@ function TOOL:DrawHUD()
     local igntype = self:GetIgnoreType()
     local actrad  = self:GetActiveRadius()
     local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
-    local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,stTrace.HitPos,model,pointid,
+    local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,trHit,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
       if(not self:GetPointAssist()) then return end
-      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-      if(not trRec) then return end
-      local ID, O, R = 1, Vector(), (actrad * ply:GetRight())
-      while(ID <= trRec.Kept) do
-        local stPOA = asmlib.LocatePOA(trRec,ID)
-        if(not stPOA) then
-          return asmlib.StatusLog(nil,"TOOL:DrawHUD: Cannot assist point #"..tostring(ID)) end
-        asmlib.SetVector(O,stPOA.O)
-        O:Rotate(trAng); O:Add(trPos)
-        local Op = O:ToScreen(); O:Add(R); ID = ID + 1
-        local Rp = O:ToScreen()
-        local mX = (Rp.x - Op.x); mX = mX * mX
-        local mY = (Rp.y - Op.y); mY = mY * mY
-        local mR = mathSqrt(mX + mY)
-        hudMonitor:DrawCircle(Op, mR,"y","SEGM",{100})
-      end; return
-    end
+      if    (workmode == 1) then self:DrawSnapAssist(hudMonitor, actrad, trEnt, ply)
+      elseif(workmode == 2) then self:DrawRelateAssist(hudMonitor, trHit, trEnt, nRad) end
+    end -- Draw the assistants related to the different working modes
     local nRad = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
-    local Os, Tp = self:DrawUCS(hudMonitor, stTrace.HitPos, stSpawn.OPos, stSpawn.OAng, nRad)
+    local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
     local Pp = stSpawn.TPnt:ToScreen()
     hudMonitor:DrawLine(Os,Pp,"r")
     hudMonitor:DrawCircle(Pp, nRad / 2)
@@ -1011,7 +1028,7 @@ function TOOL:DrawHUD()
         hudMonitor:DrawCircle(Np, nRad / 2, "g")
       end
     elseif(workmode == 2) then -- Draw point intersection
-      local vX, vX1, vX2 = self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
+      local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
       local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, nRad)
       if(Rp and vX) then
         local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
@@ -1040,11 +1057,11 @@ function TOOL:DrawHUD()
             aAng:RotateAroundAxis(aAng:Right()  , nextpic)
             aAng:RotateAroundAxis(aAng:Forward(), nextrol)
       local vPos = Vector()
-            vPos:Set(stTrace.HitPos + elevpnt * stTrace.HitNormal)
+            vPos:Set(trHit + elevpnt * stTrace.HitNormal)
             vPos:Add(nextx * aAng:Forward())
             vPos:Add(nexty * aAng:Right())
             vPos:Add(nextz * aAng:Up())
-      local Os, Tp = self:DrawUCS(hudMonitor, stTrace.HitPos, vPos, aAng, nRad)
+      local Os, Tp = self:DrawUCS(hudMonitor, trHit, vPos, aAng, nRad)
       if(workmode == 2) then -- Draw point intersection
         self:DrawRelateIntersection(hudMonitor, ply, nRad) end
       if(not self:GetDeveloperMode()) then return end
@@ -1054,10 +1071,10 @@ function TOOL:DrawHUD()
       hudMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local stSpawn  = asmlib.GetNormalSpawn(ply,stTrace.HitPos + elevpnt * stTrace.HitNormal,
+      local stSpawn  = asmlib.GetNormalSpawn(ply,trHit + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
-      local Os, Tp = self:DrawUCS(hudMonitor, stTrace.HitPos, stSpawn.OPos, stSpawn.OAng, nRad)
+      local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
       if(workmode == 1) then
         local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
         if(nxPOA and stSpawn.HRec.Kept > 1) then

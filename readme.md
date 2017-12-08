@@ -488,14 +488,14 @@ A: Yes, you can. For every active point, you have to add a line in the table PIE
     5) Open the file "dsv\MyStuff_TRACKASSEMBLY_CATEGORY.txt". If it does not exist then just create it.
        This is optional ! It is done when you want to use classification categories for your database
        The format contains open definition delimiter, closing one and a separator.
-       Between these you must have your addon name and a function defined as a string
-       The string opening the definition is "[===["
-       The string used for delimiter is "==="
-       The closing sequence for the definition is "]===]" and it means that the definition ends.
-       Between 5b) and 5c) you must have the addon name (ex. John Doe's trackpack)
-       Between 5c) and 5d) you must have an actual Lua function written as string "function(m) ( do some stuff ) end"
-       Where the "m" parameter is dynamically populated with the track piece model path.
-       You must use that value to extract the category you need. Usually this is one of the directories
+       Between these you must have your addon name and a function defined as a string. The token
+       opening the definition is "[===[" (1). The token used for delimiter is "===" (2). The closing
+       sequence for the definition is "]===]" (3) and it means that the definition ends.
+       Between (1) and (2) you must have the addon name (ex. John Doe's trackpack)
+       Between (2) and (3) you must have an actual Lua function written as string
+       "function(m) ( do some stuff ) end", where the "m" parameter is dynamically populated
+       with the track piece model path. You must use that value to extract the category
+       you need. Usually this is one of the sub-directories of the model path or piece prefix/suffix
     https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt
     6) Open the file "dsv\MyStuff_TRACKASSEMBLY_ADDITIONS.txt"
        This is optional ! If it does not exist then just create it. This file hold definitions of what props
