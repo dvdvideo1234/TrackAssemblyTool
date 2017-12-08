@@ -990,13 +990,13 @@ function TOOL:DrawHUD()
     asmlib.LogInstance("TOOL:DrawHUD: Create screen")
   end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
-  local ply, model = LocalPlayer(), self:GetModel()
+  local ply = LocalPlayer()
   local stTrace = asmlib.CacheTracePly(ply)
   if(not stTrace) then return end
   local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
   local plyd = (trHit - ply:GetPos()):Length()
-  local workmode = self:GetWorkingMode()
+  local workmode, model = self:GetWorkingMode(), self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
