@@ -364,8 +364,21 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
   return xx, x1, x2, stRay1, stRay2
 end
 
+function TOOL:ClearAnchor(bMute)
+  local svEnt = self:GetEnt(1)
+  local plPly = self:GetOwner()
+  if(svEnt and svEnt:IsValid()) then
+    svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+    svEnt:SetColor(conPalette:Select("w"))
+    if(not bMute and SERVER) then
+      local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
+      asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP") end
+    self:ClearObjects(); asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
+  end; return asmlib.StatusLog(true,"TOOL:ClearAnchor("..tostring(bMute).."): Anchor cleared")
+end
+
 function TOOL:SetAnchor(stTrace)
-  self:ClearAnchor()
+  self:ClearAnchor(true)
   if(not stTrace) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace invalid") end
   if(not stTrace.Hit) then return asmlib.StatusLog(false,"TOOL:SetAnchor(): Trace not hit") end
   local trEnt = stTrace.Entity
@@ -381,20 +394,6 @@ function TOOL:SetAnchor(stTrace)
   asmlib.ConCommandPly(plPly,"anchor",sAnchor)
   asmlib.PrintNotifyPly(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
   return asmlib.StatusLog(true,"TOOL:SetAnchor("..sAnchor..")")
-end
-
-function TOOL:ClearAnchor(bEnb)
-  local ntEnb = tobool(bEnb)
-  local svEnt = self:GetEnt(1)
-  local plPly = self:GetOwner()
-  if(svEnt and svEnt:IsValid()) then
-    svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-    svEnt:SetColor(conPalette:Select("w"))
-  end; self:ClearObjects()
-  if(ntEnb and SERVER) then
-    asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned !","CLEANUP") end
-  asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
-  return asmlib.StatusLog(true,"TOOL:ClearAnchor("..tostring(ntEnb).."): Anchor cleared")
 end
 
 function TOOL:GetAnchor()
@@ -737,7 +736,7 @@ function TOOL:Reload(stTrace)
       asmlib.ConCommandPly(ply, "exportdb", 0)
     end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
-      if(workmode == 1) then self:ClearAnchor(true)
+      if(workmode == 1) then self:ClearAnchor(false)
         asmlib.LogInstance("TOOL:Reload(Anchor): Clear")
       elseif(workmode == 2) then self:IntersectClear(false)
         asmlib.LogInstance("TOOL:Reload(Relate): Clear")
@@ -897,11 +896,12 @@ function TOOL:DrawRelateIntersection(oScreen, oPly, nRad)
   return Rp, Rf, Ru
 end
 
-function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, nRad)
-  local vTmp, trLen, trPOA =  Vector(), 0, nil
-  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
+function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not trRec) then return end
+  local nRad = mathClamp(rm / plyd, 1, rc)
+  local vTmp, trLen, trPOA =  Vector(), 0, nil
+  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Kept do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       return asmlib.StatusLog(nil,"TOOL:DrawRelateAssist: Cannot locate #"..tostring(ID)) end
@@ -910,13 +910,14 @@ function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, nRad)
   end; asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
   local hP, pO = trHit:ToScreen(), vTmp:ToScreen()
   oScreen:DrawLine(hP, pO, "y")
-  oScreen:DrawCircle(pO, nRad / 3, "y")
-  oScreen:DrawCircle(hP, nRad / 1.5)
+  oScreen:DrawCircle(pO, 1.2 * nRad, "y")
+  oScreen:DrawCircle(hP, 0.6 * nRad)
 end
 
 function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not trRec) then return end
+  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   local O, R = Vector(), (nActRad * oPly:GetRight())
   for ID = 1, trRec.Kept do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
@@ -1010,8 +1011,11 @@ function TOOL:DrawHUD()
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
       if(not self:GetPointAssist()) then return end
-      if    (workmode == 1) then self:DrawSnapAssist(hudMonitor, actrad, trEnt, ply)
-      elseif(workmode == 2) then self:DrawRelateAssist(hudMonitor, trHit, trEnt, nRad) end
+      if(workmode == 1) then
+        self:DrawSnapAssist(hudMonitor, actrad, trEnt, ply)
+      elseif(workmode == 2) then
+        self:DrawRelateAssist(hudMonitor, trHit, trEnt, plyd, ratiom, ratioc)
+      end; return -- The return is very very important ... Must stop on invalid spawn
     end -- Draw the assistants related to the different working modes
     local nRad = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
     local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
