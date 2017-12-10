@@ -304,12 +304,13 @@ function TOOL:IntersectClear(bMute)
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
   if(stRay) then
     asmlib.IntersectRayClear(oPly, "ray_relate")
-    if(SERVER) then local ryEnt = stRay.Ent
+    if(SERVER) then local ryEnt, sRel = stRay.Ent
       netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
-      if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w")) end
-      if(not bMute) then -- Send client messages when not muted
-        asmlib.LogInstance("TOOL:IntersectClear: Relation cleared")
-        asmlib.PrintNotifyPly(oPly,"Intersection relation clear !","CLEANUP")
+      if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w"))
+        sRel = ryEnt:EntIndex()..gsSymRev..ryEnt:GetModel():GetFileFromFilename() end
+      if(not bMute) then sRel = (sRel and (": "..tostring(sRel)) or "")
+        asmlib.LogInstance("TOOL:IntersectClear: Relation cleared"..sRel)
+        asmlib.PrintNotifyPly(oPly,"Intersect relation clear"..sRel.." !","CLEANUP")
       end -- Make sure to delete the relation on both client and server
     end
   end; return true
@@ -323,8 +324,8 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
   if(SERVER) then -- Only the server is allowed to define relation ray
     netStart(gsLibName.."SendIntersectRelate")
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
-    local femod = oEnt:GetModel():GetFileFromFilename()
-    asmlib.PrintNotifyPly(oPly,"Intersection relation: "..femod.." !","UNDO")
+    local sRel = oEnt:EntIndex()..gsSymRev..oEnt:GetModel():GetFileFromFilename()
+    asmlib.PrintNotifyPly(oPly,"Intersect relation set: "..sRel.." !","UNDO")
     stRay.Ent:SetColor(conPalette:Select("ry"))
   end return true
 end
@@ -905,12 +906,12 @@ function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
   for ID = 1, trRec.Kept do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       return asmlib.StatusLog(nil,"TOOL:DrawRelateAssist: Cannot locate #"..tostring(ID)) end
-    asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos); vTmp:Sub(trHit)
+    asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
+    local pO = vTmp:ToScreen(); oScreen:DrawCircle(pO, 1.2 * nRad, "y"); vTmp:Sub(trHit)
     if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
   end; asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
   local hP, pO = trHit:ToScreen(), vTmp:ToScreen()
   oScreen:DrawLine(hP, pO, "y")
-  oScreen:DrawCircle(pO, 1.2 * nRad, "y")
   oScreen:DrawCircle(hP, 0.6 * nRad)
 end
 

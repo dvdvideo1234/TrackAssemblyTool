@@ -3358,7 +3358,7 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
     tRay[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
                   Orw = Vector(), Diw = Angle(), -- World direction and origin
                    ID = trID    , Ent = oEnt   , -- Point ID and entity relation
-                  Key = sKey    , Ply = oPly   ,
+                  Key = sKey    , Ply = oPly   , -- Key and player to be stored
                   POA = trPOA   , Rec = trRec  , Min = trMin}; stRay = tRay[sKey]
   else -- Update internal settings
     stRay.Key = sKey
