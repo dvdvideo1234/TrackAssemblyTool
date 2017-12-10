@@ -366,15 +366,15 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
 end
 
 function TOOL:ClearAnchor(bMute)
-  local svEnt = self:GetEnt(1)
-  local plPly = self:GetOwner()
+  local svEnt, plPly = self:GetEnt(1), self:GetOwner()
+  if(CLIENT) then return end; self:ClearObjects()
+  asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
   if(svEnt and svEnt:IsValid()) then
-    svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
     svEnt:SetColor(conPalette:Select("w"))
-    if(not bMute and SERVER) then
+    svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+    if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
       asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP") end
-    self:ClearObjects(); asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
   end; return asmlib.StatusLog(true,"TOOL:ClearAnchor("..tostring(bMute).."): Anchor cleared")
 end
 
