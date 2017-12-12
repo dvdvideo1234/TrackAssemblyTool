@@ -11,14 +11,14 @@ local mathClamp   = math and math.Clamp
 
 ----- Get extension enabled flag
 local maxColor = 255
-local anyTrue, anyFalse = 1, 0
+local anyTrue, anyFalse  = 1, 0
 local cvX, cvY, cvZ      = asmlib.GetIndexes("V")
 local caP, caY, caR      = asmlib.GetIndexes("A")
 local csA, csB, csC, csD = asmlib.GetIndexes("S")
-local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
-local maxMass = asmlib.GetAsmVar("maxmass","FLT")
 local gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmVar("enwiremod","BUL")
+local maxMass = asmlib.GetAsmVar("maxmass","FLT")
+local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 
 ----- Refresh callbacks global variables
 cvars.AddChangeCallback(gsToolPrefL.."bnderrmod", function()
@@ -110,12 +110,8 @@ e2function array trackasmlibGetOffset(string sModel, number nOffset, string sPOA
   if    (sPOA == "P") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arResult end
-  arResult[1] = stPOA[sPOA][C1]
-  arResult[2] = stPOA[sPOA][C2]
-  arResult[3] = stPOA[sPOA][C3]
-  arResult[4] = stPOA[sPOA][csA]
-  arResult[5] = stPOA[sPOA][csB]
-  arResult[6] = stPOA[sPOA][csC]
+  arResult[1], arResult[2], arResult[3] = stPOA[sPOA][C1] , stPOA[sPOA][C2] , stPOA[sPOA][C3]
+  arResult[4], arResult[5], arResult[6] = stPOA[sPOA][csA], stPOA[sPOA][csB], stPOA[sPOA][csC]
   arResult[7] =(stPOA[sPOA][csD] and 1 or 0); return arResult
 end
 
@@ -129,12 +125,8 @@ e2function array entity:trackasmlibGetOffset(number nOffset, string sPOA)
   if    (sPOA == "P") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arResult end
-  arResult[1] = stPOA[sPOA][C1]
-  arResult[2] = stPOA[sPOA][C2]
-  arResult[3] = stPOA[sPOA][C3]
-  arResult[4] = stPOA[sPOA][csA]
-  arResult[5] = stPOA[sPOA][csB]
-  arResult[6] = stPOA[sPOA][csC]
+  arResult[1], arResult[2], arResult[3] = stPOA[sPOA][C1] , stPOA[sPOA][C2] , stPOA[sPOA][C3]
+  arResult[4], arResult[5], arResult[6] = stPOA[sPOA][csA], stPOA[sPOA][csB], stPOA[sPOA][csC]
   arResult[7] =(stPOA[sPOA][csD] and 1 or 0); return arResult
 end
 

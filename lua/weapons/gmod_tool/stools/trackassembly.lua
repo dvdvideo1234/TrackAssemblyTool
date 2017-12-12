@@ -871,13 +871,12 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local w,h = oScreen:GetSize()
   oScreen:SetTextEdge(w - 500,0)
   oScreen:DrawText("Spawn debug information",sCol,sMeth,tArgs)
-  for ID = 1, #arK, 1 do
-    local def = arK[ID]
-    local key, typ = def[1], def[2]
-    local inf = (tostring(def[3] or "") ~= "") and tostring(def[3]) or nil
-    local val = stS[key]
+  for ID = 1, #arK, 1 do local def = arK[ID]
+    local key, typ, inf = def[1], def[2], tostring(def[3] or "")
+    local cnv, val = ((inf ~= "") and (" > "..inf) or ""), stS[key]
     if(not typ) then oScreen:DrawText(tostring(key))
-    else oScreen:DrawText("<"..key.."> "..typ..": "..tostring(val)..(inf and (" > "..inf) or "")) end
+    else typ, val = tostring(typ or ""), tostring(val or "")
+      oScreen:DrawText("<"..key.."> "..typ..": "..val..cnv) end
   end
 end
 
@@ -907,12 +906,12 @@ function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       return asmlib.StatusLog(nil,"TOOL:DrawRelateAssist: Cannot locate #"..tostring(ID)) end
     asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
-    local pO = vTmp:ToScreen(); oScreen:DrawCircle(pO, 1.2 * nRad, "y"); vTmp:Sub(trHit)
+    oScreen:DrawCircle(vTmp:ToScreen(), 1.2 * nRad, "y"); vTmp:Sub(trHit)
     if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
   end; asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
-  local hP, pO = trHit:ToScreen(), vTmp:ToScreen()
-  oScreen:DrawLine(hP, pO, "y")
-  oScreen:DrawCircle(hP, 0.6 * nRad)
+  local Hp, Op = trHit:ToScreen(), vTmp:ToScreen()
+  oScreen:DrawLine(Hp, Op, "y")
+  oScreen:DrawCircle(Hp, 0.6 * nRad)
 end
 
 function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
