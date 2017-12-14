@@ -906,12 +906,12 @@ function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       return asmlib.StatusLog(nil,"TOOL:DrawRelateAssist: Cannot locate #"..tostring(ID)) end
     asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
-    oScreen:DrawCircle(vTmp:ToScreen(), 1.2 * nRad, "y"); vTmp:Sub(trHit)
+    oScreen:DrawCircle(vTmp:ToScreen(), 4 * nRad, "y"); vTmp:Sub(trHit)
     if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
   end; asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
   local Hp, Op = trHit:ToScreen(), vTmp:ToScreen()
   oScreen:DrawLine(Hp, Op, "y")
-  oScreen:DrawCircle(Hp, 0.6 * nRad)
+  oScreen:DrawCircle(Hp, nRad)
 end
 
 function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
