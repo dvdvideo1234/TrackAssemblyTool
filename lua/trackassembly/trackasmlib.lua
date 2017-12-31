@@ -1532,7 +1532,7 @@ function CacheClearPly(pPly)
   local plyPlace = libPlayer[pPly]
   if(not IsExistent(plyPlace)) then
     return StatusLog(true,"CacheClearPly: Clean") end
-  plyTable[pPly] = nil; collectgarbage(); return true
+  libPlayer[pPly] = nil; collectgarbage(); return true
 end
 
 function GetDistanceHitPly(pPly, vHit)
