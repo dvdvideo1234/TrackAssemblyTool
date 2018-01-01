@@ -1557,7 +1557,7 @@ function CacheRadiusPly(pPly, vHit, nSca)
   local nMar, nLim = plyData["MAR"], plyData["LIM"]
   local nDst = GetDistanceHitPly(pPly, vHit)
   local nRad = ((nDst ~= 0) and mathClamp((nMar / nDst) * nMul, 1, nLim) or 0)
-  return nRad, nDis
+  return nRad, nDst, nMar, nLim
 end
 
 function CacheTracePly(pPly)

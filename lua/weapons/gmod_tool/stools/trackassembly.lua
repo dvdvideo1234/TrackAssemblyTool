@@ -991,12 +991,11 @@ function TOOL:DrawHUD()
     asmlib.LogInstance("TOOL:DrawHUD: Create screen")
   end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
-  local ply = LocalPlayer()
-  local stTrace = asmlib.CacheTracePly(ply)
+  local oPly = LocalPlayer()
+  local stTrace = asmlib.CacheTracePly(oPly)
   if(not stTrace) then return end
-  local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
-  local plyd = (trHit - ply:GetPos()):Length()
+  local nrad, plyd, ratiom, ratioc = asmlib.CacheRadiusPly(oPly, trHit, 1)
   local workmode, model = self:GetWorkingMode(), self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
@@ -1007,17 +1006,17 @@ function TOOL:DrawHUD()
     local igntype = self:GetIgnoreType()
     local actrad  = self:GetActiveRadius()
     local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
-    local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,trHit,model,pointid,
+    local stSpawn = asmlib.GetEntitySpawn(oPly,trEnt,trHit,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
       if(not self:GetPointAssist()) then return end
       if(workmode == 1) then
-        self:DrawSnapAssist(hudMonitor, actrad, trEnt, ply)
+        self:DrawSnapAssist(hudMonitor, actrad, trEnt, oPly)
       elseif(workmode == 2) then
         self:DrawRelateAssist(hudMonitor, trHit, trEnt, plyd, ratiom, ratioc)
       end; return -- The return is very very important ... Must stop on invalid spawn
     end -- Draw the assistants related to the different working modes
-    local nRad = mathClamp((ratiom / plyd) * (stSpawn.RLen / actrad),1,ratioc)
+    local nRad = nrad * (stSpawn.RLen / actrad)
     local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
     local Pp = stSpawn.TPnt:ToScreen()
     hudMonitor:DrawLine(Os,Pp,"r")
@@ -1033,9 +1032,9 @@ function TOOL:DrawHUD()
       end
     elseif(workmode == 2) then -- Draw point intersection
       local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
-      local Rp, Re = self:DrawRelateIntersection(hudMonitor, ply, nRad)
+      local Rp, Re = self:DrawRelateIntersection(hudMonitor, oPly, nRad)
       if(Rp and vX) then
-        local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
+        local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, oPly, stSpawn, nRad)
         local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2, nRad)
         hudMonitor:DrawLine(Rp,xX,"ry")
         hudMonitor:DrawLine(Os,xX)
@@ -1049,13 +1048,12 @@ function TOOL:DrawHUD()
     hudMonitor:DrawCircle(Ss, nRad,"c")
     if(not self:GetDeveloperMode()) then return end
     self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
-  elseif(stTrace.HitWorld) then
+  elseif(stTrace.HitWorld) then local nRad = nrad
     local ydegsnp  = self:GetYawSnap()
     local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()
     local workmode = self:GetWorkingMode()
-    local nRad = mathClamp(ratiom / plyd,1,ratioc)
-    local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
+    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
     if(self:GetSpawnCenter()) then -- Relative to MC
             aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
             aAng:RotateAroundAxis(aAng:Right()  , nextpic)
@@ -1067,7 +1065,7 @@ function TOOL:DrawHUD()
             vPos:Add(nextz * aAng:Up())
       local Os, Tp = self:DrawUCS(hudMonitor, trHit, vPos, aAng, nRad)
       if(workmode == 2) then -- Draw point intersection
-        self:DrawRelateIntersection(hudMonitor, ply, nRad) end
+        self:DrawRelateIntersection(hudMonitor, oPly, nRad) end
       if(not self:GetDeveloperMode()) then return end
       local x,y = hudMonitor:GetCenter(10,10)
       hudMonitor:SetTextEdge(x,y)
@@ -1075,7 +1073,7 @@ function TOOL:DrawHUD()
       hudMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local stSpawn  = asmlib.GetNormalSpawn(ply,trHit + elevpnt * stTrace.HitNormal,
+      local stSpawn  = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
@@ -1091,8 +1089,8 @@ function TOOL:DrawHUD()
           hudMonitor:DrawCircle(Np,nRad / 2)
         end
       elseif(workmode == 2) then -- Draw point intersection
-        self:DrawRelateIntersection(hudMonitor, ply, nRad)
-        self:DrawModelIntersection(hudMonitor, ply, stSpawn, nRad)
+        self:DrawRelateIntersection(hudMonitor, oPly, nRad)
+        self:DrawModelIntersection(hudMonitor, oPly, stSpawn, nRad)
       end
       local Ss = stSpawn.SPos:ToScreen()
       hudMonitor:DrawLine(Os,Ss,"m")
