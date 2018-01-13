@@ -321,13 +321,14 @@ A: The first number will get an increase when a new major update has arrived.
 
 Q: I want to use custom maximum limit tweaks for my server. Could you recommend appropriate cvars ?
 A: Here is the list of the maximum value tweaks ( prefixed with "trackassembly_" of course ):
+   "maxtrmarg" - Controls the maximum time needed to perform a new player-cached trace
    "maxmass"   - Controls the mass upper limit of the piece spawned ( the lower bound is "1" )
    "maxlinear" - Controls the maximum offset that can be applied by next x,y,z linear offsets
    "maxforce"  - Controls the force limit upper border on the welds made between pieces
    "maxactrad" - Controls the vastness of the active point search area
    "maxstcnt"  - Controls the maximum pieces that can be spawned in stacking mode
    "maxfruse"  - Controls the maximum records that can be located under the frequent pieces list
-N: For further track spawn control refer to: "Dude how can I control the spawned pieces in multiplayer"
+N: For further track spawn control refer to: "Dude how can I control the spawned pieces in multi-player"
 
 Q: Hey, you said that we can switch the tool database between Lua or SQL. Is it working yet ?
    I want to use Lua mode because I've got third-party SQLite server. How can I switch to Lua mode ?

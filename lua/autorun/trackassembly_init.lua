@@ -26,6 +26,8 @@ local inputIsMouseDown     = input and input.IsMouseDown
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
 local languageGetPhrase    = language and language.GetPhrase
+local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -33,7 +35,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.430")
+asmlib.SetOpVar("TOOL_VERSION","5.431")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -51,13 +53,15 @@ asmlib.MakeAsmVar("logfile"  , "0" , {0, 1}, gnIndependentUsed, "File to store t
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
------- CONFIGURE VARIABLES ------
-asmlib.MakeAsmVar("modedb"   , "LUA",     nil, gnIndependentUsed, "Database operating mode")
-asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1 }, gnIndependentUsed, "Toggle developer mode on/off server side")
+------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
+asmlib.MakeAsmVar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database operating mode")
+asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmVar("maxtrmarg", "0.02",{0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
-asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gnServerControled, "Maximum mass that can be appied on a piece")
-asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gnServerControled, "Maximum linear offset os the piece")
+------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
+asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
+asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gnServerControled, "Maximum linear offset of the piece")
 asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmVar("maxstcnt" , "200", {1,800}, gnServerControled, "Maximum pieces to spawn in stack mode")
@@ -70,7 +74,8 @@ if(SERVER) then
 end
 
 ------ CONFIGURE INTERNALS -----
-asmlib.SetOpVar("MODE_DATABASE" , asmlib.GetAsmVar("modedb"  , "STR"))
+asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmVar("modedb"   , "STR"))
+asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmVar("maxtrmarg", "FLT"))
 
 ------ GLOBAL VARIABLES ------
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
@@ -98,6 +103,15 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
       conPalette:Insert("ry",Color(230,200, 80,255)) -- Ray tracing
       conPalette:Insert("wm",Color(143,244, 66,255)) -- Working mode HUD
+
+local gsVarTrMarg = "maxtrmarg"
+local gsMaxTrMarg = asmlib.GetAsmVar(gsVarTrMarg, "NAM")
+cvarsRemoveChangeCallback(gsMaxTrMarg, gsMaxTrMarg.."_call")
+cvarsAddChangeCallback(gsMaxTrMarg, function(sVar, nOld, nNew)
+  local aVal = asmlib.GetAsmVar(gsVarTrMarg, "FLT")
+  asmlib.LogInstance("Callback: <"..sVar.."> = <"..aVal..">")
+  asmlib.SetOpVar("TRACE_MARGIN", aVal)
+end, gsMaxTrMarg.."_call")
 
 -------- ACTIONS  ----------
 if(SERVER) then

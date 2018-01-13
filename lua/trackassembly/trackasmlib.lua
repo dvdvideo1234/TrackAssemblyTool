@@ -1498,7 +1498,7 @@ function CacheSpawnPly(pPly)
     return StatusLog(nil,"CacheSpawnPly: Place missing") end
   local plyData = plyPlace["SPAWN"]
   if(not IsExistent(plyData)) then
-    LogInstance("CacheSpawnPly: Malloc <"..pPly:Nick()..">")
+    LogInstance("CacheSpawnPly: Allocate <"..pPly:Nick()..">")
     plyPlace["SPAWN"] = {}; plyData = plyPlace["SPAWN"]
     plyData.F    = Vector() -- Origin forward vector
     plyData.R    = Vector() -- Origin right vector
@@ -1547,7 +1547,7 @@ function CacheRadiusPly(pPly, vHit, nSca)
     return StatusLog(nil,"CacheRadiusPly: Place missing") end
   local plyData = plyPlace["RADIUS"]
   if(not IsExistent(plyData)) then
-    LogInstance("CacheRadiusPly: Malloc <"..pPly:Nick()..">")
+    LogInstance("CacheRadiusPly: Allocate <"..pPly:Nick()..">")
     plyPlace["RADIUS"] = {}; plyData = plyPlace["RADIUS"]
     plyData["MAR"] =  (GetOpVar("GOLDEN_RATIO") * 1000)
     plyData["LIM"] = ((GetOpVar("GOLDEN_RATIO") - 1) * 100)
@@ -1566,15 +1566,14 @@ function CacheTracePly(pPly)
     return StatusLog(nil,"CacheTracePly: Place missing") end
   local plyData, plyTime = plyPlace["TRACE"], Time()
   if(not IsExistent(plyData)) then -- Define trace delta margin
-    LogInstance("CacheTracePly: Malloc <"..pPly:Nick()..">")
+    LogInstance("CacheTracePly: Allocate <"..pPly:Nick()..">")
     plyPlace["TRACE"] = {}; plyData = plyPlace["TRACE"]
-    plyData["TDM"] = 0.02 -- Trace delta time margin
-    plyData["NXT"] = plyTime + plyData["TDM"]      -- Define next trace pending
+    plyData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Define next trace pending
     plyData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
     plyData["REZ"] = utilTraceLine(plyData["DAT"]) -- Make a trace
   end -- Check the trace time margin interval
   if(plyTime >= plyData["NXT"]) then
-    plyData["NXT"] = plyTime + plyData["TDM"]      -- Next trace margin
+    plyData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Next trace margin
     plyData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
     plyData["REZ"] = utilTraceLine(plyData["DAT"]) -- Make a trace
   end; return plyData["REZ"]
@@ -1625,7 +1624,7 @@ function CachePressPly(pPly)
     return StatusLog(false,"CachePressPly: Place missing") end
   local plyData = plyPlace["PRESS"]
   if(not IsExistent(plyData)) then -- Create predicate command
-    LogInstance("CachePressPly: Malloc <"..pPly:Nick()..">")
+    LogInstance("CachePressPly: Allocate <"..pPly:Nick()..">")
     plyPlace["PRESS"] = {}; plyData = plyPlace["PRESS"]
     plyData["CMD"] = pPly:GetCurrentCommand()
     if(not IsExistent(plyData["CMD"])) then
@@ -3697,7 +3696,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   end; return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end
 
-function MakeAsmVar(sName, sValue, tBorder, nFlags, sInfo)
+function MakeAsmVar(sName, sValue, tBord, nFlag, sInfo)
   if(not IsString(sName)) then
     return StatusLog(nil,"MakeAsmVar: CVar name {"..type(sName).."}<"..tostring(sName).."> not string") end
   if(not IsExistent(sValue)) then
@@ -3705,10 +3704,11 @@ function MakeAsmVar(sName, sValue, tBorder, nFlags, sInfo)
   if(not IsString(sInfo)) then
     return StatusLog(nil,"MakeAsmVar: CVar info {"..type(sInfo).."}<"..tostring(sInfo).."> not string") end
   local sLow = sName:lower()
-  if(tBorder and (type(tBorder) == "table") and tBorder[1] and tBorder[2]) then
-    local Border = GetOpVar("TABLE_BORDERS")
-    Border["cvar_"..sLow] = tBorder
-  end; return CreateConVar(GetOpVar("TOOLNAME_PL")..sLow, sValue, nFlags, sInfo)
+  if(tBord and (type(tBord) == "table")) then
+    local mIn, mAx = tostring(tBord[1]), tostring(tBord[2])
+    LogInstance("MakeAsmVar: Border ("..sLow..")<"..mIn.."/"..mAx..">")
+    local tBorder = GetOpVar("TABLE_BORDERS"); tBorder["cvar_"..sLow] = tBord
+  end; return CreateConVar(GetOpVar("TOOLNAME_PL")..sLow, sValue, nFlag, sInfo)
 end
 
 function GetAsmVar(sName, sMode)
