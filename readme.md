@@ -22,7 +22,7 @@ A: I was always annoyed when building a railroad track in-game, spending a lot o
    Also, another great achievement progress is in place, so 10x guys for helping me, help you, help us all !
    ( Portal quote )
 
-Q: Hey, I cannot align my track crurves properly. Can you help ?
+Q: Hey, I cannot align my track curves properly. Can you help ?
 A: Yep sure. In the right panel, there is a drop-down menu which has a bunch of tool modes listed.
    Go ahead and select the "Active point intersection". After you change the mode, an intersection
    relation entity is needed to complete the process. Hitting SPEED + RELOAD ( Default: Shift + R )
@@ -46,27 +46,27 @@ A: Just subscribe to the workshop item:
    If "trackassembly_enpntmscr" is set to "1"
      Pressing ALT + NEXT_WEAPON ( Default: Mouse wheel down )
          Will increment the chosen active position of the piece that you're holding.
-       When pressing SPEED ( Default: Shift )
+       When pressing SPEED ( Default: SHIFT )
          Will increment the chosen next position of the piece that you're holding.
      Pressing ALT + PREV_WEAPON ( Default: Mouse wheel up )
          Will decrement the chosen active position of the piece that you're holding.
-       When pressing SPEED ( Default: Shift )
+       When pressing SPEED ( Default: SHIFT )
          Will decrement the chosen next position of the piece that you're holding.
    If "trackassembly_enpntmscr" is set to "0"
      Pressing ATTACK2 ( Default: Right mouse button )
          Will increment the chosen active position of the piece that you're holding.
-       When pressing DUCK ( Default: Ctrl )
+       When pressing DUCK ( Default: CTRL )
          Will increment the chosen next position of the piece that you're holding.
-     Pressing ATTACK2 ( Default: Right mouse button ) + SPEED ( Default: Shift )
+     Pressing ATTACK2 ( Default: Right mouse button ) + SPEED ( Default: SHIFT )
          Will decrement the chosen active position of the piece that you're holding.
-       When pressing DUCK ( Default: Ctrl )
+       When pressing DUCK ( Default: CTRL )
          Will decrement the chosen next position of the piece that you're holding.
    Pressing ATTACK1 ( Default: Left mouse button )
      When you are looking at the world the piece will just be spawned on the map.
      When you are looking at one of track piece's pre-defined active points
        Will snap the piece that you're holding to the trace one.
        If the traced piece's type is different than the holder piece's type,
-         please check "Ignore track type" checkbox.
+         please check "Ignore track type" check-box.
        If "Enable advisor" is checked, a coordinate system will appear,
          marking the origin position on the traced piece
        If "Enable ghosting" is checked the ghost track piece will be
@@ -74,7 +74,7 @@ A: Just subscribe to the workshop item:
      When you are not looking at one of track piece's pre-defined active points,
        Pressing USE ( Default: E ) Applies the physical settings/properties on a piece.
        If not, you will update the piece's bodygroups/skin.
-   Pressing SPEED ( Default: Shift ) + ATTACK1 ( Default: Left mouse button )
+   Pressing SPEED ( Default: SHIFT ) + ATTACK1 ( Default: Left mouse button )
      Will stack as many pieces as shown by the slider "Pieces count".
    Pressing ATTACK2 ( Default: Right mouse button )
      Will select the trace model to use as a piece for building a track.
@@ -83,14 +83,14 @@ A: Just subscribe to the workshop item:
        you can select your routine pieces to use again in the track building process
        as well as searching in the table either by MODEL, TYPE, NAME, LAST_USED to obtain the piece
        you want to continue your track with.
-       ( Hey, there is a textbox and a dropdown menu next to the "ExportDB" button. What are these for ? )
+       ( Hey, there is a text-box and a drop-down menu next to the "ExportDB" button. What are these for ? )
    Pressing RELOAD ( Default: R )
      When used in the world exports the database if the console variable "trackassembly_exportdb" is set to <>0,
      When used on trace it removes it, if it's a track piece.
-   Pressing RELOAD ( Default: R ) + SPEED ( Default: Shift )
+   Pressing RELOAD ( Default: R ) + SPEED ( Default: SHIFT )
      When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
      When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
-   If you want to obtain different grip behavior for a wheel-powered/sliding train,
+   If you want to obtain different grip behaviour for a wheel-powered/sliding train,
      you must use the surface material drop-down menus as you select first "TYPE" then "NAME".
    If you want to use desired bodygroups and/or skins on a piece, in the text field you must type bodygroup/skin
      selection code or generate one using the SCORE ( Default: TAB ) key while pointing to a prop with
@@ -107,23 +107,23 @@ A: Just subscribe to the workshop item:
      track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
    The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
      because they are defined by their own and not going to be explained further.
-   The "Ignore track type" checkbox if checked, will enable snapping between pieces of a different type.
+   The "Ignore track type" check-box if checked, will enable snapping between pieces of a different type.
    The "Spawn horizontally" ( as the name suggests ) if checked, will spawn the next pieces horizontally to the
      map ground if the additional angle offsets are zeros. If not they will be added to the resulting angle.
-   The "Origin from mass-centre" checkbox if checked, will align the piece spawned to its mass-centre.
-   The "Snap to trace surface" checkbox if checked, will snap the chosen track directly to the trace surface.
+   The "Origin from mass-centre" check-box if checked, will align the piece spawned to its mass-centre.
+   The "Snap to trace surface" check-box if checked, will snap the chosen track directly to the trace surface.
 ```
 ![SurfSnap](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.jpg)
 ```
-   The "Draw adviser" checkbox if checked, will draw a composition of lines and circles to assist you with the building.
+   The "Draw adviser" check-box if checked, will draw a composition of lines and circles to assist you with the building.
 ```
 ![DrawAdvaiser](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/snapadvaiser.jpg)
 ```
-   The "Draw assistant" checkbox if checked, will draw circles to assist you where the active points are.
+   The "Draw assistant" check-box if checked, will draw circles to assist you where the active points are.
 ```
 ![PointAssist](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/pointassist.jpg)
 ```
-   The "Draw holder ghost" checkbox if checked, will render the current piece that you are holding at the moment.
+   The "Draw holder ghost" check-box if checked, will render the current piece that you are holding at the moment.
    When building a track using a different than the default way is needed you may use:
      UCS Pitch/Yaw/Roll are angle offsets used for orientating the base coordinate system in order to snap the piece as the user desires.
      Offset X(Forward-RED)/Y(Right-GREEN)/Z(Up-BLUE) are linear offsets used for additional user offset regarding the next track piece to be spawned.
@@ -138,7 +138,7 @@ Q: Which addons did you work on?
 A: Here they are, with available status, why I did not do some of them ( at the time of developing ):
     1) PHX Monorails
     2) PHX Regular Tracks ( For "switcher_2" [X] is inserted in the name as it misses collision meshes ),
-    3) SligWolf's Rerailers old and new(1,2,3)
+    3) SligWolf's Retailers old and new(1,2,3)
       https://steamcommunity.com/sharedfiles/filedetails/?id=132843280
     4) SProps
       https://steamcommunity.com/sharedfiles/filedetails/?id=173482196
@@ -227,7 +227,7 @@ A: Well, yeah, technically I can map any path given. However these with properly
 
 Q: Hey, remember that rollercoaster assistant addon, that was snapping pieces when you got
    them close to each other and they magically connect. Does this script has a feature like this ?
-A: Yes, it does. When looking at the panel in the right, there is a checkbox labeled
+A: Yes, it does. When looking at the panel in the right, there is a check-box labelled
    "Enable physgun snap" that you must check. This makes the server to perform some
    traces relative to the active points of the piece and search for other pieces to snap to.
    If the snapping conditions are present, it will snap the trace piece on physgun release at
@@ -237,16 +237,16 @@ Q: Can you tell me how to read the physgun snap legend drawn on the screen ?
 A: Easy. Here are some things to know for never getting confused with this:
    If the line with the middle circle is green, that means a valid prop entity is traced
      The green circle shows where the trace hits and the yellow what part of trace is inside the prop
-     If in this case the trace is a valid piece, the origin and raduis to the point selected are drawn using
+     If in this case the trace is a valid piece, the origin and radius to the point selected are drawn using
      a yellow circle line, always shorter than the active radius. After that the spawn position and distance
-     are drawn by using cyan circle and margenta line respectively. The forward and the up direction vectors
+     are drawn by using cyan circle and magenta line respectively. The forward and the up direction vectors
      of the origin are drawn using red and blue lines respectively.
-   If the line is yellow, that means the trace has hit someting else ( For example the world )
+   If the line is yellow, that means the trace has hit something else ( For example the world )
      The yellow circle shows again where the trace hits and the red line the part inside the non-prop
    If there is a red line with yellow circle, then there is an active point there, which is searching
      for props to snap to when you drop ( release the left click ) the piece with the physgun.
-N: You can also disable the drawing by unchecking the "Draw adviser" checkbox
-   or unchecking the option for "Enable physgun snap", making it pointles to be drawn without the
+N: You can also disable the drawing by unchecking the "Draw adviser" check-box
+   or unchecking the option for "Enable physgun snap", making it pointless to be drawn without the
    base option enabled. To enable the drawing, both must be enabled ( Adviser and snapping ).
 
 Q: What is this green line/circle into the base advisor, what is it for ?
@@ -257,7 +257,7 @@ A: Remember when I got suggestions to do the switchers.
 
 Q: Dude I've messed up my console variables, how can I factory reset them ?
 A: Easy. First, you need to enable the developer mode via "trackassembly_devmode 1"
-   Then in the bodygroup/skin text box ( or "trackassembly_bgskids" variable ) type:
+   Then in the bodyguard/skin text box ( or "trackassembly_bgskids" variable ) type:
    "reset cvars"
      Resets all cvars to the factory default settings
    "delete"
@@ -266,17 +266,6 @@ A: Easy. First, you need to enable the developer mode via "trackassembly_devmode
      to delete the client or server or both instance generated databases
    Press enter to apply an option from these above and click the "Reset variables" button.
 N: The console variables being set in this question will be reset also
-
-Q: Dude how can I control the spawned pieces in multiplayer
-A: Easy. The track pieces are props, so they are registered to:
-   1) Variable "sbox_maxprops"     The maximum props on the server
-   2) Variable "sbox_maxasmtracks" A variable for the maximum things spawned via TA
-   You can trigger these limits independently from one another. For example:
-   "maxprops" is 50 and "maxasmtracks" is 30 will trigger maxasmtracks
-   "maxprops" is 30 and "maxasmtracks" is 50 will trigger maxprops
-   "maxprops" is 50 and "maxasmtracks" is 50 will trigger maxasmtracks
-N: If you want a server with many props and fewer tracks, then lower maxasmtracks
-   Default value is 1500 for "maxasmtracks" to rely on the props limit
 
 Q: How can I control errors when the clients are flooding my server with rails,
    and stacking/spawning outside of the map bounds?
@@ -304,7 +293,7 @@ A: You can easily do that by creating settings for the logs. These are nothing m
                                       This is good when a function is called many times and floods
    "only" (trackasmlib_slonly.txt) -> All other log messages will be blocked besides the ones
                                       in this list (a.k.a only ones white listed)
-                                      This is good when you wanna see only one single thing
+                                      This is good when you want to see only one single thing
    These are mine: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_slskip.txt
 
 Q: Does this thing have any wire extensions and how can I control then
@@ -319,8 +308,9 @@ A: The first number will get an increase when a new major update has arrived.
    performance optimizations, doing the same thing ,but in more "elegant"
    way and such.
 
-Q: I want to use custom maximum limit tweaks for my server. Could you recommend appropriate cvars ?
-A: Here is the list of the maximum value tweaks ( prefixed with "trackassembly_" of course ):
+Q: I want to use custom tweaks for my server. Could you recommend appropriate cvars ?
+A: Here is the list of the maximum value tweaks and settings ( prefixed with "trackassembly_" of course ):
+  1) Maximum values controlling local process
    "maxtrmarg" - Controls the maximum time needed to perform a new player-cached trace
    "maxmass"   - Controls the mass upper limit of the piece spawned ( the lower bound is "1" )
    "maxlinear" - Controls the maximum offset that can be applied by next x,y,z linear offsets
@@ -328,7 +318,15 @@ A: Here is the list of the maximum value tweaks ( prefixed with "trackassembly_"
    "maxactrad" - Controls the vastness of the active point search area
    "maxstcnt"  - Controls the maximum pieces that can be spawned in stacking mode
    "maxfruse"  - Controls the maximum records that can be located under the frequent pieces list
-N: For further track spawn control refer to: "Dude how can I control the spawned pieces in multi-player"
+  2) Maximum limit tweaks when spawning tracks
+   a) Variable "sbox_maxprops"     The maximum props on the server
+   b) Variable "sbox_maxasmtracks" A variable for the maximum things spawned via TA
+   You can trigger these limits independently from one another. For example:
+   "maxprops" is 50 and "maxasmtracks" is 30 will trigger maxasmtracks
+   "maxprops" is 30 and "maxasmtracks" is 50 will trigger maxprops
+   "maxprops" is 50 and "maxasmtracks" is 50 will trigger maxasmtracks
+N: If you want a server with many props and fewer tracks, then lower maxasmtracks
+   Default value is 1500 for "maxasmtracks" to rely on the props limit
 
 Q: Hey, you said that we can switch the tool database between Lua or SQL. Is it working yet ?
    I want to use Lua mode because I've got third-party SQLite server. How can I switch to Lua mode ?
@@ -342,7 +340,7 @@ N: SQL is still the best option for using the tool with for servers, because onl
    stay in the cache for a given amount of time, rather than the whole database forever ( till the server
    is up that is ), so please use SQL mode when possible if you want to save some amount of RAM.
    LUA mode is used as a default option, because some people have third party SQL servers, which messes with
-   the sql.* library of the game and does not allow me to create the needed sql tables and records properly.
+   the sql.* library of the game and does not allow me to create the needed SQL tables and records properly.
 
 Q: Can I do something about my server's performance and how can I configure the memory manager properly?
 A: You can choose a memory management algorithm by setting trackassembly_timermode to "mode@life@clear@collect"
@@ -391,9 +389,9 @@ A: Yes. That way it performs faster statements generation with very little memor
    concatenate all the fields. For the most expensive function "CacheQueryPiece", the request
    is done using the model, so in the statement it is substituted as an argument provided
    to "SQLCacheStmt(<hash>, <stmt>, <arguments>)" ). That way the base statement
-   is stored once and formatted everytime it needs to be used.
+   is stored once and formatted every time it needs to be used.
 
-Q: Hey, there is a textbox and a dropdown menu next to the "ExportDB" button. What are these for ?
+Q: Hey, there is a text-box and a drop-down menu next to the "ExportDB" button. What are these for ?
 A: Well, when a server owners set the "trackassembly_maxfruse" to a higher value, a slider appears.
    If the client has used many pieces during his/her routine, he/she cannot possibly locate the ones
    he/she needs, especially, when they are at the bottom of the list as "not frequently used" pieces.
@@ -401,7 +399,7 @@ A: Well, when a server owners set the "trackassembly_maxfruse" to a higher value
    field to filter the data on (<Search BY> either "Model", "Type", "Name", "Act"). Do not bother that
    the name is not displayed in the pieces list. That's normal ( Cave Johnson xD ). For 95% of the
    models, it is dynamically generated using the *.mdl file, so there is really no point in viewing
-   that parameter on the pieces panel. In the textbox, to search you have to enter a pattern that
+   that parameter on the pieces panel. In the text-box, to search you have to enter a pattern that
    you want to perform the filtering with. The result will populate the list view, only with these
    pieces, whatever desired field value is matched by the pattern given. The pattern is a standard
    Lua one, which is supported by the string.* library and you can also google it ;)
@@ -425,7 +423,7 @@ A: First of all if the error origin is not the TA,
           Remember to back up your personal database if any !                 ( optional )
       1b) Delete the DSV auto-load list located in "trackasmlib_dsv.txt"
           Remember to back up your personal database if any !                 ( optional )
-      1c) Delete the lua exports ( if any ) located in "ins\*.txt"            ( optional )
+      1c) Delete the Lua exports ( if any ) located in "ins\*.txt"            ( optional )
       1d) Delete the Log program settings located in "trackasmlib_sl*.txt"    ( optional )
       1e) Delete the whole folder if necessary                                ( optional )
           Remember to back up your personal database !                        ( optional )
@@ -518,8 +516,8 @@ Q: Hey, I am making a track pack and as you may know the workshop does not suppo
 A: You must add your addon to the auto-load pieces list located in "/data/trackassembly/trackasmlib_dsv.txt"
    This registers your (*.txt) files for automatic database insertion during tool script initialization.
    To disable an addon from loading its pieces in the database, you can always comment it via a
-   hashtag (#) in front of the line definition that you want disabled. The addon registered multiple
-   times will not be loaded on startup until the user makes a review of the auto-load list for the
+   hash tag (#) in front of the line definition that you want disabled. The addon registered multiple
+   times will not be loaded on start-up until the user makes a review of the auto-load list for the
    repeating sequences for the given prefix. The adding is done using the function /RegisterDSV/.
    Beware that you need a lock file not to add the same addon on both client and server.
    After this is ready you must add your pieces. You must create you own Lua file which generates
