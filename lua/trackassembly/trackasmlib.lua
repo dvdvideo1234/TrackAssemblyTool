@@ -2011,7 +2011,7 @@ function InsertRecord(sTable,arLine)
     elseif(sTable == "PHYSPROPERTIES") then
       Q = SQLCacheStmt("stmtInsertPhysproperties", nil, unpack(arLine))
       if(not Q) then
-        sStmt = SQLBuildInsert(defTable,nil,{"%s","%d","%s"})
+        local sStmt = SQLBuildInsert(defTable,nil,{"%s","%d","%s"})
         if(not IsExistent(sStmt)) then
           return StatusLog(nil,"InsertRecord: Build statement <"..sTable.."> failed") end
         Q = SQLCacheStmt("stmtInsertPhysproperties", sStmt, unpack(arLine)) end
