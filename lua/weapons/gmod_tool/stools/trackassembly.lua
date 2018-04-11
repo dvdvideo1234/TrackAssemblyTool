@@ -873,7 +873,7 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   oScreen:DrawText("Spawn debug information",sCol,sMeth,tArgs)
   for ID = 1, #arK, 1 do local def = arK[ID]
     local key, typ, inf = def[1], def[2], tostring(def[3] or "")
-    local cnv, val = ((inf ~= "") and (" > "..inf) or ""), stS[key]
+    local cnv, val = ((not asmlib.IsEmptyString(inf)) and (" > "..inf) or ""), stS[key]
     if(not typ) then oScreen:DrawText(tostring(key))
     else typ, val = tostring(typ or ""), tostring(val or "")
       oScreen:DrawText("<"..key.."> "..typ..": "..val..cnv) end
@@ -1210,7 +1210,7 @@ function TOOL.BuildCPanel(CPanel)
     local Typ = Rec[defTable[2][1]]
     local Nam = Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
-      if(Typ ~= "" and not pFolders[Typ]) then
+      if(not (asmlib.IsEmptyString(Typ) or pFolders[Typ])) then
         local pRoot = pTree:AddNode(Typ) -- No type folder made already
               pRoot.Icon:SetImage("icon16/database_connect.png")
               pRoot.InternalDoClick = function() end

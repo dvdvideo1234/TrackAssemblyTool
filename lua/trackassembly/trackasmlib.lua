@@ -3656,18 +3656,18 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   local bGr, sPh = (tobool(bGr) or false),  tostring(sPh or "")
   LogInstance("ApplyPhysicalSettings: {"..tostring(bPi)..","..tostring(bFr)..","..tostring(bGr)..","..sPh.."}")
   if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
-    return StatusLog(false,"ApplyPhysicalSettings: Piece entity invalid for <"..tostring(ePiece)..">") end
+    return StatusLog(false,"ApplyPhysicalSettings: Piece entity invalid <"..tostring(ePiece)..">") end
   local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
   if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
-    return StatusLog(false,"ApplyPhysicalSettings: Piece physical object invalid for <"..tostring(ePiece)..">") end
+    return StatusLog(false,"ApplyPhysicalSettings: Piece physical object invalid <"..tostring(ePiece)..">") end
   local arSettings = {bPi,bFr,bGr,sPh}  -- Initialize dupe settings using this array
   ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
   ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
   ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
-  -- Delay the freeze by a tiny amout because on physgun snap the piece
+  -- Delay the freeze by a tiny amount because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_FREEZE"), function() -- If frozen motion is disabled
-    LogInstance("ApplyPhysicalSettings: Freeze");  -- Make shure that the physics are valid
+    LogInstance("ApplyPhysicalSettings: Freeze");  -- Make sure that the physics are valid
     if(pyPiece and pyPiece:IsValid()) then pyPiece:EnableMotion(not bFr) end end )
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
