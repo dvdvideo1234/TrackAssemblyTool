@@ -45,6 +45,7 @@ about their track packs or in some other way. It is possible that missed someone
   * [Puppyjaws](https://steamcommunity.com/profiles/76561198146226478)
   * [Bullseye SBT](http://steamcommunity.com/profiles/76561198082120871)
   * [AlexALX](http://steamcommunity.com/profiles/76561198049628741)
+  * [Gedo789](https://github.com/Gedo789)
   * Arbitor 90
   * PePena
   * meme
@@ -210,15 +211,15 @@ Here they are, with available status, why I did not do some of them ( at the tim
   * [Bobsters's two gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=489114511)
   * [Mr. Train's G-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=590574800)
   * Ron's 56 gauge rails ( Removed by the addon owner. Discontinued )
-  * [Ron's 2ft track pack](http://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( Maintained by the owner )
+  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( Maintained by the owner )
   * PHX Tubes
   * Magnum's second track pack ( Ignore, it's not designed to be a prop )
-  * [qwertyaaa's G Scale Track Pack](http://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
+  * [qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
   * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) ( Mini hover tracks ) ( White rails )
-  * [Ron's Minitrain Props](http://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
-  * [Battleship's abandoned rails](http://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
+  * [Ron's Minitrain Props](https://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
+  * [Battleship's abandoned rails](https://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
   * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) ( Maintained by the owner )
-  * [AlexCookie's 2ft track pack](http://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
+  * [AlexCookie's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
 
 #### Where are the trains/vehicles[,](https://tfwiki.net/wiki/Team_Bullet_Train) are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
@@ -545,10 +546,10 @@ For every active point, you have to add a line in the table PIECES.
          path or piece prefix/suffix
       * Open the file `dsv/MyStuff_TRACKASSEMBLY_ADDITIONS.txt`
          This is optional ! If it does not exist then just create it. This file hold definitions of what props
-         must be spawned with the track pieces. The are like scenery, button and stuff.
-         A good example for an addon which uses ADDITIONS parameters is `Shinji's track pack`
+         must be spawned with the track pieces. These are like scenery, buttons and stuff.
+         A good example for an addon which uses [ADDITIONS](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/cl_TRACKASSEMBLY_ADDITIONS.txt) parameters is `Shinji's track pack`
       * Open the file `dsv/MyStuff_TRACKASSEMBLY_PHYSPROPERTIES.txt`
-         This is optional ! If it does not exist then just create it. This part is optional if you heed
+         This is optional ! If it does not exist then just create it. This part is optional if you need
          additional physical properties
 
 *Note: After adding these models, the database can be exported again.

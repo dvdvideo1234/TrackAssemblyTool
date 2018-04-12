@@ -873,9 +873,9 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   oScreen:DrawText("Spawn debug information",sCol,sMeth,tArgs)
   for ID = 1, #arK, 1 do local def = arK[ID]
     local key, typ, inf = def[1], def[2], tostring(def[3] or "")
-    local cnv, val = ((not asmlib.IsEmptyString(inf)) and (" > "..inf) or ""), stS[key]
-    if(not typ) then oScreen:DrawText(tostring(key))
-    else typ, val = tostring(typ or ""), tostring(val or "")
+    local cnv = ((not asmlib.IsEmptyString(inf)) and (" > "..inf) or "")
+    if(not asmlib.IsExistent(typ)) then oScreen:DrawText(tostring(key))
+    else local typ, val = tostring(typ or ""), tostring(stS[key] or "")
       oScreen:DrawText("<"..key.."> "..typ..": "..val..cnv) end
   end
 end

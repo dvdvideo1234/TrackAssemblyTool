@@ -1789,8 +1789,8 @@ local function SQLCacheStmt(sHash,sStmt,...)
     return StatusLog(nil, "SQLCacheStmt: Store place missing") end
   if(IsExistent(sStmt)) then
     tStore[sHash] = tostring(sStmt); Print(tStore,"SQLCacheStmt: stmt") end
-  local sBase = tStore[sHash]
-  if(not sBase) then return StatusLog(nil, "SQLCacheStmt: Stmt missing <"..sHash..">") end
+  local sBase = tStore[sHash]; if(not IsExistent(sBase)) then
+    return StatusLog(nil, "SQLCacheStmt: Stmt missing <"..sHash..">") end
   return sBase:format(...)
 end
 
@@ -2813,7 +2813,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           local nID, vID = 0 -- Where the lime ID must be read from
           if    (sTable == "PIECES") then vID = tLine[5]; nID = tonumber(vID) or 0
           elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = tonumber(vID) or 0
-          elseif(sTable == "PHYSPROPERTIES") then  vID = tLine[3]; nID = tonumber(vID) or 0 end
+          elseif(sTable == "PHYSPROPERTIES") then vID = tLine[3]; nID = tonumber(vID) or 0 end
           if((tKey.Kept < 0) or (nID <= tKey.Kept) or ((nID - tKey.Kept) ~= 1)) then
             I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read point ID #"..
               tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">") end
