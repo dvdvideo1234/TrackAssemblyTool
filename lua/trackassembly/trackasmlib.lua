@@ -3291,19 +3291,17 @@ end
  *   f2 --> Intersection fraction of the second ray
 ]]--
 local function IntersectRay(vO1, vD1, vO2, vD2)
-  local d1 = vD1:GetNormalized()
-  if(d1:Length() == 0) then
+  local d1 = vD1:GetNormalized(); if(d1:Length() == 0) then
     return StatusLog(nil,"IntersectRay: First ray undefined") end
-  local d2 = vD2:GetNormalized()
-  if(d2:Length() == 0) then
+  local d2 = vD2:GetNormalized(); if(d2:Length() == 0) then
     return StatusLog(nil,"IntersectRay: Second ray undefined") end
   local dx = d1:Cross(d2)
-  local dn = (dx:Length())^2
+  local dn, oo = (dx:Length())^2, (vO2 - vO1)
   if(dn < GetOpVar("EPSILON_ZERO")) then
     return StatusLog(nil,"IntersectRay: Rays parallel") end
-  local f1 = DeterminantVector((vO2-vO1),d2,dx) / dn
-  local f2 = DeterminantVector((vO2-vO1),d1,dx) / dn
-  local x1, x2 = (vO1 + d1*f1), (vO2 + d2*f2)
+  local f1 = DeterminantVector(oo,d2,dx) / dn
+  local f2 = DeterminantVector(oo,d1,dx) / dn
+  local x1, x2 = (vO1 + f1*d1), (vO2 + f2*d2)
   local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
   return f1, f2, x1, x2, xx
 end
