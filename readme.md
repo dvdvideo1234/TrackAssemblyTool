@@ -66,7 +66,7 @@ about their track packs or in some other way. It is possible that missed someone
   * Snapping/spawning with [custom user offsets](https://www.youtube.com/watch?v=e1IK2zJ_Djk)
   * Snapping/spawning with zero pitch. Good for track leveling
   * Snapping/spawning at the mass-center or the active point ( if checked )
-  * Snapping the first piece yaw to user defined angle
+  * Snapping the first piece angle to user defined value
   * Snapping already spawned pieces by [using only the physgun](https://www.youtube.com/watch?v=BxMlZMMGHrs)
   * Fast changing the active track ends ( Alt + mouse scroll ). Good switching turns direction
   * Custom user defined active radius based snapping
@@ -156,7 +156,7 @@ Will stack as many pieces as shown by the slider `Pieces count`.
 5. Piece mass slider is used to set the mass of the next track piece to be spawned.
 6. Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
 7. Pieces count shows the maximum number of pieces to be stacked.
-8. The `Yaw snap amount` slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
+8. The `Angular alignment` slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
    to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
    whole track build will be snapped also because you are building it relative to the first piece.
 9. The force limit slider ( Requested by The Arbitor 90 ) defines the maximum force to be applied

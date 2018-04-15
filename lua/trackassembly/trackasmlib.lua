@@ -3044,6 +3044,13 @@ function ProcessDSV(sDelim)
 end
 
 ----------------------------- SNAPPING ------------------------------
+
+local function GetSurfaceAngle(oPly, vNorm)
+  local vF = oPly:GetAimVector()
+  local vR = vF:Cross(vNorm); vF:Set(vNorm:Cross(vR))
+  return vF:AngleEx(vNorm)
+end
+
 --[[
  * This function calculates the cross product normal angle of
  * a player by a given trace. If the trace is missing it takes player trace
@@ -3054,20 +3061,17 @@ end
  * nYSnp   > Yaw snap amount
 ]]--
 function GetNormalAngle(oPly, stTrace, bSnap, nYSnp)
-  local aAng = Angle()
-  if(not IsPlayer(oPly)) then return aAng end
-  local nYSn = (tonumber(nYSnp) or 0)
+  local aAng, nYSn = Angle(), (tonumber(nYSnp) or 0); if(not IsPlayer(oPly)) then
+    return StatusLog(aAng,"GetNormalAngle: No player <"..tostring(oPly)..">", aAng) end
   if(bSnap) then -- Snap to the surface
-    local stTr = stTrace
-    if(not (stTr and stTr.Hit)) then
+    local stTr = stTrace; if(not (stTr and stTr.Hit)) then
       stTr = GetTracePly(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
-    end
-    local vUp, vRg = stTr.HitNormal, oPly:GetRight()
-    aAng:Set(vUp:Cross(vRg):AngleEx(vUp))
+    end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
   else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
   if(nYSn and (nYSn > 0) and (nYSn <= GetOpVar("MAX_ROTATION"))) then
-    aAng:SnapTo("yaw", nYSn) -- Snap player yaw, pitch and roll are not needed
+    -- Snap player yaw, pitch and roll are not needed
+    aAng:SnapTo("pitch", nYSn):SnapTo("yaw", nYSn):SnapTo("roll", nYSn)
   end; return aAng
 end
 

@@ -90,7 +90,7 @@ TOOL.ClientConVar = {
   [ "anchor"    ] = gsNoAnchor,
   [ "igntype"   ] = "0",
   [ "spnflat"   ] = "0",
-  [ "ydegsnp"   ] = "45",
+  [ "angsnap"   ] = "45",
   [ "pointid"   ] = "1",
   [ "pnextid"   ] = "2",
   [ "nextpic"   ] = "0",
@@ -245,8 +245,8 @@ function TOOL:GetActiveRadius()
   return mathClamp(self:GetClientNumber("activrad") or 0,0,asmlib.GetAsmVar("maxactrad", "FLT"))
 end
 
-function TOOL:GetYawSnap()
-  return mathClamp(self:GetClientNumber("ydegsnp"),0,gnMaxOffRot)
+function TOOL:GetAngSnap()
+  return mathClamp(self:GetClientNumber("angsnap"),0,gnMaxOffRot)
 end
 
 function TOOL:GetForceLimit()
@@ -459,7 +459,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackCNT:    <"..tostring(self:GetCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetYawSnap())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetAngSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Adviser:     <"..tostring(self:GetAdviser())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ForceLimit:  <"..tostring(self:GetForceLimit())..">"..sDelim
@@ -491,6 +491,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.MaxStackCnt: <"..tostring(asmlib.GetAsmVar("maxstcnt" ,"INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.BoundErrMod: <"..tostring(asmlib.GetAsmVar("bnderrmod","STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxFrequent: <"..tostring(asmlib.GetAsmVar("maxfruse" ,"INT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxTrMargin: <"..tostring(asmlib.GetAsmVar("maxtrmarg","FLT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
         sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
         sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
@@ -527,7 +528,7 @@ function TOOL:LeftClick(stTrace)
   local count     = self:GetCount()
   local ply       = self:GetOwner()
   local freeze    = self:GetFreeze()
-  local ydegsnp   = self:GetYawSnap()
+  local angsnap   = self:GetAngSnap()
   local gravity   = self:GetGravity()
   local elevpnt   = self:GetElevation()
   local nocollide = self:GetNoCollide()
@@ -552,7 +553,7 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector(); vPos:Set(stTrace.HitPos)
-    local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,ydegsnp)
+    local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,angsnap)
     if(spawncn) then  -- Spawn on mass centre
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
@@ -786,9 +787,9 @@ function TOOL:UpdateGhost(ePiece, oPly)
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   if(stTrace.HitWorld) then
-    local ydegsnp  = self:GetYawSnap()
+    local angsnap  = self:GetAngSnap()
     local surfsnap = self:GetSurfaceSnap()
-    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
+    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
     if(self:GetSpawnCenter()) then
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
@@ -1049,11 +1050,11 @@ function TOOL:DrawHUD()
     if(not self:GetDeveloperMode()) then return end
     self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
   elseif(stTrace.HitWorld) then local nRad = nrad
-    local ydegsnp  = self:GetYawSnap()
+    local angsnap  = self:GetAngSnap()
     local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()
     local workmode = self:GetWorkingMode()
-    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,ydegsnp)
+    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
     if(self:GetSpawnCenter()) then -- Relative to MC
             aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
             aAng:RotateAroundAxis(aAng:Right()  , nextpic)
@@ -1333,8 +1334,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".count_con"), gsToolPrefL.."count"    , 1, asmlib.GetAsmVar("maxstcnt" , "INT"), 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ydegsnp_con"), gsToolPrefL.."ydegsnp", 0, gnMaxOffRot, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ydegsnp"))
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxOffRot, 7)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".angsnap"))
   pItem = CPanel:Button   (languageGetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextpic_con"), gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 7)
