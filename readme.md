@@ -28,7 +28,7 @@ Also, another great achievement progress is in place, so 10x guys for
 [helping me, help you, help us all](https://www.youtube.com/watch?v=2TZyb0n2DAw) !
 
 #### Who are the people that helped you in some way for maintaining this project ?
-Here is the list of all the people helped me maintain this project by answering my questions
+Here is the list of all the people that helped me by answering my questions
 about their track packs or in some other way. It is possible that missed someone, so please excuse me:
   * [Ron Thunderr](https://steamcommunity.com/profiles/76561198121926395)
   * [Magnum](https://steamcommunity.com/profiles/76561198004847743)
@@ -46,7 +46,7 @@ about their track packs or in some other way. It is possible that missed someone
   * [Bullseye SBT](https://steamcommunity.com/profiles/76561198082120871)
   * [AlexALX](https://steamcommunity.com/profiles/76561198049628741)
   * [Gedo789](https://github.com/Gedo789)
-  * Arbitor 90
+  * The Arbitor 90
   * PePena
   * meme
   * Fennecai
@@ -58,13 +58,13 @@ about their track packs or in some other way. It is possible that missed someone
 
 #### What kind of features does this script has?
   * Track curve fitting alignment based on [ray intersection for precise piece layout](https://www.youtube.com/watch?v=1rsDHU79J50)
-  * Extendable database via [text file](https://www.youtube.com/watch?v=Pz0_RGwgfaY) or a [lua script](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua)
-  * Extendable database via [text file load list](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt) and [list prefixes](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt) [categories](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt)
+  * Extendible database via [text file](https://www.youtube.com/watch?v=Pz0_RGwgfaY) or a [lua script](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua)
+  * Extendible database via [text file load list](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt) and [list prefixes](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt) [categories](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt)
   * Switching database storage between Lua table and SQL
   * Spawning pieces on the map
   * Snapping pieces on the map surface ( if checked )
   * Snapping/spawning with [custom user offsets](https://www.youtube.com/watch?v=e1IK2zJ_Djk)
-  * Snapping/spawning with zero pitch. Good for track leveling
+  * Snapping/spawning with zero pitch. Good for track levelling
   * Snapping/spawning at the mass-center or the active point ( if checked )
   * Snapping the first piece angle to user defined value
   * Snapping already spawned pieces by [using only the physgun](https://www.youtube.com/watch?v=BxMlZMMGHrs)
@@ -75,13 +75,13 @@ about their track packs or in some other way. It is possible that missed someone
   * Advanced duplicator can be used on the track created
   * Custom entity properties ( weld, freeze, no-collide )
   * User can disable phys-gun grabbing on a piece. Good for turntables
-  * Ability to list up the most used pieces on the server ( E + Right )
+  * Ability to list up the most used pieces on the server ( E + MRIGHT ). Close shortcut (ALT + E)
   * Ability to search among the most server popular pieces by [Lua patterns](https://www.lua.org/pil/20.2.html)
   * Ability to export server and client database as a file
   * Tool-tips for every button are available and can be translated easily
   * Ability to spawn scripted track switches of other class ( Ron's 2ft )
   * Ability to modify the bodygroups and skins of a track piece ( with duping )
-  * Ability to modify track piece [surface behavior](https://www.youtube.com/watch?v=ALBnlFeC9tU) ( wood, metal, slime, tire )
+  * Ability to modify track piece [surface behaviour](https://www.youtube.com/watch?v=ALBnlFeC9tU) ( wood, metal, slime, tire )
   * Ability to extend a track piece spawn with [additional entities](https://www.youtube.com/watch?v=jKGBUNDMN6A)
   * Includes integrated wiremod extension
 
@@ -147,7 +147,7 @@ Will stack as many pieces as shown by the slider `Pieces count`.
     4. Pressing RELOAD ( Default: R ) + SPEED ( Default: SHIFT )
       * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
       * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
-3. If you want to obtain different grip behavior for a wheel-powered/sliding train,
+3. If you want to obtain different grip behaviour for a wheel-powered/sliding train,
    you must use the surface material drop-down menus as you select first `TYPE` then `NAME`.
 4. If you want to use desired bodygroups and/or skins on a piece, in the text field you must type bodygroup/skin
    selection code or generate one using the SCORE ( Default: TAB ) key while pointing to a prop with
@@ -159,7 +159,7 @@ Will stack as many pieces as shown by the slider `Pieces count`.
 8. The `Angular alignment` slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
    to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
    whole track build will be snapped also because you are building it relative to the first piece.
-9. The force limit slider ( Requested by The Arbitor 90 ) defines the maximum force to be applied
+9. The force limit slider ( Requested by `The Arbitor 90` ) defines the maximum force to be applied
    on the weld joint between two pieces connected before it breaks. You can use this to build collapsible
    track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
 10. The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
@@ -189,36 +189,37 @@ the tool supports will be represented here as a manual or something.
 That's what is this FAQ for anyway ( Though most people don't bother to read it before asking )...
 
 #### Which addons did you work on?
-Here they are, with available status, why I did not do some of them ( at the time of developing ):
-  * PHX Monorails
-  * PHX Regular Tracks ( For `switcher_2` [X] is inserted in the name as it misses collision meshes ),
+Here they are, with available status, why I did not do some of them ( at the time of developing ).
+The ones that are **included** in Garry's mod do not have links and are marked below:
+  * PHX Monorails **(INCLUDED)**
+  * PHX Regular Tracks ( For `switcher_2` `[X]` in the name as it misses collision meshes ) **(INCLUDED)**
   * [SligWolf's Retailers](https://steamcommunity.com/sharedfiles/filedetails/?id=132843280) old and new(1,2,3)
   * [SProps](https://steamcommunity.com/sharedfiles/filedetails/?id=173482196)
-  * PHX XQM Coaster tracks
+  * PHX XQM Coaster tracks **(INCLUDED)**
   * [SligWolf's Mini train tracks and switches](https://steamcommunity.com/sharedfiles/filedetails/?id=149759773)
-  * PHX Road Pieces ( including ramps big and small )
-  * PHX Monorail Iron Beams
-  * PHX XQM BallRails
+  * PHX Road Pieces ( including ramps big and small ) **(INCLUDED)**
+  * PHX Monorail Iron Beams **(INCLUDED)**
+  * PHX XQM BallRails **(INCLUDED)**
   * [Magnum's gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=290130567) ( Owner support has stopped. No updates )
-  * Metrostroi rails ( Ignore, twisted collision models )
+  * [Metrostroi rails](https://steamcommunity.com/sharedfiles/filedetails/?id=261801217) ( Ignore, not designed as prop )
   * [Shinji85's BodybroupRail pieces](https://steamcommunity.com/sharedfiles/filedetails/?id=326640186)
-  * gm_trainset map props ( Ignore, it's not designed to be a prop )
+  * [gm_trainset map props](https://steamcommunity.com/sharedfiles/filedetails/?id=248213731) ( Ignore, not designed as prop )
   * [SligWolf's Railcar](https://steamcommunity.com/sharedfiles/filedetails/?id=173717507)
-  * Some Bridges
-  * gm_sunsetgulch map props ( Ignore, it's not designed to be a prop )
+  * [Bridges pack](https://steamcommunity.com/sharedfiles/filedetails/?id=383670547)
+  * [gm_sunsetgulch map props](https://steamcommunity.com/sharedfiles/filedetails/?id=311697867) ( Ignore, not designed as prop )
   * [StevenTechno's Buildings pack](https://steamcommunity.com/sharedfiles/filedetails/?id=331192490)
   * [Mr. Train's M-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=517442747)
   * [Bobsters's two gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=489114511)
   * [Mr. Train's G-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=590574800)
-  * Ron's 56 gauge rails ( Removed by the addon owner. Discontinued )
-  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( Maintained by the owner )
-  * PHX Tubes
-  * Magnum's second track pack ( Ignore, it's not designed to be a prop )
+  * Ron's 56 gauge rails ( Removed by the addon owner and [discontinued](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-discontinued) )
+  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( [Maintained by the owner](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-maintained) )
+  * PHX Tubes **(INCLUDED)**
+  * [Magnum's second track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=391016040) ( Ignore, not designed as prop )
   * [qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
   * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) ( Mini hover tracks ) ( White rails )
   * [Ron's Minitrain Props](https://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
   * [Battleship's abandoned rails](https://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
-  * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) ( Maintained by the owner )
+  * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) ( [Maintained by the owner](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-maintained) )
   * [AlexCookie's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
 
 #### Where are the trains/vehicles[,](https://tfwiki.net/wiki/Team_Bullet_Train) are there any of these?
@@ -247,8 +248,8 @@ Legend of the path elements used in a model:
 /            --> Slash represents directory divider ( Like in D:/Steam/common/Garry's mod )
 #            --> Any kind of delimiter valid for a file name( Like dashes, underscores etc.)
 %addonname%  --> Name of your addon (For example: SPros)
-%category%   --> Category, which you want your pices to be divided by ( Like straight, curves, raps, bridges etc.)
-%piecename%  --> The file name of the piece created in the addon ( Ending with *.mdl of cource)
+%category%   --> Category, which you want your pieces to be divided by ( Like straight, curves, raps, bridges etc.)
+%piecename%  --> The file name of the piece created in the addon ( Ending with *.mdl of course)
 ```
 The good practices ( The category should be bordered by delimiters ):
 ```
@@ -272,7 +273,7 @@ Examples: (`#`="_", `%addonname%`="props_phx", `%piecename%`="track_128.mdl")
 ```
 
 #### Hey, remember that roller coaster assistant addon, that was snapping pieces when you got them close to each other and they magically connect. Does this script has a feature like this ?
-Yes, it does. When looking at the panel in the right, there is a check-box labeled
+Yes, it does. When looking at the panel in the right, there is a check-box labelled
 `Enable physgun snap` that you must check. This makes the server to perform some
 traces relative to the active points of the piece and search for other pieces to snap to.
 If the snapping conditions are present, it will snap the trace piece on physgun release at

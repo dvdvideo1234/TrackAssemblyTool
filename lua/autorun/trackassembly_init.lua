@@ -35,7 +35,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.439")
+asmlib.SetOpVar("TOOL_VERSION","5.440")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -382,10 +382,9 @@ if(CLIENT) then
         while(iNdex <= iSize) do -- All panels are valid
           asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iNdex)
           pnElements:Select(iNdex).Panel:Remove()
-          pnElements:Delete(iNdex)
-          iNdex = iNdex + 1
-        end
-        pnFrame:Remove(); asmlib.SetOpVar("PANEL_FREQUENT_MODELS",nil); collectgarbage()
+          pnElements:Delete(iNdex); iNdex = iNdex + 1
+        end; pnFrame:Remove()
+        asmlib.SetOpVar("PANEL_FREQUENT_MODELS",nil); collectgarbage()
         asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
       end; asmlib.SetOpVar("PANEL_FREQUENT_MODELS",pnFrame)
       ------------ Button --------------

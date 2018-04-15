@@ -1611,7 +1611,7 @@ end
 function UndoFinishPly(pPly,anyMessage)
   if(not IsPlayer(pPly)) then
     return StatusLog(false,"UndoFinishPly: Player <"..tostring(pPly)"> invalid") end
-  pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathFloor(mathRandom(3))..".wav")
+  pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathRandom(1, 3)..".wav")
   undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(anyMessage or ""))
   undoSetPlayer(pPly)
   undoFinish()
@@ -3063,14 +3063,13 @@ end
 function GetNormalAngle(oPly, stTrace, bSnap, nYSnp)
   local aAng, nYSn = Angle(), (tonumber(nYSnp) or 0); if(not IsPlayer(oPly)) then
     return StatusLog(aAng,"GetNormalAngle: No player <"..tostring(oPly)..">", aAng) end
-  if(bSnap) then -- Snap to the surface
-    local stTr = stTrace; if(not (stTr and stTr.Hit)) then
-      stTr = GetTracePly(oPly)
+  if(bSnap) then local stTr = stTrace -- Snap to the trace surface
+    if(not (stTr and stTr.Hit)) then stTr = CacheTracePly(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
     end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
   else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
   if(nYSn and (nYSn > 0) and (nYSn <= GetOpVar("MAX_ROTATION"))) then
-    -- Snap player yaw, pitch and roll are not needed
+    -- Snap player viewing rotation angle for using walls and ceiling
     aAng:SnapTo("pitch", nYSn):SnapTo("yaw", nYSn):SnapTo("roll", nYSn)
   end; return aAng
 end

@@ -810,9 +810,9 @@ function TOOL:UpdateGhost(ePiece, oPly)
     if(asmlib.IsOther(trEnt)) then return end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(trRec) then
-      local spnflat  = self:GetSpawnFlat()
-      local igntype  = self:GetIgnoreType()
-      local actrad   = self:GetActiveRadius()
+      local spnflat = self:GetSpawnFlat()
+      local igntype = self:GetIgnoreType()
+      local actrad  = self:GetActiveRadius()
       local stSpawn = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
@@ -841,15 +841,16 @@ end
 
 function TOOL:Think()
   local model = self:GetModel()
-  local wormo = self:GetWorkingMode() -- Synchronize the data between the working modes
-  if(utilIsValidModel(model)) then -- Chech model validation
+  -- Synchronize the data between the working modes
+  local wormo = self:GetWorkingMode()
+  if(utilIsValidModel(model)) then -- Check model validation
     local ply = self:GetOwner()
     local gho = self.GhostEntity
     if(self:GetGhostHolder()) then
       if(not (gho and gho:IsValid() and gho:GetModel() == model)) then
         self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
         self:ElevateGhost(self.GhostEntity, ply)   -- E-le-va-tion ! Yes U2
-      end; self:UpdateGhost(self.GhostEntity, ply) -- In client single player the grost is skipped
+      end; self:UpdateGhost(self.GhostEntity, ply) -- In client single player the ghost is skipped
     else self:ReleaseGhostEntity() end -- Delete the ghost entity when ghosting is disabled
     if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
       local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
