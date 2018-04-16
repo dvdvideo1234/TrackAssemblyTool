@@ -205,7 +205,7 @@ The ones that are **included** in Garry's mod do not have links and are marked b
   * [Shinji85's BodybroupRail pieces](https://steamcommunity.com/sharedfiles/filedetails/?id=326640186)
   * [gm_trainset map props](https://steamcommunity.com/sharedfiles/filedetails/?id=248213731) ( Ignore, not designed as prop )
   * [SligWolf's Railcar](https://steamcommunity.com/sharedfiles/filedetails/?id=173717507)
-  * [Bridges pack](https://steamcommunity.com/sharedfiles/filedetails/?id=383670547)
+  * [Bridges pack](https://steamcommunity.com/sharedfiles/filedetails/?id=343061215)
   * [gm_sunsetgulch map props](https://steamcommunity.com/sharedfiles/filedetails/?id=311697867) ( Ignore, not designed as prop )
   * [StevenTechno's Buildings pack](https://steamcommunity.com/sharedfiles/filedetails/?id=331192490)
   * [Mr. Train's M-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=517442747)
@@ -355,18 +355,17 @@ performance optimizations, doing the same thing, but in more elegant
 way and such.
 
 #### I want to use custom tweaks for my server. Could you recommend appropriate cvars ?
-Here is the list of the maximum value tweaks and settings ( prefixed with "trackassembly_" of course ):
-Maximum values controlling local process:
+Here is the list of the maximum value tweaks and settings to control the script:
 ```
-  maxtrmarg         - Controls the maximum time needed to perform a new player-cached trace
-  maxmass           - Controls the mass upper limit of the piece spawned ( the lower bound is "1" )
-  maxlinear         - Controls the maximum offset that can be applied by next x,y,z linear offsets
-  maxforce          - Controls the force limit upper border on the welds made between pieces
-  maxactrad         - Controls the vastness of the active point search area
-  maxstcnt          - Controls the maximum pieces that can be spawned in stacking mode
-  maxfruse          - Controls the maximum records that can be located under the frequent pieces list
-  sbox_maxprops     - The maximum props on the server ( Gmod default control )
-  sbox_maxasmtracks - A variable for the maximum things spawned via TA
+  trackassembly_maxtrmarg - Controls the maximum time needed to perform a new player-cached trace
+  trackassembly_maxmass   - Controls the mass upper limit of the piece spawned ( the lower bound is "1" )
+  trackassembly_maxlinear - Controls the maximum offset that can be applied by next x,y,z linear offsets
+  trackassembly_maxforce  - Controls the force limit upper border on the welds made between pieces
+  trackassembly_maxactrad - Controls the vastness of the active point search area
+  trackassembly_maxstcnt  - Controls the maximum pieces that can be spawned in stacking mode
+  trackassembly_maxfruse  - Controls the maximum records that can be located under the frequent pieces list
+  sbox_maxprops           - The maximum props on the server ( Gmod default control )
+  sbox_maxasmtracks       - A variable for the maximum things spawned via TA
 ```
 You can trigger these limits independently from one another. For example:
   * Value `maxprops` is `50` and `maxasmtracks` is `30` will trigger maxasmtracks
@@ -488,7 +487,7 @@ First of all if the error origin is not the TA,
 11. Server: Point to the world in-game and press RELOAD ( Default: R )
 12. Client: Click the `Reset Variables` button
 13. Now the hardest part[.](https://mondomedia.com/embed/Vpbbbc) While in-game do some stuff and make it crash again.
-14. Navigate to ..Steam/steamapps/common/GarrysMod/garrysmod/data/trackassembly/trackasmlib_log.txt
+14. Navigate to `..Steam/steamapps/common/GarrysMod/garrysmod/data/trackassembly/trackasmlib_log.txt`
 15. Report the log and the errors [here](https://github.com/dvdvideo1234/TrackAssemblyTool/issues)
 16. If you don't bother using the workshop ( Yeah, I hate it too ), then please use the
    [GitHub link](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master)
@@ -500,21 +499,21 @@ For every active point, you have to add a line in the table PIECES.
   1. The first method involves editing the general database. That way your custom track
     pieces are not divided and are inside the general data pool for client and server.
     This is good if you want to test something fast.
-     * In the console ( Bring it up with ~ key under ESC ): `trackassembly_exportdb 1` [ press enter ]
-     * Server: Point the crosshair anywhere on the map, then hit SPEED ( Default: Shift ) + RELOAD ( Default: R )
-     * Client: Just bring up the Frequently used pieces screen, then click the `Export client's DB` button
-     * Use Excel or another table editing program to edit the files sv_*.txt and cl_*.txt
-     * After exporting, tables are located under `..common/GarrysMod/garrysmod/data/trackassembly/dsv/` [DSV Folder]
-     * Navigate to the DSV folder using explorer(Windows)/nautilus(Linux) and proceed
-     * Open all *TRACKASSEMBLY_PIECES.txt files and make your edits using tab-delimited [Excel 2010]
-     * [Excel 2010] File -> Save As -> Navigate to the DSV folder if you are not in there already
-     * [Excel 2010] File name: *TRACKASSEMBLY_PIECES.txt
-     * [Excel 2010] Save as type: `Text (Tab delimited)(*.txt)`
-     * [Excel 2010] Replace it if you must (don't worry you can always generate it again ( points 3) and 4) )
-     * [Excel 2010] It will prompt you that the file you are saving does contain features not compatible with `TAB Delimited` format
-     * [Excel 2010] Click `Yes` and close Excel
-     * [Excel 2010] It will want you to save it again, so just click `Don't Save`
-     * [Excel 2010] You are good to go
+      1. In the console ( Bring it up with `~` key under ESC ): `trackassembly_exportdb 1` [ press enter ]
+      2. Server: Point the crosshair anywhere on the map, then hit SPEED ( Default: Shift ) + RELOAD ( Default: R )
+      3. Client: Just bring up the Frequently used pieces screen, then click the `Export client's DB` button
+      4. Use Excel or another table editing program to edit the files `sv_*.txt` and `cl_*.txt`
+      5. After exporting, tables are located under `..common/GarrysMod/garrysmod/data/trackassembly/dsv/` [DSV Folder]
+      6. Navigate to the DSV folder using explorer(Windows)/nautilus(Linux) and proceed
+      7. Open all *TRACKASSEMBLY_PIECES.txt files and make your edits using tab-delimited [Excel 2010]
+      8. [Excel 2010] `File` -> `Save As` -> Navigate to the `DSV` folder if you are not in there already
+      9. [Excel 2010] File name: `*TRACKASSEMBLY_PIECES.txt`
+     10. [Excel 2010] Save as type: `Text (Tab delimited)(*.txt)`
+     11. [Excel 2010] Replace it if you must (don't worry you can always generate it again ( points 3. and 4. )
+     12. [Excel 2010] It will prompt you that the file you are saving does contain features not compatible with `TAB Delimited` format
+     13. [Excel 2010] Click `Yes` and close Excel
+     14. [Excel 2010] It will want you to save it again, so just click `Don't Save`
+     15. [Excel 2010] You are good to go
      If you have trouble with this step by step tutorial, maybe [this](https://www.youtube.com/watch?v=Pz0_RGwgfaY) will help
   2. The second method involves personal `DSV` database. This option is mostly used when you want to
     separate your own stuff from the general data pool. The track pack creators use this method to
