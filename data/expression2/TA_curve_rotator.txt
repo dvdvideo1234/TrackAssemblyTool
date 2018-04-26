@@ -1,32 +1,45 @@
 @name TA_curve_rotator
-@inputs
+@inputs 
 @outputs
-@persist [O V R]:vector2 SignAng Length Iter
-@trigger
+@persist [O V R]:vector SignAng Length Iter
+@trigger 
 
 runOnTick(1)
 
 if(first() || dupefinished())
 {
-    # The length of the curve goes here
-    Length = 198.5
-
-    # The angle sign it will be rotated to
-    SignAng  = -1
-
-    # Origin of the rotation
-    O = vec2(Length,0)
-
-    # Initial vector to be rotated
-    V = vec2(-Length,0)
-
-    # Do not touch
-    print("\n\n")
-    print("R 225: "+toString(V:rotate(SignAng * 22.5) + O))
-    print("R 450: "+toString(V:rotate(SignAng * 45.0) + O))
-    print("R 900: "+toString(V:rotate(SignAng * 90.0) + O))
-
+    ########## Globals part ! ##########
+    E  = entity():isConstrainedTo("weld")
+    EA = E:angles()
+    EP = E:pos()
+    ########## Parameter section ##########
+    # Local rotation axis
+    X = vec(0,0,1)
+    # Rotation origin from the primary edge
+    # Usually where point ID 1 is located
+    O = vec(0, -2048, 0)
+    # Point location as local vector
+    P = vec(0,-46,6.625)
+    # How much amgle to apply
+    D = 45
+ 
+  
+    ########## Formula for the local arm vector roatated ##########
+    V = (P - O):rotate(EA)
+    
+    ########## Automatic part ! ##########
+    RO = O:rotate(EA)
+    RX = X:rotate(EA)
+    RP = P:rotate(EA)
+    PO = RO + E:pos()
+    print("Str: "+toString(V)+" <"+toString(E:toLocal(V+PO))+">")
+    
+    
+    RA = EA:rotateAroundAxis(RX,D)
+    V  = V:rotate(RA)
+    print("End: "+toString(V))
+    V = E:toLocal(V+PO)
+    print("Out: "+toString(V))
+        
     selfDestruct()
 }
-
-

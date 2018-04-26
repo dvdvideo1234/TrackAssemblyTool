@@ -20,10 +20,13 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="common.h" />
 		<Unit filename="emd.bat" />
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />
+		<Unit filename="models_ignored.txt" />
 		<Unit filename="string_stack.h" />
+		<Unit filename="struct_entry.h" />
 		<Unit filename="struct_match.h" />
 		<Extensions>
 			<code_completion />

@@ -1,0 +1,102 @@
+@name Test Rail Angler
+@inputs [Rail]:wirelink
+@outputs Pitch PitchSign Roll RollSign Yaw [RailPos]:vector
+@outputs Err:vector [AngSet RAngle UAngle]:angle
+@outputs [BF BR BU TF TR TU]:vector
+@outputs [BaF BaR BaU TrF TrR TrU AngEx]:angle
+@persist [Base Track]:entity Ang:angle [Off Err]:vector 
+@trigger 
+@model models/props_phx/trains/monorail1.mdl
+
+
+if(first() || dupefinished())
+{
+    runOnTick(1)
+    Base = entity()
+    Track = Rail:entity()
+    #Ang = ang(0,180,0)
+    #Off = vec(0.080 , 605.6, -13.153)
+    Track:setMass(1000)
+    holoCreate(1,vec(1,1,1),0.3*vec(1,1,1))
+    holoCreate(2,vec(1,1,1),0.2*vec(1,1,1))
+    holoCreate(3,vec(1,1,1),0.2*vec(1,1,1))
+    holoCreate(4,vec(1,1,1),0.2*vec(1,1,1))
+}
+BF = Base:forward()
+BU = Base:up()
+BR = BF:cross(BU)
+
+AxisLen = 40
+
+Dest = (250 * BF + 13.4405 * BU) + Base:pos()
+holoPos(1,Dest)
+Dest = Dest + (Off:x() * BF + Off:y() * BR + Off:z() * BU)
+#Track:setPos(Dest)
+
+#Err = (Dest - Track:pos())
+#Track:applyForce(25000*Err + 38000*$Err)
+
+Vec = Base:pos() + 50*BU + AxisLen*BF
+holoPos(2,Vec)
+holoAng(2,BF:toAngle())
+holoColor(2,vec(255,0,0))
+
+Vec = Base:pos() + 50*BU + AxisLen*BR
+holoPos(3,Vec)
+holoAng(3,BR:toAngle())
+holoColor(3,vec(0,255,0))
+
+Vec = Base:pos() + 50*BU + AxisLen*BU
+holoPos(4,Vec)
+holoAng(4,BR:toAngle())
+holoColor(4,vec(0,0,255))
+
+
+#Track:setAng(ang(0,0,0))
+TF = vec(1,1,0):rotate(Track:angles())
+TU = vec(0,0,1):rotate(Track:angles())
+TR = TF:cross(TU)
+#Base 
+
+
+BaF = BF:toAngle()
+BaR = BR:toAngle()
+BaU = BU:toAngle()
+
+TrF = TF:toAngle()
+TrR = TR:toAngle()
+TrU = TU:toAngle()
+
+
+#Pitch
+Pitch  = -BaF:pitch()
+#Yaw
+Yaw = BaF:yaw()
+# Roll 
+Roll = BaR:pitch()
+UAngOff = ang(Pitch,Yaw,-Roll)
+#########################
+
+
+
+
+BaF:setYaw(-BaF:yaw())
+
+
+
+AngSet = angnorm(ang(0,0,0))
+
+# Track:setAng(AngSet)  
+TF = vec(1,1,0):rotate(Track:angles())
+TU = vec(0,0,1):rotate(Track:angles())
+TR = TF:cross(TU)
+
+
+AngEx = vec(0,0,100):getAngleEx(vec(0,0,0))
+
+
+
+
+
+
+

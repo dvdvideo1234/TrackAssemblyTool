@@ -1,0 +1,130 @@
+@name TA Active point scanner
+@inputs 
+@outputs Piece:entity Position:vector
+@persist Scanner:entity [F U C S Position]:vector 
+@persist Delta ScanDepth ScanSizeW ScanSizeH PntCount Stage
+@trigger none
+@model models/props_phx/construct/metal_wire1x1.mdl
+
+@outputs StepDistant DstU DstD S:vector
+@outputs [SufU SufD]:vector
+
+if(first() || dupefinished())
+{
+    # Scan size. Most rails are more wider than higher
+    # For PHX two bean rails W > H
+    ScanSizeW = 80 # Scans across left/right with sensors up/down
+    ScanSizeH = 40 # Scans across up/down with sensors left/right
+        
+    # Scanning depth
+    ScanDepth = 8
+    
+    # How fast it will scan the piece edge
+    Delta = 0.1
+    
+    # Local oriantation vectors
+    F = vec(0,0,1)
+    U = vec(1,0,0)
+    C = vec(0,0,0)
+    S = vec(0,0,0)
+    
+    # Automatic stuff
+    runOnTick(1)
+    Stage = 0            # Must start from zero ( initialization stage ) 
+    PntCount = 0         # Howm many points are registered for avarage
+    StepDistant = 0      # The current distrance while scanning. Resets in every stage
+    Scanner = entity()
+
+    holoCreate(1), holoColor(1,vec(255,0,0)), holoScale(1,0.1*vec(1,1,1)) holoModel(1,"cone")
+    holoCreate(2), holoColor(2,vec(0,0,255)), holoScale(2,0.1*vec(1,1,1)) holoModel(2,"cone")
+    holoCreate(3), holoColor(3,vec(0,0,255)), holoScale(3,0.1*vec(1,1,1)) holoModel(3,"cube")
+}
+
+
+An = Scanner:angles()
+Fw = F:rotate(An)
+Up = U:rotate(An)
+Rg = Fw:cross(Up)
+Cn = C:rotate(An) + Scanner:pos()
+
+if(Stage == 0)
+{
+    Stage++
+    StepDistant = 0
+}
+elseif(Stage == 1)
+{
+    Stage++
+    StepDistant = (-ScanSizeW / 2)
+}
+elseif(Stage == 2)
+{
+    SyzeH2 = (ScanSizeH / 2)
+    
+    PosU = Cn + StepDistant * Rg + ScanDepth * Fw + SyzeH2 * Up
+    PosD = Cn + StepDistant * Rg + ScanDepth * Fw - SyzeH2 * Up
+       
+    holoPos(1,PosU)
+    holoAng(1,(-Up):toAngle(-Fw):rotateAroundAxis(Rg,90))
+    holoPos(2,PosD)
+    holoAng(2,   Up:toAngle(-Fw):rotateAroundAxis(Rg,-90))
+
+    DstU = rangerOffset(SyzeH2, PosU, -Up):distance()
+    DstD = rangerOffset(SyzeH2, PosD,  Up):distance()
+    
+    if(DstU < SyzeH2)
+    {
+        SufU = (-DstU * Up) + PosU
+        S = S + (-DstU * Up)
+        PntCount++
+    }
+    
+    if(DstD < SyzeH2)
+    {
+        SufD = (DstD * Up) + PosD
+        S = S + (DstD * Up)
+        PntCount++
+    }
+    
+    
+    if(StepDistant > (ScanSizeW / 2))
+    {
+        Position = -(S / PntCount) + Cn
+        holoPos(3,Position)
+        PntCount = 0
+        S = vec(0,0,0)
+        StepDistant = (-ScanSizeH / 2)
+        Stage++
+    }
+    else
+    {
+        StepDistant = StepDistant + Delta   
+    }
+}
+elseif(Stage == 3)
+{
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

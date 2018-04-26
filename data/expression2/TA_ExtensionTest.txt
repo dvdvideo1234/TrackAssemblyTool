@@ -1,0 +1,8 @@
+@name 
+@inputs UCS:wirelink
+@outputs T:string
+@persist 
+@trigger 
+@model models/props_phx/trains/tracks/track_1x.mdl
+
+T = entity():trackasmlibGenActivePointINS(UCS:entity(),"Test","Test",1,"AAA")

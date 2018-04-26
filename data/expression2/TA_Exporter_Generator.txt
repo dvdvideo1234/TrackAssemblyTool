@@ -89,8 +89,7 @@ function void printPoint(Type:string, Name:string, Mode:string, Hash:string, Poi
             "\""+StrPnt+"\""+Del+
             "\""+StrOrg+"\""+Del+
             "\""+StrAng+"\""+Del+
-            "\""+StrCls+"\""+Del
-            "})"
+            "\""+StrCls+"\""+"})"
     }
     print(_HUD_PRINTTALK,Ins)
 
@@ -104,7 +103,7 @@ if(first() || dupefinished())
     # Piece type that you are using. It is mandatory
     # It is usually derived from the addon mame
     # that you are exporting
-    PieceType = "AlexCookie's 2ft Track Pack"
+    PieceType = "#"
 
     # Piece name that you are using. This is actually
     # how the track piece will be called in the TA panel
@@ -116,7 +115,7 @@ if(first() || dupefinished())
     # Set this to <>0 to use point generation via iterative binary search
     # Set this to positive to make the algorithm trace forward
     # Set this to negative to make the algorithm trace backwards
-    PointID = 1
+    PointID = 0
 
     # What segment type are we processing
     # road     --> Roads ( PHX roads )
@@ -129,7 +128,7 @@ if(first() || dupefinished())
     OverrideZ = 0
 
     # What mode will the point be exportet as
-    InsertTypeDB = "DSV"
+    InsertTypeDB = "INS"
 
     # Automatically managed via the point ID
     # If positive uses direct point generation

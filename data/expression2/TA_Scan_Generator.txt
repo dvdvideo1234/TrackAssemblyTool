@@ -109,9 +109,9 @@ if(first() || dupefinished())
     # Track piece width and height
     # The bigger the numbers the more cross section your track piece has
     # The width of the rail. It has to wrap the rail on width
-    PieceW = 50
+    PieceW = 120
     # The height of the rail. It has to wrap the rail on height
-    PieceH = 20
+    PieceH = 35
     # This tells the algorithm how deep should it search for rail surface
     PieceD = 24
     # This is an additional inset for the traces will use to hit the rail hull
@@ -217,3 +217,4 @@ else
 {
   if(ExpEn != 0){ Chip:setColor(255,0,0,255) }else{Chip:setColor(255,255,255,255) }
 }
+
