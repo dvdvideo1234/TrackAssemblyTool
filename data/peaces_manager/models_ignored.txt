@@ -492,6 +492,16 @@ models/minitrains/wagon/md_swwagon025.mdl
 models/sligwolf/unique_props/minitrain_slider.mdl
 models/sligwolf/unique_props/sw_cube_1x1x1.mdl
 models/sligwolf/unique_props/sw_sphere_4x4x4.mdl
+models/minitrains/switchbar_1_128_c.mdl
+models/minitrains/switchbar_2_128_c.mdl
+models/minitrains/switchbar_3_128_c.mdl
+models/minitrains/switchbar_4_128_c.mdl
+models/minitrains/switchbar_5_128_c.mdl
+models/minitrains/switchbar_6_128_c.mdl
+models/minitrains/switchbar_w_1_128_c.mdl
+models/minitrains/switchbar_w_1_128_s.mdl
+models/minitrains/switchbar_yw_128.mdl
+models/minitrains/buildings/sw_sign.mdl
 
 # Magnum's Rails
 models/magtrains1ga/autorack1.mdl
