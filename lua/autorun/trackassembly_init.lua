@@ -35,7 +35,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.443")
+asmlib.SetOpVar("TOOL_VERSION","5.444")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -170,7 +170,7 @@ if(SERVER) then
         end
       end -- The trace with the shortest distance is found
       if(trTr and trTr.Hit and (trID > 0) and (trID <= trRec.Kept)) then
-        local stSpawn = asmlib.GetEntitySpawn(trTr.Entity,trTr.HitPos,trRec.Slot,trID,
+        local stSpawn = asmlib.GetEntitySpawn(pPly,trTr.Entity,trTr.HitPos,trRec.Slot,trID,
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
           if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
@@ -581,7 +581,7 @@ if(CLIENT) then
             actMonitor:DrawLine  (xyS, xyH, "g", "SURF")
             actMonitor:DrawCircle(xyH, rdS, "g")
             actMonitor:DrawLine  (xyH, xyE, "y")
-            actSpawn = asmlib.GetEntitySpawn(trE,oTr.HitPos,trRec.Slot,trID,activrad,
+            actSpawn = asmlib.GetEntitySpawn(oPly,trE,oTr.HitPos,trRec.Slot,trID,activrad,
                          spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
             if(actSpawn) then
               actSpawn.F:Mul(30); actSpawn.F:Add(actSpawn.OPos)
