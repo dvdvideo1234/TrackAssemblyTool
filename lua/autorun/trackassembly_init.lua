@@ -35,7 +35,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.444")
+asmlib.SetOpVar("TOOL_VERSION","5.445")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -141,8 +141,7 @@ if(SERVER) then
         return asmlib.StatusLog(nil,"PHYSGUN_DROP: Snapping disabled") end
       if(not (trEnt and trEnt:IsValid())) then
         return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace entity invalid") end
-      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-      if(not trRec) then
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
       local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
       local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
@@ -163,10 +162,11 @@ if(SERVER) then
       local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmVar("maxforce" , "FLT"))
       local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
       local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
-      for ID = 1, trRec.Kept, 1 do
+      for ID = 1, trRec.Kept, 1 do -- Hits distance shorter than the active radius
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, ID, activrad)
-        if(oTr and oTr.Hit and (activrad * oTr.Fraction < trRad)) then -- Hits distance shorter than the active radius
-          if(oTr.Entity and oTr.Entity:IsValid()) then trRad, trID, trTr = (activrad * oTr.Fraction), ID, oTr end
+        local rTr = (activrad * oTr.Fraction) -- Estimate active fraction length
+        if(oTr and oTr.Hit and (rTr < trRad)) then local eTr = oTr.Entity
+          if(eTr and eTr:IsValid()) then trRad, trID, trTr = rTr, ID, oTr end
         end
       end -- The trace with the shortest distance is found
       if(trTr and trTr.Hit and (trID > 0) and (trID <= trRec.Kept)) then
@@ -188,8 +188,7 @@ end
 if(CLIENT) then
 
   asmlib.SetAction("CLEAR_RELATION",
-    function(nLen)
-      local oPly = netReadEntity()
+    function(nLen) local oPly = netReadEntity()
       asmlib.LogInstance("CLEAR_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
         return asmlib.StatusLog(nil,"CLEAR_RELATION: Failed clearing ray") end
@@ -197,21 +196,17 @@ if(CLIENT) then
     end) -- Net receive intersect relation clear client-side
 
   asmlib.SetAction("CREATE_RELATION",
-    function(nLen)
-      local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
+    function(nLen) local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
       asmlib.LogInstance("CREATE_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
-      local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
-      if(not stRay) then
+      if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")) then
         return asmlib.StatusLog(nil,"CREATE_RELATION: Failed updating ray") end
       return asmlib.StatusLog(nil,"CREATE_RELATION: Success")
     end) -- Net receive intersect relation create client-side
 
   asmlib.SetAction("BIND_PRESS",
     function(oPly,sBind,bPress) -- Must have the same parameters as the hook
-      if(not bPress) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
-      local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then
+      if(not bPress) then return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
+      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
         return asmlib.StatusLog(nil,"BIND_PRESS: Swep invalid") end
       if(actSwep:GetClass() ~= "gmod_tool") then
         return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
@@ -220,8 +215,8 @@ if(CLIENT) then
       -- Here player is holding the track assembly tool
       if(not inputIsKeyDown(KEY_LALT)) then
         return asmlib.StatusLog(nil,"BIND_PRESS: Active key missing") end
-      local actTool = actSwep:GetToolObject() -- Switch functionality of the mouse wheel only for TA
-      if(not actTool) then
+      -- Switch functionality of the mouse wheel only for TA
+      local actTool = actSwep:GetToolObject(); if(not actTool) then
         return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
       if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
         if(not actTool:GetScrollMouse()) then
@@ -247,7 +242,7 @@ if(CLIENT) then
       if(not devmode) then
         return asmlib.StatusLog(nil,"RESET_VARIABLES: Developer mode disabled") end
       asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
-      if(bgskids == "reset cvars") then -- Reset the limit also
+      if(bgskids == "reset cvars") then -- Reset also the maximum spawned pieces
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         local anchor = asmlib.GetOpVar("MISS_NOID")..
                        asmlib.GetOpVar("OPSYM_REVSIGN")..
@@ -299,8 +294,7 @@ if(CLIENT) then
         asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
-        for iCnt = 1, #tPref do
-          local vPr = tPref[iCnt]
+        for iCnt = 1, #tPref do local vPr = tPref[iCnt]
           asmlib.RemoveDSV("PIECES", vPr)
           asmlib.RemoveDSV("ADDITIONS", vPr)
           asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
@@ -315,14 +309,10 @@ if(CLIENT) then
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1])
       if(not asmlib.IsExistent(frUsed)) then
         return asmlib.StatusLog(nil,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
-      local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
-      if(not defTable) then
+      local defTable = asmlib.GetOpVar("DEFTABLE_PIECES"); if(not defTable) then
         return StatusLog(nil,"OPEN_FRAME: Missing definition for table PIECES") end
-      local pnFrame = vguiCreate("DFrame")
-      if(not IsValid(pnFrame)) then
-        pnFrame:Remove()
-        return asmlib.StatusLog(nil,"OPEN_FRAME: Failed to create base frame")
-      end
+      local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
+        pnFrame:Remove(); return asmlib.StatusLog(nil,"OPEN_FRAME: Failed to create base frame") end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,languageGetPhrase("tool."..gsToolNameL..".pn_export_lb") , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
             pnElements:Insert(2,{Label = { "DListView"  ,languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_routine")}})
@@ -337,14 +327,12 @@ if(CLIENT) then
         if(not IsValid(vItem.Panel)) then
           asmlib.LogInstance("OPEN_FRAME: Failed to create ID #"..tonumber(iNdex))
           iNdex, vItem = 1, nil
-          while(iNdex <= iSize) do
-            vItem, sItem = pnElements:Select(iNdex), ""
+          while(iNdex <= iSize) do vItem, sItem = pnElements:Select(iNdex), ""
             if(IsValid(vItem.Panel)) then vItem.Panel:Remove(); sItem = "and panel " end
             pnElements:Delete(iNdex)
             asmlib.LogInstance("OPEN_FRAME: Deleted entry "..sItem.."ID #"..tonumber(iNdex))
             iNdex = iNdex + 1
-          end
-          pnFrame:Remove(); collectgarbage()
+          end; pnFrame:Remove(); collectgarbage()
           return StatusLog(nil,"OPEN_FRAME: Invalid panel created. Frame removed")
         end
         vItem.Panel:SetName(vItem.Label[2])
@@ -527,11 +515,9 @@ if(CLIENT) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Extension disabled") end
       if(not asmlib.GetAsmVar("adviser", "BUL")) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Adviser disabled") end
-      local oPly = LocalPlayer()
-      if(not asmlib.IsPlayer(oPly)) then
+      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Player invalid") end
-      local actSwep = oPly:GetActiveWeapon()
-      if(not IsValid(actSwep)) then
+      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
       if(actSwep:GetClass() ~= "weapon_physgun") then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
@@ -541,22 +527,19 @@ if(CLIENT) then
       if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
       if(not actTr.Hit) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not hit") end
       if(actTr.HitWorld) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace world") end
-      local trEnt = actTr.Entity
-      if(not (trEnt and trEnt:IsValid())) then
+      local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
-      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-      if(not trRec) then
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
-        local scrW = surfaceScreenWidth()
-        local scrH = surfaceScreenHeight()
+        local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
         if(not actMonitor) then
           return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Invalid screen") end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
-      end -- Make shure we have a valid game monitor for the draw OOP
+      end -- Make sure we have a valid game monitor for the draw OOP
       local nextx     = asmlib.GetAsmVar("nextx", "FLT")
       local nexty     = asmlib.GetAsmVar("nexty", "FLT")
       local nextz     = asmlib.GetAsmVar("nextz", "FLT")
