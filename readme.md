@@ -16,6 +16,11 @@ It uses pre-defined active points to snap the segments the best way there is in 
 
 ## General FAQ:
 
+#### Donations
+I am supporting this tool in my free time mostly and it was quite a ride since I already first
+created it. But since my lack of time for playing gmod has been drastically increased some
+people asked me if I accept donations, here is [the link to my PayPal](https://www.paypal.me/DeyanVasilev).
+
 #### How can I install this?
 You can subscribe to it in the workshop [here](http://steamcommunity.com/sharedfiles/filedetails/?id=287012681)
 or download the latest stable release from [here](https://github.com/dvdvideo1234/TrackAssemblyTool/releases).
@@ -45,6 +50,7 @@ about their track packs or in some other way. It is possible that missed someone
   * [Puppyjaws](https://steamcommunity.com/profiles/76561198146226478)
   * [Bullseye SBT](https://steamcommunity.com/profiles/76561198082120871)
   * [AlexALX](https://steamcommunity.com/profiles/76561198049628741)
+  * [Puppyguard12](http://steamcommunity.com/profiles/76561198077265201)
   * [Gedo789](https://github.com/Gedo789)
   * The Arbitor 90
   * PePena
