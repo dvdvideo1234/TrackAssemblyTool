@@ -91,18 +91,6 @@ about their track packs or in some other way. It is possible that missed someone
   * Ability to extend a track piece spawn with [additional entities](https://www.youtube.com/watch?v=jKGBUNDMN6A)
   * Includes integrated wiremod extension
 
-#### Hey, I cannot align my track curves properly. Can you help ?
-Yep sure. In the right panel, there is a drop-down menu which has a bunch of tool modes listed.
-Go ahead and select the `Active point intersection`. After you change the mode, an intersection
-relation entity is needed to complete the process. Hitting `SPEED + RELOAD` ( Default: Shift + R )
-just like the anchor, will select the relation active point of the entity in question, which is closest
-to the player hit position. Now trace a track piece and the ghost of the curve will be drawn. You can
-clamp the spawn position in a box using the primary position flag `applinfst ( Apply linear first )` or switch
-the origin angle with the ray direction angle by using primary angle flag `appangfst ( Apply angular first )`
-In this working mode the angular and linear offsets adjust the piece offsets relative to the ray intersection
-position where the trace and relation rays meet. Press `ATTACK1` ( Def: Left click ) if you are happy with where
-the ghost is located and where the spawn piece will go at.
-
 #### Where can I find the tool in-game ?
 You can find the tool in the `Constriction` section of Garry's mod
 [spawn menu](https://wiki.garrysmod.com/page/Opening_The_Spawnmenu) under the name of `Track assembly`.
@@ -118,6 +106,39 @@ adjusting the next active point for the track stacking option.
 This will affect what point is chosen when you continue the track you build.
 The current and next active points will not be the same.
 
+#### Hey, I cannot align my track curves properly. Can you help ?
+Yep sure. In the right panel, there is a drop-down menu which has a bunch of tool modes listed.
+Go ahead and select the `Active point intersection`. After you change the mode, an intersection
+relation entity is needed to complete the process. Hitting `SPEED + RELOAD` ( Default: Shift + R )
+just like the anchor, will select the relation active point of the entity in question, which is closest
+to the player hit position. Now trace a track piece and the ghost of the curve will be drawn. You can
+clamp the spawn position in a box using the primary position flag `applinfst ( Apply linear first )` or switch
+the origin angle with the ray direction angle by using primary angle flag `appangfst ( Apply angular first )`
+In this working mode the angular and linear offsets adjust the piece offsets relative to the ray intersection
+position where the trace and relation rays meet. Press `ATTACK1` ( Def: Left click ) if you are happy with where
+the ghost is located and where the spawn piece will go at.
+
+#### How can I use the switchers ? I can't seem to make them work.
+Every addon has its own way for dealing with the switchers. Others that are not listed here do not
+have dedicated track switchers, so to switch them you must use two track pieces inside of each other.
+Swap their solidness around using the [fading door tool](https://steamcommunity.com/sharedfiles/filedetails/?id=115753588),
+so when one is solid a.k.a `CLOSED` and you can't pass trough it, the other must be no-collided to all `OPENED`. Therefore the
+wheels of the train will follow only the track that is currently set being solid with fading door `CLOSED` function state:
+ 1. Dedicated entity like a lever you must press with your USE key
+    * [Shinji85's Rails](https://www.youtube.com/watch?v=cHhf83w-YNM)
+ 2. Dedicated switcher [entity](wiki.garrysmod.com/page/Category:Entity)
+    you must press with your USE key. You must press the custom switcher [entity](wiki.garrysmod.com/page/Category:Entity) itself:
+    * `Sligwolf's mini trains`
+    * `SligWolf's White Rails`
+    * `Ron's 2ft track pack`
+ 3. Dedicated switched/unswitched model. You have to swap the two models around to switch the track by using a script (Lua, E2, EAdv, Starfall)
+    * `Robster's pack`
+    * `AlexCookie's 2ft track pack`
+ 4. Dedicated switcher model and a switcher moving needle that you must assemble to get track switching functionality
+    * `Mr.Train's M-Gauge`
+    * `Mr.Train's G-Gauge`
+    * `Battleship's abandoned rails`
+ 
 #### How do I use the old way for switching between the active points ?
 There is this variable `trackassembly_enpntmscr` and as its name suggests
 it controls the ***enable end-point mouse scroll***. Set it to `1` if you want
