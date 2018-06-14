@@ -215,16 +215,6 @@ function GetDate()
    .." "..osDate(GetOpVar("TIME_FORMAT")))
 end
 
--- Golden retriever. Retrieves file line as string
--- But seriously returns the sting line and EOF flag
-local function GetStringFile(pFile)
-  if(not pFile) then return StatusLog("", "GetStringFile: No file"), true end
-  local sCh, sLine = "X", "" -- Use a value to start cycle with
-  while(sCh) do sCh = pFile:Read(1); if(not sCh) then break end
-    if(sCh == "\n") then return sLine:Trim(), false else sLine = sLine..sCh end
-  end; return sLine:Trim(), true -- EOF has been reached. Return the last data
-end
-
 ------------------ LOGS ------------------------
 
 local function FormatNumberMax(nNum,nMax)
@@ -323,6 +313,18 @@ function Print(tT,sS,tP)
   end
 end
 
+----------------- INITAIALIZATION -----------------
+
+-- Golden retriever. Retrieves file line as string
+-- But seriously returns the sting line and EOF flag
+local function GetStringFile(pFile)
+  if(not pFile) then return StatusLog("", "GetStringFile: No file"), true end
+  local sCh, sLine = "X", "" -- Use a value to start cycle with
+  while(sCh) do sCh = pFile:Read(1); if(not sCh) then break end
+    if(sCh == "\n") then return sLine:Trim(), false else sLine = sLine..sCh end
+  end; return sLine:Trim(), true -- EOF has been reached. Return the last data
+end
+
 function SetLogControl(nLines,bFile)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGFILE",tobool(bFile))
@@ -348,8 +350,6 @@ function SettingsLogs(sHash)
     end; S:Close(); return StatusLog(true,"SettingsLogs("..sKey.."): Success <"..fName..">")
   else return StatusLog(true,"SettingsLogs("..sKey.."): Missing <"..fName..">") end
 end
-
------------------ INITAIALIZATION -----------------
 
 function GetIndexes(sType)
   if(not IsString(sType)) then
