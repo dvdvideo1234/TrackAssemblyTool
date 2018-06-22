@@ -134,6 +134,8 @@ local languageAdd             = language and language.Add
 local constructSetPhysProp    = construct and construct.SetPhysProp
 local constraintWeld          = constraint and constraint.Weld
 local constraintNoCollide     = constraint and constraint.NoCollide
+local cvarsAddChangeCallback   = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
@@ -3725,7 +3727,26 @@ function GetAsmVar(sName, sMode)
   elseif(sMode == "DEF") then return  CVar:GetDefault()
   elseif(sMode == "INF") then return  CVar:GetHelpText()
   elseif(sMode == "NAM") then return  CVar:GetName()
+  elseif(sMode == "OBJ") then return  CVar
   end; return StatusLog(nil,"GetAsmVar("..sName..", "..sMode.."): Missed mode")
+end
+
+function SetAsmVarCallback(sName, sType, sHash, fHand)
+  if(not (sName and IsString(sName))) then
+    return StatusLog(nil,"GetActionData: Key {"..type(sName).."}<"..tostring(sName).."> not string") end
+  if(not (sType and IsString(sType))) then
+    return StatusLog(nil,"GetActionData: Key {"..type(sType).."}<"..tostring(sType).."> not string") end
+  if(IsString(sHash)) then local sLong = GetAsmVar(sName, "NAM")
+    cvarsRemoveChangeCallback(sLong, sLong.."_call")
+    cvarsAddChangeCallback(sLong, function(sVar, vOld, vNew)
+      local aVal, bS = GetAsmVar(sName, sType), true
+      if(type(fHand) == "function") then bS, aVal = pcall(fHand, aVal)
+        if(not bS) then return StatusLog(nil,"GetActionData: "..tostring(aVal)) end
+        LogInstance("SetAsmVarCallback("..sName.."): Converted")
+      end; LogInstance("SetAsmVarCallback("..sName.."): <"..tostring(aVal)..">")
+      SetOpVar(sHash, aVal) -- Make sure we write down the processed value in the hashes
+    end, sLong.."_call")
+  end
 end
 
 function SetLocalify(sCode, sPhrase, sDetail)

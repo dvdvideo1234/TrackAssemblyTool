@@ -26,8 +26,6 @@ local inputIsMouseDown     = input and input.IsMouseDown
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
 local languageGetPhrase    = language and language.GetPhrase
-local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -35,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.447")
+asmlib.SetOpVar("TOOL_VERSION","5.448")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -104,16 +102,12 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("ry",Color(230,200, 80,255)) -- Ray tracing
       conPalette:Insert("wm",Color(143,244, 66,255)) -- Working mode HUD
 
-local gsVarTrMarg = "maxtrmarg"
-local gsMaxTrMarg = asmlib.GetAsmVar(gsVarTrMarg, "NAM")
-cvarsRemoveChangeCallback(gsMaxTrMarg, gsMaxTrMarg.."_call")
-cvarsAddChangeCallback(gsMaxTrMarg, function(sVar, nOld, nNew)
-  local aVal = asmlib.GetAsmVar(gsVarTrMarg, "FLT")
-  asmlib.LogInstance("Callback: <"..sVar.."> = <"..aVal..">")
-  asmlib.SetOpVar("TRACE_MARGIN", aVal)
-end, gsMaxTrMarg.."_call")
+-------- CALLBACKS ----------
+asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN")
+asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" , function(v) return mathFloor(tonumber(v) or 0) end)
+asmlib.SetAsmVarCallback("logfile"  , "INT", "LOG_LOGFILE" , tobool)
 
--------- ACTIONS  ----------
+-------- ACTIONS ----------
 if(SERVER) then
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
