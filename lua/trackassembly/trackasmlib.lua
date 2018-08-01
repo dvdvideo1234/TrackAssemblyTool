@@ -1316,12 +1316,9 @@ end
 local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   if(not stPiece) then
     return StatusLog(nil,"RegisterPOA: Cache record invalid") end
-  local iID = tonumber(ivID)
-  if(not IsExistent(iID)) then
+  local iID = tonumber(ivID); if(not IsExistent(iID)) then
     return StatusLog(nil,"RegisterPOA: OffsetID NAN {"..type(ivID).."}<"..tostring(ivID)..">") end
-  local sP = sP or "NULL"
-  local sO = sO or "NULL"
-  local sA = sA or "NULL"
+  local sP, sO, sA = (sP or "NULL"), (sO or "NULL"), (sA or "NULL")
   if(not IsString(sP)) then
     return StatusLog(nil,"RegisterPOA: Point  {"..type(sP).."}<"..tostring(sP)..">") end
   if(not IsString(sO)) then
@@ -1332,18 +1329,13 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     if(iID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be #"..tostring(iID)) end
     stPiece.Offs = {}
   end
-  local tOffs = stPiece.Offs
-  if(tOffs[iID]) then
+  local tOffs = stPiece.Offs; if(tOffs[iID]) then
     return StatusLog(nil,"RegisterPOA: Exists ID #"..tostring(iID))
   else
     if((iID > 1) and (not tOffs[iID - 1])) then
       return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(iID - 1))
     end
-    tOffs[iID]   = {}
-    tOffs[iID].P = {}
-    tOffs[iID].O = {}
-    tOffs[iID].A = {}
-    tOffs        = tOffs[iID]
+    tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end
   ---------------- Origin ----------------
   if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
