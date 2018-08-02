@@ -384,17 +384,20 @@ function InitBase(sName,sPurpose)
     return StatusPrint(false,"InitBase: Name invalid <"..sName..">") end
   if(IsEmptyString(sPurpose) or tonumber(sPurpose:sub(1,1))) then
     return StatusPrint(false,"InitBase: Purpose invalid <"..sPurpose..">") end
+  SetOpVar("TIME_INIT",Time())
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_SKIP",{})
   SetOpVar("LOG_ONLY",{})
   SetOpVar("LOG_LOGFILE","")
   SetOpVar("LOG_LOGLAST","")
-  SetOpVar("TIME_INIT",Time())
   SetOpVar("MAX_ROTATION",360)
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
+  SetOpVar("VEC_FW",Vector(1,0,0))
+  SetOpVar("VEC_RG",Vector(0,-1,1))
+  SetOpVar("VEC_UP",Vector(0,0,1))
   SetOpVar("OPSYM_DISABLE","#")
   SetOpVar("OPSYM_REVSIGN","@")
   SetOpVar("OPSYM_DIVIDER","_")
@@ -419,9 +422,9 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOMD","X")    -- No model
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
   if(CLIENT) then
-    SetOpVar("LOCALIFY_TABLE",{})
     SetOpVar("LOCALIFY_AUTO","en")
-    SetOpVar("TABLE_CATEGORIES", {})
+    SetOpVar("LOCALIFY_TABLE",{})
+    SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("STRUCT_SPAWN",{
       {"--- Origin ---"},
       {"F"     ,"VEC", "Forward direction"},
@@ -1476,55 +1479,55 @@ end
 
 ------------------------- PLAYER -----------------------------------
 
-local function GetPlacePly(pPly)
+local function GetPlayerSpot(pPly)
   if(not IsPlayer(pPly)) then
-    return StatusLog(nil,"GetPlacePly: Player <"..tostring(pPly)"> invalid") end
-  local plyPlace = libPlayer[pPly]
-  if(not IsExistent(plyPlace)) then
-    LogInstance("GetPlacePly: Cached <"..pPly:Nick()..">")
-    libPlayer[pPly] = {}; plyPlace = libPlayer[pPly]
-  end; return plyPlace
+    return StatusLog(nil,"GetPlayerSpot: Player <"..tostring(pPly)"> invalid") end
+  local stSpot = libPlayer[pPly]
+  if(not IsExistent(stSpot)) then
+    LogInstance("GetPlayerSpot: Cached <"..pPly:Nick()..">")
+    libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
+  end; return stSpot
 end
 
 function CacheSpawnPly(pPly)
-  local plyPlace = GetPlacePly(pPly)
-  if(not IsExistent(plyPlace)) then
+  local stSpot = GetPlayerSpot(pPly)
+  if(not IsExistent(stSpot)) then
     return StatusLog(nil,"CacheSpawnPly: Place missing") end
-  local plyData = plyPlace["SPAWN"]
-  if(not IsExistent(plyData)) then
+  local stData = stSpot["SPAWN"]
+  if(not IsExistent(stData)) then
     LogInstance("CacheSpawnPly: Allocate <"..pPly:Nick()..">")
-    plyPlace["SPAWN"] = {}; plyData = plyPlace["SPAWN"]
-    plyData.F    = Vector() -- Origin forward vector
-    plyData.R    = Vector() -- Origin right vector
-    plyData.U    = Vector() -- Origin up vector
-    plyData.OPos = Vector() -- Origin position
-    plyData.OAng = Angle () -- Origin angle
-    plyData.SPos = Vector() -- Gear spawn position
-    plyData.SAng = Angle () -- Gear spawn angle
-    plyData.RLen = 0        -- Trace active radius
+    stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
+    stData.F    = Vector() -- Origin forward vector
+    stData.R    = Vector() -- Origin right vector
+    stData.U    = Vector() -- Origin up vector
+    stData.OPos = Vector() -- Origin position
+    stData.OAng = Angle () -- Origin angle
+    stData.SPos = Vector() -- Gear spawn position
+    stData.SAng = Angle () -- Gear spawn angle
+    stData.RLen = 0        -- Trace active radius
     --- Holder ---
-    plyData.HRec = 0        -- Pointer to the holder record
-    plyData.HID  = 0        -- Point ID
-    plyData.HPnt = Vector() -- P
-    plyData.HPos = Vector() -- O
-    plyData.HAng = Angle () -- A
+    stData.HRec = 0        -- Pointer to the holder record
+    stData.HID  = 0        -- Point ID
+    stData.HPnt = Vector() -- P
+    stData.HPos = Vector() -- O
+    stData.HAng = Angle () -- A
     --- Traced ---
-    plyData.TRec = 0        -- Pointer to the trace record
-    plyData.TID  = 0
-    plyData.TPnt = Vector() -- P
-    plyData.TPos = Vector() -- O
-    plyData.TAng = Angle () -- A
+    stData.TRec = 0        -- Pointer to the trace record
+    stData.TID  = 0
+    stData.TPnt = Vector() -- P
+    stData.TPos = Vector() -- O
+    stData.TAng = Angle () -- A
     --- Offsets ---
-    plyData.ANxt = Angle () -- Origin angle offsets
-    plyData.PNxt = Vector() -- Piece  position offsets
-  end; return plyData
+    stData.ANxt = Angle () -- Origin angle offsets
+    stData.PNxt = Vector() -- Piece  position offsets
+  end; return stData
 end
 
 function CacheClearPly(pPly)
   if(not IsPlayer(pPly)) then
     return StatusLog(false,"CacheClearPly: Player <"..tostring(pPly)"> invalid") end
-  local plyPlace = libPlayer[pPly]
-  if(not IsExistent(plyPlace)) then
+  local stSpot = libPlayer[pPly]
+  if(not IsExistent(stSpot)) then
     return StatusLog(true,"CacheClearPly: Clean") end
   libPlayer[pPly] = nil; collectgarbage(); return true
 end
@@ -1536,41 +1539,41 @@ function GetDistanceHitPly(pPly, vHit)
 end
 
 function CacheRadiusPly(pPly, vHit, nSca)
-  local plyPlace = GetPlacePly(pPly)
-  if(not IsExistent(plyPlace)) then
+  local stSpot = GetPlayerSpot(pPly)
+  if(not IsExistent(stSpot)) then
     return StatusLog(nil,"CacheRadiusPly: Place missing") end
-  local plyData = plyPlace["RADIUS"]
-  if(not IsExistent(plyData)) then
+  local stData = stSpot["RADIUS"]
+  if(not IsExistent(stData)) then
     LogInstance("CacheRadiusPly: Allocate <"..pPly:Nick()..">")
-    plyPlace["RADIUS"] = {}; plyData = plyPlace["RADIUS"]
-    plyData["MAR"] =  (GetOpVar("GOLDEN_RATIO") * 1000)
-    plyData["LIM"] = ((GetOpVar("GOLDEN_RATIO") - 1) * 100)
+    stSpot["RADIUS"] = {}; stData = stSpot["RADIUS"]
+    stData["MAR"] =  (GetOpVar("GOLDEN_RATIO") * 1000)
+    stData["LIM"] = ((GetOpVar("GOLDEN_RATIO") - 1) * 100)
   end
   local nMul = (tonumber(nSca) or 1) -- Disable scaling on missing or outside
         nMul = ((nMul <= 1 and nMul >= 0) and nMul or 1)
-  local nMar, nLim = plyData["MAR"], plyData["LIM"]
+  local nMar, nLim = stData["MAR"], stData["LIM"]
   local nDst = GetDistanceHitPly(pPly, vHit)
   local nRad = ((nDst ~= 0) and mathClamp((nMar / nDst) * nMul, 1, nLim) or 0)
   return nRad, nDst, nMar, nLim
 end
 
 function CacheTracePly(pPly)
-  local plyPlace = GetPlacePly(pPly)
-  if(not IsExistent(plyPlace)) then
+  local stSpot = GetPlayerSpot(pPly)
+  if(not IsExistent(stSpot)) then
     return StatusLog(nil,"CacheTracePly: Place missing") end
-  local plyData, plyTime = plyPlace["TRACE"], Time()
-  if(not IsExistent(plyData)) then -- Define trace delta margin
+  local stData, plyTime = stSpot["TRACE"], Time()
+  if(not IsExistent(stData)) then -- Define trace delta margin
     LogInstance("CacheTracePly: Allocate <"..pPly:Nick()..">")
-    plyPlace["TRACE"] = {}; plyData = plyPlace["TRACE"]
-    plyData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Define next trace pending
-    plyData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
-    plyData["REZ"] = utilTraceLine(plyData["DAT"]) -- Make a trace
+    stSpot["TRACE"] = {}; stData = stSpot["TRACE"]
+    stData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Define next trace pending
+    stData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
+    stData["REZ"] = utilTraceLine(stData["DAT"]) -- Make a trace
   end -- Check the trace time margin interval
-  if(plyTime >= plyData["NXT"]) then
-    plyData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Next trace margin
-    plyData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
-    plyData["REZ"] = utilTraceLine(plyData["DAT"]) -- Make a trace
-  end; return plyData["REZ"]
+  if(plyTime >= stData["NXT"]) then
+    stData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Next trace margin
+    stData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
+    stData["REZ"] = utilTraceLine(stData["DAT"]) -- Make a trace
+  end; return stData["REZ"]
 end
 
 function ConCommandPly(pPly,sCvar,snValue)
@@ -1613,28 +1616,28 @@ function UndoFinishPly(pPly,anyMessage)
 end
 
 function CachePressPly(pPly)
-  local plyPlace = GetPlacePly(pPly)
-  if(not IsExistent(plyPlace)) then
+  local stSpot = GetPlayerSpot(pPly)
+  if(not IsExistent(stSpot)) then
     return StatusLog(false,"CachePressPly: Place missing") end
-  local plyData = plyPlace["PRESS"]
-  if(not IsExistent(plyData)) then -- Create predicate command
+  local stData = stSpot["PRESS"]
+  if(not IsExistent(stData)) then -- Create predicate command
     LogInstance("CachePressPly: Allocate <"..pPly:Nick()..">")
-    plyPlace["PRESS"] = {}; plyData = plyPlace["PRESS"]
-    plyData["CMD"] = pPly:GetCurrentCommand()
-    if(not IsExistent(plyData["CMD"])) then
+    stSpot["PRESS"] = {}; stData = stSpot["PRESS"]
+    stData["CMD"] = pPly:GetCurrentCommand()
+    if(not IsExistent(stData["CMD"])) then
       return StatusLog(false,"CachePressPly: Command incorrect") end
   end; return true
 end
 
 -- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
 function GetMouseWheelPly(pPly)
-  local plyPlace = GetPlacePly(pPly)
-  if(not IsExistent(plyPlace)) then
+  local stSpot = GetPlayerSpot(pPly)
+  if(not IsExistent(stSpot)) then
     return StatusLog(0,"GetMouseWheelPly: Place missing") end
-  local plyData = plyPlace["PRESS"]
-  if(not IsExistent(plyData)) then
+  local stData = stSpot["PRESS"]
+  if(not IsExistent(stData)) then
     return StatusLog(0,"GetMouseWheelPly: Data missing <"..pPly:Nick()..">") end
-  local cmdPress = plyData["CMD"]
+  local cmdPress = stData["CMD"]
   if(not IsExistent(cmdPress)) then
     return StatusLog(0,"GetMouseWheelPly: Command missing <"..pPly:Nick()..">") end
   return (cmdPress and cmdPress:GetMouseWheel() or 0)
@@ -1642,26 +1645,26 @@ end
 
 -- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
 function GetMouseVectorPly(pPly)
-  local plyPlace = GetPlacePly(pPly)
-  if(not IsExistent(plyPlace)) then
+  local stSpot = GetPlayerSpot(pPly)
+  if(not IsExistent(stSpot)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Place missing") end
-  local plyData = plyPlace["PRESS"]
-  if(not IsExistent(plyData)) then
+  local stData = stSpot["PRESS"]
+  if(not IsExistent(stData)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Data missing <"..pPly:Nick()..">") end
-  local cmdPress = plyData["CMD"]
-  if(not IsExistent(plyData)) then
+  local cmdPress = stData["CMD"]
+  if(not IsExistent(stData)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Command missing <"..pPly:Nick()..">") end
   return cmdPress:GetMouseX(), cmdPress:GetMouseY()
 end
 
 -- https://wiki.garrysmod.com/page/Enums/IN
 function CheckButtonPly(pPly, iInKey)
-  local plyPlace, iInKey = GetPlacePly(pPly), (tonumber(iInKey) or 0)
-  if(not IsExistent(plyPlace)) then
+  local stSpot, iInKey = GetPlayerSpot(pPly), (tonumber(iInKey) or 0)
+  if(not IsExistent(stSpot)) then
     return StatusLog(false,"GetMouseVectorPly: Place missing") end
-  local plyData = plyPlace["PRESS"]
-  if(not IsExistent(plyData)) then return pPly:KeyDown(iInKey) end
-  local cmdPress = plyData["CMD"]
+  local stData = stSpot["PRESS"]
+  if(not IsExistent(stData)) then return pPly:KeyDown(iInKey) end
+  local cmdPress = stData["CMD"]
   if(not IsExistent(cmdPress)) then return pPly:KeyDown(iInKey) end
   return (bitBand(cmdPress:GetButtons(),iInKey) ~= 0) -- Read the cache
 end
@@ -2100,22 +2103,20 @@ end
 
 --------------- TIMER MEMORY MANAGMENT ----------------------------
 
-local function NavigateTable(oLocation,tKeys)
-  if(not IsExistent(oLocation)) then
+local function NavigateTable(oArea,tKeys)
+  if(not IsExistent(oArea)) then
     return nil, StatusLog(nil,"NavigateTable: Location missing") end
   if(not IsExistent(tKeys)) then
     return nil, StatusLog(nil,"NavigateTable: Key table missing") end
   if(not IsExistent(tKeys[1])) then
     return nil, StatusLog(nil,"NavigateTable: First key missing") end
-  local oPlace, kKey, iCnt = oLocation, tKeys[1], 1
-  while(tKeys[iCnt]) do
-    kKey = tKeys[iCnt]
-    if(tKeys[iCnt+1]) then
-      oPlace = oPlace[kKey]
-      if(not IsExistent(oPlace)) then
+  local oSpot, kKey, iCnt = oArea, tKeys[1], 1
+  while(tKeys[iCnt]) do kKey = tKeys[iCnt]
+    if(tKeys[iCnt+1]) then oSpot = oSpot[kKey]
+      if(not IsExistent(oSpot)) then
         return nil, StatusLog(nil,"NavigateTable: Key #"..tostring(kKey).." irrelevant to location") end
     end; iCnt = iCnt + 1
-  end; return oPlace, kKey
+  end; return oSpot, kKey
 end
 
 function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps the defaults
@@ -2131,84 +2132,81 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
   return tBoom
 end
 
-local function TimerAttach(oLocation,tKeys,defTable,anyMessage)
+local function TimerAttach(oArea,tKeys,defTable,anyMessage)
   if(not defTable) then
     return StatusLog(nil,"TimerAttach: Missing table definition") end
-  local Place, Key = NavigateTable(oLocation,tKeys)
-  if(not (IsExistent(Place) and IsExistent(Key))) then
+  local Spot, Key = NavigateTable(oArea,tKeys)
+  if(not (IsExistent(Spot) and IsExistent(Key))) then
     return StatusLog(nil,"TimerAttach: Navigation failed") end
-  if(not IsExistent(Place[Key])) then
+  if(not IsExistent(Spot[Key])) then
     return StatusLog(nil,"TimerAttach: Data not found") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   LogInstance("TimerAttach: Called by <"..tostring(anyMessage).."> for ["..tostring(Key).."]")
   if(sModeDB == "SQL") then
     local nNowTM, tTimer = Time(), defTable.Timer -- See that there is a timer and get "now"
     if(not IsExistent(tTimer)) then
-      return StatusLog(Place[Key],"TimerAttach: Missing timer settings") end
-    Place[Key].Used = nNowTM -- Make the first selected deletable to avoid phantom records
+      return StatusLog(Spot[Key],"TimerAttach: Missing timer settings") end
+    Spot[Key].Used = nNowTM -- Make the first selected deletable to avoid phantom records
     local nLifeTM = tTimer[2]
     if(nLifeTM <= 0) then
-      return StatusLog(Place[Key],"TimerAttach: Timer attachment ignored") end
+      return StatusLog(Spot[Key],"TimerAttach: Timer attachment ignored") end
     local sModeTM, bKillRC, bCollGB = tTimer[1], tTimer[3], tTimer[4]
     LogInstance("TimerAttach: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
     if(sModeTM == "CQT") then
-      for k, v in pairs(Place) do
+      for k, v in pairs(Spot) do
         if(IsExistent(v.Used) and ((nNowTM - v.Used) > nLifeTM)) then
           LogInstance("TimerAttach: ("..tostring(RoundValue(nNowTM - v.Used,0.01)).." > "..tostring(nLifeTM)..") > Dead")
           if(bKillRC) then -- Look for others that are gonna meet their doom
-            Place[k] = nil; LogInstance("TimerAttach: Killed <"..tostring(k)..">") end
+            Spot[k] = nil; LogInstance("TimerAttach: Killed <"..tostring(k)..">") end
         end
       end
       if(bCollGB) then
         collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
-      return StatusLog(Place[Key],"TimerAttach: ["..tostring(Key).."] @"..tostring(RoundValue(nNowTM,0.01)))
+      return StatusLog(Spot[Key],"TimerAttach: ["..tostring(Key).."] @"..tostring(RoundValue(nNowTM,0.01)))
     elseif(sModeTM == "OBJ") then
       local TimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
       LogInstance("TimerAttach: TimID <"..TimerID..">")
-      if(timerExists(TimerID)) then return StatusLog(Place[Key],"TimerAttach: Timer exists") end
+      if(timerExists(TimerID)) then return StatusLog(Spot[Key],"TimerAttach: Timer exists") end
       timerCreate(TimerID, nLifeTM, 1, function()
         LogInstance("TimerAttach["..TimerID.."]("..nLifeTM..") > Dead")
         if(bKillRC) then
-          Place[Key] = nil; LogInstance("TimerAttach: Killed <"..Key..">") end
+          Spot[Key] = nil; LogInstance("TimerAttach: Killed <"..Key..">") end
         timerStop(TimerID); timerDestroy(TimerID)
         if(bCollGB) then
           collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
-      end); timerStart(TimerID); return Place[Key]
-    else return StatusLog(Place[Key],"TimerAttach: Timer mode not found <"..sModeTM..">") end
+      end); timerStart(TimerID); return Spot[Key]
+    else return StatusLog(Spot[Key],"TimerAttach: Timer mode not found <"..sModeTM..">") end
   elseif(sModeDB == "LUA") then
-    return StatusLog(Place[Key],"TimerAttach: Memory manager not available")
+    return StatusLog(Spot[Key],"TimerAttach: Memory manager not available")
   else return StatusLog(nil,"TimerAttach: Wrong database mode") end
 end
 
-local function TimerRestart(oLocation,tKeys,defTable,anyMessage)
+local function TimerRestart(oArea,tKeys,defTable,anyMessage)
   if(not defTable) then
     return StatusLog(nil,"TimerRestart: Missing table definition") end
-  local Place, Key = NavigateTable(oLocation,tKeys)
-  if(not (IsExistent(Place) and IsExistent(Key))) then
+  local Spot, Key = NavigateTable(oArea,tKeys)
+  if(not (IsExistent(Spot) and IsExistent(Key))) then
     return StatusLog(nil,"TimerRestart: Navigation failed") end
-  if(not IsExistent(Place[Key])) then
-    return StatusLog(nil,"TimerRestart: Place not found") end
+  if(not IsExistent(Spot[Key])) then
+    return StatusLog(nil,"TimerRestart: Spot not found") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(sModeDB == "SQL") then
-    local tTimer = defTable.Timer
-    if(not IsExistent(tTimer)) then
-      return StatusLog(Place[Key],"TimerRestart: Missing timer settings") end
-    Place[Key].Used = Time()
-    local nLifeTM = tTimer[2]
-    if(nLifeTM <= 0) then
-      return StatusLog(Place[Key],"TimerRestart: Timer life ignored") end
-    local sModeTM = tTimer[1]
-    if(sModeTM == "CQT") then
-      sModeTM = "CQT" -- Just for something to do here and to be known that this is mode CQT
+    local tTimer = defTable.Timer; if(not IsExistent(tTimer)) then
+      return StatusLog(Spot[Key],"TimerRestart: Missing timer settings") end
+    Spot[Key].Used = Time() -- Mark the current caching time stamp
+    local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
+      return StatusLog(Spot[Key],"TimerRestart: Timer life ignored") end
+    local sModeTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
+    if(sModeTM == "CQT") then sModeTM = "CQT" 
     elseif(sModeTM == "OBJ") then
       local keyTimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
       if(not timerExists(keyTimerID)) then
         return StatusLog(nil,"TimerRestart: Timer missing <"..keyTimerID..">") end
       timerStart(keyTimerID)
     else return StatusLog(nil,"TimerRestart: Timer mode not found <"..sModeTM..">") end
-  elseif(sModeDB == "LUA") then Place[Key].Used = Time()
+  elseif(sModeDB == "LUA") then Spot[Key].Used = Time()
   else return StatusLog(nil,"TimerRestart: Wrong database mode") end
-  return Place[Key]
+  return Spot[Key]
 end
 
 function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
