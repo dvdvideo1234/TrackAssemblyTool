@@ -438,12 +438,12 @@ function InitBase(sName,sPurpose)
       {"--- Holder ---"},
       {"HID"   ,"INT", "Point ID"},
       {"HPnt"  ,"VEC", "Search location"},
-      {"HPos"  ,"VEC", "Custom offset"},
+      {"HOrg"  ,"VEC", "Custom offset"},
       {"HAng"  ,"ANG", "Custom angles"},
       {"--- Traced ---"},
       {"TID"   ,"INT", "Point ID"},
       {"TPnt"  ,"VEC", "Search location"},
-      {"TPos"  ,"VEC", "Custom offset"},
+      {"TOrg"  ,"VEC", "Custom offset"},
       {"TAng"  ,"ANG", "Custom angles"},
       {"--- Offset ---"},
       {"PNxt"  ,"VEC", "Custom user position"},
@@ -1492,7 +1492,7 @@ end
 function CacheSpawnPly(pPly)
   local stSpot = GetPlayerSpot(pPly)
   if(not IsExistent(stSpot)) then
-    return StatusLog(nil,"CacheSpawnPly: Place missing") end
+    return StatusLog(nil,"CacheSpawnPly: Spot missing") end
   local stData = stSpot["SPAWN"]
   if(not IsExistent(stData)) then
     LogInstance("CacheSpawnPly: Allocate <"..pPly:Nick()..">")
@@ -1502,24 +1502,24 @@ function CacheSpawnPly(pPly)
     stData.U    = Vector() -- Origin up vector
     stData.OPos = Vector() -- Origin position
     stData.OAng = Angle () -- Origin angle
-    stData.SPos = Vector() -- Gear spawn position
-    stData.SAng = Angle () -- Gear spawn angle
-    stData.RLen = 0        -- Trace active radius
+    stData.SPos = Vector() -- Piece spawn position
+    stData.SAng = Angle () -- Piece spawn angle
+    stData.RLen = 0        -- Piece active radius
     --- Holder ---
     stData.HRec = 0        -- Pointer to the holder record
     stData.HID  = 0        -- Point ID
-    stData.HPnt = Vector() -- P
-    stData.HPos = Vector() -- O
-    stData.HAng = Angle () -- A
+    stData.HPnt = Vector() -- P > Local location of the active point
+    stData.HOrg = Vector() -- O > Local new piece location origin when snapped
+    stData.HAng = Angle () -- A > Local new piece orientation origin when snapped
     --- Traced ---
     stData.TRec = 0        -- Pointer to the trace record
     stData.TID  = 0
-    stData.TPnt = Vector() -- P
-    stData.TPos = Vector() -- O
-    stData.TAng = Angle () -- A
+    stData.TPnt = Vector() -- P > Local location of the active point
+    stData.TOrg = Vector() -- O > Local new piece location origin when snapped
+    stData.TAng = Angle () -- A > Local new piece orientation origin when snapped
     --- Offsets ---
     stData.ANxt = Angle () -- Origin angle offsets
-    stData.PNxt = Vector() -- Piece  position offsets
+    stData.PNxt = Vector() -- Piece position offsets
   end; return stData
 end
 
@@ -1541,7 +1541,7 @@ end
 function CacheRadiusPly(pPly, vHit, nSca)
   local stSpot = GetPlayerSpot(pPly)
   if(not IsExistent(stSpot)) then
-    return StatusLog(nil,"CacheRadiusPly: Place missing") end
+    return StatusLog(nil,"CacheRadiusPly: Spot missing") end
   local stData = stSpot["RADIUS"]
   if(not IsExistent(stData)) then
     LogInstance("CacheRadiusPly: Allocate <"..pPly:Nick()..">")
@@ -1560,7 +1560,7 @@ end
 function CacheTracePly(pPly)
   local stSpot = GetPlayerSpot(pPly)
   if(not IsExistent(stSpot)) then
-    return StatusLog(nil,"CacheTracePly: Place missing") end
+    return StatusLog(nil,"CacheTracePly: Spot missing") end
   local stData, plyTime = stSpot["TRACE"], Time()
   if(not IsExistent(stData)) then -- Define trace delta margin
     LogInstance("CacheTracePly: Allocate <"..pPly:Nick()..">")
@@ -1618,7 +1618,7 @@ end
 function CachePressPly(pPly)
   local stSpot = GetPlayerSpot(pPly)
   if(not IsExistent(stSpot)) then
-    return StatusLog(false,"CachePressPly: Place missing") end
+    return StatusLog(false,"CachePressPly: Spot missing") end
   local stData = stSpot["PRESS"]
   if(not IsExistent(stData)) then -- Create predicate command
     LogInstance("CachePressPly: Allocate <"..pPly:Nick()..">")
@@ -1633,7 +1633,7 @@ end
 function GetMouseWheelPly(pPly)
   local stSpot = GetPlayerSpot(pPly)
   if(not IsExistent(stSpot)) then
-    return StatusLog(0,"GetMouseWheelPly: Place missing") end
+    return StatusLog(0,"GetMouseWheelPly: Spot missing") end
   local stData = stSpot["PRESS"]
   if(not IsExistent(stData)) then
     return StatusLog(0,"GetMouseWheelPly: Data missing <"..pPly:Nick()..">") end
@@ -1647,7 +1647,7 @@ end
 function GetMouseVectorPly(pPly)
   local stSpot = GetPlayerSpot(pPly)
   if(not IsExistent(stSpot)) then
-    return 0, StatusLog(0,"GetMouseVectorPly: Place missing") end
+    return 0, StatusLog(0,"GetMouseVectorPly: Spot missing") end
   local stData = stSpot["PRESS"]
   if(not IsExistent(stData)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Data missing <"..pPly:Nick()..">") end
@@ -1661,7 +1661,7 @@ end
 function CheckButtonPly(pPly, iInKey)
   local stSpot, iInKey = GetPlayerSpot(pPly), (tonumber(iInKey) or 0)
   if(not IsExistent(stSpot)) then
-    return StatusLog(false,"GetMouseVectorPly: Place missing") end
+    return StatusLog(false,"GetMouseVectorPly: Spot missing") end
   local stData = stSpot["PRESS"]
   if(not IsExistent(stData)) then return pPly:KeyDown(iInKey) end
   local cmdPress = stData["CMD"]
@@ -3103,16 +3103,16 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPointID,ucsPosX,ucsPosY,
   stSpawn.U:Set(stSpawn.OAng:Up())
   -- Get Holder model data
   SetVector(stSpawn.HPnt,hdPOA.P)
-  SetVector(stSpawn.HPos,hdPOA.O); NegVector(stSpawn.HPos) -- Origin to Position
+  SetVector(stSpawn.HOrg,hdPOA.O); NegVector(stSpawn.HOrg) -- Origin to Position
   if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng,hdPOA.A) end
   -- Calculate spawn relation
   stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180)
-  DecomposeByAngle(stSpawn.HPos,stSpawn.HAng)
+  DecomposeByAngle(stSpawn.HOrg,stSpawn.HAng)
   -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HPos[cvX] + stSpawn.PNxt[cvX]) * stSpawn.F)
-  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HPos[cvY] + stSpawn.PNxt[cvY]) * stSpawn.R)
-  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HPos[cvZ] + stSpawn.PNxt[cvZ]) * stSpawn.U)
+  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HOrg[cvX] + stSpawn.PNxt[cvX]) * stSpawn.F)
+  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HOrg[cvY] + stSpawn.PNxt[cvY]) * stSpawn.R)
+  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HOrg[cvZ] + stSpawn.PNxt[cvZ]) * stSpawn.U)
   -- Spawn Angle
   stSpawn.SAng:Set(stSpawn.OAng); NegAngle(stSpawn.HAng)
   stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * hdPOA.A[csB])
@@ -3175,7 +3175,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPointID,
         stSpawn.RLen = nActRadius
         stSpawn.HID  = ihdPointID
         stSpawn.TID  = 0
-        stSpawn.TPos:Set(trEnt:GetPos())
+        stSpawn.TOrg:Set(trEnt:GetPos())
         stSpawn.TAng:Set(trEnt:GetAngles())
   for ID = 1, trRec.Kept do
     -- Indexing is actually with 70% faster using this method than pairs
@@ -3185,7 +3185,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPointID,
     if(not stPOA.P[csD]) then -- Skip the disabled P
       local vTmp = Vector(); SetVector(vTmp, stPOA.P)
       MulVectorXYZ(vTmp, stPOA.P[csA], stPOA.P[csB], stPOA.P[csC])
-      vTmp:Rotate(stSpawn.TAng); vTmp:Add(stSpawn.TPos); vTmp:Sub(trHitPos)
+      vTmp:Rotate(stSpawn.TAng); vTmp:Add(stSpawn.TOrg); vTmp:Sub(trHitPos)
       local trAcDis = vTmp:Length()
       if(trAcDis < stSpawn.RLen) then
         trPOA, stSpawn.TID, stSpawn.RLen = stPOA, ID, trAcDis
@@ -3198,7 +3198,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPointID,
   -- Found the active point ID on trEnt. Initialize origins
   SetVector(stSpawn.OPos,trPOA.O) -- Use {0,0,0} for disabled A (Angle)
   if(trPOA.A[csD]) then SetAnglePYR(stSpawn.OAng) else SetAngle(stSpawn.OAng,trPOA.A) end
-  stSpawn.OPos:Rotate(stSpawn.TAng); stSpawn.OPos:Add(stSpawn.TPos)
+  stSpawn.OPos:Rotate(stSpawn.TAng); stSpawn.OPos:Add(stSpawn.TOrg)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
