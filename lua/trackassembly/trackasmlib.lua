@@ -467,10 +467,8 @@ function InitBase(sName,sPurpose)
     endpos = Vector(),    -- End position of the trace
     mask   = MASK_SOLID,  -- Mask telling it what to hit
     filter = function(oEnt) -- Only valid props which are not the main entity or world or TRACE_FILTER ( if set )
-      if(oEnt and
-         oEnt:IsValid() and
-         oEnt ~= GetOpVar("TRACE_FILTER") and
-         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
+      if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
+        GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   SetOpVar("NAV_PIECE",{})
   SetOpVar("NAV_PANEL",{})
@@ -566,8 +564,7 @@ end
 
 function RoundVector(vBase,nvRound)
   if(not vBase) then return StatusLog(nil,"RoundVector: Base invalid") end
-  local R = tonumber(nvRound)
-  if(not IsExistent(R)) then
+  local R = tonumber(nvRound); if(not IsExistent(R)) then
     return StatusLog(nil,"RoundVector: Round NAN {"..type(nvRound).."}<"..tostring(nvRound)..">") end
   local X = (tonumber(vBase[cvX]) or 0); X = RoundValue(X,R); vBase[cvX] = X
   local Y = (tonumber(vBase[cvY]) or 0); Y = RoundValue(Y,R); vBase[cvY] = Y
@@ -665,18 +662,14 @@ function MakeContainer(sInfo,sDefKey)
   function self:Delete(nsKey,fnDel)
     sDel = nsKey or Key; sMet = "D"
     if(IsExistent(Data[sDel])) then
-      if(IsExistent(fnDel)) then
-        fnDel(Data[sDel])
-      end
-      Data[sDel] = nil
-      Curs = Curs - 1
+      if(IsExistent(fnDel)) then fnDel(Data[sDel]) end
+      Curs, Data[sDel] = (Curs - 1), nil
     end
   end
   function self:GetHistory()
     return tostring(sMet)..GetOpVar("OPSYM_REVSIGN")..
            tostring(sSel)..GetOpVar("OPSYM_DIRECTORY")..
-           tostring(sIns)..GetOpVar("OPSYM_DIRECTORY")..
-           tostring(sDel)
+           tostring(sIns)..GetOpVar("OPSYM_DIRECTORY")..tostring(sDel)
   end
   setmetatable(self,GetOpVar("TYPEMT_CONTAINER"))
   return self
@@ -906,14 +899,11 @@ local function AddLineListView(pnListView,frUsed,ivNdex)
     return StatusLog(false,"LineAddListView: Invalid panel") end
   if(not IsExistent(frUsed)) then
     return StatusLog(false,"LineAddListView: Missing data") end
-  local iNdex = tonumber(ivNdex)
-  if(not IsExistent(iNdex)) then
+  local iNdex = tonumber(ivNdex); if(not IsExistent(iNdex)) then
     return StatusLog(false,"LineAddListView: Index NAN {"..type(ivNdex).."}<"..tostring(ivNdex)..">") end
-  local tValue = frUsed[iNdex]
-  if(not IsExistent(tValue)) then
+  local tValue = frUsed[iNdex]; if(not IsExistent(tValue)) then
     return StatusLog(false,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
-  local defTable = GetOpVar("DEFTABLE_PIECES")
-  if(not IsExistent(defTable)) then
+  local defTable = GetOpVar("DEFTABLE_PIECES"); if(not IsExistent(defTable)) then
     return StatusLog(false,"LineAddListView: Missing table definition") end
   local sModel = tValue.Table[defTable[1][1]]
   local sType  = tValue.Table[defTable[2][1]]
@@ -927,12 +917,12 @@ end
 
 --[[
  * Updates a VGUI pnListView with a search preformed in the already generated
- * frequently used pieces "frUsed" for the pattern "sPattern" given by the user
- * and a field name selected "sField".
+ * frequently used pieces "frUsed" for the pattern "sPat" given by the user
+ * and a column name selected `sCol`.
  * On success populates "pnListView" with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
 ]]--
-function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
+function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   if(not (IsExistent(frUsed) and IsExistent(frUsed[1]))) then
     return StatusLog(false,"UpdateListView: Missing data") end
   local nCount = tonumber(nCount) or 0
@@ -944,23 +934,22 @@ function UpdateListView(pnListView,frUsed,nCount,sField,sPattern)
     pnListView:SetVisible(false)
     pnListView:Clear()
   else return StatusLog(false,"UpdateListView: Missing ListView") end
-  local sField   = tostring(sField   or "")
-  local sPattern = tostring(sPattern or "")
-  local iNdex, pnRec, sData = 1, nil, nil
-  while(frUsed[iNdex]) do
-    if(IsEmptyString(sPattern)) then
-      if(not AddLineListView(pnListView,frUsed,iNdex)) then
-        return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iNdex)) end
+  local sCol, sPat = tostring(sCol or ""), tostring(sPat or "")
+  local iCnt, sDat = 1, nil
+  while(frUsed[iCnt]) do
+    if(IsEmptyString(sPat)) then
+      if(not AddLineListView(pnListView,frUsed,iCnt)) then
+        return StatusLog(false,"UpdateListView: Failed to add line on #"..tostring(iCnt)) end
     else
-      sData = tostring(frUsed[iNdex].Table[sField] or "")
-      if(sData:find(sPattern)) then
-        if(not AddLineListView(pnListView,frUsed,iNdex)) then
+      sDat = tostring(frUsed[iCnt].Table[sCol] or "")
+      if(sDat:find(sPat)) then
+        if(not AddLineListView(pnListView,frUsed,iCnt)) then
           return StatusLog(false,"UpdateListView: Failed to add line <"
-            ..sData.."> pattern <"..sPattern.."> on <"..sField.."> #"..tostring(iNdex)) end
+            ..sDat.."> pattern <"..sPat.."> on <"..sCol.."> #"..tostring(iCnt)) end
       end
-    end; iNdex = iNdex + 1
+    end; iCnt = iCnt + 1
   end; pnListView:SetVisible(true)
-  return StatusLog(true,"UpdateListView: Crated #"..tostring(iNdex-1))
+  return StatusLog(true,"UpdateListView: Crated #"..tostring(iCnt-1))
 end
 
 function GetDirectoryObj(pCurr, vName)
@@ -1013,18 +1002,13 @@ local function PushSortValues(tTable,snCnt,nsValue,tData)
 end
 
 function GetFrequentModels(snCount)
-  local snCount = tonumber(snCount) or 0
-  if(snCount < 1) then
+  local snCount = (tonumber(snCount) or 0); if(snCount < 1) then
     return StatusLog(nil,"GetFrequentModels: Count not applicable") end
-  local defTable = GetOpVar("DEFTABLE_PIECES")
-  if(not IsExistent(defTable)) then
+  local defTable = GetOpVar("DEFTABLE_PIECES"); if(not IsExistent(defTable)) then
     return StatusLog(nil,"GetFrequentModels: Missing table definition") end
-  local tCache = libCache[defTable.Name]
-  if(not IsExistent(tCache)) then
+  local tCache = libCache[defTable.Name]; if(not IsExistent(tCache)) then
     return StatusLog(nil,"GetFrequentModels: Missing table cache space") end
-  local iInd, tmNow = 1, Time()
-  local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
-  tableEmpty(frUsed)
+  local iInd, tmNow, frUsed = 1, Time(), GetOpVar("TABLE_FREQUENT_MODELS"); tableEmpty(frUsed)
   for mod, rec in pairs(tCache) do
     if(IsExistent(rec.Used) and IsExistent(rec.Kept) and rec.Kept > 0) then
       iInd = PushSortValues(frUsed,snCount,tmNow-rec.Used,{
@@ -1360,53 +1344,45 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   return tOffs
 end
 
-local function Sort(tTable,tKeys,tFields)
+local function QuickSort(tD, iL, iH)
+  if(not (iL and iH and (iL > 0) and (iL < iH))) then
+    return StatusLog(nil,"QuickSort: Data dimensions mismatch") end
+  local iM = mathRandom(iH-(iL-1))+iL-1
+  tD[iL], tD[iM] = tD[iM], tD[iL]; iM = iL
+  local vM, iC = tD[iL].Val, (iL + 1)
+  while(iC <= iH)do
+    if(tD[iC].Val < vM) then iM = iM + 1
+      tD[iM], tD[iC] = tD[iC], tD[iM]
+    end; iC = iC + 1
+  end; tD[iL], tD[iM] = tD[iM], tD[iL]
+  QuickSort(tD,iL,iM-1)
+  QuickSort(tD,iM+1,iH)
+end
 
-  local function QuickSort(Data,Lo,Hi)
-    if(not (Lo and Hi and (Lo > 0) and (Lo < Hi))) then
-      return StatusLog(nil,"QuickSort: Data dimensions mismatch") end
-    local iMid = mathRandom(Hi-(Lo-1))+Lo-1
-    Data[Lo], Data[iMid] = Data[iMid], Data[Lo]; iMid = Lo
-    local vMid, iCnt = Data[Lo].Val, (Lo + 1)
-    while(iCnt <= Hi)do
-      if(Data[iCnt].Val < vMid) then iMid = iMid + 1
-        Data[iMid], Data[iCnt] = Data[iCnt], Data[iMid]
-      end
-      iCnt = iCnt + 1
-    end
-    Data[Lo], Data[iMid] = Data[iMid], Data[Lo]
-    QuickSort(Data,Lo,iMid-1)
-    QuickSort(Data,iMid+1,Hi)
-  end
-
-  local Match = {}
-  local tKeys = tKeys or {}
-  local tFields = tFields or {}
-  local iCnt, iInd, sKey, vRec, sFld = 1, nil, nil, nil, nil
-  if(not tKeys[1]) then
-    for k,v in pairs(tTable) do
-      tKeys[iCnt] = k; iCnt = iCnt + 1
-    end; iCnt = 1
-  end
-  while(tKeys[iCnt]) do
-    sKey = tKeys[iCnt]; vRec = tTable[sKey]
-    if(not vRec) then
+local function Sort(tTable,tCols,tKeys)
+  local tM = {}; tM.Size = #tM
+  local tK = tKeys or {}; tK.Size = #tK
+  local tC = tCols or {}; tC.Size = #tC
+  if(tK.Size == 0) then local iK = 0
+    for key, val in pairs(tTable) do
+      iK = iK + 1; tK[iK] = key
+    end; tK.Size = iK
+  end; tM.Size = tK.Size
+  for iK = 1, tK.Size do
+    local sKey = tK[iK]; if(not sKey) then
+      return StatusLog(nil,"Sort: Key <"..sKey.."> does not exist in the key table") end
+    local vRec = tTable[sKey]; if(not vRec) then
       return StatusLog(nil,"Sort: Key <"..sKey.."> does not exist in the primary table") end
-    Match[iCnt] = {}
-    Match[iCnt].Key = sKey
-    if(type(vRec) == "table") then
-      Match[iCnt].Val, iInd = "", 1
-      while(tFields[iInd]) do
-        sFld = tFields[iInd]
-        if(not IsExistent(vRec[sFld])) then
-          return StatusLog(nil,"Sort: Field <"..sFld.."> not found on the current record") end
-        Match[iCnt].Val = Match[iCnt].Val..tostring(vRec[sFld])
-        iInd = iInd + 1
-      end
-    else Match[iCnt].Val = vRec end
-    iCnt = iCnt + 1
-  end; QuickSort(Match,1,iCnt-1)
-  return Match
+    tM[iK] = {}; tM[iK].Key = sKey
+    if(type(vRec) == "table") then tM[iK].Val = ""
+      if(tC.Size > 0) then
+        for iI = 1, tC.Size do local sC = tC[iI]; if(not IsExistent(vRec[sC])) then
+          return StatusLog(nil,"Sort: Col <"..sC.."> not found on the current record") end
+            tM[iK].Val = tM[iK].Val..tostring(vRec[sC])
+        end
+      else tM[iK].Val = sKey end
+    else tM[iK].Val = vRec end
+  end; QuickSort(tM,1,tK.Size); return tM
 end
 
 --------------------- STRING -----------------------
@@ -1482,16 +1458,14 @@ end
 local function GetPlayerSpot(pPly)
   if(not IsPlayer(pPly)) then
     return StatusLog(nil,"GetPlayerSpot: Player <"..tostring(pPly)"> invalid") end
-  local stSpot = libPlayer[pPly]
-  if(not IsExistent(stSpot)) then
+  local stSpot = libPlayer[pPly]; if(not IsExistent(stSpot)) then
     LogInstance("GetPlayerSpot: Cached <"..pPly:Nick()..">")
     libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
   end; return stSpot
 end
 
 function CacheSpawnPly(pPly)
-  local stSpot = GetPlayerSpot(pPly)
-  if(not IsExistent(stSpot)) then
+  local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return StatusLog(nil,"CacheSpawnPly: Spot missing") end
   local stData = stSpot["SPAWN"]
   if(not IsExistent(stData)) then
@@ -1526,8 +1500,7 @@ end
 function CacheClearPly(pPly)
   if(not IsPlayer(pPly)) then
     return StatusLog(false,"CacheClearPly: Player <"..tostring(pPly)"> invalid") end
-  local stSpot = libPlayer[pPly]
-  if(not IsExistent(stSpot)) then
+  local stSpot = libPlayer[pPly]; if(not IsExistent(stSpot)) then
     return StatusLog(true,"CacheClearPly: Clean") end
   libPlayer[pPly] = nil; collectgarbage(); return true
 end
@@ -1539,8 +1512,7 @@ function GetDistanceHitPly(pPly, vHit)
 end
 
 function CacheRadiusPly(pPly, vHit, nSca)
-  local stSpot = GetPlayerSpot(pPly)
-  if(not IsExistent(stSpot)) then
+  local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return StatusLog(nil,"CacheRadiusPly: Spot missing") end
   local stData = stSpot["RADIUS"]
   if(not IsExistent(stData)) then
@@ -1558,8 +1530,7 @@ function CacheRadiusPly(pPly, vHit, nSca)
 end
 
 function CacheTracePly(pPly)
-  local stSpot = GetPlayerSpot(pPly)
-  if(not IsExistent(stSpot)) then
+  local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return StatusLog(nil,"CacheTracePly: Spot missing") end
   local stData, plyTime = stSpot["TRACE"], Time()
   if(not IsExistent(stData)) then -- Define trace delta margin
@@ -1616,8 +1587,7 @@ function UndoFinishPly(pPly,anyMessage)
 end
 
 function CachePressPly(pPly)
-  local stSpot = GetPlayerSpot(pPly)
-  if(not IsExistent(stSpot)) then
+  local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return StatusLog(false,"CachePressPly: Spot missing") end
   local stData = stSpot["PRESS"]
   if(not IsExistent(stData)) then -- Create predicate command
@@ -1631,28 +1601,22 @@ end
 
 -- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
 function GetMouseWheelPly(pPly)
-  local stSpot = GetPlayerSpot(pPly)
-  if(not IsExistent(stSpot)) then
+  local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return StatusLog(0,"GetMouseWheelPly: Spot missing") end
-  local stData = stSpot["PRESS"]
-  if(not IsExistent(stData)) then
+  local stData = stSpot["PRESS"]; if(not IsExistent(stData)) then
     return StatusLog(0,"GetMouseWheelPly: Data missing <"..pPly:Nick()..">") end
-  local cmdPress = stData["CMD"]
-  if(not IsExistent(cmdPress)) then
+  local cmdPress = stData["CMD"]; if(not IsExistent(cmdPress)) then
     return StatusLog(0,"GetMouseWheelPly: Command missing <"..pPly:Nick()..">") end
   return (cmdPress and cmdPress:GetMouseWheel() or 0)
 end
 
 -- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
 function GetMouseVectorPly(pPly)
-  local stSpot = GetPlayerSpot(pPly)
-  if(not IsExistent(stSpot)) then
+  local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Spot missing") end
-  local stData = stSpot["PRESS"]
-  if(not IsExistent(stData)) then
+  local stData = stSpot["PRESS"]; if(not IsExistent(stData)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Data missing <"..pPly:Nick()..">") end
-  local cmdPress = stData["CMD"]
-  if(not IsExistent(stData)) then
+  local cmdPress = stData["CMD"]; if(not IsExistent(stData)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Command missing <"..pPly:Nick()..">") end
   return cmdPress:GetMouseX(), cmdPress:GetMouseY()
 end
@@ -1675,10 +1639,10 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
   if(not defTable) then
     return StatusLog(nil,"MatchType: Missing table definition") end
   local nIndex = tonumber(ivIndex); if(not IsExistent(nIndex)) then
-    return StatusLog(nil,"MatchType: Field NAN {"..type(ivIndex)"}<"
+    return StatusLog(nil,"MatchType: Col NAN {"..type(ivIndex)"}<"
              ..tostring(ivIndex).."> invalid on table "..defTable.Name) end
   local defCol = defTable[nIndex]; if(not IsExistent(defCol)) then
-    return StatusLog(nil,"MatchType: Invalid field #"
+    return StatusLog(nil,"MatchType: Invalid col #"
              ..tostring(nIndex).." on table "..defTable.Name) end
   local tipCol, sModeDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
   if(tipCol == "TEXT") then snOut = tostring(snValue or "")
@@ -1709,8 +1673,8 @@ local function MatchType(defTable,snValue,ivIndex,bQuoted,sQuote,bStopRevise,bSt
       end
     else return StatusLog(nil,"MatchType: Failed converting {"
       ..type(snValue).."}<"..tostring(snValue).."> to NUMBER for table "
-      ..defTable.Name.." field #"..nIndex) end
-  else return StatusLog(nil,"MatchType: Invalid field type <"
+      ..defTable.Name.." col #"..nIndex) end
+  else return StatusLog(nil,"MatchType: Invalid col type <"
     ..tipCol.."> on table "..defTable.Name)
   end; return snOut
 end
@@ -1722,7 +1686,7 @@ local function SQLBuildCreate(defTable)
   if(not defTable[1]) then
     return StatusLog(nil, "SQLBuildCreate: Missing table definition is empty for "..defTable.Name) end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return StatusLog(nil, "SQLBuildCreate: Missing table "..defTable.Name.." field definitions") end
+    return StatusLog(nil, "SQLBuildCreate: Missing table "..defTable.Name.." col definitions") end
   local Command, iInd = {}, 1
   Command.Drop   = "DROP TABLE "..defTable.Name..";"
   Command.Delete = "DELETE FROM "..defTable.Name..";"
@@ -1731,32 +1695,23 @@ local function SQLBuildCreate(defTable)
     local v = defTable[iInd]
     if(not v[1]) then
       return StatusLog(nil, "SQLBuildCreate: Missing Table "..defTable.Name
-                          .."'s field #"..tostring(iInd)) end
+                          .."'s col #"..tostring(iInd)) end
     if(not v[2]) then
       return StatusLog(nil, "SQLBuildCreate: Missing Table "..defTable.Name
-                                  .."'s field type #"..tostring(iInd)) end
+                                  .."'s col type #"..tostring(iInd)) end
     Command.Create = Command.Create..(v[1]):upper().." "..(v[2]):upper()
     if(defTable[iInd+1]) then Command.Create = Command.Create ..", " end
     iInd = iInd + 1
   end
   Command.Create = Command.Create.." );"
-  if(indTable and
-     indTable[1] and
-     type(indTable[1]) == "table" and
-     indTable[1][1] and
-     type(indTable[1][1]) == "number"
-   ) then
-    Command.Index = {}
-    iInd, iCnt = 1, 1
+  if(indTable and indTable[1] and type(indTable[1]) == "table" and
+     indTable[1][1] and type(indTable[1][1]) == "number") then
+    Command.Index, iInd, iCnt = {}, 1, 1
     while(indTable[iInd]) do
-      local vI = indTable[iInd]
-      if(type(vI) ~= "table") then
+      local vI = indTable[iInd]; if(type(vI) ~= "table") then
         return StatusLog(nil, "SQLBuildCreate: Index creator mismatch on "
           ..defTable.Name.." value "..vI.." is not a table for index ["..tostring(iInd).."]") end
-      local FieldsU = ""
-      local FieldsC = ""
-      Command.Index[iInd] = "CREATE INDEX IND_"..defTable.Name
-      iCnt = 1
+      local cU, cC = "", ""; Command.Index[iInd], iCnt = "CREATE INDEX IND_"..defTable.Name, 1
       while(vI[iCnt]) do
         local vF = vI[iCnt]
         if(type(vF) ~= "number") then
@@ -1765,14 +1720,14 @@ local function SQLBuildCreate(defTable)
             ..tostring(iInd).."]["..tostring(iCnt).."]") end
         if(not defTable[vF]) then
           return StatusLog(nil, "SQLBuildCreate: Index creator mismatch on "
-            ..defTable.Name..". The table does not have field index #"
+            ..defTable.Name..". The table does not have col index #"
             ..vF..", max is #"..Table.Size) end
-        FieldsU = FieldsU.."_" ..(defTable[vF][1]):upper()
-        FieldsC = FieldsC..(defTable[vF][1]):upper()
-        if(vI[iCnt+1]) then FieldsC = FieldsC ..", " end
+        cU = cU.."_" ..(defTable[vF][1]):upper()
+        cC = cC..(defTable[vF][1]):upper()
+        if(vI[iCnt+1]) then cC = cC ..", " end
         iCnt = iCnt + 1
       end
-      Command.Index[iInd] = Command.Index[iInd]..FieldsU.." ON "..defTable.Name.." ( "..FieldsC.." );"
+      Command.Index[iInd] = Command.Index[iInd]..cU.." ON "..defTable.Name.." ( "..cC.." );"
       iInd = iInd + 1
     end
   end; return Command
@@ -1791,68 +1746,59 @@ local function SQLCacheStmt(sHash,sStmt,...)
   return sBase:format(...)
 end
 
-local function SQLBuildSelect(defTable,tFields,tWhere,tOrderBy)
+local function SQLBuildSelect(defTable,tCols,tWhere,tOrderBy)
   if(not defTable) then
     return StatusLog(nil, "SQLBuildSelect: Missing table definition") end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return StatusLog(nil, "SQLBuildSelect: Missing table "..defTable.Name.." field definitions") end
-  local Command, Cnt = "SELECT ", 1
-  if(tFields) then
-    while(tFields[Cnt]) do
-      local v = tonumber(tFields[Cnt])
-      if(not IsExistent(v)) then
+    return StatusLog(nil, "SQLBuildSelect: Missing table "..defTable.Name.." col definitions") end
+  local Command, iCnt = "SELECT ", 1
+  if(tCols) then
+    while(tCols[iCnt]) do
+      local v = tonumber(tCols[iCnt]); if(not IsExistent(v)) then
         return StatusLog(nil, "SQLBuildSelect: Index NAN {"
-             ..type(tFields[Cnt]).."}<"..tostring(tFields[Cnt])
+             ..type(tCols[iCnt]).."}<"..tostring(tCols[iCnt])
              .."> type mismatch in "..defTable.Name) end
       if(not defTable[v]) then
-        return StatusLog(nil, "SQLBuildSelect: Missing field by index #"
+        return StatusLog(nil, "SQLBuildSelect: Missing col by index #"
           ..v.." in the table "..defTable.Name) end
       if(defTable[v][1]) then Command = Command..defTable[v][1]
-      else return StatusLog(nil, "SQLBuildSelect: Missing field name by index #"
+      else return StatusLog(nil, "SQLBuildSelect: Missing col name by index #"
         ..v.." in the table "..defTable.Name) end
-      if(tFields[Cnt+1]) then Command = Command ..", " end
-      Cnt = Cnt + 1
+      if(tCols[iCnt+1]) then Command = Command ..", " end
+      iCnt = iCnt + 1
     end
   else Command = Command.."*" end
   Command = Command .." FROM "..defTable.Name
-  if(tWhere and
-     type(tWhere == "table") and
-     type(tWhere[1]) == "table" and
-     tWhere[1][1] and
-     tWhere[1][2] and
-     type(tWhere[1][1]) == "number" and
-     (type(tWhere[1][2]) == "string" or type(tWhere[1][2]) == "number")
-  ) then
-    Cnt = 1
-    while(tWhere[Cnt]) do
-      local k = tonumber(tWhere[Cnt][1])
-      local v = tWhere[Cnt][2]
+  if(tWhere and type(tWhere == "table") and type(tWhere[1]) == "table" and
+     tWhere[1][1] and tWhere[1][2] and type(tWhere[1][1]) == "number" and
+     (type(tWhere[1][2]) == "string" or type(tWhere[1][2]) == "number")) then iCnt = 1
+    while(tWhere[iCnt]) do
+      local k = tonumber(tWhere[iCnt][1])
+      local v = tWhere[iCnt][2]
       local t = defTable[k][2]
       if(not (k and v and t) ) then
         return StatusLog(nil, "SQLBuildSelect: Where clause inconsistent on "
-          ..defTable.Name.." field index, {"..tostring(k)..","..tostring(v)..","..tostring(t)
+          ..defTable.Name.." col index, {"..tostring(k)..","..tostring(v)..","..tostring(t)
           .."} value or type in the table definition") end
       if(not IsExistent(v)) then
         return StatusLog(nil, "SQLBuildSelect: Data matching failed on "
-          ..defTable.Name.." field index #"..Cnt.." value <"..tostring(v)..">") end
-      if(Cnt == 1) then Command = Command.." WHERE "..defTable[k][1].." = "..tostring(v)
+          ..defTable.Name.." col index #"..iCnt.." value <"..tostring(v)..">") end
+      if(iCnt == 1) then Command = Command.." WHERE "..defTable[k][1].." = "..tostring(v)
       else              Command = Command.." AND "  ..defTable[k][1].." = "..tostring(v) end
-      Cnt = Cnt + 1
+      iCnt = iCnt + 1
     end
   end
-  if(tOrderBy and (type(tOrderBy) == "table")) then
-    local Dire = ""
-    Command, Cnt = Command.." ORDER BY ", 1
-    while(tOrderBy[Cnt]) do
-      local v = tOrderBy[Cnt]
-      if(v ~= 0) then
-        if(v > 0) then Dire = " ASC"
-        else Dire, tOrderBy[Cnt] = " DESC", -v end
+  if(tOrderBy and (type(tOrderBy) == "table")) then local sDir = ""
+    Command, iCnt = Command.." ORDER BY ", 1
+    while(tOrderBy[iCnt]) do
+      local v = tOrderBy[iCnt]; if(v ~= 0) then
+        if(v > 0) then sDir = " ASC"
+        else sDir, tOrderBy[iCnt] = " DESC", -v end
       else return StatusLog(nil, "SQLBuildSelect: Order wrong for "
-        ..defTable.Name .." field index #"..Cnt) end
-      Command = Command..defTable[v][1]..Dire
-      if(tOrderBy[Cnt+1]) then Command = Command..", " end
-      Cnt = Cnt + 1
+        ..defTable.Name .." col index #"..iCnt) end
+      Command = Command..defTable[v][1]..sDir
+      if(tOrderBy[iCnt+1]) then Command = Command..", " end
+      iCnt = iCnt + 1
     end
   end; return Command..";"
 end
@@ -1861,23 +1807,23 @@ local function SQLBuildInsert(defTable,tInsert,tValues)
   if(not defTable) then
     return StatusLog(nil, "SQLBuildInsert: Missing Table definition") end
   if(not tValues) then
-    return StatusLog(nil, "SQLBuildInsert: Missing Table value fields") end
+    return StatusLog(nil, "SQLBuildInsert: Missing Table value cols") end
   if(not defTable[1]) then
-    return StatusLog(nil, "SQLBuildInsert: The table and the chosen fields must not be empty") end
+    return StatusLog(nil, "SQLBuildInsert: The table and the chosen cols must not be empty") end
   if(not (defTable[1][1] and defTable[1][2])) then
-    return StatusLog(nil, "SQLBuildInsert: Missing table "..defTable.Name.." field definition") end
+    return StatusLog(nil, "SQLBuildInsert: Missing table "..defTable.Name.." col definition") end
   local tInsert = tInsert or {}
-  if(not tInsert[1]) then
-    local iCnt = 1
+  if(not tInsert[1]) then local iCnt = 1
     while(defTable[iCnt]) do
       tInsert[iCnt] = iCnt; iCnt = iCnt + 1 end
   end
   local iCnt, qVal = 1, " VALUES ( "
   local qIns = "INSERT INTO "..defTable.Name.." ( "
   while(tInsert[iCnt]) do
-    local iIns = tInsert[iCnt]; local tIns = defTable[iIns]
+    local iIns = tInsert[iCnt]
+    local tIns = defTable[iIns]
     if(not IsExistent(tIns)) then
-      return StatusLog(nil, "SQLBuildInsert: No such field #"..iIns.." on table "..defTable.Name) end
+      return StatusLog(nil, "SQLBuildInsert: No such col #"..iIns.." on table "..defTable.Name) end
     qIns, qVal = qIns..tIns[1], qVal..tostring(tValues[iCnt])
     if(tInsert[iCnt+1]) then qIns, qVal = qIns ..", " , qVal ..", "
     else qIns, qVal = qIns .." ) ", qVal .." );" end; iCnt = iCnt + 1
@@ -1889,22 +1835,16 @@ function CreateTable(sTable,defTable,bDelete,bReload)
     return StatusLog(false,"CreateTable: Table key {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   if(not (type(defTable) == "table")) then
     return StatusLog(false,"CreateTable: Table definition missing for "..sTable) end
-  if(#defTable <= 0) then
+  defTable.Size = #defTable; if(defTable.Size <= 0) then
     return StatusLog(false,"CreateTable: Record definition missing for "..sTable) end
-  if(#defTable ~= tableMaxn(defTable)) then
+  if(defTable.Size ~= tableMaxn(defTable)) then
     return StatusLog(false,"CreateTable: Record definition mismatch for "..sTable) end
-  local sTable  = sTable:upper()
-  local sModeDB = GetOpVar("MODE_DATABASE")
-  local symDis  = GetOpVar("OPSYM_DISABLE")
-  local iCnt, defCol = 1, nil
-  SetOpVar("DEFTABLE_"..sTable,defTable)
-  defTable.Size = #defTable
+  local sTable  = sTable:upper(); SetOpVar("DEFTABLE_"..sTable, defTable)
+  local symDis, sModeDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
   defTable.Name = GetOpVar("TOOLNAME_PU")..sTable
-  while(defTable[iCnt]) do
-    defCol    = defTable[iCnt]
+  for iCnt = 1, defTable.Size do local defCol = defTable[iCnt]
     defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
     defCol[4] = DefaultString(tostring(defCol[4] or symDis), symDis)
-    iCnt = iCnt + 1
   end; libCache[defTable.Name] = {}
   if(sModeDB == "SQL") then
     local tQ = SQLBuildCreate(defTable)
@@ -1950,18 +1890,15 @@ end
 
 function InsertRecord(sTable,arLine)
   if(not IsExistent(sTable)) then
-    return StatusLog(false,"InsertRecord: Missing table name/values")
-  end
+    return StatusLog(false,"InsertRecord: Missing table name/values") end
   if(type(sTable) == "table") then
-    arLine = sTable
-    sTable = DefaultTable()
+    arLine, sTable = sTable, DefaultTable()
     if(not (IsExistent(sTable) and sTable ~= "")) then
       return StatusLog(false,"InsertRecord: Missing table default name for "..sTable) end
   end
   if(not IsString(sTable)) then
     return StatusLog(false,"InsertRecord: Table name {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_"..sTable); if(not defTable) then
     return StatusLog(false,"InsertRecord: Missing table definition for "..sTable) end
   if(not defTable[1])  then
     return StatusLog(false,"InsertRecord: Missing table definition is empty for "..sTable) end
@@ -2213,18 +2150,15 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(nil,"CacheBoxLayout: Entity invalid <"..tostring(oEnt)..">") end
   local sMod = oEnt:GetModel()
-  local oRec = CacheQueryPiece(sMod)
-  if(not IsExistent(oRec)) then
+  local oRec = CacheQueryPiece(sMod); if(not IsExistent(oRec)) then
     return StatusLog(nil,"CacheBoxLayout: Piece record invalid <"..sMod..">") end
-  local Box = oRec.Layout
-  if(not IsExistent(Box)) then
-    local vMin, vMax
-    oRec.Layout = {}; Box = oRec.Layout
+  local Box = oRec.Layout; if(not IsExistent(Box)) then
+    local vMin, vMax; oRec.Layout = {}; Box = oRec.Layout
     if    (CLIENT) then vMin, vMax = oEnt:GetRenderBounds()
     elseif(SERVER) then vMin, vMax = oEnt:OBBMins(), oEnt:OBBMaxs()
     else return StatusLog(nil,"CacheBoxLayout: Wrong instance") end
     Box.Ang = Angle () -- Layout entity angle
-    Box.Cen = Vector() -- Layout entity centre
+    Box.Cen = Vector() -- Layout entity center
     Box.Cen:Set(vMax); Box.Cen:Add(vMin); Box.Cen:Mul(0.5)
     Box.Eye = oEnt:LocalToWorld(Box.Cen) -- Layout camera eye
     Box.Len = ((vMax - vMin):Length() / 2) -- Layout border sphere radius
@@ -2245,16 +2179,14 @@ function CacheQueryPiece(sModel)
     return StatusLog(nil,"CacheQueryPiece: Model empty string") end
   if(not utilIsValidModel(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model invalid <"..sModel..">") end
-  local defTable = GetOpVar("DEFTABLE_PIECES")
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_PIECES"); if(not defTable) then
     return StatusLog(nil,"CacheQueryPiece: Table definition missing") end
   local tCache = libCache[defTable.Name] -- Match the model casing
   local sModel = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(tCache)) then
     return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..defTable.Name..">") end
-  local caInd    = GetOpVar("NAV_PIECE")
+  local caInd, stPiece = GetOpVar("NAV_PIECE"), tCache[sModel]
   if(not IsExistent(caInd[1])) then caInd[1] = defTable.Name end caInd[2] = sModel
-  local stPiece  = tCache[sModel]
   if(IsExistent(stPiece) and IsExistent(stPiece.Kept)) then
     if(stPiece.Kept > 0) then
       return TimerRestart(libCache,caInd,defTable,"CacheQueryPiece") end
@@ -2277,8 +2209,8 @@ function CacheQueryPiece(sModel)
         return StatusLog(nil,"CacheQueryPiece: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPiece: No data found <"..Q..">") end
-      stPiece.Kept = 0; local iCnt = 1 --- Nothing registered yet
-      stPiece.Slot = sModel
+      local iCnt = 1 --- Nothing registered. Start from the beginning
+      stPiece.Slot, stPiece.Kept = sModel, 0
       stPiece.Type = qData[1][defTable[2][1]]
       stPiece.Name = qData[1][defTable[3][1]]
       stPiece.Unit = qData[1][defTable[8][1]]
@@ -2305,16 +2237,14 @@ function CacheQueryAdditions(sModel)
     return StatusLog(nil,"CacheQueryAdditions: Model empty string") end
   if(not utilIsValidModel(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model invalid") end
-  local defTable = GetOpVar("DEFTABLE_ADDITIONS")
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_ADDITIONS"); if(not defTable) then
     return StatusLog(nil,"CacheQueryAdditions: Missing table definition") end
   local tCache = libCache[defTable.Name] -- Match the model casing
   local sModel = MatchType(defTable,sModel,1,false,"",true,true)
   if(not IsExistent(tCache)) then
     return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..defTable.Name..">") end
-  local caInd  = GetOpVar("NAV_ADDITION")
+  local caInd, stAddition = GetOpVar("NAV_ADDITION"), tCache[sModel]
   if(not IsExistent(caInd[1])) then caInd[1] = defTable.Name end caInd[2] = sModel
-  local stAddition = tCache[sModel]
   if(IsExistent(stAddition) and IsExistent(stAddition.Kept)) then
     if(stAddition.Kept > 0) then
       return TimerRestart(libCache,caInd,defTable,"CacheQueryAdditions") end
@@ -2337,14 +2267,11 @@ function CacheQueryAdditions(sModel)
         return StatusLog(nil,"CacheQueryAdditions: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryAdditions: No data found <"..Q..">") end
-      stAddition.Kept = 0; local iCnt = 1
-      stAddition.Slot = sModel
+      local iCnt = 1; stAddition.Slot, stAddition.Kept = sModel, 0
       while(qData[iCnt]) do
-        local qRec = qData[iCnt]
-        stAddition[iCnt] = {}
-        for Field, Val in pairs(qRec) do
-          stAddition[iCnt][Field] = Val
-        end; stAddition.Kept, iCnt = iCnt, (iCnt + 1)
+        local qRec = qData[iCnt]; stAddition[iCnt] = {}
+        for col, val in pairs(qRec) do stAddition[iCnt][col] = val end
+        stAddition.Kept, iCnt = iCnt, (iCnt + 1)
       end
       return TimerAttach(libCache,caInd,defTable,"CacheQueryAdditions")
     elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryAdditions: Record not located")
@@ -2357,15 +2284,13 @@ end
  * Caches the date needed to populate the CPanel tree
 ]]--
 function CacheQueryPanel()
-  local defTable = GetOpVar("DEFTABLE_PIECES")
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_PIECES"); if(not defTable) then
     return StatusLog(false,"CacheQueryPanel: Missing table definition") end
   if(not IsExistent(libCache[defTable.Name])) then
     return StatusLog(nil,"CacheQueryPanel: Cache not allocated for <"..defTable.Name..">") end
-  local caInd  = GetOpVar("NAV_PANEL")
-  local keyPan = GetOpVar("HASH_USER_PANEL")
+  local caInd, keyPan = GetOpVar("NAV_PANEL"), GetOpVar("HASH_USER_PANEL")
   if(not IsExistent(caInd[1])) then caInd[1] = keyPan end
-  local stPanel  = libCache[keyPan]
+  local stPanel = libCache[keyPan]
   if(IsExistent(stPanel) and IsExistent(stPanel.Kept)) then
     LogInstance("CacheQueryPanel: From Pool")
     if(stPanel.Kept > 0) then
@@ -2387,27 +2312,21 @@ function CacheQueryPanel()
         return StatusLog(nil,"CacheQueryPanel: SQL exec error <"..sqlLastError()..">") end
       if(not (qData and qData[1])) then
         return StatusLog(nil,"CacheQueryPanel: No data found <"..Q..">") end
-      stPanel.Kept = 1; local iCnt = 1
+      local iCnt = 1; stPanel.Kept = 1
       while(qData[iCnt]) do
         stPanel[iCnt] = qData[iCnt]
         stPanel.Kept, iCnt = iCnt, (iCnt + 1)
       end
       return TimerAttach(libCache,caInd,defTable,"CacheQueryPanel")
     elseif(sModeDB == "LUA") then
-      local tCache  = libCache[defTable.Name]
-      local tSorted = Sort(tCache,nil,{"Type","Name"})
-      if(not tSorted) then
+      local tCache = libCache[defTable.Name]
+      local tSort  = Sort(tCache,{"Type","Name"}); if(not tSort) then
         return StatusLog(nil,"CacheQueryPanel: Cannot sort cache data") end
-      stPanel.Kept = 0; local iCnt = 1
-      while(tSorted[iCnt]) do
-        local vSort = tSorted[iCnt]
-        stPanel[iCnt] = {
-          [defTable[1][1]] = vSort.Key,
-          [defTable[2][1]] = tCache[vSort.Key].Type,
-          [defTable[3][1]] = tCache[vSort.Key].Name
-        }; stPanel.Kept, iCnt = iCnt, (iCnt + 1)
-      end
-      return stPanel
+      stPanel.Kept = 0; for iCnt = 1, tSort.Size do local vSort = tSort[iCnt]
+        stPanel[iCnt] = { [defTable[1][1]] = vSort.Key,
+                          [defTable[2][1]] = tCache[vSort.Key].Type,
+                          [defTable[3][1]] = tCache[vSort.Key].Name }; stPanel.Kept = iCnt
+      end; return stPanel
     else return StatusLog(nil,"CacheQueryPanel: Wrong database mode <"..sModeDB..">") end
     LogInstance("CacheQueryPanel: To Pool")
   end
@@ -2419,18 +2338,15 @@ end
  * If type is not chosen, it gets a list of all types
 ]]--
 function CacheQueryProperty(sType)
-  local defTable = GetOpVar("DEFTABLE_PHYSPROPERTIES")
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_PHYSPROPERTIES"); if(not defTable) then
     return StatusLog(nil,"CacheQueryProperty: Missing table definition") end
-  local tCache = libCache[defTable.Name]
-  if(not tCache) then
+  local tCache = libCache[defTable.Name]; if(not tCache) then
     return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..defTable.Name..">") end
   local sModeDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and not IsEmptyString(sType)) then
-    local sType   = MatchType(defTable,sType,1,false,"",true,true)
+    local sType = MatchType(defTable,sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
-    local arNames = tCache[keyName]
-    local caInd   = GetOpVar("NAV_PROPERTY_NAMES")
+    local caInd, arNames = GetOpVar("NAV_PROPERTY_NAMES"), tCache[keyName]
     if(not IsExistent(caInd[1])) then
       caInd[1] = defTable.Name; caInd[2] = keyName end caInd[3] = sType
     if(not IsExistent(arNames)) then
@@ -2457,7 +2373,7 @@ function CacheQueryProperty(sType)
           return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty["..sType.."]: No data found <"..Q..">") end
-        stName.Kept, stName.Slot = 0, sType; local iCnt = 1
+        local iCnt = 1; stName.Kept, stName.Slot = 0, sType
         while(qData[iCnt]) do
           stName[iCnt] = qData[iCnt][defTable[3][1]]
           stName.Kept, iCnt = iCnt, (iCnt + 1)
@@ -2491,7 +2407,7 @@ function CacheQueryProperty(sType)
           return StatusLog(nil,"CacheQueryProperty: SQL exec error <"..sqlLastError()..">") end
         if(not (qData and qData[1])) then
           return StatusLog(nil,"CacheQueryProperty: No data found <"..Q..">") end
-        stType.Kept = 0; local iCnt = 1
+        local iCnt = 1; stType.Kept = 0
         while(qData[iCnt]) do
           stType[iCnt] = qData[iCnt][defTable[1][1]]
           stType.Kept, iCnt = iCnt, (iCnt + 1)
@@ -2506,31 +2422,27 @@ end
 
 ---------------------- EXPORT --------------------------------
 
-local function StripValue(vVal)
-  local sVal = tostring(vVal or ""):Trim()
-  if(sVal:sub( 1, 1) == "\"") then sVal = sVal:sub(2,-1) end
-  if(sVal:sub(-1,-1) == "\"") then sVal = sVal:sub(1,-2) end
-  return sVal:Trim()
+local function StripValue(vV, vQ)
+  local sV = tostring(vV or ""):Trim()
+  local sQ = tostring(vQ or "\""):sub(1,1)
+  if(sV:sub( 1, 1) == sQ) then sV = sV:sub(2,-1) end
+  if(sV:sub(-1,-1) == sQ) then sV = sV:sub(1,-2) end
+  return sV:Trim()
 end
 
 local function GetColumns(defTable, sDelim)
   if(not IsExistent(sDelim)) then return "" end
-  local sDelim  = tostring(sDelim or "\t"):sub(1,1)
-  local sResult = ""
-  if(IsEmptyString(sDelim)) then
+  local sDelim = tostring(sDelim or "\t"):sub(1,1); if(IsEmptyString(sDelim)) then
     return StatusLog("","GetColumns: Invalid delimiter for <"..defTable.Name..">") end
-  local iCount  = 1
-  local namField
-  while(defTable[iCount]) do
-    namField = defTable[iCount][1]
-    if(not IsString(namField)) then
-      return StatusLog("","GetColumns: Field #"..iCount
-               .." {"..type(namField).."}<"..tostring(namField).."> not string") end
-    sResult = sResult..namField
-    if(defTable[iCount + 1]) then sResult = sResult..sDelim end
-    iCount = iCount + 1
-  end
-  return sResult
+  local sRes, iCnt = "", 1
+  while(defTable[iCnt]) do
+    local sNam = defTable[iCnt][1]; if(not IsString(sNam)) then
+      return StatusLog("","GetColumns: Col #"..iCnt
+        .." {"..type(sNam).."}<"..tostring(sNam).."> not string") end
+    sRes = sRes..sNam
+    if(defTable[iCnt + 1]) then sRes = sRes..sDelim end
+    iCnt = iCnt + 1
+  end; return sRes
 end
 
 --[[
@@ -2544,7 +2456,8 @@ function ExportCategory(vEq, tData, sPref)
   if(SERVER) then return StatusLog(true, "ExportCategory: Working on server") end
   local nEq   = tonumber(vEq) or 0; if(nEq <= 0) then
     return StatusLog(false, "ExportCategory: Wrong equality <"..tostring(vEq)..">") end
-  local sPref = tostring(sPref or GetInstPref())
+  local sPref = tostring(sPref or GetInstPref()); if(IsEmptyString(sPref)) then
+    return StatusLog(false,"ExportCategory("..sPref.."): Prefix empty") end
   local fName = GetOpVar("DIRPATH_BAS")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
@@ -2611,12 +2524,12 @@ end
  * sPref  > Prefix used on exporting ( if any ) else instance is used
 ]]--
 function RemoveDSV(sTable, sPref)
-  local sPref = tostring(sPref or GetInstPref())
+  local sPref = tostring(sPref or GetInstPref()); if(IsEmptyString(sPref)) then
+    return StatusLog(false,"RemoveDSV("..sPref.."): Prefix empty") end
   if(not IsString(sTable)) then
-    return StatusLog(false,"RemoveDSV("
-      ..sPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
+    return StatusLog(false,"RemoveDSV("..sPref.."): Table {"..type(sTable)
+      .."}<"..tostring(sTable).."> not string") end
+  local defTable = GetOpVar("DEFTABLE_"..sTable); if(not defTable) then
     return StatusLog(false,"RemoveDSV("..sPref
       .."): Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")
@@ -2638,16 +2551,14 @@ end
 function ExportDSV(sTable, sPref, sDelim)
   if(not IsString(sTable)) then
     return StatusLog(false,"StoreExternalDatabase: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_"..sTable); if(not defTable) then
     return StatusLog(false,"ExportDSV: Missing table definition for <"..sTable..">") end
   local fName, sPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..sPref..defTable.Name..".txt"
-  local F = fileOpen(fName, "wb", "DATA" )
-  if(not F) then
+  local F = fileOpen(fName, "wb", "DATA" ); if(not F) then
     return StatusLog(false,"ExportDSV("..sPref
       .."): fileOpen("..fName..") failed") end
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
@@ -2680,17 +2591,16 @@ function ExportDSV(sTable, sPref, sDelim)
     if(not IsExistent(tCache)) then F:Flush(); F:Close()
       return StatusLog(false,"ExportDSV("..sPref
               .."): Table <"..defTable.Name.."> cache not allocated") end
-    if(sTable == "PIECES") then
-      local tData = {}
+    if(sTable == "PIECES") then local tData = {}
       for sModel, tRecord in pairs(tCache) do
         local sSort   = (tRecord.Type..tRecord.Name..sModel)
         tData[sModel] = {[defTable[1][1]] = sSort}
       end
-      local tSorted = Sort(tData,nil,{defTable[1][1]})
-      if(not tSorted) then F:Flush(); F:Close()
+      local tSort = Sort(tData,{defTable[1][1]})
+      if(not tSort) then F:Flush(); F:Close()
         return StatusLog(false,"ExportDSV("..sPref.."): Cannot sort cache data") end
-      for iIdx = 1, #tSorted do
-        local stRec = tSorted[iIdx]
+      for iIdx = 1, tSort.Size do
+        local stRec = tSort[iIdx]
         local tData = tCache[stRec.Key]
         local sData = defTable.Name
               sData = sData..sDelim..MatchType(defTable,stRec.Key,1,true,"\"")..sDelim..
@@ -2747,16 +2657,14 @@ end
  * sDelim > Delimiter separating the values
 ]]--
 function ImportDSV(sTable, bComm, sPref, sDelim)
-  local fPref = tostring(sPref or GetInstPref())
-  if(not IsString(sTable)) then
+  local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     return StatusLog(false,"ImportDSV("..fPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_"..sTable); if(not defTable) then
     return StatusLog(false,"ImportDSV("..fPref.."): Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..fPref..defTable.Name..".txt"
-  local F = fileOpen(fName, "rb", "DATA")
-  if(not F) then return StatusLog(false,"ImportDSV("..fPref.."): fileOpen("..fName..") failed") end
+  local F = fileOpen(fName, "rb", "DATA"); if(not F) then
+    return StatusLog(false,"ImportDSV("..fPref.."): fileOpen("..fName..") failed") end
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTable.Name:len()
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
@@ -2781,11 +2689,9 @@ end
  * sDelim > What delimiter is the server using
 ]]--
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
-  local fPref = tostring(sPref or GetInstPref())
-  if(not IsString(sTable)) then
+  local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     return StatusLog(false,"SynchronizeDSV("..fPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_"..sTable); if(not defTable) then
     return StatusLog(false,"SynchronizeDSV("..fPref.."): Missing table definition for <"..sTable..">") end
   local fName, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2798,7 +2704,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       if((not IsEmptyString(sLine)) and (sLine:sub(1,1) ~= smOff)) then
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTable.Name) then
-          for i = 1, #tLine do tLine[i] = StripValue(tLine[i]) end
+          for iCnt = 1, #tLine do tLine[iCnt] = StripValue(tLine[iCnt]) end
           local sKey = tLine[2]
           if(not fData[sKey]) then fData[sKey] = {Kept = 0} end
             tKey = fData[sKey]
@@ -2853,23 +2759,19 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       end
     else --[[ Do not modify fData ]] end
   end
-  local tSort = Sort(tableGetKeys(fData))
-  if(not tSort) then
+  local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
     return StatusLog(false,"SynchronizeDSV("..fPref.."): Sorting failed") end
   local O = fileOpen(fName, "wb" ,"DATA")
   if(not O) then return StatusLog(false,"SynchronizeDSV("..fPref.."): Write fileOpen("..fName..") failed") end
   O:Write("# SynchronizeDSV("..fPref.."): "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   O:Write("# Data settings:\t"..GetColumns(defTable,sDelim).."\n")
-  for rcID = 1, #tSort do
+  for rcID = 1, tSort.Size do
     local key = tSort[rcID].Val
     local rec = fData[key]
     local sCash, sData = defTable.Name..sDelim..key, ""
-    for pnID = 1, rec.Kept do
-      local tItem = rec[pnID]
-      for nCnt = 1, #tItem do
-        local vMatch = MatchType(defTable,tItem[nCnt],nCnt+1,true,"\"",true)
-        if(not IsExistent(vMatch)) then
-          O:Flush(); O:Close()
+    for pnID = 1, rec.Kept do local tItem = rec[pnID]
+      for nCnt = 1, #tItem do local vMatch = MatchType(defTable,tItem[nCnt],nCnt+1,true,"\"",true)
+        if(not IsExistent(vMatch)) then O:Flush(); O:Close()
           return StatusLog(false,"SynchronizeDSV("..fPref.."): Write matching failed <"
             ..tostring(tItem[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTable[nCnt+1][1].."> of "..sTable)
         end; sData = sData..sDelim..tostring(vMatch)
@@ -2880,11 +2782,9 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
 end
 
 function TranslateDSV(sTable, sPref, sDelim)
-  local fPref  = tostring(sPref or GetInstPref())
-  if(not IsString(sTable)) then
+  local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     return StatusLog(false,"TranslateDSV("..fPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTable = GetOpVar("DEFTABLE_"..sTable)
-  if(not defTable) then
+  local defTable = GetOpVar("DEFTABLE_"..sTable); if(not defTable) then
     return StatusLog(false,"TranslateDSV("..fPref.."): Missing table definition for <"..sTable..">") end
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
@@ -2929,8 +2829,7 @@ end
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
   if(CLIENT and gameSinglePlayer()) then
     return StatusLog(true,"RegisterDSV: Single client") end
-  local sPref = tostring(sPref or GetInstPref())
-  if(IsEmptyString(sPref)) then
+  local sPref = tostring(sPref or GetInstPref()); if(IsEmptyString(sPref)) then
     return StatusLog(false,"RegisterDSV("..sPref.."): Prefix empty") end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
@@ -2964,9 +2863,9 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
         LogInstance("RegisterDSV("..sPref.."): "..(tab[2] and "On " or "Off").." <"..tab[1]..">") end
       return StatusLog(true,"RegisterDSV("..sPref.."): Skip <"..sProg..">")
     end
-  end; local F = fileOpen(fName, "ab" ,"DATA")
-  if(not F) then return StatusLog(false,"RegisterDSV("
-    ..sPref.."): fileOpen("..fName..") append failed") end
+  end
+  local F = fileOpen(fName, "ab" ,"DATA"); if(not F) then
+    return StatusLog(false,"RegisterDSV("..sPref.."): fileOpen("..fName..") append failed") end
   F:Write(sPref..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
   return StatusLog(true,"RegisterDSV("..sPref.."): Register")
 end
@@ -3161,7 +3060,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPointID,
   local hdOffs = LocatePOA(hdRec,ihdPointID)
   if(not IsExistent(hdOffs)) then
     return StatusLog(nil,"GetEntitySpawn: Holder point invalid #"..tostring(ihdPointID)) end
-  -- If there is no Type field exit immediately
+  -- If there is no Type name exit immediately
   if(not (IsExistent(trRec.Type) and IsString(trRec.Type))) then
     return StatusLog(nil,"GetEntitySpawn: Trace type invalid <"..tostring(trRec.Type)..">") end
   if(not (IsExistent(hdRec.Type) and IsString(hdRec.Type))) then

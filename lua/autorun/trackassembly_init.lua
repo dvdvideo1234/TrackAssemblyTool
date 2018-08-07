@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.454")
+asmlib.SetOpVar("TOOL_VERSION","5.455")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -300,8 +300,7 @@ if(CLIENT) then
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs)
-      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1])
-      if(not asmlib.IsExistent(frUsed)) then
+      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsExistent(frUsed)) then
         return asmlib.StatusLog(nil,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
       local defTable = asmlib.GetOpVar("DEFTABLE_PIECES"); if(not defTable) then
         return StatusLog(nil,"OPEN_FRAME: Missing definition for table PIECES") end
