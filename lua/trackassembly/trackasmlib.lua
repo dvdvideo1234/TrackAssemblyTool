@@ -254,30 +254,31 @@ function PrintInstance(anyStuff)
   end
 end
 
-function LogInstance(anyStuff)
-  local logMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
-  if(logMax and (logMax <= 0)) then return end
-  local anyStuff, logStats = tostring(anyStuff), GetOpVar("LOG_SKIP")
-  if(logStats and logStats[1]) then
-    local iNdex = 1; while(logStats[iNdex]) do
-      if(anyStuff:find(tostring(logStats[iNdex]))) then return end; iNdex = iNdex + 1 end
-  end; logStats = GetOpVar("LOG_ONLY") -- Should the current log being skipped
-  if(logStats and logStats[1]) then
-    local iNdex, logMe = 1, false; while(logStats[iNdex]) do
-      if(anyStuff:find(tostring(logStats[iNdex]))) then logMe = true end; iNdex = iNdex + 1 end
+function LogInstance(oMsg)
+  local nMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
+  if(nMax and (nMax <= 0)) then return end
+  local sMsg, oStat = tostring(oMsg), GetOpVar("LOG_SKIP")
+  if(oStat and oStat[1]) then
+    local iCnt = 1; while(oStat[iCnt]) do
+      if(sMsg:find(tostring(oStat[iCnt]))) then return end; iCnt = iCnt + 1 end
+  end; oStat = GetOpVar("LOG_ONLY") -- Should the current log being skipped
+  if(oStat and oStat[1]) then
+    local iCnt, logMe = 1, false; while(oStat[iCnt]) do
+      if(sMsg:find(tostring(oStat[iCnt]))) then logMe = true end; iCnt = iCnt + 1 end
     if(not logMe) then return end
   end; local sSors = "" -- Only the chosen messages are processed
   if(GetOpVar("LOG_DEBUGEN")) then
     local sInfo = debugGetinfo(3) or {}
-    sSors = sSors..(sInfo.linedefined and "["..sInfo.linedefined.."]" or "[n/a]")
+    local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
+    sSors = sSors..(sInfo.linedefined and "["..sInfo.linedefined.."]" or snAV)
     sSors = sSors..(sInfo.name and sInfo.name or "Main")
-    sSors = sSors..(sInfo.currentline and ("["..sInfo.currentline.."]") or "[n/a]")
-    sSors = sSors..(sInfo.nparams and (" #"..sInfo.nparams) or " #N")
-    sSors = sSors..(sInfo.source and (" "..sInfo.source) or " @N")
+    sSors = sSors..(sInfo.currentline and ("["..sInfo.currentline.."]") or snAV)
+    sSors = sSors..(sInfo.nparams and (" #"..sInfo.nparams) or " #"..snID)
+    sSors = sSors..(sInfo.source and (" "..sInfo.source) or " @"..snID)
   end
-  local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sModeDB = GetOpVar("MODE_DATABASE")
-  Log(sInst.." > "..sSors..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..anyStuff)
+  local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
+  Log(sInst.." > "..sSors..GetOpVar("TOOLNAME_NU").." ["..sModeDB.."] "..sMsg)
 end
 
 function StatusPrint(anyStatus,sError)
@@ -1347,7 +1348,7 @@ end
 local function QuickSort(tD, iL, iH)
   if(not (iL and iH and (iL > 0) and (iL < iH))) then
     return StatusLog(nil,"QuickSort: Data dimensions mismatch") end
-  local iM = mathRandom(iH-(iL-1))+iL-1
+  local iM = mathRandom(iH-iL-1)+iL-1
   tD[iL], tD[iM] = tD[iM], tD[iL]; iM = iL
   local vM, iC = tD[iL].Val, (iL + 1)
   while(iC <= iH)do
@@ -1359,51 +1360,37 @@ local function QuickSort(tD, iL, iH)
   QuickSort(tD,iM+1,iH)
 end
 
-local function Sort(tTable,tCols,tKeys)
-  local tM = {}; tM.Size = #tM
-  local tK = tKeys or {}; tK.Size = #tK
+local function Sort(tTable, tCols)
+  local tS, iS = {Size = 0}, 0
   local tC = tCols or {}; tC.Size = #tC
-  if(tK.Size == 0) then local iK = 0
-    for key, val in pairs(tTable) do
-      iK = iK + 1; tK[iK] = key
-    end; tK.Size = iK
-  end; tM.Size = tK.Size
-  for iK = 1, tK.Size do
-    local sKey = tK[iK]; if(not sKey) then
-      return StatusLog(nil,"Sort: Key <"..sKey.."> does not exist in the key table") end
-    local vRec = tTable[sKey]; if(not vRec) then
-      return StatusLog(nil,"Sort: Key <"..sKey.."> does not exist in the primary table") end
-    tM[iK] = {}; tM[iK].Key = sKey
-    if(type(vRec) == "table") then tM[iK].Val = ""
+  for key, rec in pairs(tTable) do
+    iS = (iS + 1); tS[iS] = {}; tS[iS].Key = key
+    if(type(rec) == "table") then tS[iS].Val = ""
       if(tC.Size > 0) then
-        for iI = 1, tC.Size do local sC = tC[iI]; if(not IsExistent(vRec[sC])) then
+        for iI = 1, tC.Size do local sC = tC[iI]; if(not IsExistent(rec[sC])) then
           return StatusLog(nil,"Sort: Col <"..sC.."> not found on the current record") end
-            tM[iK].Val = tM[iK].Val..tostring(vRec[sC])
-        end
-      else tM[iK].Val = sKey end
-    else tM[iK].Val = vRec end
-  end; QuickSort(tM,1,tK.Size); return tM
+            tS[iS].Val = tS[iS].Val..tostring(rec[sC])
+        end -- When no sort columns are provided use keys instead
+      else tS[iS].Val = key end -- Use the table key
+    else tS[iS].Val = rec end -- Use the actual value
+  end; tS.Size = iS; QuickSort(tS,1,iS); return tS
 end
 
 --------------------- STRING -----------------------
 
-function DisableString(sBase, anyDisable, anyDefault)
-  if(IsString(sBase)) then
-    local sFirst = sBase:sub(1,1)
-    if(sFirst ~= GetOpVar("OPSYM_DISABLE") and not IsEmptyString(sBase)) then
-      return sBase
-    elseif(sFirst == GetOpVar("OPSYM_DISABLE")) then
-      return anyDisable
-    end
-  end; return anyDefault
+function DisableString(sBase, vDsb, vDef)
+  if(IsString(sBase)) then 
+    local sF, sD = sBase:sub(1,1), GetOpVar("OPSYM_DISABLE")
+    if(sF ~= sD and not IsEmptyString(sBase)) then
+      return sBase -- Not disabled or empty
+    elseif(sF == sD) then return vDsb end
+  end; return vDef
 end
 
-function DefaultString(sBase, sDefault)
+function DefaultString(sBase, sDef)
   if(IsString(sBase)) then
-    if(not IsEmptyString(sBase)) then return sBase end
-  end
-  if(IsString(sDefault)) then return sDefault end
-  return ""
+    if(not IsEmptyString(sBase)) then return sBase end end
+  if(IsString(sDef)) then return sDef end; return ""
 end
 
 ------------- VARIABLE INTERFACES --------------
@@ -1894,15 +1881,15 @@ function InsertRecord(sTable,arLine)
   if(type(sTable) == "table") then
     arLine, sTable = sTable, DefaultTable()
     if(not (IsExistent(sTable) and sTable ~= "")) then
-      return StatusLog(false,"InsertRecord: Missing table default name for "..sTable) end
+      return StatusLog(false,"InsertRecord: Missing table default name") end
   end
   if(not IsString(sTable)) then
     return StatusLog(false,"InsertRecord: Table name {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   local defTable = GetOpVar("DEFTABLE_"..sTable); if(not defTable) then
     return StatusLog(false,"InsertRecord: Missing table definition for "..sTable) end
-  if(not defTable[1])  then
+  if(not defTable[1]) then
     return StatusLog(false,"InsertRecord: Missing table definition is empty for "..sTable) end
-  if(not arLine)      then
+  if(not arLine) then
     return StatusLog(false,"InsertRecord: Missing data table for "..sTable) end
   if(not arLine[1])   then
     for key, val in pairs(arLine) do
@@ -1914,9 +1901,8 @@ function InsertRecord(sTable,arLine)
     local trClass = GetOpVar("TRACE_CLASS")
     arLine[2] = DisableString(arLine[2],DefaultType(),"TYPE")
     arLine[3] = DisableString(arLine[3],ModelToName(arLine[1]),"MODEL")
-    arLine[8] = DisableString(arLine[8],nil,nil)
-    if(IsString(arLine[8]) and (arLine[8] ~= "NULL")
-       and not trClass[arLine[8]] and not IsEmptyString(arLine[8])) then
+    arLine[8] = DisableString(arLine[8],"NULL","NULL")
+    if(not ((arLine[8] == "NULL") or trClass[arLine[8]] or IsEmptyString(arLine[8]))) then
       trClass[arLine[8]] = true -- Register the class provided
       LogInstance("InsertRecord: Register trace <"..tostring(arLine[8]).."@"..arLine[1]..">")
     end -- Add the special class to the trace list

@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.455")
+asmlib.SetOpVar("TOOL_VERSION","5.456")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
@@ -236,7 +236,7 @@ if(CLIENT) then
       if(not devmode) then
         return asmlib.StatusLog(nil,"RESET_VARIABLES: Developer mode disabled") end
       asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
-      if(bgskids == "reset cvars") then -- Reset also the maximum spawned pieces
+      if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         local anchor = asmlib.GetOpVar("MISS_NOID")..
                        asmlib.GetOpVar("OPSYM_REVSIGN")..
@@ -533,21 +533,19 @@ if(CLIENT) then
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
       end -- Make sure we have a valid game monitor for the draw OOP
-      local nextx     = asmlib.GetAsmVar("nextx", "FLT")
-      local nexty     = asmlib.GetAsmVar("nexty", "FLT")
-      local nextz     = asmlib.GetAsmVar("nextz", "FLT")
-      local nextpic   = asmlib.GetAsmVar("nextpic", "FLT")
-      local nextyaw   = asmlib.GetAsmVar("nextyaw", "FLT")
-      local nextrol   = asmlib.GetAsmVar("nextrol", "FLT")
-      local igntype   = asmlib.GetAsmVar("igntype", "BUL")
-      local spnflat   = asmlib.GetAsmVar("spnflat", "BUL")
-      local activrad  = asmlib.GetAsmVar("activrad", "FLT")
-      local ratioc, ratiom = ((gnRatio - 1) * 100), (gnRatio * 1000)
+      local nextx    = asmlib.GetAsmVar("nextx", "FLT")
+      local nexty    = asmlib.GetAsmVar("nexty", "FLT")
+      local nextz    = asmlib.GetAsmVar("nextz", "FLT")
+      local nextpic  = asmlib.GetAsmVar("nextpic", "FLT")
+      local nextyaw  = asmlib.GetAsmVar("nextyaw", "FLT")
+      local nextrol  = asmlib.GetAsmVar("nextrol", "FLT")
+      local igntype  = asmlib.GetAsmVar("igntype", "BUL")
+      local spnflat  = asmlib.GetAsmVar("spnflat", "BUL")
+      local activrad = asmlib.GetAsmVar("activrad", "FLT")
       for trID = 1, trRec.Kept, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
-        local xyS = oDt.start:ToScreen()
-        local xyE = oDt.endpos:ToScreen()
-        local rdS = mathClamp(ratiom / (oDt.start - oPly:GetPos()):Length(),1,ratioc)
+        local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
+        local rdS = asmlib.CacheRadiusPly(oPly, oDt.start, 1)
         if(oTr and oTr.Hit) then -- Draw the hit different
           local trE = oTr.Entity
           local xyH = oTr.HitPos:ToScreen()
