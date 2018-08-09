@@ -10,7 +10,6 @@ local tostring    = tostring
 local mathClamp   = math and math.Clamp
 
 ----- Get extension enabled flag
-local maxColor = 255
 local anyTrue, anyFalse  = 1, 0
 local cvX, cvY, cvZ = asmlib.GetIndexes("V")
 local caP, caY, caR = asmlib.GetIndexes("A")
@@ -216,8 +215,7 @@ e2function array trackasmlibGetAdditionsLine(string sModel, number nID)
   if(not stRec[nID]) then return {} end; stRec = stRec[nID] 
   local cnRow, arAdd = 2, {} -- The model is missed by the main SELECT
   while(defAddit[cnRow]) do  -- Ordered by ID. Get the line per model
-    arAdd[cnRow-1] = stRec[defAddit[cnRow][1]]
-    cnRow = cnRow + 1
+    arAdd[cnRow-1] = stRec[defAddit[cnRow][1]]; cnRow = cnRow + 1
   end; return arAdd
 end
 
@@ -230,8 +228,7 @@ e2function array entity:trackasmlibGetAdditionsLine(number nID)
   if(not stRec[nID]) then return {} end; stRec = stRec[nID]
   local cnRow, arAdd = 2, {} -- The model is missed by the main SELECT
   while(defAddit[cnRow]) do  -- Ordered by ID. Get the line per model
-    arAdd[cnRow-1] = stRec[defAddit[cnRow][1]]
-    cnRow = cnRow + 1
+    arAdd[cnRow-1] = stRec[defAddit[cnRow][1]]; cnRow = cnRow + 1
   end; return arAdd
 end
 
@@ -259,8 +256,7 @@ e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, n
   if(not asmlib.IsPlayer(self.player)) then return nil end
   local stRec = asmlib.CacheQueryPiece(sModel); if(not stRec) then return nil end
   return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
-             mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)),gsBErr)
+           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(nR,nG,nB,nA),gsBErr)
 end
 
 __e2setcost(50)
@@ -269,8 +265,7 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nM
   if(not asmlib.IsPlayer(self.player)) then return nil end
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
   return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,Color(mathClamp(nR,0,maxColor),mathClamp(nG,0,maxColor),
-             mathClamp(nB,0,maxColor),mathClamp(nA,0,maxColor)),gsBErr)
+           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(nR,nG,nB,nA),gsBErr)
 end
 
 __e2setcost(50)

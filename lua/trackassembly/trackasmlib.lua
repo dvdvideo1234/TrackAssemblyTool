@@ -399,6 +399,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("EPSILON_ZERO", 1e-5)
+  SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("DATE_FORMAT","%d-%m-%y")
   SetOpVar("TIME_FORMAT","%H:%M:%S")
@@ -471,6 +472,25 @@ function InitBase(sName,sPurpose)
   SetOpVar("NAV_PROPERTY_NAMES",{})
   SetOpVar("NAV_PROPERTY_TYPES",{})
   return StatusPrint(true,"InitBase: Success")
+end
+
+------------- COLOR ---------------
+
+function FixColor(nC)
+  local tC = GetOpVar("COLOR_CLAMP")  
+  return mathClamp(tonumber(nC) or 0, tC[1], tC[2])
+end
+
+function GetColor(xR, xG, xB, xA)
+  local nR, nG = FixColor(xR), FixColor(xG)
+  local nB, nA = FixColor(xB), FixColor(xA)
+  return Color(nR, nG, nB, nA)
+end
+
+function ToColor(vBase, pX, pY, pZ, pA)
+  if(not vBase) then return StatusLog(nil,"ToColor: Base invalid") end
+  local iX, iY, iZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
+  return Color(vBase[iX], vBase[iY], vBase[iZ], pA)
 end
 
 ------------- ANGLE ---------------
