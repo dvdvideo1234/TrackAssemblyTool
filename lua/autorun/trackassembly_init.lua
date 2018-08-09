@@ -33,9 +33,11 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.456")
+asmlib.SetOpVar("TOOL_VERSION","5.457")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
+asmlib.SetIndexes("WV",1,2,3)
+asmlib.SetIndexes("WA",1,2,3)
 asmlib.SetIndexes("S",4,5,6,7)
 
 ------ VARIABLE FLAGS ------
@@ -59,7 +61,7 @@ asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIn
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
 asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmVar("maxlinear", "250"   ,  {1}, gnServerControled, "Maximum linear offset of the piece")
+asmlib.MakeAsmVar("maxlinear", "1000"  ,  {1}, gnServerControled, "Maximum linear offset of the piece")
 asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmVar("maxstcnt" , "200", {1,800}, gnServerControled, "Maximum pieces to spawn in stack mode")
@@ -156,14 +158,14 @@ if(SERVER) then
       local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmVar("maxforce" , "FLT"))
       local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
       local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
-      for ID = 1, trRec.Kept, 1 do -- Hits distance shorter than the active radius
+      for ID = 1, trRec.Size, 1 do -- Hits distance shorter than the active radius
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, ID, activrad)
         local rTr = (activrad * oTr.Fraction) -- Estimate active fraction length
         if(oTr and oTr.Hit and (rTr < trRad)) then local eTr = oTr.Entity
           if(eTr and eTr:IsValid()) then trRad, trID, trTr = rTr, ID, oTr end
         end
       end -- The trace with the shortest distance is found
-      if(trTr and trTr.Hit and (trID > 0) and (trID <= trRec.Kept)) then
+      if(trTr and trTr.Hit and (trID > 0) and (trID <= trRec.Size)) then
         local stSpawn = asmlib.GetEntitySpawn(pPly,trTr.Entity,trTr.HitPos,trRec.Slot,trID,
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
@@ -542,7 +544,7 @@ if(CLIENT) then
       local igntype  = asmlib.GetAsmVar("igntype", "BUL")
       local spnflat  = asmlib.GetAsmVar("spnflat", "BUL")
       local activrad = asmlib.GetAsmVar("activrad", "FLT")
-      for trID = 1, trRec.Kept, 1 do
+      for trID = 1, trRec.Size, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
         local rdS = asmlib.CacheRadiusPly(oPly, oDt.start, 1)

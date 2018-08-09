@@ -3,7 +3,7 @@
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
       if(not trRec) then return end
       local ID, O = 1, Vector()
-      while(ID <= trRec.Kept) do
+      while(ID <= trRec.Size) do
         local stPOA = asmlib.LocatePOA(trRec,ID)
         if(not stPOA) then
           return asmlib.StatusLog(nil,"DrawHUD: Cannot assist point #"..tostring(ID)) end

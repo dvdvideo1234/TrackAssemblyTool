@@ -449,11 +449,11 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  TR.Hit:         <"..tostring(stTrace and stTrace.Hit or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Kept or gsNoID).."]"..sDelim
+        sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]"..sDelim
         sDu = sDu..sSpace.."  TR.File:        <"..(trModel and tostring(trModel):GetFileFromFilename() or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
         sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
-        sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Kept or gsNoID).."]"..sDelim
+        sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]"..sDelim
         sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel or gsNoAV):GetFileFromFilename()..">"..sDelim
         sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
@@ -506,7 +506,7 @@ function TOOL:SelectModel(sModel)
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")) end
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
-        pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Kept)
+        pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Size)
   asmlib.PrintNotifyPly(ply,"Model: "..sModel:GetFileFromFilename().." selected !","UNDO")
   asmlib.ConCommandPly (ply,"pointid", pointid)
   asmlib.ConCommandPly (ply,"pnextid", pnextid)
@@ -617,7 +617,7 @@ function TOOL:LeftClick(stTrace)
     end
   end
 
-  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Kept) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -904,7 +904,7 @@ function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
   local nRad = mathClamp(rm / plyd, 1, rc)
   local vTmp, trLen, trPOA =  Vector(), 0, nil
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
-  for ID = 1, trRec.Kept do
+  for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       return asmlib.StatusLog(nil,"TOOL:DrawRelateAssist: Cannot locate #"..tostring(ID)) end
     asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
@@ -921,7 +921,7 @@ function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
   if(not trRec) then return end
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   local O, R = Vector(), (nActRad * oPly:GetRight())
-  for ID = 1, trRec.Kept do
+  for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       return asmlib.StatusLog(nil,"TOOL:DrawSnapAssist: Cannot locate #"..tostring(ID)) end
     asmlib.SetVector(O,stPOA.O); O:Rotate(trAng); O:Add(trPos)
@@ -1025,7 +1025,7 @@ function TOOL:DrawHUD()
     hudMonitor:DrawCircle(Pp, nRad / 2)
     if(workmode == 1) then
       local nxPOA = asmlib.LocatePOA(stSpawn.HRec,pnextid)
-      if(nxPOA and stSpawn.HRec.Kept > 1) then
+      if(nxPOA and stSpawn.HRec.Size > 1) then
         local vNext = Vector(); asmlib.SetVector(vNext,nxPOA.O)
               vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
         local Np = vNext:ToScreen() -- Draw Next Point
@@ -1081,7 +1081,7 @@ function TOOL:DrawHUD()
       local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
       if(workmode == 1) then
         local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
-        if(nxPOA and stSpawn.HRec.Kept > 1) then
+        if(nxPOA and stSpawn.HRec.Size > 1) then
           local vNext = Vector() -- Draw next point when available
                 asmlib.SetVector(vNext,nxPOA.O)
                 vNext:Rotate(stSpawn.SAng)
@@ -1155,7 +1155,7 @@ function TOOL:DrawToolScreen(w, h)
       trRLen = asmlib.RoundValue(stSpawn.RLen,0.01)
     end
     if(trRec) then
-      trMaxCN = trRec.Kept
+      trMaxCN = trRec.Size
       trModel = trModel:GetFileFromFilename()
     else trModel = "["..gsNoMD.."]"..trModel:GetFileFromFilename() end
   end
@@ -1168,7 +1168,7 @@ function TOOL:DrawToolScreen(w, h)
                   .."] "  ..(trOID      or gsNoID)
                   .." >> "..(pointid    or gsNoID)
                   .. " (" ..(pnextid    or gsNoID)
-                  ..") [" ..(hdRec.Kept or gsNoID).."]","g")
+                  ..") [" ..(hdRec.Size or gsNoID).."]","g")
   scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
   scrTool:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
   local txX, txY, txW, txH, txsX, txsY = scrTool:GetTextState()
