@@ -156,7 +156,7 @@ function TOOL:ApplyLinearFirst()
 end
 
 function TOOL:GetModel()
-  return (self:GetClientInfo("model") or "")
+  return tostring(self:GetClientInfo("model") or "")
 end
 
 function TOOL:GetCount()
@@ -201,7 +201,7 @@ function TOOL:GetIgnoreType()
 end
 
 function TOOL:GetBodyGroupSkin()
-  return self:GetClientInfo("bgskids") or ""
+  return tostring(self:GetClientInfo("bgskids") or "")
 end
 
 function TOOL:GetGravity()
@@ -229,7 +229,7 @@ function TOOL:GetLogLines()
 end
 
 function TOOL:GetLogFile()
-  return (asmlib.GetAsmVar("logfile","STR") or "")
+  return tostring(asmlib.GetAsmVar("logfile","STR") or "")
 end
 
 function TOOL:GetAdviser()
@@ -1319,10 +1319,9 @@ function TOOL.BuildCPanel(CPanel)
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()
-            pnSelf:SetText(sTX)
-            pnSelf:SetValue(sTX)
+            pnSelf:SetText(sTX); pnSelf:SetValue(sTX)
           elseif(nKeyEnum == KEY_ENTER) then
-            local sTX = pnSelf:GetValue() or ""
+            local sTX = tostring(pnSelf:GetValue() or "")
             RunConsoleCommand(gsToolPrefL.."bgskids",sTX)
           end
         end; CurY = CurY + pText:GetTall() + 2
