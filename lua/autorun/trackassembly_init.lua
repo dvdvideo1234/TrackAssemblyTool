@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.459")
+asmlib.SetOpVar("TOOL_VERSION","5.460")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -55,22 +55,23 @@ asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
 asmlib.MakeAsmVar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database operating mode")
-asmlib.MakeAsmVar("devmode"  , "0"  , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
-asmlib.MakeAsmVar("maxtrmarg", "0.02",{0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
+asmlib.MakeAsmVar("devmode"  ,    0 , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmVar("maxtrmarg", 0.02 , {0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
 asmlib.MakeAsmVar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
 ------ CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeAsmVar("maxmass"  , "50000" ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmVar("maxlinear", "1000"  ,  {1}, gnServerControled, "Maximum linear offset of the piece")
-asmlib.MakeAsmVar("maxforce" , "100000",  {0}, gnServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmVar("maxactrad", "150", {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmVar("maxstcnt" , "200", {1,800}, gnServerControled, "Maximum pieces to spawn in stack mode")
-asmlib.MakeAsmVar("enwiremod", "1"  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off on restart server side")
+asmlib.MakeAsmVar("maxmass"  , 50000 ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
+asmlib.MakeAsmVar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum linear offset of the piece")
+asmlib.MakeAsmVar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
+asmlib.MakeAsmVar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmVar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
+asmlib.MakeAsmVar("maxghosts", 1  ,     {0}, gnServerControled, "Maximum ghosted pieces drawn by the client")
+asmlib.MakeAsmVar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off on restart server side")
 
 if(SERVER) then
-  asmlib.MakeAsmVar("bnderrmod", "LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
-  asmlib.MakeAsmVar("maxfruse" , "50" , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
-  CreateConVar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), "1500", gnServerControled, "Maximum number of tracks to be spawned")
+  asmlib.MakeAsmVar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
+  asmlib.MakeAsmVar("maxfruse" ,  50 , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
+  asmlib.MakeAsmVar("*sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), 1500, {0}, gnServerControled, "Maximum number of tracks to be spawned")
 end
 
 ------ CONFIGURE INTERNALS -----

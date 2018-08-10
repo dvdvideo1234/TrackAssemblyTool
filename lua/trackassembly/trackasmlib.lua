@@ -1081,15 +1081,16 @@ local function RollValue(nVal,nMin,nMax)
   return nVal
 end
 
-local function BorderValue(nsVal,sName)
-  if(not IsString(sName)) then return nsVal end
+local function BorderValue(nsVal, sKey, sNam)
+  if(not IsExistent(sKey)) then return nsVal end
+  if(not IsExistent(sNam)) then return nsVal end
   if(not (IsString(nsVal) or tonumber(nsVal))) then
     return StatusLog(nsVal,"BorderValue: Value not comparable") end
-  local Border = GetOpVar("TABLE_BORDERS")
-        Border = Border[sName]
-  if(IsExistent(Border)) then
-    if(Border[1] and nsVal < Border[1]) then return Border[1] end
-    if(Border[2] and nsVal > Border[2]) then return Border[2] end
+  local tB = GetOpVar("TABLE_BORDERS"); tB = tB[sKey]; if(not IsExistent(tB)) then
+    return StatusLog(nsVal,"BorderValue: Missing <"..tostring(sKey)..">") end
+  tB = tB[sNam]; if(IsExistent(tB)) then
+    if(tB[1] and nsVal < tB[1]) then return tB[1] end
+    if(tB[2] and nsVal > tB[2]) then return tB[2] end
   end; return nsVal
 end
 
@@ -3531,19 +3532,17 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   end; return StatusLog(true,"ApplyPhysicalAnchor: Success")
 end
 
-function MakeAsmVar(sName, sValue, tBord, nFlag, sInfo)
+function MakeAsmVar(sName, vVal, vBord, nFlag, vInfo)
   if(not IsString(sName)) then
     return StatusLog(nil,"MakeAsmVar: CVar name {"..type(sName).."}<"..tostring(sName).."> not string") end
-  if(not IsExistent(sValue)) then
-    return StatusLog(nil,"MakeAsmVar: Wrong default value <"..tostring(sValue)..">") end
-  if(not IsString(sInfo)) then
-    return StatusLog(nil,"MakeAsmVar: CVar info {"..type(sInfo).."}<"..tostring(sInfo).."> not string") end
-  local sLow = sName:lower()
-  if(tBord and (type(tBord) == "table")) then
-    local mIn, mAx = tostring(tBord[1]), tostring(tBord[2])
-    LogInstance("MakeAsmVar: Border ("..sLow..")<"..mIn.."/"..mAx..">")
-    local tBorder = GetOpVar("TABLE_BORDERS"); tBorder["cvar_"..sLow] = tBord
-  end; return CreateConVar(GetOpVar("TOOLNAME_PL")..sLow, sValue, nFlag, sInfo)
+  local sLow = ((sName:sub(1,1) == "*") and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
+  local cVal, sInf, tBrd = (tonumber(vVal) or tostring(vVal)), tostring(vInfo or ""), GetOpVar("TABLE_BORDERS")
+  if(not IsExistent(tBrd.CVAR)) then tBrd.CVAR = {} end; tBrd = tBrd.CVAR
+  if(IsExistent(tBrd[sLow])) then return StatusLog(nil,"MakeAsmVar: Exists <"..var..">") end
+  tBrd[sLow] = (vBord or {}); tBrd = tBrd[sLow]; tBrd[3] = cVal; nFlg = mathFloor(tonumber(nFlag) or 0)
+  local mIn, mAx, dEf = tostring(tBrd[1]), tostring(tBrd[2]), tostring(tBrd[3])
+  LogInstance("MakeAsmVar: Border ("..sLow..")<"..mIn.."/"..mAx..">["..dEf.."]")
+  return CreateConVar(sLow, cVal, nFlg, sInf)
 end
 
 function GetAsmVar(sName, sMode)
@@ -3551,12 +3550,11 @@ function GetAsmVar(sName, sMode)
     return StatusLog(nil,"GetAsmVar: CVar name {"..type(sName).."}<"..tostring(sName).."> not string") end
   if(not IsString(sMode)) then
     return StatusLog(nil,"GetAsmVar: CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
-  local sLow = sName:lower()
-  local CVar = GetConVar(GetOpVar("TOOLNAME_PL")..sLow)
-  if(not IsExistent(CVar)) then
-    return StatusLog(nil,"GetAsmVar("..sName..", "..sMode.."): Missing CVar object") end
-  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  ,"cvar_"..sLow)) or 0)
-  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(),"cvar_"..sLow)) or 0)
+  local sLow = ((sName:sub(1,1) == "*") and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
+  local CVar = GetConVar(sLow); if(not IsExistent(CVar)) then
+    return StatusLog(nil,"GetAsmVar("..sLow..", "..sMode.."): Missing CVar object") end
+  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  , "CVAR", sLow)) or 0)
+  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(), "CVAR", sLow)) or 0)
   elseif(sMode == "STR") then return  tostring(CVar:GetString() or "")
   elseif(sMode == "BUL") then return (CVar:GetBool() or false)
   elseif(sMode == "DEF") then return  CVar:GetDefault()
