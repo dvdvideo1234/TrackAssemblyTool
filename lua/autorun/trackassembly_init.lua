@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.458")
+asmlib.SetOpVar("TOOL_VERSION","5.459")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -89,20 +89,20 @@ local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmVar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
-      conPalette:Insert("r" ,Color(255,  0,  0,255)) -- Red
-      conPalette:Insert("g" ,Color(  0,255,  0,255)) -- Green
-      conPalette:Insert("b" ,Color(  0,  0,255,255)) -- Blue
-      conPalette:Insert("c" ,Color(  0,255,255,255)) -- Cyan
-      conPalette:Insert("m" ,Color(255,  0,255,255)) -- Magenta
-      conPalette:Insert("y" ,Color(255,255,  0,255)) -- Yellow
-      conPalette:Insert("w" ,Color(255,255,255,255)) -- White
-      conPalette:Insert("k" ,Color(  0,  0,  0,255)) -- Black
-      conPalette:Insert("gh",Color(255,255,255,200)) -- self.GhostEntity
-      conPalette:Insert("tx",Color( 80, 80, 80,255)) -- Panel names text color
-      conPalette:Insert("an",Color(180,255,150,255)) -- Selected anchor
-      conPalette:Insert("db",Color(220,164, 52,255)) -- Database mode
-      conPalette:Insert("ry",Color(230,200, 80,255)) -- Ray tracing
-      conPalette:Insert("wm",Color(143,244, 66,255)) -- Working mode HUD
+      conPalette:Insert("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
+      conPalette:Insert("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
+      conPalette:Insert("b" ,asmlib.GetColor(  0,  0,255,255)) -- Blue
+      conPalette:Insert("c" ,asmlib.GetColor(  0,255,255,255)) -- Cyan
+      conPalette:Insert("m" ,asmlib.GetColor(255,  0,255,255)) -- Magenta
+      conPalette:Insert("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
+      conPalette:Insert("w" ,asmlib.GetColor(255,255,255,255)) -- White
+      conPalette:Insert("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
+      conPalette:Insert("gh",asmlib.GetColor(255,255,255,200)) -- self.GhostEntity
+      conPalette:Insert("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
+      conPalette:Insert("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
+      conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
+      conPalette:Insert("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
+      conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
 
 -------- CALLBACKS ----------
 asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN")

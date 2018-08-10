@@ -292,7 +292,7 @@ e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, n
   if(not asmlib.IsPlayer(self.player)) then return nil end
   local stRec = asmlib.CacheQueryPiece(sModel); if(not stRec) then return nil end
   return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,Color(255,255,255,255),gsBErr)
+           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(255,255,255,255),gsBErr)
 end
 
 __e2setcost(50)
@@ -301,7 +301,7 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nM
   if(not asmlib.IsPlayer(self.player)) then return nil end
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
   return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,Color(255,255,255,255),gsBErr)
+           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(255,255,255,255),gsBErr)
 end
 
 __e2setcost(50)
@@ -310,7 +310,7 @@ e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, n
   if(not asmlib.IsPlayer(self.player)) then return nil end
   local stRec = asmlib.CacheQueryPiece(sModel); if(not stRec) then return nil end
   return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),"0/0",Color(255,255,255,255),gsBErr)
+           mathClamp(nMass,1,maxMass),"0/0",asmlib.GetColor(255,255,255,255),gsBErr)
 end
 
 __e2setcost(50)
@@ -320,7 +320,7 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nM
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
   local sBgpID = asmlib.GetPropBodyGroup(this)..asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
   return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,Color(255,255,255,255),gsBErr)
+           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(255,255,255,255),gsBErr)
 end
 
 __e2setcost(50)

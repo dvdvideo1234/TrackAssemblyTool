@@ -478,7 +478,7 @@ end
 
 function FixColor(nC)
   local tC = GetOpVar("COLOR_CLAMP")  
-  return mathClamp(tonumber(nC) or 0, tC[1], tC[2])
+  return mathFloor(mathClamp(tonumber(nC) or 0, tC[1], tC[2]))
 end
 
 function GetColor(xR, xG, xB, xA)
@@ -487,10 +487,10 @@ function GetColor(xR, xG, xB, xA)
   return Color(nR, nG, nB, nA)
 end
 
-function ToColor(vBase, pX, pY, pZ, pA)
+function ToColor(vBase, pX, pY, pZ, vA)
   if(not vBase) then return StatusLog(nil,"ToColor: Base invalid") end
   local iX, iY, iZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
-  return Color(vBase[iX], vBase[iY], vBase[iZ], pA)
+  return GetColor(vBase[iX], vBase[iY], vBase[iZ], vA)
 end
 
 ------------- ANGLE ---------------
@@ -566,14 +566,6 @@ function ToVector(vBase, pX, pY, pZ)
   if(not vBase) then return StatusLog(nil,"ToVector: Base invalid") end
   local vX, vY, vZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
   return Vector((tonumber(vBase[vX]) or 0), (tonumber(vBase[vY]) or 0), (tonumber(vBase[vZ]) or 0))
-end
-
-function ToColor(vBase, pX, pY, pZ, pA)
-  if(not vBase) then return StatusLog(nil,"ToColor: Base invalid") end
-  local vX, vY, vZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
-  local nR, nG, nB = (tonumber(vBase[vX]) or 0), (tonumber(vBase[vY]) or 0), (tonumber(vBase[vZ]) or 0)
-        nR, nG, nB = mathClamp(nR, 0, 255), mathClamp(nG, 0, 255), mathClamp(nB, 0, 255)
-  return Color(nR, nG, nB, mathClamp(tonumber(pA) or 0, 0, 255))
 end
 
 function ExpVector(vBase, pX, pY, pZ)
@@ -721,7 +713,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(sW < 0 or sH < 0) then return StatusLog(nil,"MakeScreen: Start dimension invalid") end
   if(eW < 0 or eH < 0) then return StatusLog(nil,"MakeScreen: End dimension invalid") end
-  local Colors = {List = conColors, Key = GetOpVar("OOP_DEFAULTKEY"), Default = Color(255,255,255,255)}
+  local Colors = {List = conColors, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
       then return StatusLog(nil,"MakeScreen: Color list not container") end
@@ -1004,7 +996,7 @@ function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
   pItem.DoClick         = function() return false end
   pItem.DoRightClick    = function() SetClipboardText(pItem:GetText()) end
   pItem.Label.UpdateColours = function(pSelf)
-    return pSelf:SetTextStyleColor(txCol or Color(0,0,0,255)) end
+    return pSelf:SetTextStyleColor(txCol or GetColor(0,0,0,255)) end
   return pCurr[sName], pItem
 end
 
@@ -3474,7 +3466,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:Spawn()
   ePiece:Activate()
   ePiece:SetRenderMode(RENDERMODE_TRANSALPHA)
-  ePiece:SetColor(clColor or Color(255,255,255,255))
+  ePiece:SetColor(clColor or GetColor(255,255,255,255))
   ePiece:DrawShadow(false)
   ePiece:PhysWake()
   local phPiece = ePiece:GetPhysicsObject()
