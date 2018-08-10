@@ -13,9 +13,6 @@ local asmlib = trackasmlib
 -- Change this to your addon name
 local myAddon = "Test's track pack" -- Your addon name goes here
 
--- The base tool prefix which serves for script running identification
-local myToolp = "TrackAssemblyTool("..myAddon..")"
-
 --[[
  * Change this if you want to use different in-game type
  * You can also use multiple types myType1, myType2,
@@ -36,6 +33,24 @@ local myError = print
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_")
 
+-- This is the script path. It tells TA who wants to add these models
+-- Do not touch this also, it is used for debugging
+local myScript = debug.getinfo(1)
+      myScript = myScript and myScript.source or "N/A"
+
+--[[
+ * This function defines what happens when there is an error present
+ * Usually you can tell Gmod that you want it to generate an error
+ * and throw the message to the log also. In this case you will not
+ * have to change the change the function name in lots of places
+ * when you need it to do something else
+--]]
+local function myThrowError(vMesg)
+  local sMesg = tostring(vMesg)                    -- Make sure the message is string
+  if(asmlib) then asmlib.LogInstance(sMesg) end    -- Output the message into the logs
+  myError(myScript.." > ("..myAddon.."): "..sMesg) -- Generate an error in the console ( optional )
+end
+
 if(asmlib) then
   -- This is the path to your DSV
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
@@ -52,29 +67,8 @@ if(asmlib) then
   ]]--
   local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
 
-  -- This is the script path. It tells TA who wants to add these models
-  -- Do not touch this also, it is used for debugging
-  local myScript = debug.getinfo(1)
-        myScript = myScript and myScript.source or "N/A"
-
   -- Tell TA what custom script we just called don't touch it
-  asmlib.LogInstance(">>> "..myScript)
-
-  -- And what parameters I was called with ;)
-  asmlib.LogInstance("Status("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
-
-  --[[
-   * This function defines what happens when there is an error present
-   * Usually you can tell Gmod that you want it to generate an error
-   * and throw the message to the log also. In this case you will not
-   * have to change the change the function name in lots of places
-   * when you need it to do something else
-  --]]
-  local function myThrowError(vMesg)
-    local sMesg = tostring(vMesg)                  -- Make sure the message is string
-    asmlib.LogInstance(sMesg)                      -- Output the message into the logs
-    myError(myScript.." > "..myToolp..": "..sMesg) -- Generate an error in the console ( optional )
-  end
+  asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
 
   --[[
    * Register the addon to the auto-load prefix list when the
@@ -87,12 +81,14 @@ if(asmlib) then
    * sPref  > The external data prefix to be added ( default instance prefix )
    * sDelim > The delimiter to be used for processing ( default tab )
   ]]--
+  asmlib.LogInstance("RegisterDSV start <"..myPrefix..">")
   if(myFlag) then -- Your DSV must be registered only once when loading for the first time
     asmlib.LogInstance("RegisterDSV skip <"..myPrefix..">")
   else -- If the locking file is not located that means this is the first run of your script
     if(not asmlib.RegisterDSV(myScript, myPrefix)) then -- Register the DSV prefix and check for error
       myThrowError("Failed to register DSV") -- Throw the error if fails
     end -- Third argument is the delimiter. The default tab is used
+    asmlib.LogInstance("RegisterDSV done <"..myPrefix..">")
   end
   --[[
    * This is used if you want to make internal categories for your addon
@@ -130,10 +126,14 @@ if(asmlib) then
    * sPref  > An export file custom prefix. For synchronizing
    * it must be related to your addon ( default is instance prefix )
   ]]--
+  asmlib.LogInstance("ExportCategory start <"..myPrefix..">")
   if(CLIENT) then
     if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
       myThrowError("Failed to synchronize category")
     end
+    asmlib.LogInstance("ExportCategory done <"..myPrefix..">")
+  else
+    asmlib.LogInstance("ExportCategory skip <"..myPrefix..">")
   end
 
   --[[
@@ -191,14 +191,17 @@ if(asmlib) then
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
    * sDelim > The delimiter used by the server/client ( default is a tab symbol )
   ]]--
+  asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
   if(not asmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
     myThrowError("Failed to synchronize track pieces")
-  else -- You are saving me from all the work for manually generation these
+  else -- You are saving me from all the work for manually generating these
+    asmlib.LogInstance("TranslateDSV start <"..myPrefix..">")
     if(not asmlib.TranslateDSV("PIECES", myPrefix)) then
       myThrowError("Failed to translate DSV into Lua") end
+    asmlib.LogInstance("TranslateDSV done <"..myPrefix..">")
   end -- Now we have Lua inserts and DSV
 
   asmlib.LogInstance("<<< "..myScript)
 else
-  myError(myScript.." > "..myToolp..": Failed loading the required module")
+  myThrowError("Failed loading the required module")
 end

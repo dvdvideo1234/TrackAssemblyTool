@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.461")
+asmlib.SetOpVar("TOOL_VERSION","5.462")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -48,9 +48,9 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY
 
 ------ CONFIGURE LOGGING ------
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmVar("logsmax"  , "0" , {0}   , gnIndependentUsed, "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , "0" , {0, 1}, gnIndependentUsed, "File to store the logs ( if any )")
-asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","STR"))
+asmlib.MakeAsmVar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines to be printed")
+asmlib.MakeAsmVar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File to store the logs ( if any )")
+asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
@@ -106,9 +106,11 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
 
 -------- CALLBACKS ----------
-asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN")
-asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" , function(v) return mathFloor(tonumber(v) or 0) end)
-asmlib.SetAsmVarCallback("logfile"  , "INT", "LOG_LOGFILE" , tobool)
+asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
+  function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
+asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
+  function(v) return mathFloor(tonumber(v) or 0) end)
+asmlib.SetAsmVarCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
 
 -------- ACTIONS ----------
 if(SERVER) then
@@ -244,50 +246,50 @@ if(CLIENT) then
         local anchor = asmlib.GetOpVar("MISS_NOID")..
                        asmlib.GetOpVar("OPSYM_REVSIGN")..
                        asmlib.GetOpVar("MISS_NOMD")
-        asmlib.ConCommandPly(oPly, "weld"     , "1")
-        asmlib.ConCommandPly(oPly, "mass"     , "25000")
+        asmlib.ConCommandPly(oPly, "weld"     , 1)
+        asmlib.ConCommandPly(oPly, "mass"     , 25000)
         asmlib.ConCommandPly(oPly, "model"    , "models/props_phx/trains/tracks/track_1x.mdl")
-        asmlib.ConCommandPly(oPly, "count"    , "5")
-        asmlib.ConCommandPly(oPly, "freeze"   , "1")
+        asmlib.ConCommandPly(oPly, "count"    , 5)
+        asmlib.ConCommandPly(oPly, "freeze"   , 1)
         asmlib.ConCommandPly(oPly, "anchor"   , anchor)
-        asmlib.ConCommandPly(oPly, "igntype"  , "0")
-        asmlib.ConCommandPly(oPly, "spnflat"  , "0")
-        asmlib.ConCommandPly(oPly, "angsnap"  , "45")
-        asmlib.ConCommandPly(oPly, "pointid"  , "1")
-        asmlib.ConCommandPly(oPly, "pnextid"  , "2")
-        asmlib.ConCommandPly(oPly, "spawncn"  , "0")
+        asmlib.ConCommandPly(oPly, "igntype"  , 0)
+        asmlib.ConCommandPly(oPly, "spnflat"  , 0)
+        asmlib.ConCommandPly(oPly, "angsnap"  , 45)
+        asmlib.ConCommandPly(oPly, "pointid"  , 1)
+        asmlib.ConCommandPly(oPly, "pnextid"  , 2)
+        asmlib.ConCommandPly(oPly, "spawncn"  , 0)
         asmlib.ConCommandPly(oPly, "bgskids"  , "0/0")
-        asmlib.ConCommandPly(oPly, "gravity"  , "1")
-        asmlib.ConCommandPly(oPly, "adviser"  , "1")
-        asmlib.ConCommandPly(oPly, "activrad" , "45")
-        asmlib.ConCommandPly(oPly, "pntasist" , "1")
-        asmlib.ConCommandPly(oPly, "surfsnap" , "0")
-        asmlib.ConCommandPly(oPly, "workmode" , "1")
-        asmlib.ConCommandPly(oPly, "appangfst", "0")
-        asmlib.ConCommandPly(oPly, "applinfst", "0")
-        asmlib.ConCommandPly(oPly, "exportdb" , "0")
-        asmlib.ConCommandPly(oPly, "offsetup" , "0")
-        asmlib.ConCommandPly(oPly, "forcelim" , "0")
-        asmlib.ConCommandPly(oPly, "ignphysgn", "0")
-        asmlib.ConCommandPly(oPly, "ghosthold", "1")
-        asmlib.ConCommandPly(oPly, "maxstatts", "3")
-        asmlib.ConCommandPly(oPly, "nocollide", "1")
+        asmlib.ConCommandPly(oPly, "gravity"  , 1)
+        asmlib.ConCommandPly(oPly, "adviser"  , 1)
+        asmlib.ConCommandPly(oPly, "activrad" , 45)
+        asmlib.ConCommandPly(oPly, "pntasist" , 1)
+        asmlib.ConCommandPly(oPly, "surfsnap" , 0)
+        asmlib.ConCommandPly(oPly, "workmode" , 1)
+        asmlib.ConCommandPly(oPly, "appangfst", 0)
+        asmlib.ConCommandPly(oPly, "applinfst", 0)
+        asmlib.ConCommandPly(oPly, "exportdb" , 0)
+        asmlib.ConCommandPly(oPly, "offsetup" , 0)
+        asmlib.ConCommandPly(oPly, "forcelim" , 0)
+        asmlib.ConCommandPly(oPly, "ignphysgn", 0)
+        asmlib.ConCommandPly(oPly, "ghosthold", 1)
+        asmlib.ConCommandPly(oPly, "maxstatts", 3)
+        asmlib.ConCommandPly(oPly, "nocollide", 1)
         asmlib.ConCommandPly(oPly, "physmater", "metal")
-        asmlib.ConCommandPly(oPly, "enpntmscr", "1")
-        asmlib.ConCommandPly(oPly, "engunsnap", "0")
-        asmlib.ConCommandPly(oPly, "logsmax"  , "0")
-        asmlib.ConCommandPly(oPly, "logfile"  , "")
+        asmlib.ConCommandPly(oPly, "enpntmscr", 1)
+        asmlib.ConCommandPly(oPly, "engunsnap", 0)
+        asmlib.ConCommandPly(oPly, "logsmax"  , 0)
+        asmlib.ConCommandPly(oPly, "logfile"  , 0)
         asmlib.ConCommandPly(oPly, "modedb"   , "LUA")
         asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
-        asmlib.ConCommandPly(oPly, "enwiremod", "1")
-        asmlib.ConCommandPly(oPly, "devmode"  , "0")
-        asmlib.ConCommandPly(oPly, "maxmass"  , "50000")
-        asmlib.ConCommandPly(oPly, "maxlinear", "250")
-        asmlib.ConCommandPly(oPly, "maxforce" , "100000")
-        asmlib.ConCommandPly(oPly, "maxactrad", "150")
-        asmlib.ConCommandPly(oPly, "maxstcnt" , "200")
+        asmlib.ConCommandPly(oPly, "enwiremod", 1)
+        asmlib.ConCommandPly(oPly, "devmode"  , 0)
+        asmlib.ConCommandPly(oPly, "maxmass"  , 50000)
+        asmlib.ConCommandPly(oPly, "maxlinear", 250)
+        asmlib.ConCommandPly(oPly, "maxforce" , 100000)
+        asmlib.ConCommandPly(oPly, "maxactrad", 150)
+        asmlib.ConCommandPly(oPly, "maxstcnt" , 200)
         asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
-        asmlib.ConCommandPly(oPly, "maxfruse" , "50")
+        asmlib.ConCommandPly(oPly, "maxfruse" , 50)
         asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
@@ -484,8 +486,8 @@ if(CLIENT) then
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
-        local uiAct = tonumber(pnLine:GetColumnText(2) or 0 ) -- The active points count to be used for change
-        local uiMod = tostring(pnLine:GetColumnText(5) or "") -- Forth index is actually the model in the table
+        local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0 ) -- The active points count to be used for change
+        local uiMod =  tostring(pnLine:GetColumnText(5)  or "") -- Forth index is actually the model in the table
                       pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)

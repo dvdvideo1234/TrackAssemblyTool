@@ -1,140 +1,254 @@
-     1 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PIECES deleted !
-     2 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PIECES dropped !
-     3 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PIECES created !
-     4 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS deleted !
-     5 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS dropped !
-     6 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Indexed Table ADDITIONS created !
-     7 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES deleted !
-     8 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES dropped !
-     9 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PHYSPROPERTIES created !
-    10 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] Init: DB PIECES from LUA
-    11 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPieces> missing
-    12 [01/23/17 00:03:57] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    13 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_left>
-    14 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_right>
-    15 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_left>
-    16 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_right>
-    17 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_left>
-    18 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_right>
-    19 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_y>
-    20 [01/23/17 00:03:58] SERVER > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_x>
-    21 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] Init: DB PHYSPROPERTIES from LUA
-    22 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPhysproperties> missing
-    23 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    24 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    25 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] Init: DB ADDITIONS from LUA
-    26 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertAdditions> missing
-    27 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    28 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    29 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
-    30 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] >>> @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
-    31 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] Status: {Test's track pack, Test_s_track_pack}
-    32 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] RegisterDSV: Success <Test's track pack>
-    33 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] SynchronizeDSV: Success <Test's track pack>
-    34 [01/23/17 00:03:59] SERVER > TRACKASSEMBLY [SQL] <<< @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
-    35 [01/23/17 00:04:03] SERVER > TRACKASSEMBLY [SQL] ProcessDSV(Test_s_track_pack): PIECES
-    36 [01/23/17 00:04:03] SERVER > TRACKASSEMBLY [SQL] ProcessDSV: Success
-     1 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PIECES deleted !
-     2 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PIECES dropped !
-     3 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PIECES created !
-     4 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS deleted !
-     5 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table ADDITIONS dropped !
-     6 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Indexed Table ADDITIONS created !
-     7 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES deleted !
-     8 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Table PHYSPROPERTIES dropped !
-     9 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] CreateTable: Indexed Table PHYSPROPERTIES created !
-    10 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] Init: DB CATEGORY skip DSV
-    11 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] Init: DB PIECES from LUA
-    12 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPieces> missing
-    13 [01/23/17 00:04:32] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    14 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_left>
-    15 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_right>
-    16 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_left>
-    17 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_n_right>
-    18 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_left>
-    19 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_s_right>
-    20 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_y>
-    21 [01/23/17 00:04:33] CLIENT > TRACKASSEMBLY [SQL] InsertRecord: Register trace <r2ftp_junction_x>
-    22 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] Init: DB PHYSPROPERTIES from LUA
-    23 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertPhysproperties> missing
-    24 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    25 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    26 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] Init: DB ADDITIONS from LUA
-    27 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtInsertAdditions> missing
-    28 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    29 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    30 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
-    31 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] >>> @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
-    32 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] Status: {Test's track pack, Test_s_track_pack}
-    33 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] StoreExternalCategory: Success
-    34 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] SynchronizeDSV: Success <Test's track pack>
-    35 [01/23/17 00:04:34] CLIENT > TRACKASSEMBLY [SQL] <<< @addons/ron_transrapid/lua/autorun/transrapid_tracks.lua
-    36 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] ProcessDSV(Test_s_track_pack): CATEGORY
-    37 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] ProcessDSV(Test_s_track_pack): PIECES
-    38 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] ProcessDSV: Success
-    39 [01/23/17 00:04:38] CLIENT > TRACKASSEMBLY [SQL] InitLocalify: Code <en> selected
-    40 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPanel> missing
-    41 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    42 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPanel"] = "SELECT MODEL, TYPE, NAME FROM TRACKASSEMBLY_PIECES WHERE LINEID = %d ORDER BY TYPE ASC, NAME ASC;"
-    43 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    44 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
-    45 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryPanel> for Place[TRACKASSEMBLY_USER_PANEL]
-    46 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (1800) true, true
-    47 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
-    48 [01/23/17 00:12:15] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Place[TRACKASSEMBLY_USER_PANEL] @562.95
-    49 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0128.mdl> .. SKIPPING !
-    50 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0256.mdl> .. SKIPPING !
-    51 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0512.mdl> .. SKIPPING !
-    52 [01/23/17 00:12:16] CLIENT > TRACKASSEMBLY [SQL] Extension <G Scale Track Pack> missing <models/gscale/ibeam/s1024.mdl> .. SKIPPING !
-    53 [01/23/17 00:12:17] CLIENT > TRACKASSEMBLY [SQL] Extension <Ron's 2ft track pack> missing <models/ron/2ft/bridges/bridge_32.mdl> .. SKIPPING !
-    54 [01/23/17 00:12:17] CLIENT > TRACKASSEMBLY [SQL] Extension <Ron's 2ft track pack> missing <models/ron/2ft/bridges/bridge_64.mdl> .. SKIPPING !
-    55 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Found #1098 piece items.
-    56 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPropertyTypes> missing
-    57 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
-    58 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPropertyTypes"] = "SELECT TYPE FROM TRACKASSEMBLY_PHYSPROPERTIES WHERE LINEID = %d ORDER BY TYPE ASC;"
-    59 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    60 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPanel"] = "SELECT MODEL, TYPE, NAME FROM TRACKASSEMBLY_PIECES WHERE LINEID = %d ORDER BY TYPE ASC, NAME ASC;"
-    61 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    62 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] CacheQueryProperty: Types >> Pool
-    63 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryProperty> for Place[PROPERTY_TYPES]
-    64 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (600) true, true
-    65 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
-    66 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Place[PROPERTY_TYPES] @566.31
-    67 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[1] = "Concrete"
-    68 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[2] = "Frozen"
-    69 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[3] = "Liquid"
-    70 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[4] = "Manufactured"
-    71 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[5] = "Metal"
-    72 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[6] = "Miscellaneous"
-    73 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[7] = "Organic"
-    74 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[8] = "Special"
-    75 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[9] = "Terrain"
-    76 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property[10] = "Wood"
-    77 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property["Used"] = 566.30595434845
-    78 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Property["Kept"] = 10
-    79 [01/23/17 00:12:18] CLIENT > TRACKASSEMBLY [SQL] Found #10 material types.
-    37 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] CacheQueryPiece: Model >> Pool <window1x2.mdl>
-    38 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPiece> missing
-    39 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    40 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPiece"] = "SELECT * FROM TRACKASSEMBLY_PIECES WHERE MODEL = %s ORDER BY LINEID ASC;"
-    41 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    42 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
-    43 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryPiece> for Place[models/props_phx/construct/windows/window1x2.mdl]
-    44 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (1800) true, true
-    45 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
-    46 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TimerAttach: Place[models/props_phx/construct/windows/window1x2.mdl] @566.53
-    47 [01/23/17 00:12:19] SERVER > TRACKASSEMBLY [SQL] TOOL.ElevateGhost(false): <3.010507106781>
-    80 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] DrawToolScreen: Create screen
-    81 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] CacheQueryPiece: Model >> Pool <window1x2.mdl>
-    82 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: Store stmt <stmtSelectPiece> missing
-    83 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertAdditions"] = "INSERT INTO TRACKASSEMBLY_ADDITIONS ( MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID )  VALUES ( %s, %s, %s, %d, %s, %s, %d, %d, %d, %d, %d, %d );"
-    84 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPiece"] = "SELECT * FROM TRACKASSEMBLY_PIECES WHERE MODEL = %s ORDER BY LINEID ASC;"
-    85 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPropertyTypes"] = "SELECT TYPE FROM TRACKASSEMBLY_PHYSPROPERTIES WHERE LINEID = %d ORDER BY TYPE ASC;"
-    86 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPieces"] = "INSERT INTO TRACKASSEMBLY_PIECES ( MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS )  VALUES ( %s, %s, %s, %d, %s, %s, %s, %s );"
-    87 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtSelectPanel"] = "SELECT MODEL, TYPE, NAME FROM TRACKASSEMBLY_PIECES WHERE LINEID = %d ORDER BY TYPE ASC, NAME ASC;"
-    88 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] SQLCacheStmt: stmt["stmtInsertPhysproperties"] = "INSERT INTO TRACKASSEMBLY_PHYSPROPERTIES ( TYPE, LINEID, NAME )  VALUES ( %s, %d, %s );"
-    89 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Called by <CacheQueryPiece> for Place[models/props_phx/construct/windows/window1x2.mdl]
-    90 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: [CQT] (1800) true, true
-    91 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Garbage collected
-    92 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] TimerAttach: Place[models/props_phx/construct/windows/window1x2.mdl] @566.62
-    93 [01/23/17 00:12:19] CLIENT > TRACKASSEMBLY [SQL] DrawHUD: Create screen
+    1 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] SettingsLogs(SKIP): Success <trackassembly/trackasmlib_slskip.txt>
+    2 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] SettingsLogs(ONLY): Missing <trackassembly/trackasmlib_slonly.txt>
+    3 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_modedb)<nil/nil>[LUA]
+    4 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_devmode)<0/1>[0]
+    5 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxtrmarg)<0.0001/nil>[0.02]
+    6 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_timermode)<nil/nil>[CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1]
+    7 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxmass)<1/nil>[50000]
+    8 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxlinear)<1/nil>[1000]
+    9 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxforce)<0/nil>[100000]
+   10 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxactrad)<1/500>[150]
+   11 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxstcnt)<1/800>[200]
+   12 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxghosts)<0/nil>[1]
+   13 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_enwiremod)<0/1>[1]
+   14 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_bnderrmod)<nil/nil>[LOG]
+   15 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxfruse)<1/100>[50]
+   16 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [N/A] MakeAsmVar: Border (sbox_maxasmtracks)<0/nil>[1500]
+   17 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] CreateTable: Created TRACKASSEMBLY_PIECES
+   18 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] CreateTable: Created TRACKASSEMBLY_ADDITIONS
+   19 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] CreateTable: Created TRACKASSEMBLY_PHYSPROPERTIES
+   20 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] Init: DB PIECES from LUA
+   21 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch@models/minitrains/switch.mdl>
+   22 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_doubleswitch@models/minitrains/switch_double.mdl>
+   23 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w1@models/minitrains/switch_w_1_128.mdl>
+   24 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w2@models/minitrains/switch_w_2_128.mdl>
+   25 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w3@models/minitrains/switch_w_3_128.mdl>
+   26 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w4@models/minitrains/switch_w_4_128.mdl>
+   27 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w5@models/minitrains/switch_w_5_128.mdl>
+   28 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w6@models/minitrains/switch_w_6_128.mdl>
+   29 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y1@models/minitrains/switch_y_1_128.mdl>
+   30 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y2@models/minitrains/switch_y_2_128.mdl>
+   31 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y3@models/minitrains/switch_y_3_128.mdl>
+   32 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y4@models/minitrains/switch_y_4_128.mdl>
+   33 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y5@models/minitrains/switch_y_5_128.mdl>
+   34 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y6@models/minitrains/switch_y_6_128.mdl>
+   35 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_modelpack_switch_y@models/sligwolf/rails/switch_225_y.mdl>
+   36 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_modelpack_switch_r@models/sligwolf/rails/switch_225_r.mdl>
+   37 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_modelpack_switch_l@models/sligwolf/rails/switch_225_l.mdl>
+   38 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] Init: DB PHYSPROPERTIES from LUA
+   39 [11-08-18 22:16:06] SERVER > TRACKASSEMBLY [LUA] Init: DB ADDITIONS from LUA
+   40 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] >>> @addons/trackassemblytool_git/lua/autorun/z_autorun_add_pieces.lua (true): {Test's track pack, Test_s_track_pack}
+   41 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] RegisterDSV start <Test_s_track_pack>
+   42 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] RegisterDSV skip <Test_s_track_pack>
+   43 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] ExportCategory start <Test_s_track_pack>
+   44 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] ExportCategory skip <Test_s_track_pack>
+   45 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] SynchronizeDSV start <Test_s_track_pack>
+   46 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] SynchronizeDSV(Test_s_track_pack): Success
+   47 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] TranslateDSV start <Test_s_track_pack>
+   48 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] TranslateDSV(Test_s_track_pack@PIECES): Success
+   49 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] TranslateDSV done <Test_s_track_pack>
+   50 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] <<< @addons/trackassemblytool_git/lua/autorun/z_autorun_add_pieces.lua
+   51 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] >>> @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   52 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] Status(true): {Ron's 2ft track pack, Ron_s_2ft_track_pack}
+   53 [11-08-18 22:16:07] SERVER > TRACKASSEMBLY [LUA] RegisterDSV skip <Ron_s_2ft_track_pack>
+   54 [11-08-18 22:16:09] SERVER > TRACKASSEMBLY [LUA] SynchronizeDSV(Ron_s_2ft_track_pack): Success
+   55 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] TranslateDSV(Ron_s_2ft_track_pack@PIECES): Success
+   56 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] <<< @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   57 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] >>> @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   58 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] Status(true): {Ron's G Scale Track pack, Ron_s_G_Scale_Track_pack}
+   59 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] RegisterDSV skip <Ron_s_G_Scale_Track_pack>
+   60 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] SynchronizeDSV(Ron_s_G_Scale_Track_pack): Success
+   61 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] TranslateDSV(Ron_s_G_Scale_Track_pack@PIECES): Success
+   62 [11-08-18 22:16:10] SERVER > TRACKASSEMBLY [LUA] <<< @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   63 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_left@models/ron/2ft/luajunctions/junctions/left/junction.mdl>
+   64 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_right@models/ron/2ft/luajunctions/junctions/right/junction.mdl>
+   65 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_left@models/ron/2ft/luajunctions/n_junctions/left/n_junction.mdl>
+   66 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_right@models/ron/2ft/luajunctions/n_junctions/right/n_junction.mdl>
+   67 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_left@models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl>
+   68 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_right@models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl>
+   69 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_x@models/ron/2ft/luajunctions/x_junctions/x_junction.mdl>
+   70 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_y@models/ron/2ft/luajunctions/y_junctions/y_junction.mdl>
+   71 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] ImportDSV(Ron_s_2ft_track_pack@PIECES): Success
+   72 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] ImportDSV(Ron_s_G_Scale_Track_pack@PIECES): Success
+   73 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] ImportDSV(Test_s_track_pack@PIECES): Success
+   74 [11-08-18 22:16:12] SERVER > TRACKASSEMBLY [LUA] ProcessDSV: Success
+    1 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] SettingsLogs(SKIP): Success <trackassembly/trackasmlib_slskip.txt>
+    2 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] SettingsLogs(ONLY): Missing <trackassembly/trackasmlib_slonly.txt>
+    3 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_modedb)<nil/nil>[LUA]
+    4 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_devmode)<0/1>[0]
+    5 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxtrmarg)<0.0001/nil>[0.02]
+    6 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_timermode)<nil/nil>[CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1]
+    7 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxmass)<1/nil>[50000]
+    8 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxlinear)<1/nil>[1000]
+    9 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxforce)<0/nil>[100000]
+   10 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxactrad)<1/500>[150]
+   11 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxstcnt)<1/800>[200]
+   12 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_maxghosts)<0/nil>[1]
+   13 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [N/A] MakeAsmVar: Border (trackassembly_enwiremod)<0/1>[1]
+   14 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] CreateTable: Created TRACKASSEMBLY_PIECES
+   15 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] CreateTable: Created TRACKASSEMBLY_ADDITIONS
+   16 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] CreateTable: Created TRACKASSEMBLY_PHYSPROPERTIES
+   17 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] Init: DB CATEGORY from LUA
+   18 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] Init: DB PIECES from LUA
+   19 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch@models/minitrains/switch.mdl>
+   20 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_doubleswitch@models/minitrains/switch_double.mdl>
+   21 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w1@models/minitrains/switch_w_1_128.mdl>
+   22 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w2@models/minitrains/switch_w_2_128.mdl>
+   23 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w3@models/minitrains/switch_w_3_128.mdl>
+   24 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w4@models/minitrains/switch_w_4_128.mdl>
+   25 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w5@models/minitrains/switch_w_5_128.mdl>
+   26 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_w6@models/minitrains/switch_w_6_128.mdl>
+   27 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y1@models/minitrains/switch_y_1_128.mdl>
+   28 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y2@models/minitrains/switch_y_2_128.mdl>
+   29 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y3@models/minitrains/switch_y_3_128.mdl>
+   30 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y4@models/minitrains/switch_y_4_128.mdl>
+   31 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y5@models/minitrains/switch_y_5_128.mdl>
+   32 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_minitrain_switch_y6@models/minitrains/switch_y_6_128.mdl>
+   33 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_modelpack_switch_y@models/sligwolf/rails/switch_225_y.mdl>
+   34 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_modelpack_switch_r@models/sligwolf/rails/switch_225_r.mdl>
+   35 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <gmod_sw_modelpack_switch_l@models/sligwolf/rails/switch_225_l.mdl>
+   36 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] Init: DB PHYSPROPERTIES from LUA
+   37 [11-08-18 22:16:20] CLIENT > TRACKASSEMBLY [LUA] Init: DB ADDITIONS from LUA
+   38 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] >>> @addons/trackassemblytool_git/lua/autorun/z_autorun_add_pieces.lua (true): {Test's track pack, Test_s_track_pack}
+   39 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] RegisterDSV start <Test_s_track_pack>
+   40 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] RegisterDSV skip <Test_s_track_pack>
+   41 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] ExportCategory start <Test_s_track_pack>
+   42 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] ExportCategory(Test_s_track_pack): Success
+   43 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] ExportCategory done <Test_s_track_pack>
+   44 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] SynchronizeDSV start <Test_s_track_pack>
+   45 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] SynchronizeDSV(Test_s_track_pack): Success
+   46 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] TranslateDSV start <Test_s_track_pack>
+   47 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] TranslateDSV(Test_s_track_pack@PIECES): Success
+   48 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] TranslateDSV done <Test_s_track_pack>
+   49 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] <<< @addons/trackassemblytool_git/lua/autorun/z_autorun_add_pieces.lua
+   50 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] >>> @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   51 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] Status(true): {Ron's 2ft track pack, Ron_s_2ft_track_pack}
+   52 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] RegisterDSV skip <Ron_s_2ft_track_pack>
+   53 [11-08-18 22:16:21] CLIENT > TRACKASSEMBLY [LUA] ExportCategory(Ron_s_2ft_track_pack): Success
+   54 [11-08-18 22:16:24] CLIENT > TRACKASSEMBLY [LUA] SynchronizeDSV(Ron_s_2ft_track_pack): Success
+   55 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] TranslateDSV(Ron_s_2ft_track_pack@PIECES): Success
+   56 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] <<< @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   57 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] >>> @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   58 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] Status(true): {Ron's G Scale Track pack, Ron_s_G_Scale_Track_pack}
+   59 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] RegisterDSV skip <Ron_s_G_Scale_Track_pack>
+   60 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] ExportCategory(Ron_s_G_Scale_Track_pack): Success
+   61 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] SynchronizeDSV(Ron_s_G_Scale_Track_pack): Success
+   62 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] TranslateDSV(Ron_s_G_Scale_Track_pack@PIECES): Success
+   63 [11-08-18 22:16:25] CLIENT > TRACKASSEMBLY [LUA] <<< @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   64 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] ImportCategory: Success
+   65 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_left@models/ron/2ft/luajunctions/junctions/left/junction.mdl>
+   66 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_right@models/ron/2ft/luajunctions/junctions/right/junction.mdl>
+   67 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_left@models/ron/2ft/luajunctions/n_junctions/left/n_junction.mdl>
+   68 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_n_right@models/ron/2ft/luajunctions/n_junctions/right/n_junction.mdl>
+   69 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_left@models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl>
+   70 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_s_right@models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl>
+   71 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_x@models/ron/2ft/luajunctions/x_junctions/x_junction.mdl>
+   72 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] InsertRecord: Register trace <r2ftp_junction_y@models/ron/2ft/luajunctions/y_junctions/y_junction.mdl>
+   73 [11-08-18 22:16:27] CLIENT > TRACKASSEMBLY [LUA] ImportDSV(Ron_s_2ft_track_pack@PIECES): Success
+   74 [11-08-18 22:16:28] CLIENT > TRACKASSEMBLY [LUA] ImportCategory: Success
+   75 [11-08-18 22:16:28] CLIENT > TRACKASSEMBLY [LUA] ImportDSV(Ron_s_G_Scale_Track_pack@PIECES): Success
+   76 [11-08-18 22:16:28] CLIENT > TRACKASSEMBLY [LUA] ImportCategory: Success
+   77 [11-08-18 22:16:28] CLIENT > TRACKASSEMBLY [LUA] ImportDSV(Test_s_track_pack@PIECES): Success
+   78 [11-08-18 22:16:28] CLIENT > TRACKASSEMBLY [LUA] ProcessDSV: Success
+   79 [11-08-18 22:16:28] CLIENT > TRACKASSEMBLY [LUA] InitLocalify: Using code <en>
+   80 [11-08-18 22:18:43] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0128.mdl> .. SKIPPING !
+   81 [11-08-18 22:18:43] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0256.mdl> .. SKIPPING !
+   82 [11-08-18 22:18:43] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0512.mdl> .. SKIPPING !
+   83 [11-08-18 22:18:43] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s1024.mdl> .. SKIPPING !
+   84 [11-08-18 22:18:45] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <Random Bridges> missing <models/karkar/bridge.mdl> .. SKIPPING !
+   85 [11-08-18 22:18:45] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <Random Bridges> missing <models/askari/bridge01_stlve.mdl> .. SKIPPING !
+   86 [11-08-18 22:18:45] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <Random Bridges> missing <models/props/tresslebridge.mdl> .. SKIPPING !
+   87 [11-08-18 22:18:45] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <Random Bridges> missing <models/karkar/wooden_bridge_helly.mdl> .. SKIPPING !
+   88 [11-08-18 22:18:45] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <Random Bridges> missing <models/karkar/wooden_bridge_helly_broken_bstk.mdl> .. SKIPPING !
+   89 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow.mdl> .. SKIPPING !
+   90 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow_i.mdl> .. SKIPPING !
+   91 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow_small.mdl> .. SKIPPING !
+   92 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow_small_i.mdl> .. SKIPPING !
+   93 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45.mdl> .. SKIPPING !
+   94 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45_i.mdl> .. SKIPPING !
+   95 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45_s.mdl> .. SKIPPING !
+   96 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45_s_i.mdl> .. SKIPPING !
+   97 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_90.mdl> .. SKIPPING !
+   98 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_90_i.mdl> .. SKIPPING !
+   99 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45.mdl> .. SKIPPING !
+  100 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45_i.mdl> .. SKIPPING !
+  101 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45_s.mdl> .. SKIPPING !
+  102 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45_s_i.mdl> .. SKIPPING !
+  103 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_90.mdl> .. SKIPPING !
+  104 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_90_i.mdl> .. SKIPPING !
+  105 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45.mdl> .. SKIPPING !
+  106 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45_i.mdl> .. SKIPPING !
+  107 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45_s.mdl> .. SKIPPING !
+  108 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45_s_i.mdl> .. SKIPPING !
+  109 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_90.mdl> .. SKIPPING !
+  110 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_90_i.mdl> .. SKIPPING !
+  111 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop_quarter.mdl> .. SKIPPING !
+  112 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop_quarter_i.mdl> .. SKIPPING !
+  113 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop1.mdl> .. SKIPPING !
+  114 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop1i.mdl> .. SKIPPING !
+  115 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop2.mdl> .. SKIPPING !
+  116 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop2i.mdl> .. SKIPPING !
+  117 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp.mdl> .. SKIPPING !
+  118 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp_i.mdl> .. SKIPPING !
+  119 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp_small.mdl> .. SKIPPING !
+  120 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp_small_i.mdl> .. SKIPPING !
+  121 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x4_long.mdl> .. SKIPPING !
+  122 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x4_mid.mdl> .. SKIPPING !
+  123 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x4_small.mdl> .. SKIPPING !
+  124 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_long.mdl> .. SKIPPING !
+  125 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_mid.mdl> .. SKIPPING !
+  126 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_small.mdl> .. SKIPPING !
+  127 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_splitter.mdl> .. SKIPPING !
+  128 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_splitter_i.mdl> .. SKIPPING !
+  129 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_to_x4.mdl> .. SKIPPING !
+  130 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_to_x4_i.mdl> .. SKIPPING !
+  131 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x4.mdl> .. SKIPPING !
+  132 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x4_i.mdl> .. SKIPPING !
+  133 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x8.mdl> .. SKIPPING !
+  134 [11-08-18 22:18:46] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x8_i.mdl> .. SKIPPING !
+  135 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Railcar> missing <models/swrcs/swrclooping.mdl> .. SKIPPING !
+  136 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Railcar> missing <models/swrcs/swrcloopingspecial.mdl> .. SKIPPING !
+  137 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Railcar> missing <models/swrcs/swrcramp.mdl> .. SKIPPING !
+  138 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Railcar> missing <models/swrcs/swrctraffic_lights.mdl> .. SKIPPING !
+  139 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Railcar> missing <models/swrcs/swrccross.mdl> .. SKIPPING !
+  140 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Extension <SligWolf's Railcar> missing <models/swrcs/swrccurve001.mdl> .. SKIPPING !
+  141 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] Found #1262 piece items.
+  142 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] CacheQueryProperty: Types << Pool
+  143 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property = {}
+  144 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[1] = "Special"
+  145 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[2] = "Concrete"
+  146 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[3] = "Metal"
+  147 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[4] = "Wood"
+  148 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[5] = "Terrain"
+  149 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[6] = "Liquid"
+  150 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[7] = "Frozen"
+  151 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[8] = "Miscellaneous"
+  152 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[9] = "Organic"
+  153 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property[10] = "Manufactured"
+  154 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property["Size"] = 10
+  155 [11-08-18 22:18:47] CLIENT > TRACKASSEMBLY [LUA] TOOL:BuildCPanel: Property["Used"] = 124.25090026855
+   75 [11-08-18 22:18:48] SERVER > TRACKASSEMBLY [LUA] TOOL:ElevateGhost(false): <10.25>
+   76 [11-08-18 22:18:48] SERVER > TRACKASSEMBLY [LUA] GetPlayerSpot: Cached <[Sk$Bh]Trick or treat KID!>
+   77 [11-08-18 22:18:48] SERVER > TRACKASSEMBLY [LUA] CacheTracePly: Allocate <[Sk$Bh]Trick or treat KID!>
+   78 [11-08-18 22:18:48] SERVER > TRACKASSEMBLY [LUA] CacheSpawnPly: Allocate <[Sk$Bh]Trick or treat KID!>
+  156 [11-08-18 22:18:48] CLIENT > TRACKASSEMBLY [LUA] TOOL:DrawToolScreen: Create screen
+  157 [11-08-18 22:18:48] CLIENT > TRACKASSEMBLY [LUA] GetPlayerSpot: Cached <[Sk$Bh]Trick or treat KID!>
+  158 [11-08-18 22:18:48] CLIENT > TRACKASSEMBLY [LUA] CacheTracePly: Allocate <[Sk$Bh]Trick or treat KID!>
+  159 [11-08-18 22:18:48] CLIENT > TRACKASSEMBLY [LUA] TOOL:DrawHUD: Create screen
+  160 [11-08-18 22:18:48] CLIENT > TRACKASSEMBLY [LUA] CacheRadiusPly: Allocate <[Sk$Bh]Trick or treat KID!>
+  161 [11-08-18 22:18:48] CLIENT > TRACKASSEMBLY [LUA] CacheSpawnPly: Allocate <[Sk$Bh]Trick or treat KID!>
+   79 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] MakePiece: Unit(false) <NULL>
+   80 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] SetPosBound(LOG): Success
+   81 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] AttachBodyGroups: <0>
+   82 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] ePiece:SetBodygroup(0,0) [0]
+   83 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] AttachBodyGroups: Success
+   84 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] CacheQueryAdditions: Record not located
+   85 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] AttachAdditions: Model <models/ron/gscale/straight/1024.mdl> has no additions
+   86 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] MakePiece: Entity [896][prop_physics]models/ron/gscale/straight/1024.mdl
+   87 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: {false,true,true,metal}
+   88 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: Success
+   89 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalAnchor: {true,true,0}
+   90 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalAnchor: Base <nil> constraint ignored
+   91 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] TOOL:LeftClick(World): Success
+   92 [11-08-18 22:18:50] SERVER > TRACKASSEMBLY [LUA] ApplyPhysicalSettings: Freeze
+   93 [11-08-18 22:21:26] SERVER > TRACKASSEMBLY [LUA] TOOL:Reload(Prop): Removed a piece

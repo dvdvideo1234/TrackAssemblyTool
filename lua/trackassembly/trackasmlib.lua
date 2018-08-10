@@ -1044,15 +1044,12 @@ function GetFrequentModels(snCount)
   return StatusLog(nil,"GetFrequentModels: Array is empty or not available")
 end
 
-function RoundValue(nvExact, nFrac)
-  local nExact = tonumber(nvExact)
-  if(not IsExistent(nExact)) then
-    return StatusLog(nil,"RoundValue: Cannot round NAN {"..type(nvExact).."}<"..tostring(nvExact)..">") end
-  local nFrac = tonumber(nFrac) or 0
-  if(nFrac == 0) then
+function RoundValue(nvEx, nFr)
+  local nEx = tonumber(nvEx); if(not IsExistent(nEx)) then
+    return StatusLog(nil,"RoundValue: Cannot round NAN {"..type(nvEx).."}<"..tostring(nvEx)..">") end
+  local nFr = (tonumber(nFr) or 0); if(nFr == 0) then
     return StatusLog(nil,"RoundValue: Fraction must be <> 0") end
-  local q, f = mathModf(nExact/nFrac)
-  return nFrac * (q + (f > 0.5 and 1 or 0))
+  local q, f = mathModf(nEx / nFr); return nFr * (q + (f > 0.5 and 1 or 0))
 end
 
 function GetCenter(oEnt)
@@ -1112,7 +1109,7 @@ function IncDecPointID(ivPoID,nDir,rPiece)
     return StatusLog(1,"IncDecPointID: Point ID NAN {"..type(ivPoID).."}<"..tostring(ivPoID)..">") end
   local stPOA = LocatePOA(rPiece,iPoID); if(not IsExistent(stPOA)) then
     return StatusLog(1,"IncDecPointID: Point ID #"..tostring(iPoID).." not located") end
-  local nDir = (tonumber(nDir) or 0); nDir = ((nDir > 0) and 1) or ((nDir < 0) and -1) or 0
+  local nDir = (tonumber(nDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
   if(nDir == 0) then return StatusLog(iPoID,"IncDecPointID: Direction mismatch") end
   iPoID = RollValue(iPoID + nDir,1,rPiece.Size)
   stPOA = LocatePOA(rPiece,iPoID) -- Skip disabled origin parameter
@@ -1223,13 +1220,13 @@ end
 
 local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
-        arPOA[1] = tonumber(nXP) or 0
-        arPOA[2] = tonumber(nYY) or 0
-        arPOA[3] = tonumber(nZR) or 0
-        arPOA[4] = tonumber(nSX) or 1
-        arPOA[5] = tonumber(nSY) or 1
-        arPOA[6] = tonumber(nSZ) or 1
-        arPOA[7] = tobool(nSD) or false
+        arPOA[1] = (tonumber(nXP) or 0)
+        arPOA[2] = (tonumber(nYY) or 0)
+        arPOA[3] = (tonumber(nZR) or 0)
+        arPOA[4] = (tonumber(nSX) or 1)
+        arPOA[5] = (tonumber(nSY) or 1)
+        arPOA[6] = (tonumber(nSZ) or 1)
+        arPOA[7] = (tobool(nSD) or false)
   return arPOA
 end
 
@@ -1303,7 +1300,7 @@ local function DecodePOA(sStr)
     elseif(sCh == symSep) then
       iSep = iSep + 1; E = iCnt - 1
       if(iSep > 2) then break end
-      arPOA[dInd] = tonumber(sStr:sub(S,E)) or 0
+      arPOA[dInd] = (tonumber(sStr:sub(S,E)) or 0)
       dInd = dInd + 1; S = iCnt + 1; E = S
     else E = E + 1 end
     iCnt = iCnt + 1
@@ -2442,7 +2439,7 @@ end
 ]]--
 function ExportCategory(vEq, tData, sPref)
   if(SERVER) then return StatusLog(true, "ExportCategory: Working on server") end
-  local nEq   = tonumber(vEq) or 0; if(nEq <= 0) then
+  local nEq   = (tonumber(vEq) or 0); if(nEq <= 0) then
     return StatusLog(false, "ExportCategory: Wrong equality <"..tostring(vEq)..">") end
   local sPref = tostring(sPref or GetInstPref()); if(IsEmptyString(sPref)) then
     return StatusLog(false,"ExportCategory("..sPref.."): Prefix empty") end
@@ -2468,7 +2465,7 @@ end
 
 function ImportCategory(vEq, sPref)
   if(SERVER) then return StatusLog(true, "ImportCategory: Working on server") end
-  local nEq = tonumber(vEq) or 0; if(nEq <= 0) then
+  local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     return StatusLog(false,"ImportCategory: Wrong equality <"..tostring(vEq)..">") end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..tostring(sPref or GetInstPref())
@@ -2693,25 +2690,22 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTable.Name) then
           for iCnt = 1, #tLine do tLine[iCnt] = StripValue(tLine[iCnt]) end
-          local sKey = tLine[2]
-          if(not fData[sKey]) then fData[sKey] = {Kept = 0} end
-            tKey = fData[sKey]
-          local nID, vID = 0 -- Where the lime ID must be read from
-          if    (sTable == "PIECES") then vID = tLine[5]; nID = tonumber(vID) or 0
-          elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = tonumber(vID) or 0
-          elseif(sTable == "PHYSPROPERTIES") then vID = tLine[3]; nID = tonumber(vID) or 0 end
+          local sKey = tLine[2]; if(not fData[sKey]) then fData[sKey] = {Size = 0} end
+          local tKey, nID, vID = fData[sKey], 0 -- Where the lime ID must be read from
+          if    (sTable == "PIECES") then vID = tLine[5]; nID = (tonumber(vID) or 0)
+          elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = (tonumber(vID) or 0)
+          elseif(sTable == "PHYSPROPERTIES") then vID = tLine[3]; nID = (tonumber(vID) or 0) end
           if((tKey.Size < 0) or (nID <= tKey.Size) or ((nID - tKey.Size) ~= 1)) then
             I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read point ID #"..
               tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">") end
           tKey.Size = nID; tKey[tKey.Size] = {}
           local kKey, nCnt = tKey[tKey.Size], 3
           while(tLine[nCnt]) do -- Do a value matching without quotes
-            local vMatch = MatchType(defTable,tLine[nCnt],nCnt-1)
-            if(not IsExistent(vMatch)) then
+            local vM = MatchType(defTable,tLine[nCnt],nCnt-1); if(not IsExistent(vM)) then
               I:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Read matching failed <"
                 ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "
                   ..defTable[nCnt-1][1].."> of <"..sTable..">")
-            end; kKey[nCnt-2] = vMatch; nCnt = nCnt + 1
+            end; kKey[nCnt-2] = vM; nCnt = nCnt + 1
           end
         else I:Close()
           return StatusLog(false,"SynchronizeDSV("..fPref.."): Read table name mismatch <"..sTable..">") end
@@ -2719,21 +2713,18 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end; I:Close()
   else LogInstance("SynchronizeDSV("..fPref.."): Creating file <"..fName..">") end
   for key, rec in pairs(tData) do -- Check the given table
-    for pnID = 1, #rec do
-      local tRec = rec[pnID]
-      local nID, vID = 0 -- Where the line ID must be read from
-      if(sTable == "PIECES") then
-        vID = tRec[3]; nID = tonumber(vID) or 0
-        if(pnID ~= nID) then
+    for pnID = 1, #rec do -- Where the line ID must be read from
+      local tRec, nID, vID = rec[pnID], 0
+      if(sTable == "PIECES") then vID = tRec[3]
+        nID = (tonumber(vID) or 0); if(pnID ~= nID) then
           return StatusLog(false,"SynchronizeDSV("..fPref.."): Given point ID #"..
             tostring(vID).." desynchronized <"..key.."> of "..sTable) end
         if(not fileExists(key, "GAME")) then
           LogInstance("SynchronizeDSV("..fPref.."): Missing piece <"..key..">") end
-      elseif(sTable == "ADDITIONS") then vID = tRec[3]; nID = tonumber(vID) or 0
-      elseif(sTable == "PHYSPROPERTIES") then vID = tRec[1]; nID = tonumber(vID) or 0 end
+      elseif(sTable == "ADDITIONS") then vID = tRec[3]; nID = (tonumber(vID) or 0)
+      elseif(sTable == "PHYSPROPERTIES") then vID = tRec[1]; nID = (tonumber(vID) or 0) end
       for nCnt = 1, #tRec do -- Do a value matching without quotes
-        local vMatch = MatchType(defTable,tRec[nCnt],nCnt+1)
-        if(not IsExistent(vMatch)) then
+        local vM = MatchType(defTable,tRec[nCnt],nCnt+1); if(not IsExistent(vM)) then
           return StatusLog(false,"SynchronizeDSV("..fPref.."): Given matching failed <"
             ..tostring(tRec[nCnt]).."> to <"..tostring(nCnt+1).." # "
               ..defTable[nCnt+1][1].."> of "..sTable)
@@ -2749,20 +2740,18 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   end
   local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
     return StatusLog(false,"SynchronizeDSV("..fPref.."): Sorting failed") end
-  local O = fileOpen(fName, "wb" ,"DATA")
-  if(not O) then return StatusLog(false,"SynchronizeDSV("..fPref.."): Write fileOpen("..fName..") failed") end
+  local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
+    return StatusLog(false,"SynchronizeDSV("..fPref.."): Write fileOpen("..fName..") failed") end
   O:Write("# SynchronizeDSV("..fPref.."): "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   O:Write("# Data settings:\t"..GetColumns(defTable,sDelim).."\n")
-  for rcID = 1, tSort.Size do
-    local key = tSort[rcID].Val
-    local rec = fData[key]
-    local sCash, sData = defTable.Name..sDelim..key, ""
-    for pnID = 1, rec.Size do local tItem = rec[pnID]
-      for nCnt = 1, #tItem do local vMatch = MatchType(defTable,tItem[nCnt],nCnt+1,true,"\"",true)
-        if(not IsExistent(vMatch)) then O:Flush(); O:Close()
-          return StatusLog(false,"SynchronizeDSV("..fPref.."): Write matching failed <"
+  for rcID = 1, tSort.Size do local key = tSort[rcID].Val
+    local vRec, sCash, sData = fData[key], defTable.Name..sDelim..key, ""
+    for pnID = 1, vRec.Size do local tItem = vRec[pnID]
+      for nCnt = 1, #tItem do
+        local vM = MatchType(defTable,tItem[nCnt],nCnt+1,true,"\"",true); if(not IsExistent(vM)) then
+          O:Flush(); O:Close(); return StatusLog(false,"SynchronizeDSV("..fPref.."): Write matching failed <"
             ..tostring(tItem[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTable[nCnt+1][1].."> of "..sTable)
-        end; sData = sData..sDelim..tostring(vMatch)
+        end; sData = sData..sDelim..tostring(vM)
       end; O:Write(sCash..sData.."\n"); sData = ""
     end
   end O:Flush(); O:Close()
@@ -3284,8 +3273,9 @@ function IntersectRayModel(sModel, nPntID, nNxtID)
     return StatusLog(nil,"IntersectRayModel: No start ID <"..tostring(nPntID)..">") end
   local stPOA2 = LocatePOA(mRec, nNxtID); if(not stPOA2) then
     return StatusLog(nil,"IntersectRayModel: No end ID <"..tostring(nNxtID)..">") end
-  local vO1, vD1 = Vector(), Vector(); SetVector(vO1, stPOA1.O); vD1:Set(-stPOA1.A:Forward())
-  local vO2, vD2 = Vector(), Vector(); SetVector(vO2, stPOA2.O); vD2:Set(-stPOA2.A:Forward())
+  local aD1, aD2 = Angle(), Angle(); SetAngle(aD1, stPOA1.A); SetAngle(aD2, stPOA2.A)
+  local vO1, vD1 = Vector(), Vector(); SetVector(vO1, stPOA1.O); vD1:Set(-aD1:Forward())
+  local vO2, vD2 = Vector(), Vector(); SetVector(vO2, stPOA2.O); vD2:Set(-aD2:Forward())
   local f1, f2, x1, x2, xx = IntersectRay(vO1,vD1,vO2,vD2)
   if(not xx) then -- Attempts taking the mean vector when the rays are parallel for straight tracks
     f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
@@ -3305,56 +3295,54 @@ function AttachAdditions(ePiece)
     local eAddit = entsCreate(arRec[defTable[3][1]])
     if(eAddit and eAddit:IsValid()) then
       LogInstance("AttachAdditions: Class <"..arRec[defTable[3][1]]..">")
-      local AdModel = tostring(arRec[defTable[2][1]])
-      if(not fileExists(AdModel, "GAME")) then
-        return StatusLog(false,"AttachAdditions: Missing attachment file "..AdModel) end
-      if(not utilIsValidModel(AdModel)) then
-        return StatusLog(false,"AttachAdditions: Invalid attachment model "..AdModel) end
-      eAddit:SetModel(AdModel) LogInstance("eAddit:SetModel("..AdModel..")")
-      local OffPos = arRec[defTable[5][1]]
-      if(not IsString(OffPos)) then
-        return StatusLog(false,"AttachAdditions: Position {"..type(OffPos).."}<"..tostring(OffPos).."> not string") end
-      if(OffPos and OffPos ~= "" and OffPos ~= "NULL") then
-        local vpAdd, arConv = Vector(), DecodePOA(OffPos)
+      local adMod = tostring(arRec[defTable[2][1]])
+      if(not fileExists(adMod, "GAME")) then
+        return StatusLog(false,"AttachAdditions: Missing attachment file "..adMod) end
+      if(not utilIsValidModel(adMod)) then
+        return StatusLog(false,"AttachAdditions: Invalid attachment model "..adMod) end
+      eAddit:SetModel(adMod) LogInstance("eAddit:SetModel("..adMod..")")
+      local ofPos = arRec[defTable[5][1]]; if(not IsString(ofPos)) then
+        return StatusLog(false,"AttachAdditions: Position {"..type(ofPos).."}<"..tostring(ofPos).."> not string") end
+      if(ofPos and ofPos ~= "" and ofPos ~= "NULL") then
+        local vpAdd, arConv = Vector(), DecodePOA(ofPos)
         arConv[1] = arConv[1] * arConv[4]; vpAdd:Add(arConv[1] * eAng:Forward())
         arConv[2] = arConv[2] * arConv[5]; vpAdd:Add(arConv[2] * eAng:Right())
         arConv[3] = arConv[3] * arConv[6]; vpAdd:Add(arConv[3] * eAng:Up())
-        vpAdd:Set(ePos); eAddit:SetPos(vpAdd); LogInstance("eAddit:SetPos(DB)")
+        vpAdd:Add(ePos); eAddit:SetPos(vpAdd); LogInstance("eAddit:SetPos(DB)")
       else eAddit:SetPos(ePos); LogInstance("eAddit:SetPos(ePos)") end
-      local OffAng = arRec[defTable[6][1]]
-      if(not IsString(OffAng)) then
-        return StatusLog(false,"AttachAdditions: Angle {"..type(OffAng).."}<"..tostring(OffAng).."> not string") end
-      if(OffAng and OffAng ~= "" and OffAng ~= "NULL") then
-        local aAddAng, arConv = Angle(), DecodePOA(OffAng)
-        aAddAng[caP] = arConv[1] * arConv[4] + eAng[caP]
-        aAddAng[caY] = arConv[2] * arConv[5] + eAng[caY]
-        aAddAng[caR] = arConv[3] * arConv[6] + eAng[caR]
-        eAddit:SetAngles(aAddAng); LogInstance("eAddit:SetAngles(DB)")
+      local ofAng = arRec[defTable[6][1]]; if(not IsString(ofAng)) then
+        return StatusLog(false,"AttachAdditions: Angle {"..type(ofAng).."}<"..tostring(ofAng).."> not string") end
+      if(ofAng and ofAng ~= "" and ofAng ~= "NULL") then
+        local apAdd, arConv = Angle(), DecodePOA(ofAng)
+        apAdd[caP] = arConv[1] * arConv[4] + eAng[caP]
+        apAdd[caY] = arConv[2] * arConv[5] + eAng[caY]
+        apAdd[caR] = arConv[3] * arConv[6] + eAng[caR]
+        eAddit:SetAngles(apAdd); LogInstance("eAddit:SetAngles(DB)")
       else eAddit:SetAngles(eAng); LogInstance("eAddit:SetAngles(eAng)") end
-      local MoveType = (tonumber(arRec[defTable[7][1]]) or -1)
-      if(MoveType >= 0) then eAddit:SetMoveType(MoveType)
-        LogInstance("eAddit:SetMoveType("..MoveType..")") end
-      local PhysInit = (tonumber(arRec[defTable[8][1]]) or -1)
-      if(PhysInit >= 0) then eAddit:PhysicsInit(PhysInit)
-        LogInstance("eAddit:PhysicsInit("..PhysInit..")") end
-      local DrShadow = (tonumber(arRec[defTable[9][1]]) or 0)
-      if(DrShadow ~= 0) then DrShadow = (DrShadow > 0)
-        eAddit:DrawShadow(DrShadow); LogInstance("eAddit:DrawShadow("..tostring(DrShadow)..")") end
+      local mvTyp = (tonumber(arRec[defTable[7][1]]) or -1)
+      if(mvTyp >= 0) then eAddit:SetMoveType(mvTyp)
+        LogInstance("eAddit:SetMoveType("..mvTyp..")") end
+      local phInt = (tonumber(arRec[defTable[8][1]]) or -1)
+      if(phInt >= 0) then eAddit:PhysicsInit(phInt)
+        LogInstance("eAddit:PhysicsInit("..phInt..")") end
+      local drShd = (tonumber(arRec[defTable[9][1]]) or 0)
+      if(drShd ~= 0) then drShd = (drShd > 0)
+        eAddit:DrawShadow(drShd); LogInstance("eAddit:DrawShadow("..tostring(drShd)..")") end
       eAddit:SetParent(ePiece); LogInstance("eAddit:SetParent(ePiece)")
       eAddit:Spawn(); LogInstance("eAddit:Spawn()")
       phAddit = eAddit:GetPhysicsObject()
       if(phAddit and phAddit:IsValid()) then
-        local EnMotion = (tonumber(arRec[defTable[10][1]]) or 0)
-        if(EnMotion ~= 0) then EnMotion = (EnMotion > 0); phAddit:EnableMotion(EnMotion)
-          LogInstance("phAddit:EnableMotion("..tostring(EnMotion)..")") end
-        local EnSleep = (tonumber(arRec[defTable[11][1]]) or 0)
-        if(EnSleep > 0) then phAddit:Sleep(); LogInstance("phAddit:Sleep()") end
+        local enMot = (tonumber(arRec[defTable[10][1]]) or 0)
+        if(enMot ~= 0) then enMot = (enMot > 0); phAddit:EnableMotion(enMot)
+          LogInstance("phAddit:EnableMotion("..tostring(enMot)..")") end
+        local nbSlp = (tonumber(arRec[defTable[11][1]]) or 0)
+        if(nbSlp > 0) then phAddit:Sleep(); LogInstance("phAddit:Sleep()") end
       end
       eAddit:Activate(); LogInstance("eAddit:Activate()")
       ePiece:DeleteOnRemove(eAddit); LogInstance("ePiece:DeleteOnRemove(eAddit)")
-      local Solid = (tonumber(arRec[defTable[12][1]]) or -1)
-      if(Solid >= 0) then eAddit:SetSolid(Solid)
-        LogInstance("eAddit:SetSolid("..tostring(Solid)..")") end
+      local nbSld = (tonumber(arRec[defTable[12][1]]) or -1)
+      if(nbSld >= 0) then eAddit:SetSolid(nbSld)
+        LogInstance("eAddit:SetSolid("..tostring(nbSld)..")") end
     else
       return StatusLog(false,"Failed to allocate addition #"..iCnt.." memory:"
           .."\n     "..defTable[1][1].." "..stAddit[iCnt][defTable[1][1]]

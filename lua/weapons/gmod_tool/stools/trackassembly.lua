@@ -168,7 +168,7 @@ function TOOL:GetMass()
 end
 
 function TOOL:GetDeveloperMode()
-  return asmlib.GetAsmVar("devmode" ,"BUL")
+  return asmlib.GetAsmVar("devmode", "BUL")
 end
 
 function TOOL:GetPosOffsets()
@@ -225,11 +225,11 @@ function TOOL:GetExportDB()
 end
 
 function TOOL:GetLogLines()
-  return (asmlib.GetAsmVar("logsmax","INT") or 0)
+  return (asmlib.GetAsmVar("logsmax", "INT") or 0)
 end
 
 function TOOL:GetLogFile()
-  return tostring(asmlib.GetAsmVar("logfile","STR") or "")
+  return asmlib.GetAsmVar("logfile", "BUL")
 end
 
 function TOOL:GetAdviser()
@@ -237,8 +237,7 @@ function TOOL:GetAdviser()
 end
 
 function TOOL:GetPointID()
-  return (self:GetClientNumber("pointid") or 1),
-         (self:GetClientNumber("pnextid") or 2)
+  return (self:GetClientNumber("pointid") or 1), (self:GetClientNumber("pnextid") or 2)
 end
 
 function TOOL:GetActiveRadius()
@@ -270,11 +269,11 @@ function TOOL:GetStackAttempts()
 end
 
 function TOOL:GetPhysMeterial()
-  return (self:GetClientInfo("physmater") or "metal")
+  return tostring(self:GetClientInfo("physmater") or "metal")
 end
 
 function TOOL:GetBoundErrorMode()
-  return asmlib.GetAsmVar("bnderrmod" ,"STR")
+  return asmlib.GetAsmVar("bnderrmod", "STR")
 end
 
 function TOOL:GetSurfaceSnap()
@@ -282,7 +281,7 @@ function TOOL:GetSurfaceSnap()
 end
 
 function TOOL:GetScrollMouse()
-  return asmlib.GetAsmVar("enpntmscr","BUL")
+  return asmlib.GetAsmVar("enpntmscr", "BUL")
 end
 
 function TOOL:SwitchPoint(nDir, bIsNext)
@@ -302,8 +301,7 @@ end
 function TOOL:IntersectClear(bMute)
   local oPly = self:GetOwner()
   local stRay = asmlib.IntersectRayRead(oPly, "ray_relate")
-  if(stRay) then
-    asmlib.IntersectRayClear(oPly, "ray_relate")
+  if(stRay) then asmlib.IntersectRayClear(oPly, "ray_relate")
     if(SERVER) then local ryEnt, sRel = stRay.Ent
       netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
       if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w"))
@@ -336,15 +334,12 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
   if(not asmlib.IntersectRayCreate(ply, trEnt, vHit, "ray_origin")) then
     return asmlib.StatusLog(nil,"TOOL:LeftClick(): Failed updating ray") end
   local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayHash(ply, "ray_origin", "ray_relate")
-  if(not xx) then
-    if(bMute) then return nil
+  if(not xx) then if(bMute) then return nil
     else asmlib.PrintNotifyPly(ply, "Define intersection relation !", "GENERIC")
-      return asmlib.StatusLog(nil, "TOOL:IntersectSnap(): Active ray mismatch")
-    end
+      return asmlib.StatusLog(nil, "TOOL:IntersectSnap(): Active ray mismatch") end
   end
   local mx, o1, o2 = asmlib.IntersectRayModel(model, pointid, pnextid)
-  if(not mx) then
-    if(bMute) then return nil
+  if(not mx) then if(bMute) then return nil
     else return asmlib.StatusLog(nil, "TOOL:IntersectSnap(): Model ray mismatch") end
   end
   local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt[cvX], stSpawn.PNxt[cvY], stSpawn.PNxt[cvZ]
