@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.463")
+asmlib.SetOpVar("TOOL_VERSION","5.464")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -104,7 +104,10 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
       conPalette:Insert("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
       conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
-
+local conWorkMode = MakeContainer("WorkMode"); asmlib.SetOpVar("MODE_WORKING", conWorkMode)
+      conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
+      conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation 
+      
 -------- CALLBACKS ----------
 asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
   function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
@@ -551,10 +554,8 @@ if(CLIENT) then
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
         local rdS = asmlib.CacheRadiusPly(oPly, oDt.start, 1)
-        if(oTr and oTr.Hit) then -- Draw the hit different
-          local trE = oTr.Entity
-          local xyH = oTr.HitPos:ToScreen()
-          actMonitor:SetColor()
+        if(oTr and oTr.Hit) then actMonitor:SetColor()
+          local trE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
           if(trE and trE:IsValid()) then
             actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
             actMonitor:DrawLine  (xyS, xyH, "g", "SURF")
@@ -586,6 +587,34 @@ if(CLIENT) then
           actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
           actMonitor:DrawLine  (xyS, xyE, "r", "SURF")
         end
+      end
+    end)
+    
+  asmlib.SetAction("WORKMODE_DRAW",
+    function()
+      local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
+      local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
+      if(not actMonitor) then
+        actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
+        if(not actMonitor) then
+          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Invalid screen") end
+        asmlib.SetOpVar("MONITOR_GAME", actMonitor)
+        asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
+      end -- Make sure we have a valid game monitor for the draw OOP
+      local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
+      local vNr, vFr, vCn = {x=15,y=0}, {x=40,y=0}, {x=scrW,y=scrH}
+      local vNt, vFt, nN  = {x= 0,y=0}, {x= 0,y=0}, conWorkMode:GetSize()
+      local nMx = (GetOpVar("MAX_ROTATION") * GetOpVar("DEG_RAD"))
+      local nAn, rA = (nMx / nN), 0; actMonitor:SetColor()
+      actMonitor:DrawCircle(vCn, vNr.x, "y", "SURF")
+      actMonitor:DrawCircle(vCn, vFr.x)
+      for iD = 1, nN do
+        vNt.x, vNt.y = vNr.x, vNr.y; asmlib.RotateXY(vNt, rA)
+        vFt.x, vFt.y = vFr.x, vFr.y; asmlib.RotateXY(vFt, rA)
+        vNt.x, vNt.y = (vNt.x + vCn.x), (vNt.y + vCn.y)
+        vFt.x, vFt.y = (vFt.x + vCn.x), (vFt.y + vCn.y)
+        actMonitor:DrawLine(vNt, vFt, "r", "SURF")
+        rA = (rA + nAn)
       end
     end)
 end

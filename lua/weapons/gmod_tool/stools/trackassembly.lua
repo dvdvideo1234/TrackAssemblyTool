@@ -52,7 +52,7 @@ local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
-local gtWorkMode  = asmlib.GetOpVar("MODE_WORKING")
+local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -399,11 +399,12 @@ function TOOL:GetAnchor()
 end
 
 function TOOL:GetWorkingMode() -- Put cases in new mode resets here
-  local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, #gtWorkMode)
+  local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, conWorkMode:GetSize())
   -- Perform various actions to stabilize data across working modes
   if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
   elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
-  return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
+  return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV)
+  -- Reset settings server-side where available and return the value
 end
 
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
@@ -496,8 +497,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
 end
 
 function TOOL:SelectModel(sModel)
-  local trRec = asmlib.CacheQueryPiece(sModel)
-  if(not trRec) then
+  local trRec = asmlib.CacheQueryPiece(sModel); if(not trRec) then
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")) end
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
@@ -549,7 +549,7 @@ function TOOL:LeftClick(stTrace)
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector(); vPos:Set(stTrace.HitPos)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,angsnap)
-    if(spawncn) then  -- Spawn on mass centre
+    if(spawncn) then  -- Spawn on mass center
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
@@ -610,9 +610,8 @@ function TOOL:LeftClick(stTrace)
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       return asmlib.StatusLog(true,"TOOL:LeftClick(Bodygroup/Skin): Success")
     end
-  end
-
-  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  end -- IN_SPEED: Switch the tool mode (
+  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then  Stacking )
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -634,10 +633,8 @@ function TOOL:LeftClick(stTrace)
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply weld fail")) end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,forcelim)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply no-collide fail")) end
-        asmlib.SetVector(vTemp,hdOffs.P)
-        vTemp:Rotate(stSpawn.SAng)
-        vTemp:Add(ePieceN:GetPos())
-        asmlib.UndoAddEntityPly(ePieceN)
+        asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
+        vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntityPly(ePieceN)
         if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
         if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
         stSpawn = asmlib.GetEntitySpawn(ply,ePieceN,vTemp,model,pointid,
