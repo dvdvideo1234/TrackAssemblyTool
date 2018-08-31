@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.464")
+asmlib.SetOpVar("TOOL_VERSION","5.465")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -607,14 +607,16 @@ if(CLIENT) then
       local nMx = (GetOpVar("MAX_ROTATION") * GetOpVar("DEG_RAD"))
       local nAn, rA = (nMx / nN), 0; actMonitor:SetColor()
       actMonitor:DrawCircle(vCn, vNr.x, "y", "SURF")
-      actMonitor:DrawCircle(vCn, vFr.x)
-      for iD = 1, nN do
+      actMonitor:DrawCircle(vCn, vFr.x); rA = nAn
+      vNt.x, vNt.y = (vNr.x + vCn.x), (vNr.y + vCn.y)
+      vFt.x, vFt.y = (vFr.x + vCn.x), (vFr.y + vCn.y)
+      actMonitor:DrawLine(vNt, vFt, "r", "SURF")
+      for iD = 2, nN do
         vNt.x, vNt.y = vNr.x, vNr.y; asmlib.RotateXY(vNt, rA)
         vFt.x, vFt.y = vFr.x, vFr.y; asmlib.RotateXY(vFt, rA)
         vNt.x, vNt.y = (vNt.x + vCn.x), (vNt.y + vCn.y)
         vFt.x, vFt.y = (vFt.x + vCn.x), (vFt.y + vCn.y)
-        actMonitor:DrawLine(vNt, vFt, "r", "SURF")
-        rA = (rA + nAn)
+        actMonitor:DrawLine(vNt, vFt); rA = (rA + nAn)
       end
     end)
 end
