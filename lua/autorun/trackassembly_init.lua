@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.465")
+asmlib.SetOpVar("TOOL_VERSION","5.466")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -104,10 +104,10 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
       conPalette:Insert("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
       conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
-local conWorkMode = MakeContainer("WorkMode"); asmlib.SetOpVar("MODE_WORKING", conWorkMode)
+local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("MODE_WORKING", conWorkMode)
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
-      conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation 
-      
+      conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
+
 -------- CALLBACKS ----------
 asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
   function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
@@ -589,28 +589,46 @@ if(CLIENT) then
         end
       end
     end)
-    
+
   asmlib.SetAction("WORKMODE_DRAW",
     function()
+      if(not inputIsMouseDown(MOUSE_MIDDLE)) then return end
+      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Player invalid") end
+      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
+        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then
+        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Swep not physgun") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then
+        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Tool different") end
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
         if(not actMonitor) then
-          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Invalid screen") end
+          return asmlib.StatusLog(nil,"WORKMODE_DRAW: Invalid screen") end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
+        asmlib.LogInstance("WORKMODE_DRAW: Create screen")
       end -- Make sure we have a valid game monitor for the draw OOP
       local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
-      local vNr, vFr, vCn = {x=15,y=0}, {x=40,y=0}, {x=scrW,y=scrH}
-      local vNt, vFt, nN  = {x= 0,y=0}, {x= 0,y=0}, conWorkMode:GetSize()
-      local nMx = (GetOpVar("MAX_ROTATION") * GetOpVar("DEG_RAD"))
+      local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
+      local vCn = {x=mathFloor(scrW/2),y=mathFloor(scrH/2)}
+      local vFr = {x=(vCn.y*nR),y=0}
+      local vNr = {x=(vFr.x*nR),y=0}
+      local vNt, vFt = {x=0,y=0}, {x=0,y=0}
+      local nN  = conWorkMode:GetSize() + 1
+      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
       local nAn, rA = (nMx / nN), 0; actMonitor:SetColor()
-      actMonitor:DrawCircle(vCn, vNr.x, "y", "SURF")
+      local mX = oPly:GetNWFloat(gsToolPrefL.."mousex", 0)
+      local mY = oPly:GetNWFloat(gsToolPrefL.."mousey", 0)
+      actMonitor:DrawCircle(vCn, vNr.x, "y", "SEGM", {50})
       actMonitor:DrawCircle(vCn, vFr.x); rA = nAn
       vNt.x, vNt.y = (vNr.x + vCn.x), (vNr.y + vCn.y)
       vFt.x, vFt.y = (vFr.x + vCn.x), (vFr.y + vCn.y)
       actMonitor:DrawLine(vNt, vFt, "r", "SURF")
+      vNt.x, vNt.y = (vCn.x + mX), (vCn.y + mY)
+      actMonitor:DrawCircle(vNt, 10, "r");
+      actMonitor:DrawLine(vNt, vCn)
       for iD = 2, nN do
         vNt.x, vNt.y = vNr.x, vNr.y; asmlib.RotateXY(vNt, rA)
         vFt.x, vFt.y = vFr.x, vFr.y; asmlib.RotateXY(vFt, rA)

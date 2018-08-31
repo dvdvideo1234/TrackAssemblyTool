@@ -669,8 +669,8 @@ function RotateXY(xyV, nR)
   local nX = (tonumber(xyV.x) or 0)
   local nY = (tonumber(xyV.y) or 0)
   local nS, nC = mathSin(nA), mathCos(nA)
-  xyV.x = (nX * nS - nY * nC)
-  xyV.y = (nX * nC + nY * nS); return xyV
+  xyV.x = (nX * nC - nY * nS)
+  xyV.y = (nX * nS + nY * nC); return xyV
 end
 
 ----------------- OOP ------------------
@@ -1616,7 +1616,7 @@ function GetMouseVectorPly(pPly)
     return 0, StatusLog(0,"GetMouseVectorPly: Spot missing") end
   local stData = stSpot["PRESS"]; if(not IsExistent(stData)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Data missing <"..pPly:Nick()..">") end
-  local cmdPress = stData["CMD"]; if(not IsExistent(stData)) then
+  local cmdPress = stData["CMD"]; if(not IsExistent(cmdPress)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Command missing <"..pPly:Nick()..">") end
   return cmdPress:GetMouseX(), cmdPress:GetMouseY()
 end

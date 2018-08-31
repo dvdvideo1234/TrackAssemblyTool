@@ -121,10 +121,10 @@ TOOL.ClientConVar = {
 if(CLIENT) then
   TOOL.Information = {
     { name = "info",  stage = 1   },
-    { name = "left"         },
-    { name = "right"        },
-    { name = "right_use",   icon2 = "gui/e.png" },
-    { name = "reload"       }
+    { name = "left"      },
+    { name = "right"     },
+    { name = "right_use",icon2 = "gui/e.png" },
+    { name = "reload"    }
   }
   asmlib.InitLocalify(varLanguage:GetString())
   languageAdd("tool."..gsToolNameL..".category", "Construction")
@@ -134,6 +134,7 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
+  hookAdd("PostDrawHUD"    , gsToolPrefL.."workmode_menu_draw", asmlib.GetActionCode("WORKMODE_DRAW"))
 end
 
 if(SERVER) then
@@ -610,8 +611,8 @@ function TOOL:LeftClick(stTrace)
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       return asmlib.StatusLog(true,"TOOL:LeftClick(Bodygroup/Skin): Success")
     end
-  end -- IN_SPEED: Switch the tool mode (
-  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then  Stacking )
+  end -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -848,6 +849,13 @@ function TOOL:Think()
       local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
       if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
     end -- Shortcut for closing the routine pieces
+    if(SERVER and asmlib.CheckButtonPly(ply, IN_ZOOM)) then
+      if(asmlib.CachePressPly(ply)) then
+        local mX, mY = asmlib.GetMouseVectorPly(ply)
+        ply:SetNWFloat(gsToolPrefL.."mousex", mX * 10)
+        ply:SetNWFloat(gsToolPrefL.."mousey", mY * 10)
+      end
+    end
   end
 end
 
