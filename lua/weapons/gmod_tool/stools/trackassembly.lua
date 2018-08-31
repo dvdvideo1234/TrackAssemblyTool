@@ -1183,16 +1183,18 @@ local ConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel)
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
-  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc")); CurY = CurY + pItem:GetTall() + 2
+  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc"))
+  CurY  = CurY + pItem:GetTall() + 2
 
   pItem = CPanel:AddControl( "ComboBox",{
               MenuButton = 1,
               Folder     = gsToolNameL,
               Options    = {["#Default"] = ConVarList},
-              CVars      = tableGetKeys(ConVarList)}); CurY = CurY + pItem:GetTall() + 2
+              CVars      = tableGetKeys(ConVarList)
+  }); CurY = CurY + pItem:GetTall() + 2
 
-  local Panel = asmlib.CacheQueryPanel()
-  if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Panel population empty") end
+  local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel)
+    then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Panel population empty") end
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel)
@@ -1200,12 +1202,10 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetSize(2, 400)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model_con"))
         pTree:SetIndentSize(0)
-  local iCnt, pFolders, pCateg, pNode = 1, {}, {}
-  while(Panel[iCnt]) do
-    local Rec = Panel[iCnt]
-    local Mod = Rec[defTable[1][1]]
-    local Typ = Rec[defTable[2][1]]
-    local Nam = Rec[defTable[3][1]]
+  local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
+  while(cqPanel[iCnt]) do
+    local Rec = cqPanel[iCnt]
+    local Mod, Typ, Nam = Rec[defTable[1][1]], Rec[defTable[2][1]], Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
       if(not (asmlib.IsEmptyString(Typ) or pFolders[Typ])) then
         local pRoot = pTree:AddNode(Typ) -- No type folder made already
@@ -1223,8 +1223,7 @@ function TOOL.BuildCPanel(CPanel)
         if(not pCateg[Typ]) then pCateg[Typ] = {} end
         local bSuc, ptCat, psNam = pcall(catTypes[Typ].Cmp, Mod)
         -- If the call is successful in protected mode and a folder table is present
-        if(bSuc) then
-          local pCurr = pCateg[Typ]
+        if(bSuc) then local pCurr = pCateg[Typ]
           if(asmlib.IsEmptyString(ptCat)) then ptCat = nil end
           if(ptCat and type(ptCat) ~= "table") then ptCat = {ptCat} end
           if(ptCat and ptCat[1]) then
@@ -1240,7 +1239,7 @@ function TOOL.BuildCPanel(CPanel)
           end; if(psNam and not asmlib.IsEmptyString(psNam)) then Nam = tostring(psNam) end
         end -- Custom name to override via category
       end
-      -- Register the node asociated with the track piece
+      -- Register the node associated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode.DoRightClick = function() SetClipboardText(Mod) end
       pNode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
@@ -1279,31 +1278,24 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
-        pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
+        pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),
+                                languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
+        pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
+          RunConsoleCommand(gsToolPrefL.."physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
-  local Property = asmlib.CacheQueryProperty()
-  if(not Property) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Property population empty") end
-  local iTyp = 1
-  while(Property[iTyp]) do
-    pComboPhysType:AddChoice(Property[iTyp])
-    pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
-      local qNames = asmlib.CacheQueryProperty(sVal)
-      if(qNames) then
-        pComboPhysName:Clear()
-        pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
-        local iNam = 1
-        while(qNames[iNam]) do
-          pComboPhysName:AddChoice(qNames[iNam])
-          pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
-            RunConsoleCommand(gsToolPrefL.."physmater", sVal)
-          end; iNam = iNam + 1
-        end
-      else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names unavailable") end
-    end; iTyp = iTyp + 1
+  local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
+  return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Property population empty") end
+  while(cqProperty[iTyp]) do pComboPhysType:AddChoice(cqProperty[iTyp]); iTyp = iTyp + 1 end
+  pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
+    local cqNames = asmlib.CacheQueryProperty(sVal)
+    if(cqNames) then local iNam = 1; pComboPhysName:Clear()
+      pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
+      while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
+    else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names unavailable") end
   end
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
-  CPanel:AddItem(pComboPhysName); asmlib.Print(Property,"TOOL:BuildCPanel: Property")
+  CPanel:AddItem(pComboPhysName); asmlib.Print(cqProperty,"TOOL:BuildCPanel: Property")
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local pText = vguiCreate("DTextEntry", CPanel)
