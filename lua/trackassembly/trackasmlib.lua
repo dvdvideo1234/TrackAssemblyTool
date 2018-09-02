@@ -1611,7 +1611,7 @@ function GetMouseWheelPly(pPly)
 end
 
 -- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
-function GetMouseVectorPly(pPly)
+function GetMouseDeltaPly(pPly)
   local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Spot missing") end
   local stData = stSpot["PRESS"]; if(not IsExistent(stData)) then

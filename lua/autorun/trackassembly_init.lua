@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.466")
+asmlib.SetOpVar("TOOL_VERSION","5.463")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -616,19 +616,24 @@ if(CLIENT) then
       local vFr = {x=(vCn.y*nR),y=0}
       local vNr = {x=(vFr.x*nR),y=0}
       local vNt, vFt = {x=0,y=0}, {x=0,y=0}
-      local nN  = conWorkMode:GetSize() + 1
+      local nN  = conWorkMode:GetSize()
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
       local nAn, rA = (nMx / nN), 0; actMonitor:SetColor()
-      local mX = oPly:GetNWFloat(gsToolPrefL.."mousex", 0)
-      local mY = oPly:GetNWFloat(gsToolPrefL.."mousey", 0)
-      actMonitor:DrawCircle(vCn, vNr.x, "y", "SEGM", {50})
+      -- local mR = oPly:GetNWFloat(gsToolPrefL.."radmenu", 0)
+      local mR = asmlib.GetAsmVar("radmenu"  , "FLT")
+      local eR = asmlib.GetAsmVar("radmenuen", "BUL")
+      if(eR) then -- Radial menu arrow
+        vNt.x, vNt.y = vNr.x, vNr.y; asmlib.RotateXY(vNt, mR)
+        vNt.x, vNt.y = (vNt.x + vCn.x), (vNt.y + vCn.y)
+        actMonitor:DrawCircle(vNt, 10, "r");
+        actMonitor:DrawLine(vNt, vCn)
+      end
+      -- Draw the first divider segment
+      actMonitor:DrawCircle(vCn, vNr.x, "y", "SEGM", {35})
       actMonitor:DrawCircle(vCn, vFr.x); rA = nAn
       vNt.x, vNt.y = (vNr.x + vCn.x), (vNr.y + vCn.y)
       vFt.x, vFt.y = (vFr.x + vCn.x), (vFr.y + vCn.y)
       actMonitor:DrawLine(vNt, vFt, "r", "SURF")
-      vNt.x, vNt.y = (vCn.x + mX), (vCn.y + mY)
-      actMonitor:DrawCircle(vNt, 10, "r");
-      actMonitor:DrawLine(vNt, vCn)
       for iD = 2, nN do
         vNt.x, vNt.y = vNr.x, vNr.y; asmlib.RotateXY(vNt, rA)
         vFt.x, vFt.y = vFr.x, vFr.y; asmlib.RotateXY(vFt, rA)

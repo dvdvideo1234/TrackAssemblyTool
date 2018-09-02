@@ -23,6 +23,7 @@ local utilIsValidModel      = util and util.IsValidModel
 local mathAbs               = math and math.abs
 local mathSqrt              = math and math.sqrt
 local mathClamp             = math and math.Clamp
+local mathAtan2             = math and math.atan2
 local fileExists            = file and file.Exists
 local hookAdd               = hook and hook.Add
 local tableGetKeys          = table and table.GetKeys
@@ -115,7 +116,9 @@ TOOL.ClientConVar = {
   [ "engunsnap" ] = 0,
   [ "workmode"  ] = 0,
   [ "appangfst" ] = 0,
-  [ "applinfst" ] = 0
+  [ "applinfst" ] = 0,
+  [ "radmenu"   ] = 0,
+  [ "radmenuen" ] = 0
 }
 
 if(CLIENT) then
@@ -851,9 +854,22 @@ function TOOL:Think()
     end -- Shortcut for closing the routine pieces
     if(SERVER and asmlib.CheckButtonPly(ply, IN_ZOOM)) then
       if(asmlib.CachePressPly(ply)) then
-        local mX, mY = asmlib.GetMouseVectorPly(ply)
-        ply:SetNWFloat(gsToolPrefL.."mousex", mX * 10)
-        ply:SetNWFloat(gsToolPrefL.."mousey", mY * 10)
+        local mX, mY = asmlib.GetMouseDeltaPly(ply)
+        -- ply:SetNWFloat(gsToolPrefL.."radmenu", mathAtan2(mY, mX))
+        if(mX ~= 0 or mY ~= 0) then asmlib.ConCommandPly(ply,"radmenuen", 1)
+          local mR = mathAtan2(mY, mX); asmlib.ConCommandPly(ply,"radmenu", mR)
+          if(asmlib.CachePressPly(ply)) then
+          print(1)
+            if(not asmlib.CheckButtonPly(ply, IN_ZOOM)) then
+              local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
+              local workmode = mathFloor(nMx / mR); asmlib.ConCommandPly(ply,"workmode", workmode)
+              asmlib.PrintNotifyPly(oPly,"Work mode "..conWorkMode:Select(workmode),"UNDO")
+              print(2, workmode)
+            end
+          end
+        else
+          asmlib.ConCommandPly(ply,"radmenuen", 0)
+        end
       end
     end
   end
