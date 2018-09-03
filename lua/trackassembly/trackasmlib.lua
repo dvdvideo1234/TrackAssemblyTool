@@ -107,6 +107,7 @@ local tableEmpty              = table and table.Empty
 local tableMaxn               = table and table.maxn
 local tableGetKeys            = table and table.GetKeys
 local tableInsert             = table and table.insert
+local tableCopy               = table and table.Copy
 local debugGetinfo            = debug and debug.getinfo
 local renderDrawLine          = render and render.DrawLine
 local renderDrawSphere        = render and render.DrawSphere
@@ -398,6 +399,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
+  SetOpVar("OPSYM_ENTPOSANG","!")
   SetOpVar("DEG_RAD", mathPi / 180)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
@@ -477,7 +479,7 @@ end
 ------------- COLOR ---------------
 
 function FixColor(nC)
-  local tC = GetOpVar("COLOR_CLAMP")  
+  local tC = GetOpVar("COLOR_CLAMP")
   return mathFloor(mathClamp(tonumber(nC) or 0, tC[1], tC[2]))
 end
 
@@ -662,6 +664,46 @@ end
 
 -------------- 2DVECTOR ----------------
 
+function NewXY(nX, nY)
+  return {x=(tonumber(nX) or 0), y=(tonumber(nY) or 0)}
+end
+
+function SetXY(xyR, xyA)
+  if(not xyR) then return StatusLog(nil,"AddXY: Base R invalid") end
+  if(not xyA) then return StatusLog(nil,"AddXY: Base A invalid") end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  xyR.x, xyR.y = xA, yA; return xyR
+end
+
+function AddXY(xyR, xyA, xyB)
+  if(not xyR) then return StatusLog(nil,"AddXY: Base R invalid") end
+  if(not xyA) then return StatusLog(nil,"AddXY: Base A invalid") end
+  if(not xyB) then return StatusLog(nil,"AddXY: Base B invalid") end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
+  xyR.x, xyR.y = (xA + xB), (yA + yB); return xyR
+end
+
+function SubXY(xyR, xyA, xyB)
+  if(not xyR) then return StatusLog(nil,"AddXY: Base R invalid") end
+  if(not xyA) then return StatusLog(nil,"SubXY: Base A invalid") end
+  if(not xyB) then return StatusLog(nil,"SubXY: Base B invalid") end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
+  xyR.x, xyR.y = (xA - xB), (yA - yB); return xyR
+end
+
+function LenXY(xyA)
+  if(not xyA) then return StatusLog(nil,"LenXY: Base A invalid") end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  return mathSqrt(xA * xA + yA * yA)
+end
+
+function ExpXY(xyA)
+  if(not xyA) then return StatusLog(nil,"ExpXY: Base A invalid") end
+  return (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+end
+
 function RotateXY(xyV, nR)
   if(not xyV) then return StatusLog(nil,"RotateXY: Base invalid") end
   local nA = (tonumber(nR) or 0)
@@ -725,6 +767,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(sW < 0 or sH < 0) then return StatusLog(nil,"MakeScreen: Start dimension invalid") end
   if(eW < 0 or eH < 0) then return StatusLog(nil,"MakeScreen: End dimension invalid") end
+  local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
   local Colors = {List = conColors, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
@@ -736,7 +779,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   Text.DrwX, Text.DrwY = 0, 0
   Text.ScrW, Text.ScrH = 0, 0
   Text.LstW, Text.LstH = 0, 0
-  local self = {}
+  function self:GetCorners() return xyS, xyE end
   function self:GetSize() return (eW-sW), (eH-sH) end
   function self:GetCenter(nX,nY)
     local nW, nH = self:GetSize()
@@ -832,17 +875,13 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         return StatusLog(nil,"MakeScreen.DrawLine: Start out of border") end
       if(self:Enclose(pE) == -1) then
         return StatusLog(nil,"MakeScreen.DrawLine: End out of border") end
-      local nIter = mathClamp((tonumber(tArgs[1]) or 1),1,200)
+      local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       if(nIter <= 0) then return end
-      local nLx, nLy = (pE.x - pS.x), (pE.y - pS.y)
-      local xyD = {x = (nLx / nIter), y = (nLy / nIter)}
-      local xyOld, xyNew = {x = pS.x, y = pS.y}, {x = 0,y = 0}
-      while(nIter > 0) do
-        xyNew.x = xyOld.x + xyD.x
-        xyNew.y = xyOld.y + xyD.y
+      local xyD = NewXY((pE.x - pS.x) / nItr, (pE.y - pS.y) / nItr)
+      local xyOld, xyNew = NewXY(pS.x, pS.y), NewXY()
+      while(nItr > 0) do AddXY(xyNew, xyOld, xyD)
         surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        xyOld.x, xyOld.y = xyNew.x, xyNew.y
-        nIter = nIter - 1;
+        SetXY(xyOld, xyNew); nItr = nItr - 1
       end
     elseif(sMeth == "CAM3") then
       renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
@@ -867,14 +906,12 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       local nMax = (GetOpVar("MAX_ROTATION") * GetOpVar("DEG_RAD"))
-      local nStp, nAng = (nMax / nItr), 0
-      local xyOld, xyNew, xyRad = {x=0,y=0}, {x=0,y=0}, {x=nRad,y=0}
-            xyOld.x, xyOld.y = (pC.x + xyRad.x), (pC.y + xyRad.y)
+      local xyOld, xyNew, xyRad = NewXY(), NewXY(), NewXY(nRad, 0)
+      local nStp, nAng = (nMax / nItr), 0; AddXY(xyOld, xyRad, pC)
       while(nItr > 0) do nAng = nAng + nStp
-        xyNew.x, xyNew.y = xyRad.x, xyRad.y; RotateXY(xyNew, nAng)
-        xyNew.x, xyNew.y = (pC.x + xyNew.x), (pC.y + xyNew.y)
+        SetXY(xyNew, xyRad); RotateXY(xyNew, nAng); AddXY(xyNew, xyNew, pC)
         surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        xyOld.x, xyOld.y = xyNew.x, xyNew.y; nItr = (nItr - 1)
+        SetXY(xyOld, xyNew); nItr = (nItr - 1)
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
       renderSetMaterial(Material(tostring(tArgs[1] or "color")))
@@ -1266,17 +1303,15 @@ local function StringPOA(stPOA,sOffs)
     return StatusLog(nil,"StringPOA: Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string") end
   if(not IsExistent(stPOA)) then
     return StatusLog(nil,"StringPOA: Missing Offsets") end
-  local symRevs = GetOpVar("OPSYM_REVSIGN")
-  local symDisa = GetOpVar("OPSYM_DISABLE")
-  local symSepa = GetOpVar("OPSYM_SEPARATOR")
-  local sModeDB = GetOpVar("MODE_DATABASE")
+  local symRev,  symDis = GetOpVar( "OPSYM_REVSIGN" ), GetOpVar("OPSYM_DISABLE")
+  local symSep, sModeDB = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("MODE_DATABASE")
   if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
   elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
   else return StatusLog(nil,"StringPOA: Missed offset mode "..sOffs) end
-  return ((stPOA[csD] and symDisa or "")  -- Get rid of the spaces
-       ..((stPOA[csA] == -1) and symRevs or "")..tostring(stPOA[ctA])..symSepa
-       ..((stPOA[csB] == -1) and symRevs or "")..tostring(stPOA[ctB])..symSepa
-       ..((stPOA[csC] == -1) and symRevs or "")..tostring(stPOA[ctC])):gsub(" ","")
+  return ((stPOA[csD] and symDis or "")  -- Get rid of the spaces
+       ..((stPOA[csA] == -1) and symRev or "")..tostring(stPOA[ctA])..symSep
+       ..((stPOA[csB] == -1) and symRev or "")..tostring(stPOA[ctB])..symSep
+       ..((stPOA[csC] == -1) and symRev or "")..tostring(stPOA[ctC])):gsub(" ","")
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -1315,6 +1350,34 @@ local function DecodePOA(sStr)
   end; arPOA[dInd] = (tonumber(sStr:sub(S,E)) or 0); return arPOA
 end
 
+local function GetPieceUnit(stPiece)
+  local sU, sD = (stPiece and stPiece.Unit or nil), "prop_physics";
+  if(not IsExistent(sU)) then return sD end
+  local bU = (IsString(sU) and (sU ~= "NULL") and not IsEmptyString(sU))
+  return (bU and sU or sD)
+end
+
+local function GetEntityPOA(stPiece, sKey)
+  local sModel, sClass = stPiece.Slot, GetPieceUnit(stPiece.Unit)
+  local conPal, ePiece = GetOpVar("CONTAINER_PALETTE")
+  if(SERVER) then -- Create temporary entity on SERVER
+    ePiece = entsCreate(sClass)
+  elseif(CLIENT) then -- Create temporary entity on CLIENT
+    ePiece = CreateClientsideProp(sModel)
+  end -- Proceed with extraction when the entity is valid
+  if(not (ePiece and ePiece:IsValid())) then
+    return StatusLog(nil,"GetEntityPOA: Piece invalid "..tostring(ePiece)) end
+  ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
+  ePiece:SetSolid(SOLID_VPHYSICS)
+  ePiece:SetMoveType(MOVETYPE_NONE)
+  ePiece:SetNotSolid(true)
+  ePiece:SetModel(sModel)
+  ePiece:SetRenderMode(RENDERMODE_TRANSALPHA)
+  ePiece:SetColor(conPal:Select("a"))
+  local tA = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sKey)))
+  ePiece:Remove(); return tA
+end
+
 local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   if(not stPiece) then
     return StatusLog(nil,"RegisterPOA: Cache record invalid") end
@@ -1337,25 +1400,35 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     if((iID > 1) and (not tOffs[iID - 1])) then
       return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(iID - 1)) end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
-  end
-  ---------------- Origin ----------------
-  if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
-  if(not IsExistent(TransferPOA(tOffs.O,"V"))) then
-    return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
-  ---------------- Point ----------------
+  end; local sE = GetOpVar("OPSYM_ENTPOSANG")
+  if(sO:sub(1,1) == sE) then
+    local tA = GetEntityPOA(stPiece, sO:gsub(sE, ""))
+    if(IsExistent(tA.Pos)) then  
+      ReloadPOA(tA.Pos[cvX], tA.Pos[cvY], tA.Pos[cvZ])
+      if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
+        return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
+    else return StatusLog(nil,"RegisterPOA: Internal point missing <"....">") end
+    if(IsExistent(tA.Ang)) then
+      ReloadPOA(tA.Ang[caX], tA.Ang[caY], tA.Ang[caZ])
+      if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Origin
+        return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
+    else return StatusLog(nil,"RegisterPOA: Internal angle missing") end
+  else -- Reversing the sign and disable events are not supported
+    if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
+    if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
+      return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
+    if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
+    if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Angle
+      return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
+  end -- The active point is dependent by the events used and the state of the origin
   local sD = sP:gsub(GetOpVar("OPSYM_DISABLE"),"")
   if((sP ~= "NULL") and not IsEmptyString(sP)) then DecodePOA(sP) else ReloadPOA() end
-  if(not IsExistent(TransferPOA(tOffs.P,"V"))) then
+  if(not IsExistent(TransferPOA(tOffs.P, "V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer point") end
   if((sD == "NULL") or IsEmptyString(sD)) then -- If empty use origin
     tOffs.P[cvX] = tOffs.O[cvX]; tOffs.P[cvY] = tOffs.O[cvY]; tOffs.P[cvZ] = tOffs.O[cvZ];
     tOffs.P[csA] = tOffs.O[csA]; tOffs.P[csB] = tOffs.O[csB]; tOffs.P[csC] = tOffs.O[csC];
-  end
-  ---------------- Angle ----------------
-  if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
-  if(not IsExistent(TransferPOA(tOffs.A,"A"))) then
-    return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
-  return tOffs
+  end; return tOffs
 end
 
 local function QuickSort(tD, iL, iH)
@@ -1392,7 +1465,7 @@ end
 --------------------- STRING -----------------------
 
 function DisableString(sBase, vDsb, vDef)
-  if(IsString(sBase)) then 
+  if(IsString(sBase)) then
     local sF, sD = sBase:sub(1,1), GetOpVar("OPSYM_DISABLE")
     if(sF ~= sD and not IsEmptyString(sBase)) then
       return sBase -- Not disabled or empty
@@ -2126,7 +2199,7 @@ local function TimerRestart(oArea,tKeys,defTable,anyMessage)
     local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
       return StatusLog(Spot[Key],"TimerRestart: Timer life ignored") end
     local sModeTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
-    if(sModeTM == "CQT") then sModeTM = "CQT" 
+    if(sModeTM == "CQT") then sModeTM = "CQT"
     elseif(sModeTM == "OBJ") then
       local keyTimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
       if(not timerExists(keyTimerID)) then
@@ -2741,9 +2814,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end -- Register the read line to the output file
     if(bRepl) then
       if(tData[key]) then -- Update the file with the new data
-        fData[key] = rec
-        fData[key].Size = #rec
-      end
+        fData[key] = rec; fData[key].Size = #rec end
     else --[[ Do not modify fData ]] end
   end
   local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
@@ -2956,8 +3027,8 @@ end
  * Calculates SPos, SAng based on the DB inserts and input parameters
  * ucsPos        = Base UCS position
  * ucsAng        = Base UCS angle
- * shdModel      = Client Model
- * ivhdPoID      = Client Point ID
+ * shdModel      = CLIENT Model
+ * ivhdPoID      = CLIENT Point ID
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
@@ -3446,10 +3517,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     return StatusLog(nil,"MakePiece: Prop limit reached") end
   local stPiece = CacheQueryPiece(sModel) if(not IsExistent(stPiece)) then
     return StatusLog(nil,"MakePiece: Record missing for <"..sModel..">") end
-  local bcUnit = (IsString(stPiece.Unit) and
-    (stPiece.Unit ~= "NULL") and not IsEmptyString(stPiece.Unit))
-  LogInstance("MakePiece: Unit("..tostring(bcUnit)..") <"..tostring(stPiece.Unit or "")..">")
-  local ePiece = bcUnit and entsCreate(stPiece.Unit) or entsCreate("prop_physics")
+  local ePiece = entsCreate(GetPieceUnit(stPiece)) -- Create the piece unit
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(nil,"MakePiece: Piece invalid <"..tostring(ePiece)..">") end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)

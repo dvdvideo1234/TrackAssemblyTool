@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.463")
+asmlib.SetOpVar("TOOL_VERSION","5.464")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -90,6 +90,7 @@ local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmVar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
+      conPalette:Insert("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
       conPalette:Insert("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
       conPalette:Insert("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
       conPalette:Insert("b" ,asmlib.GetColor(  0,  0,255,255)) -- Blue
@@ -590,7 +591,7 @@ if(CLIENT) then
       end
     end)
 
-  asmlib.SetAction("WORKMODE_DRAW",
+  asmlib.SetAction("RADWORKMENU_DRAW",
     function()
       if(not inputIsMouseDown(MOUSE_MIDDLE)) then return end
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
@@ -612,33 +613,29 @@ if(CLIENT) then
       end -- Make sure we have a valid game monitor for the draw OOP
       local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
       local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
-      local vCn = {x=mathFloor(scrW/2),y=mathFloor(scrH/2)}
-      local vFr = {x=(vCn.y*nR),y=0}
-      local vNr = {x=(vFr.x*nR),y=0}
-      local vNt, vFt = {x=0,y=0}, {x=0,y=0}
+      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
+      local vFr, vNr = asmlib.NewXY(vCn.y*nR), asmlib.NewXY(vFr.x*nR)
+      local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
       local nN  = conWorkMode:GetSize()
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
       local nAn, rA = (nMx / nN), 0; actMonitor:SetColor()
       -- local mR = oPly:GetNWFloat(gsToolPrefL.."radmenu", 0)
       local mR = asmlib.GetAsmVar("radmenu"  , "FLT")
       local eR = asmlib.GetAsmVar("radmenuen", "BUL")
-      if(eR) then -- Radial menu arrow
-        vNt.x, vNt.y = vNr.x, vNr.y; asmlib.RotateXY(vNt, mR)
-        vNt.x, vNt.y = (vNt.x + vCn.x), (vNt.y + vCn.y)
+      if(eR) then asmlib.SetXY(vNt, vNr)
+        asmlib.RotateXY(vNt, mR); asmlib.AddXY(vNt, vNt, vCn)
         actMonitor:DrawCircle(vNt, 10, "r");
         actMonitor:DrawLine(vNt, vCn)
       end
       -- Draw the first divider segment
       actMonitor:DrawCircle(vCn, vNr.x, "y", "SEGM", {35})
       actMonitor:DrawCircle(vCn, vFr.x); rA = nAn
-      vNt.x, vNt.y = (vNr.x + vCn.x), (vNr.y + vCn.y)
-      vFt.x, vFt.y = (vFr.x + vCn.x), (vFr.y + vCn.y)
+      asmlib.AddXY(vNt, vNr, vCn); asmlib.AddXY(vFt, vFr, vCn)
       actMonitor:DrawLine(vNt, vFt, "r", "SURF")
       for iD = 2, nN do
-        vNt.x, vNt.y = vNr.x, vNr.y; asmlib.RotateXY(vNt, rA)
-        vFt.x, vFt.y = vFr.x, vFr.y; asmlib.RotateXY(vFt, rA)
-        vNt.x, vNt.y = (vNt.x + vCn.x), (vNt.y + vCn.y)
-        vFt.x, vFt.y = (vFt.x + vCn.x), (vFt.y + vCn.y)
+        asmlib.SetXY(vNt, vNr); asmlib.RotateXY(vNt, rA)
+        asmlib.SetXY(vFt, vFr); asmlib.RotateXY(vFt, rA)
+        asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
         actMonitor:DrawLine(vNt, vFt); rA = (rA + nAn)
       end
     end)

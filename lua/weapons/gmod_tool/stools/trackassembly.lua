@@ -137,7 +137,7 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
-  hookAdd("PostDrawHUD"    , gsToolPrefL.."workmode_menu_draw", asmlib.GetActionCode("WORKMODE_DRAW"))
+  hookAdd("PostDrawHUD"    , gsToolPrefL.."workmode_menu_draw", asmlib.GetActionCode("RADWORKMENU_DRAW"))
 end
 
 if(SERVER) then
@@ -942,11 +942,8 @@ function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
       return asmlib.StatusLog(nil,"TOOL:DrawSnapAssist: Cannot locate #"..tostring(ID)) end
     asmlib.SetVector(O,stPOA.O); O:Rotate(trAng); O:Add(trPos)
     local Op = O:ToScreen(); O:Add(R)
-    local Rp = O:ToScreen()
-    local mX = (Rp.x - Op.x); mX = mX * mX
-    local mY = (Rp.y - Op.y); mY = mY * mY
-    local mR = mathSqrt(mX + mY)
-    oScreen:DrawCircle(Op, mR,"y","SEGM",{100})
+    local Rp = O:ToScreen(); asmlib.SubXY(Rp, Rp, Op)
+    oScreen:DrawCircle(Op, asmlib.LenXY(Rp),"y","SEGM",{35})
   end
 end
 
@@ -1128,9 +1125,9 @@ function TOOL:DrawToolScreen(w, h)
       return asmlib.StatusLog(nil,"TOOL:DrawToolScreen: Invalid screen") end
     asmlib.SetOpVar("MONITOR_TOOL", scrTool)
     asmlib.LogInstance("TOOL:DrawToolScreen: Create screen")
-  end; scrTool:SetColor()
-  scrTool:DrawRect({x=0,y=0},{x=w,y=h},"k","SURF",{"vgui/white"})
-  scrTool:SetTextEdge(0,0)
+  end; local xyT, xyB = scrTool:GetCorners(); scrTool:SetColor()
+  scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
+  scrTool:SetTextEdge(xyT.x,xyT.y)
   local oPly = LocalPlayer()
   local stTrace = asmlib.CacheTracePly(oPly)
   local anInfo, anEnt = self:GetAnchor()
@@ -1190,13 +1187,13 @@ function TOOL:DrawToolScreen(w, h)
   local txX, txY, txW, txH, txsX, txsY = scrTool:GetTextState()
   local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
-  local xyPos = {x = cPos, y = cPos}
+  local xyPs = asmlib.NewXY(cPos, cPos)
   local workmode, workname = self:GetWorkingMode()
-  scrTool:DrawCircle(xyPos, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
-  scrTool:DrawCircle(xyPos, nRad, "m")
+  scrTool:DrawCircle(xyPs, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
+  scrTool:DrawCircle(xyPs, nRad, "m")
   scrTool:DrawText("Date: "..osDate(asmlib.GetOpVar("DATE_FORMAT")),"w")
   scrTool:DrawText("Time: "..osDate(asmlib.GetOpVar("TIME_FORMAT")))
-  if(trRLen) then scrTool:DrawCircle(xyPos, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
+  if(trRLen) then scrTool:DrawCircle(xyPs, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end
 
