@@ -398,6 +398,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
+  SetOpVar("DEG_RAD", mathPi / 180)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
@@ -453,7 +454,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
-  SetOpVar("MODE_WORKING", {"SNAP", "CROSS"})
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
@@ -651,7 +651,7 @@ function MulVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvZ] = vBase[cvZ] * (tonumber(nZ or 0))
 end
 
-function DecomposeByAngle(vBase,aUnit)
+function DecomposeByAngle(vBase, aUnit)
   if(not vBase) then return StatusLog(nil,"DecomposeByAngle: Base invalid") end
   if(not aUnit) then return StatusLog(nil,"DecomposeByAngle: Unit invalid") end
   local X = vBase:Dot(aUnit:Forward())
@@ -660,14 +660,26 @@ function DecomposeByAngle(vBase,aUnit)
   SetVectorXYZ(vBase,X,Y,Z)
 end
 
----------- OOP -----------------
+-------------- 2DVECTOR ----------------
+
+function RotateXY(xyV, nR)
+  if(not xyV) then return StatusLog(nil,"RotateXY: Base invalid") end
+  local nA = (tonumber(nR) or 0)
+  if(nA == 0) then return xyV end
+  local nX = (tonumber(xyV.x) or 0)
+  local nY = (tonumber(xyV.y) or 0)
+  local nS, nC = mathSin(nA), mathCos(nA)
+  xyV.x = (nX * nC - nY * nS)
+  xyV.y = (nX * nS + nY * nC); return xyV
+end
+
+----------------- OOP ------------------
 
 function MakeContainer(sInfo,sDefKey)
-  local Curs, Data = 0, {}
+  local Curs, Data, self = 0, {}, {}
   local sSel, sIns, sDel, sMet = "", "", "", ""
   local Info = tostring(sInfo or "Storage container")
   local Key  = sDefKey or GetOpVar("OOP_DEFAULTKEY")
-  local self = {}
   function self:GetInfo() return Info end
   function self:GetSize() return Curs end
   function self:GetData() return Data end
@@ -854,19 +866,15 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     if(sMeth == "SURF") then surfaceDrawCircle(pC.x, pC.y, nRad, rgbCl)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
-      local nMax = (GetOpVar("MAX_ROTATION") * mathPi / 180)
+      local nMax = (GetOpVar("MAX_ROTATION") * GetOpVar("DEG_RAD"))
       local nStp, nAng = (nMax / nItr), 0
       local xyOld, xyNew, xyRad = {x=0,y=0}, {x=0,y=0}, {x=nRad,y=0}
-            xyOld.x = pC.x + xyRad.x
-            xyOld.y = pC.y + xyRad.y
-      while(nItr > 0) do
-        nAng = nAng + nStp
-        local nSin, nCos = mathSin(nAng), mathCos(nAng)
-        xyNew.x = pC.x + (xyRad.x * nCos - xyRad.y * nSin)
-        xyNew.y = pC.y + (xyRad.x * nSin + xyRad.y * nCos)
+            xyOld.x, xyOld.y = (pC.x + xyRad.x), (pC.y + xyRad.y)
+      while(nItr > 0) do nAng = nAng + nStp
+        xyNew.x, xyNew.y = xyRad.x, xyRad.y; RotateXY(xyNew, nAng)
+        xyNew.x, xyNew.y = (pC.x + xyNew.x), (pC.y + xyNew.y)
         surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        xyOld.x, xyOld.y = xyNew.x, xyNew.y
-        nItr = nItr - 1;
+        xyOld.x, xyOld.y = xyNew.x, xyNew.y; nItr = (nItr - 1)
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
       renderSetMaterial(Material(tostring(tArgs[1] or "color")))
@@ -1603,12 +1611,12 @@ function GetMouseWheelPly(pPly)
 end
 
 -- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
-function GetMouseVectorPly(pPly)
+function GetMouseDeltaPly(pPly)
   local stSpot = GetPlayerSpot(pPly); if(not IsExistent(stSpot)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Spot missing") end
   local stData = stSpot["PRESS"]; if(not IsExistent(stData)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Data missing <"..pPly:Nick()..">") end
-  local cmdPress = stData["CMD"]; if(not IsExistent(stData)) then
+  local cmdPress = stData["CMD"]; if(not IsExistent(cmdPress)) then
     return 0, StatusLog(0,"GetMouseVectorPly: Command missing <"..pPly:Nick()..">") end
   return cmdPress:GetMouseX(), cmdPress:GetMouseY()
 end

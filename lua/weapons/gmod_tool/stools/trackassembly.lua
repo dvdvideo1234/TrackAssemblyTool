@@ -23,6 +23,7 @@ local utilIsValidModel      = util and util.IsValidModel
 local mathAbs               = math and math.abs
 local mathSqrt              = math and math.sqrt
 local mathClamp             = math and math.Clamp
+local mathAtan2             = math and math.atan2
 local fileExists            = file and file.Exists
 local hookAdd               = hook and hook.Add
 local tableGetKeys          = table and table.GetKeys
@@ -52,7 +53,7 @@ local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
-local gtWorkMode  = asmlib.GetOpVar("MODE_WORKING")
+local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -115,16 +116,18 @@ TOOL.ClientConVar = {
   [ "engunsnap" ] = 0,
   [ "workmode"  ] = 0,
   [ "appangfst" ] = 0,
-  [ "applinfst" ] = 0
+  [ "applinfst" ] = 0,
+  [ "radmenu"   ] = 0,
+  [ "radmenuen" ] = 0
 }
 
 if(CLIENT) then
   TOOL.Information = {
     { name = "info",  stage = 1   },
-    { name = "left"         },
-    { name = "right"        },
-    { name = "right_use",   icon2 = "gui/e.png" },
-    { name = "reload"       }
+    { name = "left"      },
+    { name = "right"     },
+    { name = "right_use",icon2 = "gui/e.png" },
+    { name = "reload"    }
   }
   asmlib.InitLocalify(varLanguage:GetString())
   languageAdd("tool."..gsToolNameL..".category", "Construction")
@@ -134,6 +137,7 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
+  hookAdd("PostDrawHUD"    , gsToolPrefL.."workmode_menu_draw", asmlib.GetActionCode("WORKMODE_DRAW"))
 end
 
 if(SERVER) then
@@ -399,11 +403,12 @@ function TOOL:GetAnchor()
 end
 
 function TOOL:GetWorkingMode() -- Put cases in new mode resets here
-  local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, #gtWorkMode)
+  local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, conWorkMode:GetSize())
   -- Perform various actions to stabilize data across working modes
   if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
   elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
-  return workmode, tostring(gtWorkMode[workmode] or gsNoAV) -- Reset settings server-side where available and return the value
+  return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV)
+  -- Reset settings server-side where available and return the value
 end
 
 function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
@@ -496,8 +501,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
 end
 
 function TOOL:SelectModel(sModel)
-  local trRec = asmlib.CacheQueryPiece(sModel)
-  if(not trRec) then
+  local trRec = asmlib.CacheQueryPiece(sModel); if(not trRec) then
     return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")) end
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
@@ -549,7 +553,7 @@ function TOOL:LeftClick(stTrace)
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector(); vPos:Set(stTrace.HitPos)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,angsnap)
-    if(spawncn) then  -- Spawn on mass centre
+    if(spawncn) then  -- Spawn on mass center
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
@@ -610,9 +614,8 @@ function TOOL:LeftClick(stTrace)
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       return asmlib.StatusLog(true,"TOOL:LeftClick(Bodygroup/Skin): Success")
     end
-  end
-
-  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then -- IN_SPEED: Switch the tool mode ( Stacking )
+  end -- IN_SPEED: Switch the tool mode ( Stacking )
+  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
@@ -634,10 +637,8 @@ function TOOL:LeftClick(stTrace)
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply weld fail")) end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,forcelim)) then
           return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply no-collide fail")) end
-        asmlib.SetVector(vTemp,hdOffs.P)
-        vTemp:Rotate(stSpawn.SAng)
-        vTemp:Add(ePieceN:GetPos())
-        asmlib.UndoAddEntityPly(ePieceN)
+        asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
+        vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntityPly(ePieceN)
         if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
         if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
         stSpawn = asmlib.GetEntitySpawn(ply,ePieceN,vTemp,model,pointid,
@@ -851,6 +852,26 @@ function TOOL:Think()
       local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
       if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
     end -- Shortcut for closing the routine pieces
+    if(SERVER and asmlib.CheckButtonPly(ply, IN_ZOOM)) then
+      if(asmlib.CachePressPly(ply)) then
+        local mX, mY = asmlib.GetMouseDeltaPly(ply)
+        -- ply:SetNWFloat(gsToolPrefL.."radmenu", mathAtan2(mY, mX))
+        if(mX ~= 0 or mY ~= 0) then asmlib.ConCommandPly(ply,"radmenuen", 1)
+          local mR = mathAtan2(mY, mX); asmlib.ConCommandPly(ply,"radmenu", mR)
+          if(asmlib.CachePressPly(ply)) then
+          print(1)
+            if(not asmlib.CheckButtonPly(ply, IN_ZOOM)) then
+              local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
+              local workmode = mathFloor(nMx / mR); asmlib.ConCommandPly(ply,"workmode", workmode)
+              asmlib.PrintNotifyPly(oPly,"Work mode "..conWorkMode:Select(workmode),"UNDO")
+              print(2, workmode)
+            end
+          end
+        else
+          asmlib.ConCommandPly(ply,"radmenuen", 0)
+        end
+      end
+    end
   end
 end
 
@@ -1183,16 +1204,18 @@ local ConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel)
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
-  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc")); CurY = CurY + pItem:GetTall() + 2
+  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc"))
+  CurY  = CurY + pItem:GetTall() + 2
 
   pItem = CPanel:AddControl( "ComboBox",{
               MenuButton = 1,
               Folder     = gsToolNameL,
               Options    = {["#Default"] = ConVarList},
-              CVars      = tableGetKeys(ConVarList)}); CurY = CurY + pItem:GetTall() + 2
+              CVars      = tableGetKeys(ConVarList)
+  }); CurY = CurY + pItem:GetTall() + 2
 
-  local Panel = asmlib.CacheQueryPanel()
-  if(not Panel) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Panel population empty") end
+  local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel)
+    then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Panel population empty") end
   local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel)
@@ -1200,12 +1223,10 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetSize(2, 400)
         pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model_con"))
         pTree:SetIndentSize(0)
-  local iCnt, pFolders, pCateg, pNode = 1, {}, {}
-  while(Panel[iCnt]) do
-    local Rec = Panel[iCnt]
-    local Mod = Rec[defTable[1][1]]
-    local Typ = Rec[defTable[2][1]]
-    local Nam = Rec[defTable[3][1]]
+  local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
+  while(cqPanel[iCnt]) do
+    local Rec = cqPanel[iCnt]
+    local Mod, Typ, Nam = Rec[defTable[1][1]], Rec[defTable[2][1]], Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
       if(not (asmlib.IsEmptyString(Typ) or pFolders[Typ])) then
         local pRoot = pTree:AddNode(Typ) -- No type folder made already
@@ -1223,8 +1244,7 @@ function TOOL.BuildCPanel(CPanel)
         if(not pCateg[Typ]) then pCateg[Typ] = {} end
         local bSuc, ptCat, psNam = pcall(catTypes[Typ].Cmp, Mod)
         -- If the call is successful in protected mode and a folder table is present
-        if(bSuc) then
-          local pCurr = pCateg[Typ]
+        if(bSuc) then local pCurr = pCateg[Typ]
           if(asmlib.IsEmptyString(ptCat)) then ptCat = nil end
           if(ptCat and type(ptCat) ~= "table") then ptCat = {ptCat} end
           if(ptCat and ptCat[1]) then
@@ -1240,7 +1260,7 @@ function TOOL.BuildCPanel(CPanel)
           end; if(psNam and not asmlib.IsEmptyString(psNam)) then Nam = tostring(psNam) end
         end -- Custom name to override via category
       end
-      -- Register the node asociated with the track piece
+      -- Register the node associated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode.DoRightClick = function() SetClipboardText(Mod) end
       pNode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
@@ -1279,31 +1299,24 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
-        pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
+        pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),
+                                languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
+        pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
+          RunConsoleCommand(gsToolPrefL.."physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
-  local Property = asmlib.CacheQueryProperty()
-  if(not Property) then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Property population empty") end
-  local iTyp = 1
-  while(Property[iTyp]) do
-    pComboPhysType:AddChoice(Property[iTyp])
-    pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
-      local qNames = asmlib.CacheQueryProperty(sVal)
-      if(qNames) then
-        pComboPhysName:Clear()
-        pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
-        local iNam = 1
-        while(qNames[iNam]) do
-          pComboPhysName:AddChoice(qNames[iNam])
-          pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
-            RunConsoleCommand(gsToolPrefL.."physmater", sVal)
-          end; iNam = iNam + 1
-        end
-      else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names unavailable") end
-    end; iTyp = iTyp + 1
+  local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
+  return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Property population empty") end
+  while(cqProperty[iTyp]) do pComboPhysType:AddChoice(cqProperty[iTyp]); iTyp = iTyp + 1 end
+  pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
+    local cqNames = asmlib.CacheQueryProperty(sVal)
+    if(cqNames) then local iNam = 1; pComboPhysName:Clear()
+      pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
+      while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
+    else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names unavailable") end
   end
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
-  CPanel:AddItem(pComboPhysName); asmlib.Print(Property,"TOOL:BuildCPanel: Property")
+  CPanel:AddItem(pComboPhysName); asmlib.Print(cqProperty,"TOOL:BuildCPanel: Property")
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local pText = vguiCreate("DTextEntry", CPanel)
