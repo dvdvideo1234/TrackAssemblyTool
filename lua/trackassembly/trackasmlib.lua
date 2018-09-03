@@ -365,7 +365,7 @@ function SetIndexes(sType,...)
 end
 
 function UseIndexes(pB1,pB2,pB3,pD1,pD2,pD3)
-  return (tonumber(pB1) or pD1), (tonumber(pB2) or pD2), (tonumber(pB3) or pD3)
+  return (pB1 or pD1), (pB2 or pD2), (pB3 or pD3)
 end
 
 function InitBase(sName,sPurpose)
