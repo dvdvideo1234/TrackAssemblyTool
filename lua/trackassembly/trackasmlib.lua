@@ -400,6 +400,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("OPSYM_ENTPOSANG","!")
+  SetOpVar("TABLE_ENTPOSANG",{})
   SetOpVar("DEG_RAD", mathPi / 180)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
@@ -1320,33 +1321,29 @@ local function TransferPOA(stOffset,sMode)
   if(not IsString(sMode)) then
     return StatusLog(nil,"TransferPOA: Mode {"..type(sMode).."}<"..tostring(sMode).."> not string") end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
-  if    (sMode == "V") then stOffset[cvX] = arPOA[1]; stOffset[cvY] = arPOA[2]; stOffset[cvZ] = arPOA[3]
-  elseif(sMode == "A") then stOffset[caP] = arPOA[1]; stOffset[caY] = arPOA[2]; stOffset[caR] = arPOA[3]
+  if    (sMode == "V") then stOffset[cvX], stOffset[cvY], stOffset[cvZ] = arPOA[1], arPOA[2], arPOA[3]
+  elseif(sMode == "A") then stOffset[caP], stOffset[caY], stOffset[caR] = arPOA[1], arPOA[2], arPOA[3]
   else return StatusLog(nil,"TransferPOA: Missed mode "..sMode) end
-  stOffset[csA] = arPOA[4]; stOffset[csB] = arPOA[5]; stOffset[csC] = arPOA[6]; stOffset[csD] = arPOA[7]
+  stOffset[csA], stOffset[csB], stOffset[csC], stOffset[csD] = arPOA[4], arPOA[5], arPOA[6], arPOA[7]
   return arPOA
 end
 
 local function DecodePOA(sStr)
   if(not IsString(sStr)) then
     return StatusLog(nil,"DecodePOA: Argument {"..type(sStr).."}<"..tostring(sStr).."> not string") end
-  local strLen = sStr:len(); ReloadPOA()
+  local strLen = sStr:len(); if(strLen == 0) then return ReloadPOA() end; ReloadPOA()
   local symOff, symRev = GetOpVar("OPSYM_DISABLE"), GetOpVar("OPSYM_REVSIGN")
   local symSep, arPOA = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("ARRAY_DECODEPOA")
   local S, E, iCnt, dInd, iSep, sCh = 1, 1, 1, 1, 0, ""
   if(sStr:sub(iCnt,iCnt) == symOff) then
     arPOA[7] = true; iCnt = iCnt + 1; S = S + 1 end
-  while(iCnt <= strLen) do
-    sCh = sStr:sub(iCnt,iCnt)
-    if(sCh == symRev) then
-      arPOA[3+dInd] = -arPOA[3+dInd]; S = S + 1
-    elseif(sCh == symSep) then
-      iSep = iSep + 1; E = iCnt - 1
+  while(iCnt <= strLen) do sCh = sStr:sub(iCnt,iCnt)
+    if(sCh == symRev) then arPOA[3+dInd] = -arPOA[3+dInd]; S = S + 1
+    elseif(sCh == symSep) then iSep = iSep + 1; E = iCnt - 1
       if(iSep > 2) then break end
       arPOA[dInd] = (tonumber(sStr:sub(S,E)) or 0)
       dInd = dInd + 1; S = iCnt + 1; E = S
-    else E = E + 1 end
-    iCnt = iCnt + 1
+    else E = E + 1 end; iCnt = iCnt + 1
   end; arPOA[dInd] = (tonumber(sStr:sub(S,E)) or 0); return arPOA
 end
 
@@ -1357,25 +1354,20 @@ local function GetPieceUnit(stPiece)
   return (bU and sU or sD)
 end
 
-local function GetEntityPOA(stPiece, sKey)
-  local sModel, sClass = stPiece.Slot, GetPieceUnit(stPiece.Unit)
-  local conPal, ePiece = GetOpVar("CONTAINER_PALETTE")
-  if(SERVER) then -- Create temporary entity on SERVER
-    ePiece = entsCreate(sClass)
-  elseif(CLIENT) then -- Create temporary entity on CLIENT
-    ePiece = CreateClientsideProp(sModel)
-  end -- Proceed with extraction when the entity is valid
+local function GetEntityPOA(stPiece, sK)
+  local tOA = GetOpVar("TABLE_ENTPOSANG")
+  local sM, sC = stPiece.Slot, GetPieceUnit(stPiece)
+  if(not tOA[sM]) then tOA[sM] = {} end; tOA = tOA[sM]
+  if(tOA[sK]) then return tOA[sK] end; local ePiece
+  if(SERVER) then ePiece = entsCreate(sClass)
+  elseif(CLIENT) then ePiece = CreateClientsideProp(sModel) end
   if(not (ePiece and ePiece:IsValid())) then
     return StatusLog(nil,"GetEntityPOA: Piece invalid "..tostring(ePiece)) end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
-  ePiece:SetSolid(SOLID_VPHYSICS)
-  ePiece:SetMoveType(MOVETYPE_NONE)
-  ePiece:SetNotSolid(true)
-  ePiece:SetModel(sModel)
-  ePiece:SetRenderMode(RENDERMODE_TRANSALPHA)
-  ePiece:SetColor(conPal:Select("a"))
-  local tA = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sKey)))
-  ePiece:Remove(); return tA
+  ePiece:SetSolid(SOLID_VPHYSICS); ePiece:SetMoveType(MOVETYPE_NONE)
+  ePiece:SetNotSolid(true); ePiece:SetModel(sModel)
+  tOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sKey)))
+  ePiece:Remove(); return tOA[sK]
 end
 
 local function RegisterPOA(stPiece, ivID, sP, sO, sA)
@@ -1401,24 +1393,25 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
       return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(iID - 1)) end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE = GetOpVar("OPSYM_ENTPOSANG")
-  if(sO:sub(1,1) == sE) then
-    local tA = GetEntityPOA(stPiece, sO:gsub(sE, ""))
-    if(IsExistent(tA.Pos)) then  
-      ReloadPOA(tA.Pos[cvX], tA.Pos[cvY], tA.Pos[cvZ])
-      if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
-        return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
-    else return StatusLog(nil,"RegisterPOA: Internal point missing <"....">") end
-    if(IsExistent(tA.Ang)) then
-      ReloadPOA(tA.Ang[caX], tA.Ang[caY], tA.Ang[caZ])
-      if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Origin
-        return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
-    else return StatusLog(nil,"RegisterPOA: Internal angle missing") end
-  else -- Reversing the sign and disable events are not supported
-    if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
+  if(sO:sub(1,1) == sE) then local tOA = GetEntityPOA(stPiece, sO:gsub(sE, ""))
+    ---------- Origin ----------
+    if(IsExistent(tOA.Pos)) then -- Reversing the sign and disable events are not supported
+      ReloadPOA(tOA.Pos[cvX], tOA.Pos[cvY], tOA.Pos[cvZ]) else ReloadPOA() end
     if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
       return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
-    if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
+    ---------- Angle ----------
+    if(IsExistent(tOA.Ang)) then ReloadPOA(tOA.Ang[caP], tOA.Ang[caY], tOA.Ang[caR]) else
+      if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end end
     if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Angle
+      return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
+  else
+    ---------- Origin ----------
+    if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
+    if(not IsExistent(TransferPOA(tOffs.O, "V"))) then
+      return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
+    ---------- Angle ----------
+    if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
+    if(not IsExistent(TransferPOA(tOffs.A, "A"))) then
       return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
   end -- The active point is dependent by the events used and the state of the origin
   local sD = sP:gsub(GetOpVar("OPSYM_DISABLE"),"")
