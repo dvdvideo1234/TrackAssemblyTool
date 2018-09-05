@@ -136,8 +136,10 @@ if(asmlib) then
    * and then for every active point, you must have one array of
    * strings, where the elements match the following data settings.
    * You can use the reverse sign event /@/ to reverse any component of the
-   * parametrization and also the disable event /#/ to make TA auto-fill
-   * the value provided {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
+   * parametrization, disable event /#/ to make TA auto-fill
+   * the value provided and model attachment transform event /!/ to make
+   * TA extract the origin local vector and angle from the model itself
+   * {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
    * TYPE   > This string is the name of the type your stuff will reside in the panel
    *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable
    *          If it is empty uses the string /TYPE/, so make sure you fill this
@@ -149,7 +151,10 @@ if(asmlib) then
    *          An empty string is treated as taking the ORIGIN.
    *          Disabling this using the disable event makes it hidden when the active point is searched for
    * ORIGIN > This is the origin relative to which the next track piece position is calculated
-   *          An empty string is treated as {0,0,0}. Disabling this makes it non-selectable by the holder
+   *          An empty string is treated as {0,0,0}. Disabling this makes it non-selectable by the holder.
+   *          Transforming this to model attachment makes TA fill the origin and angle from the model attachment.
+   *          Keep in mind that if /transform.Pos/ is not provided, then vector {0,0,0} is used instead !
+   *          When you do not provide /transform.Ang/ column for TA, it uses the /ANGLE/ from the DB !
    * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
    *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
    * CLASS  > This string is filled up when your entity class is not /prop_physics/ but something else
@@ -157,8 +162,8 @@ if(asmlib) then
   ]]--
   local myTable = {
     ["models/ron/maglev/track/straight/straight_128.mdl"] = { -- Here goes the model of your pack
-      {myType ,"#", 1, "","!1","!1",""}, -- The first point parameter
-      {myType ,"#", 2, "","!2","!2",""}  -- The second point parameter
+      {myType ,"#", 1, "","!1","",""}, -- The first point parameter
+      {myType ,"#", 2, "","!2","",""}  -- The second point parameter
     }
   }
 

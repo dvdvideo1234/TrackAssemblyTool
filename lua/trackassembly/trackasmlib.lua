@@ -59,74 +59,75 @@ local tonumber                = tonumber
 local tostring                = tostring
 local GetConVar               = GetConVar
 local LocalPlayer             = LocalPlayer
-local CreateConVar            = CreateConVar
-local SetClipboardText        = SetClipboardText
-local CompileString           = CompileString
-local getmetatable            = getmetatable
-local setmetatable            = setmetatable
-local collectgarbage          = collectgarbage
-local osClock                 = os and os.clock
-local osDate                  = os and os.date
-local bitBand                 = bit and bit.band
-local sqlQuery                = sql and sql.Query
-local sqlLastError            = sql and sql.LastError
-local sqlTableExists          = sql and sql.TableExists
-local gameSinglePlayer        = game and game.SinglePlayer
-local utilTraceLine           = util and util.TraceLine
-local utilIsInWorld           = util and util.IsInWorld
-local utilIsValidModel        = util and util.IsValidModel
-local utilGetPlayerTrace      = util and util.GetPlayerTrace
-local entsCreate              = ents and ents.Create
-local fileOpen                = file and file.Open
-local fileExists              = file and file.Exists
-local fileAppend              = file and file.Append
-local fileDelete              = file and file.Delete
-local fileCreateDir           = file and file.CreateDir
-local mathPi                  = math and math.pi
-local mathAbs                 = math and math.abs
-local mathSin                 = math and math.sin
-local mathCos                 = math and math.cos
-local mathCeil                = math and math.ceil
-local mathModf                = math and math.modf
-local mathSqrt                = math and math.sqrt
-local mathFloor               = math and math.floor
-local mathClamp               = math and math.Clamp
-local mathRandom              = math and math.random
-local undoCreate              = undo and undo.Create
-local undoFinish              = undo and undo.Finish
-local undoAddEntity           = undo and undo.AddEntity
-local undoSetPlayer           = undo and undo.SetPlayer
-local undoSetCustomUndoText   = undo and undo.SetCustomUndoText
-local timerStop               = timer and timer.Stop
-local timerStart              = timer and timer.Start
-local timerSimple             = timer and timer.Simple
-local timerExists             = timer and timer.Exists
-local timerCreate             = timer and timer.Create
-local timerDestroy            = timer and timer.Destroy
-local tableEmpty              = table and table.Empty
-local tableMaxn               = table and table.maxn
-local tableGetKeys            = table and table.GetKeys
-local tableInsert             = table and table.insert
-local tableCopy               = table and table.Copy
-local debugGetinfo            = debug and debug.getinfo
-local renderDrawLine          = render and render.DrawLine
-local renderDrawSphere        = render and render.DrawSphere
-local renderSetMaterial       = render and render.SetMaterial
-local surfaceSetFont          = surface and surface.SetFont
-local surfaceDrawLine         = surface and surface.DrawLine
-local surfaceDrawText         = surface and surface.DrawText
-local surfaceDrawCircle       = surface and surface.DrawCircle
-local surfaceSetTexture       = surface and surface.SetTexture
-local surfaceSetTextPos       = surface and surface.SetTextPos
-local surfaceGetTextSize      = surface and surface.GetTextSize
-local surfaceGetTextureID     = surface and surface.GetTextureID
-local surfaceSetDrawColor     = surface and surface.SetDrawColor
-local surfaceSetTextColor     = surface and surface.SetTextColor
-local surfaceDrawTexturedRect = surface and surface.DrawTexturedRect
-local languageAdd             = language and language.Add
-local constructSetPhysProp    = construct and construct.SetPhysProp
-local constraintWeld          = constraint and constraint.Weld
-local constraintNoCollide     = constraint and constraint.NoCollide
+local CreateConVar             = CreateConVar
+local SetClipboardText         = SetClipboardText
+local CompileString            = CompileString
+local getmetatable             = getmetatable
+local setmetatable             = setmetatable
+local collectgarbage           = collectgarbage
+local osClock                  = os and os.clock
+local osDate                   = os and os.date
+local bitBand                  = bit and bit.band
+local sqlQuery                 = sql and sql.Query
+local sqlLastError             = sql and sql.LastError
+local sqlTableExists           = sql and sql.TableExists
+local gameSinglePlayer         = game and game.SinglePlayer
+local utilTraceLine            = util and util.TraceLine
+local utilIsInWorld            = util and util.IsInWorld
+local utilIsValidModel         = util and util.IsValidModel
+local utilGetPlayerTrace       = util and util.GetPlayerTrace
+local entsCreate               = ents and ents.Create
+local entsCreateClientsideProp = ents and ents.CreateClientsideProp
+local fileOpen                 = file and file.Open
+local fileExists               = file and file.Exists
+local fileAppend               = file and file.Append
+local fileDelete               = file and file.Delete
+local fileCreateDir            = file and file.CreateDir
+local mathPi                   = math and math.pi
+local mathAbs                  = math and math.abs
+local mathSin                  = math and math.sin
+local mathCos                  = math and math.cos
+local mathCeil                 = math and math.ceil
+local mathModf                 = math and math.modf
+local mathSqrt                 = math and math.sqrt
+local mathFloor                = math and math.floor
+local mathClamp                = math and math.Clamp
+local mathRandom               = math and math.random
+local undoCreate               = undo and undo.Create
+local undoFinish               = undo and undo.Finish
+local undoAddEntity            = undo and undo.AddEntity
+local undoSetPlayer            = undo and undo.SetPlayer
+local undoSetCustomUndoText    = undo and undo.SetCustomUndoText
+local timerStop                = timer and timer.Stop
+local timerStart               = timer and timer.Start
+local timerSimple              = timer and timer.Simple
+local timerExists              = timer and timer.Exists
+local timerCreate              = timer and timer.Create
+local timerDestroy             = timer and timer.Destroy
+local tableEmpty               = table and table.Empty
+local tableMaxn                = table and table.maxn
+local tableGetKeys             = table and table.GetKeys
+local tableInsert              = table and table.insert
+local tableCopy                = table and table.Copy
+local debugGetinfo             = debug and debug.getinfo
+local renderDrawLine           = render and render.DrawLine
+local renderDrawSphere         = render and render.DrawSphere
+local renderSetMaterial        = render and render.SetMaterial
+local surfaceSetFont           = surface and surface.SetFont
+local surfaceDrawLine          = surface and surface.DrawLine
+local surfaceDrawText          = surface and surface.DrawText
+local surfaceDrawCircle        = surface and surface.DrawCircle
+local surfaceSetTexture        = surface and surface.SetTexture
+local surfaceSetTextPos        = surface and surface.SetTextPos
+local surfaceGetTextSize       = surface and surface.GetTextSize
+local surfaceGetTextureID      = surface and surface.GetTextureID
+local surfaceSetDrawColor      = surface and surface.SetDrawColor
+local surfaceSetTextColor      = surface and surface.SetTextColor
+local surfaceDrawTexturedRect  = surface and surface.DrawTexturedRect
+local languageAdd              = language and language.Add
+local constructSetPhysProp     = construct and construct.SetPhysProp
+local constraintWeld           = constraint and constraint.Weld
+local constraintNoCollide      = constraint and constraint.NoCollide
 local cvarsAddChangeCallback   = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
@@ -453,6 +454,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
+  SetOpVar("ENTITY_DEFCLASS", "prop_physics")
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
@@ -1348,26 +1350,45 @@ local function DecodePOA(sStr)
 end
 
 local function GetPieceUnit(stPiece)
-  local sU, sD = (stPiece and stPiece.Unit or nil), "prop_physics";
+  local sD = GetOpVar("ENTITY_DEFCLASS")
+  local sU = (stPiece and stPiece.Unit or nil)
   if(not IsExistent(sU)) then return sD end
   local bU = (IsString(sU) and (sU ~= "NULL") and not IsEmptyString(sU))
   return (bU and sU or sD)
 end
 
-local function GetEntityPOA(stPiece, sK)
-  local tOA = GetOpVar("TABLE_ENTPOSANG")
-  local sM, sC = stPiece.Slot, GetPieceUnit(stPiece)
-  if(not tOA[sM]) then tOA[sM] = {} end; tOA = tOA[sM]
-  if(tOA[sK]) then return tOA[sK] end; local ePiece
-  if(SERVER) then ePiece = entsCreate(sClass)
-  elseif(CLIENT) then ePiece = CreateClientsideProp(sModel) end
+local function GetTransformPOA(sM, sK, iD)
+  if(not IsString(sM)) then local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
+    return StatusLog(nil,"GetTransformPOA: Model string mismatch <"..sE..">") end
+  if(not IsString(sK)) then local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
+    return StatusLog(nil,"GetTransformPOA: Key string mismatch <"..sE..">") end
+  local tOA, ePiece = GetOpVar("TABLE_ENTPOSANG")
+  if(not tOA[sM]) then tOA[sM] = {} end; mOA = tOA[sM]
+  if(mOA[sK]) then return mOA[sK] end; ePiece = tOA.__ent
+  if(ePiece and ePiece:IsValid()) then
+    if(ePiece:GetModel() == sM) then -- Cache has our model then extract data
+      if(not mOA[sK]) then -- Tell the track pack creator about duplicate attachments
+        mOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sK)))
+        LogInstance("GetTransformPOA: Set <"..sK.."> "..tostring(mOA[sK].Pos).."#"..tostring(mOA[sK].Ang))
+      else local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
+        return StatusLog(nil,"GetTransformPOA: Key exists under <"..sE..">") end
+    else LogInstance("GetTransformPOA: Remove "..tostring(ePiece).."@"..sM)
+      ePiece:Remove(); tOA.__ent = nil; ePiece = nil end
+  end; ePiece = tOA.__ent -- Creating entities is slow and we need cache
   if(not (ePiece and ePiece:IsValid())) then
-    return StatusLog(nil,"GetEntityPOA: Piece invalid "..tostring(ePiece)) end
-  ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
-  ePiece:SetSolid(SOLID_VPHYSICS); ePiece:SetMoveType(MOVETYPE_NONE)
-  ePiece:SetNotSolid(true); ePiece:SetModel(sModel)
-  tOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sKey)))
-  ePiece:Remove(); return tOA[sK]
+    if(SERVER) then ePiece = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
+    elseif(CLIENT) then ePiece = entsCreateClientsideProp(sM) end
+    if(not (ePiece and ePiece:IsValid())) then
+      local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
+      return StatusLog(nil,"GetTransformPOA: Transform entity invalid <"..sE..">")
+    end; tOA.__ent = ePiece
+    LogInstance("GetTransformPOA: Create "..tostring(ePiece).."@"..sM)
+    ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
+    ePiece:SetSolid(SOLID_VPHYSICS); ePiece:SetMoveType(MOVETYPE_NONE)
+    ePiece:SetNotSolid(true); ePiece:SetModel(sM)
+    mOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sK)))
+    LogInstance("GetTransformPOA: Set <"..sK.."> "..tostring(mOA[sK].Pos).."#"..tostring(mOA[sK].Ang))
+  end; return mOA[sK]
 end
 
 local function RegisterPOA(stPiece, ivID, sP, sO, sA)
@@ -1393,17 +1414,19 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
       return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(iID - 1)) end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE = GetOpVar("OPSYM_ENTPOSANG")
-  if(sO:sub(1,1) == sE) then local tOA = GetEntityPOA(stPiece, sO:gsub(sE, ""))
+  if(sO:sub(1,1) == sE) then
+    local aOA = GetTransformPOA(stPiece.Slot, sO:gsub(sE, ""), iID); if(not aOA) then
+      return StatusLog(nil,"RegisterPOA: Transform location error") end
     ---------- Origin ----------
-    if(IsExistent(tOA.Pos)) then -- Reversing the sign and disable events are not supported
-      ReloadPOA(tOA.Pos[cvX], tOA.Pos[cvY], tOA.Pos[cvZ]) else ReloadPOA() end
+    if(IsExistent(aOA.Pos)) then -- Reversing the sign and disable events are not supported
+      ReloadPOA(aOA.Pos[cvX], aOA.Pos[cvY], aOA.Pos[cvZ]) else ReloadPOA() end
     if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
-      return StatusLog(nil,"RegisterPOA: Cannot transfer origin") end
+      return StatusLog(nil,"RegisterPOA: Cannot transform origin") end
     ---------- Angle ----------
-    if(IsExistent(tOA.Ang)) then ReloadPOA(tOA.Ang[caP], tOA.Ang[caY], tOA.Ang[caR]) else
+    if(IsExistent(aOA.Ang)) then ReloadPOA(aOA.Ang[caP], aOA.Ang[caY], aOA.Ang[caR]) else
       if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end end
     if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Angle
-      return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
+      return StatusLog(nil,"RegisterPOA: Cannot transform angle") end
   else
     ---------- Origin ----------
     if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
@@ -1414,13 +1437,13 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     if(not IsExistent(TransferPOA(tOffs.A, "A"))) then
       return StatusLog(nil,"RegisterPOA: Cannot transfer angle") end
   end -- The active point is dependent by the events used and the state of the origin
-  local sD = sP:gsub(GetOpVar("OPSYM_DISABLE"),"")
   if((sP ~= "NULL") and not IsEmptyString(sP)) then DecodePOA(sP) else ReloadPOA() end
   if(not IsExistent(TransferPOA(tOffs.P, "V"))) then
     return StatusLog(nil,"RegisterPOA: Cannot transfer point") end
+  local sD = sP:gsub(GetOpVar("OPSYM_DISABLE"),"")
   if((sD == "NULL") or IsEmptyString(sD)) then -- If empty use origin
-    tOffs.P[cvX] = tOffs.O[cvX]; tOffs.P[cvY] = tOffs.O[cvY]; tOffs.P[cvZ] = tOffs.O[cvZ];
-    tOffs.P[csA] = tOffs.O[csA]; tOffs.P[csB] = tOffs.O[csB]; tOffs.P[csC] = tOffs.O[csC];
+    tOffs.P[cvX], tOffs.P[cvY], tOffs.P[cvZ] = tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]
+    tOffs.P[csA], tOffs.P[csB], tOffs.P[csC] = tOffs.O[csA], tOffs.O[csB], tOffs.O[csC]
   end; return tOffs
 end
 
