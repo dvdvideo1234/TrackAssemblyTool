@@ -34,7 +34,9 @@ local IN_ZOOM      = IN_ZOOM
 
 local MASK_SOLID            = MASK_SOLID
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
+local SOLID_NONE            = SOLID_NONE
 local MOVETYPE_VPHYSICS     = MOVETYPE_VPHYSICS
+local MOVETYPE_NONE         = MOVETYPE_NONE
 local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
 local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 
@@ -77,7 +79,7 @@ local utilIsInWorld            = util and util.IsInWorld
 local utilIsValidModel         = util and util.IsValidModel
 local utilGetPlayerTrace       = util and util.GetPlayerTrace
 local entsCreate               = ents and ents.Create
-local entsCreateClientsideProp = ents and ents.CreateClientsideProp
+local entsCreateClientProp     = ents and ents.CreateClientProp
 local fileOpen                 = file and file.Open
 local fileExists               = file and file.Exists
 local fileAppend               = file and file.Append
@@ -1364,30 +1366,29 @@ local function GetTransformPOA(sM, sK, iD)
     return StatusLog(nil,"GetTransformPOA: Key string mismatch <"..sE..">") end
   local tOA, ePiece = GetOpVar("TABLE_ENTPOSANG")
   if(not tOA[sM]) then tOA[sM] = {} end; mOA = tOA[sM]
-  if(mOA[sK]) then return mOA[sK] end; ePiece = tOA.__ent
+  if(mOA[sK]) then return mOA[sK] end; ePiece = tOA.__EntPOA__
   if(ePiece and ePiece:IsValid()) then
-    if(ePiece:GetModel() == sM) then -- Cache has our model then extract data
-      if(not mOA[sK]) then -- Tell the track pack creator about duplicate attachments
-        mOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sK)))
-        LogInstance("GetTransformPOA: Set <"..sK.."> "..tostring(mOA[sK].Pos).."#"..tostring(mOA[sK].Ang))
-      else local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
-        return StatusLog(nil,"GetTransformPOA: Key exists under <"..sE..">") end
-    else LogInstance("GetTransformPOA: Remove "..tostring(ePiece).."@"..sM)
-      ePiece:Remove(); tOA.__ent = nil; ePiece = nil end
-  end; ePiece = tOA.__ent -- Creating entities is slow and we need cache
-  if(not (ePiece and ePiece:IsValid())) then
+    if(ePiece:GetModel() ~= sM) then ePiece:SetModel(sM)
+      LogInstance("GetTransformPOA: Update "..tostring(ePiece).."@"..sM) end
+    if(not mOA[sK]) then -- Tell the track pack creator about duplicate attachments
+      mOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sK)))
+      LogInstance("GetTransformPOA: Set <"..sK.."><"..tostring(mOA[sK].Pos).."><"..tostring(mOA[sK].Ang)..">")
+    else local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
+      return StatusLog(nil,"GetTransformPOA: Key exists <"..sE..">")
+    end
+  else
     if(SERVER) then ePiece = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
-    elseif(CLIENT) then ePiece = entsCreateClientsideProp(sM) end
+    elseif(CLIENT) then ePiece = entsCreateClientProp(sM) end
     if(not (ePiece and ePiece:IsValid())) then
       local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
       return StatusLog(nil,"GetTransformPOA: Transform entity invalid <"..sE..">")
-    end; tOA.__ent = ePiece
+    end; tOA.__EntPOA__ = ePiece
     LogInstance("GetTransformPOA: Create "..tostring(ePiece).."@"..sM)
     ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
-    ePiece:SetSolid(SOLID_VPHYSICS); ePiece:SetMoveType(MOVETYPE_NONE)
-    ePiece:SetNotSolid(true); ePiece:SetModel(sM)
+    ePiece:SetSolid(SOLID_NONE); ePiece:SetMoveType(MOVETYPE_NONE)
+    ePiece:SetNotSolid(true); ePiece:SetNoDraw(true)  ePiece:SetModel(sM)
     mOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sK)))
-    LogInstance("GetTransformPOA: Set <"..sK.."> "..tostring(mOA[sK].Pos).."#"..tostring(mOA[sK].Ang))
+    LogInstance("GetTransformPOA: Set <"..sK.."><"..tostring(mOA[sK].Pos).."><"..tostring(mOA[sK].Ang)..">")
   end; return mOA[sK]
 end
 
