@@ -362,7 +362,7 @@ function SetIndexes(sType,...)
   elseif(sType == "A")  then caP, caY, caR = ...
   elseif(sType == "WA") then wvX, wvY, wvZ = ...
   elseif(sType == "WV") then waP, waY, waR = ...
-  elseif(sType == "S") then csA, csB, csC, csD = ...
+  elseif(sType == "S")  then csA, csB, csC, csD = ...
   else return StatusLog(false,"SetIndexes: Type <"..sType.."> not found") end
   return StatusLog(true,"SetIndexes["..sType.."]: Success")
 end
@@ -403,7 +403,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("OPSYM_ENTPOSANG","!")
-  SetOpVar("TABLE_ENTPOSANG",{})
   SetOpVar("DEG_RAD", mathPi / 180)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
@@ -464,7 +463,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
-  SetOpVar("TRACE_CLASS", {["prop_physics"]=true})
+  SetOpVar("TRACE_CLASS", {[GetOpVar("ENTITY_DEFCLASS")]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
@@ -1102,8 +1101,7 @@ function RoundValue(nvEx, nFr)
   local q, f = mathModf(nEx / nFr); return nFr * (q + (f > 0.5 and 1 or 0))
 end
 
-function GetCenter(oEnt)
-  -- Set the ENT's Angles first!
+function GetCenter(oEnt) -- Set the ENT's Angles first!
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(Vector(0,0,0),"GetCenter: Entity Invalid") end
   local vRez = oEnt:OBBCenter()
@@ -1217,8 +1215,8 @@ function ModelToName(sModel, bNoSet)
   if(IsEmptyString(sModel)) then return StatusLog("","ModelToName: Empty string") end
   local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
   local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
-        sModel =  sModel:GetFileFromFilename():gsub(GetOpVar("MODELNAM_FILE"),"")
-  local gModel =  sModel:sub(1,-1) -- Create a copy so we can select cut-off parts later
+        sModel = (sModel:GetFileFromFilename():gsub(GetOpVar("MODELNAM_FILE"),""))
+  local gModel = (sModel:sub(1,-1)) -- Create a copy so we can select cut-off parts later
   if(not bNoSet) then local iCnt = 1
     local tCut, tSub, tApp = SettingsModelToName("GET")
     if(tCut and tCut[1]) then
@@ -1247,6 +1245,23 @@ function ModelToName(sModel, bNoSet)
   end -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
   if(gModel:sub(1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
   return gModel:gsub(sSymDiv.."%w",GetOpVar("MODELNAM_FUNC")):sub(2,-1)
+end
+
+--[[
+ * Creates a basis instance for entity-related operations
+ * The instance is invisible and cannot be hit by traces
+ * By default spawns at origin  and angle {0,0,0}
+ * sModel --> The model to use for creating the entity
+]]
+local function MakeEntityNone(sModel) local eNone
+  if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
+  elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
+  if(not (eNone and eNone:IsValid())) then
+    return StatusLog(nil,"MakeEntityNone: Entity invalid") end
+  eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
+  eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
+  eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
+  return StatusLog(eNone,"MakeEntityNone: "..tostring(eNone)..sModel)
 end
 
 --[[
@@ -1359,37 +1374,26 @@ local function GetPieceUnit(stPiece)
   return (bU and sU or sD)
 end
 
-local function GetTransformPOA(sM, sK, iD)
-  if(not IsString(sM)) then local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
-    return StatusLog(nil,"GetTransformPOA: Model string mismatch <"..sE..">") end
-  if(not IsString(sK)) then local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
-    return StatusLog(nil,"GetTransformPOA: Key string mismatch <"..sE..">") end
-  local tOA, ePiece = GetOpVar("TABLE_ENTPOSANG")
-  if(not tOA[sM]) then tOA[sM] = {} end; mOA = tOA[sM]
-  if(mOA[sK]) then return mOA[sK] end; ePiece = tOA.__EntPOA__
-  if(ePiece and ePiece:IsValid()) then
-    if(ePiece:GetModel() ~= sM) then ePiece:SetModel(sM)
-      LogInstance("GetTransformPOA: Update "..tostring(ePiece).."@"..sM) end
-    if(not mOA[sK]) then -- Tell the track pack creator about duplicate attachments
-      mOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sK)))
-      LogInstance("GetTransformPOA: Set <"..sK.."><"..tostring(mOA[sK].Pos).."><"..tostring(mOA[sK].Ang)..">")
-    else local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
-      return StatusLog(nil,"GetTransformPOA: Key exists <"..sE..">")
-    end
-  else
-    if(SERVER) then ePiece = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
-    elseif(CLIENT) then ePiece = entsCreateClientProp(sM) end
-    if(not (ePiece and ePiece:IsValid())) then
-      local sE = "#"..tostring(iD).."@"..tostring(sM).."["..tostring(sK).."]"
-      return StatusLog(nil,"GetTransformPOA: Transform entity invalid <"..sE..">")
-    end; tOA.__EntPOA__ = ePiece
-    LogInstance("GetTransformPOA: Create "..tostring(ePiece).."@"..sM)
-    ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
-    ePiece:SetSolid(SOLID_NONE); ePiece:SetMoveType(MOVETYPE_NONE)
-    ePiece:SetNotSolid(true); ePiece:SetNoDraw(true)  ePiece:SetModel(sM)
-    mOA[sK] = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sK)))
-    LogInstance("GetTransformPOA: Set <"..sK.."><"..tostring(mOA[sK].Pos).."><"..tostring(mOA[sK].Ang)..">")
-  end; return mOA[sK]
+local function GetTransformPOA(sModel,sKey)
+  if(not IsString(sModel)) then
+    return StatusLog(nil,"GetTransformPOA: Model mismatch <"..tostring(sModel)..">") end
+  if(not IsString(sKey)) then
+    return StatusLog(nil,"GetTransformPOA: Key mismatch <"..tostring(sKey)..">@"..sModel) end
+  local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
+  if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
+    if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
+      LogInstance("GetTransformPOA: Update "..tostring(ePiece).."@"..sModel) end
+  else -- If there is no basis need to create one for attachment extraction
+    ePiece = MakeEntityNone(sModel); if(not ePiece) then
+      return StatusLog(nil,"GetTransformPOA: Basis invalid") end
+    LogInstance("GetTransformPOA: Create "..tostring(ePiece).."@"..sModel)
+    SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
+  end -- Transfer the data from the transform attachment location
+  local mOA = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sKey))); if(not mOA) then
+    return StatusLog(nil,"GetTransformPOA: Attachment missing <"..sKey..">@"..sModel) end
+  local vtPos, atAng = mOA[sKey].Pos, mOA[sKey].Ang -- Extract transform data
+  LogInstance("GetTransformPOA: Extract ["..sKey.."]<"..tostring(vtPos).."><"..tostring(atAng)..">")
+  return vtPos, atAng -- The function must return transform position and angle
 end
 
 local function RegisterPOA(stPiece, ivID, sP, sO, sA)
@@ -1416,15 +1420,14 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE = GetOpVar("OPSYM_ENTPOSANG")
   if(sO:sub(1,1) == sE) then
-    local aOA = GetTransformPOA(stPiece.Slot, sO:gsub(sE, ""), iID); if(not aOA) then
-      return StatusLog(nil,"RegisterPOA: Transform location error") end
+    local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:gsub(sE, ""))
     ---------- Origin ----------
-    if(IsExistent(aOA.Pos)) then -- Reversing the sign and disable events are not supported
-      ReloadPOA(aOA.Pos[cvX], aOA.Pos[cvY], aOA.Pos[cvZ]) else ReloadPOA() end
+    if(IsExistent(vtPos)) then -- Reversing the sign and disable events are not supported
+      ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ]) else ReloadPOA() end
     if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
       return StatusLog(nil,"RegisterPOA: Cannot transform origin") end
     ---------- Angle ----------
-    if(IsExistent(aOA.Ang)) then ReloadPOA(aOA.Ang[caP], aOA.Ang[caY], aOA.Ang[caR]) else
+    if(IsExistent(atAng)) then ReloadPOA(atAng[caP], atAng[caY], atAng[caR]) else
       if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end end
     if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Angle
       return StatusLog(nil,"RegisterPOA: Cannot transform angle") end
@@ -1568,6 +1571,7 @@ function CacheSpawnPly(pPly)
     stData.OAng = Angle () -- Origin angle
     stData.SPos = Vector() -- Piece spawn position
     stData.SAng = Angle () -- Piece spawn angle
+    stData.SMtx = Matrix() -- Spawn translation and rotation matrix
     stData.RLen = 0        -- Piece active radius
     --- Holder ---
     stData.HRec = 0        -- Pointer to the holder record
@@ -1575,12 +1579,14 @@ function CacheSpawnPly(pPly)
     stData.HPnt = Vector() -- P > Local location of the active point
     stData.HOrg = Vector() -- O > Local new piece location origin when snapped
     stData.HAng = Angle () -- A > Local new piece orientation origin when snapped
+    stData.HMtx = Matrix() -- Holder translation and rotation matrix
     --- Traced ---
     stData.TRec = 0        -- Pointer to the trace record
     stData.TID  = 0
     stData.TPnt = Vector() -- P > Local location of the active point
     stData.TOrg = Vector() -- O > Local new piece location origin when snapped
     stData.TAng = Angle () -- A > Local new piece orientation origin when snapped
+    stData.TMtx = Matrix() -- Trace translation and rotation matrix
     --- Offsets ---
     stData.ANxt = Angle () -- Origin angle offsets
     stData.PNxt = Vector() -- Piece position offsets
@@ -1983,7 +1989,7 @@ function InsertRecord(sTable,arLine)
     return StatusLog(false,"InsertRecord: Missing table name/values") end
   if(type(sTable) == "table") then
     arLine, sTable = sTable, DefaultTable()
-    if(not (IsExistent(sTable) and sTable ~= "")) then
+    if(not (IsExistent(sTable) or sTable ~= "")) then
       return StatusLog(false,"InsertRecord: Missing table default name") end
   end
   if(not IsString(sTable)) then
@@ -2080,11 +2086,9 @@ function InsertRecord(sTable,arLine)
       if(not IsExistent(stData.Size)) then stData.Size = 0 end
       if(not IsExistent(stData.Slot)) then stData.Slot = snPrimaryKey end
       local nCnt, sFld, nAddID = 2, "", MatchType(defTable,arLine[4],4)
-      if(not IsExistent(nAddID)) then -- LineID has to be set properly
-        return StatusLog(nil,"InsertRecord: Cannot match "
-                            ..sTable.." <"..tostring(arLine[4]).."> to "
-                            ..defTable[4][1].." for "..tostring(snPrimaryKey)) end
-      stData[nAddID] = {}
+      if(not IsExistent(nAddID)) then return StatusLog(nil,"InsertRecord: Cannot match "
+        ..sTable.." <"..tostring(arLine[4]).."> to "..defTable[4][1].." for "..tostring(snPrimaryKey)) end
+      stData[nAddID] = {} -- LineID has to be set properly
       while(nCnt <= defTable.Size) do
         sFld = defTable[nCnt][1]
         stData[nAddID][sFld] = MatchType(defTable,arLine[nCnt],nCnt)
@@ -2096,9 +2100,9 @@ function InsertRecord(sTable,arLine)
       end; stData.Size = nAddID
     elseif(sTable == "PHYSPROPERTIES") then
       local skName, skType = GetOpVar("HASH_PROPERTY_NAMES"), GetOpVar("HASH_PROPERTY_TYPES")
-      local tTypes   = tCache[skType]; if(not tTypes) then
+      local tTypes = tCache[skType]; if(not tTypes) then
         tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
-      local tNames   = tCache[skName]; if(not tNames) then
+      local tNames = tCache[skName]; if(not tNames) then
         tCache[skName] = {}; tNames = tCache[skName] end
       local iNameID = MatchType(defTable,arLine[2],2)
       if(not IsExistent(iNameID)) then -- LineID has to be set properly
@@ -3136,8 +3140,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
         stSpawn.TOrg:Set(trEnt:GetPos())
         stSpawn.TAng:Set(trEnt:GetAngles())
   for ID = 1, trRec.Size do -- Indexing is actually with 70% faster than pairs
-    local stPOA = LocatePOA(trRec,ID)
-    if(not IsExistent(stPOA)) then
+    local stPOA = LocatePOA(trRec,ID); if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
     if(not stPOA.P[csD]) then -- Skip the disabled P
       local vTmp = Vector(); SetVector(vTmp, stPOA.P)
@@ -3153,7 +3156,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   if(not IsExistent(trPOA)) then
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
   -- Found the active point ID on trEnt. Initialize origins
-  SetVector(stSpawn.OPos,trPOA.O) -- Use {0,0,0} for disabled A (Angle)
+  SetVector(stSpawn.OPos,trPOA.O) -- Use {0,0,0} for disabled angle
   if(trPOA.A[csD]) then SetAnglePYR(stSpawn.OAng) else SetAngle(stSpawn.OAng,trPOA.A) end
   stSpawn.OPos:Rotate(stSpawn.TAng); stSpawn.OPos:Add(stSpawn.TOrg)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
