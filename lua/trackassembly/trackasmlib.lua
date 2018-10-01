@@ -1419,16 +1419,21 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
       return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(iID - 1)) end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE = GetOpVar("OPSYM_ENTPOSANG")
-  if(sO:sub(1,1) == sE) then
-    local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:gsub(sE, ""))
+  if(sO:sub(1,1) == sE) then -- Origin is the line control option
+    local symOff = GetOpVar("OPSYM_DISABLE"); sO = sO:sub(2,-1)
+    local bO = (sO:sub(1,1) == symOff); if(bO) then sO = sO:sub(2,-1) end
+    local bA = (sA:sub(1,1) == symOff); if(bA) then sA = sA:sub(2,-1) end
+    local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO)
     ---------- Origin ----------
-    if(IsExistent(vtPos)) then -- Reversing the sign and disable events are not supported
-      ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ]) else ReloadPOA() end
+    if(IsExistent(vtPos)) then -- Reversing the sign event is not supported
+      ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ], nil, nil, nil, bO) else ReloadPOA() end
     if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
       return StatusLog(nil,"RegisterPOA: Cannot transform origin") end
     ---------- Angle ----------
-    if(IsExistent(atAng)) then ReloadPOA(atAng[caP], atAng[caY], atAng[caR]) else
-      if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end end
+    if(IsExistent(atAng)) then -- Angle disable event reads parameterization
+      ReloadPOA(atAng[caP], atAng[caY], atAng[caR], nil, nil, nil, bA) else
+      if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
+    end -- When attachment angle cannot be found read parameterization
     if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Angle
       return StatusLog(nil,"RegisterPOA: Cannot transform angle") end
   else
