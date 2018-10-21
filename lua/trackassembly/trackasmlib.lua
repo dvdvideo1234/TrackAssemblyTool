@@ -51,6 +51,7 @@ local pairs                   = pairs
 local print                   = print
 local tobool                  = tobool
 local Vector                  = Vector
+local Matrix                  = Matrix
 local unpack                  = unpack
 local include                 = include
 local IsValid                 = IsValid
@@ -449,7 +450,7 @@ function InitBase(sName,sPurpose)
       {"TAng"  ,"ANG", "Custom angles"},
       {"--- Offset ---"},
       {"PNxt"  ,"VEC", "Custom user position"},
-      {"ANxt"  ,"VEC", "Custom user angles"}})
+      {"ANxt"  ,"ANG", "Custom user angles"}})
   end
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
@@ -3326,7 +3327,7 @@ function IntersectRayRead(oPly, sKey)
   if(not IsString(sKey)) then
     return StatusLog(nil,"IntersectRayRead: Key invalid <"..tostring(sKey)..">") end
   local tRay = GetOpVar("RAY_INTERSECT")[oPly]; if(not tRay) then
-    return StatusLog(nil,"IntersectRayRead: No player <"..tostring(oPly)..">") end
+    return StatusLog(nil,"IntersectRayRead: No ray <"..tostring(oPly)..">") end
   local stRay = tRay[sKey]; if(not stRay) then
     return StatusLog(nil,"IntersectRayRead: No Key <"..sKey..">") end
   return IntersectRayUpdate(stRay) -- Obtain personal ray from the cache
