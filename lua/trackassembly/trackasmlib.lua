@@ -1402,12 +1402,11 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     return StatusLog(nil,"RegisterPOA: Cache record invalid") end
   local iID = tonumber(ivID); if(not IsExistent(iID)) then
     return StatusLog(nil,"RegisterPOA: OffsetID NAN {"..type(ivID).."}<"..tostring(ivID)..">") end
-  local sP, sO, sA = (sP or "NULL"), (sO or "NULL"), (sA or "NULL")
-  if(not IsString(sP)) then
+  local sP = (sP or "NULL"); if(not IsString(sP)) then
     return StatusLog(nil,"RegisterPOA: Point  {"..type(sP).."}<"..tostring(sP)..">") end
-  if(not IsString(sO)) then
+  local sO = (sO or "NULL"); if(not IsString(sO)) then
     return StatusLog(nil,"RegisterPOA: Origin {"..type(sO).."}<"..tostring(sO)..">") end
-  if(not IsString(sA)) then
+  local sA = (sA or "NULL"); if(not IsString(sA)) then
     return StatusLog(nil,"RegisterPOA: Angle  {"..type(sA).."}<"..tostring(sA)..">") end
   if(not stPiece.Offs) then
     if(iID > 1) then return StatusLog(nil,"RegisterPOA: First ID cannot be #"..tostring(iID)) end
