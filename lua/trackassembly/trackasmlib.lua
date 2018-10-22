@@ -1974,8 +1974,8 @@ function InsertRecord(sTable,arLine)
     return StatusLog(false,"InsertRecord: Missing table name/values") end
   if(type(sTable) == "table") then
     arLine, sTable = sTable, DefaultTable()
-    if(not (IsExistent(sTable) or sTable ~= "")) then
-      return StatusLog(false,"InsertRecord: Missing table default name") end
+    if(not (IsExistent(sTable) and IsString(sTable) and not IsEmptyString(sTable)) then
+      return StatusLog(false,"InsertRecord: Missing table default name: "..tostring(sTable)) end
   end
   if(not IsString(sTable)) then
     return StatusLog(false,"InsertRecord: Table name {"..type(sTable).."}<"..tostring(sTable).."> not string") end
@@ -1985,7 +1985,7 @@ function InsertRecord(sTable,arLine)
     return StatusLog(false,"InsertRecord: Missing table definition is empty for "..sTable) end
   if(not arLine) then
     return StatusLog(false,"InsertRecord: Missing data table for "..sTable) end
-  if(not arLine[1])   then
+  if(not arLine[1]) then
     for key, val in pairs(arLine) do
       LogInstance("PK data ["..tostring(key).."] = <"..tostring(val)..">") end
     return StatusLog(false,"InsertRecord: Missing PK for "..sTable)
@@ -3387,7 +3387,7 @@ function AttachAdditions(ePiece)
       eAddit:SetModel(adMod) LogInstance("eAddit:SetModel("..adMod..")")
       local ofPos = arRec[defTable[5][1]]; if(not IsString(ofPos)) then
         return StatusLog(false,"AttachAdditions: Position {"..type(ofPos).."}<"..tostring(ofPos).."> not string") end
-      if(ofPos and ofPos ~= "" and ofPos ~= "NULL") then
+      if(ofPos and not IsEmptyString(ofPos) and ofPos ~= "NULL") then
         local vpAdd, arConv = Vector(), DecodePOA(ofPos)
         arConv[1] = arConv[1] * arConv[4]; vpAdd:Add(arConv[1] * eAng:Forward())
         arConv[2] = arConv[2] * arConv[5]; vpAdd:Add(arConv[2] * eAng:Right())
@@ -3396,7 +3396,7 @@ function AttachAdditions(ePiece)
       else eAddit:SetPos(ePos); LogInstance("eAddit:SetPos(ePos)") end
       local ofAng = arRec[defTable[6][1]]; if(not IsString(ofAng)) then
         return StatusLog(false,"AttachAdditions: Angle {"..type(ofAng).."}<"..tostring(ofAng).."> not string") end
-      if(ofAng and ofAng ~= "" and ofAng ~= "NULL") then
+      if(ofAng and not IsEmptyString(ofAng) and ofAng ~= "NULL") then
         local apAdd, arConv = Angle(), DecodePOA(ofAng)
         apAdd[caP] = arConv[1] * arConv[4] + eAng[caP]
         apAdd[caY] = arConv[2] * arConv[5] + eAng[caY]
