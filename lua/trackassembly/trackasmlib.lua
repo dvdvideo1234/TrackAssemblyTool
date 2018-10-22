@@ -3651,26 +3651,20 @@ function SetAsmVarCallback(sName, sType, sHash, fHand)
   end
 end
 
-function SetLocalify(sCode, sPhrase, sDetail)
-  if(not IsString(sCode)) then
-    return StatusLog(nil,"SetLocalify: Language code <"..tostring(sCode).."> invalid") end
+function SetLocalify(sPhrase, sDetail)
   if(not IsString(sPhrase)) then
     return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sPhrase).."> invalid") end
-  local tPool = GetOpVar("LOCALIFY_TABLE")
-  if(not IsExistent(tPool[sCode])) then tPool[sCode] = {}; end
-  tPool[sCode][sPhrase] = tostring(sDetail)
+  local tPool = GetOpVar("LOCALIFY_TABLE"); tPool[sPhrase] = tostring(sDetail)
 end
 
 function InitLocalify(sCode)
-  local tPool = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
-  local auCod = GetOpVar("LOCALIFY_AUTO")
+  -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
   local suCod = tostring(sCode or "") -- English is used when missing
-  local auLng, suLng = tPool[auCod], tPool[suCod]
-  if(not IsExistent(suLng)) then
-    LogInstance("InitLocalify: Missing code <"..suCod..">")
-    suCod, suLng = auCod, auLng
-  end; LogInstance("InitLocalify: Using code <"..auCod..">")
-  for phrase, default in pairs(auLng) do
-    languageAdd(phrase, suLng[phrase] or default)
-  end -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+  local tPool = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
+  if(suCod ~= GetOpVar("LOCALIFY_AUTO")) then
+    local fCode = CompileFile(("%s/lang/%s.lua"):format(GetOpVar("TOOLNAME_NL"), suCod))
+    local bCode, tCode = pcall(fCode); if(bCode) then
+      for key, val in pairs(tPool) do tPool[key] = (tCode[key] or tPool[key]) end
+    else LogInstance("InitLocalify("..suCod.."): "..tostring(tCode)) end
+  end; for key, val in pairs(tPool) do languageAdd(key, val) end
 end
