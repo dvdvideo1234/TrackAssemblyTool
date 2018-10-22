@@ -15,7 +15,6 @@ local cvX, cvY, cvZ = asmlib.GetIndexes("V")
 local caP, caY, caR = asmlib.GetIndexes("A")
 local wvX, wvY, wvZ = asmlib.GetIndexes("WV")
 local waP, waY, waR = asmlib.GetIndexes("WA")
-local csA, csB, csC, csD = asmlib.GetIndexes("S")
 local gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmVar("enwiremod","BUL")
 local maxMass = asmlib.GetAsmVar("maxmass","FLT")
@@ -117,8 +116,7 @@ e2function array trackasmlibGetOffset(string sModel, number nID, string sPOA)
   elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arOut end
   arOut[1], arOut[2], arOut[3] = stPOA[sPOA][C1] , stPOA[sPOA][C2] , stPOA[sPOA][C3]
-  arOut[4], arOut[5], arOut[6] = stPOA[sPOA][csA], stPOA[sPOA][csB], stPOA[sPOA][csC]
-  arOut[7] =(stPOA[sPOA][csD] and 1 or 0); return arOut
+  return arOut
 end
 
 __e2setcost(80)
@@ -131,8 +129,7 @@ e2function array entity:trackasmlibGetOffset(number nID, string sPOA)
   elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arOut end
   arOut[1], arOut[2], arOut[3] = stPOA[sPOA][C1] , stPOA[sPOA][C2] , stPOA[sPOA][C3]
-  arOut[4], arOut[5], arOut[6] = stPOA[sPOA][csA], stPOA[sPOA][csB], stPOA[sPOA][csC]
-  arOut[7] =(stPOA[sPOA][csD] and 1 or 0); return arOut
+  return arOut
 end
 
 __e2setcost(30)

@@ -2,7 +2,6 @@ local cvX, cvY, cvZ -- Vector Component indexes
 local caP, caY, caR -- Angle Component indexes
 local wvX, wvY, wvZ -- Wire vector Component indexes
 local waP, waY, waR -- Wire angle Component indexes
-local csA, csB, csC, csD -- Component Status indexes (sign, sign, sign, disabled)
 
 ---------------- Localizing instances ------------------
 
@@ -352,7 +351,6 @@ function GetIndexes(sType)
   elseif(sType == "A")  then return caP, caY, caR
   elseif(sType == "WA") then return wvX, wvY, wvZ
   elseif(sType == "WV") then return waP, waY, waR
-  elseif(sType == "S")  then return csA, csB, csC, csD
   else return StatusLog(nil,"GetIndexes: Type <"..sType.."> not found") end
 end
 
@@ -363,7 +361,6 @@ function SetIndexes(sType,...)
   elseif(sType == "A")  then caP, caY, caR = ...
   elseif(sType == "WA") then wvX, wvY, wvZ = ...
   elseif(sType == "WV") then waP, waY, waR = ...
-  elseif(sType == "S")  then csA, csB, csC, csD = ...
   else return StatusLog(false,"SetIndexes: Type <"..sType.."> not found") end
   return StatusLog(true,"SetIndexes["..sType.."]: Success")
 end
@@ -395,6 +392,8 @@ function InitBase(sName,sPurpose)
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
+  SetOpVar("VEC_TMP",Vector())
+  SetOpVar("ANG_REV",Angle(0,180,0))
   SetOpVar("VEC_FW",Vector(1,0,0))
   SetOpVar("VEC_RG",Vector(0,-1,1))
   SetOpVar("VEC_UP",Vector(0,0,1))
@@ -423,7 +422,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOID","N")    -- No ID selected
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
-  SetOpVar("ARRAY_DECODEPOA",{0,0,0,1,1,1,false})
+  SetOpVar("ARRAY_DECODEPOA",{0,0,0})
   if(CLIENT) then
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("LOCALIFY_TABLE",{})
@@ -1162,7 +1161,7 @@ function IncDecPointID(ivPoID,nDir,rPiece)
   if(nDir == 0) then return StatusLog(iPoID,"IncDecPointID: Direction mismatch") end
   iPoID = RollValue(iPoID + nDir,1,rPiece.Size)
   stPOA = LocatePOA(rPiece,iPoID) -- Skip disabled origin parameter
-  while(stPOA and stPOA.O[csD]) do
+  while(stPOA) do
     LogInstance("IncDecPointID: Point ID #"..tostring(iPoID).." disabled")
     iPoID = RollValue(iPoID + nDir,1,rPiece.Size)
     stPOA = LocatePOA(rPiece,iPoID) -- Skip disabled origin parameter
@@ -1284,15 +1283,11 @@ function LocatePOA(oRec, ivPoID)
   return stPOA, iPoID
 end
 
-local function ReloadPOA(nXP,nYY,nZR,nSX,nSY,nSZ,nSD)
+local function ReloadPOA(nXP,nYY,nZR)
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
         arPOA[1] = (tonumber(nXP) or 0)
         arPOA[2] = (tonumber(nYY) or 0)
         arPOA[3] = (tonumber(nZR) or 0)
-        arPOA[4] = (tonumber(nSX) or 1)
-        arPOA[5] = (tonumber(nSY) or 1)
-        arPOA[6] = (tonumber(nSZ) or 1)
-        arPOA[7] = (tobool(nSD) or false)
   return arPOA
 end
 
@@ -1329,10 +1324,7 @@ local function StringPOA(stPOA,sOffs)
   if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
   elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
   else return StatusLog(nil,"StringPOA: Missed offset mode "..sOffs) end
-  return ((stPOA[csD] and symDis or "")  -- Get rid of the spaces
-       ..((stPOA[csA] == -1) and symRev or "")..tostring(stPOA[ctA])..symSep
-       ..((stPOA[csB] == -1) and symRev or "")..tostring(stPOA[ctB])..symSep
-       ..((stPOA[csC] == -1) and symRev or "")..tostring(stPOA[ctC])):gsub(" ","")
+  return (tostring(stPOA[ctA])..symSep..tostring(stPOA[ctB])..symSep..tostring(stPOA[ctC])):gsub(" ","")
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -1343,28 +1335,17 @@ local function TransferPOA(stOffset,sMode)
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
   if    (sMode == "V") then stOffset[cvX], stOffset[cvY], stOffset[cvZ] = arPOA[1], arPOA[2], arPOA[3]
   elseif(sMode == "A") then stOffset[caP], stOffset[caY], stOffset[caR] = arPOA[1], arPOA[2], arPOA[3]
-  else return StatusLog(nil,"TransferPOA: Missed mode "..sMode) end
-  stOffset[csA], stOffset[csB], stOffset[csC], stOffset[csD] = arPOA[4], arPOA[5], arPOA[6], arPOA[7]
-  return arPOA
+  else return StatusLog(nil,"TransferPOA: Missed mode "..sMode) end; return arPOA
 end
 
 local function DecodePOA(sStr)
   if(not IsString(sStr)) then
     return StatusLog(nil,"DecodePOA: Argument {"..type(sStr).."}<"..tostring(sStr).."> not string") end
-  local strLen = sStr:len(); if(strLen == 0) then return ReloadPOA() end; ReloadPOA()
-  local symOff, symRev = GetOpVar("OPSYM_DISABLE"), GetOpVar("OPSYM_REVSIGN")
-  local symSep, arPOA = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("ARRAY_DECODEPOA")
-  local S, E, iCnt, dInd, iSep, sCh = 1, 1, 1, 1, 0, ""
-  if(sStr:sub(iCnt,iCnt) == symOff) then
-    arPOA[7] = true; iCnt = iCnt + 1; S = S + 1 end
-  while(iCnt <= strLen) do sCh = sStr:sub(iCnt,iCnt)
-    if(sCh == symRev) then arPOA[3+dInd] = -arPOA[3+dInd]; S = S + 1
-    elseif(sCh == symSep) then iSep = iSep + 1; E = iCnt - 1
-      if(iSep > 2) then break end
-      arPOA[dInd] = (tonumber(sStr:sub(S,E)) or 0)
-      dInd = dInd + 1; S = iCnt + 1; E = S
-    else E = E + 1 end; iCnt = iCnt + 1
-  end; arPOA[dInd] = (tonumber(sStr:sub(S,E)) or 0); return arPOA
+  if(sStr:len() == 0) then return ReloadPOA() end; ReloadPOA()
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
+  local atPOA, arPOA = symSep:Explode(sStr), GetOpVar("ARRAY_DECODEPOA")
+  for iD = 1, #arPOA do arPOA[iD] = tonumber(atPOA[iD]) or arPOA[iD] end
+  return arPOA
 end
 
 local function GetPieceUnit(stPiece)
@@ -1452,7 +1433,6 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
   local sD = sP:gsub(GetOpVar("OPSYM_DISABLE"),"")
   if((sD == "NULL") or IsEmptyString(sD)) then -- If empty use origin
     tOffs.P[cvX], tOffs.P[cvY], tOffs.P[cvZ] = tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]
-    tOffs.P[csA], tOffs.P[csB], tOffs.P[csC] = tOffs.O[csA], tOffs.O[csB], tOffs.O[csC]
   end; return tOffs
 end
 
@@ -3071,36 +3051,10 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   -- Initialize F, R, U Copy the UCS like that to support database POA
   SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
   SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
-  --[===[
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
-  stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  SetVector(stSpawn.HPnt,hdPOA.P) -- Get Holder model data
-  SetVector(stSpawn.HOrg,hdPOA.O); NegVector(stSpawn.HOrg) -- Origin to Position
-  if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng, hdPOA.A) end
-  stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180) -- Calculate spawn relation
-  DecomposeByAngle(stSpawn.HOrg,stSpawn.HAng) -- Spawn Position
-  stSpawn.SPos:Set(stSpawn.OPos)
-  stSpawn.SPos:Add((hdPOA.O[csA] * stSpawn.HOrg[cvX] + stSpawn.PNxt[cvX]) * stSpawn.F)
-  stSpawn.SPos:Add((hdPOA.O[csB] * stSpawn.HOrg[cvY] + stSpawn.PNxt[cvY]) * stSpawn.R)
-  stSpawn.SPos:Add((hdPOA.O[csC] * stSpawn.HOrg[cvZ] + stSpawn.PNxt[cvZ]) * stSpawn.U)
-  -- Spawn Angle
-  stSpawn.SAng:Set(stSpawn.OAng); NegAngle(stSpawn.HAng)
-  stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * hdPOA.A[csB])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.HAng[caP] * hdPOA.A[csA])
-  stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.HAng[caR] * hdPOA.A[csC])
-  ]===]
-  
-  
   
   SetVector(stSpawn.HPnt, hdPOA.P)
   SetVector(stSpawn.HOrg, hdPOA.O)
-  if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng, hdPOA.A) end
+  SetAngle (stSpawn.HAng, hdPOA.A)
   
   stData.TMtx:Translate(stSpawn.PNxt)
   stData.TMtx:Rotate(stSpawn.ANxt)
@@ -3112,7 +3066,7 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   stData.HMtx:Identity()
   stData.HMtx:Translate(stSpawn.HOrg)
   stData.HMtx:Rotate(stSpawn.HAng)
-  stData.HMtx:Rotate(Angle(0, 180, 0))
+  stData.HMtx:Rotate(GetOpVar("ANG_REV"))
   stData.HMtx:Invert()
   
   stData.SMtx:Set(stData.TMtx * stData.HMtx)
@@ -3174,22 +3128,19 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   for ID = 1, trRec.Size do -- Indexing is actually with 70% faster than pairs
     local stPOA = LocatePOA(trRec,ID); if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
-    if(not stPOA.P[csD]) then -- Skip the disabled P
-      local vTmp = Vector(); SetVector(vTmp, stPOA.P)
-      MulVectorXYZ(vTmp, stPOA.P[csA], stPOA.P[csB], stPOA.P[csC])
-      vTmp:Rotate(stSpawn.TAng); vTmp:Add(stSpawn.TOrg); vTmp:Sub(trHitPos)
-      local trAcDis = vTmp:Length()
-      if(trAcDis < stSpawn.RLen) then
-        trPOA, stSpawn.TID, stSpawn.RLen = stPOA, ID, trAcDis
-        stSpawn.TPnt:Set(vTmp); stSpawn.TPnt:Add(trHitPos)
-      end
+    local vTmp = GetOpVar("VEC_TMP") SetVector(vTmp, stPOA.P)
+    vTmp:Rotate(stSpawn.TAng); vTmp:Add(stSpawn.TOrg); vTmp:Sub(trHitPos)
+    local trAcDis = vTmp:Length()
+    if(trAcDis < stSpawn.RLen) then
+      trPOA, stSpawn.TID, stSpawn.RLen = stPOA, ID, trAcDis
+      stSpawn.TPnt:Set(vTmp); stSpawn.TPnt:Add(trHitPos)
     end
   end
   if(not IsExistent(trPOA)) then
     return StatusLog(nil,"GetEntitySpawn: Not hitting active point") end
   -- Found the active point ID on trEnt. Initialize origins
-  SetVector(stSpawn.OPos,trPOA.O) -- Use {0,0,0} for disabled angle
-  if(trPOA.A[csD]) then SetAnglePYR(stSpawn.OAng) else SetAngle(stSpawn.OAng,trPOA.A) end
+  SetVector(stSpawn.OPos,trPOA.O) -- Read origin
+  SetAngle (stSpawn.OAng,trPOA.A) -- Read angle
   stSpawn.OPos:Rotate(stSpawn.TAng); stSpawn.OPos:Add(stSpawn.TOrg)
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
@@ -3239,7 +3190,6 @@ function GetEntityHitID(oEnt, vHit)
     if(not IsExistent(tPOA)) then -- Get intersection rays list for the player
       return StatusLog(nil,"GetEntityHitID: Point <"..tostring(ID).."> invalid") end
     SetVector(vTmp, tPOA.P) -- Translate point to a world-space
-    MulVectorXYZ(vTmp, tPOA.P[csA], tPOA.P[csB], tPOA.P[csC])
     vTmp:Rotate(eAng); vTmp:Add(ePos); vTmp:Sub(vHit)
     if(nID and nMin) then
       if(nMin >= vTmp:Length()) then nID, nMin, oPOA = tID, vTmp:Length(), tPOA end
