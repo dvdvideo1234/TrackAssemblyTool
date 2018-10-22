@@ -3659,12 +3659,14 @@ end
 
 function InitLocalify(sCode)
   -- https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-  local suCod = tostring(sCode or "") -- English is used when missing
+  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
+  local suCod = tostring(sCode or auCod)  -- English is used when missing
   local tPool = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
-  if(suCod ~= GetOpVar("LOCALIFY_AUTO")) then
-    local fCode = CompileFile(("%s/lang/%s.lua"):format(GetOpVar("TOOLNAME_NL"), suCod))
+  local sPath, sTool = ("%s/lang/%s.lua"), GetOpVar("TOOLNAME_NL")
+  if(suCod ~= auCod) then -- Other language used that is not auto
+    local fCode = CompileFile(sPath:format(sTool, suCod))
     local bCode, tCode = pcall(fCode); if(bCode) then
-      for key, val in pairs(tPool) do tPool[key] = (tCode[key] or tPool[key]) end
+      for key, val in pairs(tPool) do SetLocalify(key, (tCode[key] or tPool[key])) end
     else LogInstance("InitLocalify("..suCod.."): "..tostring(tCode)) end
   end; for key, val in pairs(tPool) do languageAdd(key, val) end
 end
