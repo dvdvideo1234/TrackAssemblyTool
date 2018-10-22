@@ -3066,11 +3066,12 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   local hdPOA = LocatePOA(hdRec,ihdPoID); if(not IsExistent(hdPOA)) then
     return StatusLog(nil,"GetNormalSpawn: Holder point ID invalid #"..tostring(ihdPoID)) end
   local stSpawn = CacheSpawnPly(oPly); stSpawn.HRec = hdRec
-  if(ucsPos) then SetVector(stSpawn.OPos,ucsPos) end
-  if(ucsAng) then SetAngle (stSpawn.OAng,ucsAng) end
+  if(ucsPos) then SetVector(stSpawn.OPos, ucsPos) end
+  if(ucsAng) then SetAngle (stSpawn.OAng, ucsAng) end
   -- Initialize F, R, U Copy the UCS like that to support database POA
   SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
   SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
+  --[===[
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
@@ -3081,7 +3082,7 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   stSpawn.U:Set(stSpawn.OAng:Up())
   SetVector(stSpawn.HPnt,hdPOA.P) -- Get Holder model data
   SetVector(stSpawn.HOrg,hdPOA.O); NegVector(stSpawn.HOrg) -- Origin to Position
-  if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng,hdPOA.A) end
+  if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng, hdPOA.A) end
   stSpawn.HAng:RotateAroundAxis(stSpawn.HAng:Up(),180) -- Calculate spawn relation
   DecomposeByAngle(stSpawn.HOrg,stSpawn.HAng) -- Spawn Position
   stSpawn.SPos:Set(stSpawn.OPos)
@@ -3093,6 +3094,32 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   stSpawn.SAng:RotateAroundAxis(stSpawn.U,stSpawn.HAng[caY] * hdPOA.A[csB])
   stSpawn.SAng:RotateAroundAxis(stSpawn.R,stSpawn.HAng[caP] * hdPOA.A[csA])
   stSpawn.SAng:RotateAroundAxis(stSpawn.F,stSpawn.HAng[caR] * hdPOA.A[csC])
+  ]===]
+  
+  
+  
+  SetVector(stSpawn.HPnt, hdPOA.P)
+  SetVector(stSpawn.HOrg, hdPOA.O)
+  if(hdPOA.A[csD]) then SetAnglePYR(stSpawn.HAng) else SetAngle(stSpawn.HAng, hdPOA.A) end
+  
+  stData.TMtx:Translate(stSpawn.PNxt)
+  stData.TMtx:Rotate(stSpawn.ANxt)
+  
+  stSpawn.F:Set(stData.TMtx:GetForward())
+  stSpawn.R:Set(stData.TMtx:GetRight())
+  stSpawn.U:Set(stData.TMtx:GetUp())
+  
+  stData.HMtx:Identity()
+  stData.HMtx:Translate(stSpawn.HOrg)
+  stData.HMtx:Rotate(stSpawn.HAng)
+  stData.HMtx:Rotate(Angle(0, 180, 0))
+  stData.HMtx:Invert()
+  
+  stData.SMtx:Set(stData.TMtx * stData.HMtx)
+  
+  stSpawn.SPos:Set(stData.SMtx:GetTranslation())
+  stSpawn.SAng:Set(stData.SMtx:GetAngles())
+  
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
@@ -3167,6 +3194,9 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
+  stData.TMtx:Identity()
+  stData.TMtx:Translate(stSpawn.OPos)
+  stData.TMtx:Rotate(stSpawn.OAng)
   return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end
 
