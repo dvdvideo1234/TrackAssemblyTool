@@ -33,7 +33,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.477")
+asmlib.SetOpVar("TOOL_VERSION","5.478")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -99,7 +99,7 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
       conPalette:Insert("w" ,asmlib.GetColor(255,255,255,255)) -- White
       conPalette:Insert("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
-      conPalette:Insert("gh",asmlib.GetColor(255,255,255,200)) -- self.GhostEntity
+      conPalette:Insert("gh",asmlib.GetColor(255,255,255,150)) -- self.GhostEntity
       conPalette:Insert("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
       conPalette:Insert("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
@@ -231,6 +231,28 @@ if(CLIENT) then
       return asmlib.StatusLog(nil,"BIND_PRESS("..sBind.."): Skipped")
     end) -- Read client configuration
 
+  asmlib.SetAction("DRAW_GHOSTS",
+    function() -- Must have the same parameters as the hook
+      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Player invalid") end
+      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
+        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Swep invalid") end
+      if(actSwep:GetClass() ~= "gmod_tool") then
+        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Swep not tool") end
+      if(actSwep:GetMode()  ~= gsToolNameL) then
+        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Tool different") end
+      -- Here player is holding the track assembly tool
+      local actTool = actSwep:GetToolObject(); if(not actTool) then
+        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Tool invalid") end
+      local tGho  = asmlib.GetGhosts()
+      local model = asmlib.GetAsmVar("model", "STR")
+      local stack = asmlib.GetAsmVar("stack", "INT")
+      local mxgho = asmlib.GetAsmVar("maxghosts", "INT")
+      if(not (tGho and tGho.Size > 0 and tGho.Slot == model)) then
+        asmlib.MakeGhosts(mxgho, stack, model)
+      end; actTool:UpdateGhost(oPly)
+    end) -- Read client configuration
+    
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
@@ -722,7 +744,7 @@ else
     asmlib.InsertRecord({"models/hunter/blocks/cube075x075x075.mdl", "#", "x3", 1, "", "", ""})
     asmlib.InsertRecord({"models/hunter/blocks/cube1x1x1.mdl"      , "#", "x4", 1, "", "", ""})
     asmlib.DefaultType("Develop Test")
-    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "#@-90,  0,180"})
+    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "-90,  0,180"})
     asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "90,180,180"})
   end
   asmlib.DefaultType("SligWolf's Rerailers")

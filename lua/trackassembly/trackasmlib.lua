@@ -392,7 +392,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
-  SetOpVar("VEC_TMP",Vector())
   SetOpVar("ANG_REV",Angle(0,180,0))
   SetOpVar("VEC_FW",Vector(1,0,0))
   SetOpVar("VEC_RG",Vector(0,-1,1))
@@ -424,6 +423,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOMD","X")    -- No model
   SetOpVar("ARRAY_DECODEPOA",{0,0,0})
   if(CLIENT) then
+    SetOpVar("ARRAY_GHOST",{})
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("LOCALIFY_TABLE",{})
     SetOpVar("TABLE_CATEGORIES",{})
@@ -3128,12 +3128,12 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   for ID = 1, trRec.Size do -- Indexing is actually with 70% faster than pairs
     local stPOA = LocatePOA(trRec,ID); if(not IsExistent(stPOA)) then
       return StatusLog(nil,"GetEntitySpawn: Trace point count mismatch on #"..tostring(ID)) end
-    local vTmp = GetOpVar("VEC_TMP") SetVector(vTmp, stPOA.P)
-    vTmp:Rotate(stSpawn.TAng); vTmp:Add(stSpawn.TOrg); vTmp:Sub(trHitPos)
-    local trAcDis = vTmp:Length()
+    local vTemp = Vector(); SetVector(vTemp, stPOA.P)
+    vTemp:Rotate(stSpawn.TAng); vTemp:Add(stSpawn.TOrg); vTemp:Sub(trHitPos)
+    local trAcDis = vTemp:Length()
     if(trAcDis < stSpawn.RLen) then
       trPOA, stSpawn.TID, stSpawn.RLen = stPOA, ID, trAcDis
-      stSpawn.TPnt:Set(vTmp); stSpawn.TPnt:Add(trHitPos)
+      stSpawn.TPnt:Set(vTemp); stSpawn.TPnt:Add(trHitPos)
     end
   end
   if(not IsExistent(trPOA)) then
@@ -3651,10 +3651,10 @@ function SetAsmVarCallback(sName, sType, sHash, fHand)
   end
 end
 
-function SetLocalify(sPhrase, sDetail)
-  if(not IsString(sPhrase)) then
-    return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sPhrase).."> invalid") end
-  local tPool = GetOpVar("LOCALIFY_TABLE"); tPool[sPhrase] = tostring(sDetail)
+function SetLocalify(sKey, sDetail)
+  if(not IsString(sKey)) then
+    return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sKey).."> invalid") end
+  local tPool = GetOpVar("LOCALIFY_TABLE"); tPool[sKey] = tostring(sDetail)
 end
 
 function InitLocalify(sCode)
@@ -3669,4 +3669,60 @@ function InitLocalify(sCode)
       for key, val in pairs(tPool) do SetLocalify(key, (tCode[key] or tPool[key])) end
     else LogInstance("InitLocalify("..suCod.."): "..tostring(tCode)) end
   end; for key, val in pairs(tPool) do languageAdd(key, val) end
+end
+
+function GetGhosts()
+  local tGho = GetOpVar("ARRAY_GHOST")
+  return ((tGho.Size and tGho.Size > 0) and tGho or nil)
+end
+
+function FadeGhosts(bNoD, bSha)
+  local tGho = GetGhosts()
+  if(not tGho) then return true end
+  local conPalette = GetOpVar("CONTAINER_PALETTE")
+  for iD = 1, tGho.Size do local eGho = tGho[iD]
+    eGho:SetNoDraw(bNoD)
+    eGho:DrawShadow(bSha)
+    eGho:SetColor(conPalette:Select("gh"))
+  end
+  return true
+end
+
+function ReleaseGhosts()
+  local tGho = GetGhosts()
+  if(not tGho) then return end
+  for iD = 1, tGho.Size do local eGho = tGho[iD]
+    if(eGho and eGho:IsValid()) then
+      eGho:SetNoDraw(true)
+      eGho:Remove()
+    end; eGho, tGho[iD] = nil, nil
+  end; tGho.Size = 0; collectgarbage()
+end
+
+function MakeGhosts(maxGho,nStack,hdModel)
+  local tGho = GetGhosts(); if(tGho) then ReleaseGhosts() end
+  local nCnt, conPalette = 0, GetOpVar("CONTAINER_PALETTE")
+  if(maxGho == 0 ) then return true end -- Disabled ghosting
+  if(maxGho > 0) then -- Chose between the two propper array lengths
+    if(maxGho < nStack) then nCnt = maxGho
+    else nCnt = nStack end -- Use the smallest value of the two
+  end; tGho.Size, tGho.Slot = nCnt, hdModel
+  local vZero, aZero = GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO")
+  for iD = 1, tGho.Size do
+    tGho[iD] = entsCreateClientProp(hdModel)
+    local eGho = tGho[iD]
+    if(not (eGho and eGho:IsValid())) then
+      return StatusLog(false,"MakeGhosts: Invalid <"..tostring(iD)..">") end 
+    eGho:SetModel(hdModel)
+    eGho:SetPos(vZero)
+    eGho:SetAngles(aZero)
+    eGho:Spawn()
+    eGho:SetSolid(SOLID_VPHYSICS)
+    eGho:SetMoveType(MOVETYPE_NONE)
+    eGho:SetNotSolid(true)
+    eGho:SetNoDraw(false)
+    eGho:DrawShadow(false)
+    eGho:SetColor(conPalette:Select("gh"))
+    eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
+  end; return true
 end

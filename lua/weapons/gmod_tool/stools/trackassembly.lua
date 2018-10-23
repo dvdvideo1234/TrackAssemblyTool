@@ -137,6 +137,7 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
+  hookAdd("PostDrawHUD"    , gsToolPrefL.."draw_stack_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
  -- hookAdd("PostDrawHUD"    , gsToolPrefL.."workmode_menu_draw", asmlib.GetActionCode("RADWORKMENU_DRAW"))
 end
 
@@ -764,16 +765,13 @@ function TOOL:Reload(stTrace)
 end
 
 function TOOL:Holster()
-  local gho = self.GhostEntity
-  self:ReleaseGhostEntity() -- Remove the ghost prop to save memory
-  if(gho and gho:IsValid()) then gho:Remove() end
+  asmlib.ReleaseGhosts()
 end
 
-function TOOL:UpdateGhost(ePiece, oPly)
-  if(not (ePiece and ePiece:IsValid())) then return end
-  ePiece:SetNoDraw(true)
-  ePiece:DrawShadow(false)
-  ePiece:SetColor(conPalette:Select("gh"))
+function TOOL:UpdateGhost(oPly)
+  local tGho = asmlib.GetGhosts()
+  if(not tGho) then return end
+  asmlib.FadeGhosts(true, false)
   local stTrace = asmlib.CacheTracePly(oPly)
   if(not stTrace) then return end
   local trEnt = stTrace.Entity
@@ -783,6 +781,7 @@ function TOOL:UpdateGhost(ePiece, oPly)
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   if(stTrace.HitWorld) then
+    local ePiece   = tGho[1]
     local angsnap  = self:GetAngSnap()
     local surfsnap = self:GetSurfaceSnap()
     local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
@@ -806,15 +805,34 @@ function TOOL:UpdateGhost(ePiece, oPly)
     if(asmlib.IsOther(trEnt)) then return end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(trRec) then
-      local spnflat = self:GetSpawnFlat()
-      local igntype = self:GetIgnoreType()
-      local actrad  = self:GetActiveRadius()
-      local stSpawn = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
+      local ePiece    = tGho[1]
+      local count     = self:GetCount()
+      local spnflat   = self:GetSpawnFlat()
+      local igntype   = self:GetIgnoreType()
+      local actrad    = self:GetActiveRadius()
+      local appangfst = self:ApplyAngularFirst()
+      local applinfst = self:ApplyLinearFirst()
+      local stSpawn   = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        if(workmode == 2) then
-          self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true) end
-        ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
+        if(workmode == 1) then
+          if(count > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
+            local vTemp   = Vector()
+            local hdOffs  = asmlib.LocatePOA(stSpawn.HRec, pnextid)
+            for iNdex = 1, tGho.Size do ePiece = tGho[iNdex]
+              ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
+              asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
+              vTemp:Add(ePiece:GetPos())
+              if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
+              if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
+              stSpawn = asmlib.GetEntitySpawn(oPly,ePiece,vTemp,model,pointid,
+                actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+            end
+          else ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false) end
+        elseif(workmode == 2) then
+          self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
+          ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
+        end
       end
     end
   end
@@ -836,18 +854,9 @@ function TOOL:ElevateGhost(oEnt, oPly)
 end
 
 function TOOL:Think()
-  local model = self:GetModel()
-  -- Synchronize the data between the working modes
-  local wormo = self:GetWorkingMode()
+  local model, wormo = self:GetModel(), self:GetWorkingMode()
   if(utilIsValidModel(model)) then -- Check model validation
     local ply = self:GetOwner()
-    local gho = self.GhostEntity
-    if(self:GetGhostHolder()) then
-      if(not (gho and gho:IsValid() and gho:GetModel() == model)) then
-        self:MakeGhostEntity(model,VEC_ZERO,ANG_ZERO)
-        self:ElevateGhost(self.GhostEntity, ply)   -- E-le-va-tion ! Yes U2
-      end; self:UpdateGhost(self.GhostEntity, ply) -- In client single player the ghost is skipped
-    else self:ReleaseGhostEntity() end -- Delete the ghost entity when ghosting is disabled
     if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
       local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
       if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
@@ -859,19 +868,17 @@ function TOOL:Think()
         if(mX ~= 0 or mY ~= 0) then asmlib.ConCommandPly(ply,"radmenuen", 1)
           local mR = mathAtan2(mY, mX); asmlib.ConCommandPly(ply,"radmenu", mR)
           if(asmlib.CachePressPly(ply)) then
-          print(1)
             if(not asmlib.CheckButtonPly(ply, IN_ZOOM)) then
               local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
               local workmode = mathFloor(nMx / mR); asmlib.ConCommandPly(ply,"workmode", workmode)
               asmlib.PrintNotifyPly(oPly,"Work mode "..conWorkMode:Select(workmode),"UNDO")
-              print(2, workmode)
             end
           end
         else
           asmlib.ConCommandPly(ply,"radmenuen", 0)
         end
       end
-    end
+    end -- Handle radial menu for working mode selection
   end
 end
 
