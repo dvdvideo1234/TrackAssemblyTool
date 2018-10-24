@@ -66,7 +66,7 @@ local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", string.upper)..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
-local gsSymRev    = asmlib.GetOpVar("OPSYM_REVSIGN")
+local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -86,7 +86,6 @@ TOOL.ClientConVar = {
   [ "nextx"     ] = 0,
   [ "nexty"     ] = 0,
   [ "nextz"     ] = 0,
-  [ "count"     ] = 5,
   [ "freeze"    ] = 1,
   [ "anchor"    ] = gsNoAnchor,
   [ "igntype"   ] = 0,
@@ -108,7 +107,8 @@ TOOL.ClientConVar = {
   [ "exportdb"  ] = 0,
   [ "forcelim"  ] = 0,
   [ "ignphysgn" ] = 0,
-  [ "ghosthold" ] = 1,
+  [ "ghostcnt"  ] = 1,
+  [ "stackcnt"  ] = 5,
   [ "maxstatts" ] = 3,
   [ "nocollide" ] = 1,
   [ "physmater" ] = "metal",
@@ -165,7 +165,7 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetCount()
-  return mathClamp(self:GetClientNumber("count"),1,asmlib.GetAsmVar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("stackcnt"),1,asmlib.GetAsmVar("maxstcnt", "INT"))
 end
 
 function TOOL:GetMass()
@@ -213,8 +213,8 @@ function TOOL:GetGravity()
   return ((self:GetClientNumber("gravity") or 0) ~= 0)
 end
 
-function TOOL:GetGhostHolder()
-  return ((self:GetClientNumber("ghosthold") or 0) ~= 0)
+function TOOL:GetGhostsCount()
+  return (self:GetClientNumber("ghostcnt") or 0)
 end
 
 function TOOL:GetNoCollide()
@@ -475,7 +475,7 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.GhostHold:   <"..tostring(self:GetGhostHolder())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.GhostsCnt:   <"..tostring(self:GetGhostsCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
@@ -525,8 +525,8 @@ function TOOL:LeftClick(stTrace)
   local weld      = self:GetWeld()
   local mass      = self:GetMass()
   local model     = self:GetModel()
-  local count     = self:GetCount()
   local ply       = self:GetOwner()
+  local stackcnt  = self:GetCount()
   local freeze    = self:GetFreeze()
   local angsnap   = self:GetAngSnap()
   local gravity   = self:GetGravity()
@@ -617,7 +617,7 @@ function TOOL:LeftClick(stTrace)
     end
   end -- IN_SPEED: Switch the tool mode ( Stacking )
   if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(count <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
+    if(stackcnt <= 0) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Stack count not properly picked")) end
     if(pointid == pnextid) then return asmlib.StatusLog(false,self:GetStatus(stTrace,"Point ID overlap")) end
     local ePieceO, ePieceN = trEnt
     local iNdex, iTrys = 1, maxstatts
@@ -627,8 +627,8 @@ function TOOL:LeftClick(stTrace)
       asmlib.PrintNotifyPly(ply,"Cannot find next PointID !","ERROR")
       return asmlib.StatusLog(false,self:GetStatus(stTrace,"TOOL:LeftClick(Stack): Missing next point ID"))
     end -- Validated existent next point ID
-    asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(count).." )")
-    while(iNdex <= count) do
+    asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(stackcnt).." )")
+    while(iNdex <= stackcnt) do
       local sIterat = "["..tostring(iNdex).."]"
       ePieceN = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePieceN) then -- Set position is valid
@@ -765,13 +765,14 @@ function TOOL:Reload(stTrace)
 end
 
 function TOOL:Holster()
-  asmlib.ReleaseGhosts()
+  asmlib.ClearGhosts()
 end
 
 function TOOL:UpdateGhost(oPly)
   local tGho = asmlib.GetGhosts()
   if(not tGho) then return end
-  asmlib.FadeGhosts(true, false)
+  asmlib.FadeGhosts(true)
+  if(self:GetGhostsCount() <= 0) then return end
   local stTrace = asmlib.CacheTracePly(oPly)
   if(not stTrace) then return end
   local trEnt = stTrace.Entity
@@ -806,7 +807,7 @@ function TOOL:UpdateGhost(oPly)
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(trRec) then
       local ePiece    = tGho[1]
-      local count     = self:GetCount()
+      local stackcnt  = self:GetCount()
       local spnflat   = self:GetSpawnFlat()
       local igntype   = self:GetIgnoreType()
       local actrad    = self:GetActiveRadius()
@@ -816,17 +817,17 @@ function TOOL:UpdateGhost(oPly)
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
         if(workmode == 1) then
-          if(count > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
-            local vTemp   = Vector()
-            local hdOffs  = asmlib.LocatePOA(stSpawn.HRec, pnextid)
+          if(stackcnt > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
+            local vTemp, hdOffs = Vector(), asmlib.LocatePOA(stSpawn.HRec, pnextid)
+            if(not hdOffs) then return nil end -- Validated existent next point ID
             for iNdex = 1, tGho.Size do ePiece = tGho[iNdex]
               ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
-              asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
-              vTemp:Add(ePiece:GetPos())
+              asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
               if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
               if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
               stSpawn = asmlib.GetEntitySpawn(oPly,ePiece,vTemp,model,pointid,
                 actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+              if(not stSpawn) then return nil end
             end
           else ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false) end
         elseif(workmode == 2) then
@@ -1340,12 +1341,12 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddItem(pText)
 
   local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass"  ,"FLT")  , 0)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass", "FLT")  , 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmVar("maxactrad", "FLT"), 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".count_con"), gsToolPrefL.."count"    , 1, asmlib.GetAsmVar("maxstcnt" , "INT"), 0)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".count"))
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".stackcnt_con"), gsToolPrefL.."stackcnt", 1, asmlib.GetAsmVar("maxstcnt", "INT"), 0)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".stackcnt"))
   pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxOffRot, 7)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".angsnap"))
   pItem = CPanel:Button   (languageGetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
@@ -1390,8 +1391,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".pntasist_con"), gsToolPrefL.."pntasist")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".ghosthold_con"), gsToolPrefL.."ghosthold")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghosthold"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".engunsnap"))
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", 0, asmlib.GetAsmVar("maxghosts", "INT"), 0)
+           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghostcnt"))
 end

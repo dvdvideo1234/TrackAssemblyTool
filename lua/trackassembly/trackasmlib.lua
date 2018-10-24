@@ -397,7 +397,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("VEC_RG",Vector(0,-1,1))
   SetOpVar("VEC_UP",Vector(0,0,1))
   SetOpVar("OPSYM_DISABLE","#")
-  SetOpVar("OPSYM_REVSIGN","@")
+  SetOpVar("OPSYM_REVISION","@")
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
@@ -745,7 +745,7 @@ function MakeContainer(sInfo,sDefKey)
     end
   end
   function self:GetHistory()
-    return tostring(sMet)..GetOpVar("OPSYM_REVSIGN")..
+    return tostring(sMet)..GetOpVar("OPSYM_REVISION")..
            tostring(sSel)..GetOpVar("OPSYM_DIRECTORY")..
            tostring(sIns)..GetOpVar("OPSYM_DIRECTORY")..tostring(sDel)
   end
@@ -795,10 +795,10 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     if(not IsExistent(keyColor) and not IsExistent(sMeth)) then
       Colors.Key = GetOpVar("OOP_DEFAULTKEY")
       return StatusLog(nil,"MakeScreen.SetColor: Color reset") end
-    local keyColor = keyColor or Colors.Key
+    local keyColor = (keyColor or Colors.Key)
     if(not IsExistent(keyColor)) then
       return StatusLog(nil,"MakeScreen.SetColor: Indexing skipped") end
-    if(not IsString  (   sMeth)) then
+    if(not IsString(sMeth)) then
       return StatusLog(nil,"MakeScreen.SetColor: Method <"..tostring(method).."> invalid") end
     local rgbColor = Colors.List:Select(keyColor)
     if(not IsExistent(rgbColor)) then rgbColor = Colors.Default end
@@ -810,8 +810,8 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     return rgbColor, keyColor
   end
   function self:SetDrawParam(sMeth,tArgs,sKey)
+    tArgs = (tArgs or DrawArgs[sKey])
     sMeth = tostring(sMeth or DrawMeth[sKey])
-    tArgs =         (tArgs or DrawArgs[sKey])
     if(sMeth == "SURF") then
       if(sKey == "TXT" and tArgs ~= DrawArgs[sKey]) then
         surfaceSetFont(tostring(tArgs[1] or "Default")) end -- Time to set the font again
@@ -825,7 +825,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   end
   function self:GetTextState(nX,nY,nW,nH)
     return (Text.DrwX + (nX or 0)), (Text.DrwY + (nY or 0)),
-           (Text.ScrW  + (nW or 0)), (Text.ScrH  + (nH or 0)),
+           (Text.ScrW + (nW or 0)), (Text.ScrH + (nH or 0)),
             Text.LstW, Text.LstH
   end
   function self:DrawText(sText,keyColor,sMeth,tArgs)
@@ -922,9 +922,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       renderDrawSphere (pC,nRad,mathClamp(tArgs[2] or 1,1,200),
                                 mathClamp(tArgs[3] or 1,1,200),rgbCl)
     else return StatusLog(nil,"MakeScreen.DrawCircle: Draw method <"..sMeth.."> invalid") end
-  end
-  setmetatable(self,GetOpVar("TYPEMT_SCREEN"))
-  return self
+  end; setmetatable(self, GetOpVar("TYPEMT_SCREEN")); return self
 end
 
 function SetAction(sKey,fAct,tDat)
@@ -1306,7 +1304,7 @@ local function IsZeroPOA(stPOA,sOffs)
     return StatusLog(nil,"IsZeroPOA: Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string") end
   if(not IsExistent(stPOA)) then
     return StatusLog(nil,"IsZeroPOA: Missing offset") end
-  local ctA, ctB, ctC
+  local ctA, ctB, ctC = nil, nil, nil
   if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
   elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
   else return StatusLog(nil,"IsZeroPOA: Missed offset mode "..sOffs) end
@@ -1319,7 +1317,7 @@ local function StringPOA(stPOA,sOffs)
     return StatusLog(nil,"StringPOA: Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string") end
   if(not IsExistent(stPOA)) then
     return StatusLog(nil,"StringPOA: Missing Offsets") end
-  local symRev,  symDis = GetOpVar( "OPSYM_REVSIGN" ), GetOpVar("OPSYM_DISABLE")
+  local ctA, ctB, ctC = nil, nil, nil
   local symSep, sModeDB = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("MODE_DATABASE")
   if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
   elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
@@ -1400,19 +1398,16 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
       return StatusLog(nil,"RegisterPOA: No sequential ID #"..tostring(iID - 1)) end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE = GetOpVar("OPSYM_ENTPOSANG")
-  if(sO:sub(1,1) == sE) then -- Origin is the line control option
-    local symOff = GetOpVar("OPSYM_DISABLE"); sO = sO:sub(2,-1)
-    local bO = (sO:sub(1,1) == symOff); if(bO) then sO = sO:sub(2,-1) end
-    local bA = (sA:sub(1,1) == symOff); if(bA) then sA = sA:sub(2,-1) end
-    local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO)
+  if(sO:sub(1,1) == sE) then
+    local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:sub(2,-1))
     ---------- Origin ----------
     if(IsExistent(vtPos)) then -- Reversing the sign event is not supported
-      ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ], nil, nil, nil, bO) else ReloadPOA() end
+      ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ]) else ReloadPOA() end
     if(not IsExistent(TransferPOA(tOffs.O, "V"))) then -- Origin
       return StatusLog(nil,"RegisterPOA: Cannot transform origin") end
     ---------- Angle ----------
     if(IsExistent(atAng)) then -- Angle disable event reads parameterization
-      ReloadPOA(atAng[caP], atAng[caY], atAng[caR], nil, nil, nil, bA) else
+      ReloadPOA(atAng[caP], atAng[caY], atAng[caR]) else
       if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
     end -- When attachment angle cannot be found read parameterization
     if(not IsExistent(TransferPOA(tOffs.A, "A"))) then -- Angle
@@ -2133,7 +2128,7 @@ function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps t
     return StatusLog(nil,"TimerSetting: Timer set missing for setup") end
   if(not IsString(sTimerSet)) then
     return StatusLog(nil,"TimerSetting: Timer set {"..type(sTimerSet).."}<"..tostring(sTimerSet).."> not string") end
-  local tTm = GetOpVar("OPSYM_REVSIGN"):Explode(sTimerSet)
+  local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTimerSet)
   tTm[1] =   tostring(tTm[1]  or "CQT")
   tTm[2] =  (tonumber(tTm[2]) or 0)
   tTm[3] = ((tonumber(tTm[3]) or 0) ~= 0) and true or false
@@ -3283,9 +3278,8 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
     return StatusLog(nil,"IntersectRayCreate: Player invalid <"..tostring(oPly)..">") end
   local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit); if(not trID) then
     return StatusLog(nil,"IntersectRayCreate: Entity no hit <"..tostring(oEnt).."/"..tostring(vHit)..">") end
-  local tRay = GetOpVar("RAY_INTERSECT")
-  if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
-  local stRay = tRay[sKey]
+  local tRay = GetOpVar("RAY_INTERSECT"); if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
+  local stRay = tRay[sKey] -- Index the ray type. Relate or origin
   if(not stRay) then -- Define a ray via origin and direction
     tRay[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
                   Orw = Vector(), Diw = Angle(), -- World direction and origin
@@ -3676,53 +3670,49 @@ function GetGhosts()
   return ((tGho.Size and tGho.Size > 0) and tGho or nil)
 end
 
-function FadeGhosts(bNoD, bSha)
+function FadeGhosts(bNoD)
   local tGho = GetGhosts()
   if(not tGho) then return true end
-  local conPalette = GetOpVar("CONTAINER_PALETTE")
+  local cPal = GetOpVar("CONTAINER_PALETTE")
   for iD = 1, tGho.Size do local eGho = tGho[iD]
-    eGho:SetNoDraw(bNoD)
-    eGho:DrawShadow(bSha)
-    eGho:SetColor(conPalette:Select("gh"))
-  end
-  return true
+    eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
+    eGho:SetColor(cPal:Select("gh"))
+  end; return true
 end
 
-function ReleaseGhosts()
-  local tGho = GetGhosts()
-  if(not tGho) then return end
+function ClearGhosts()
+  local tGho = GetGhosts(); if(not tGho) then return end
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
-      eGho:SetNoDraw(true)
-      eGho:Remove()
+      eGho:SetNoDraw(true); eGho:Remove()
     end; eGho, tGho[iD] = nil, nil
-  end; tGho.Size = 0; collectgarbage()
+  end; tGho.Size, tGho.Slot = 0, GetOpVar("MISS_NOMD")
+  collectgarbage()
 end
 
-function MakeGhosts(maxGho,nStack,hdModel)
-  local tGho = GetGhosts(); if(tGho) then ReleaseGhosts() end
-  local nCnt, conPalette = 0, GetOpVar("CONTAINER_PALETTE")
-  if(maxGho == 0 ) then return true end -- Disabled ghosting
-  if(maxGho > 0) then -- Chose between the two propper array lengths
-    if(maxGho < nStack) then nCnt = maxGho
-    else nCnt = nStack end -- Use the smallest value of the two
-  end; tGho.Size, tGho.Slot = nCnt, hdModel
+function MakeGhosts(nCnt, sModel)
+  if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
+  if(nCnt == 0 and tGho.Size ~= 0) then ClearGhosts(); return true end -- Disabled ghosting
+  local cPal, tGho = GetOpVar("CONTAINER_PALETTE"), GetGhosts(); FadeGhosts(true)
   local vZero, aZero = GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO")
-  for iD = 1, tGho.Size do
-    tGho[iD] = entsCreateClientProp(hdModel)
-    local eGho = tGho[iD]
+  for iD = 1, nCnt do local eGho = tGho[iD]
+    if(eGho and eGho:IsValid() and eGho:GetModel() ~= hdModel) then
+      eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end
     if(not (eGho and eGho:IsValid())) then
-      return StatusLog(false,"MakeGhosts: Invalid <"..tostring(iD)..">") end 
-    eGho:SetModel(hdModel)
-    eGho:SetPos(vZero)
-    eGho:SetAngles(aZero)
-    eGho:Spawn()
-    eGho:SetSolid(SOLID_VPHYSICS)
-    eGho:SetMoveType(MOVETYPE_NONE)
-    eGho:SetNotSolid(true)
-    eGho:SetNoDraw(false)
-    eGho:DrawShadow(false)
-    eGho:SetColor(conPalette:Select("gh"))
-    eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
-  end; return true
+      tGho[iD] = entsCreateClientProp(hdModel); eGho = tGho[iD]
+      if(not (eGho and eGho:IsValid())) then
+        return StatusLog(false,"MakeGhosts["..tostring(iD).."]: Invalid") end
+      eGho:SetModel(sModel)
+      eGho:SetPos(vZero)
+      eGho:SetAngles(aZero)
+      eGho:Spawn()
+      eGho:SetSolid(SOLID_VPHYSICS)
+      eGho:SetMoveType(MOVETYPE_NONE)
+      eGho:SetNotSolid(true)
+      eGho:SetNoDraw(true)
+      eGho:DrawShadow(false)
+      eGho:SetColor(cPal:Select("gh"))
+      eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
+    end -- Fade all the ghosts and refresh these that must be drawn
+  end; tGho.Size, tGho.Slot = nCnt, hdModel; return true
 end

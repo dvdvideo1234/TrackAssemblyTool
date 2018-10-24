@@ -18,6 +18,7 @@ local netReadVector        = net and net.ReadVector
 local bitBor               = bit and bit.bor
 local mathFloor            = math and math.floor
 local mathClamp            = math and math.Clamp
+local mathMin              = math and math.min
 local utilAddNetworkString = util and util.AddNetworkString
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
@@ -33,7 +34,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.478")
+asmlib.SetOpVar("TOOL_VERSION","5.479")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -54,6 +55,7 @@ asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
+asmlib.MakeAsmVar("maxghosts", 1    ,     {0} , gnIndependentUsed, "Maximum ghosted pieces drawn by the client")
 asmlib.MakeAsmVar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database operating mode")
 asmlib.MakeAsmVar("devmode"  ,    0 , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
 asmlib.MakeAsmVar("maxtrmarg", 0.02 , {0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
@@ -65,7 +67,6 @@ asmlib.MakeAsmVar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum linear 
 asmlib.MakeAsmVar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmVar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmVar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmVar("maxghosts", 1  ,     {0}, gnServerControled, "Maximum ghosted pieces drawn by the client")
 asmlib.MakeAsmVar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off on restart server side")
 
 if(SERVER) then
@@ -246,11 +247,13 @@ if(CLIENT) then
         return asmlib.StatusLog(nil,"DRAW_GHOSTS: Tool invalid") end
       local tGho  = asmlib.GetGhosts()
       local model = asmlib.GetAsmVar("model", "STR")
-      local stack = asmlib.GetAsmVar("stack", "INT")
       local mxgho = asmlib.GetAsmVar("maxghosts", "INT")
-      if(not (tGho and tGho.Size > 0 and tGho.Slot == model)) then
-        asmlib.MakeGhosts(mxgho, stack, model)
-      end; actTool:UpdateGhost(oPly)
+      local mxcnt = asmlib.GetAsmVar("maxstcnt" , "INT")
+      local stackcnt = mathClamp(asmlib.GetAsmVar("stackcnt", "INT"), 0, mxcnt)
+      local ghostcnt = mathClamp(asmlib.GetAsmVar("ghostcnt", "INT"), 0, mxgho)
+      local depthcnt = mathMin(stackcnt, ghostcnt)
+      if(not (tGho and tGho.Size > 0 and depthcnt == tGho.Size and tGho.Slot == model)) then
+        asmlib.MakeGhosts(depthcnt, model) end; actTool:UpdateGhost(oPly)
     end) -- Read client configuration
     
   asmlib.SetAction("RESET_VARIABLES",
@@ -270,7 +273,7 @@ if(CLIENT) then
       if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         local anchor = asmlib.GetOpVar("MISS_NOID")..
-                       asmlib.GetOpVar("OPSYM_REVSIGN")..
+                       asmlib.GetOpVar("OPSYM_REVISION")..
                        asmlib.GetOpVar("MISS_NOMD")
         asmlib.ConCommandPly(oPly, "weld"     , 1)
         asmlib.ConCommandPly(oPly, "mass"     , 25000)
@@ -297,7 +300,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "offsetup" , 0)
         asmlib.ConCommandPly(oPly, "forcelim" , 0)
         asmlib.ConCommandPly(oPly, "ignphysgn", 0)
-        asmlib.ConCommandPly(oPly, "ghosthold", 1)
+        asmlib.ConCommandPly(oPly, "ghostcnt" , 1)
         asmlib.ConCommandPly(oPly, "maxstatts", 3)
         asmlib.ConCommandPly(oPly, "nocollide", 1)
         asmlib.ConCommandPly(oPly, "physmater", "metal")
@@ -720,7 +723,6 @@ end
  * Disabling Type  - Makes it use the value of DefaultType()
  * Disabling Name  - Makes it generate it using the model via ModelToName()
  * Disabling Class - Makes it use the default /prop_physics/
- * Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
  * First  argument of DefaultTable() is used to provide default table name for InsertRecord()
  * Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
@@ -2987,8 +2989,8 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("tool."..gsToolNameL..".model_con"     , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
   asmlib.SetLocalify("tool."..gsToolNameL..".activrad"      , "Minimum distance needed to select an active point")
   asmlib.SetLocalify("tool."..gsToolNameL..".activrad_con"  , "Active radius:")
-  asmlib.SetLocalify("tool."..gsToolNameL..".count"         , "Maximum number of pieces to create while stacking")
-  asmlib.SetLocalify("tool."..gsToolNameL..".count_con"     , "Pieces count:")
+  asmlib.SetLocalify("tool."..gsToolNameL..".stackcnt"      , "Maximum number of pieces to create while stacking")
+  asmlib.SetLocalify("tool."..gsToolNameL..".stackcnt_con"  , "Pieces count:")
   asmlib.SetLocalify("tool."..gsToolNameL..".angsnap"       , "Snap the first piece spawned at this much degrees")
   asmlib.SetLocalify("tool."..gsToolNameL..".angsnap_con"   , "Angular alignment:")
   asmlib.SetLocalify("tool."..gsToolNameL..".resetvars"     , "Click to reset the additional values")
@@ -3033,8 +3035,8 @@ if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
   asmlib.SetLocalify("tool."..gsToolNameL..".adviser_con"   , "Draw adviser")
   asmlib.SetLocalify("tool."..gsToolNameL..".pntasist"      , "Controls rendering the tool snap point assistant")
   asmlib.SetLocalify("tool."..gsToolNameL..".pntasist_con"  , "Draw assistant")
-  asmlib.SetLocalify("tool."..gsToolNameL..".ghosthold"     , "Controls rendering the tool ghosted holder piece")
-  asmlib.SetLocalify("tool."..gsToolNameL..".ghosthold_con" , "Draw holder ghost")
+  asmlib.SetLocalify("tool."..gsToolNameL..".ghostcnt"      , "Controls rendering the tool ghosted holder pieces count")
+  asmlib.SetLocalify("tool."..gsToolNameL..".ghostcnt_con"  , "Draw holder ghosts")
   asmlib.SetLocalify("tool."..gsToolNameL..".engunsnap"     , "Controls snapping when the piece is dropped by the player physgun")
   asmlib.SetLocalify("tool."..gsToolNameL..".engunsnap_con" , "Enable physgun snap")
   asmlib.SetLocalify("tool."..gsToolNameL..".workmode"      , "Change this option to select a different working mode")
