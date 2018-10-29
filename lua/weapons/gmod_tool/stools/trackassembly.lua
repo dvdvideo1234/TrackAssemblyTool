@@ -1317,7 +1317,7 @@ function TOOL.BuildCPanel(CPanel)
     if(cqNames) then local iNam = 1; pComboPhysName:Clear()
       pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
       while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
-    else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names unavailable") end
+    else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names mismatch") end
   end
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
@@ -1393,6 +1393,6 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
   pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".engunsnap"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", 0, asmlib.GetAsmVar("maxghosts", "INT"), 0)
+  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", 0, asmlib.GetAsmVar("maxstcnt", "INT"), 0)
            pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghostcnt"))
 end

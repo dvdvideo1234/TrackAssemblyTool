@@ -34,7 +34,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.480")
+asmlib.SetOpVar("TOOL_VERSION","5.481")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -55,7 +55,6 @@ asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeAsmVar("maxghosts", 1    ,     {0} , gnIndependentUsed, "Maximum ghosted pieces drawn by the client")
 asmlib.MakeAsmVar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database operating mode")
 asmlib.MakeAsmVar("devmode"  ,    0 , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
 asmlib.MakeAsmVar("maxtrmarg", 0.02 , {0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
@@ -247,10 +246,9 @@ if(CLIENT) then
         return asmlib.StatusLog(nil,"DRAW_GHOSTS: Tool invalid") end
       local tGho  = asmlib.GetGhosts()
       local model = asmlib.GetAsmVar("model", "STR")
-      local mxgho = asmlib.GetAsmVar("maxghosts", "INT")
       local mxcnt = asmlib.GetAsmVar("maxstcnt" , "INT")
       local stackcnt = mathClamp(asmlib.GetAsmVar("stackcnt", "INT"), 0, mxcnt)
-      local ghostcnt = mathClamp(asmlib.GetAsmVar("ghostcnt", "INT"), 0, mxgho)
+      local ghostcnt = mathClamp(asmlib.GetAsmVar("ghostcnt", "INT"), 0, mxcnt)
       local depthcnt = mathMin(stackcnt, ghostcnt)
       if(not (tGho and tGho.Size > 0 and depthcnt == tGho.Size and tGho.Slot == model)) then
         asmlib.MakeGhosts(depthcnt, model) end; actTool:UpdateGhost(oPly)

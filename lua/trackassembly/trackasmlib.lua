@@ -1295,7 +1295,7 @@ local function IsEqualPOA(staPOA,stbPOA)
   if(not IsExistent(stbPOA)) then
     return StatusLog(false,"EqualPOA: Missing offset B") end
   for kKey, vComp in pairs(staPOA) do
-    if(kKey ~= csD and stbPOA[kKey] ~= vComp) then return false end
+    if(stbPOA[kKey] ~= vComp) then return false end
   end; return true
 end
 
