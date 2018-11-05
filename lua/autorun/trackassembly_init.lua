@@ -34,7 +34,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.486")
+asmlib.SetOpVar("TOOL_VERSION","5.487")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -244,7 +244,7 @@ if(CLIENT) then
       -- Here player is holding the track assembly tool
       local actTool = actSwep:GetToolObject(); if(not actTool) then
         return asmlib.StatusLog(nil,"DRAW_GHOSTS: Tool invalid") end
-      local tGho  = asmlib.GetGhosts()
+      local tGho  = asmlib.GetOpVar("ARRAY_GHOST")
       local model = asmlib.GetAsmVar("model", "STR")
       local mxcnt = asmlib.GetAsmVar("maxstcnt" , "INT")
       local stackcnt = mathClamp(asmlib.GetAsmVar("stackcnt", "INT"), 0, mxcnt)

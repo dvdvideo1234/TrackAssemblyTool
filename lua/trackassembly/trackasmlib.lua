@@ -423,7 +423,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOMD","X")    -- No model
   SetOpVar("ARRAY_DECODEPOA",{0,0,0})
   if(CLIENT) then
-    SetOpVar("ARRAY_GHOST",{})
+    SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("LOCALIFY_TABLE",{})
     SetOpVar("TABLE_CATEGORIES",{})
@@ -3765,23 +3765,26 @@ function InitLocalify(sCode)
   end; for key, val in pairs(tPool) do languageAdd(key, val) end
 end
 
-function GetGhosts()
+function HasGhosts(bDir)
   local tGho = GetOpVar("ARRAY_GHOST")
-  return ((tGho.Size and tGho.Size > 0) and tGho or nil)
+  return (tGho and tGho.Size and tGho.Size > 0)
 end
 
 function FadeGhosts(bNoD)
-  local tGho = GetGhosts()
-  if(not tGho) then return true end
+  if(not HasGhosts()) then return true end
+  local tGho = GetOpVar("ARRAY_GHOST")
   local cPal = GetOpVar("CONTAINER_PALETTE")
   for iD = 1, tGho.Size do local eGho = tGho[iD]
-    eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
-    eGho:SetColor(cPal:Select("gh"))
+    if(eGho and eGho:IsValid()) then
+      eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
+      eGho:SetColor(cPal:Select("gh"))
+    end
   end; return true
 end
 
 function ClearGhosts()
-  local tGho = GetGhosts(); if(not tGho) then return end
+  if(not HasGhosts()) then return true end
+  local tGho = GetOpVar("ARRAY_GHOST")
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(true); eGho:Remove()
@@ -3791,9 +3794,10 @@ function ClearGhosts()
 end
 
 function MakeGhosts(nCnt, sModel)
+  local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
   if(nCnt == 0 and tGho.Size ~= 0) then ClearGhosts(); return true end -- Disabled ghosting
-  local cPal, tGho = GetOpVar("CONTAINER_PALETTE"), GetGhosts(); FadeGhosts(true)
+  local cPal = GetOpVar("CONTAINER_PALETTE"); FadeGhosts(true)
   local vZero, aZero, iD = GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO"), 1
   while(iD <= nCnt) do local eGho = tGho[iD]
     if(eGho and eGho:IsValid() and eGho:GetModel() ~= sModel) then
