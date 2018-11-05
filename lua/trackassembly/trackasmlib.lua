@@ -3758,9 +3758,9 @@ function InitLocalify(sCode)
     local fCode = CompileFile(sPath:format(sTool, suCod))
     local bFunc, fFunc = pcall(fCode); if(bFunc) then
       local bCode, tCode = pcall(fFunc, sTool, sLmit); if(bCode) then
-        for key, val in pairs(tPool) do SetLocalify(key, (tCode[key] or tPool[key])) end
-      else LogInstance("InitLocalify("..suCod.."): Secondary: "..tCode) end
-    else LogInstance("InitLocalify("..suCod.."): Primary: "..fFunc) end
+        for key, val in pairs(tPool) do tPool[key] = (tCode[key] or tPool[key]) end
+      else LogInstance("InitLocalify("..suCod.."): Second: "..tCode) end
+    else LogInstance("InitLocalify("..suCod.."): First: "..fFunc) end
     LogInstance("InitLocalify("..suCod.."): "..tostring(tCode))
   end; for key, val in pairs(tPool) do languageAdd(key, val) end
 end
@@ -3796,10 +3796,10 @@ function MakeGhosts(nCnt, sModel)
   local cPal, tGho = GetOpVar("CONTAINER_PALETTE"), GetGhosts(); FadeGhosts(true)
   local vZero, aZero = GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO")
   for iD = 1, nCnt do local eGho = tGho[iD]
-    if(eGho and eGho:IsValid() and eGho:GetModel() ~= hdModel) then
+    if(eGho and eGho:IsValid() and eGho:GetModel() ~= sModel) then
       eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end
     if(not (eGho and eGho:IsValid())) then
-      tGho[iD] = entsCreateClientProp(hdModel); eGho = tGho[iD]
+      tGho[iD] = entsCreateClientProp(sModel); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then
         return StatusLog(false,"MakeGhosts["..tostring(iD).."]: Invalid") end
       eGho:SetModel(sModel)
@@ -3814,5 +3814,5 @@ function MakeGhosts(nCnt, sModel)
       eGho:SetColor(cPal:Select("gh"))
       eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
     end -- Fade all the ghosts and refresh these that must be drawn
-  end; tGho.Size, tGho.Slot = nCnt, hdModel; return true
+  end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
