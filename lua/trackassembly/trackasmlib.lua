@@ -3794,8 +3794,8 @@ function MakeGhosts(nCnt, sModel)
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
   if(nCnt == 0 and tGho.Size ~= 0) then ClearGhosts(); return true end -- Disabled ghosting
   local cPal, tGho = GetOpVar("CONTAINER_PALETTE"), GetGhosts(); FadeGhosts(true)
-  local vZero, aZero = GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO")
-  for iD = 1, nCnt do local eGho = tGho[iD]
+  local vZero, aZero, iD = GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO"), 1
+  while(iD <= nCnt) do local eGho = tGho[iD]
     if(eGho and eGho:IsValid() and eGho:GetModel() ~= sModel) then
       eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end
     if(not (eGho and eGho:IsValid())) then
@@ -3813,6 +3813,10 @@ function MakeGhosts(nCnt, sModel)
       eGho:DrawShadow(false)
       eGho:SetColor(cPal:Select("gh"))
       eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
-    end -- Fade all the ghosts and refresh these that must be drawn
+    end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
+  end -- Remove all others that must not be drawn to save memory
+  for iK = iD, tGho.Size do -- Executes only when (nCnt < tGho.Size)
+    local eGho = tGho[iD]; if(eGho and eGho:IsValid()) then
+      eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
