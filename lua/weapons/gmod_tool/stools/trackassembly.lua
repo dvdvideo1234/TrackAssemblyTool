@@ -34,6 +34,8 @@ local surfaceScreenHeight   = surface and surface.ScreenHeight
 local languageAdd           = language and language.Add
 local languageGetPhrase     = language and language.GetPhrase
 local concommandAdd         = concommand and concommand.Add
+local cvarsAddChangeCallback    = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntityModifier
 
 ----------------- TOOL Global Parameters ----------------
@@ -77,7 +79,7 @@ if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   asmlib.LogInstance("Processing data list fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
 end
 
-cleanupRegister(gsLimitName)
+cleanupRegister(gsLimitName); asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
 
 TOOL.ClientConVar = {
   [ "weld"      ] = 1,
@@ -1208,8 +1210,8 @@ end
 local ConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel)
   local CurY, pItem = 0 -- pItem is the current panel created
-          CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
-  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc"))
+          CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
+  pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
   CurY  = CurY + pItem:GetTall() + 2
 
   pItem = CPanel:AddControl( "ComboBox",{
@@ -1226,7 +1228,7 @@ function TOOL.BuildCPanel(CPanel)
   local pTree    = vguiCreate("DTree", CPanel)
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 400)
-        pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model_con"))
+        pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con"))
         pTree:SetIndentSize(0)
   local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
   while(cqPanel[iCnt]) do
@@ -1268,7 +1270,7 @@ function TOOL.BuildCPanel(CPanel)
       -- Register the node associated with the track piece
       pNode = pItem:AddNode(Nam)
       pNode.DoRightClick = function() SetClipboardText(Mod) end
-      pNode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
+      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
       pNode.Icon:SetImage("icon16/brick.png")
       pNode.DoClick = function(pSelf)
         RunConsoleCommand(gsToolPrefL.. "model" , Mod)
@@ -1287,9 +1289,9 @@ function TOOL.BuildCPanel(CPanel)
         pComboToolMode:SetPos(2, CurY)
         pComboToolMode:SetSortItems(false)
         pComboToolMode:SetTall(18); RunConsoleCommand(gsToolPrefL.."workmode", 1)
-        pComboToolMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".workmode"))
-        pComboToolMode:AddChoice(languageGetPhrase("tool."..gsToolNameL..".workmode_1"), 1 ,true)
-        pComboToolMode:AddChoice(languageGetPhrase("tool."..gsToolNameL..".workmode_2"), 2)
+        pComboToolMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".workmode"))
+        pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_1"), 1 ,true)
+        pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_2"), 2)
         pComboToolMode.OnSelect = function(pnSelf, nInd, sVal, anyData)
           RunConsoleCommand(gsToolPrefL.."workmode", anyData) end
         CurY = CurY + pComboToolMode:GetTall() + 2
@@ -1297,15 +1299,15 @@ function TOOL.BuildCPanel(CPanel)
   local pComboPhysType = vguiCreate("DComboBox", CPanel)
         pComboPhysType:SetPos(2, CurY)
         pComboPhysType:SetTall(18)
-        pComboPhysType:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phytype"))
-        pComboPhysType:SetValue(languageGetPhrase("tool."..gsToolNameL..".phytype_def"))
+        pComboPhysType:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phytype"))
+        pComboPhysType:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_def"))
         CurY = CurY + pComboPhysType:GetTall() + 2
   local pComboPhysName = vguiCreate("DComboBox", CPanel)
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
-        pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
+        pComboPhysName:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phyname"))
         pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),
-                                languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
+                                asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
           RunConsoleCommand(gsToolPrefL.."physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
@@ -1315,7 +1317,7 @@ function TOOL.BuildCPanel(CPanel)
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local cqNames = asmlib.CacheQueryProperty(sVal)
     if(cqNames) then local iNam = 1; pComboPhysName:Clear()
-      pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
+      pComboPhysName:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def"))
       while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
     else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names mismatch") end
   end
@@ -1327,8 +1329,8 @@ function TOOL.BuildCPanel(CPanel)
   local pText = vguiCreate("DTextEntry", CPanel)
         pText:SetPos(2, CurY)
         pText:SetTall(18)
-        pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
-        pText:SetText(asmlib.DefaultString(asmlib.GetAsmVar("bgskids", "STR"),languageGetPhrase("tool."..gsToolNameL..".bgskids_def")))
+        pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
+        pText:SetText(asmlib.DefaultString(asmlib.GetAsmVar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()
@@ -1341,58 +1343,69 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddItem(pText)
 
   local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass", "FLT")  , 0)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".mass"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmVar("maxactrad", "FLT"), 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".activrad"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".stackcnt_con"), gsToolPrefL.."stackcnt", 1, asmlib.GetAsmVar("maxstcnt", "INT"), 0)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".stackcnt"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxOffRot, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".angsnap"))
-  pItem = CPanel:Button   (languageGetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".resetvars"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextpic_con"), gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextpic"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextyaw_con"), gsToolPrefL.."nextyaw" , -gnMaxOffRot, gnMaxOffRot, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextyaw"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextrol_con"), gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextrol"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextx_con"), gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextx"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nexty_con"), gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nexty"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".nextz_con"), gsToolPrefL.."nextz", -nMaxOffLin, nMaxOffLin, 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nextz"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 7)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".forcelim"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".weld"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".nocollide_con"), gsToolPrefL.."nocollide")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".nocollide"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".freeze_con"), gsToolPrefL.."freeze")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".freeze"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".ignphysgn_con"), gsToolPrefL.."ignphysgn")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ignphysgn"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".gravity_con"), gsToolPrefL.."gravity")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".gravity"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".igntype_con"), gsToolPrefL.."igntype")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".igntype"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".spnflat_con"), gsToolPrefL.."spnflat")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spnflat"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".spawncn_con"), gsToolPrefL.."spawncn")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".spawncn"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".surfsnap_con"), gsToolPrefL.."surfsnap")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".surfsnap"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".appangfst_con"), gsToolPrefL.."appangfst")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".appangfst"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".applinfst_con"), gsToolPrefL.."applinfst")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".applinfst"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".adviser_con"), gsToolPrefL.."adviser")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".adviser"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".pntasist_con"), gsToolPrefL.."pntasist")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pntasist"))
-  pItem = CPanel:CheckBox (languageGetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".engunsnap"))
-  pItem = CPanel:NumSlider(languageGetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", 0, asmlib.GetAsmVar("maxstcnt", "INT"), 0)
-           pItem:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".ghostcnt"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass", "FLT")  , 0)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmVar("maxactrad", "FLT"), 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".activrad"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".stackcnt_con"), gsToolPrefL.."stackcnt", 1, asmlib.GetAsmVar("maxstcnt", "INT"), 0)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".stackcnt"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxOffRot, 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".angsnap"))
+  pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextpic_con"), gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextpic"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextyaw_con"), gsToolPrefL.."nextyaw" , -gnMaxOffRot, gnMaxOffRot, 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextyaw"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextrol_con"), gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextrol"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextx_con"), gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextx"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nexty_con"), gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nexty"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextz_con"), gsToolPrefL.."nextz", -nMaxOffLin, nMaxOffLin, 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextz"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 7)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".forcelim"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".weld"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".nocollide_con"), gsToolPrefL.."nocollide")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nocollide"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".freeze_con"), gsToolPrefL.."freeze")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".freeze"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".ignphysgn_con"), gsToolPrefL.."ignphysgn")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".ignphysgn"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".gravity_con"), gsToolPrefL.."gravity")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".gravity"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".igntype_con"), gsToolPrefL.."igntype")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".igntype"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".spnflat_con"), gsToolPrefL.."spnflat")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".spnflat"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".spawncn_con"), gsToolPrefL.."spawncn")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".spawncn"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".surfsnap_con"), gsToolPrefL.."surfsnap")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".surfsnap"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".appangfst_con"), gsToolPrefL.."appangfst")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".appangfst"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".applinfst_con"), gsToolPrefL.."applinfst")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".applinfst"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".adviser_con"), gsToolPrefL.."adviser")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".adviser"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".pntasist_con"), gsToolPrefL.."pntasist")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pntasist"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".engunsnap"))
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", 0, asmlib.GetAsmVar("maxstcnt", "INT"), 0)
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".ghostcnt"))
+end
+
+-- listen for changes to the localify language and reload the tool's menu to update the localizations
+if(CLIENT) then
+  cvarsRemoveChangeCallback(varLng:GetName(), gsToolPrefL.."lang")
+  cvarsAddChangeCallback(varLng:GetName(), function(sNam, vO, vN)
+    asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
+    local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
+    local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end
+    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
+  end, gsToolPrefL.."lang")
 end

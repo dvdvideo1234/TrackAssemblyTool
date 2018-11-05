@@ -3645,10 +3645,11 @@ function SetAsmVarCallback(sName, sType, sHash, fHand)
   end
 end
 
-function SetLocalify(sKey, sDetail)
-  if(not IsString(sKey)) then
-    return StatusLog(nil,"SetLocalify: Phrase words <"..tostring(sKey).."> invalid") end
-  local tPool = GetOpVar("LOCALIFY_TABLE"); tPool[sKey] = tostring(sDetail)
+function GetPhrase(sKey)
+  local tPool = GetOpVar("LOCALIFY_TABLE")
+  local sPhrs = tPool[tostring(sKey)]; if(not sPhrs) then
+    LogInstance("GetPhase: Miss <"..tostring(sKey)..">") end
+  return (sPhrs and tostring(sPhrs) or GetOpVar("MISS_NOAV"))
 end
 
 function InitLocalify(sCode)
