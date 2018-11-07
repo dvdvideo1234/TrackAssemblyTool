@@ -34,7 +34,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.488")
+asmlib.SetOpVar("TOOL_VERSION","5.489")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -253,7 +253,7 @@ if(CLIENT) then
       if(not (tGho and tGho.Size > 0 and depthcnt == tGho.Size and tGho.Slot == model)) then
         asmlib.MakeGhosts(depthcnt, model) end; actTool:UpdateGhost(oPly)
     end) -- Read client configuration
-    
+
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs)
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
@@ -666,7 +666,7 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = asmlib.TimerSetting(gaTimerSet[1]),
+  Timer = gaTimerSet[1]
   Index = {{1},{4},{1,4}},
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -679,7 +679,7 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = asmlib.TimerSetting(gaTimerSet[2]),
+  Timer = gaTimerSet[2]
   Index = {{1},{4},{1,4}},
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -696,7 +696,7 @@ asmlib.CreateTable("ADDITIONS",{
 },true,true)
 
 asmlib.CreateTable("PHYSPROPERTIES",{
-  Timer = asmlib.TimerSetting(gaTimerSet[3]),
+  Timer = gaTimerSet[3]
   Index = {{1},{2},{1,2}},
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },

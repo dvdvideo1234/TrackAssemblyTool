@@ -100,6 +100,7 @@ local undoFinish               = undo and undo.Finish
 local undoAddEntity            = undo and undo.AddEntity
 local undoSetPlayer            = undo and undo.SetPlayer
 local undoSetCustomUndoText    = undo and undo.SetCustomUndoText
+local debugGetinfo             = debug and debug.getinfo
 local timerStop                = timer and timer.Stop
 local timerStart               = timer and timer.Start
 local timerSimple              = timer and timer.Simple
@@ -140,7 +141,7 @@ local libCache  = {} -- Used to cache stuff in a pool
 local libAction = {} -- Used to attach external function to the lib
 local libOpVars = {} -- Used to Store operational variable values
 local libPlayer = {} -- Used to allocate personal space for players
-local libQTable = {} -- Used to allocate SQL table objects
+local libQTable = {} -- Used to allocate SQL table builder objects
 
 module("trackasmlib")
 
@@ -473,11 +474,6 @@ function InitBase(sName,sPurpose)
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
-  SetOpVar("NAV_PIECE",{})
-  SetOpVar("NAV_PANEL",{})
-  SetOpVar("NAV_ADDITION",{})
-  SetOpVar("NAV_PROPERTY_NAMES",{})
-  SetOpVar("NAV_PROPERTY_TYPES",{})
   return StatusPrint(true,"InitBase: Success")
 end
 
@@ -971,7 +967,9 @@ local function AddLineListView(pnListView,frUsed,ivNdex)
     return StatusLog(false,"LineAddListView: Index NAN {"..type(ivNdex).."}<"..tostring(ivNdex)..">") end
   local tValue = frUsed[iNdex]; if(not IsExistent(tValue)) then
     return StatusLog(false,"LineAddListView: Missing data on index #"..tostring(iNdex)) end
-  local defTab = GetOpVar("DEFTABLE_PIECES"); if(not IsExistent(defTab)) then
+  local makTab = libQTable["PIECES"]; if(not makTab) then
+    return StatusLog(nil,"LineAddListView: Missing table definition") end
+  local defTab = makTab:GetDefinition(); if(not IsExistent(defTab)) then
     return StatusLog(false,"LineAddListView: Missing table definition") end
   local sModel = tValue.Table[defTab[1][1]]
   local sType  = tValue.Table[defTab[2][1]]
@@ -1072,7 +1070,9 @@ end
 function GetFrequentModels(snCount)
   local snCount = (tonumber(snCount) or 0); if(snCount < 1) then
     return StatusLog(nil,"GetFrequentModels: Count not applicable") end
-  local defTab = GetOpVar("DEFTABLE_PIECES"); if(not IsExistent(defTab)) then
+  local makTab = libQTable["PIECES"]; if(not makTab) then
+    return StatusLog(nil,"GetFrequentModels: Missing table builder") end
+  local defTab = makTab:GetDefinition(); if(not IsExistent(defTab)) then
     return StatusLog(nil,"GetFrequentModels: Missing table definition") end
   local tCache = libCache[defTab.Name]; if(not IsExistent(tCache)) then
     return StatusLog(nil,"GetFrequentModels: Missing table cache space") end
@@ -1725,6 +1725,16 @@ local function SQLCacheStmt(sHash,sStmt,...)
   return sBase:format(...)
 end
 
+function GetBuilderTable(sTable)
+  if(not IsString(sTable)) then
+    return StatusLog(nil,"GetBuilderTable: Key {"..type(sTable).."}<"..tostring(sTable).."> not string") end
+  local makTab = libQTable[sTable]; if(not makTab) then
+    return StatusLog(nil,"GetBuilderTable: Missing table builder for <"..sTable..">") end
+  if(not makTab:IsValid()) then
+    return StatusLog(nil,"GetBuilderTable: Builder object invalid <"..sTable..">") end
+  return makTab -- Return the dedicated table builder object
+end
+
 function CreateTable(sTable,defTab,bDelete,bReload)
   if(not IsString(sTable)) then
     return StatusLog(false,"CreateTable: Table key {"..type(sTable).."}<"..tostring(sTable).."> not string") end
@@ -1743,7 +1753,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     return StatusLog(false,"CreateTable: Record definition mismatch for "..sTable) end
   local sTable, self, __qtDef, __qtCmd = sTable:upper(), {}, defTab, {}
   local symDis, sModeDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
-  defTab.Name = GetOpVar("TOOLNAME_PU")..sTable
+  defTab.Nick = sTable; defTab.Name = GetOpVar("TOOLNAME_PU")..defTab.Nick
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
     defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
     defCol[4] = DefaultString(tostring(defCol[4] or symDis), symDis)
@@ -1760,18 +1770,143 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:Get()
     local qtCmd = self:GetCommand(); return qtCmd[qtCmd.STMT]
   end
+  -- Reads the method names from the debug information
+  function self:GetInfo(vK)
+    if(vK) then return debugGetinfo(2, "n")[vK] end
+    return debugGetinfo(2, "n")
+  end
+  -- Reads the method names from the debug information
+  function self:UpdateInfo()
+    local qtCmd = self:GetCommand()
+    qtCmd.STMT = self:GetInfo().name; return self
+  end
+  -- Generates a timer settings table and keeps the defaults
+  function self:TimerSetup(sTim)
+    local qtDef = self:GetDefinition()
+    local sTm = (sTim or qtDef.Timer); if(not sTm) then return self end; if(not IsString(sTm)) then
+      return StatusLog(nil,"SQL.TimerSetup: Set {"..type(sTm).."}<"..tostring(sTm).."> not string") end
+    local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTm)
+    tTm[1] =   tostring(tTm[1]  or "CQT")
+    tTm[2] =  (tonumber(tTm[2]) or 0)
+    tTm[3] = ((tonumber(tTm[3]) or 0) ~= 0) and true or false
+    tTm[4] = ((tonumber(tTm[4]) or 0) ~= 0) and true or false
+    qtDef.Timer = tTm; return self
+  end
+  -- Navigates the reference in the cache
+  function self:GetNavigate(...)
+    local tKey = {...}; if(not IsExistent(tKey[1])) then
+      return nil, StatusLog(nil,"SQL.GetNavigate: Missing keys") end
+    local oSpot, kKey, iCnt = libCache, tKey[1], 1
+    while(tKey[iCnt]) do kKey = tKey[iCnt]; iCnt = iCnt + 1
+      if(tKey[iCnt]) then oSpot = oSpot[kKey]; if(not IsExistent(oSpot)) then
+        return StatusLog(nil,"SQL.GetNavigate: Irrelevant <"..tostring(kKey)..">")
+    end; end; end; return oSpot, kKey, tKey
+  end
+  -- Attaches timer to a record related in the table cache
+  function self:TimerAttach(vMsg, ...)
+    local oSpot, kKey, tKey = self:GetNavigate(...)
+    if(not (IsExistent(oSpot) and IsExistent(kKey))) then
+      return StatusLog(nil,"SQL.TimerAttach: Navigation failed") end
+    if(not IsExistent(oSpot[kKey])) then
+      return StatusLog(nil,"SQL.TimerAttach: Data not found") end
+    local sModeDB = GetOpVar("MODE_DATABASE")
+    LogInstance("SQL.TimerAttach: Called by <"..tostring(vMsg).."> for ["..tostring(kKey).."]")
+    if(sModeDB == "SQL") then
+      local nNowTM, tTimer = Time(), defTab.Timer -- See that there is a timer and get "now"
+      if(not IsExistent(tTimer)) then
+        return StatusLog(oSpot[kKey],"SQL.TimerAttach: Missing timer settings") end
+      oSpot[kKey].Used = nNowTM -- Make the first selected deletable to avoid phantom records
+      local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
+        return StatusLog(oSpot[kKey],"SQL.TimerAttach: Timer attachment ignored") end
+      local sModeTM, bKillRC, bCollGB = tTimer[1], tTimer[3], tTimer[4]
+      LogInstance("SQL.TimerAttach: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
+      if(sModeTM == "CQT") then
+        for k, v in pairs(oSpot) do
+          if(IsExistent(v.Used) and ((nNowTM - v.Used) > nLifeTM)) then
+            LogInstance("SQL.TimerAttach: ("..tostring(RoundValue(nNowTM - v.Used,0.01)).." > "..tostring(nLifeTM)..") > Dead")
+            if(bKillRC) then oSpot[k] = nil; LogInstance("SQL.TimerAttach: Killed <"..tostring(k)..">") end
+          end
+        end
+        if(bCollGB) then collectgarbage(); LogInstance("SQL.TimerAttach: Garbage collected") end
+        return StatusLog(oSpot[kKey],"SQL.TimerAttach: ["..tostring(kKey).."] @"..tostring(RoundValue(nNowTM,0.01)))
+      elseif(sModeTM == "OBJ") then
+        local TimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKey)
+        LogInstance("SQL.TimerAttach: TimID <"..TimerID..">")
+        if(timerExists(TimerID)) then return StatusLog(oSpot[kKey],"SQL.TimerAttach: Timer exists") end
+        timerCreate(TimerID, nLifeTM, 1, function()
+          LogInstance("SQL.TimerAttach["..TimerID.."]("..nLifeTM..") > Dead")
+          if(bKillRC) then oSpot[kKey] = nil; LogInstance("SQL.TimerAttach: Killed <"..kKey..">") end
+          timerStop(TimerID); timerDestroy(TimerID)
+          if(bCollGB) then collectgarbage(); LogInstance("SQL.TimerAttach: Garbage collected") end
+        end); timerStart(TimerID); return oSpot[kKey]
+      else return StatusLog(oSpot[kKey],"SQL.TimerAttach: Timer mode not found <"..sModeTM..">") end
+    elseif(sModeDB == "LUA") then
+      return StatusLog(oSpot[kKey],"SQL.TimerAttach: Memory manager not available")
+    else return StatusLog(nil,"SQL.TimerAttach: Wrong database mode") end
+  end
+  -- Restarts timer to a record related in the table cache
+  function self:TimerRestart(vMsg, ...)
+    local oSpot, kKey, tKey = self:GetNavigate(...)
+    if(not (IsExistent(oSpot) and IsExistent(kKey))) then
+      return StatusLog(nil,"TimerRestart: Navigation failed") end
+    if(not IsExistent(oSpot[kKey])) then
+      return StatusLog(nil,"TimerRestart: Spot not found") end
+    local sModeDB = GetOpVar("MODE_DATABASE")
+    LogInstance("SQL.TimerAttach: Called by <"..tostring(vMsg).."> for ["..tostring(kKey).."]")
+    if(sModeDB == "SQL") then
+      local tTimer = defTab.Timer; if(not IsExistent(tTimer)) then
+        return StatusLog(oSpot[kKey],"TimerRestart: Missing timer settings") end
+      oSpot[kKey].Used = Time() -- Mark the current caching time stamp
+      local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
+        return StatusLog(oSpot[kKey],"TimerRestart: Timer life ignored") end
+      local sModeTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
+      if(sModeTM == "CQT") then sModeTM = "CQT"
+      elseif(sModeTM == "OBJ") then
+        local keyTimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
+        if(not timerExists(keyTimerID)) then
+          return StatusLog(nil,"TimerRestart: Timer missing <"..keyTimerID..">") end
+        timerStart(keyTimerID)
+      else return StatusLog(nil,"TimerRestart: Timer mode not found <"..sModeTM..">") end
+    elseif(sModeDB == "LUA") then oSpot[kKey].Used = Time()
+    else return StatusLog(nil,"TimerRestart: Wrong database mode") end
+    return oSpot[kKey]
+  end
+  -- Object internal data validation
+  function self:IsValid() local bStat = true
+    local qtCmd = self:GetCommand(); if(not qtCmd) then
+      bStat = StatusLog(false,"SQL.IsValid: Missing commands <"..defTab.Nick..">") end
+    local qtDef = self:GetDefinition(); if(not qtDef) then
+      bStat = StatusLog(false,"SQL.IsValid: Missing definition <"..defTab.Nick..">") end
+    if(qtDef.Size ~= #qtDef) then
+      bStat = StatusLog(false,"SQL.IsValid: Mismatch count <"..defTab.Nick..">") end
+    if(qtDef.Size ~= tableMaxn(qtDef)) then
+      bStat = StatusLog(false,"SQL.IsValid: Mismatch maxN <"..defTab.Nick..">") end
+    if(defTab.Nick:upper() ~= defTab.Nick) then
+      bStat = StatusLog(false,"SQL.IsValid: Nick lower <"..defTab.Nick..">") end
+    if(defTab.Name:upper() ~= defTab.Name) then
+      bStat = StatusLog(false,"SQL.IsValid: Name lower <"..defTab.Name..">") end
+    local nS, nE = defTab.Name:find(defTab.Nick); if(not (nS and nS == 1)) then
+      bStat = StatusLog(false,"SQL.IsValid: Mismatch <"..defTab.Name.."><"..defTab.Nick..">") end
+    for iD = 1, qtDef.Size do local tCol = qtDef[iD] if(type(tCol) ~= "table") then
+        bStat = StatusLog(false,"SQL.IsValid: Mismatch type ["..iD.."]<"..defTab.Nick..">") end
+      if(not IsString(tCol[1])) then
+        bStat = StatusLog(false,"SQL.IsValid: Mismatch name ["..iD.."]<"..defTab.Nick..">") end
+      if(not IsString(tCol[2])) then
+        bStat = StatusLog(false,"SQL.IsValid: Mismatch type ["..iD.."]<"..defTab.Nick..">") end
+      if(tCol[3] and not IsString(tCol[3])) then
+        bStat = StatusLog(false,"SQL.IsValid: Mismatch ctrl ["..iD.."]<"..defTab.Nick..">") end
+      if(tCol[4] and not IsString(tCol[4])) then
+        bStat = StatusLog(false,"SQL.IsValid: Mismatch conv ["..iD.."]<"..defTab.Nick..">") end
+    end; return bStat -- Succesfully validated the builder table
+  end
   -- Creates table column list as string
   function self:GetColumnList(sD)
-    local qtDef = self:GetDefinition()
     if(not IsExistent(sD)) then return "" end
+    local qtDef, sRes, iCnt = self:GetDefinition(), "", 1
     local sD = tostring(sD or "\t"):sub(1,1); if(IsEmptyString(sD)) then
-      return StatusLog("","GetColumns: Invalid delimiter for <"..qtDef.Name..">") end
-    local sRes, iCnt = "", 1
-    while(qtDef[iCnt]) do
-      local sNam = qtDef[iCnt][1]; if(not IsString(sNam)) then
-        return StatusLog("","GetColumns: Col #"..iCnt
-          .." {"..type(sNam).."}<"..tostring(sNam).."> not string") end
-      sRes, iCnt = (sRes..sNam), (iCnt + 1)
+      return StatusLog("","GetColumns: Missing delimiter for <"..qtDef.Name..">") end
+    while(iCnt <= qtDef.Size) do
+      sRes, iCnt = (sRes..qtDef[iCnt][1]), (iCnt + 1)
       if(qtDef[iCnt]) then sRes = sRes..sD end
     end; return sRes
   end
@@ -1780,10 +1915,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtDef = self:GetDefinition()
     local nvInd = tonumber(ivID); if(not IsExistent(nvInd)) then
       return StatusLog(nil,"SQL.Match: Col NAN {"..type(ivID)"}<"
-               ..tostring(ivID).."> invalid on table "..qtDef.Name) end
+        ..tostring(ivID).."> invalid on table "..qtDef.Name) end
     local defCol = qtDef[nvInd]; if(not IsExistent(defCol)) then
-      return StatusLog(nil,"SQL.Match: Invalid col #"
-               ..tostring(nvInd).." on table "..qtDef.Name) end
+      return StatusLog(nil,"SQL.Match: Invalid col #"..tostring(nvInd).." on table "..qtDef.Name) end
     local tipCol, sModeDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
     if(tipCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsEmptyString(snOut)) then
@@ -1819,22 +1953,22 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     end; return snOut
   end
   -- Build drop statment
-  function self:Drop()
+  function self:Drop() self:UpdateInfo()
     local qtDef = self:GetDefinition()
-    local qtCmd = self:GetCommand(); qtCmd.STMT = "Drop"
+    local qtCmd = self:GetCommand()
     qtCmd.Drop  = "DROP TABLE "..qtDef.Name..";"; return self
   end
   -- Build delete statment
-  function self:Delete()
+  function self:Delete() self:UpdateInfo()
     local qtDef = self:GetDefinition()
-    local qtCmd = self:GetCommand(); qtCmd.STMT = "Delete"
+    local qtCmd = self:GetCommand()
     qtCmd.Delete = "DELETE FROM "..qtDef.Name..";"; return self
   end
   -- Build create/drop/delete statment table of statemenrts
-  function self:Create()
+  function self:Create() self:UpdateInfo()
     local qtDef = self:GetDefinition()
     local qtCmd, iInd, idxDef = self:GetCommand(), 1, qtDef.Index
-    qtCmd.Create = "CREATE TABLE "..qtDef.Name.." ( "; qtCmd.STMT = "Create"
+    qtCmd.Create = "CREATE TABLE "..qtDef.Name.." ( "
     while(qtDef[iInd]) do local v = qtDef[iInd]
       if(not v[1]) then
         return StatusLog(nil,"SQL.Create: Missing Table "..qtDef.Name
@@ -1873,8 +2007,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     end; return self
   end
   -- Build SQL select statement
-  function self:Select(...)
-    local qtCmd = self:GetCommand(); qtCmd.STMT = "Select"
+  function self:Select(...) self:UpdateInfo()
+    local qtCmd = self:GetCommand()
     local qtDef = self:GetDefinition()
     local sStmt, iCnt, tCols = "SELECT ", 1, {...}
     if(tCols[1]) then
@@ -1896,9 +2030,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     qtCmd.Select = sStmt .." FROM "..qtDef.Name..";"; return self
   end
   -- Add where clause to the select statement
-  function self:Where(...)
-    local qtCmd, tWhere = self:GetCommand(), {...}
-    local iCnt, qtDef = 1, self:GetDefinition()
+  function self:Where(...) local tWhere = {...}
+    if(not tWhere[1]) then return self end
+    local iCnt, qtDef, qtCmd = 1, self:GetDefinition(), self:GetCommand()
     qtCmd.Select = qtCmd.Select:Trim("%s"):Trim(";")
     while(tWhere[iCnt]) do local k = tonumber(tWhere[iCnt][1])
       local v, t = tWhere[iCnt][2], qtDef[k][2]; if(not (k and v and t) ) then
@@ -1915,6 +2049,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- Add order by clause to the select statement
   function self:Order(...) local tOrder = {...}
+    if(not tOrder[1]) then return self end
     local qtCmd, qtDef = self:GetCommand(), self:GetDefinition()
     local sDir, sStmt, iCnt = "", " ORDER BY ", 1
     qtCmd.Select = qtCmd.Select:Trim("%s"):Trim(";")
@@ -1922,16 +2057,15 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       if(v ~= 0) then if(v > 0) then sDir = " ASC"
         else sDir, tOrder[iCnt] = " DESC", -v; v = -v end
       else return StatusLog(nil,"SQL.Order: Mismatch col index ["..iCnt.."] on "..qtDef.Name) end
-      sStmt = sStmt..qtDef[v][1]..sDir
-      if(tOrder[iCnt+1]) then sStmt = sStmt..", " end
-      iCnt = iCnt + 1
+      sStmt = (sStmt..qtDef[v][1]..sDir), (iCnt + 1)
+      if(tOrder[iCnt]) then sStmt = sStmt..", " end
     end; qtCmd.Select = qtCmd.Select..sStmt..";" return self
   end
   -- Build SQL insert statement
-  function self:Insert(...)
+  function self:Insert(...) self:UpdateInfo()
     local qtCmd, iCnt, qIns = self:GetCommand(), 1, ""
     local tInsert, qtDef = {...}, self:GetDefinition()
-    qtCmd.Insert = "INSERT INTO "..qtDef.Name.." ( "; qtCmd.STMT = "Insert"
+    qtCmd.Insert = "INSERT INTO "..qtDef.Name.." ( "
     if(not tInsert[1]) then
       for iCnt = 1, qtDef.Size do qIns = qIns..qtDef[iCnt][1]
         if(iCnt < qtDef.Size) then qIns = qIns..", " else qIns = qIns.." ) " end end
@@ -1958,44 +2092,35 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- When database mode is SQL create a table
   if(sModeDB == "SQL") then
-    local tQ = self:Create():Index(unpack(defTab.Index)):Drop():Delete():GetCommand()
+    local tQ = self:TimerSetup():Create():Index(unpack(defTab.Index)):Drop():Delete():GetCommand()
     if(not IsExistent(tQ)) then return StatusLog(false,"CreateTable: Build statement failed") end
-    if(bDelete and sqlTableExists(defTab.Name)) then
-      local qRez = sqlQuery(tQ.Delete)
+    if(bDelete and sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.Delete)
       if(not qRez and IsBool(qRez)) then
         LogInstance("CreateTable: Table "..sTable.." is not present. Skipping delete !")
-      else
-        LogInstance("CreateTable: Table "..sTable.." deleted !")
-      end
+      else LogInstance("CreateTable: Table "..sTable.." deleted !") end
     end
-    if(bReload) then
-      local qRez = sqlQuery(tQ.Drop)
+    if(bReload) then local qRez = sqlQuery(tQ.Drop)
       if(not qRez and IsBool(qRez)) then
         LogInstance("CreateTable: Table "..sTable.." is not present. Skipping drop !")
-      else
-        LogInstance("CreateTable: Table "..sTable.." dropped !")
-      end
+      else LogInstance("CreateTable: Table "..sTable.." dropped !") end
     end
     if(sqlTableExists(defTab.Name)) then
-      return StatusLog(true,"CreateTable: Table "..sTable.." exists!")
+      return StatusLog(self:IsValid(),"CreateTable: Table "..sTable.." exists!")
     else
-      local qRez = sqlQuery(tQ.Create)
-      if(not qRez and IsBool(qRez)) then
+      local qRez = sqlQuery(tQ.Create); if(not qRez and IsBool(qRez)) then
         return StatusLog(false,"CreateTable: Table "..sTable
           .." failed to create because of "..sqlLastError()) end
       if(sqlTableExists(defTab.Name)) then
-        for k, v in pairs(tQ.Index) do
-          qRez = sqlQuery(v)
+        for k, v in pairs(tQ.Index) do qRez = sqlQuery(v)
           if(not qRez and IsBool(qRez)) then
             return StatusLog(false,"CreateTable: Table "..sTable..
               " failed to create index ["..k.."] > "..v .." > because of "..sqlLastError()) end
-        end return StatusLog(true,"CreateTable: Indexed Table "..sTable.." created !")
-      else
-        return StatusLog(false,"CreateTable: Table "..sTable..
-          " failed to create because of "..sqlLastError().." Query ran > "..tQ.Create) end
+        end return StatusLog(self:IsValid(),"CreateTable: Indexed Table "..sTable.." created !")
+      else return StatusLog(false,"CreateTable: Table "..sTable..
+        " failed to create because of "..sqlLastError().." Query ran > "..tQ.Create) end
     end
   elseif(sModeDB == "LUA") then
-    LogInstance("CreateTable: Created "..defTab.Name)
+    return StatusLog(self:IsValid(),"CreateTable: Created "..defTab.Name)
   else return StatusLog(false,"CreateTable: Wrong database mode <"..sModeDB..">") end
 end
 
@@ -2017,9 +2142,9 @@ function InsertRecord(sTable,arLine)
     return StatusLog(false,"InsertRecord: Missing PK for "..sTable)
   end
   local makTab = libQTable[sTable]; if(not IsExistent(makTab)) then
-    return StatusLog(false,"InsertRecord: Missing dedicated builder for "..sTable) end
+    return StatusLog(false,"InsertRecord: Missing builder for "..sTable) end
   local defTab = makTab:GetDefinition()
-  
+
   if(sTable == "PIECES") then
     local trClass = GetOpVar("TRACE_CLASS")
     arLine[2] = DisableString(arLine[2],DefaultType(),"TYPE")
@@ -2140,111 +2265,6 @@ end
 
 --------------- TIMER MEMORY MANAGMENT ----------------------------
 
-local function NavigateTable(oArea,tKeys)
-  if(not IsExistent(oArea)) then
-    return nil, StatusLog(nil,"NavigateTable: Location missing") end
-  if(not IsExistent(tKeys)) then
-    return nil, StatusLog(nil,"NavigateTable: Key table missing") end
-  if(not IsExistent(tKeys[1])) then
-    return nil, StatusLog(nil,"NavigateTable: First key missing") end
-  local oSpot, kKey, iCnt = oArea, tKeys[1], 1
-  while(tKeys[iCnt]) do kKey = tKeys[iCnt]
-    if(tKeys[iCnt+1]) then oSpot = oSpot[kKey]
-      if(not IsExistent(oSpot)) then
-        return nil, StatusLog(nil,"NavigateTable: Key #"..tostring(kKey).." irrelevant to location") end
-    end; iCnt = iCnt + 1
-  end; return oSpot, kKey
-end
-
-function TimerSetting(sTimerSet) -- Generates a timer settings table and keeps the defaults
-  if(not IsExistent(sTimerSet)) then
-    return StatusLog(nil,"TimerSetting: Timer set missing for setup") end
-  if(not IsString(sTimerSet)) then
-    return StatusLog(nil,"TimerSetting: Timer set {"..type(sTimerSet).."}<"..tostring(sTimerSet).."> not string") end
-  local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTimerSet)
-  tTm[1] =   tostring(tTm[1]  or "CQT")
-  tTm[2] =  (tonumber(tTm[2]) or 0)
-  tTm[3] = ((tonumber(tTm[3]) or 0) ~= 0) and true or false
-  tTm[4] = ((tonumber(tTm[4]) or 0) ~= 0) and true or false
-  return tTm
-end
-
-local function TimerAttach(oArea,tKeys,defTab,anyMessage)
-  if(not defTab) then
-    return StatusLog(nil,"TimerAttach: Missing table definition") end
-  local Spot, Key = NavigateTable(oArea,tKeys)
-  if(not (IsExistent(Spot) and IsExistent(Key))) then
-    return StatusLog(nil,"TimerAttach: Navigation failed") end
-  if(not IsExistent(Spot[Key])) then
-    return StatusLog(nil,"TimerAttach: Data not found") end
-  local sModeDB = GetOpVar("MODE_DATABASE")
-  LogInstance("TimerAttach: Called by <"..tostring(anyMessage).."> for ["..tostring(Key).."]")
-  if(sModeDB == "SQL") then
-    local nNowTM, tTimer = Time(), defTab.Timer -- See that there is a timer and get "now"
-    if(not IsExistent(tTimer)) then
-      return StatusLog(Spot[Key],"TimerAttach: Missing timer settings") end
-    Spot[Key].Used = nNowTM -- Make the first selected deletable to avoid phantom records
-    local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
-      return StatusLog(Spot[Key],"TimerAttach: Timer attachment ignored") end
-    local sModeTM, bKillRC, bCollGB = tTimer[1], tTimer[3], tTimer[4]
-    LogInstance("TimerAttach: ["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB))
-    if(sModeTM == "CQT") then
-      for k, v in pairs(Spot) do
-        if(IsExistent(v.Used) and ((nNowTM - v.Used) > nLifeTM)) then
-          LogInstance("TimerAttach: ("..tostring(RoundValue(nNowTM - v.Used,0.01)).." > "..tostring(nLifeTM)..") > Dead")
-          if(bKillRC) then -- Look for others that are gonna meet their doom
-            Spot[k] = nil; LogInstance("TimerAttach: Killed <"..tostring(k)..">") end
-        end
-      end
-      if(bCollGB) then
-        collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
-      return StatusLog(Spot[Key],"TimerAttach: ["..tostring(Key).."] @"..tostring(RoundValue(nNowTM,0.01)))
-    elseif(sModeTM == "OBJ") then
-      local TimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
-      LogInstance("TimerAttach: TimID <"..TimerID..">")
-      if(timerExists(TimerID)) then return StatusLog(Spot[Key],"TimerAttach: Timer exists") end
-      timerCreate(TimerID, nLifeTM, 1, function()
-        LogInstance("TimerAttach["..TimerID.."]("..nLifeTM..") > Dead")
-        if(bKillRC) then
-          Spot[Key] = nil; LogInstance("TimerAttach: Killed <"..Key..">") end
-        timerStop(TimerID); timerDestroy(TimerID)
-        if(bCollGB) then
-          collectgarbage(); LogInstance("TimerAttach: Garbage collected") end
-      end); timerStart(TimerID); return Spot[Key]
-    else return StatusLog(Spot[Key],"TimerAttach: Timer mode not found <"..sModeTM..">") end
-  elseif(sModeDB == "LUA") then
-    return StatusLog(Spot[Key],"TimerAttach: Memory manager not available")
-  else return StatusLog(nil,"TimerAttach: Wrong database mode") end
-end
-
-local function TimerRestart(oArea,tKeys,defTab,anyMessage)
-  if(not defTab) then
-    return StatusLog(nil,"TimerRestart: Missing table definition") end
-  local Spot, Key = NavigateTable(oArea,tKeys)
-  if(not (IsExistent(Spot) and IsExistent(Key))) then
-    return StatusLog(nil,"TimerRestart: Navigation failed") end
-  if(not IsExistent(Spot[Key])) then
-    return StatusLog(nil,"TimerRestart: Spot not found") end
-  local sModeDB = GetOpVar("MODE_DATABASE")
-  if(sModeDB == "SQL") then
-    local tTimer = defTab.Timer; if(not IsExistent(tTimer)) then
-      return StatusLog(Spot[Key],"TimerRestart: Missing timer settings") end
-    Spot[Key].Used = Time() -- Mark the current caching time stamp
-    local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
-      return StatusLog(Spot[Key],"TimerRestart: Timer life ignored") end
-    local sModeTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
-    if(sModeTM == "CQT") then sModeTM = "CQT"
-    elseif(sModeTM == "OBJ") then
-      local keyTimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
-      if(not timerExists(keyTimerID)) then
-        return StatusLog(nil,"TimerRestart: Timer missing <"..keyTimerID..">") end
-      timerStart(keyTimerID)
-    else return StatusLog(nil,"TimerRestart: Timer mode not found <"..sModeTM..">") end
-  elseif(sModeDB == "LUA") then Spot[Key].Used = Time()
-  else return StatusLog(nil,"TimerRestart: Wrong database mode") end
-  return Spot[Key]
-end
-
 function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     return StatusLog(nil,"CacheBoxLayout: Entity invalid <"..tostring(oEnt)..">") end
@@ -2277,19 +2297,18 @@ function CacheQueryPiece(sModel)
   if(IsEmptyString(sModel)) then
     return StatusLog(nil,"CacheQueryPiece: Model empty string") end
   if(not utilIsValidModel(sModel)) then
-    return StatusLog(nil,"CacheQueryPiece: Model invalid <"..sModel..">") end   
+    return StatusLog(nil,"CacheQueryPiece: Model invalid <"..sModel..">") end
   local makTab = libQTable["PIECES"]; if(not makTab) then
-    return StatusLog(nil,"CacheQueryPiece: Table definition missing") end
+    return StatusLog(nil,"CacheQueryPiece: Missing table builder") end
   local defTab = makTab:GetDefinition()
   local tCache = libCache[defTab.Name] -- Match the model casing
   local sModel = makTab:Match(sModel,1,false,"",true,true)
   if(not IsExistent(tCache)) then
     return StatusLog(nil,"CacheQueryPiece: Cache not allocated for <"..defTab.Name..">") end
-  local caInd, stPiece = GetOpVar("NAV_PIECE"), tCache[sModel]
-  if(not IsExistent(caInd[1])) then caInd[1] = defTab.Name end caInd[2] = sModel
+  local stPiece = tCache[sModel]
   if(IsExistent(stPiece) and IsExistent(stPiece.Size)) then
     if(stPiece.Size > 0) then
-      return TimerRestart(libCache,caInd,defTab,"CacheQueryPiece") end
+      return makTab:TimerRestart("CacheQueryPiece", defTab.Name, sModel) end
     return nil
   else
     local sModeDB = GetOpVar("MODE_DATABASE")
@@ -2322,7 +2341,7 @@ function CacheQueryPiece(sModel)
                                       qRec[defTab[7][1]]))) then
           return StatusLog(nil,"CacheQueryPiece: Cannot process offset #"..tostring(stPiece.Size).." for <"..sModel..">") end
         stPiece.Size, iCnt = iCnt, (iCnt + 1)
-      end; return TimerAttach(libCache,caInd,defTab,"CacheQueryPiece")
+      end; return makTab:TimerAttach("CacheQueryPiece", defTab.Name, sModel)
     elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryPiece: Record not located")
     else return StatusLog(nil,"CacheQueryPiece: Wrong database mode <"..sModeDB..">") end
   end
@@ -2338,14 +2357,13 @@ function CacheQueryAdditions(sModel)
   if(not utilIsValidModel(sModel)) then
     return StatusLog(nil,"CacheQueryAdditions: Model invalid") end
   local makTab = libQTable["ADDITIONS"]; if(not makTab) then
-    return StatusLog(nil,"CacheQueryAdditions: Missing table definition") end
+    return StatusLog(nil,"CacheQueryAdditions: Missing table builder") end
   local defTab = makTab:GetDefinition()
   local tCache = libCache[defTab.Name] -- Match the model casing
   local sModel = makTab:Match(sModel,1,false,"",true,true)
   if(not IsExistent(tCache)) then
     return StatusLog(nil,"CacheQueryAdditions: Cache not allocated for <"..defTab.Name..">") end
-  local caInd, stAddit = GetOpVar("NAV_ADDITION"), tCache[sModel]
-  if(not IsExistent(caInd[1])) then caInd[1] = defTab.Name end caInd[2] = sModel
+  local stAddit = tCache[sModel]
   if(IsExistent(stAddit) and IsExistent(stAddit.Size)) then
     if(stAddit.Size > 0) then
       return TimerRestart(libCache,caInd,defTab,"CacheQueryAdditions") end
@@ -2373,8 +2391,7 @@ function CacheQueryAdditions(sModel)
         local qRec = qData[iCnt]; stAddit[iCnt] = {}
         for col, val in pairs(qRec) do stAddit[iCnt][col] = val end
         stAddit.Size, iCnt = iCnt, (iCnt + 1)
-      end
-      return TimerAttach(libCache,caInd,defTab,"CacheQueryAdditions")
+      end; return makTab:TimerAttach("CacheQueryAdditions", defTab.Name, sModel)
     elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryAdditions: Record not located")
     else return StatusLog(nil,"CacheQueryAdditions: Wrong database mode <"..sModeDB..">") end
   end
@@ -2386,17 +2403,16 @@ end
  * Caches the date needed to populate the CPanel tree
 ]]--
 function CacheQueryPanel()
-  local defTab = GetOpVar("DEFTABLE_PIECES"); if(not defTab) then
-    return StatusLog(false,"CacheQueryPanel: Missing table definition") end
-  if(not IsExistent(libCache[defTab.Name])) then
-    return StatusLog(nil,"CacheQueryPanel: Cache not allocated for <"..defTab.Name..">") end
-  local caInd, keyPan = GetOpVar("NAV_PANEL"), GetOpVar("HASH_USER_PANEL")
-  if(not IsExistent(caInd[1])) then caInd[1] = keyPan end
+  local makTab = libQTable["PIECES"]; if(not makTab) then
+    return StatusLog(nil,"CacheQueryPanel: Missing table builder") end
+  local defTab = makTab:GetDefinition(); if(not IsExistent(libCache[defTab.Name])) then
+    return StatusLog(nil,"CacheQueryPanel: Missing cache allocated <"..defTab.Name..">") end
+  local keyPan = GetOpVar("HASH_USER_PANEL")
   local stPanel = libCache[keyPan]
   if(IsExistent(stPanel) and IsExistent(stPanel.Size)) then
     LogInstance("CacheQueryPanel: From Pool")
     if(stPanel.Size > 0) then
-      return TimerRestart(libCache,caInd,defTab,"CacheQueryPanel") end
+      return makTab:TimerRestart("CacheQueryPanel", keyPan) end
     return nil
   else
     libCache[keyPan] = {}; stPanel = libCache[keyPan]
@@ -2418,8 +2434,7 @@ function CacheQueryPanel()
       while(qData[iCnt]) do
         stPanel[iCnt] = qData[iCnt]
         stPanel.Size, iCnt = iCnt, (iCnt + 1)
-      end
-      return TimerAttach(libCache,caInd,defTab,"CacheQueryPanel")
+      end; return makTab:TimerAttach("CacheQueryPanel", keyPan)
     elseif(sModeDB == "LUA") then
       local tCache = libCache[defTab.Name]
       local tSort  = Sort(tCache,{"Type","Name"}); if(not tSort) then
@@ -2441,7 +2456,7 @@ end
 ]]--
 function CacheQueryProperty(sType)
   local makTab = libQTable["PHYSPROPERTIES"]; if(not makTab) then
-    return StatusLog(nil,"CacheQueryProperty: Missing table definition") end
+    return StatusLog(nil,"CacheQueryProperty: Missing table builder") end
   local defTab = makTab:GetDefinition()
   local tCache = libCache[defTab.Name]; if(not tCache) then
     return StatusLog(nil,"CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..defTab.Name..">") end
@@ -2449,16 +2464,14 @@ function CacheQueryProperty(sType)
   if(IsString(sType) and not IsEmptyString(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
-    local caInd, arNames = GetOpVar("NAV_PROPERTY_NAMES"), tCache[keyName]
-    if(not IsExistent(caInd[1])) then
-      caInd[1] = defTab.Name; caInd[2] = keyName end caInd[3] = sType
+    local arNames = tCache[keyName]
     if(not IsExistent(arNames)) then
       tCache[keyName] = {}; arNames = tCache[keyName] end
     local stName = arNames[sType]
     if(IsExistent(stName) and IsExistent(stName.Size)) then
       LogInstance("CacheQueryProperty["..sType.."]: Names << Pool")
       if(stName.Size > 0) then
-        return TimerRestart(libCache,caInd,defTab,"CacheQueryProperty") end
+        return makTab:TimerRestart("CacheQueryProperty", defTab.Name, keyName, sType) end
       return nil
     else
       if(sModeDB == "SQL") then
@@ -2481,19 +2494,17 @@ function CacheQueryProperty(sType)
           stName[iCnt] = qData[iCnt][defTab[3][1]]
           stName.Size, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("CacheQueryProperty["..sType.."]: Names >> Pool")
-        return TimerAttach(libCache,caInd,defTab,"CacheQueryProperty")
+        return makTab:TimerAttach("CacheQueryProperty", defTab.Name, keyName, sType)
       elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryProperty["..sType.."]: Record not located")
       else return StatusLog(nil,"CacheQueryProperty["..sType.."]: Wrong database mode <"..sModeDB..">") end
     end
   else
     local keyType = GetOpVar("HASH_PROPERTY_TYPES")
     local stType  = tCache[keyType]
-    local caInd   = GetOpVar("NAV_PROPERTY_TYPES")
-    if(not IsExistent(caInd[1])) then caInd[1] = defTab.Name; caInd[2] = keyType end
     if(IsExistent(stType) and IsExistent(stType.Size)) then
       LogInstance("CacheQueryProperty: Types << Pool")
       if(stType.Size > 0) then
-        return TimerRestart(libCache,caInd,defTab,"CacheQueryProperty") end
+        return makTab:TimerRestart("CacheQueryProperty", defTab.Name, keyType) end
       return nil
     else
       if(sModeDB == "SQL") then
@@ -2516,7 +2527,7 @@ function CacheQueryProperty(sType)
           stType.Size, iCnt = iCnt, (iCnt + 1)
         end
         LogInstance("CacheQueryProperty: Types >> Pool")
-        return TimerAttach(libCache,caInd,defTab,"CacheQueryProperty")
+        return makTab:TimerAttach("CacheQueryProperty", defTab.Name, keyType)
       elseif(sModeDB == "LUA") then return StatusLog(nil,"CacheQueryProperty: Record not located")
       else return StatusLog(nil,"CacheQueryProperty: Wrong database mode <"..sModeDB..">") end
     end
@@ -2617,7 +2628,9 @@ function RemoveDSV(sTable, sPref)
   if(not IsString(sTable)) then
     return StatusLog(false,"RemoveDSV("..sPref.."): Table {"..type(sTable)
       .."}<"..tostring(sTable).."> not string") end
-  local defTab = GetOpVar("DEFTABLE_"..sTable); if(not defTab) then
+  local makTab = libQTable[sTable]; if(not makTab) then
+    return StatusLog(nil,"RemoveDSV("..sPref.."): Missing table definition") end
+  local defTab = makTab:GetDefinition(); if(not defTab) then
     return StatusLog(false,"RemoveDSV("..sPref
       .."): Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")
@@ -2640,7 +2653,7 @@ function ExportDSV(sTable, sPref, sDelim)
   if(not IsString(sTable)) then
     return StatusLog(false,"StoreExternalDatabase: Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   local makTab = libQTable[sTable]; if(not makTab) then
-    return StatusLog(false,"ExportDSV: Missing table definition for <"..sTable..">") end
+    return StatusLog(false,"ExportDSV: Missing table builder for <"..sTable..">") end
   local defTab = makTab:GetDefinition()
   local fName, sPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2748,7 +2761,9 @@ end
 function ImportDSV(sTable, bComm, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     return StatusLog(false,"ImportDSV("..fPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
-  local defTab = GetOpVar("DEFTABLE_"..sTable); if(not defTab) then
+  local makTab = libQTable[sTable]; if(not makTab) then
+    return StatusLog(nil,"ImportDSV("..fPref.."): Missing table definition") end
+  local defTab = makTab:GetDefinition(); if(not defTab) then
     return StatusLog(false,"ImportDSV("..fPref.."): Missing table definition for <"..sTable..">") end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..fPref..defTab.Name..".txt"
@@ -2781,7 +2796,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     return StatusLog(false,"SynchronizeDSV("..fPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   local makTab = libQTable[sTable]; if(not makTab) then
-    return StatusLog(false,"SynchronizeDSV("..fPref.."): Missing table definition for <"..sTable..">") end
+    return StatusLog(false,"SynchronizeDSV("..fPref.."): Missing table builder for <"..sTable..">") end
   local defTab = makTab:GetDefinition()
   local fName, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2865,7 +2880,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     return StatusLog(false,"TranslateDSV("..fPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string") end
   local makTab = libQTable[sTable]; if(not makTab) then
-    return StatusLog(false,"TranslateDSV("..fPref.."): Missing table definition for <"..sTable..">") end
+    return StatusLog(false,"TranslateDSV("..fPref.."): Missing table builder for <"..sTable..">") end
   local defTab = makTab:GetDefinition()
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
@@ -3391,7 +3406,9 @@ function AttachAdditions(ePiece)
   local stAddit = CacheQueryAdditions(eMod); if(not IsExistent(stAddit)) then
     return StatusLog(true,"AttachAdditions: Model <"..eMod.."> has no additions") end
   LogInstance("AttachAdditions: Called for model <"..eMod..">")
-  local iCnt, defTab = 1, GetOpVar("DEFTABLE_ADDITIONS")
+  local makTab = libQTable["ADDITIONS"]; if(not makTab) then
+    return StatusLog(nil,"CacheQueryPanel: Missing table definition") end
+  local defTab, iCnt = makTab:GetDefinition(), 1
   while(stAddit[iCnt]) do local arRec = stAddit[iCnt]
     LogInstance("\n\nEnt [ "..arRec[defTab[4][1]].." ] INFO : ")
     local eAddit = entsCreate(arRec[defTab[3][1]])
