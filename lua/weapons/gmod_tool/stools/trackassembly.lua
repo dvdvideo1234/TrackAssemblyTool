@@ -759,7 +759,7 @@ function TOOL:Reload(stTrace)
       end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-    if(asmlib.IsExistent(trRec)) then trEnt:Remove()
+    if(asmlib.IsHere(trRec)) then trEnt:Remove()
       return asmlib.StatusLog(true,"TOOL:Reload(Prop): Removed a piece")
     end
   end
@@ -899,7 +899,7 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   for ID = 1, #arK, 1 do local def = arK[ID]
     local key, typ, inf = def[1], def[2], tostring(def[3] or "")
     local cnv = ((not asmlib.IsEmptyString(inf)) and (" > "..inf) or "")
-    if(not asmlib.IsExistent(typ)) then oScreen:DrawText(tostring(key))
+    if(not asmlib.IsHere(typ)) then oScreen:DrawText(tostring(key))
     else local typ, val = tostring(typ or ""), tostring(stS[key] or "")
       oScreen:DrawText("<"..key.."> "..typ..": "..val..cnv) end
   end
@@ -1218,9 +1218,11 @@ function TOOL.BuildCPanel(CPanel)
               CVars      = tableGetKeys(ConVarList)
   }); CurY = CurY + pItem:GetTall() + 2
 
-  local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel)
-    then return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Panel population empty") end
-  local defTable = asmlib.GetOpVar("DEFTABLE_PIECES")
+  local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
+    asmlib.LogInstance("Panel population empty", true); return nil end
+  local makTab = asmlib.GetBuilderTable("PIECES"); if(not asmlib.IsHere(makTab)) then
+    asmlib.LogInstance("TOOL:BuildCPanel: Missing builder table"); return nil end
+  local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel)
         pTree:SetPos(2, CurY)
@@ -1309,7 +1311,7 @@ function TOOL.BuildCPanel(CPanel)
           RunConsoleCommand(gsToolPrefL.."physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
-  return asmlib.StatusPrint(nil,"TOOL:BuildCPanel: Property population empty") end
+    asmlib.LogInstance("Property population empty", true); return nil end
   while(cqProperty[iTyp]) do pComboPhysType:AddChoice(cqProperty[iTyp]); iTyp = iTyp + 1 end
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local cqNames = asmlib.CacheQueryProperty(sVal)

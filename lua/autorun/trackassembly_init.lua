@@ -317,7 +317,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxstcnt" , 200)
         asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
         asmlib.ConCommandPly(oPly, "maxfruse" , 50)
-        asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
+        asmlib.LogInstance("RESET_VARIABLES: Variables reset complete", true)
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
         for iCnt = 1, #tPref do local vPr = tPref[iCnt]
@@ -332,9 +332,11 @@ if(CLIENT) then
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs)
-      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsExistent(frUsed)) then
+      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         return asmlib.StatusLog(nil,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
-      local defTable = asmlib.GetOpVar("DEFTABLE_PIECES"); if(not defTable) then
+      local makTab = asmlib.GetBuilderTable("PIECES"); if(not asmlib.IsHere(makTab)) then
+        return StatusLog(nil,"OPEN_FRAME: Missing builder for table PIECES") end
+      local defTab = makTab:GetDefinition(); if(not defTab) then
         return StatusLog(nil,"OPEN_FRAME: Missing definition for table PIECES") end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         pnFrame:Remove(); return asmlib.StatusLog(nil,"OPEN_FRAME: Failed to create base frame") end
@@ -432,10 +434,10 @@ if(CLIENT) then
       pnComboBox:SetSize(xySiz.x,xySiz.y)
       pnComboBox:SetVisible(true)
       pnComboBox:SetValue(pnElements:Select(5).Label[2])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTable[1][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTable[2][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTable[3][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTable[4][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTab[1][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTab[2][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTab[3][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTab[4][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
         asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.."<"..sVal..">"..tostring(anyData))
         pnSelf:SetValue(sVal)
@@ -454,7 +456,7 @@ if(CLIENT) then
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40)
-        if(not asmlib.IsExistent(uiBox)) then
+        if(not asmlib.IsHere(uiBox)) then
           return asmlib.StatusLog(nil,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
         local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
@@ -518,7 +520,7 @@ if(CLIENT) then
                       pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
-        if(not asmlib.IsExistent(uiBox)) then
+        if(not asmlib.IsHere(uiBox)) then
           return asmlib.StatusLog(nil,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmVar("pointid","INT"), asmlib.GetAsmVar("pnextid","INT")
@@ -666,8 +668,11 @@ end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = gaTimerSet[1]
+  Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
+  Query = {
+    InsertRecord = {"%s","%s","%s","%d","%s","%s","%s","%s"}
+  },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"},
@@ -679,8 +684,11 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = gaTimerSet[2]
+  Timer = gaTimerSet[2],
   Index = {{1},{4},{1,4}},
+  Query = {
+    InsertRecord = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}
+  },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
   [3]  = {"ENTCLASS" , "TEXT"   ,  nil ,  nil },
@@ -696,8 +704,11 @@ asmlib.CreateTable("ADDITIONS",{
 },true,true)
 
 asmlib.CreateTable("PHYSPROPERTIES",{
-  Timer = gaTimerSet[3]
+  Timer = gaTimerSet[3],
   Index = {{1},{2},{1,2}},
+  Query = {
+    InsertRecord = {"%s","%d","%s"}
+  },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
   [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
@@ -2964,5 +2975,5 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
 end
 
-asmlib.PrintInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"))
+asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"), true)
 collectgarbage()
