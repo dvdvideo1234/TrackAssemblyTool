@@ -77,6 +77,13 @@ end
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmVar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmVar("maxtrmarg", "FLT"))
 
+-------- CALLBACKS ----------
+asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
+  function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
+asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
+  function(v) return mathFloor(tonumber(v) or 0) end)
+asmlib.SetAsmVarCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
+
 ------ GLOBAL VARIABLES ------
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -108,14 +115,7 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("MODE_WORK
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
--------- CALLBACKS ----------
-asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
-  function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
-asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
-  function(v) return mathFloor(tonumber(v) or 0) end)
-asmlib.SetAsmVarCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
-
--------- ACTIONS ----------
+      -------- ACTIONS ----------
 if(SERVER) then
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
