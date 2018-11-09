@@ -898,7 +898,7 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   oScreen:DrawText("Spawn debug information",sCol,sMeth,tArgs)
   for ID = 1, #arK, 1 do local def = arK[ID]
     local key, typ, inf = def[1], def[2], tostring(def[3] or "")
-    local cnv = ((not asmlib.IsEmptyString(inf)) and (" > "..inf) or "")
+    local cnv = ((not asmlib.IsBlank(inf)) and (" > "..inf) or "")
     if(not asmlib.IsHere(typ)) then oScreen:DrawText(tostring(key))
     else local typ, val = tostring(typ or ""), tostring(stS[key] or "")
       oScreen:DrawText("<"..key.."> "..typ..": "..val..cnv) end
@@ -1234,7 +1234,7 @@ function TOOL.BuildCPanel(CPanel)
     local Rec = cqPanel[iCnt]
     local Mod, Typ, Nam = Rec[defTable[1][1]], Rec[defTable[2][1]], Rec[defTable[3][1]]
     if(fileExists(Mod, "GAME")) then
-      if(not (asmlib.IsEmptyString(Typ) or pFolders[Typ])) then
+      if(not (asmlib.IsBlank(Typ) or pFolders[Typ])) then
         local pRoot = pTree:AddNode(Typ) -- No type folder made already
               pRoot.Icon:SetImage("icon16/database_connect.png")
               pRoot.InternalDoClick = function() end
@@ -1251,19 +1251,19 @@ function TOOL.BuildCPanel(CPanel)
         local bSuc, ptCat, psNam = pcall(catTypes[Typ].Cmp, Mod)
         -- If the call is successful in protected mode and a folder table is present
         if(bSuc) then local pCurr = pCateg[Typ]
-          if(asmlib.IsEmptyString(ptCat)) then ptCat = nil end
+          if(asmlib.IsBlank(ptCat)) then ptCat = nil end
           if(ptCat and type(ptCat) ~= "table") then ptCat = {ptCat} end
           if(ptCat and ptCat[1]) then
             local iCnt = 1; while(ptCat[iCnt]) do
               local sCat = tostring(ptCat[iCnt])
-              if(asmlib.IsEmptyString(sCat)) then sCat = "Other" end
+              if(asmlib.IsBlank(sCat)) then sCat = "Other" end
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
               else -- Create the last needed node regarding pItem
                 pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
-          end; if(psNam and not asmlib.IsEmptyString(psNam)) then Nam = tostring(psNam) end
+          end; if(psNam and not asmlib.IsBlank(psNam)) then Nam = tostring(psNam) end
         end -- Custom name to override via category
       end
       -- Register the node associated with the track piece

@@ -156,31 +156,31 @@ function GetOpVar(sName)
   return libOpVars[sName]
 end
 
-function SetOpVar(sName, anyValue)
-  libOpVars[sName] = anyValue
+function SetOpVar(sName, vVal)
+  libOpVars[sName] = vVal
 end
 
-function IsHere(anyValue)
-  return (anyValue ~= nil)
+function IsHere(vVal)
+  return (vVal ~= nil)
 end
 
-function IsString(anyValue)
-  return (getmetatable(anyValue) == GetOpVar("TYPEMT_STRING"))
+function IsString(vVal)
+  return (getmetatable(vVal) == GetOpVar("TYPEMT_STRING"))
 end
 
-function IsEmptyString(anyValue)
-  if(not IsString(anyValue)) then return false end
-  return (anyValue == "")
+function IsBlank(vVal)
+  if(not IsString(vVal)) then return false end
+  return (vVal == "")
 end
 
-function IsBool(anyValue)
-  if    (anyValue == true ) then return true
-  elseif(anyValue == false) then return true end
+function IsBool(vVal)
+  if    (vVal == true ) then return true
+  elseif(vVal == false) then return true end
   return false
 end
 
-function IsNumber(anyValue)
-  return ((tonumber(anyValue) and true) or false)
+function IsNumber(vVal)
+  return ((tonumber(vVal) and true) or false)
 end
 
 function IsPlayer(oPly)
@@ -306,7 +306,7 @@ function SetLogControl(nLines,bFile)
   local sMax = tostring(GetOpVar("LOG_MAXLOGS"))
   local sNam = tostring(GetOpVar("LOG_LOGFILE"))
   if(sBas and not fileExists(sBas,"DATA") and
-     not IsEmptyString(GetOpVar("LOG_LOGFILE"))) then fileCreateDir(sBas)
+     not IsBlank(GetOpVar("LOG_LOGFILE"))) then fileCreateDir(sBas)
   end; LogInstance("SetLogControl("..sMax..","..sNam..")",true)
 end
 
@@ -320,7 +320,7 @@ function SettingsLogs(sHash)
   local S = fileOpen(fName, "rb", "DATA"); tableEmpty(tLogs)
   if(S) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(S)
-      if(not IsEmptyString(sLine)) then tableInsert(tLogs, sLine) end
+      if(not IsBlank(sLine)) then tableInsert(tLogs, sLine) end
     end; S:Close(); LogInstance("SettingsLogs("..sKey.."): Success <"..fName..">"); return false
   else LogInstance("SettingsLogs("..sKey.."): Missing <"..fName..">"); return false end
 end
@@ -358,9 +358,9 @@ function InitBase(sName,sPurpose)
     LogInstance("Name <"..tostring(sName).."> not string", true); return false end
   if(not IsString(sPurpose)) then
     LogInstance("Purpose <"..tostring(sPurpose).."> not string", true); return false end
-  if(IsEmptyString(sName) or tonumber(sName:sub(1,1))) then
+  if(IsBlank(sName) or tonumber(sName:sub(1,1))) then
     LogInstance("Name invalid <"..sName..">", true); return false end
-  if(IsEmptyString(sPurpose) or tonumber(sPurpose:sub(1,1))) then
+  if(IsBlank(sPurpose) or tonumber(sPurpose:sub(1,1))) then
     LogInstance("Purpose invalid <"..sPurpose..">", true); return false end
   SetOpVar("TIME_INIT",Time())
   SetOpVar("LOG_MAXLOGS",0)
@@ -705,10 +705,10 @@ function MakeContainer(sInfo,sDefKey)
   function self:GetInfo() return Info end
   function self:GetSize() return Curs end
   function self:GetData() return Data end
-  function self:Insert(nsKey,anyValue)
+  function self:Insert(nsKey,vVal)
     sIns = nsKey or Key; sMet = "I"
     if(not IsHere(Data[sIns])) then Curs = Curs + 1; end
-    Data[sIns] = anyValue
+    Data[sIns] = vVal
   end
   function self:Select(nsKey)
     sSel = nsKey or Key; return Data[sSel]
@@ -982,7 +982,7 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   local sCol, sPat = tostring(sCol or ""), tostring(sPat or "")
   local iCnt, sDat = 1, nil
   while(frUsed[iCnt]) do
-    if(IsEmptyString(sPat)) then
+    if(IsBlank(sPat)) then
       if(not AddLineListView(pnListView,frUsed,iCnt)) then
         LogInstance("UpdateListView: Failed to add line on #"..tostring(iCnt)); return false end
     else
@@ -1000,7 +1000,7 @@ function GetDirectoryObj(pCurr, vName)
   if(not pCurr) then
     LogInstance("GetDirectoryObj: Location invalid"); return nil end
   local sName = tostring(vName or "")
-        sName = IsEmptyString(sName) and "Other" or sName
+        sName = IsBlank(sName) and "Other" or sName
   if(not pCurr[sName]) then
     LogInstance("GetDirectoryObj: Name missing <"..sName..">"); return nil end
   return pCurr[sName], pCurr[sName].__ObjPanel__
@@ -1012,7 +1012,7 @@ function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
   if(not pCurr) then
     LogInstance("SetDirectoryObj: Location invalid"); return nil end
   local sName = tostring(vName or "")
-        sName = IsEmptyString(sName) and "Other" or sName
+        sName = IsBlank(sName) and "Other" or sName
   local pItem = pnBase:AddNode(sName)
   pCurr[sName] = {}; pCurr[sName].__ObjPanel__ = pItem
   pItem.Icon:SetImage(tostring(sImage or "icon16/folder.png"))
@@ -1186,7 +1186,7 @@ end
 function ModelToName(sModel, bNoSet)
   if(not IsString(sModel)) then
     LogInstance("ModelToName: Argument {"..type(sModel).."}<"..tostring(sModel)..">"); return "" end
-  if(IsEmptyString(sModel)) then LogInstance("ModelToName: Empty string"); return "" end
+  if(IsBlank(sModel)) then LogInstance("ModelToName: Empty string"); return "" end
   local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
   local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
         sModel = (sModel:GetFileFromFilename():gsub(GetOpVar("MODELNAM_FILE"),""))
@@ -1324,7 +1324,7 @@ local function GetPieceUnit(stPiece)
   local sD = GetOpVar("ENTITY_DEFCLASS")
   local sU = (stPiece and stPiece.Unit or nil)
   if(not IsHere(sU)) then return sD end
-  local bU = (IsString(sU) and (sU ~= "NULL") and not IsEmptyString(sU))
+  local bU = (IsString(sU) and (sU ~= "NULL") and not IsBlank(sU))
   return (bU and sU or sD)
 end
 
@@ -1382,25 +1382,25 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     ---------- Angle ----------
     if(IsHere(atAng)) then -- Angle disable event reads parameterization
       ReloadPOA(atAng[caP], atAng[caY], atAng[caR]) else
-      if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
+      if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end
     end -- When attachment angle cannot be found read parameterization
     if(not IsHere(TransferPOA(tOffs.A, "A"))) then -- Angle
       LogInstance("RegisterPOA: Cannot transform angle"); return nil end
   else
     ---------- Origin ----------
-    if((sO ~= "NULL") and not IsEmptyString(sO)) then DecodePOA(sO) else ReloadPOA() end
+    if((sO ~= "NULL") and not IsBlank(sO)) then DecodePOA(sO) else ReloadPOA() end
     if(not IsHere(TransferPOA(tOffs.O, "V"))) then
       LogInstance("RegisterPOA: Cannot transfer origin"); return nil end
     ---------- Angle ----------
-    if((sA ~= "NULL") and not IsEmptyString(sA)) then DecodePOA(sA) else ReloadPOA() end
+    if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end
     if(not IsHere(TransferPOA(tOffs.A, "A"))) then
       LogInstance("RegisterPOA: Cannot transfer angle"); return nil end
   end -- The active point is dependent by the events used and the state of the origin
-  if((sP ~= "NULL") and not IsEmptyString(sP)) then DecodePOA(sP) else ReloadPOA() end
+  if((sP ~= "NULL") and not IsBlank(sP)) then DecodePOA(sP) else ReloadPOA() end
   if(not IsHere(TransferPOA(tOffs.P, "V"))) then
     LogInstance("RegisterPOA: Cannot transfer point"); return nil end
   local sV = sP:gsub(sD,"")
-  if((sV == "NULL") or IsEmptyString(sV)) then -- If empty use origin
+  if((sV == "NULL") or IsBlank(sV)) then -- If empty use origin
     tOffs.P[cvX], tOffs.P[cvY], tOffs.P[cvZ] = tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]
   end; return tOffs
 end
@@ -1441,7 +1441,7 @@ end
 function DisableString(sBase, vDsb, vDef)
   if(IsString(sBase)) then
     local sF, sD = sBase:sub(1,1), GetOpVar("OPSYM_DISABLE")
-    if(sF ~= sD and not IsEmptyString(sBase)) then
+    if(sF ~= sD and not IsBlank(sBase)) then
       return sBase -- Not disabled or empty
     elseif(sF == sD) then return vDsb end
   end; return vDef
@@ -1449,7 +1449,7 @@ end
 
 function DefaultString(sBase, sDef)
   if(IsString(sBase)) then
-    if(not IsEmptyString(sBase)) then return sBase end end
+    if(not IsBlank(sBase)) then return sBase end end
   if(IsString(sDef)) then return sDef end; return ""
 end
 
@@ -1716,9 +1716,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   defTab.Size = #defTab; if(defTab.Size <= 0) then
     LogInstance("CreateTable: Record definition missing for "..sTable); return false end
   for iCnt = 1, defTab.Size do
-    local sN = tostring(defTab[iCnt][1] or ""); if(IsEmptyString(sN)) then
+    local sN = tostring(defTab[iCnt][1] or ""); if(IsBlank(sN)) then
       LogInstance("CreateTable: Missing table "..sTable.." col ["..tostring(iCnt).."] name"); return false end
-    local sT = tostring(defTab[iCnt][2] or ""); if(IsEmptyString(sT)) then
+    local sT = tostring(defTab[iCnt][2] or ""); if(IsBlank(sT)) then
       LogInstance("CreateTable: Missing table "..sTable.." col ["..tostring(iCnt).."] type"); return false end
     defTab[iCnt][1], defTab[iCnt][2] = sN, sT
   end
@@ -1882,7 +1882,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:GetColumnList(sD)
     if(not IsHere(sD)) then return "" end
     local qtDef, sRes, iCnt = self:GetDefinition(), "", 1
-    local sD = tostring(sD or "\t"):sub(1,1); if(IsEmptyString(sD)) then
+    local sD = tostring(sD or "\t"):sub(1,1); if(IsBlank(sD)) then
       LogInstance("GetColumns: Missing delimiter for <"..qtDef.Name..">"); return "" end
     while(iCnt <= qtDef.Size) do
       sRes, iCnt = (sRes..qtDef[iCnt][1]), (iCnt + 1)
@@ -1898,7 +1898,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("SQL.Match: Invalid col #"..tostring(nvInd).." on table "..qtDef.Name); return nil end
     local tipCol, sModeDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
     if(tipCol == "TEXT") then snOut = tostring(snValue or "")
-      if(not bNoNull and IsEmptyString(snOut)) then
+      if(not bNoNull and IsBlank(snOut)) then
         if    (sModeDB == "SQL") then snOut = "NULL"
         elseif(sModeDB == "LUA") then snOut = "NULL"
         else LogInstance("SQL.Match: Wrong database empty mode <"..sModeDB..">"); return nil end
@@ -2087,7 +2087,7 @@ function InsertRecord(sTable,arLine)
     LogInstance("Missing table name/values"); return false end
   if(type(sTable) == "table") then
     arLine, sTable = sTable, DefaultTable()
-    if(not (IsHere(sTable) and IsString(sTable) and not IsEmptyString(sTable))) then
+    if(not (IsHere(sTable) and IsString(sTable) and not IsBlank(sTable))) then
       LogInstance("Missing table default name: "..tostring(sTable)); return false end
   end
   if(not IsString(sTable)) then
@@ -2107,7 +2107,7 @@ function InsertRecord(sTable,arLine)
     arLine[2] = DisableString(arLine[2],DefaultType(),"TYPE")
     arLine[3] = DisableString(arLine[3],ModelToName(arLine[1]),"MODEL")
     arLine[8] = DisableString(arLine[8],"NULL","NULL")
-    if(not ((arLine[8] == "NULL") or trClass[arLine[8]] or IsEmptyString(arLine[8]))) then
+    if(not ((arLine[8] == "NULL") or trClass[arLine[8]] or IsBlank(arLine[8]))) then
       trClass[arLine[8]] = true -- Register the class provided
       LogInstance("Register trace <"..tostring(arLine[8]).."@"..arLine[1]..">")
     end -- Add the special class to the trace list
@@ -2223,7 +2223,7 @@ function CacheQueryPiece(sModel)
     LogInstance("CacheQueryPiece: Model does not exist"); return nil end
   if(not IsString(sModel)) then
     LogInstance("CacheQueryPiece: Model {"..type(sModel).."}<"..tostring(sModel).."> not string"); return nil end
-  if(IsEmptyString(sModel)) then
+  if(IsBlank(sModel)) then
     LogInstance("CacheQueryPiece: Model empty string"); return nil end
   if(not utilIsValidModel(sModel)) then
     LogInstance("CacheQueryPiece: Model invalid <"..sModel..">"); return nil end
@@ -2281,7 +2281,7 @@ function CacheQueryAdditions(sModel)
     LogInstance("CacheQueryAdditions: Model does not exist"); return nil end
   if(not IsString(sModel)) then
     LogInstance("CacheQueryAdditions: Model {"..type(sModel).."}<"..tostring(sModel).."> not string"); return nil end
-  if(IsEmptyString(sModel)) then
+  if(IsBlank(sModel)) then
     LogInstance("CacheQueryAdditions: Model empty string"); return nil end
   if(not utilIsValidModel(sModel)) then
     LogInstance("CacheQueryAdditions: Model invalid"); return nil end
@@ -2390,7 +2390,7 @@ function CacheQueryProperty(sType)
   local tCache = libCache[defTab.Name]; if(not tCache) then
     LogInstance("CacheQueryProperty["..tostring(sType).."]: Cache not allocated for <"..defTab.Name..">"); return nil end
   local sModeDB = GetOpVar("MODE_DATABASE")
-  if(IsString(sType) and not IsEmptyString(sType)) then
+  if(IsString(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
     local arNames = tCache[keyName]
@@ -2484,7 +2484,7 @@ function ExportCategory(vEq, tData, sPref)
   if(SERVER) then LogInstance( "ExportCategory: Working on server"); return true end
   local nEq   = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance( "ExportCategory: Wrong equality <"..tostring(vEq)..">"); return false end
-  local sPref = tostring(sPref or GetInstPref()); if(IsEmptyString(sPref)) then
+  local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("ExportCategory("..sPref.."): Prefix empty"); return false end
   local fName = GetOpVar("DIRPATH_BAS")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2520,7 +2520,7 @@ function ImportCategory(vEq, sPref)
   local tCat, symOff = GetOpVar("TABLE_CATEGORIES"), GetOpVar("OPSYM_DISABLE")
   local sPar, isPar, isEOF = "", false, false
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
-    if(not IsEmptyString(sLine)) then
+    if(not IsBlank(sLine)) then
       local sFr, sBk = sLine:sub(1,nLen), sLine:sub(-nLen,-1)
       if(sFr == cFr and sBk == cBk) then
         sLine, isPar, sPar = sLine:sub(nLen+1,-1), true, "" end
@@ -2530,7 +2530,7 @@ function ImportCategory(vEq, sPref)
         sPar, isPar = sPar..sLine:sub(1,-nLen-1), false
         local tBoo = sEq:Explode(sPar)
         local key, txt = tBoo[1]:Trim(), tBoo[2]
-        if(not IsEmptyString(key)) then
+        if(not IsBlank(key)) then
           if(txt:find("function")) then
             if(key:sub(1,1) ~= symOff) then
               tCat[key] = {}; tCat[key].Txt = txt:Trim()
@@ -2553,7 +2553,7 @@ end
  * sPref  > Prefix used on exporting ( if any ) else instance is used
 ]]--
 function RemoveDSV(sTable, sPref)
-  local sPref = tostring(sPref or GetInstPref()); if(IsEmptyString(sPref)) then
+  local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("RemoveDSV("..sPref.."): Prefix empty"); return false end
   if(not IsString(sTable)) then
     LogInstance("RemoveDSV("..sPref.."): Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
@@ -2695,7 +2695,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
-    if((not IsEmptyString(sLine)) and (sLine:sub(1,1) ~= symOff)) then
+    if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
       if(sLine:sub(1,nLen) == defTab.Name) then
         local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
         for iCnt = 1, defTab.Size do
@@ -2729,7 +2729,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local I, fData, smOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
   if(I) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
-      if((not IsEmptyString(sLine)) and (sLine:sub(1,1) ~= smOff)) then
+      if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= smOff)) then
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTab.Name) then
           for iCnt = 1, #tLine do tLine[iCnt] = StripValue(tLine[iCnt]) end
@@ -2821,7 +2821,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
   local sFr, sBk, sHs = pfLib..".InsertRecord(\""..sTable.."\", {", "})\n", (fPref.."@"..sTable)
   while(not isEOF) do sLine, isEOF = GetStringFile(D)
-    if((not IsEmptyString(sLine)) and (sLine:sub(1,1) ~= symOff)) then
+    if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
       sLine = sLine:gsub(defTab.Name,""):Trim()
       local tBoo, sCat = sDelim:Explode(sLine), ""
       for nCnt = 1, #tBoo do
@@ -2848,7 +2848,7 @@ end
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
   if(CLIENT and gameSinglePlayer()) then
     LogInstance("RegisterDSV: Single client"); return true end
-  local sPref = tostring(sPref or GetInstPref()); if(IsEmptyString(sPref)) then
+  local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("RegisterDSV("..sPref.."): Prefix empty"); return false end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
@@ -2861,7 +2861,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""
     if(not F) then LogInstance("RegisterDSV("..sPref.."): fileOpen("..fName..") read failed"); return false end
     while(not isEOF) do sLine, isEOF = GetStringFile(F)
-      if(not IsEmptyString(sLine)) then
+      if(not IsBlank(sLine)) then
         if(sLine:sub(1,1) == symOff) then
           isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
         local tab = sDelim:Explode(sLine)
@@ -2906,12 +2906,12 @@ function ProcessDSV(sDelim)
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sDv = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
-    if(not IsEmptyString(sLine)) then
+    if(not IsBlank(sLine)) then
       if(sLine:sub(1,1) ~= symOff) then
         local tInf = sDelim:Explode(sLine)
         local fPrf = StripValue(tostring(tInf[1] or ""):Trim())
         local fSrc = StripValue(tostring(tInf[2] or ""):Trim())
-        if(not IsEmptyString(fPrf)) then -- Is there something
+        if(not IsBlank(fPrf)) then -- Is there something
           if(not tProc[fPrf]) then
             tProc[fPrf] = {Cnt = 1, [1] = {Prog = fSrc, File = (sDv..fPrf..sNt)}}
           else -- Prefix is processed already
@@ -3344,7 +3344,7 @@ function AttachAdditions(ePiece)
       eAddit:SetModel(adMod) LogInstance("eAddit:SetModel("..adMod..")")
       local ofPos = arRec[defTab[5][1]]; if(not IsString(ofPos)) then
         LogInstance("AttachAdditions: Position {"..type(ofPos).."}<"..tostring(ofPos).."> not string"); return false end
-      if(ofPos and not IsEmptyString(ofPos) and ofPos ~= "NULL") then
+      if(ofPos and not IsBlank(ofPos) and ofPos ~= "NULL") then
         local vpAdd, arConv = Vector(), DecodePOA(ofPos)
         arConv[1] = arConv[1] * arConv[4]; vpAdd:Add(arConv[1] * eAng:Forward())
         arConv[2] = arConv[2] * arConv[5]; vpAdd:Add(arConv[2] * eAng:Right())
@@ -3353,7 +3353,7 @@ function AttachAdditions(ePiece)
       else eAddit:SetPos(ePos); LogInstance("eAddit:SetPos(ePos)") end
       local ofAng = arRec[defTab[6][1]]; if(not IsString(ofAng)) then
         LogInstance("AttachAdditions: Angle {"..type(ofAng).."}<"..tostring(ofAng).."> not string"); return false end
-      if(ofAng and not IsEmptyString(ofAng) and ofAng ~= "NULL") then
+      if(ofAng and not IsBlank(ofAng) and ofAng ~= "NULL") then
         local apAdd, arConv = Angle(), DecodePOA(ofAng)
         apAdd[caP] = arConv[1] * arConv[4] + eAng[caP]
         apAdd[caY] = arConv[2] * arConv[5] + eAng[caY]

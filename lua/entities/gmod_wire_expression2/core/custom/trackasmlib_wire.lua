@@ -51,7 +51,7 @@ __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sType, string sName, number nPoint, string sP, string sDelim)
   if(not (this and this:IsValid() and enFlag)) then return "" end
   if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
-  local sDelim = sDelim:sub(1,1); if(asmlib.IsEmptyString(sDelim)) then return "" end
+  local sDelim = sDelim:sub(1,1); if(asmlib.IsBlank(sDelim)) then return "" end
   local ucsPos, ucsAng = ucsEnt:GetPos(), ucsEnt:GetAngles()
   local sO = tostring(ucsPos[cvX])..","..tostring(ucsPos[cvY])..","..tostring(ucsPos[cvZ])
   local sC = (this:GetClass() ~= "prop_physics" and this:GetClass() or "")
