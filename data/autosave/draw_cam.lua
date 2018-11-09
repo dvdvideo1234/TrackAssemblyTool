@@ -4,9 +4,8 @@
       if(not trRec) then return end
       local ID, O = 1, Vector()
       while(ID <= trRec.Size) do
-        local stPOA = asmlib.LocatePOA(trRec,ID)
-        if(not stPOA) then
-          return asmlib.StatusLog(nil,"DrawHUD: Cannot assist point #"..tostring(ID)) end
+        local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
+          asmlib.LogInstance("DrawHUD: Cannot assist point #"..tostring(ID)) return nil end
         asmlib.SetVector(O,stPOA.O)
         O:Rotate(trEnt:GetAngles())
         O:Add(trEnt:GetPos()); ID = ID + 1

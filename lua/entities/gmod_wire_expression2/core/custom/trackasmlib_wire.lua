@@ -206,27 +206,31 @@ end
 __e2setcost(60)
 e2function array trackasmlibGetAdditionsLine(string sModel, number nID)
   if(not enFlag) then return {} end
-  local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS"); if(not defAddit) then
-    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition") end
+  local makTab = asmlib.GetBuilderTable("ADDITIONS"); if(not makTab) then
+    asmlib.LogInstance("e:trackasmlibGetAdditionLine(s,n): No table builder"); return {} end
+  local defTab = makTab:GetDefinition(); if(not defTab) then
+    asmlib.LogInstance("e:trackasmlibGetAdditionLine(s,n): No table definition"); return {} end
   local stRec = asmlib.CacheQueryAdditions(sModel); if(not stRec) then return {} end
   if(not stRec[nID]) then return {} end; stRec = stRec[nID] 
-  local cnRow, arAdd = 2, {} -- The model is missed by the main SELECT
-  while(defAddit[cnRow]) do  -- Ordered by ID. Get the line per model
-    arAdd[cnRow-1] = stRec[defAddit[cnRow][1]]; cnRow = cnRow + 1
-  end; return arAdd
+  local cnRow, arData = 2, {} -- The model is missed by the main SELECT
+  while(defTab[cnRow]) do  -- Ordered by ID. Get the line per model
+    arData[cnRow-1] = stRec[defTab[cnRow][1]]; cnRow = cnRow + 1
+  end; return arData
 end
 
 __e2setcost(60)
 e2function array entity:trackasmlibGetAdditionsLine(number nID)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local defAddit = asmlib.GetOpVar("DEFTABLE_ADDITIONS"); if(not defAddit) then
-    return asmlib.StatusLog({},"entity:trackasmlibGetAdditionLine(number): No table definition") end
+  local makTab = asmlib.GetBuilderTable("ADDITIONS"); if(not makTab) then
+    asmlib.LogInstance("e:trackasmlibGetAdditionLine(n): No table builder"); return {} end
+  local defTab = makTab:GetDefinition(); if(not defTab) then
+    asmlib.LogInstance("e:trackasmlibGetAdditionLine(n): No table definition"); return {} end
   local stRec = asmlib.CacheQueryAdditions(this:GetModel()); if(not stRec) then return {} end
   if(not stRec[nID]) then return {} end; stRec = stRec[nID]
-  local cnRow, arAdd = 2, {} -- The model is missed by the main SELECT
-  while(defAddit[cnRow]) do  -- Ordered by ID. Get the line per model
-    arAdd[cnRow-1] = stRec[defAddit[cnRow][1]]; cnRow = cnRow + 1
-  end; return arAdd
+  local cnRow, arData = 2, {} -- The model is missed by the main SELECT
+  while(defTab[cnRow]) do  -- Ordered by ID. Get the line per model
+    arData[cnRow-1] = stRec[defTab[cnRow][1]]; cnRow = cnRow + 1
+  end; return arData
 end
 
 ------------ PhysProperties ------------

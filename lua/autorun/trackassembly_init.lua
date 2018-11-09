@@ -39,7 +39,6 @@ asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
-asmlib.SetIndexes("S",4,5,6,7)
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
@@ -125,27 +124,27 @@ if(SERVER) then
   asmlib.SetAction("DUPE_PHYS_SETTINGS",
     function(oPly,oEnt,tData) -- Duplicator wrapper
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
-        return asmlib.StatusLog(nil,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)) end
-      return asmlib.StatusLog(nil,"DUPE_PHYS_SETTINGS: Success")
+        asmlib.LogInstance("DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)); return nil end
+      asmlib.LogInstance("DUPE_PHYS_SETTINGS: Success"); return nil
     end)
 
   asmlib.SetAction("PLAYER_QUIT",
     function(oPly) -- Clear player cache when disconnects
       if(not asmlib.CacheClearPly(oPly)) then
-        return asmlib.StatusLog(nil,"PLAYER_QUIT: Failed swiping stuff "..tostring(oPly)) end
-      return asmlib.StatusLog(nil,"PLAYER_QUIT: Success")
+        asmlib.LogInstance("PLAYER_QUIT: Failed swiping stuff "..tostring(oPly)); return nil end
+      asmlib.LogInstance("PLAYER_QUIT: Success"); return nil
     end)
 
   asmlib.SetAction("PHYSGUN_DROP",
     function(pPly, trEnt)
       if(not asmlib.IsPlayer(pPly)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Player invalid") end
+        asmlib.LogInstance("PHYSGUN_DROP: Player invalid"); return nil end
       if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Snapping disabled") end
+        asmlib.LogInstance("PHYSGUN_DROP: Snapping disabled"); return nil end
       if(not (trEnt and trEnt:IsValid())) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace entity invalid") end
+        asmlib.LogInstance("PHYSGUN_DROP: Trace entity invalid"); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
+        asmlib.LogInstance("PHYSGUN_DROP: Trace not piece"); return nil end
       local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
       local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
       local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0) ~= 0)
@@ -177,12 +176,12 @@ if(SERVER) then
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
           if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
-            return StatusLog(nil,"PHYSGUN_DROP: "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds") end
+            asmlib.LogInstance("PHYSGUN_DROP: "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds"); return nil end
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical settings") end
+            asmlib.LogInstance("PHYSGUN_DROP: Failed to apply physical settings"); return nil end
           if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,forcelim)) then
-            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical anchor") end
+            asmlib.LogInstance("PHYSGUN_DROP: Failed to apply physical anchor"); return nil end
         end
       end
     end)
@@ -194,56 +193,56 @@ if(CLIENT) then
     function(nLen) local oPly = netReadEntity()
       asmlib.LogInstance("CLEAR_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
-        return asmlib.StatusLog(nil,"CLEAR_RELATION: Failed clearing ray") end
-      return asmlib.StatusLog(nil,"CLEAR_RELATION: Success")
+        asmlib.LogInstance("CLEAR_RELATION: Failed clearing ray"); return nil end
+      asmlib.LogInstance("CLEAR_RELATION: Success"); return nil
     end) -- Net receive intersect relation clear client-side
 
   asmlib.SetAction("CREATE_RELATION",
     function(nLen) local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
       asmlib.LogInstance("CREATE_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
       if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")) then
-        return asmlib.StatusLog(nil,"CREATE_RELATION: Failed updating ray") end
-      return asmlib.StatusLog(nil,"CREATE_RELATION: Success")
+        asmlib.LogInstance("CREATE_RELATION: Failed updating ray"); return nil end
+      asmlib.LogInstance("CREATE_RELATION: Success"); return nil
     end) -- Net receive intersect relation create client-side
 
   asmlib.SetAction("BIND_PRESS",
     function(oPly,sBind,bPress) -- Must have the same parameters as the hook
-      if(not bPress) then return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
+      if(not bPress) then asmlib.LogInstance("BIND_PRESS: Bind not pressed"); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Swep invalid") end
+        asmlib.LogInstance("BIND_PRESS: Swep invalid"); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
+        asmlib.LogInstance("BIND_PRESS: Swep not tool"); return nil end
       if(actSwep:GetMode()  ~= gsToolNameL) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Tool different") end
+        asmlib.LogInstance("BIND_PRESS: Tool different"); return nil end
       -- Here player is holding the track assembly tool
       if(not inputIsKeyDown(KEY_LALT)) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Active key missing") end
+        asmlib.LogInstance("BIND_PRESS: Active key missing"); return nil end
       -- Switch functionality of the mouse wheel only for TA
       local actTool = actSwep:GetToolObject(); if(not actTool) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
+        asmlib.LogInstance("BIND_PRESS: Tool invalid"); return nil end
       if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
         if(not actTool:GetScrollMouse()) then
-          return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Scrolling disabled") end
+          asmlib.LogInstance("BIND_PRESS(Scroll): Scrolling disabled"); return nil end
         local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
-        return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
+        asmlib.LogInstance("BIND_PRESS("..sBind.."): Processed"); return true
       end -- Override only for TA and skip touching anything else
-      return asmlib.StatusLog(nil,"BIND_PRESS("..sBind.."): Skipped")
+      asmlib.LogInstance("BIND_PRESS("..sBind.."): Skipped"); return nil
     end) -- Read client configuration
 
   asmlib.SetAction("DRAW_GHOSTS",
     function() -- Must have the same parameters as the hook
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Player invalid") end
+        asmlib.LogInstance("DRAW_GHOSTS: Player invalid"); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Swep invalid") end
+        asmlib.LogInstance("DRAW_GHOSTS: Swep invalid"); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
-        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Swep not tool") end
+        asmlib.LogInstance("DRAW_GHOSTS: Swep not tool"); return nil end
       if(actSwep:GetMode()  ~= gsToolNameL) then
-        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Tool different") end
+        asmlib.LogInstance("DRAW_GHOSTS: Tool different"); return nil end
       -- Here player is holding the track assembly tool
       local actTool = actSwep:GetToolObject(); if(not actTool) then
-        return asmlib.StatusLog(nil,"DRAW_GHOSTS: Tool invalid") end
+        asmlib.LogInstance("DRAW_GHOSTS: Tool invalid"); return nil end
       local tGho  = asmlib.GetOpVar("ARRAY_GHOST")
       local model = asmlib.GetAsmVar("model", "STR")
       local mxcnt = asmlib.GetAsmVar("maxstcnt" , "INT")
@@ -266,7 +265,7 @@ if(CLIENT) then
       asmlib.ConCommandPly(oPly,"nextyaw", "0")
       asmlib.ConCommandPly(oPly,"nextrol", "0")
       if(not devmode) then
-        return asmlib.StatusLog(nil,"RESET_VARIABLES: Developer mode disabled") end
+        asmlib.LogInstance("RESET_VARIABLES: Developer mode disabled"); return nil end
       asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
       if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
@@ -326,20 +325,20 @@ if(CLIENT) then
           asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
           asmlib.LogInstance("RESET_VARIABLES: Match <"..vPr..">")
         end
-      else return asmlib.StatusLog(nil,"RESET_VARIABLES: Command <"..bgskids.."> skipped") end
-      return asmlib.StatusLog(nil,"RESET_VARIABLES: Success")
+      else asmlib.LogInstance("RESET_VARIABLES: Command <"..bgskids.."> skipped"); return nil end
+      asmlib.LogInstance("RESET_VARIABLES: Success"); return nil
     end)
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs)
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
-        return asmlib.StatusLog(nil,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
+        asmlib.LogInstance("OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]"); return nil end
       local makTab = asmlib.GetBuilderTable("PIECES"); if(not asmlib.IsHere(makTab)) then
-        return StatusLog(nil,"OPEN_FRAME: Missing builder for table PIECES") end
+        asmlib.LogInstance("OPEN_FRAME: Missing builder for table PIECES"); return nil end
       local defTab = makTab:GetDefinition(); if(not defTab) then
-        return StatusLog(nil,"OPEN_FRAME: Missing definition for table PIECES") end
+        asmlib.LogInstance("OPEN_FRAME: Missing definition for table PIECES"); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
-        pnFrame:Remove(); return asmlib.StatusLog(nil,"OPEN_FRAME: Failed to create base frame") end
+        pnFrame:Remove(); asmlib.LogInstance("OPEN_FRAME: Failed to create base frame"); return nil end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,languageGetPhrase("tool."..gsToolNameL..".pn_export_lb") , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
             pnElements:Insert(2,{Label = { "DListView"  ,languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_routine")}})
@@ -360,7 +359,7 @@ if(CLIENT) then
             asmlib.LogInstance("OPEN_FRAME: Deleted entry "..sItem.."ID #"..tonumber(iNdex))
             iNdex = iNdex + 1
           end; pnFrame:Remove(); collectgarbage()
-          return StatusLog(nil,"OPEN_FRAME: Invalid panel created. Frame removed")
+          asmlib.LogInstance("OPEN_FRAME: Invalid panel created. Frame removed"); return nil
         end
         vItem.Panel:SetName(vItem.Label[2])
         vItem.Panel:SetTooltip(vItem.Label[3])
@@ -457,7 +456,7 @@ if(CLIENT) then
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40)
         if(not asmlib.IsHere(uiBox)) then
-          return asmlib.StatusLog(nil,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
+          asmlib.LogInstance("OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid"); return nil end
         local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
@@ -484,7 +483,7 @@ if(CLIENT) then
         local sAbrev, sField = pnComboBox:GetSelected()
               sAbrev, sField = tostring(sAbrev or ""), tostring(sField or "")
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattr)) then
-          return asmlib.StatusLog(nil,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sAbrev.."#"..sField.."#"..sPattr.."}")
+          asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sAbrev.."#"..sField.."#"..sPattr.."}"); return nil
         end
       end
       ------------ ListView --------------
@@ -521,7 +520,7 @@ if(CLIENT) then
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
         if(not asmlib.IsHere(uiBox)) then
-          return asmlib.StatusLog(nil,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
+          asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">"); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmVar("pointid","INT"), asmlib.GetAsmVar("pnextid","INT")
               pointid, pnextid = asmlib.SnapReview(pointid, pnextid, uiAct)
@@ -531,39 +530,39 @@ if(CLIENT) then
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5)) end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
-        return asmlib.StatusLog(nil,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed") end
+        asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed"); return nil end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
-      return asmlib.StatusLog(nil,"OPEN_FRAME: Success") -- Show the completed panel
+      asmlib.LogInstance("OPEN_FRAME: Success"); return nil
     end)
 
   asmlib.SetAction("PHYSGUN_DRAW",
     function()
       if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Extension disabled") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Extension disabled"); return nil end
       if(not asmlib.GetAsmVar("adviser", "BUL")) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Adviser disabled") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Adviser disabled"); return nil end
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Player invalid") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Player invalid"); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Swep invalid"); return nil end
       if(actSwep:GetClass() ~= "weapon_physgun") then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Swep not physgun"); return nil end
       if(not inputIsMouseDown(MOUSE_LEFT)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Physgun not hold") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Physgun not hold"); return nil end
       local actTr = asmlib.CacheTracePly(oPly)
-      if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
-      if(not actTr.Hit) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not hit") end
-      if(actTr.HitWorld) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace world") end
+      if(not actTr) then asmlib.LogInstance("PHYSGUN_DRAW: Trace missing"); return nil end
+      if(not actTr.Hit) then asmlib.LogInstance("PHYSGUN_DRAW: Trace not hit"); return nil end
+      if(actTr.HitWorld) then asmlib.LogInstance("PHYSGUN_DRAW: Trace world"); return nil end
       local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Trace entity invalid"); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
+        asmlib.LogInstance("PHYSGUN_DRAW: Trace not piece"); return nil end
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
         local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
         if(not actMonitor) then
-          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Invalid screen") end
+          asmlib.LogInstance("PHYSGUN_DRAW: Invalid screen"); return nil end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
       end -- Make sure we have a valid game monitor for the draw OOP
@@ -620,19 +619,19 @@ if(CLIENT) then
     function()
       if(not inputIsMouseDown(MOUSE_MIDDLE)) then return end
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Player invalid") end
+        asmlib.LogInstance("WORKMODE_DRAW: Player invalid"); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Swep invalid") end
+        asmlib.LogInstance("WORKMODE_DRAW: Swep invalid"); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Swep not physgun") end
+        asmlib.LogInstance("WORKMODE_DRAW: Swep not physgun"); return nil end
       if(actSwep:GetMode()  ~= gsToolNameL) then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Tool different") end
+        asmlib.LogInstance("WORKMODE_DRAW: Tool different"); return nil end
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
         if(not actMonitor) then
-          return asmlib.StatusLog(nil,"WORKMODE_DRAW: Invalid screen") end
+          asmlib.LogInstance("WORKMODE_DRAW: Invalid screen"); return nil end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("WORKMODE_DRAW: Create screen")
       end -- Make sure we have a valid game monitor for the draw OOP
