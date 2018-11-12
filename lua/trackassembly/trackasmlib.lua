@@ -2126,18 +2126,9 @@ function InsertRecord(sTable,arLine)
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("Missing builder for "..sTable); return false end
   local defTab = makTab:GetDefinition()
-  if(sTable == "PIECES") then local trClass = GetOpVar("TRACE_CLASS")
-    arLine[2] = DisableString(arLine[2],DefaultType(),"TYPE")
-    arLine[3] = DisableString(arLine[3],ModelToName(arLine[1]),"MODEL")
-    arLine[8] = DisableString(arLine[8],"NULL","NULL")
-    if(not ((arLine[8] == "NULL") or trClass[arLine[8]] or IsBlank(arLine[8]))) then
-      trClass[arLine[8]] = true -- Register the class provided
-      LogInstance("Register trace <"..tostring(arLine[8]).."@"..arLine[1]..">")
-    end -- Add the special class to the trace list
-  elseif(sTable == "PHYSPROPERTIES") then
-    arLine[1] = DisableString(arLine[1],DefaultType(),"TYPE")
-  end
-
+  -- Call the trigger when provided
+  if(defTab.Triger and type(defTab.Triger) == "function") then defTab.Triger(arLine) end
+  -- Populate the data after the trigger does its thing
   local sModeDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   if(sModeDB == "SQL") then local qsKey = sFunc..sTable
     for iD = 1, defTab.Size do arLine[iD] = makTab:Match(arLine[iD],iD,true) end
