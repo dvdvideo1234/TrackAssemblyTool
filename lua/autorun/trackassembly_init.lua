@@ -27,6 +27,8 @@ local inputIsMouseDown     = input and input.IsMouseDown
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
 local languageGetPhrase    = language and language.GetPhrase
+local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -83,6 +85,17 @@ asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
 asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
   function(v) return mathFloor(tonumber(v) or 0) end)
 asmlib.SetAsmVarCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
+
+local sName = asmlib.GetAsmVar("timermode", "NAM")
+cvarsRemoveChangeCallback(sName, sName.."_call")
+cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
+  local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
+  local makTab, iCnt = asmlib.GetBuilderID(iCnt), 1
+  while(makTab) do local sTim = tostring(arTim[iCnt] or "")
+    makTab:TimerSetup(sTim); asmlib.LogInstance("Timer update ["..iCnt.."]<"..sTim..">")
+    iCnt = (iCnt + 1); makTab = asmlib.GetBuilderID(iCnt)
+  end
+end)
 
 ------ GLOBAL VARIABLES ------
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
@@ -333,7 +346,7 @@ if(CLIENT) then
     function(oPly,oCom,oArgs)
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         asmlib.LogInstance("OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]"); return nil end
-      local makTab = asmlib.GetBuilderTable("PIECES"); if(not asmlib.IsHere(makTab)) then
+      local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
         asmlib.LogInstance("OPEN_FRAME: Missing builder for table PIECES"); return nil end
       local defTab = makTab:GetDefinition(); if(not defTab) then
         asmlib.LogInstance("OPEN_FRAME: Missing definition for table PIECES"); return nil end
@@ -670,7 +683,8 @@ asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
   Query = {
-    InsertRecord = {"%s","%s","%s","%d","%s","%s","%s","%s"}
+    InsertRecord = {"%s","%s","%s","%d","%s","%s","%s","%s"},
+    ExportDSV = {2,3,1,4}
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -686,7 +700,8 @@ asmlib.CreateTable("ADDITIONS",{
   Timer = gaTimerSet[2],
   Index = {{1},{4},{1,4}},
   Query = {
-    InsertRecord = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}
+    InsertRecord = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
+    ExportDSV = {1,4}
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -706,7 +721,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
   Index = {{1},{2},{1,2}},
   Query = {
-    InsertRecord = {"%s","%d","%s"}
+    InsertRecord = {"%s","%d","%s"},
+    ExportDSV = {1,2}
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
