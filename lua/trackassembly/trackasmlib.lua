@@ -1771,6 +1771,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- Generates a timer settings table and keeps the defaults
   function self:TimerSetup(vTim)
+    local qtCmd = self:GetCommand()
     local qtDef = self:GetDefinition()
     local sTm = (vTim and tostring(vTim or "") or qtDef.Timer)    
     local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTm)
@@ -1778,7 +1779,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     tTm[2] =  (tonumber(tTm[2]) or 0)                         -- Record life
     tTm[3] = ((tonumber(tTm[3]) or 0) ~= 0) and true or false -- Kill command
     tTm[4] = ((tonumber(tTm[4]) or 0) ~= 0) and true or false -- Collect garbage call
-    qtDef.Timer = tTm; return self
+    qtCmd.Timer = tTm; return self
   end
   -- Navigates the reference in the cache
   function self:GetNavigate(...)
@@ -1799,37 +1800,36 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Data not found",unpack(logArg)); return nil end
     local sModeDB = GetOpVar("MODE_DATABASE")
     LogInstance("Called by <"..tostring(vMsg).."> for ["..tostring(kKey).."]",unpack(logArg))
-    if(sModeDB == "SQL") then
-      local nNowTM, tTimer = Time(), defTab.Timer -- See that there is a timer and get "now"
-      if(not IsHere(tTimer)) then
+    if(sModeDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
+      local nNow, tTim = Time(), qtCmd.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",unpack(logArg)); return oSpot[kKey] end
-      oSpot[kKey].Used = nNowTM -- Make the first selected deletable to avoid phantom records
-      local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
+      oSpot[kKey].Used = nNow -- Make the first selected deletable to avoid phantom records
+      local nLif = tTim[2]; if(nLif <= 0) then
         LogInstance("Timer attachment ignored",unpack(logArg)); return oSpot[kKey] end
-      local sModeTM, bKillRC, bCollGB = tTimer[1], tTimer[3], tTimer[4]
-      LogInstance("["..sModeTM.."] ("..tostring(nLifeTM)..") "..tostring(bKillRC)..", "..tostring(bCollGB),unpack(logArg))
-      if(sModeTM == "CQT") then
+      local smTM, tmDie, tmCol = tTim[1], tTim[3], tTim[4]
+      LogInstance("["..smTM.."] ("..tostring(nLif)..") "..tostring(tmDie)..", "..tostring(tmCol),unpack(logArg))
+      if(smTM == "CQT") then
         for k, v in pairs(oSpot) do
-          if(IsHere(v.Used) and ((nNowTM - v.Used) > nLifeTM)) then
-            LogInstance("("..tostring(RoundValue(nNowTM - v.Used,0.01)).." > "..tostring(nLifeTM)..") > Dead",unpack(logArg))
-            if(bKillRC) then oSpot[k] = nil; LogInstance("Killed <"..tostring(k)..">",unpack(logArg)) end
+          if(IsHere(v.Used) and ((nNow - v.Used) > nLif)) then
+            LogInstance("("..tostring(RoundValue(nNow - v.Used,0.01)).." > "..tostring(nLif)..") > Dead",unpack(logArg))
+            if(tmDie) then oSpot[k] = nil; LogInstance("Killed <"..tostring(k)..">",unpack(logArg)) end
           end
         end
-        if(bCollGB) then collectgarbage(); LogInstance("Garbage collected",unpack(logArg)) end
-        LogInstance("["..tostring(kKey).."] @"..tostring(RoundValue(nNowTM,0.01)),unpack(logArg)); return oSpot[kKey]
-      elseif(sModeTM == "OBJ") then
-        local TimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKey)
-        LogInstance("TimID <"..TimerID..">",unpack(logArg))
-        if(timerExists(TimerID)) then LogInstance("Timer exists",unpack(logArg)); return oSpot[kKey] end
-        timerCreate(TimerID, nLifeTM, 1, function()
-          LogInstance("TimerAttach["..TimerID.."]("..nLifeTM..") > Dead",unpack(logArg))
-          if(bKillRC) then oSpot[kKey] = nil; LogInstance("Killed <"..kKey..">",unpack(logArg)) end
-          timerStop(TimerID); timerDestroy(TimerID)
-          if(bCollGB) then collectgarbage(); LogInstance("Garbage collected",unpack(logArg)) end
-        end); timerStart(TimerID); return oSpot[kKey]
-      else LogInstance("Mode mismatch <"..sModeTM..">",unpack(logArg)); return oSpot[kKey] end
+        if(tmCol) then collectgarbage(); LogInstance("Garbage collected",unpack(logArg)) end
+        LogInstance("["..tostring(kKey).."] @"..tostring(RoundValue(nNow,0.01)),unpack(logArg)); return oSpot[kKey]
+      elseif(smTM == "OBJ") then
+        local tmID = GetOpVar("OPSYM_DIVIDER"):Implode(tKey)
+        LogInstance("TimID <"..tmID..">",unpack(logArg))
+        if(timerExists(tmID)) then LogInstance("Timer exists",unpack(logArg)); return oSpot[kKey] end
+        timerCreate(tmID, nLif, 1, function()
+          LogInstance("TimerAttach["..tmID.."]("..nLif..") > Dead",unpack(logArg))
+          if(tmDie) then oSpot[kKey] = nil; LogInstance("Killed <"..kKey..">",unpack(logArg)) end
+          timerStop(tmID); timerDestroy(tmID)
+          if(tmCol) then collectgarbage(); LogInstance("Garbage collected",unpack(logArg)) end
+        end); timerStart(tmID); return oSpot[kKey]
+      else LogInstance("Mode mismatch <"..smTM..">",unpack(logArg)); return oSpot[kKey] end
     elseif(sModeDB == "LUA") then
-      LogInstance("Memory manager not available",unpack(logArg)); return oSpot[kKey]
+      LogInstance("Memory manager impractical",unpack(logArg)); return oSpot[kKey]
     else LogInstance("Wrong database mode",unpack(logArg)); return nil end
   end
   -- Restarts timer to a record related in the table cache
@@ -1847,14 +1847,14 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       oSpot[kKey].Used = Time() -- Mark the current caching time stamp
       local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
         LogInstance("Timer life ignored",unpack(logArg)); return oSpot[kKey] end
-      local sModeTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
-      if(sModeTM == "CQT") then sModeTM = "CQT"
-      elseif(sModeTM == "OBJ") then
+      local smTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
+      if(smTM == "CQT") then smTM = "CQT"
+      elseif(smTM == "OBJ") then
         local keyTimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
         if(not timerExists(keyTimerID)) then
           LogInstance("Timer missing <"..keyTimerID..">",unpack(logArg)); return nil end
         timerStart(keyTimerID)
-      else LogInstance("Mode mismatch <"..sModeTM..">",unpack(logArg)); return nil end
+      else LogInstance("Mode mismatch <"..smTM..">",unpack(logArg)); return nil end
     elseif(sModeDB == "LUA") then oSpot[kKey].Used = Time()
     else LogInstance("Wrong database mode",unpack(logArg)); return nil end
     return oSpot[kKey]
@@ -2079,7 +2079,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Build drop failed"); return self:Remove(false) end
     makTab = self:Delete(); if(not IsHere(makTab)) then
       LogInstance("Build delete failed"); return self:Remove(false) end
-    makTab = self:TimerSetup(); if(not IsHere(makTab)) then
+    makTab = self:TimerSetup(defTab.Timer); if(not IsHere(makTab)) then
       LogInstance("Build timer failed"); return self:Remove(false) end
     local tQ = self:GetCommand(); if(not IsHere(tQ)) then
       LogInstance("Build statement failed"); return self:Remove(false) end
@@ -2823,10 +2823,10 @@ function TranslateDSV(sTable, sPref, sDelim)
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
   sNdsv, sNins = sNdsv..fPref..defTab.Name..".txt", sNins..fPref..defTab.Name..".txt"
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
-  local D = fileOpen(sNdsv, "rb", "DATA")
-  if(not D) then LogInstance("("..fPref..") fileOpen("..sNdsv..") failed"); return false end
-  local I = fileOpen(sNins, "wb", "DATA")
-  if(not I) then LogInstance("("..fPref..") fileOpen("..sNins..") failed"); return false end
+  local D = fileOpen(sNdsv, "rb", "DATA"); if(not D) then
+    LogInstance("("..fPref..") fileOpen("..sNdsv..") failed"); return false end
+  local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
+    LogInstance("("..fPref..") fileOpen("..sNins..") failed"); return false end
   I:Write("# TranslateDSV("..fPref.."@"..sTable.."): "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
   I:Write("# Data settings:\t"..makTab:GetColumnList(sDelim).."\n")
   local pfLib = GetOpVar("NAME_LIBRARY"):gsub(GetOpVar("NAME_INIT"),"")
