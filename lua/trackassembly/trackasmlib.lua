@@ -183,6 +183,14 @@ function IsNumber(vVal)
   return ((tonumber(vVal) and true) or false)
 end
 
+function IsTable(vVal)
+  return (type(vVal) == "table")
+end
+
+function IsFunction(vVal)
+  return (type(vVal) == "function")
+end
+
 function IsPlayer(oPly)
   if(not IsHere(oPly)) then return false end
   if(not oPly:IsValid  ()) then return false end
@@ -256,7 +264,7 @@ function LogInstance(vMsg, bCon, tDbg, vData)
   end; local sData = (vData and tostring(vData).."." or "")
   local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sModeDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  Log(sInst.." > "..sToolMD..sDbg.." ["..sModeDB.."] "..sData..sFunc..": "..sMsg, bCon)
+  Log(sInst.." > "..sToolMD.." ["..sModeDB.."]"..sDbg.." "..sData..sFunc..": "..sMsg, bCon)
 end
 
 function Print(tT,sS,tP)
@@ -307,7 +315,7 @@ function SetLogControl(nLines,bFile)
   local sNam = tostring(GetOpVar("LOG_LOGFILE"))
   if(sBas and not fileExists(sBas,"DATA") and
      not IsBlank(GetOpVar("LOG_LOGFILE"))) then fileCreateDir(sBas)
-  end; LogInstance("SetLogControl("..sMax..","..sNam..")",true)
+  end; LogInstance("("..sMax..","..sNam..")",true)
 end
 
 function SettingsLogs(sHash)
@@ -1686,14 +1694,13 @@ end
 -------------------------- BUILDSQL ------------------------------
 
 local function CacheStmt(sHash,sStmt,...)
-  if(not IsHere(sHash)) then
-    LogInstance("Store hash missing"); return nil end
+  if(not IsHere(sHash)) then LogInstance("Missing hash"); return nil end
   local sHash, tStore = tostring(sHash), GetOpVar("QUERY_STORE")
-  if(not IsHere(tStore)) then LogInstance("Store place missing"); return nil end
+  if(not IsHere(tStore)) then LogInstance("Missing storage"); return nil end
   if(IsHere(sStmt)) then -- If the key is located return the query
     tStore[sHash] = tostring(sStmt); Print(tStore,"STMT") end
   local sBase = tStore[sHash]; if(not IsHere(sBase)) then
-    LogInstance("Missing <"..sHash..">"); return nil end
+    LogInstance("("..sHash..") Mismatch"); return nil end
   return sBase:format(...)
 end
 
@@ -2122,14 +2129,13 @@ function InsertRecord(sTable,arLine)
   if(not arLine[1]) then LogInstance("Missing PK for "..sTable)
     for key, val in pairs(arLine) do LogInstance("PK data ["..tostring(key).."] = <"..tostring(val)..">") end
     return false
-  end
+  end -- Read SQL builder object
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("Missing builder for "..sTable); return false end
-  local defTab = makTab:GetDefinition()
+  local defTab, sModeDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   -- Call the trigger when provided
-  if(defTab.Triger and type(defTab.Triger) == "function") then defTab.Triger(arLine) end
+  local tTrg = defTab.Trigs; if(tTrg and IsTable(tTrg) and IsFunction(tTrg[sFunc])) then tTrg[sFunc](arLine) end
   -- Populate the data after the trigger does its thing
-  local sModeDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   if(sModeDB == "SQL") then local qsKey = sFunc..sTable
     for iD = 1, defTab.Size do arLine[iD] = makTab:Match(arLine[iD],iD,true) end
     local Q = CacheStmt(qsKey, nil, unpack(arLine))
@@ -2723,24 +2729,22 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
-  local defTab = makTab:GetDefinition()
+  local defTab, sFunc = makTab:GetDefinition(), debugGetinfo(1).name
   local fName, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..fPref..defTab.Name..".txt"
-  local I, fData, smOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
-  if(I) then local sLine, isEOF = "", false
+  local I, fData, symOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
+  if(I) then local sLine, isEOF, tSet = "", false, defTab.Query[sFunc]
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
-      if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= smOff)) then
+      if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTab.Name) then
           for iCnt = 1, #tLine do tLine[iCnt] = StripValue(tLine[iCnt]) end
           local sKey = tLine[2]; if(not fData[sKey]) then fData[sKey] = {Size = 0} end
-          local tKey, nID, vID = fData[sKey], 0 -- Where the lime ID must be read from
-          if    (sTable == "PIECES") then vID = tLine[5]; nID = (tonumber(vID) or 0)
-          elseif(sTable == "ADDITIONS") then vID = tLine[5]; nID = (tonumber(vID) or 0)
-          elseif(sTable == "PHYSPROPERTIES") then vID = tLine[3]; nID = (tonumber(vID) or 0) end
+          -- Where the lime ID must be read from
+          local tKey, vID, nID = fData[sKey], tLine[tSet[1]]; nID = (tonumber(vID) or 0)
           if((tKey.Size < 0) or (nID <= tKey.Size) or ((nID - tKey.Size) ~= 1)) then
             I:Close(); LogInstance("("..fPref..") Read point ID #"..
               tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">"); return false end
@@ -2760,15 +2764,10 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   else LogInstance("("..fPref..") Creating file <"..fName..">") end
   for key, rec in pairs(tData) do -- Check the given table
     for pnID = 1, #rec do -- Where the line ID must be read from
-      local tRec, nID, vID = rec[pnID], 0
-      if(sTable == "PIECES") then vID = tRec[3]
-        nID = (tonumber(vID) or 0); if(pnID ~= nID) then
+      local tRec, vID, nID = rec[pnID]; vID = tRec[tSet[2]]
+      nID = (tonumber(vID) or 0); if(pnID ~= nID and tSet[3]) then
           LogInstance("("..fPref..") Given point ID #"..
             tostring(vID).." desynchronized <"..key.."> of "..sTable); return false end
-        if(not fileExists(key, "GAME")) then
-          LogInstance("("..fPref..") Missing piece <"..key..">") end
-      elseif(sTable == "ADDITIONS") then vID = tRec[3]; nID = (tonumber(vID) or 0)
-      elseif(sTable == "PHYSPROPERTIES") then vID = tRec[1]; nID = (tonumber(vID) or 0) end
       for nCnt = 1, #tRec do -- Do a value matching without quotes
         local vM = makTab:Match(tRec[nCnt],nCnt+1); if(not IsHere(vM)) then
           LogInstance("("..fPref..") Given matching failed <"
