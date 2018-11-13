@@ -216,6 +216,15 @@ function GetDate()
    .." "..osDate(GetOpVar("TIME_FORMAT")))
 end
 
+-- Strips a string from quotes
+function GetStrip(vV, vQ)
+  local sV = tostring(vV or ""):Trim()
+  local sQ = tostring(vQ or "\""):sub(1,1)
+  if(sV:sub( 1, 1) == sQ) then sV = sV:sub(2,-1) end
+  if(sV:sub(-1,-1) == sQ) then sV = sV:sub(1,-2) end
+  return sV:Trim()
+end
+
 ------------------ LOGS ------------------------
 
 local function GetLogID()
@@ -1764,14 +1773,6 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     if(vK) then return debugGetinfo(2, "n")[vK] end
     return debugGetinfo(2, "n")
   end
-  -- Strips quotes from read string
-  function self:Strip(vV, vQ)
-    local sV = tostring(vV or ""):Trim()
-    local sQ = tostring(vQ or "\""):sub(1,1)
-    if(sV:sub( 1, 1) == sQ) then sV = sV:sub(2,-1) end
-    if(sV:sub(-1,-1) == sQ) then sV = sV:sub(1,-2) end
-    return sV:Trim()
-  end
   -- Reads the method names from the debug information
   function self:UpdateInfo()
     local qtCmd = self:GetCommand()
@@ -2708,7 +2709,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
       if(sLine:sub(1,nLen) == defTab.Name) then
         local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
         for iCnt = 1, defTab.Size do
-          tData[iCnt] = makTab:Strip(tData[iCnt]) end
+          tData[iCnt] = GetStrip(tData[iCnt]) end
         if(bComm) then InsertRecord(sTable, tData) end
       end
     end
@@ -2741,7 +2742,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTab.Name) then
-          for iCnt = 1, #tLine do tLine[iCnt] = makTab:Strip(tLine[iCnt]) end
+          for iCnt = 1, #tLine do tLine[iCnt] = GetStrip(tLine[iCnt]) end
           local sKey = tLine[2]; if(not fData[sKey]) then fData[sKey] = {Size = 0} end
           -- Where the lime ID must be read from
           local tKey, vID, nID = fData[sKey], tLine[tSet[1]]; nID = (tonumber(vID) or 0)
@@ -2827,7 +2828,7 @@ function TranslateDSV(sTable, sPref, sDelim)
       sLine = sLine:gsub(defTab.Name,""):Trim()
       local tBoo, sCat = sDelim:Explode(sLine), ""
       for nCnt = 1, #tBoo do
-        local vMatch = makTab:Match(makTab:Strip(tBoo[nCnt]),nCnt,true,"\"",true)
+        local vMatch = makTab:Match(GetStrip(tBoo[nCnt]),nCnt,true,"\"",true)
         if(not IsHere(vMatch)) then D:Close(); I:Flush(); I:Close()
           LogInstance("("..sHs..") Given matching failed <"
             ..tostring(tBoo[nCnt]).."> to <"..tostring(nCnt).." # "
@@ -2911,8 +2912,8 @@ function ProcessDSV(sDelim)
     if(not IsBlank(sLine)) then
       if(sLine:sub(1,1) ~= symOff) then
         local tInf = sDelim:Explode(sLine)
-        local fPrf = (tostring(tInf[1] or ""):Trim())
-        local fSrc = (tostring(tInf[2] or ""):Trim())
+        local fPrf = GetStrip(tostring(tInf[1] or ""):Trim())
+        local fSrc = GetStrip(tostring(tInf[2] or ""):Trim())
         if(not IsBlank(fPrf)) then -- Is there something
           if(not tProc[fPrf]) then
             tProc[fPrf] = {Cnt = 1, [1] = {Prog = fSrc, File = (sDv..fPrf..sNt)}}
