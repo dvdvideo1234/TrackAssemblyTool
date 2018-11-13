@@ -35,9 +35,8 @@ local myPrefix = myAddon:gsub("[^%w]","_")
 
 -- This is the script path. It tells TA who wants to add these models
 -- Do not touch this also, it is used for debugging
-local myScript = debug.getinfo(1)
-      myScript = myScript and myScript.source or "N/A"
-
+local myScript = tostring(debug.getinfo(1).source or "N/A")
+      myScript = "@"..myScript:gsub("^%W+", ""):gsub("\\","/")
 --[[
  * This function defines what happens when there is an error present
  * Usually you can tell Gmod that you want it to generate an error
