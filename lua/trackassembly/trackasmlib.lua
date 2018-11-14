@@ -1299,14 +1299,10 @@ end
 local function IsZeroPOA(stPOA,sOffs)
   if(not IsString(sOffs)) then
     LogInstance("Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string"); return nil end
-  if(not IsHere(stPOA)) then
-    LogInstance("Missing offset"); return nil end
-  local ctA, ctB, ctC = nil, nil, nil
-  if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
-  elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
-  else LogInstance("Missed offset mode "..sOffs); return nil end
-  if(stPOA[ctA] == 0 and stPOA[ctB] == 0 and stPOA[ctC] == 0) then return true end
-  return false
+  if(not IsHere(stPOA)) then LogInstance("Missing offset"); return nil end
+  local ctA, ctB, ctC = GetIndexes(sOffs); if(not (ctA and ctB and ctC)) then
+    LogInstance("Missed offset mode "..sOffs); return nil end
+  return (stPOA[ctA] == 0 and stPOA[ctB] == 0 and stPOA[ctC] == 0)
 end
 
 local function StringPOA(stPOA,sOffs)
@@ -1314,12 +1310,10 @@ local function StringPOA(stPOA,sOffs)
     LogInstance("Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string"); return nil end
   if(not IsHere(stPOA)) then
     LogInstance("Missing Offsets"); return nil end
-  local ctA, ctB, ctC = nil, nil, nil
-  local symSep, sMoDB = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("MODE_DATABASE")
-  if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
-  elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
-  else LogInstance("Missed offset mode "..sOffs); return nil end
-  return (tostring(stPOA[ctA])..symSep..tostring(stPOA[ctB])..symSep..tostring(stPOA[ctC])):gsub(" ","")
+  local ctA, ctB, ctC = GetIndexes(sOffs); if(not (ctA and ctB and ctC)) then
+    LogInstance("Missed offset mode "..sOffs); return nil end
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
+  return (tostring(stPOA[ctA])..symSep..tostring(stPOA[ctB])..symSep..tostring(stPOA[ctC])):gsub("%s","")
 end
 
 local function TransferPOA(stOffset,sMode)
@@ -1328,9 +1322,9 @@ local function TransferPOA(stOffset,sMode)
   if(not IsString(sMode)) then
     LogInstance("Mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
-  if    (sMode == "V") then stOffset[cvX], stOffset[cvY], stOffset[cvZ] = arPOA[1], arPOA[2], arPOA[3]
-  elseif(sMode == "A") then stOffset[caP], stOffset[caY], stOffset[caR] = arPOA[1], arPOA[2], arPOA[3]
-  else LogInstance("Missed mode "..sMode); return nil end; return arPOA
+  local ctA, ctB, ctC = GetIndexes(sOffs); if(not (ctA and ctB and ctC)) then
+    LogInstance("Missed offset mode "..sOffs); return nil end
+  stOffset[ctA], stOffset[ctB], stOffset[ctC] = arPOA[1], arPOA[2], arPOA[3]; return arPOA
 end
 
 local function DecodePOA(sStr)
