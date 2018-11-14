@@ -1312,8 +1312,11 @@ local function StringPOA(stPOA,sOffs)
     LogInstance("Missing Offsets"); return nil end
   local ctA, ctB, ctC = GetIndexes(sOffs); if(not (ctA and ctB and ctC)) then
     LogInstance("Missed offset mode "..sOffs); return nil end
-  local symSep = GetOpVar("OPSYM_SEPARATOR")
-  return (tostring(stPOA[ctA])..symSep..tostring(stPOA[ctB])..symSep..tostring(stPOA[ctC])):gsub("%s","")
+  local symSep, sNoAv = GetOpVar("OPSYM_SEPARATOR"), ""
+  local svA = tostring(stPOA[ctA] or sNoAv)
+  local svB = tostring(stPOA[ctB] or sNoAv)
+  local svC = tostring(stPOA[ctC] or sNoAv)
+  return (svA..symSep..svB..symSep..svC):gsub("%s","")
 end
 
 local function TransferPOA(stOffset,sMode)
