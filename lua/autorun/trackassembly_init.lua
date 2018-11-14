@@ -689,13 +689,12 @@ asmlib.CreateTable("PIECES",{
       stRow[3] = asmlib.DisableString(stRow[3],asmlib.ModelToName(stRow[1]),"MODEL")
       stRow[8] = asmlib.DisableString(stRow[8],"NULL","NULL")
       if(not ((stRow[8] == "NULL") or trCls[stRow[8]] or asmlib.IsBlank(stRow[8]))) then
-        trCls[stRow[8]] = true ; asmlib.LogInstance("Register trace <"..tostring(stRow[8]).."@"..stRow[1]..">") end
+        trCls[stRow[8]] = true; asmlib.LogInstance("Register trace <"..tostring(stRow[8]).."@"..stRow[1]..">") end
     end -- Register the class provided to the trace hit list
   },
   Query = {
     InsertRecord = {"%s","%s","%s","%d","%s","%s","%s","%s"},
     ExportDSV = {2,3,1,4},
-    SynchronizeDSV = {5, 3, true}
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -713,7 +712,6 @@ asmlib.CreateTable("ADDITIONS",{
   Query = {
     InsertRecord = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
     ExportDSV = {1,4},
-    SynchronizeDSV = {5, 3, true}
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -733,12 +731,13 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
   Index = {{1},{2},{1,2}},
   Trigs = {
-    InsertRecord = function(atRow) atRow[1] = asmlib.DisableString(atRow[1],asmlib.DefaultType(),"TYPE") end
+    InsertRecord = function(atRow)
+      atRow[1] = asmlib.DisableString(atRow[1],asmlib.DefaultType(),"TYPE")
+    end
   },
   Query = {
     InsertRecord = {"%s","%d","%s"},
-    ExportDSV = {1,2},
-    SynchronizeDSV = {3, 1, true}
+    ExportDSV = {1,2}
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },

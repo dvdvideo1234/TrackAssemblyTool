@@ -234,23 +234,29 @@ local function GetLogID()
 end
 
 local function Log(vMsg, bCon)
-  local nMaxLogs = GetOpVar("LOG_MAXLOGS")
-  if(nMaxLogs <= 0) then return end
-  local nCurLogs = GetOpVar("LOG_CURLOGS") + 1
-  local logLast, logData = GetOpVar("LOG_LOGLAST"), tostring(vMsg)
-  if(logLast == logData) then return end
-  SetOpVar("LOG_LOGLAST",logData); SetOpVar("LOG_CURLOGS",nCurLogs)
+  local iMax = GetOpVar("LOG_MAXLOGS")
+  if(iMax <= 0) then return end
+  local iCur = GetOpVar("LOG_CURLOGS") + 1
+  local sLast, sData = GetOpVar("LOG_LOGLAST"), tostring(vMsg)
+  if(sLast == sData) then return end
+  SetOpVar("LOG_LOGLAST",sData); SetOpVar("LOG_CURLOGS",iCur)
   if(GetOpVar("LOG_LOGFILE") and not bCon) then
     local lbNam = GetOpVar("NAME_LIBRARY")
     local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_log.txt"
-    if(nCurLogs > nMaxLogs) then nCurLogs = 0; end
-    fileAppend(fName,GetLogID().." ["..GetDate().."] "..logData.."\n")
+    if(iCur > iMax) then iCur = 0; fileDelete(fName) end
+    fileAppend(fName,GetLogID().." ["..GetDate().."] "..sData.."\n")
   else -- The current has values 1..nMaxLogs(0)
-    if(nCurLogs > nMaxLogs) then nCurLogs = 0 end
-    print(GetLogID().." ["..GetDate().."] "..logData)
+    if(iCur > iMax) then iCur = 0 end
+    print(GetLogID().." ["..GetDate().."] "..sData)
   end
 end
 
+--[[
+  vMsg  > Message being displayed
+  bCon  > Force output in console flag
+  tDbg  > Debug table overrive
+  vData > Name of the sub-routine call
+]]
 function LogInstance(vMsg, bCon, tDbg, vData)
   local nMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
   if(nMax and (nMax <= 0)) then return end
@@ -272,8 +278,8 @@ function LogInstance(vMsg, bCon, tDbg, vData)
     sDbg = sDbg.."@"..(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
   end; local sData = (vData and tostring(vData).."." or "")
   local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
-  local sModeDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  Log(sInst.." > "..sToolMD.." ["..sModeDB.."]"..sDbg.." "..sData..sFunc..": "..sMsg, bCon)
+  local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
+  Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sData..sFunc..": "..sMsg, bCon)
 end
 
 function Print(tT,sS,tP)
@@ -1309,7 +1315,7 @@ local function StringPOA(stPOA,sOffs)
   if(not IsHere(stPOA)) then
     LogInstance("Missing Offsets"); return nil end
   local ctA, ctB, ctC = nil, nil, nil
-  local symSep, sModeDB = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("MODE_DATABASE")
+  local symSep, sMoDB = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("MODE_DATABASE")
   if    (sOffs == "V") then ctA, ctB, ctC = cvX, cvY, cvZ
   elseif(sOffs == "A") then ctA, ctB, ctC = caP, caY, caR
   else LogInstance("Missed offset mode "..sOffs); return nil end
@@ -1750,7 +1756,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     LogInstance("Record definition mismatch for "..sTable); return false end
   defTab.Nick = sTable:upper(); defTab.Name = GetOpVar("TOOLNAME_PU")..defTab.Nick
   local self, __qtDef, __qtCmd, logArg = {}, defTab, {}, {nil, nil, defTab.Nick}
-  local symDis, sModeDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
+  local symDis, sMoDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
     defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
     defCol[4] = DefaultString(tostring(defCol[4] or symDis), symDis)
@@ -1772,6 +1778,12 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:GetInfo(vK)
     if(vK) then return debugGetinfo(2, "n")[vK] end
     return debugGetinfo(2, "n")
+  end
+  -- Returns ID of the found column
+  function self:GetColumnID(sN)
+    local sN, qtDef = tostring(sN or ""), self:GetDefinition()
+    for iD = 1, qtDef.Size do if(qtDef[iD][1] == sN) then return iD end
+    end; LogInstance("Mismatch <"..sN..">"); return 0
   end
   -- Reads the method names from the debug information
   function self:UpdateInfo()
@@ -1814,9 +1826,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Navigation failed",unpack(logArg)); return nil end
     if(not IsHere(oSpot[kKey])) then
       LogInstance("Data not found",unpack(logArg)); return nil end
-    local sModeDB = GetOpVar("MODE_DATABASE")
+    local sMoDB = GetOpVar("MODE_DATABASE")
     LogInstance("Called by <"..tostring(vMsg).."> for ["..tostring(kKey).."]",unpack(logArg))
-    if(sModeDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
+    if(sMoDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
       local nNow, tTim = Time(), qtCmd.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",unpack(logArg)); return oSpot[kKey] end
       oSpot[kKey].Used = nNow -- Make the first selected deletable to avoid phantom records
@@ -1844,7 +1856,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
           if(tmCol) then collectgarbage(); LogInstance("Garbage collected",unpack(logArg)) end
         end); timerStart(tmID); return oSpot[kKey]
       else LogInstance("Mode mismatch <"..smTM..">",unpack(logArg)); return oSpot[kKey] end
-    elseif(sModeDB == "LUA") then
+    elseif(sMoDB == "LUA") then
       LogInstance("Memory manager impractical",unpack(logArg)); return oSpot[kKey]
     else LogInstance("Wrong database mode",unpack(logArg)); return nil end
   end
@@ -1855,9 +1867,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Navigation failed",unpack(logArg)); return nil end
     if(not IsHere(oSpot[kKey])) then
       LogInstance("Spot not found",unpack(logArg)); return nil end
-    local sModeDB = GetOpVar("MODE_DATABASE")
+    local sMoDB = GetOpVar("MODE_DATABASE")
     LogInstance("Called by <"..tostring(vMsg).."> for ["..tostring(kKey).."]",unpack(logArg))
-    if(sModeDB == "SQL") then
+    if(sMoDB == "SQL") then
       local tTimer = defTab.Timer; if(not IsHere(tTimer)) then
         LogInstance("Missing timer settings",unpack(logArg)); return oSpot[kKey] end
       oSpot[kKey].Used = Time() -- Mark the current caching time stamp
@@ -1871,7 +1883,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
           LogInstance("Timer missing <"..keyTimerID..">",unpack(logArg)); return nil end
         timerStart(keyTimerID)
       else LogInstance("Mode mismatch <"..smTM..">",unpack(logArg)); return nil end
-    elseif(sModeDB == "LUA") then oSpot[kKey].Used = Time()
+    elseif(sMoDB == "LUA") then oSpot[kKey].Used = Time()
     else LogInstance("Wrong database mode",unpack(logArg)); return nil end
     return oSpot[kKey]
   end
@@ -1923,24 +1935,24 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Col NAN {"..type(ivID)..tostring(ivID).."> invalid",unpack(logArg)); return nil end
     local defCol = qtDef[nvInd]; if(not IsHere(defCol)) then
       LogInstance("Invalid col #"..tostring(nvInd),unpack(logArg)); return nil end
-    local tipCol, sModeDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
+    local tipCol, sMoDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
     if(tipCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsBlank(snOut)) then
-        if    (sModeDB == "SQL") then snOut = "NULL"
-        elseif(sModeDB == "LUA") then snOut = "NULL"
-        else LogInstance("Wrong database empty mode <"..sModeDB..">",unpack(logArg)); return nil end
+        if    (sMoDB == "SQL") then snOut = "NULL"
+        elseif(sMoDB == "LUA") then snOut = "NULL"
+        else LogInstance("Wrong database empty mode <"..sMoDB..">",unpack(logArg)); return nil end
       end
       if    (defCol[3] == "LOW") then snOut = snOut:lower()
       elseif(defCol[3] == "CAP") then snOut = snOut:upper() end
-      if(not bNoRev and sModeDB == "SQL" and defCol[4] == "QMK") then
+      if(not bNoRev and sMoDB == "SQL" and defCol[4] == "QMK") then
         snOut = snOut:gsub("'","''") end
       if(bQuoted) then local sqChar
         if(sQuote) then
           sqChar = tostring(sQuote or ""):sub(1,1)
         else
-          if    (sModeDB == "SQL") then sqChar = "'"
-          elseif(sModeDB == "LUA") then sqChar = "\""
-          else LogInstance("Wrong database quote mode <"..sModeDB..">",unpack(logArg)); return nil end
+          if    (sMoDB == "SQL") then sqChar = "'"
+          elseif(sMoDB == "LUA") then sqChar = "\""
+          else LogInstance("Wrong database quote mode <"..sMoDB..">",unpack(logArg)); return nil end
         end; snOut = sqChar..snOut..sqChar
       end
     elseif(tipCol == "REAL" or tipCol == "INTEGER") then
@@ -2086,7 +2098,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     LogInstance("Key ID ["..defTab.KeyID.."] exists as <"..tostring(defTab.Nick)..">"); return self:Remove(false)
   end; libQTable[defTab.KeyID] = defTab.Nick; libQTable.Size = (libQTable.Size + 1)
   -- When database mode is SQL create a table in sqlite
-  if(sModeDB == "SQL") then local makTab
+  if(sMoDB == "SQL") then local makTab
     makTab = self:Create(); if(not IsHere(makTab)) then
       LogInstance("Build create failed"); return self:Remove(false) end
     makTab = self:Index(unpack(defTab.Index)); if(not IsHere(makTab)) then
@@ -2119,8 +2131,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         end; LogInstance("Indexed table created",unpack(logArg)); return self:IsValid()
       else LogInstance("Table create fail because of "..sqlLastError().." Query ran > "..tQ.Create,unpack(logArg)); return self:Remove(false) end
     end
-  elseif(sModeDB == "LUA") then LogInstance("Created",unpack(logArg)); return self:IsValid()
-  else LogInstance("Wrong database mode <"..sModeDB..">",unpack(logArg)); return self:Remove(false) end
+  elseif(sMoDB == "LUA") then LogInstance("Created",unpack(logArg)); return self:IsValid()
+  else LogInstance("Wrong database mode <"..sMoDB..">",unpack(logArg)); return self:Remove(false) end
 end
 
 function InsertRecord(sTable,arLine)
@@ -2141,11 +2153,11 @@ function InsertRecord(sTable,arLine)
   end -- Read SQL builder object
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("Missing builder for "..sTable); return false end
-  local defTab, sModeDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
+  local defTab, sMoDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   -- Call the trigger when provided
   local tTrg = defTab.Trigs; if(tTrg and IsTable(tTrg) and IsFunction(tTrg[sFunc])) then tTrg[sFunc](arLine) end
   -- Populate the data after the trigger does its thing
-  if(sModeDB == "SQL") then local qsKey = sFunc..sTable
+  if(sMoDB == "SQL") then local qsKey = sFunc..sTable
     for iD = 1, defTab.Size do arLine[iD] = makTab:Match(arLine[iD],iD,true) end
     local Q = CacheStmt(qsKey, nil, unpack(arLine))
     if(not Q) then local sStmt = makTab:Insert():Values(unpack(defTab.Query[sFunc])):Get()
@@ -2157,7 +2169,7 @@ function InsertRecord(sTable,arLine)
     local qRez = sqlQuery(Q); if(not qRez and IsBool(qRez)) then
        LogInstance("Failed to insert a record because of <"..sqlLastError().."> Query ran <"..Q..">"); return false end
     return true -- The dynamic statement insertion was successful
-  elseif(sModeDB == "LUA") then
+  elseif(sMoDB == "LUA") then
     local snPrimaryKey = makTab:Match(arLine[1],1)
     if(not IsHere(snPrimaryKey)) then -- If primary key becomes a number
       LogInstance("Cannot match primary key "..sTable.." <"..tostring(arLine[1]).."> to "..defTab[1][1].." for "..tostring(snPrimaryKey)); return nil end
@@ -2265,8 +2277,8 @@ function CacheQueryPiece(sModel)
       stPiece = makTab:TimerRestart("CacheQueryPiece", defTab.Name, sModel) end
     return stPiece
   else
-    local sModeDB = GetOpVar("MODE_DATABASE")
-    if(sModeDB == "SQL") then
+    local sMoDB = GetOpVar("MODE_DATABASE")
+    if(sMoDB == "SQL") then
       local qModel = makTab:Match(sModel,1,true)
       LogInstance("Model >> Pool <"..sModel:GetFileFromFilename()..">")
       tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Size = 0
@@ -2296,8 +2308,8 @@ function CacheQueryPiece(sModel)
           LogInstance("Cannot process offset #"..tostring(stPiece.Size).." for <"..sModel..">"); return nil end
         stPiece.Size, iCnt = iCnt, (iCnt + 1)
       end; stPiece = makTab:TimerAttach("CacheQueryPiece", defTab.Name, sModel); return stPiece
-    elseif(sModeDB == "LUA") then LogInstance("Record not located"); return nil
-    else LogInstance("Wrong database mode <"..sModeDB..">"); return nil end
+    elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+    else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
 end
 
@@ -2323,8 +2335,8 @@ function CacheQueryAdditions(sModel)
       stAddit = TimerRestart(libCache,caInd,defTab,"CacheQueryAdditions") end
     return stAddit
   else
-    local sModeDB = GetOpVar("MODE_DATABASE")
-    if(sModeDB == "SQL") then
+    local sMoDB = GetOpVar("MODE_DATABASE")
+    if(sMoDB == "SQL") then
       local qModel = makTab:Match(sModel,1,true)
       LogInstance("Model >> Pool <"..sModel:GetFileFromFilename()..">")
       tCache[sModel] = {}; stAddit = tCache[sModel]; stAddit.Size = 0
@@ -2345,8 +2357,8 @@ function CacheQueryAdditions(sModel)
         for col, val in pairs(qRec) do stAddit[iCnt][col] = val end
         stAddit.Size, iCnt = iCnt, (iCnt + 1)
       end; stAddit = makTab:TimerAttach("CacheQueryAdditions", defTab.Name, sModel); return stAddit
-    elseif(sModeDB == "LUA") then LogInstance("Record not located"); return nil
-    else LogInstance("Wrong database mode <"..sModeDB..">"); return nil end
+    elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+    else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
 end
 
@@ -2368,8 +2380,8 @@ function CacheQueryPanel()
     return stPanel
   else
     libCache[keyPan] = {}; stPanel = libCache[keyPan]
-    local sModeDB = GetOpVar("MODE_DATABASE")
-    if(sModeDB == "SQL") then
+    local sMoDB = GetOpVar("MODE_DATABASE")
+    if(sMoDB == "SQL") then
       local Q = CacheStmt("stmtSelectPanel", nil, 1)
       if(not Q) then
         local sStmt = makTab:Select(1,2,3):Where({4,"%d"}):Order(2,3):Get()
@@ -2386,7 +2398,7 @@ function CacheQueryPanel()
       while(qData[iCnt]) do
         stPanel[iCnt] = qData[iCnt]; stPanel.Size, iCnt = iCnt, (iCnt + 1)
       end; stPanel = makTab:TimerAttach("CacheQueryPanel", keyPan); return stPanel
-    elseif(sModeDB == "LUA") then
+    elseif(sMoDB == "LUA") then
       local tCache = libCache[defTab.Name]
       local tSort  = Sort(tCache,{"Type","Name"}); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end; stPanel.Size = 0
@@ -2396,7 +2408,7 @@ function CacheQueryPanel()
         vPanel[defTab[2][1]] = tCache[vSort.Key].Type
         vPanel[defTab[3][1]] = tCache[vSort.Key].Name; stPanel.Size = iCnt
       end; return stPanel
-    else LogInstance("Wrong database mode <"..sModeDB..">"); return nil end
+    else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
     LogInstance("To Pool")
   end
 end
@@ -2412,7 +2424,7 @@ function CacheQueryProperty(sType)
   local defTab = makTab:GetDefinition()
   local tCache = libCache[defTab.Name]; if(not tCache) then
     LogInstance("Cache not allocated for <"..defTab.Name..">"); return nil end
-  local sModeDB = GetOpVar("MODE_DATABASE")
+  local sMoDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
@@ -2425,7 +2437,7 @@ function CacheQueryProperty(sType)
         stName = makTab:TimerRestart("CacheQueryProperty", defTab.Name, keyName, sType) end
       return stName
     else
-      if(sModeDB == "SQL") then
+      if(sMoDB == "SQL") then
         local qType = makTab:Match(sType,1,true)
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
         local Q = CacheStmt("stmtSelectPropertyNames", nil, qType)
@@ -2446,8 +2458,8 @@ function CacheQueryProperty(sType)
           stName.Size, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("Names >> Pool")
         stName = makTab:TimerAttach("CacheQueryProperty", defTab.Name, keyName, sType); return stName
-      elseif(sModeDB == "LUA") then LogInstance("Record not located"); return nil
-      else LogInstance("Wrong database mode <"..sModeDB..">"); return nil end
+      elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+      else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
     end
   else
     local keyType = GetOpVar("HASH_PROPERTY_TYPES")
@@ -2458,7 +2470,7 @@ function CacheQueryProperty(sType)
         stType = makTab:TimerRestart("CacheQueryProperty", defTab.Name, keyType) end
       return stType
     else
-      if(sModeDB == "SQL") then
+      if(sMoDB == "SQL") then
         tCache[keyType] = {}; stType = tCache[keyType]; stType.Size = 0
         local Q = CacheStmt("stmtSelectPropertyTypes", nil, 1)
         if(not Q) then
@@ -2478,8 +2490,8 @@ function CacheQueryProperty(sType)
           stType.Size, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("Types >> Pool")
         stType = makTab:TimerAttach("CacheQueryProperty", defTab.Name, keyType); return stType
-      elseif(sModeDB == "LUA") then LogInstance("Record not located"); return nil
-      else LogInstance("Wrong database mode <"..sModeDB..">"); return nil end
+      elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+      else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
     end
   end
 end
@@ -2602,10 +2614,10 @@ function ExportDSV(sTable, sPref, sDelim)
   local F = fileOpen(fName, "wb", "DATA" ); if(not F) then
     LogInstance("("..sPref..") fileOpen("..fName..") failed"); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), debugGetinfo(1).name
-  local sModeDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
-  F:Write("# ExportDSV: "..GetDate().." [ "..sModeDB.." ]".."\n")
-  F:Write("# Data settings:\t"..makTab:GetColumnList(sDelim).."\n")
-  if(sModeDB == "SQL") then
+  local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
+  F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]".."\n")
+  F:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
+  if(sMoDB == "SQL") then
     local Q = makTab:Select():Order(defTab.Query[sFunc]):Get()
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance("("..sPref..") Build statement failed"); return false end
@@ -2623,7 +2635,7 @@ function ExportDSV(sTable, sPref, sDelim)
         sData = sData..sDelim..makTab:Match(qRec[sHash],iInd,true,"\"",true)
       end; F:Write(sData.."\n"); sData = ""
     end -- Matching will not crash as it is matched during insertion
-  elseif(sModeDB == "LUA") then
+  elseif(sMoDB == "LUA") then
     local tCache = libCache[defTab.Name]
     if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..sPref..") Table <"..defTab.Name.."> cache not allocated"); return false end
@@ -2730,14 +2742,14 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
-  local defTab, sFunc = makTab:GetDefinition(), debugGetinfo(1).name
+  local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
   local fName, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..fPref..defTab.Name..".txt"
   local I, fData, symOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
-  if(I) then local sLine, isEOF, tSet = "", false, defTab.Query[sFunc]
+  if(I) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
       if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
         local tLine = sDelim:Explode(sLine)
@@ -2745,7 +2757,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           for iCnt = 1, #tLine do tLine[iCnt] = GetStrip(tLine[iCnt]) end
           local sKey = tLine[2]; if(not fData[sKey]) then fData[sKey] = {Size = 0} end
           -- Where the lime ID must be read from
-          local tKey, vID, nID = fData[sKey], tLine[tSet[1]]; nID = (tonumber(vID) or 0)
+          local tKey, vID, nID = fData[sKey], tLine[iD+1]; nID = (tonumber(vID) or 0)
           if((tKey.Size < 0) or (nID <= tKey.Size) or ((nID - tKey.Size) ~= 1)) then
             I:Close(); LogInstance("("..fPref..") Read point ID #"..
               tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">"); return false end
@@ -2765,8 +2777,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   else LogInstance("("..fPref..") Creating file <"..fName..">") end
   for key, rec in pairs(tData) do -- Check the given table
     for pnID = 1, #rec do -- Where the line ID must be read from
-      local tRec, vID, nID = rec[pnID]; vID = tRec[tSet[2]]
-      nID = (tonumber(vID) or 0); if(pnID ~= nID and tSet[3]) then
+      local tRec, vID, nID = rec[pnID]; vID = tRec[iD-1]
+      nID = (tonumber(vID) or 0); if(pnID ~= nID) then
           LogInstance("("..fPref..") Given point ID #"..
             tostring(vID).." desynchronized <"..key.."> of "..sTable); return false end
       for nCnt = 1, #tRec do -- Do a value matching without quotes
@@ -2786,8 +2798,9 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref..") Write fileOpen("..fName..") failed"); return false end
-  O:Write("# SynchronizeDSV("..fPref.."):("..fPref..") "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
-  O:Write("# Data settings:\t"..makTab:GetColumnList(sDelim).."\n")
+  local sFunc, sMoDB = debugGetinfo(1).name, GetOpVar("MODE_DATABASE")
+  O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]".."\n")
+  O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   for rcID = 1, tSort.Size do local key = tSort[rcID].Val
     local vRec, sCash, sData = fData[key], defTab.Name..sDelim..key, ""
     for pnID = 1, vRec.Size do local tItem = vRec[pnID]
@@ -2807,7 +2820,7 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
-  local defTab = makTab:GetDefinition()
+  local defTab, sFunc, sMoDB = makTab:GetDefinition(), debugGetinfo(1).name, GetOpVar("MODE_DATABASE")
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
   sNdsv, sNins = sNdsv..GetOpVar("DIRPATH_DSV"), sNins..GetOpVar("DIRPATH_INS")
@@ -2818,8 +2831,8 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") fileOpen("..sNdsv..") failed"); return false end
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
     LogInstance("("..fPref..") fileOpen("..sNins..") failed"); return false end
-  I:Write("# TranslateDSV("..fPref.."@"..sTable.."): "..GetDate().." ["..GetOpVar("MODE_DATABASE").."]\n")
-  I:Write("# Data settings:\t"..makTab:GetColumnList(sDelim).."\n")
+  I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]".."\n")
+  I:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   local pfLib = GetOpVar("NAME_LIBRARY"):gsub(GetOpVar("NAME_INIT"),"")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
   local sFr, sBk, sHs = pfLib..".InsertRecord(\""..sTable.."\", {", "})\n", (fPref.."@"..sTable)
@@ -3789,3 +3802,5 @@ function MakeGhosts(nCnt, sModel)
       eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
+
+function GetTable(k) return (k and libQTable[k] or libQTable) end
