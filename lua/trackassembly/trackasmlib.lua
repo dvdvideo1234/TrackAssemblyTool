@@ -2520,7 +2520,7 @@ function ExportCategory(vEq, tData, sPref)
 end
 
 function ImportCategory(vEq, sPref)
-  if(SERVER) then LogInstance( "ImportCategory: Working on server"); return true end
+  if(SERVER) then LogInstance("Working on server"); return true end
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality <"..tostring(vEq)..">"); return false end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
@@ -2557,7 +2557,7 @@ function ImportCategory(vEq, sPref)
         else LogInstance("Name missing <"..txt..">") end
       else sPar = sPar..sLine.."\n" end
     end
-  end; F:Close(); LogInstance( "ImportCategory: Success"); return true
+  end; F:Close(); LogInstance("Success"); return true
 end
 
 --[[
@@ -3462,7 +3462,7 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
     LogInstance("Player <"..tostring(oPly)"> invalid"); return false end
   local sMode = tostring(sMode or "LOG") -- Error mode is "LOG" by default
   if(sMode == "OFF") then ePiece:SetPos(vPos)
-    LogInstance("SetPosBound("..sMode..") Skip"); return true end
+    LogInstance("("..sMode..") Skip"); return true end
   if(utilIsInWorld(vPos)) then ePiece:SetPos(vPos) else ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
       PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
@@ -3602,7 +3602,7 @@ function SetAsmVarCallback(sName, sType, sHash, fHand)
     cvarsAddChangeCallback(sLong, function(sVar, vOld, vNew)
       local aVal, bS = GetAsmVar(sName, sType), true
       if(type(fHand) == "function") then bS, aVal = pcall(fHand, aVal)
-        if(not bS) then LogInstance(""..tostring(aVal)); return nil end
+        if(not bS) then LogInstance("Fail "..tostring(aVal)); return nil end
         LogInstance("("..sName..") Converted")
       end; LogInstance("("..sName..") <"..tostring(aVal)..">")
       SetOpVar(sHash, aVal) -- Make sure we write down the processed value in the hashes
