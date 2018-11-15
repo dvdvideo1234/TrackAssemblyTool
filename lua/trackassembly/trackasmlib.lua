@@ -1296,22 +1296,22 @@ local function IsEqualPOA(staPOA,stbPOA)
   end; return true
 end
 
-local function IsZeroPOA(stPOA,sOffs)
-  if(not IsString(sOffs)) then
-    LogInstance("Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string"); return nil end
+local function IsZeroPOA(stPOA,sMode)
+  if(not IsString(sMode)) then
+    LogInstance("Mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
   if(not IsHere(stPOA)) then LogInstance("Missing offset"); return nil end
-  local ctA, ctB, ctC = GetIndexes(sOffs); if(not (ctA and ctB and ctC)) then
-    LogInstance("Missed offset mode "..sOffs); return nil end
+  local ctA, ctB, ctC = GetIndexes(sMode); if(not (ctA and ctB and ctC)) then
+    LogInstance("Missed offset mode "..sMode); return nil end
   return (stPOA[ctA] == 0 and stPOA[ctB] == 0 and stPOA[ctC] == 0)
 end
 
-local function StringPOA(stPOA,sOffs)
-  if(not IsString(sOffs)) then
-    LogInstance("Mode {"..type(sOffs).."}<"..tostring(sOffs).."> not string"); return nil end
+local function StringPOA(stPOA,sMode)
+  if(not IsString(sMode)) then
+    LogInstance("Mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
   if(not IsHere(stPOA)) then
     LogInstance("Missing Offsets"); return nil end
-  local ctA, ctB, ctC = GetIndexes(sOffs); if(not (ctA and ctB and ctC)) then
-    LogInstance("Missed offset mode "..sOffs); return nil end
+  local ctA, ctB, ctC = GetIndexes(sMode); if(not (ctA and ctB and ctC)) then
+    LogInstance("Missed offset mode "..sMode); return nil end
   local symSep, sNoAv = GetOpVar("OPSYM_SEPARATOR"), ""
   local svA = tostring(stPOA[ctA] or sNoAv)
   local svB = tostring(stPOA[ctB] or sNoAv)
@@ -1325,8 +1325,8 @@ local function TransferPOA(stOffset,sMode)
   if(not IsString(sMode)) then
     LogInstance("Mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
-  local ctA, ctB, ctC = GetIndexes(sOffs); if(not (ctA and ctB and ctC)) then
-    LogInstance("Missed offset mode "..sOffs); return nil end
+  local ctA, ctB, ctC = GetIndexes(sMode); if(not (ctA and ctB and ctC)) then
+    LogInstance("Missed offset mode <"..sMode..">"); return nil end
   stOffset[ctA], stOffset[ctB], stOffset[ctC] = arPOA[1], arPOA[2], arPOA[3]; return arPOA
 end
 
@@ -2171,7 +2171,7 @@ function InsertRecord(sTable,arLine)
     if(not IsHere(snPrimaryKey)) then -- If primary key becomes a number
       LogInstance("Cannot match primary key "..sTable.." <"..tostring(arLine[1]).."> to "..defTab[1][1].." for "..tostring(snPrimaryKey)); return nil end
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
-      LogInstance("Cache not allocated for "..defTab.Name); return false end
+      LogInstance("Cache missing for "..defTab.Name); return false end
     if(sTable == "PIECES") then
       local stData = tCache[snPrimaryKey]; if(not stData) then
         tCache[snPrimaryKey] = {}; stData = tCache[snPrimaryKey] end
@@ -2267,7 +2267,7 @@ function CacheQueryPiece(sModel)
   local tCache = libCache[defTab.Name] -- Match the model casing
   local sModel = makTab:Match(sModel,1,false,"",true,true)
   if(not IsHere(tCache)) then
-    LogInstance("Cache not allocated for <"..defTab.Name..">"); return nil end
+    LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local stPiece = tCache[sModel]
   if(IsHere(stPiece) and IsHere(stPiece.Size)) then
     if(stPiece.Size <= 0) then stPiece = nil else
@@ -2286,8 +2286,7 @@ function CacheQueryPiece(sModel)
           LogInstance("Build statement failed"); return nil end
         Q = CacheStmt("stmtSelectPiece", sStmt, qModel)
       end
-      local qData = sqlQuery(Q)
-      if(not qData and IsBool(qData)) then
+      local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
       if(not (qData and qData[1])) then
         LogInstance("No data found <"..Q..">"); return nil end
@@ -2296,14 +2295,11 @@ function CacheQueryPiece(sModel)
       stPiece.Type = qData[1][defTab[2][1]]
       stPiece.Name = qData[1][defTab[3][1]]
       stPiece.Unit = qData[1][defTab[8][1]]
-      while(qData[iCnt]) do
-        local qRec = qData[iCnt]
+      while(qData[iCnt]) do local qRec = qData[iCnt]
         if(not IsHere(RegisterPOA(stPiece,iCnt,
-                                      qRec[defTab[5][1]],
-                                      qRec[defTab[6][1]],
-                                      qRec[defTab[7][1]]))) then
-          LogInstance("Cannot process offset #"..tostring(stPiece.Size).." for <"..sModel..">"); return nil end
-        stPiece.Size, iCnt = iCnt, (iCnt + 1)
+          qRec[defTab[5][1]], qRec[defTab[6][1]], qRec[defTab[7][1]]))) then
+          LogInstance("Cannot process offset #"..tostring(iCnt).." for <"..sModel..">"); return nil
+        end; stPiece.Size, iCnt = iCnt, (iCnt + 1)
       end; stPiece = makTab:TimerAttach("CacheQueryPiece", defTab.Name, sModel); return stPiece
     elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
@@ -2325,7 +2321,7 @@ function CacheQueryAdditions(sModel)
   local tCache = libCache[defTab.Name] -- Match the model casing
   local sModel = makTab:Match(sModel,1,false,"",true,true)
   if(not IsHere(tCache)) then
-    LogInstance("Cache not allocated for <"..defTab.Name..">"); return nil end
+    LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local stAddit = tCache[sModel]
   if(IsHere(stAddit) and IsHere(stAddit.Size)) then
     if(stAddit.Size <= 0) then stAddit = nil else
@@ -2386,8 +2382,7 @@ function CacheQueryPanel()
           LogInstance("Build statement failed"); return nil end
         Q = CacheStmt("stmtSelectPanel", sStmt, 1)
       end
-      local qData = sqlQuery(Q)
-      if(not qData and IsBool(qData)) then
+      local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
       if(not (qData and qData[1])) then
         LogInstance("No data found <"..Q..">"); return nil end
@@ -2406,7 +2401,6 @@ function CacheQueryPanel()
         vPanel[defTab[3][1]] = tCache[vSort.Key].Name; stPanel.Size = iCnt
       end; return stPanel
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
-    LogInstance("To Pool")
   end
 end
 
@@ -2420,7 +2414,7 @@ function CacheQueryProperty(sType)
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition()
   local tCache = libCache[defTab.Name]; if(not tCache) then
-    LogInstance("Cache not allocated for <"..defTab.Name..">"); return nil end
+    LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local sMoDB = GetOpVar("MODE_DATABASE")
   if(IsString(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
@@ -2444,8 +2438,7 @@ function CacheQueryProperty(sType)
             LogInstance("Build statement failed"); return nil end
           Q = CacheStmt("stmtSelectPropertyNames", sStmt, qType)
         end
-        local qData = sqlQuery(Q)
-        if(not qData and IsBool(qData)) then
+        local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
           LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
         if(not (qData and qData[1])) then
           LogInstance("No data found <"..Q..">"); return nil end
@@ -2476,8 +2469,7 @@ function CacheQueryProperty(sType)
             LogInstance("Build statement failed"); return nil end
           Q = CacheStmt("stmtSelectPropertyTypes", sStmt, 1)
         end
-        local qData = sqlQuery(Q)
-        if(not qData and IsBool(qData)) then
+        local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
           LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
         if(not (qData and qData[1])) then
           LogInstance("No data found <"..Q..">"); return nil end
@@ -2496,36 +2488,35 @@ end
 ---------------------- EXPORT --------------------------------
 
 --[[
- * Save/Load the DB Using Excel or
- * anything that supports delimiter separated digital tables
- * sTable > Definition KEY to export
+ * Save/Load the category generation
+ * vEq    > Amount of intenal comment depth
  * tData  > The local data table to be exported ( if given )
  * sPref  > Prefix used on exporting ( if not uses instance prefix)
 ]]--
 function ExportCategory(vEq, tData, sPref)
-  if(SERVER) then LogInstance( "ExportCategory: Working on server"); return true end
+  if(SERVER) then LogInstance("Working on server"); return true end
   local nEq   = (tonumber(vEq) or 0); if(nEq <= 0) then
-    LogInstance( "ExportCategory: Wrong equality <"..tostring(vEq)..">"); return false end
-  local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
-    LogInstance("("..sPref..") Prefix empty"); return false end
-  local fName = GetOpVar("DIRPATH_BAS")
+    LogInstance("Wrong equality <"..tostring(vEq)..">"); return false end
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
+    LogInstance("("..fPref..") Prefix empty"); return false end
+  local fName, sFunc = GetOpVar("DIRPATH_BAS"), debugGetinfo(1).name
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..sPref..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
+  fName = fName..fPref..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
   local F = fileOpen(fName, "wb", "DATA")
-  if(not F) then LogInstance("("..sPref..") fileOpen("..fName..") failed from"); return false end
+  if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") failed from"); return false end
   local sEq, nLen, sMod = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (type(tData) == "table") and tData or GetOpVar("TABLE_CATEGORIES")
-  F:Write("# ExportCategory( "..tostring(nEq).." )("..sPref.."): "..GetDate().." [ "..sMod.." ]".."\n")
+  F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDate().." [ "..sMoDB.." ]".."\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
       local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
       if(not rec.Txt:find("\n")) then F:Flush(); F:Close()
-        LogInstance( "ExportCategory("..sPref.."):("..sPref..") Category one-liner <"..cat..">"); return false end
+        LogInstance("("..fPref.."):("..fPref..") Category one-liner <"..cat..">"); return false end
       F:Write(exp.."\n")
-    else F:Flush(); F:Close(); LogInstance( "ExportCategory("..sPref.."):("..sPref..") Category <"..cat.."> code <"..tostring(rec.Txt).."> mismatch"); return false end
-  end; F:Flush(); F:Close(); LogInstance( "ExportCategory("..sPref.."):("..sPref..") Success"); return true
+    else F:Flush(); F:Close(); LogInstance("("..fPref..") Category <"..cat.."> code <"..tostring(rec.Txt).."> mismatch"); return false end
+  end; F:Flush(); F:Close(); LogInstance("("..fPref..") Success"); return true
 end
 
 function ImportCategory(vEq, sPref)
@@ -2603,13 +2594,13 @@ function ExportDSV(sTable, sPref, sDelim)
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder for <"..sTable..">"); return false end
   local defTab = makTab:GetDefinition()
-  local fName, sPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
+  local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..sPref..defTab.Name..".txt"
+  fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "wb", "DATA" ); if(not F) then
-    LogInstance("("..sPref..") fileOpen("..fName..") failed"); return false end
+    LogInstance("("..fPref..") fileOpen("..fName..") failed"); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), debugGetinfo(1).name
   local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
   F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]".."\n")
@@ -2617,13 +2608,12 @@ function ExportDSV(sTable, sPref, sDelim)
   if(sMoDB == "SQL") then
     local Q = makTab:Select():Order(defTab.Query[sFunc]):Get()
     if(not IsHere(Q)) then F:Flush(); F:Close()
-      LogInstance("("..sPref..") Build statement failed"); return false end
+      LogInstance("("..fPref..") Build statement failed"); return false end
     F:Write("# Query ran: <"..Q..">\n")
-    local qData = sqlQuery(Q)
-    if(not qData and IsBool(qData)) then F:Flush(); F:Close()
-      LogInstance("("..sPref..") SQL exec error <"..sqlLastError()..">"); return nil end
+    local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then F:Flush(); F:Close()
+      LogInstance("("..fPref..") SQL exec error <"..sqlLastError()..">"); return nil end
     if(not (qData and qData[1])) then F:Flush(); F:Close()
-      LogInstance("("..sPref..") No data found <"..Q..">"); return false end
+      LogInstance("("..fPref..") No data found <"..Q..">"); return false end
     local sData, sTab = "", defTab.Name
     for iCnt = 1, #qData do
       local qRec  = qData[iCnt]; sData = sTab
@@ -2635,7 +2625,7 @@ function ExportDSV(sTable, sPref, sDelim)
   elseif(sMoDB == "LUA") then
     local tCache = libCache[defTab.Name]
     if(not IsHere(tCache)) then F:Flush(); F:Close()
-      LogInstance("("..sPref..") Table <"..defTab.Name.."> cache not allocated"); return false end
+      LogInstance("("..fPref..") Table <"..defTab.Name.."> cache missing"); return false end
     if(sTable == "PIECES") then local tData = {}
       for sModel, tRecord in pairs(tCache) do
         local sSort   = (tRecord.Type..tRecord.Name..sModel)
@@ -2643,7 +2633,7 @@ function ExportDSV(sTable, sPref, sDelim)
       end
       local tSort = Sort(tData,{defTab[1][1]})
       if(not tSort) then F:Flush(); F:Close()
-        LogInstance("("..sPref..") Cannot sort cache data"); return false end
+        LogInstance("("..fPref..") Cannot sort cache data"); return false end
       for iIdx = 1, tSort.Size do
         local stRec = tSort[iIdx]
         local tData = tCache[stRec.Key]
@@ -2677,12 +2667,12 @@ function ExportDSV(sTable, sPref, sDelim)
       local tTypes = tCache[GetOpVar("HASH_PROPERTY_TYPES")]
       local tNames = tCache[GetOpVar("HASH_PROPERTY_NAMES")]
       if(not (tTypes or tNames)) then F:Flush(); F:Close()
-        LogInstance("("..sPref..") No data found"); return false end
+        LogInstance("("..fPref..") No data found"); return false end
       for iInd = 1, tTypes.Size do
         local sType = tTypes[iInd]
         local tType = tNames[sType]
         if(not tType) then F:Flush(); F:Close()
-          LogInstance("("..sPref..") Missing index #"..iInd.." on type <"..sType..">"); return false end
+          LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">"); return false end
         for iCnt = 1, tType.Size do
           F:Write(defTab.Name..sDelim..makTab:Match(sType      ,1,true,"\"")..
                                sDelim..makTab:Match(iCnt       ,2,true,"\"")..
