@@ -2263,7 +2263,8 @@ function CacheQueryPiece(sModel)
     LogInstance("Model invalid <"..sModel..">"); return nil end
   local makTab = libQTable["PIECES"]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
-  local defTab = makTab:GetDefinition()
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name] -- Match the model casing
   local sModel = makTab:Match(sModel,1,false,"",true,true)
   if(not IsHere(tCache)) then
@@ -2317,7 +2318,8 @@ function CacheQueryAdditions(sModel)
     LogInstance("Model invalid"); return nil end
   local makTab = libQTable["ADDITIONS"]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
-  local defTab = makTab:GetDefinition()
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name] -- Match the model casing
   local sModel = makTab:Match(sModel,1,false,"",true,true)
   if(not IsHere(tCache)) then
@@ -2363,7 +2365,9 @@ end
 function CacheQueryPanel()
   local makTab = libQTable["PIECES"]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
-  local defTab = makTab:GetDefinition(); if(not IsHere(libCache[defTab.Name])) then
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("Missing table definition"); return nil end
+  if(not IsHere(libCache[defTab.Name])) then
     LogInstance("Missing cache allocated <"..defTab.Name..">"); return nil end
   local keyPan = GetOpVar("HASH_USER_PANEL")
   local stPanel = libCache[keyPan]
@@ -2412,7 +2416,8 @@ end
 function CacheQueryProperty(sType)
   local makTab = libQTable["PHYSPROPERTIES"]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
-  local defTab = makTab:GetDefinition()
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not tCache) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local sMoDB = GetOpVar("MODE_DATABASE")
@@ -2454,8 +2459,7 @@ function CacheQueryProperty(sType)
   else
     local keyType = GetOpVar("HASH_PROPERTY_TYPES")
     local stType  = tCache[keyType]
-    if(IsHere(stType) and IsHere(stType.Size)) then
-      LogInstance("Types << Pool")
+    if(IsHere(stType) and IsHere(stType.Size)) then LogInstance("Types << Pool")
       if(stType.Size <= 0) then stType = nil else
         stType = makTab:TimerRestart("CacheQueryProperty", defTab.Name, keyType) end
       return stType
@@ -2572,7 +2576,7 @@ function RemoveDSV(sTable, sPref)
     LogInstance("("..sPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("("..sPref..") Missing table definition"); return nil end
-  local defTab = makTab:GetDefinition(); if(not defTab) then
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..sPref..") Missing table definition for <"..sTable..">"); return false end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")..sPref..defTab.Name..".txt"
   if(not fileExists(fName,"DATA")) then
@@ -2593,7 +2597,8 @@ function ExportDSV(sTable, sPref, sDelim)
     LogInstance("Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder for <"..sTable..">"); return false end
-  local defTab = makTab:GetDefinition()
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("Missing table definition for <"..sTable..">"); return nil end
   local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
@@ -2695,7 +2700,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table definition"); return nil end
-  local defTab = makTab:GetDefinition(); if(not defTab) then
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..fPref..") Missing table definition for <"..sTable..">"); return false end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..fPref..defTab.Name..".txt"
@@ -3789,5 +3794,3 @@ function MakeGhosts(nCnt, sModel)
       eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
-
-function GetTable(k) return (k and libQTable[k] or libQTable) end

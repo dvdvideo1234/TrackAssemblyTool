@@ -74,6 +74,7 @@ local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
 local varLanguage = GetConVar("gmod_language")
+local gtArgsLogs  = {nil, "TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   asmlib.LogInstance("Processing data list fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
@@ -339,7 +340,7 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
   local pointid, pnextid = self:GetPointID()
   local ply, model = self:GetOwner(), self:GetModel()
   if(not asmlib.IntersectRayCreate(ply, trEnt, vHit, "ray_origin")) then
-    asmlib.LogInstance("TOOL:LeftClick(): Failed updating ray"); return nil end
+    asmlib.LogInstance("Failed updating ray"); return nil end
   local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayHash(ply, "ray_origin", "ray_relate")
   if(not xx) then if(bMute) then return nil
     else asmlib.PrintNotifyPly(ply, "Define intersection relation !", "GENERIC")
@@ -414,7 +415,7 @@ function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   -- Reset settings server-side where available and return the value
 end
 
-function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
+function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
   if(not (iMaxlog > 0)) then return "Status N/A" end
   local ply, sDelim  = self:GetOwner(), "\n"
@@ -428,12 +429,12 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
   local nextpic, nextyaw , nextrol = self:GetAngOffsets()
   local hdModel, trModel , trRec   = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(hdModel)
-  if(stTrace and stTrace.Entity and stTrace.Entity:IsValid()) then
-    trModel = stTrace.Entity:GetModel()
+  if(stTr and stTr.Entity and stTr.Entity:IsValid()) then
+    trModel = stTr.Entity:GetModel()
     trRec   = asmlib.CacheQueryPiece(trModel)
   end
   local sDu = ""
-        sDu = sDu..tostring(anyMessage)..sDelim
+        sDu = sDu..tostring(vMsg)..sDelim
         sDu = sDu..sSpace.."Dumping logs state:"..sDelim
         sDu = sDu..sSpace.."  LogsMax:        <"..tostring(iMaxlog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
@@ -448,10 +449,10 @@ function TOOL:GetStatus(stTrace,anyMessage,hdEnt)
         sDu = sDu..sSpace.."  IN.RELOAD:      <"..tostring(asmlib.CheckButtonPly(ply,IN_RELOAD))..">"..sDelim
         sDu = sDu..sSpace.."  IN.SCORE:       <"..tostring(asmlib.CheckButtonPly(ply,IN_SCORE))..">"..sDelim
         sDu = sDu..sSpace.."Dumping trace data state:"..sDelim
-        sDu = sDu..sSpace.."  Trace:          <"..tostring(stTrace)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.Hit:         <"..tostring(stTrace and stTrace.Hit or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTrace and stTrace.HitWorld or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTrace and stTrace.Entity or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  Trace:          <"..tostring(stTr)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.Hit:         <"..tostring(stTr and stTr.Hit or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTr and stTr.HitWorld or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTr and stTr.Entity or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]"..sDelim
         sDu = sDu..sSpace.."  TR.File:        <"..(trModel and tostring(trModel):GetFileFromFilename() or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
@@ -518,11 +519,11 @@ end
 
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then
-    asmlib.LogInstance("TOOL:LeftClick(): Working on client"); return true end
+    asmlib.LogInstance("Working on client",unpack(gtArgsLogs)); return true end
   if(not stTrace) then
-    asmlib.LogInstance("TOOL:LeftClick(): Trace missing"); return false end
+    asmlib.LogInstance("Trace missing",unpack(gtArgsLogs)); return false end
   if(not stTrace.Hit) then
-    asmlib.LogInstance("TOOL:LeftClick(): Trace not hit"); return false end
+    asmlib.LogInstance("Trace not hit",unpack(gtArgsLogs)); return false end
   local trEnt     = stTrace.Entity
   local weld      = self:GetWeld()
   local mass      = self:GetMass()
@@ -564,7 +565,7 @@ function TOOL:LeftClick(stTrace)
       local stSpawn = asmlib.GetNormalSpawn(ply,stTrace.HitPos + elevpnt * stTrace.HitNormal,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then -- Make sure it persists to set it afterwards
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(World): Cannot obtain spawn data")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(World) Cannot obtain spawn data"),unpack(gtArgsLogs)); return false end
       vPos:Set(stSpawn.SPos); aAng:Set(stSpawn.SAng)
     end
     local ePiece = asmlib.MakePiece(ply,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
@@ -576,46 +577,46 @@ function TOOL:LeftClick(stTrace)
         vCen:Rotate(aAng); vPos:Add(vCen); ePiece:SetPos(vPos)
       end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical settings",ePiece)); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical settings",ePiece),unpack(gtArgsLogs)); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,forcelim)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to apply physical anchor",ePiece)); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical anchor",ePiece),unpack(gtArgsLogs)); return false end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.UndoAddEntityPly(ePiece)
       asmlib.UndoFinishPly(ply)
-      asmlib.LogInstance("TOOL:LeftClick(World): Success"); return true
+      asmlib.LogInstance("(World) Success",unpack(gtArgsLogs)); return true
     end
-    asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(World): Failed to create")); return false
+    asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to create"),unpack(gtArgsLogs)); return false
   end
 
   if(not (trEnt and trEnt:IsValid())) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace entity invalid")); return false end
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace entity invalid"),unpack(gtArgsLogs)); return false end
   if(asmlib.IsOther(trEnt)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace other object")); return false end
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace other object"),unpack(gtArgsLogs)); return false end
   if(not asmlib.IsPhysTrace(stTrace)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace not physical object")); return false end
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace not physical object"),unpack(gtArgsLogs)); return false end
 
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-  if(not trRec) then asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Trace model not piece")); return false end
+  if(not trRec) then asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace model not piece"),unpack(gtArgsLogs)); return false end
 
   local hdRec = asmlib.CacheQueryPiece(model)
-  if(not hdRec) then asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Prop): Holder model not piece")); return false end
+  if(not hdRec) then asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Holder model not piece"),unpack(gtArgsLogs)); return false end
 
   local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
   if(not stSpawn) then -- Not aiming into an active point update settings/properties
     if(asmlib.CheckButtonPly(ply,IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical settings",ePiece)); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical settings",ePiece),unpack(gtArgsLogs)); return false end
       if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,forcelim)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Physical): Failed to apply physical anchor",ePiece)); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",ePiece),unpack(gtArgsLogs)); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
-      asmlib.LogInstance("TOOL:LeftClick(Physical): Success"); return true
+      asmlib.LogInstance("(Physical) Success"); return true
     else -- Visual
       local IDs = gsSymDir:Explode(bgskids)
       if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Bodygroup/Skin): Failed")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Bodygroup/Skin) Failed"),unpack(gtArgsLogs)); return false end
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
-      asmlib.LogInstance("TOOL:LeftClick(Bodygroup/Skin): Success"); return true
+      asmlib.LogInstance("(Bodygroup/Skin) Success"); return true
     end
   end -- IN_SPEED: Switch the tool mode ( Stacking )
   if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
@@ -627,7 +628,7 @@ function TOOL:LeftClick(stTrace)
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
     if(not hdOffs) then -- Make sure it is present
       asmlib.PrintNotifyPly(ply,"Cannot find next PointID !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Stack): Missing next point ID")); return false
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID")); return false
     end -- Validated existent next point ID
     asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(stackcnt).." )")
     while(iNdex <= stackcnt) do
@@ -635,11 +636,11 @@ function TOOL:LeftClick(stTrace)
       ePieceN = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePieceN) then -- Set position is valid
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply physical settings fail")); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply physical settings fail")); return false end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,forcelim)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply weld fail")); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply weld fail")); return false end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,forcelim)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Apply no-collide fail")); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply no-collide fail")); return false end
         asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntityPly(ePieceN)
         if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
@@ -649,36 +650,36 @@ function TOOL:LeftClick(stTrace)
         if(not stSpawn) then -- Look both ways in a one way street :D
           asmlib.PrintNotifyPly(ply,"Cannot obtain spawn data!","ERROR")
           asmlib.UndoFinishPly(ply,sIterat)
-          asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": Stacking has invalid user data")); return false
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Stacking has invalid user data")); return false
         end -- Spawn data is valid for the current iteration iNdex
         ePieceO, iNdex, iTrys = ePieceN, (iNdex + 1), maxstatts
       else iTrys = iTrys - 1 end
       if(iTrys <= 0) then
         asmlib.UndoFinishPly(ply,sIterat) --  Make it shoot but throw the error
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Stack)"..sIterat..": All stack attempts fail")); return true
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": All stack attempts fail")); return true
       end -- We still have enough memory to preform the stacking
     end
     asmlib.UndoFinishPly(ply)
-    asmlib.LogInstance("TOOL:LeftClick(Stack): Success"); return true
+    asmlib.LogInstance("(Stack) Success"); return true
   else -- Switch the tool mode ( Snapping )
     if(workmode == 2) then -- Make a ray intersection spawn update
       if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
-        asmlib.LogInstance("TOOL:LeftClick(Ray): Skip intersection sequence. Snapping") end
+        asmlib.LogInstance("(Ray) Skip intersection sequence. Snapping") end
     end
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply physical settings fail")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail")); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply weld fail")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply weld fail")); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,forcelim)) then       -- NoCollide all to previous
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Apply no-collide fail")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply no-collide fail")); return false end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Snap prop )")
       asmlib.UndoAddEntityPly(ePiece)
       asmlib.UndoFinishPly(ply)
-      asmlib.LogInstance("TOOL:LeftClick(Snap): Success"); return true
+      asmlib.LogInstance("(Snap) Success"); return true
     end
-    asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:LeftClick(Snap): Crating piece fail")); return false
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Crating piece fail")); return false
   end
 end
 
