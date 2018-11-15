@@ -252,12 +252,12 @@ local function Log(vMsg, bCon)
 end
 
 --[[
-  vMsg  > Message being displayed
-  bCon  > Force output in console flag
-  tDbg  > Debug table overrive
-  vData > Name of the sub-routine call
+  vMsg > Message being displayed
+  bCon > Force output in console flag
+  vSrc > Name of the sub-routine call
+  tDbg > Debug table overrive
 ]]
-function LogInstance(vMsg, bCon, tDbg, vData)
+function LogInstance(vMsg, bCon, vSrc, tDbg)
   local nMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
   if(nMax and (nMax <= 0)) then return end
   local sMsg, oStat = tostring(vMsg), GetOpVar("LOG_SKIP")
@@ -276,10 +276,10 @@ function LogInstance(vMsg, bCon, tDbg, vData)
     sDbg = sDbg.." "..(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV)
     sDbg = sDbg..(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV)
     sDbg = sDbg.."@"..(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
-  end; local sData = (vData and tostring(vData).."." or "")
+  end; local sSrc = (vSrc and tostring(vSrc).."." or "")
   local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sData..sFunc..": "..sMsg, bCon)
+  Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sSrc..sFunc..": "..sMsg, bCon)
 end
 
 function Print(tT,sS,tP)
@@ -1752,7 +1752,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   if(defTab.Size ~= tableMaxn(defTab)) then
     LogInstance("Record definition mismatch for "..sTable); return false end
   defTab.Nick = sTable:upper(); defTab.Name = GetOpVar("TOOLNAME_PU")..defTab.Nick
-  local self, __qtDef, __qtCmd, logArg = {}, defTab, {}, {nil, nil, defTab.Nick}
+  local self, __qtDef, __qtCmd, logArg = {}, defTab, {}, {nil, defTab.Nick}
   local symDis, sMoDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
     defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
