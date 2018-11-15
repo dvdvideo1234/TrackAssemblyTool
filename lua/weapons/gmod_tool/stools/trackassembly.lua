@@ -302,7 +302,7 @@ function TOOL:SwitchPoint(nDir, bIsNext)
   if(pointid == pnextid) then pnextid = pointbu end
   RunConsoleCommand(gsToolPrefL.."pnextid", pnextid)
   RunConsoleCommand(gsToolPrefL.."pointid", pointid)
-  asmlib.LogInstance("TOOL:SwitchPoint("..tostring(Dir)..","..tostring(bIsNext).."): Success")
+  asmlib.LogInstance("("..tostring(Dir)..","..tostring(bIsNext)..") Success",unpack(gtArgsLogs))
   return pointid, pnextid
 end
 
@@ -315,7 +315,7 @@ function TOOL:IntersectClear(bMute)
       if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w"))
         sRel = ryEnt:EntIndex()..gsSymRev..ryEnt:GetModel():GetFileFromFilename() end
       if(not bMute) then sRel = (sRel and (": "..tostring(sRel)) or "")
-        asmlib.LogInstance("TOOL:IntersectClear: Relation cleared"..sRel)
+        asmlib.LogInstance("Relation cleared <"..sRel..">",unpack(gtArgsLogs))
         asmlib.PrintNotifyPly(oPly,"Intersect relation clear"..sRel.." !","CLEANUP")
       end -- Make sure to delete the relation on both client and server
     end
@@ -326,7 +326,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
   self:IntersectClear(true) -- Clear intersect related player on new relation
   local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")
   if(not stRay) then -- Create/update the ray in question
-    asmlib.LogInstance("TOOL:IntersectRelate(): Update fail"); return false end
+    asmlib.LogInstance("Update fail",unpack(gtArgsLogs)); return false end
   if(SERVER) then -- Only the server is allowed to define relation ray
     netStart(gsLibName.."SendIntersectRelate")
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
@@ -340,15 +340,15 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
   local pointid, pnextid = self:GetPointID()
   local ply, model = self:GetOwner(), self:GetModel()
   if(not asmlib.IntersectRayCreate(ply, trEnt, vHit, "ray_origin")) then
-    asmlib.LogInstance("Failed updating ray"); return nil end
+    asmlib.LogInstance("Failed updating ray",unpack(gtArgsLogs)); return nil end
   local xx, x1, x2, stRay1, stRay2 = asmlib.IntersectRayHash(ply, "ray_origin", "ray_relate")
   if(not xx) then if(bMute) then return nil
     else asmlib.PrintNotifyPly(ply, "Define intersection relation !", "GENERIC")
-      asmlib.LogInstance( "TOOL:IntersectSnap(): Active ray mismatch"); return nil end
+      asmlib.LogInstance("Active ray mismatch",unpack(gtArgsLogs)); return nil end
   end
   local mx, o1, o2 = asmlib.IntersectRayModel(model, pointid, pnextid)
   if(not mx) then if(bMute) then return nil
-    else asmlib.LogInstance( "TOOL:IntersectSnap(): Model ray mismatch"); return nil end
+    else asmlib.LogInstance("Model ray mismatch",unpack(gtArgsLogs)); return nil end
   end
   local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt[cvX], stSpawn.PNxt[cvY], stSpawn.PNxt[cvZ]
   if(self:ApplyAngularFirst()) then aOrg = stRay1.Diw end
@@ -378,26 +378,26 @@ function TOOL:ClearAnchor(bMute)
     if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
       asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP") end
-  end; asmlib.LogInstance("TOOL:ClearAnchor("..tostring(bMute).."): Anchor cleared"); return true
+  end; asmlib.LogInstance("("..tostring(bMute)..") Anchor cleared",unpack(gtArgsLogs)); return true
 end
 
 function TOOL:SetAnchor(stTrace)
   self:ClearAnchor(true)
-  if(not stTrace) then asmlib.LogInstance("TOOL:SetAnchor(): Trace invalid"); return false end
-  if(not stTrace.Hit) then asmlib.LogInstance("TOOL:SetAnchor(): Trace not hit"); return false end
+  if(not stTrace) then asmlib.LogInstance("Trace invalid",unpack(gtArgsLogs)); return false end
+  if(not stTrace.Hit) then asmlib.LogInstance("Trace not hit",unpack(gtArgsLogs)); return false end
   local trEnt = stTrace.Entity
-  if(not (trEnt and trEnt:IsValid())) then asmlib.LogInstance("TOOL:SetAnchor(): Trace no entity"); return false end
+  if(not (trEnt and trEnt:IsValid())) then asmlib.LogInstance("Trace no entity",unpack(gtArgsLogs)); return false end
   local phEnt = trEnt:GetPhysicsObject()
-  if(not (phEnt and phEnt:IsValid())) then asmlib.LogInstance("TOOL:SetAnchor(): Trace no physics"); return false end
+  if(not (phEnt and phEnt:IsValid())) then asmlib.LogInstance("Trace no physics",unpack(gtArgsLogs)); return false end
   local plPly = self:GetOwner()
-  if(not (plPly and plPly:IsValid())) then asmlib.LogInstance("TOOL:SetAnchor(): Player invalid"); return false end
+  if(not (plPly and plPly:IsValid())) then asmlib.LogInstance("Player invalid",unpack(gtArgsLogs)); return false end
   local sAnchor = trEnt:EntIndex()..gsSymRev..trEnt:GetModel():GetFileFromFilename()
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
   trEnt:SetColor(conPalette:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
   asmlib.ConCommandPly(plPly,"anchor",sAnchor)
   asmlib.PrintNotifyPly(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
-  asmlib.LogInstance("TOOL:SetAnchor("..sAnchor..")"); return true
+  asmlib.LogInstance("("..sAnchor..")",unpack(gtArgsLogs)); return true
 end
 
 function TOOL:GetAnchor()
@@ -506,7 +506,7 @@ end
 
 function TOOL:SelectModel(sModel)
   local trRec = asmlib.CacheQueryPiece(sModel); if(not trRec) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:SelectModel: Model <"..sModel.."> not piece")); return false end
+    asmlib.LogInstance(self:GetStatus(stTrace,"Model <"..sModel.."> not piece"),unpack(gtArgsLogs)); return false end
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
         pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Size)
@@ -514,7 +514,7 @@ function TOOL:SelectModel(sModel)
   asmlib.ConCommandPly (ply,"pointid", pointid)
   asmlib.ConCommandPly (ply,"pnextid", pnextid)
   asmlib.ConCommandPly (ply, "model" , sModel)
-  asmlib.LogInstance("TOOL:SelectModel: Success <"..sModel..">"); return true
+  asmlib.LogInstance("Success <"..sModel..">",unpack(gtArgsLogs)); return true
 end
 
 function TOOL:LeftClick(stTrace)
@@ -688,8 +688,8 @@ end
  * Changes the active point chosen by the holder or copy the model
 ]]--
 function TOOL:RightClick(stTrace)
-  if(CLIENT) then asmlib.LogInstance("TOOL:RightClick(): Working on client"); return true end
-  if(not stTrace) then asmlib.LogInstance("TOOL:RightClick(): Trace missing"); return false end
+  if(CLIENT) then asmlib.LogInstance("Working on client",unpack(gtArgsLogs)); return true end
+  if(not stTrace) then asmlib.LogInstance("Trace missing",unpack(gtArgsLogs)); return false end
   local trEnt     = stTrace.Entity
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
@@ -697,33 +697,33 @@ function TOOL:RightClick(stTrace)
   if(stTrace.HitWorld) then
     if(asmlib.CheckButtonPly(ply,IN_USE)) then
       asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
-      asmlib.LogInstance("TOOL:RightClick(World): Success open frame"); return true
+      asmlib.LogInstance("(World) Success open frame",unpack(gtArgsLogs)); return true
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr) then
       if(not self:SelectModel(trEnt:GetModel())) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")); return false end
-      asmlib.LogInstance("TOOL:RightClick(Select,"..tostring(enpntmscr).."): Success"); return true
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),unpack(gtArgsLogs)); return false end
+      asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",unpack(gtArgsLogs)); return true
     else
       if(asmlib.CheckButtonPly(ply,IN_USE)) then
         if(not self:SelectModel(trEnt:GetModel())) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:RightClick(Select,"..tostring(enpntmscr).."): Model not piece")); return false end
-        asmlib.LogInstance("TOOL:RightClick(Select,"..tostring(enpntmscr).."): Success"); return true
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),unpack(gtArgsLogs)); return false end
+        asmlib.LogInstance("TOOL:RightClick(Select,"..tostring(enpntmscr)..") Success",unpack(gtArgsLogs)); return true
       end
     end
   end
   if(not enpntmscr) then
     local Dir = (asmlib.CheckButtonPly(ply,IN_SPEED) and -1) or 1
     self:SwitchPoint(Dir,asmlib.CheckButtonPly(ply,IN_DUCK))
-    asmlib.LogInstance("TOOL:RightClick(Point): Success"); return true
+    asmlib.LogInstance("(Point) Success",unpack(gtArgsLogs)); return true
   end
 end
 
 function TOOL:Reload(stTrace)
   if(CLIENT) then
-    asmlib.LogInstance("TOOL:Reload(): Working on client"); return true end
+    asmlib.LogInstance("Working on client",unpack(gtArgsLogs)); return true end
   if(not stTrace) then
-    asmlib.LogInstance("TOOL:Reload(): Invalid trace"); return false end
+    asmlib.LogInstance("Invalid trace",unpack(gtArgsLogs)); return false end
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
@@ -731,7 +731,7 @@ function TOOL:Reload(stTrace)
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(self:GetExportDB()) then
-      asmlib.LogInstance("TOOL:Reload(World): Exporting DB")
+      asmlib.LogInstance("(World) Exporting DB")
       asmlib.ExportDSV("PIECES")
       asmlib.ExportDSV("ADDITIONS")
       asmlib.ExportDSV("PHYSPROPERTIES")
@@ -739,29 +739,29 @@ function TOOL:Reload(stTrace)
     end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
       if(workmode == 1) then self:ClearAnchor(false)
-        asmlib.LogInstance("TOOL:Reload(Anchor): Clear")
+        asmlib.LogInstance("Anchor Clear",unpack(gtArgsLogs))
       elseif(workmode == 2) then self:IntersectClear(false)
-        asmlib.LogInstance("TOOL:Reload(Relate): Clear")
+        asmlib.LogInstance("Relate Clear",unpack(gtArgsLogs))
       end
-    end; asmlib.LogInstance("TOOL:Reload(World): Success"); return true
+    end; asmlib.LogInstance("World Success"); return true
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
-      asmlib.LogInstance("TOOL:Reload(Prop): Trace other object"); return false end
+      asmlib.LogInstance("Prop trace other object",unpack(gtArgsLogs)); return false end
     if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
       if(workmode == 1) then -- General anchor
         if(not self:SetAnchor(stTrace)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:Reload(Prop): Anchor set fail")); return false end
-        asmlib.LogInstance("TOOL:Reload(Prop): Anchor set"); return true
+          asmlib.LogInstance(self:GetStatus(stTrace,"Prop anchor set fail"),unpack(gtArgsLogs)); return false end
+        asmlib.LogInstance("Prop anchor set"); return true
       elseif(workmode == 2) then -- Intersect relation
         if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"TOOL:Reload(Prop): Relation set fail")); return false end
-        asmlib.LogInstance("TOOL:Reload(Prop): Relation set"); return true
+          asmlib.LogInstance(self:GetStatus(stTrace,"Prop relation set fail"),unpack(gtArgsLogs)); return false end
+        asmlib.LogInstance("Prop relation set"); return true
       end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(asmlib.IsHere(trRec)) then trEnt:Remove()
-      asmlib.LogInstance("TOOL:Reload(Prop): Removed a piece"); return true
+      asmlib.LogInstance("Prop removed a piece",unpack(gtArgsLogs)); return true
     end
   end
   return false
@@ -839,6 +839,8 @@ function TOOL:UpdateGhost(oPly)
   end
 end
 
+--- Is it needed as it has ghost stack ?
+--- Maybe it has to be changed to match the new stack
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
     asmlib.LogInstance( "TOOL:ElevateGhost: Player invalid <"..tostring(oPly)..">"); return nil end
@@ -930,7 +932,7 @@ function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
-      asmlib.LogInstance("TOOL:DrawRelateAssist: Cannot locate #"..tostring(ID)); return nil end
+      asmlib.LogInstance("Cannot locate #"..tostring(ID),unpack(gtArgsLogs)); return nil end
     asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
     oScreen:DrawCircle(vTmp:ToScreen(), 4 * nRad, "y"); vTmp:Sub(trHit)
     if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
@@ -947,7 +949,7 @@ function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
   local O, R = Vector(), (nActRad * oPly:GetRight())
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
-      asmlib.LogInstance("TOOL:DrawSnapAssist: Cannot locate #"..tostring(ID)); return nil end
+      asmlib.LogInstance("Cannot locate #"..tostring(ID),unpack(gtArgsLogs)); return nil end
     asmlib.SetVector(O,stPOA.O); O:Rotate(trAng); O:Add(trPos)
     local Op = O:ToScreen(); O:Add(R)
     local Rp = O:ToScreen(); asmlib.SubXY(Rp, Rp, Op)
@@ -1009,9 +1011,9 @@ function TOOL:DrawHUD()
     local scrH = surfaceScreenHeight()
     hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
     if(not hudMonitor) then
-      asmlib.LogInstance("TOOL:DrawHUD: Invalid screen"); return nil end
+      asmlib.LogInstance("Invalid screen",unpack(gtArgsLogs)); return nil end
     asmlib.SetOpVar("MONITOR_GAME", hudMonitor)
-    asmlib.LogInstance("TOOL:DrawHUD: Create screen")
+    asmlib.LogInstance("Create screen",unpack(gtArgsLogs))
   end; hudMonitor:SetColor()
   if(not self:GetAdviser()) then return end
   local oPly = LocalPlayer()
@@ -1130,9 +1132,9 @@ function TOOL:DrawToolScreen(w, h)
   if(not scrTool) then
     scrTool = asmlib.MakeScreen(0,0,w,h,conPalette)
     if(not scrTool) then
-      asmlib.LogInstance("TOOL:DrawToolScreen: Invalid screen"); return nil end
+      asmlib.LogInstance("Invalid screen",unpack(gtArgsLogs)); return nil end
     asmlib.SetOpVar("MONITOR_TOOL", scrTool)
-    asmlib.LogInstance("TOOL:DrawToolScreen: Create screen")
+    asmlib.LogInstance("Create screen",unpack(gtArgsLogs))
   end; local xyT, xyB = scrTool:GetCorners(); scrTool:SetColor()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
   scrTool:SetTextEdge(xyT.x,xyT.y)
@@ -1220,9 +1222,9 @@ function TOOL.BuildCPanel(CPanel)
   }); CurY = CurY + pItem:GetTall() + 2
 
   local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
-    asmlib.LogInstance("Panel population empty", true); return nil end
+    asmlib.LogInstance("Panel population empty",unpack(gtArgsLogs)); return nil end
   local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
-    asmlib.LogInstance("TOOL:BuildCPanel: Missing builder table"); return nil end
+    asmlib.LogInstance("Missing builder table",unpack(gtArgsLogs)); return nil end
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel)
@@ -1277,12 +1279,12 @@ function TOOL.BuildCPanel(CPanel)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end -- SnapReview is ignored because a query must be executed for points count
-    else asmlib.LogInstance("TOOL:BuildCPanel: Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !") end
+    else asmlib.LogInstance("Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !",unpack(gtArgsLogs)) end
     iCnt = iCnt + 1
   end
   CPanel:AddItem(pTree)
   CurY = CurY + pTree:GetTall() + 2
-  asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.")
+  asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.",unpack(gtArgsLogs))
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local pComboToolMode = vguiCreate("DComboBox", CPanel)
@@ -1312,14 +1314,14 @@ function TOOL.BuildCPanel(CPanel)
           RunConsoleCommand(gsToolPrefL.."physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
-    asmlib.LogInstance("Property population empty", true); return nil end
+    asmlib.LogInstance("Property population empty",unpack(gtArgsLogs)); return nil end
   while(cqProperty[iTyp]) do pComboPhysType:AddChoice(cqProperty[iTyp]); iTyp = iTyp + 1 end
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local cqNames = asmlib.CacheQueryProperty(sVal)
     if(cqNames) then local iNam = 1; pComboPhysName:Clear()
       pComboPhysName:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def"))
       while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
-    else asmlib.LogInstance("TOOL:BuildCPanel: Property type <"..sVal.."> names mismatch") end
+    else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",unpack(gtArgsLogs)) end
   end
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
