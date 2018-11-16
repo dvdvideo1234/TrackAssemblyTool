@@ -1718,7 +1718,7 @@ local function CacheStmt(sHash,sStmt,...)
   local sHash, tStore = tostring(sHash), GetOpVar("QUERY_STORE")
   if(not IsHere(tStore)) then LogInstance("Missing storage"); return nil end
   if(IsHere(sStmt)) then -- If the key is located return the query
-    tStore[sHash] = tostring(sStmt); Print(tStore,"STMT") end
+    tStore[sHash] = tostring(sStmt); LogTable(tStore,"STMT") end
   local sBase = tStore[sHash]; if(not IsHere(sBase)) then
     LogInstance("("..sHash..") Mismatch"); return nil end
   return sBase:format(...)
@@ -1784,7 +1784,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:GetColumnID(sN)
     local sN, qtDef = tostring(sN or ""), self:GetDefinition()
     for iD = 1, qtDef.Size do if(qtDef[iD][1] == sN) then return iD end
-    end; LogInstance("Mismatch <"..sN..">"); return 0
+    end; LogInstance("Mismatch <"..tostring(sN)..">"); return 0
   end
   -- Reads the method names from the debug information
   function self:UpdateInfo()
@@ -1875,10 +1875,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       local smTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
       if(smTM == "CQT") then smTM = "CQT"
       elseif(smTM == "OBJ") then
-        local keyTimerID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys)
-        if(not timerExists(keyTimerID)) then
-          LogInstance("Timer missing <"..keyTimerID..">",tabDef.Nick); return nil end
-        timerStart(keyTimerID)
+        local kID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys); if(not timerExists(kID)) then
+          LogInstance("Timer missing <"..kID..">",tabDef.Nick); return nil end
+        timerStart(kID)
       else LogInstance("Mode mismatch <"..smTM..">",tabDef.Nick); return nil end
     elseif(sMoDB == "LUA") then oSpot[kKey].Used = Time()
     else LogInstance("Wrong database mode",tabDef.Nick); return nil end
@@ -1992,18 +1991,19 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- Build SQL table indexes
   function self:Index(...) local tIndex = {...}
-    if(not tIndex[1]) then return self end
     local qtCmd, qtDef = self:GetCommand(), self:GetDefinition()
-    local iCnt, iInd = 1, 1; qtCmd.Index = {}
-    while(tIndex[iInd]) do
+    if(not (IsTable(tIndex) and tIndex[1])) then
+      tIndex = qtDef.Index end -- Empty stack use table definition
+    if(IsTable(qtCmd.Index)) then tableEmpty(qtCmd.Index)
+      else qtCmd.Index = {} end; local iCnt, iInd = 1, 1
+    while(tIndex[iInd]) do -- Build index query and reload index commands
       local vI = tIndex[iInd]; if(type(vI) ~= "table") then
-        LogInstance("Mismatch value ["..vI.."] not table for ID ["..tostring(iInd).."]",tabDef.Nick); return nil end
+        LogInstance("Mismatch value ["..tostring(vI).."] not table for ID ["..tostring(iInd).."]",tabDef.Nick); return nil end
       local cU, cC = "", ""; qtCmd.Index[iInd], iCnt = "CREATE INDEX IND_"..qtDef.Name, 1
-      while(vI[iCnt]) do
-        local vF = tonumber(vI[iCnt]); if(not vF) then
-          LogInstance("Mismatch value ["..vF.."] NaN for ID ["..tostring(iInd).."]["..tostring(iCnt).."]",tabDef.Nick); return nil end
+      while(vI[iCnt]) do local vF = tonumber(vI[iCnt]); if(not vF) then
+          LogInstance("Mismatch value ["..tostring(vI[iCnt]).."] NaN for ID ["..tostring(iInd).."]["..tostring(iCnt).."]",tabDef.Nick); return nil end
         if(not qtDef[vF]) then
-          LogInstance("Mismatch. The col ID #"..vF.." missing, max is #"..Table.Size,tabDef.Nick); return nil end
+          LogInstance("Mismatch. The col ID #"..tostring(vF).." missing, max is #"..Table.Size,tabDef.Nick); return nil end
         cU, cC = (cU.."_" ..(qtDef[vF][1]):upper()), (cC..(qtDef[vF][1]):upper()); vI[iCnt] = vF
         iCnt = iCnt + 1; if(vI[iCnt]) then cC = cC ..", " end
       end
@@ -2021,9 +2021,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         local v = tonumber(tCols[iCnt]); if(not IsHere(v)) then
           LogInstance("Index NAN {"..type(tCols[iCnt]).."}<"..tostring(tCols[iCnt]).."> type mismatch",tabDef.Nick); return nil end
         if(not qtDef[v]) then
-          LogInstance("Missing col by index #"..v,tabDef.Nick); return nil end
+          LogInstance("Missing col by index #"..tostring(v),tabDef.Nick); return nil end
         if(qtDef[v][1]) then sStmt = sStmt..qtDef[v][1]
-        else LogInstance("Missing col name by index #"..v,tabDef.Nick); return nil end
+        else LogInstance("Missing col name by index #"..tostring(v),tabDef.Nick); return nil end
         iCnt = (iCnt + 1); if(tCols[iCnt]) then sStmt = sStmt ..", " end
       end
     else sStmt = sStmt.."*" end
@@ -2038,7 +2038,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       local v, t = tWhere[iCnt][2], qtDef[k][2]; if(not (k and v and t) ) then
         LogInstance("Where clause inconsistent col index, {"..tostring(k)..","..tostring(v)..","..tostring(t).."}",tabDef.Nick); return nil end
       if(not IsHere(v)) then
-        LogInstance("Data matching failed index #"..iCnt.." value <"..tostring(v)..">",tabDef.Nick); return nil end
+        LogInstance("Data matching failed index #"..tostring(iCnt).." value <"..tostring(v)..">",tabDef.Nick); return nil end
       if(iCnt == 1) then qtCmd.Select = qtCmd.Select.." WHERE "..qtDef[k][1].." = "..tostring(v)
       else               qtCmd.Select = qtCmd.Select.." AND "  ..qtDef[k][1].." = "..tostring(v) end
       iCnt = iCnt + 1
@@ -2053,7 +2053,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     while(tOrder[iCnt]) do local v = tOrder[iCnt]
       if(v ~= 0) then if(v > 0) then sDir = " ASC"
         else sDir, tOrder[iCnt] = " DESC", -v; v = -v end
-      else LogInstance("Mismatch col index #"..iCnt,tabDef.Nick); return nil end
+      else LogInstance("Mismatch col index #"..tostring(iCnt),tabDef.Nick); return nil end
       sStmt, iCnt = (sStmt..qtDef[v][1]..sDir), (iCnt + 1)
       if(tOrder[iCnt]) then sStmt = sStmt..", " end
     end; qtCmd.Select = qtCmd.Select..sStmt..";" return self
@@ -2092,13 +2092,13 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     defTab.KeyID = (libQTable.Size + 1)
   else defTab.KeyID = tonumber(defTab.KeyID) end
   if(libQTable[defTab.KeyID]) then
-    LogInstance("Key ID ["..defTab.KeyID.."] exists as <"..tostring(defTab.Nick)..">"); return self:Remove(false)
+    LogInstance("Key ID ["..tostring(defTab.KeyID).."] exists as <"..tostring(defTab.Nick)..">"); return self:Remove(false)
   end; libQTable[defTab.KeyID] = defTab.Nick; libQTable.Size = (libQTable.Size + 1)
   -- When database mode is SQL create a table in sqlite
   if(sMoDB == "SQL") then local makTab
     makTab = self:Create(); if(not IsHere(makTab)) then
       LogInstance("Build create failed"); return self:Remove(false) end
-    makTab = self:Index(unpack(defTab.Index)); if(not IsHere(makTab)) then
+    makTab = self:Index(); if(not IsHere(makTab)) then
       LogInstance("Build index failed"); return self:Remove(false) end
     makTab = self:Drop(); if(not IsHere(makTab)) then
       LogInstance("Build drop failed"); return self:Remove(false) end

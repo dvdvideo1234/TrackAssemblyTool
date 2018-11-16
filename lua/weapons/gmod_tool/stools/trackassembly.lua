@@ -1325,7 +1325,7 @@ function TOOL.BuildCPanel(CPanel)
   end
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
-  CPanel:AddItem(pComboPhysName); asmlib.Print(cqProperty,"TOOL:BuildCPanel: Property")
+  CPanel:AddItem(pComboPhysName); asmlib.LogTable(cqProperty,"Property")
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local pText = vguiCreate("DTextEntry", CPanel)
