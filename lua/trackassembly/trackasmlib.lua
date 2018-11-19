@@ -433,7 +433,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOID","N")    -- No ID selected
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
-  SetOpVar("ARRAY_DECODEPOA",{0,0,0})
+  SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   if(CLIENT) then
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("LOCALIFY_AUTO","en")
@@ -1222,29 +1222,28 @@ function ModelToName(sModel, bNoSet)
   local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
         sModel = (sModel:GetFileFromFilename():gsub(GetOpVar("MODELNAM_FILE"),""))
   local gModel = (sModel:sub(1,-1)) -- Create a copy so we can select cut-off parts later
-  if(not bNoSet) then local iCnt = 1
-    local tCut, tSub, tApp = SettingsModelToName("GET")
-    if(tCut and tCut[1]) then
-      while(tCut[iCnt] and tCut[iCnt+1]) do
-        local fCh, bCh = tonumber(tCut[iCnt]), tonumber(tCut[iCnt+1])
-        if(not (IsHere(fCh) and IsHere(bCh))) then
-          LogInstance("Cannot cut the model in {"..tostring(tCut[iCnt])..","..tostring(tCut[iCnt+1]).."} for "..sModel); return "" end
-        gModel = gModel:gsub(sModel:sub(fCh,bCh),"")
-        LogInstance("{"..tostring(tCut[iCnt])..", "..tostring(tCut[iCnt+1]).."} >> "..gModel)
-        iCnt = iCnt + 2
-      end; iCnt = 1
+  if(not bNoSet) then local iCnt, iNxt
+    local tCut, tSub, tApp = ModelToNameRule("GET")
+    if(tCut and tCut[1]) then iCnt, iNxt = 1, 2
+      while(tCut[iCnt] and tCut[iNxt]) do
+        local fNu, bNu = tonumber(tCut[iCnt]), tonumber(tCut[iNxt])
+        local fCh, bCh = tostring(tCut[iCnt]), tostring(tCut[iNxt])
+        if(not (IsHere(fNu) and IsHere(bNu))) then
+          LogInstance("Cut mismatch{"..fCh..","..bCh.."}@"..sModel); return "" end
+        gModel = gModel:gsub(sModel:sub(fNu, bNu),""); iCnt, iNxt = (iCnt + 2), (iNxt + 2)
+        LogInstance("Cut{"..fCh..","..bCh.."}@"..gModel)
+      end
     end -- Replace the unneeded parts by finding an in-string gModel
-    if(tSub and tSub[1]) then
+    if(tSub and tSub[1]) then iCnt, iNxt = 1, 2
       while(tSub[iCnt]) do
-        local fCh, bCh = tostring(tSub[iCnt] or ""), tostring(tSub[iCnt+1] or "")
-        gModel = gModel:gsub(fCh,bCh)
-        LogInstance("{"..tostring(tSub[iCnt])..", "..tostring(tSub[iCnt+1]).."} >> "..gModel)
-        iCnt = iCnt + 2
-      end; iCnt = 1
+        local fCh, bCh = tostring(tSub[iCnt] or ""), tostring(tSub[iNxt] or "")
+        gModel = gModel:gsub(fCh,bCh); LogInstance("Sub{"..fCh..","..bCh.."}@"..gModel)
+        iCnt, iNxt = (iCnt + 2), (iNxt + 2)
+      end
     end -- Append something if needed
     if(tApp and tApp[1]) then
-      gModel = tostring(tApp[1] or "")..gModel..tostring(tApp[2] or "")
-      LogInstance("{"..tostring(tSub[iCnt])..", "..tostring(tSub[iCnt+1]).."} >> "..gModel)
+      local fCh, bCh = tostring(tApp[1] or ""), tostring(tApp[2] or "")
+      gModel = (fCh..gModel..bCh); LogInstance("App{"..fCh..","..bCh.."}@"..gModel)
     end
   end -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
   if(gModel:sub(1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
@@ -1261,11 +1260,11 @@ local function MakeEntityNone(sModel) local eNone
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
   if(not (eNone and eNone:IsValid())) then
-    LogInstance("Entity invalid"); return nil end
+    LogInstance("Entity invalid @"..sModel); return nil end
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
-  LogInstance(""..tostring(eNone)..sModel); return eNone
+  LogInstance("{"..tostring(eNone).."}@"..sModel); return eNone
 end
 
 --[[
@@ -1320,32 +1319,35 @@ local function StringPOA(stPOA,sMode)
     LogInstance("Missing Offsets"); return nil end
   local ctA, ctB, ctC = GetIndexes(sMode); if(not (ctA and ctB and ctC)) then
     LogInstance("Missed offset mode "..sMode); return nil end
-  local symSep, sNoAv = GetOpVar("OPSYM_SEPARATOR"), ""
-  local svA = tostring(stPOA[ctA] or sNoAv)
-  local svB = tostring(stPOA[ctB] or sNoAv)
-  local svC = tostring(stPOA[ctC] or sNoAv)
+  local symSep, sNo = GetOpVar("OPSYM_SEPARATOR"), ""
+  local svA = tostring(stPOA[ctA] or sNo)
+  local svB = tostring(stPOA[ctB] or sNo)
+  local svC = tostring(stPOA[ctC] or sNo)
   return (svA..symSep..svB..symSep..svC):gsub("%s","")
 end
 
-local function TransferPOA(stOffset,sMode)
-  if(not IsHere(stOffset)) then
+local function TransferPOA(tData,sMode)
+  if(not IsHere(tData)) then
     LogInstance("Destination needed"); return nil end
   if(not IsString(sMode)) then
     LogInstance("Mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
   local ctA, ctB, ctC = GetIndexes(sMode); if(not (ctA and ctB and ctC)) then
     LogInstance("Missed offset mode <"..sMode..">"); return nil end
-  stOffset[ctA], stOffset[ctB], stOffset[ctC] = arPOA[1], arPOA[2], arPOA[3]; return arPOA
+  tData[ctA], tData[ctB], tData[ctC] = arPOA[1], arPOA[2], arPOA[3]; return arPOA
 end
 
 local function DecodePOA(sStr)
   if(not IsString(sStr)) then
     LogInstance("Argument {"..type(sStr).."}<"..tostring(sStr).."> not string"); return nil end
   if(sStr:len() == 0) then return ReloadPOA() end; ReloadPOA()
-  local symSep = GetOpVar("OPSYM_SEPARATOR")
-  local atPOA, arPOA = symSep:Explode(sStr), GetOpVar("ARRAY_DECODEPOA")
-  for iD = 1, #arPOA do arPOA[iD] = tonumber(atPOA[iD]) or arPOA[iD] end
-  return arPOA
+  local symSep, arPOA = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("ARRAY_DECODEPOA")
+  local atPOA = symSep:Explode(sStr)
+  for iD = 1, arPOA.Size do
+    local nCom = tonumber(atPOA[iD]); if(not IsHere(nCom)) then
+      LogInstance("Mismatch <"..sStr..">"); return nil
+    end; arPOA[iD] = nCom
+  end; return arPOA
 end
 
 local function GetPieceUnit(stPiece)
@@ -1364,17 +1366,16 @@ local function GetTransformPOA(sModel,sKey)
   local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
   if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
     if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
-      LogInstance("Update "..tostring(ePiece).."@"..sModel) end
+      LogInstance("Update {"..tostring(ePiece).."}@"..sModel) end
   else -- If there is no basis need to create one for attachment extraction
     ePiece = MakeEntityNone(sModel); if(not ePiece) then
-      LogInstance("Basis invalid"); return nil end
-    LogInstance("Create "..tostring(ePiece).."@"..sModel)
+      LogInstance("Basis invalid @"..sModel); return nil end
     SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
   end -- Transfer the data from the transform attachment location
-  local mOA = tableCopy(ePiece:GetAttachment(ePiece:LookupAttachment(sKey))); if(not mOA) then
+  local mOA = ePiece:GetAttachment(ePiece:LookupAttachment(sKey)); if(not mOA) then
     LogInstance("Attachment missing <"..sKey..">@"..sModel); return nil end
   local vtPos, atAng = mOA[sKey].Pos, mOA[sKey].Ang -- Extract transform data
-  LogInstance("Extract ["..sKey.."]<"..tostring(vtPos).."><"..tostring(atAng)..">")
+  LogInstance("Extract <"..sKey.."><"..tostring(vtPos).."><"..tostring(atAng)..">")
   return vtPos, atAng -- The function must return transform position and angle
 end
 
@@ -1389,8 +1390,8 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
     LogInstance("Origin {"..type(sO).."}<"..tostring(sO)..">"); return nil end
   local sA = (sA or "NULL"); if(not IsString(sA)) then
     LogInstance("Angle  {"..type(sA).."}<"..tostring(sA)..">"); return nil end
-  if(not stPiece.Offs) then
-    if(iID > 1) then LogInstance("First ID cannot be #"..tostring(iID)); return nil end
+  if(not stPiece.Offs) then if(iID > 1) then
+    LogInstance("Mismatch ID <"..tostring(iID)..">@"..stPiece.Slot); return nil end
     stPiece.Offs = {}
   end
   local tOffs = stPiece.Offs; if(tOffs[iID]) then
@@ -1400,37 +1401,29 @@ local function RegisterPOA(stPiece, ivID, sP, sO, sA)
       LogInstance("No sequential ID #"..tostring(iID - 1)); return nil end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
-  if(sO:sub(1,1) == sE) then
-    local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:sub(2,-1))
-    ---------- Origin ----------
-    if(IsHere(vtPos)) then -- Reversing the sign event is not supported
-      ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ]) else ReloadPOA() end
-    if(not IsHere(TransferPOA(tOffs.O, "V"))) then -- Origin
-      LogInstance("Cannot transform origin"); return nil end
-    ---------- Angle ----------
-    if(IsHere(atAng)) then -- Angle disable event reads parameterization
-      ReloadPOA(atAng[caP], atAng[caY], atAng[caR]) else
-      if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end
-    end -- When attachment angle cannot be found read parameterization
-    if(not IsHere(TransferPOA(tOffs.A, "A"))) then -- Angle
-      LogInstance("Cannot transform angle"); return nil end
-  else
-    ---------- Origin ----------
-    if((sO ~= "NULL") and not IsBlank(sO)) then DecodePOA(sO) else ReloadPOA() end
-    if(not IsHere(TransferPOA(tOffs.O, "V"))) then
-      LogInstance("Cannot transfer origin"); return nil end
-    ---------- Angle ----------
-    if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end
-    if(not IsHere(TransferPOA(tOffs.A, "A"))) then
-      LogInstance("Cannot transfer angle"); return nil end
-  end -- The active point is dependent by the events used and the state of the origin
-  if((sP ~= "NULL") and not IsBlank(sP)) then DecodePOA(sP) else ReloadPOA() end
-  if(not IsHere(TransferPOA(tOffs.P, "V"))) then
-    LogInstance("Cannot transfer point"); return nil end
-  local sV = sP:gsub(sD,"")
-  if((sV == "NULL") or IsBlank(sV)) then -- If empty use origin
-    tOffs.P[cvX], tOffs.P[cvY], tOffs.P[cvZ] = tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]
-  end; return tOffs
+  ---------- Origin ----------
+  if(sO:sub(1,1) == sD) then ReloadPOA() else
+    if(sO:sub(1,1) == sE) then -- Reversing the sign event is not supported
+      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:sub(2,-1))
+      if(IsHere(vtPos)) then ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
+      else if((sO ~= "NULL") and not IsBlank(sO)) then DecodePOA(sO) else ReloadPOA() end end
+    else if((sO ~= "NULL") and not IsBlank(sO)) then DecodePOA(sO) else ReloadPOA() end end
+  end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
+  ---------- Angle ----------
+  if(sA:sub(1,1) == sD) then ReloadPOA() else
+    if(sA:sub(1,1) == sE) then -- Reversing the sign event is not supported
+      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sA:sub(2,-1))
+      if(IsHere(atAng)) then ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
+      else if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end end
+    else if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end end
+  end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle mismatch"); return nil end
+  ---------- Point ----------
+  if(sP:sub(1,1) == sD) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
+  else -- When the point is empty use the origin
+    if((sP ~= "NULL") and not IsBlank(sP)) then DecodePOA(sP)
+    else ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]) end
+  end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
+  return tOffs
 end
 
 local function QuickSort(tD, iL, iH)
@@ -1483,20 +1476,20 @@ end
 
 ------------- VARIABLE INTERFACES --------------
 
-function SettingsModelToName(sMode, gCut, gSub, gApp)
-  if(not IsString(sMode)) then
-    LogInstance("Mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return false end
-  if(sMode == "SET") then
+function ModelToNameRule(sRule, gCut, gSub, gApp)
+  if(not IsString(sRule)) then
+    LogInstance("Rule {"..type(sRule).."}<"..tostring(sRule).."> not string"); return false end
+  if(sRule == "SET") then
     if(gCut and gCut[1]) then SetOpVar("TABLE_GCUT_MODEL",gCut) else SetOpVar("TABLE_GCUT_MODEL",{}) end
     if(gSub and gSub[1]) then SetOpVar("TABLE_GSUB_MODEL",gSub) else SetOpVar("TABLE_GSUB_MODEL",{}) end
     if(gApp and gApp[1]) then SetOpVar("TABLE_GAPP_MODEL",gApp) else SetOpVar("TABLE_GAPP_MODEL",{}) end
-  elseif(sMode == "GET") then
+  elseif(sRule == "GET") then
     return GetOpVar("TABLE_GCUT_MODEL"), GetOpVar("TABLE_GSUB_MODEL"), GetOpVar("TABLE_GAPP_MODEL")
-  elseif(sMode == "CLR") then
-    SetOpVar("TABLE_GCUT_MODEL",{})
-    SetOpVar("TABLE_GSUB_MODEL",{})
-    SetOpVar("TABLE_GAPP_MODEL",{})
-  else LogInstance("Wrong mode name "..sMode); return false end
+  elseif(sRule == "CLR") then
+    SetOpVar("TABLE_GCUT_MODEL",{}); SetOpVar("TABLE_GSUB_MODEL",{}); SetOpVar("TABLE_GAPP_MODEL",{})
+  elseif(sRule == "REM") then
+    SetOpVar("TABLE_GCUT_MODEL",nil); SetOpVar("TABLE_GSUB_MODEL",nil); SetOpVar("TABLE_GAPP_MODEL",nil)
+  else LogInstance("Wrong mode name "..sRule); return false end
 end
 
 function DefaultType(anyType,fCat)
@@ -1505,7 +1498,7 @@ function DefaultType(anyType,fCat)
     local tCat = GetOpVar("TABLE_CATEGORIES")
           tCat = tCat and tCat[sTyp] or nil
     return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
-  end; SettingsModelToName("CLR")
+  end; ModelToNameRule("CLR")
   SetOpVar("DEFAULT_TYPE", tostring(anyType))
   if(CLIENT) then
     local sTyp = GetOpVar("DEFAULT_TYPE")
@@ -1525,7 +1518,7 @@ function DefaultTable(anyTable)
   if(not IsHere(anyTable)) then
     return (GetOpVar("DEFAULT_TABLE") or "") end
   SetOpVar("DEFAULT_TABLE",anyTable)
-  SettingsModelToName("CLR")
+  ModelToNameRule("CLR")
 end
 
 ------------------------- PLAYER -----------------------------------
@@ -1802,7 +1795,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:TimerSetup(vTim)
     local qtCmd = self:GetCommand()
     local qtDef = self:GetDefinition()
-    local sTm = (vTim and tostring(vTim or "") or qtDef.Timer)    
+    local sTm = (vTim and tostring(vTim or "") or qtDef.Timer)
     local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTm)
     tTm[1] =   tostring(tTm[1]  or "CQT")                     -- Timer mode
     tTm[2] =  (tonumber(tTm[2]) or 0)                         -- Record life
@@ -1818,7 +1811,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     while(tKey[iCnt]) do kKey = tKey[iCnt]; iCnt = iCnt + 1
       if(tKey[iCnt]) then oSpot = oSpot[kKey]; if(not IsHere(oSpot)) then
         LogTable(tKey,"Diverge("..tostring(kKey)..")",tabDef.Nick); return nil
-    end; end; end; if(not oSpot[kKey]) then 
+    end; end; end; if(not oSpot[kKey]) then
       LogTable(tKey,"Missing",tabDef.Nick); return nil end
     return oSpot, kKey, tKey
   end
@@ -2138,7 +2131,7 @@ function InsertRecord(sTable,arLine)
   if(type(sTable) == "table") then
     arLine, sTable = sTable, DefaultTable()
     if(not (IsHere(sTable) and IsString(sTable) and not IsBlank(sTable))) then
-      LogInstance(""..tostring(sTable)); return false end
+      LogInstance("Table <"..tostring(sTable)..">"); return false end
   end
   if(not IsString(sTable)) then
     LogInstance("Table name {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
@@ -2246,7 +2239,7 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
     stBox.Len = ((vMax - vMin):Length() / 2) -- Layout border sphere radius
     stBox.Cam = Vector(); stBox.Cam:Set(stBox.Eye)  -- Layout camera position
     AddVectorXYZ(stBox.Cam,stBox.Len*(tonumber(nCamX) or 0),0,stBox.Len*(tonumber(nCamZ) or 0))
-    LogInstance(""..tostring(stBox.Cen).." # "..tostring(stBox.Len))
+    LogInstance(tostring(stBox.Cen).." # "..tostring(stBox.Len))
   end; stBox.Ang[caY] = (tonumber(nRot) or 0) * Time(); return stBox
 end
 
@@ -3395,7 +3388,7 @@ function AttachAdditions(ePiece)
       local sMsg = "\n "..sM.." "..stAddit[iCnt][sM]..
                    "\n "..sT.." "..stAddit[iCnt][sT]..
                    "\n "..sN.." "..stAddit[iCnt][sN]
-      LogInstance(""..sMsg); return false
+      LogInstance(sMsg); return false
     end; iCnt = iCnt + 1
   end; LogInstance("Success"); return true
 end
@@ -3514,7 +3507,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     LogInstance("Failed attaching additions"); return nil end
   pPly:AddCount(sLimit , ePiece); pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
   pPly:AddCount("props", ePiece); pPly:AddCleanup("props", ePiece) -- To be deleted with clearing props
-  LogInstance(""..tostring(ePiece)..sModel); return ePiece
+  LogInstance("{"..tostring(ePiece).."}"..sModel); return ePiece
 end
 
 function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
