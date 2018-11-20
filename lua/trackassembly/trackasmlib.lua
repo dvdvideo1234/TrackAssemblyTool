@@ -1160,41 +1160,17 @@ function SnapReview(ivPoID, ivPnID, ivMaxK)
   return iPoID, iPnID
 end
 
-function IncDecPointID(ivPoID,nDir,rPiece)
-  local iPoID = tonumber(ivPoID); if(not IsHere(iPoID)) then
-    LogInstance("Point ID NAN {"..type(ivPoID).."}<"..tostring(ivPoID)..">"); return 1 end
-  local stPOA = LocatePOA(rPiece,iPoID); if(not IsHere(stPOA)) then
-    LogInstance("Point ID #"..tostring(iPoID).." not located"); return 1 end
-  local nDir = (tonumber(nDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
-  if(nDir == 0) then LogInstance("Direction mismatch"); return iPoID end
-  iPoID = RollValue(iPoID + nDir,1,rPiece.Size)
-  stPOA = LocatePOA(rPiece,iPoID) -- Skip disabled origin parameter
-  while(stPOA) do
-    LogInstance("Point ID #"..tostring(iPoID).." disabled")
-    iPoID = RollValue(iPoID + nDir,1,rPiece.Size)
-    stPOA = LocatePOA(rPiece,iPoID) -- Skip disabled origin parameter
-  end; iPoID = RollValue(iPoID,1,rPiece.Size)
-  if(not IsHere(LocatePOA(rPiece,iPoID))) then
-    LogInstance("Offset PnextID #"..tostring(iPoID).." not located"); return 1 end
-  return iPoID
-end
-
-function IncDecPnextID(ivPnID,ivPoID,nDir,rPiece)
-  local iPoID, iPnID = tonumber(ivPoID), tonumber(ivPnID); if(not IsHere(iPoID)) then
-    LogInstance("PointID NAN {"..type(ivPoID).."}<"..tostring(ivPoID)..">"); return 1 end
-  if(not IsHere(iPnID)) then
-    LogInstance("PnextID NAN {"..type(ivPnID).."}<"..tostring(ivPnID)..">"); return 1 end
-  if(not IsHere(LocatePOA(rPiece,iPoID))) then
-    LogInstance("Offset PointID #"..tostring(iPoID).." not located"); return 1 end
-  if(not IsHere(LocatePOA(rPiece,iPnID))) then
-    LogInstance("Offset PnextID #"..tostring(iPnID).." not located"); return 1 end
-  local Dir = (tonumber(nDir) or 0); Dir = (((Dir > 0) and 1) or ((Dir < 0) and -1) or 0)
-  if(Dir == 0) then LogInstance("Direction mismatch"); return iPnID end
-  iPnID = RollValue(iPnID + Dir,1,rPiece.Size)
-  if(iPnID == iPoID) then iPnID = RollValue(iPnID + Dir,1,rPiece.Size) end
-  if(not IsHere(LocatePOA(rPiece,iPnID))) then
-    LogInstance("Offset PnextID #"..tostring(iPnID).." not located"); return 1 end
-  return iPnID
+function SwitchID(vID,vDir,oRec)
+  local ID = tonumber(vID); if(not IsHere(ID)) then
+    LogInstance("ID NAN {"..type(vID).."}<"..tostring(vID)..">"); return 1 end
+  local stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
+    LogInstance("ID #"..tostring(ID).." not located"); return 1 end
+  local nDir = (tonumber(vDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
+  if(nDir == 0) then LogInstance("Direction mismatch"); return ID end
+  ID = RollValue(ID + nDir,1,oRec.Size) -- Move around the edge selected
+  stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
+    LogInstance("Offset PointID #"..tostring(ID).." not located"); return 1 end
+  return ID
 end
 
 function GetPointElevation(oEnt,ivPoID)
