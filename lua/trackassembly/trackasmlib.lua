@@ -435,6 +435,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOID","N")    -- No ID selected
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
+  SetOpVar("FORM_KEYSTMT","stmt%s<%s>")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   if(CLIENT) then
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
@@ -2125,12 +2126,12 @@ function InsertRecord(sTable,arLine)
   -- Call the trigger when provided
   local tTrg = defTab.Trigs; if(tTrg and IsTable(tTrg) and IsFunction(tTrg[sFunc])) then tTrg[sFunc](arLine) end
   -- Populate the data after the trigger does its thing
-  if(sMoDB == "SQL") then local qsKey = sFunc..sTable
+  if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
     for iD = 1, defTab.Size do arLine[iD] = makTab:Match(arLine[iD],iD,true) end
-    local Q = CacheStmt(qsKey, nil, unpack(arLine))
+    local Q = CacheStmt(qsKey:format(sFunc, sTable), nil, unpack(arLine))
     if(not Q) then local sStmt = makTab:Insert():Values(unpack(defTab.Query[sFunc])):Get()
       if(not IsHere(sStmt)) then LogInstance("Build statement <"..sTable.."> failed"); return nil end
-      Q = CacheStmt(qsKey, sStmt, unpack(arLine))
+      Q = CacheStmt(qsKey:format(sFunc, sTable), sStmt, unpack(arLine))
     end -- The query is built based on table definition
     if(not IsHere(Q)) then
       LogInstance( "Internal cache error <"..sTable..">"); return false end
@@ -2238,7 +2239,7 @@ function CacheQueryPiece(sModel)
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
-  local sModel = makTab:Match(sModel,1,false,"",true,true)
+  local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
   local stPiece, sFunc = tCache[sModel], debugGetinfo(1).name
   if(IsHere(stPiece) and IsHere(stPiece.Size)) then
     if(stPiece.Size <= 0) then stPiece = nil else
@@ -2250,12 +2251,12 @@ function CacheQueryPiece(sModel)
       local qModel = makTab:Match(sModel,1,true)
       LogInstance("Model >> Pool <"..sModel:GetFileFromFilename()..">")
       tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Size = 0
-      local Q = CacheStmt("stmtSelectPiece", nil, qModel)
+      local Q = CacheStmt(qsKey:format(sFunc, ""), nil, qModel)
       if(not Q) then
         local sStmt = makTab:Select():Where({1,"%s"}):Order(4):Get()
         if(not IsHere(sStmt)) then
           LogInstance("Build statement failed"); return nil end
-        Q = CacheStmt("stmtSelectPiece", sStmt, qModel)
+        Q = CacheStmt(qsKey:format(sFunc, ""), sStmt, qModel)
       end
       local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
@@ -2292,7 +2293,7 @@ function CacheQueryAdditions(sModel)
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
-  local sModel = makTab:Match(sModel,1,false,"",true,true)
+  local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
   local stAddit, sFunc = tCache[sModel], debugGetinfo(1).name
   if(IsHere(stAddit) and IsHere(stAddit.Size)) then
     if(stAddit.Size <= 0) then stAddit = nil else
@@ -2304,12 +2305,12 @@ function CacheQueryAdditions(sModel)
       local qModel = makTab:Match(sModel,1,true)
       LogInstance("Model >> Pool <"..sModel:GetFileFromFilename()..">")
       tCache[sModel] = {}; stAddit = tCache[sModel]; stAddit.Size = 0
-      local Q = CacheStmt("stmtSelectAdditions", nil, qModel)
+      local Q = CacheStmt(qsKey:format(sFunc, ""), nil, qModel)
       if(not Q) then
         local sStmt = makTab:Select(2,3,4,5,6,7,8,9,10,11,12):Where({1,"%s"}):Order(4):Get()
         if(not IsHere(sStmt)) then
           LogInstance("Build statement failed"); return nil end
-        Q = CacheStmt("stmtSelectAdditions", sStmt, qModel)
+        Q = CacheStmt(qsKey:format(sFunc, ""), sStmt, qModel)
       end
       local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
@@ -2338,22 +2339,22 @@ function CacheQueryPanel()
     LogInstance("Missing table definition"); return nil end
   if(not IsHere(libCache[defTab.Name])) then
     LogInstance("Missing cache allocated <"..defTab.Name..">"); return nil end
-  local keyPan = GetOpVar("HASH_USER_PANEL")
-  local stPanel = libCache[keyPan]
+  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), debugGetinfo(1).name
+  local stPanel, qsKey = libCache[keyPan], GetOpVar("FORM_KEYSTMT")
   if(IsHere(stPanel) and IsHere(stPanel.Size)) then LogInstance("From Pool")
     if(stPanel.Size <= 0) then stPanel = nil else
-      stPanel = makTab:TimerRestart("CacheQueryPanel", keyPan) end
+      stPanel = makTab:TimerRestart(sFunc, keyPan) end
     return stPanel
   else
     libCache[keyPan] = {}; stPanel = libCache[keyPan]
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
-      local Q = CacheStmt("stmtSelectPanel", nil, 1)
+      local Q = CacheStmt(qsKey:format(sFunc,""), nil, 1)
       if(not Q) then
         local sStmt = makTab:Select(1,2,3):Where({4,"%d"}):Order(2,3):Get()
         if(not IsHere(sStmt)) then
           LogInstance("Build statement failed"); return nil end
-        Q = CacheStmt("stmtSelectPanel", sStmt, 1)
+        Q = CacheStmt(qsKey:format(sFunc,""), sStmt, 1)
       end
       local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
@@ -2362,7 +2363,7 @@ function CacheQueryPanel()
       local iCnt = 1; stPanel.Size = 1
       while(qData[iCnt]) do
         stPanel[iCnt] = qData[iCnt]; stPanel.Size, iCnt = iCnt, (iCnt + 1)
-      end; stPanel = makTab:TimerAttach("CacheQueryPanel", keyPan); return stPanel
+      end; stPanel = makTab:TimerAttach(sFunc, keyPan); return stPanel
     elseif(sMoDB == "LUA") then
       local tCache = libCache[defTab.Name]
       local tSort  = Sort(tCache,{"Type","Name"}); if(not tSort) then
@@ -2393,7 +2394,7 @@ function CacheQueryProperty(sType)
   if(IsString(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
-    local arNames = tCache[keyName]
+    local arNames, qsKey = tCache[keyName], GetOpVar("FORM_KEYSTMT")
     if(not IsHere(arNames)) then
       tCache[keyName] = {}; arNames = tCache[keyName] end
     local stName = arNames[sType]
@@ -2405,12 +2406,12 @@ function CacheQueryProperty(sType)
       if(sMoDB == "SQL") then
         local qType = makTab:Match(sType,1,true)
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
-        local Q = CacheStmt("stmtSelectPropertyNames", nil, qType)
+        local Q = CacheStmt(qsKey:format(sFunc,"Names"), nil, qType)
         if(not Q) then
           local sStmt = makTab:Select(3):Where({1,"%s"}):Order(2)
           if(not IsHere(sStmt)) then
             LogInstance("Build statement failed"); return nil end
-          Q = CacheStmt("stmtSelectPropertyNames", sStmt, qType)
+          Q = CacheStmt(qsKey:format(sFunc,"Names"), sStmt, qType)
         end
         local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
           LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
@@ -2435,12 +2436,12 @@ function CacheQueryProperty(sType)
     else
       if(sMoDB == "SQL") then
         tCache[keyType] = {}; stType = tCache[keyType]; stType.Size = 0
-        local Q = CacheStmt("stmtSelectPropertyTypes", nil, 1)
+        local Q = CacheStmt(qsKey:format(sFunc,"Types"), nil, 1)
         if(not Q) then
           local sStmt = makTab:Select(1):Where({2,"%d"}):Order(1):Get()
           if(not IsHere(sStmt)) then
             LogInstance("Build statement failed"); return nil end
-          Q = CacheStmt("stmtSelectPropertyTypes", sStmt, 1)
+          Q = CacheStmt(qsKey:format(sFunc,"Types"), sStmt, 1)
         end
         local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
           LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
