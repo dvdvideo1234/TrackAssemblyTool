@@ -770,11 +770,12 @@ end
 function TOOL:Holster() asmlib.ClearGhosts(true) end
 
 function TOOL:UpdateGhost(oPly)
+  if(not asmlib.FadeGhosts(true)) then return nil end
   if(self:GetGhostsCount() <= 0) then return nil end
   local stTrace = asmlib.CacheTracePly(oPly)
   if(not stTrace) then return nil end
   if(not asmlib.HasGhosts()) then return nil end
-  local tGho = asmlib.GetOpVar("ARRAY_GHOST"); asmlib.FadeGhosts(true)
+  local tGho = asmlib.GetOpVar("ARRAY_GHOST")
   local trEnt = stTrace.Entity
   local model = self:GetModel()
   local workmode = self:GetWorkingMode()
