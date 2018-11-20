@@ -311,11 +311,13 @@ local function PrintCeption(tT,sS,tP)
   end
 end
 
-function LogTable(tT,sS,...)
-  local tP = {...} -- Normalize parameters
-  tP[1], tP[2] = tostring(tP[1] or ""), tobool(tP[2])
-  tP[3], tP[4] = (tonumber(tP[3]) or 0), debugGetinfo(2)
-  PrintCeption(tT,sS,tP)
+function LogTable(tT, sS, vSrc, bCon, iDbg, tDbg)
+  local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
+  if(vSrc and IsTable(vSrc)) then -- Recieve the stack as table
+    vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
+  local tP = {vSrc, bCon, iDbg, tDbg} -- Normalize parameters
+  tP[1], tP[2] = tostring(vSrc or ""), tobool(bCon)
+  tP[3], tP[3] = (nil), debugGetinfo(2); PrintCeption(tT,sS,tP)
 end
 ----------------- INITAIALIZATION -----------------
 
@@ -2234,14 +2236,13 @@ function CacheQueryPiece(sModel)
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
-  local tCache = libCache[defTab.Name] -- Match the model casing
-  local sModel = makTab:Match(sModel,1,false,"",true,true)
-  if(not IsHere(tCache)) then
+  local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
-  local stPiece = tCache[sModel]
+  local sModel = makTab:Match(sModel,1,false,"",true,true)
+  local stPiece, sFunc = tCache[sModel], debugGetinfo(1).name
   if(IsHere(stPiece) and IsHere(stPiece.Size)) then
     if(stPiece.Size <= 0) then stPiece = nil else
-      stPiece = makTab:TimerRestart("CacheQueryPiece", defTab.Name, sModel) end
+      stPiece = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
     return stPiece
   else
     local sMoDB = GetOpVar("MODE_DATABASE")
@@ -2270,7 +2271,7 @@ function CacheQueryPiece(sModel)
           qRec[defTab[5][1]], qRec[defTab[6][1]], qRec[defTab[7][1]]))) then
           LogInstance("Cannot process offset #"..tostring(iCnt).." for <"..sModel..">"); return nil
         end; stPiece.Size, iCnt = iCnt, (iCnt + 1)
-      end; stPiece = makTab:TimerAttach("CacheQueryPiece", defTab.Name, sModel); return stPiece
+      end; stPiece = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stPiece
     elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
@@ -2289,14 +2290,13 @@ function CacheQueryAdditions(sModel)
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
-  local tCache = libCache[defTab.Name] -- Match the model casing
-  local sModel = makTab:Match(sModel,1,false,"",true,true)
-  if(not IsHere(tCache)) then
+  local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
-  local stAddit = tCache[sModel]
+  local sModel = makTab:Match(sModel,1,false,"",true,true)
+  local stAddit, sFunc = tCache[sModel], debugGetinfo(1).name
   if(IsHere(stAddit) and IsHere(stAddit.Size)) then
     if(stAddit.Size <= 0) then stAddit = nil else
-      stAddit = TimerRestart(libCache,caInd,defTab,"CacheQueryAdditions") end
+      stAddit = TimerRestart(sFunc, defTab.Name, sModel) end
     return stAddit
   else
     local sMoDB = GetOpVar("MODE_DATABASE")
@@ -2320,7 +2320,7 @@ function CacheQueryAdditions(sModel)
         local qRec = qData[iCnt]; stAddit[iCnt] = {}
         for col, val in pairs(qRec) do stAddit[iCnt][col] = val end
         stAddit.Size, iCnt = iCnt, (iCnt + 1)
-      end; stAddit = makTab:TimerAttach("CacheQueryAdditions", defTab.Name, sModel); return stAddit
+      end; stAddit = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stAddit
     elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
@@ -2389,7 +2389,7 @@ function CacheQueryProperty(sType)
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not tCache) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
-  local sMoDB = GetOpVar("MODE_DATABASE")
+  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   if(IsString(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
@@ -2397,9 +2397,9 @@ function CacheQueryProperty(sType)
     if(not IsHere(arNames)) then
       tCache[keyName] = {}; arNames = tCache[keyName] end
     local stName = arNames[sType]
-    if(IsHere(stName) and IsHere(stName.Size)) then LogInstance("Names << Pool")
+    if(IsHere(stName) and IsHere(stName.Size)) then
       if(stName.Size <= 0) then stName = nil else
-        stName = makTab:TimerRestart("CacheQueryProperty", defTab.Name, keyName, sType) end
+        stName = makTab:TimerRestart(sFunc, defTab.Name, keyName, sType) end
       return stName
     else
       if(sMoDB == "SQL") then
@@ -2421,7 +2421,7 @@ function CacheQueryProperty(sType)
           stName[iCnt] = qData[iCnt][defTab[3][1]]
           stName.Size, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("Names >> Pool")
-        stName = makTab:TimerAttach("CacheQueryProperty", defTab.Name, keyName, sType); return stName
+        stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
       elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
       else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
     end
@@ -2430,7 +2430,7 @@ function CacheQueryProperty(sType)
     local stType  = tCache[keyType]
     if(IsHere(stType) and IsHere(stType.Size)) then LogInstance("Types << Pool")
       if(stType.Size <= 0) then stType = nil else
-        stType = makTab:TimerRestart("CacheQueryProperty", defTab.Name, keyType) end
+        stType = makTab:TimerRestart(sFunc, defTab.Name, keyType) end
       return stType
     else
       if(sMoDB == "SQL") then
@@ -2451,7 +2451,7 @@ function CacheQueryProperty(sType)
           stType[iCnt] = qData[iCnt][defTab[1][1]]
           stType.Size, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("Types >> Pool")
-        stType = makTab:TimerAttach("CacheQueryProperty", defTab.Name, keyType); return stType
+        stType = makTab:TimerAttach(sFunc, defTab.Name, keyType); return stType
       elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
       else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
     end
