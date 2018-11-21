@@ -317,7 +317,7 @@ function LogTable(tT, sS, vSrc, bCon, iDbg, tDbg)
     vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
   local tP = {vSrc, bCon, iDbg, tDbg} -- Normalize parameters
   tP[1], tP[2] = tostring(vSrc or ""), tobool(bCon)
-  tP[3], tP[3] = (nil), debugGetinfo(2); PrintCeption(tT,sS,tP)
+  tP[3], tP[4] = (nil), debugGetinfo(2); PrintCeption(tT,sS,tP)
 end
 ----------------- INITAIALIZATION -----------------
 
@@ -2215,10 +2215,10 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
     stBox.Cen = Vector() -- Layout entity center
     stBox.Cen:Set(vMax); stBox.Cen:Add(vMin); stBox.Cen:Mul(0.5)
     stBox.Eye = oEnt:LocalToWorld(stBox.Cen) -- Layout camera eye
-    stBox.Len = ((vMax - vMin):Length() / 2) -- Layout border sphere radius
+    stBox.Len = (((vMax - stBox.Cen):Length() + (vMin - stBox.Cen):Length()) / 2)
     stBox.Cam = Vector(); stBox.Cam:Set(stBox.Eye)  -- Layout camera position
     AddVectorXYZ(stBox.Cam,stBox.Len*(tonumber(nCamX) or 0),0,stBox.Len*(tonumber(nCamZ) or 0))
-    LogInstance(tostring(stBox.Cen).." # "..tostring(stBox.Len))
+    LogInstance("<"..tostring(stBox.Cen).."><"..tostring(stBox.Len)..">")
   end; stBox.Ang[caY] = (tonumber(nRot) or 0) * Time(); return stBox
 end
 
@@ -2297,7 +2297,7 @@ function CacheQueryAdditions(sModel)
   local stAddit, sFunc = tCache[sModel], debugGetinfo(1).name
   if(IsHere(stAddit) and IsHere(stAddit.Size)) then
     if(stAddit.Size <= 0) then stAddit = nil else
-      stAddit = TimerRestart(sFunc, defTab.Name, sModel) end
+      stAddit = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
     return stAddit
   else
     local sMoDB = GetOpVar("MODE_DATABASE")
@@ -2391,10 +2391,11 @@ function CacheQueryProperty(sType)
   local tCache = libCache[defTab.Name]; if(not tCache) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
+  local qsKey = GetOpVar("FORM_KEYSTMT")
   if(IsString(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
     local keyName = GetOpVar("HASH_PROPERTY_NAMES")
-    local arNames, qsKey = tCache[keyName], GetOpVar("FORM_KEYSTMT")
+    local arNames = tCache[keyName]
     if(not IsHere(arNames)) then
       tCache[keyName] = {}; arNames = tCache[keyName] end
     local stName = arNames[sType]
@@ -2406,12 +2407,12 @@ function CacheQueryProperty(sType)
       if(sMoDB == "SQL") then
         local qType = makTab:Match(sType,1,true)
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
-        local Q = CacheStmt(qsKey:format(sFunc,"Names"), nil, qType)
+        local Q = CacheStmt(qsKey:format(sFunc,keyName), nil, qType)
         if(not Q) then
-          local sStmt = makTab:Select(3):Where({1,"%s"}):Order(2)
+          local sStmt = makTab:Select(3):Where({1,"%s"}):Order(2):Get()
           if(not IsHere(sStmt)) then
             LogInstance("Build statement failed"); return nil end
-          Q = CacheStmt(qsKey:format(sFunc,"Names"), sStmt, qType)
+          Q = CacheStmt(qsKey:format(sFunc,keyName), sStmt, qType)
         end
         local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
           LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
@@ -2421,7 +2422,7 @@ function CacheQueryProperty(sType)
         while(qData[iCnt]) do
           stName[iCnt] = qData[iCnt][defTab[3][1]]
           stName.Size, iCnt = iCnt, (iCnt + 1)
-        end; LogInstance("Names >> Pool")
+        end; LogInstance("Names("..sType..") >> Pool")
         stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
       elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
       else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
@@ -2436,12 +2437,12 @@ function CacheQueryProperty(sType)
     else
       if(sMoDB == "SQL") then
         tCache[keyType] = {}; stType = tCache[keyType]; stType.Size = 0
-        local Q = CacheStmt(qsKey:format(sFunc,"Types"), nil, 1)
+        local Q = CacheStmt(qsKey:format(sFunc,keyType), nil, 1)
         if(not Q) then
           local sStmt = makTab:Select(1):Where({2,"%d"}):Order(1):Get()
           if(not IsHere(sStmt)) then
             LogInstance("Build statement failed"); return nil end
-          Q = CacheStmt(qsKey:format(sFunc,"Types"), sStmt, 1)
+          Q = CacheStmt(qsKey:format(sFunc,keyType), sStmt, 1)
         end
         local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
           LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
@@ -2482,7 +2483,7 @@ function ExportCategory(vEq, tData, sPref)
   if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") failed from"); return false end
   local sEq, nLen, sMod = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (type(tData) == "table") and tData or GetOpVar("TABLE_CATEGORIES")
-  F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDate().." [ "..sMoDB.." ]".."\n")
+  F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDate().." [ "..sMoDB.." ]\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
       local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
@@ -2578,7 +2579,7 @@ function ExportDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") fileOpen("..fName..") failed"); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), debugGetinfo(1).name
   local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
-  F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]".."\n")
+  F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   F:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local Q = makTab:Select():Order(defTab.Query[sFunc]):Get()
@@ -2761,7 +2762,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref..") Write fileOpen("..fName..") failed"); return false end
   local sFunc, sMoDB = debugGetinfo(1).name, GetOpVar("MODE_DATABASE")
-  O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]".."\n")
+  O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   for rcID = 1, tSort.Size do local key = tSort[rcID].Val
     local vRec, sCash, sData = fData[key], defTab.Name..sDelim..key, ""
@@ -2793,7 +2794,7 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") fileOpen("..sNdsv..") failed"); return false end
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
     LogInstance("("..fPref..") fileOpen("..sNins..") failed"); return false end
-  I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]".."\n")
+  I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   I:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   local pfLib = GetOpVar("NAME_LIBRARY"):gsub(GetOpVar("NAME_INIT"),"")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
@@ -3241,7 +3242,7 @@ function IntersectRayRead(oPly, sKey)
   local tRay = GetOpVar("RAY_INTERSECT")[oPly]; if(not tRay) then
     LogInstance("No ray <"..tostring(oPly)..">"); return nil end
   local stRay = tRay[sKey]; if(not stRay) then
-    LogInstance("No Key <"..sKey..">"); return nil end
+    LogInstance("No key <"..sKey..">"); return nil end
   return IntersectRayUpdate(stRay) -- Obtain personal ray from the cache
 end
 
