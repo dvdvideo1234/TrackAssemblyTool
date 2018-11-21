@@ -2987,23 +2987,23 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   SetVector(stSpawn.HOrg, hdPOA.O)
   SetAngle (stSpawn.HAng, hdPOA.A)
 
-  stData.TMtx:Translate(stSpawn.PNxt)
-  stData.TMtx:Rotate(stSpawn.ANxt)
+  stSpawn.TMtx:Translate(stSpawn.PNxt)
+  stSpawn.TMtx:Rotate(stSpawn.ANxt)
 
-  stSpawn.F:Set(stData.TMtx:GetForward())
-  stSpawn.R:Set(stData.TMtx:GetRight())
-  stSpawn.U:Set(stData.TMtx:GetUp())
+  stSpawn.F:Set(stSpawn.TMtx:GetForward())
+  stSpawn.R:Set(stSpawn.TMtx:GetRight())
+  stSpawn.U:Set(stSpawn.TMtx:GetUp())
 
-  stData.HMtx:Identity()
-  stData.HMtx:Translate(stSpawn.HOrg)
-  stData.HMtx:Rotate(stSpawn.HAng)
-  stData.HMtx:Rotate(GetOpVar("ANG_REV"))
-  stData.HMtx:Invert()
+  stSpawn.HMtx:Identity()
+  stSpawn.HMtx:Translate(stSpawn.HOrg)
+  stSpawn.HMtx:Rotate(stSpawn.HAng)
+  stSpawn.HMtx:Rotate(GetOpVar("ANG_REV"))
+  stSpawn.HMtx:Invert()
 
-  stData.SMtx:Set(stData.TMtx * stData.HMtx)
+  stSpawn.SMtx:Set(stSpawn.TMtx * stSpawn.HMtx)
 
-  stSpawn.SPos:Set(stData.SMtx:GetTranslation())
-  stSpawn.SAng:Set(stData.SMtx:GetAngles())
+  stSpawn.SPos:Set(stSpawn.SMtx:GetTranslation())
+  stSpawn.SAng:Set(stSpawn.SMtx:GetAngles())
 
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
@@ -3076,9 +3076,9 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
-  stData.TMtx:Identity()
-  stData.TMtx:Translate(stSpawn.OPos)
-  stData.TMtx:Rotate(stSpawn.OAng)
+  stSpawn.TMtx:Identity()
+  stSpawn.TMtx:Translate(stSpawn.OPos)
+  stSpawn.TMtx:Rotate(stSpawn.OAng)
   return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end
 
