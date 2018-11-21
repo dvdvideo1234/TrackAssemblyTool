@@ -1137,17 +1137,15 @@ local function RollValue(nVal,nMin,nMax)
   return nVal
 end
 
-local function BorderValue(nsVal, sKey, sNam)
-  if(not IsHere(sKey)) then return nsVal end
+local function BorderValue(nsVal, sNam)
   if(not IsHere(sNam)) then return nsVal end
   if(not (IsString(nsVal) or tonumber(nsVal))) then
     LogInstance("Value not comparable"); return nsVal end
-  local tB = GetOpVar("TABLE_BORDERS"); tB = tB[sKey]; if(not IsHere(tB)) then
-    LogInstance("Missing <"..tostring(sKey)..">"); return nsVal end
-  tB = tB[sNam]; if(IsHere(tB)) then
-    if(tB[1] and nsVal < tB[1]) then return tB[1] end
-    if(tB[2] and nsVal > tB[2]) then return tB[2] end
-  end; return nsVal
+  local tB = GetOpVar("TABLE_BORDERS")[sNam]; if(not IsHere(tB)) then
+    LogInstance("Missing <"..tostring(sNam)..">"); return nsVal end
+  if(tB[1] and nsVal < tB[1]) then return tB[1] end
+  if(tB[2] and nsVal > tB[2]) then return tB[2] end
+  return nsVal
 end
 
 function SnapReview(ivPoID, ivPnID, ivMaxK)
@@ -1804,14 +1802,13 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       local nNow, tTim = Time(), qtCmd.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
       oSpot[kKey].Used = nNow -- Make the first selected deletable to avoid phantom records
-      local nLif = tTim[2]; if(nLif <= 0) then
+      local smTM, tmLif, tmDie, tmCol = tTim[1], tTim[2], tTim[3], tTim[4]; if(tmLif <= 0) then
         LogInstance("Timer attachment ignored",tabDef.Nick); return oSpot[kKey] end
-      local smTM, tmDie, tmCol = tTim[1], tTim[3], tTim[4]
-      LogInstance("["..smTM.."] ("..tostring(nLif)..") "..tostring(tmDie)..", "..tostring(tmCol),tabDef.Nick)
+      LogInstance("["..smTM.."] ("..tmLif..") "..tostring(tmDie)..", "..tostring(tmCol),tabDef.Nick)
       if(smTM == "CQT") then
         for k, v in pairs(oSpot) do
-          if(IsHere(v.Used) and ((nNow - v.Used) > nLif)) then
-            LogInstance("("..tostring(RoundValue(nNow - v.Used,0.01)).." > "..tostring(nLif)..") > Dead",tabDef.Nick)
+          if(IsHere(v.Used) and ((nNow - v.Used) > tmLif)) then
+            LogInstance("("..tostring(RoundValue(nNow - v.Used,0.01)).." > "..tmLif..") > Dead",tabDef.Nick)
             if(tmDie) then oSpot[k] = nil; LogInstance("Killed <"..tostring(k)..">",tabDef.Nick) end
           end
         end
@@ -1821,8 +1818,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         local tmID = GetOpVar("OPSYM_DIVIDER"):Implode(tKey)
         LogInstance("TimID <"..tmID..">",tabDef.Nick)
         if(timerExists(tmID)) then LogInstance("Timer exists",tabDef.Nick); return oSpot[kKey] end
-        timerCreate(tmID, nLif, 1, function()
-          LogInstance("TimerAttach["..tmID.."]("..nLif..") > Dead",tabDef.Nick)
+        timerCreate(tmID, tmLif, 1, function()
+          LogInstance("["..tmID.."]("..tmLif..") > Dead",tabDef.Nick)
           if(tmDie) then oSpot[kKey] = nil; LogInstance("Killed <"..kKey..">",tabDef.Nick) end
           timerStop(tmID); timerDestroy(tmID)
           if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
@@ -1839,14 +1836,13 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Navigation failed",tabDef.Nick); return nil end
     LogInstance("Called by <"..tostring(vMsg).."> for ["..tostring(kKey).."]",tabDef.Nick)
     if(sMoDB == "SQL") then
-      local tTimer = defTab.Timer; if(not IsHere(tTimer)) then
+      local tTim = defTab.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
       oSpot[kKey].Used = Time() -- Mark the current caching time stamp
-      local nLifeTM = tTimer[2]; if(nLifeTM <= 0) then
+      local smTM, tmLif = tTim[1], tTim[2]; if(tmLif <= 0) then
         LogInstance("Timer life ignored",tabDef.Nick); return oSpot[kKey] end
-      local smTM = tTimer[1] -- Just for something to do here and to be known that this is mode CQT
       if(smTM == "CQT") then smTM = "CQT"
-      elseif(smTM == "OBJ") then
+      elseif(smTM == "OBJ") then -- Just for something to do here and to be known that this is mode CQT
         local kID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys); if(not timerExists(kID)) then
           LogInstance("Timer missing <"..kID..">",tabDef.Nick); return nil end
         timerStart(kID)
@@ -3410,20 +3406,17 @@ function GetPropBodyGroup(oEnt)
   LogInstance("Success <"..sRez..">"); return sRez
 end
 
-function AttachBodyGroups(ePiece,sBgrpIDs)
+function AttachBodyGroups(ePiece,sBgID)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Base entity invalid"); return false end
-  local sBgrpIDs = tostring(sBgrpIDs or "")
-  LogInstance("<"..sBgrpIDs..">")
+  local sBgID = tostring(sBgID or ""); LogInstance("<"..sBgID..">")
   local iCnt, BGs = 1, ePiece:GetBodyGroups()
-  local IDs = GetOpVar("OPSYM_SEPARATOR"):Explode(sBgrpIDs)
-  while(BGs[iCnt] and IDs[iCnt]) do
-    local itrBG = BGs[iCnt]
+  local IDs = GetOpVar("OPSYM_SEPARATOR"):Explode(sBgID)
+  while(BGs[iCnt] and IDs[iCnt]) do local itrBG = BGs[iCnt]
     local maxID = (ePiece:GetBodygroupCount(itrBG.id) - 1)
     local itrID = mathClamp(mathFloor(tonumber(IDs[iCnt]) or 0),0,maxID)
-    LogInstance("SetBodygroup("..tostring(itrBG.id)..","..tostring(itrID)..") ["..tostring(maxID).."]")
-    ePiece:SetBodygroup(itrBG.id,itrID)
-    iCnt = iCnt + 1
+    LogInstance("SetBodygroup("..itrBG.id..","..itrID..") ["..maxID.."]")
+    ePiece:SetBodygroup(itrBG.id,itrID); iCnt = iCnt + 1
   end; LogInstance("Success"); return true
 end
 
@@ -3479,7 +3472,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local Mass = (tonumber(nMass) or 1); phPiece:SetMass((Mass >= 1) and Mass or 1)
   local BgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
   ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
-  if(not AttachBodyGroups(ePiece,BgSk[1] or "")) then ePiece:Remove()
+  if(not AttachBodyGroups(ePiece,BgSk[1])) then ePiece:Remove()
     LogInstance("Failed attaching bodygroups"); return nil end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     LogInstance("Failed attaching additions"); return nil end
@@ -3534,16 +3527,16 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   end; LogInstance("Success"); return true
 end
 
-function MakeAsmVar(sName, vVal, vBord, nFlag, vInfo)
+function MakeAsmVar(sName, vVal, vBord, vFlg, vInf)
   if(not IsString(sName)) then
     LogInstance("CVar name {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
   local sLow = ((sName:sub(1,1) == "*") and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
-  local cVal, sInf, tBrd = (tonumber(vVal) or tostring(vVal)), tostring(vInfo or ""), GetOpVar("TABLE_BORDERS")
-  if(not IsHere(tBrd.CVAR)) then tBrd.CVAR = {} end; tBrd = tBrd.CVAR
-  if(IsHere(tBrd[sLow])) then LogInstance("Exists <"..var..">"); return nil end
-  tBrd[sLow] = (vBord or {}); tBrd = tBrd[sLow]; tBrd[3] = cVal; nFlg = mathFloor(tonumber(nFlag) or 0)
+  local cVal, sInf = (tonumber(vVal) or tostring(vVal)), tostring(vInf or "")
+  local tBrd, nFlg = mathFloor(tonumber(vFlg) or 0), GetOpVar("TABLE_BORDERS")
+  if(IsHere(tBrd[sLow])) then LogInstance("Exists <"..sLow..">"); return nil end
+  tBrd[sLow] = (vBord or {}); tBrd = tBrd[sLow]; tBrd[3] = cVal
   local mIn, mAx, dEf = tostring(tBrd[1]), tostring(tBrd[2]), tostring(tBrd[3])
-  LogInstance("Border ("..sLow..")<"..mIn.."/"..mAx..">["..dEf.."]")
+  LogInstance("("..sLow..")<"..mIn.."/"..mAx..">["..dEf.."]")
   return CreateConVar(sLow, cVal, nFlg, sInf)
 end
 
@@ -3555,8 +3548,8 @@ function GetAsmVar(sName, sMode)
   local sLow = ((sName:sub(1,1) == "*") and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
   local CVar = GetConVar(sLow); if(not IsHere(CVar)) then
     LogInstance("("..sLow..", "..sMode..") Missing CVar object"); return nil end
-  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  , "CVAR", sLow)) or 0)
-  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(), "CVAR", sLow)) or 0)
+  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  , sLow)) or 0)
+  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(), sLow)) or 0)
   elseif(sMode == "STR") then return  tostring(CVar:GetString() or "")
   elseif(sMode == "BUL") then return (CVar:GetBool() or false)
   elseif(sMode == "DEF") then return  CVar:GetDefault()
