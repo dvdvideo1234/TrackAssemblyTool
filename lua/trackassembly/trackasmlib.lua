@@ -2046,9 +2046,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     end; qtCmd.Insert = qtCmd.Insert..qIns; return self
   end
   -- Build SQL values statement
-  function self:Values(...) local tValues = {...}
+  function self:Values(...)
+    local qtDef, tValues = self:GetDefinition(), {...}
     local qtCmd, iCnt, qVal = self:GetCommand(), 1, ""
-    local tInsert, qtDef = {...}, self:GetDefinition()
     qtCmd.Insert = qtCmd.Insert.." VALUES ( "
     while(tValues[iCnt]) do
       iCnt, qVal = (iCnt + 1), qVal..tostring(tValues[iCnt])
@@ -2076,15 +2076,15 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Build timer failed"); return self:Remove(false) end
     local tQ = self:GetCommand(); if(not IsHere(tQ)) then
       LogInstance("Build statement failed"); return self:Remove(false) end
-    if(bDelete and sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.Delete)
-      if(not qRez and IsBool(qRez)) then
-        LogInstance("Table not present. Skipping delete",tabDef.Nick)
-      else LogInstance("Table deleted",tabDef.Nick) end
+    if(bDelete and sqlTableExists(defTab.Name)) then
+      local qRez = sqlQuery(tQ.Delete); if(not qRez and IsBool(qRez)) then
+        LogInstance("Table delete error <"..sqlLastError()..">",tabDef.Nick)
+      else LogInstance("Table delete skip",tabDef.Nick) end
     end
     if(bReload) then local qRez = sqlQuery(tQ.Drop)
       if(not qRez and IsBool(qRez)) then
-        LogInstance("Table not present. Skipping drop",tabDef.Nick)
-      else LogInstance("Table dropped",tabDef.Nick) end
+        LogInstance("Table drop error <"..sqlLastError()..">",tabDef.Nick)
+      else LogInstance("Table drop skip",tabDef.Nick) end
     end
     if(sqlTableExists(defTab.Name)) then
       LogInstance("Table exists",tabDef.Nick); return self:IsValid()
