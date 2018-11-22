@@ -98,6 +98,7 @@ cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
 end)
 
 ------ GLOBAL VARIABLES ------
+local gtArgsLogs  = {"", false, 0}
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
@@ -134,30 +135,30 @@ if(SERVER) then
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
 
-  asmlib.SetAction("DUPE_PHYS_SETTINGS",
-    function(oPly,oEnt,tData) -- Duplicator wrapper
+  asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
+    function(oPly,oEnt,tData) gtArgsLogs[1] = "DUPE_PHYS_SETTINGS"
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
-        asmlib.LogInstance("DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)); return nil end
-      asmlib.LogInstance("DUPE_PHYS_SETTINGS: Success"); return nil
+        asmlib.LogInstance("Failed to apply physical settings on "..tostring(oEnt),gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PLAYER_QUIT",
-    function(oPly) -- Clear player cache when disconnects
+    function(oPly) gtArgsLogs[1] = "PLAYER_QUIT" -- Clear player cache when disconnects
       if(not asmlib.CacheClearPly(oPly)) then
-        asmlib.LogInstance("PLAYER_QUIT: Failed swiping stuff "..tostring(oPly)); return nil end
-      asmlib.LogInstance("PLAYER_QUIT: Success"); return nil
+        asmlib.LogInstance("Failed swiping stuff "..tostring(oPly),gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PHYSGUN_DROP",
-    function(pPly, trEnt)
+    function(pPly, trEnt) gtArgsLogs[1] = "PHYSGUN_DROP"
       if(not asmlib.IsPlayer(pPly)) then
-        asmlib.LogInstance("PHYSGUN_DROP: Player invalid"); return nil end
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
-        asmlib.LogInstance("PHYSGUN_DROP: Snapping disabled"); return nil end
+        asmlib.LogInstance("Snapping disabled",gtArgsLogs); return nil end
       if(not (trEnt and trEnt:IsValid())) then
-        asmlib.LogInstance("PHYSGUN_DROP: Trace entity invalid"); return nil end
+        asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
-        asmlib.LogInstance("PHYSGUN_DROP: Trace not piece"); return nil end
+        asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
       local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
       local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
       local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0) ~= 0)
@@ -189,12 +190,12 @@ if(SERVER) then
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
           if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
-            asmlib.LogInstance("PHYSGUN_DROP: "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds"); return nil end
+            asmlib.LogInstance(""..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds",gtArgsLogs); return nil end
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-            asmlib.LogInstance("PHYSGUN_DROP: Failed to apply physical settings"); return nil end
+            asmlib.LogInstance("Failed to apply physical settings",gtArgsLogs); return nil end
           if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,forcelim)) then
-            asmlib.LogInstance("PHYSGUN_DROP: Failed to apply physical anchor"); return nil end
+            asmlib.LogInstance("Failed to apply physical anchor",gtArgsLogs); return nil end
         end
       end
     end)
@@ -203,59 +204,60 @@ end
 if(CLIENT) then
 
   asmlib.SetAction("CLEAR_RELATION",
-    function(nLen) local oPly = netReadEntity()
-      asmlib.LogInstance("CLEAR_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
+    function(nLen) local oPly = netReadEntity(), gtArgsLogs[1] = "CLEAR_RELATION"
+      asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
-        asmlib.LogInstance("CLEAR_RELATION: Failed clearing ray"); return nil end
-      asmlib.LogInstance("CLEAR_RELATION: Success"); return nil
+        asmlib.LogInstance("Failed clearing ray",gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Net receive intersect relation clear client-side
 
   asmlib.SetAction("CREATE_RELATION",
-    function(nLen) local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
-      asmlib.LogInstance("CREATE_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
+    function(nLen) gtArgsLogs[1] = "CREATE_RELATION"
+      local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
+      asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
       if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")) then
-        asmlib.LogInstance("CREATE_RELATION: Failed updating ray"); return nil end
-      asmlib.LogInstance("CREATE_RELATION: Success"); return nil
+        asmlib.LogInstance("Failed updating ray",gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Net receive intersect relation create client-side
 
-  asmlib.SetAction("BIND_PRESS",
-    function(oPly,sBind,bPress) -- Must have the same parameters as the hook
-      if(not bPress) then asmlib.LogInstance("BIND_PRESS: Bind not pressed"); return nil end
+  asmlib.SetAction("BIND_PRESS", -- Must have the same parameters as the hook
+    function(oPly,sBind,bPress) gtArgsLogs[1] = "BIND_PRESS"
+      if(not bPress) then asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        asmlib.LogInstance("BIND_PRESS: Swep invalid"); return nil end
+        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
-        asmlib.LogInstance("BIND_PRESS: Swep not tool"); return nil end
+        asmlib.LogInstance("Swep not tool",gtArgsLogs); return nil end
       if(actSwep:GetMode()  ~= gsToolNameL) then
-        asmlib.LogInstance("BIND_PRESS: Tool different"); return nil end
+        asmlib.LogInstance("Tool different",gtArgsLogs); return nil end
       -- Here player is holding the track assembly tool
       if(not inputIsKeyDown(KEY_LALT)) then
-        asmlib.LogInstance("BIND_PRESS: Active key missing"); return nil end
+        asmlib.LogInstance("Active key missing",gtArgsLogs); return nil end
       -- Switch functionality of the mouse wheel only for TA
       local actTool = actSwep:GetToolObject(); if(not actTool) then
-        asmlib.LogInstance("BIND_PRESS: Tool invalid"); return nil end
+        asmlib.LogInstance("Tool invalid",gtArgsLogs); return nil end
       if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
         if(not actTool:GetScrollMouse()) then
-          asmlib.LogInstance("BIND_PRESS(Scroll): Scrolling disabled"); return nil end
+          asmlib.LogInstance("(SCROLL) Scrolling disabled",gtArgsLogs); return nil end
         local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
-        asmlib.LogInstance("BIND_PRESS("..sBind.."): Processed"); return true
+        asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
       end -- Override only for TA and skip touching anything else
-      asmlib.LogInstance("BIND_PRESS("..sBind.."): Skipped"); return nil
+      asmlib.LogInstance("("..sBind..") Skipped",gtArgsLogs); return nil
     end) -- Read client configuration
 
-  asmlib.SetAction("DRAW_GHOSTS",
-    function() -- Must have the same parameters as the hook
+  asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
+    function() gtArgsLogs[1] = "DRAW_GHOSTS"
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("DRAW_GHOSTS: Player invalid"); return nil end
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        asmlib.LogInstance("DRAW_GHOSTS: Swep invalid"); return nil end
+        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
-        asmlib.LogInstance("DRAW_GHOSTS: Swep not tool"); return nil end
+        asmlib.LogInstance("Swep not tool",gtArgsLogs); return nil end
       if(actSwep:GetMode()  ~= gsToolNameL) then
-        asmlib.LogInstance("DRAW_GHOSTS: Tool different"); return nil end
+        asmlib.LogInstance("Tool different",gtArgsLogs); return nil end
       -- Here player is holding the track assembly tool
       local actTool = actSwep:GetToolObject(); if(not actTool) then
-        asmlib.LogInstance("DRAW_GHOSTS: Tool invalid"); return nil end
+        asmlib.LogInstance("Tool invalid",gtArgsLogs); return nil end
       local tGho  = asmlib.GetOpVar("ARRAY_GHOST")
       local model = asmlib.GetAsmVar("model", "STR")
       local mxcnt = asmlib.GetAsmVar("maxstcnt" , "INT")
@@ -267,10 +269,10 @@ if(CLIENT) then
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
-    function(oPly,oCom,oArgs)
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "RESET_VARIABLES"
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
-      asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode).."@"..tostring(command).."}")
+      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
       asmlib.ConCommandPly(oPly,"nextx"  , "0")
       asmlib.ConCommandPly(oPly,"nexty"  , "0")
       asmlib.ConCommandPly(oPly,"nextz"  , "0")
@@ -278,7 +280,7 @@ if(CLIENT) then
       asmlib.ConCommandPly(oPly,"nextyaw", "0")
       asmlib.ConCommandPly(oPly,"nextrol", "0")
       if(not devmode) then
-        asmlib.LogInstance("RESET_VARIABLES: Developer mode disabled"); return nil end
+        asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
       asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
       if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
@@ -329,29 +331,29 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxstcnt" , 200)
         asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
         asmlib.ConCommandPly(oPly, "maxfruse" , 50)
-        asmlib.LogInstance("RESET_VARIABLES: Variables reset complete", true)
+        asmlib.LogInstance("Variables reset complete",gtArgsLogs)
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
         for iCnt = 1, #tPref do local vPr = tPref[iCnt]
           asmlib.RemoveDSV("PIECES", vPr)
           asmlib.RemoveDSV("ADDITIONS", vPr)
           asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
-          asmlib.LogInstance("RESET_VARIABLES: Match <"..vPr..">")
+          asmlib.LogInstance("Match <"..vPr..">",gtArgsLogs)
         end
-      else asmlib.LogInstance("RESET_VARIABLES: Command <"..bgskids.."> skipped"); return nil end
-      asmlib.LogInstance("RESET_VARIABLES: Success"); return nil
+      else asmlib.LogInstance("Command <"..bgskids.."> skipped",gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("OPEN_FRAME",
-    function(oPly,oCom,oArgs)
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "OPEN_FRAME"
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
-        asmlib.LogInstance("OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]"); return nil end
+        asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",gtArgsLogs); return nil end
       local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
-        asmlib.LogInstance("OPEN_FRAME: Missing builder for table PIECES"); return nil end
+        asmlib.LogInstance("Missing builder for table PIECES",gtArgsLogs); return nil end
       local defTab = makTab:GetDefinition(); if(not defTab) then
-        asmlib.LogInstance("OPEN_FRAME: Missing definition for table PIECES"); return nil end
+        asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
-        pnFrame:Remove(); asmlib.LogInstance("OPEN_FRAME: Failed to create base frame"); return nil end
+        pnFrame:Remove(); asmlib.LogInstance("Failed to create base frame",gtArgsLogs); return nil end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,languageGetPhrase("tool."..gsToolNameL..".pn_export_lb") , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
             pnElements:Insert(2,{Label = { "DListView"  ,languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_routine")}})
@@ -364,15 +366,15 @@ if(CLIENT) then
         vItem = pnElements:Select(iNdex)
         vItem.Panel = vguiCreate(vItem.Label[1],pnFrame)
         if(not IsValid(vItem.Panel)) then
-          asmlib.LogInstance("OPEN_FRAME: Failed to create ID #"..tonumber(iNdex))
+          asmlib.LogInstance("Failed to create ID #"..tonumber(iNdex),gtArgsLogs)
           iNdex, vItem = 1, nil
           while(iNdex <= iSize) do vItem, sItem = pnElements:Select(iNdex), ""
             if(IsValid(vItem.Panel)) then vItem.Panel:Remove(); sItem = "and panel " end
             pnElements:Delete(iNdex)
-            asmlib.LogInstance("OPEN_FRAME: Deleted entry "..sItem.."ID #"..tonumber(iNdex))
+            asmlib.LogInstance("Deleted entry "..sItem.."ID #"..tonumber(iNdex),gtArgsLogs)
             iNdex = iNdex + 1
           end; pnFrame:Remove(); collectgarbage()
-          asmlib.LogInstance("OPEN_FRAME: Invalid panel created. Frame removed"); return nil
+          asmlib.LogInstance("Invalid panel created. Frame removed",gtArgsLogs); return nil
         end
         vItem.Panel:SetName(vItem.Label[2])
         vItem.Panel:SetTooltip(vItem.Label[3])
@@ -407,12 +409,12 @@ if(CLIENT) then
         pnFrame:SetVisible(false)
         local iNdex, iSize = 1, pnElements:GetSize()
         while(iNdex <= iSize) do -- All panels are valid
-          asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iNdex)
+          asmlib.LogInstance("Frame.OnClose Delete #"..iNdex,gtArgsLogs)
           pnElements:Select(iNdex).Panel:Remove()
           pnElements:Delete(iNdex); iNdex = iNdex + 1
         end; pnFrame:Remove()
         asmlib.SetOpVar("PANEL_FREQUENT_MODELS",nil); collectgarbage()
-        asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
+        asmlib.LogInstance("Frame.OnClose Form removed",gtArgsLogs)
       end; asmlib.SetOpVar("PANEL_FREQUENT_MODELS",pnFrame)
       ------------ Button --------------
       xyPos.x = xyZero.x + xyDelta.x
@@ -425,9 +427,9 @@ if(CLIENT) then
       pnButton:SetSize(xySiz.x, xySiz.y)
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
-        asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText()..">")
+        asmlib.LogInstance("Button.DoClick <"..pnButton:GetText()..">",gtArgsLogs)
         if(asmlib.GetAsmVar("exportdb", "BUL")) then
-          asmlib.LogInstance("OPEN_FRAME: Export DB")
+          asmlib.LogInstance("Export DB",gtArgsLogs)
           asmlib.ExportCategory(3)
           asmlib.ExportDSV("PIECES")
           asmlib.ExportDSV("ADDITIONS")
@@ -451,7 +453,7 @@ if(CLIENT) then
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTab[3][1])
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTab[4][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
-        asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.."<"..sVal..">"..tostring(anyData))
+        asmlib.LogInstance("ComboBox.OnSelect ID #"..nInd.."<"..sVal..">"..tostring(anyData),gtArgsLogs)
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel --------------
@@ -469,7 +471,7 @@ if(CLIENT) then
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40)
         if(not asmlib.IsHere(uiBox)) then
-          asmlib.LogInstance("OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid"); return nil end
+          asmlib.LogInstance("pnModelPanel.LayoutEntity Box invalid",gtArgsLogs); return nil end
         local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
@@ -496,7 +498,8 @@ if(CLIENT) then
         local sAbrev, sField = pnComboBox:GetSelected()
               sAbrev, sField = tostring(sAbrev or ""), tostring(sField or "")
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattr)) then
-          asmlib.LogInstance("OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sAbrev.."#"..sField.."#"..sPattr.."}"); return nil
+          asmlib.LogInstance("TextEntry.OnEnter Failed to update ListView {"..sAbrev..
+            "#"..sField.."#"..sPattr.."}",gtArgsLogs); return nil
         end
       end
       ------------ ListView --------------
@@ -533,7 +536,7 @@ if(CLIENT) then
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
         if(not asmlib.IsHere(uiBox)) then
-          asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">"); return nil end
+          asmlib.LogInstance("ListView.OnRowSelected Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmVar("pointid","INT"), asmlib.GetAsmVar("pnextid","INT")
               pointid, pnextid = asmlib.SnapReview(pointid, pnextid, uiAct)
@@ -543,41 +546,41 @@ if(CLIENT) then
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5)) end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
-        asmlib.LogInstance("OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed"); return nil end
+        asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
-      asmlib.LogInstance("OPEN_FRAME: Success"); return nil
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PHYSGUN_DRAW",
-    function()
+    function() gtArgsLogs[1] = "PHYSGUN_DRAW"
       if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
-        asmlib.LogInstance("PHYSGUN_DRAW: Extension disabled"); return nil end
+        asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
       if(not asmlib.GetAsmVar("adviser", "BUL")) then
-        asmlib.LogInstance("PHYSGUN_DRAW: Adviser disabled"); return nil end
+        asmlib.LogInstance("Adviser disabled",gtArgsLogs); return nil end
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("PHYSGUN_DRAW: Player invalid"); return nil end
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        asmlib.LogInstance("PHYSGUN_DRAW: Swep invalid"); return nil end
+        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
       if(actSwep:GetClass() ~= "weapon_physgun") then
-        asmlib.LogInstance("PHYSGUN_DRAW: Swep not physgun"); return nil end
+        asmlib.LogInstance("Swep not physgun",gtArgsLogs); return nil end
       if(not inputIsMouseDown(MOUSE_LEFT)) then
-        asmlib.LogInstance("PHYSGUN_DRAW: Physgun not hold"); return nil end
+        asmlib.LogInstance("Physgun not hold",gtArgsLogs); return nil end
       local actTr = asmlib.CacheTracePly(oPly)
-      if(not actTr) then asmlib.LogInstance("PHYSGUN_DRAW: Trace missing"); return nil end
-      if(not actTr.Hit) then asmlib.LogInstance("PHYSGUN_DRAW: Trace not hit"); return nil end
-      if(actTr.HitWorld) then asmlib.LogInstance("PHYSGUN_DRAW: Trace world"); return nil end
+      if(not actTr) then asmlib.LogInstance("Trace missing",gtArgsLogs); return nil end
+      if(not actTr.Hit) then asmlib.LogInstance("Trace not hit",gtArgsLogs); return nil end
+      if(actTr.HitWorld) then asmlib.LogInstance("Trace world",gtArgsLogs); return nil end
       local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
-        asmlib.LogInstance("PHYSGUN_DRAW: Trace entity invalid"); return nil end
+        asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
-        asmlib.LogInstance("PHYSGUN_DRAW: Trace not piece"); return nil end
+        asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
         local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
         if(not actMonitor) then
-          asmlib.LogInstance("PHYSGUN_DRAW: Invalid screen"); return nil end
+          asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
+        asmlib.LogInstance("Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
       local nextx    = asmlib.GetAsmVar("nextx", "FLT")
       local nexty    = asmlib.GetAsmVar("nexty", "FLT")
@@ -629,24 +632,24 @@ if(CLIENT) then
     end)
 
   asmlib.SetAction("RADWORKMENU_DRAW",
-    function()
+    function() gtArgsLogs[1] = "RADWORKMENU_DRAW"
       if(not inputIsMouseDown(MOUSE_MIDDLE)) then return end
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("WORKMODE_DRAW: Player invalid"); return nil end
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        asmlib.LogInstance("WORKMODE_DRAW: Swep invalid"); return nil end
+        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
-        asmlib.LogInstance("WORKMODE_DRAW: Swep not physgun"); return nil end
+        asmlib.LogInstance("Swep not physgun",gtArgsLogs); return nil end
       if(actSwep:GetMode()  ~= gsToolNameL) then
-        asmlib.LogInstance("WORKMODE_DRAW: Tool different"); return nil end
+        asmlib.LogInstance("Tool different",gtArgsLogs); return nil end
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
         if(not actMonitor) then
-          asmlib.LogInstance("WORKMODE_DRAW: Invalid screen"); return nil end
+          asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("WORKMODE_DRAW: Create screen")
+        asmlib.LogInstance("Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
       local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
       local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
@@ -683,18 +686,67 @@ asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
   Trigs = {
-    InsertRecord = function(stRow) 
+    InsertRecord = function(stRow)
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
       stRow[2] = asmlib.DisableString(stRow[2],asmlib.DefaultType(),"TYPE")
       stRow[3] = asmlib.DisableString(stRow[3],asmlib.ModelToName(stRow[1]),"MODEL")
       stRow[8] = asmlib.DisableString(stRow[8],"NULL","NULL")
       if(not ((stRow[8] == "NULL") or trCls[stRow[8]] or asmlib.IsBlank(stRow[8]))) then
-        trCls[stRow[8]] = true; asmlib.LogInstance("Register trace <"..tostring(stRow[8]).."@"..stRow[1]..">") end
+        trCls[stRow[8]] = true; asmlib.LogInstance("Register trace <"..
+          tostring(stRow[8]).."@"..stRow[1]..">",gtArgsLogs)
+      end
     end -- Register the class provided to the trace hit list
+  },
+  Cache = {
+    InsertRecord = function(makTab, tCache, snPK, arLine)
+      local stData = tCache[snPK]; if(not stData) then
+        tCache[snPK] = {}; stData = tCache[snPK] end
+      if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
+      if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
+      if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
+      if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
+      if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
+      local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
+        asmlib.LogInstance("Cannot match <"..tostring(arLine[4])..
+          "> to "..defTab[4][1].." for "..tostring(snPK),gtArgsLogs); return false end
+      local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
+        if(not asmlib.IsHere(stPOA)) then
+        asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
+          tostring(snPK),gtArgsLogs); return false end
+      if(nOffsID > stData.Size) then stData.Size = nOffsID else
+        asmlib.LogInstance("Offset #"..tostring(nOffsID)..
+          " sequential mismatch",gtArgsLogs); return false end
+      return true
+    end,
+    ExportDSV = function(oFile, makTab, tCache, sDelim)
+      local tData, defTab = {}, makTab:GetDefinition()
+      for mod, rec in pairs(tCache) do
+        tData[mod] = {Key = (rec.Type..rec.Name..mod)} end
+      local tSort = asmlib.Sort(tData,{Key})
+      if(not tSort) then oFile:Flush(); oFile:Close()
+        asmlib.LogInstance("("..fPref..") Cannot sort cache data",gtArgsLogs); return false end
+      for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
+        local tData = tCache[stRec.Key]
+        local sData = defTab.Name
+              sData = sData..sDelim..makTab:Match(stRec.Key,1,true,"\"")..sDelim..
+                makTab:Match(tData.Type,2,true,"\"")..sDelim..
+                makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
+        local tOffs = tData.Offs
+        -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
+        for iInd = 1, #tOffs do
+          local stPnt = tData.Offs[iInd]
+          oFile:Write(sData..sDelim..makTab:Match(iInd,4,true,"\"")..sDelim..
+                   "\""..(asmlib.IsEqualPOA(stPnt.P,stPnt.O) and "" or asmlib.StringPOA(stPnt.P,"V")).."\""..sDelim..
+                   "\""..  asmlib.StringPOA(stPnt.O,"V").."\""..sDelim..
+                   "\""..( asmlib.IsZeroPOA(stPnt.A,"A") and "" or asmlib.StringPOA(stPnt.A,"A")).."\""..sDelim..
+                   "\""..(tData.Unit and tostring(tData.Unit or "") or "").."\"\n")
+        end
+      end; return true
+    end
   },
   Query = {
     InsertRecord = {"%s","%s","%s","%d","%s","%s","%s","%s"},
-    ExportDSV = {2,3,1,4},
+    ExportDSV = {2,3,1,4}
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -711,7 +763,39 @@ asmlib.CreateTable("ADDITIONS",{
   Index = {{1},{4},{1,4}},
   Query = {
     InsertRecord = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
-    ExportDSV = {1,4},
+    ExportDSV = {1,4}
+  },
+  Cache = {
+    InsertRecord = function(makTab, tCache, snPK, arLine)
+      local defTab = makTab:GetDefinition()
+      local stData = tCache[snPK]; if(not stData) then
+        tCache[snPK] = {}; stData = tCache[snPK] end
+      if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
+      if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
+      local nCnt, sFld, nAddID = 2, "", makTab:Match(arLine[4],4)
+      if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..
+        tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),gtArgsLogs); return false end
+      stData[nAddID] = {} -- LineID has to be set properly
+      while(nCnt <= defTab.Size) do
+        sFld = defTab[nCnt][1]
+        stData[nAddID][sFld] = makTab:Match(arLine[nCnt],nCnt)
+        if(not asmlib.IsHere(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
+          asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[nCnt]).."> to "..
+            defTab[nCnt][1].." for "..tostring(snPK),gtArgsLogs); return false end
+        nCnt = nCnt + 1
+      end; stData.Size = nAddID; return true
+    end,
+    ExportDSV = function(oFile, makTab, tCache, sDelim)
+     local defTab = makTab:GetDefinition()
+     for mod, rec in pairs(tCache) do
+        local sData = defTab.Name..sDelim..mod
+        for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
+          for iID = 2, defTab.Size do local vData = tData[defTab[iID][1]]
+            oFile:Write(sDelim..makTab:Match(tData[defTab[iID][1]],iID,true,"\""))
+          end; oFile:Write("\n") -- Data is already inserted, there will be no crash
+        end
+      end; return true
+    end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -735,6 +819,48 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       atRow[1] = asmlib.DisableString(atRow[1],asmlib.DefaultType(),"TYPE")
     end
   },
+  Cache = {
+    InsertRecord = function(makTab, tCache, snPK, arLine)
+      local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
+      local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
+      local tTypes = tCache[skType]; if(not tTypes) then
+        tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
+      local tNames = tCache[skName]; if(not tNames) then
+        tCache[skName] = {}; tNames = tCache[skName] end
+      local iNameID = makTab:Match(arLine[2],2)
+      if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
+        asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[2])..
+          "> to "..defTab[2][1].." for "..tostring(snPK),gtArgsLogs); return nil end
+      if(not asmlib.IsHere(tNames[snPK])) then
+        -- If a new type is inserted
+        tTypes.Size = tTypes.Size + 1
+        tTypes[tTypes.Size] = snPK
+        tNames[snPK] = {}
+        tNames[snPK].Size = 0
+        tNames[snPK].Slot = snPK
+      end -- Data matching crashes only on numbers
+      tNames[snPK].Size = iNameID
+      tNames[snPK][iNameID] = makTab:Match(arLine[3],3)
+    end,
+    ExportDSV = function(oFile, makTab, tCache, sDelim)
+      local defTab = makTab:GetDefinition()
+      local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
+      local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
+      if(not (tTypes or tNames)) then F:Flush(); F:Close()
+        asmlib.LogInstance("("..fPref..") No data found",gtArgsLogs); return false end
+      for iInd = 1, tTypes.Size do
+        local sType = tTypes[iInd]
+        local tType = tNames[sType]
+        if(not tType) then F:Flush(); F:Close()
+          LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",gtArgsLogs); return false end
+        for iCnt = 1, tType.Size do
+          oFile:Write(defTab.Name..sDelim..makTab:Match(sType      ,1,true,"\"")..
+                                   sDelim..makTab:Match(iCnt       ,2,true,"\"")..
+                                   sDelim..makTab:Match(tType[iCnt],3,true,"\"").."\n")
+        end
+      end; return true
+    end
+  },
   Query = {
     InsertRecord = {"%s","%d","%s"},
     ExportDSV = {1,2}
@@ -749,9 +875,9 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
   if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
-    asmlib.LogInstance("Init: DB CATEGORY from DSV")
+    asmlib.LogInstance("DB CATEGORY from DSV")
     asmlib.ImportCategory(3)
-  else asmlib.LogInstance("Init: DB CATEGORY from LUA") end
+  else asmlib.LogInstance("DB CATEGORY from LUA") end
 end
 
 --[[ Track pieces parametrization legend
@@ -764,10 +890,10 @@ end
  * Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance("Init: DB PIECES from DSV")
+  asmlib.LogInstance("DB PIECES from DSV")
   asmlib.ImportDSV("PIECES", true)
 else
-  asmlib.LogInstance("Init: DB PIECES from LUA")
+  asmlib.LogInstance("DB PIECES from LUA")
   asmlib.DefaultTable("PIECES")
   if(asmlib.GetAsmVar("devmode" ,"BUL")) then
     asmlib.DefaultType("Develop Sprops")
@@ -2884,10 +3010,10 @@ else
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance("Init: DB PHYSPROPERTIES from DSV")
+  asmlib.LogInstance("DB PHYSPROPERTIES from DSV")
   asmlib.ImportDSV("PHYSPROPERTIES", true)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
-  asmlib.LogInstance("Init: DB PHYSPROPERTIES from LUA")
+  asmlib.LogInstance("DB PHYSPROPERTIES from LUA")
   asmlib.DefaultTable("PHYSPROPERTIES")
   asmlib.DefaultType("Special")
   asmlib.InsertRecord({"#", 1 , "default"             })
@@ -2991,10 +3117,10 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
 end
 
 if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance("Init: DB ADDITIONS from DSV")
+  asmlib.LogInstance("DB ADDITIONS from DSV")
   asmlib.ImportDSV("ADDITIONS", true)
 else
-  asmlib.LogInstance("Init: DB ADDITIONS from LUA")
+  asmlib.LogInstance("DB ADDITIONS from LUA")
   asmlib.DefaultTable("ADDITIONS")
   --- Shinji's Switchers ---
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,0,-1,-1})
