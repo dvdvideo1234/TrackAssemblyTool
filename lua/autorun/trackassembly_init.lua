@@ -718,7 +718,7 @@ asmlib.CreateTable("PIECES",{
           " sequential mismatch",gtArgsLogs); return false end
       return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, sDelim)
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
       local tData, defTab = {}, makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
         tData[mod] = {Key = (rec.Type..rec.Name..mod)} end
@@ -727,19 +727,21 @@ asmlib.CreateTable("PIECES",{
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",gtArgsLogs); return false end
       for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
         local tData = tCache[stRec.Key]
-        local sData = defTab.Name
+        local sData, tOffs = defTab.Name, tData.Offs
               sData = sData..sDelim..makTab:Match(stRec.Key,1,true,"\"")..sDelim..
                 makTab:Match(tData.Type,2,true,"\"")..sDelim..
                 makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
-        local tOffs = tData.Offs
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
         for iInd = 1, #tOffs do
           local stPnt = tData.Offs[iInd]
+          local sP = (asmlib.IsEqualPOA(stPnt.P,stPnt.O) and "" or asmlib.StringPOA(stPnt.P,"V"))
+          local sO = (asmlib.IsZeroPOA(stPnt.O,"V") and "" or asmlib.StringPOA(stPnt.O,"V"))
+                sO = (stPnt.O.Slot and stPnt.O.Slot or sO)
+          local sA = (asmlib.IsZeroPOA(stPnt.A,"A") and "" or asmlib.StringPOA(stPnt.A,"A"))
+                sA = (stPnt.A.Slot and stPnt.A.Slot or sA)
+          local sC = (tData.Unit and tostring(tData.Unit or "") or "")
           oFile:Write(sData..sDelim..makTab:Match(iInd,4,true,"\"")..sDelim..
-                   "\""..(asmlib.IsEqualPOA(stPnt.P,stPnt.O) and "" or asmlib.StringPOA(stPnt.P,"V")).."\""..sDelim..
-                   "\""..  asmlib.StringPOA(stPnt.O,"V").."\""..sDelim..
-                   "\""..( asmlib.IsZeroPOA(stPnt.A,"A") and "" or asmlib.StringPOA(stPnt.A,"A")).."\""..sDelim..
-                   "\""..(tData.Unit and tostring(tData.Unit or "") or "").."\"\n")
+            "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
     end
@@ -785,7 +787,7 @@ asmlib.CreateTable("ADDITIONS",{
         nCnt = nCnt + 1
       end; stData.Size = nAddID; return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, sDelim)
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
      local defTab = makTab:GetDefinition()
      for mod, rec in pairs(tCache) do
         local sData = defTab.Name..sDelim..mod
@@ -842,7 +844,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       tNames[snPK].Size = iNameID
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3)
     end,
-    ExportDSV = function(oFile, makTab, tCache, sDelim)
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
       local defTab = makTab:GetDefinition()
       local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
       local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]

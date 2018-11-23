@@ -1390,7 +1390,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
   ---------- Origin ----------
   if(sO:sub(1,1) == sD) then ReloadPOA() else
-    if(sO:sub(1,1) == sE) then -- Reversing the sign event is not supported
+    if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO
       local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:sub(2,-1))
       if(IsHere(vtPos)) then ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
       else if((sO ~= "NULL") and not IsBlank(sO)) then DecodePOA(sO) else ReloadPOA() end end
@@ -1398,7 +1398,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
   ---------- Angle ----------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
-    if(sA:sub(1,1) == sE) then -- Reversing the sign event is not supported
+    if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA
       local vtPos, atAng = GetTransformPOA(stPiece.Slot, sA:sub(2,-1))
       if(IsHere(atAng)) then ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
       else if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end end
@@ -2157,7 +2157,7 @@ function InsertRecord(sTable,arLine)
       LogInstance("Cache manager missing for "..defTab.Nick); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], makTab, tCache, snPrimaryKey, arLine)
     if(not bS) then LogInstance("Cache manager fail for "..defTab.Nick.." "..sR); return false end
-    if(not sR) then LogInstance("Cache insert fail for "..defTab.Nick); return false end
+    if(not sR) then LogInstance("Cache routine fail for "..defTab.Nick); return false end
   else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return false end
   return true -- The dynamic cache population was successful
 end
@@ -2566,9 +2566,9 @@ function ExportDSV(sTable, sPref, sDelim)
     local tCache = libCache[defTab.Name]
     if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Table <"..defTab.Name.."> cache missing"); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, sDelim)
+    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim)
     if(not bS) then LogInstance("Cache manager fail for "..defTab.Nick.." "..sR); return false end
-    if(not sR) then LogInstance("Cache insert fail for "..defTab.Nick); return false end
+    if(not sR) then LogInstance("Cache routine fail for "..defTab.Nick); return false end
   else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return false end
   F:Flush(); F:Close(); return true -- The dynamic cache population was successful
 end
