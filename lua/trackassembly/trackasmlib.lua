@@ -227,11 +227,6 @@ end
 
 ------------------ LOGS ------------------------
 
-function LogSet(sNam, vRet) SetOpVar("LOG_OVRFUNC")
-  if(IsHere(sNam) and IsString(sNam) and not IsBlank(sNam)) then
-    SetOpVar("LOG_OVRFUNC", tostring(sNam)) end; return vRet
-end
-
 local function GetLogID()
   local nNum, nMax = GetOpVar("LOG_CURLOGS"), GetOpVar("LOG_MAXLOGS")
   if(not (nNum and nMax)) then return "" end
