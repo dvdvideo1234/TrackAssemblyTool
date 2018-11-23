@@ -723,8 +723,8 @@ asmlib.CreateTable("PIECES",{
       gtArgsLogs[1] = "*PIECES.Cache.ExportDSV"
       local tData, defTab = {}, makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
-        tData[mod] = {Key = (rec.Type..rec.Name..mod)} end
-      local tSort = asmlib.Sort(tData,{Key})
+        tData[mod] = {KEY = (rec.Type..rec.Name..mod)} end
+      local tSort = asmlib.Sort(tData,{"KEY"})
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",gtArgsLogs); return false end
       for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
