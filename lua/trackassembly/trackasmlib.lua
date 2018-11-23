@@ -173,6 +173,11 @@ function IsBlank(vVal)
   return (vVal == "")
 end
 
+function IsExact(vVal)
+  if(not IsString(vVal)) then return false end
+  return (vVal:sub(1,1) == "*")
+end
+
 function IsBool(vVal)
   if    (vVal == true ) then return true
   elseif(vVal == false) then return true end
@@ -277,14 +282,14 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local tInfo = (iDbg and debugGetinfo(iDbg) or nil) -- Pass stack index
         tInfo = tInfo or (tDbg and tDbg or nil)      -- Override debug information
         tInfo = tInfo or debugGetinfo(2)             -- Default value
-  local sFunc, sDbg = GetOpVar("LOG_OVRFUNC"), ""
-        sFunc = tostring(sFunc or (tInfo.name and tInfo.name or "Main"))
+  local sDbg, sFunc = "", tostring(sFunc or (tInfo.name and tInfo.name or "Main")) 
   if(GetOpVar("LOG_DEBUGEN")) then
     local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
     sDbg = sDbg.." "..(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV)
     sDbg = sDbg..(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV)
     sDbg = sDbg.."@"..(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
-  end; local sSrc = ((vSrc and not IsBlank(vSrc)) and tostring(vSrc).."." or "")
+  end; local sSrc = ((vSrc and not IsBlank(vSrc)) and tostring(vSrc) or "")
+  if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else sSrc = sSrc.."." end
   local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
   Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sSrc..sFunc..": "..sMsg, bCon)
@@ -2125,9 +2130,9 @@ function InsertRecord(sTable,arLine)
     LogInstance("Missing builder for "..sTable); return false end
   local defTab, sMoDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   -- Call the trigger when provided
-  if(IsTable(defTab.Trigs)) then local bS, sE = pcall(defTab.Trigs[sFunc], arLine)
-    if(not bS) then LogInstance("Trigger mismatch for <"..defTab.Nick.."> "..tostring(sE))
-      return false end -- Make sure the error is logged when the trigger is faulty
+  if(IsTable(defTab.Trigs)) then local bS, sR = pcall(defTab.Trigs[sFunc], arLine)
+    if(not bS) then LogInstance("Trigger manager fail for "..defTab.Nick.." "..sR); return false end
+    if(not sR) then LogInstance("Trigger routine fail for "..defTab.Nick); return false end
   end  
   -- Populate the data after the trigger does its thing
   if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
@@ -2138,19 +2143,18 @@ function InsertRecord(sTable,arLine)
       Q = CacheStmt(qsKey:format(sFunc, defTab.Nick), sStmt, unpack(arLine))
     end -- The query is built based on table definition
     if(not IsHere(Q)) then
-      LogInstance( "Internal cache error <"..defTab.Nick..">"); return false end
+      LogInstance("Internal cache error <"..defTab.Nick..">"); return false end
     local qRez = sqlQuery(Q); if(not qRez and IsBool(qRez)) then
-       LogInstance("Failed to insert a record because of <"..sqlLastError().."> Query ran <"..Q..">"); return false end
+       LogInstance("Execution error <"..sqlLastError().."> Query ran <"..Q..">"); return false end
     return true -- The dynamic statement insertion was successful
-  elseif(sMoDB == "LUA") then
-    local snPrimaryKey = makTab:Match(arLine[1],1)
-    if(not IsHere(snPrimaryKey)) then -- If primary key becomes a number
-      LogInstance("Cannot match primary key "..defTab.Nick.." <"..tostring(arLine[1]).."> to "..defTab[1][1].." for "..tostring(snPrimaryKey)); return nil end
+  elseif(sMoDB == "LUA") then local snPK = makTab:Match(arLine[1],1)
+    if(not IsHere(snPK)) then -- If primary key becomes a number
+      LogInstance("Cannot match primary key "..defTab.Nick.." <"..tostring(arLine[1]).."> to "..defTab[1][1].." for "..tostring(snPK)); return nil end
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing for "..defTab.Nick); return false end
     if(not IsTable(defTab.Cache)) then 
       LogInstance("Cache manager missing for "..defTab.Nick); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], makTab, tCache, snPrimaryKey, arLine)
+    local bS, sR = pcall(defTab.Cache[sFunc], makTab, tCache, snPK, arLine)
     if(not bS) then LogInstance("Cache manager fail for "..defTab.Nick.." "..sR); return false end
     if(not sR) then LogInstance("Cache routine fail for "..defTab.Nick); return false end
   else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return false end
@@ -3443,7 +3447,7 @@ end
 function MakeAsmVar(sName, vVal, vBord, vFlg, vInf)
   if(not IsString(sName)) then
     LogInstance("CVar name {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
-  local sLow = ((sName:sub(1,1) == "*") and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
+  local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
   local cVal, sInf = (tonumber(vVal) or tostring(vVal)), tostring(vInf or "")
   local tBrd, nFlg = mathFloor(tonumber(vFlg) or 0), GetOpVar("TABLE_BORDERS")
   if(IsHere(tBrd[sLow])) then LogInstance("Exists <"..sLow..">"); return nil end
@@ -3458,7 +3462,7 @@ function GetAsmVar(sName, sMode)
     LogInstance("CVar name {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
   if(not IsString(sMode)) then
     LogInstance("CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
-  local sLow = ((sName:sub(1,1) == "*") and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
+  local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
   local CVar = GetConVar(sLow); if(not IsHere(CVar)) then
     LogInstance("("..sLow..", "..sMode..") Missing CVar object"); return nil end
   if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  , sLow)) or 0)

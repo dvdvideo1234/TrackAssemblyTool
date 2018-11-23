@@ -686,19 +686,20 @@ asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
   Trigs = {
-    InsertRecord = function(stRow)
+    InsertRecord = function(arLine) gtArgsLogs[1] = "*PIECES.Trigs.InsertRecord"
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      stRow[2] = asmlib.DisableString(stRow[2],asmlib.DefaultType(),"TYPE")
-      stRow[3] = asmlib.DisableString(stRow[3],asmlib.ModelToName(stRow[1]),"MODEL")
-      stRow[8] = asmlib.DisableString(stRow[8],"NULL","NULL")
-      if(not ((stRow[8] == "NULL") or trCls[stRow[8]] or asmlib.IsBlank(stRow[8]))) then
-        trCls[stRow[8]] = true; asmlib.LogInstance("Register trace <"..
-          tostring(stRow[8]).."@"..stRow[1]..">",gtArgsLogs)
-      end
+      arLine[2] = asmlib.DisableString(arLine[2],asmlib.DefaultType(),"TYPE")
+      arLine[3] = asmlib.DisableString(arLine[3],asmlib.ModelToName(arLine[1]),"MODEL")
+      arLine[8] = asmlib.DisableString(arLine[8],"NULL","NULL")
+      if(not ((arLine[8] == "NULL") or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
+        trCls[arLine[8]] = true; asmlib.LogInstance("Register trace <"..
+          tostring(arLine[8]).."@"..arLine[1]..">",gtArgsLogs)
+      end; return true
     end -- Register the class provided to the trace hit list
   },
   Cache = {
     InsertRecord = function(makTab, tCache, snPK, arLine)
+      gtArgsLogs[1] = "*PIECES.Cache.InsertRecord"
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
@@ -719,6 +720,7 @@ asmlib.CreateTable("PIECES",{
       return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
+      gtArgsLogs[1] = "*PIECES.Cache.ExportDSV"
       local tData, defTab = {}, makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
         tData[mod] = {Key = (rec.Type..rec.Name..mod)} end
@@ -769,6 +771,7 @@ asmlib.CreateTable("ADDITIONS",{
   },
   Cache = {
     InsertRecord = function(makTab, tCache, snPK, arLine)
+      gtArgsLogs[1] = "*ADDITIONS.Cache.InsertRecord"
       local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
@@ -823,6 +826,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   },
   Cache = {
     InsertRecord = function(makTab, tCache, snPK, arLine)
+      gtArgsLogs[1] = "*PHYSPROPERTIES.Cache.InsertRecord"
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
       local tTypes = tCache[skType]; if(not tTypes) then
@@ -845,6 +849,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3)
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
+      gtArgsLogs[1] = "*PHYSPROPERTIES.Cache.ExportDSV"
       local defTab = makTab:GetDefinition()
       local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
       local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
