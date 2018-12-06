@@ -442,6 +442,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOID","N")    -- No ID selected
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
+  SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_KEYSTMT","stmt%s<%s>")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   if(CLIENT) then
@@ -3495,123 +3496,125 @@ function SetAsmVarCallback(sName, sType, sHash, fHand)
 end
 
 function GetPhrase(sKey)
-  local tPool = GetOpVar("LOCALIFY_TABLE")
-  local sPhrs = tPool[tostring(sKey)]; if(not sPhrs) then
-    LogInstance("Miss <"..tostring(sKey)..">") end
-  return (sPhrs and tostring(sPhrs) or GetOpVar("MISS_NOAV"))
+  local sDef = GetOpVar("MISS_NOTR")
+  local tSet = GetOpVar("LOCALIFY_TABLE")
+  local sKey = tostring(sKey) if(not IsHere(tSet[sKey])) then
+    LogInstance("Miss <"..sKey..">"); return GetOpVar("MISS_NOTR") end
+  return (tSet[sKey] or GetOpVar("MISS_NOTR")) -- Translation fail safe
 end
 
 function InitLocalify(sCode)
-  if(not CLIENT) then return end; local tPool = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
+  if(not CLIENT) then return end; local tSet = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
   local sTool, sLmit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
   ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/ISO_639-1
   -- con >> control, def >> deafault, hd >> header, lb >> label
-  tPool["tool."..sTool..".1"             ] = "Assembles a prop-segmented track"
-  tPool["tool."..sTool..".left"          ] = "Spawn/snap a piece. Hold SHIFT to stack"
-  tPool["tool."..sTool..".right"         ] = "Switch assembly points. Hold SHIFT for versa (Quick: ALT + SCROLL)"
-  tPool["tool."..sTool..".right_use"     ] = "Open frequently used pieces menu"
-  tPool["tool."..sTool..".reload"        ] = "Remove a piece. Hold SHIFT to select an anchor"
-  tPool["tool."..sTool..".desc"          ] = "Assembles a track for vehicles to run on"
-  tPool["tool."..sTool..".name"          ] = "Track assembly"
-  tPool["tool."..sTool..".phytype"       ] = "Select physical properties type of the ones listed here"
-  tPool["tool."..sTool..".phytype_def"   ] = "<Select Surface Material TYPE>"
-  tPool["tool."..sTool..".phyname"       ] = "Select physical properties name to use when creating the track as this will affect the surface friction"
-  tPool["tool."..sTool..".phyname_def"   ] = "<Select Surface Material NAME>"
-  tPool["tool."..sTool..".bgskids"       ] = "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace"
-  tPool["tool."..sTool..".bgskids_def"   ] = "Write selection code here. For example 1,0,0,2,1/3"
-  tPool["tool."..sTool..".mass"          ] = "How heavy the piece spawned will be"
-  tPool["tool."..sTool..".mass_con"      ] = "Piece mass:"
-  tPool["tool."..sTool..".model"         ] = "Select the piece model to be used"
-  tPool["tool."..sTool..".model_con"     ] = "Select a piece to start/continue your track with by expanding a type and clicking on a node"
-  tPool["tool."..sTool..".activrad"      ] = "Minimum distance needed to select an active point"
-  tPool["tool."..sTool..".activrad_con"  ] = "Active radius:"
-  tPool["tool."..sTool..".stackcnt"      ] = "Maximum number of pieces to create while stacking"
-  tPool["tool."..sTool..".stackcnt_con"  ] = "Pieces count:"
-  tPool["tool."..sTool..".angsnap"       ] = "Snap the first piece spawned at this much degrees"
-  tPool["tool."..sTool..".angsnap_con"   ] = "Angular alignment:"
-  tPool["tool."..sTool..".resetvars"     ] = "Click to reset the additional values"
-  tPool["tool."..sTool..".resetvars_con" ] = "V Reset variables V"
-  tPool["tool."..sTool..".nextpic"       ] = "Additional origin angular pitch offset"
-  tPool["tool."..sTool..".nextpic_con"   ] = "Origin pitch:"
-  tPool["tool."..sTool..".nextyaw"       ] = "Additional origin angular yaw offset"
-  tPool["tool."..sTool..".nextyaw_con"   ] = "Origin yaw:"
-  tPool["tool."..sTool..".nextrol"       ] = "Additional origin angular roll offset"
-  tPool["tool."..sTool..".nextrol_con"   ] = "Origin roll:"
-  tPool["tool."..sTool..".nextx"         ] = "Additional origin linear X offset"
-  tPool["tool."..sTool..".nextx_con"     ] = "Offset X:"
-  tPool["tool."..sTool..".nexty"         ] = "Additional origin linear Y offset"
-  tPool["tool."..sTool..".nexty_con"     ] = "Offset Y:"
-  tPool["tool."..sTool..".nextz"         ] = "Additional origin linear Z offset"
-  tPool["tool."..sTool..".nextz_con"     ] = "Offset Z:"
-  tPool["tool."..sTool..".gravity"       ] = "Controls the gravity on the piece spawned"
-  tPool["tool."..sTool..".gravity_con"   ] = "Apply piece gravity"
-  tPool["tool."..sTool..".weld"          ] = "Creates welds between pieces or pieces/anchor"
-  tPool["tool."..sTool..".weld_con"      ] = "Weld"
-  tPool["tool."..sTool..".forcelim"      ] = "Controls how much force is needed to break the weld"
-  tPool["tool."..sTool..".forcelim_con"  ] = "Force limit:"
-  tPool["tool."..sTool..".ignphysgn"     ] = "Ignores physics gun grab on the piece spawned/snapped/stacked"
-  tPool["tool."..sTool..".ignphysgn_con" ] = "Ignore physics gun"
-  tPool["tool."..sTool..".nocollide"     ] = "Puts a no-collide between pieces or pieces/anchor"
-  tPool["tool."..sTool..".nocollide_con" ] = "NoCollide"
-  tPool["tool."..sTool..".freeze"        ] = "Makes the piece spawn in a frozen state"
-  tPool["tool."..sTool..".freeze_con"    ] = "Freeze on spawn"
-  tPool["tool."..sTool..".igntype"       ] = "Makes the tool ignore the different piece types on snapping/stacking"
-  tPool["tool."..sTool..".igntype_con"   ] = "Ignore track type"
-  tPool["tool."..sTool..".spnflat"       ] = "The next piece will be spawned/snapped/stacked horizontally"
-  tPool["tool."..sTool..".spnflat_con"   ] = "Spawn horizontally"
-  tPool["tool."..sTool..".spawncn"       ] = "Spawns the piece at the center, else spawns relative to the active point chosen"
-  tPool["tool."..sTool..".spawncn_con"   ] = "Origin from center"
-  tPool["tool."..sTool..".surfsnap"      ] = "Snaps the piece to the surface the player is pointing at"
-  tPool["tool."..sTool..".surfsnap_con"  ] = "Snap to trace surface"
-  tPool["tool."..sTool..".appangfst"     ] = "Apply the angular offsets only on the first piece"
-  tPool["tool."..sTool..".appangfst_con" ] = "Apply angular on first"
-  tPool["tool."..sTool..".applinfst"     ] = "Apply the linear offsets only on the first piece"
-  tPool["tool."..sTool..".applinfst_con" ] = "Apply linear on first"
-  tPool["tool."..sTool..".adviser"       ] = "Controls rendering the tool position/angle adviser"
-  tPool["tool."..sTool..".adviser_con"   ] = "Draw adviser"
-  tPool["tool."..sTool..".pntasist"      ] = "Controls rendering the tool snap point assistant"
-  tPool["tool."..sTool..".pntasist_con"  ] = "Draw assistant"
-  tPool["tool."..sTool..".ghostcnt"      ] = "Controls rendering the tool ghosted holder pieces count"
-  tPool["tool."..sTool..".ghostcnt_con"  ] = "Draw holder ghosts"
-  tPool["tool."..sTool..".engunsnap"     ] = "Controls snapping when the piece is dropped by the player physgun"
-  tPool["tool."..sTool..".engunsnap_con" ] = "Enable physgun snap"
-  tPool["tool."..sTool..".workmode"      ] = "Change this option to select a different working mode"
-  tPool["tool."..sTool..".workmode_1"    ] = "General spawn/snap pieces"
-  tPool["tool."..sTool..".workmode_2"    ] = "Active point intersection"
-  tPool["tool."..sTool..".pn_export"     ] = "Click to export the client database as a file"
-  tPool["tool."..sTool..".pn_export_lb"  ] = "Export DB"
-  tPool["tool."..sTool..".pn_routine"    ] = "The list of your frequently used track pieces"
-  tPool["tool."..sTool..".pn_routine_hd" ] = "Frequent pieces by: "
-  tPool["tool."..sTool..".pn_display"    ] = "The model of your track piece is displayed here"
-  tPool["tool."..sTool..".pn_pattern"    ] = "Write a pattern here and hit ENTER to preform a search"
-  tPool["tool."..sTool..".pn_srchcol"    ] = "Choose which list column you want to preform a search on"
-  tPool["tool."..sTool..".pn_srchcol_lb" ] = "<Search by>"
-  tPool["tool."..sTool..".pn_srchcol_lb1"] = "Model"
-  tPool["tool."..sTool..".pn_srchcol_lb2"] = "Type"
-  tPool["tool."..sTool..".pn_srchcol_lb3"] = "Name"
-  tPool["tool."..sTool..".pn_srchcol_lb4"] = "End"
-  tPool["tool."..sTool..".pn_routine_lb" ] = "Routine items"
-  tPool["tool."..sTool..".pn_routine_lb1"] = "Used"
-  tPool["tool."..sTool..".pn_routine_lb2"] = "End"
-  tPool["tool."..sTool..".pn_routine_lb3"] = "Type"
-  tPool["tool."..sTool..".pn_routine_lb4"] = "Name"
-  tPool["tool."..sTool..".pn_display_lb" ] = "Piece display"
-  tPool["tool."..sTool..".pn_pattern_lb" ] = "Write pattern"
-  tPool["Cleanup_"..sLmit                ] = "Assembled track pieces"
-  tPool["Cleaned_"..sLmit                ] = "Cleaned up all track pieces"
-  tPool["SBoxLimit_"..sLmit              ] = "You've hit the spawned tracks limit!"
+  tSet["tool."..sTool..".1"             ] = "Assembles a prop-segmented track"
+  tSet["tool."..sTool..".left"          ] = "Spawn/snap a piece. Hold SHIFT to stack"
+  tSet["tool."..sTool..".right"         ] = "Switch assembly points. Hold SHIFT for versa (Quick: ALT + SCROLL)"
+  tSet["tool."..sTool..".right_use"     ] = "Open frequently used pieces menu"
+  tSet["tool."..sTool..".reload"        ] = "Remove a piece. Hold SHIFT to select an anchor"
+  tSet["tool."..sTool..".desc"          ] = "Assembles a track for vehicles to run on"
+  tSet["tool."..sTool..".name"          ] = "Track assembly"
+  tSet["tool."..sTool..".phytype"       ] = "Select physical properties type of the ones listed here"
+  tSet["tool."..sTool..".phytype_def"   ] = "<Select Surface Material TYPE>"
+  tSet["tool."..sTool..".phyname"       ] = "Select physical properties name to use when creating the track as this will affect the surface friction"
+  tSet["tool."..sTool..".phyname_def"   ] = "<Select Surface Material NAME>"
+  tSet["tool."..sTool..".bgskids"       ] = "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace"
+  tSet["tool."..sTool..".bgskids_def"   ] = "Write selection code here. For example 1,0,0,2,1/3"
+  tSet["tool."..sTool..".mass"          ] = "How heavy the piece spawned will be"
+  tSet["tool."..sTool..".mass_con"      ] = "Piece mass:"
+  tSet["tool."..sTool..".model"         ] = "Select the piece model to be used"
+  tSet["tool."..sTool..".model_con"     ] = "Select a piece to start/continue your track with by expanding a type and clicking on a node"
+  tSet["tool."..sTool..".activrad"      ] = "Minimum distance needed to select an active point"
+  tSet["tool."..sTool..".activrad_con"  ] = "Active radius:"
+  tSet["tool."..sTool..".stackcnt"      ] = "Maximum number of pieces to create while stacking"
+  tSet["tool."..sTool..".stackcnt_con"  ] = "Pieces count:"
+  tSet["tool."..sTool..".angsnap"       ] = "Snap the first piece spawned at this much degrees"
+  tSet["tool."..sTool..".angsnap_con"   ] = "Angular alignment:"
+  tSet["tool."..sTool..".resetvars"     ] = "Click to reset the additional values"
+  tSet["tool."..sTool..".resetvars_con" ] = "V Reset variables V"
+  tSet["tool."..sTool..".nextpic"       ] = "Additional origin angular pitch offset"
+  tSet["tool."..sTool..".nextpic_con"   ] = "Origin pitch:"
+  tSet["tool."..sTool..".nextyaw"       ] = "Additional origin angular yaw offset"
+  tSet["tool."..sTool..".nextyaw_con"   ] = "Origin yaw:"
+  tSet["tool."..sTool..".nextrol"       ] = "Additional origin angular roll offset"
+  tSet["tool."..sTool..".nextrol_con"   ] = "Origin roll:"
+  tSet["tool."..sTool..".nextx"         ] = "Additional origin linear X offset"
+  tSet["tool."..sTool..".nextx_con"     ] = "Offset X:"
+  tSet["tool."..sTool..".nexty"         ] = "Additional origin linear Y offset"
+  tSet["tool."..sTool..".nexty_con"     ] = "Offset Y:"
+  tSet["tool."..sTool..".nextz"         ] = "Additional origin linear Z offset"
+  tSet["tool."..sTool..".nextz_con"     ] = "Offset Z:"
+  tSet["tool."..sTool..".gravity"       ] = "Controls the gravity on the piece spawned"
+  tSet["tool."..sTool..".gravity_con"   ] = "Apply piece gravity"
+  tSet["tool."..sTool..".weld"          ] = "Creates welds between pieces or pieces/anchor"
+  tSet["tool."..sTool..".weld_con"      ] = "Weld"
+  tSet["tool."..sTool..".forcelim"      ] = "Controls how much force is needed to break the weld"
+  tSet["tool."..sTool..".forcelim_con"  ] = "Force limit:"
+  tSet["tool."..sTool..".ignphysgn"     ] = "Ignores physics gun grab on the piece spawned/snapped/stacked"
+  tSet["tool."..sTool..".ignphysgn_con" ] = "Ignore physics gun"
+  tSet["tool."..sTool..".nocollide"     ] = "Puts a no-collide between pieces or pieces/anchor"
+  tSet["tool."..sTool..".nocollide_con" ] = "NoCollide"
+  tSet["tool."..sTool..".freeze"        ] = "Makes the piece spawn in a frozen state"
+  tSet["tool."..sTool..".freeze_con"    ] = "Freeze on spawn"
+  tSet["tool."..sTool..".igntype"       ] = "Makes the tool ignore the different piece types on snapping/stacking"
+  tSet["tool."..sTool..".igntype_con"   ] = "Ignore track type"
+  tSet["tool."..sTool..".spnflat"       ] = "The next piece will be spawned/snapped/stacked horizontally"
+  tSet["tool."..sTool..".spnflat_con"   ] = "Spawn horizontally"
+  tSet["tool."..sTool..".spawncn"       ] = "Spawns the piece at the center, else spawns relative to the active point chosen"
+  tSet["tool."..sTool..".spawncn_con"   ] = "Origin from center"
+  tSet["tool."..sTool..".surfsnap"      ] = "Snaps the piece to the surface the player is pointing at"
+  tSet["tool."..sTool..".surfsnap_con"  ] = "Snap to trace surface"
+  tSet["tool."..sTool..".appangfst"     ] = "Apply the angular offsets only on the first piece"
+  tSet["tool."..sTool..".appangfst_con" ] = "Apply angular on first"
+  tSet["tool."..sTool..".applinfst"     ] = "Apply the linear offsets only on the first piece"
+  tSet["tool."..sTool..".applinfst_con" ] = "Apply linear on first"
+  tSet["tool."..sTool..".adviser"       ] = "Controls rendering the tool position/angle adviser"
+  tSet["tool."..sTool..".adviser_con"   ] = "Draw adviser"
+  tSet["tool."..sTool..".pntasist"      ] = "Controls rendering the tool snap point assistant"
+  tSet["tool."..sTool..".pntasist_con"  ] = "Draw assistant"
+  tSet["tool."..sTool..".ghostcnt"      ] = "Controls rendering the tool ghosted holder pieces count"
+  tSet["tool."..sTool..".ghostcnt_con"  ] = "Draw holder ghosts"
+  tSet["tool."..sTool..".engunsnap"     ] = "Controls snapping when the piece is dropped by the player physgun"
+  tSet["tool."..sTool..".engunsnap_con" ] = "Enable physgun snap"
+  tSet["tool."..sTool..".workmode"      ] = "Change this option to select a different working mode"
+  tSet["tool."..sTool..".workmode_1"    ] = "General spawn/snap pieces"
+  tSet["tool."..sTool..".workmode_2"    ] = "Active point intersection"
+  tSet["tool."..sTool..".pn_export"     ] = "Click to export the client database as a file"
+  tSet["tool."..sTool..".pn_export_lb"  ] = "Export DB"
+  tSet["tool."..sTool..".pn_routine"    ] = "The list of your frequently used track pieces"
+  tSet["tool."..sTool..".pn_routine_hd" ] = "Frequent pieces by: "
+  tSet["tool."..sTool..".pn_display"    ] = "The model of your track piece is displayed here"
+  tSet["tool."..sTool..".pn_pattern"    ] = "Write a pattern here and hit ENTER to preform a search"
+  tSet["tool."..sTool..".pn_srchcol"    ] = "Choose which list column you want to preform a search on"
+  tSet["tool."..sTool..".pn_srchcol_lb" ] = "<Search by>"
+  tSet["tool."..sTool..".pn_srchcol_lb1"] = "Model"
+  tSet["tool."..sTool..".pn_srchcol_lb2"] = "Type"
+  tSet["tool."..sTool..".pn_srchcol_lb3"] = "Name"
+  tSet["tool."..sTool..".pn_srchcol_lb4"] = "End"
+  tSet["tool."..sTool..".pn_routine_lb" ] = "Routine items"
+  tSet["tool."..sTool..".pn_routine_lb1"] = "Used"
+  tSet["tool."..sTool..".pn_routine_lb2"] = "End"
+  tSet["tool."..sTool..".pn_routine_lb3"] = "Type"
+  tSet["tool."..sTool..".pn_routine_lb4"] = "Name"
+  tSet["tool."..sTool..".pn_display_lb" ] = "Piece display"
+  tSet["tool."..sTool..".pn_pattern_lb" ] = "Write pattern"
+  tSet["Cleanup_"..sLmit                ] = "Assembled track pieces"
+  tSet["Cleaned_"..sLmit                ] = "Cleaned up all track pieces"
+  tSet["SBoxLimit_"..sLmit              ] = "You've hit the spawned tracks limit!"
   local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
   local suCod = tostring(sCode or auCod)  -- English is used when missing
   if(suCod ~= auCod) then -- Other language used that is not auto
-    local sPath = ("%s/lang/%s.lua") -- Translation file path
-    local fCode = CompileFile(sPath:format(sTool, suCod))
-    local bFunc, fFunc = pcall(fCode); if(bFunc) then
-      local bCode, tCode = pcall(fFunc, sTool, sLmit); if(bCode) then
-        for key, val in pairs(tPool) do tPool[key] = (tCode[key] or tPool[key]) end
-      else LogInstance("("..suCod..") Second: "..tCode) end
-    else LogInstance("("..suCod..") First: "..fFunc) end
-    LogInstance("("..suCod..") "..tostring(tCode))
-  end; for key, val in pairs(tPool) do languageAdd(key, val) end
+    local sPath = ("%s/lang/%s.lua"):format(sTool, suCod) -- Translation file path
+    if(fileExists("lua/"..sPath, "GAME")) then local fCode = CompileFile(sPath)
+      local bFunc, fFunc = pcall(fCode); if(bFunc) then
+        local bCode, tCode = pcall(fFunc, sTool, sLmit); if(bCode) then
+          for key, val in pairs(tSet) do tSet[key] = (tCode[key] or tSet[key]) end
+        else LogInstance("("..suCod..")[2] "..tCode) end
+      else LogInstance("("..suCod..")[1] "..fFunc) end
+      LogInstance("("..suCod..") "..tostring(tCode))
+    end -- Compile and apply translation souurce if present
+  end; for key, val in pairs(tSet) do languageAdd(key, val) end
 end
 
 function HasGhosts(bDir)
