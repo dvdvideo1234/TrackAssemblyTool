@@ -3507,7 +3507,7 @@ function InitLocalify(sCode)
   if(not CLIENT) then return end; local tSet = GetOpVar("LOCALIFY_TABLE") -- ( Column "ISO 639-1" )
   local sTool, sLmit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
   ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/ISO_639-1
-  -- con >> control, def >> deafault, hd >> header, lb >> label
+  -- con >> control # def >> deafault # hd >> header # lb >> label
   tSet["tool."..sTool..".1"             ] = "Assembles a prop-segmented track"
   tSet["tool."..sTool..".left"          ] = "Spawn/snap a piece. Hold SHIFT to stack"
   tSet["tool."..sTool..".right"         ] = "Switch assembly points. Hold SHIFT for versa (Quick: ALT + SCROLL)"
