@@ -1209,7 +1209,7 @@ function TOOL:DrawToolScreen(w, h)
 end
 
 local ConVarList = TOOL:BuildConVarList()
-function TOOL.BuildCPanel(CPanel)
+function TOOL.BuildCPanel(CPanel) gtArgsLogs[1] = "*TOOL.BuildCPanel"
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
@@ -1404,8 +1404,8 @@ end
 
 -- listen for changes to the localify language and reload the tool's menu to update the localizations
 if(CLIENT) then
-  cvarsRemoveChangeCallback(varLng:GetName(), gsToolPrefL.."lang")
-  cvarsAddChangeCallback(varLng:GetName(), function(sNam, vO, vN)
+  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
+  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
     asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
     local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
     local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end

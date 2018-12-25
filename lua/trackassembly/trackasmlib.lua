@@ -41,29 +41,30 @@ local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 
 ---------------- Localizing needed functions ----------------
 
-local next                    = next
-local type                    = type
-local pcall                   = pcall
-local Angle                   = Angle
-local Color                   = Color
-local pairs                   = pairs
-local print                   = print
-local tobool                  = tobool
-local Vector                  = Vector
-local Matrix                  = Matrix
-local unpack                  = unpack
-local include                 = include
-local IsValid                 = IsValid
-local Material                = Material
-local require                 = require
-local Time                    = CurTime
-local tonumber                = tonumber
-local tostring                = tostring
-local GetConVar               = GetConVar
-local LocalPlayer             = LocalPlayer
+local next                     = next
+local type                     = type
+local pcall                    = pcall
+local Angle                    = Angle
+local Color                    = Color
+local pairs                    = pairs
+local print                    = print
+local tobool                   = tobool
+local Vector                   = Vector
+local Matrix                   = Matrix
+local unpack                   = unpack
+local include                  = include
+local IsValid                  = IsValid
+local Material                 = Material
+local require                  = require
+local Time                     = CurTime
+local tonumber                 = tonumber
+local tostring                 = tostring
+local GetConVar                = GetConVar
+local LocalPlayer              = LocalPlayer
 local CreateConVar             = CreateConVar
 local SetClipboardText         = SetClipboardText
 local CompileString            = CompileString
+local CompileFile              = CompileFile
 local getmetatable             = getmetatable
 local setmetatable             = setmetatable
 local collectgarbage           = collectgarbage
@@ -257,6 +258,26 @@ local function Log(vMsg, bCon)
 end
 
 --[[
+  sMsg > Message being displayed
+  sKey > SKIP / ONLY
+  Return: exist, found
+]]
+local function IsLogFound(sMsg, sKey)
+  local sKey = tostring(sKey or "")
+  if(IsBlank(sKey)) then return nil end
+  local oStat = GetOpVar("LOG_"..sKey)
+  if(IsTable(oStat) and oStat[1]) then
+    local iCnt = 1; while(oStat[iCnt]) do
+      if(sMsg:find(tostring(oStat[iCnt]))) then
+        return true, true
+      end; iCnt = iCnt + 1
+    end; return true, false
+  else
+    return false, false
+  end
+end
+
+--[[
   vMsg > Message being displayed
   vSrc > Name of the sub-routine call (string) or parameter stack (table)
   bCon > Force output in console flag
@@ -269,31 +290,24 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
   if(vSrc and IsTable(vSrc)) then -- Recieve the stack as table
     vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
-  local sMsg, oStat = tostring(vMsg), GetOpVar("LOG_SKIP")
-  if(IsTable(oStat) and oStat[1]) then
-    local iCnt = 1; while(oStat[iCnt]) do
-      if(sMsg:find(tostring(oStat[iCnt]))) then return end; iCnt = iCnt + 1 end
-  end; oStat = GetOpVar("LOG_ONLY") -- Should the current log being skipped
-  if(IsTable(oStat) and oStat[1]) then
-    local iCnt, logMe = 1, false; while(oStat[iCnt]) do
-      if(sMsg:find(tostring(oStat[iCnt]))) then logMe = true end; iCnt = iCnt + 1 end
-    if(not logMe) then return end -- Only the chosen messages are processed
-  end; iDbg = mathFloor(tonumber(iDbg) or 0); iDbg = ((iDbg > 0) and iDbg or nil)
+  iDbg = mathFloor(tonumber(iDbg) or 0); iDbg = ((iDbg > 0) and iDbg or nil)
   local tInfo = (iDbg and debugGetinfo(iDbg) or nil) -- Pass stack index
-        tInfo = tInfo or (tDbg and tDbg or nil)      -- Override debug information
-        tInfo = tInfo or debugGetinfo(2)             -- Default value
+        tInfo = (tInfo or (tDbg and tDbg or nil))    -- Override debug information
+        tInfo = (tInfo or debugGetinfo(2))           -- Default value
   local sDbg, sFunc = "", tostring(sFunc or (tInfo.name and tInfo.name or "Main"))
   if(GetOpVar("LOG_DEBUGEN")) then
     local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
     sDbg = sDbg.." "..(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV)
     sDbg = sDbg..(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV)
     sDbg = sDbg.."@"..(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
-  end; local sSrc = tostring(vSrc or "")
+  end; local sSrc, bF, bL = tostring(vSrc or "")
   if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else
     if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
-  local sInst   = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
+  local sInst = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sSrc..sFunc..": "..sMsg, bCon)
+  local sMsg = (sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sSrc..sFunc..": "..tostring(vMsg))
+  bF, bL = IsLogFound(sMsg, "SKIP"); if(bF and bL) then return end
+  bF, bL = IsLogFound(sMsg, "ONLY"); if(bF and not bL) then return end; Log(sMsg, bCon)
 end
 
 local function PrintCeption(tT,sS,tP)
@@ -361,8 +375,8 @@ function SettingsLogs(sHash)
   if(S) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(S)
       if(not IsBlank(sLine)) then tableInsert(tLogs, sLine) end
-    end; S:Close(); LogInstance("Success <"..sKey.."/"..fName..">"); return false
-  else LogInstance("Missing <"..sKey.."/"..fName..">"); return false end
+    end; S:Close(); LogInstance("Success <"..sKey.."@"..fName..">"); return false
+  else LogInstance("Missing <"..sKey.."@"..fName..">"); return false end
 end
 
 function GetIndexes(sType)
@@ -502,7 +516,7 @@ end
 
 function FixColor(nC)
   local tC = GetOpVar("COLOR_CLAMP")
-  return mathFloor(mathClamp(tonumber(nC) or 0, tC[1], tC[2]))
+  return mathFloor(mathClamp((tonumber(nC) or 0), tC[1], tC[2]))
 end
 
 function GetColor(xR, xG, xB, xA)
@@ -784,16 +798,16 @@ end
  * CIR - Drawing a circle
 ]]--
 function MakeScreen(sW,sH,eW,eH,conColors)
-  if(SERVER) then return nil end
+  if(SERVER) then return nil end; local tLogs = {"MakeScreen"}
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
-  if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid"); return nil end
-  if(eW < 0 or eH < 0) then LogInstance("End dimension invalid"); return nil end
+  if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid", tLogs); return nil end
+  if(eW < 0 or eH < 0) then LogInstance("End dimension invalid", tLogs); return nil end
   local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
   local Colors = {List = conColors, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
-      then LogInstance("Color list not container"); return nil end
+      then LogInstance("Color list not container", tLogs); return nil end
   else -- Color list is not present then create one
     Colors.List = MakeContainer("Colors")
   end
@@ -812,12 +826,12 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   function self:SetColor(keyColor,sMeth)
     if(not IsHere(keyColor) and not IsHere(sMeth)) then
       Colors.Key = GetOpVar("OOP_DEFAULTKEY")
-      LogInstance("Color reset"); return nil end
+      LogInstance("Color reset", tLogs); return nil end
     local keyColor = (keyColor or Colors.Key)
     if(not IsHere(keyColor)) then
-      LogInstance("Indexing skipped"); return nil end
+      LogInstance("Indexing skipped", tLogs); return nil end
     if(not IsString(sMeth)) then
-      LogInstance("Method <"..tostring(method).."> invalid"); return nil end
+      LogInstance("Method <"..tostring(method).."> invalid", tLogs); return nil end
     local rgbColor = Colors.List:Select(keyColor)
     if(not IsHere(rgbColor)) then rgbColor = Colors.Default end
     if(tostring(Colors.Key) ~= tostring(keyColor)) then -- Update the color only on change
@@ -855,7 +869,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       Text.DrwY = Text.DrwY + Text.LstH
       if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
       Text.ScrH = Text.DrwY
-    else LogInstance("Draw method <"..sMeth.."> invalid"); return nil end
+    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
   end
   function self:DrawTextAdd(sText,keyColor,sMeth,tArgs)
     local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"TXT")
@@ -867,7 +881,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       Text.LstW, Text.LstH = (Text.LstW + LstW), LstH
       if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
       Text.ScrH = Text.DrwY
-    else LogInstance("Draw method <"..sMeth.."> invalid"); return nil end
+    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
   end
   function self:Enclose(xyPnt)
     if(xyPnt.x < sW) then return -1 end
@@ -877,9 +891,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   end
   function self:GetDistance(pS, pE)
     if(self:Enclose(pS) == -1) then
-      LogInstance("Start out of border"); return nil end
+      LogInstance("Start out of border", tLogs); return nil end
     if(self:Enclose(pE) == -1) then
-      LogInstance("End out of border"); return nil end
+      LogInstance("End out of border", tLogs); return nil end
     return mathSqrt((pE.x - pS.x)^2 + (pE.y - pS.y)^2)
   end
   function self:DrawLine(pS,pE,keyColor,sMeth,tArgs)
@@ -888,15 +902,15 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     local rgbCl, keyCl = self:SetColor(keyColor, sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border"); return nil end
+        LogInstance("Start out of border", tLogs); return nil end
       if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border"); return nil end
+        LogInstance("End out of border", tLogs); return nil end
       surfaceDrawLine(pS.x,pS.y,pE.x,pE.y)
     elseif(sMeth == "SEGM") then
       if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border"); return nil end
+        LogInstance("Start out of border", tLogs); return nil end
       if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border"); return nil end
+        LogInstance("End out of border", tLogs); return nil end
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       if(nIter <= 0) then return end
       local xyD = NewXY((pE.x - pS.x) / nItr, (pE.y - pS.y) / nItr)
@@ -907,19 +921,19 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       end
     elseif(sMeth == "CAM3") then
       renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
-    else LogInstance("Draw method <"..sMeth.."> invalid"); return nil end
+    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
   end
   function self:DrawRect(pS,pE,keyColor,sMeth,tArgs)
     local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"REC")
     self:SetColor(keyColor,sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border"); return nil end
+        LogInstance("Start out of border", tLogs); return nil end
       if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border"); return nil end
+        LogInstance("End out of border", tLogs); return nil end
       surfaceSetTexture(surfaceGetTextureID(tostring(tArgs[1])))
       surfaceDrawTexturedRect(pS.x,pS.y,pE.x-pS.x,pE.y-pS.y)
-    else LogInstance("Draw method <"..sMeth.."> invalid"); return nil end
+    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
   end
   function self:DrawCircle(pC,nRad,keyColor,sMeth,tArgs)
     local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"CIR")
@@ -939,7 +953,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       renderSetMaterial(Material(tostring(tArgs[1] or "color")))
       renderDrawSphere (pC,nRad,mathClamp(tArgs[2] or 1,1,200),
                                 mathClamp(tArgs[3] or 1,1,200),rgbCl)
-    else LogInstance("Draw method <"..sMeth.."> invalid"); return nil end
+    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
   end; setmetatable(self, GetOpVar("TYPEMT_SCREEN")); return self
 end
 
@@ -1395,21 +1409,30 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
     if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO
       local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:sub(2,-1))
       if(IsHere(vtPos)) then ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
-      else if((sO ~= "NULL") and not IsBlank(sO)) then DecodePOA(sO) else ReloadPOA() end end
-    else if((sO ~= "NULL") and not IsBlank(sO)) then DecodePOA(sO) else ReloadPOA() end end
+      else if((sO ~= "NULL") and not IsBlank(sO)) then
+        if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
+      else ReloadPOA() end end
+    else if((sO ~= "NULL") and not IsBlank(sO)) then
+      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
+    else ReloadPOA() end end
   end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
   ---------- Angle ----------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
     if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA
       local vtPos, atAng = GetTransformPOA(stPiece.Slot, sA:sub(2,-1))
       if(IsHere(atAng)) then ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
-      else if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end end
-    else if((sA ~= "NULL") and not IsBlank(sA)) then DecodePOA(sA) else ReloadPOA() end end
+      else if((sA ~= "NULL") and not IsBlank(sA)) then
+        if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
+      else ReloadPOA() end end
+    else if((sA ~= "NULL") and not IsBlank(sA)) then
+      if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
+    else ReloadPOA() end end
   end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle mismatch"); return nil end
   ---------- Point ----------
   if(sP:sub(1,1) == sD) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
   else -- When the point is empty use the origin
-    if((sP ~= "NULL") and not IsBlank(sP)) then DecodePOA(sP)
+    if((sP ~= "NULL") and not IsBlank(sP)) then
+      if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]@"..stPiece.Slot) end
     else ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]) end
   end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
   return tOffs
@@ -1495,8 +1518,7 @@ function DefaultType(anyType,fCat)
       local tCat = GetOpVar("TABLE_CATEGORIES")
       tCat[sTyp] = {}; tCat[sTyp].Txt = fCat
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
-      local suc, out = pcall(tCat[sTyp].Cmp)
-      if(not suc) then
+      local suc, out = pcall(tCat[sTyp].Cmp); if(not suc) then
         LogInstance("Compilation failed <"..fCat.."> ["..sTyp.."]"); return nil end
       tCat[sTyp].Cmp = out
     else LogInstance("Avoided "..type(fCat).." <"..tostring(fCat).."> ["..sTyp.."]"); return nil end
@@ -2446,7 +2468,7 @@ function ExportCategory(vEq, tData, sPref)
   fName = fName..fPref..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
   local F = fileOpen(fName, "wb", "DATA")
   if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") failed from"); return false end
-  local sEq, nLen, sMod = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
+  local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (type(tData) == "table") and tData or GetOpVar("TABLE_CATEGORIES")
   F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDate().." [ "..sMoDB.." ]\n")
   for cat, rec in pairs(tCat) do
@@ -3416,7 +3438,7 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   -- Delay the freeze by a tiny amount because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_FREEZE"), function() -- If frozen motion is disabled
-    LogInstance("Freeze");  -- Make sure that the physics are valid
+    LogInstance("Freeze", "*DELAY_FREEZE");  -- Make sure that the physics are valid
     if(pyPiece and pyPiece:IsValid()) then pyPiece:EnableMotion(not bFr) end end )
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
@@ -3450,7 +3472,7 @@ function MakeAsmVar(sName, vVal, vBord, vFlg, vInf)
     LogInstance("CVar name {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
   local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
   local cVal, sInf = (tonumber(vVal) or tostring(vVal)), tostring(vInf or "")
-  local tBrd, nFlg = mathFloor(tonumber(vFlg) or 0), GetOpVar("TABLE_BORDERS")
+  local tBrd, nFlg = GetOpVar("TABLE_BORDERS"), mathFloor(tonumber(vFlg) or 0)
   if(IsHere(tBrd[sLow])) then LogInstance("Exists <"..sLow..">"); return nil end
   tBrd[sLow] = (vBord or {}); tBrd = tBrd[sLow]; tBrd[3] = cVal
   local mIn, mAx, dEf = tostring(tBrd[1]), tostring(tBrd[2]), tostring(tBrd[3])

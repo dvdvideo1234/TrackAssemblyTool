@@ -1,4 +1,4 @@
-﻿return function(sTool sLimit) return { -- Japanese
+﻿return function(sTool, sLimit) local tPool = {} -- Japanese
   tPool["tool."..sTool..".1"             ] = "区間的な線路を組み立て"
   tPool["tool."..sTool..".left"          ] = "線路の部分がスポーンする。SHIFT押すながら部分が増える／スタック"
   tPool["tool."..sTool..".right"         ] = "組み立てポイントを変わる。SHIFT押すながら方向を逆にして。（ショートカット　ALT +　SCROLL）"
@@ -90,7 +90,7 @@
   tPool["tool."..sTool..".pn_routine_lb4"] = "ネーム"
   tPool["tool."..sTool..".pn_display_lb" ] = "部分を映る"
   tPool["tool."..sTool..".pn_pattern_lb" ] = "パターンを書く"
-  tPool["Cleanup_"..sLmit                ] = "組み立てた線路部分"
-  tPool["Cleaned_"..sLmit                ] = "線路部分全部綺麗にした"
-  tPool["SBoxLimit_"..sLmit              ] = "スポーンした線路の限定"
-} end
+  tPool["Cleanup_"..sLimit               ] = "組み立てた線路部分"
+  tPool["Cleaned_"..sLimit               ] = "線路部分全部綺麗にした"
+  tPool["SBoxLimit_"..sLimit             ] = "スポーンした線路の限定"
+return tPool end

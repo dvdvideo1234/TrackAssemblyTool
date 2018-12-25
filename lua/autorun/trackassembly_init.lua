@@ -136,21 +136,21 @@ if(SERVER) then
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
-    function(oPly,oEnt,tData) gtArgsLogs[1] = "DUPE_PHYS_SETTINGS"
+    function(oPly,oEnt,tData) gtArgsLogs[1] = "*DUPE_PHYS_SETTINGS"
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
         asmlib.LogInstance("Failed to apply physical settings on "..tostring(oEnt),gtArgsLogs); return nil end
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PLAYER_QUIT",
-    function(oPly) gtArgsLogs[1] = "PLAYER_QUIT" -- Clear player cache when disconnects
+    function(oPly) gtArgsLogs[1] = "*PLAYER_QUIT" -- Clear player cache when disconnects
       if(not asmlib.CacheClearPly(oPly)) then
         asmlib.LogInstance("Failed swiping stuff "..tostring(oPly),gtArgsLogs); return nil end
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PHYSGUN_DROP",
-    function(pPly, trEnt) gtArgsLogs[1] = "PHYSGUN_DROP"
+    function(pPly, trEnt) gtArgsLogs[1] = "*PHYSGUN_DROP"
       if(not asmlib.IsPlayer(pPly)) then
         asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
@@ -204,7 +204,7 @@ end
 if(CLIENT) then
 
   asmlib.SetAction("CLEAR_RELATION",
-    function(nLen) local oPly = netReadEntity(), gtArgsLogs[1] = "CLEAR_RELATION"
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
       asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
         asmlib.LogInstance("Failed clearing ray",gtArgsLogs); return nil end
@@ -212,7 +212,7 @@ if(CLIENT) then
     end) -- Net receive intersect relation clear client-side
 
   asmlib.SetAction("CREATE_RELATION",
-    function(nLen) gtArgsLogs[1] = "CREATE_RELATION"
+    function(nLen) gtArgsLogs[1] = "*CREATE_RELATION"
       local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
       asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
       if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")) then
@@ -221,7 +221,7 @@ if(CLIENT) then
     end) -- Net receive intersect relation create client-side
 
   asmlib.SetAction("BIND_PRESS", -- Must have the same parameters as the hook
-    function(oPly,sBind,bPress) gtArgsLogs[1] = "BIND_PRESS"
+    function(oPly,sBind,bPress) gtArgsLogs[1] = "*BIND_PRESS"
       if(not bPress) then asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
         asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
@@ -246,7 +246,7 @@ if(CLIENT) then
     end) -- Read client configuration
 
   asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
-    function() gtArgsLogs[1] = "DRAW_GHOSTS"
+    function() gtArgsLogs[1] = "*DRAW_GHOSTS"
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
@@ -261,15 +261,15 @@ if(CLIENT) then
       local tGho  = asmlib.GetOpVar("ARRAY_GHOST")
       local model = asmlib.GetAsmVar("model", "STR")
       local mxcnt = asmlib.GetAsmVar("maxstcnt" , "INT")
-      local stackcnt = mathClamp(asmlib.GetAsmVar("stackcnt", "INT"), 0, mxcnt)
-      local ghostcnt = mathClamp(asmlib.GetAsmVar("ghostcnt", "INT"), 0, mxcnt)
+      local stackcnt = actTool:GetCount()
+      local ghostcnt = actTool:GetGhostsCount()
       local depthcnt = mathMin(stackcnt, ghostcnt)
       if(not (tGho and tGho.Size > 0 and depthcnt == tGho.Size and tGho.Slot == model)) then
         asmlib.MakeGhosts(depthcnt, model) end; actTool:UpdateGhost(oPly)
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
-    function(oPly,oCom,oArgs) gtArgsLogs[1] = "RESET_VARIABLES"
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
       asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
@@ -345,7 +345,7 @@ if(CLIENT) then
     end)
 
   asmlib.SetAction("OPEN_FRAME",
-    function(oPly,oCom,oArgs) gtArgsLogs[1] = "OPEN_FRAME"
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_FRAME"
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",gtArgsLogs); return nil end
       local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
@@ -552,7 +552,7 @@ if(CLIENT) then
     end)
 
   asmlib.SetAction("PHYSGUN_DRAW",
-    function() gtArgsLogs[1] = "PHYSGUN_DRAW"
+    function() gtArgsLogs[1] = "*PHYSGUN_DRAW"
       if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
         asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
       if(not asmlib.GetAsmVar("adviser", "BUL")) then
@@ -632,7 +632,7 @@ if(CLIENT) then
     end)
 
   asmlib.SetAction("RADWORKMENU_DRAW",
-    function() gtArgsLogs[1] = "RADWORKMENU_DRAW"
+    function() gtArgsLogs[1] = "*RADWORKMENU_DRAW"
       if(not inputIsMouseDown(MOUSE_MIDDLE)) then return end
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
@@ -821,7 +821,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Index = {{1},{2},{1,2}},
   Trigs = {
     InsertRecord = function(atRow)
-      atRow[1] = asmlib.DisableString(atRow[1],asmlib.DefaultType(),"TYPE")
+      atRow[1] = asmlib.DisableString(atRow[1],asmlib.DefaultType(),"TYPE"); return true
     end
   },
   Cache = {
@@ -836,7 +836,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       local iNameID = makTab:Match(arLine[2],2)
       if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
         asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[2])..
-          "> to "..defTab[2][1].." for "..tostring(snPK),gtArgsLogs); return nil end
+          "> to "..defTab[2][1].." for "..tostring(snPK),gtArgsLogs); return false end
       if(not asmlib.IsHere(tNames[snPK])) then
         -- If a new type is inserted
         tTypes.Size = tTypes.Size + 1
@@ -846,7 +846,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         tNames[snPK].Slot = snPK
       end -- Data matching crashes only on numbers
       tNames[snPK].Size = iNameID
-      tNames[snPK][iNameID] = makTab:Match(arLine[3],3)
+      tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
       gtArgsLogs[1] = "*PHYSPROPERTIES.Cache.ExportDSV"
@@ -1178,7 +1178,7 @@ else
   asmlib.ModelToNameRule("CLR")
   asmlib.InsertRecord({"models/sprops/trans/train/track_h01.mdl", "#", "Ramp", 1, "", "0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_h01.mdl", "#", "Ramp", 2, "", "-2525.98,0,503.58", "0,180,0"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_h02.mdl", "#", "225 Up", 1, "", ",0,7.624", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_h02.mdl", "#", "225 Up", 1, "", "0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_h02.mdl", "#", "225 Up", 2, "", "-1258.828,0,261.268", "-22.5,180,0"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_h03.mdl", "#", "225 Down", 1, "", "0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_h03.mdl", "#", "225 Down", 2, "", "-1264.663,0,-247.177", "22.5,180,0"})
@@ -1194,7 +1194,7 @@ else
     local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
     return r and {r} end]])
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 1, "", "75.790,-0.013,-2.414", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003.923,26.580", "-22.5,180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003,26.580", "-22.5,180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 1, "", "149.8, -0.013, -9.62", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 2, "", "-141.814, 0.004, 48.442", "-22.5,-180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_3.mdl", "#", "#", 1, "", "225.199, -0.016, -16.814", ""})
@@ -2501,14 +2501,14 @@ else
   asmlib.InsertRecord({"models/hunter/misc/platehole4x4d.mdl", "#", "#", 2, "", "47.45,47.45,-1.5", " 90,180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 1, "", "", "-90,0,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 2, "", "0,0,-47.45"," 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 1, "", "0,0,11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 2, "", "0,0,", " 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 1, "", "0,0,11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 2, "", "0,0,", " 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 1, "", "0,0,11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 2, "", "0,0,", " 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 1, "", "0,0,11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 2, "", "0,0,", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
@@ -3138,5 +3138,5 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
 end
 
-asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"), true)
+asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"))
 collectgarbage()
