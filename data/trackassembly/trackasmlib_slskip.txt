@@ -31,3 +31,4 @@ RegisterPOA: Exists ID
 InsertRecord: Cannot process offset
 MakeScreen.GetDistance: Start out of border
 MakeScreen.GetDistance: End out of border
+IntersectRayHash: No read

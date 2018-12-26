@@ -113,6 +113,7 @@ local tableGetKeys             = table and table.GetKeys
 local tableInsert              = table and table.insert
 local tableCopy                = table and table.Copy
 local debugGetinfo             = debug and debug.getinfo
+local debugTrace               = debug and debug.Trace
 local renderDrawLine           = render and render.DrawLine
 local renderDrawSphere         = render and render.DrawSphere
 local renderSetMaterial        = render and render.SetMaterial
@@ -294,7 +295,7 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local tInfo = (iDbg and debugGetinfo(iDbg) or nil) -- Pass stack index
         tInfo = (tInfo or (tDbg and tDbg or nil))    -- Override debug information
         tInfo = (tInfo or debugGetinfo(2))           -- Default value
-  local sDbg, sFunc = "", tostring(sFunc or (tInfo.name and tInfo.name or "Main"))
+  local sDbg, sFunc = "", tostring(sFunc or (tInfo.name and tInfo.name or "Incognito"))
   if(GetOpVar("LOG_DEBUGEN")) then
     local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
     sDbg = sDbg.." "..(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV)
@@ -1505,23 +1506,23 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
 end
 
 function DefaultType(anyType,fCat)
+  local sFunc = "DefaultType"
   if(not IsHere(anyType)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local tCat = GetOpVar("TABLE_CATEGORIES")
-          tCat = tCat and tCat[sTyp] or nil
+          tCat = (tCat and tCat[sTyp] or nil)
     return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
   end; ModelToNameRule("CLR")
   SetOpVar("DEFAULT_TYPE", tostring(anyType))
-  if(CLIENT) then
-    local sTyp = GetOpVar("DEFAULT_TYPE")
+  if(CLIENT) then local sTyp = GetOpVar("DEFAULT_TYPE")
     if(IsString(fCat)) then -- Categories for the panel
       local tCat = GetOpVar("TABLE_CATEGORIES")
       tCat[sTyp] = {}; tCat[sTyp].Txt = fCat
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local suc, out = pcall(tCat[sTyp].Cmp); if(not suc) then
-        LogInstance("Compilation failed <"..fCat.."> ["..sTyp.."]"); return nil end
+        LogInstance("Compilation failed <"..fCat.."> ["..sTyp.."]", "*"..sFunc); return nil end
       tCat[sTyp].Cmp = out
-    else LogInstance("Avoided "..type(fCat).." <"..tostring(fCat).."> ["..sTyp.."]"); return nil end
+    else LogInstance("Avoided "..type(fCat).." <"..tostring(fCat).."> ["..sTyp.."]", "*"..sFunc) end
   end
 end
 
@@ -2152,7 +2153,7 @@ function InsertRecord(sTable,arLine)
   end -- Read SQL builder object
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("Missing builder",sTable); return false end
-  local defTab, sMoDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
+  local defTab, sMoDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), "InsertRecord"
   -- Call the trigger when provided
   if(IsTable(defTab.Trigs)) then local bS, sR = pcall(defTab.Trigs[sFunc], arLine)
     if(not bS) then LogInstance("Trigger manager fail "..sR,defTab.Nick); return false end
@@ -2227,7 +2228,7 @@ function CacheQueryPiece(sModel)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
-  local stPiece, sFunc = tCache[sModel], debugGetinfo(1).name
+  local stPiece, sFunc = tCache[sModel], "CacheQueryPiece"
   if(IsHere(stPiece) and IsHere(stPiece.Size)) then
     if(stPiece.Size <= 0) then stPiece = nil else
       stPiece = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
@@ -2281,7 +2282,7 @@ function CacheQueryAdditions(sModel)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
-  local stAddit, sFunc = tCache[sModel], debugGetinfo(1).name
+  local stAddit, sFunc = tCache[sModel], "CacheQueryAdditions"
   if(IsHere(stAddit) and IsHere(stAddit.Size)) then
     if(stAddit.Size <= 0) then stAddit = nil else
       stAddit = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
@@ -2326,7 +2327,7 @@ function CacheQueryPanel()
     LogInstance("Missing table definition"); return nil end
   if(not IsHere(libCache[defTab.Name])) then
     LogInstance("Missing cache allocated <"..defTab.Name..">"); return nil end
-  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), debugGetinfo(1).name
+  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), "CacheQueryPanel"
   local stPanel, qsKey = libCache[keyPan], GetOpVar("FORM_KEYSTMT")
   if(IsHere(stPanel) and IsHere(stPanel.Size)) then LogInstance("From Pool")
     if(stPanel.Size <= 0) then stPanel = nil else
@@ -2377,7 +2378,7 @@ function CacheQueryProperty(sType)
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not tCache) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
-  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
+  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), "CacheQueryProperty"
   local qsKey = GetOpVar("FORM_KEYSTMT")
   if(IsString(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
@@ -2461,7 +2462,7 @@ function ExportCategory(vEq, tData, sPref)
     LogInstance("Wrong equality <"..tostring(vEq)..">"); return false end
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("("..fPref..") Prefix empty"); return false end
-  local fName, sFunc = GetOpVar("DIRPATH_BAS"), debugGetinfo(1).name
+  local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2564,7 +2565,7 @@ function ExportDSV(sTable, sPref, sDelim)
   fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("("..fPref..") fileOpen("..fName..") failed",defTab.Nick); return false end
-  local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), debugGetinfo(1).name
+  local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
   local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
   F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   F:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
@@ -2647,6 +2648,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..fPref..defTab.Name..".txt"
+  local sFunc, sMoDB = "SynchronizeDSV", GetOpVar("MODE_DATABASE")
   local I, fData, symOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
   if(I) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
@@ -2697,7 +2699,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref..") Write fileOpen("..fName..") failed"); return false end
-  local sFunc, sMoDB = debugGetinfo(1).name, GetOpVar("MODE_DATABASE")
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   for rcID = 1, tSort.Size do local key = tSort[rcID].Val
@@ -2719,7 +2720,7 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
-  local defTab, sFunc, sMoDB = makTab:GetDefinition(), debugGetinfo(1).name, GetOpVar("MODE_DATABASE")
+  local defTab, sFunc, sMoDB = makTab:GetDefinition(), "TranslateDSV", GetOpVar("MODE_DATABASE")
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
   sNdsv, sNins = sNdsv..GetOpVar("DIRPATH_DSV"), sNins..GetOpVar("DIRPATH_INS")
@@ -2922,29 +2923,38 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   -- Initialize F, R, U Copy the UCS like that to support database POA
   SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
   SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
-
+  -- Integrate additional angle offset into the origin angle
+  stSpawn.R:Set(stSpawn.OAng:Right())
+  stSpawn.U:Set(stSpawn.OAng:Up())
+  stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
+  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
+  stSpawn.F:Set(stSpawn.OAng:Forward())
+  stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
+  stSpawn.R:Set(stSpawn.OAng:Right())
+  stSpawn.U:Set(stSpawn.OAng:Up())
+  -- Integrate additional position offset into the origin position
+  stSpawn.SPos:Add(stSpawn.PNxt[cvX] * stSpawn.F)
+  stSpawn.SPos:Add(stSpawn.PNxt[cvY] * stSpawn.R)
+  stSpawn.SPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U)
+  -- Read holder record
   SetVector(stSpawn.HPnt, hdPOA.P)
   SetVector(stSpawn.HOrg, hdPOA.O)
   SetAngle (stSpawn.HAng, hdPOA.A)
-
-  stSpawn.TMtx:Translate(stSpawn.PNxt)
-  stSpawn.TMtx:Rotate(stSpawn.ANxt)
-
-  stSpawn.F:Set(stSpawn.TMtx:GetForward())
-  stSpawn.R:Set(stSpawn.TMtx:GetRight())
-  stSpawn.U:Set(stSpawn.TMtx:GetUp())
-
+  -- Apply origin basis to the trace matrix
+  stSpawn.TMtx:Identity()
+  stSpawn.TMtx:Translate(stSpawn.OPos)
+  stSpawn.TMtx:Rotate(stSpawn.OAng)
+  -- Apply origin basis to the holder matrix
   stSpawn.HMtx:Identity()
   stSpawn.HMtx:Translate(stSpawn.HOrg)
   stSpawn.HMtx:Rotate(stSpawn.HAng)
   stSpawn.HMtx:Rotate(GetOpVar("ANG_REV"))
   stSpawn.HMtx:Invert()
-
+  -- Calculate the spawn matrix
   stSpawn.SMtx:Set(stSpawn.TMtx * stSpawn.HMtx)
-
+  -- Read the spown origin position and angle
   stSpawn.SPos:Set(stSpawn.SMtx:GetTranslation())
   stSpawn.SAng:Set(stSpawn.SMtx:GetAngles())
-
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
@@ -3016,9 +3026,6 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
-  stSpawn.TMtx:Identity()
-  stSpawn.TMtx:Translate(stSpawn.OPos)
-  stSpawn.TMtx:Rotate(stSpawn.OAng)
   return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end
 
@@ -3634,12 +3641,12 @@ function InitLocalify(sCode)
           for key, val in pairs(tSet) do tSet[key] = (tCode[key] or tSet[key]) end
         else LogInstance("("..suCod..")[2] "..tCode) end
       else LogInstance("("..suCod..")[1] "..fFunc) end
-      LogInstance("("..suCod..") "..tostring(tCode))
+      LogInstance("("..suCod..") Success")
     end -- Compile and apply translation souurce if present
   end; for key, val in pairs(tSet) do languageAdd(key, val) end
 end
 
-function HasGhosts(bDir)
+function HasGhosts()
   local tGho = GetOpVar("ARRAY_GHOST")
   return (tGho and tGho.Size and tGho.Size > 0)
 end
