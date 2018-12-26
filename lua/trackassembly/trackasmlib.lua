@@ -1688,9 +1688,9 @@ function GetMouseWheelPly(pPly)
     LogInstance("Spot missing"); return 0 end
   local stData = stSpot["PRESS"]; if(not IsHere(stData)) then
     LogInstance("Data missing <"..pPly:Nick()..">"); return 0 end
-  local cmdPress = stData["CMD"]; if(not IsHere(cmdPress)) then
+  local curCmd = stData["CMD"]; if(not IsHere(curCmd)) then
     LogInstance("Command missing <"..pPly:Nick()..">"); return 0 end
-  return (cmdPress and cmdPress:GetMouseWheel() or 0)
+  return (curCmd and curCmd:GetMouseWheel() or 0)
 end
 
 -- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
@@ -1699,21 +1699,18 @@ function GetMouseDeltaPly(pPly)
     LogInstance("Spot missing"); return 0 end
   local stData = stSpot["PRESS"]; if(not IsHere(stData)) then
     LogInstance("Data missing <"..pPly:Nick()..">"); return 0 end
-  local cmdPress = stData["CMD"]; if(not IsHere(cmdPress)) then
+  local curCmd = stData["CMD"]; if(not IsHere(curCmd)) then
     LogInstance("Command missing <"..pPly:Nick()..">"); return 0 end
-  return cmdPress:GetMouseX(), cmdPress:GetMouseY()
+  return curCmd:GetMouseX(), curCmd:GetMouseY()
 end
 
 -- https://wiki.garrysmod.com/page/Enums/IN
 function CheckButtonPly(pPly, iInKey)
   local stSpot, iInKey = GetPlayerSpot(pPly), (tonumber(iInKey) or 0)
-  if(not IsHere(stSpot)) then
-    LogInstance("Spot missing"); return false end
-  local stData = stSpot["PRESS"]
-  if(not IsHere(stData)) then return pPly:KeyDown(iInKey) end
-  local cmdPress = stData["CMD"]
-  if(not IsHere(cmdPress)) then return pPly:KeyDown(iInKey) end
-  return (bitBand(cmdPress:GetButtons(),iInKey) ~= 0) -- Read the cache
+  if(not IsHere(stSpot)) then LogInstance("Spot missing"); return false end
+  local stData = stSpot["PRESS"]; if(not IsHere(stData)) then return pPly:KeyDown(iInKey) end
+  local curCmd = stData["CMD"]  ; if(not IsHere(curCmd)) then return pPly:KeyDown(iInKey) end
+  return (bitBand(curCmd:GetButtons(),iInKey) ~= 0) -- Read the cache
 end
 
 -------------------------- BUILDSQL ------------------------------
@@ -3647,8 +3644,10 @@ function InitLocalify(sCode)
 end
 
 function HasGhosts()
+  if(SERVER) then return false end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST")
-  return (tGho and tGho.Size and tGho.Size > 0)
+  local eGho, nSiz = tGho[1], tGho.Size
+  return (tGho and eGho and eGho:IsValid() and nSiz and nSiz > 0)
 end
 
 function FadeGhosts(bNoD)

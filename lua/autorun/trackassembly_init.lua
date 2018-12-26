@@ -264,7 +264,7 @@ if(CLIENT) then
       local stackcnt = actTool:GetCount()
       local ghostcnt = actTool:GetGhostsCount()
       local depthcnt = mathMin(stackcnt, ghostcnt)
-      if(not (tGho and tGho.Size > 0 and depthcnt == tGho.Size and tGho.Slot == model)) then
+      if(not (asmlib.HasGhosts() and depthcnt == tGho.Size and tGho.Slot == model)) then
         asmlib.MakeGhosts(depthcnt, model); actTool:ElevateGhost(tGho[1], oPly) end; actTool:UpdateGhost(oPly)
     end) -- Read client configuration
 
