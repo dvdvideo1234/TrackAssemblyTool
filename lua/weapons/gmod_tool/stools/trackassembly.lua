@@ -554,8 +554,6 @@ function TOOL:LeftClick(stTrace)
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
---  if(not asmlib.CachePressPly(ply)) then
---    asmlib.LogInstance("Press buttons",gtArgsLogs); return true end
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector(); vPos:Set(stTrace.HitPos)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,angsnap)
@@ -696,8 +694,6 @@ function TOOL:RightClick(stTrace)
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
---  if(not asmlib.CachePressPly(ply)) then
---    asmlib.LogInstance("Press buttons",gtArgsLogs); return true end
   if(stTrace.HitWorld) then
     if(asmlib.CheckButtonPly(ply,IN_USE)) then
       asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
@@ -731,8 +727,6 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
---  if(not asmlib.CachePressPly(ply)) then
---    asmlib.LogInstance("Press buttons",gtArgsLogs); return true end
   if(stTrace.HitWorld) then
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end

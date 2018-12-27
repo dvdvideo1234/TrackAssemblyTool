@@ -1561,7 +1561,15 @@ else
   asmlib.InsertRecord({"models/magtrains1ga/switch_straight.mdl", "#", "#", 2, "", "-384,0,0.01599", "0,-180,0", ""})
   asmlib.InsertRecord({"models/magtrains1ga/switch_curve.mdl", "#", "#", 1, "", "0,0,0.01563", "", ""})
   asmlib.InsertRecord({"models/magtrains1ga/switch_curve.mdl", "#", "#", 2, "", "-373.42453,-45.55976,0.01562", "0,-166.08,0", ""})
-  asmlib.DefaultType("Shinji85's Rails")
+  asmlib.DefaultType("Shinji85's Rails",[[function(m) local c
+    local r = m:gsub("models/shinji85/train/rail_", "")
+    if(r:find("cross")) then c = "crossing"
+    elseif(r:find("switch")) then c = "switch"
+    elseif(r:find("curve")) then c = "curve"
+    elseif(r:find("bumper")) then c = "bumper"
+    elseif(r:find("junction")) then c = "junction"
+    elseif(r:find("%dx")) then c = "straight"
+    end; c = (c and c:gsub("^%l", string.upper) or nil) return c end]])
   asmlib.ModelToNameRule("SET",nil,{"rail_","straight_"},nil)
   asmlib.InsertRecord({"models/shinji85/train/rail_1x.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_1x.mdl", "#", "#", 2, "", "-128,0,7.346", "0,180,0"})

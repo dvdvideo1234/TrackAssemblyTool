@@ -2522,7 +2522,7 @@ end
 
 --[[
  * This function removes DSV associated with a given prefix
- * sTable > Extremal table database to export
+ * sTable > Extremal table nickname database to export
  * sPref  > Prefix used on exporting ( if any ) else instance is used
 ]]--
 function RemoveDSV(sTable, sPref)
@@ -2531,13 +2531,20 @@ function RemoveDSV(sTable, sPref)
   if(not IsString(sTable)) then
     LogInstance("("..sPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
-    LogInstance("("..sPref..") Missing table definition"); return nil end
+    LogInstance("("..sPref..") Missing table builder"); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..sPref..") Missing table definition for <"..sTable..">"); return false end
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")..sPref..defTab.Name..".txt"
-  if(not fileExists(fName,"DATA")) then
-    LogInstance("("..sPref..") File <"..fName.."> missing"); return true end
-  fileDelete(fName); LogInstance("("..sPref..") Success"); return true
+  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+        fName = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
+  local sName = fName:format(defTab.Nick)
+  if(fileExists(sName,"DATA")) then fileDelete(sName)
+    LogInstance("("..sPref..") File <"..sName.."> deleted")
+  else LogInstance("("..sPref..") File <"..sName.."> skip") end
+  if(defTab.Nick == "PIECES") then local sCatg = fName:format("CATEGORY")
+    if(fileExists(sCatg,"DATA")) then fileDelete(sCatg)
+      LogInstance("("..sPref..") File <"..sCatg.."> deleted")
+    else LogInstance("("..sPref..") File <"..sCatg.."> skip") end
+  end; LogInstance("("..sPref..") Success"); return true
 end
 
 --[[
@@ -3263,19 +3270,16 @@ function AttachAdditions(ePiece)
       local ofPos = arRec[defTab[5][1]]; if(not IsString(ofPos)) then
         LogInstance("Position {"..type(ofPos).."}<"..tostring(ofPos).."> not string"); return false end
       if(ofPos and not IsBlank(ofPos) and ofPos ~= "NULL") then
-        local vpAdd, arConv = Vector(), DecodePOA(ofPos)
-        arConv[1] = arConv[1] * arConv[4]; vpAdd:Add(arConv[1] * eAng:Forward())
-        arConv[2] = arConv[2] * arConv[5]; vpAdd:Add(arConv[2] * eAng:Right())
-        arConv[3] = arConv[3] * arConv[6]; vpAdd:Add(arConv[3] * eAng:Up())
-        vpAdd:Add(ePos); eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
+        local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
+        SetVectorXYZ(vpAdd, arPOA[1], arPOA[2], arPOA[3])
+        vpAdd:Set(ePiece:LocalToWorld(vpAdd)); eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
       else eAddit:SetPos(ePos); LogInstance("SetPos(ePos)") end
       local ofAng = arRec[defTab[6][1]]; if(not IsString(ofAng)) then
         LogInstance("Angle {"..type(ofAng).."}<"..tostring(ofAng).."> not string"); return false end
       if(ofAng and not IsBlank(ofAng) and ofAng ~= "NULL") then
-        local apAdd, arConv = Angle(), DecodePOA(ofAng)
-        apAdd[caP] = arConv[1] * arConv[4] + eAng[caP]
-        apAdd[caY] = arConv[2] * arConv[5] + eAng[caY]
-        apAdd[caR] = arConv[3] * arConv[6] + eAng[caR]
+        local apAdd, arPOA = Angle(), DecodePOA(ofAng)
+        SetAnglePYR(apAdd, arPOA[1], arPOA[2], arPOA[3])
+        apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
         eAddit:SetAngles(apAdd); LogInstance("SetAngles(DB)")
       else eAddit:SetAngles(eAng); LogInstance("SetAngles(eAng)") end
       local mvTyp = (tonumber(arRec[defTab[7][1]]) or -1)
@@ -3685,7 +3689,7 @@ function MakeGhosts(nCnt, sModel)
     if(not (eGho and eGho:IsValid())) then
       tGho[iD] = entsCreateClientProp(sModel); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then
-        LogInstance("Invalid"); return false end
+        LogInstance("Invalid ["..iD.."]"..sModel); return false end
       eGho:SetModel(sModel)
       eGho:SetPos(vZero)
       eGho:SetAngles(aZero)
@@ -3699,7 +3703,7 @@ function MakeGhosts(nCnt, sModel)
       eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
   end -- Remove all others that must not be drawn to save memory
-  for iK = iD, tGho.Size do -- Executes only when (nCnt < tGho.Size)
+  for iK = iD, tGho.Size do -- Executes only when (nCnt <= tGho.Size)
     local eGho = tGho[iD]; if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
