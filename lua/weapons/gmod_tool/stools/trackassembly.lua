@@ -1209,7 +1209,7 @@ function TOOL:DrawToolScreen(w, h)
 end
 
 local ConVarList = TOOL:BuildConVarList()
-function TOOL.BuildCPanel(CPanel) gtArgsLogs[1] = "*TOOL.BuildCPanel"
+function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
@@ -1223,9 +1223,9 @@ function TOOL.BuildCPanel(CPanel) gtArgsLogs[1] = "*TOOL.BuildCPanel"
   }); CurY = CurY + pItem:GetTall() + 2
 
   local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
-    asmlib.LogInstance("Panel population empty",gtArgsLogs); return nil end
+    asmlib.LogInstance("Panel population empty",sLog); return nil end
   local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
-    asmlib.LogInstance("Missing builder table",gtArgsLogs); return nil end
+    asmlib.LogInstance("Missing builder table",sLog); return nil end
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel)
@@ -1280,12 +1280,12 @@ function TOOL.BuildCPanel(CPanel) gtArgsLogs[1] = "*TOOL.BuildCPanel"
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end -- SnapReview is ignored because a query must be executed for points count
-    else asmlib.LogInstance("Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !",gtArgsLogs) end
+    else asmlib.LogInstance("Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !",sLog) end
     iCnt = iCnt + 1
   end
   CPanel:AddItem(pTree)
   CurY = CurY + pTree:GetTall() + 2
-  asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.",gtArgsLogs)
+  asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.",sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local pComboToolMode = vguiCreate("DComboBox", CPanel)
@@ -1315,14 +1315,14 @@ function TOOL.BuildCPanel(CPanel) gtArgsLogs[1] = "*TOOL.BuildCPanel"
           RunConsoleCommand(gsToolPrefL.."physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
-    asmlib.LogInstance("Property population empty",gtArgsLogs); return nil end
+    asmlib.LogInstance("Property population empty",sLog); return nil end
   while(cqProperty[iTyp]) do pComboPhysType:AddChoice(cqProperty[iTyp]); iTyp = iTyp + 1 end
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local cqNames = asmlib.CacheQueryProperty(sVal)
     if(cqNames) then local iNam = 1; pComboPhysName:Clear()
       pComboPhysName:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def"))
       while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
-    else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",gtArgsLogs) end
+    else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)

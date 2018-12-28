@@ -244,9 +244,7 @@ local function Log(vMsg, bCon)
   local iMax = GetOpVar("LOG_MAXLOGS")
   if(iMax <= 0) then return end
   local iCur = GetOpVar("LOG_CURLOGS") + 1
-  local sLast, sData = GetOpVar("LOG_LOGLAST"), tostring(vMsg)
-  if(sLast == sData) then return end
-  SetOpVar("LOG_LOGLAST",sData); SetOpVar("LOG_CURLOGS",iCur)
+  local sData = tostring(vMsg); SetOpVar("LOG_CURLOGS",iCur)
   if(GetOpVar("LOG_LOGFILE") and not bCon) then
     local lbNam = GetOpVar("NAME_LIBRARY")
     local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_log.txt"
@@ -306,9 +304,11 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
     if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
   local sInst = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  local sMsg = (sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sSrc..sFunc..": "..tostring(vMsg))
-  bF, bL = IsLogFound(sMsg, "SKIP"); if(bF and bL) then return end
-  bF, bL = IsLogFound(sMsg, "ONLY"); if(bF and not bL) then return end; Log(sMsg, bCon)
+  local sLast, sData = GetOpVar("LOG_LOGLAST"), (sSrc..sFunc..": "..tostring(vMsg))
+  bF, bL = IsLogFound(sData, "SKIP"); if(bF and bL) then return end
+  bF, bL = IsLogFound(sData, "ONLY"); if(bF and not bL) then return end
+  if(sLast == sData) then return end; SetOpVar("LOG_LOGLAST",sData)
+  Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sData, bCon)
 end
 
 local function PrintCeption(tT,sS,tP)
@@ -1867,8 +1867,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     if(not (IsHere(oSpot) and IsHere(kKey))) then
       LogInstance("Navigation failed",tabDef.Nick); return nil end
     LogInstance("Called by <"..tostring(vMsg).."> for ["..tostring(kKey).."]",tabDef.Nick)
-    if(sMoDB == "SQL") then
-      local tTim = defTab.Timer; if(not IsHere(tTim)) then
+    if(sMoDB == "SQL") then local qtCmd = self:GetCommand()
+      local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
       oSpot[kKey].Used = Time() -- Mark the current caching time stamp
       local smTM, tmLif = tTim[1], tTim[2]; if(tmLif <= 0) then
@@ -2108,11 +2108,13 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Build timer failed"); return self:Remove(false) end
     local tQ = self:GetCommand(); if(not IsHere(tQ)) then
       LogInstance("Build statement failed"); return self:Remove(false) end
+    -- When the table is present delete all records
     if(bDelete and sqlTableExists(defTab.Name)) then
       local qRez = sqlQuery(tQ.Delete); if(not qRez and IsBool(qRez)) then
         LogInstance("Table delete error <"..sqlLastError()..">",tabDef.Nick)
       else LogInstance("Table delete skip",tabDef.Nick) end
     end
+    -- When enabled forces a table drop
     if(bReload) then local qRez = sqlQuery(tQ.Drop)
       if(not qRez and IsBool(qRez)) then
         LogInstance("Table drop error <"..sqlLastError()..">",tabDef.Nick)
@@ -2574,7 +2576,7 @@ function ExportDSV(sTable, sPref, sDelim)
   F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   F:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
-    local Q = makTab:Select():Order(defTab.Query[sFunc]):Get()
+    local Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Get()
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Build statement failed",defTab.Nick); return false end
     F:Write("# Query ran: <"..Q..">\n")
@@ -2845,9 +2847,9 @@ function ProcessDSV(sDelim)
   end; F:Close()
   for prf, tab in pairs(tProc) do
     if(tab.Cnt > 1) then
-      LogInstance("Prefix <"..prf.."> clones #"..tostring(tab.Cnt).." @"..fName,true)
+      LogInstance("Prefix <"..prf.."> clones #"..tostring(tab.Cnt).." @"..fName)
       for i = 1, tab.Cnt do
-        LogInstance("Prefix <"..prf.."> "..tab[i].Prog,true)
+        LogInstance("Prefix <"..prf.."> "..tab[i].Prog)
       end
     else local dir = tab[tab.Cnt].File
       if(CLIENT) then
@@ -3257,7 +3259,7 @@ function AttachAdditions(ePiece)
   local makTab = libQTable["ADDITIONS"]; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
   local defTab, iCnt = makTab:GetDefinition(), 1
-  while(stAddit[iCnt]) do local arRec = stAddit[iCnt]; LogInstance("")
+  while(stAddit[iCnt]) do local arRec = stAddit[iCnt]; LogInstance("Addition ["..iCnt.."]")
     local eAddit = entsCreate(arRec[defTab[3][1]])
     if(eAddit and eAddit:IsValid()) then
       LogInstance("Class <"..arRec[defTab[3][1]]..">")
@@ -3508,18 +3510,19 @@ function GetAsmVar(sName, sMode)
 end
 
 function SetAsmVarCallback(sName, sType, sHash, fHand)
+  local sFunc = "*SetAsmVarCallback"
   if(not (sName and IsString(sName))) then
-    LogInstance("Key {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
+    LogInstance("Key {"..type(sName).."}<"..tostring(sName).."> not string",sFunc); return nil end
   if(not (sType and IsString(sType))) then
-    LogInstance("Key {"..type(sType).."}<"..tostring(sType).."> not string"); return nil end
+    LogInstance("Key {"..type(sType).."}<"..tostring(sType).."> not string",sFunc); return nil end
   if(IsString(sHash)) then local sLong = GetAsmVar(sName, "NAM")
     cvarsRemoveChangeCallback(sLong, sLong.."_call")
     cvarsAddChangeCallback(sLong, function(sVar, vOld, vNew)
       local aVal, bS = GetAsmVar(sName, sType), true
       if(type(fHand) == "function") then bS, aVal = pcall(fHand, aVal)
-        if(not bS) then LogInstance("Fail "..tostring(aVal)); return nil end
-        LogInstance("("..sName..") Converted")
-      end; LogInstance("("..sName..") <"..tostring(aVal)..">")
+        if(not bS) then LogInstance("Fail "..tostring(aVal),sFunc); return nil end
+        LogInstance("("..sName..") Converted",sFunc)
+      end; LogInstance("("..sName..") <"..tostring(aVal)..">",sFunc)
       SetOpVar(sHash, aVal) -- Make sure we write down the processed value in the hashes
     end, sLong.."_call")
   end

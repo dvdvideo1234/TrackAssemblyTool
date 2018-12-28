@@ -1,0 +1,6 @@
+# ExportCategory:(3@Ron_s_G_Scale_Track_pack) 28-12-18 23:01:00 [ SQL ]
+[===[Ron's G Scale Track pack===function(m)
+		local function conv(x) return " "..x:sub(2,2):upper() end
+		local r = m:gsub("models/ron/gscale/",""):gsub("_","/")
+		local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
+		return r and {r} or nil end]===]
