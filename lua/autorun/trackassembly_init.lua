@@ -16,6 +16,9 @@ local RunConsoleCommand    = RunConsoleCommand
 local netReadEntity        = net and net.ReadEntity
 local netReadVector        = net and net.ReadVector
 local bitBor               = bit and bit.bor
+local sqlQuery             = sql and sql.Query
+local sqlBegin             = sql and sql.Begin
+local sqlCommit            = sql and sql.Commit
 local mathFloor            = math and math.floor
 local mathClamp            = math and math.Clamp
 local mathMin              = math and math.min
@@ -99,6 +102,8 @@ end)
 
 ------ GLOBAL VARIABLES ------
 local gtArgsLogs  = {"", false, 0}
+local gtInitLogs  = {"*Init", false, 0}
+local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
@@ -238,7 +243,7 @@ if(CLIENT) then
       if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
         if(not actTool:GetScrollMouse()) then
           asmlib.LogInstance("(SCROLL) Scrolling disabled",gtArgsLogs); return nil end
-        local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
+        local Dir = ((sBind == "invnext") and -1) or ((sBind == "invprev") and 1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
         asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
       end -- Override only for TA and skip touching anything else
@@ -631,54 +636,6 @@ if(CLIENT) then
       end
     end)
 
-  asmlib.SetAction("RADWORKMENU_DRAW",
-    function() gtArgsLogs[1] = "*RADWORKMENU_DRAW"
-      if(not inputIsMouseDown(MOUSE_MIDDLE)) then return end
-      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
-      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
-      if(actSwep:GetClass() ~= "gmod_tool") then
-        asmlib.LogInstance("Swep not physgun",gtArgsLogs); return nil end
-      if(actSwep:GetMode()  ~= gsToolNameL) then
-        asmlib.LogInstance("Tool different",gtArgsLogs); return nil end
-      local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-      local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
-      if(not actMonitor) then
-        actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
-        if(not actMonitor) then
-          asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-        asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("Create screen",gtArgsLogs)
-      end -- Make sure we have a valid game monitor for the draw OOP
-      local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
-      local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
-      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
-      local vFr, vNr = asmlib.NewXY(vCn.y*nR), asmlib.NewXY(vFr.x*nR)
-      local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
-      local nN  = conWorkMode:GetSize()
-      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
-      local nAn, rA = (nMx / nN), 0; actMonitor:SetColor()
-      -- local mR = oPly:GetNWFloat(gsToolPrefL.."radmenu", 0)
-      local mR = asmlib.GetAsmVar("radmenu"  , "FLT")
-      local eR = asmlib.GetAsmVar("radmenuen", "BUL")
-      if(eR) then asmlib.SetXY(vNt, vNr)
-        asmlib.RotateXY(vNt, mR); asmlib.AddXY(vNt, vNt, vCn)
-        actMonitor:DrawCircle(vNt, 10, "r");
-        actMonitor:DrawLine(vNt, vCn)
-      end
-      -- Draw the first divider segment
-      actMonitor:DrawCircle(vCn, vNr.x, "y", "SEGM", {35})
-      actMonitor:DrawCircle(vCn, vFr.x); rA = nAn
-      asmlib.AddXY(vNt, vNr, vCn); asmlib.AddXY(vFt, vFr, vCn)
-      actMonitor:DrawLine(vNt, vFt, "r", "SURF")
-      for iD = 2, nN do
-        asmlib.SetXY(vNt, vNr); asmlib.RotateXY(vNt, rA)
-        asmlib.SetXY(vFt, vFr); asmlib.RotateXY(vFt, rA)
-        asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
-        actMonitor:DrawLine(vNt, vFt); rA = (rA + nAn)
-      end
-    end)
 end
 
 ------ INITIALIZE DB ------
@@ -686,20 +643,19 @@ asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
   Trigs = {
-    InsertRecord = function(arLine) gtArgsLogs[1] = "*PIECES.Trigs.InsertRecord"
+    InsertRecord = function(arLine, vSource)
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
       arLine[2] = asmlib.DisableString(arLine[2],asmlib.DefaultType(),"TYPE")
       arLine[3] = asmlib.DisableString(arLine[3],asmlib.ModelToName(arLine[1]),"MODEL")
       arLine[8] = asmlib.DisableString(arLine[8],"NULL","NULL")
       if(not ((arLine[8] == "NULL") or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
         trCls[arLine[8]] = true; asmlib.LogInstance("Register trace <"..
-          tostring(arLine[8]).."@"..arLine[1]..">",gtArgsLogs)
+          tostring(arLine[8]).."@"..arLine[1]..">",vSource)
       end; return true
     end -- Register the class provided to the trace hit list
   },
   Cache = {
-    InsertRecord = function(makTab, tCache, snPK, arLine)
-      gtArgsLogs[1] = "*PIECES.Cache.InsertRecord"
+    InsertRecord = function(makTab, tCache, snPK, arLine, vSource)
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
@@ -709,24 +665,23 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match <"..tostring(arLine[4])..
-          "> to "..defTab[4][1].." for "..tostring(snPK),gtArgsLogs); return false end
+          "> to "..defTab[4][1].." for "..tostring(snPK),vSource); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
         if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
-          tostring(snPK),gtArgsLogs); return false end
+          tostring(snPK),vSource); return false end
       if(nOffsID > stData.Size) then stData.Size = nOffsID else
         asmlib.LogInstance("Offset #"..tostring(nOffsID)..
-          " sequential mismatch",gtArgsLogs); return false end
+          " sequential mismatch",vSource); return false end
       return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
-      gtArgsLogs[1] = "*PIECES.Cache.ExportDSV"
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
       local tData, defTab = {}, makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
         tData[mod] = {KEY = (rec.Type..rec.Name..mod)} end
       local tSort = asmlib.Sort(tData,{"KEY"})
       if(not tSort) then oFile:Flush(); oFile:Close()
-        asmlib.LogInstance("("..fPref..") Cannot sort cache data",gtArgsLogs); return false end
+        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSource); return false end
       for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
         local tData = tCache[stRec.Key]
         local sData, tOffs = defTab.Name, tData.Offs
@@ -770,8 +725,7 @@ asmlib.CreateTable("ADDITIONS",{
     ExportDSV = {1,4}
   },
   Cache = {
-    InsertRecord = function(makTab, tCache, snPK, arLine)
-      gtArgsLogs[1] = "*ADDITIONS.Cache.InsertRecord"
+    InsertRecord = function(makTab, tCache, snPK, arLine, vSource)
       local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
@@ -779,20 +733,20 @@ asmlib.CreateTable("ADDITIONS",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nCnt, sFld, nAddID = 2, "", makTab:Match(arLine[4],4)
       if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..
-        tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),gtArgsLogs); return false end
+        tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),vSource); return false end
       stData[nAddID] = {} -- LineID has to be set properly
       while(nCnt <= defTab.Size) do
         sFld = defTab[nCnt][1]
         stData[nAddID][sFld] = makTab:Match(arLine[nCnt],nCnt)
         if(not asmlib.IsHere(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
           asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[nCnt]).."> to "..
-            defTab[nCnt][1].." for "..tostring(snPK),gtArgsLogs); return false end
+            defTab[nCnt][1].." for "..tostring(snPK),vSource); return false end
         nCnt = nCnt + 1
       end; stData.Size = nAddID; return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
-     local defTab = makTab:GetDefinition()
-     for mod, rec in pairs(tCache) do
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
+      local defTab = makTab:GetDefinition()
+      for mod, rec in pairs(tCache) do
         local sData = defTab.Name..sDelim..mod
         for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
           for iID = 2, defTab.Size do local vData = tData[defTab[iID][1]]
@@ -825,8 +779,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
     end
   },
   Cache = {
-    InsertRecord = function(makTab, tCache, snPK, arLine)
-      gtArgsLogs[1] = "*PHYSPROPERTIES.Cache.InsertRecord"
+    InsertRecord = function(makTab, tCache, snPK, arLine, vSource)
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
       local tTypes = tCache[skType]; if(not tTypes) then
@@ -836,7 +789,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       local iNameID = makTab:Match(arLine[2],2)
       if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
         asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[2])..
-          "> to "..defTab[2][1].." for "..tostring(snPK),gtArgsLogs); return false end
+          "> to "..defTab[2][1].." for "..tostring(snPK),vSource); return false end
       if(not asmlib.IsHere(tNames[snPK])) then
         -- If a new type is inserted
         tTypes.Size = tTypes.Size + 1
@@ -848,18 +801,17 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       tNames[snPK].Size = iNameID
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim)
-      gtArgsLogs[1] = "*PHYSPROPERTIES.Cache.ExportDSV"
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
       local defTab = makTab:GetDefinition()
       local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
       local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
       if(not (tTypes or tNames)) then F:Flush(); F:Close()
-        asmlib.LogInstance("("..fPref..") No data found",gtArgsLogs); return false end
+        asmlib.LogInstance("("..fPref..") No data found",vSource); return false end
       for iInd = 1, tTypes.Size do
         local sType = tTypes[iInd]
         local tType = tNames[sType]
         if(not tType) then F:Flush(); F:Close()
-          LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",gtArgsLogs); return false end
+          asmlib.LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",vSource); return false end
         for iCnt = 1, tType.Size do
           oFile:Write(defTab.Name..sDelim..makTab:Match(sType      ,1,true,"\"")..
                                    sDelim..makTab:Match(iCnt       ,2,true,"\"")..
@@ -882,9 +834,9 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
   if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
-    asmlib.LogInstance("DB CATEGORY from DSV")
+    asmlib.LogInstance("DB CATEGORY from DSV",gtInitLogs)
     asmlib.ImportCategory(3)
-  else asmlib.LogInstance("DB CATEGORY from LUA") end
+  else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
 end
 
 --[[ Track pieces parametrization legend
@@ -897,10 +849,11 @@ end
  * Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance("DB PIECES from DSV")
+  asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
   asmlib.ImportDSV("PIECES", true)
 else
-  asmlib.LogInstance("DB PIECES from LUA")
+  if(gsMoDB == "SQL") then sqlBegin() end
+  asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
   asmlib.DefaultTable("PIECES")
   if(asmlib.GetAsmVar("devmode" ,"BUL")) then
     asmlib.DefaultType("Develop Sprops")
@@ -3022,13 +2975,15 @@ else
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""})
+  if(gsMoDB == "SQL") then sqlCommit() end
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance("DB PHYSPROPERTIES from DSV")
+  asmlib.LogInstance("DB PHYSPROPERTIES from DSV",gtInitLogs)
   asmlib.ImportDSV("PHYSPROPERTIES", true)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
-  asmlib.LogInstance("DB PHYSPROPERTIES from LUA")
+  if(gsMoDB == "SQL") then sqlBegin() end
+  asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
   asmlib.DefaultTable("PHYSPROPERTIES")
   asmlib.DefaultType("Special")
   asmlib.InsertRecord({"#", 1 , "default"             })
@@ -3129,13 +3084,15 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   asmlib.InsertRecord({"#", 18, "glass"                   })
   asmlib.InsertRecord({"#", 19, "glassbottle"             })
   asmlib.InsertRecord({"#", 20, "combine_glass"           })
+  if(gsMoDB == "SQL") then sqlCommit() end
 end
 
 if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance("DB ADDITIONS from DSV")
+  asmlib.LogInstance("DB ADDITIONS from DSV",gtInitLogs)
   asmlib.ImportDSV("ADDITIONS", true)
 else
-  asmlib.LogInstance("DB ADDITIONS from LUA")
+  if(gsMoDB == "SQL") then sqlBegin() end
+  asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)
   asmlib.DefaultTable("ADDITIONS")
   --- Shinji's Switchers ---
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,0,-1,-1})
@@ -3144,7 +3101,8 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,-1,0,-1,-1})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,1,SOLID_VPHYSICS})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
+  if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"))
+asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"),gtInitLogs)
 collectgarbage()

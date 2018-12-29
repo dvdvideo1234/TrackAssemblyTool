@@ -119,9 +119,7 @@ TOOL.ClientConVar = {
   [ "engunsnap" ] = 0,
   [ "workmode"  ] = 0,
   [ "appangfst" ] = 0,
-  [ "applinfst" ] = 0,
-  [ "radmenu"   ] = 0,
-  [ "radmenuen" ] = 0
+  [ "applinfst" ] = 0
 }
 
 if(CLIENT) then
@@ -141,7 +139,6 @@ if(CLIENT) then
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."draw_stack_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
- -- hookAdd("PostDrawHUD"    , gsToolPrefL.."workmode_menu_draw", asmlib.GetActionCode("RADWORKMENU_DRAW"))
 end
 
 if(SERVER) then
@@ -610,7 +607,7 @@ function TOOL:LeftClick(stTrace)
       if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,forcelim)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
-      asmlib.LogInstance("(Physical) Success"); return true
+      asmlib.LogInstance("(Physical) Success",gtArgsLogs); return true
     else -- Visual
       local IDs = gsSymDir:Explode(bgskids)
       if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
@@ -620,15 +617,15 @@ function TOOL:LeftClick(stTrace)
     end
   end -- IN_SPEED: Switch the tool mode ( Stacking )
   if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count not properly picked")); return false end
-    if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap")); return false end
+    if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count not properly picked"),gtArgsLogs); return false end
+    if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
     local ePieceO, ePieceN = trEnt
     local iNdex, iTrys = 1, maxstatts
     local vTemp, trPos = Vector(), trEnt:GetPos()
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
     if(not hdOffs) then -- Make sure it is present
       asmlib.PrintNotifyPly(ply,"Cannot find next PointID !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID")); return false
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"),gtArgsLogs); return false
     end -- Validated existent next point ID
     asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(stackcnt).." )")
     while(iNdex <= stackcnt) do
@@ -636,11 +633,11 @@ function TOOL:LeftClick(stTrace)
       ePieceN = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePieceN) then -- Set position is valid
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply physical settings fail")); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply physical settings fail"),gtArgsLogs); return false end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,forcelim)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply weld fail")); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply weld fail"),gtArgsLogs); return false end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,forcelim)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply no-collide fail")); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply no-collide fail"),gtArgsLogs); return false end
         asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntityPly(ePieceN)
         if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
@@ -650,7 +647,7 @@ function TOOL:LeftClick(stTrace)
         if(not stSpawn) then -- Look both ways in a one way street :D
           asmlib.PrintNotifyPly(ply,"Cannot obtain spawn data!","ERROR")
           asmlib.UndoFinishPly(ply,sIterat)
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Stacking has invalid user data")); return false
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Stacking has invalid user data"),gtArgsLogs); return false
         end -- Spawn data is valid for the current iteration iNdex
         ePieceO, iNdex, iTrys = ePieceN, (iNdex + 1), maxstatts
       else iTrys = iTrys - 1 end
@@ -660,26 +657,26 @@ function TOOL:LeftClick(stTrace)
       end -- We still have enough memory to preform the stacking
     end
     asmlib.UndoFinishPly(ply)
-    asmlib.LogInstance("(Stack) Success"); return true
+    asmlib.LogInstance("(Stack) Success",gtArgsLogs); return true
   else -- Switch the tool mode ( Snapping )
     if(workmode == 2) then -- Make a ray intersection spawn update
       if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
-        asmlib.LogInstance("(Ray) Skip intersection sequence. Snapping") end
+        asmlib.LogInstance("(Ray) Skip intersection sequence. Snapping",gtArgsLogs) end
     end
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail"),gtArgsLogs); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply weld fail")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply weld fail"),gtArgsLogs); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,forcelim)) then       -- NoCollide all to previous
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply no-collide fail")); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply no-collide fail"),gtArgsLogs); return false end
       asmlib.UndoCratePly(gsUndoPrefN..fnmodel.." ( Snap prop )")
       asmlib.UndoAddEntityPly(ePiece)
       asmlib.UndoFinishPly(ply)
-      asmlib.LogInstance("(Snap) Success"); return true
+      asmlib.LogInstance("(Snap) Success",gtArgsLogs); return true
     end
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Crating piece fail")); return false
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Crating piece fail"),gtArgsLogs); return false
   end
 end
 
@@ -713,7 +710,7 @@ function TOOL:RightClick(stTrace)
     end
   end
   if(not enpntmscr) then
-    local Dir = (asmlib.CheckButtonPly(ply,IN_SPEED) and -1) or 1
+    local Dir = (asmlib.CheckButtonPly(ply,IN_SPEED) and -1 or 1)
     self:SwitchPoint(Dir,asmlib.CheckButtonPly(ply,IN_DUCK))
     asmlib.LogInstance("(Point) Success",gtArgsLogs); return true
   end
@@ -865,24 +862,6 @@ function TOOL:Think()
       local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
       if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
     end -- Shortcut for closing the routine pieces
-    if(SERVER and asmlib.CheckButtonPly(ply, IN_ZOOM)) then
-      if(asmlib.CachePressPly(ply)) then
-        local mX, mY = asmlib.GetMouseDeltaPly(ply)
-        -- ply:SetNWFloat(gsToolPrefL.."radmenu", mathAtan2(mY, mX))
-        if(mX ~= 0 or mY ~= 0) then asmlib.ConCommandPly(ply,"radmenuen", 1)
-          local mR = mathAtan2(mY, mX); asmlib.ConCommandPly(ply,"radmenu", mR)
-          if(asmlib.CachePressPly(ply)) then
-            if(not asmlib.CheckButtonPly(ply, IN_ZOOM)) then
-              local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
-              local workmode = mathFloor(nMx / mR); asmlib.ConCommandPly(ply,"workmode", workmode)
-              asmlib.PrintNotifyPly(oPly,"Work mode "..conWorkMode:Select(workmode),"UNDO")
-            end
-          end
-        else
-          asmlib.ConCommandPly(ply,"radmenuen", 0)
-        end
-      end
-    end -- Handle radial menu for working mode selection
   end
 end
 

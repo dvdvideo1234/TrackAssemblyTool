@@ -262,6 +262,7 @@ end
   Return: exist, found
 ]]
 local function IsLogFound(sMsg, sKey)
+  local sMsg = tostring(sMsg or "")
   local sKey = tostring(sKey or "")
   if(IsBlank(sKey)) then return nil end
   local oStat = GetOpVar("LOG_"..sKey)
@@ -271,9 +272,7 @@ local function IsLogFound(sMsg, sKey)
         return true, true
       end; iCnt = iCnt + 1
     end; return true, false
-  else
-    return false, false
-  end
+  else return false, false end
 end
 
 --[[
@@ -458,7 +457,8 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOAV","N/A")  -- Not Available
   SetOpVar("MISS_NOMD","X")    -- No model
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
-  SetOpVar("FORM_KEYSTMT","stmt%s<%s>")
+  SetOpVar("FORM_KEYSTMT","%s(%s)")
+  SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   if(CLIENT) then
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
@@ -1407,27 +1407,37 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
   ---------- Origin ----------
   if(sO:sub(1,1) == sD) then ReloadPOA() else
-    if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO
-      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO:sub(2,-1))
-      if(IsHere(vtPos)) then ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
-      else if((sO ~= "NULL") and not IsBlank(sO)) then
-        if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
-      else ReloadPOA() end end
-    else if((sO ~= "NULL") and not IsBlank(sO)) then
+    if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO; sO = sO:sub(2,-1)
+      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO)
+      if(IsHere(vtPos)) then
+        ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
+      else -- Try to decode the attachment key when missing
+        if((sO ~= "NULL") and not IsBlank(sO)) then
+          if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
+        else ReloadPOA() end
+      end
+    elseif((sO ~= "NULL") and not IsBlank(sO)) then
       if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
-    else ReloadPOA() end end
+    else
+      ReloadPOA()
+    end
   end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
   ---------- Angle ----------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
-    if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA
-      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sA:sub(2,-1))
-      if(IsHere(atAng)) then ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
-      else if((sA ~= "NULL") and not IsBlank(sA)) then
-        if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
-      else ReloadPOA() end end
-    else if((sA ~= "NULL") and not IsBlank(sA)) then
+    if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA; sA = sA:sub(2,-1)
+      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sA)
+      if(IsHere(atAng)) then
+        ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
+      else
+        if((sA ~= "NULL") and not IsBlank(sA)) then
+          if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
+        else ReloadPOA() end
+      end
+    elseif((sA ~= "NULL") and not IsBlank(sA)) then
       if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
-    else ReloadPOA() end end
+    else
+      ReloadPOA()
+    end
   end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle mismatch"); return nil end
   ---------- Point ----------
   if(sP:sub(1,1) == sD) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
@@ -1762,7 +1772,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   if(defTab.Size ~= tableMaxn(defTab)) then
     LogInstance("Record definition mismatch for "..sTable); return false end
   defTab.Nick = sTable:upper(); defTab.Name = GetOpVar("TOOLNAME_PU")..defTab.Nick
-  local self, tabDef, tabCmd, logArg = {}, defTab, {}
+  local self, tabDef, tabCmd = {}, defTab, {}
   local symDis, sMoDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
     defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
@@ -1974,6 +1984,16 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCmd = self:GetCommand()
     qtCmd.Delete = "DELETE FROM "..qtDef.Name..";"; return self
   end
+  -- Bhttps://wiki.garrysmod.com/page/sql/Begin
+  function self:Begin()
+    local qtCmd = self:GetCommand()
+    qtCmd.Begin = "BEGIN;"; return self
+  end
+  -- https://wiki.garrysmod.com/page/sql/Commit
+  function self:Commit()
+    local qtCmd = self:GetCommand()
+    qtCmd.Commit = "COMMIT;"; return self
+  end
   -- Build create/drop/delete statment table of statemenrts
   function self:Create() self:UpdateInfo()
     local qtDef = self:GetDefinition()
@@ -2104,6 +2124,10 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Build drop failed"); return self:Remove(false) end
     makTab = self:Delete(); if(not IsHere(makTab)) then
       LogInstance("Build delete failed"); return self:Remove(false) end
+    makTab = self:Begin(); if(not IsHere(makTab)) then
+      LogInstance("Build begin failed"); return self:Remove(false) end
+    makTab = self:Commit(); if(not IsHere(makTab)) then
+      LogInstance("Build commit failed"); return self:Remove(false) end
     makTab = self:TimerSetup(); if(not IsHere(makTab)) then
       LogInstance("Build timer failed"); return self:Remove(false) end
     local tQ = self:GetCommand(); if(not IsHere(tQ)) then
@@ -2153,12 +2177,12 @@ function InsertRecord(sTable,arLine)
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
     LogInstance("Missing builder",sTable); return false end
   local defTab, sMoDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), "InsertRecord"
+  local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
   -- Call the trigger when provided
-  if(IsTable(defTab.Trigs)) then local bS, sR = pcall(defTab.Trigs[sFunc], arLine)
+  if(IsTable(defTab.Trigs)) then local bS, sR = pcall(defTab.Trigs[sFunc], arLine, "*"..fsLog:format(defTab.Nick,sFunc,"Trigs"))
     if(not bS) then LogInstance("Trigger manager fail "..sR,defTab.Nick); return false end
     if(not sR) then LogInstance("Trigger routine fail",defTab.Nick); return false end
-  end
-  -- Populate the data after the trigger does its thing
+  end -- Populate the data after the trigger does its thing
   if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
     for iD = 1, defTab.Size do arLine[iD] = makTab:Match(arLine[iD],iD,true) end
     local Q = CacheStmt(qsKey:format(sFunc, defTab.Nick), nil, unpack(arLine))
@@ -2178,7 +2202,7 @@ function InsertRecord(sTable,arLine)
       LogInstance("Cache missing",defTab.Nick); return false end
     if(not IsTable(defTab.Cache)) then
       LogInstance("Cache manager missing",defTab.Nick); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], makTab, tCache, snPK, arLine)
+    local bS, sR = pcall(defTab.Cache[sFunc], makTab, tCache, snPK, arLine, "*"..fsLog:format(defTab.Nick,sFunc,"Cache"))
     if(not bS) then LogInstance("Cache manager fail "..sR,defTab.Nick); return false end
     if(not sR) then LogInstance("Cache routine fail",defTab.Nick); return false end
   else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return false end
@@ -2571,6 +2595,7 @@ function ExportDSV(sTable, sPref, sDelim)
   fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("("..fPref..") fileOpen("..fName..") failed",defTab.Nick); return false end
+  local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
   local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
   F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
@@ -2594,7 +2619,7 @@ function ExportDSV(sTable, sPref, sDelim)
     local tCache = libCache[defTab.Name]
     if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Cache missing",defTab.Nick); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim)
+    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, "*"..fsLog:format(defTab.Nick,sFunc,"Cache"))
     if(not bS) then LogInstance("Cache manager fail for "..sR,defTab.Nick); return false end
     if(not sR) then LogInstance("Cache routine fail",defTab.Nick); return false end
   else LogInstance("Wrong database mode <"..sMoDB..">",defTab.Nick); return false end
@@ -2616,12 +2641,16 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
     LogInstance("("..fPref..") Missing table definition"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..fPref..") Missing table definition for <"..sTable..">"); return false end
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+  local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
+    LogInstance("("..fPref..") Missing table command for <"..sTable..">"); return false end
+  local fName, sMoDB = (GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")), GetOpVar("MODE_DATABASE")
         fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
     LogInstance("("..fPref..") fileOpen("..fName..") failed"); return false end
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
+  if(sMoDB == "SQL") then sqlQuery(cmdTab.Begin)
+    LogInstance("("..fPref.."@"..sTable.."): Begin") end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
       if(sLine:sub(1,nLen) == defTab.Name) then
@@ -2631,7 +2660,10 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
         if(bComm) then InsertRecord(sTable, tData) end
       end
     end
-  end; F:Close(); LogInstance("("..fPref.."@"..sTable.."): Success"); return true
+  end; F:Close()
+  if(sMoDB == "SQL") then sqlQuery(cmdTab.Commit) 
+    LogInstance("("..fPref.."@"..sTable.."): Commit")
+  end; LogInstance("("..fPref.."@"..sTable.."): Success"); return true
 end
 
 --[[

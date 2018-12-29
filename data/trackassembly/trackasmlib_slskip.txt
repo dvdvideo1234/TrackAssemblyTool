@@ -1,10 +1,13 @@
 QuickSort
-ModelToName%[CUT%]
-ModelToName%[SUB%]
-ModelToName%[APP%]
+ModelToName: Cut
+ModelToName: Sub
+ModelToName: App
 DefaultType: Avoided
+TimerRestart: Called by
 DrawToolScreen: Invalid screen
 DrawHUD: Invalid screen
+DRAW_GHOSTS: Swep not tool
+DRAW_GHOSTS: Tool different
 GetEntitySpawn: Not hitting active point
 CacheQueryPiece: Record not located
 GetEntitySpawn: Trace model missing
@@ -24,11 +27,11 @@ BIND_PRESS: Active key missing
 BIND_PRESS: Bind not pressed
 BIND_PRESS(invnext): Processed
 BIND_PRESS(invprev): Processed
-TOOL:SwitchPoint(
+TOOL.SwitchPoint
 IntersectRayRead
 IntersectRayClear
+IntersectRayHash
 RegisterPOA: Exists ID
 InsertRecord: Cannot process offset
 MakeScreen.GetDistance: Start out of border
 MakeScreen.GetDistance: End out of border
-IntersectRayHash: No read
