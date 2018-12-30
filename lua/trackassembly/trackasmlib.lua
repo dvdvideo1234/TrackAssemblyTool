@@ -96,6 +96,7 @@ local mathSqrt                 = math and math.sqrt
 local mathFloor                = math and math.floor
 local mathClamp                = math and math.Clamp
 local mathRandom               = math and math.random
+local vguiCreate               = vgui and vgui.Create
 local undoCreate               = undo and undo.Create
 local undoFinish               = undo and undo.Finish
 local undoAddEntity            = undo and undo.AddEntity
@@ -215,6 +216,11 @@ function IsOther(oEnt)
   if(oEnt:IsWeapon())    then return true end
   if(oEnt:IsWidget())    then return true end
   return false
+end
+
+-- Returns the sign of a number [-1,0,1]
+function GetSign(nVal)
+  return (nVal / mathAbs(nVal))
 end
 
 -- Gets the date according to the specified format
@@ -1086,23 +1092,17 @@ function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
 end
 
 local function PushSortValues(tTable,snCnt,nsValue,tData)
-  local iCnt = mathFloor(tonumber(snCnt) or 0)
+  local iCnt, iInd = mathFloor(tonumber(snCnt) or 0), 1
   if(not (tTable and (type(tTable) == "table") and (iCnt > 0))) then return 0 end
-  local iInd  = 1
   if(not tTable[iInd]) then
-    tTable[iInd] = {Value = nsValue, Table = tData }
-    return iInd
+    tTable[iInd] = {Value = nsValue, Table = tData }; return iInd
   else
-    while(tTable[iInd] and (tTable[iInd].Value < nsValue)) do
-      iInd = iInd + 1
-    end
+    while(tTable[iInd] and (tTable[iInd].Value < nsValue)) do iInd = iInd + 1 end
     if(iInd > iCnt) then return iInd end
     while(iInd < iCnt) do
       tTable[iCnt] = tTable[iCnt - 1]
       iCnt = iCnt - 1
-    end
-    tTable[iInd] = { Value = nsValue, Table = tData }
-    return iInd
+    end; tTable[iInd] = { Value = nsValue, Table = tData }; return iInd
   end
 end
 
@@ -1129,6 +1129,57 @@ function GetFrequentModels(snCount)
   end
   if(IsHere(frUsed) and IsHere(frUsed[1])) then return frUsed, snCount end
   LogInstance("Array is empty or not available"); return nil
+end
+
+function SetButtonSlider(cPanel,sVar,nMin,nMax,nDec,tBtn)
+  local pPanel = vguiCreate("DPanel"); if(not IsValid(pPanel)) then
+    LogInstance("Panel invalid"); return nil end
+  pPanel:SetParent(cPanel)
+  pPanel:InvalidateLayout(true)
+  LogInstance("Panel OK")
+  local sToNL = GetOpVar("TOOLNAME_NL")
+  local sToPL = GetOpVar("TOOLNAME_PL")
+  local sX = pPanel:GetWide()
+  local vX, vY = pPanel:GetSize()
+  print("SetButtonSlider", vX, vY)
+  print("SetButtonSlider", pPanel:GetWide(), cPanel:GetWide())
+  local sY, pY, dX, dY, mX = 50, 0, 2, 2, 10
+  pPanel:SetSize(sX, sY); pY = dY
+  pPanel:SetVisible(true)
+  if(IsTable(tBtn) and tBtn[1]) then
+    local nBtn, iCnt = #tBtn, 1
+    local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
+    local bX, bY = dX, pY
+    while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
+      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
+        LogInstance("Button["..iCnt.."] invalid"); return nil end
+      LogInstance("Button["..iCnt.."] OK")
+      pButton:SetParent(pPanel)
+      pButton:SetText(tostring(vBtn.Text))
+      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
+      pButton:SetPos(bX, bY)
+      pButton:SetSize(wB, hB)
+      pButton.DoClick = vBtn.Click
+      pButton:SetVisible(true)
+      bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
+    end; pY = pY + (dY + hB)
+  end
+  local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
+    LogInstance("Slider invalid"); return nil end
+  LogInstance("Slider OK")
+  pSlider:SetParent(pPanel)
+  pSlider:SetPos(0, pY)
+  pSlider:SetSize(sX-2*dX, sY-pY-dY)
+  pSlider:SetText(GetPhrase("tool."..sToNL.."."..sVar.."_con"))
+  pSlider:SetTooltip(GetPhrase("tool."..sToNL.."."..sVar))
+  pSlider:SetMin(nMin)
+  pSlider:SetMax(nMax)
+  pSlider:SetDecimals(nDec)
+  pSlider:SetDark(true)
+  pSlider:SetConVar(sToPL..sVar)
+  pSlider:SetVisible(true)
+  cPanel:AddItem(pPanel)
+  return pPanel
 end
 
 function RoundValue(nvEx, nFr)
@@ -2661,7 +2712,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
       end
     end
   end; F:Close()
-  if(sMoDB == "SQL") then sqlQuery(cmdTab.Commit) 
+  if(sMoDB == "SQL") then sqlQuery(cmdTab.Commit)
     LogInstance("("..fPref.."@"..sTable.."): Commit")
   end; LogInstance("("..fPref.."@"..sTable.."): Success"); return true
 end

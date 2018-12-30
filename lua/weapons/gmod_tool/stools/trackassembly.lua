@@ -837,11 +837,9 @@ function TOOL:UpdateGhost(oPly)
   end
 end
 
---- Is it needed as it has ghost stack ?
---- Maybe it has to be changed to match the new stack
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
-    asmlib.LogInstance( "TOOL:ElevateGhost: Player invalid <"..tostring(oPly)..">"); return nil end
+    asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtArgsLogs); return nil end
   local spawncn, elevpnt = self:GetSpawnCenter()
   if(oEnt and oEnt:IsValid()) then
     if(spawncn) then -- Distance for the piece spawned on the ground
@@ -850,19 +848,16 @@ function TOOL:ElevateGhost(oEnt, oPly)
       local pointid, pnextid = self:GetPointID()
             elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
     end; asmlib.ConCommandPly(oPly, "elevpnt", elevpnt)
-    asmlib.LogInstance("TOOL:ElevateGhost("..tostring(spawncn).."): <"..tostring(elevpnt)..">")
+    asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtArgsLogs)
   end
 end
 
 function TOOL:Think()
-  local model, wormo = self:GetModel(), self:GetWorkingMode()
-  if(utilIsValidModel(model)) then -- Check model validation
-    local ply = self:GetOwner()
-    if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
-      local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
-      if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
-    end -- Shortcut for closing the routine pieces
-  end
+  local wormo = self:GetWorkingMode()
+  if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
+    local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
+    if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
+  end -- Shortcut for closing the routine pieces
 end
 
 --[[
@@ -1341,8 +1336,15 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextpic"))
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextyaw_con"), gsToolPrefL.."nextyaw" , -gnMaxOffRot, gnMaxOffRot, 7)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextyaw"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextrol_con"), gsToolPrefL.."nextrol" , -gnMaxOffRot, gnMaxOffRot, 7)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextrol"))
+  asmlib.SetButtonSlider(CPanel,"nextrol",-gnMaxOffRot, gnMaxOffRot,7,
+      {{Text="+ | -", Click=function()
+          local nV = asmlib.GetAsmVar("nextrol", "FLT")
+          RunConsoleCommand(gsToolPrefL.."nextrol",-nV) end},
+       {Text="< | >", Tip="Test", Click=function()
+          local nV = asmlib.GetAsmVar("nextrol", "FLT")
+          RunConsoleCommand(gsToolPrefL.."nextrol",asmlib.GetSign(nV)*180) end},
+       {Text="> 0 <", Click=function()
+          RunConsoleCommand(gsToolPrefL.."nextrol",0) end}})
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextx_con"), gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 7)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextx"))
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nexty_con"), gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 7)

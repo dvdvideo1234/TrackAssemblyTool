@@ -278,12 +278,12 @@ if(CLIENT) then
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
       asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
-      asmlib.ConCommandPly(oPly,"nextx"  , "0")
-      asmlib.ConCommandPly(oPly,"nexty"  , "0")
-      asmlib.ConCommandPly(oPly,"nextz"  , "0")
-      asmlib.ConCommandPly(oPly,"nextpic", "0")
-      asmlib.ConCommandPly(oPly,"nextyaw", "0")
-      asmlib.ConCommandPly(oPly,"nextrol", "0")
+      asmlib.ConCommandPly(oPly,"nextx"  , 0)
+      asmlib.ConCommandPly(oPly,"nexty"  , 0)
+      asmlib.ConCommandPly(oPly,"nextz"  , 0)
+      asmlib.ConCommandPly(oPly,"nextpic", 0)
+      asmlib.ConCommandPly(oPly,"nextyaw", 0)
+      asmlib.ConCommandPly(oPly,"nextrol", 0)
       if(not devmode) then
         asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
       asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
