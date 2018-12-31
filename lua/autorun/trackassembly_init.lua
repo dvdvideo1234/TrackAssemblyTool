@@ -536,7 +536,7 @@ if(CLIENT) then
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0 ) -- The active points count to be used for change
-        local uiMod =  tostring(pnLine:GetColumnText(5)  or "") -- Forth index is actually the model in the table
+        local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
                       pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
@@ -2463,13 +2463,13 @@ else
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 1, "", "", "-90,0,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 2, "", "0,0,-47.45"," 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})

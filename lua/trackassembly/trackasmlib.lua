@@ -1131,21 +1131,16 @@ function GetFrequentModels(snCount)
   LogInstance("Array is empty or not available"); return nil
 end
 
-function SetButtonSlider(cPanel,sVar,nMin,nMax,nDec,tBtn)
-  local pPanel = vguiCreate("DPanel"); if(not IsValid(pPanel)) then
+function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
+  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
     LogInstance("Panel invalid"); return nil end
+  local sY, pY, dX, dY, mX = 45, 0, 2, 2, 10
+  local sX = (cPanel:GetWide() - 2*mX)
+  local sNam = GetOpVar("TOOLNAME_PL")..sVar
+  local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
   pPanel:SetParent(cPanel)
-  pPanel:InvalidateLayout(true)
-  LogInstance("Panel OK")
-  local sToNL = GetOpVar("TOOLNAME_NL")
-  local sToPL = GetOpVar("TOOLNAME_PL")
-  local sX = pPanel:GetWide()
-  local vX, vY = pPanel:GetSize()
-  print("SetButtonSlider", vX, vY)
-  print("SetButtonSlider", pPanel:GetWide(), cPanel:GetWide())
-  local sY, pY, dX, dY, mX = 50, 0, 2, 2, 10
   pPanel:SetSize(sX, sY); pY = dY
-  pPanel:SetVisible(true)
+  LogInstance("Width ["..sX.."]")
   if(IsTable(tBtn) and tBtn[1]) then
     local nBtn, iCnt = #tBtn, 1
     local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
@@ -1153,31 +1148,37 @@ function SetButtonSlider(cPanel,sVar,nMin,nMax,nDec,tBtn)
     while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance("Button["..iCnt.."] invalid"); return nil end
-      LogInstance("Button["..iCnt.."] OK")
       pButton:SetParent(pPanel)
+      pButton:InvalidateLayout(true)
+      pButton:SizeToContents()
       pButton:SetText(tostring(vBtn.Text))
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
       pButton:SetPos(bX, bY)
       pButton:SetSize(wB, hB)
-      pButton.DoClick = vBtn.Click
+      pButton.DoClick = function() vBtn.Click(sNam, GetAsmVar(sVar, sTyp)) end
       pButton:SetVisible(true)
       bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
     end; pY = pY + (dY + hB)
   end
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
-  LogInstance("Slider OK")
   pSlider:SetParent(pPanel)
+  pSlider:InvalidateLayout(true)
+  pSlider:SizeToContents()
   pSlider:SetPos(0, pY)
   pSlider:SetSize(sX-2*dX, sY-pY-dY)
-  pSlider:SetText(GetPhrase("tool."..sToNL.."."..sVar.."_con"))
-  pSlider:SetTooltip(GetPhrase("tool."..sToNL.."."..sVar))
+  pSlider:SetText(GetPhrase(sTag.."_con"))
+  pSlider:SetTooltip(GetPhrase(sTag))
   pSlider:SetMin(nMin)
   pSlider:SetMax(nMax)
   pSlider:SetDecimals(nDec)
   pSlider:SetDark(true)
-  pSlider:SetConVar(sToPL..sVar)
+  pSlider:SetConVar(sNam)
   pSlider:SetVisible(true)
+  pPanel:InvalidateLayout(true)
+  pPanel:InvalidateChildren()
+  pPanel:SizeToContents()
+  pPanel:SizeToChildren(true,false)
   cPanel:AddItem(pPanel)
   return pPanel
 end
@@ -1193,9 +1194,8 @@ end
 function GetCenter(oEnt) -- Set the ENT's Angles first!
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity Invalid"); return Vector(0,0,0) end
-  local vRez = oEnt:OBBCenter()
-        vRez[cvX] = -vRez[cvX]; vRez[cvY] = -vRez[cvY]; vRez[cvZ] = 0
-  return vRez
+  local vRez = oEnt:OBBCenter(); NegVector(vRez); vRez[cvZ] = 0
+  return vRez -- Returns X-Y centered model
 end
 
 function IsPhysTrace(Trace)
@@ -3022,9 +3022,9 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
   -- Integrate additional position offset into the origin position
-  stSpawn.SPos:Add(stSpawn.PNxt[cvX] * stSpawn.F)
-  stSpawn.SPos:Add(stSpawn.PNxt[cvY] * stSpawn.R)
-  stSpawn.SPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U)
+  stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F)
+  stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R)
+  stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U)
   -- Read holder record
   SetVector(stSpawn.HPnt, hdPOA.P)
   SetVector(stSpawn.HOrg, hdPOA.O)

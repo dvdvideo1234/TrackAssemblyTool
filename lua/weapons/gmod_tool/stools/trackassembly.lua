@@ -138,7 +138,6 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
-  hookAdd("PostDrawHUD"    , gsToolPrefL.."draw_stack_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
 end
 
 if(SERVER) then
@@ -408,7 +407,7 @@ function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   -- Perform various actions to stabilize data across working modes
   if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
   elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
-  return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV)
+  return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV):sub(1,6)
   -- Reset settings server-side where available and return the value
 end
 
@@ -458,7 +457,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel or gsNoAV):GetFileFromFilename()..">"..sDelim
         sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.StackCNT:    <"..tostring(self:GetCount())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.StackCnt:    <"..tostring(self:GetCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
         sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetAngSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
@@ -853,11 +852,17 @@ function TOOL:ElevateGhost(oEnt, oPly)
 end
 
 function TOOL:Think()
+  local model = self:GetModel()
   local wormo = self:GetWorkingMode()
-  if(CLIENT and inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
-    local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
-    if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end -- That was a /close call/ :D
-  end -- Shortcut for closing the routine pieces
+  if(utilIsValidModel(model)) then -- Precache the model or it is invalid otherwise
+    if(CLIENT) then asmlib.GetActionCode("DRAW_GHOSTS")()
+      if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
+        -- Shortcut for closing the routine pieces
+        local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
+        if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end
+      end -- That was a `close call` :D ( Get it ??)
+    end
+  end
 end
 
 --[[
@@ -1208,27 +1213,26 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con"))
         pTree:SetIndentSize(0)
   local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
-  while(cqPanel[iCnt]) do
-    local Rec = cqPanel[iCnt]
-    local Mod, Typ, Nam = Rec[defTable[1][1]], Rec[defTable[2][1]], Rec[defTable[3][1]]
-    if(fileExists(Mod, "GAME")) then
-      if(not (asmlib.IsBlank(Typ) or pFolders[Typ])) then
-        local pRoot = pTree:AddNode(Typ) -- No type folder made already
+  while(cqPanel[iCnt]) do local vRec = cqPanel[iCnt]
+    local sMod, sTyp, sNam = vRec[defTable[1][1]], vRec[defTable[2][1]], vRec[defTable[3][1]]
+    if(fileExists(sMod, "GAME")) then
+      if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
+        local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot.Icon:SetImage("icon16/database_connect.png")
               pRoot.InternalDoClick = function() end
               pRoot.DoClick         = function() return false end
               pRoot.DoRightClick    = function() SetClipboardText(pRoot:GetText()) end
               pRoot.Label.UpdateColours = function(pSelf)
                 return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
-        pFolders[Typ] = pRoot
+        pFolders[sTyp] = pRoot
       end -- Reset the primary tree node pointer
-      if(pFolders[Typ]) then pItem = pFolders[Typ] else pItem = pTree end
+      if(pFolders[sTyp]) then pItem = pFolders[sTyp] else pItem = pTree end
       -- Register the category if definition functional is given
-      if(catTypes[Typ]) then -- There is a category definition
-        if(not pCateg[Typ]) then pCateg[Typ] = {} end
-        local bSuc, ptCat, psNam = pcall(catTypes[Typ].Cmp, Mod)
+      if(catTypes[sTyp]) then -- There is a category definition
+        if(not pCateg[sTyp]) then pCateg[sTyp] = {} end
+        local bSuc, ptCat, psNam = pcall(catTypes[sTyp].Cmp, sMod)
         -- If the call is successful in protected mode and a folder table is present
-        if(bSuc) then local pCurr = pCateg[Typ]
+        if(bSuc) then local pCurr = pCateg[sTyp]
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
           if(ptCat and type(ptCat) ~= "table") then ptCat = {ptCat} end
           if(ptCat and ptCat[1]) then
@@ -1241,20 +1245,20 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
                 pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
-          end; if(psNam and not asmlib.IsBlank(psNam)) then Nam = tostring(psNam) end
+          end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
         end -- Custom name to override via category
       end
       -- Register the node associated with the track piece
-      pNode = pItem:AddNode(Nam)
-      pNode.DoRightClick = function() SetClipboardText(Mod) end
-      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
+      pNode = pItem:AddNode(sNam)
+      pNode.DoRightClick = function() SetClipboardText(sMod) end
+      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model").." > "..sMod)
       pNode.Icon:SetImage("icon16/brick.png")
       pNode.DoClick = function(pSelf)
-        RunConsoleCommand(gsToolPrefL.. "model" , Mod)
+        RunConsoleCommand(gsToolPrefL.. "model" , sMod)
         RunConsoleCommand(gsToolPrefL.."pointid", 1)
         RunConsoleCommand(gsToolPrefL.."pnextid", 2)
       end -- SnapReview is ignored because a query must be executed for points count
-    else asmlib.LogInstance("Extension <"..Typ.."> missing <"..Mod.."> .. SKIPPING !",sLog) end
+    else asmlib.LogInstance("Extension <"..sTyp.."> missing <"..sMod.."> .. SKIPPING !",sLog) end
     iCnt = iCnt + 1
   end
   CPanel:AddItem(pTree)
@@ -1332,25 +1336,39 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".angsnap"))
   pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextpic_con"), gsToolPrefL.."nextpic" , -gnMaxOffRot, gnMaxOffRot, 7)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextpic"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextyaw_con"), gsToolPrefL.."nextyaw" , -gnMaxOffRot, gnMaxOffRot, 7)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextyaw"))
-  asmlib.SetButtonSlider(CPanel,"nextrol",-gnMaxOffRot, gnMaxOffRot,7,
-      {{Text="+ | -", Click=function()
-          local nV = asmlib.GetAsmVar("nextrol", "FLT")
-          RunConsoleCommand(gsToolPrefL.."nextrol",-nV) end},
-       {Text="< | >", Tip="Test", Click=function()
-          local nV = asmlib.GetAsmVar("nextrol", "FLT")
-          RunConsoleCommand(gsToolPrefL.."nextrol",asmlib.GetSign(nV)*180) end},
-       {Text="> 0 <", Click=function()
-          RunConsoleCommand(gsToolPrefL.."nextrol",0) end}})
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextx_con"), gsToolPrefL.."nextx", -nMaxOffLin, nMaxOffLin, 7)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextx"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nexty_con"), gsToolPrefL.."nexty", -nMaxOffLin, nMaxOffLin, 7)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nexty"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".nextz_con"), gsToolPrefL.."nextz", -nMaxOffLin, nMaxOffLin, 7)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nextz"))
+  asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxOffRot, gnMaxOffRot,7,
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+  asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxOffRot, gnMaxOffRot,7,
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+  asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxOffRot, gnMaxOffRot,7,
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+  asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxOffLin, nMaxOffLin,7,
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+  asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxOffLin, nMaxOffLin,7,
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+  asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxOffLin, nMaxOffLin,7,
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 7)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".forcelim"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")
