@@ -24,6 +24,7 @@ local mathAbs               = math and math.abs
 local mathSqrt              = math and math.sqrt
 local mathClamp             = math and math.Clamp
 local mathAtan2             = math and math.atan2
+local mathRound             = math and math.Round
 local fileExists            = file and file.Exists
 local hookAdd               = hook and hook.Add
 local tableGetKeys          = table and table.GetKeys
@@ -1155,7 +1156,7 @@ function TOOL:DrawToolScreen(w, h)
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(stSpawn) then
       trOID  = stSpawn.TID
-      trRLen = asmlib.RoundValue(stSpawn.RLen,0.01)
+      trRLen = mathRound(stSpawn.RLen,2)
     end
     if(trRec) then
       trMaxCN = trRec.Size
@@ -1163,7 +1164,7 @@ function TOOL:DrawToolScreen(w, h)
     else trModel = "["..gsNoMD.."]"..trModel:GetFileFromFilename() end
   end
   model  = model:GetFileFromFilename()
-  actrad = asmlib.RoundValue(actrad,0.01)
+  actrad = mathRound(actrad,2)
   maxrad = asmlib.GetAsmVar("maxactrad", "FLT")
   scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   scrTool:DrawText("HM: " ..(model      or gsNoAV),"m")
@@ -1323,6 +1324,7 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         end; CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
+  local snapInc = asmlib.GetActionCode("INCREMENT_SNAP")
   local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass", "FLT")  , 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
@@ -1337,36 +1339,36 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
   pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
   asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
      {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
      {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
      {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV+5) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,vV-5) end},
+    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
+     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 7)

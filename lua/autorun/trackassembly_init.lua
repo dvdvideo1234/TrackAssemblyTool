@@ -22,6 +22,7 @@ local sqlCommit            = sql and sql.Commit
 local mathFloor            = math and math.floor
 local mathClamp            = math and math.Clamp
 local mathMin              = math and math.min
+local mathAbs              = math and math.abs
 local utilAddNetworkString = util and util.AddNetworkString
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
@@ -53,8 +54,8 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY
 
 ------ CONFIGURE LOGGING ------
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmVar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines being written")
+asmlib.MakeAsmVar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
@@ -635,7 +636,18 @@ if(CLIENT) then
         end
       end
     end)
-
+    
+  asmlib.SetAction("INCREMENT_SNAP",
+    function(nV, aV)
+      local mV = mathAbs(aV)
+      local cV = asmlib.SnapValue(nV, mV)    
+      if(aV > 0 and cV > nV) then return cV end
+      if(aV > 0 and cV < nV) then return cV+mV end
+      if(aV < 0 and cV > nV) then return cV-mV end
+      if(aV < 0 and cV < nV) then return cV end
+      return (nV + aV)
+    end)
+    
 end
 
 ------ INITIALIZE DB ------

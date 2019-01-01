@@ -95,7 +95,9 @@ local mathModf                 = math and math.modf
 local mathSqrt                 = math and math.sqrt
 local mathFloor                = math and math.floor
 local mathClamp                = math and math.Clamp
+local mathRound                = math and math.Round
 local mathRandom               = math and math.random
+local mathNormalizeAngle       = math and math.NormalizeAngle
 local vguiCreate               = vgui and vgui.Create
 local undoCreate               = undo and undo.Create
 local undoFinish               = undo and undo.Finish
@@ -128,6 +130,8 @@ local surfaceGetTextSize       = surface and surface.GetTextSize
 local surfaceGetTextureID      = surface and surface.GetTextureID
 local surfaceSetDrawColor      = surface and surface.SetDrawColor
 local surfaceSetTextColor      = surface and surface.SetTextColor
+local surfaceScreenWidth       = surface and surface.ScreenWidth
+local surfaceScreenHeight      = surface and surface.ScreenHeight
 local surfaceDrawTexturedRect  = surface and surface.DrawTexturedRect
 local languageAdd              = language and language.Add
 local constructSetPhysProp     = construct and construct.SetPhysProp
@@ -444,6 +448,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("OPSYM_ENTPOSANG","!")
   SetOpVar("DEG_RAD", mathPi / 180)
+  SetOpVar("SIZE_QPANEL", 281)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
@@ -517,6 +522,31 @@ function InitBase(sName,sPurpose)
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   LogInstance("Success"); return true
+end
+
+------------- VALUE ---------------
+
+function SnapValue(nVal,nSnp,bAng)
+  local nVal = mathRound(nVal / nSnp) * nSnp
+  if(bAng) then nVal = mathNormalizeAngle(nVal) end
+  return nVal
+end
+
+function RollValue(nVal,nMin,nMax)
+  if(nVal > nMax) then return nMin end
+  if(nVal < nMin) then return nMax end
+  return nVal
+end
+
+local function BorderValue(nsVal, sNam)
+  if(not IsHere(sNam)) then return nsVal end
+  if(not (IsString(nsVal) or tonumber(nsVal))) then
+    LogInstance("Value not comparable"); return nsVal end
+  local tB = GetOpVar("TABLE_BORDERS")[sNam]; if(not IsHere(tB)) then
+    LogInstance("Missing <"..tostring(sNam)..">"); return nsVal end
+  if(tB[1] and nsVal < tB[1]) then return tB[1] end
+  if(tB[2] and nsVal > tB[2]) then return tB[2] end
+  return nsVal
 end
 
 ------------- COLOR ---------------
@@ -627,13 +657,13 @@ function GetLengthVector(vBase)
   return mathSqrt(X + Y + Z)
 end
 
-function RoundVector(vBase,nvRound)
+function RoundVector(vBase,nvDec)
   if(not vBase) then LogInstance("Base invalid"); return nil end
-  local R = tonumber(nvRound); if(not IsHere(R)) then
-    LogInstance("Round NAN {"..type(nvRound).."}<"..tostring(nvRound)..">"); return nil end
-  local X = (tonumber(vBase[cvX]) or 0); X = RoundValue(X,R); vBase[cvX] = X
-  local Y = (tonumber(vBase[cvY]) or 0); Y = RoundValue(Y,R); vBase[cvY] = Y
-  local Z = (tonumber(vBase[cvZ]) or 0); Z = RoundValue(Z,R); vBase[cvZ] = Z
+  local D = tonumber(nvDec); if(not IsHere(R)) then
+    LogInstance("Round NAN {"..type(nvDec).."}<"..tostring(nvDec)..">"); return nil end
+  local X = (tonumber(vBase[cvX]) or 0); X = mathRound(X,D); vBase[cvX] = X
+  local Y = (tonumber(vBase[cvY]) or 0); Y = mathRound(Y,D); vBase[cvY] = Y
+  local Z = (tonumber(vBase[cvZ]) or 0); Z = mathRound(Z,D); vBase[cvZ] = Z
 end
 
 function AddVector(vBase, vUnit)
@@ -1021,7 +1051,7 @@ local function AddLineListView(pnListView,frUsed,ivNdex)
   local sType  = tValue.Table[defTab[2][1]]
   local sName  = tValue.Table[defTab[3][1]]
   local nAct   = tValue.Table[defTab[4][1]]
-  local nUsed  = RoundValue(tValue.Value,0.001)
+  local nUsed  = mathRound(tValue.Value,3)
   local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
         pnLine:SetTooltip(sModel)
   return true
@@ -1132,15 +1162,16 @@ function GetFrequentModels(snCount)
 end
 
 function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
-  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
+  local pPanel = vguiCreate("DPanel"); if(not IsValid(pPanel)) then
     LogInstance("Panel invalid"); return nil end
   local sY, pY, dX, dY, mX = 45, 0, 2, 2, 10
-  local sX = (cPanel:GetWide() - 2*mX)
+  local sX = GetOpVar("SIZE_QPANEL"); pY = dY
   local sNam = GetOpVar("TOOLNAME_PL")..sVar
   local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
   pPanel:SetParent(cPanel)
-  pPanel:SetSize(sX, sY); pY = dY
-  LogInstance("Width ["..sX.."]")
+  cPanel:InvalidateLayout()
+  pPanel:InvalidateChildren()
+  pPanel:SetSize(sX, sY)
   if(IsTable(tBtn) and tBtn[1]) then
     local nBtn, iCnt = #tBtn, 1
     local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
@@ -1149,7 +1180,6 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance("Button["..iCnt.."] invalid"); return nil end
       pButton:SetParent(pPanel)
-      pButton:InvalidateLayout(true)
       pButton:SizeToContents()
       pButton:SetText(tostring(vBtn.Text))
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
@@ -1163,7 +1193,6 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
   pSlider:SetParent(pPanel)
-  pSlider:InvalidateLayout(true)
   pSlider:SizeToContents()
   pSlider:SetPos(0, pY)
   pSlider:SetSize(sX-2*dX, sY-pY-dY)
@@ -1175,20 +1204,11 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   pSlider:SetDark(true)
   pSlider:SetConVar(sNam)
   pSlider:SetVisible(true)
-  pPanel:InvalidateLayout(true)
   pPanel:InvalidateChildren()
   pPanel:SizeToContents()
-  pPanel:SizeToChildren(true,false)
+  pPanel:SizeToChildren(true, false)
   cPanel:AddItem(pPanel)
   return pPanel
-end
-
-function RoundValue(nvEx, nFr)
-  local nEx = tonumber(nvEx); if(not IsHere(nEx)) then
-    LogInstance("Cannot round NAN {"..type(nvEx).."}<"..tostring(nvEx)..">"); return nil end
-  local nFr = (tonumber(nFr) or 0); if(nFr == 0) then
-    LogInstance("Fraction must be <> 0"); return nil end
-  local q, f = mathModf(nEx / nFr); return nFr * (q + (f > 0.5 and 1 or 0))
 end
 
 function GetCenter(oEnt) -- Set the ENT's Angles first!
@@ -1207,23 +1227,6 @@ function IsPhysTrace(Trace)
   if(not eEnt:IsValid()) then return false end
   if(not eEnt:GetPhysicsObject():IsValid()) then return false end
   return true
-end
-
-local function RollValue(nVal,nMin,nMax)
-  if(nVal > nMax) then return nMin end
-  if(nVal < nMin) then return nMax end
-  return nVal
-end
-
-local function BorderValue(nsVal, sNam)
-  if(not IsHere(sNam)) then return nsVal end
-  if(not (IsString(nsVal) or tonumber(nsVal))) then
-    LogInstance("Value not comparable"); return nsVal end
-  local tB = GetOpVar("TABLE_BORDERS")[sNam]; if(not IsHere(tB)) then
-    LogInstance("Missing <"..tostring(sNam)..">"); return nsVal end
-  if(tB[1] and nsVal < tB[1]) then return tB[1] end
-  if(tB[2] and nsVal > tB[2]) then return tB[2] end
-  return nsVal
 end
 
 function SnapReview(ivPoID, ivPnID, ivMaxK)
@@ -1901,12 +1904,12 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       if(smTM == "CQT") then
         for k, v in pairs(oSpot) do
           if(IsHere(v.Used) and ((nNow - v.Used) > tmLif)) then
-            LogInstance("("..tostring(RoundValue(nNow - v.Used,0.01)).." > "..tmLif..") > Dead",tabDef.Nick)
+            LogInstance("("..tostring(mathRound(nNow - v.Used,2)).." > "..tmLif..") > Dead",tabDef.Nick)
             if(tmDie) then oSpot[k] = nil; LogInstance("Killed <"..tostring(k)..">",tabDef.Nick) end
           end
         end
         if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
-        LogInstance("["..tostring(kKey).."] @"..tostring(RoundValue(nNow,0.01)),tabDef.Nick); return oSpot[kKey]
+        LogInstance("["..tostring(kKey).."] @"..tostring(mathRound(nNow,2)),tabDef.Nick); return oSpot[kKey]
       elseif(smTM == "OBJ") then
         local tmID = GetOpVar("OPSYM_DIVIDER"):Implode(tKey)
         LogInstance("TimID <"..tmID..">",tabDef.Nick)
