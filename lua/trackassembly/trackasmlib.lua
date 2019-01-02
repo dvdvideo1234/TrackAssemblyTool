@@ -1852,11 +1852,6 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     for iD = 1, qtDef.Size do if(qtDef[iD][1] == sN) then return iD end
     end; LogInstance("Mismatch <"..tostring(sN)..">"); return 0
   end
-  -- Reads the method names from the debug information
-  function self:UpdateInfo()
-    local qtCmd = self:GetCommand()
-    qtCmd.STMT = debugGetinfo(2, "n").name; return self
-  end
   -- Removes the object from the list
   function self:Remove(vRet)
     local qtDef = self:GetDefinition()
@@ -2027,15 +2022,15 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     end; return snOut
   end
   -- Build drop statment
-  function self:Drop() self:UpdateInfo()
+  function self:Drop()
     local qtDef = self:GetDefinition()
-    local qtCmd = self:GetCommand()
+    local qtCmd = self:GetCommand(); qtCmd.STMT = "Drop"
     qtCmd.Drop  = "DROP TABLE "..qtDef.Name..";"; return self
   end
   -- Build delete statment
-  function self:Delete() self:UpdateInfo()
+  function self:Delete()
     local qtDef = self:GetDefinition()
-    local qtCmd = self:GetCommand()
+    local qtCmd = self:GetCommand(); qtCmd.STMT = "Delete"
     qtCmd.Delete = "DELETE FROM "..qtDef.Name..";"; return self
   end
   -- Bhttps://wiki.garrysmod.com/page/sql/Begin
@@ -2049,9 +2044,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     qtCmd.Commit = "COMMIT;"; return self
   end
   -- Build create/drop/delete statment table of statemenrts
-  function self:Create() self:UpdateInfo()
+  function self:Create()
     local qtDef = self:GetDefinition()
-    local qtCmd, iInd = self:GetCommand(), 1
+    local qtCmd, iInd = self:GetCommand(), 1; qtCmd.STMT = "Create"
     qtCmd.Create = "CREATE TABLE "..qtDef.Name.." ( "
     while(qtDef[iInd]) do local v = qtDef[iInd]
       if(not v[1]) then
@@ -2086,9 +2081,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     end; return self
   end
   -- Build SQL select statement
-  function self:Select(...) self:UpdateInfo()
+  function self:Select(...)
     local qtCmd = self:GetCommand()
-    local qtDef = self:GetDefinition()
+    local qtDef = self:GetDefinition(); qtCmd.STMT = "Select"
     local sStmt, iCnt, tCols = "SELECT ", 1, {...}
     if(tCols[1]) then
       while(tCols[iCnt]) do
@@ -2133,9 +2128,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     end; qtCmd.Select = qtCmd.Select..sStmt..";" return self
   end
   -- Build SQL insert statement
-  function self:Insert(...) self:UpdateInfo()
+  function self:Insert(...)
     local qtCmd, iCnt, qIns = self:GetCommand(), 1, ""
-    local tInsert, qtDef = {...}, self:GetDefinition()
+    local tInsert, qtDef = {...}, self:GetDefinition(); qtCmd.STMT = "Insert"
     qtCmd.Insert = "INSERT INTO "..qtDef.Name.." ( "
     if(not tInsert[1]) then
       for iCnt = 1, qtDef.Size do qIns = qIns..qtDef[iCnt][1]
