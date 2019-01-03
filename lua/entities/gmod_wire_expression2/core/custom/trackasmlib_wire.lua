@@ -251,23 +251,22 @@ end
 
 local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
   if(not enFlag) then return nil end
-  if(oEnt and not oEnt:IsValid()) then return nil end
   if(not asmlib.IsPlayer(oPly)) then return nil end
+  if(oEnt and not oEnt:IsValid()) then return nil end
   local sMod, sBsID, nA, nMs, oCol = sModel, sBgpID, (tonumber(nA) or 255), nMass, nR
   if(not sMod and oEnt and oEnt:IsValid()) then sMod = oEnt:GetModel() end
   local stRec = asmlib.CacheQueryPiece(sMod); if(not stRec) then return nil end
-  if(not sBsID) then 
-    if(not oEnt) then sBsID = "0/0"
-    elseif(oEnt and oEnt:IsValid()) then
-      sBsID = asmlib.GetPropBodyGroup(oEnt)..asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(oEnt)
-    end
+  if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = this:GetPhysicsObject()
+    if(not (oPhy and oPhy:IsValid())) then return nil end; nMs = oPhy:GetMass() end
+  if(not sBsID) then local sDir = asmlib.GetOpVar("OPSYM_DIRECTORY")
+    if(oEnt and oEnt:IsValid()) then
+      sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt)
+    else sBsID = "0/0" end -- Use default bodygrup and skin
   end -- Color handling. Apply color based on the conditions
   if(asmlib.IsNumber(oCol)) then -- Color as RGB palette
     oCol = asmlib.GetColor(tonumber(nR) or 255,tonumber(nG) or 255,tonumber(nB) or 255,nA)
   elseif(asmlib.IsTable(oCol)) then oCol = asmlib.ToColor(oCol,wvX,wvY,wvZ,255)
-  else oCol = asmlib.GetColor(255,255,255,nA) end
-  if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = this:GetPhysicsObject()
-    if(not (oPhy and oPhy:IsValid())) then return nil end; nMs = oPhy:GetMass() end
+  else oCol = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
   return asmlib.MakePiece(oPly,stRec.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),
     asmlib.ToAngle(aAng,waP,waY,waR),mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
 end
