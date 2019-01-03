@@ -19,6 +19,8 @@ local gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmVar("enwiremod","BUL")
 local gnMaxMass = asmlib.GetAsmVar("maxmass","FLT")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
+local gsINS = "asmlib.InsertRecord({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
+local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
 ----- Refresh callbacks global variables
 cvars.AddChangeCallback(gsToolPrefL.."bnderrmod", function()
@@ -35,31 +37,27 @@ end)
 
 --------- EXPORT ---------
 
-__e2setcost(50)
-e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
-  if(not (this and this:IsValid() and enFlag)) then return "" end
+local function getDataFormat(sForm, oEnt, ucsEnt, sType, sName, nPnt, sP)
+  if(not (oEnt and oEnt:IsValid() and enFlag)) then return "" end
   if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
-  local ucsPos, ucsAng = ucsEnt:GetPos(), ucsEnt:GetAngles()
-  local sO = tostring(ucsPos[cvX])..","..tostring(ucsPos[cvY])..","..tostring(ucsPos[cvZ])
-  local sA = tostring(ucsAng[caP])..","..tostring(ucsAng[caY])..","..tostring(ucsAng[caR])
-  local sC = (this:GetClass() ~= "prop_physics" and this:GetClass() or "")
-  return "asmlib.InsertRecord({\""..this:GetModel().."\", \""..sType..
-         "\", \""..sName.."\", "..tostring(nPoint or 0)..", \""..sP..
-         "\", \""..sO.."\", \""..sA.."\", \""..sC.."\"})"
+  local ucsPos, ucsAng, sM = ucsEnt:GetPos(), ucsEnt:GetAngles(), oEnt:GetModel()
+  local sO = ""; if(ucsPos[cvX] ~= 0 or ucsPos[cvY] ~= 0 or ucsPos[cvZ] ~= 0) then
+    sO = tostring(ucsPos[cvX])..","..tostring(ucsPos[cvY])..","..tostring(ucsPos[cvZ]) end
+  local sA = ""; if(ucsAng[caP] ~= 0 or ucsAng[caY] ~= 0 or ucsAng[caP] ~= 0) then
+    sA = tostring(ucsAng[caP])..","..tostring(ucsAng[caY])..","..tostring(ucsAng[caR]) end
+  local sC = (oEnt:GetClass() ~= "prop_physics" and oEnt:GetClass() or "")
+  local sN = asmlib.IsBlank(sName) and asmlib.ModelToName(sM) or sName
+  return sForm:format(sM, sType, sN, tonumber(nPnt or 0), sP, sO, sA, sC)
 end
 
 __e2setcost(50)
-e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sType, string sName, number nPoint, string sP, string sDelim)
-  if(not (this and this:IsValid() and enFlag)) then return "" end
-  if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
-  local sDelim = sDelim:sub(1,1); if(asmlib.IsBlank(sDelim)) then return "" end
-  local ucsPos, ucsAng = ucsEnt:GetPos(), ucsEnt:GetAngles()
-  local sO = tostring(ucsPos[cvX])..","..tostring(ucsPos[cvY])..","..tostring(ucsPos[cvZ])
-  local sC = (this:GetClass() ~= "prop_physics" and this:GetClass() or "")
-  local sA = tostring(ucsAng[caP])..","..tostring(ucsAng[caY])..","..tostring(ucsAng[caR])
-  return "TRACKASSEMBLY_PIECES"..sDelim.."\""..this:GetModel().."\""..sDelim.."\""..
-         sType.."\""..sDelim.."\""..sName.."\""..sDelim..tostring(nPoint or 0)..
-         sDelim.."\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\""
+e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
+  return getDataFormat(gsINS, this ucsEnt, sType, sName, nPoint, sP)
+end
+
+__e2setcost(50)
+e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sType, string sName, number nPoint, string sP)
+  return getDataFormat(gsDSV, this ucsEnt, sType, sName, nPoint, sP)
 end
 
 --------- SNAP ----------
