@@ -747,13 +747,12 @@ asmlib.CreateTable("ADDITIONS",{
       if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..
         tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),vSource); return false end
       stData[nAddID] = {} -- LineID has to be set properly
-      while(nCnt <= defTab.Size) do
-        sFld = defTab[nCnt][1]
+      while(nCnt <= defTab.Size) do sFld = defTab[nCnt][1]
         stData[nAddID][sFld] = makTab:Match(arLine[nCnt],nCnt)
         if(not asmlib.IsHere(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
           asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[nCnt]).."> to "..
-            defTab[nCnt][1].." for "..tostring(snPK),vSource); return false end
-        nCnt = nCnt + 1
+            defTab[nCnt][1].." for "..tostring(snPK),vSource); return false
+        end; nCnt = (nCnt + 1)
       end; stData.Size = nAddID; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)

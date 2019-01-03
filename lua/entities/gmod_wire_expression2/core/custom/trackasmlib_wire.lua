@@ -17,7 +17,7 @@ local wvX, wvY, wvZ = asmlib.GetIndexes("WV")
 local waP, waY, waR = asmlib.GetIndexes("WA")
 local gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmVar("enwiremod","BUL")
-local maxMass = asmlib.GetAsmVar("maxmass","FLT")
+local gnMaxMass = asmlib.GetAsmVar("maxmass","FLT")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 
 ----- Refresh callbacks global variables
@@ -30,10 +30,11 @@ cvars.AddChangeCallback(gsToolPrefL.."enwiremod", function()
 end)
 
 cvars.AddChangeCallback(gsToolPrefL.."maxmass", function()
-  maxMass = asmlib.GetAsmVar("maxmass","FLT")
+  gnMaxMass = asmlib.GetAsmVar("maxmass","FLT")
 end)
 
---------- Pieces ----------
+--------- EXPORT ---------
+
 __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
   if(not (this and this:IsValid() and enFlag)) then return "" end
@@ -60,6 +61,8 @@ e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sTyp
          sType.."\""..sDelim.."\""..sName.."\""..sDelim..tostring(nPoint or 0)..
          sDelim.."\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\""
 end
+
+--------- SNAP ----------
 
 __e2setcost(100)
 e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel  , number hdPoID  ,
@@ -92,6 +95,8 @@ e2function array trackasmlibSnapNormal(vector ucsPos   , angle ucsAng    , strin
   return {sPos, sAng}
 end
 
+--------- PIECES ----------
+
 __e2setcost(30)
 e2function number trackasmlibIsPiece(string sModel)
   if(not enFlag) then return anyFalse end
@@ -106,9 +111,7 @@ e2function number entity:trackasmlibIsPiece()
   if(stRec) then return anyTrue else return anyFalse end
 end
 
-__e2setcost(80)
-e2function array trackasmlibGetOffset(string sModel, number nID, string sPOA)
-  if(not enFlag) then return {} end
+local function getPieceOffset(sModel, nID, sPOA)
   local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(sModel),nID)
   if(not stPOA) then return {} end
   local sPOA, arOut, C1, C2, C3 = tostring(sPOA):upper():sub(1,1), {}
@@ -120,16 +123,15 @@ e2function array trackasmlibGetOffset(string sModel, number nID, string sPOA)
 end
 
 __e2setcost(80)
+e2function array trackasmlibGetOffset(string sModel, number nID, string sPOA)
+  if(not enFlag) then return {} end
+  return getPieceOffset(sModel, nID, sPOA)
+end
+
+__e2setcost(80)
 e2function array entity:trackasmlibGetOffset(number nID, string sPOA)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(this:GetModel()),nID)
-  if(not stPOA) then return {} end
-  local sPOA, arOut, C1, C2, C3 = tostring(sPOA):upper():sub(1,1), {}
-  if    (sPOA == "P") then C1, C2, C3 = cvX, cvY, cvZ
-  elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
-  elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arOut end
-  arOut[1], arOut[2], arOut[3] = stPOA[sPOA][C1] , stPOA[sPOA][C2] , stPOA[sPOA][C3]
-  return arOut
+  return getPieceOffset(this:GetModel(), nID, sPOA)
 end
 
 __e2setcost(30)
@@ -203,34 +205,29 @@ e2function number entity:trackasmlibGetAdditionsCount()
   if(stRec and stRec.Size) then return stRec.Size else return 0 end
 end
 
+local function getAdditionsLine(sModel, nID)
+  local makTab = asmlib.GetBuilderName("ADDITIONS"); if(not makTab) then
+    asmlib.LogInstance("No table builder"); return {} end
+  local defTab = makTab:GetDefinition(); if(not defTab) then
+    asmlib.LogInstance("No table definition"); return {} end
+  local stRec = asmlib.CacheQueryAdditions(sModel); if(not stRec) then return {} end
+  if(not stRec[nID]) then return {} end; stRec = stRec[nID] 
+  local iRow, arData = 2, {} -- The model is missed by the main SELECT
+  while(defTab[iRow]) do  -- Ordered by ID. Get the line per model
+    arData[iRow-1] = stRec[defTab[iRow][1]]; iRow = (iRow + 1)
+  end; return arData
+end
+
 __e2setcost(60)
 e2function array trackasmlibGetAdditionsLine(string sModel, number nID)
   if(not enFlag) then return {} end
-  local makTab = asmlib.GetBuilderName("ADDITIONS"); if(not makTab) then
-    asmlib.LogInstance("e:trackasmlibGetAdditionLine(s,n): No table builder"); return {} end
-  local defTab = makTab:GetDefinition(); if(not defTab) then
-    asmlib.LogInstance("e:trackasmlibGetAdditionLine(s,n): No table definition"); return {} end
-  local stRec = asmlib.CacheQueryAdditions(sModel); if(not stRec) then return {} end
-  if(not stRec[nID]) then return {} end; stRec = stRec[nID] 
-  local cnRow, arData = 2, {} -- The model is missed by the main SELECT
-  while(defTab[cnRow]) do  -- Ordered by ID. Get the line per model
-    arData[cnRow-1] = stRec[defTab[cnRow][1]]; cnRow = cnRow + 1
-  end; return arData
+  return getAdditionsLine(sModel, nID)
 end
 
 __e2setcost(60)
 e2function array entity:trackasmlibGetAdditionsLine(number nID)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local makTab = asmlib.GetBuilderName("ADDITIONS"); if(not makTab) then
-    asmlib.LogInstance("e:trackasmlibGetAdditionLine(n): No table builder"); return {} end
-  local defTab = makTab:GetDefinition(); if(not defTab) then
-    asmlib.LogInstance("e:trackasmlibGetAdditionLine(n): No table definition"); return {} end
-  local stRec = asmlib.CacheQueryAdditions(this:GetModel()); if(not stRec) then return {} end
-  if(not stRec[nID]) then return {} end; stRec = stRec[nID]
-  local cnRow, arData = 2, {} -- The model is missed by the main SELECT
-  while(defTab[cnRow]) do  -- Ordered by ID. Get the line per model
-    arData[cnRow-1] = stRec[defTab[cnRow][1]]; cnRow = cnRow + 1
-  end; return arData
+  return getAdditionsLine(this:GetModel(), nID)
 end
 
 ------------ PhysProperties ------------
@@ -250,90 +247,74 @@ e2function array trackasmlibGetProperty()
   return stRec
 end
 
------------ Piece creator --------------
+----------- PIECE CREATOR --------------
+
+local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
+  if(not enFlag) then return nil end
+  if(oEnt and not oEnt:IsValid()) then return nil end
+  if(not asmlib.IsPlayer(oPly)) then return nil end
+  local sMod, sBsID, nA, nMs, oCol = sModel, sBgpID, (tonumber(nA) or 255), nMass, nR
+  if(not sMod and oEnt and oEnt:IsValid()) then sMod = oEnt:GetModel() end
+  local stRec = asmlib.CacheQueryPiece(sMod); if(not stRec) then return nil end
+  if(not sBsID) then 
+    if(not oEnt) then sBsID = "0/0"
+    elseif(oEnt and oEnt:IsValid()) then
+      sBsID = asmlib.GetPropBodyGroup(oEnt)..asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(oEnt)
+    end
+  end -- Color handling. Apply color based on the conditions
+  if(asmlib.IsNumber(oCol)) then -- Color as RGB palette
+    oCol = asmlib.GetColor(tonumber(nR) or 255,tonumber(nG) or 255,tonumber(nB) or 255,nA)
+  elseif(asmlib.IsTable(oCol)) then oCol = asmlib.ToColor(oCol,wvX,wvY,wvZ,255)
+  else oCol = asmlib.GetColor(255,255,255,nA) end
+  if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = this:GetPhysicsObject()
+    if(not (oPhy and oPhy:IsValid())) then return nil end; nMs = oPhy:GetMass() end
+  return asmlib.MakePiece(oPly,stRec.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),
+    asmlib.ToAngle(aAng,waP,waY,waR),mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
+end
+
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
-  if(not enFlag) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(sModel); if(not stRec) then return nil end
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(nR,nG,nB,nA),gsBErr)
+  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
 end
 
 __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
-  if(not (this and this:IsValid() and enFlag)) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(nR,nG,nB,nA),gsBErr)
+  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
 end
 
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
-  if(not enFlag) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(sModel); if(not stRec) then return nil end
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,asmlib.ToColor(vColor,wvX,wvY,wvZ,255),gsBErr)
+  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor)
 end
 
 __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
-  if(not (this and this:IsValid() and enFlag)) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,asmlib.ToColor(vColor,wvX,wvY,wvZ,255),gsBErr)
+  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor)
 end
 
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID)
-  if(not enFlag) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(sModel); if(not stRec) then return nil end
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(255,255,255,255),gsBErr)
+  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID)
 end
 
 __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID)
-  if(not (this and this:IsValid() and enFlag)) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(255,255,255,255),gsBErr)
+  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID)
 end
 
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass)
-  if(not enFlag) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(sModel); if(not stRec) then return nil end
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),"0/0",asmlib.GetColor(255,255,255,255),gsBErr)
+  return makePiece(self.player, nil, sModel, vPos, aAng, nMass)
 end
 
 __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass)
-  if(not (this and this:IsValid() and enFlag)) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
-  local sBgpID = asmlib.GetPropBodyGroup(this)..asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           mathClamp(nMass,1,maxMass),sBgpID,asmlib.GetColor(255,255,255,255),gsBErr)
+  return makePiece(self.player, this, nil, vPos, aAng, nMass)
 end
 
 __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
-  if(not (this and this:IsValid() and enFlag)) then return nil end
-  if(not asmlib.IsPlayer(self.player)) then return nil end
-  local phthis = this:GetPhysicsObject()
-  if(not (phthis and phthis:IsValid())) then return nil end
-  local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return nil end
-  local sBgpID  = asmlib.GetPropBodyGroup(this)..asmlib.GetOpVar("OPSYM_DIRECTORY")..asmlib.GetPropSkin(this)
-  return asmlib.MakePiece(self.player,this.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),asmlib.ToAngle(aAng,waP,waY,waR),
-           phthis:GetMass(),sBgpID,this:GetColor(),gsBErr)
+  return makePiece(self.player, this, nil, vPos, aAng)
 end
 
 __e2setcost(15)

@@ -1044,7 +1044,7 @@ local function AddLineListView(pnListView,frUsed,ivNdex)
   local tValue = frUsed[iNdex]; if(not IsHere(tValue)) then
     LogInstance("Missing data on index #"..tostring(iNdex)); return false end
   local makTab = libQTable["PIECES"]; if(not IsHere(makTab)) then
-    LogInstance("Missing table definition"); return nil end
+    LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return false end
   local sModel = tValue.Table[defTab[1][1]]
@@ -2687,7 +2687,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
-    LogInstance("("..fPref..") Missing table definition"); return nil end
+    LogInstance("("..fPref..") Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..fPref..") Missing table definition for <"..sTable..">"); return false end
   local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
@@ -3170,11 +3170,11 @@ end
  *   vR2 = {d e f}
  *   vR3 = {g h i}
  * Returns a number: The 3x3 determinant value
-]]--
+]]-- [cvX]
 local function DeterminantVector(vR1, vR2, vR3)
-  local a, b, c = vR1.x, vR1.y, vR1.z
-  local d, e, f = vR2.x, vR2.y, vR2.z
-  local g, h, i = vR3.x, vR3.y, vR3.z
+  local a, b, c = vR1[cvX], vR1[cvY], vR1[cvZ]
+  local d, e, f = vR2[cvX], vR2[cvY], vR2[cvZ]
+  local g, h, i = vR3[cvX], vR3[cvY], vR3[cvZ]
   return ((a*e*i)+(b*f*g)+(d*h*c)-(g*e*c)-(h*f*a)-(d*b*i))
 end
 
