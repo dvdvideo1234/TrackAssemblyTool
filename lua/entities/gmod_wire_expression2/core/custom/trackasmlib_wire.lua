@@ -52,12 +52,12 @@ end
 
 __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointINS(entity ucsEnt, string sType, string sName, number nPoint, string sP)
-  return getDataFormat(gsINS, this ucsEnt, sType, sName, nPoint, sP)
+  return getDataFormat(gsINS, this, ucsEnt, sType, sName, nPoint, sP)
 end
 
 __e2setcost(50)
 e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sType, string sName, number nPoint, string sP)
-  return getDataFormat(gsDSV, this ucsEnt, sType, sName, nPoint, sP)
+  return getDataFormat(gsDSV, this, ucsEnt, sType, sName, nPoint, sP)
 end
 
 --------- SNAP ----------

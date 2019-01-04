@@ -270,7 +270,7 @@ if(CLIENT) then
       local depthcnt = mathMin(stackcnt, ghostcnt)
       local atGhost  = asmlib.GetOpVar("ARRAY_GHOST")
       if(not (asmlib.HasGhosts() and depthcnt == atGhost.Size and atGhost.Slot == model)) then
-        if(not asmlib.MakeGhosts(depthcnt, model)) then 
+        if(not asmlib.MakeGhosts(depthcnt, model)) then
           asmlib.LogInstance("Population fail",gtArgsLogs); return nil end
         actTool:ElevateGhost(atGhost[1], oPly) -- Elevate the properly created ghost
       end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
@@ -638,18 +638,18 @@ if(CLIENT) then
         end
       end
     end)
-    
+
   asmlib.SetAction("INCREMENT_SNAP",
     function(nV, aV)
       local mV = mathAbs(aV)
-      local cV = asmlib.SnapValue(nV, mV)    
+      local cV = asmlib.SnapValue(nV, mV)
       if(aV > 0 and cV > nV) then return cV end
       if(aV > 0 and cV < nV) then return cV+mV end
       if(aV < 0 and cV > nV) then return cV-mV end
       if(aV < 0 and cV < nV) then return cV end
       return (nV + aV)
     end)
-    
+
 end
 
 ------ INITIALIZE DB ------

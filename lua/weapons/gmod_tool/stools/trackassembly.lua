@@ -1274,6 +1274,8 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         pComboToolMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".workmode"))
         pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_1"), 1 ,true)
         pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_2"), 2)
+        pComboToolMode.DoRightClick = function()
+          SetClipboardText(pComboToolMode:GetOptionText(pComboToolMode:GetSelectedID()) or "") end
         pComboToolMode.OnSelect = function(pnSelf, nInd, sVal, anyData)
           RunConsoleCommand(gsToolPrefL.."workmode", anyData) end
         CurY = CurY + pComboToolMode:GetTall() + 2
@@ -1283,6 +1285,8 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         pComboPhysType:SetTall(18)
         pComboPhysType:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phytype"))
         pComboPhysType:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_def"))
+        pComboPhysType.DoRightClick = function()
+          SetClipboardText(pComboPhysType:GetOptionText(pComboPhysType:GetSelectedID()) or "") end
         CurY = CurY + pComboPhysType:GetTall() + 2
   local pComboPhysName = vguiCreate("DComboBox", CPanel)
         pComboPhysName:SetPos(2, CurY)
@@ -1290,6 +1294,8 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         pComboPhysName:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phyname"))
         pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),
                                 asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def")))
+        pComboPhysName.DoRightClick = function()
+          SetClipboardText(pComboPhysName:GetOptionText(pComboPhysName:GetSelectedID()) or "") end
         pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
           RunConsoleCommand(gsToolPrefL.."physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
@@ -1342,34 +1348,43 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
     {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
      {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@90" , Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
      {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxOffRot, gnMaxOffRot,7,
     {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
      {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@90" , Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
      {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxOffRot, gnMaxOffRot,7,
     {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
      {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@90" , Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
      {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxOffLin, nMaxOffLin,7,
     {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
      {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxOffLin, nMaxOffLin,7,
     {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
      {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxOffLin, nMaxOffLin,7,
     {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
      {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
      {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 7)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".forcelim"))

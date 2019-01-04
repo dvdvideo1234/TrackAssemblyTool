@@ -448,7 +448,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("OPSYM_ENTPOSANG","!")
   SetOpVar("DEG_RAD", mathPi / 180)
-  SetOpVar("SIZE_QPANEL", 281)
+  SetOpVar("SIZX_CPANEL", 281)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
@@ -1164,8 +1164,8 @@ end
 function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   local pPanel = vguiCreate("DPanel"); if(not IsValid(pPanel)) then
     LogInstance("Panel invalid"); return nil end
-  local sY, pY, dX, dY, mX = 45, 0, 2, 2, 10
-  local sX = GetOpVar("SIZE_QPANEL"); pY = dY
+  local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
+  local sX = GetOpVar("SIZX_CPANEL")
   local sNam = GetOpVar("TOOLNAME_PL")..sVar
   local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
   pPanel:SetParent(cPanel)
@@ -3126,7 +3126,7 @@ end
  *   vR2 = {d e f}
  *   vR3 = {g h i}
  * Returns a number: The 3x3 determinant value
-]]-- [cvX]
+]]--
 local function DeterminantVector(vR1, vR2, vR3)
   local a, b, c = vR1[cvX], vR1[cvY], vR1[cvZ]
   local d, e, f = vR2[cvX], vR2[cvY], vR2[cvZ]
