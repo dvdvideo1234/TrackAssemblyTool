@@ -164,7 +164,7 @@ function TOOL:GetModel()
   return tostring(self:GetClientInfo("model") or "")
 end
 
-function TOOL:GetCount()
+function TOOL:GetStackCount()
   return mathClamp(self:GetClientNumber("stackcnt"),1,asmlib.GetAsmVar("maxstcnt", "INT"))
 end
 
@@ -214,7 +214,7 @@ function TOOL:GetGravity()
 end
 
 function TOOL:GetGhostsCount()
-  return (self:GetClientNumber("ghostcnt") or 0)
+  return mathClamp(self:GetClientNumber("ghostcnt"),0,asmlib.GetAsmVar("maxstcnt", "INT"))
 end
 
 function TOOL:GetNoCollide()
@@ -440,11 +440,11 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim
         sDu = sDu..sSpace.."  Player:         "..tostring(ply):gsub("Player%s","")..sDelim
-        sDu = sDu..sSpace.."  IN.USE:         <"..tostring(asmlib.CheckButtonPly(ply,IN_USE))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.DUCK:        <"..tostring(asmlib.CheckButtonPly(ply,IN_DUCK))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.SPEED:       <"..tostring(asmlib.CheckButtonPly(ply,IN_SPEED))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.RELOAD:      <"..tostring(asmlib.CheckButtonPly(ply,IN_RELOAD))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.SCORE:       <"..tostring(asmlib.CheckButtonPly(ply,IN_SCORE))..">"..sDelim
+        sDu = sDu..sSpace.."  IN.USE:         <"..tostring(ply:KeyDown(IN_USE))..">"..sDelim
+        sDu = sDu..sSpace.."  IN.DUCK:        <"..tostring(ply:KeyDown(IN_DUCK))..">"..sDelim
+        sDu = sDu..sSpace.."  IN.SPEED:       <"..tostring(ply:KeyDown(IN_SPEED))..">"..sDelim
+        sDu = sDu..sSpace.."  IN.RELOAD:      <"..tostring(ply:KeyDown(IN_RELOAD))..">"..sDelim
+        sDu = sDu..sSpace.."  IN.SCORE:       <"..tostring(ply:KeyDown(IN_SCORE))..">"..sDelim
         sDu = sDu..sSpace.."Dumping trace data state:"..sDelim
         sDu = sDu..sSpace.."  Trace:          <"..tostring(stTr)..">"..sDelim
         sDu = sDu..sSpace.."  TR.Hit:         <"..tostring(stTr and stTr.Hit or gsNoAV)..">"..sDelim
@@ -458,7 +458,6 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel or gsNoAV):GetFileFromFilename()..">"..sDelim
         sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.StackCnt:    <"..tostring(self:GetCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
         sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetAngSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
@@ -475,6 +474,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.StackCnt:    <"..tostring(self:GetStackCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.GhostsCnt:   <"..tostring(self:GetGhostsCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
@@ -526,13 +526,13 @@ function TOOL:LeftClick(stTrace)
   local mass      = self:GetMass()
   local model     = self:GetModel()
   local ply       = self:GetOwner()
-  local stackcnt  = self:GetCount()
   local freeze    = self:GetFreeze()
   local angsnap   = self:GetAngSnap()
   local gravity   = self:GetGravity()
   local elevpnt   = self:GetElevation()
   local nocollide = self:GetNoCollide()
   local spnflat   = self:GetSpawnFlat()
+  local stackcnt  = self:GetStackCount()
   local igntype   = self:GetIgnoreType()
   local forcelim  = self:GetForceLimit()
   local spawncn   = self:GetSpawnCenter()
@@ -601,7 +601,7 @@ function TOOL:LeftClick(stTrace)
   local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
   if(not stSpawn) then -- Not aiming into an active point update settings/properties
-    if(asmlib.CheckButtonPly(ply,IN_USE)) then -- Physical
+    if(ply:KeyDown(IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
       if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,forcelim)) then
@@ -616,7 +616,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance("(Bodygroup/Skin) Success"); return true
     end
   end -- IN_SPEED: Switch the tool mode ( Stacking )
-  if(workmode == 1 and asmlib.CheckButtonPly(ply,IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
+  if(workmode == 1 and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count not properly picked"),gtArgsLogs); return false end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
     local ePieceO, ePieceN = trEnt
@@ -692,7 +692,7 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(stTrace.HitWorld) then
-    if(asmlib.CheckButtonPly(ply,IN_USE)) then
+    if(ply:KeyDown(IN_USE)) then
       asmlib.ConCommandPly(ply,"openframe",asmlib.GetAsmVar("maxfruse" ,"INT"))
       asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
     end
@@ -702,7 +702,7 @@ function TOOL:RightClick(stTrace)
         asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
       asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
     else
-      if(asmlib.CheckButtonPly(ply,IN_USE)) then
+      if(ply:KeyDown(IN_USE)) then
         if(not self:SelectModel(trEnt:GetModel())) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
         asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
@@ -710,8 +710,8 @@ function TOOL:RightClick(stTrace)
     end
   end
   if(not enpntmscr) then
-    local Dir = (asmlib.CheckButtonPly(ply,IN_SPEED) and -1 or 1)
-    self:SwitchPoint(Dir,asmlib.CheckButtonPly(ply,IN_DUCK))
+    local Dir = (ply:KeyDown(IN_SPEED) and -1 or 1)
+    self:SwitchPoint(Dir,ply:KeyDown(IN_DUCK))
     asmlib.LogInstance("(Point) Success",gtArgsLogs); return true
   end
 end
@@ -734,7 +734,7 @@ function TOOL:Reload(stTrace)
       asmlib.ExportDSV("PHYSPROPERTIES")
       asmlib.ConCommandPly(ply, "exportdb", 0)
     end
-    if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
+    if(ply:KeyDown(IN_SPEED)) then
       if(workmode == 1) then self:ClearAnchor(false)
         asmlib.LogInstance("Anchor Clear",gtArgsLogs)
       elseif(workmode == 2) then self:IntersectClear(false)
@@ -745,7 +745,7 @@ function TOOL:Reload(stTrace)
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
       asmlib.LogInstance("Prop trace other object",gtArgsLogs); return false end
-    if(asmlib.CheckButtonPly(ply,IN_SPEED)) then
+    if(ply:KeyDown(IN_SPEED)) then
       if(workmode == 1) then -- General anchor
         if(not self:SetAnchor(stTrace)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"Prop anchor set fail"),gtArgsLogs); return false end
@@ -772,7 +772,7 @@ function TOOL:UpdateGhost(oPly)
   local stTrace = asmlib.CacheTracePly(oPly)
   if(not stTrace) then return nil end
   if(not asmlib.HasGhosts()) then return nil end
-  local tGho = asmlib.GetOpVar("ARRAY_GHOST")
+  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
   local trEnt = stTrace.Entity
   local model = self:GetModel()
   local workmode = self:GetWorkingMode()
@@ -780,7 +780,7 @@ function TOOL:UpdateGhost(oPly)
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   if(stTrace.HitWorld) then
-    local ePiece   = tGho[1]
+    local ePiece   = atGho[1]
     local angsnap  = self:GetAngSnap()
     local surfsnap = self:GetSurfaceSnap()
     local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
@@ -804,13 +804,13 @@ function TOOL:UpdateGhost(oPly)
     if(asmlib.IsOther(trEnt)) then return nil end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(trRec) then
-      local ePiece    = tGho[1]
-      local stackcnt  = self:GetCount()
+      local ePiece    = atGho[1]
       local spnflat   = self:GetSpawnFlat()
       local igntype   = self:GetIgnoreType()
+      local stackcnt  = self:GetStackCount()
       local actrad    = self:GetActiveRadius()
-      local appangfst = self:ApplyAngularFirst()
       local applinfst = self:ApplyLinearFirst()
+      local appangfst = self:ApplyAngularFirst()
       local stSpawn   = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
@@ -818,7 +818,7 @@ function TOOL:UpdateGhost(oPly)
           if(stackcnt > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
             local vTemp, hdOffs = Vector(), asmlib.LocatePOA(stSpawn.HRec, pnextid)
             if(not hdOffs) then return nil end -- Validated existent next point ID
-            for iNdex = 1, tGho.Size do ePiece = tGho[iNdex]
+            for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
               ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
               asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
               if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end

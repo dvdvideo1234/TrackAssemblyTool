@@ -264,14 +264,16 @@ if(CLIENT) then
       -- Here player is holding the track assembly tool
       local actTool = actSwep:GetToolObject(); if(not actTool) then
         asmlib.LogInstance("Tool invalid",gtArgsLogs); return nil end
-      local tGho  = asmlib.GetOpVar("ARRAY_GHOST")
-      local model = asmlib.GetAsmVar("model", "STR")
-      local mxcnt = asmlib.GetAsmVar("maxstcnt" , "INT")
-      local stackcnt = actTool:GetCount()
+      local model    = actTool:GetModel()
+      local stackcnt = actTool:GetStackCount()
       local ghostcnt = actTool:GetGhostsCount()
       local depthcnt = mathMin(stackcnt, ghostcnt)
-      if(not (asmlib.HasGhosts() and depthcnt == tGho.Size and tGho.Slot == model)) then
-        asmlib.MakeGhosts(depthcnt, model); actTool:ElevateGhost(tGho[1], oPly) end; actTool:UpdateGhost(oPly)
+      local atGhost  = asmlib.GetOpVar("ARRAY_GHOST")
+      if(not (asmlib.HasGhosts() and depthcnt == atGhost.Size and atGhost.Slot == model)) then
+        if(not asmlib.MakeGhosts(depthcnt, model)) then 
+          asmlib.LogInstance("Population fail",gtArgsLogs); return nil end
+        actTool:ElevateGhost(atGhost[1], oPly) -- Elevate the properly created ghost
+      end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",

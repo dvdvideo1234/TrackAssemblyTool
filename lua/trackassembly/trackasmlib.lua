@@ -1733,50 +1733,6 @@ function UndoFinishPly(pPly,anyMessage)
   return true
 end
 
-function CachePressPly(pPly)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
-    LogInstance("Spot missing"); return false end
-  local stData = stSpot["PRESS"]
-  if(not IsHere(stData)) then -- Create predicate command
-    LogInstance("Allocate <"..pPly:Nick()..">")
-    stSpot["PRESS"] = {}; stData = stSpot["PRESS"]
-    stData["CMD"] = pPly:GetCurrentCommand()
-    if(not IsHere(stData["CMD"])) then
-      LogInstance("Command incorrect"); return false end
-  end; return true
-end
-
--- https://wiki.garrysmod.com/page/CUserCmd/GetMouseWheel
-function GetMouseWheelPly(pPly)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
-    LogInstance("Spot missing"); return 0 end
-  local stData = stSpot["PRESS"]; if(not IsHere(stData)) then
-    LogInstance("Data missing <"..pPly:Nick()..">"); return 0 end
-  local curCmd = stData["CMD"]; if(not IsHere(curCmd)) then
-    LogInstance("Command missing <"..pPly:Nick()..">"); return 0 end
-  return (curCmd and curCmd:GetMouseWheel() or 0)
-end
-
--- https://wiki.garrysmod.com/page/CUserCmd/GetMouse(XY)
-function GetMouseDeltaPly(pPly)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
-    LogInstance("Spot missing"); return 0 end
-  local stData = stSpot["PRESS"]; if(not IsHere(stData)) then
-    LogInstance("Data missing <"..pPly:Nick()..">"); return 0 end
-  local curCmd = stData["CMD"]; if(not IsHere(curCmd)) then
-    LogInstance("Command missing <"..pPly:Nick()..">"); return 0 end
-  return curCmd:GetMouseX(), curCmd:GetMouseY()
-end
-
--- https://wiki.garrysmod.com/page/Enums/IN
-function CheckButtonPly(pPly, iInKey)
-  local stSpot, iInKey = GetPlayerSpot(pPly), (tonumber(iInKey) or 0)
-  if(not IsHere(stSpot)) then LogInstance("Spot missing"); return false end
-  local stData = stSpot["PRESS"]; if(not IsHere(stData)) then return pPly:KeyDown(iInKey) end
-  local curCmd = stData["CMD"]  ; if(not IsHere(curCmd)) then return pPly:KeyDown(iInKey) end
-  return (bitBand(curCmd:GetButtons(),iInKey) ~= 0) -- Read the cache
-end
-
 -------------------------- BUILDSQL ------------------------------
 
 local function CacheStmt(sHash,sStmt,...)
@@ -3735,7 +3691,13 @@ function HasGhosts()
   if(SERVER) then return false end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST")
   local eGho, nSiz = tGho[1], tGho.Size
-  return (tGho and eGho and eGho:IsValid() and nSiz and nSiz > 0)
+  return (eGho and eGho:IsValid() and nSiz and nSiz > 0)
+end
+
+function InitGhosts(bCol)
+  local tGho = GetOpVar("ARRAY_GHOST"); tableEmpty(tGho)
+  tGho.Size = 0; tGho.Slot = GetOpVar("MISS_NOMD")
+  if(bCol) then collectgarbage() end; return true
 end
 
 function FadeGhosts(bNoD)
@@ -3758,7 +3720,7 @@ function ClearGhosts(bCol)
       eGho:SetNoDraw(true); eGho:Remove()
     end; eGho, tGho[iD] = nil, nil
   end; tGho.Size, tGho.Slot = 0, GetOpVar("MISS_NOMD")
-  if(bCol) then collectgarbage() end
+  if(bCol) then collectgarbage() end; return true
 end
 
 function MakeGhosts(nCnt, sModel)
@@ -3772,13 +3734,13 @@ function MakeGhosts(nCnt, sModel)
       eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end
     if(not (eGho and eGho:IsValid())) then
       tGho[iD] = entsCreateClientProp(sModel); eGho = tGho[iD]
-      if(not (eGho and eGho:IsValid())) then
+      if(not (eGho and eGho:IsValid())) then InitGhosts()
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
       eGho:SetModel(sModel)
       eGho:SetPos(vZero)
       eGho:SetAngles(aZero)
       eGho:Spawn()
-      eGho:SetSolid(SOLID_VPHYSICS)
+      eGho:SetSolid(SOLID_NONE)
       eGho:SetMoveType(MOVETYPE_NONE)
       eGho:SetNotSolid(true)
       eGho:SetNoDraw(true)
