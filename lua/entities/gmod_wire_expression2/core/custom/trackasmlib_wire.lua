@@ -251,7 +251,7 @@ local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, 
   if(not enFlag) then return nil end
   if(not asmlib.IsPlayer(oPly)) then return nil end
   if(oEnt and not oEnt:IsValid()) then return nil end
-  local sMod, sBsID, nA, nMs, oCol = sModel, sBgpID, (tonumber(nA) or 255), nMass, nR
+  local sMod, sBsID, nA, nMs, oCol = sModel, sBgpID, asmlib.FixColor(nA), nMass, nR
   if(not sMod and oEnt and oEnt:IsValid()) then sMod = oEnt:GetModel() end
   local stRec = asmlib.CacheQueryPiece(sMod); if(not stRec) then return nil end
   if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = this:GetPhysicsObject()
@@ -262,7 +262,7 @@ local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, 
     else sBsID = "0/0" end -- Use default bodygrup and skin
   end -- Color handling. Apply color based on the conditions
   if(asmlib.IsNumber(oCol)) then -- Color as RGB palette
-    oCol = asmlib.GetColor(tonumber(nR) or 255,tonumber(nG) or 255,tonumber(nB) or 255,nA)
+    oCol = asmlib.GetColor(nR,nG,nB,nA)
   elseif(asmlib.IsTable(oCol)) then oCol = asmlib.ToColor(oCol,wvX,wvY,wvZ,255)
   else oCol = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
   return asmlib.MakePiece(oPly,stRec.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),
@@ -341,4 +341,16 @@ e2function number entity:trackasmlibAttachBodyGroups(string sBgpID)
   if(not (this and this:IsValid() and enFlag)) then return 0 end
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return 0 end
   return asmlib.AttachBodyGroups(this, sBgpID) and anyTrue or anyFalse
+end
+
+__e2setcost(20)
+e2function string entity:trackasmlibGetBodyGroups()
+  if(not (this and this:IsValid() and enFlag)) then return 0 end
+  return asmlib.GetPropBodyGroup(this)
+end
+
+__e2setcost(20)
+e2function string entity:trackasmlibGetSkin()
+  if(not (this and this:IsValid() and enFlag)) then return 0 end
+  return asmlib.GetPropSkin(this)
 end

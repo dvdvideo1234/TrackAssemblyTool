@@ -40,7 +40,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.489")
+asmlib.SetOpVar("TOOL_VERSION","6.473")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -640,7 +640,7 @@ if(CLIENT) then
     end)
 
   asmlib.SetAction("INCREMENT_SNAP",
-    function(nV, aV)
+    function(pB, nV, aV)
       local mV = mathAbs(aV)
       local cV = asmlib.SnapValue(nV, mV)
       if(aV > 0 and cV > nV) then return cV end

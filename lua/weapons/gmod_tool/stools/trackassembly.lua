@@ -120,7 +120,9 @@ TOOL.ClientConVar = {
   [ "engunsnap" ] = 0,
   [ "workmode"  ] = 0,
   [ "appangfst" ] = 0,
-  [ "applinfst" ] = 0
+  [ "applinfst" ] = 0,
+  [ "incsnpang" ] = 5,
+  [ "incsnplin" ] = 5
 }
 
 if(CLIENT) then
@@ -927,14 +929,19 @@ function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not trRec) then return end
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
-  local O, R = Vector(), (nActRad * oPly:GetRight())
+  local O, P, R = Vector(), Vector(), (nActRad * oPly:GetRight())
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
     asmlib.SetVector(O,stPOA.O); O:Rotate(trAng); O:Add(trPos)
+    asmlib.SetVector(P,stPOA.P); P:Rotate(trAng); P:Add(trPos)
     local Op = O:ToScreen(); O:Add(R)
+    local Pp = P:ToScreen(); P:Add(R)
     local Rp = O:ToScreen(); asmlib.SubXY(Rp, Rp, Op)
-    oScreen:DrawCircle(Op, asmlib.LenXY(Rp),"y","SEGM",{35})
+    local nR = asmlib.LenXY(Rp)
+    oScreen:DrawCircle(Op, nR,"y","SEGM",{35})
+    oScreen:DrawCircle(Pp, nR/2,"r")
+    oScreen:DrawLine(Op, Pp)
   end
 end
 
@@ -1330,7 +1337,7 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         end; CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
-  local snapInc = asmlib.GetActionCode("INCREMENT_SNAP")
+  local snapInc    = asmlib.GetActionCode("INCREMENT_SNAP")
   local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmVar("maxmass", "FLT")  , 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
@@ -1345,47 +1352,47 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
   pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
   asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
-     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
-     {Text="@90" , Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
-     {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
-     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
-     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+    {{Text="+"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV, asmlib.GetAsmVar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV,-asmlib.GetAsmVar("incsnpang","FLT"))) end},
+     {Text="+/-" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@90" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
+     {Text="@180", Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Text="@0"  , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
-     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
-     {Text="@90" , Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
-     {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
-     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
-     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+    {{Text="+"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV, asmlib.GetAsmVar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV,-asmlib.GetAsmVar("incsnpang","FLT"))) end},
+     {Text="+/-" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@90" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
+     {Text="@180", Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Text="@0"  , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
-     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
-     {Text="@90" , Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
-     {Text="@180", Click=function(sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
-     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
-     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+    {{Text="+"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV, asmlib.GetAsmVar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV,-asmlib.GetAsmVar("incsnpang","FLT"))) end},
+     {Text="+/-" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@90" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*90) end},
+     {Text="@180", Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,asmlib.GetSign(vV)*180) end},
+     {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Text="@0"  , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
-     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
-     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
-     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+    {{Text="+"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV, asmlib.GetAsmVar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV,-asmlib.GetAsmVar("incsnplin","FLT"))) end},
+     {Text="+/-" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Text="@0"  , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
-     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
-     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
-     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+    {{Text="+"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV, asmlib.GetAsmVar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV,-asmlib.GetAsmVar("incsnplin","FLT"))) end},
+     {Text="+/-" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Text="@0"  , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV, 5)) end},
-     {Text="-5"  , Click=function(sNam, vV) RunConsoleCommand(sNam,snapInc(vV,-5)) end},
-     {Text="+/-" , Click=function(sNam, vV) RunConsoleCommand(sNam,-vV) end},
-     {Text="@M"  , Click=function(sNam, vV) SetClipboardText(vV) end},
-     {Text="@0"  , Click=function(sNam, vV) RunConsoleCommand(sNam, 0) end}})
+    {{Text="+"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV, asmlib.GetAsmVar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,snapInc(pBut,vV,-asmlib.GetAsmVar("incsnplin","FLT"))) end},
+     {Text="+/-" , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam,-vV) end},
+     {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Text="@0"  , Click=function(pBut, sNam, vV) RunConsoleCommand(sNam, 0) end}})
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmVar("maxforce" ,"FLT"), 7)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".forcelim"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")

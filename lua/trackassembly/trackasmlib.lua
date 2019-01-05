@@ -1185,7 +1185,7 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
       pButton:SetPos(bX, bY)
       pButton:SetSize(wB, hB)
-      pButton.DoClick = function() vBtn.Click(sNam, GetAsmVar(sVar, sTyp)) end
+      pButton.DoClick = function() vBtn.Click(pButton, sNam, GetAsmVar(sVar, sTyp)) end
       pButton:SetVisible(true)
       bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
     end; pY = pY + (dY + hB)
