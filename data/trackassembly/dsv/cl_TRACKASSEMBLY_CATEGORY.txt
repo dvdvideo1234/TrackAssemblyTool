@@ -1,41 +1,24 @@
-# ExportCategory( 3 )(cl_): 01/27/17 21:18:00 [ SQL ]
-[===[SligWolf's Minis===function(m)
+# ExportCategory:(3@cl_) 27-12-18 21:29:45 [ LUA ]
+[===[StephenTechno's Buildings===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/minitrains/",""):gsub("_","/")
-    local s = r:find("/") or r:find("%.");
-    r = (s and r:sub(1,s-1) or "other"); o = {r}
-    if(r == "sw") then o = {"buffer"} end;
+    local r = m:gsub("models/buildingspack/",""):gsub("_","/")
+    local s = r:find("/"); r = (s and r:sub(1,s-1) or "")
+    if  (r:find("emptylots")) then r = "empty_lots"
+    elseif(r:find("roadsdw")) then r = r:gsub("roadsdw","double_")
+    elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end
+    if(r == "") then return nil end; local o = {r}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
-[===[Ron's 2ft track pack===function(m)
+[===[Magnum's Rails===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/ron/2ft/","")
-    local s, o, n = r:find("/")
-    local g = s and r:sub(1,s-1) or "other"
-    if(g == "luajunctions") then
-      o = {g}; local e
-      n = m:gsub("models/ron/2ft/luajunctions/","")
-      n = n:gsub("/junction.mdl",""):gsub("junctions/","junction_")
-      e = n:find("/"); n = e and n:sub(1,e-1) or n
-    elseif(g == "straight") then
-      n, o = r:sub(s+1,-1):gsub("straight_",""):gsub("%.mdl",""), {g}
-    elseif(g == "embankment") then
-      local e = r:sub(s+1,-1):gsub("embankment_","")
-      local s = e:find("%A")
-      n, o = e:gsub("%.mdl",""), {g,((s > 1) and (e:sub(1,s-1)) or nil)}
-    elseif(g == "ramps") then
-      n, o = r:sub(s+1,-1):gsub("ramp_",""):gsub("%.mdl",""), {g}
-    elseif(g == "tram") then
-      n, o = r:sub(s+1,-1):gsub("tram_",""):gsub("%.mdl",""), {g}
-    elseif(g == "turntable") then
-      n, o = r:sub(s+1,-1):gsub("turntable_",""):gsub("%.mdl",""), {g}
-    elseif(g == "viaduct") then
-      n, o = r:sub(s+1,-1):gsub("viaduct_",""):gsub("%.mdl",""), {g}
-    elseif(g == "road_crossings") then
-      n, o = r:sub(s+1,-1):gsub("road_",""):gsub("%.mdl",""), {g}
-    elseif(g == "curves") then
-      n, o = r:sub(s+1,-1):gsub("curve_",""):gsub("%.mdl",""), {g}
-    else o = {g} end; n = n and ("_"..n):gsub("_%w",conv):sub(2,-1)
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]===]
+    local r = m:gsub("models/magtrains1ga/","")
+    local s = r:find("_"); r = (s and r:sub(1,s-1) or nil)
+          r = (r and (r:find("switchbase") and "switch" or r):gsub("^%l", string.upper) or nil)
+    return (r and {r} or nil) end]===]
+[===[Ron's G Scale Track pack===function(m)
+local function conv(x) return " "..x:sub(2,2):upper() end
+local r = m:gsub("models/ron/gscale/",""):gsub("_","/")
+local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
+return r and {r} or nil end]===]
 [===[Battleship's abandoned rails===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/craptrax/","")
@@ -46,6 +29,15 @@
     local r = m:gsub("models/ron/minitrains/","")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
+[===[Shinji85's Rails===function(m) local c
+    local r = m:gsub("models/shinji85/train/rail_", "")
+    if(r:find("cross")) then c = "crossing"
+    elseif(r:find("switch")) then c = "switch"
+    elseif(r:find("curve")) then c = "curve"
+    elseif(r:find("bumper")) then c = "bumper"
+    elseif(r:find("junction")) then c = "junction"
+    elseif(r:find("%dx")) then c = "straight"
+    end; c = (c and c:gsub("^%l", string.upper) or nil) return c end]===]
 [===[Bobster's two feet rails===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r, o = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("_","/")
@@ -67,15 +59,66 @@
     local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
-[===[Sligwolf's Mini hover tracks===function(m)
+[===[SligWolf's Minihover===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/sligwolf/minihover/hover_","")
-    local s = r:gmatch("%a+"); o = {s and tostring(s()) or "other"}
+    local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
 [===[PHX Tubes Plastic===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/hunter/","")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
+[===[SProps===function(m)
+    local r = m:gsub("models/sprops/trans/train/",""):gsub("_","/")
+    if(r:find("track/")) then r = r:gsub("track/","") end;
+    local s = r:sub(1,1); if(s == "s") then return {"Straight"}
+    elseif(s == "t") then return {"Turn"}
+    elseif(s == "h") then return {"Ramp"} else return nil end end]===]
+[===[XQM Coaster===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/xqm/coastertrack/",""):gsub("_","/")
+    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
+    return r and {r} end]===]
+[===[Transrapid===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/ron/maglev/",""):gsub("[\\/]([^\\/]+)$","");
+    if(r:find("track")) then r = r:gsub("track/","")
+    elseif(r:find("support")) then r = nil end; return r and {("_"..r):gsub("_%w",conv):sub(2,-1)} end]===]
+[===[SligWolf's White Rails===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/sligwolf/rails/","")
+    local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
+[===[Mr.Train's M-Gauge===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/props/m_gauge/track/m_gauge_",""):gsub("_","/")
+    local s = r:find("/"); r = tonumber(r:sub(1,1)) and "straight" or (s and r:sub(1,s-1) or "")
+    if(r == "") then return nil end; local o = {r}
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
+[===[AlexCookie's 2ft track pack===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/alexcookie/2ft/",""):gsub("[\\/]([^\\/]+)$","");
+    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1))} end]===]
+[===[XQM Ball Rails===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/xqm/rails/",""):gsub("_","/")
+    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
+    return r and {r} or nil end]===]
+[===[Mr.Train's G-Gauge===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/props/g_gauge/track/g_gauge_track_",""):gsub("%.mdl","")
+    local s = r:find("_")
+    local o, n = {(s and r:sub(1,s-1) or "other")}, r:sub(s+1,-1)
+    if(o[1] == "s") then o[1] = "curves" end
+    n = n and ("_"..n):gsub("_%w",conv):sub(2,-1) or nil
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]===]
+[===[SligWolf's Minitrains===function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/minitrains/",""):gsub("_","/")
+    local s = r:find("/") or r:find("%.");
+    r = (s and r:sub(1,s-1) or "other"); o = {r}
+    if(r == "sw") then o = {"buffer"} end;
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
 [===[G Scale Track Pack===function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
@@ -87,59 +130,3 @@
     elseif(r == "ibeam") then r = "Iron Beam"
     elseif(r == "ramp313") then r = "Ramp 313"
     else r = ("_"..r):gsub("_%w", conv):sub(2,-1) end return {r} end]===]
-[===[XQM Coaster===function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/xqm/coastertrack/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r} end]===]
-[===[Transrapid===function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/ron/maglev/","");
-    local s = r:find("/"); r = s and r:sub(1, s-1) or nil
-    return {(r and (("_"..r):gsub("_%w",conv):sub(2,-1)) or nil)} end]===]
-[===[Mr.Train's G-Gauge===function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props/g_gauge/track/g_gauge_track_",""):gsub("%.mdl","")
-    local s = r:find("_")
-    local o, n = {(s and r:sub(1,s-1) or "other")}, r:sub(s+1,-1)
-    if(o[1] == "s") then o[1] = "curves" end
-    n = n and ("_"..n):gsub("_%w",conv):sub(2,-1) or nil
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]===]
-[===[Test's track pack===function(m)
-local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
-local s = r:find("/"); r = s and r:sub(1,s-1) or nil
-local n = nil
-if(r) then
-if(r ==  "metal" ) then n = "My metal plate" end
-if(r == "windows") then n = "My glass plate" end
-end
-r = r and r:gsub("^%l", string.upper) or nil
-p = r and {r} or nil
-return p, n
-end]===]
-[===[XQM Ball Rails===function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/xqm/rails/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r} or nil end]===]
-[===[SProps===function(m)
-    local r = m:gsub("models/sprops/trans/train/",""):gsub("_","/")
-    if(r:find("track/")) then r = r:gsub("track/","") end;
-    local s = r:sub(1,1); if(s == "s") then return {"Straight"}
-    elseif(s == "t") then return {"Turn"}
-    elseif(s == "h") then return {"Ramp"} else return nil end end]===]
-[===[StephenTechno's Buildings===function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/buildingspack/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1) or "")
-    if  (r:find("emptylots")) then r = "empty_lots"
-    elseif(r:find("roadsdw")) then r = r:gsub("roadsdw","double_")
-    elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]
-[===[Mr.Train's M-Gauge===function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props/m_gauge/track/m_gauge_",""):gsub("_","/")
-    local s = r:find("/"); r = tonumber(r:sub(1,1)) and "straight" or (s and r:sub(1,s-1) or "")
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]===]

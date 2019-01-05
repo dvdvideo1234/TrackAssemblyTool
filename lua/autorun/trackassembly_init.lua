@@ -16,8 +16,13 @@ local RunConsoleCommand    = RunConsoleCommand
 local netReadEntity        = net and net.ReadEntity
 local netReadVector        = net and net.ReadVector
 local bitBor               = bit and bit.bor
+local sqlQuery             = sql and sql.Query
+local sqlBegin             = sql and sql.Begin
+local sqlCommit            = sql and sql.Commit
 local mathFloor            = math and math.floor
 local mathClamp            = math and math.Clamp
+local mathMin              = math and math.min
+local mathAbs              = math and math.abs
 local utilAddNetworkString = util and util.AddNetworkString
 local vguiCreate           = vgui and vgui.Create
 local fileExists           = file and file.Exists
@@ -26,6 +31,8 @@ local inputIsMouseDown     = input and input.IsMouseDown
 local surfaceScreenWidth   = surface and surface.ScreenWidth
 local surfaceScreenHeight  = surface and surface.ScreenHeight
 local languageGetPhrase    = language and language.GetPhrase
+local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -33,12 +40,11 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","5.472")
+asmlib.SetOpVar("TOOL_VERSION","6.473")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
-asmlib.SetIndexes("S",4,5,6,7)
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
@@ -48,8 +54,8 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY
 
 ------ CONFIGURE LOGGING ------
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmVar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines to be printed")
-asmlib.MakeAsmVar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File to store the logs ( if any )")
+asmlib.MakeAsmVar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines being written")
+asmlib.MakeAsmVar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
@@ -65,7 +71,6 @@ asmlib.MakeAsmVar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum linear 
 asmlib.MakeAsmVar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmVar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmVar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmVar("maxghosts", 1  ,     {0}, gnServerControled, "Maximum ghosted pieces drawn by the client")
 asmlib.MakeAsmVar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off on restart server side")
 
 if(SERVER) then
@@ -78,7 +83,28 @@ end
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmVar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmVar("maxtrmarg", "FLT"))
 
+-------- CALLBACKS ----------
+asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
+  function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
+asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
+  function(v) return mathFloor(tonumber(v) or 0) end)
+asmlib.SetAsmVarCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
+
+local sName = asmlib.GetAsmVar("timermode", "NAM")
+cvarsRemoveChangeCallback(sName, sName.."_call")
+cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
+  local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
+  local makTab, iCnt = asmlib.GetBuilderID(iCnt), 1
+  while(makTab) do local sTim = tostring(arTim[iCnt] or "")
+    makTab:TimerSetup(sTim); asmlib.LogInstance("Timer update ["..iCnt.."]<"..sTim..">")
+    iCnt = (iCnt + 1); makTab = asmlib.GetBuilderID(iCnt)
+  end
+end)
+
 ------ GLOBAL VARIABLES ------
+local gtArgsLogs  = {"", false, 0}
+local gtInitLogs  = {"*Init", false, 0}
+local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
@@ -99,7 +125,7 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
       conPalette:Insert("w" ,asmlib.GetColor(255,255,255,255)) -- White
       conPalette:Insert("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
-      conPalette:Insert("gh",asmlib.GetColor(255,255,255,200)) -- self.GhostEntity
+      conPalette:Insert("gh",asmlib.GetColor(255,255,255,150)) -- self.GhostEntity
       conPalette:Insert("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
       conPalette:Insert("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
@@ -109,43 +135,36 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("MODE_WORK
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
--------- CALLBACKS ----------
-asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
-  function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
-asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
-  function(v) return mathFloor(tonumber(v) or 0) end)
-asmlib.SetAsmVarCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
-
--------- ACTIONS ----------
+      -------- ACTIONS ----------
 if(SERVER) then
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
 
-  asmlib.SetAction("DUPE_PHYS_SETTINGS",
-    function(oPly,oEnt,tData) -- Duplicator wrapper
+  asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
+    function(oPly,oEnt,tData) gtArgsLogs[1] = "*DUPE_PHYS_SETTINGS"
       if(not asmlib.ApplyPhysicalSettings(oEnt,tData[1],tData[2],tData[3],tData[4])) then
-        return asmlib.StatusLog(nil,"DUPE_PHYS_SETTINGS: Failed to apply physical settings on "..tostring(oEnt)) end
-      return asmlib.StatusLog(nil,"DUPE_PHYS_SETTINGS: Success")
+        asmlib.LogInstance("Failed to apply physical settings on "..tostring(oEnt),gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PLAYER_QUIT",
-    function(oPly) -- Clear player cache when disconnects
+    function(oPly) gtArgsLogs[1] = "*PLAYER_QUIT" -- Clear player cache when disconnects
       if(not asmlib.CacheClearPly(oPly)) then
-        return asmlib.StatusLog(nil,"PLAYER_QUIT: Failed swiping stuff "..tostring(oPly)) end
-      return asmlib.StatusLog(nil,"PLAYER_QUIT: Success")
+        asmlib.LogInstance("Failed swiping stuff "..tostring(oPly),gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PHYSGUN_DROP",
-    function(pPly, trEnt)
+    function(pPly, trEnt) gtArgsLogs[1] = "*PHYSGUN_DROP"
       if(not asmlib.IsPlayer(pPly)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Player invalid") end
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       if(pPly:GetInfoNum(gsToolPrefL.."engunsnap", 0) == 0) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Snapping disabled") end
+        asmlib.LogInstance("Snapping disabled",gtArgsLogs); return nil end
       if(not (trEnt and trEnt:IsValid())) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace entity invalid") end
+        asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DROP: Trace not piece") end
+        asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
       local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
       local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
       local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0) ~= 0)
@@ -177,12 +196,12 @@ if(SERVER) then
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
           if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
-            return StatusLog(nil,"PHYSGUN_DROP: "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds") end
+            asmlib.LogInstance(""..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds",gtArgsLogs); return nil end
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical settings") end
+            asmlib.LogInstance("Failed to apply physical settings",gtArgsLogs); return nil end
           if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,forcelim)) then
-            return asmlib.StatusLog(nil,"PHYSGUN_DROP: Failed to apply physical anchor") end
+            asmlib.LogInstance("Failed to apply physical anchor",gtArgsLogs); return nil end
         end
       end
     end)
@@ -191,64 +210,90 @@ end
 if(CLIENT) then
 
   asmlib.SetAction("CLEAR_RELATION",
-    function(nLen) local oPly = netReadEntity()
-      asmlib.LogInstance("CLEAR_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
+      asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
       if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
-        return asmlib.StatusLog(nil,"CLEAR_RELATION: Failed clearing ray") end
-      return asmlib.StatusLog(nil,"CLEAR_RELATION: Success")
+        asmlib.LogInstance("Failed clearing ray",gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Net receive intersect relation clear client-side
 
   asmlib.SetAction("CREATE_RELATION",
-    function(nLen) local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
-      asmlib.LogInstance("CREATE_RELATION: {"..tostring(nLen)..","..tostring(oPly).."}")
+    function(nLen) gtArgsLogs[1] = "*CREATE_RELATION"
+      local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
+      asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
       if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")) then
-        return asmlib.StatusLog(nil,"CREATE_RELATION: Failed updating ray") end
-      return asmlib.StatusLog(nil,"CREATE_RELATION: Success")
+        asmlib.LogInstance("Failed updating ray",gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Net receive intersect relation create client-side
 
-  asmlib.SetAction("BIND_PRESS",
-    function(oPly,sBind,bPress) -- Must have the same parameters as the hook
-      if(not bPress) then return asmlib.StatusLog(nil,"BIND_PRESS: Bind not pressed") end
+  asmlib.SetAction("BIND_PRESS", -- Must have the same parameters as the hook
+    function(oPly,sBind,bPress) gtArgsLogs[1] = "*BIND_PRESS"
+      if(not bPress) then asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Swep invalid") end
+        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Swep not tool") end
+        asmlib.LogInstance("Swep not tool",gtArgsLogs); return nil end
       if(actSwep:GetMode()  ~= gsToolNameL) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Tool different") end
+        asmlib.LogInstance("Tool different",gtArgsLogs); return nil end
       -- Here player is holding the track assembly tool
       if(not inputIsKeyDown(KEY_LALT)) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Active key missing") end
+        asmlib.LogInstance("Active key missing",gtArgsLogs); return nil end
       -- Switch functionality of the mouse wheel only for TA
       local actTool = actSwep:GetToolObject(); if(not actTool) then
-        return asmlib.StatusLog(nil,"BIND_PRESS: Tool invalid") end
+        asmlib.LogInstance("Tool invalid",gtArgsLogs); return nil end
       if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
         if(not actTool:GetScrollMouse()) then
-          return asmlib.StatusLog(nil,"BIND_PRESS(Scroll): Scrolling disabled") end
-        local Dir = ((sBind == "invnext") and 1) or ((sBind == "invprev") and -1) or 0
+          asmlib.LogInstance("(SCROLL) Scrolling disabled",gtArgsLogs); return nil end
+        local Dir = ((sBind == "invnext") and -1) or ((sBind == "invprev") and 1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
-        return asmlib.StatusLog(true,"BIND_PRESS("..sBind.."): Processed")
+        asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
       end -- Override only for TA and skip touching anything else
-      return asmlib.StatusLog(nil,"BIND_PRESS("..sBind.."): Skipped")
+      asmlib.LogInstance("("..sBind..") Skipped",gtArgsLogs); return nil
+    end) -- Read client configuration
+
+  asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
+    function() gtArgsLogs[1] = "*DRAW_GHOSTS"
+      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
+      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
+        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
+      if(actSwep:GetClass() ~= "gmod_tool") then
+        asmlib.LogInstance("Swep not tool",gtArgsLogs); return nil end
+      if(actSwep:GetMode()  ~= gsToolNameL) then
+        asmlib.LogInstance("Tool different",gtArgsLogs); return nil end
+      -- Here player is holding the track assembly tool
+      local actTool = actSwep:GetToolObject(); if(not actTool) then
+        asmlib.LogInstance("Tool invalid",gtArgsLogs); return nil end
+      local model    = actTool:GetModel()
+      local stackcnt = actTool:GetStackCount()
+      local ghostcnt = actTool:GetGhostsCount()
+      local depthcnt = mathMin(stackcnt, ghostcnt)
+      local atGhost  = asmlib.GetOpVar("ARRAY_GHOST")
+      if(not (asmlib.HasGhosts() and depthcnt == atGhost.Size and atGhost.Slot == model)) then
+        if(not asmlib.MakeGhosts(depthcnt, model)) then
+          asmlib.LogInstance("Population fail",gtArgsLogs); return nil end
+        actTool:ElevateGhost(atGhost[1], oPly) -- Elevate the properly created ghost
+      end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
-    function(oPly,oCom,oArgs)
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
       local devmode = asmlib.GetAsmVar("devmode", "BUL")
       local bgskids = asmlib.GetAsmVar("bgskids", "STR")
-      asmlib.LogInstance("RESET_VARIABLES: {"..tostring(devmode).."@"..tostring(command).."}")
-      asmlib.ConCommandPly(oPly,"nextx"  , "0")
-      asmlib.ConCommandPly(oPly,"nexty"  , "0")
-      asmlib.ConCommandPly(oPly,"nextz"  , "0")
-      asmlib.ConCommandPly(oPly,"nextpic", "0")
-      asmlib.ConCommandPly(oPly,"nextyaw", "0")
-      asmlib.ConCommandPly(oPly,"nextrol", "0")
+      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
+      asmlib.ConCommandPly(oPly,"nextx"  , 0)
+      asmlib.ConCommandPly(oPly,"nexty"  , 0)
+      asmlib.ConCommandPly(oPly,"nextz"  , 0)
+      asmlib.ConCommandPly(oPly,"nextpic", 0)
+      asmlib.ConCommandPly(oPly,"nextyaw", 0)
+      asmlib.ConCommandPly(oPly,"nextrol", 0)
       if(not devmode) then
-        return asmlib.StatusLog(nil,"RESET_VARIABLES: Developer mode disabled") end
+        asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
       asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
       if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         local anchor = asmlib.GetOpVar("MISS_NOID")..
-                       asmlib.GetOpVar("OPSYM_REVSIGN")..
+                       asmlib.GetOpVar("OPSYM_REVISION")..
                        asmlib.GetOpVar("MISS_NOMD")
         asmlib.ConCommandPly(oPly, "weld"     , 1)
         asmlib.ConCommandPly(oPly, "mass"     , 25000)
@@ -275,7 +320,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "offsetup" , 0)
         asmlib.ConCommandPly(oPly, "forcelim" , 0)
         asmlib.ConCommandPly(oPly, "ignphysgn", 0)
-        asmlib.ConCommandPly(oPly, "ghosthold", 1)
+        asmlib.ConCommandPly(oPly, "ghostcnt" , 1)
         asmlib.ConCommandPly(oPly, "maxstatts", 3)
         asmlib.ConCommandPly(oPly, "nocollide", 1)
         asmlib.ConCommandPly(oPly, "physmater", "metal")
@@ -294,27 +339,29 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxstcnt" , 200)
         asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
         asmlib.ConCommandPly(oPly, "maxfruse" , 50)
-        asmlib.PrintInstance("RESET_VARIABLES: Variables reset complete")
+        asmlib.LogInstance("Variables reset complete",gtArgsLogs)
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
         for iCnt = 1, #tPref do local vPr = tPref[iCnt]
           asmlib.RemoveDSV("PIECES", vPr)
           asmlib.RemoveDSV("ADDITIONS", vPr)
           asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
-          asmlib.LogInstance("RESET_VARIABLES: Match <"..vPr..">")
+          asmlib.LogInstance("Match <"..vPr..">",gtArgsLogs)
         end
-      else return asmlib.StatusLog(nil,"RESET_VARIABLES: Command <"..bgskids.."> skipped") end
-      return asmlib.StatusLog(nil,"RESET_VARIABLES: Success")
+      else asmlib.LogInstance("Command <"..bgskids.."> skipped",gtArgsLogs); return nil end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("OPEN_FRAME",
-    function(oPly,oCom,oArgs)
-      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsExistent(frUsed)) then
-        return asmlib.StatusLog(nil,"OPEN_FRAME: Retrieving most frequent models failed ["..tostring(oArgs[1]).."]") end
-      local defTable = asmlib.GetOpVar("DEFTABLE_PIECES"); if(not defTable) then
-        return StatusLog(nil,"OPEN_FRAME: Missing definition for table PIECES") end
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_FRAME"
+      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
+        asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",gtArgsLogs); return nil end
+      local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
+        asmlib.LogInstance("Missing builder for table PIECES",gtArgsLogs); return nil end
+      local defTab = makTab:GetDefinition(); if(not defTab) then
+        asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
-        pnFrame:Remove(); return asmlib.StatusLog(nil,"OPEN_FRAME: Failed to create base frame") end
+        pnFrame:Remove(); asmlib.LogInstance("Failed to create base frame",gtArgsLogs); return nil end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
             pnElements:Insert(1,{Label = { "DButton"    ,languageGetPhrase("tool."..gsToolNameL..".pn_export_lb") , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
             pnElements:Insert(2,{Label = { "DListView"  ,languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_routine")}})
@@ -327,15 +374,15 @@ if(CLIENT) then
         vItem = pnElements:Select(iNdex)
         vItem.Panel = vguiCreate(vItem.Label[1],pnFrame)
         if(not IsValid(vItem.Panel)) then
-          asmlib.LogInstance("OPEN_FRAME: Failed to create ID #"..tonumber(iNdex))
+          asmlib.LogInstance("Failed to create ID #"..tonumber(iNdex),gtArgsLogs)
           iNdex, vItem = 1, nil
           while(iNdex <= iSize) do vItem, sItem = pnElements:Select(iNdex), ""
             if(IsValid(vItem.Panel)) then vItem.Panel:Remove(); sItem = "and panel " end
             pnElements:Delete(iNdex)
-            asmlib.LogInstance("OPEN_FRAME: Deleted entry "..sItem.."ID #"..tonumber(iNdex))
+            asmlib.LogInstance("Deleted entry "..sItem.."ID #"..tonumber(iNdex),gtArgsLogs)
             iNdex = iNdex + 1
           end; pnFrame:Remove(); collectgarbage()
-          return StatusLog(nil,"OPEN_FRAME: Invalid panel created. Frame removed")
+          asmlib.LogInstance("Invalid panel created. Frame removed",gtArgsLogs); return nil
         end
         vItem.Panel:SetName(vItem.Label[2])
         vItem.Panel:SetTooltip(vItem.Label[3])
@@ -370,12 +417,12 @@ if(CLIENT) then
         pnFrame:SetVisible(false)
         local iNdex, iSize = 1, pnElements:GetSize()
         while(iNdex <= iSize) do -- All panels are valid
-          asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Delete #"..iNdex)
+          asmlib.LogInstance("Frame.OnClose Delete #"..iNdex,gtArgsLogs)
           pnElements:Select(iNdex).Panel:Remove()
           pnElements:Delete(iNdex); iNdex = iNdex + 1
         end; pnFrame:Remove()
         asmlib.SetOpVar("PANEL_FREQUENT_MODELS",nil); collectgarbage()
-        asmlib.LogInstance("OPEN_FRAME: Frame.OnClose: Form removed")
+        asmlib.LogInstance("Frame.OnClose Form removed",gtArgsLogs)
       end; asmlib.SetOpVar("PANEL_FREQUENT_MODELS",pnFrame)
       ------------ Button --------------
       xyPos.x = xyZero.x + xyDelta.x
@@ -388,9 +435,9 @@ if(CLIENT) then
       pnButton:SetSize(xySiz.x, xySiz.y)
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
-        asmlib.LogInstance("OPEN_FRAME: Button.DoClick: <"..pnButton:GetText()..">")
+        asmlib.LogInstance("Button.DoClick <"..pnButton:GetText()..">",gtArgsLogs)
         if(asmlib.GetAsmVar("exportdb", "BUL")) then
-          asmlib.LogInstance("OPEN_FRAME: Export DB")
+          asmlib.LogInstance("Export DB",gtArgsLogs)
           asmlib.ExportCategory(3)
           asmlib.ExportDSV("PIECES")
           asmlib.ExportDSV("ADDITIONS")
@@ -409,12 +456,12 @@ if(CLIENT) then
       pnComboBox:SetSize(xySiz.x,xySiz.y)
       pnComboBox:SetVisible(true)
       pnComboBox:SetValue(pnElements:Select(5).Label[2])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTable[1][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTable[2][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTable[3][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTable[4][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTab[1][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTab[2][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTab[3][1])
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTab[4][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
-        asmlib.LogInstance("OPEN_FRAME: ComboBox.OnSelect: ID #"..nInd.."<"..sVal..">"..tostring(anyData))
+        asmlib.LogInstance("ComboBox.OnSelect ID #"..nInd.."<"..sVal..">"..tostring(anyData),gtArgsLogs)
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel --------------
@@ -431,8 +478,8 @@ if(CLIENT) then
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40)
-        if(not asmlib.IsExistent(uiBox)) then
-          return asmlib.StatusLog(nil,"OPEN_FRAME: pnModelPanel.LayoutEntity: Box invalid") end
+        if(not asmlib.IsHere(uiBox)) then
+          asmlib.LogInstance("pnModelPanel.LayoutEntity Box invalid",gtArgsLogs); return nil end
         local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
@@ -459,7 +506,8 @@ if(CLIENT) then
         local sAbrev, sField = pnComboBox:GetSelected()
               sAbrev, sField = tostring(sAbrev or ""), tostring(sField or "")
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattr)) then
-          return asmlib.StatusLog(nil,"OPEN_FRAME: TextEntry.OnEnter: Failed to update ListView {"..sAbrev.."#"..sField.."#"..sPattr.."}")
+          asmlib.LogInstance("TextEntry.OnEnter Failed to update ListView {"..sAbrev..
+            "#"..sField.."#"..sPattr.."}",gtArgsLogs); return nil
         end
       end
       ------------ ListView --------------
@@ -491,12 +539,12 @@ if(CLIENT) then
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0 ) -- The active points count to be used for change
-        local uiMod =  tostring(pnLine:GetColumnText(5)  or "") -- Forth index is actually the model in the table
+        local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
                       pnModelPanel:SetModel(uiMod)
         local uiEnt = pnModelPanel:GetEntity()
         local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
-        if(not asmlib.IsExistent(uiBox)) then
-          return asmlib.StatusLog(nil,"OPEN_FRAME: ListView.OnRowSelected: Box invalid for <"..uiMod..">") end
+        if(not asmlib.IsHere(uiBox)) then
+          asmlib.LogInstance("ListView.OnRowSelected Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmVar("pointid","INT"), asmlib.GetAsmVar("pnextid","INT")
               pointid, pnextid = asmlib.SnapReview(pointid, pnextid, uiAct)
@@ -506,41 +554,41 @@ if(CLIENT) then
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5)) end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
-        return asmlib.StatusLog(nil,"OPEN_FRAME: ListView.OnRowSelected: Populate the list view failed") end
+        asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
-      return asmlib.StatusLog(nil,"OPEN_FRAME: Success") -- Show the completed panel
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("PHYSGUN_DRAW",
-    function()
+    function() gtArgsLogs[1] = "*PHYSGUN_DRAW"
       if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Extension disabled") end
+        asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
       if(not asmlib.GetAsmVar("adviser", "BUL")) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Adviser disabled") end
+        asmlib.LogInstance("Adviser disabled",gtArgsLogs); return nil end
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Player invalid") end
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep invalid") end
+        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
       if(actSwep:GetClass() ~= "weapon_physgun") then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Swep not physgun") end
+        asmlib.LogInstance("Swep not physgun",gtArgsLogs); return nil end
       if(not inputIsMouseDown(MOUSE_LEFT)) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Physgun not hold") end
+        asmlib.LogInstance("Physgun not hold",gtArgsLogs); return nil end
       local actTr = asmlib.CacheTracePly(oPly)
-      if(not actTr) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace missing") end
-      if(not actTr.Hit) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not hit") end
-      if(actTr.HitWorld) then return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace world") end
+      if(not actTr) then asmlib.LogInstance("Trace missing",gtArgsLogs); return nil end
+      if(not actTr.Hit) then asmlib.LogInstance("Trace not hit",gtArgsLogs); return nil end
+      if(actTr.HitWorld) then asmlib.LogInstance("Trace world",gtArgsLogs); return nil end
       local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace entity invalid") end
+        asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
-        return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Trace not piece") end
+        asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
         local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
         if(not actMonitor) then
-          return asmlib.StatusLog(nil,"PHYSGUN_DRAW: Invalid screen") end
+          asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("PHYSGUN_DRAW: Create screen")
+        asmlib.LogInstance("Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
       local nextx    = asmlib.GetAsmVar("nextx", "FLT")
       local nexty    = asmlib.GetAsmVar("nexty", "FLT")
@@ -591,60 +639,88 @@ if(CLIENT) then
       end
     end)
 
-  asmlib.SetAction("RADWORKMENU_DRAW",
-    function()
-      if(not inputIsMouseDown(MOUSE_MIDDLE)) then return end
-      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Player invalid") end
-      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Swep invalid") end
-      if(actSwep:GetClass() ~= "gmod_tool") then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Swep not physgun") end
-      if(actSwep:GetMode()  ~= gsToolNameL) then
-        return asmlib.StatusLog(nil,"WORKMODE_DRAW: Tool different") end
-      local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-      local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
-      if(not actMonitor) then
-        actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
-        if(not actMonitor) then
-          return asmlib.StatusLog(nil,"WORKMODE_DRAW: Invalid screen") end
-        asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("WORKMODE_DRAW: Create screen")
-      end -- Make sure we have a valid game monitor for the draw OOP
-      local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
-      local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
-      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
-      local vFr, vNr = asmlib.NewXY(vCn.y*nR), asmlib.NewXY(vFr.x*nR)
-      local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
-      local nN  = conWorkMode:GetSize()
-      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
-      local nAn, rA = (nMx / nN), 0; actMonitor:SetColor()
-      -- local mR = oPly:GetNWFloat(gsToolPrefL.."radmenu", 0)
-      local mR = asmlib.GetAsmVar("radmenu"  , "FLT")
-      local eR = asmlib.GetAsmVar("radmenuen", "BUL")
-      if(eR) then asmlib.SetXY(vNt, vNr)
-        asmlib.RotateXY(vNt, mR); asmlib.AddXY(vNt, vNt, vCn)
-        actMonitor:DrawCircle(vNt, 10, "r");
-        actMonitor:DrawLine(vNt, vCn)
-      end
-      -- Draw the first divider segment
-      actMonitor:DrawCircle(vCn, vNr.x, "y", "SEGM", {35})
-      actMonitor:DrawCircle(vCn, vFr.x); rA = nAn
-      asmlib.AddXY(vNt, vNr, vCn); asmlib.AddXY(vFt, vFr, vCn)
-      actMonitor:DrawLine(vNt, vFt, "r", "SURF")
-      for iD = 2, nN do
-        asmlib.SetXY(vNt, vNr); asmlib.RotateXY(vNt, rA)
-        asmlib.SetXY(vFt, vFr); asmlib.RotateXY(vFt, rA)
-        asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
-        actMonitor:DrawLine(vNt, vFt); rA = (rA + nAn)
-      end
+  asmlib.SetAction("INCREMENT_SNAP",
+    function(pB, nV, aV)
+      local mV = mathAbs(aV)
+      local cV = asmlib.SnapValue(nV, mV)
+      if(aV > 0 and cV > nV) then return cV end
+      if(aV > 0 and cV < nV) then return cV+mV end
+      if(aV < 0 and cV > nV) then return cV-mV end
+      if(aV < 0 and cV < nV) then return cV end
+      return (nV + aV)
     end)
+
 end
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
-  Timer = asmlib.TimerSetting(gaTimerSet[1]),
+  Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
+  Trigs = {
+    InsertRecord = function(arLine, vSource)
+      local trCls = asmlib.GetOpVar("TRACE_CLASS")
+      arLine[2] = asmlib.DisableString(arLine[2],asmlib.DefaultType(),"TYPE")
+      arLine[3] = asmlib.DisableString(arLine[3],asmlib.ModelToName(arLine[1]),"MODEL")
+      arLine[8] = asmlib.DisableString(arLine[8],"NULL","NULL")
+      if(not ((arLine[8] == "NULL") or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
+        trCls[arLine[8]] = true; asmlib.LogInstance("Register trace <"..
+          tostring(arLine[8]).."@"..arLine[1]..">",vSource)
+      end; return true
+    end -- Register the class provided to the trace hit list
+  },
+  Cache = {
+    InsertRecord = function(makTab, tCache, snPK, arLine, vSource)
+      local stData = tCache[snPK]; if(not stData) then
+        tCache[snPK] = {}; stData = tCache[snPK] end
+      if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
+      if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
+      if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
+      if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
+      if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
+      local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
+        asmlib.LogInstance("Cannot match <"..tostring(arLine[4])..
+          "> to "..defTab[4][1].." for "..tostring(snPK),vSource); return false end
+      local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
+        if(not asmlib.IsHere(stPOA)) then
+        asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
+          tostring(snPK),vSource); return false end
+      if(nOffsID > stData.Size) then stData.Size = nOffsID else
+        asmlib.LogInstance("Offset #"..tostring(nOffsID)..
+          " sequential mismatch",vSource); return false end
+      return true
+    end,
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
+      local tData, defTab = {}, makTab:GetDefinition()
+      for mod, rec in pairs(tCache) do
+        tData[mod] = {KEY = (rec.Type..rec.Name..mod)} end
+      local tSort = asmlib.Sort(tData,{"KEY"})
+      if(not tSort) then oFile:Flush(); oFile:Close()
+        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSource); return false end
+      for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
+        local tData = tCache[stRec.Key]
+        local sData, tOffs = defTab.Name, tData.Offs
+              sData = sData..sDelim..makTab:Match(stRec.Key,1,true,"\"")..sDelim..
+                makTab:Match(tData.Type,2,true,"\"")..sDelim..
+                makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
+        -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
+        for iInd = 1, #tOffs do
+          local stPnt = tData.Offs[iInd]
+          local sP = (asmlib.IsEqualPOA(stPnt.P,stPnt.O) and "" or asmlib.StringPOA(stPnt.P,"V"))
+          local sO = (asmlib.IsZeroPOA(stPnt.O,"V") and "" or asmlib.StringPOA(stPnt.O,"V"))
+                sO = (stPnt.O.Slot and stPnt.O.Slot or sO)
+          local sA = (asmlib.IsZeroPOA(stPnt.A,"A") and "" or asmlib.StringPOA(stPnt.A,"A"))
+                sA = (stPnt.A.Slot and stPnt.A.Slot or sA)
+          local sC = (tData.Unit and tostring(tData.Unit or "") or "")
+          oFile:Write(sData..sDelim..makTab:Match(iInd,4,true,"\"")..sDelim..
+            "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
+        end
+      end; return true
+    end
+  },
+  Query = {
+    InsertRecord = {"%s","%s","%s","%d","%s","%s","%s","%s"},
+    ExportDSV = {2,3,1,4}
+  },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"},
@@ -656,8 +732,43 @@ asmlib.CreateTable("PIECES",{
 },true,true)
 
 asmlib.CreateTable("ADDITIONS",{
-  Timer = asmlib.TimerSetting(gaTimerSet[2]),
+  Timer = gaTimerSet[2],
   Index = {{1},{4},{1,4}},
+  Query = {
+    InsertRecord = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
+    ExportDSV = {1,4}
+  },
+  Cache = {
+    InsertRecord = function(makTab, tCache, snPK, arLine, vSource)
+      local defTab = makTab:GetDefinition()
+      local stData = tCache[snPK]; if(not stData) then
+        tCache[snPK] = {}; stData = tCache[snPK] end
+      if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
+      if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
+      local nCnt, sFld, nAddID = 2, "", makTab:Match(arLine[4],4)
+      if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..
+        tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),vSource); return false end
+      stData[nAddID] = {} -- LineID has to be set properly
+      while(nCnt <= defTab.Size) do sFld = defTab[nCnt][1]
+        stData[nAddID][sFld] = makTab:Match(arLine[nCnt],nCnt)
+        if(not asmlib.IsHere(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
+          asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[nCnt]).."> to "..
+            defTab[nCnt][1].." for "..tostring(snPK),vSource); return false
+        end; nCnt = (nCnt + 1)
+      end; stData.Size = nAddID; return true
+    end,
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
+      local defTab = makTab:GetDefinition()
+      for mod, rec in pairs(tCache) do
+        local sData = defTab.Name..sDelim..mod
+        for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
+          for iID = 2, defTab.Size do local vData = tData[defTab[iID][1]]
+            oFile:Write(sDelim..makTab:Match(tData[defTab[iID][1]],iID,true,"\""))
+          end; oFile:Write("\n") -- Data is already inserted, there will be no crash
+        end
+      end; return true
+    end
+  },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
   [3]  = {"ENTCLASS" , "TEXT"   ,  nil ,  nil },
@@ -673,8 +784,59 @@ asmlib.CreateTable("ADDITIONS",{
 },true,true)
 
 asmlib.CreateTable("PHYSPROPERTIES",{
-  Timer = asmlib.TimerSetting(gaTimerSet[3]),
+  Timer = gaTimerSet[3],
   Index = {{1},{2},{1,2}},
+  Trigs = {
+    InsertRecord = function(atRow)
+      atRow[1] = asmlib.DisableString(atRow[1],asmlib.DefaultType(),"TYPE"); return true
+    end
+  },
+  Cache = {
+    InsertRecord = function(makTab, tCache, snPK, arLine, vSource)
+      local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
+      local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
+      local tTypes = tCache[skType]; if(not tTypes) then
+        tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
+      local tNames = tCache[skName]; if(not tNames) then
+        tCache[skName] = {}; tNames = tCache[skName] end
+      local iNameID = makTab:Match(arLine[2],2)
+      if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
+        asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[2])..
+          "> to "..defTab[2][1].." for "..tostring(snPK),vSource); return false end
+      if(not asmlib.IsHere(tNames[snPK])) then
+        -- If a new type is inserted
+        tTypes.Size = tTypes.Size + 1
+        tTypes[tTypes.Size] = snPK
+        tNames[snPK] = {}
+        tNames[snPK].Size = 0
+        tNames[snPK].Slot = snPK
+      end -- Data matching crashes only on numbers
+      tNames[snPK].Size = iNameID
+      tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
+    end,
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
+      local defTab = makTab:GetDefinition()
+      local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
+      local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
+      if(not (tTypes or tNames)) then F:Flush(); F:Close()
+        asmlib.LogInstance("("..fPref..") No data found",vSource); return false end
+      for iInd = 1, tTypes.Size do
+        local sType = tTypes[iInd]
+        local tType = tNames[sType]
+        if(not tType) then F:Flush(); F:Close()
+          asmlib.LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",vSource); return false end
+        for iCnt = 1, tType.Size do
+          oFile:Write(defTab.Name..sDelim..makTab:Match(sType      ,1,true,"\"")..
+                                   sDelim..makTab:Match(iCnt       ,2,true,"\"")..
+                                   sDelim..makTab:Match(tType[iCnt],3,true,"\"").."\n")
+        end
+      end; return true
+    end
+  },
+  Query = {
+    InsertRecord = {"%s","%d","%s"},
+    ExportDSV = {1,2}
+  },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
   [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
@@ -685,28 +847,26 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
   if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
-    asmlib.LogInstance("Init: DB CATEGORY from DSV")
+    asmlib.LogInstance("DB CATEGORY from DSV",gtInitLogs)
     asmlib.ImportCategory(3)
-  else asmlib.LogInstance("Init: DB CATEGORY from LUA") end
+  else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
 end
 
 --[[ Track pieces parametrization legend
  * Disabling of a component is preformed by using "OPSYM_DISABLE"
- * Disabling P     - The ID is ignored when searching for active point
- * Disabling O     - The ID cannot be selected by the holder
  * Disabling A     - The ID angle is treated as {0,0,0}
  * Disabling Type  - Makes it use the value of DefaultType()
  * Disabling Name  - Makes it generate it using the model via ModelToName()
  * Disabling Class - Makes it use the default /prop_physics/
- * Reversing the parameter sign of a component happens by using variable "OPSYM_REVSIGN"
  * First  argument of DefaultTable() is used to provide default table name for InsertRecord()
  * Second argument of DefaultTable() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance("Init: DB PIECES from DSV")
+  asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
   asmlib.ImportDSV("PIECES", true)
 else
-  asmlib.LogInstance("Init: DB PIECES from LUA")
+  if(gsMoDB == "SQL") then sqlBegin() end
+  asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
   asmlib.DefaultTable("PIECES")
   if(asmlib.GetAsmVar("devmode" ,"BUL")) then
     asmlib.DefaultType("Develop Sprops")
@@ -722,8 +882,8 @@ else
     asmlib.InsertRecord({"models/hunter/blocks/cube075x075x075.mdl", "#", "x3", 1, "", "", ""})
     asmlib.InsertRecord({"models/hunter/blocks/cube1x1x1.mdl"      , "#", "x4", 1, "", "", ""})
     asmlib.DefaultType("Develop Test")
-    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "#@-90,  0,180"})
-    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "@90,180,180"})
+    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "-90,  0,180"})
+    asmlib.InsertRecord({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "90,180,180"})
   end
   asmlib.DefaultType("SligWolf's Rerailers")
   asmlib.InsertRecord({"models/props_phx/trains/sw_rerailer_1.mdl", "#", "Short Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395", ""})
@@ -756,14 +916,14 @@ else
   asmlib.InsertRecord({"models/minitrains/straight_512.mdl",  "#", "#", 2, "", "-512, -8.507, 1", "0,-180,0"})
   asmlib.InsertRecord({"models/minitrains/straight_1024.mdl", "#", "#", 1, "", "0, -8.507, 1", ""})
   asmlib.InsertRecord({"models/minitrains/straight_1024.mdl", "#", "#", 2, "", "-1024, -8.507, 1", "0,-180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"diagonal_","ramp_"},nil)
+  asmlib.ModelToNameRule("SET",nil,{"diagonal_","ramp_"},nil)
   asmlib.InsertRecord({"models/minitrains/straight_diagonal_128.mdl", "#", "#", 1, "", "8, -8.508, 1", ""})
   asmlib.InsertRecord({"models/minitrains/straight_diagonal_128.mdl", "#", "#", 2, "", "-136, -8.506, 33", "0,-180,0"})
   asmlib.InsertRecord({"models/minitrains/straight_diagonal_256.mdl", "#", "#", 1, "", "8, -8.508, 1", ""})
   asmlib.InsertRecord({"models/minitrains/straight_diagonal_256.mdl", "#", "#", 2, "", "-264, -8.506, 33", "0,-180,0"})
   asmlib.InsertRecord({"models/minitrains/straight_diagonal_512.mdl", "#", "#", 1, "", "8, -8.508, 1", ""})
   asmlib.InsertRecord({"models/minitrains/straight_diagonal_512.mdl", "#", "#", 2, "", "-520, -8.506, 33", "0,-180,0"})
-  asmlib.SettingsModelToName("CLR")
+  asmlib.ModelToNameRule("CLR")
   asmlib.InsertRecord({"models/minitrains/curve_1_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1", ""})
   asmlib.InsertRecord({"models/minitrains/curve_1_90.mdl", "#", "#", 2, "", "-138.51, 130, 1", "0,90,0"})
   asmlib.InsertRecord({"models/minitrains/curve_2_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1", ""})
@@ -902,7 +1062,7 @@ else
   asmlib.InsertRecord({"models/props_phx/trains/monorail_curve.mdl", "#", "Turn 90", 1, "", "-0.030518,-605.638184,13.880554", ""})
   asmlib.InsertRecord({"models/props_phx/trains/monorail_curve.mdl", "#", "Turn 90", 2, "", "-605.380859,-0.307583,13.881714", "0,90,0"})
   asmlib.DefaultType("PHX Metal")
-  asmlib.SettingsModelToName("SET",nil,{"track_","straight_"},nil)
+  asmlib.ModelToNameRule("SET",nil,{"track_","straight_"},nil)
   asmlib.InsertRecord({"models/props_phx/trains/track_32.mdl" , "#", "#", 1, "-0.327,-61.529,8.714", " 15.755127,0.001953,9.215", ""})
   asmlib.InsertRecord({"models/props_phx/trains/track_32.mdl" , "#", "#", 2, "-0.327, 61.529,8.714", "-16.239746,0.000244,9.215", "0,-180,0"})
   asmlib.InsertRecord({"models/props_phx/trains/track_64.mdl" , "#", "#", 1, "", " 31.999878, 0.001960,9.215", ""})
@@ -920,7 +1080,7 @@ else
   asmlib.InsertRecord({"models/props_phx/trains/track_4096.mdl", "#", "#", 1, "", " 2047.755249, 0.001923,9.215", ""})
   asmlib.InsertRecord({"models/props_phx/trains/track_4096.mdl", "#", "#", 2, "", "-2048.240479,-0.225247,9.215", "0,-180,0"})
   asmlib.DefaultType("PHX Regular")
-  asmlib.SettingsModelToName("SET",{1,6})
+  asmlib.ModelToNameRule("SET",{1,6})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_single.mdl", "#", "#", 1, "-0.327,-61.529,8.714", " 15.451782, 1.5e-005,12.548828", ""})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_single.mdl", "#", "#", 2, "-0.327, 61.529,8.714", "-16.094971,-1.0e-006,12.548828", "0,-180,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_1x.mdl", "#", "#", 1, "", " 79.929352,0,12.548828", ""})
@@ -944,14 +1104,14 @@ else
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_x.mdl", "#", "Cross 45", 3, "", " 162.610229,-162.4935  ,11.214844", "0, -45,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_x.mdl", "#", "Cross 45", 4, "", "-261.623718, 261.740234,11.214844", "0, 135,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_225_down.mdl", "#", "#", 1, "", "-75.016,-0.006,64.57", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_225_down.mdl", "#", "#", 2, "", "4.096,-0.007,48.791", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_225_down.mdl", "#", "#", 2, "", "4.096,-0.007,48.791", "22.5,0,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_225_up.mdl", "#", "#", 1, "", "-75.016,0.007,11.212", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_225_up.mdl", "#", "#", 2, "", "4.196,0,27.054", "@-22.5,0,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_225_up.mdl", "#", "#", 2, "", "4.196,0,27.054", "-22.5,0,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_45_down.mdl", "#", "#", 1, "-75.016,-0.002,64.568", "-75.013,-0.002,64.568", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_45_down.mdl", "#", "#", 2, "", "71.037,-0.018,3.951", "@45,0,0"})
+  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_45_down.mdl", "#", "#", 2, "", "71.037,-0.018,3.951", "45,0,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_45_up.mdl", "#", "#", 1, "", "-75.013,0.007,11.218", "0,180,0"})
-  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_45_up.mdl", "#", "#", 2, "", "71.173,0.003,71.909", "@-45,0,0"})
-  asmlib.SettingsModelToName("SET",{1,6},{"turn","turn_"})
+  asmlib.InsertRecord({"models/props_phx/trains/tracks/track_45_up.mdl", "#", "#", 2, "", "71.173,0.003,71.909", "-45,0,0"})
+  asmlib.ModelToNameRule("SET",{1,6},{"turn","turn_"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_turn45.mdl", "#", "#", 1, "", "733.000061,-265.363037,11.218994", ""})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_turn45.mdl", "#", "#", 2, "", "-83.264610,  72.744667,11.218994", "0,135,0"})
   asmlib.InsertRecord({"models/props_phx/trains/tracks/track_turn90.mdl", "#", "#", 1, "", "733.000061,-265.363037,11.218994", ""})
@@ -968,7 +1128,7 @@ else
     local s = r:sub(1,1); if(s == "s") then return {"Straight"}
     elseif(s == "t") then return {"Turn"}
     elseif(s == "h") then return {"Ramp"} else return nil end end]])
-  asmlib.SettingsModelToName("SET",nil,{"track_s0","straight_"},{"","x"})
+  asmlib.ModelToNameRule("SET",nil,{"track_s0","straight_"},{"","x"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 1, "", " 0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s01.mdl", "#", "#", 2, "", "-162,0,7.624", "0,180,0"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s02.mdl", "#", "#", 1, "", " 0,0,7.624", ""})
@@ -981,14 +1141,14 @@ else
   asmlib.InsertRecord({"models/sprops/trans/train/track_s05.mdl", "#", "#", 2, "", "-1296.002,0,7.624", "0,180,0"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s06.mdl", "#", "#", 1, "", " 0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_s06.mdl", "#", "#", 2, "", "-2592.002,0,7.624", "0,180,0"})
-  asmlib.SettingsModelToName("CLR")
+  asmlib.ModelToNameRule("CLR")
   asmlib.InsertRecord({"models/sprops/trans/train/track_h01.mdl", "#", "Ramp", 1, "", "0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_h01.mdl", "#", "Ramp", 2, "", "-2525.98,0,503.58", "0,180,0"})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_h02.mdl", "#", "225 Up", 1, "", ",0,7.624", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_h02.mdl", "#", "225 Up", 2, "", "-1258.828,0,261.268", "@-22.5,180,0"})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_h02.mdl", "#", "225 Up", 1, "", "0,0,7.624", ""})
+  asmlib.InsertRecord({"models/sprops/trans/train/track_h02.mdl", "#", "225 Up", 2, "", "-1258.828,0,261.268", "-22.5,180,0"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_h03.mdl", "#", "225 Down", 1, "", "0,0,7.624", ""})
-  asmlib.InsertRecord({"models/sprops/trans/train/track_h03.mdl", "#", "225 Down", 2, "", "-1264.663,0,-247.177", "@22.5,180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"track_t","turn_","02","big","01","small"},nil)
+  asmlib.InsertRecord({"models/sprops/trans/train/track_h03.mdl", "#", "225 Down", 2, "", "-1264.663,0,-247.177", "22.5,180,0"})
+  asmlib.ModelToNameRule("SET",nil,{"track_t","turn_","02","big","01","small"},nil)
   asmlib.InsertRecord({"models/sprops/trans/train/track_t90_02.mdl", "#", "#", 1, "", "0,0,7.624", ""})
   asmlib.InsertRecord({"models/sprops/trans/train/track_t90_02.mdl", "#", "#", 2, "", "-1650,1650.0009765625,7.624", "0,90,0"})
   asmlib.InsertRecord({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 1, "", "0,0,7.624", ""})
@@ -1000,53 +1160,53 @@ else
     local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
     return r and {r} end]])
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 1, "", "75.790,-0.013,-2.414", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003.923,26.580", "@-22.5,180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003,26.580", "-22.5,180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 1, "", "149.8, -0.013, -9.62", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 2, "", "-141.814, 0.004, 48.442", "@-22.5,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 2, "", "-141.814, 0.004, 48.442", "-22.5,-180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_3.mdl", "#", "#", 1, "", "225.199, -0.016, -16.814", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_3.mdl", "#", "#", 2, "", "-214.187, 0.006, 70.463", "@-22.5,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_3.mdl", "#", "#", 2, "", "-214.187, 0.006, 70.463", "-22.5,-180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_4.mdl", "#", "#", 1, "", "298.8, -0.013, -24.02", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_4.mdl", "#", "#", 2, "", "-285.799, 0.019, 92.158", "@-22.5,180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_4.mdl", "#", "#", 2, "", "-285.799, 0.019, 92.158", "-22.5,180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_1.mdl", "#", "#", 1, "", "74.8, -0.013, -9.758", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_1.mdl", "#", "#", 2, "", "-59.846, 0.021, 45.855", "@-45,180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_1.mdl", "#", "#", 2, "", "-59.846, 0.021, 45.855", "-45,180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_2.mdl", "#", "#", 1, "", "-148.199, 0.021, -24.085", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_2.mdl", "#", "#", 2, "", "121.828, -0.004, 88.131", "@-45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_2.mdl", "#", "#", 2, "", "121.828, -0.004, 88.131", "-45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_3.mdl", "#", "#", 1, "", "-221.204, 0.005, -38.364", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_3.mdl", "#", "#", 2, "", "183.612, -0.018, 129.084", "@-45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_3.mdl", "#", "#", 2, "", "183.612, -0.018, 129.084", "-45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_4.mdl", "#", "#", 1, "", "-293.8, -0.013, -52.661", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_4.mdl", "#", "#", 2, "", "245.168, -0.007, 170.857", "@-45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_4.mdl", "#", "#", 2, "", "245.168, -0.007, 170.857", "-45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_1.mdl", "#", "#", 1, "", "75, -0.016, -9.757", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_1.mdl", "#", "#", 2, "", "-115.988, 0.017, 181.075", "@-90,0,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_1.mdl", "#", "#", 2, "", "-115.988, 0.017, 181.075", "-90,0,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_2.mdl", "#", "#", 1, "", "-148.198, -0.013, -24.085", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_2.mdl", "#", "#", 2, "", " 233.158,  0.013, 358.192", "@-90, 180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_2.mdl", "#", "#", 2, "", " 233.158,  0.013, 358.192", "-90, 180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_3.mdl", "#", "#", 1, "", "-221.1, -0.013, -38.366", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_3.mdl", "#", "#", 2, "", "351.2, -0.013, 533.582", "@-90,-180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_3.mdl", "#", "#", 2, "", "351.2, -0.013, 533.582", "-90,-180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_4.mdl", "#", "#", 1, "", "-293.701, -0.013, -52.661", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_4.mdl", "#", "#", 2, "", "468.482, -0.013, 710.225", "@-90,-180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_4.mdl", "#", "#", 2, "", "468.482, -0.013, 710.225", "-90,-180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_1.mdl", "#", "#", 1, "", " -73.800, -0.013,  11.999", "  0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_1.mdl", "#", "#", 2, "", "  72.814, -0.013, -16.992", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_1.mdl", "#", "#", 2, "", "  72.814, -0.013, -16.992", "22.5,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_2.mdl", "#", "#", 1, "", "-148.626, -0.013,  19.510", "  0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_2.mdl", "#", "#", 2, "", " 134.806, -0.011, -36.762", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_2.mdl", "#", "#", 2, "", " 134.806, -0.011, -36.762", "22.5,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_3.mdl", "#", "#", 1, "", "-224.899,  0.010,  25.763", "  0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_3.mdl", "#", "#", 2, "", " 202.547, -0.014, -57.473", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_3.mdl", "#", "#", 2, "", " 202.547, -0.014, -57.473", "22.5,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_4.mdl", "#", "#", 1, "", "-300.319,  0.017,  32.110", "  0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_4.mdl", "#", "#", 2, "", " 268.600,  0.052, -77.783", "@22.5,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_225_down_4.mdl", "#", "#", 2, "", " 268.600,  0.052, -77.783", "22.5,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_1.mdl", "#", "#", 1, "", "-71.199, -0.013,  18.809", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_1.mdl", "#", "#", 2, "", " 63.815, -0.021, -37.126", "@45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_1.mdl", "#", "#", 2, "", " 63.815, -0.021, -37.126", "45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_2.mdl", "#", "#", 1, "", "-144.8, -0.013, 33.103", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_2.mdl", "#", "#", 2, "", "125.217, -0.014, -78.778", "@45,0,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_2.mdl", "#", "#", 2, "", "125.217, -0.014, -78.778", "45,0,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_3.mdl", "#", "#", 1, "", "217.199, -0.013, 47.332", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_3.mdl", "#", "#", 2, "", "-187.587, 0.003, -120.127", "@45,-180,0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_3.mdl", "#", "#", 2, "", "-187.587, 0.003, -120.127", "45,-180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_4.mdl", "#", "#", 1, "", "290.79, -0.013, 61.604", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_4.mdl", "#", "#", 2, "", "-249.142, 0.017, -161.855", "@45, 180, 0"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_45_down_4.mdl", "#", "#", 2, "", "-249.142, 0.017, -161.855", "45, 180, 0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_1.mdl", "#", "#", 1, "", "-70.793, -0.038,   18.807", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_1.mdl", "#", "#", 2, "", "119.415, -0.013, -171.482", "@90,-180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_1.mdl", "#", "#", 2, "", "119.415, -0.013, -171.482", "90,-180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_2.mdl", "#", "#", 1, "", "-144.804, -0.013, 33.103", "0,-180,0"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_2.mdl", "#", "#", 2, "", "237.418, -0.013, -349.306", "@90,180,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_2.mdl", "#", "#", 2, "", "237.418, -0.013, -349.306", "90,180,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_3.mdl", "#", "#", 1, "", "217.199, -0.013, 47.332", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_3.mdl", "#", "#", 2, "", "-355.101, 0.01, -524.496", "@90,0,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_3.mdl", "#", "#", 2, "", "-355.101, 0.01, -524.496", "90,0,180"})
   asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 1, "", "290.8, -0.013, 61.604", ""})
-  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 2, "", "-473.228, -0.013, -701.956", "@90,0,180"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 2, "", "-473.228, -0.013, -701.956", "90,0,180"})
   --- XQM Turn ---
   asmlib.InsertRecord({"models/xqm/coastertrack/turn_45_1.mdl", "#", "#", 1, "", "73.232, -14.287, 4.894", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/turn_45_1.mdl", "#", "#", 2, "", "-62.119, 41.771, 4.888", "0,135,0"})
@@ -1189,15 +1349,15 @@ else
   asmlib.InsertRecord({"models/xqm/coastertrack/special_sturn_left_4.mdl", "#", "#", 1, "", "299.8, 36.623, 4.886", ""})
   asmlib.InsertRecord({"models/xqm/coastertrack/special_sturn_left_4.mdl", "#", "#", 2, "", "-299.8, -36.6, 4.886", "0,-180,0"})
   asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_2.mdl", "#", "#", 1, "", "189.277, 59.435, 41.118", "0,90,-90"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_2.mdl", "#", "#", 2, "", "-192.302, 46.789, -17.492", "@22.5,90,90"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_2.mdl", "#", "#", 2, "", "-192.302, 46.789, -17.492", "22.5,90,90"})
   asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_3.mdl", "#", "#", 1, "", "-285.755, -96.647, 32.538", "0,-90,-90"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_3.mdl", "#", "#", 2, "", "281.393, -79.204, -55.216", "@22.5,-90,90"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_3.mdl", "#", "#", 2, "", "281.393, -79.204, -55.216", "22.5,-90,90"})
   asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_4.mdl", "#", "#", 1, "", "322.424, -72.015, 15.907", "0,-90,90"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_4.mdl", "#", "#", 2, "", "-419.735, -44.894, 132.706", "@-22.5,-90,-90"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_2.mdl", "#", "#", 1, "", "-207.841, 30.414, 100.219", "@-22.5,-90,-90"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_2.mdl", "#", "#", 2, "", "-207.993, 7.31, -17.474", "@22.5,90,90"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_3.mdl", "#", "#", 1, "", "281.359, -6.612, 120.391", "@-22.5,90,-90"})
-  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_3.mdl", "#", "#", 2, "", "281.371, 28.004, -55.354", "@22.5,-90,90"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_4.mdl", "#", "#", 2, "", "-419.735, -44.894, 132.706", "-22.5,-90,-90"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_2.mdl", "#", "#", 1, "", "-207.841, 30.414, 100.219", "-22.5,-90,-90"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_2.mdl", "#", "#", 2, "", "-207.993, 7.31, -17.474", "22.5,90,90"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_3.mdl", "#", "#", 1, "", "281.359, -6.612, 120.391", "-22.5,90,-90"})
+  asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_3.mdl", "#", "#", 2, "", "281.371, 28.004, -55.354", "22.5,-90,90"})
   asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_4.mdl", "#", "#", 1, "", "322.609, 52.146, 251.028", "0,90,-90"})
   asmlib.InsertRecord({"models/xqm/coastertrack/special_helix_middle_full_4.mdl", "#", "#", 2, "", "322.431, 5.79, 15.895", "0,-90,90"})
   asmlib.InsertRecord({"models/xqm/coastertrack/special_half_corkscrew_right_1.mdl", "#", "#", 1, "", "150.199, 0.013, 4.886", ""})
@@ -1255,9 +1415,9 @@ else
   asmlib.InsertRecord({"models/props_phx/huge/road_curve.mdl",  "#", "#", 1, "", "162.813, 379.277, 1.879", "0, 90,0"})
   asmlib.InsertRecord({"models/props_phx/huge/road_curve.mdl",  "#", "#", 2, "", "-363.22, -146.757, 1.879", "0,-180,0"})
   asmlib.InsertRecord({"models/props_phx/misc/small_ramp.mdl",  "#", "#", 1, "", "-284.589, -3.599976, -1.672", "0,-180,0"})
-  asmlib.InsertRecord({"models/props_phx/misc/small_ramp.mdl",  "#", "#", 2, "", " 312.608, -3.599976, 236.11", "@-45,0,0"})
+  asmlib.InsertRecord({"models/props_phx/misc/small_ramp.mdl",  "#", "#", 2, "", " 312.608, -3.599976, 236.11", "-45,0,0"})
   asmlib.InsertRecord({"models/props_phx/misc/big_ramp.mdl",    "#", "#", 1, "", "-569.177, -7.199953, -3.075",  "0,-180,0"})
-  asmlib.InsertRecord({"models/props_phx/misc/big_ramp.mdl",    "#", "#", 2, "", "625.022, -7.199953, 472.427", "@-45,0,0"})
+  asmlib.InsertRecord({"models/props_phx/misc/big_ramp.mdl",    "#", "#", 2, "", "625.022, -7.199953, 472.427", "-45,0,0"})
   asmlib.DefaultType("PHX Monorail Beam")
   asmlib.InsertRecord({"models/props_phx/misc/iron_beam1.mdl", "#", "#", 1, "", " 22.411, 0.001, 5.002", "0, 0,0"})
   asmlib.InsertRecord({"models/props_phx/misc/iron_beam1.mdl", "#", "#", 2, "", "-22.413, 0.001, 5.002", "0,180,0"})
@@ -1292,23 +1452,23 @@ else
   asmlib.InsertRecord({"models/xqm/rails/straight_8.mdl", "#", "#", 2, "", "-90, 0, -2.25", "0,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/straight_16.mdl","#", "#", 1, "", "6, 0, -2.25", ""})
   asmlib.InsertRecord({"models/xqm/rails/straight_16.mdl","#", "#", 2, "", "-186, 0, -2.25", "0,180,0"})
-  asmlib.InsertRecord({"models/xqm/rails/funnel.mdl","#", "#", 1, "", "2.206, 0.003, 4.282", "@90,0,180"})
+  asmlib.InsertRecord({"models/xqm/rails/funnel.mdl","#", "#", 1, "", "2.206, 0.003, 4.282", "90,0,180"})
   asmlib.InsertRecord({"models/xqm/rails/slope_down_15.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_down_15.mdl", "#", "#", 2, "", "-20.245, -0.018, -4.13", "@15,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_down_15.mdl", "#", "#", 2, "", "-20.245, -0.018, -4.13", "15,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_down_30.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_down_30.mdl", "#", "#", 2, "", "-32.078, 0.022, -9.114", "@30,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_down_30.mdl", "#", "#", 2, "", "-32.078, 0.022, -9.114", "30,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_down_45.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_down_45.mdl", "#", "#", 2, "", "-42.144, -0.011, -16.998", "@45,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_down_45.mdl", "#", "#", 2, "", "-42.144, -0.011, -16.998", "45,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_down_90.mdl", "#", "#", 1, "", "38, 0.019, 30.42", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_down_90.mdl", "#", "#", 2, "", "-30.418, -0.009, -37.98", "@90,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_down_90.mdl", "#", "#", 2, "", "-30.418, -0.009, -37.98", "90,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_up_15.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_up_15.mdl", "#", "#", 2, "", "-15.521, 0.014, -1.009", "@-15,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_up_15.mdl", "#", "#", 2, "", "-15.521, 0.014, -1.009", "-15,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_up_30.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_up_30.mdl", "#", "#", 2, "", "-22.871, -0.019, 2.152", "@-30,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_up_30.mdl", "#", "#", 2, "", "-22.871, -0.019, 2.152", "-30,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_up_45.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_up_45.mdl", "#", "#", 2, "", "-29.149, 0.006, 7.109", "@-45,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_up_45.mdl", "#", "#", 2, "", "-29.149, 0.006, 7.109", "-45,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/slope_up_90.mdl", "#", "#", 1, "", "6.004, 0.005, 15.322", ""})
-  asmlib.InsertRecord({"models/xqm/rails/slope_up_90.mdl", "#", "#", 2, "", "-44.066, -0.011, 65.001", "@-90,180,0"})
+  asmlib.InsertRecord({"models/xqm/rails/slope_up_90.mdl", "#", "#", 2, "", "-44.066, -0.011, 65.001", "-90,180,0"})
   asmlib.InsertRecord({"models/xqm/rails/turn_15.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
   asmlib.InsertRecord({"models/xqm/rails/turn_15.mdl", "#", "#", 2, "", "-17.591, 3.105, -2.25, -1.009", "0,165,0"})
   asmlib.InsertRecord({"models/xqm/rails/turn_30.mdl", "#", "#", 1, "", "6, 0, -2.25", ""})
@@ -1367,8 +1527,16 @@ else
   asmlib.InsertRecord({"models/magtrains1ga/switch_straight.mdl", "#", "#", 2, "", "-384,0,0.01599", "0,-180,0", ""})
   asmlib.InsertRecord({"models/magtrains1ga/switch_curve.mdl", "#", "#", 1, "", "0,0,0.01563", "", ""})
   asmlib.InsertRecord({"models/magtrains1ga/switch_curve.mdl", "#", "#", 2, "", "-373.42453,-45.55976,0.01562", "0,-166.08,0", ""})
-  asmlib.DefaultType("Shinji85's Rails")
-  asmlib.SettingsModelToName("SET",nil,{"rail_","straight_"},nil)
+  asmlib.DefaultType("Shinji85's Rails",[[function(m) local c
+    local r = m:gsub("models/shinji85/train/rail_", "")
+    if(r:find("cross")) then c = "crossing"
+    elseif(r:find("switch")) then c = "switch"
+    elseif(r:find("curve")) then c = "curve"
+    elseif(r:find("bumper")) then c = "bumper"
+    elseif(r:find("junction")) then c = "junction"
+    elseif(r:find("%dx")) then c = "straight"
+    end; c = (c and c:gsub("^%l", string.upper) or nil) return c end]])
+  asmlib.ModelToNameRule("SET",nil,{"rail_","straight_"},nil)
   asmlib.InsertRecord({"models/shinji85/train/rail_1x.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_1x.mdl", "#", "#", 2, "", "-128,0,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_2x.mdl", "#", "#", 1, "", "0,0,7.346", ""})
@@ -1379,25 +1547,25 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_8x.mdl", "#", "#", 2, "", "-1024,0,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_16x.mdl", "#","#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_16x.mdl", "#","#", 2, "", "-2048,0,7.346", "0,180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"_crossing","","rail_","crossing_"},nil)
+  asmlib.ModelToNameRule("SET",nil,{"_crossing","","rail_","crossing_"},nil)
   asmlib.InsertRecord({"models/shinji85/train/rail_4x_crossing.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_4x_crossing.mdl", "#", "#", 2, "", "-512,0,7.346", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,5})
+  asmlib.ModelToNameRule("SET",{1,5})
   asmlib.InsertRecord({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 2, "", "-512,0,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 3, "", "-256,-256,7.346", "0,270,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 4, "", "-256,256,7.346", "0,90,0"})
-  asmlib.SettingsModelToName("SET",{1,5},{"_crossing","","double_","crossing_double_"})
+  asmlib.ModelToNameRule("SET",{1,5},{"_crossing","","double_","crossing_double_"})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 1, "", "0,128,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 2, "", "-512,128,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 3, "", "0,-128,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 4, "", "-512,-128,7.346", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,5})
+  asmlib.ModelToNameRule("SET",{1,5})
   asmlib.InsertRecord({"models/shinji85/train/rail_bumper.mdl", "#", "#", 1, "", "0,0,7.346", ""})
-  asmlib.SettingsModelToName("SET",{1,5},{"double_bumper","bumper_double"},nil)
+  asmlib.ModelToNameRule("SET",{1,5},{"double_bumper","bumper_double"},nil)
   asmlib.InsertRecord({"models/shinji85/train/rail_double_bumper.mdl", "#", "#", 1, "", "0,128,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_double_bumper.mdl", "#", "#", 2, "", "0,-128,7.346", ""})
-  asmlib.SettingsModelToName("SET",{1,5})
+  asmlib.ModelToNameRule("SET",{1,5})
   --- Shinji85 Curve ---
   asmlib.InsertRecord({"models/shinji85/train/rail_curve_r1.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_curve_r1.mdl", "#", "#", 2, "", "-1060.12341 ,139.56763 ,7.346", "0,165,0"})
@@ -1408,14 +1576,14 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_curve_cc.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_curve_cc.mdl", "#", "#", 2, "", "-966.40515 ,128, 7.346", "0,165,0"})
   --- Shinji85 Switch ---
-  asmlib.SettingsModelToName("SET",{1,5},{"r_","right_","l_","left_"},nil)
+  asmlib.ModelToNameRule("SET",{1,5},{"r_","right_","l_","left_"},nil)
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl", "#", "#", 2, "", "-1024,0,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl", "#", "#", 3, "", "-966.40515 ,128, 7.346", "0,165,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl", "#", "#", 2, "", "-1024,0,7.346", "0,180,0"})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl", "#", "#", 3, "", "-966.40515 ,-128, 7.346", "0,195,0"})
-  asmlib.SettingsModelToName("SET",{1,5})
+  asmlib.ModelToNameRule("SET",{1,5})
   --- Shinji85 Raccordi ---
   asmlib.InsertRecord({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 1, "", "0,0,7.346", ""})
   asmlib.InsertRecord({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 2, "", "-494.55,0,7.346", "0,180,0"})
@@ -1448,7 +1616,7 @@ else
   asmlib.InsertRecord({"models/swrcs/swrcloopingspecial.mdl", "#", "LoopSwitch 180", 2, "", "-809.999, 137.003, 350.984", "0,-180,0"})
   asmlib.InsertRecord({"models/swrcs/swrcloopingspecial.mdl", "#", "LoopSwitch 180", 3, "", "-809.999, -527.972, 350.984", "0,-180,0"})
   asmlib.InsertRecord({"models/swrcs/swrcramp.mdl", "#", "Ramp 45", 1, "", "1000, 0, 0", ""})
-  asmlib.InsertRecord({"models/swrcs/swrcramp.mdl", "#", "Ramp 45", 2, "", "-641.92, 0, 269.672", "@-45,-180,0"})
+  asmlib.InsertRecord({"models/swrcs/swrcramp.mdl", "#", "Ramp 45", 2, "", "-641.92, 0, 269.672", "-45,-180,0"})
   asmlib.InsertRecord({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 1, "", "0, -152.532, 0", ""})
   asmlib.InsertRecord({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 2, "", "0, 152.554, 0", ""})
   asmlib.InsertRecord({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 3, "", "0, 0, 0.042", ""})
@@ -1465,13 +1633,13 @@ else
   asmlib.InsertRecord({"models/props_canal/canal_bridge03b.mdl", "#", "#", 2, "", "-320.059, 0, 187.741", "0,-180,0"})
   asmlib.InsertRecord({"models/props_canal/canal_bridge03c.mdl", "#", "#", 1, "", "1026.848, 0, 600.773", ""})
   asmlib.InsertRecord({"models/props_canal/canal_bridge03c.mdl", "#", "#", 2, "", "-1024.189, 0, 600.773", "0,-180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"bridge","bridge_","001",""},nil)
+  asmlib.ModelToNameRule("SET",nil,{"bridge","bridge_","001",""},nil)
   asmlib.InsertRecord({"models/props_2fort/bridgesupports001.mdl", "#", "TF Support", 1, "", "448, 0, -14.268", ""})
   asmlib.InsertRecord({"models/props_2fort/bridgesupports001.mdl", "#", "TF Support", 2, "", "-448, 0, -15.558", "0,-180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"bridge01_","bridge_"},nil)
+  asmlib.ModelToNameRule("SET",nil,{"bridge01_","bridge_"},nil)
   asmlib.InsertRecord({"models/askari/bridge01_stlve.mdl", "#", "Stlve", 1, "", "192, 0, 189.531", ""})
   asmlib.InsertRecord({"models/askari/bridge01_stlve.mdl", "#", "Stlve", 2, "", "-192, 0, 189.531", "0,-180,0"})
-  asmlib.SettingsModelToName("CLR")
+  asmlib.ModelToNameRule("CLR")
   asmlib.InsertRecord({"models/karkar/bridge.mdl", "#", "Karkar", 1, "", "62.07, -343.696, 208.295", "0,-90,0"})
   asmlib.InsertRecord({"models/karkar/bridge.mdl", "#", "Karkar", 2, "", "62.07, 334.44, 208.295", "0,90,0"})
   asmlib.InsertRecord({"models/karkar/wooden_bridge_helly.mdl", "#", "#", 1, "", "0, 318.601, 26.783", "0,90,0"})
@@ -1517,7 +1685,7 @@ else
     elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end
     if(r == "") then return nil end; local o = {r}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
-  asmlib.SettingsModelToName("SET",{1,3})
+  asmlib.ModelToNameRule("SET",{1,3})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_2road_dl_sdw_1x2.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
@@ -1528,10 +1696,10 @@ else
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_4road_dl_sdw_1x4.mdl", "#", "#", 2, "", "-288,0,3.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_5road_dl_sdw_1x5.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_5road_dl_sdw_1x5.mdl", "#", "#", 2, "", "-360,0,3.03125", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,4})
+  asmlib.ModelToNameRule("SET",{1,4})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_10road_dl_sdw_1x32.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_10road_dl_sdw_1x32.mdl", "#", "#", 2, "", "-2304,0,3.03125", "0,180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"lot","lot_"},nil)
+  asmlib.ModelToNameRule("SET",nil,{"lot","lot_"},nil)
   asmlib.InsertRecord({"models/buildingspack/emptylots/lot16x16.mdl", "#", "#", 1, "", "-268, 575, 3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/emptylots/lot16x16.mdl", "#", "#", 2, "", "-268, -577.002, 3.03125", "0,-90,0"})
   asmlib.InsertRecord({"models/buildingspack/emptylots/lot16x16fence.mdl", "#", "#", 1, "", "-268, 575, 3.03125", "0,90,0"})
@@ -1544,7 +1712,7 @@ else
   asmlib.InsertRecord({"models/buildingspack/emptylots/lot8x8fence.mdl", "#", "#", 2, "", "-268, -287.996, 3.03125", "0,-90,0"})
   asmlib.InsertRecord({"models/buildingspack/emptylots/lot8x8.mdl", "#", "#", 1, "", "-268, 288, 3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/emptylots/lot8x8.mdl", "#", "#", 2, "", "-268, -287.996, 3.03125", "0,-90,0"})
-  asmlib.SettingsModelToName("SET",{1,3})
+  asmlib.ModelToNameRule("SET",{1,3})
   asmlib.InsertRecord({"models/buildingspack/housing/3_0apartments_0.mdl", "#", "#", 1, "", "-268, 612.001, 3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/housing/3_0apartments_0.mdl", "#", "#", 2, "", "-268, -612, 3.03125", "0,-90,0"})
   asmlib.InsertRecord({"models/buildingspack/housing/3_1apartments_1.mdl", "#", "#", 1, "", "-268, 1248, 3.03125", "0,90,0"})
@@ -1593,7 +1761,7 @@ else
   asmlib.InsertRecord({"models/buildingspack/stores/4_4bank.mdl", "#", "#", 2, "", "-268, -504, 2.031232", "0,-90,0"})
   asmlib.InsertRecord({"models/buildingspack/stores/4_2pcshop.mdl", "#", "#", 1, "", "-268, 432, 3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/stores/4_2pcshop.mdl", "#", "#", 2, "", "-268, -432, 3.03125", "0,-90,0"})
-  asmlib.SettingsModelToName("SET",{1,4},{"ion_","_"})
+  asmlib.ModelToNameRule("SET",{1,4},{"ion_","_"})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_11road_intersection_4w.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_11road_intersection_4w.mdl", "#", "#", 2, "", "-340,340,3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_11road_intersection_4w.mdl", "#", "#", 3, "", "-680,0,3.03125", "0,180,0"})
@@ -1608,7 +1776,7 @@ else
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_16road_intersection_turn2_16.mdl", "#", "#", 2, "", "-1564,1564,3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_15road_intersection_turn1.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadswsidewalk/2_15road_intersection_turn1.mdl", "#", "#", 2, "", "-340,-340,3.03125", "0,-90,0"})
-  asmlib.SettingsModelToName("SET",{1,3},{"sdwhwy","_"})
+  asmlib.ModelToNameRule("SET",{1,3},{"sdwhwy","_"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_0roadsdwhwy1x1.mdl" , "#", "#", 1, "", "0,0,316.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_0roadsdwhwy1x1.mdl" , "#", "#", 2, "", "-72,0,316.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_2roadsdwhwy1x4.mdl" , "#", "#", 1, "", "0,0,316.03125", ""})
@@ -1621,25 +1789,25 @@ else
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_5roadsdwhwy1x32.mdl", "#", "#", 2, "", "-2304,0,316.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_6roadsdwhwy1x64.mdl", "#", "#", 1, "", "0,0,316.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_6roadsdwhwy1x64.mdl", "#", "#", 2, "", "-4608,0,316.03125", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,3},{"sdwhwy","_","bridge","bridge_"})
+  asmlib.ModelToNameRule("SET",{1,3},{"sdwhwy","_","bridge","bridge_"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_8roadsdwhwybridge1x4.mdl", "#", "#", 1, "", "0,0,60.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_8roadsdwhwybridge1x4.mdl", "#", "#", 2, "", "-288,0,60.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_9roadsdwhwybridge1x8.mdl", "#", "#", 1, "", "0,0,60.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_9roadsdwhwybridge1x8.mdl", "#", "#", 2, "", "-576,0,60.03125", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,4},{"sdwhwy","_"})
+  asmlib.ModelToNameRule("SET",{1,4},{"sdwhwy","_"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_10roadsdwhwybridge1x16.mdl", "#", "#", 1, "", "0,0,60.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_10roadsdwhwybridge1x16.mdl", "#", "#", 2, "", "-1152,0,60.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_11roadsdwhwybridge1x32.mdl", "#", "#", 1, "", "0,0,60.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_11roadsdwhwybridge1x32.mdl", "#", "#", 2, "", "-2304,0,60.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_12roadsdwhwybridge1x64.mdl", "#", "#", 1, "", "0,0,60.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_12roadsdwhwybridge1x64.mdl", "#", "#", 2, "", "-4608,0,60.03125", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,3},{"sdwhwy_","_","turn1","turn"})
+  asmlib.ModelToNameRule("SET",{1,3},{"sdwhwy_","_","turn1","turn"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_7roadsdwhwy_turn1.mdl", "#", "#", 1, "", "0,0,316.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_7roadsdwhwy_turn1.mdl", "#", "#", 2, "", "-1692,1692,316.03125", "0,90,0"})
-  asmlib.SettingsModelToName("SET",{1,3})
+  asmlib.ModelToNameRule("SET",{1,3})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_0roadsdwsidewalktransfer.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_0roadsdwsidewalktransfer.mdl", "#", "#", 2, "", "-376,0,3.03125", "0,-180,0"})
-  asmlib.SettingsModelToName("SET",{1,4},{"sdw","_"})
+  asmlib.ModelToNameRule("SET",{1,4},{"sdw","_"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_11roadsdwsidewalk_int_4way.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_11roadsdwsidewalk_int_4way.mdl", "#", "#", 2, "", "-540,540,3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_11roadsdwsidewalk_int_4way.mdl", "#", "#", 3, "", "-1080,0,3.03125", "0,-180,0"})
@@ -1653,7 +1821,7 @@ else
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_14roadsdwsidewalk_turn_1.mdl", "#", "#", 2, "", "-540,-544,3.03125", "0,-90,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_15roadsdwsidewalk_turn_2.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_15roadsdwsidewalk_turn_2.mdl", "#", "#", 2, "", "-1692,1692,3.03125", "0,90,0"})
-  asmlib.SettingsModelToName("SET",{1,3},{"sdw","_","walk","walk_"})
+  asmlib.ModelToNameRule("SET",{1,3},{"sdw","_","walk","walk_"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_1roadsdwsidewalk1x1.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_1roadsdwsidewalk1x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_2roadsdwsidewalk1x2.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
@@ -1672,10 +1840,10 @@ else
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_8roadsdwsidewalk1x8.mdl", "#", "#", 2, "", "-576,0,3.03125", "0,180,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_9roadsdwsidewalk1x16.mdl","#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_9roadsdwsidewalk1x16.mdl","#", "#", 2, "", "-1152,0,3.03125", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,4},{"sdw","_","walk","walk_"})
+  asmlib.ModelToNameRule("SET",{1,4},{"sdw","_","walk","walk_"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_10roadsdwsidewalk1x32.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwsidewalk/0_10roadsdwsidewalk1x32.mdl", "#", "#", 2, "", "-2304,0,3.03125", "0,180,0"})
-  asmlib.SettingsModelToName("SET",{1,3},{"sdwhwy_","_"})
+  asmlib.ModelToNameRule("SET",{1,3},{"sdwhwy_","_"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_0roadsdwhwy_ramp_1.mdl", "#", "#", 1, "", "0,0,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_0roadsdwhwy_ramp_1.mdl", "#", "#", 2, "", "-1632,1152,3.03125", "0,90,0"})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_0roadsdwhwy_ramp_1.mdl", "#", "#", 3, "", "-2304,1152,315.031616", "0,90,0"})
@@ -1693,13 +1861,13 @@ else
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 3, "", "0,671.995,3.03125", ""})
   asmlib.InsertRecord({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 4, "", "-4160,0,15.202", "0,-180,0"})
   asmlib.DefaultType("Portal Tubes")
-  asmlib.InsertRecord({"models/props_bts/clear_tube_straight.mdl", "#", "#", 1, "", "0.009,0    , 63.896", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/props_bts/clear_tube_straight.mdl", "#", "#", 2, "", "0.008,0.004,-63.897", "@ 90,180,180"})
+  asmlib.InsertRecord({"models/props_bts/clear_tube_straight.mdl", "#", "#", 1, "", "0.009,0    , 63.896", "-90,  0,180"})
+  asmlib.InsertRecord({"models/props_bts/clear_tube_straight.mdl", "#", "#", 2, "", "0.008,0.004,-63.897", " 90,180,180"})
   asmlib.InsertRecord({"models/props_bts/clear_tube_90deg.mdl" , "#", "#", 1, "", "64.041,0.049,  0.131", ""})
-  asmlib.InsertRecord({"models/props_bts/clear_tube_90deg.mdl" , "#", "#", 2, "", " 0.002,0.040,-63.904", "@90,0,180"})
-  asmlib.InsertRecord({"models/props_bts/clear_tube_broken.mdl", "#", "#", 1, "", "0.009,0    , 63.896", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/props_bts/clear_tube_broken.mdl", "#", "#", 2, "", "0.008,0.004,-63.897", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 1, "", "-0.014,0.13,96.075", "@-90,0,180"})
+  asmlib.InsertRecord({"models/props_bts/clear_tube_90deg.mdl" , "#", "#", 2, "", " 0.002,0.040,-63.904", "90,0,180"})
+  asmlib.InsertRecord({"models/props_bts/clear_tube_broken.mdl", "#", "#", 1, "", "0.009,0    , 63.896", "-90,  0,180"})
+  asmlib.InsertRecord({"models/props_bts/clear_tube_broken.mdl", "#", "#", 2, "", "0.008,0.004,-63.897", " 90,180,180"})
+  asmlib.InsertRecord({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 1, "", "-0.014,0.13,96.075", "-90,0,180"})
   asmlib.InsertRecord({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 2, "", "-0.004,-95.763,0.016", "0,-90,-90"})
   asmlib.InsertRecord({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 3, "", "0,96,0.083", "0,90,90"})
   asmlib.DefaultType("Mr.Train's M-Gauge",[[function(m)
@@ -1708,7 +1876,7 @@ else
     local s = r:find("/"); r = tonumber(r:sub(1,1)) and "straight" or (s and r:sub(1,s-1) or "")
     if(r == "") then return nil end; local o = {r}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
-  asmlib.SettingsModelToName("SET",nil,{"m_gauge","straight"},nil)
+  asmlib.ModelToNameRule("SET",nil,{"m_gauge","straight"},nil)
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 1, "", "16,0,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 2, "", "-16,0,0.016", "0,-180,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_64.mdl", "#", "#", 1, "", "32,0,0.016", ""})
@@ -1725,12 +1893,12 @@ else
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_2048.mdl", "#", "#", 2, "", "-1024,0,0.016", "0,-180,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_4096.mdl", "#", "#", 1, "", "2048,0,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_4096.mdl", "#", "#", 2, "", "-2048,0,0.016", "0,-180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"_cross","","m_gauge_","cross_"},nil)
+  asmlib.ModelToNameRule("SET",nil,{"_cross","","m_gauge_","cross_"},nil)
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 1, "", "64,0,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 2, "", "0,64,0.016", "0,90,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 3, "", "-64,0,0.016", "0,-180,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_128_cross.mdl", "#", "#", 4, "", "0,-64,0.016", "0,-90,0"})
-  asmlib.SettingsModelToName("SET",nil,{"m_gauge_",""},nil)
+  asmlib.ModelToNameRule("SET",nil,{"m_gauge_",""},nil)
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_left_256.mdl", "#", "#", 1, "", "134.497,121.499,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_left_256.mdl", "#", "#", 2, "", "-121.5,-134.5,0.016", "0,-90,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_left_512.mdl", "#", "#", 1, "", "262.5,249.5,0.016", ""})
@@ -1757,7 +1925,7 @@ else
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_right_768_45.mdl", "#", "#", 2, "", "-149.758,-149.751,0.012", "0,135,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_right_1024_45.mdl", "#", "#", 1, "", "518.5,-505.498,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_right_1024_45.mdl", "#", "#", 2, "", "-205.621,-205.618,0.014", "0,135,0"})
-  asmlib.SettingsModelToName("SET",nil,{"m_gauge_","","over",""},nil)
+  asmlib.ModelToNameRule("SET",nil,{"m_gauge_","","over",""},nil)
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_crossover.mdl", "#", "#", 1, "", "203,-75,-2.484", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_crossover.mdl", "#", "#", 2, "", "203,75,-2.484", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_crossover.mdl", "#", "#", 3, "", "-203,75,-2.484", "0,180,0"})
@@ -1770,7 +1938,7 @@ else
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_crossover_sr.mdl", "#", "#", 2, "", "75,75,-2.484", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_crossover_sr.mdl", "#", "#", 3, "", "-203,75,-2.484", "0,180,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_crossover_sr.mdl", "#", "#", 4, "", "-75,-75,-2.485", "0,180,0"})
-  asmlib.SettingsModelToName("SET",nil,{"m_gauge_","","hand",""},nil)
+  asmlib.ModelToNameRule("SET",nil,{"m_gauge_","","hand",""},nil)
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_lefthand.mdl", "#", "#", 1, "", "0,-10,0.016", ""})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_lefthand.mdl", "#", "#", 2, "", "-256,-10,0.016", "0,180,0"})
   asmlib.InsertRecord({"models/props/m_gauge/track/m_gauge_switch_lefthand.mdl", "#", "#", 3, "", "-384,-160,0.016", "0,180,0"})
@@ -1785,7 +1953,7 @@ else
     if(o[1] == "s") then o[1] = "curves" end
     n = n and ("_"..n):gsub("_%w",conv):sub(2,-1) or nil
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]])
-  asmlib.SettingsModelToName("SET",nil,{"g_gauge_track_",""},nil)
+  asmlib.ModelToNameRule("SET",nil,{"g_gauge_track_",""},nil)
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 1, "", " 16,0,1.516", ""})
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 2, "", "-16,0,1.516", "0,-180,0"})
   asmlib.InsertRecord({"models/props/g_gauge/track/g_gauge_track_ramp_1.mdl", "#", "#", 1, "", " 16,0,1.516", ""})
@@ -2000,395 +2168,395 @@ else
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
   --- Tubes Metal ---
-  asmlib.InsertRecord({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_dome180.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_dome360.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve2x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve2x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180x2.mdl", "#", "#", 1, "", "0.02,0,95.081", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_dome180.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_dome360.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve2x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve2x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180x2.mdl", "#", "#", 1, "", "0.02,0,95.081", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve180x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_plate_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   --- Tubes Glass ---
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_dome180.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_dome360.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_dome180.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_dome360.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/glass/glass_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   --- Tubes Wireframe ---
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/metal_wire_angle360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   --- Tubes Wireframe Glass ---
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_dome180.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_dome360.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_dome180.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_dome360.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/windows/window_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   --- Tubes Wood ---
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_dome180.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_dome360.mdl", "#", "#", 1, "", "0,0,0.025","@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x1.mdl", "#", "#", 1, "", "0.02,0,47.541", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x1.mdl", "#", "#", 2, "", "0.02,0, 0.095", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x2.mdl", "#", "#", 1, "", "0.02,0,95.083", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x2.mdl", "#", "#", 2, "", "0.02,0, 0.183", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x2.mdl", "#", "#", 1, "", "0.02,0,95.081", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle180.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle180.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle360.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_angle360.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_dome90.mdl", "#", "#", 1, "", "0,0,0.025", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_dome180.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_dome360.mdl", "#", "#", 1, "", "0,0,0.025","90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x1.mdl", "#", "#", 1, "", "0.02,0,47.541", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x1.mdl", "#", "#", 2, "", "0.02,0, 0.095", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x2.mdl", "#", "#", 1, "", "0.02,0,95.083", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve90x2.mdl", "#", "#", 2, "", "0.02,0, 0.183", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x2.mdl", "#", "#", 1, "", "0.02,0,95.081", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve180x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_curve360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   --- Tubes Wireframe Wood ---
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "@90,-180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "@-90,0,180"})
-  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "@90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x1.mdl", "#", "#", 1, "", "31.246,33.667,47.541", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x1.mdl", "#", "#", 2, "", "31.222,33.69,0.095", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x2.mdl", "#", "#", 1, "", "31.246,33.667,95.083", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle90x2.mdl", "#", "#", 2, "", "31.241,33.671,0.183", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x1.mdl", "#", "#", 1, "", "31.222,33.667,47.543", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x1.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x2.mdl", "#", "#", 1, "", "31.222,33.668,94.993", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle180x2.mdl", "#", "#", 2, "", "31.222,33.667,0.093", "90,-180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x1.mdl", "#", "#", 1, "", "0.02,0,47.538", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
+  asmlib.InsertRecord({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   asmlib.DefaultType("PHX Tubes Plastic",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/hunter/","")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
     for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1b.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1b.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1c.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1c.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1d.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole1x1d.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1.mdl" , "#", "#", 1, "", "0,0,47.450", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1.mdl" , "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1b.mdl", "#", "#", 1, "", "0,0,47.450", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1b.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1c.mdl", "#", "#", 1, "", "0,0,47.450", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1c.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1d.mdl", "#", "#", 1, "", "0,0,47.450", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1d.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2.mdl" , "#", "#", 1, "", "0,0,94.900", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2.mdl" , "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2b.mdl", "#", "#", 1, "", "0,0,94.900", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2b.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2c.mdl", "#", "#", 1, "", "0,0,94.900", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2c.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2d.mdl", "#", "#", 1, "", "0,0,94.900", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2d.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3.mdl" , "#", "#", 1, "", "0,0,142.35", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3.mdl" , "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3b.mdl", "#", "#", 1, "", "0,0,142.35", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3b.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3c.mdl", "#", "#", 1, "", "0,0,142.35", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3c.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3d.mdl", "#", "#", 1, "", "0,0,142.35", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3d.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4.mdl" , "#", "#", 1, "", "0,0,189.80", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4.mdl" , "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4b.mdl", "#", "#", 1, "", "0,0,189.80", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4b.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4c.mdl", "#", "#", 1, "", "0,0,189.80", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4c.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4d.mdl", "#", "#", 1, "", "0,0,189.80", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4d.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5.mdl" , "#", "#", 1, "", "0,0,237.25", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5.mdl" , "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5b.mdl", "#", "#", 1, "", "0,0,237.25", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5b.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5c.mdl", "#", "#", 1, "", "0,0,237.25", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5c.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5d.mdl", "#", "#", 1, "", "0,0,237.25", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5d.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6.mdl" , "#", "#", 1, "", "0,0,284.70", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6.mdl" , "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6b.mdl", "#", "#", 1, "", "0,0,284.70", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6b.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6c.mdl", "#", "#", 1, "", "0,0,284.70", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6c.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6d.mdl", "#", "#", 1, "", "0,0,284.70", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6d.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8.mdl", "#", "#", 1, "", "0,0,379.60", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8b.mdl", "#", "#", 1, "", "0,0,379.60", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8b.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8c.mdl", "#", "#", 1, "", "0,0,379.60", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8c.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8d.mdl", "#", "#", 1, "", "0,0,379.60", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8d.mdl", "#", "#", 2, "", ""          , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x1x90.mdl", "#", "#", 1, "", "", "@90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1b.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1b.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1c.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1c.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1d.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole1x1d.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1.mdl" , "#", "#", 1, "", "0,0,47.450", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1.mdl" , "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1b.mdl", "#", "#", 1, "", "0,0,47.450", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1b.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1c.mdl", "#", "#", 1, "", "0,0,47.450", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1c.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1d.mdl", "#", "#", 1, "", "0,0,47.450", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x1d.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2.mdl" , "#", "#", 1, "", "0,0,94.900", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2.mdl" , "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2b.mdl", "#", "#", 1, "", "0,0,94.900", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2b.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2c.mdl", "#", "#", 1, "", "0,0,94.900", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2c.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2d.mdl", "#", "#", 1, "", "0,0,94.900", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x2d.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3.mdl" , "#", "#", 1, "", "0,0,142.35", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3.mdl" , "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3b.mdl", "#", "#", 1, "", "0,0,142.35", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3b.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3c.mdl", "#", "#", 1, "", "0,0,142.35", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3c.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3d.mdl", "#", "#", 1, "", "0,0,142.35", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x3d.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4.mdl" , "#", "#", 1, "", "0,0,189.80", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4.mdl" , "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4b.mdl", "#", "#", 1, "", "0,0,189.80", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4b.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4c.mdl", "#", "#", 1, "", "0,0,189.80", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4c.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4d.mdl", "#", "#", 1, "", "0,0,189.80", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x4d.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5.mdl" , "#", "#", 1, "", "0,0,237.25", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5.mdl" , "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5b.mdl", "#", "#", 1, "", "0,0,237.25", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5b.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5c.mdl", "#", "#", 1, "", "0,0,237.25", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5c.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5d.mdl", "#", "#", 1, "", "0,0,237.25", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x5d.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6.mdl" , "#", "#", 1, "", "0,0,284.70", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6.mdl" , "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6b.mdl", "#", "#", 1, "", "0,0,284.70", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6b.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6c.mdl", "#", "#", 1, "", "0,0,284.70", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6c.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6d.mdl", "#", "#", 1, "", "0,0,284.70", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x6d.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8.mdl", "#", "#", 1, "", "0,0,379.60", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8b.mdl", "#", "#", 1, "", "0,0,379.60", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8b.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8c.mdl", "#", "#", 1, "", "0,0,379.60", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8c.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8d.mdl", "#", "#", 1, "", "0,0,379.60", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube1x1x8d.mdl", "#", "#", 2, "", ""          , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x1x90.mdl", "#", "#", 1, "", "", "90,-180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend1x1x90.mdl", "#", "#", 2, "", "0,23.725,23.725", "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2b.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2b.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2c.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2c.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2d.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle2x2d.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole1x1.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole1x1.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole1x2.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole1x2.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole2x2.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole2x2.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole3.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/plates/platehole3.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/shell2x2a.mdl", "#", "#", 1, "", "", "@90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/shell2x2b.mdl", "#", "#", 1, "", "", "@90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/shell2x2c.mdl", "#", "#", 1, "", "", "@90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/shell2x2d.mdl", "#", "#", 1, "", "", "@90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/shell2x2e.mdl", "#", "#", 1, "", "", "@90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2b.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2b.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2c.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2c.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2d.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle2x2d.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole1x1.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole1x1.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole1x2.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole1x2.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole2x2.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole2x2.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole3.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/plates/platehole3.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/shell2x2a.mdl", "#", "#", 1, "", "", "90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/shell2x2b.mdl", "#", "#", 1, "", "", "90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/shell2x2c.mdl", "#", "#", 1, "", "", "90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/shell2x2d.mdl", "#", "#", 1, "", "", "90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/shell2x2e.mdl", "#", "#", 1, "", "", "90,180,180"})
   asmlib.InsertRecord({"models/hunter/misc/shell2x2x45.mdl", "#", "#", 1, "0, -47.45, 0", "", ""})
   asmlib.InsertRecord({"models/hunter/misc/shell2x2x45.mdl", "#", "#", 2, "-33.552, -33.552, 0", "", "0,135,0"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025.mdl" , "#", "#", 1, "", "0,0, 5.93125", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025.mdl" , "#", "#", 2, "", "0,0,-5.93125", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025b.mdl", "#", "#", 1, "", "0,0, 5.93125", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025b.mdl", "#", "#", 2, "", "0,0,-5.93125", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025c.mdl", "#", "#", 1, "", "0,0, 5.93125", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025c.mdl", "#", "#", 2, "", "0,0,-5.93125", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025d.mdl", "#", "#", 1, "", "0,0, 5.93125", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025d.mdl", "#", "#", 2, "", "0,0,-5.93125", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05.mdl"  , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05.mdl"  , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05b.mdl" , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05c.mdl" , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05c.mdl" , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05d.mdl" , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05d.mdl" , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1.mdl" , "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1.mdl" , "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1b.mdl", "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1b.mdl", "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1c.mdl", "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1c.mdl", "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1d.mdl", "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1d.mdl", "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2.mdl" , "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2.mdl" , "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2b.mdl", "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2b.mdl", "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2c.mdl", "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2c.mdl", "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2d.mdl", "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2d.mdl", "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4.mdl" , "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4.mdl" , "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4b.mdl", "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4b.mdl", "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4c.mdl", "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4c.mdl", "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4d.mdl", "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4d.mdl", "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8.mdl" , "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8.mdl" , "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8b.mdl", "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8b.mdl", "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8c.mdl", "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8c.mdl", "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8d.mdl", "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8d.mdl", "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x16d.mdl", "#", "#", 1, "", "0,0,711.75"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x16d.mdl", "#", "#", 2, "", "0,0,-47.45"   , "@ 90,-180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x+.mdl", "#", "#", 1, "", "0,0,47.45"      , "@-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025.mdl" , "#", "#", 1, "", "0,0, 5.93125", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025.mdl" , "#", "#", 2, "", "0,0,-5.93125", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025b.mdl", "#", "#", 1, "", "0,0, 5.93125", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025b.mdl", "#", "#", 2, "", "0,0,-5.93125", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025c.mdl", "#", "#", 1, "", "0,0, 5.93125", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025c.mdl", "#", "#", 2, "", "0,0,-5.93125", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025d.mdl", "#", "#", 1, "", "0,0, 5.93125", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x025d.mdl", "#", "#", 2, "", "0,0,-5.93125", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05.mdl"  , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05.mdl"  , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05b.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05c.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05c.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05d.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x05d.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1.mdl" , "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1.mdl" , "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1b.mdl", "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1b.mdl", "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1c.mdl", "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1c.mdl", "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1d.mdl", "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x1d.mdl", "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2.mdl" , "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2.mdl" , "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2b.mdl", "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2b.mdl", "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2c.mdl", "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2c.mdl", "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2d.mdl", "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x2d.mdl", "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4.mdl" , "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4.mdl" , "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4b.mdl", "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4b.mdl", "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4c.mdl", "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4c.mdl", "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4d.mdl", "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x4d.mdl", "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8.mdl" , "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8.mdl" , "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8b.mdl", "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8b.mdl", "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8c.mdl", "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8c.mdl", "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8d.mdl", "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x8d.mdl", "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x16d.mdl", "#", "#", 1, "", "0,0,711.75"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x16d.mdl", "#", "#", 2, "", "0,0,-47.45"   , " 90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x+.mdl", "#", "#", 1, "", "0,0,47.45"      , "-90,0,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tube2x2x+.mdl", "#", "#", 2, "", "0,-47.45,0"     , "0,-90,-90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x+.mdl", "#", "#", 3, "", "0,0,-47.45"     , "@ 90,0,0"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2x+.mdl", "#", "#", 3, "", "0,0,-47.45"     , " 90,0,0"})
   asmlib.InsertRecord({"models/hunter/tubes/tube2x2x+.mdl", "#", "#", 4, "", "0,47.45,0"      , "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2xt.mdl", "#", "#", 1, "", "0,0,-47.45"     , "@ 90,0,0"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2xt.mdl", "#", "#", 1, "", "0,0,-47.45"     , " 90,0,0"})
   asmlib.InsertRecord({"models/hunter/tubes/tube2x2xt.mdl", "#", "#", 2, "", "0,-47.45,0"     , "0,-90,-90"})
   asmlib.InsertRecord({"models/hunter/tubes/tube2x2xt.mdl", "#", "#", 3, "", "0,47.45,0"      , "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2xta.mdl", "#", "#", 1, "", "0,0,-23.725", "@90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2xta.mdl", "#", "#", 1, "", "0,0,-23.725", "90,180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tube2x2xta.mdl", "#", "#", 2, "", "0,47.45,23.725", "0,90,90"})
   asmlib.InsertRecord({"models/hunter/tubes/tube2x2xta.mdl", "#", "#", 3, "", "0,-47.45,23.725", "0,-90,-90"})
   asmlib.InsertRecord({"models/hunter/tubes/tube2x2xtb.mdl", "#", "#", 1, "", "0,-23.725,0", "0,-90,-90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube2x2xtb.mdl", "#", "#", 2, "", "0,23.725,-47.45", "@90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90.mdl", "#", "#", 1, "", "", "@90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube2x2xtb.mdl", "#", "#", 2, "", "0,23.725,-47.45", "90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90.mdl", "#", "#", 1, "", "", "90,180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90.mdl", "#", "#", 2, "", "0,47.45,47.45", "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90.mdl", "#", "#", 1, "", "", "@90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90.mdl", "#", "#", 1, "", "", "90,180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90.mdl", "#", "#", 2, "", "0,47.45,47.45", "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90a.mdl", "#", "#", 1, "", "", "@90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90a.mdl", "#", "#", 1, "", "", "90,180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90a.mdl", "#", "#", 2, "", "0,47.45,47.45", "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90outer.mdl", "#", "#", 1, "", "", "@90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90outer.mdl", "#", "#", 1, "", "", "90,180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90outer.mdl", "#", "#", 2, "", "0,47.45,47.45", "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90square.mdl", "#", "#", 1, "", "0,0,-47.451", "@90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90square.mdl", "#", "#", 1, "", "0,0,-47.451", "90,-180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend2x2x90square.mdl", "#", "#", 2, "", "0,47.417,0", "0,90,90"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90b.mdl", "#", "#", 1, "", "-47.45,0,47.45", "0,-180,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90b.mdl", "#", "#", 2, "", "", "@90,-90,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebendinsidesquare.mdl", "#", "#", 1, "", "0,0,23.725", "@-90,90,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend1x2x90b.mdl", "#", "#", 2, "", "", "90,-90,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebendinsidesquare.mdl", "#", "#", 1, "", "0,0,23.725", "-90,90,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebendinsidesquare.mdl", "#", "#", 2, "", "-47.45,0,-23.724", "0,-180,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebendinsidesquare2.mdl", "#", "#", 1, "", "0,0,23.725", "@-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebendinsidesquare2.mdl", "#", "#", 1, "", "0,0,23.725", "-90,0,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebendinsidesquare2.mdl", "#", "#", 2, "", "0,-47.45,-23.724", "0,-90,-90"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebendoutsidesquare.mdl", "#", "#", 1, "0,0,47.45", "", "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebendoutsidesquare.mdl", "#", "#", 2, "0,-47.45,0", "", "@90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebendoutsidesquare.mdl", "#", "#", 2, "0,-47.45,0", "", "90,180,180"})
   asmlib.InsertRecord({"models/hunter/tubes/tubebendoutsidesquare2.mdl", "#", "#", 1, "0,0,47.45", "", "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebendoutsidesquare2.mdl", "#", "#", 2, "0,-47.45,0", "", "@90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4b.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4b.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4c.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4c.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4d.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/circle4x4d.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4b.mdl", "#", "#", 1, "", "0,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4b.mdl", "#", "#", 2, "", "0,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4c.mdl", "#", "#", 1, "", "47.45,0, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4c.mdl", "#", "#", 2, "", "47.45,0,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4d.mdl", "#", "#", 1, "", "47.45,47.45, 1.5", "@-90,  0,180"})
-  asmlib.InsertRecord({"models/hunter/misc/platehole4x4d.mdl", "#", "#", 2, "", "47.45,47.45,-1.5", "@ 90,180,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 1, "", "", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 2, "", "0,0,-47.45","@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 1, "", "0,0,11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 2, "", "0,0,", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 1, "", "0,0,11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 2, "", "0,0,", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 1, "", "0,0,11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 2, "", "0,0,", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 1, "", "0,0,11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 2, "", "0,0,", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05b.mdl" , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05c.mdl" , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05c.mdl" , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05d.mdl" , "#", "#", 1, "", "0,0, 11.8625", "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05d.mdl" , "#", "#", 2, "", "0,0,-11.8625", "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1.mdl" , "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1.mdl" , "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1b.mdl", "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1b.mdl", "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1c.mdl", "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1c.mdl", "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1d.mdl", "#", "#", 1, "", "0,0, 23.726"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1d.mdl", "#", "#", 2, "", "0,0,-23.726"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2.mdl" , "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2.mdl" , "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2b.mdl", "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2b.mdl", "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2c.mdl", "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2c.mdl", "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2d.mdl", "#", "#", 1, "", "0,0, 47.45"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2d.mdl", "#", "#", 2, "", "0,0,-47.45"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3.mdl" , "#", "#", 1, "", "0,0, 71.175"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3.mdl" , "#", "#", 2, "", "0,0,-71.175"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3b.mdl", "#", "#", 1, "", "0,0, 71.175"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3b.mdl", "#", "#", 2, "", "0,0,-71.175"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3c.mdl", "#", "#", 1, "", "0,0, 71.175"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3c.mdl", "#", "#", 2, "", "0,0,-71.175"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3d.mdl", "#", "#", 1, "", "0,0, 71.175"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3d.mdl", "#", "#", 2, "", "0,0,-71.175"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4.mdl" , "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4.mdl" , "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4b.mdl", "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4b.mdl", "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4c.mdl", "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4c.mdl", "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4d.mdl", "#", "#", 1, "", "0,0, 94.9"     , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4d.mdl", "#", "#", 2, "", "0,0,-94.9"     , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5.mdl" , "#", "#", 1, "", "0,0, 118.625"  , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5.mdl" , "#", "#", 2, "", "0,0,-118.625"  , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5b.mdl", "#", "#", 1, "", "0,0, 118.625"  , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5b.mdl", "#", "#", 2, "", "0,0,-118.625"  , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5c.mdl", "#", "#", 1, "", "0,0, 118.625"  , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5c.mdl", "#", "#", 2, "", "0,0,-118.625"  , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5d.mdl", "#", "#", 1, "", "0,0, 118.625"  , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5d.mdl", "#", "#", 2, "", "0,0,-118.625"  , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6.mdl" , "#", "#", 1, "", "0,0, 142.35"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6.mdl" , "#", "#", 2, "", "0,0,-142.35"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6b.mdl", "#", "#", 1, "", "0,0, 142.35"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6b.mdl", "#", "#", 2, "", "0,0,-142.35"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6c.mdl", "#", "#", 1, "", "0,0, 142.35"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6c.mdl", "#", "#", 2, "", "0,0,-142.35"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6d.mdl", "#", "#", 1, "", "0,0, 142.35"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6d.mdl", "#", "#", 2, "", "0,0,-142.35"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8.mdl" , "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8.mdl" , "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8b.mdl", "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8b.mdl", "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8c.mdl", "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8c.mdl", "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8d.mdl", "#", "#", 1, "", "0,0, 189.8"    , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8d.mdl", "#", "#", 2, "", "0,0,-189.8"    , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16.mdl" , "#", "#", 1, "", "0,0, 379.6"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16.mdl" , "#", "#", 2, "", "0,0,-379.6"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16b.mdl", "#", "#", 1, "", "0,0, 379.6"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16b.mdl", "#", "#", 2, "", "0,0,-379.6"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16c.mdl", "#", "#", 1, "", "0,0, 379.6"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16c.mdl", "#", "#", 2, "", "0,0,-379.6"   , "@ 90,0, 0 "})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 1, "", "0,0, 379.6"   , "@-90,0,180"})
-  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 2, "", "0,0,-379.6"   , "@ 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebendoutsidesquare2.mdl", "#", "#", 2, "0,-47.45,0", "", "90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4b.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4b.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4c.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4c.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4d.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/circle4x4d.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4b.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4b.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4c.mdl", "#", "#", 1, "", "47.45,0, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4c.mdl", "#", "#", 2, "", "47.45,0,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4d.mdl", "#", "#", 1, "", "47.45,47.45, 1.5", "-90,  0,180"})
+  asmlib.InsertRecord({"models/hunter/misc/platehole4x4d.mdl", "#", "#", 2, "", "47.45,47.45,-1.5", " 90,180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 1, "", "", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1to2x2.mdl", "#", "#", 2, "", "0,0,-47.45"," 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025b.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025c.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x025d.mdl" , "#", "#", 2, "", "0,0,0", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05.mdl"  , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05b.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05b.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05c.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05c.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05d.mdl" , "#", "#", 1, "", "0,0, 11.8625", "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x05d.mdl" , "#", "#", 2, "", "0,0,-11.8625", " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1.mdl" , "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1.mdl" , "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1b.mdl", "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1b.mdl", "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1c.mdl", "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1c.mdl", "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1d.mdl", "#", "#", 1, "", "0,0, 23.726"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x1d.mdl", "#", "#", 2, "", "0,0,-23.726"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2.mdl" , "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2.mdl" , "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2b.mdl", "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2b.mdl", "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2c.mdl", "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2c.mdl", "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2d.mdl", "#", "#", 1, "", "0,0, 47.45"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x2d.mdl", "#", "#", 2, "", "0,0,-47.45"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3.mdl" , "#", "#", 1, "", "0,0, 71.175"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3.mdl" , "#", "#", 2, "", "0,0,-71.175"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3b.mdl", "#", "#", 1, "", "0,0, 71.175"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3b.mdl", "#", "#", 2, "", "0,0,-71.175"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3c.mdl", "#", "#", 1, "", "0,0, 71.175"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3c.mdl", "#", "#", 2, "", "0,0,-71.175"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3d.mdl", "#", "#", 1, "", "0,0, 71.175"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x3d.mdl", "#", "#", 2, "", "0,0,-71.175"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4.mdl" , "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4.mdl" , "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4b.mdl", "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4b.mdl", "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4c.mdl", "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4c.mdl", "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4d.mdl", "#", "#", 1, "", "0,0, 94.9"     , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x4d.mdl", "#", "#", 2, "", "0,0,-94.9"     , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5.mdl" , "#", "#", 1, "", "0,0, 118.625"  , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5.mdl" , "#", "#", 2, "", "0,0,-118.625"  , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5b.mdl", "#", "#", 1, "", "0,0, 118.625"  , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5b.mdl", "#", "#", 2, "", "0,0,-118.625"  , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5c.mdl", "#", "#", 1, "", "0,0, 118.625"  , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5c.mdl", "#", "#", 2, "", "0,0,-118.625"  , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5d.mdl", "#", "#", 1, "", "0,0, 118.625"  , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x5d.mdl", "#", "#", 2, "", "0,0,-118.625"  , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6.mdl" , "#", "#", 1, "", "0,0, 142.35"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6.mdl" , "#", "#", 2, "", "0,0,-142.35"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6b.mdl", "#", "#", 1, "", "0,0, 142.35"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6b.mdl", "#", "#", 2, "", "0,0,-142.35"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6c.mdl", "#", "#", 1, "", "0,0, 142.35"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6c.mdl", "#", "#", 2, "", "0,0,-142.35"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6d.mdl", "#", "#", 1, "", "0,0, 142.35"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x6d.mdl", "#", "#", 2, "", "0,0,-142.35"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8.mdl" , "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8.mdl" , "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8b.mdl", "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8b.mdl", "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8c.mdl", "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8c.mdl", "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8d.mdl", "#", "#", 1, "", "0,0, 189.8"    , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x8d.mdl", "#", "#", 2, "", "0,0,-189.8"    , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16.mdl" , "#", "#", 1, "", "0,0, 379.6"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16.mdl" , "#", "#", 2, "", "0,0,-379.6"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16b.mdl", "#", "#", 1, "", "0,0, 379.6"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16b.mdl", "#", "#", 2, "", "0,0,-379.6"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16c.mdl", "#", "#", 1, "", "0,0, 379.6"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16c.mdl", "#", "#", 2, "", "0,0,-379.6"   , " 90,0, 0 "})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 1, "", "0,0, 379.6"   , "-90,0,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 2, "", "0,0,-379.6"   , " 90,0, 0 "})
   asmlib.InsertRecord({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 1, "", "0, 94.9,0" , "0,90,90"})
-  asmlib.InsertRecord({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 2, "", "0,0,-94.9" , "@90,-180,180"})
+  asmlib.InsertRecord({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 2, "", "0,0,-94.9" , "90,-180,180"})
   asmlib.DefaultType("G Scale Track Pack",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/gscale/","")
@@ -2647,25 +2815,25 @@ else
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8_i.mdl"         , "#", "#", 1, "", " 52,-16,1.81", ""})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_trackend_x8_i.mdl"         , "#", "#", 2, "", "-52,-16,5.81", "0,180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small.mdl"            , "#", "#", 1, "", "-26, 28, 5.81", "0,180,0"})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small.mdl"            , "#", "#", 2, "", "157.1996,28,83.378784", "@-52.5,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small.mdl"            , "#", "#", 2, "", "157.1996,28,83.378784", "-52.5,0,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small_i.mdl"          , "#", "#", 1, "", "-26, 28, 5.81", "0,180,0"})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small_i.mdl"          , "#", "#", 2, "", "157.1996,28,83.378784", "@-52.5,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_small_i.mdl"          , "#", "#", 2, "", "157.1996,28,83.378784", "-52.5,0,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp.mdl"                  , "#", "#", 1, "", "-26,-20,5.81", "0,-180,0"})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp.mdl"                  , "#", "#", 2, "", "157.184906,-20,83.365128", "@-52.5,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp.mdl"                  , "#", "#", 2, "", "157.184906,-20,83.365128", "-52.5,0,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_i.mdl"                , "#", "#", 1, "", "-26,-20,5.81", "0,-180,0"})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_i.mdl"                , "#", "#", 2, "", "157.184906,-20,83.365128", "@-52.5,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_ramp_i.mdl"                , "#", "#", 2, "", "157.184906,-20,83.365128", "-52.5,0,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop_quarter.mdl"          , "#", "#", 1, "", "-25.99988,-19.999998,5.81", "0,-180,0"})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop_quarter.mdl"          , "#", "#", 2, "", "198.190018,-20,229.959763", "@-90,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop_quarter.mdl"          , "#", "#", 2, "", "198.190018,-20,229.959763", "-90,0,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop_quarter_i.mdl"        , "#", "#", 1, "", "-25.99988,-19.999998,5.81", "0,-180,0"})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop_quarter_i.mdl"        , "#", "#", 2, "", "198.190018,-20,229.959763", "@-90,0,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop_quarter_i.mdl"        , "#", "#", 2, "", "198.190018,-20,229.959763", "-90,0,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_small.mdl"             , "#", "#", 1, "", "157.982788,27.999634,83.837219"  , ""})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_small.mdl"             , "#", "#", 2, "", "-27.439621,28.012085,5.100098"   , "@52.5,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_small.mdl"             , "#", "#", 2, "", "-27.439621,28.012085,5.100098"   , "52.5,180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_small_i.mdl"           , "#", "#", 1, "", "157.982788,27.999634,83.837219"  , ""})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_small_i.mdl"           , "#", "#", 2, "", "-27.439621,28.012085,5.100098"   , "@52.5,180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_small_i.mdl"           , "#", "#", 2, "", "-27.439621,28.012085,5.100098"   , "52.5,180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow.mdl"                   , "#", "#", 1, "", "157.982285,-19.999878,83.837341" , ""})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow.mdl"                   , "#", "#", 2, "", "-27.427399,-19.999756,5.118835"  , "@52.5,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow.mdl"                   , "#", "#", 2, "", "-27.427399,-19.999756,5.118835"  , "52.5,-180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_i.mdl"                 , "#", "#", 1, "", "157.982285,-19.999878,83.837341" , ""})
-  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_i.mdl"                 , "#", "#", 2, "", "-27.427399,-19.999756,5.118835"  , "@52.5,-180,0"})
+  asmlib.InsertRecord({"models/sligwolf/minihover/hover_bow_i.mdl"                 , "#", "#", 2, "", "-27.427399,-19.999756,5.118835"  , "52.5,-180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop1.mdl"                 , "#", "#", 1, "", "104.00061,136.000061 ,5.81"   , ""})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop1.mdl"                 , "#", "#", 2, "", "-103.999908,32.000008,5.81", "0,180,0"})
   asmlib.InsertRecord({"models/sligwolf/minihover/hover_loop1i.mdl"                , "#", "#", 1, "", "103.999817,-136,5.81", ""})
@@ -2820,13 +2988,15 @@ else
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
   asmlib.InsertRecord({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""})
+  if(gsMoDB == "SQL") then sqlCommit() end
 end
 
 if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance("Init: DB PHYSPROPERTIES from DSV")
+  asmlib.LogInstance("DB PHYSPROPERTIES from DSV",gtInitLogs)
   asmlib.ImportDSV("PHYSPROPERTIES", true)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
-  asmlib.LogInstance("Init: DB PHYSPROPERTIES from LUA")
+  if(gsMoDB == "SQL") then sqlBegin() end
+  asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
   asmlib.DefaultTable("PHYSPROPERTIES")
   asmlib.DefaultType("Special")
   asmlib.InsertRecord({"#", 1 , "default"             })
@@ -2927,13 +3097,15 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   asmlib.InsertRecord({"#", 18, "glass"                   })
   asmlib.InsertRecord({"#", 19, "glassbottle"             })
   asmlib.InsertRecord({"#", 20, "combine_glass"           })
+  if(gsMoDB == "SQL") then sqlCommit() end
 end
 
 if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance("Init: DB ADDITIONS from DSV")
+  asmlib.LogInstance("DB ADDITIONS from DSV",gtInitLogs)
   asmlib.ImportDSV("ADDITIONS", true)
 else
-  asmlib.LogInstance("Init: DB ADDITIONS from LUA")
+  if(gsMoDB == "SQL") then sqlBegin() end
+  asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)
   asmlib.DefaultTable("ADDITIONS")
   --- Shinji's Switchers ---
   asmlib.InsertRecord({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,0,-1,-1})
@@ -2942,391 +3114,8 @@ else
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,-1,0,-1,-1})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,1,SOLID_VPHYSICS})
   asmlib.InsertRecord({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
+  if(gsMoDB == "SQL") then sqlCommit() end
 end
 
------- CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes  ( Column "ISO 639-1" )
-if(CLIENT) then -- con >> control, def >> deafault, hd >> header, lb >> label
-  -- English
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".1"             , "Assembles a prop-segmented track")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".left"          , "Spawn/snap a piece. Hold SHIFT to stack")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".right"         , "Switch assembly points. Hold SHIFT for versa (Quick: ALT + SCROLL)")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".right_use"     , "Open frequently used pieces menu")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".reload"        , "Remove a piece. Hold SHIFT to select an anchor")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".desc"          , "Assembles a track for vehicles to run on")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".name"          , "Track assembly")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".phytype"       , "Select physical properties type of the ones listed here")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".phytype_def"   , "<Select Surface Material TYPE>")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".phyname"       , "Select physical properties name to use when creating the track as this will affect the surface friction")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".phyname_def"   , "<Select Surface Material NAME>")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".bgskids"       , "Selection code of comma delimited Bodygroup/Skin IDs > ENTER to accept, TAB to auto-fill from trace")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".bgskids_def"   , "Write selection code here. For example 1,0,0,2,1/3")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".mass"          , "How heavy the piece spawned will be")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".mass_con"      , "Piece mass:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".model"         , "Select the piece model to be used")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".model_con"     , "Select a piece to start/continue your track with by expanding a type and clicking on a node")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".activrad"      , "Minimum distance needed to select an active point")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".activrad_con"  , "Active radius:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".count"         , "Maximum number of pieces to create while stacking")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".count_con"     , "Pieces count:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".angsnap"       , "Snap the first piece spawned at this much degrees")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".angsnap_con"   , "Angular alignment:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".resetvars"     , "Click to reset the additional values")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".resetvars_con" , "V Reset variables V")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextpic"       , "Additional origin angular pitch offset")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextpic_con"   , "Origin pitch:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextyaw"       , "Additional origin angular yaw offset")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextyaw_con"   , "Origin yaw:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextrol"       , "Additional origin angular roll offset")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextrol_con"   , "Origin roll:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextx"         , "Additional origin linear X offset")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextx_con"     , "Offset X:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nexty"         , "Additional origin linear Y offset")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nexty_con"     , "Offset Y:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextz"         , "Additional origin linear Z offset")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nextz_con"     , "Offset Z:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".gravity"       , "Controls the gravity on the piece spawned")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".gravity_con"   , "Apply piece gravity")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".weld"          , "Creates welds between pieces or pieces/anchor")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".weld_con"      , "Weld")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".forcelim"      , "Controls how much force is needed to break the weld")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".forcelim_con"  , "Force limit:")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".ignphysgn"     , "Ignores physics gun grab on the piece spawned/snapped/stacked")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".ignphysgn_con" , "Ignore physics gun")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nocollide"     , "Puts a no-collide between pieces or pieces/anchor")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".nocollide_con" , "NoCollide")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".freeze"        , "Makes the piece spawn in a frozen state")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".freeze_con"    , "Freeze on spawn")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".igntype"       , "Makes the tool ignore the different piece types on snapping/stacking")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".igntype_con"   , "Ignore track type")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".spnflat"       , "The next piece will be spawned/snapped/stacked horizontally")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".spnflat_con"   , "Spawn horizontally")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".spawncn"       , "Spawns the piece at the center, else spawns relative to the active point chosen")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".spawncn_con"   , "Origin from center")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".surfsnap"      , "Snaps the piece to the surface the player is pointing at")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".surfsnap_con"  , "Snap to trace surface")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".appangfst"     , "Apply the angular offsets only on the first piece")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".appangfst_con" , "Apply angular on first")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".applinfst"     , "Apply the linear offsets only on the first piece")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".applinfst_con" , "Apply linear on first")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".adviser"       , "Controls rendering the tool position/angle adviser")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".adviser_con"   , "Draw adviser")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pntasist"      , "Controls rendering the tool snap point assistant")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pntasist_con"  , "Draw assistant")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".ghosthold"     , "Controls rendering the tool ghosted holder piece")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".ghosthold_con" , "Draw holder ghost")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".engunsnap"     , "Controls snapping when the piece is dropped by the player physgun")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".engunsnap_con" , "Enable physgun snap")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode"      , "Change this option to select a different working mode")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode_1"    , "General spawn/snap pieces")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".workmode_2"    , "Active point intersection")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_export"     , "Click to export the client database as a file")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_export_lb"  , "Export DB")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine"    , "The list of your frequently used track pieces")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_hd" , "Frequent pieces by: ")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_display"    , "The model of your track piece is displayed here")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_pattern"    , "Write a pattern here and hit ENTER to preform a search")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_srchcol"    , "Choose which list column you want to preform a search on")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_srchcol_lb" , "<Search by>")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_srchcol_lb1", "Model")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_srchcol_lb2", "Type")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_srchcol_lb3", "Name")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_srchcol_lb4", "End")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb" , "Routine items")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb1", "Used")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb2", "End")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb3", "Type")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_routine_lb4", "Name")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_display_lb" , "Piece display")
-  asmlib.SetLocalify("en","tool."..gsToolNameL..".pn_pattern_lb" , "Write pattern")
-  asmlib.SetLocalify("en","Cleanup_"..gsLimitName                , "Assembled track pieces")
-  asmlib.SetLocalify("en","Cleaned_"..gsLimitName                , "Cleaned up all track pieces")
-  asmlib.SetLocalify("en","SBoxLimit_"..gsLimitName              , "You've hit the spawned tracks limit!")
-  -- Bulgarian
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".1"             , "Сглобява сегментно трасе от предмети")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".left"          , "Създава/Залепва парче. Задръжте ШИФТ за да натрупате")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".right"         , "Сменяне на точките на сглобка. Задръжте ШИФТ за на обратно (Бързо: АЛТ + СКРОЛ)")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".right_use"     , "Отваря менюто с най-често използваните парчета")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".reload"        , "Премахва парче. Задръжте ШИФТ за да изберете опора")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".desc"          , "Сглобява трасе по което да вървят превозните средства")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".name"          , "Монтаж на трасе")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".phytype"       , "Изберете типа на физическите свойства от дадените тук")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".phytype_def"   , "<Избери тип на повърхността>")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".phyname"       , "Изберете името на физическите свойства което да се използва при създаване на трасе като това ще повлияе на повърхностното триене")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".phyname_def"   , "<Избери име на повърхността>")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".bgskids"       , "Селекционен код за избор на Бодигруп/Скин > ЕНТЪР за да приемете, ТАБ за да попълните автоматично от тресирания")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".bgskids_def"   , "Запишете селекционен код тук. Например 1,0,0,2,1/3")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".mass"          , "Колко тежко ще бъде създаденото парче")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".mass_con"      , "Маса на парчето:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".model"         , "Изберете модел на парчето")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".model_con"     , "Изберете парче за да започнете/продължите трасето си избирайки типа в дървото и кликайки на листо")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".activrad"      , "Минимално разстояние за да се избере активна точка")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".activrad_con"  , "Активен радиус:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".count"         , "Максимален брой парчета които може да се създадат при натрупване")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".count_con"     , "Брой парчета:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".angsnap"       , "Залепете първото създадено парче на толкова градуса")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".angsnap_con"   , "Ъглово подравняване:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".resetvars"     , "Цъкнете за да нулирате допълнителните стойности")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".resetvars_con" , "V Нулиране на променливите V")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextpic"       , "Допълнително отместване на началото по тангаж")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextpic_con"   , "Тангаж на началото:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextyaw"       , "Допълнително отместване на началото по азимут")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextyaw_con"   , "Азимут на началото:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextrol"       , "Допълнително отместване на началото по крен")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextrol_con"   , "Крен на началото:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextx"         , "Допълнително отместване на началото по абсциса")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextx_con"     , "Отместване по абсциса:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nexty"         , "Допълнително отместване на началото по ордината")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nexty_con"     , "Отместване по ордината:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextz"         , "Допълнително отместване на началото по апликата")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nextz_con"     , "Отместване по апликата:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".gravity"       , "Управлява гравитацията върху създаденото парче")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".gravity_con"   , "Приложи гравитация върху парчето")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".weld"          , "Създава заварки между парчетата или парчета/опора")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".weld_con"      , "Създай заварка")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".forcelim"      , "Управлява колко сила е необходима за да се счупи заварката")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".forcelim_con"  , "Якост на заварката:")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".ignphysgn"     , "Пренебрегва хващането с физическо оръдие на парчето създадено/залепено/натрупано")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".ignphysgn_con" , "Пренебрегни хващането с физическо оръдие")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nocollide"     , "Създава не-сблъсък между парчетата или парчета/опора")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".nocollide_con" , "Създай не-сблъсък")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".freeze"        , "Създава парчето в замразено състояние")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".freeze_con"    , "Замрази при създаване")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".igntype"       , "Пренебрегва различните типове парчета при лепене/натрупване")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".igntype_con"   , "Пренебрегни типа на парчето")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".spnflat"       , "Следващото парче ще бъде създадено/залепено/натрупано хоризонтално")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".spnflat_con"   , "Създай хоризонтално")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".spawncn"       , "Създава парчето в центъра, иначе спрямо избраната активна точка")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".spawncn_con"   , "Начало спрямо центъра")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".surfsnap"      , "Залепи парчето по повърхнината към която сочи потребителя")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".surfsnap_con"  , "Залепи по повърхнината")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".appangfst"     , "Приложи ъгловото отместване само върху първото парче за насочване")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".appangfst_con" , "Приложи ъгловото на пръви")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".applinfst"     , "Приложи линейното отместване само върху първото парче за позициониране")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".applinfst_con" , "Приложи линейното на пръви")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".adviser"       , "Управлява изобразяването на позиционен/ъглов съветник")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".adviser_con"   , "Изобразявай съветника")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pntasist"      , "Управлява изобразяването на асистента за лепене")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pntasist_con"  , "Изобразявай асистента")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".ghosthold"     , "Управлява изобразяването на парчето сянка")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".ghosthold_con" , "Изобразявай парче сянка")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".engunsnap"     , "Управлява залепването когато парчето е изпуснато с физическото оръдие на играча")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".engunsnap_con" , "Залепване при изпускане")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".workmode"      , "Сменете тази опция за да изберете различен режим на работа")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".workmode_1"    , "Обикновено създаване/залепяне")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".workmode_2"    , "Пресичане на активни точки")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_export"     , "Цъкнете за да съхраните базата данни на файл")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_export_lb"  , "Съхрани DB")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine"    , "Списъкът с редовно използваните ви парчета трасе")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_hd" , "Редовни парчета на: ")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_display"    , "Моделът на вашето парче трасе се показва тук")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_pattern"    , "Напишете шаблон тук и натиснете ЕНТЪР за да извършите търсене")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_srchcol"    , "Изберете по коя колона да извършите търсене")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_srchcol_lb" , "<Търси по>")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_srchcol_lb1", "Модел")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_srchcol_lb2", "Тип")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_srchcol_lb3", "Име")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_srchcol_lb4", "Ръб")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb" , "Рутинни обекти")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb1", "Срок")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb2", "Ръб")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb3", "Тип")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_routine_lb4", "Име")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_display_lb" , "Дисплей за парчето")
-  asmlib.SetLocalify("bg","tool."..gsToolNameL..".pn_pattern_lb" , "Напишете шаблон")
-  asmlib.SetLocalify("bg","Cleanup_"..gsLimitName                , "Сглобени парчета трасе")
-  asmlib.SetLocalify("bg","Cleaned_"..gsLimitName                , "Всички парчета трасе са почистени")
-  asmlib.SetLocalify("bg","SBoxLimit_"..gsLimitName              , "Достигнахте границата на създадените парчета трасе!")
-  -- French
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".1"             , "Assemble une piste segmenté")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".left"          , "Créer/aligner une pièce. Maintenez SHIFT pour empiler")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".right"         , "Changer de point de rassemblement. Maintenez SHIFT pour le verso (Rapide: ALT + MOLETTE)")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".right_use"     , "Ouvrir le menu des pièces utilisés fréquemment")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".reload"        , "Retirer une pièce. Maintenez SHIFT pour sélectionner une ancre")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".desc"          , "Assemble une piste auquel les véhicules peuvent rouler dessus")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".name"          , "Assembleur à piste")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".phytype"       , "Sélectionnez une des propriétés physiques dans la liste")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".phytype_def"   , "<Sélectionner un TYPE de matériau de surface>")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".phyname"       , "Sélectionnez une des noms de propriétés physiques à utiliser lorsque qu'une piste sera créée. Ceci va affecter la friction de la surface")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".phyname_def"   , "<Sélectionner un NOM de matériau de surface>")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".bgskids"       , "Cette ensemble de code est delimité par une virgule pour chaque Bodygroup/Skin IDs > ENTRÉE pour accepter, TAB pour copier depuis la trace")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".bgskids_def"   , "Écrivez le code de sélection ici. Par exemple 1,0,0,2,1/3")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".mass"          , "À quel point la pièce créée sera lourd")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".mass_con"      , "Masse de la pièce:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".model"         , "Sélectionner le modèle de la pièce à utiliser")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".model_con"     , "Sélectionnez une pièce pour commencer/continuer votre piste avec, en étendant un type et en cliquant sur un nœud")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".activrad"      , "Distance minimum nécessaire pour sélectionner un point actif")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".activrad_con"  , "Rayon actif:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".count"         , "Nombre maximum de pièces à créer pendant l'empilement")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".count_con"     , "Nombre de pièces:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".angsnap"       , "Aligner la première pièce créée sur ce degré")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".angsnap_con"   , "Alignement angulaire:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".resetvars"     , "Cliquez pour réinitialiser les valeurs supplémentaires")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".resetvars_con" , "V Réinitialiser les variables V")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextpic"       , "Décalage angulaire supplémentaire sur la position initial du tangage")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextpic_con"   , "Angle du tangage:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextyaw"       , "Décalage angulaire supplémentaire sur la position initial du lacet")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextyaw_con"   , "Angle du lacet:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextrol"       , "Décalage angulaire supplémentaire sur la position initial du roulis")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextrol_con"   , "Angle du roulis:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextx"         , "Décalage linéaire supplémentaire sur la position initial de X")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextx_con"     , "Décalage en X:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nexty"         , "Décalage linéaire supplémentaire sur la position initial de Y")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nexty_con"     , "Décalage en Y:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextz"         , "Décalage linéaire supplémentaire sur la position initial de Z")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nextz_con"     , "Décalage en Z:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".gravity"       , "Contrôle la gravité sur la pièce créée")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".gravity_con"   , "Appliquer la gravité sur la pièce")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".weld"          , "Créer une soudure entre les pièces/ancres")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".weld_con"      , "Souder")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".forcelim"      , "Force nécessaire pour casser la soudure")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".forcelim_con"  , "Limite de force:")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".ignphysgn"     , "Ignore la saisie du pistolet physiques sur la pièce créée/alignée/empilé")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".ignphysgn_con" , "Ignorer le pistolet physiques")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nocollide"     , "Faire en sorte, que les pièces/ancres, ne puissent jamais entrer en collision")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".nocollide_con" , "Pas de collisions")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".freeze"        , "La pièce qui sera créée, sera dans un état gelé")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".freeze_con"    , "Geler dès la création")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".igntype"       , "Faire ignorer à l'outil, les différents types de pièce dès l'alignement/empilement")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".igntype_con"   , "Ignorer le type de piste")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".spnflat"       , "La prochaine pièce sera créée/alignée/empilé horizontalement")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".spnflat_con"   , "Créer horizontalement")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".spawncn"       , "Créer la pièce vers le centre, sinon, la créer relativement vers le point active choisi")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".spawncn_con"   , "Partir du centre")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".surfsnap"      , "Aligne la pièce vers la surface auquel le joueur vise actuellement")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".surfsnap_con"  , "Aligner vers la surface tracé")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".appangfst"     , "Appliquer les décalages angulaires seulement sur la première pièce")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".appangfst_con" , "Appliquer angulaire en premier")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".applinfst"     , "Appliquer les décalages linéaires seulement sur la première pièce")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".applinfst_con" , "Appliquer linéaire en premier")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".adviser"       , "Montrer le conseiller de position/angle de l'outil")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".adviser_con"   , "Montrer le conseiller")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pntasist"      , "Montrer l'assistant d'alignement de l'outil")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pntasist_con"  , "Montrer l'assistant")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".ghosthold"     , "Montrer un aperçu de la pièce active")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".ghosthold_con" , "Activer l'aperçu de l'outil")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".engunsnap"     , "Contrôle l'alignement quand la pièce est tombée par le pistolet physique d'un joueur")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".engunsnap_con" , "Activer l'alignement par pistolet physique")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".workmode"      , "Modifiez cette option pour utiliser différents modes de travail")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".workmode_1"    , "Général créer/aligner pieces")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".workmode_2"    , "Intersection de point actif")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_export"     , "Cliquer pour exporter la base de données client dans un fichier")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_export_lb"  , "Exporter")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine"    , "La liste de vos pièces de pistes utilisés fréquemment")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_hd" , "Pièces fréquents par: ")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_display"    , "Le modèle de votre pièce de piste est affiché ici")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_pattern"    , "Écrire un modèle ici et appuyer sur ENTRÉE pour effectuer une recherche")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_srchcol"    , "Choisir la liste de colonne auquel vous voulez effectuer une recherche sur")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_srchcol_lb" , "<Recherche>")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_srchcol_lb1", "Modèle")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_srchcol_lb2", "Type")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_srchcol_lb3", "Nom")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_srchcol_lb4", "Fin")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb" , "Articles de routine")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb1", "Utilisé")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb2", "Fin")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb3", "Type")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_routine_lb4", "Nom")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_display_lb" , "Affichage pièce")
-  asmlib.SetLocalify("fr","tool."..gsToolNameL..".pn_pattern_lb" , "Écrire modèle")
-  asmlib.SetLocalify("fr","Cleanup_"..gsLimitName                , "Pièces de piste assemblées")
-  asmlib.SetLocalify("fr","Cleaned_"..gsLimitName                , "Pistes nettoyées")
-  asmlib.SetLocalify("fr","SBoxLimit_"..gsLimitName              , "Vous avez atteint la limite des pistes créées!")
-  -- Russian
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".1"             , "Собрать сегментированную дорогу из предметов")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".left"          , "Создает/Прилепает кусок. Удерживайте СДВИГ чтобы нагромождали")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".right"         , "Изменение точки сборки. Удерживайте СДВИГ чтобы реверс (Быстро: АЛТ + ПРОКРУТКИ)")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".right_use"     , "Открывается меню с наиболее часто используемых кусков")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".reload"        , "Убрать кусок. Удерживайте СДВИГ чтобы выбрать якорь")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".desc"          , "Создает дорогу для транспортных средств")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".name"          , "Сборка дороги")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".phytype"       , "Выберите тип физических свойств из тех которые перечислены здесь")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".phytype_def"   , "<Выберите ТИП поверхности>")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".phyname"       , "Выберите имя физических свойств которые могут быть использованы при создании дороги так как это повлияет на поверхностное трение")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".phyname_def"   , "<Выберите ИМЯ поверхности>")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".bgskids"       , "Код выбора через запятую для Bodygroup/Skin ID > ВВОД чтобы принять ТАБ для автоматического заполнения из трассировки")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".bgskids_def"   , "Написать код выбора здесь. Например 1,0,0,2,1/3")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".mass"          , "Как тяжелый кусок создал будет")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".mass_con"      , "Масса куска :")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".model"         , "Выберите модель куска")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".model_con"     , "Выберите кусок, чтобы начать/продолжить свою дорогу выбирая тип дерева и нажав на листе")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".activrad"      , "Минимальное расстояние чтобы выбрать активную точку")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".activrad_con"  , "Активный радиус:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".count"         , "Максимальное количество куски для нагромождения")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".count_con"     , "Количество кусков:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".angsnap"       , "Приклейте первый кусок созданный тем положением градусов")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".angsnap_con"   , "Угловое выравнивание:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".resetvars"     , "Нажмите чтобы сбросить дополнительные значения")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".resetvars_con" , "V Сбросить переменные V")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextpic"       , "Дополнительный сдвиг начала тангажом")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextpic_con"   , "Начало тангажа:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextyaw"       , "Дополнительный сдвиг начала рысканием")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextyaw_con"   , "Начало рыскания:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextrol"       , "Дополнительный сдвиг начала рулона")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextrol_con"   , "Начало рулона:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextx"         , "Дополнительное линейное смещение X")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextx_con"     , "Смещения X:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nexty"         , "Дополнительное линейное смещение Y")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nexty_con"     , "Смещения Y:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextz"         , "Дополнительное линейное смещение Z")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nextz_con"     , "Смещения Z:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".gravity"       , "Управляет гравитацию куска")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".gravity_con"   , "Применить силу тяжести к куске")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".weld"          , "Создает сварные швы между кусками или кусоком/якорем")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".weld_con"      , "Сварной шов")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".forcelim"      , "Управляет сколько сил требуется чтобы сломать сварной шов")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".forcelim_con"  , "Ограничение силы:")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".ignphysgn"     , "Игнорирует захвата физической пушки при созданием/приклеиванием/нагромождением куска")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".ignphysgn_con" , "Игнорирует захвата физической пушки")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nocollide"     , "Делает не-столкновение между кусками или кусоком/якорем")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".nocollide_con" , "Не-столкновение")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".freeze"        , "Создает заморожений кусок")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".freeze_con"    , "Замораживают при создании")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".igntype"       , "Игнорирует различные типы кусков прилипания/накопления")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".igntype_con"   , "Игнорировать тип кусков")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".spnflat"       , "Следующий кусок будет создан/приклеен/накоплен по горизонтали")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".spnflat_con"   , "Нагромождать по горизонтали")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".spawncn"       , "Создание куска в центре иначе в выбранной активной точке")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".spawncn_con"   , "Происхождение из центра")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".surfsnap"      , "Приклеить кусок к поверхности к которой ссылается пользователь")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".surfsnap_con"  , "Приклеивать к поверхности")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".appangfst"     , "Применять угловое смещение только на первой кусок")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".appangfst_con" , "Применять угловое на первой")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".applinfst"     , "Применять линейное смещение только на первой кусок")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".applinfst_con" , "Применять линейное на первой")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".adviser"       , "Управляет отображением позиционного/углового советника")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".adviser_con"   , "Нарисовать советник")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pntasist"      , "Управляет изображение помощника для прилипания")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pntasist_con"  , "Нарисовать помощника")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".ghosthold"     , "Управляет отображением куска-тени")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".ghosthold_con" , "Нарисовать кусок-тень")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".engunsnap"     , "Управляет приклеивание когда кусок выпущен физической пушки пользователя")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".engunsnap_con" , "Приклеивать выпуском")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".workmode"      , "Измените эту опцию, чтобы использовать другой рабочий режим")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".workmode_1"    , "Общее создание/прилепание куски")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".workmode_2"    , "Пересечение активной точки")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_export"     , "Нажмите чтобы сохранить файл базы данных")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_export_lb"  , "Экспорт БД")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine"    , "Список регулярно используемых кусков дороги")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_hd" , "Часто используемых кусков пользователя: ")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_display"    , "Модель вашего куска дороги здесь отображается")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_pattern"    , "Напишите шаблон здесь и нажмите ВВОД для выполнения поиска")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_srchcol"    , "Выберите столбец для поиска")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_srchcol_lb" , "<Искать по>")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_srchcol_lb1", "Модель")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_srchcol_lb2", "Тип")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_srchcol_lb3", "Имя")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_srchcol_lb4", "Конец")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb" , "Часто используемых кусков")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb1", "Срок")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb2", "Конец")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb3", "Тип")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_routine_lb4", "Имя")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_display_lb" , "Показать кусок")
-  asmlib.SetLocalify("ru","tool."..gsToolNameL..".pn_pattern_lb" , "Напишите шаблон")
-  asmlib.SetLocalify("ru","Cleanup_"..gsLimitName                , "Собранные куски дороги")
-  asmlib.SetLocalify("ru","Cleaned_"..gsLimitName                , "Все куски дороги очищены")
-  asmlib.SetLocalify("ru","SBoxLimit_"..gsLimitName              , "Вы достигли предела созданных кусков дороги!")
-end
-
-asmlib.PrintInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"))
+asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"),gtInitLogs)
 collectgarbage()

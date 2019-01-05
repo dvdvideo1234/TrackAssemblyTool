@@ -1,8 +1,79 @@
-@name 
-@inputs UCS:wirelink
-@outputs T:string
+@name Track assembly wire extension
+@inputs UCS:wirelink Oth:wirelink
+@outputs T:string A:array
 @persist 
 @trigger 
 @model models/props_phx/trains/tracks/track_1x.mdl
 
-T = entity():trackasmlibGenActivePointINS(UCS:entity(),"Test","Test",1,"AAA")
+if(first() || dupefinished())
+{
+    E = entity()
+    O = Oth:entity()
+    M = E:model()
+    D = O:model()
+    print(E:trackasmlibGenActivePointINS(UCS:entity(),"Test","",1,"AAA"))
+    print(E:trackasmlibGenActivePointDSV(UCS:entity(),"Test","",1,"AAA"))
+    
+    if(trackasmlibIsPiece(M) && E:trackasmlibIsPiece())
+    {
+        print("Exists OK <"+trackasmlibIsPiece(M)+">")
+    }else{ error("Exists fail "+M) }
+
+    if(!trackasmlibIsPiece(D) && !O:trackasmlibIsPiece())
+    {
+        print("Other OK <"+D+">")
+    }else{ error("Other fail "+D) }
+    
+    
+    if(trackasmlibGetType(M) == E:trackasmlibGetType())
+    {
+        print("Type OK <"+trackasmlibGetType(M)+">")
+    }else{ error("Type fail "+M) }
+    
+    if(trackasmlibGetName(M) == E:trackasmlibGetName())
+    {
+        print("Name OK <"+trackasmlibGetName(M)+">")
+    }else{ error("Name fail "+M) }
+    
+    if(trackasmlibGetPointsCount(M) == E:trackasmlibGetPointsCount())
+    {
+        print("Points OK <"+trackasmlibGetPointsCount(M)+">")
+    }else{ error("Points fail "+M) }
+    
+    if((trackasmlibHasAdditions(M) == E:trackasmlibHasAdditions()))
+    {
+        print("Has Additions OK<"+trackasmlibHasAdditions(M)+">")
+    }else{ error("Additions fail "+M) }
+    
+    if((trackasmlibGetAdditionsCount(M) == E:trackasmlibGetAdditionsCount()))
+    {
+        print("Additions count OK<"+trackasmlibGetAdditionsCount(M)+">")
+    }else{ error("Additions count fail "+M) }
+    
+    A1 = trackasmlibGetAdditionsLine(M,1)
+    A2 = E:trackasmlibGetAdditionsLine(1)
+    if(A1[1, string] == A2[1, string])
+    {
+        print("Additions line OK <"+A1[1,string]+">")
+    }else{ error("Additions line fail "+M) }
+    
+    P1 = trackasmlibGetProperty()
+    if(P1[3,string] == "Metal")
+    {
+        P2 = trackasmlibGetProperty(P1[3,string])
+        if(P2[5, string] == "crowbar")
+        {
+            print("Property type OK <"+P2[5, string]+">")
+        }else{ error("Property type fail <"+P2[5, string]+">")}
+    }else{ error("Property fail <"+P1[3,string]+">")}
+    
+    B = E:trackasmlibGetBodyGroups()
+    if(B == "0"){
+        print("Bodygroup OK<"+B+">")
+    }else{ error("Bodygroup fail "+B) }
+    
+    S = E:trackasmlibGetSkin()
+    if(S == "0"){
+        print("Skin OK<"+B+">")
+    }else{ error("Skin fail "+B) }
+}

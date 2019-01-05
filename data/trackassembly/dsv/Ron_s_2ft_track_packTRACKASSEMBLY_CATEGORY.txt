@@ -1,0 +1,31 @@
+# ExportCategory:(3@Ron_s_2ft_track_pack) 28-12-18 23:00:59 [ SQL ]
+[===[Ron's 2ft track pack===function(m)
+		local function conv(x) return " "..x:sub(2,2):upper() end
+		local r = m:gsub("models/ron/2ft/","")
+		local s, o, n = r:find("/")
+		local g = s and r:sub(1,s-1) or "other"
+		if(g == "luajunctions") then
+		  o = {g}; local e
+		  n = m:gsub("models/ron/2ft/luajunctions/","")
+		  n = n:gsub("/junction.mdl",""):gsub("junctions/","junction_")
+		  e = n:find("/"); n = e and n:sub(1,e-1) or n
+		elseif(g == "straight") then
+		  n, o = r:sub(s+1,-1):gsub("straight_",""):gsub("%.mdl",""), {g}
+		elseif(g == "embankment") then
+		  local e = r:sub(s+1,-1):gsub("embankment_","")
+		  local s = e:find("%A")
+		  n, o = e:gsub("%.mdl",""), {g,((s > 1) and (e:sub(1,s-1)) or nil)}
+		elseif(g == "ramps") then
+		  n, o = r:sub(s+1,-1):gsub("ramp_",""):gsub("%.mdl",""), {g}
+		elseif(g == "tram") then
+		  n, o = r:sub(s+1,-1):gsub("tram_",""):gsub("%.mdl",""), {g}
+		elseif(g == "turntable") then
+		  n, o = r:sub(s+1,-1):gsub("turntable_",""):gsub("%.mdl",""), {g}
+		elseif(g == "viaduct") then
+		  n, o = r:sub(s+1,-1):gsub("viaduct_",""):gsub("%.mdl",""), {g}
+		elseif(g == "road_crossings") then
+		  n, o = r:sub(s+1,-1):gsub("road_",""):gsub("%.mdl",""), {g}
+		elseif(g == "curves") then
+		  n, o = r:sub(s+1,-1):gsub("curve_",""):gsub("%.mdl",""), {g}
+		else o = {g} end; n = n and ("_"..n):gsub("_%w",conv):sub(2,-1)
+		for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]===]
