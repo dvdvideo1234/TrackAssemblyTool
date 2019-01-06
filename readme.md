@@ -12,7 +12,8 @@
 
 This script can give you the ability to connect prop-segmented track pieces fast.
 It is optimized and brings the track building time consuming to a minimum.
-It uses pre-defined active points to snap the segments the best way there is in Garry's Mod
+It uses pre-defined active points to snap the segments the best way there is in
+[Garry's Mod](https://store.steampowered.com/app/4000/Garrys_Mod/).
 
 ## General FAQ:
 
@@ -34,32 +35,32 @@ Also, another great achievement progress is in place, so 10x guys for
 
 #### What kind of features does this script has?
   * Track curve fitting alignment based on [ray intersection for precise piece layout](https://www.youtube.com/watch?v=1rsDHU79J50)
-  * Extendible database via [text file](https://www.youtube.com/watch?v=Pz0_RGwgfaY) or a [lua script](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua)
-  * Extendible database via [text file load list](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt) and [list prefixes](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt) [categories](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt)
+  * [Extendible database](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension) via delimited [text file](https://www.youtube.com/watch?v=Pz0_RGwgfaY) or a [lua script](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua)
+  * [Extendible database](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension) via text file [load list](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt) and [list prefixes](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt) [categories](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt)
   * Switching database storage between Lua table and SQL
   * Spawning pieces on the map
   * Snapping pieces on the map surface ( if checked )
-  * Snapping/spawning with [custom user offsets](https://www.youtube.com/watch?v=e1IK2zJ_Djk)
-  * Snapping/spawning with zero pitch. Good for track leveling
-  * Snapping/spawning at the mass-center or the active point ( if checked )
   * Snapping the first piece angle to user defined value
   * Snapping already spawned pieces by [using only the physgun](https://www.youtube.com/watch?v=BxMlZMMGHrs)
+  * Snapping/spawning with [custom user offsets](https://www.youtube.com/watch?v=e1IK2zJ_Djk)
+  * Snapping/spawning with zero pitch and roll. Good for track leveling
+  * Snapping/spawning at the mass-center or the active point ( if checked )
   * Fast changing the active track ends ( Alt + mouse scroll ). Good switching turns direction
   * Custom user defined active radius based snapping
   * Custom active point and radius location assistant
   * Custom active point position angle and orientation adviser
   * Advanced duplicator can be used on the track created
-  * Custom entity properties ( weld, freeze, no-collide )
+  * Custom [entity][ref-entity] properties ( weld, freeze, no-collide )
   * User can disable phys-gun grabbing on a piece. Good for turntables
   * Ability to list up the most used pieces on the server ( E + MRIGHT ). Close shortcut (ALT + E)
   * Ability to search among the most server popular pieces by [Lua patterns](https://www.lua.org/pil/20.2.html)
   * Ability to export server and client database as a file
-  * Tool-tips for every button are available and can be translated easily
-  * Ability to spawn scripted track switches of other class ( Ron's 2ft )
+  * Tool-tips for every button are available and can be [translated easily](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Translations)
+  * Ability to spawn scripted track switches of other dedicated class ( Ron's 2ft )
   * Ability to modify the bodygroups and skins of a track piece ( with duping )
   * Ability to modify track piece [surface behavior](https://www.youtube.com/watch?v=ALBnlFeC9tU) ( wood, metal, slime, tire )
   * Ability to extend a track piece spawn with [additional entities](https://www.youtube.com/watch?v=jKGBUNDMN6A)
-  * Includes integrated wiremod extension
+  * Includes integrated wiremod extension for processing and reading the database
 
 #### Where can I find the tool in-game ?
 You can find the tool in the `Constriction` section of Garry's mod
@@ -85,8 +86,8 @@ to use the old-school for the way of changing and selecting track ends.
 #### Hey, I cannot align my track curves properly. Can you help ?
 Yep sure. In the right panel, there is a drop-down menu which has a bunch of tool modes listed.
 Go ahead and select the `Active point intersection`. After you change the mode, an intersection
-relation entity is needed to complete the process. Hitting `SPEED + RELOAD` ( Default: Shift + R )
-just like the anchor, will select the relation active point of the entity in question, which is closest
+relation [entity][ref-entity] is needed to complete the process. Hitting `SPEED + RELOAD` ( Default: Shift + R )
+just like the anchor, will select the relation active point of the [entity][ref-entity] in question, which is closest
 to the player hit position. Now trace a track piece and the ghost of the curve will be drawn. You can
 clamp the spawn position in a box using the primary position flag `applinfst ( Apply linear first )` or switch
 the origin angle with the ray direction angle by using primary angle flag `appangfst ( Apply angular first )`
@@ -100,10 +101,10 @@ have dedicated track switchers, so to switch them you must use two track pieces 
 Swap their solidness around using the [fading door tool](https://steamcommunity.com/sharedfiles/filedetails/?id=115753588),
 so when one is solid a.k.a `CLOSED` and you can't pass trough it, the other must be no-collided to all `OPENED`. Therefore the
 wheels of the train will follow only the track that is currently set being solid with fading door `CLOSED` function state:
- 1. Dedicated entity like a lever you must press with your USE key
+ 1. Dedicated [entity][ref-entity] addition like a lever you must press with your USE key
     * [Shinji85's Rails](https://www.youtube.com/watch?v=cHhf83w-YNM)
- 2. Dedicated switcher [entity](wiki.garrysmod.com/page/Category:Entity)
-    you must press with your USE key. You must press the custom switcher [entity](wiki.garrysmod.com/page/Category:Entity) itself:
+ 2. Dedicated switcher [entity][ref-entity] class you must press
+    with your USE key. You must press the [entity][ref-entity] custom switcher class itself:
     * `Sligwolf's mini trains`
     * `SligWolf's White Rails`
     * `Ron's 2ft track pack`
@@ -237,9 +238,9 @@ I will be more then happy to add them into the Track assembly tool if their coll
 the minimum requirements.
 ( Made a model once, but it turned out quite nasty xD, so better leave the job to the right people.)
 
-#### Hey, remember that roller coaster assistant addon, that was snapping pieces when you got them close
-to each other and they magically connect. Does this script has a feature like this ?
-Yes, it does. When looking at the panel in the right, there is a check-box labeled
+#### Hey, do you remember that roller coaster assistant addon
+It was snapping pieces when you got them close to each other and they magically connect.
+Does this script has a feature like this ? Yes, it does. When looking at the panel in the right, there is a check-box labeled
 `Enable physgun snap` that you must check. This makes the server to perform some
 traces relative to the active points of the piece and search for other pieces to snap to.
 If the snapping conditions are present, it will snap the trace piece on physgun release at
@@ -247,7 +248,7 @@ that end, which the server trace hits. Check the [wiki page](https://github.com/
 
 #### Can you tell me how to read the physgun snap legend drawn on the screen ?
 Easy. Here are some things to know for never getting confused with this:
-1. If the line with the middle circle is green, that means a valid prop entity is traced
+1. If the line with the middle circle is green, that means a valid prop [entity][ref-entity] is traced
 The green circle shows where the trace hits and the yellow what part of trace is inside the prop
 If in this case the trace is a valid piece, the origin and radius to the point selected are drawn using
 a yellow circle line, always shorter than the active radius. After that the spawn position and distance
@@ -273,9 +274,10 @@ If the client has used many pieces during his/her routine, he/she cannot possibl
 he/she needs, especially, when they are at the bottom of the list as not `frequently used` pieces.
 That's why it was needed some kind of a filter. With the drop-down menu, you can chose whatever
 field to filter the data on (`<Search BY>` either `Model`, `Type`, `Name`, `Act`). Do not bother that
-the name is not displayed in the pieces list. [That's normal](https://theportalwiki.com/wiki/Cave_Johnson). For 95% of the
+the name is displayed in the pieces list. [That's normal](https://theportalwiki.com/wiki/Cave_Johnson). For 95% of the
 models, it is dynamically generated using the `*.mdl` file, so there is really no point in viewing
-that parameter on the pieces panel. In the text-box, to search you have to enter a pattern that
+the model parameter on the pieces panel. If you need the model you can right-click its dedicated line
+in the list to copy it into the clipboard. In the text-box, to search you have to enter a pattern that
 you want to perform the filtering with. The result will populate the list view, only with these
 pieces, whatever desired field value is matched by the pattern given. The pattern is a standard
 Lua one, which is supported by the `string.*` library and you can also [google it](http://lmgtfy.com/?q=lua+string+library+pattern+matching) ;)
@@ -286,4 +288,6 @@ That way you will upload some half-baked malicious tool, waste your time with st
 things and confuse everybody with this so-called `unofficial` version of the Track assembly tool.
 Not to mention that the stunned people ***will NOT GET ANY updates*** !
 The best you can do is just point to the [original GIT repository](https://github.com/dvdvideo1234/TrackAssemblyTool)
-avoiding any version mismatches and confusions. So please don't upload the script to any other sites. ***I mean it!***
+avoiding any version mismatches and confusions. So please don't upload the script to any other sites. ***[I mean it!](https://www.youtube.com/watch?v=b1Om3vX1GlA)***
+
+[ref-entity]: wiki.garrysmod.com/page/Category:Entity
