@@ -95,6 +95,7 @@ TOOL.ClientConVar = {
   [ "igntype"   ] = 0,
   [ "spnflat"   ] = 0,
   [ "angsnap"   ] = 45,
+  [ "sizeucs"   ] = 20,
   [ "pointid"   ] = 1,
   [ "pnextid"   ] = 2,
   [ "nextpic"   ] = 0,
@@ -171,7 +172,11 @@ function TOOL:GetStackCount()
 end
 
 function TOOL:GetMass()
-  return mathClamp(self:GetClientNumber("mass"),1,asmlib.GetAsmVar("maxmass"  ,"FLT"))
+  return mathClamp(self:GetClientNumber("mass"),1,asmlib.GetAsmVar("maxmass","FLT"))
+end
+
+function TOOL:GetSizeUCS()
+  return mathClamp(self:GetClientNumber("sizeucs"),0,asmlib.GetAsmVar("maxlinear","FLT"))
 end
 
 function TOOL:GetDeveloperMode()
@@ -349,7 +354,7 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
   if(not mx) then if(bMute) then return nil
     else asmlib.LogInstance("Model ray mismatch",gtArgsLogs); return nil end
   end
-  local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt[cvX], stSpawn.PNxt[cvY], stSpawn.PNxt[cvZ]
+  local aOrg, vx, vy, vz = stSpawn.OAng, asmlib.ExpVector(stSpawn.PNxt)
   if(self:ApplyAngularFirst()) then aOrg = stRay1.Diw end
   mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate newly created entity local intersection to world
   stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx); -- Update spawn position with the ray intersection
@@ -968,17 +973,21 @@ function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn, nRad)
 end
 
 function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, nRad)
-  local Os, Tp, UCS = vOrg:ToScreen(), vHit:ToScreen(), 30
-  local Xs = (vOrg + UCS * aOrg:Forward()):ToScreen()
+  local UCS = self:GetSizeUCS()
+  local Os, Tp = vOrg:ToScreen(), vHit:ToScreen()
   local Zs = (vOrg + UCS * aOrg:Up()):ToScreen()
   local Ys = (vOrg + UCS * aOrg:Right()):ToScreen()
-  oScreen:DrawLine(Os,Xs,"r","SURF")
-  oScreen:DrawCircle(Os,nRad,"y","SURF")
-  oScreen:DrawLine(Os,Ys,"g")
-  oScreen:DrawLine(Os,Zs,"b")
-  oScreen:DrawLine(Os,Tp,"y")
-  oScreen:DrawCircle(Tp, nRad / 2)
-  return Os, Tp
+  local Xs = (vOrg + UCS * aOrg:Forward()):ToScreen()
+  if(UCS > 0) then -- When UCS size is presend 
+    oScreen:DrawLine(Os,Xs,"r","SURF")
+    oScreen:DrawLine(Os,Ys,"g")
+    oScreen:DrawLine(Os,Zs,"b")
+    oScreen:DrawLine(Os,Tp,"y")
+  end -- Draw circles when the radius is positive
+  if(nRad > 0) then
+    oScreen:DrawCircle(Os,nRad,"y","SURF")
+    oScreen:DrawCircle(Tp,nRad / 2)
+  end; return Tp, Os, Xs, Ys, Zs
 end
 
 function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2, nRad)
@@ -1029,9 +1038,9 @@ function TOOL:DrawHUD()
         self:DrawRelateAssist(hudMonitor, trHit, trEnt, plyd, ratiom, ratioc)
       end; return -- The return is very very important ... Must stop on invalid spawn
     end -- Draw the assistants related to the different working modes
-    local nRad = nrad * (stSpawn.RLen / actrad)
-    local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
-    local Pp = stSpawn.TPnt:ToScreen()
+    local nRad, Pp = (nrad * (stSpawn.RLen / actrad)), stSpawn.TPnt:ToScreen()
+    local Tp, Os = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
+    self:DrawUCS(hudMonitor, trHit, stSpawn.BPos, stSpawn.BAng, nRad)
     hudMonitor:DrawLine(Os,Pp,"r")
     hudMonitor:DrawCircle(Pp, nRad / 2)
     if(workmode == 1) then
@@ -1076,7 +1085,7 @@ function TOOL:DrawHUD()
             vPos:Add(nextx * aAng:Forward())
             vPos:Add(nexty * aAng:Right())
             vPos:Add(nextz * aAng:Up())
-      local Os, Tp = self:DrawUCS(hudMonitor, trHit, vPos, aAng, nRad)
+      local Tp, Os = self:DrawUCS(hudMonitor, trHit, vPos, aAng, nRad)
       if(workmode == 2) then -- Draw point intersection
         self:DrawRelateIntersection(hudMonitor, oPly, nRad) end
       if(not self:GetDeveloperMode()) then return end
@@ -1089,7 +1098,8 @@ function TOOL:DrawHUD()
       local stSpawn  = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
-      local Os, Tp = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
+      local Tp, Os = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
+      self:DrawUCS(hudMonitor, trHit, stSpawn.BPos, stSpawn.BAng, nRad)
       if(workmode == 1) then
         local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
         if(nxPOA and stSpawn.HRec.Size > 1) then

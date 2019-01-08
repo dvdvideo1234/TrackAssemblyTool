@@ -1620,20 +1620,22 @@ function CacheSpawnPly(pPly)
     stData.U    = Vector() -- Origin up vector
     stData.OPos = Vector() -- Origin position
     stData.OAng = Angle () -- Origin angle
+    stData.BPos = Vector() -- Base coordinate position
+    stData.BAng = Angle () -- Base coordinate angle
     stData.SPos = Vector() -- Piece spawn position
     stData.SAng = Angle () -- Piece spawn angle
     stData.SMtx = Matrix() -- Spawn translation and rotation matrix
     stData.RLen = 0        -- Piece active radius
     --- Holder ---
     stData.HRec = 0        -- Pointer to the holder record
-    stData.HID  = 0        -- Point ID
+    stData.HID  = 0        -- Point ID the holder has selected
     stData.HPnt = Vector() -- P > Local location of the active point
     stData.HOrg = Vector() -- O > Local new piece location origin when snapped
     stData.HAng = Angle () -- A > Local new piece orientation origin when snapped
     stData.HMtx = Matrix() -- Holder translation and rotation matrix
     --- Traced ---
     stData.TRec = 0        -- Pointer to the trace record
-    stData.TID  = 0
+    stData.TID  = 0        -- Point ID that the trace has found
     stData.TPnt = Vector() -- P > Local location of the active point
     stData.TOrg = Vector() -- O > Local new piece location origin when snapped
     stData.TAng = Angle () -- A > Local new piece orientation origin when snapped
@@ -2961,8 +2963,9 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   local hdPOA = LocatePOA(hdRec,ihdPoID); if(not IsHere(hdPOA)) then
     LogInstance("Holder point ID invalid #"..tostring(ihdPoID)); return nil end
   local stSpawn = CacheSpawnPly(oPly); stSpawn.HRec = hdRec
-  if(ucsPos) then SetVector(stSpawn.OPos, ucsPos) end
-  if(ucsAng) then SetAngle (stSpawn.OAng, ucsAng) end
+  if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
+  if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
+  stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
   -- Initialize F, R, U Copy the UCS like that to support database POA
   SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
   SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
@@ -3063,12 +3066,12 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   if(not IsHere(trPOA)) then
     LogInstance("Not hitting active point"); return nil end
   -- Found the active point ID on trEnt. Initialize origins
-  SetVector(stSpawn.OPos,trPOA.O) -- Read origin
-  SetAngle (stSpawn.OAng,trPOA.A) -- Read angle
-  stSpawn.OPos:Rotate(stSpawn.TAng); stSpawn.OPos:Add(stSpawn.TOrg)
-  stSpawn.OAng:Set(trEnt:LocalToWorldAngles(stSpawn.OAng))
+  SetVector(stSpawn.BPos,trPOA.O) -- Read origin
+  SetAngle (stSpawn.BAng,trPOA.A) -- Read angle
+  stSpawn.BPos:Rotate(stSpawn.TAng); stSpawn.BPos:Add(stSpawn.TOrg)
+  stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
   -- Do the flatten flag right now Its important !
-  if(enFlatten) then stSpawn.OAng[caP] = 0; stSpawn.OAng[caR] = 0 end
+  if(enFlatten) then stSpawn.BAng[caP] = 0; stSpawn.BAng[caR] = 0 end
   return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
 end
 

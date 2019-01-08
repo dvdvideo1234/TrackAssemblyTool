@@ -64,7 +64,7 @@ if(not sI) then
 end
 local sO, sCat = "", ""
 local sLog = "asmlib.SetLogControl("
-local sVer = "asmlib.SetOpVar(\"TOOL_VERSION\",\"5."
+local sVer = "asmlib.SetOpVar(\"TOOL_VERSION\",\"6."
 local nB, nE, nS, nL, sL = 1, 1, 1, 1, ""
 while(sI) do
   sL = "["..tostring(nL).."]"
