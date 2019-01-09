@@ -40,7 +40,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.475")
+asmlib.SetOpVar("TOOL_VERSION","6.476")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -212,7 +212,7 @@ if(CLIENT) then
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
       asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
-      if(not asmlib.IntersectRayClear(oPly, "ray_relate")) then
+      if(not asmlib.IntersectRayClear(oPly, "relate")) then
         asmlib.LogInstance("Failed clearing ray",gtArgsLogs); return nil end
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Net receive intersect relation clear client-side
@@ -221,14 +221,17 @@ if(CLIENT) then
     function(nLen) gtArgsLogs[1] = "*CREATE_RELATION"
       local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
       asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
-      if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "ray_relate")) then
+      if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "relate")) then
         asmlib.LogInstance("Failed updating ray",gtArgsLogs); return nil end
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Net receive intersect relation create client-side
 
   asmlib.SetAction("BIND_PRESS", -- Must have the same parameters as the hook
     function(oPly,sBind,bPress) gtArgsLogs[1] = "*BIND_PRESS"
-      if(not bPress) then asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
+      if(not bPress) then
+        asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
+      if(not asmlib.IsPlayer(oPly)) then
+        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
       local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
         asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
       if(actSwep:GetClass() ~= "gmod_tool") then
@@ -236,16 +239,61 @@ if(CLIENT) then
       if(actSwep:GetMode()  ~= gsToolNameL) then
         asmlib.LogInstance("Tool different",gtArgsLogs); return nil end
       -- Here player is holding the track assembly tool
-      if(not inputIsKeyDown(KEY_LALT)) then
-        asmlib.LogInstance("Active key missing",gtArgsLogs); return nil end
-      -- Switch functionality of the mouse wheel only for TA
       local actTool = actSwep:GetToolObject(); if(not actTool) then
         asmlib.LogInstance("Tool invalid",gtArgsLogs); return nil end
-      if((sBind == "invnext") or (sBind == "invprev")) then -- Process the scroll events here
+      if((sBind == "invnext") or (sBind == "invprev")) then
+        -- Switch functionality of the mouse wheel only for TA
+        if(not inputIsKeyDown(KEY_LALT)) then
+          asmlib.LogInstance("Active key missing",gtArgsLogs); return nil end
         if(not actTool:GetScrollMouse()) then
           asmlib.LogInstance("(SCROLL) Scrolling disabled",gtArgsLogs); return nil end
         local Dir = ((sBind == "invnext") and -1) or ((sBind == "invprev") and 1) or 0
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
+        asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
+      elseif(sBind == "+zoom") then -- Workmode radial menu selection
+        if(not actTool:GetRadialMenu()) then
+          asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
+        local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
+        local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
+        if(not actMonitor) then
+          actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette); if(not actMonitor) then
+            asmlib.LogInstance("("..sBind..") Invalid screen",gtArgsLogs); return nil end
+          asmlib.SetOpVar("MONITOR_GAME", actMonitor)
+          asmlib.LogInstance("("..sBind..") Create screen",gtArgsLogs)
+        end -- Make sure we have a valid game monitor for the draw OOP
+        local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
+        local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
+        local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
+        local vFr, nN = asmlib.NewXY(vCn.y*nR), conWorkMode:GetSize()
+        local vNr = asmlib.NewXY(vFr.x*nR)
+        local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
+        local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
+        local dA, rA = (nMx / nN), 0; actMonitor:SetColor()
+        local mP = asmlib.NewXY(gui.MouseX(), gui.MouseY())
+        -- Move menu selection wiper
+        actMonitor:DrawCircle(mP, 10, "y", "SEGM", {35})
+        local mA = asmlib.AngleXY(asmlib.SubXY(vNt, mP, vCn))
+        asmlib.SetXY(vNt, vNr); asmlib.RotateXY(vNt, mA); asmlib.AddXY(vNt, vNt, vCn)
+        actMonitor:DrawLine(vCn, vNt, "r", "SURF"); actMonitor:DrawCircle(vNt, 8);
+        -- Draw radial menu crcle borders
+        actMonitor:DrawCircle(vCn, vNr.x); actMonitor:DrawCircle(vCn, vFr.x)
+        -- Draw segment line dividers
+        asmlib.AddXY(vNt, vNr, vCn); asmlib.AddXY(vFt, vFr, vCn)
+        actMonitor:DrawLine(vNt, vFt); rA = dA
+        for iD = 2, nN do
+          asmlib.SetXY(vNt, vNr); asmlib.RotateXY(vNt, rA)
+          asmlib.SetXY(vFt, vFr); asmlib.RotateXY(vFt, rA)
+          asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
+          actMonitor:DrawLine(vNt, vFt); rA = (rA + dA)
+        end; mA = ((mA >= nMx) and 0 or mA)
+        local iW = math.floor(((mA / nMx) * nN) + 1)
+
+        print("mouse ", mP.x, mP.y)
+        print("center", vCn.x, vCn.y)
+        print("angle ", mA, dA)
+        print("screen", scrW, scrH)
+
+        RunConsoleCommand(gsToolPrefL.."workmode", iW)
         asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
       end -- Override only for TA and skip touching anything else
       asmlib.LogInstance("("..sBind..") Skipped",gtArgsLogs); return nil

@@ -95,6 +95,7 @@ local mathModf                 = math and math.modf
 local mathSqrt                 = math and math.sqrt
 local mathFloor                = math and math.floor
 local mathClamp                = math and math.Clamp
+local mathAtan2                = math and math.atan2
 local mathRound                = math and math.Round
 local mathRandom               = math and math.random
 local mathNormalizeAngle       = math and math.NormalizeAngle
@@ -786,6 +787,11 @@ function RotateXY(xyV, nR)
   local nS, nC = mathSin(nA), mathCos(nA)
   xyV.x = (nX * nC - nY * nS)
   xyV.y = (nX * nS + nY * nC); return xyV
+end
+
+function AngleXY(xyV)
+  if(not xyV) then LogInstance("Base V invalid"); return nil end
+  return mathAtan2(xyV.y, xyV.x)
 end
 
 ----------------- OOP ------------------
@@ -2969,6 +2975,13 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   -- Initialize F, R, U Copy the UCS like that to support database POA
   SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
   SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
+  -- Integrate additional position offset into the origin position
+  stSpawn.U:Set(stSpawn.OAng:Up())
+  stSpawn.R:Set(stSpawn.OAng:Right())
+  stSpawn.F:Set(stSpawn.OAng:Forward())
+  stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F)
+  stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R)
+  stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U)
   -- Integrate additional angle offset into the origin angle
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
@@ -2978,10 +2991,6 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
   stSpawn.R:Set(stSpawn.OAng:Right())
   stSpawn.U:Set(stSpawn.OAng:Up())
-  -- Integrate additional position offset into the origin position
-  stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F)
-  stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R)
-  stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U)
   -- Read holder record
   SetVector(stSpawn.HPnt, hdPOA.P)
   SetVector(stSpawn.HOrg, hdPOA.O)
@@ -3113,7 +3122,7 @@ function GetEntityHitID(oEnt, vHit)
     local tPOA, tID = LocatePOA(oRec, ID)
     if(not IsHere(tPOA)) then -- Get intersection rays list for the player
       LogInstance("Point <"..tostring(ID).."> invalid"); return nil end
-    SetVector(vTmp, tPOA.P) -- Translate point to a world-space
+    SetVector(vTmp, tPOA.O) -- Translate origin to a world-space
     vTmp:Rotate(eAng); vTmp:Add(ePos); vTmp:Sub(vHit)
     if(nID and nMin) then
       if(nMin >= vTmp:Length()) then nID, nMin, oPOA = tID, vTmp:Length(), tPOA end
