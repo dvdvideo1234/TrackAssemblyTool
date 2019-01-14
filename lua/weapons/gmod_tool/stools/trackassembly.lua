@@ -152,7 +152,7 @@ if(CLIENT) then
     local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
     local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end
     cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
-  end, gsToolPrefL.."lang") 
+  end, gsToolPrefL.."lang")
 end
 
 if(SERVER) then

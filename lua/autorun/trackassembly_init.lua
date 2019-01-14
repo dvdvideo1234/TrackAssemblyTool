@@ -228,10 +228,9 @@ if(CLIENT) then
 
   asmlib.SetAction("BIND_PRESS", -- Must have the same parameters as the hook
     function(oPly,sBind,bPress) gtArgsLogs[1] = "*BIND_PRESS"
-      if(not bPress) then
-        asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
+      if(not bPress) then asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
-      if(not asmlib.IsPlayer(oPly)) then LogInstance("Hook mismatch",gtArgsLogs); return nil end      
+      if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
       if((sBind == "invnext") or (sBind == "invprev")) then
         -- Switch functionality of the mouse wheel only for TA
         if(not inputIsKeyDown(KEY_LALT)) then
@@ -245,6 +244,7 @@ if(CLIENT) then
         if(not actTool:GetRadialMenu()) then
           asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
         oPly:SetNWBool(gsToolPrefL.."radmenu", true)
+        gui.EnableScreenClicker(true)
         asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
       end -- Override only for TA and skip touching anything else
       asmlib.LogInstance("("..sBind..") Skipped",gtArgsLogs); return nil
@@ -252,16 +252,15 @@ if(CLIENT) then
 
   asmlib.SetAction("DRAW_RADMENU", -- Must have the same parameters as the hook
     function() gtArgsLogs[1] = "*DRAW_RADMENU"
-      if(not actTool:GetRadialMenu()) then
-        asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
-      if(not asmlib.IsPlayer(oPly)) then LogInstance("Hook mismatch",gtArgsLogs); return nil end      
-      if(not oPly:GetNWBool(gsToolPrefL.."radmenu")); return nil end      
+      if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs) return nil end
+      if(not actTool:GetRadialMenu()) then oPly:SetNWBool(gsToolPrefL.."radmenu", false)
+        asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
+      if(not oPly:GetNWBool(gsToolPrefL.."radmenu")) then return nil end
       if(not inputIsMouseDown(MOUSE_MIDDLE)) then
         oPly:SetNWBool(gsToolPrefL.."radmenu", false)
-        asmlib.LogInstance("Scroll release",gtArgsLogs)
-        return nil -- Platyer is not holding down the scroll anymore
-      end
+        gui.EnableScreenClicker(false)
+        asmlib.LogInstance("Scroll release",gtArgsLogs) return nil end -- Draw while holding
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
@@ -273,36 +272,46 @@ if(CLIENT) then
       local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
       local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
       local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
-      local vFr, nN = asmlib.NewXY(vCn.y*nR), conWorkMode:GetSize()
+      local vFr, nN = asmlib.NewXY(vCn.y*nR), 5 --, conWorkMode:GetSize()
       local vNr = asmlib.NewXY(vFr.x*nR)
       local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
       local dA, rA = (nMx / nN), 0; actMonitor:SetColor()
       local mP = asmlib.NewXY(gui.MouseX(), gui.MouseY())
+      asmlib.SubXY(vNt, mP, vCn); vNt.y = -vNt.y
       -- Move menu selection wiper
       actMonitor:DrawCircle(mP, 10, "y", "SEGM", {35})
-      local mA = asmlib.AngleXY(asmlib.SubXY(vNt, mP, vCn))
-      asmlib.SetXY(vNt, vNr); asmlib.RotateXY(vNt, mA); asmlib.AddXY(vNt, vNt, vCn)
-      actMonitor:DrawLine(vCn, vNt, "r", "SURF"); actMonitor:DrawCircle(vNt, 8);
+      local mA = asmlib.AngleXY(vNt)
+      oPly:ChatPrint("Angle: "..mA.." rad {"..vNt.x..","..vNt.y.."}")
+      asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, mA)); asmlib.AddXY(vNt, vNt, vCn)
+      actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
       -- Draw radial menu crcle borders
       actMonitor:DrawCircle(vCn, vNr.x); actMonitor:DrawCircle(vCn, vFr.x)
       -- Draw segment line dividers
       asmlib.AddXY(vNt, vNr, vCn); asmlib.AddXY(vFt, vFr, vCn)
       actMonitor:DrawLine(vNt, vFt); rA = dA
       for iD = 2, nN do
-        asmlib.SetXY(vNt, vNr); asmlib.RotateXY(vNt, rA)
-        asmlib.SetXY(vFt, vFr); asmlib.RotateXY(vFt, rA)
+        asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
+        asmlib.SetXY(vFt, vFr); asmlib.NegY(asmlib.RotateXY(vFt, rA))
         asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
-        actMonitor:DrawLine(vNt, vFt); rA = (rA + dA)
-      end; mA = ((mA >= nMx) and 0 or mA)
+        actMonitor:DrawLine(vNt, vFt, "w"); rA = (rA + dA)
+
+
+        actMonitor:SetTextEdge(vFt.x, vFt.y)
+        actMonitor:DrawText("("..iD..")","k","SURF",{"Trebuchet18"})
+
+      end;
+      mA = ((mA < 0) and (mA + nMx) or mA)
+      mA = ((mA >= nMx) and 0 or mA)
       local iW = math.floor(((mA / nMx) * nN) + 1)
-      RunConsoleCommand(gsToolPrefL.."workmode", iW)
+     --  print(mA, nMx, nN, iW)
+      RunConsoleCommand(gsToolPrefL.."workmode", iW); return true
     end)
-    
+
   asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
     function() gtArgsLogs[1] = "*DRAW_GHOSTS"
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
-      if(not asmlib.IsPlayer(oPly)) then LogInstance("Hook mismatch",gtArgsLogs); return nil end      
+      if(not asmlib.IsPlayer(oPly)) then LogInstance("Hook mismatch",gtArgsLogs); return nil end
       local model    = actTool:GetModel()
       local stackcnt = actTool:GetStackCount()
       local ghostcnt = actTool:GetGhostsCount()

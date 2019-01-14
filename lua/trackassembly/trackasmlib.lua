@@ -749,6 +749,22 @@ function SetXY(xyR, xyA)
   xyR.x, xyR.y = xA, yA; return xyR
 end
 
+function NegXY(xyR)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  xyR.x, xyR.y = -xyR.x, -xyR.y; return xyR
+end
+
+function NegX(xyR)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  xyR.x = -xyR.x; return xyR
+end
+
+function NegY(xyR)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  xyR.y = -xyR.y; return xyR
+end
+
+
 function AddXY(xyR, xyA, xyB)
   if(not xyR) then LogInstance("Base R invalid"); return nil end
   if(not xyA) then LogInstance("Base A invalid"); return nil end
@@ -3774,7 +3790,7 @@ function GetHookInfo(tInfo)
     LogInstance("Swep invalid",tInfo); return nil end
   if(actSwep:GetClass() ~= "gmod_tool") then
     LogInstance("Swep not tool",tInfo); return nil end
-  if(actSwep:GetMode()  ~= gsToolNameL) then
+  if(actSwep:GetMode()  ~= GetOpVar("TOOLNAME_NL")) then
     LogInstance("Tool different",tInfo); return nil end
   -- Here player is holding the track assembly tool
   local actTool = actSwep:GetToolObject(); if(not actTool) then
