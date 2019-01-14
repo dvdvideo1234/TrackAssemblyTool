@@ -3766,3 +3766,18 @@ function MakeGhosts(nCnt, sModel)
       eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
+
+function GetHookInfo(tInfo)
+  local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+    LogInstance("Player invalid",tInfo); return nil end
+  local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
+    LogInstance("Swep invalid",tInfo); return nil end
+  if(actSwep:GetClass() ~= "gmod_tool") then
+    LogInstance("Swep not tool",tInfo); return nil end
+  if(actSwep:GetMode()  ~= gsToolNameL) then
+    LogInstance("Tool different",tInfo); return nil end
+  -- Here player is holding the track assembly tool
+  local actTool = actSwep:GetToolObject(); if(not actTool) then
+    LogInstance("Tool invalid",tInfo); return nil end
+  return oPly, actSwep, actTool
+end

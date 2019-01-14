@@ -143,6 +143,16 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
+  hookAdd("PostDrawHUD"    , gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
+
+  -- listen for changes to the localify language and reload the tool's menu to update the localizations
+  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
+  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
+    asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
+    local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
+    local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end
+    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
+  end, gsToolPrefL.."lang") 
 end
 
 if(SERVER) then
@@ -1437,15 +1447,4 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pntasist"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".engunsnap"))
-end
-
--- listen for changes to the localify language and reload the tool's menu to update the localizations
-if(CLIENT) then
-  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
-  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
-    asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
-    local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
-    local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end
-    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
-  end, gsToolPrefL.."lang")
 end
