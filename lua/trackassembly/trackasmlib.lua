@@ -764,6 +764,17 @@ function NegY(xyR)
   xyR.y = -xyR.y; return xyR
 end
 
+function MulXY(xyR, vM)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  local nM = (tonumber(vM) or 0)
+  xyR.x, xyR.y = (xyR.x * nM), (xyR.y * nM); return xyR
+end
+
+function DivXY(xyR, vD)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  local nD = (tonumber(vM) or 0)
+  xyR.x, xyR.y = (xyR.x / nD), (xyR.y / nD); return xyR
+end
 
 function AddXY(xyR, xyA, xyB)
   if(not xyR) then LogInstance("Base R invalid"); return nil end

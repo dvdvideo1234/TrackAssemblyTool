@@ -40,7 +40,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.477")
+asmlib.SetOpVar("TOOL_VERSION","6.478")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -276,31 +276,34 @@ if(CLIENT) then
       local vNr = asmlib.NewXY(vFr.x*nR)
       local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
-      local dA, rA = (nMx / nN), 0; actMonitor:SetColor()
+      local dA, rA = (nMx / (2 * nN)), 0; actMonitor:SetColor()
       local mP = asmlib.NewXY(gui.MouseX(), gui.MouseY())
-      asmlib.SubXY(vNt, mP, vCn); vNt.y = -vNt.y
-      -- Move menu selection wiper
+      -- Draw mouse position
       actMonitor:DrawCircle(mP, 10, "y", "SEGM", {35})
-      local mA = asmlib.AngleXY(vNt)
+      -- Obrain the wiper angle
+      local mA = asmlib.AngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
       oPly:ChatPrint("Angle: "..mA.." rad {"..vNt.x..","..vNt.y.."}")
-      asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, mA)); asmlib.AddXY(vNt, vNt, vCn)
+      -- Move menu selection wiper
+      asmlib.SetXY(vNt, vNr)
+      asmlib.NegY(asmlib.RotateXY(vNt, mA))
+      asmlib.AddXY(vNt, vNt, vCn)
       actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
       -- Draw radial menu crcle borders
       actMonitor:DrawCircle(vCn, vNr.x); actMonitor:DrawCircle(vCn, vFr.x)
       -- Draw segment line dividers
-      asmlib.AddXY(vNt, vNr, vCn); asmlib.AddXY(vFt, vFr, vCn)
-      actMonitor:DrawLine(vNt, vFt); rA = dA
-      for iD = 2, nN do
+      for iD = 1, nN do
         asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
         asmlib.SetXY(vFt, vFr); asmlib.NegY(asmlib.RotateXY(vFt, rA))
         asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
-        actMonitor:DrawLine(vNt, vFt, "w"); rA = (rA + dA)
+        actMonitor:DrawLine(vNt, vFt) -- Draw divider line
+        rA = (rA + dA) -- Calculate text center position
+        -- Draw the name of the working mode in the center
 
-
+        rA = (rA + dA) -- Prepare to draw the next divider line       
+        -- Sequential line divider ID test
         actMonitor:SetTextEdge(vFt.x, vFt.y)
         actMonitor:DrawText("("..iD..")","k","SURF",{"Trebuchet18"})
-
-      end;
+      end
       mA = ((mA < 0) and (mA + nMx) or mA)
       mA = ((mA >= nMx) and 0 or mA)
       local iW = math.floor(((mA / nMx) * nN) + 1)
