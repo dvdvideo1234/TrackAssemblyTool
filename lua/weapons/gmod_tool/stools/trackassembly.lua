@@ -56,7 +56,6 @@ local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
-local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -74,6 +73,7 @@ local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
+local conWorkMode = asmlib.GetOpVar("CONTAINER_WORKING")
 local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 

@@ -40,7 +40,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.478")
+asmlib.SetOpVar("TOOL_VERSION","6.481")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -131,7 +131,9 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
       conPalette:Insert("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
       conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
-local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("MODE_WORKING", conWorkMode)
+      conPalette:Insert("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
+
+local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER_WORKING", conWorkMode)
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
@@ -269,11 +271,17 @@ if(CLIENT) then
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("("..sBind..") Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
-      local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
+      local vBs = asmlib.NewXY(2,2)
       local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
-      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
-      local vFr, nN = asmlib.NewXY(vCn.y*nR), 5 --, conWorkMode:GetSize()
+      local nN  =  5 -- conWorkMode:GetSize()
+      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))      
+      -- Calculate dependent parameters
+      local vFr = asmlib.NewXY(vCn.y*nR)
       local vNr = asmlib.NewXY(vFr.x*nR)
+      local dQb = (vFr.x - vNr.x)
+      local vMr = asmlib.NewXY(dQb / 2 + vNr.x)
+      local dQs = (dQb * nR)
+      local vTb, vTs = asmlib.NewXY(dQb,dQb), asmlib.NewXY(dQs,dQs)
       local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
       local dA, rA = (nMx / (2 * nN)), 0; actMonitor:SetColor()
@@ -281,34 +289,40 @@ if(CLIENT) then
       -- Draw mouse position
       actMonitor:DrawCircle(mP, 10, "y", "SEGM", {35})
       -- Obrain the wiper angle
-      local mA = asmlib.AngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
+      local mA = asmlib.GetAngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
       oPly:ChatPrint("Angle: "..mA.." rad {"..vNt.x..","..vNt.y.."}")
       -- Move menu selection wiper
-      asmlib.SetXY(vNt, vNr)
-      asmlib.NegY(asmlib.RotateXY(vNt, mA))
-      asmlib.AddXY(vNt, vNt, vCn)
+      asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, mA)); asmlib.AddXY(vNt, vNt, vCn)
       actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
       -- Draw radial menu crcle borders
       actMonitor:DrawCircle(vCn, vNr.x); actMonitor:DrawCircle(vCn, vFr.x)
+      -- Convert wiper anngle to selection ID
+      mA = ((mA < 0) and (mA + nMx) or mA)
+      mA = ((mA >= nMx) and 0 or mA)
+      local iW = math.floor(((mA / nMx) * nN) + 1)
       -- Draw segment line dividers
-      for iD = 1, nN do
+      for iD = 1, nN do local dTi
         asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
         asmlib.SetXY(vFt, vFr); asmlib.NegY(asmlib.RotateXY(vFt, rA))
         asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
         actMonitor:DrawLine(vNt, vFt) -- Draw divider line
         rA = (rA + dA) -- Calculate text center position
         -- Draw the name of the working mode in the center
-
+        asmlib.SetXY(vNt, vMr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
+        asmlib.AddXY(vNt, vNt, vCn) -- Rectangle center point in /vNt/
+        -- vNt is top-left and vFt botom right
+        if(iD == iW) then dTi = vTb else dTi = vTs end 
+        actMonitor:DrawRect(vNt,dTi,"k","SURF",{"gui/corner16", rA})
+        asmlib.SetXY(vFt, dTi); asmlib.SubXY(vFt, vFt, vBs)
+        actMonitor:DrawRect(vNt,vFt,"bx")
+        local sID = "("..iD..")" -- for debug
+        actMonitor:DrawTextCenter(vNt,tostring(cnW:Select(iD) or sID))
+        
         rA = (rA + dA) -- Prepare to draw the next divider line       
-        -- Sequential line divider ID test
+        -- Sequential line divider ID test for debug
         actMonitor:SetTextEdge(vFt.x, vFt.y)
         actMonitor:DrawText("("..iD..")","k","SURF",{"Trebuchet18"})
-      end
-      mA = ((mA < 0) and (mA + nMx) or mA)
-      mA = ((mA >= nMx) and 0 or mA)
-      local iW = math.floor(((mA / nMx) * nN) + 1)
-     --  print(mA, nMx, nN, iW)
-      RunConsoleCommand(gsToolPrefL.."workmode", iW); return true
+      end; RunConsoleCommand(gsToolPrefL.."workmode", iW); return true
     end)
 
   asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
