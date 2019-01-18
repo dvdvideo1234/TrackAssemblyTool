@@ -1023,7 +1023,7 @@ function TOOL:DrawHUD()
       asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
     asmlib.SetOpVar("MONITOR_GAME", hudMonitor)
     asmlib.LogInstance("Create screen",gtArgsLogs)
-  end; hudMonitor:SetColor()
+  end; hudMonitor:GetColor()
   if(not self:GetAdviser()) then return end
   local oPly = LocalPlayer()
   local stTrace = asmlib.CacheTracePly(oPly)
@@ -1147,7 +1147,7 @@ function TOOL:DrawToolScreen(w, h)
       asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
     asmlib.SetOpVar("MONITOR_TOOL", scrTool)
     asmlib.LogInstance("Create screen",gtArgsLogs)
-  end; local xyT, xyB = scrTool:GetCorners(); scrTool:SetColor()
+  end; local xyT, xyB = scrTool:GetCorners(); scrTool:GetColor()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
   scrTool:SetTextEdge(xyT.x,xyT.y)
   local oPly = LocalPlayer()

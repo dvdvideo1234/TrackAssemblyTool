@@ -810,7 +810,7 @@ function UnitXY(xyA)
   if(not xyA) then LogInstance("Base A invalid"); return nil end
   local nL = LenXY(xyA); if(nL == nL ) then
     LogInstance("Length A invalid"); return nil end
-  xyA.xm xyA.y = (tonumber(xyA.x) / nL), (tonumber(xyA.y) / nL)
+  xyA.xm, xyA.y = (tonumber(xyA.x) / nL), (tonumber(xyA.y) / nL)
   return xyA -- Return scaled unit vector
 end
 
@@ -902,22 +902,21 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     local nY = (nH / 2) + (tonumber(nY) or 0)
     return nX, nY
   end
-  function self:SetColor(keyColor,sMeth)
-    if(not IsHere(keyColor) and not IsHere(sMeth)) then
+  function self:GetColor(keyCl,sMeth)
+    if(not IsHere(keyCl) and not IsHere(sMeth)) then
       Colors.Key = GetOpVar("OOP_DEFAULTKEY")
       LogInstance("Color reset", tLogs); return self end
-    local keyColor = (keyColor or Colors.Key)
-    if(not IsHere(keyColor)) then
+    local keyCl = (keyCl or Colors.Key); if(not IsHere(keyCl)) then
       LogInstance("Indexing skipped", tLogs); return self end
     if(not IsString(sMeth)) then
       LogInstance("Method <"..tostring(method).."> invalid", tLogs); return self end
-    local rgbColor = Colors.List:Select(keyColor)
-    if(not IsHere(rgbColor)) then rgbColor = Colors.Default end
-    if(tostring(Colors.Key) ~= tostring(keyColor)) then -- Update the color only on change
-      surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
-      surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
-      Colors.Key = keyColor; -- The drawing color for these two methods uses surface library
-    end; return self
+    local rgbCl = Colors.List:Select(keyCl)
+    if(not IsHere(rgbCl)) then rgbCl = Colors.Default end
+    if(tostring(Colors.Key) ~= tostring(keyCl)) then -- Update the color only on change
+      surfaceSetDrawColor(rgbCl.r, rgbCl.g, rgbCl.b, rgbCl.a)
+      surfaceSetTextColor(rgbCl.r, rgbCl.g, rgbCl.b, rgbCl.a)
+      Colors.Key = keyCl; -- The drawing color for these two methods uses surface library
+    end; return rgbCl, keyCl
   end
   function self:GetDrawParam(sMeth,tArgs,sKey)
     tArgs = (tArgs or DrawArgs[sKey])
@@ -938,9 +937,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
            (Text.ScrW + (nW or 0)), (Text.ScrH + (nH or 0)),
             Text.LstW, Text.LstH
   end
-  function self:DrawText(sText,keyColor,sMeth,tArgs)
+  function self:DrawText(sText,keyCl,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
-    self:SetColor(keyColor, sMeth)
+    self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrwX,Text.DrwY); surfaceDrawText(sText)
       Text.LstW, Text.LstH = surfaceGetTextSize(sText)
@@ -951,9 +950,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
     end; return self
   end
-  function self:DrawTextAdd(sText,keyColor,sMeth,tArgs)
+  function self:DrawTextAdd(sText,keyCl,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
-    self:SetColor(keyColor, sMeth)
+    self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrwX + Text.LstW,Text.DrwY - Text.LstH)
       surfaceDrawText(sText)
@@ -965,9 +964,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
     end; return self
   end
-  function self:DrawTextCenter(xyP,sText,keyColor,sMeth,tArgs)
+  function self:DrawTextCenter(xyP,sText,keyCl,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
-    self:SetColor(keyColor, sMeth)
+    self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       local LstW, LstH = surfaceGetTextSize(sText)
       LstW, LstH = (LstW / 2), (LstH / 2)
@@ -988,10 +987,10 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       LogInstance("End out of border", tLogs); return nil end
     return mathSqrt((pE.x - pS.x)^2 + (pE.y - pS.y)^2)
   end
-  function self:DrawLine(pS,pE,keyColor,sMeth,tArgs)
+  function self:DrawLine(pS,pE,keyCl,sMeth,tArgs)
     if(not (pS and pE)) then return self end
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"LIN")
-    local rgbCl, keyCl = self:SetColor(keyColor, sMeth)
+    local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
         LogInstance("Start out of border", tLogs); return self end
@@ -1015,9 +1014,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
     else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return self end
   end
-  function self:DrawRect(pO,pS,keyColor,sMeth,tArgs)
+  function self:DrawRect(pO,pS,keyCl,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"REC")
-    self:SetColor(keyColor,sMeth)
+    self:GetColor(keyCl,sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pO) == -1) then
         LogInstance("Start out of border", tLogs); return self end
@@ -1036,9 +1035,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
     end; return self
   end
-  function self:DrawCircle(pC,nRad,keyColor,sMeth,tArgs)
+  function self:DrawCircle(pC,nRad,keyCl,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"CIR")
-    local rgbCl, keyCl = self:SetColor(keyColor,sMeth)
+    local rgbCl, keyCl = self:GetColor(keyCl,sMeth)
     if(sMeth == "SURF") then surfaceDrawCircle(pC.x, pC.y, nRad, rgbCl)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
@@ -3825,15 +3824,17 @@ function MakeGhosts(nCnt, sModel)
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
 
-function GetHookInfo(tInfo)
+function GetHookInfo(tInfo, sW)
+  local sWep = tostring(sW or "gmod_tool")
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player invalid",tInfo); return nil end
   local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
     LogInstance("Swep invalid",tInfo); return nil end
-  if(actSwep:GetClass() ~= "gmod_tool") then
-    LogInstance("Swep not tool",tInfo); return nil end
+  if(actSwep:GetClass() ~= sWep) then
+    LogInstance("("..sWep..") Swep other",tInfo); return nil end
   if(actSwep:GetMode()  ~= GetOpVar("TOOLNAME_NL")) then
     LogInstance("Tool different",tInfo); return nil end
+  if(sW) then return oPly, actSwep end
   -- Here player is holding the track assembly tool
   local actTool = actSwep:GetToolObject(); if(not actTool) then
     LogInstance("Tool invalid",tInfo); return nil end

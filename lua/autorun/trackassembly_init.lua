@@ -5,34 +5,38 @@ end
 include("trackassembly/trackasmlib.lua")
 
 ------ LOCALIZNG FUNCTIONS ---
-local Angle                = Angle
-local Vector               = Vector
-local IsValid              = IsValid
-local tonumber             = tonumber
-local tostring             = tostring
-local CreateConVar         = CreateConVar
-local SetClipboardText     = SetClipboardText
-local RunConsoleCommand    = RunConsoleCommand
-local netReadEntity        = net and net.ReadEntity
-local netReadVector        = net and net.ReadVector
-local bitBor               = bit and bit.bor
-local sqlQuery             = sql and sql.Query
-local sqlBegin             = sql and sql.Begin
-local sqlCommit            = sql and sql.Commit
-local mathFloor            = math and math.floor
-local mathClamp            = math and math.Clamp
-local mathMin              = math and math.min
-local mathAbs              = math and math.abs
-local utilAddNetworkString = util and util.AddNetworkString
-local vguiCreate           = vgui and vgui.Create
-local fileExists           = file and file.Exists
-local inputIsKeyDown       = input and input.IsKeyDown
-local inputIsMouseDown     = input and input.IsMouseDown
-local surfaceScreenWidth   = surface and surface.ScreenWidth
-local surfaceScreenHeight  = surface and surface.ScreenHeight
-local languageGetPhrase    = language and language.GetPhrase
-local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
+local Angle                         = Angle
+local Vector                        = Vector
+local IsValid                       = IsValid
+local tobool                        = tobool
+local tonumber                      = tonumber
+local tostring                      = tostring
+local CreateConVar                  = CreateConVar
+local SetClipboardText              = SetClipboardText
+local RunConsoleCommand             = RunConsoleCommand
+local netReadEntity                 = net and net.ReadEntity
+local netReadVector                 = net and net.ReadVector
+local bitBor                        = bit and bit.bor
+local sqlQuery                      = sql and sql.Query
+local sqlBegin                      = sql and sql.Begin
+local sqlCommit                     = sql and sql.Commit
+local guiMouseX                     = gui and gui.MouseX
+local guiMouseY                     = gui and gui.MouseY
+local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
+local mathFloor                     = math and math.floor
+local mathClamp                     = math and math.Clamp
+local mathMin                       = math and math.min
+local mathAbs                       = math and math.abs
+local utilAddNetworkString          = util and util.AddNetworkString
+local vguiCreate                    = vgui and vgui.Create
+local fileExists                    = file and file.Exists
+local inputIsKeyDown                = input and input.IsKeyDown
+local inputIsMouseDown              = input and input.IsMouseDown
+local surfaceScreenWidth            = surface and surface.ScreenWidth
+local surfaceScreenHeight           = surface and surface.ScreenHeight
+local languageGetPhrase             = language and language.GetPhrase
+local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -40,7 +44,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.481")
+asmlib.SetOpVar("TOOL_VERSION","6.482")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -246,7 +250,7 @@ if(CLIENT) then
         if(not actTool:GetRadialMenu()) then
           asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
         oPly:SetNWBool(gsToolPrefL.."radmenu", true)
-        gui.EnableScreenClicker(true)
+        guiEnableScreenClicker(true)
         asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
       end -- Override only for TA and skip touching anything else
       asmlib.LogInstance("("..sBind..") Skipped",gtArgsLogs); return nil
@@ -261,7 +265,7 @@ if(CLIENT) then
       if(not oPly:GetNWBool(gsToolPrefL.."radmenu")) then return nil end
       if(not inputIsMouseDown(MOUSE_MIDDLE)) then
         oPly:SetNWBool(gsToolPrefL.."radmenu", false)
-        gui.EnableScreenClicker(false)
+        guiEnableScreenClicker(false)
         asmlib.LogInstance("Scroll release",gtArgsLogs) return nil end -- Draw while holding
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
@@ -271,35 +275,36 @@ if(CLIENT) then
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("("..sBind..") Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
-      local vBs = asmlib.NewXY(2,2)
-      local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
+      local vBs = asmlib.NewXY(4,4)
       local nN  =  5 -- conWorkMode:GetSize()
-      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))      
+      local sM  = asmlib.GetOpVar("MISS_NOAV")
+      local nDr = asmlib.GetOpVar("DEG_RAD")
+      local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
+      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
       -- Calculate dependent parameters
-      local vFr = asmlib.NewXY(vCn.y*nR)
-      local vNr = asmlib.NewXY(vFr.x*nR)
-      local dQb = (vFr.x - vNr.x)
-      local vMr = asmlib.NewXY(dQb / 2 + vNr.x)
-      local dQs = (dQb * nR)
+      local vFr = asmlib.NewXY(vCn.y*nR) -- Far radius vector
+      local vNr = asmlib.NewXY(vFr.x*nR) -- Near radius vector
+      local dQb = (vFr.x - vNr.x) -- Bigger selected size
+      local dQs = (dQb * nR) -- Smaller not selected size
+      local vMr = asmlib.NewXY(dQb / 2 + vNr.x) -- Mddle radius vector
       local vTb, vTs = asmlib.NewXY(dQb,dQb), asmlib.NewXY(dQs,dQs)
-      local vNt, vFt = asmlib.NewXY(), asmlib.NewXY()
-      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * asmlib.GetOpVar("DEG_RAD"))
-      local dA, rA = (nMx / (2 * nN)), 0; actMonitor:SetColor()
-      local mP = asmlib.NewXY(gui.MouseX(), gui.MouseY())
+      local vNt, vFt = asmlib.NewXY(), asmlib.NewXY() -- Temp storage
+      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr)
+      local dA, rA = (nMx / (2 * nN)), 0; actMonitor:GetColor()
+      local mP = asmlib.NewXY(guiMouseX(), guiMouseY())
       -- Draw mouse position
-      actMonitor:DrawCircle(mP, 10, "y", "SEGM", {35})
+      actMonitor:DrawCircle(mP, 10, "y", "SURF")
       -- Obrain the wiper angle
-      local mA = asmlib.GetAngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
-      oPly:ChatPrint("Angle: "..mA.." rad {"..vNt.x..","..vNt.y.."}")
+      local aW = asmlib.GetAngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
       -- Move menu selection wiper
-      asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, mA)); asmlib.AddXY(vNt, vNt, vCn)
+      asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, aW)); asmlib.AddXY(vNt, vNt, vCn)
       actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
       -- Draw radial menu crcle borders
       actMonitor:DrawCircle(vCn, vNr.x); actMonitor:DrawCircle(vCn, vFr.x)
       -- Convert wiper anngle to selection ID
-      mA = ((mA < 0) and (mA + nMx) or mA)
-      mA = ((mA >= nMx) and 0 or mA)
-      local iW = math.floor(((mA / nMx) * nN) + 1)
+      aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
+      aW = ((aW >= nMx) and 0 or aW)       -- Snap to zero on overshoot [2pi]
+      local iW = math.floor(((aW / nMx) * nN) + 1) -- Calculate fraction ID
       -- Draw segment line dividers
       for iD = 1, nN do local dTi
         asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
@@ -311,17 +316,13 @@ if(CLIENT) then
         asmlib.SetXY(vNt, vMr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
         asmlib.AddXY(vNt, vNt, vCn) -- Rectangle center point in /vNt/
         -- vNt is top-left and vFt botom right
-        if(iD == iW) then dTi = vTb else dTi = vTs end 
-        actMonitor:DrawRect(vNt,dTi,"k","SURF",{"gui/corner16", rA})
+        if(iD == iW) then dTi = vTb else dTi = vTs end
+        actMonitor:DrawRect(vNt,dTi,"k","SURF",{"gui/corner16", rA / nDr})
         asmlib.SetXY(vFt, dTi); asmlib.SubXY(vFt, vFt, vBs)
         actMonitor:DrawRect(vNt,vFt,"bx")
-        local sID = "("..iD..")" -- for debug
-        actMonitor:DrawTextCenter(vNt,tostring(cnW:Select(iD) or sID))
-        
-        rA = (rA + dA) -- Prepare to draw the next divider line       
-        -- Sequential line divider ID test for debug
-        actMonitor:SetTextEdge(vFt.x, vFt.y)
-        actMonitor:DrawText("("..iD..")","k","SURF",{"Trebuchet18"})
+        local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
+        actMonitor:DrawTextCenter(vNt,sW,"k","SURF",{"Trebuchet18"})
+        rA = (rA + dA) -- Prepare to draw the next divider line
       end; RunConsoleCommand(gsToolPrefL.."workmode", iW); return true
     end)
 
@@ -630,16 +631,12 @@ if(CLIENT) then
         asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
       if(not asmlib.GetAsmVar("adviser", "BUL")) then
         asmlib.LogInstance("Adviser disabled",gtArgsLogs); return nil end
-      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("Player invalid",gtArgsLogs); return nil end
-      local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-        asmlib.LogInstance("Swep invalid",gtArgsLogs); return nil end
-      if(actSwep:GetClass() ~= "weapon_physgun") then
-        asmlib.LogInstance("Swep not physgun",gtArgsLogs); return nil end
       if(not inputIsMouseDown(MOUSE_LEFT)) then
         asmlib.LogInstance("Physgun not hold",gtArgsLogs); return nil end
-      local actTr = asmlib.CacheTracePly(oPly)
-      if(not actTr) then asmlib.LogInstance("Trace missing",gtArgsLogs); return nil end
+      local oPly, actSwep = asmlib.GetHookInfo(gtArgsLogs, "weapon_physgun")
+      if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
+      local actTr = asmlib.CacheTracePly(oPly); if(not actTr) then
+        asmlib.LogInstance("Trace missing",gtArgsLogs); return nil end
       if(not actTr.Hit) then asmlib.LogInstance("Trace not hit",gtArgsLogs); return nil end
       if(actTr.HitWorld) then asmlib.LogInstance("Trace world",gtArgsLogs); return nil end
       local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
@@ -668,7 +665,7 @@ if(CLIENT) then
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
         local rdS = asmlib.CacheRadiusPly(oPly, oDt.start, 1)
-        if(oTr and oTr.Hit) then actMonitor:SetColor()
+        if(oTr and oTr.Hit) then actMonitor:GetColor()
           local trE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
           if(trE and trE:IsValid()) then
             actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
