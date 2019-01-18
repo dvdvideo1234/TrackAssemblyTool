@@ -44,7 +44,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.482")
+asmlib.SetOpVar("TOOL_VERSION","6.483")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -247,11 +247,11 @@ if(CLIENT) then
         actTool:SwitchPoint(Dir,inputIsKeyDown(KEY_LSHIFT))
         asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
       elseif(sBind == "+zoom") then -- Workmode radial menu selection
-        if(not actTool:GetRadialMenu()) then
-          asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
-        oPly:SetNWBool(gsToolPrefL.."radmenu", true)
-        guiEnableScreenClicker(true)
-        asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
+        if(inputIsMouseDown(MOUSE_MIDDLE)) then -- Reserve the mouse middle for radial menu
+          if(not actTool:GetRadialMenu()) then -- Zoom is bind on the middle mouse button
+            asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
+          asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
+        end; return nil -- Need to disable the zoom when bind on the mouse middle
       end -- Override only for TA and skip touching anything else
       asmlib.LogInstance("("..sBind..") Skipped",gtArgsLogs); return nil
     end) -- Read client configuration
@@ -260,13 +260,11 @@ if(CLIENT) then
     function() gtArgsLogs[1] = "*DRAW_RADMENU"
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
       if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs) return nil end
-      if(not actTool:GetRadialMenu()) then oPly:SetNWBool(gsToolPrefL.."radmenu", false)
-        asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
-      if(not oPly:GetNWBool(gsToolPrefL.."radmenu")) then return nil end
-      if(not inputIsMouseDown(MOUSE_MIDDLE)) then
-        oPly:SetNWBool(gsToolPrefL.."radmenu", false)
-        guiEnableScreenClicker(false)
-        asmlib.LogInstance("Scroll release",gtArgsLogs) return nil end -- Draw while holding
+      if(not actTool:GetRadialMenu()) then
+        asmlib.LogInstance("Menu disabled",gtArgsLogs); return nil end
+      if(inputIsMouseDown(MOUSE_MIDDLE)) then guiEnableScreenClicker(true) else
+        guiEnableScreenClicker(false); asmlib.LogInstance("Scroll release",gtArgsLogs); return nil
+      end -- Draw while holding the mouse middle button
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
@@ -287,16 +285,14 @@ if(CLIENT) then
       local dQb = (vFr.x - vNr.x) -- Bigger selected size
       local dQs = (dQb * nR) -- Smaller not selected size
       local vMr = asmlib.NewXY(dQb / 2 + vNr.x) -- Mddle radius vector
-      local vTb, vTs = asmlib.NewXY(dQb,dQb), asmlib.NewXY(dQs,dQs)
       local vNt, vFt = asmlib.NewXY(), asmlib.NewXY() -- Temp storage
-      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr)
-      local dA, rA = (nMx / (2 * nN)), 0; actMonitor:GetColor()
+      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
+      local dA, rA = (nMx / (2 * nN)), 0; actMonitor:GetColor() -- Angle delta
       local mP = asmlib.NewXY(guiMouseX(), guiMouseY())
-      -- Draw mouse position
-      actMonitor:DrawCircle(mP, 10, "y", "SURF")
-      -- Obrain the wiper angle
+      actMonitor:DrawCircle(mP, 10, "y", "SURF") -- Draw mouse position
+      -- Obrain the wiper angle relative to screen center
       local aW = asmlib.GetAngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
-      -- Move menu selection wiper
+      -- Move menu selection wiper based on the calculated angle
       asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, aW)); asmlib.AddXY(vNt, vNt, vCn)
       actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
       -- Draw radial menu crcle borders
@@ -306,20 +302,17 @@ if(CLIENT) then
       aW = ((aW >= nMx) and 0 or aW)       -- Snap to zero on overshoot [2pi]
       local iW = math.floor(((aW / nMx) * nN) + 1) -- Calculate fraction ID
       -- Draw segment line dividers
-      for iD = 1, nN do local dTi
+      for iD = 1, nN do
         asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
         asmlib.SetXY(vFt, vFr); asmlib.NegY(asmlib.RotateXY(vFt, rA))
         asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
         actMonitor:DrawLine(vNt, vFt) -- Draw divider line
         rA = (rA + dA) -- Calculate text center position
-        -- Draw the name of the working mode in the center
         asmlib.SetXY(vNt, vMr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
         asmlib.AddXY(vNt, vNt, vCn) -- Rectangle center point in /vNt/
-        -- vNt is top-left and vFt botom right
-        if(iD == iW) then dTi = vTb else dTi = vTs end
-        actMonitor:DrawRect(vNt,dTi,"k","SURF",{"gui/corner16", rA / nDr})
-        asmlib.SetXY(vFt, dTi); asmlib.SubXY(vFt, vFt, vBs)
-        actMonitor:DrawRect(vNt,vFt,"bx")
+        if(iD == iW) then asmlib.SetXY(vFt, vTb) else asmlib.SetXY(vFt, vTs) end
+        actMonitor:DrawRect(vNt,vFt,"k","SURF",{"vgui/white", rA})
+        asmlib.SubXY(vFt, vFt, vBs); actMonitor:DrawRect(vNt,vFt,"bx")
         local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
         actMonitor:DrawTextCenter(vNt,sW,"k","SURF",{"Trebuchet18"})
         rA = (rA + dA) -- Prepare to draw the next divider line

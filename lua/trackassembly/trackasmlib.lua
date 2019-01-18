@@ -751,28 +751,28 @@ function SetXY(xyR, xyA)
 end
 
 function NegXY(xyR)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyR) then LogInstance("Base invalid"); return nil end
   xyR.x, xyR.y = -xyR.x, -xyR.y; return xyR
 end
 
 function NegX(xyR)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyR) then LogInstance("Base invalid"); return nil end
   xyR.x = -xyR.x; return xyR
 end
 
 function NegY(xyR)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyR) then LogInstance("Base invalid"); return nil end
   xyR.y = -xyR.y; return xyR
 end
 
 function MulXY(xyR, vM)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyR) then LogInstance("Base invalid"); return nil end
   local nM = (tonumber(vM) or 0)
   xyR.x, xyR.y = (xyR.x * nM), (xyR.y * nM); return xyR
 end
 
 function DivXY(xyR, vD)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyR) then LogInstance("Base invalid"); return nil end
   local nD = (tonumber(vM) or 0)
   xyR.x, xyR.y = (xyR.x / nD), (xyR.y / nD); return xyR
 end
@@ -795,39 +795,48 @@ function SubXY(xyR, xyA, xyB)
   xyR.x, xyR.y = (xA - xB), (yA - yB); return xyR
 end
 
-function LenXY(xyA)
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+function LenXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local xA, yA = (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
   return mathSqrt(xA * xA + yA * yA)
 end
 
-function ExpXY(xyA)
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  return (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+function ExpXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  return (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
 end
 
-function UnitXY(xyA)
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  local nL = LenXY(xyA); if(nL == nL ) then
+function UnitXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nL = LenXY(xyR); if(nL == nL ) then
     LogInstance("Length A invalid"); return nil end
-  xyA.xm, xyA.y = (tonumber(xyA.x) / nL), (tonumber(xyA.y) / nL)
-  return xyA -- Return scaled unit vector
+  xyR.xm, xyR.y = (tonumber(xyR.x) / nL), (tonumber(xyR.y) / nL)
+  return xyR -- Return scaled unit vector
 end
 
-function RotateXY(xyV, nR)
-  if(not xyV) then LogInstance("Base invalid"); return nil end
+function MidXY(xyR, xyA, xyB)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyA) then LogInstance("Base A invalid"); return nil end
+  if(not xyB) then LogInstance("Base B invalid"); return nil end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
+  xyR.x, xyR.y = ((xA + xB) / 2), ((yA + yB) / 2); return xyR
+end
+
+function RotateXY(xyR, nR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
   local nA = (tonumber(nR) or 0)
-  if(nA == 0) then return xyV end
-  local nX = (tonumber(xyV.x) or 0)
-  local nY = (tonumber(xyV.y) or 0)
+  if(nA == 0) then return xyR end
+  local nX = (tonumber(xyR.x) or 0)
+  local nY = (tonumber(xyR.y) or 0)
   local nS, nC = mathSin(nA), mathCos(nA)
-  xyV.x = (nX * nC - nY * nS)
-  xyV.y = (nX * nS + nY * nC); return xyV
+  xyR.x = (nX * nC - nY * nS)
+  xyR.y = (nX * nS + nY * nC); return xyR
 end
 
-function GetAngleXY(xyV)
-  if(not xyV) then LogInstance("Base V invalid"); return nil end
-  return mathAtan2(xyV.y, xyV.x)
+function GetAngleXY(xyR)
+  if(not xyR) then LogInstance("Base V invalid"); return nil end
+  return mathAtan2(xyR.y, xyR.x)
 end
 
 ----------------- OOP ------------------
@@ -1027,7 +1036,8 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         if(not TxID[sP]) then TxID[sP] = surfaceGetTextureID(sP) end
       end; surfaceSetTexture(TxID[sP]) -- Apply cached texture
       if(nR) then -- Use the more expensive rotation function
-        surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nR) 
+        local nD = (nR / asmlib.GetOpVar("DEG_RAD"))
+        surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD) 
       else -- Use the regular rectangle function without sin/cos rotation
         surfaceDrawTexturedRect(pO.x,pO.y,pS.x,pS.y)
       end
