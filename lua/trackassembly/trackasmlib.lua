@@ -911,6 +911,13 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     local nY = (nH / 2) + (tonumber(nY) or 0)
     return nX, nY
   end
+  function self:GetMaterial(fC, sP) local tS = TxID[fC]
+    if(not tS) then TxID[fC] = {} end; tS = TxID[fC]
+    if(not tS[sP]) then bS, vV = pcall(fC, sP)
+      if(not bS) then LogInstance("Call fail <"..vV..">", tLogs); return nil end
+      tS[sP] = vV -- Store the value in the cache
+    end; return tS[sP] -- Return cached material or texture
+  end
   function self:GetColor(keyCl,sMeth)
     if(not IsHere(keyCl) and not IsHere(sMeth)) then
       Colors.Key = GetOpVar("OOP_DEFAULTKEY")
@@ -1031,10 +1038,8 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         LogInstance("Start out of border", tLogs); return self end
       if(self:Enclose(pS) == -1) then
         LogInstance("End out of border", tLogs); return self end
-      local sP, nR = tArgs[1], tonumber(tArg[2])
-      if(tArgs[1]) then sP = tostring(sP)
-        if(not TxID[sP]) then TxID[sP] = surfaceGetTextureID(sP) end
-      end; surfaceSetTexture(TxID[sP]) -- Apply cached texture
+      local nR = tonumber(tArg[2])
+      surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1])) 
       if(nR) then -- Use the more expensive rotation function
         local nD = (nR / asmlib.GetOpVar("DEG_RAD"))
         surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD) 
@@ -1060,7 +1065,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         SetXY(xyOld, xyNew); nItr = (nItr - 1)
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
-      renderSetMaterial(Material(tostring(tArgs[1] or "color")))
+      renderSetMaterial(self:GetMaterial(Material, (tArgs[1] or "color")))
       renderDrawSphere (pC,nRad,mathClamp(tArgs[2] or 1,1,200),
                                 mathClamp(tArgs[3] or 1,1,200),rgbCl)
     else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
