@@ -1156,8 +1156,7 @@ function TOOL:DrawToolScreen(w, h)
   local tInfo = gsSymRev:Explode(anInfo)
   if(not (stTrace and stTrace.Hit)) then
     scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
-    scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
-    return
+    scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an"); return nil
   end
   scrTool:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
   scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")

@@ -269,12 +269,12 @@ if(CLIENT) then
       local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
       if(not actMonitor) then
         actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette); if(not actMonitor) then
-          asmlib.LogInstance("("..sBind..") Invalid screen",gtArgsLogs); return nil end
+          asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("("..sBind..") Create screen",gtArgsLogs)
+        asmlib.LogInstance("Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
       local vBs = asmlib.NewXY(4,4)
-      local nN  =  5 -- conWorkMode:GetSize()
+      local nN  = conWorkMode:GetSize()
       local sM  = asmlib.GetOpVar("MISS_NOAV")
       local nDr = asmlib.GetOpVar("DEG_RAD")
       local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
@@ -295,26 +295,23 @@ if(CLIENT) then
       -- Move menu selection wiper based on the calculated angle
       asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, aW)); asmlib.AddXY(vNt, vNt, vCn)
       actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
-      -- Draw radial menu crcle borders
-      actMonitor:DrawCircle(vCn, vNr.x); actMonitor:DrawCircle(vCn, vFr.x)
       -- Convert wiper anngle to selection ID
       aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
-      aW = ((aW >= nMx) and 0 or aW)       -- Snap to zero on overshoot [2pi]
       local iW = math.floor(((aW / nMx) * nN) + 1) -- Calculate fraction ID
       -- Draw segment line dividers
       for iD = 1, nN do
         asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
         asmlib.SetXY(vFt, vFr); asmlib.NegY(asmlib.RotateXY(vFt, rA))
         asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
-        actMonitor:DrawLine(vNt, vFt) -- Draw divider line
+        actMonitor:DrawLine(vNt, vFt, "w") -- Draw divider line
         rA = (rA + dA) -- Calculate text center position
         asmlib.SetXY(vNt, vMr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
         asmlib.AddXY(vNt, vNt, vCn) -- Rectangle center point in /vNt/
-        if(iD == iW) then asmlib.SetXY(vFt, vTb) else asmlib.SetXY(vFt, vTs) end
+        if(iD == iW) then asmlib.SetXY(vFt, dQb, dQb) else asmlib.SetXY(vFt, dQs, dQs) end
         actMonitor:DrawRect(vNt,vFt,"k","SURF",{"vgui/white", rA})
         asmlib.SubXY(vFt, vFt, vBs); actMonitor:DrawRect(vNt,vFt,"bx")
         local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
-        actMonitor:DrawTextCenter(vNt,sW,"k","SURF",{"Trebuchet18"})
+        actMonitor:DrawTextCenter(vNt,sW,"k","SURF",{"Trebuchet24"})
         rA = (rA + dA) -- Prepare to draw the next divider line
       end; RunConsoleCommand(gsToolPrefL.."workmode", iW); return true
     end)

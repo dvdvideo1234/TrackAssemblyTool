@@ -743,10 +743,11 @@ function NewXY(nX, nY)
   return {x=(tonumber(nX) or 0), y=(tonumber(nY) or 0)}
 end
 
-function SetXY(xyR, xyA)
+function SetXY(xyR, vA, vB) local xA, yA
   if(not xyR) then LogInstance("Base R invalid"); return nil end
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  if(not vA ) then LogInstance("Base A invalid"); return nil end
+  if(vB) then xA, yA = (tonumber(vA) or 0), (tonumber(vB) or 0)
+  else xA, yA = (tonumber(vA.x) or 0), (tonumber(vA.y) or 0) end
   xyR.x, xyR.y = xA, yA; return xyR
 end
 
@@ -1038,10 +1039,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         LogInstance("Start out of border", tLogs); return self end
       if(self:Enclose(pS) == -1) then
         LogInstance("End out of border", tLogs); return self end
-      local nR = tonumber(tArg[2])
+      local nR = tonumber(tArgs[2])
       surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1])) 
-      if(nR) then -- Use the more expensive rotation function
-        local nD = (nR / asmlib.GetOpVar("DEG_RAD"))
+      if(nR) then local nD = (nR / GetOpVar("DEG_RAD"))
         surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD) 
       else -- Use the regular rectangle function without sin/cos rotation
         surfaceDrawTexturedRect(pO.x,pO.y,pS.x,pS.y)
