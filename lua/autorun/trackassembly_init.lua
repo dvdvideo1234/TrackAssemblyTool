@@ -44,7 +44,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.485")
+asmlib.SetOpVar("TOOL_VERSION","6.477")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -236,7 +236,8 @@ if(CLIENT) then
     function(oPly,sBind,bPress) gtArgsLogs[1] = "*BIND_PRESS"
       if(not bPress) then asmlib.LogInstance("Bind not pressed",gtArgsLogs); return nil end
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
-      if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
+      if(not asmlib.IsPlayer(oPly)) then
+        asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
       if((sBind == "invnext") or (sBind == "invprev")) then
         -- Switch functionality of the mouse wheel only for TA
         if(not inputIsKeyDown(KEY_LALT)) then
@@ -259,7 +260,8 @@ if(CLIENT) then
   asmlib.SetAction("DRAW_RADMENU", -- Must have the same parameters as the hook
     function() gtArgsLogs[1] = "*DRAW_RADMENU"
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
-      if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs) return nil end
+      if(not asmlib.IsPlayer(oPly)) then
+        asmlib.LogInstance("Hook mismatch",gtArgsLogs) return nil end
       if(not actTool:GetRadialMenu()) then
         asmlib.LogInstance("Menu disabled",gtArgsLogs); return nil end
       if(inputIsMouseDown(MOUSE_MIDDLE)) then guiEnableScreenClicker(true) else
@@ -319,7 +321,8 @@ if(CLIENT) then
   asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
     function() gtArgsLogs[1] = "*DRAW_GHOSTS"
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
-      if(not asmlib.IsPlayer(oPly)) then LogInstance("Hook mismatch",gtArgsLogs); return nil end
+      if(not asmlib.IsPlayer(oPly)) then
+        asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
       local model    = actTool:GetModel()
       local stackcnt = actTool:GetStackCount()
       local ghostcnt = actTool:GetGhostsCount()

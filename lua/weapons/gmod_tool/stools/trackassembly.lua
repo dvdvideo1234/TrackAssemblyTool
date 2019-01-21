@@ -1225,14 +1225,14 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
   CurY  = CurY + pItem:GetTall() + 2
-  
+
   local pComboPresets = vguiCreate("ControlPresets", CPanel)
         pComboPresets:SetPreset(gsToolNameL)
         pComboPresets:AddOption("default", gtConVarList)
         for key, val in pairs(tableGetKeys(gtConVarList)) do
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
-  
+
   local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
   local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
