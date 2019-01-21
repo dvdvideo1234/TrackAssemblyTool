@@ -147,7 +147,7 @@ if(asmlib) then
    * If you need to use piece origin/angle with model attachment, you must use
    * the attachment extraction event /!/. The model attachment format is
    * /!<attachment_name>/ and it depemds what attachment name you gave it when you
-   * created the model. If you need TA to extract the origin from an attachment named
+   * created the model. If you need TA to extract the origin/angle from an attachment named
    * /test/ for example, you just need to put the string /!test/ in the origin/angle column for that model.
    * {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
    * TYPE   > This string is the name of the type your stuff will reside in the panel.

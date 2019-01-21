@@ -144,6 +144,7 @@ if(CLIENT) then
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
+  hookAdd("Think"          , gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
 
   -- listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
@@ -877,8 +878,8 @@ end
 function TOOL:Think()
   local model = self:GetModel()
   local wormo = self:GetWorkingMode()
-  if(utilIsValidModel(model)) then -- Precache the model or it is invalid otherwise
-    if(CLIENT) then asmlib.GetActionCode("DRAW_GHOSTS")()
+  if(utilIsValidModel(model)) then
+    if(CLIENT) then -- Precache the model or it is invalid otherwise
       if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
         -- Shortcut for closing the routine pieces
         local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
@@ -1218,20 +1219,20 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end
 
-local ConVarList = TOOL:BuildConVarList()
+local gtConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
   CurY  = CurY + pItem:GetTall() + 2
-
-  pItem = CPanel:AddControl( "ComboBox",{
-              MenuButton = 1,
-              Folder     = gsToolNameL,
-              Options    = {["#Default"] = ConVarList},
-              CVars      = tableGetKeys(ConVarList)
-  }); CurY = CurY + pItem:GetTall() + 2
-
+  
+  local pComboPresets = vguiCreate("ControlPresets", CPanel)
+        pComboPresets:SetPreset(gsToolNameL)
+        pComboPresets:AddOption("default", gtConVarList)
+        for key, val in pairs(tableGetKeys(gtConVarList)) do
+          pComboPresets:AddConVar(val) end
+  CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
+  
   local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
   local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
