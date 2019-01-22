@@ -41,106 +41,107 @@ local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 
 ---------------- Localizing needed functions ----------------
 
-local next                     = next
-local type                     = type
-local pcall                    = pcall
-local Angle                    = Angle
-local Color                    = Color
-local pairs                    = pairs
-local print                    = print
-local tobool                   = tobool
-local Vector                   = Vector
-local Matrix                   = Matrix
-local unpack                   = unpack
-local include                  = include
-local IsValid                  = IsValid
-local Material                 = Material
-local require                  = require
-local Time                     = CurTime
-local tonumber                 = tonumber
-local tostring                 = tostring
-local GetConVar                = GetConVar
-local LocalPlayer              = LocalPlayer
-local CreateConVar             = CreateConVar
-local SetClipboardText         = SetClipboardText
-local CompileString            = CompileString
-local CompileFile              = CompileFile
-local getmetatable             = getmetatable
-local setmetatable             = setmetatable
-local collectgarbage           = collectgarbage
-local osClock                  = os and os.clock
-local osDate                   = os and os.date
-local bitBand                  = bit and bit.band
-local sqlQuery                 = sql and sql.Query
-local sqlLastError             = sql and sql.LastError
-local sqlTableExists           = sql and sql.TableExists
-local gameSinglePlayer         = game and game.SinglePlayer
-local utilTraceLine            = util and util.TraceLine
-local utilIsInWorld            = util and util.IsInWorld
-local utilIsValidModel         = util and util.IsValidModel
-local utilGetPlayerTrace       = util and util.GetPlayerTrace
-local entsCreate               = ents and ents.Create
-local entsCreateClientProp     = ents and ents.CreateClientProp
-local fileOpen                 = file and file.Open
-local fileExists               = file and file.Exists
-local fileAppend               = file and file.Append
-local fileDelete               = file and file.Delete
-local fileCreateDir            = file and file.CreateDir
-local mathPi                   = math and math.pi
-local mathAbs                  = math and math.abs
-local mathSin                  = math and math.sin
-local mathCos                  = math and math.cos
-local mathCeil                 = math and math.ceil
-local mathModf                 = math and math.modf
-local mathSqrt                 = math and math.sqrt
-local mathFloor                = math and math.floor
-local mathClamp                = math and math.Clamp
-local mathAtan2                = math and math.atan2
-local mathRound                = math and math.Round
-local mathRandom               = math and math.random
-local mathNormalizeAngle       = math and math.NormalizeAngle
-local vguiCreate               = vgui and vgui.Create
-local undoCreate               = undo and undo.Create
-local undoFinish               = undo and undo.Finish
-local undoAddEntity            = undo and undo.AddEntity
-local undoSetPlayer            = undo and undo.SetPlayer
-local undoSetCustomUndoText    = undo and undo.SetCustomUndoText
-local timerStop                = timer and timer.Stop
-local timerStart               = timer and timer.Start
-local timerSimple              = timer and timer.Simple
-local timerExists              = timer and timer.Exists
-local timerCreate              = timer and timer.Create
-local timerDestroy             = timer and timer.Destroy
-local tableEmpty               = table and table.Empty
-local tableMaxn                = table and table.maxn
-local tableGetKeys             = table and table.GetKeys
-local tableInsert              = table and table.insert
-local tableCopy                = table and table.Copy
-local debugGetinfo             = debug and debug.getinfo
-local debugTrace               = debug and debug.Trace
-local renderDrawLine           = render and render.DrawLine
-local renderDrawSphere         = render and render.DrawSphere
-local renderSetMaterial        = render and render.SetMaterial
-local surfaceSetFont           = surface and surface.SetFont
-local surfaceDrawLine          = surface and surface.DrawLine
-local surfaceDrawText          = surface and surface.DrawText
-local surfaceDrawCircle        = surface and surface.DrawCircle
-local surfaceSetTexture        = surface and surface.SetTexture
-local surfaceSetTextPos        = surface and surface.SetTextPos
-local surfaceGetTextSize       = surface and surface.GetTextSize
-local surfaceGetTextureID      = surface and surface.GetTextureID
-local surfaceSetDrawColor      = surface and surface.SetDrawColor
-local surfaceSetTextColor      = surface and surface.SetTextColor
-local surfaceScreenWidth       = surface and surface.ScreenWidth
-local surfaceScreenHeight      = surface and surface.ScreenHeight
-local surfaceDrawTexturedRect  = surface and surface.DrawTexturedRect
-local languageAdd              = language and language.Add
-local constructSetPhysProp     = construct and construct.SetPhysProp
-local constraintWeld           = constraint and constraint.Weld
-local constraintNoCollide      = constraint and constraint.NoCollide
-local cvarsAddChangeCallback   = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
-local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
+local next                           = next
+local type                           = type
+local pcall                          = pcall
+local Angle                          = Angle
+local Color                          = Color
+local pairs                          = pairs
+local print                          = print
+local tobool                         = tobool
+local Vector                         = Vector
+local Matrix                         = Matrix
+local unpack                         = unpack
+local include                        = include
+local IsValid                        = IsValid
+local Material                       = Material
+local require                        = require
+local Time                           = CurTime
+local tonumber                       = tonumber
+local tostring                       = tostring
+local GetConVar                      = GetConVar
+local LocalPlayer                    = LocalPlayer
+local CreateConVar                   = CreateConVar
+local SetClipboardText               = SetClipboardText
+local CompileString                  = CompileString
+local CompileFile                    = CompileFile
+local getmetatable                   = getmetatable
+local setmetatable                   = setmetatable
+local collectgarbage                 = collectgarbage
+local osClock                        = os and os.clock
+local osDate                         = os and os.date
+local bitBand                        = bit and bit.band
+local sqlQuery                       = sql and sql.Query
+local sqlLastError                   = sql and sql.LastError
+local sqlTableExists                 = sql and sql.TableExists
+local gameSinglePlayer               = game and game.SinglePlayer
+local utilTraceLine                  = util and util.TraceLine
+local utilIsInWorld                  = util and util.IsInWorld
+local utilIsValidModel               = util and util.IsValidModel
+local utilGetPlayerTrace             = util and util.GetPlayerTrace
+local entsCreate                     = ents and ents.Create
+local entsCreateClientProp           = ents and ents.CreateClientProp
+local fileOpen                       = file and file.Open
+local fileExists                     = file and file.Exists
+local fileAppend                     = file and file.Append
+local fileDelete                     = file and file.Delete
+local fileCreateDir                  = file and file.CreateDir
+local mathPi                         = math and math.pi
+local mathAbs                        = math and math.abs
+local mathSin                        = math and math.sin
+local mathCos                        = math and math.cos
+local mathCeil                       = math and math.ceil
+local mathModf                       = math and math.modf
+local mathSqrt                       = math and math.sqrt
+local mathFloor                      = math and math.floor
+local mathClamp                      = math and math.Clamp
+local mathAtan2                      = math and math.atan2
+local mathRound                      = math and math.Round
+local mathRandom                     = math and math.random
+local mathNormalizeAngle             = math and math.NormalizeAngle
+local vguiCreate                     = vgui and vgui.Create
+local undoCreate                     = undo and undo.Create
+local undoFinish                     = undo and undo.Finish
+local undoAddEntity                  = undo and undo.AddEntity
+local undoSetPlayer                  = undo and undo.SetPlayer
+local undoSetCustomUndoText          = undo and undo.SetCustomUndoText
+local timerStop                      = timer and timer.Stop
+local timerStart                     = timer and timer.Start
+local timerSimple                    = timer and timer.Simple
+local timerExists                    = timer and timer.Exists
+local timerCreate                    = timer and timer.Create
+local timerDestroy                   = timer and timer.Destroy
+local tableEmpty                     = table and table.Empty
+local tableMaxn                      = table and table.maxn
+local tableGetKeys                   = table and table.GetKeys
+local tableInsert                    = table and table.insert
+local tableCopy                      = table and table.Copy
+local debugGetinfo                   = debug and debug.getinfo
+local debugTrace                     = debug and debug.Trace
+local renderDrawLine                 = render and render.DrawLine
+local renderDrawSphere               = render and render.DrawSphere
+local renderSetMaterial              = render and render.SetMaterial
+local surfaceSetFont                 = surface and surface.SetFont
+local surfaceDrawLine                = surface and surface.DrawLine
+local surfaceDrawText                = surface and surface.DrawText
+local surfaceDrawCircle              = surface and surface.DrawCircle
+local surfaceSetTexture              = surface and surface.SetTexture
+local surfaceSetTextPos              = surface and surface.SetTextPos
+local surfaceGetTextSize             = surface and surface.GetTextSize
+local surfaceGetTextureID            = surface and surface.GetTextureID
+local surfaceSetDrawColor            = surface and surface.SetDrawColor
+local surfaceSetTextColor            = surface and surface.SetTextColor
+local surfaceScreenWidth             = surface and surface.ScreenWidth
+local surfaceScreenHeight            = surface and surface.ScreenHeight
+local surfaceDrawTexturedRect        = surface and surface.DrawTexturedRect
+local surfaceDrawTexturedRectRotated = surface and surface.DrawTexturedRectRotated
+local languageAdd                    = language and language.Add
+local constructSetPhysProp           = construct and construct.SetPhysProp
+local constraintWeld                 = constraint and constraint.Weld
+local constraintNoCollide            = constraint and constraint.NoCollide
+local cvarsAddChangeCallback         = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback      = cvars and cvars.RemoveChangeCallback
+local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
 
@@ -742,11 +743,39 @@ function NewXY(nX, nY)
   return {x=(tonumber(nX) or 0), y=(tonumber(nY) or 0)}
 end
 
-function SetXY(xyR, xyA)
+function SetXY(xyR, vA, vB) local xA, yA
   if(not xyR) then LogInstance("Base R invalid"); return nil end
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  if(not vA ) then LogInstance("Base A invalid"); return nil end
+  if(vB) then xA, yA = (tonumber(vA) or 0), (tonumber(vB) or 0)
+  else xA, yA = (tonumber(vA.x) or 0), (tonumber(vA.y) or 0) end
   xyR.x, xyR.y = xA, yA; return xyR
+end
+
+function NegXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  xyR.x, xyR.y = -xyR.x, -xyR.y; return xyR
+end
+
+function NegX(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  xyR.x = -xyR.x; return xyR
+end
+
+function NegY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  xyR.y = -xyR.y; return xyR
+end
+
+function MulXY(xyR, vM)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nM = (tonumber(vM) or 0)
+  xyR.x, xyR.y = (xyR.x * nM), (xyR.y * nM); return xyR
+end
+
+function DivXY(xyR, vD)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nD = (tonumber(vM) or 0)
+  xyR.x, xyR.y = (xyR.x / nD), (xyR.y / nD); return xyR
 end
 
 function AddXY(xyR, xyA, xyB)
@@ -767,31 +796,48 @@ function SubXY(xyR, xyA, xyB)
   xyR.x, xyR.y = (xA - xB), (yA - yB); return xyR
 end
 
-function LenXY(xyA)
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+function LenXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local xA, yA = (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
   return mathSqrt(xA * xA + yA * yA)
 end
 
-function ExpXY(xyA)
+function ExpXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  return (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
+end
+
+function UnitXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nL = LenXY(xyR); if(nL == nL ) then
+    LogInstance("Length A invalid"); return nil end
+  xyR.xm, xyR.y = (tonumber(xyR.x) / nL), (tonumber(xyR.y) / nL)
+  return xyR -- Return scaled unit vector
+end
+
+function MidXY(xyR, xyA, xyB)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
   if(not xyA) then LogInstance("Base A invalid"); return nil end
-  return (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  if(not xyB) then LogInstance("Base B invalid"); return nil end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
+  xyR.x, xyR.y = ((xA + xB) / 2), ((yA + yB) / 2); return xyR
 end
 
-function RotateXY(xyV, nR)
-  if(not xyV) then LogInstance("Base invalid"); return nil end
+function RotateXY(xyR, nR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
   local nA = (tonumber(nR) or 0)
-  if(nA == 0) then return xyV end
-  local nX = (tonumber(xyV.x) or 0)
-  local nY = (tonumber(xyV.y) or 0)
+  if(nA == 0) then return xyR end
+  local nX = (tonumber(xyR.x) or 0)
+  local nY = (tonumber(xyR.y) or 0)
   local nS, nC = mathSin(nA), mathCos(nA)
-  xyV.x = (nX * nC - nY * nS)
-  xyV.y = (nX * nS + nY * nC); return xyV
+  xyR.x = (nX * nC - nY * nS)
+  xyR.y = (nX * nS + nY * nC); return xyR
 end
 
-function AngleXY(xyV)
-  if(not xyV) then LogInstance("Base V invalid"); return nil end
-  return mathAtan2(xyV.y, xyV.x)
+function GetAngleXY(xyR)
+  if(not xyR) then LogInstance("Base V invalid"); return nil end
+  return mathAtan2(xyR.y, xyR.x)
 end
 
 ----------------- OOP ------------------
@@ -854,7 +900,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   else -- Color list is not present then create one
     Colors.List = MakeContainer("Colors")
   end
-  local DrawMeth, DrawArgs, Text = {}, {}, {}
+  local DrawMeth, DrawArgs, Text, TxID = {}, {}, {}, {}
   Text.DrwX, Text.DrwY = 0, 0
   Text.ScrW, Text.ScrH = 0, 0
   Text.LstW, Text.LstH = 0, 0
@@ -866,25 +912,30 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     local nY = (nH / 2) + (tonumber(nY) or 0)
     return nX, nY
   end
-  function self:SetColor(keyColor,sMeth)
-    if(not IsHere(keyColor) and not IsHere(sMeth)) then
-      Colors.Key = GetOpVar("OOP_DEFAULTKEY")
-      LogInstance("Color reset", tLogs); return nil end
-    local keyColor = (keyColor or Colors.Key)
-    if(not IsHere(keyColor)) then
-      LogInstance("Indexing skipped", tLogs); return nil end
-    if(not IsString(sMeth)) then
-      LogInstance("Method <"..tostring(method).."> invalid", tLogs); return nil end
-    local rgbColor = Colors.List:Select(keyColor)
-    if(not IsHere(rgbColor)) then rgbColor = Colors.Default end
-    if(tostring(Colors.Key) ~= tostring(keyColor)) then -- Update the color only on change
-      surfaceSetDrawColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
-      surfaceSetTextColor(rgbColor.r, rgbColor.g, rgbColor.b, rgbColor.a)
-      Colors.Key = keyColor;
-    end -- The drawing color for these two methods uses surface library
-    return rgbColor, keyColor
+  function self:GetMaterial(fC, sP) local tS = TxID[fC]
+    if(not tS) then TxID[fC] = {} end; tS = TxID[fC]
+    if(not tS[sP]) then bS, vV = pcall(fC, sP)
+      if(not bS) then LogInstance("Call fail <"..vV..">", tLogs); return nil end
+      tS[sP] = vV -- Store the value in the cache
+    end; return tS[sP] -- Return cached material or texture
   end
-  function self:SetDrawParam(sMeth,tArgs,sKey)
+  function self:GetColor(keyCl,sMeth)
+    if(not IsHere(keyCl) and not IsHere(sMeth)) then
+      Colors.Key = GetOpVar("OOP_DEFAULTKEY")
+      LogInstance("Color reset", tLogs); return self end
+    local keyCl = (keyCl or Colors.Key); if(not IsHere(keyCl)) then
+      LogInstance("Indexing skipped", tLogs); return self end
+    if(not IsString(sMeth)) then
+      LogInstance("Method <"..tostring(method).."> invalid", tLogs); return self end
+    local rgbCl = Colors.List:Select(keyCl)
+    if(not IsHere(rgbCl)) then rgbCl = Colors.Default end
+    if(tostring(Colors.Key) ~= tostring(keyCl)) then -- Update the color only on change
+      surfaceSetDrawColor(rgbCl.r, rgbCl.g, rgbCl.b, rgbCl.a)
+      surfaceSetTextColor(rgbCl.r, rgbCl.g, rgbCl.b, rgbCl.a)
+      Colors.Key = keyCl; -- The drawing color for these two methods uses surface library
+    end; return rgbCl, keyCl
+  end
+  function self:GetDrawParam(sMeth,tArgs,sKey)
     tArgs = (tArgs or DrawArgs[sKey])
     sMeth = tostring(sMeth or DrawMeth[sKey])
     if(sMeth == "SURF") then
@@ -896,27 +947,29 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     Text.ScrW, Text.ScrH = 0, 0
     Text.LstW, Text.LstH = 0, 0
     Text.DrwX = (tonumber(nX) or 0)
-    Text.DrwY = (tonumber(nY) or 0)
+    Text.DrwY = (tonumber(nY) or 0); return self
   end
   function self:GetTextState(nX,nY,nW,nH)
     return (Text.DrwX + (nX or 0)), (Text.DrwY + (nY or 0)),
            (Text.ScrW + (nW or 0)), (Text.ScrH + (nH or 0)),
             Text.LstW, Text.LstH
   end
-  function self:DrawText(sText,keyColor,sMeth,tArgs)
-    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"TXT")
-    self:SetColor(keyColor, sMeth)
+  function self:DrawText(sText,keyCl,sMeth,tArgs)
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
+    self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrwX,Text.DrwY); surfaceDrawText(sText)
       Text.LstW, Text.LstH = surfaceGetTextSize(sText)
       Text.DrwY = Text.DrwY + Text.LstH
       if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
       Text.ScrH = Text.DrwY
-    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
+    else
+      LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
+    end; return self
   end
-  function self:DrawTextAdd(sText,keyColor,sMeth,tArgs)
-    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"TXT")
-    self:SetColor(keyColor, sMeth)
+  function self:DrawTextAdd(sText,keyCl,sMeth,tArgs)
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
+    self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrwX + Text.LstW,Text.DrwY - Text.LstH)
       surfaceDrawText(sText)
@@ -924,13 +977,25 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       Text.LstW, Text.LstH = (Text.LstW + LstW), LstH
       if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
       Text.ScrH = Text.DrwY
-    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
+    else
+      LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
+    end; return self
   end
-  function self:Enclose(xyPnt)
-    if(xyPnt.x < sW) then return -1 end
-    if(xyPnt.x > eW) then return -1 end
-    if(xyPnt.y < sH) then return -1 end
-    if(xyPnt.y > eH) then return -1 end; return 1
+  function self:DrawTextCenter(xyP,sText,keyCl,sMeth,tArgs)
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
+    self:GetColor(keyCl, sMeth)
+    if(sMeth == "SURF") then
+      local LstW, LstH = surfaceGetTextSize(sText)
+      LstW, LstH = (LstW / 2), (LstH / 2)
+      surfaceSetTextPos(xyP.x - LstW, xyP.y - LstH)
+      surfaceDrawText(sText)
+    end; return self
+  end
+  function self:Enclose(xyP)
+    if(xyP.x < sW) then return -1 end
+    if(xyP.x > eW) then return -1 end
+    if(xyP.y < sH) then return -1 end
+    if(xyP.y > eH) then return -1 end; return 1
   end
   function self:GetDistance(pS, pE)
     if(self:Enclose(pS) == -1) then
@@ -939,23 +1004,23 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       LogInstance("End out of border", tLogs); return nil end
     return mathSqrt((pE.x - pS.x)^2 + (pE.y - pS.y)^2)
   end
-  function self:DrawLine(pS,pE,keyColor,sMeth,tArgs)
-    if(not (pS and pE)) then return end
-    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"LIN")
-    local rgbCl, keyCl = self:SetColor(keyColor, sMeth)
+  function self:DrawLine(pS,pE,keyCl,sMeth,tArgs)
+    if(not (pS and pE)) then return self end
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"LIN")
+    local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border", tLogs); return nil end
+        LogInstance("Start out of border", tLogs); return self end
       if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border", tLogs); return nil end
+        LogInstance("End out of border", tLogs); return self end
       surfaceDrawLine(pS.x,pS.y,pE.x,pE.y)
     elseif(sMeth == "SEGM") then
       if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border", tLogs); return nil end
+        LogInstance("Start out of border", tLogs); return self end
       if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border", tLogs); return nil end
+        LogInstance("End out of border", tLogs); return self end
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
-      if(nIter <= 0) then return end
+      if(nIter <= 0) then return self end
       local xyD = NewXY((pE.x - pS.x) / nItr, (pE.y - pS.y) / nItr)
       local xyOld, xyNew = NewXY(pS.x, pS.y), NewXY()
       while(nItr > 0) do AddXY(xyNew, xyOld, xyD)
@@ -964,23 +1029,30 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       end
     elseif(sMeth == "CAM3") then
       renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
-    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
+    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return self end
   end
-  function self:DrawRect(pS,pE,keyColor,sMeth,tArgs)
-    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"REC")
-    self:SetColor(keyColor,sMeth)
+  function self:DrawRect(pO,pS,keyCl,sMeth,tArgs)
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"REC")
+    self:GetColor(keyCl,sMeth)
     if(sMeth == "SURF") then
+      if(self:Enclose(pO) == -1) then
+        LogInstance("Start out of border", tLogs); return self end
       if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border", tLogs); return nil end
-      if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border", tLogs); return nil end
-      surfaceSetTexture(surfaceGetTextureID(tostring(tArgs[1])))
-      surfaceDrawTexturedRect(pS.x,pS.y,pE.x-pS.x,pE.y-pS.y)
-    else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
+        LogInstance("End out of border", tLogs); return self end
+      local nR = tonumber(tArgs[2])
+      surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1])) 
+      if(nR) then local nD = (nR / GetOpVar("DEG_RAD"))
+        surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD) 
+      else -- Use the regular rectangle function without sin/cos rotation
+        surfaceDrawTexturedRect(pO.x,pO.y,pS.x,pS.y)
+      end
+    else -- Unsuppoerted method
+      LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
+    end; return self
   end
-  function self:DrawCircle(pC,nRad,keyColor,sMeth,tArgs)
-    local sMeth, tArgs = self:SetDrawParam(sMeth,tArgs,"CIR")
-    local rgbCl, keyCl = self:SetColor(keyColor,sMeth)
+  function self:DrawCircle(pC,nRad,keyCl,sMeth,tArgs)
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"CIR")
+    local rgbCl, keyCl = self:GetColor(keyCl,sMeth)
     if(sMeth == "SURF") then surfaceDrawCircle(pC.x, pC.y, nRad, rgbCl)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
@@ -993,7 +1065,7 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         SetXY(xyOld, xyNew); nItr = (nItr - 1)
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
-      renderSetMaterial(Material(tostring(tArgs[1] or "color")))
+      renderSetMaterial(self:GetMaterial(Material, (tArgs[1] or "color")))
       renderDrawSphere (pC,nRad,mathClamp(tArgs[2] or 1,1,200),
                                 mathClamp(tArgs[3] or 1,1,200),rgbCl)
     else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
@@ -3765,4 +3837,21 @@ function MakeGhosts(nCnt, sModel)
     local eGho = tGho[iD]; if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
+end
+
+function GetHookInfo(tInfo, sW)
+  local sWep = tostring(sW or "gmod_tool")
+  local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+    LogInstance("Player invalid",tInfo); return nil end
+  local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
+    LogInstance("Swep invalid",tInfo); return nil end
+  if(actSwep:GetClass() ~= sWep) then
+    LogInstance("("..sWep..") Swep other",tInfo); return nil end
+  if(actSwep:GetMode()  ~= GetOpVar("TOOLNAME_NL")) then
+    LogInstance("Tool different",tInfo); return nil end
+  if(sW) then return oPly, actSwep end
+  -- Here player is holding the track assembly tool
+  local actTool = actSwep:GetToolObject(); if(not actTool) then
+    LogInstance("Tool invalid",tInfo); return nil end
+  return oPly, actSwep, actTool
 end

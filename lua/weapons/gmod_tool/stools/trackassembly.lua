@@ -56,7 +56,6 @@ local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
-local conWorkMode = asmlib.GetOpVar("MODE_WORKING")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
@@ -74,6 +73,7 @@ local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
+local conWorkMode = asmlib.GetOpVar("CONTAINER_WORKING")
 local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
@@ -143,6 +143,17 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
+  hookAdd("PostDrawHUD"    , gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
+  hookAdd("Think"          , gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
+
+  -- listen for changes to the localify language and reload the tool's menu to update the localizations
+  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
+  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
+    asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
+    local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
+    local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end
+    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
+  end, gsToolPrefL.."lang")
 end
 
 if(SERVER) then
@@ -867,8 +878,8 @@ end
 function TOOL:Think()
   local model = self:GetModel()
   local wormo = self:GetWorkingMode()
-  if(utilIsValidModel(model)) then -- Precache the model or it is invalid otherwise
-    if(CLIENT) then asmlib.GetActionCode("DRAW_GHOSTS")()
+  if(utilIsValidModel(model)) then
+    if(CLIENT) then -- Precache the model or it is invalid otherwise
       if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
         -- Shortcut for closing the routine pieces
         local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
@@ -1013,7 +1024,7 @@ function TOOL:DrawHUD()
       asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
     asmlib.SetOpVar("MONITOR_GAME", hudMonitor)
     asmlib.LogInstance("Create screen",gtArgsLogs)
-  end; hudMonitor:SetColor()
+  end; hudMonitor:GetColor()
   if(not self:GetAdviser()) then return end
   local oPly = LocalPlayer()
   local stTrace = asmlib.CacheTracePly(oPly)
@@ -1137,7 +1148,7 @@ function TOOL:DrawToolScreen(w, h)
       asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
     asmlib.SetOpVar("MONITOR_TOOL", scrTool)
     asmlib.LogInstance("Create screen",gtArgsLogs)
-  end; local xyT, xyB = scrTool:GetCorners(); scrTool:SetColor()
+  end; local xyT, xyB = scrTool:GetCorners(); scrTool:GetColor()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
   scrTool:SetTextEdge(xyT.x,xyT.y)
   local oPly = LocalPlayer()
@@ -1146,8 +1157,7 @@ function TOOL:DrawToolScreen(w, h)
   local tInfo = gsSymRev:Explode(anInfo)
   if(not (stTrace and stTrace.Hit)) then
     scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
-    scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
-    return
+    scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an"); return nil
   end
   scrTool:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
   scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
@@ -1209,19 +1219,19 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end
 
-local ConVarList = TOOL:BuildConVarList()
+local gtConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
   CurY  = CurY + pItem:GetTall() + 2
 
-  pItem = CPanel:AddControl( "ComboBox",{
-              MenuButton = 1,
-              Folder     = gsToolNameL,
-              Options    = {["#Default"] = ConVarList},
-              CVars      = tableGetKeys(ConVarList)
-  }); CurY = CurY + pItem:GetTall() + 2
+  local pComboPresets = vguiCreate("ControlPresets", CPanel)
+        pComboPresets:SetPreset(gsToolNameL)
+        pComboPresets:AddOption("default", gtConVarList)
+        for key, val in pairs(tableGetKeys(gtConVarList)) do
+          pComboPresets:AddConVar(val) end
+  CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
 
   local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
@@ -1437,15 +1447,4 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pntasist"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".engunsnap"))
-end
-
--- listen for changes to the localify language and reload the tool's menu to update the localizations
-if(CLIENT) then
-  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
-  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
-    asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
-    local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
-    local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end
-    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
-  end, gsToolPrefL.."lang")
 end

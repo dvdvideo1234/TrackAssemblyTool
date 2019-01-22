@@ -7,17 +7,17 @@
  * must be greater alphabetically than /trackasmlib/, so the API of the
  * module can be loaded before you can use it like seen below.
 ]]--
--- Local reference to the module
+-- Local reference to the module.
 local asmlib = trackasmlib
 
--- Change this to your addon name
+-- Change this to your addon name.
 local myAddon = "Test's track pack" -- Your addon name goes here
 
 --[[
  * Change this if you want to use different in-game type
  * You can also use multiple types myType1, myType2,
  * myType3, ... myType/n when your addon contains
- * multiple model packs
+ * multiple model packs.
 ]]--
 local myType  = myAddon -- The type your addon resides in the tool with
 
@@ -41,8 +41,8 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
  * This function defines what happens when there is an error present
  * Usually you can tell Gmod that you want it to generate an error
  * and throw the message to the log also. In this case you will not
- * have to change the change the function name in lots of places
- * when you need it to do something else
+ * have to change the function name in lots of places
+ * when you need it to do something else.
 --]]
 local function myThrowError(vMesg)
   local sMesg = tostring(vMesg)                    -- Make sure the message is string
@@ -62,7 +62,7 @@ if(asmlib) then
    * of your addon. You can use it for boolean value deciding whenever
    * or not to run certain events. For example you can stop exporting
    * your local database every time Gmod loads, but then the user will
-   * skip the available updates of your addon until he/she deletes the DSVs
+   * skip the available updates of your addon until he/she deletes the DSVs.
   ]]--
   local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
 
@@ -73,7 +73,7 @@ if(asmlib) then
    * Register the addon to the auto-load prefix list when the
    * PIECES file is missing. The auto-load list is located in
    * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
-   * a.k.a the DATA folder of Garry's mod
+   * a.k.a the DATA folder of Garry's mod.
    *
    * @bSuccess = RegisterDSV(sProg, sPref, sDelim)
    * sProg  > The program which registered the DSV
@@ -96,7 +96,9 @@ if(asmlib) then
    * For every sub-category of your track pieces, you must return a table
    * with that much elements or return a /nil/ value to add the piece to
    * the root of your branch. You can also return a second value if you
-   * want to override the track piece name.
+   * want to override the track piece name. If you need to use categories
+   * for multiple track types, just put their hashes in  the table below
+   * and make every track point to its dedicated category handler.
   ]]--
   local myCategory = {
     [myType] = {Txt = [[
@@ -123,7 +125,7 @@ if(asmlib) then
    * nInd   > The index equal indent format to be stored with ( generally = 3 )
    * tData  > The category functional definition you want to use to divide your stuff with
    * sPref  > An export file custom prefix. For synchronizing
-   * it must be related to your addon ( default is instance prefix )
+   *          it must be related to your addon ( default is instance prefix )
   ]]--
   asmlib.LogInstance("ExportCategory start <"..myPrefix..">")
   if(CLIENT) then
@@ -140,24 +142,31 @@ if(asmlib) then
    * In the square brackets goes your model,
    * and then for every active point, you must have one array of
    * strings, where the elements match the following data settings.
-   * You can use the reverse sign event /@/ to reverse any component of the
-   * parameterization and also the disable event /#/ to make TA auto-fill
-   * the value provided {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
-   * TYPE   > This string is the name of the type your stuff will reside in the panel
-   *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable
-   *          If it is empty uses the string /TYPE/, so make sure you fill this
+   * You can use the disable event /#/ to make TA auto-fill
+   * the value provided abd you can also add miltiple track types myType[1-n].
+   * If you need to use piece origin/angle with model attachment, you must use
+   * the attachment extraction event /!/. The model attachment format is
+   * /!<attachment_name>/ and it depemds what attachment name you gave it when you
+   * created the model. If you need TA to extract the origin/angle from an attachment named
+   * /test/ for example, you just need to put the string /!test/ in the origin/angle column for that model.
+   * {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
+   * TYPE   > This string is the name of the type your stuff will reside in the panel.
+   *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable.
+   *          If it is empty uses the string /TYPE/, so make sure you fill this.
    * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
-   *          the model ( from the last slash to the file extension )
-   * LINEID > This is the ID of the point that can be selected for building. They must be
-   *          sequential and mandatory
-   * POINT  > This is the position vector that TA searches and selects.
+   *          the model ( from the last slash to the file extension ).
+   * LINEID > This is the ID of the point that can be selected for building. They are be
+   *          sequential and mandatory.
+   * POINT  > This is the local position vector that TA searches and selects the related ORIGIN.
    *          An empty string is treated as taking the ORIGIN.
    *          Disabling this using the disable event makes it hidden when the active point is searched for
    * ORIGIN > This is the origin relative to which the next track piece position is calculated
    *          An empty string is treated as {0,0,0}. Disabling this makes it non-selectable by the holder
+   *          You can also fill it with attachment event /!/ followed by your attachment name.
    * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
    *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
-   * CLASS  > This string is filled up when your entity class is not /prop_physics/ but something else
+   *          You can also fill it with attachment event /!/ followed by your attachment name. 
+   * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
    *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop
   ]]--
   local myTable = {
@@ -178,7 +187,7 @@ if(asmlib) then
    @ bSuccess = SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
    * sTable > The table you want to sync
    * tData  > A data table like the one described above
-   * bRepl  > If set to /true/, makes the API to replace the repeating models with
+   * bRepl  > If set to /true/, makes the API replace the repeating models with
               these of your addon. This is nice when you are constantly updating your track packs
               If set to /false/ keeps the current model in the
               database and ignores yours if they are the same file.
