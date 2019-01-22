@@ -1,42 +1,44 @@
 ---------------- Localizing Libraries ---------------
-local type                  = type
-local pairs                 = pairs
-local print                 = print
-local Angle                 = Angle
-local Color                 = Color
-local Vector                = Vector
-local IsValid               = IsValid
-local tostring              = tostring
-local tonumber              = tonumber
-local GetConVar             = GetConVar
-local LocalPlayer           = LocalPlayer
-local SetClipboardText      = SetClipboardText
-local RunConsoleCommand     = RunConsoleCommand
-local osDate                = os and os.date
-local netSend               = net and net.Send
-local netStart              = net and net.Start
-local netReceive            = net and net.Receive
-local netWriteEntity        = net and net.WriteEntity
-local netWriteVector        = net and net.WriteVector
-local vguiCreate            = vgui and vgui.Create
-local utilIsValidModel      = util and util.IsValidModel
-local mathAbs               = math and math.abs
-local mathSqrt              = math and math.sqrt
-local mathClamp             = math and math.Clamp
-local mathAtan2             = math and math.atan2
-local mathRound             = math and math.Round
-local fileExists            = file and file.Exists
-local hookAdd               = hook and hook.Add
-local tableGetKeys          = table and table.GetKeys
-local inputIsKeyDown        = input and input.IsKeyDown
-local cleanupRegister       = cleanup and cleanup.Register
-local surfaceScreenWidth    = surface and surface.ScreenWidth
-local surfaceScreenHeight   = surface and surface.ScreenHeight
-local languageAdd           = language and language.Add
-local languageGetPhrase     = language and language.GetPhrase
-local concommandAdd         = concommand and concommand.Add
-local cvarsAddChangeCallback    = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
+local type                             = type
+local pairs                            = pairs
+local print                            = print
+local Angle                            = Angle
+local Color                            = Color
+local Vector                           = Vector
+local IsValid                          = IsValid
+local tostring                         = tostring
+local tonumber                         = tonumber
+local GetConVar                        = GetConVar
+local LocalPlayer                      = LocalPlayer
+local SetClipboardText                 = SetClipboardText
+local RunConsoleCommand                = RunConsoleCommand
+local osDate                           = os and os.date
+local netSend                          = net and net.Send
+local netStart                         = net and net.Start
+local netReceive                       = net and net.Receive
+local netWriteEntity                   = net and net.WriteEntity
+local netWriteVector                   = net and net.WriteVector
+local vguiCreate                       = vgui and vgui.Create
+local utilIsValidModel                 = util and util.IsValidModel
+local stringUpper                      = string and string.upper
+local mathAbs                          = math and math.abs
+local mathSqrt                         = math and math.sqrt
+local mathClamp                        = math and math.Clamp
+local mathAtan2                        = math and math.atan2
+local mathRound                        = math and math.Round
+local fileExists                       = file and file.Exists
+local controlpanelGet                  = controlpanel and controlpanel.Get
+local hookAdd                          = hook and hook.Add
+local tableGetKeys                     = table and table.GetKeys
+local inputIsKeyDown                   = input and input.IsKeyDown
+local cleanupRegister                  = cleanup and cleanup.Register
+local surfaceScreenWidth               = surface and surface.ScreenWidth
+local surfaceScreenHeight              = surface and surface.ScreenHeight
+local languageAdd                      = language and language.Add
+local languageGetPhrase                = language and language.GetPhrase
+local concommandAdd                    = concommand and concommand.Add
+local cvarsAddChangeCallback           = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback        = cvars and cvars.RemoveChangeCallback
 local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntityModifier
 
 ----------------- TOOL Global Parameters ----------------
@@ -64,7 +66,7 @@ local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", string.upper)..": "
+local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", stringUpper)..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
@@ -146,12 +148,12 @@ if(CLIENT) then
   hookAdd("PostDrawHUD"    , gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
   hookAdd("Think"          , gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
 
-  -- listen for changes to the localify language and reload the tool's menu to update the localizations
+  -- Listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
   cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
     asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
     local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
-    local cPanel = controlpanel.Get(oTool.Mode); if(not IsValid(cPanel)) then return end
+    local cPanel = controlpanelGet(oTool.Mode); if(not IsValid(cPanel)) then return end
     cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
   end, gsToolPrefL.."lang")
 end
@@ -393,8 +395,8 @@ function TOOL:ClearAnchor(bMute)
   if(CLIENT) then return end; self:ClearObjects()
   asmlib.ConCommandPly(plPly,"anchor",gsNoAnchor)
   if(svEnt and svEnt:IsValid()) then
-    svEnt:SetColor(conPalette:Select("w"))
     svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+    svEnt:SetColor(conPalette:Select("w"))
     if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
       asmlib.PrintNotifyPly(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP") end

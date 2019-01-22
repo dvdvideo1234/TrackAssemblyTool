@@ -3829,11 +3829,11 @@ function MakeGhosts(nCnt, sModel)
       eGho:SetNotSolid(true)
       eGho:SetNoDraw(true)
       eGho:DrawShadow(false)
-      eGho:SetColor(cPal:Select("gh"))
       eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
+      eGho:SetColor(cPal:Select("gh"))
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
   end -- Remove all others that must not be drawn to save memory
-  for iK = iD, tGho.Size do -- Executes only when (nCnt <= tGho.Size)
+  for iK = iD, tGho.Size do -- Executes only when (nCnt < tGho.Size)
     local eGho = tGho[iD]; if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
