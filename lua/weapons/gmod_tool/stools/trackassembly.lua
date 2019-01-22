@@ -96,7 +96,7 @@ TOOL.ClientConVar = {
   [ "anchor"    ] = gsNoAnchor,
   [ "igntype"   ] = 0,
   [ "spnflat"   ] = 0,
-  [ "angsnap"   ] = 45,
+  [ "angsnap"   ] = 15,
   [ "sizeucs"   ] = 20,
   [ "pointid"   ] = 1,
   [ "pnextid"   ] = 2,
@@ -143,10 +143,10 @@ if(CLIENT) then
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
+  hookAdd("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
+  hookAdd("PostDrawHUD", gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
+  hookAdd("PostDrawHUD", gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
-  hookAdd("PostDrawHUD"    , gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("PHYSGUN_DRAW"))
-  hookAdd("PostDrawHUD"    , gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
-  hookAdd("Think"          , gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
 
   -- Listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")

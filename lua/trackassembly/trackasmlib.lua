@@ -3003,22 +3003,22 @@ end
  * This function calculates the cross product normal angle of
  * a player by a given trace. If the trace is missing it takes player trace
  * It has options for snap to surface and yaw snap
- * oPly    > The player we need the normal angle from
- * stTrace > A trace structure if nil, it takes oPly's
- * bSnap   > Snap to the trace surface flag
- * nYSnp   > Yaw snap amount
+ * oPly > The player we need the normal angle from
+ * soTr > A trace structure if nil, it takes oPly's
+ * bSnp > Snap to the trace surface flag
+ * nSnp > Yaw snap amount
 ]]--
-function GetNormalAngle(oPly, stTrace, bSnap, nYSnp)
-  local aAng, nYSn = Angle(), (tonumber(nYSnp) or 0); if(not IsPlayer(oPly)) then
+function GetNormalAngle(oPly, soTr, bSnp, nSnp)
+  local aAng, nAsn = Angle(), (tonumber(nSnp) or 0); if(not IsPlayer(oPly)) then
     LogInstance("No player <"..tostring(oPly)..">", aAng); return aAng end
-  if(bSnap) then local stTr = stTrace -- Snap to the trace surface
+  if(bSnp) then local stTr = soTr -- Snap to the trace surface
     if(not (stTr and stTr.Hit)) then stTr = CacheTracePly(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
     end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
   else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
-  if(nYSn and (nYSn > 0) and (nYSn <= GetOpVar("MAX_ROTATION"))) then
+  if(nAsn and (nAsn > 0) and (nAsn <= GetOpVar("MAX_ROTATION"))) then
     -- Snap player viewing rotation angle for using walls and ceiling
-    aAng:SnapTo("pitch", nYSn):SnapTo("yaw", nYSn):SnapTo("roll", nYSn)
+    aAng:SnapTo("pitch", nAsn):SnapTo("yaw", nAsn):SnapTo("roll", nAsn)
   end; return aAng
 end
 
@@ -3666,7 +3666,7 @@ local function GetLocalify(sCode)
     LogInstance("("..sCode..") Missing"); return nil end
   local fCode = CompileFile(sPath); if(not fCode) then
     LogInstance("("..sCode..") No function"); return nil end
-  local bFunc, fFunc = pcall(fCode); if(not bCode) then
+  local bFunc, fFunc = pcall(fCode); if(not bFunc) then
     LogInstance("("..suCod..")[1] "..fFunc); return nil end
   local bCode, tCode = pcall(fFunc, sTool, sLmit); if(not bCode) then
     LogInstance("("..suCod..")[2] "..tCode); return nil end

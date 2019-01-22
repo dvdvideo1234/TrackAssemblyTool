@@ -44,7 +44,7 @@ local asmlib = trackasmlib
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.479")
+asmlib.SetOpVar("TOOL_VERSION","6.480")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -362,7 +362,7 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "anchor"   , anchor)
         asmlib.ConCommandPly(oPly, "igntype"  , 0)
         asmlib.ConCommandPly(oPly, "spnflat"  , 0)
-        asmlib.ConCommandPly(oPly, "angsnap"  , 45)
+        asmlib.ConCommandPly(oPly, "angsnap"  , 15)
         asmlib.ConCommandPly(oPly, "pointid"  , 1)
         asmlib.ConCommandPly(oPly, "pnextid"  , 2)
         asmlib.ConCommandPly(oPly, "spawncn"  , 0)
@@ -398,6 +398,9 @@ if(CLIENT) then
         asmlib.ConCommandPly(oPly, "maxstcnt" , 200)
         asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
         asmlib.ConCommandPly(oPly, "maxfruse" , 50)
+        asmlib.ConCommandPly(oPly, "radmenuen", 0)
+        asmlib.ConCommandPly(oPly, "incsnpang", 5)
+        asmlib.ConCommandPly(oPly, "incsnplin", 5)
         asmlib.LogInstance("Variables reset complete",gtArgsLogs)
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
