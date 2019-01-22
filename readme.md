@@ -238,13 +238,13 @@ I will be more then happy to add them into the Track assembly tool if their coll
 the minimum requirements.
 ( Made a model once, but it turned out quite nasty xD, so better leave the job to the right people.)
 
-#### Hey, do you remember that roller coaster assistant addon
+#### Hey, do you remember that roller coaster assistant addon ?
 It was snapping pieces when you got them close to each other and they magically connect.
 Does this script has a feature like this ? Yes, it does. When looking at the panel in the right, there is a check-box labeled
 `Enable physgun snap` that you must check. This makes the server to perform some
 traces relative to the active points of the piece and search for other pieces to snap to.
 If the snapping conditions are present, it will snap the trace piece on physgun release at
-that end, which the server trace hits. Check the [wiki page](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Physgun-snap-feature) for more information.
+that end, which the server trace hits. Check the [wiki page](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Additional-features#physgun-snapping-feature) for more information.
 
 #### Can you tell me how to read the physgun snap legend drawn on the screen ?
 Easy. Here are some things to know for never getting confused with this:
