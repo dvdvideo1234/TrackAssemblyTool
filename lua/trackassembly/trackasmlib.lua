@@ -506,6 +506,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
+  SetOpVar("TABLE_CONVARLIST",{})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
@@ -1836,13 +1837,6 @@ function GetBuilderName(sTable)
   return makTab -- Return the dedicated table builder object
 end
 
-function GetBuilderID(vD)
-  if(not IsHere(vD)) then return libQTable.Size end
-  local iD = tonumber(vD) if(not iD) then
-    LogInstance("Index NAN {"..type(vD).."}<"..tostring(vD)..">"); return nil end
-  local makTab = GetBuilderName(libQTable[iD]); return makTab
-end
-
 function CreateTable(sTable,defTab,bDelete,bReload)
   if(not IsString(sTable)) then
     LogInstance("Table key {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
@@ -1868,7 +1862,6 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
     defCol[4] = DefaultString(tostring(defCol[4] or symDis), symDis)
   end; libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
-  if(not libQTable.Size) then libQTable.Size = 0 end
   -- Read table definition
   function self:GetDefinition(vK)
     if(vK) then return tabDef[vK] end; return tabDef
@@ -1891,7 +1884,6 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   -- Removes the object from the list
   function self:Remove(vRet)
     local qtDef = self:GetDefinition()
-    libQTable[qtDef.KeyID] = nil
     libQTable[qtDef.Nick]  = nil
     collectgarbage(); return vRet
   end
@@ -1988,8 +1980,6 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Mismatch count",tabDef.Nick); bStat = false end
     if(qtDef.Size ~= tableMaxn(qtDef)) then
       LogInstance("Mismatch maxN",tabDef.Nick); bStat = false end
-    if(not tonumber(qtDef.KeyID)) then
-      LogInstance("Mismatch key ID ["..tostring(qtDef.KeyID).."]",tabDef.Nick); bStat = false end
     if(defTab.Nick:upper() ~= defTab.Nick) then
       LogInstance("Nick lower",tabDef.Nick); bStat = false end
     if(defTab.Name:upper() ~= defTab.Name) then
@@ -2192,13 +2182,6 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       if(tValues[iCnt]) then qVal = qVal..", " else qVal = qVal.." )" end
     end; qtCmd.Insert = qtCmd.Insert..qVal..";"; return self
   end
-  -- Method required initialization
-  if(not tonumber(defTab.KeyID)) then
-    defTab.KeyID = (libQTable.Size + 1)
-  else defTab.KeyID = tonumber(defTab.KeyID) end
-  if(libQTable[defTab.KeyID]) then
-    LogInstance("Key ID ["..tostring(defTab.KeyID).."] exists as <"..tostring(defTab.Nick)..">"); return self:Remove(false)
-  end; libQTable[defTab.KeyID] = defTab.Nick; libQTable.Size = (libQTable.Size + 1)
   -- When database mode is SQL create a table in sqlite
   if(sMoDB == "SQL") then local makTab
     makTab = self:Create(); if(not IsHere(makTab)) then
@@ -3770,4 +3753,12 @@ function GetHookInfo(tInfo, sW)
   local actTool = actSwep:GetToolObject(); if(not actTool) then
     LogInstance("Tool invalid",tInfo); return nil end
   return oPly, actSwep, actTool
+end
+
+function GetConvarList(tC)
+  local sT = GetOpVar("TOOLNAME_PL")
+  local tI = GetOpVar("TABLE_CONVARLIST")
+  if(IsTable(tC)) then tableEmpty(tI)
+    for key, val in pairs(tC) do tI[sT..key] = val end
+  end; return tI  
 end

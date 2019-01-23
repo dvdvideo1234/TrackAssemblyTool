@@ -129,6 +129,8 @@ TOOL.ClientConVar = {
   [ "incsnplin" ] = 5
 }
 
+local gtConvarList = asmlib.GetConvarList(TOOL.ClientConVar)
+
 if(CLIENT) then
   TOOL.Information = {
     { name = "info",  stage = 1   },
@@ -865,8 +867,8 @@ end
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
     asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtArgsLogs); return nil end
-  local spawncn, elevpnt = self:GetSpawnCenter()
-  if(oEnt and oEnt:IsValid()) then
+  local spawncn = self:GetSpawnCenter()
+  if(oEnt and oEnt:IsValid()) then local elevpnt
     if(spawncn) then -- Distance for the piece spawned on the ground
       local vobdbox = oEnt:OBBMins(); elevpnt = -vobdbox[cvZ]
     else -- Refresh the variable when model changes to unload the network
@@ -874,7 +876,7 @@ function TOOL:ElevateGhost(oEnt, oPly)
             elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
     end; asmlib.ConCommandPly(oPly, "elevpnt", elevpnt)
     asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtArgsLogs)
-  end
+  else asmlib.ConCommandPly(oPly, "elevpnt", 0) end
 end
 
 function TOOL:Think()
@@ -1221,8 +1223,8 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end
 
-local gtConVarList = TOOL:BuildConVarList()
 function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
+  local tCon = asmlib.GetOpVar("TABLE_CONVARLIST")
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
@@ -1230,8 +1232,8 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
 
   local pComboPresets = vguiCreate("ControlPresets", CPanel)
         pComboPresets:SetPreset(gsToolNameL)
-        pComboPresets:AddOption("default", gtConVarList)
-        for key, val in pairs(tableGetKeys(gtConVarList)) do
+        pComboPresets:AddOption("default", gtConvarList)
+        for key, val in pairs(tableGetKeys(gtConvarList)) do
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
 
