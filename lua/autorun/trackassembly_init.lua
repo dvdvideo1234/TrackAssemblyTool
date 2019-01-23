@@ -40,11 +40,13 @@ local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
-local asmlib = trackasmlib
+local asmlib     = trackasmlib
+local gtArgsLogs = {"", false, 0}
+local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.481")
+asmlib.SetOpVar("TOOL_VERSION","6.482")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -98,15 +100,13 @@ local sName = asmlib.GetAsmVar("timermode", "NAM")
 cvarsRemoveChangeCallback(sName, sName.."_call")
 cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
   local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
-  asmlib.GetBuilderID("PIECES"):TimerSetup(arTim[1])
-  asmlib.GetBuilderID("ADDITIONS"):TimerSetup(arTim[2])
-  asmlib.GetBuilderID("PHYSPROPERTIES"):TimerSetup(arTim[3])
-  asmlib.LogInstance("Timer update <"..tostring(vNew)..">")
+  asmlib.GetBuilderName("PIECES"):TimerSetup(arTim[1])
+  asmlib.GetBuilderName("ADDITIONS"):TimerSetup(arTim[2])
+  asmlib.GetBuilderName("PHYSPROPERTIES"):TimerSetup(arTim[3])
+  asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
 end)
 
 ------ GLOBAL VARIABLES ------
-local gtArgsLogs  = {"", false, 0}
-local gtInitLogs  = {"*Init", false, 0}
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -140,7 +140,7 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
-      -------- ACTIONS ----------
+-------- ACTIONS ----------
 if(SERVER) then
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
