@@ -1639,24 +1639,25 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
   else LogInstance("Wrong mode name "..sRule); return false end
 end
 
-function SetCategory(oCat,fCat)
-  local sFunc = "SetCategory"
-  if(not IsHere(oCat)) then
-    local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
-    local tCat = GetOpVar("TABLE_CATEGORIES")
-          tCat = (tCat and tCat[sTyp] or nil)
-    return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
-  end; ModelToNameRule("CLR")
-  SetOpVar("DEFAULT_TYPE", tostring(oCat))
-  if(CLIENT) then local sTyp = GetOpVar("DEFAULT_TYPE")
-    if(IsString(fCat)) then -- Categories for the panel
-      local tCat = GetOpVar("TABLE_CATEGORIES")
-      tCat[sTyp] = {}; tCat[sTyp].Txt = fCat
+function GetCategory(oTyp,fCat)
+  local sTyp = GetOpVar("DEFAULT_TYPE")
+  local tCat = GetOpVar("TABLE_CATEGORIES")
+  if(not IsHere(oTyp)) then
+    local sTyp = tostring(sTyp or "")
+    local tTyp = (tCat and tCat[sTyp] or nil)
+    return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
+  end; ModelToNameRule("CLR"); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
+  if(CLIENT) then local tTyp -- Categories for the panel
+    if(IsString(fCat)) then tCat[sTyp] = {}
+      local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
+      local ssLog = "*"..fsLog:format("TYPE","GetCategory",tostring(oTyp)) 
+      tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local suc, out = pcall(tCat[sTyp].Cmp); if(not suc) then
-        LogInstance("Compilation failed <"..fCat.."> ["..sTyp.."]", "*"..sFunc); return nil end
-      tCat[sTyp].Cmp = out
-    else LogInstance("Avoided "..type(fCat).." <"..tostring(fCat).."> ["..sTyp.."]", "*"..sFunc) end
+        LogInstance("Compilation failed <"..fCat.."> ["..sTyp.."]", ssLog); return nil end
+      tCat[sTyp].Cmp = out; tTyp = tCat[sTyp]
+      return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
+    else LogInstance("Avoided "..type(fCat).." <"..tostring(fCat).."> ["..sTyp.."]", ssLog) end
   end
 end
 
