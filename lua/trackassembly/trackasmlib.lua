@@ -1613,24 +1613,15 @@ function Sort(tTable, tCols)
   end; tS.Size = iS; QuickSort(tS,1,iS); return tS
 end
 
---------------------- STRING -----------------------
-
-function DisableString(sBase, vDsb, vDef)
-  if(IsString(sBase)) then
-    local sF, sD = sBase:sub(1,1), GetOpVar("OPSYM_DISABLE")
-    if(sF ~= sD and not IsBlank(sBase)) then
-      return sBase -- Not disabled or empty
-    elseif(sF == sD) then return vDsb end
-  end; return vDef
-end
-
-function DefaultString(sBase, sDef)
-  if(IsString(sBase)) then
-    if(not IsBlank(sBase)) then return sBase end end
-  if(IsString(sDef)) then return sDef end; return ""
-end
-
 ------------- VARIABLE INTERFACES --------------
+
+function GetTerm(sBas, vDef, vDsb)
+  local sM = GetOpVar("MISS_NOAV")
+  if(IsString(sBas)) then local sD = GetOpVar("OPSYM_DISABLE")
+    if(sBas:sub(1,1) == sD) then return tostring(vDsb or sM)
+    elseif(not IsBlank(sBas)) then return sBas end
+  end; if(IsString(vDef)) then return vDef end; return sM
+end
 
 function ModelToNameRule(sRule, gCut, gSub, gApp)
   if(not IsString(sRule)) then
@@ -1852,8 +1843,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   local self, tabDef, tabCmd = {}, defTab, {}
   local symDis, sMoDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
-    defCol[3] = DefaultString(tostring(defCol[3] or symDis), symDis)
-    defCol[4] = DefaultString(tostring(defCol[4] or symDis), symDis)
+    defCol[3] = GetTerm(tostring(defCol[3] or symDis), symDis)
+    defCol[4] = GetTerm(tostring(defCol[4] or symDis), symDis)
   end; libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
   -- Read table definition
   function self:GetDefinition(vK)
@@ -2681,7 +2672,7 @@ end
 --[[
  * Import table data from DSV database created earlier
  * sTable > Definition KEY to import
- * bComm  > Calls @InsertRecord(sTable,arLine) when set to true
+ * bComm  > Calls TABLE:Record(arLine) when set to true
  * sPref  > Prefix used on importing ( if any )
  * sDelim > Delimiter separating the values
 ]]--
@@ -2708,7 +2699,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
         local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
         for iCnt = 1, defTab.Size do
           tData[iCnt] = GetStrip(tData[iCnt]) end
-        if(bComm) then InsertRecord(sTable, tData) end
+        if(bComm) then makTab:Record(tData) end
       end
     end
   end; F:Close()
@@ -2822,9 +2813,8 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") fileOpen("..sNins..") failed"); return false end
   I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   I:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
-  local pfLib = GetOpVar("NAME_LIBRARY"):gsub(GetOpVar("NAME_INIT"),"")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
-  local sFr, sBk, sHs = pfLib..".InsertRecord(\""..sTable.."\", {", "})\n", (fPref.."@"..sTable)
+  local sFr, sBk, sHs = sTable:upper()..":Record({", "})\n", (fPref.."@"..sTable)
   while(not isEOF) do sLine, isEOF = GetStringFile(D)
     if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
       sLine = sLine:gsub(defTab.Name,""):Trim()

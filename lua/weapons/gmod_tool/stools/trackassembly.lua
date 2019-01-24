@@ -1327,7 +1327,7 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         pComboPhysName:SetPos(2, CurY)
         pComboPhysName:SetTall(18)
         pComboPhysName:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phyname"))
-        pComboPhysName:SetValue(asmlib.DefaultString(asmlib.GetAsmVar("physmater","STR"),
+        pComboPhysName:SetValue(asmlib.GetTerm(asmlib.GetAsmVar("physmater","STR"),
                                 asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.DoRightClick = function()
           SetClipboardText(pComboPhysName:GetOptionText(pComboPhysName:GetSelectedID()) or "") end
@@ -1353,7 +1353,7 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         pText:SetPos(2, CurY)
         pText:SetTall(18)
         pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
-        pText:SetText(asmlib.DefaultString(asmlib.GetAsmVar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
+        pText:SetText(asmlib.GetTerm(asmlib.GetAsmVar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
         pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
           if(nKeyEnum == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()

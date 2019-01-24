@@ -46,7 +46,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.483")
+asmlib.SetOpVar("TOOL_VERSION","6.484")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -682,9 +682,9 @@ asmlib.CreateTable("PIECES",{
   Trigs = {
     Record = function(arLine, vSource)
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.DisableString(arLine[2],asmlib.SetCategory(),"TYPE")
-      arLine[3] = asmlib.DisableString(arLine[3],asmlib.ModelToName(arLine[1]),"MODEL")
-      arLine[8] = asmlib.DisableString(arLine[8],"NULL","NULL")
+      arLine[2] = asmlib.GetTerm(arLine[2],"TYPE" ,asmlib.SetCategory())
+      arLine[3] = asmlib.GetTerm(arLine[3],"MODEL",asmlib.ModelToName(arLine[1]))
+      arLine[8] = asmlib.GetTerm(arLine[8],"NULL" ,"NULL")
       if(not ((arLine[8] == "NULL") or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
         trCls[arLine[8]] = true; asmlib.LogInstance("Register trace <"..
           tostring(arLine[8]).."@"..arLine[1]..">",vSource)
@@ -811,7 +811,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Index = {{1},{2},{1,2}},
   Trigs = {
     Record = function(atRow)
-      atRow[1] = asmlib.DisableString(atRow[1],asmlib.SetCategory(),"TYPE"); return true
+      atRow[1] = asmlib.GetTerm(atRow[1],"TYPE",asmlib.SetCategory()); return true
     end
   },
   Cache = {
