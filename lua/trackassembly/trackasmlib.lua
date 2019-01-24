@@ -2637,8 +2637,9 @@ function ExportDSV(sTable, sPref, sDelim)
   fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("("..fPref..") fileOpen("..fName..") failed",defTab.Nick); return false end
-  local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
+  local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
+  local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
   local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
   F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   F:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
@@ -2661,7 +2662,7 @@ function ExportDSV(sTable, sPref, sDelim)
     local tCache = libCache[defTab.Name]
     if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Cache missing",defTab.Nick); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, "*"..fsLog:format(defTab.Nick,sFunc,"Cache"))
+    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
     if(not bS) then LogInstance("Cache manager fail for "..sR,defTab.Nick); return false end
     if(not sR) then LogInstance("Cache routine fail",defTab.Nick); return false end
   else LogInstance("Wrong database mode <"..sMoDB..">",defTab.Nick); return false end

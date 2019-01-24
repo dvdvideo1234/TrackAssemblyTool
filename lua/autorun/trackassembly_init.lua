@@ -46,7 +46,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.485")
+asmlib.SetOpVar("TOOL_VERSION","6.486")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -298,7 +298,7 @@ if(CLIENT) then
       actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
       -- Convert wiper anngle to selection ID
       aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
-      local iW = math.floor(((aW / nMx) * nN) + 1) -- Calculate fraction ID
+      local iW = mathFloor(((aW / nMx) * nN) + 1) -- Calculate fraction ID
       -- Draw segment line dividers
       for iD = 1, nN do
         asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
