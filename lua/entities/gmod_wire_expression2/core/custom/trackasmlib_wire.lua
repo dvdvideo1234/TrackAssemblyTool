@@ -19,7 +19,7 @@ local gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmVar("enwiremod","BUL")
 local gnMaxMass = asmlib.GetAsmVar("maxmass","FLT")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
-local gsINS = "asmlib.InsertRecord({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
+local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
 local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
 ----- Refresh callbacks global variables

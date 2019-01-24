@@ -1648,15 +1648,15 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
   else LogInstance("Wrong mode name "..sRule); return false end
 end
 
-function DefaultType(anyType,fCat)
-  local sFunc = "DefaultType"
-  if(not IsHere(anyType)) then
+function SetCategory(oCat,fCat)
+  local sFunc = "SetCategory"
+  if(not IsHere(oCat)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local tCat = GetOpVar("TABLE_CATEGORIES")
           tCat = (tCat and tCat[sTyp] or nil)
     return sTyp, (tCat and tCat.Txt), (tCat and tCat.Cmp)
   end; ModelToNameRule("CLR")
-  SetOpVar("DEFAULT_TYPE", tostring(anyType))
+  SetOpVar("DEFAULT_TYPE", tostring(oCat))
   if(CLIENT) then local sTyp = GetOpVar("DEFAULT_TYPE")
     if(IsString(fCat)) then -- Categories for the panel
       local tCat = GetOpVar("TABLE_CATEGORIES")
@@ -1667,13 +1667,6 @@ function DefaultType(anyType,fCat)
       tCat[sTyp].Cmp = out
     else LogInstance("Avoided "..type(fCat).." <"..tostring(fCat).."> ["..sTyp.."]", "*"..sFunc) end
   end
-end
-
-function DefaultTable(anyTable)
-  if(not IsHere(anyTable)) then
-    return (GetOpVar("DEFAULT_TABLE") or "") end
-  SetOpVar("DEFAULT_TABLE",anyTable)
-  ModelToNameRule("CLR")
 end
 
 ------------------------- PLAYER -----------------------------------
@@ -2182,6 +2175,47 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       if(tValues[iCnt]) then qVal = qVal..", " else qVal = qVal.." )" end
     end; qtCmd.Insert = qtCmd.Insert..qVal..";"; return self
   end
+  -- Uses the given array to create a record in the table
+  function self:Record(arLine)
+    local qtDef, sMoDB, sFunc = self:GetDefinition(), GetOpVar("MODE_DATABASE"), "Record"
+    if(not arLine) then LogInstance("Missing data table",tabDef.Nick); return false end
+    if(not arLine[1]) then LogInstance("Missing PK",tabDef.Nick)
+      for key, val in pairs(arLine) do
+        LogInstance("PK data ["..tostring(key).."] = <"..tostring(val)..">",tabDef.Nick) end
+      return false -- Print all other values when the model is missing
+    end -- Read the log source format and reduce the number of concatenations
+    local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
+    local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
+    -- Call the trigger when provided
+    if(IsTable(qtDef.Trigs)) then local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
+      if(not bS) then LogInstance("Trigger manager fail "..sR,tabDef.Nick); return false end
+      if(not sR) then LogInstance("Trigger routine fail",tabDef.Nick); return false end
+    end -- Populate the data after the trigger does its thing
+    if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
+      for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
+      local Q = CacheStmt(qsKey:format(sFunc, qtDef.Nick), nil, unpack(arLine))
+      if(not Q) then local sStmt = self:Insert():Values(unpack(qtDef.Query[sFunc])):Get()
+        if(not IsHere(sStmt)) then LogInstance("Build statement failed",tabDef.Nick); return nil end
+        Q = CacheStmt(qsKey:format(sFunc, qtDef.Nick), sStmt, unpack(arLine))
+      end -- The query is built based on table definition
+      if(not IsHere(Q)) then
+        LogInstance("Internal cache error",tabDef.Nick); return false end
+      local qRez = sqlQuery(Q); if(not qRez and IsBool(qRez)) then
+         LogInstance("Execution error <"..sqlLastError().."> Query ran <"..Q..">",tabDef.Nick); return false end
+      return true -- The dynamic statement insertion was successful
+    elseif(sMoDB == "LUA") then local snPK = self:Match(arLine[1],1)
+      if(not IsHere(snPK)) then -- If primary key becomes a number
+        LogInstance("Primary key mismatch <"..tostring(arLine[1]).."> to "..qtDef[1][1].." for "..tostring(snPK),tabDef.Nick); return nil end
+      local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
+        LogInstance("Cache missing",tabDef.Nick); return false end
+      if(not IsTable(qtDef.Cache)) then
+        LogInstance("Cache manager missing",tabDef.Nick); return false end
+      local bS, sR = pcall(qtDef.Cache[sFunc], self, tCache, snPK, arLine, ssLog:format("Cache"))
+      if(not bS) then LogInstance("Cache manager fail "..sR,tabDef.Nick); return false end
+      if(not sR) then LogInstance("Cache routine fail",tabDef.Nick); return false end
+    else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return false end
+    return true -- The dynamic cache population was successful
+  end
   -- When database mode is SQL create a table in sqlite
   if(sMoDB == "SQL") then local makTab
     makTab = self:Create(); if(not IsHere(makTab)) then
@@ -2224,57 +2258,6 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     end
   elseif(sMoDB == "LUA") then LogInstance("Created",tabDef.Nick); return self:IsValid()
   else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return self:Remove(false) end
-end
-
-function InsertRecord(sTable,arLine)
-  if(not IsHere(sTable)) then
-    LogInstance("Missing table name/values"); return false end
-  if(type(sTable) == "table") then
-    arLine, sTable = sTable, DefaultTable()
-    if(not (IsHere(sTable) and IsString(sTable) and not IsBlank(sTable))) then
-      LogInstance("Table <"..tostring(sTable)..">"); return false end
-  end
-  if(not IsString(sTable)) then
-    LogInstance("Table name {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  if(not arLine) then
-    LogInstance("Missing data table",sTable); return false end
-  if(not arLine[1]) then LogInstance("Missing PK for",sTable)
-    for key, val in pairs(arLine) do LogInstance("PK data ["..tostring(key).."] = <"..tostring(val)..">",sTable) end
-    return false
-  end -- Read SQL builder object
-  local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
-    LogInstance("Missing builder",sTable); return false end
-  local defTab, sMoDB, sFunc = makTab:GetDefinition(), GetOpVar("MODE_DATABASE"), "InsertRecord"
-  local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
-  -- Call the trigger when provided
-  if(IsTable(defTab.Trigs)) then local bS, sR = pcall(defTab.Trigs[sFunc], arLine, "*"..fsLog:format(defTab.Nick,sFunc,"Trigs"))
-    if(not bS) then LogInstance("Trigger manager fail "..sR,defTab.Nick); return false end
-    if(not sR) then LogInstance("Trigger routine fail",defTab.Nick); return false end
-  end -- Populate the data after the trigger does its thing
-  if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
-    for iD = 1, defTab.Size do arLine[iD] = makTab:Match(arLine[iD],iD,true) end
-    local Q = CacheStmt(qsKey:format(sFunc, defTab.Nick), nil, unpack(arLine))
-    if(not Q) then local sStmt = makTab:Insert():Values(unpack(defTab.Query[sFunc])):Get()
-      if(not IsHere(sStmt)) then LogInstance("Build statement failed",defTab.Nick); return nil end
-      Q = CacheStmt(qsKey:format(sFunc, defTab.Nick), sStmt, unpack(arLine))
-    end -- The query is built based on table definition
-    if(not IsHere(Q)) then
-      LogInstance("Internal cache error",defTab.Nick); return false end
-    local qRez = sqlQuery(Q); if(not qRez and IsBool(qRez)) then
-       LogInstance("Execution error <"..sqlLastError().."> Query ran <"..Q..">",defTab.Nick); return false end
-    return true -- The dynamic statement insertion was successful
-  elseif(sMoDB == "LUA") then local snPK = makTab:Match(arLine[1],1)
-    if(not IsHere(snPK)) then -- If primary key becomes a number
-      LogInstance("Primary key mismatch <"..tostring(arLine[1]).."> to "..defTab[1][1].." for "..tostring(snPK),defTab.Nick); return nil end
-    local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
-      LogInstance("Cache missing",defTab.Nick); return false end
-    if(not IsTable(defTab.Cache)) then
-      LogInstance("Cache manager missing",defTab.Nick); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], makTab, tCache, snPK, arLine, "*"..fsLog:format(defTab.Nick,sFunc,"Cache"))
-    if(not bS) then LogInstance("Cache manager fail "..sR,defTab.Nick); return false end
-    if(not sR) then LogInstance("Cache routine fail",defTab.Nick); return false end
-  else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return false end
-  return true -- The dynamic cache population was successful
 end
 
 --------------- TIMER MEMORY MANAGMENT ----------------------------
