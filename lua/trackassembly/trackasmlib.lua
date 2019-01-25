@@ -535,10 +535,18 @@ function SnapValue(nVal,nSnp,bAng)
   return nVal
 end
 
-function RollValue(nVal,nMin,nMax)
-  if(nVal > nMax) then return nMin end
-  if(nVal < nMin) then return nMax end
-  return nVal
+--[[
+ * When requested wraps the first value according to
+ * the interval described by the other two values
+ * Inp: -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9 10
+ * Out:  3  1  2  3  1  2 3 1 2 3 1 2 3 1 2 3  1
+ * This is an example call for the input between 1 and 3
+]]
+function GetWrap(nVal,nMin,nMax) local nVal = nVal
+  while(nVal < nMin or nVal > nMax) do
+    nVal = ((nVal < nMin) and (nMax - (nMin - nVal) + 1) or nVal)
+    nVal = ((nVal > nMax) and (nMin + (nVal - nMax) - 1) or nVal)
+  end; return nVal -- Returns the N-stepped value
 end
 
 local function BorderValue(nsVal, sNam)
@@ -1328,7 +1336,7 @@ function SwitchID(vID,vDir,oRec)
     LogInstance("ID #"..tostring(ID).." not located"); return 1 end
   local nDir = (tonumber(vDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
   if(nDir == 0) then LogInstance("Direction mismatch"); return ID end
-  ID = RollValue(ID + nDir,1,oRec.Size) -- Move around the edge selected
+  ID = GetWrap(ID + nDir,1,oRec.Size) -- Move around the edge selected
   stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
     LogInstance("Offset PointID #"..tostring(ID).." not located"); return 1 end
   return ID
