@@ -1,4 +1,4 @@
-  asmlib.SetCategory("Ron's 2ft track pack", [[function(m)
+  asmlib.GetCategory("Ron's 2ft track pack", [[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/ron/2ft/","")
     local s, o, n = r:find("/")

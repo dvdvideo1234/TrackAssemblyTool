@@ -46,7 +46,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.487")
+asmlib.SetOpVar("TOOL_VERSION","6.488")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -100,9 +100,9 @@ local sName = asmlib.GetAsmVar("timermode", "NAM")
 cvarsRemoveChangeCallback(sName, sName.."_call")
 cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
   local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
-  asmlib.GetBuilderName("PIECES"):TimerSetup(arTim[1])
-  asmlib.GetBuilderName("ADDITIONS"):TimerSetup(arTim[2])
-  asmlib.GetBuilderName("PHYSPROPERTIES"):TimerSetup(arTim[3])
+  asmlib.GetBuilderNick("PIECES"):TimerSetup(arTim[1])
+  asmlib.GetBuilderNick("ADDITIONS"):TimerSetup(arTim[2])
+  asmlib.GetBuilderNick("PHYSPROPERTIES"):TimerSetup(arTim[3])
   asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
 end)
 
@@ -383,7 +383,7 @@ if(CLIENT) then
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_FRAME"
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",gtArgsLogs); return nil end
-      local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
+      local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
         asmlib.LogInstance("Missing builder for table PIECES",gtArgsLogs); return nil end
       local defTab = makTab:GetDefinition(); if(not defTab) then
         asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
@@ -890,7 +890,7 @@ if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
-  local PIECES = asmlib.GetBuilderName("PIECES"); asmlib.ModelToNameRule("CLR")
+  local PIECES = asmlib.GetBuilderNick("PIECES"); asmlib.ModelToNameRule("CLR")
   if(asmlib.GetAsmVar("devmode" ,"BUL")) then
     asmlib.GetCategory("Develop Sprops")
     PIECES:Record({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1, "", "", "", ""})
@@ -3020,7 +3020,7 @@ if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
-  local PHYSPROPERTIES = asmlib.GetBuilderName("PHYSPROPERTIES"); asmlib.ModelToNameRule("CLR")
+  local PHYSPROPERTIES = asmlib.GetBuilderNick("PHYSPROPERTIES"); asmlib.ModelToNameRule("CLR")
   asmlib.GetCategory("Special")
   PHYSPROPERTIES:Record({"#", 1 , "default"             })
   PHYSPROPERTIES:Record({"#", 2 , "default_silent"      })
@@ -3129,7 +3129,7 @@ if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)
-  local ADDITIONS = asmlib.GetBuilderName("ADDITIONS"); asmlib.ModelToNameRule("CLR")
+  local ADDITIONS = asmlib.GetBuilderNick("ADDITIONS"); asmlib.ModelToNameRule("CLR")
   --- Shinji's Switchers ---
   ADDITIONS:Record({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,0,-1,-1})
   ADDITIONS:Record({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,1,SOLID_VPHYSICS})

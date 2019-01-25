@@ -204,7 +204,7 @@ e2function number entity:trackasmlibGetAdditionsCount()
 end
 
 local function getAdditionsLine(sModel, nID)
-  local makTab = asmlib.GetBuilderName("ADDITIONS"); if(not makTab) then
+  local makTab = asmlib.GetBuilderNick("ADDITIONS"); if(not makTab) then
     asmlib.LogInstance("No table builder"); return {} end
   local defTab = makTab:GetDefinition(); if(not defTab) then
     asmlib.LogInstance("No table definition"); return {} end

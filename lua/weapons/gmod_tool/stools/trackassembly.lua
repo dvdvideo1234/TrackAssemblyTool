@@ -1239,7 +1239,7 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
 
   local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
-  local makTab = asmlib.GetBuilderName("PIECES"); if(not asmlib.IsHere(makTab)) then
+  local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return nil end
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")

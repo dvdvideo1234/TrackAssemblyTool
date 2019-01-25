@@ -1812,7 +1812,7 @@ local function CacheStmt(sHash,sStmt,...)
   return sBase:format(...)
 end
 
-function GetBuilderName(sTable)
+function GetBuilderNick(sTable)
   if(not IsString(sTable)) then
     LogInstance("Key {"..type(sTable).."}<"..tostring(sTable).."> not string"); return nil end
   local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
