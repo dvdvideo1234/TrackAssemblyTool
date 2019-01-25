@@ -528,13 +528,6 @@ function InitBase(sName,sPurpose)
 end
 
 ------------- VALUE ---------------
-
-function SnapValue(nVal,nSnp,bAng)
-  local nVal = mathRound(nVal / nSnp) * nSnp
-  if(bAng) then nVal = mathNormalizeAngle(nVal) end
-  return nVal
-end
-
 --[[
  * When requested wraps the first value according to
  * the interval described by the other two values
@@ -549,12 +542,17 @@ function GetWrap(nVal,nMin,nMax) local nVal = nVal
   end; return nVal -- Returns the N-stepped value
 end
 
-local function BorderValue(nsVal, sNam)
-  if(not IsHere(sNam)) then return nsVal end
-  if(not (IsString(nsVal) or tonumber(nsVal))) then
+--[[
+ * Applies border if existent to the input value
+ * according to the given gorder name. Basicly
+ * custom version of a clamp with vararg border limits
+]]
+local function BorderValue(nsVal, vKey)
+  if(not IsHere(vKey)) then return nsVal end
+  if(not (IsString(nsVal) or IsNumber(nsVal))) then
     LogInstance("Value not comparable"); return nsVal end
-  local tB = GetOpVar("TABLE_BORDERS")[sNam]; if(not IsHere(tB)) then
-    LogInstance("Missing <"..tostring(sNam)..">"); return nsVal end
+  local tB = GetOpVar("TABLE_BORDERS")[vKey]; if(not IsHere(tB)) then
+    LogInstance("Missing <"..tostring(vKey)..">"); return nsVal end
   if(tB[1] and nsVal < tB[1]) then return tB[1] end
   if(tB[2] and nsVal > tB[2]) then return tB[2] end
   return nsVal
@@ -3579,15 +3577,15 @@ end
 
 function GetAsmVar(sName, sMode)
   if(not IsString(sName)) then
-    LogInstance("CVar name {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
+    LogInstance("Nsme {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
   if(not IsString(sMode)) then
-    LogInstance("CVar mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
+    LogInstance("Mode {"..type(sMode).."}<"..tostring(sMode).."> not string"); return nil end
   local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
   local CVar = GetConVar(sLow); if(not IsHere(CVar)) then
-    LogInstance("("..sLow..", "..sMode..") Missing CVar object"); return nil end
-  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()  , sLow)) or 0)
-  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat(), sLow)) or 0)
-  elseif(sMode == "STR") then return  tostring(CVar:GetString() or "")
+    LogInstance("("..sLow..", "..sMode..") Missing object"); return nil end
+  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()   , sLow)) or 0)
+  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat() , sLow)) or 0)
+  elseif(sMode == "STR") then return (tostring(BorderValue(CVar:GetString(), sLow)) or "")
   elseif(sMode == "BUL") then return (CVar:GetBool() or false)
   elseif(sMode == "DEF") then return  CVar:GetDefault()
   elseif(sMode == "INF") then return  CVar:GetHelpText()

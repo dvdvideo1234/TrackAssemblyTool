@@ -46,7 +46,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.490")
+asmlib.SetOpVar("TOOL_VERSION","6.491")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -665,7 +665,7 @@ if(CLIENT) then
   asmlib.SetAction("INCREMENT_SNAP",
     function(pB, nV, aV)
       local mV = mathAbs(aV)
-      local cV = asmlib.SnapValue(nV, mV)
+      local cV = mathRound(nV / mV) * mV
       if(aV > 0 and cV > nV) then return cV end
       if(aV > 0 and cV < nV) then return cV+mV end
       if(aV < 0 and cV > nV) then return cV-mV end
@@ -680,19 +680,19 @@ asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
   Trigs = {
-    Record = function(arLine, vSource)
+    Record = function(arLine, vSrc)
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
       arLine[2] = asmlib.GetTerm(arLine[2],"TYPE" ,asmlib.GetCategory())
       arLine[3] = asmlib.GetTerm(arLine[3],"MODEL",asmlib.ModelToName(arLine[1]))
       arLine[8] = asmlib.GetTerm(arLine[8],"NULL" ,"NULL")
       if(not ((arLine[8] == "NULL") or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
         trCls[arLine[8]] = true; asmlib.LogInstance("Register trace <"..
-          tostring(arLine[8]).."@"..arLine[1]..">",vSource)
+          tostring(arLine[8]).."@"..arLine[1]..">",vSrc)
       end; return true
     end -- Register the class provided to the trace hit list
   },
   Cache = {
-    Record = function(makTab, tCache, snPK, arLine, vSource)
+    Record = function(makTab, tCache, snPK, arLine, vSrc)
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
@@ -702,23 +702,23 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match <"..tostring(arLine[4])..
-          "> to "..defTab[4][1].." for "..tostring(snPK),vSource); return false end
+          "> to "..defTab[4][1].." for "..tostring(snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
         if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
-          tostring(snPK),vSource); return false end
+          tostring(snPK),vSrc); return false end
       if(nOffsID > stData.Size) then stData.Size = nOffsID else
         asmlib.LogInstance("Offset #"..tostring(nOffsID)..
-          " sequential mismatch",vSource); return false end
+          " sequential mismatch",vSrc); return false end
       return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local tData, defTab = {}, makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
         tData[mod] = {KEY = (rec.Type..rec.Name..mod)} end
       local tSort = asmlib.Sort(tData,{"KEY"})
       if(not tSort) then oFile:Flush(); oFile:Close()
-        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSource); return false end
+        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
         local tData = tCache[stRec.Key]
         local sData, tOffs = defTab.Name, tData.Offs
@@ -762,7 +762,7 @@ asmlib.CreateTable("ADDITIONS",{
     ExportDSV = {1,4}
   },
   Cache = {
-    Record = function(makTab, tCache, snPK, arLine, vSource)
+    Record = function(makTab, tCache, snPK, arLine, vSrc)
       local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
@@ -770,17 +770,17 @@ asmlib.CreateTable("ADDITIONS",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nCnt, sFld, nAddID = 2, "", makTab:Match(arLine[4],4)
       if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..
-        tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),vSource); return false end
+        tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),vSrc); return false end
       stData[nAddID] = {} -- LineID has to be set properly
       while(nCnt <= defTab.Size) do sFld = defTab[nCnt][1]
         stData[nAddID][sFld] = makTab:Match(arLine[nCnt],nCnt)
         if(not asmlib.IsHere(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
           asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[nCnt]).."> to "..
-            defTab[nCnt][1].." for "..tostring(snPK),vSource); return false
+            defTab[nCnt][1].." for "..tostring(snPK),vSrc); return false
         end; nCnt = (nCnt + 1)
       end; stData.Size = nAddID; return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
         local sData = defTab.Name..sDelim..mod
@@ -815,7 +815,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
     end
   },
   Cache = {
-    Record = function(makTab, tCache, snPK, arLine, vSource)
+    Record = function(makTab, tCache, snPK, arLine, vSrc)
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
       local tTypes = tCache[skType]; if(not tTypes) then
@@ -825,7 +825,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       local iNameID = makTab:Match(arLine[2],2)
       if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
         asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[2])..
-          "> to "..defTab[2][1].." for "..tostring(snPK),vSource); return false end
+          "> to "..defTab[2][1].." for "..tostring(snPK),vSrc); return false end
       if(not asmlib.IsHere(tNames[snPK])) then
         -- If a new type is inserted
         tTypes.Size = tTypes.Size + 1
@@ -837,17 +837,17 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       tNames[snPK].Size = iNameID
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSource)
+    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
       local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
       if(not (tTypes or tNames)) then F:Flush(); F:Close()
-        asmlib.LogInstance("("..fPref..") No data found",vSource); return false end
+        asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
       for iInd = 1, tTypes.Size do
         local sType = tTypes[iInd]
         local tType = tNames[sType]
         if(not tType) then F:Flush(); F:Close()
-          asmlib.LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",vSource); return false end
+          asmlib.LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",vSrc); return false end
         for iCnt = 1, tType.Size do
           oFile:Write(defTab.Name..sDelim..makTab:Match(sType      ,1,true,"\"")..
                                    sDelim..makTab:Match(iCnt       ,2,true,"\"")..

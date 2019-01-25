@@ -1354,14 +1354,14 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
         pText:SetTall(18)
         pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
         pText:SetText(asmlib.GetTerm(asmlib.GetAsmVar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
-        pText.OnKeyCodeTyped = function(pnSelf, nKeyEnum)
-          if(nKeyEnum == KEY_TAB) then
+        pText.OnKeyCodeTyped = function(pnSelf, nKey)
+          if(nKey == KEY_TAB) then
             local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()
             pnSelf:SetText(sTX); pnSelf:SetValue(sTX)
-          elseif(nKeyEnum == KEY_ENTER) then
+          elseif(nKey == KEY_ENTER) then
             local sTX = tostring(pnSelf:GetValue() or "")
             RunConsoleCommand(gsToolPrefL.."bgskids",sTX)
-          end
+          end; return true -- Disable text entry default behavior
         end; CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
