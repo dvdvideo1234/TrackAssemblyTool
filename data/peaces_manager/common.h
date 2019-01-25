@@ -6,7 +6,7 @@
   // This string is used to explode the string given
   #define EXPLODE_DELIMITER "$"
   // The maximum number of pointer pieces for the exploded string
-  #define MAX_NODES_ADDON 10
+  #define MAX_NODES_ADDON 30
   // The maximum length of the delimiter enabled
   #define MAX_DELIMIT_LEN 10
   // Maximum path length when reading from the model processing list
@@ -14,11 +14,11 @@
   // For example <"models/props/something.mdl">
   // <models> OR what the model in the line starts with
   #define MATCH_MODEL_DIR "models"
-  // <.mdl"> OR what the model in the line ends with
+  // <.mdl> OR what the model in the line ends with
   #define MATCH_MODEL_END ".mdl"
-  // <asmlib.DefaultType("PHX Metal")>
+  // <asmlib.GetCategory("PHX Metal")>
   // A new track type starts from this line ( e.g. "PHX Metal" )
-  #define MATCH_START_NEW_TYPE "asmlib.DefaultType(\""
+  #define MATCH_START_NEW_TYPE "asmlib.GetCategory(\""
   // The log buffer result string length
   #define MAX_BUFFER_LOG 2000
 
