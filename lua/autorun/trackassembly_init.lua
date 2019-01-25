@@ -25,6 +25,7 @@ local guiMouseY                     = gui and gui.MouseY
 local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
 local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
+local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
 local mathAbs                       = math and math.abs
 local utilAddNetworkString          = util and util.AddNetworkString
@@ -46,7 +47,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.491")
+asmlib.SetOpVar("TOOL_VERSION","6.492")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)

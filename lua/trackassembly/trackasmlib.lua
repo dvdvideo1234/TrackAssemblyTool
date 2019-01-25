@@ -1646,14 +1646,14 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
 end
 
 function GetCategory(oTyp,fCat)
-  local sTyp = GetOpVar("DEFAULT_TYPE")
   local tCat = GetOpVar("TABLE_CATEGORIES")
   if(not IsHere(oTyp)) then
-    local sTyp = tostring(sTyp or "")
+    local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local tTyp = (tCat and tCat[sTyp] or nil)
     return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
   end; ModelToNameRule("CLR"); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
   if(CLIENT) then local tTyp -- Categories for the panel
+    local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     if(IsString(fCat)) then tCat[sTyp] = {}
       local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
       local ssLog = "*"..fsLog:format("TYPE","GetCategory",tostring(oTyp)) 

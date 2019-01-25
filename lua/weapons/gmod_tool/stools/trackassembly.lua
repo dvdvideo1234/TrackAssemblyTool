@@ -124,7 +124,7 @@ TOOL.ClientConVar = {
   [ "workmode"  ] = 0,
   [ "appangfst" ] = 0,
   [ "applinfst" ] = 0,
-  [ "radmenuen" ] = 0,
+  [ "enradmenu" ] = 0,
   [ "incsnpang" ] = 5,
   [ "incsnplin" ] = 5
 }
@@ -176,7 +176,7 @@ function TOOL:ApplyAngularFirst()
 end
 
 function TOOL:GetRadialMenu()
-  return ((self:GetClientNumber("radmenuen") or 0) ~= 0)
+  return ((self:GetClientNumber("enradmenu") or 0) ~= 0)
 end
 
 function TOOL:ApplyLinearFirst()
@@ -1361,7 +1361,7 @@ function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
           elseif(nKey == KEY_ENTER) then
             local sTX = tostring(pnSelf:GetValue() or "")
             RunConsoleCommand(gsToolPrefL.."bgskids",sTX)
-          end; return true -- Disable text entry default behavior
+          end
         end; CurY = CurY + pText:GetTall() + 2
   CPanel:AddItem(pText)
 
