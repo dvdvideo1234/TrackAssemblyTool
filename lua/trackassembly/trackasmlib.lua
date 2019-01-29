@@ -3659,12 +3659,14 @@ function HasGhosts()
 end
 
 function InitGhosts(bCol)
+  if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST"); tableEmpty(tGho)
   tGho.Size = 0; tGho.Slot = GetOpVar("MISS_NOMD")
   if(bCol) then collectgarbage() end; return true
 end
 
 function FadeGhosts(bNoD)
+  if(SERVER) then return true end -- Ghosting is client side only
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
   local cPal = GetOpVar("CONTAINER_PALETTE")
@@ -3677,6 +3679,7 @@ function FadeGhosts(bNoD)
 end
 
 function ClearGhosts(bCol)
+  if(SERVER) then return true end -- Ghosting is client side only
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
   for iD = 1, tGho.Size do local eGho = tGho[iD]
@@ -3688,6 +3691,7 @@ function ClearGhosts(bCol)
 end
 
 function MakeGhosts(nCnt, sModel)
+  if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
   if(nCnt == 0 and tGho.Size ~= 0) then return ClearGhosts() end -- Disabled ghosting
@@ -3720,6 +3724,7 @@ function MakeGhosts(nCnt, sModel)
 end
 
 function GetHookInfo(tInfo, sW)
+  if(SERVER) then return nil end
   local sWep = tostring(sW or "gmod_tool")
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player invalid",tInfo); return nil end
