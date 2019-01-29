@@ -182,6 +182,11 @@ function IsBlank(vVal)
   return (vVal == "")
 end
 
+function IsNull(vVal)
+  if(not IsString(vVal)) then return false end
+  return (vVal == GetOpVar("MISS_NOSQL"))
+end
+
 function IsExact(vVal)
   if(not IsString(vVal)) then return false end
   return (vVal:sub(1,1) == "*")
@@ -469,6 +474,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOID","N")     -- No ID selected
   SetOpVar("MISS_NOAV","N/A")   -- Not Available
   SetOpVar("MISS_NOMD","X")     -- No model
+  SetOpVar("MISS_NOTP","TYPE")  -- No track type
   SetOpVar("MISS_NOSQL","NULL") -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_KEYSTMT","%s(%s)")
@@ -1518,7 +1524,6 @@ end
 function RegisterPOA(stPiece, ivID, sP, sO, sA)
   if(not stPiece) then
     LogInstance("Cache record invalid"); return nil end
-  local sNull = GetOpVar("MISS_NOSQL")
   local iID = tonumber(ivID); if(not IsHere(iID)) then
     LogInstance("OffsetID NAN {"..type(ivID).."}<"..tostring(ivID)..">"); return nil end
   local sP = (sP or sNull); if(not IsString(sP)) then
@@ -1545,11 +1550,11 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
       if(IsHere(vtPos)) then
         ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
       else -- Try to decode the attachment key when missing
-        if((sO ~= sNull) and not IsBlank(sO)) then
+        if(not (IsNull(sO) or IsBlank(sO)) then
           if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
         else ReloadPOA() end
       end
-    elseif((sO ~= sNull) and not IsBlank(sO)) then
+    elseif(not (IsNull(sO) or IsBlank(sO)) then
       if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
     else
       ReloadPOA()
@@ -1562,11 +1567,11 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
       if(IsHere(atAng)) then
         ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
       else
-        if((sA ~= sNull) and not IsBlank(sA)) then
+        if(not (IsNull(sA) or IsBlank(sA)) then
           if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
         else ReloadPOA() end
       end
-    elseif((sA ~= sNull) and not IsBlank(sA)) then
+    elseif(not (IsNull(sA) or IsBlank(sA)) then
       if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
     else
       ReloadPOA()
@@ -1575,7 +1580,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   ---------- Point ----------
   if(sP:sub(1,1) == sD) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
   else -- When the point is empty use the origin
-    if((sP ~= sNull) and not IsBlank(sP)) then
+    if(not (IsNull(sP) or IsBlank(sP)) then
       if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]@"..stPiece.Slot) end
     else ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]) end
   end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
@@ -1619,7 +1624,7 @@ function GetTerm(sBas, vDef, vDsb)
   local sM, sS = GetOpVar("MISS_NOAV"), GetOpVar("MISS_NOSQL")
   if(IsString(sBas)) then local sD = GetOpVar("OPSYM_DISABLE")
     if(sBas:sub(1,1) == sD) then return tostring(vDsb or sM)
-    elseif(not (IsBlank(sBas) or sBas == sS)) then return sBas end
+    elseif(not (IsNull(sBas) or IsBlank(sBas))) then return sBas end
   end; if(IsString(vDef)) then return vDef end; return sM
 end
 
@@ -3331,7 +3336,6 @@ end
 function AttachAdditions(ePiece)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid"); return false end
-  local sNull = GetOpVar("MISS_NOSQL")
   local eAng, ePos, eMod = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
   local stAddit = CacheQueryAdditions(eMod); if(not IsHere(stAddit)) then
     LogInstance("Model <"..eMod.."> has no additions"); return true end
@@ -3351,14 +3355,14 @@ function AttachAdditions(ePiece)
       eAddit:SetModel(adMod) LogInstance("SetModel("..adMod..")")
       local ofPos = arRec[defTab[5][1]]; if(not IsString(ofPos)) then
         LogInstance("Position {"..type(ofPos).."}<"..tostring(ofPos).."> not string"); return false end
-      if(ofPos and not IsBlank(ofPos) and ofPos ~= sNull) then
+      if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos)) then
         local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
         SetVectorXYZ(vpAdd, arPOA[1], arPOA[2], arPOA[3])
         vpAdd:Set(ePiece:LocalToWorld(vpAdd)); eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
       else eAddit:SetPos(ePos); LogInstance("SetPos(ePos)") end
       local ofAng = arRec[defTab[6][1]]; if(not IsString(ofAng)) then
         LogInstance("Angle {"..type(ofAng).."}<"..tostring(ofAng).."> not string"); return false end
-      if(ofAng and not IsBlank(ofAng) and ofAng ~= sNull) then
+      if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng)) then
         local apAdd, arPOA = Angle(), DecodePOA(ofAng)
         SetAnglePYR(apAdd, arPOA[1], arPOA[2], arPOA[3])
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
@@ -3619,7 +3623,7 @@ end
 local function GetLocalify(sCode)
   local sCode = tostring(sCode or GetOpVar("MISS_NOAV"))
   if(not CLIENT) then LogInstance("("..sCode..") Not client"); return nil end
-  local sTool, sLmit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
+  local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
   local sPath = ("%s/lang/%s.lua"):format(sTool, sCode) -- Translation file path
   if(not fileExists("lua/"..sPath, "GAME")) then
     LogInstance("("..sCode..") Missing"); return nil end
@@ -3627,7 +3631,7 @@ local function GetLocalify(sCode)
     LogInstance("("..sCode..") No function"); return nil end
   local bFunc, fFunc = pcall(fCode); if(not bFunc) then
     LogInstance("("..suCod..")[1] "..fFunc); return nil end
-  local bCode, tCode = pcall(fFunc, sTool, sLmit); if(not bCode) then
+  local bCode, tCode = pcall(fFunc, sTool, sLimit); if(not bCode) then
     LogInstance("("..suCod..")[2] "..tCode); return nil end
   return tCode -- The successfully extracted translations
 end

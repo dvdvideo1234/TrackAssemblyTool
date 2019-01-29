@@ -47,7 +47,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.494")
+asmlib.SetOpVar("TOOL_VERSION","6.495")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -682,11 +682,14 @@ asmlib.CreateTable("PIECES",{
   Index = {{1},{4},{1,4}},
   Trigs = {
     Record = function(arLine, vSrc)
+      local noMD  = asmlib.GetOpVar("MISS_NOMD")
+      local noTY  = asmlib.GetOpVar("MISS_NOTP")
+      local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.GetTerm(arLine[2],"TYPE" ,asmlib.GetCategory())
-      arLine[3] = asmlib.GetTerm(arLine[3],"MODEL",asmlib.ModelToName(arLine[1]))
-      arLine[8] = asmlib.GetTerm(arLine[8],"NULL" ,"NULL")
-      if(not ((arLine[8] == "NULL") or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
+      arLine[2] = asmlib.GetTerm(arLine[2], noTY, asmlib.GetCategory())
+      arLine[3] = asmlib.GetTerm(arLine[3], noMD, asmlib.ModelToName(arLine[1]))
+      arLine[8] = asmlib.GetTerm(arLine[8], noSQL, noSQL)
+      if(not (asmlib.IsNull(arLine[8]) or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
         trCls[arLine[8]] = true; asmlib.LogInstance("Register trace <"..
           tostring(arLine[8]).."@"..arLine[1]..">",vSrc)
       end; return true
