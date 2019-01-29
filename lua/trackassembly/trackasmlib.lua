@@ -466,9 +466,10 @@ function InitBase(sName,sPurpose)
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_INS","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
-  SetOpVar("MISS_NOID","N")    -- No ID selected
-  SetOpVar("MISS_NOAV","N/A")  -- Not Available
-  SetOpVar("MISS_NOMD","X")    -- No model
+  SetOpVar("MISS_NOID","N")     -- No ID selected
+  SetOpVar("MISS_NOAV","N/A")   -- Not Available
+  SetOpVar("MISS_NOMD","X")     -- No model
+  SetOpVar("MISS_NOSQL","NULL") -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
@@ -1493,14 +1494,6 @@ function DecodePOA(sStr)
   end; return arPOA
 end
 
-function GetPieceUnit(stPiece)
-  local sD = GetOpVar("ENTITY_DEFCLASS")
-  local sU = (stPiece and stPiece.Unit or nil)
-  if(not IsHere(sU)) then return sD end
-  local bU = (IsString(sU) and (sU ~= "NULL") and not IsBlank(sU))
-  return (bU and sU or sD)
-end
-
 function GetTransformPOA(sModel,sKey)
   if(not IsString(sModel)) then
     LogInstance("Model mismatch <"..tostring(sModel)..">"); return nil end
@@ -1525,13 +1518,14 @@ end
 function RegisterPOA(stPiece, ivID, sP, sO, sA)
   if(not stPiece) then
     LogInstance("Cache record invalid"); return nil end
+  local sNull = GetOpVar("MISS_NOSQL")
   local iID = tonumber(ivID); if(not IsHere(iID)) then
     LogInstance("OffsetID NAN {"..type(ivID).."}<"..tostring(ivID)..">"); return nil end
-  local sP = (sP or "NULL"); if(not IsString(sP)) then
+  local sP = (sP or sNull); if(not IsString(sP)) then
     LogInstance("Point  {"..type(sP).."}<"..tostring(sP)..">"); return nil end
-  local sO = (sO or "NULL"); if(not IsString(sO)) then
+  local sO = (sO or sNull); if(not IsString(sO)) then
     LogInstance("Origin {"..type(sO).."}<"..tostring(sO)..">"); return nil end
-  local sA = (sA or "NULL"); if(not IsString(sA)) then
+  local sA = (sA or sNull); if(not IsString(sA)) then
     LogInstance("Angle  {"..type(sA).."}<"..tostring(sA)..">"); return nil end
   if(not stPiece.Offs) then if(iID > 1) then
     LogInstance("Mismatch ID <"..tostring(iID)..">@"..stPiece.Slot); return nil end
@@ -1551,11 +1545,11 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
       if(IsHere(vtPos)) then
         ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
       else -- Try to decode the attachment key when missing
-        if((sO ~= "NULL") and not IsBlank(sO)) then
+        if((sO ~= sNull) and not IsBlank(sO)) then
           if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
         else ReloadPOA() end
       end
-    elseif((sO ~= "NULL") and not IsBlank(sO)) then
+    elseif((sO ~= sNull) and not IsBlank(sO)) then
       if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
     else
       ReloadPOA()
@@ -1568,11 +1562,11 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
       if(IsHere(atAng)) then
         ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
       else
-        if((sA ~= "NULL") and not IsBlank(sA)) then
+        if((sA ~= sNull) and not IsBlank(sA)) then
           if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
         else ReloadPOA() end
       end
-    elseif((sA ~= "NULL") and not IsBlank(sA)) then
+    elseif((sA ~= sNull) and not IsBlank(sA)) then
       if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
     else
       ReloadPOA()
@@ -1581,7 +1575,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   ---------- Point ----------
   if(sP:sub(1,1) == sD) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
   else -- When the point is empty use the origin
-    if((sP ~= "NULL") and not IsBlank(sP)) then
+    if((sP ~= sNull) and not IsBlank(sP)) then
       if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]@"..stPiece.Slot) end
     else ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]) end
   end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
@@ -1622,10 +1616,10 @@ end
 ------------- VARIABLE INTERFACES --------------
 
 function GetTerm(sBas, vDef, vDsb)
-  local sM = GetOpVar("MISS_NOAV")
+  local sM, sS = GetOpVar("MISS_NOAV"), GetOpVar("MISS_NOSQL")
   if(IsString(sBas)) then local sD = GetOpVar("OPSYM_DISABLE")
     if(sBas:sub(1,1) == sD) then return tostring(vDsb or sM)
-    elseif(not IsBlank(sBas)) then return sBas end
+    elseif(not (IsBlank(sBas) or sBas == sS)) then return sBas end
   end; if(IsString(vDef)) then return vDef end; return sM
 end
 
@@ -2002,7 +1996,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- Internal type matching
   function self:Match(snValue,ivID,bQuoted,sQuote,bNoRev,bNoNull)
-    local qtDef = self:GetDefinition()
+    local qtDef, sNull = self:GetDefinition(), GetOpVar("MISS_NOSQL")
     local nvInd = tonumber(ivID); if(not IsHere(nvInd)) then
       LogInstance("Col NAN {"..type(ivID)..tostring(ivID).."> invalid",tabDef.Nick); return nil end
     local defCol = qtDef[nvInd]; if(not IsHere(defCol)) then
@@ -2010,8 +2004,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local tipCol, sMoDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
     if(tipCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsBlank(snOut)) then
-        if    (sMoDB == "SQL") then snOut = "NULL"
-        elseif(sMoDB == "LUA") then snOut = "NULL"
+        if    (sMoDB == "SQL") then snOut = sNull
+        elseif(sMoDB == "LUA") then snOut = sNull
         else LogInstance("Wrong database empty mode <"..sMoDB..">",tabDef.Nick); return nil end
       end
       if    (defCol[3] == "LOW") then snOut = snOut:lower()
@@ -3337,6 +3331,7 @@ end
 function AttachAdditions(ePiece)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid"); return false end
+  local sNull = GetOpVar("MISS_NOSQL")
   local eAng, ePos, eMod = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
   local stAddit = CacheQueryAdditions(eMod); if(not IsHere(stAddit)) then
     LogInstance("Model <"..eMod.."> has no additions"); return true end
@@ -3356,14 +3351,14 @@ function AttachAdditions(ePiece)
       eAddit:SetModel(adMod) LogInstance("SetModel("..adMod..")")
       local ofPos = arRec[defTab[5][1]]; if(not IsString(ofPos)) then
         LogInstance("Position {"..type(ofPos).."}<"..tostring(ofPos).."> not string"); return false end
-      if(ofPos and not IsBlank(ofPos) and ofPos ~= "NULL") then
+      if(ofPos and not IsBlank(ofPos) and ofPos ~= sNull) then
         local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
         SetVectorXYZ(vpAdd, arPOA[1], arPOA[2], arPOA[3])
         vpAdd:Set(ePiece:LocalToWorld(vpAdd)); eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
       else eAddit:SetPos(ePos); LogInstance("SetPos(ePos)") end
       local ofAng = arRec[defTab[6][1]]; if(not IsString(ofAng)) then
         LogInstance("Angle {"..type(ofAng).."}<"..tostring(ofAng).."> not string"); return false end
-      if(ofAng and not IsBlank(ofAng) and ofAng ~= "NULL") then
+      if(ofAng and not IsBlank(ofAng) and ofAng ~= sNull) then
         local apAdd, arPOA = Angle(), DecodePOA(ofAng)
         SetAnglePYR(apAdd, arPOA[1], arPOA[2], arPOA[3])
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
@@ -3476,15 +3471,15 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(CLIENT) then LogInstance("Working on client"); return nil end
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     LogInstance("Player missing <"..tostring(pPly)..">"); return nil end
-  local sLimit = GetOpVar("CVAR_LIMITNAME") -- Get limit name
+  local sLimit, sClass = GetOpVar("CVAR_LIMITNAME"), GetOpVar("ENTITY_DEFCLASS")
   if(not pPly:CheckLimit(sLimit)) then -- Check internal limit
     LogInstance("Track limit reached"); return nil end
   if(not pPly:CheckLimit("props")) then -- Check the props limit
     LogInstance("Prop limit reached"); return nil end
   local stPiece = CacheQueryPiece(sModel) if(not IsHere(stPiece)) then
-    LogInstance("Record missing for <"..sModel..">"); return nil end
-  local ePiece = entsCreate(GetPieceUnit(stPiece)) -- Create the piece unit
-  if(not (ePiece and ePiece:IsValid())) then
+    LogInstance("Record missing for <"..sModel..">"); return nil end 
+  local ePiece = entsCreate(GetTerm(stPiece.Unit, sClass, sClass))
+  if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
