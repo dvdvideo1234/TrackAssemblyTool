@@ -14,7 +14,7 @@ set gmadNameLOG=gmad_log.txt
 set gmadCommits=https://github.com/dvdvideo1234/TrackAssemblyTool/commit/
 set gmadPathGIT=D:\Git\bin
 set gmadBinPath=F:\Games\Steam\steamapps\common\GarrysMod\bin
-set gmadTime="%date:~-4%-%date:~3,2%-%date:~0,2% %time:~0,2%:%time:~3,2%:%time:~6,2%"
+set "gmadTime=%date% %time%"
 set gmadName=TrackAssembly
 set gmadID=287012681
 set gmadDirs=(lua)
@@ -48,7 +48,7 @@ copy !gmadRevPath!data\workshop\addon.json !gmadRevPath!Workshop\!gmadName!\addo
 call !gmadBinPath!\gmad.exe create -folder "!gmadRevPath!Workshop\!gmadName!" -out "!gmadRevPath!Workshop\!gmadName!.gma"
 
 :: Obtain the latest commit hash from the repository
-call !gmadPathGIT!\git.exe rev-parse HEAD>!gmadNameLOG!
+!gmadPathGIT!\git.exe rev-parse HEAD>!gmadNameLOG!
 set /p gmadGitHEAD=<!gmadNameLOG!
 
 :: Obtain the log message from the latest revision
@@ -57,7 +57,7 @@ echo.>>!gmadNameLOG!
 echo !gmadCommits!!gmadGitHEAD!>>!gmadNameLOG!
 echo. >> !gmadNameLOG!
 
-call !gmadPathGIT!\git.exe log -1 --pretty=%%B>>!gmadNameLOG!
+!gmadPathGIT!\git.exe log -1 --pretty=%%B>>!gmadNameLOG!
 
 for /f "delims=" %%i in ('type !gmadNameLOG!') do (
 
