@@ -29,6 +29,7 @@ local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
 local mathAbs                       = math and math.abs
 local utilAddNetworkString          = util and util.AddNetworkString
+local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
 local fileExists                    = file and file.Exists
 local inputIsKeyDown                = input and input.IsKeyDown
@@ -47,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.495")
+asmlib.SetOpVar("TOOL_VERSION","6.496")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -328,7 +329,8 @@ if(CLIENT) then
       local ghostcnt = actTool:GetGhostsCount()
       local depthcnt = mathMin(stackcnt, ghostcnt)
       local atGhost  = asmlib.GetOpVar("ARRAY_GHOST")
-      if(not (asmlib.HasGhosts() and depthcnt == atGhost.Size and atGhost.Slot == model)) then
+      if(not (asmlib.HasGhosts()    and depthcnt == atGhost.Size and
+              atGhost.Slot == model and utilIsValidModel(model))) then
         if(not asmlib.MakeGhosts(depthcnt, model)) then
           asmlib.LogInstance("Population fail",gtArgsLogs); return nil end
         actTool:ElevateGhost(atGhost[1], oPly) -- Elevate the properly created ghost

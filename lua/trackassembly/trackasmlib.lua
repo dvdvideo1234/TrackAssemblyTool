@@ -481,6 +481,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   if(CLIENT) then
+    SetOpVar("FORM_LANGPATH","%s/lang/%s.lua")
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("LOCALIFY_TABLE",{})
@@ -1054,9 +1055,9 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       if(self:Enclose(pS) == -1) then
         LogInstance("End out of border", tLogs); return self end
       local nR = tonumber(tArgs[2])
-      surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1])) 
+      surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1]))
       if(nR) then local nD = (nR / GetOpVar("DEG_RAD"))
-        surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD) 
+        surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD)
       else -- Use the regular rectangle function without sin/cos rotation
         surfaceDrawTexturedRect(pO.x,pO.y,pS.x,pS.y)
       end
@@ -1550,11 +1551,11 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
       if(IsHere(vtPos)) then
         ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ])
       else -- Try to decode the attachment key when missing
-        if(not (IsNull(sO) or IsBlank(sO)) then
+        if(not (IsNull(sO) or IsBlank(sO))) then
           if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
         else ReloadPOA() end
       end
-    elseif(not (IsNull(sO) or IsBlank(sO)) then
+    elseif(not (IsNull(sO) or IsBlank(sO))) then
       if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
     else
       ReloadPOA()
@@ -1567,11 +1568,11 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
       if(IsHere(atAng)) then
         ReloadPOA(atAng[caP], atAng[caY], atAng[caR])
       else
-        if(not (IsNull(sA) or IsBlank(sA)) then
+        if(not (IsNull(sA) or IsBlank(sA))) then
           if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
         else ReloadPOA() end
       end
-    elseif(not (IsNull(sA) or IsBlank(sA)) then
+    elseif(not (IsNull(sA) or IsBlank(sA))) then
       if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
     else
       ReloadPOA()
@@ -1580,7 +1581,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   ---------- Point ----------
   if(sP:sub(1,1) == sD) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
   else -- When the point is empty use the origin
-    if(not (IsNull(sP) or IsBlank(sP)) then
+    if(not (IsNull(sP) or IsBlank(sP))) then
       if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]@"..stPiece.Slot) end
     else ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]) end
   end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
@@ -1655,7 +1656,7 @@ function GetCategory(oTyp,fCat)
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     if(IsString(fCat)) then tCat[sTyp] = {}
       local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-      local ssLog = "*"..fsLog:format("TYPE","GetCategory",tostring(oTyp)) 
+      local ssLog = "*"..fsLog:format("TYPE","GetCategory",tostring(oTyp))
       tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local suc, out = pcall(tCat[sTyp].Cmp); if(not suc) then
@@ -3355,14 +3356,14 @@ function AttachAdditions(ePiece)
       eAddit:SetModel(adMod) LogInstance("SetModel("..adMod..")")
       local ofPos = arRec[defTab[5][1]]; if(not IsString(ofPos)) then
         LogInstance("Position {"..type(ofPos).."}<"..tostring(ofPos).."> not string"); return false end
-      if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos)) then
+      if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos))) then
         local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
         SetVectorXYZ(vpAdd, arPOA[1], arPOA[2], arPOA[3])
         vpAdd:Set(ePiece:LocalToWorld(vpAdd)); eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
       else eAddit:SetPos(ePos); LogInstance("SetPos(ePos)") end
       local ofAng = arRec[defTab[6][1]]; if(not IsString(ofAng)) then
         LogInstance("Angle {"..type(ofAng).."}<"..tostring(ofAng).."> not string"); return false end
-      if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng)) then
+      if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng))) then
         local apAdd, arPOA = Angle(), DecodePOA(ofAng)
         SetAnglePYR(apAdd, arPOA[1], arPOA[2], arPOA[3])
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
@@ -3481,7 +3482,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(not pPly:CheckLimit("props")) then -- Check the props limit
     LogInstance("Prop limit reached"); return nil end
   local stPiece = CacheQueryPiece(sModel) if(not IsHere(stPiece)) then
-    LogInstance("Record missing for <"..sModel..">"); return nil end 
+    LogInstance("Record missing for <"..sModel..">"); return nil end
   local ePiece = entsCreate(GetTerm(stPiece.Unit, sClass, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
@@ -3624,7 +3625,7 @@ local function GetLocalify(sCode)
   local sCode = tostring(sCode or GetOpVar("MISS_NOAV"))
   if(not CLIENT) then LogInstance("("..sCode..") Not client"); return nil end
   local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
-  local sPath = ("%s/lang/%s.lua"):format(sTool, sCode) -- Translation file path
+  local sPath = GetOpVar("FORM_LANGPATH"):format(sTool, sCode) -- Translation file path
   if(not fileExists("lua/"..sPath, "GAME")) then
     LogInstance("("..sCode..") Missing"); return nil end
   local fCode = CompileFile(sPath); if(not fCode) then
@@ -3731,9 +3732,9 @@ function GetHookInfo(tInfo, sW)
     LogInstance("Swep invalid",tInfo); return nil end
   if(actSwep:GetClass() ~= sWep) then
     LogInstance("("..sWep..") Swep other",tInfo); return nil end
+  if(sWep ~= "gmod_tool") then return oPly, actSwep end
   if(actSwep:GetMode()  ~= GetOpVar("TOOLNAME_NL")) then
     LogInstance("Tool different",tInfo); return nil end
-  if(sW) then return oPly, actSwep end
   -- Here player is holding the track assembly tool
   local actTool = actSwep:GetToolObject(); if(not actTool) then
     LogInstance("Tool invalid",tInfo); return nil end
@@ -3745,5 +3746,5 @@ function GetConvarList(tC)
   local tI = GetOpVar("TABLE_CONVARLIST")
   if(IsTable(tC)) then tableEmpty(tI)
     for key, val in pairs(tC) do tI[sT..key] = val end
-  end; return tI  
+  end; return tI
 end
