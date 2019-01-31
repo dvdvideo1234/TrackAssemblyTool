@@ -1,6 +1,11 @@
 ------ INCLUDE LIBRARY ------
 if(SERVER) then
   AddCSLuaFile("trackassembly/trackasmlib.lua")
+  AddCSLuaFile("trackassembly/lang/en.lua")
+  AddCSLuaFile("trackassembly/lang/bg.lua")
+  AddCSLuaFile("trackassembly/lang/ru.lua")
+  AddCSLuaFile("trackassembly/lang/fr.lua")
+  AddCSLuaFile("trackassembly/lang/ja.lua")
 end
 include("trackassembly/trackasmlib.lua")
 
@@ -48,7 +53,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.497")
+asmlib.SetOpVar("TOOL_VERSION","6.498")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -278,8 +283,8 @@ if(CLIENT) then
       end -- Make sure we have a valid game monitor for the draw OOP
       local vBs = asmlib.NewXY(4,4)
       local nN  = conWorkMode:GetSize()
-      local sM  = asmlib.GetOpVar("MISS_NOAV")
       local nDr = asmlib.GetOpVar("DEG_RAD")
+      local sM  = asmlib.GetOpVar("MISS_NOAV")
       local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
       local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
       -- Calculate dependent parameters

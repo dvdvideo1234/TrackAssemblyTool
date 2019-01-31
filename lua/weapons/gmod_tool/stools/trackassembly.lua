@@ -867,16 +867,14 @@ end
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
     asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtArgsLogs); return nil end
-  local spawncn = self:GetSpawnCenter()
-  if(oEnt and oEnt:IsValid()) then local elevpnt
+  local spawncn, elevpnt = self:GetSpawnCenter(), 0
+  if(oEnt and oEnt:IsValid()) then
     if(spawncn) then -- Distance for the piece spawned on the ground
       local vobdbox = oEnt:OBBMins(); elevpnt = -vobdbox[cvZ]
-    else -- Refresh the variable when model changes to unload the network
-      local pointid, pnextid = self:GetPointID()
-            elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
-    end; asmlib.ConCommandPly(oPly, "elevpnt", elevpnt)
-    asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtArgsLogs)
-  else asmlib.ConCommandPly(oPly, "elevpnt", 0) end
+    else local pointid, pnextid = self:GetPointID()
+      elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
+    end; asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtArgsLogs)
+  end; asmlib.ConCommandPly(oPly, "elevpnt", elevpnt)
 end
 
 function TOOL:Think()
@@ -885,10 +883,9 @@ function TOOL:Think()
   if(utilIsValidModel(model)) then
     if(CLIENT) then -- Precache the model or it is invalid otherwise
       if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
-        -- Shortcut for closing the routine pieces
         local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
         if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end
-      end -- That was a `close call` :D ( Get it ??)
+      end -- Shortcut for closing the routine pieces. A `close` call :D
     end
   end
 end
