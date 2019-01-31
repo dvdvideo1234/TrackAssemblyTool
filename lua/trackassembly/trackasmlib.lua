@@ -1494,10 +1494,9 @@ function DecodePOA(sStr)
   if(sStr:len() == 0) then return ReloadPOA() end; ReloadPOA()
   local symSep, arPOA = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("ARRAY_DECODEPOA")
   local atPOA = symSep:Explode(sStr)
-  for iD = 1, arPOA.Size do
-    local nCom = tonumber(atPOA[iD]); if(not IsHere(nCom)) then
-      LogInstance("Mismatch <"..sStr..">"); return nil
-    end; arPOA[iD] = nCom
+  for iD = 1, arPOA.Size do local nCom = tonumber(atPOA[iD])
+    if(not IsHere(nCom)) then nCom = 0
+      LogInstance("Mismatch <"..sStr..">") end; arPOA[iD] = nCom
   end; return arPOA
 end
 
