@@ -480,8 +480,8 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
+  SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   if(CLIENT) then
-    SetOpVar("FORM_LANGPATH","%s/lang/%s.lua")
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("LOCALIFY_TABLE",{})
@@ -3613,7 +3613,7 @@ local function GetLocalify(sCode)
   local sCode = tostring(sCode or GetOpVar("MISS_NOAV"))
   if(not CLIENT) then LogInstance("("..sCode..") Not client"); return nil end
   local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
-  local sPath = GetOpVar("FORM_LANGPATH"):format(sTool, sCode) -- Translation file path
+  local sPath = GetOpVar("FORM_LANGPATH"):format("", sCode..".lua") -- Translation file path
   if(not fileExists("lua/"..sPath, "GAME")) then
     LogInstance("("..sCode..") Missing"); return nil end
   local fCode = CompileFile(sPath); if(not fCode) then

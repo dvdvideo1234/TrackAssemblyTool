@@ -1221,6 +1221,7 @@ function TOOL:DrawToolScreen(w, h)
 end
 
 function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
+  CPanel:ClearControls()
   local tCon = asmlib.GetOpVar("TABLE_CONVARLIST")
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))

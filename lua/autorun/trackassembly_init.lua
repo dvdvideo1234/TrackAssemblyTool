@@ -1,11 +1,6 @@
 ------ INCLUDE LIBRARY ------
 if(SERVER) then
   AddCSLuaFile("trackassembly/trackasmlib.lua")
-  AddCSLuaFile("trackassembly/lang/en.lua")
-  AddCSLuaFile("trackassembly/lang/bg.lua")
-  AddCSLuaFile("trackassembly/lang/ru.lua")
-  AddCSLuaFile("trackassembly/lang/fr.lua")
-  AddCSLuaFile("trackassembly/lang/ja.lua")
 end
 include("trackassembly/trackasmlib.lua")
 
@@ -37,6 +32,7 @@ local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
 local fileExists                    = file and file.Exists
+local fileFind                      = file and file.Find
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local surfaceScreenWidth            = surface and surface.ScreenWidth
@@ -53,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.499")
+asmlib.SetOpVar("TOOL_VERSION","6.500")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -122,6 +118,8 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
+local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
+local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmVar("timermode","STR"))
@@ -146,6 +144,9 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
 local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER_WORKING", conWorkMode)
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
+
+-- Send language definitions to the client to populate the menu
+for iD = 1, #gtTransFile do AddCSLuaFile(gsLangForm:format("",gtTransFile[iD])) end
 
 -------- ACTIONS ----------
 if(SERVER) then
