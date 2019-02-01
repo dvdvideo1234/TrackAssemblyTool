@@ -1220,9 +1220,8 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end
 
-function TOOL.BuildCPanel(CPanel) local sLog = "*TOOL.BuildCPanel"
-  CPanel:ClearControls()
-  local tCon = asmlib.GetOpVar("TABLE_CONVARLIST")
+function TOOL.BuildCPanel(CPanel)
+  local sLog = "*TOOL.BuildCPanel"; CPanel:ClearControls()
   local CurY, pItem = 0 -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))

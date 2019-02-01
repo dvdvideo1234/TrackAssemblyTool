@@ -49,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.500")
+asmlib.SetOpVar("TOOL_VERSION","6.501")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -145,11 +145,11 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
--- Send language definitions to the client to populate the menu
-for iD = 1, #gtTransFile do AddCSLuaFile(gsLangForm:format("",gtTransFile[iD])) end
-
 -------- ACTIONS ----------
 if(SERVER) then
+
+  -- Send language definitions to the client to populate the menu
+  for iD = 1, #gtTransFile do AddCSLuaFile(gsLangForm:format("",gtTransFile[iD])) end
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")

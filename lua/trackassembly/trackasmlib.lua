@@ -1322,15 +1322,15 @@ function IsPhysTrace(Trace)
   return true
 end
 
-function SnapReview(ivPoID, ivPnID, ivMaxK)
-  local iMaxK = (tonumber(ivMaxK) or 0)
+function SnapReview(ivPoID, ivPnID, ivMaxN)
+  local iMaxN = (tonumber(ivMaxN) or 0)
   local iPoID = (tonumber(ivPoID) or 0)
   local iPnID = (tonumber(ivPnID) or 0)
-  if(iMaxK <= 0) then return 1, 2 end
+  if(iMaxN <= 0) then return 1, 2 end
   if(iPoID <= 0) then return 1, 2 end
   if(iPnID <= 0) then return 1, 2 end
-  if(iPoID  > iMaxK) then return 1, 2 end
-  if(iPnID  > iMaxK) then return 1, 2 end -- One active point
+  if(iPoID  > iMaxN) then return 1, 2 end
+  if(iPnID  > iMaxN) then return 1, 2 end -- One active point
   if(iPoID == iPnID) then return 1, 2 end
   return iPoID, iPnID
 end
