@@ -49,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.501")
+asmlib.SetOpVar("TOOL_VERSION","6.502")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -380,6 +380,7 @@ if(CLIENT) then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
         for iCnt = 1, #tPref do local vPr = tPref[iCnt]
           asmlib.RemoveDSV("PIECES", vPr)
+          asmlib.RemoveDSV("CATEGORY", vPr)
           asmlib.RemoveDSV("ADDITIONS", vPr)
           asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
           asmlib.LogInstance("Match <"..vPr..">",gtArgsLogs)
@@ -822,8 +823,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
   Index = {{1},{2},{1,2}},
   Trigs = {
-    Record = function(atRow)
-      atRow[1] = asmlib.GetTerm(atRow[1],"TYPE",asmlib.GetCategory()); return true
+    Record = function(arLine)
+      arLine[1] = asmlib.GetTerm(arLine[1],"TYPE",asmlib.GetCategory()); return true
     end
   },
   Cache = {

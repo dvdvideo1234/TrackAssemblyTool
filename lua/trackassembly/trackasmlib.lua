@@ -2224,13 +2224,13 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     if(bDelete and sqlTableExists(defTab.Name)) then
       local qRez = sqlQuery(tQ.Delete); if(not qRez and IsBool(qRez)) then
         LogInstance("Table delete error <"..sqlLastError()..">",tabDef.Nick)
-      else LogInstance("Table delete skip",tabDef.Nick) end
+      else LogInstance("Table delete skipped",tabDef.Nick) end
     end
     -- When enabled forces a table drop
     if(bReload) then local qRez = sqlQuery(tQ.Drop)
       if(not qRez and IsBool(qRez)) then
         LogInstance("Table drop error <"..sqlLastError()..">",tabDef.Nick)
-      else LogInstance("Table drop skip",tabDef.Nick) end
+      else LogInstance("Table drop skipped",tabDef.Nick) end
     end
     if(sqlTableExists(defTab.Name)) then
       LogInstance("Table exists",tabDef.Nick); return self:IsValid()
@@ -2585,29 +2585,25 @@ end
 
 --[[
  * This function removes DSV associated with a given prefix
- * sTable > Extremal table nickname database to export
+ * sTable > Extremal table nickname database to remove
  * sPref  > Prefix used on exporting ( if any ) else instance is used
 ]]--
 function RemoveDSV(sTable, sPref)
   local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("("..sPref..") Prefix empty"); return false end
-  if(not IsString(sTable)) then
-    LogInstance("("..sPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
-    LogInstance("("..sPref..") Missing table builder"); return false end
-  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("("..sPref..") Missing table definition for <"..sTable..">"); return false end
+  if(not IsString(sTable)) then LogInstance("("..sPref..") Table {"
+    ..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
-  local sName = fName:format(defTab.Nick)
+  local makTab, syRev, sName = libQTable[sTable], GetOpVar("OPSYM_REVISION")
+  if(IsHere(makTab)) then sName = fName:format(defTab.Nick)
+  else sName = fName:format(sTable:upper())
+    LogInstance("("..sTable..syRev..sPref..") Missing table builder")
+  end; local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("("..sPref..") Missing table definition for <"..sTable..">"); return false end
   if(fileExists(sName,"DATA")) then fileDelete(sName)
     LogInstance("("..sPref..") File <"..sName.."> deleted")
-  else LogInstance("("..sPref..") File <"..sName.."> skip") end
-  if(defTab.Nick == "PIECES") then local sCatg = fName:format("CATEGORY")
-    if(fileExists(sCatg,"DATA")) then fileDelete(sCatg)
-      LogInstance("("..sPref..") File <"..sCatg.."> deleted")
-    else LogInstance("("..sPref..") File <"..sCatg.."> skip") end
-  end; LogInstance("("..sPref..") Success"); return true
+  else LogInstance("("..sPref..") File <"..sName.."> skipped") end; return true
 end
 
 --[[
@@ -3635,7 +3631,7 @@ function InitLocalify(sCode)
   if(cuCod ~= auCod) then local cuSet = GetLocalify(cuCod)
     if(cuSet) then -- When the language infornation is extracted apply on success
       for key, val in pairs(auSet) do auSet[key] = (cuSet[key] or auSet[key]) end
-    else LogInstance("Custom skip <"..cuCod..">") end -- Apply auto code
+    else LogInstance("Custom skipped <"..cuCod..">") end -- Apply auto code
   end; for key, val in pairs(auSet) do thSet[key] = auSet[key]; languageAdd(key, val) end
 end
 
