@@ -1647,9 +1647,9 @@ function GetCategory(oTyp,fCat)
   end; ModelToNameRule("CLR"); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
   if(CLIENT) then local tTyp -- Categories for the panel
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
+    local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
+    local ssLog = "*"..fsLog:format("TYPE","GetCategory",tostring(oTyp))
     if(IsString(fCat)) then tCat[sTyp] = {}
-      local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-      local ssLog = "*"..fsLog:format("TYPE","GetCategory",tostring(oTyp))
       tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local suc, out = pcall(tCat[sTyp].Cmp); if(not suc) then
@@ -1796,7 +1796,7 @@ local function CacheStmt(sHash,sStmt,...)
   if(IsHere(sStmt)) then -- If the key is located return the query
     tStore[sHash] = tostring(sStmt); LogTable(tStore,"STMT") end
   local sBase = tStore[sHash]; if(not IsHere(sBase)) then
-    LogInstance("("..sHash..") Mismatch"); return nil end
+    LogInstance("STMT["..sHash.."] Mismatch"); return nil end
   return sBase:format(...)
 end
 
@@ -3535,7 +3535,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   end; LogInstance("Success"); return true
 end
 
-function MakeAsmVar(sName, vVal, vBord, vFlg, vInf)
+function MakeAsmConvar(sName, vVal, vBord, vFlg, vInf)
   if(not IsString(sName)) then
     LogInstance("CVar name {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
   local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())

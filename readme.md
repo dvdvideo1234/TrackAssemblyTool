@@ -290,4 +290,4 @@ Not to mention that the stunned people ***will NOT GET ANY updates*** !
 The best you can do is just point to the [original GIT repository](https://github.com/dvdvideo1234/TrackAssemblyTool)
 avoiding any version mismatches and confusions. So please don't upload the script to any other sites. ***[I mean it!](https://www.youtube.com/watch?v=b1Om3vX1GlA)***
 
-[ref-entity]: wiki.garrysmod.com/page/Category:Entity
+[ref-entity]: http://wiki.garrysmod.com/page/Category:Entity

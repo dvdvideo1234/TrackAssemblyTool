@@ -15,24 +15,24 @@ local cvX, cvY, cvZ = asmlib.GetIndexes("V")
 local caP, caY, caR = asmlib.GetIndexes("A")
 local wvX, wvY, wvZ = asmlib.GetIndexes("WV")
 local waP, waY, waR = asmlib.GetIndexes("WA")
-local gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
-local enFlag = asmlib.GetAsmVar("enwiremod","BUL")
-local gnMaxMass = asmlib.GetAsmVar("maxmass","FLT")
+local gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
+local enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
+local gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
 local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
 ----- Refresh callbacks global variables
 cvars.AddChangeCallback(gsToolPrefL.."bnderrmod", function()
-  gsBErr = asmlib.GetAsmVar("bnderrmod","STR")
+  gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
 end)
 
 cvars.AddChangeCallback(gsToolPrefL.."enwiremod", function()
-  enFlag = asmlib.GetAsmVar("enwiremod","BUL")
+  enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
 end)
 
 cvars.AddChangeCallback(gsToolPrefL.."maxmass", function()
-  gnMaxMass = asmlib.GetAsmVar("maxmass","FLT")
+  gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
 end)
 
 --------- EXPORT ---------
