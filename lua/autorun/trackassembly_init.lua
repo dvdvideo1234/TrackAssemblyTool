@@ -13,7 +13,6 @@ local tonumber                      = tonumber
 local tostring                      = tostring
 local CreateConVar                  = CreateConVar
 local SetClipboardText              = SetClipboardText
-local RunConsoleCommand             = RunConsoleCommand
 local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
 local bitBor                        = bit and bit.bor
@@ -49,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.502")
+asmlib.SetOpVar("TOOL_VERSION","6.503")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -65,7 +64,7 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 asmlib.SetOpVar("LOG_DEBUGEN",false)
 asmlib.MakeAsmVar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines being written")
 asmlib.MakeAsmVar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File logging output flag control")
-asmlib.SetLogControl(asmlib.GetAsmVar("logsmax","INT"),asmlib.GetAsmVar("logfile","BUL"))
+asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
@@ -89,17 +88,17 @@ if(SERVER) then
 end
 
 ------ CONFIGURE INTERNALS -----
-asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmVar("modedb"   , "STR"))
-asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmVar("maxtrmarg", "FLT"))
+asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
+asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 
 -------- CALLBACKS ----------
-asmlib.SetAsmVarCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
+asmlib.SetAsmCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
   function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
-asmlib.SetAsmVarCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
+asmlib.SetAsmCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
   function(v) return mathFloor(tonumber(v) or 0) end)
-asmlib.SetAsmVarCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
+asmlib.SetAsmCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
 
-local sName = asmlib.GetAsmVar("timermode", "NAM")
+local sName = asmlib.GetAsmConvar("timermode", "NAM")
 cvarsRemoveChangeCallback(sName, sName.."_call")
 cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
   local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
@@ -122,7 +121,7 @@ local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
 local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
-local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmVar("timermode","STR"))
+local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmConvar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
       conPalette:Insert("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
       conPalette:Insert("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
@@ -163,7 +162,7 @@ if(SERVER) then
 
   asmlib.SetAction("PLAYER_QUIT",
     function(oPly) gtArgsLogs[1] = "*PLAYER_QUIT" -- Clear player cache when disconnects
-      if(not asmlib.CacheClearPly(oPly)) then
+      if(not asmlib.CacheClear(oPly)) then
         asmlib.LogInstance("Failed swiping stuff "..tostring(oPly),gtArgsLogs); return nil end
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
@@ -178,8 +177,8 @@ if(SERVER) then
         asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
-      local nMaxOffLin = asmlib.GetAsmVar("maxlinear","FLT")
-      local bnderrmod  = asmlib.GetAsmVar("bnderrmod","STR")
+      local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
+      local bnderrmod  = asmlib.GetAsmConvar("bnderrmod","STR")
       local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn", 0) ~= 0)
       local freeze     = (pPly:GetInfoNum(gsToolPrefL.."freeze"   , 0) ~= 0)
       local gravity    = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0) ~= 0)
@@ -194,8 +193,8 @@ if(SERVER) then
       local nextpic    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextpic" , 0),-gnMaxOffRot,gnMaxOffRot)
       local nextyaw    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw" , 0),-gnMaxOffRot,gnMaxOffRot)
       local nextrol    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol" , 0),-gnMaxOffRot,gnMaxOffRot)
-      local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmVar("maxforce" , "FLT"))
-      local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmVar("maxactrad", "FLT"))
+      local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmConvar("maxforce" , "FLT"))
+      local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmConvar("maxactrad", "FLT"))
       local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
       for ID = 1, trRec.Size, 1 do -- Hits distance shorter than the active radius
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, ID, activrad)
@@ -322,7 +321,7 @@ if(CLIENT) then
         local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
         actMonitor:DrawTextCenter(vNt,sW,"k","SURF",{"Trebuchet24"})
         rA = (rA + dA) -- Prepare to draw the next divider line
-      end; RunConsoleCommand(gsToolPrefL.."workmode", iW); return true
+      end; asmlib.SetAsmConvar(oPly, "workmode", iW); return true
     end)
 
   asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
@@ -345,36 +344,36 @@ if(CLIENT) then
 
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
-      local devmode = asmlib.GetAsmVar("devmode", "BUL")
-      local bgskids = asmlib.GetAsmVar("bgskids", "STR")
+      local devmode = asmlib.GetAsmConvar("devmode", "BUL")
+      local bgskids = asmlib.GetAsmConvar("bgskids", "STR")
       asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
-      asmlib.ConCommandPly(oPly,"nextx"  , 0)
-      asmlib.ConCommandPly(oPly,"nexty"  , 0)
-      asmlib.ConCommandPly(oPly,"nextz"  , 0)
-      asmlib.ConCommandPly(oPly,"nextpic", 0)
-      asmlib.ConCommandPly(oPly,"nextyaw", 0)
-      asmlib.ConCommandPly(oPly,"nextrol", 0)
+      asmlib.SetAsmConvar(oPly,"nextx"  , 0)
+      asmlib.SetAsmConvar(oPly,"nexty"  , 0)
+      asmlib.SetAsmConvar(oPly,"nextz"  , 0)
+      asmlib.SetAsmConvar(oPly,"nextpic", 0)
+      asmlib.SetAsmConvar(oPly,"nextyaw", 0)
+      asmlib.SetAsmConvar(oPly,"nextrol", 0)
       if(not devmode) then
         asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
-      asmlib.SetLogControl(asmlib.GetAsmVar("logsmax" , "INT"),asmlib.GetAsmVar("logfile" , "STR"))
+      asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax" , "INT"),asmlib.GetAsmConvar("logfile" , "STR"))
       if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
-        oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
+        oPly:SetAsmConvar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         for key, val in pairs(asmlib.GetConvarList()) do
-          oPly:ConCommand(key.." "..tostring(val).."\n") end
-        asmlib.ConCommandPly(oPly, "logsmax"  , 0)
-        asmlib.ConCommandPly(oPly, "logfile"  , 0)
-        asmlib.ConCommandPly(oPly, "modedb"   , "LUA")
-        asmlib.ConCommandPly(oPly, "devmode"  , 0)
-        asmlib.ConCommandPly(oPly, "maxtrmarg", 0.02)
-        asmlib.ConCommandPly(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
-        asmlib.ConCommandPly(oPly, "maxmass"  , 50000)
-        asmlib.ConCommandPly(oPly, "maxlinear", 250)
-        asmlib.ConCommandPly(oPly, "maxforce" , 100000)
-        asmlib.ConCommandPly(oPly, "maxactrad", 150)
-        asmlib.ConCommandPly(oPly, "maxstcnt" , 200)
-        asmlib.ConCommandPly(oPly, "enwiremod", 1)
-        asmlib.ConCommandPly(oPly, "bnderrmod", "LOG")
-        asmlib.ConCommandPly(oPly, "maxfruse" , 50)
+          oPly:SetAsmConvar(key.." "..tostring(val).."\n") end
+        asmlib.SetAsmConvar(oPly, "logsmax"  , 0)
+        asmlib.SetAsmConvar(oPly, "logfile"  , 0)
+        asmlib.SetAsmConvar(oPly, "modedb"   , "LUA")
+        asmlib.SetAsmConvar(oPly, "devmode"  , 0)
+        asmlib.SetAsmConvar(oPly, "maxtrmarg", 0.02)
+        asmlib.SetAsmConvar(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
+        asmlib.SetAsmConvar(oPly, "maxmass"  , 50000)
+        asmlib.SetAsmConvar(oPly, "maxlinear", 250)
+        asmlib.SetAsmConvar(oPly, "maxforce" , 100000)
+        asmlib.SetAsmConvar(oPly, "maxactrad", 150)
+        asmlib.SetAsmConvar(oPly, "maxstcnt" , 200)
+        asmlib.SetAsmConvar(oPly, "enwiremod", 1)
+        asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
+        asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
         asmlib.LogInstance("Variables reset complete",gtArgsLogs)
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
@@ -473,13 +472,13 @@ if(CLIENT) then
       pnButton:SetVisible(true)
       pnButton.DoClick = function()
         asmlib.LogInstance("Button.DoClick <"..pnButton:GetText()..">",gtArgsLogs)
-        if(asmlib.GetAsmVar("exportdb", "BUL")) then
+        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
           asmlib.LogInstance("Export DB",gtArgsLogs)
           asmlib.ExportCategory(3)
           asmlib.ExportDSV("PIECES")
           asmlib.ExportDSV("ADDITIONS")
           asmlib.ExportDSV("PHYSPROPERTIES")
-          asmlib.ConCommandPly(oPly, "exportdb", 0)
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
         end
       end
       ------------- ComboBox ---------------
@@ -583,11 +582,11 @@ if(CLIENT) then
         if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("ListView.OnRowSelected Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
-        local pointid, pnextid = asmlib.GetAsmVar("pointid","INT"), asmlib.GetAsmVar("pnextid","INT")
+        local pointid, pnextid = asmlib.GetAsmConvar("pointid","INT"), asmlib.GetAsmConvar("pnextid","INT")
               pointid, pnextid = asmlib.SnapReview(pointid, pnextid, uiAct)
-        asmlib.ConCommandPly(oPly,"pointid", pointid)
-        asmlib.ConCommandPly(oPly,"pnextid", pnextid)
-        asmlib.ConCommandPly(oPly, "model" , uiMod)
+        asmlib.SetAsmConvar(oPly,"pointid", pointid)
+        asmlib.SetAsmConvar(oPly,"pnextid", pnextid)
+        asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5)) end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
@@ -598,15 +597,15 @@ if(CLIENT) then
 
   asmlib.SetAction("PHYSGUN_DRAW",
     function() gtArgsLogs[1] = "*PHYSGUN_DRAW"
-      if(not asmlib.GetAsmVar("engunsnap", "BUL")) then
+      if(not asmlib.GetAsmConvar("engunsnap", "BUL")) then
         asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
-      if(not asmlib.GetAsmVar("adviser", "BUL")) then
+      if(not asmlib.GetAsmConvar("adviser", "BUL")) then
         asmlib.LogInstance("Adviser disabled",gtArgsLogs); return nil end
       if(not inputIsMouseDown(MOUSE_LEFT)) then
         asmlib.LogInstance("Physgun not hold",gtArgsLogs); return nil end
       local oPly, actSwep = asmlib.GetHookInfo(gtArgsLogs, "weapon_physgun")
       if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
-      local actTr = asmlib.CacheTracePly(oPly); if(not actTr) then
+      local actTr = asmlib.GetCacheTrace(oPly); if(not actTr) then
         asmlib.LogInstance("Trace missing",gtArgsLogs); return nil end
       if(not actTr.Hit) then asmlib.LogInstance("Trace not hit",gtArgsLogs); return nil end
       if(actTr.HitWorld) then asmlib.LogInstance("Trace world",gtArgsLogs); return nil end
@@ -623,19 +622,19 @@ if(CLIENT) then
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
-      local nextx    = asmlib.GetAsmVar("nextx", "FLT")
-      local nexty    = asmlib.GetAsmVar("nexty", "FLT")
-      local nextz    = asmlib.GetAsmVar("nextz", "FLT")
-      local nextpic  = asmlib.GetAsmVar("nextpic", "FLT")
-      local nextyaw  = asmlib.GetAsmVar("nextyaw", "FLT")
-      local nextrol  = asmlib.GetAsmVar("nextrol", "FLT")
-      local igntype  = asmlib.GetAsmVar("igntype", "BUL")
-      local spnflat  = asmlib.GetAsmVar("spnflat", "BUL")
-      local activrad = asmlib.GetAsmVar("activrad", "FLT")
+      local nextx    = asmlib.GetAsmConvar("nextx", "FLT")
+      local nexty    = asmlib.GetAsmConvar("nexty", "FLT")
+      local nextz    = asmlib.GetAsmConvar("nextz", "FLT")
+      local nextpic  = asmlib.GetAsmConvar("nextpic", "FLT")
+      local nextyaw  = asmlib.GetAsmConvar("nextyaw", "FLT")
+      local nextrol  = asmlib.GetAsmConvar("nextrol", "FLT")
+      local igntype  = asmlib.GetAsmConvar("igntype", "BUL")
+      local spnflat  = asmlib.GetAsmConvar("spnflat", "BUL")
+      local activrad = asmlib.GetAsmConvar("activrad", "FLT")
       for trID = 1, trRec.Size, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
-        local rdS = asmlib.CacheRadiusPly(oPly, oDt.start, 1)
+        local rdS = asmlib.GetCacheRadius(oPly, oDt.start, 1)
         if(oTr and oTr.Hit) then actMonitor:GetColor()
           local trE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
           if(trE and trE:IsValid()) then
@@ -904,7 +903,7 @@ else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
   local PIECES = asmlib.GetBuilderNick("PIECES"); asmlib.ModelToNameRule("CLR")
-  if(asmlib.GetAsmVar("devmode" ,"BUL")) then
+  if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
     asmlib.GetCategory("Develop Sprops")
     PIECES:Record({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1, "", "", "", ""})
     PIECES:Record({"models/sprops/cuboids/height12/size_1/cube_12x12x12.mdl", "#", "x2", 1, "", "", "", ""})

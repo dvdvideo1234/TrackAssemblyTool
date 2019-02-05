@@ -62,6 +62,7 @@ local tostring                       = tostring
 local GetConVar                      = GetConVar
 local LocalPlayer                    = LocalPlayer
 local CreateConVar                   = CreateConVar
+local RunConsoleCommand             = RunConsoleCommand
 local SetClipboardText               = SetClipboardText
 local CompileString                  = CompileString
 local CompileFile                    = CompileFile
@@ -327,7 +328,7 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sData, bCon)
 end
 
-local function PrintCeption(tT,sS,tP)
+local function LogCeption(tT,sS,tP)
   local vS, vT = type(sS), type(tT)
   local vK, sS = "", tostring(sS or "Data")
   if(vT ~= "table") then
@@ -344,7 +345,7 @@ local function PrintCeption(tT,sS,tP)
       else LogInstance(vK.." = "..tostring(v),tP) end
     else
       if(v == tT) then LogInstance(vK.." = "..sS,tP)
-      else PrintCeption(v,vK,tP) end
+      else LogCeption(v,vK,tP) end
     end
   end
 end
@@ -355,7 +356,7 @@ function LogTable(tT, sS, vSrc, bCon, iDbg, tDbg)
     vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
   local tP = {vSrc, bCon, iDbg, tDbg} -- Normalize parameters
   tP[1], tP[2] = tostring(vSrc or ""), tobool(bCon)
-  tP[3], tP[4] = (nil), debugGetinfo(2); PrintCeption(tT,sS,tP)
+  tP[3], tP[4] = (nil), debugGetinfo(2); LogCeption(tT,sS,tP)
 end
 ----------------- INITAIALIZATION -----------------
 
@@ -455,7 +456,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("OPSYM_ENTPOSANG","!")
   SetOpVar("DEG_RAD", mathPi / 180)
-  SetOpVar("SIZX_CPANEL", 281)
+  SetOpVar("WIDTH_CPANEL", 281)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
@@ -481,6 +482,10 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
+  SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
+  SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
+  SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
+  SetOpVar("FORM_CONCMD", GetOpVar("TOOLNAME_PL").."%s %s\n")
   if(CLIENT) then
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("LOCALIFY_AUTO","en")
@@ -515,6 +520,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_CONVARLIST",{})
+  SetOpVar("TOOL_DEFMODE","gmod_tool")
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
@@ -1258,7 +1264,7 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   local pPanel = vguiCreate("DPanel"); if(not IsValid(pPanel)) then
     LogInstance("Panel invalid"); return nil end
   local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
-  local sX = GetOpVar("SIZX_CPANEL")
+  local sX = GetOpVar("WIDTH_CPANEL")
   local sNam = GetOpVar("TOOLNAME_PL")..sVar
   local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
   pPanel:SetParent(cPanel)
@@ -1266,9 +1272,8 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   pPanel:InvalidateChildren()
   pPanel:SetSize(sX, sY)
   if(IsTable(tBtn) and tBtn[1]) then
-    local nBtn, iCnt = #tBtn, 1
+    local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
     local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
-    local bX, bY = dX, pY
     while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance("Button["..iCnt.."] invalid"); return nil end
@@ -1278,7 +1283,7 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
       pButton:SetPos(bX, bY)
       pButton:SetSize(wB, hB)
-      pButton.DoClick = function() vBtn.Click(pButton, sNam, GetAsmVar(sVar, sTyp)) end
+      pButton.DoClick = function() vBtn.Click(pButton, sVar, GetAsmConvar(sVar, sTyp)) end
       pButton:SetVisible(true)
       bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
     end; pY = pY + (dY + hB)
@@ -1666,7 +1671,7 @@ local function GetPlayerSpot(pPly)
   end; return stSpot
 end
 
-function CacheSpawnPly(pPly)
+function GetCacheSpawn(pPly)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end
   local stData = stSpot["SPAWN"]
@@ -1704,7 +1709,7 @@ function CacheSpawnPly(pPly)
   end; return stData
 end
 
-function CacheClearPly(pPly)
+function CacheClear(pPly)
   if(not IsPlayer(pPly)) then
     LogInstance("Player <"..tostring(pPly)"> invalid"); return false end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
@@ -1712,13 +1717,13 @@ function CacheClearPly(pPly)
   libPlayer[pPly] = nil; collectgarbage(); return true
 end
 
-function GetDistanceHitPly(pPly, vHit)
+function GetDistanceHit(pPly, vHit)
   if(not IsPlayer(pPly)) then
     LogInstance("Player <"..tostring(pPly)"> invalid"); return nil end
   return (vHit - pPly:GetPos()):Length()
 end
 
-function CacheRadiusPly(pPly, vHit, nSca)
+function GetCacheRadius(pPly, vHit, nSca)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end
   local stData = stSpot["RADIUS"]
@@ -1731,12 +1736,12 @@ function CacheRadiusPly(pPly, vHit, nSca)
   local nMul = (tonumber(nSca) or 1) -- Disable scaling on missing or outside
         nMul = ((nMul <= 1 and nMul >= 0) and nMul or 1)
   local nMar, nLim = stData["MAR"], stData["LIM"]
-  local nDst = GetDistanceHitPly(pPly, vHit)
+  local nDst = GetDistanceHit(pPly, vHit)
   local nRad = ((nDst ~= 0) and mathClamp((nMar / nDst) * nMul, 1, nLim) or 0)
   return nRad, nDst, nMar, nLim
 end
 
-function CacheTracePly(pPly)
+function GetCacheTrace(pPly)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end
   local stData, plyTime = stSpot["TRACE"], Time()
@@ -1744,53 +1749,42 @@ function CacheTracePly(pPly)
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["TRACE"] = {}; stData = stSpot["TRACE"]
     stData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Define next trace pending
-    stData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
-    stData["REZ"] = utilTraceLine(stData["DAT"]) -- Make a trace
+    stData["DAT"] = utilGetPlayerTrace(pPly)           -- Get output trace data
+    stData["REZ"] = utilTraceLine(stData["DAT"])       -- Make a trace
   end -- Check the trace time margin interval
   if(plyTime >= stData["NXT"]) then
     stData["NXT"] = plyTime + GetOpVar("TRACE_MARGIN") -- Next trace margin
-    stData["DAT"] = utilGetPlayerTrace(pPly)      -- Get out trace data
-    stData["REZ"] = utilTraceLine(stData["DAT"]) -- Make a trace
+    stData["DAT"] = utilGetPlayerTrace(pPly)           -- Get output trace data
+    stData["REZ"] = utilTraceLine(stData["DAT"])       -- Make a trace
   end; return stData["REZ"]
 end
 
-function ConCommandPly(pPly,sCvar,snValue)
-  if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
-  if(not IsString(sCvar)) then -- Make it like so the space will not be forgotten
-    LogInstance("Convar {"..type(sCvar).."}<"..tostring(sCvar).."> not string"); return nil end
-  return pPly:ConCommand(GetOpVar("TOOLNAME_PL")..sCvar.." "..tostring(snValue).."\n")
-end
-
-function PrintNotifyPly(pPly,sText,sNotifType)
+function Notify(pPly,sText,sNotifType)
   if(not IsPlayer(pPly)) then
     LogInstance("Player <"..tostring(pPly)"> invalid"); return false end
   if(SERVER) then -- Send notification to client that something happened
-    pPly:SendLua("GAMEMODE:AddNotify(\""..sText.."\", NOTIFY_"..sNotifType..", 6)")
-    pPly:SendLua("surface.PlaySound(\"ambient/water/drip"..mathRandom(1, 4)..".wav\")")
-  end; LogInstance("Success"); return true
+    pPly:SendLua(GetOpVar("FORM_NTFGAME"):format(sText, sNotifType))
+    pPly:SendLua(GetOpVar("FORM_NTFPLAY"):format(mathRandom(1, 4)))
+  end; return true
 end
 
-function UndoCratePly(anyMessage)
-  SetOpVar("LABEL_UNDO",tostring(anyMessage))
-  undoCreate(GetOpVar("LABEL_UNDO"))
-  return true
+function UndoCrate(vMsg)
+  SetOpVar("LABEL_UNDO",tostring(vMsg))
+  undoCreate(GetOpVar("LABEL_UNDO")); return true
 end
 
-function UndoAddEntityPly(oEnt)
+function UndoAddEntity(oEnt)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity invalid"); return false end
   undoAddEntity(oEnt); return true
 end
 
-function UndoFinishPly(pPly,anyMessage)
+function UndoFinish(pPly,vMsg)
   if(not IsPlayer(pPly)) then
     LogInstance("Player <"..tostring(pPly)"> invalid"); return false end
-  pPly:EmitSound("physics/metal/metal_canister_impact_hard"..mathRandom(1, 3)..".wav")
-  undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(anyMessage or ""))
-  undoSetPlayer(pPly)
-  undoFinish()
-  return true
+  pPly:EmitSound(GetOpVar("FORM_SNAPSND"):format(mathRandom(1, 3)))
+  undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(vMsg or ""))
+  undoSetPlayer(pPly); undoFinish(); return true
 end
 
 -------------------------- BUILDSQL ------------------------------
@@ -2853,14 +2847,9 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
           isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
         local tab = sDelim:Explode(sLine)
         local prf, src = tab[1]:Trim(), tab[2]:Trim()
-        local inf = fPool[prf]
-        if(not inf) then
-          fPool[prf] = {Cnt = 1}; inf = fPool[prf]
-          inf[inf.Cnt] = {src, isAct}
-        else
-          inf.Cnt = inf.Cnt + 1
-          inf[inf.Cnt] = {src, isAct}
-        end
+        local inf = fPool[prf]; if(not inf) then
+          fPool[prf] = {Cnt = 0}; inf = fPool[prf] end
+        inf.Cnt = inf.Cnt + 1; inf[inf.Cnt] = {src, isAct}
       end
     end; F:Close()
     if(fPool[sPref]) then local inf = fPool[sPref]
@@ -2960,7 +2949,7 @@ function GetNormalAngle(oPly, soTr, bSnp, nSnp)
   local aAng, nAsn = Angle(), (tonumber(nSnp) or 0); if(not IsPlayer(oPly)) then
     LogInstance("No player <"..tostring(oPly)..">", aAng); return aAng end
   if(bSnp) then local stTr = soTr -- Snap to the trace surface
-    if(not (stTr and stTr.Hit)) then stTr = CacheTracePly(oPly)
+    if(not (stTr and stTr.Hit)) then stTr = GetCacheTrace(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
     end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
   else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
@@ -2988,7 +2977,7 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
     LogInstance("Index NAN {"..type(ivhdPoID).."}<"..tostring(ivhdPoID)..">"); return nil end
   local hdPOA = LocatePOA(hdRec,ihdPoID); if(not IsHere(hdPOA)) then
     LogInstance("Holder point ID invalid #"..tostring(ihdPoID)); return nil end
-  local stSpawn = CacheSpawnPly(oPly); stSpawn.HRec = hdRec
+  local stSpawn = GetCacheSpawn(oPly); stSpawn.HRec = hdRec
   if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
@@ -3076,7 +3065,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   -- If the types are different and disabled
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
     LogInstance("Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">"); return nil end
-  local stSpawn, trPOA = CacheSpawnPly(oPly) -- We have the next Piece Offset
+  local stSpawn, trPOA = GetCacheSpawn(oPly) -- We have the next Piece Offset
         stSpawn.TRec, stSpawn.RLen = trRec, nActRadius
         stSpawn.HID , stSpawn.TID  = ihdPoID, 0
         stSpawn.TOrg:Set(trEnt:GetPos())
@@ -3390,7 +3379,7 @@ local function GetEntityOrTrace(oEnt)
   if(oEnt and oEnt:IsValid()) then return oEnt end
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player <"..type(oPly)"> missing"); return nil end
-  local stTrace = CacheTracePly(oPly); if(not IsHere(stTrace)) then
+  local stTrace = GetCacheTrace(oPly); if(not IsHere(stTrace)) then
     LogInstance("Trace missing"); return nil end
   if(not stTrace.Hit) then -- Boolean
     LogInstance("Trace not hit"); return nil end
@@ -3451,7 +3440,7 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
     LogInstance("("..sMode..") Skip"); return true end
   if(utilIsInWorld(vPos)) then ePiece:SetPos(vPos) else ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
-      PrintNotifyPly(oPly,"Position out of map bounds!",sMode) end
+      Notify(oPly,"Position out of map bounds!",sMode) end
     LogInstance("("..sMode..") Position ["..tostring(vPos).."] out of map bounds"); return false
   end; LogInstance("("..sMode..") Success"); return true
 end
@@ -3559,7 +3548,7 @@ function MakeAsmVar(sName, vVal, vBord, vFlg, vInf)
   return CreateConVar(sLow, cVal, nFlg, sInf)
 end
 
-function GetAsmVar(sName, sMode)
+function GetAsmConvar(sName, sMode)
   if(not IsString(sName)) then
     LogInstance("Nsme {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
   if(not IsString(sMode)) then
@@ -3578,16 +3567,24 @@ function GetAsmVar(sName, sMode)
   end; LogInstance("("..sName..", "..sMode..") Missed mode"); return nil
 end
 
-function SetAsmVarCallback(sName, sType, sHash, fHand)
-  local sFunc = "*SetAsmVarCallback"
+function SetAsmConvar(pPly,sNam,snVal)
+  if(not IsString(sNam)) then -- Make it like so the space will not be forgotten
+    LogInstance("Convar {"..type(sNam).."}<"..tostring(sNam).."> not string"); return nil end
+  if(not IsPlayer(pPly)) then -- Appl
+    RunConsoleCommand(GetOpVar("TOOLNAME_PL")..sNam, snVal); return nil end
+  return pPly:ConCommand(GetOpVar("FORM_CONCMD"):format(sNam, tostring(snVal)))
+end
+
+function SetAsmCallback(sName, sType, sHash, fHand)
+  local sFunc = "*SetAsmCallback"
   if(not (sName and IsString(sName))) then
     LogInstance("Key {"..type(sName).."}<"..tostring(sName).."> not string",sFunc); return nil end
   if(not (sType and IsString(sType))) then
     LogInstance("Key {"..type(sType).."}<"..tostring(sType).."> not string",sFunc); return nil end
-  if(IsString(sHash)) then local sLong = GetAsmVar(sName, "NAM")
+  if(IsString(sHash)) then local sLong = GetAsmConvar(sName, "NAM")
     cvarsRemoveChangeCallback(sLong, sLong.."_call")
     cvarsAddChangeCallback(sLong, function(sVar, vOld, vNew)
-      local aVal, bS = GetAsmVar(sName, sType), true
+      local aVal, bS = GetAsmConvar(sName, sType), true
       if(type(fHand) == "function") then bS, aVal = pcall(fHand, aVal)
         if(not bS) then LogInstance("Fail "..tostring(aVal),sFunc); return nil end
         LogInstance("("..sName..") Converted",sFunc)
@@ -3635,21 +3632,21 @@ function InitLocalify(sCode)
   end; for key, val in pairs(auSet) do thSet[key] = auSet[key]; languageAdd(key, val) end
 end
 
-function HasGhosts()
+function HasGhosts() -- Could you do it for a Scooby snacks?
   if(SERVER) then return false end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST")
   local eGho, nSiz = tGho[1], tGho.Size
   return (eGho and eGho:IsValid() and nSiz and nSiz > 0)
 end
 
-function InitGhosts(bCol)
+function InitGhosts(bCol) -- Zoinks, It's the goonie ghost!
   if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST"); tableEmpty(tGho)
   tGho.Size = 0; tGho.Slot = GetOpVar("MISS_NOMD")
   if(bCol) then collectgarbage() end; return true
 end
 
-function FadeGhosts(bNoD)
+function FadeGhosts(bNoD) -- Wait a minute, Ghosts can't leave fingerprints!
   if(SERVER) then return true end -- Ghosting is client side only
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
@@ -3662,7 +3659,7 @@ function FadeGhosts(bNoD)
   end; return true
 end
 
-function ClearGhosts(bCol)
+function ClearGhosts(bCol) -- Well gang, I guess that wraps up the mystery.
   if(SERVER) then return true end -- Ghosting is client side only
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
@@ -3674,7 +3671,7 @@ function ClearGhosts(bCol)
   if(bCol) then collectgarbage() end; return true
 end
 
-function MakeGhosts(nCnt, sModel)
+function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
@@ -3709,15 +3706,16 @@ end
 
 function GetHookInfo(tInfo, sW)
   if(SERVER) then return nil end
-  local sWep = tostring(sW or "gmod_tool")
+  local sMod = GetOpVar("TOOL_DEFMODE")
+  local sWep = tostring(sW or sMod)
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player invalid",tInfo); return nil end
   local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
     LogInstance("Swep invalid",tInfo); return nil end
   if(actSwep:GetClass() ~= sWep) then
     LogInstance("("..sWep..") Swep other",tInfo); return nil end
-  if(sWep ~= "gmod_tool") then return oPly, actSwep end
-  if(actSwep:GetMode()  ~= GetOpVar("TOOLNAME_NL")) then
+  if(sWep ~= sMod) then return oPly, actSwep end
+  if(actSwep:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
     LogInstance("Tool different",tInfo); return nil end
   -- Here player is holding the track assembly tool
   local actTool = actSwep:GetToolObject(); if(not actTool) then
