@@ -3639,13 +3639,6 @@ function HasGhosts() -- Could you do it for a Scooby snacks?
   return (eGho and eGho:IsValid() and nSiz and nSiz > 0)
 end
 
-function InitGhosts(bCol) -- Zoinks, It's the goonie ghost!
-  if(SERVER) then return true end -- Ghosting is client side only
-  local tGho = GetOpVar("ARRAY_GHOST"); tableEmpty(tGho)
-  tGho.Size = 0; tGho.Slot = GetOpVar("MISS_NOMD")
-  if(bCol) then collectgarbage() end; return true
-end
-
 function FadeGhosts(bNoD) -- Wait a minute, Ghosts can't leave fingerprints!
   if(SERVER) then return true end -- Ghosting is client side only
   if(not HasGhosts()) then return true end
@@ -3659,11 +3652,11 @@ function FadeGhosts(bNoD) -- Wait a minute, Ghosts can't leave fingerprints!
   end; return true
 end
 
-function ClearGhosts(bCol) -- Well gang, I guess that wraps up the mystery.
+function ClearGhosts(vSiz, bCol) -- Well gang, I guess that wraps up the mystery.
   if(SERVER) then return true end -- Ghosting is client side only
-  if(not HasGhosts()) then return true end
+  local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
   local tGho = GetOpVar("ARRAY_GHOST")
-  for iD = 1, tGho.Size do local eGho = tGho[iD]
+  for iD = 1, iSiz do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(true); eGho:Remove()
     end; eGho, tGho[iD] = nil, nil
@@ -3683,7 +3676,7 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
       eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end
     if(not (eGho and eGho:IsValid())) then
       tGho[iD] = entsCreateClientProp(sModel); eGho = tGho[iD]
-      if(not (eGho and eGho:IsValid())) then InitGhosts()
+      if(not (eGho and eGho:IsValid())) then ClearGhosts(iD)
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
       eGho:SetModel(sModel)
       eGho:SetPos(vZero)

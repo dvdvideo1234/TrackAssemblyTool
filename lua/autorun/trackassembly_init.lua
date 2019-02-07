@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.504")
+asmlib.SetOpVar("TOOL_VERSION","6.505")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -595,8 +595,8 @@ if(CLIENT) then
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
-  asmlib.SetAction("PHYSGUN_DRAW",
-    function() gtArgsLogs[1] = "*PHYSGUN_DRAW"
+  asmlib.SetAction("DRAW_PHYSGUN",
+    function() gtArgsLogs[1] = "*DRAW_PHYSGUN"
       if(not asmlib.GetAsmConvar("engunsnap", "BUL")) then
         asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
       if(not asmlib.GetAsmConvar("adviser", "BUL")) then
@@ -738,8 +738,7 @@ asmlib.CreateTable("PIECES",{
                 makTab:Match(tData.Type,2,true,"\"")..sDelim..
                 makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
-        for iInd = 1, #tOffs do
-          local stPnt = tData.Offs[iInd]
+        for iInd = 1, #tOffs do local stPnt = tData.Offs[iInd]
           local sP = (asmlib.IsEqualPOA(stPnt.P,stPnt.O) and "" or asmlib.StringPOA(stPnt.P,"V"))
           local sO = (asmlib.IsZeroPOA(stPnt.O,"V") and "" or asmlib.StringPOA(stPnt.O,"V"))
                 sO = (stPnt.O.Slot and stPnt.O.Slot or sO)
@@ -838,13 +837,10 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
         asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[2])..
           "> to "..defTab[2][1].." for "..tostring(snPK),vSrc); return false end
-      if(not asmlib.IsHere(tNames[snPK])) then
-        -- If a new type is inserted
-        tTypes.Size = tTypes.Size + 1
-        tTypes[tTypes.Size] = snPK
-        tNames[snPK] = {}
-        tNames[snPK].Size = 0
-        tNames[snPK].Slot = snPK
+      if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
+        tTypes.Size = (tTypes.Size + 1)
+        tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
+        tNames[snPK].Size, tNames[snPK].Slot = 0, snPK
       end -- Data matching crashes only on numbers
       tNames[snPK].Size = iNameID
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
@@ -855,15 +851,13 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
       if(not (tTypes or tNames)) then F:Flush(); F:Close()
         asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
-      for iInd = 1, tTypes.Size do
-        local sType = tTypes[iInd]
-        local tType = tNames[sType]
-        if(not tType) then F:Flush(); F:Close()
+      for iInd = 1, tTypes.Size do local sType = tTypes[iInd]
+        local tType = tNames[sType]; if(not tType) then F:Flush(); F:Close()
           asmlib.LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",vSrc); return false end
-        for iCnt = 1, tType.Size do
-          oFile:Write(defTab.Name..sDelim..makTab:Match(sType      ,1,true,"\"")..
-                                   sDelim..makTab:Match(iCnt       ,2,true,"\"")..
-                                   sDelim..makTab:Match(tType[iCnt],3,true,"\"").."\n")
+        for iCnt = 1, tType.Size do local vType = tType[iCnt]
+          oFile:Write(defTab.Name..sDelim..makTab:Match(sType,1,true,"\"")..
+                                   sDelim..makTab:Match(iCnt ,2,true,"\"")..
+                                   sDelim..makTab:Match(vType,3,true,"\"").."\n")
         end
       end; return true
     end
