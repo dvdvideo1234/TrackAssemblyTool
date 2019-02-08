@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.505")
+asmlib.SetOpVar("TOOL_VERSION","6.506")
 asmlib.SetIndexes("V",1,2,3)
 asmlib.SetIndexes("A",1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -355,7 +355,7 @@ if(CLIENT) then
       asmlib.SetAsmConvar(oPly,"nextrol", 0)
       if(not devmode) then
         asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
-      asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax" , "INT"),asmlib.GetAsmConvar("logfile" , "STR"))
+      asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax" , "INT"), asmlib.GetAsmConvar("logfile" , "INT"))
       if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
         oPly:SetAsmConvar("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         for key, val in pairs(asmlib.GetConvarList()) do

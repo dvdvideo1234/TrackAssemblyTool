@@ -567,8 +567,8 @@ local function BorderValue(nsVal, vKey)
     LogInstance("Value not comparable"); return nsVal end
   local tB = GetOpVar("TABLE_BORDERS")[vKey]; if(not IsHere(tB)) then
     LogInstance("Missing <"..tostring(vKey)..">"); return nsVal end
-  if(tB[1] and nsVal < tB[1]) then return tB[1] end
-  if(tB[2] and nsVal > tB[2]) then return tB[2] end
+  if(tB and tB[1] and nsVal < tB[1]) then return tB[1] end
+  if(tB and tB[2] and nsVal > tB[2]) then return tB[2] end
   return nsVal
 end
 
@@ -3654,8 +3654,8 @@ end
 
 function ClearGhosts(vSiz, bCol) -- Well gang, I guess that wraps up the mystery.
   if(SERVER) then return true end -- Ghosting is client side only
-  local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
   local tGho = GetOpVar("ARRAY_GHOST")
+  local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
   for iD = 1, iSiz do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(true); eGho:Remove()
