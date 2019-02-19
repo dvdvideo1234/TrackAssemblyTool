@@ -3612,9 +3612,9 @@ local function GetLocalify(sCode)
   local fCode = CompileFile(sPath); if(not fCode) then
     LogInstance("("..sCode..") No function"); return nil end
   local bFunc, fFunc = pcall(fCode); if(not bFunc) then
-    LogInstance("("..suCod..")[1] "..fFunc); return nil end
+    LogInstance("("..sCode..")[1] "..fFunc); return nil end
   local bCode, tCode = pcall(fFunc, sTool, sLimit); if(not bCode) then
-    LogInstance("("..suCod..")[2] "..tCode); return nil end
+    LogInstance("("..sCode..")[2] "..tCode); return nil end
   return tCode -- The successfully extracted translations
 end
 
