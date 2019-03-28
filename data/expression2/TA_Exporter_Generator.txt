@@ -121,7 +121,7 @@ if(first() || dupefinished())
     # road     --> Roads ( PHX roads )
     # monorail --> PHX monorail
     # general  --> The two beam tracks segmentnts that we all love and joy
-    TypeSegment = "general"
+    TypeSegment = "monorail"
 
     # Set this to <>0 for direct Z local offset
     # This us used to override the Z axis magntude
@@ -140,7 +140,7 @@ if(first() || dupefinished())
 
     # Prints the delta if this many switches were made
     # The higher the number it will wait more before it prints
-    PrintCount = 0
+    PrintCount = 100
 
     # This is automatically managed by the point ID selected
     # Set the coefficient before the sign() to adjust the process speed
@@ -149,8 +149,8 @@ if(first() || dupefinished())
 
     # Track piece width and height
     # The bigger the numbers the more cross section your track piece has
-    TrackPieceW = 100
-    TrackPieceH = 20
+    TrackPieceW = 30
+    TrackPieceH = 30
 
     # Generate the origin with an inset
     # This is used for bad model ends where the program cannot start sometimes
@@ -160,7 +160,7 @@ if(first() || dupefinished())
     # Tolerance of the error gained when generating an active point
     # This translates to 10 to the power of negative something..
     # The higher the power the less error algorithm has
-    TrackOriginTolerance = "e-012"
+    TrackOriginTolerance = "e-14"
 
     Time = 0
     Chip = entity()
@@ -185,17 +185,16 @@ if(first() || dupefinished())
     if(abs(StraightUp) > TrackPieceH)
     {
         ALR = clampTrace(CPos,TrackPieceH,F,U,TrackRangerMaxH,0,0), CR = ALR[1,number], CL = ALR[2,number]
-        StraightUp = -(abs(TrackRangerMaxH - abs(CR + CL)) / 2)
-
+        StraightUp = -(abs(TrackRangerMaxH - abs(CR + CL)) / 2)        
         # If it's too deep can be adjusted manually
-        StraightUp = -2
+        # StraightUp = -2
     }
     DF = abs(DF)
     Interval = abs(Interval)
 
     if(Interval > 0)
     {
-        A = Base:toLocal(Dev:angles())
+        A = Base:toLocal(Dev:angles())        
         O = Base:toLocalAxis(Dev:pos() - Base:pos())
         printPoint(PieceType,PieceName,InsertTypeDB,Mod,PointID,O,A,OverrideZ)
         Time = Interval
@@ -245,8 +244,8 @@ if(Interval > 0)
     {
         Dev:setColor(255,255,255,255)
         selfDestruct()
-        #print(_HUD_PRINTTALK,Dev:massCenter())
-        #print(_HUD_PRINTTALK,Dev:pos())
+        # print(_HUD_PRINTTALK,Dev:massCenter())
+        # print(_HUD_PRINTTALK,Dev:pos())
     }
     else
     {

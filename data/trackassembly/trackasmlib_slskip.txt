@@ -3,26 +3,14 @@ ModelToName: Cut
 ModelToName: Sub
 ModelToName: App
 DefaultType: Avoided
+LocatePOA: Missing ID
 TimerRestart: Called by
 DrawToolScreen: Invalid screen
 DrawHUD: Invalid screen
-DRAW_GHOSTS: Swep not tool
-DRAW_GHOSTS: Tool different
 GetEntitySpawn: Not hitting active point
 CacheQueryPiece: Record not located
 GetEntitySpawn: Trace model missing
 GetEntitySpawn: Types different
-POINT_SELECT: Bind not pressed
-POINT_SELECT: Active key missing
-PHYSGUN_DRAW: Physgun not hold
-PHYSGUN_DRAW: Swep not physgun
-PHYSGUN_DRAW: Extension disabled
-BIND_PRESS: Swep not tool
-BIND_PRESS: Tool different
-BIND_PRESS: Active key missing
-BIND_PRESS: Bind not pressed
-BIND_PRESS(invnext): Processed
-BIND_PRESS(invprev): Processed
 TOOL.SwitchPoint
 IntersectRayRead
 IntersectRayClear
@@ -37,6 +25,21 @@ MakeScreen.GetDistance: Start out of border
 MakeScreen.GetDistance: End out of border
 MakeScreen: Color list not container
 DRAW_RADMENU: Hook mismatch
-DRAW_RADMENU: (gmod_tool) Swep other
+DRAW_RADMENU: Scroll release
+DRAW_PHYSGUN: Extension disabled
+DRAW_RADMENU: %(gmod_tool%) Swep other
+DRAW_GHOSTS: Swep not tool
+DRAW_GHOSTS: %(gmod_tool%) Swep other
+DRAW_GHOSTS: Tool different
 DRAW_GHOSTS: Hook mismatch
-DRAW_GHOSTS: (gmod_tool) Swep other
+PHYSGUN_DRAW: Trace world
+PHYSGUN_DRAW: Physgun not hold
+PHYSGUN_DRAW: Swep not physgun
+PHYSGUN_DRAW: Extension disabled
+POINT_SELECT: Bind not pressed
+POINT_SELECT: Active key missing
+BIND_PRESS
+BIND_PRESS: Swep not tool
+BIND_PRESS: Tool different
+BIND_PRESS: Active key missing
+BIND_PRESS: Bind not pressed

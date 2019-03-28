@@ -1,0 +1,296 @@
+    1 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] SetLogControl: (20000,true)
+    2 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] SettingsLogs: Success <SKIP@trackassembly/trackasmlib_slskip.txt>
+    3 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] SettingsLogs: Missing <ONLY@trackassembly/trackasmlib_slonly.txt>
+    4 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_modedb)<nil/nil>[LUA]
+    5 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_devmode)<0/1>[0]
+    6 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxtrmarg)<0.0001/nil>[0.02]
+    7 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_timermode)<nil/nil>[CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1]
+    8 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxmass)<1/nil>[50000]
+    9 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxlinear)<1/nil>[1000]
+   10 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxforce)<0/nil>[100000]
+   11 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxactrad)<1/500>[150]
+   12 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxstcnt)<1/800>[200]
+   13 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_enwiremod)<0/1>[1]
+   14 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_bnderrmod)<nil/nil>[LOG]
+   15 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxfruse)<1/100>[50]
+   16 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: (sbox_maxasmtracks)<0/nil>[1500]
+   17 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.CreateTable: Created
+   18 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] ADDITIONS.CreateTable: Created
+   19 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PHYSPROPERTIES.CreateTable: Created
+   20 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Init: DB PIECES from LUA
+   21 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch@models/minitrains/switch.mdl>
+   22 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_doubleswitch@models/minitrains/switch_double.mdl>
+   23 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w1@models/minitrains/switch_w_1_128.mdl>
+   24 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w2@models/minitrains/switch_w_2_128.mdl>
+   25 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w3@models/minitrains/switch_w_3_128.mdl>
+   26 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w4@models/minitrains/switch_w_4_128.mdl>
+   27 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w5@models/minitrains/switch_w_5_128.mdl>
+   28 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w6@models/minitrains/switch_w_6_128.mdl>
+   29 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y1@models/minitrains/switch_y_1_128.mdl>
+   30 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y2@models/minitrains/switch_y_2_128.mdl>
+   31 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y3@models/minitrains/switch_y_3_128.mdl>
+   32 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y4@models/minitrains/switch_y_4_128.mdl>
+   33 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y5@models/minitrains/switch_y_5_128.mdl>
+   34 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y6@models/minitrains/switch_y_6_128.mdl>
+   35 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_y@models/sligwolf/rails/switch_225_y.mdl>
+   36 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_r@models/sligwolf/rails/switch_225_r.mdl>
+   37 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_l@models/sligwolf/rails/switch_225_l.mdl>
+   38 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Init: DB PHYSPROPERTIES from LUA
+   39 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Init: DB ADDITIONS from LUA
+   40 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Init: Ver.6.508
+   41 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Incognito: >>> @lua/autorun/z_autorun_add_pieces_plarail.lua
+   42 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Incognito: Status(true): {Plarail, Plarail}
+   43 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Incognito: RegisterDSV skip <Plarail>
+   44 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] SynchronizeDSV: (Plarail) Success
+   45 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] TranslateDSV: (Plarail@PIECES) Success
+   46 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Incognito: <<< @lua/autorun/z_autorun_add_pieces_plarail.lua
+   47 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Incognito: >>> @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   48 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Incognito: Status(true): {Ron's 2ft track pack, Ron_s_2ft_track_pack}
+   49 [28-03-19 21:22:05] SERVER > TRACKASSEMBLY [LUA] Incognito: RegisterDSV skip <Ron_s_2ft_track_pack>
+   50 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] Incognito: (Ron_s_2ft_track_pack) Success
+   51 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] Incognito: (Ron_s_2ft_track_pack@PIECES) Success
+   52 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] Incognito: <<< @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   53 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] Incognito: >>> @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   54 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] Incognito: Status(true): {Ron's G Scale Track pack, Ron_s_G_Scale_Track_pack}
+   55 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] Incognito: RegisterDSV skip <Ron_s_G_Scale_Track_pack>
+   56 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] SynchronizeDSV: (Ron_s_G_Scale_Track_pack) Success
+   57 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] TranslateDSV: (Ron_s_G_Scale_Track_pack@PIECES) Success
+   58 [28-03-19 21:22:06] SERVER > TRACKASSEMBLY [LUA] Incognito: <<< @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   59 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_left@models/ron/2ft/luajunctions/junctions/left/junction.mdl>
+   60 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_right@models/ron/2ft/luajunctions/junctions/right/junction.mdl>
+   61 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_n_left@models/ron/2ft/luajunctions/n_junctions/left/n_junction.mdl>
+   62 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_n_right@models/ron/2ft/luajunctions/n_junctions/right/n_junction.mdl>
+   63 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_s_left@models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl>
+   64 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_s_right@models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl>
+   65 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_x@models/ron/2ft/luajunctions/x_junctions/x_junction.mdl>
+   66 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_y@models/ron/2ft/luajunctions/y_junctions/y_junction.mdl>
+   67 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] ImportDSV: (Ron_s_2ft_track_pack@PIECES): Success
+   68 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] DecodePOA: Mismatch <,512,3>
+   69 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] ImportDSV: (Ron_s_G_Scale_Track_pack@PIECES): Success
+   70 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar01@models/ron/plarail/tracks/misc/ar01.mdl>
+   71 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar02@models/ron/plarail/tracks/misc/ar02.mdl>
+   72 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar04_1@models/ron/plarail/tracks/misc/ar04_1.mdl>
+   73 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar04_2@models/ron/plarail/tracks/misc/ar04_2.mdl>
+   74 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar05_1@models/ron/plarail/tracks/misc/ar05_1.mdl>
+   75 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar05_2@models/ron/plarail/tracks/misc/ar05_2.mdl>
+   76 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] ImportDSV: (Plarail@PIECES): Success
+   77 [28-03-19 21:22:10] SERVER > TRACKASSEMBLY [LUA] ProcessDSV: Success
+    1 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] SetLogControl: (20000,true)
+    2 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] SettingsLogs: Success <SKIP@trackassembly/trackasmlib_slskip.txt>
+    3 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] SettingsLogs: Missing <ONLY@trackassembly/trackasmlib_slonly.txt>
+    4 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_modedb)<nil/nil>[LUA]
+    5 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_devmode)<0/1>[0]
+    6 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxtrmarg)<0.0001/nil>[0.02]
+    7 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_timermode)<nil/nil>[CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1]
+    8 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxmass)<1/nil>[50000]
+    9 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxlinear)<1/nil>[1000]
+   10 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxforce)<0/nil>[100000]
+   11 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxactrad)<1/500>[150]
+   12 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_maxstcnt)<1/800>[200]
+   13 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: (trackassembly_enwiremod)<0/1>[1]
+   14 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.CreateTable: Created
+   15 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] ADDITIONS.CreateTable: Created
+   16 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PHYSPROPERTIES.CreateTable: Created
+   17 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] Init: DB CATEGORY from LUA
+   18 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] Init: DB PIECES from LUA
+   19 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Develop Sprops): Avoided nil <nil> [Develop Sprops]
+   20 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Develop PHX): Avoided nil <nil> [Develop PHX]
+   21 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Develop Test): Avoided nil <nil> [Develop Test]
+   22 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(SligWolf's Rerailers): Avoided nil <nil> [SligWolf's Rerailers]
+   23 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch@models/minitrains/switch.mdl>
+   24 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_doubleswitch@models/minitrains/switch_double.mdl>
+   25 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w1@models/minitrains/switch_w_1_128.mdl>
+   26 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w2@models/minitrains/switch_w_2_128.mdl>
+   27 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w3@models/minitrains/switch_w_3_128.mdl>
+   28 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w4@models/minitrains/switch_w_4_128.mdl>
+   29 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w5@models/minitrains/switch_w_5_128.mdl>
+   30 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w6@models/minitrains/switch_w_6_128.mdl>
+   31 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y1@models/minitrains/switch_y_1_128.mdl>
+   32 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y2@models/minitrains/switch_y_2_128.mdl>
+   33 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y3@models/minitrains/switch_y_3_128.mdl>
+   34 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y4@models/minitrains/switch_y_4_128.mdl>
+   35 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y5@models/minitrains/switch_y_5_128.mdl>
+   36 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y6@models/minitrains/switch_y_6_128.mdl>
+   37 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Monorail): Avoided nil <nil> [PHX Monorail]
+   38 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Metal): Avoided nil <nil> [PHX Metal]
+   39 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Regular): Avoided nil <nil> [PHX Regular]
+   40 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Road): Avoided nil <nil> [PHX Road]
+   41 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Monorail Beam): Avoided nil <nil> [PHX Monorail Beam]
+   42 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(SligWolf's Railcar): Avoided nil <nil> [SligWolf's Railcar]
+   43 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Random Bridges): Avoided nil <nil> [Random Bridges]
+   44 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Portal Tubes): Avoided nil <nil> [Portal Tubes]
+   45 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_y@models/sligwolf/rails/switch_225_y.mdl>
+   46 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_r@models/sligwolf/rails/switch_225_r.mdl>
+   47 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_l@models/sligwolf/rails/switch_225_l.mdl>
+   48 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] Init: DB PHYSPROPERTIES from LUA
+   49 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Special): Avoided nil <nil> [Special]
+   50 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Concrete): Avoided nil <nil> [Concrete]
+   51 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Metal): Avoided nil <nil> [Metal]
+   52 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Wood): Avoided nil <nil> [Wood]
+   53 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Terrain): Avoided nil <nil> [Terrain]
+   54 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Liquid): Avoided nil <nil> [Liquid]
+   55 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Frozen): Avoided nil <nil> [Frozen]
+   56 [28-03-19 21:22:41] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Miscellaneous): Avoided nil <nil> [Miscellaneous]
+   57 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Organic): Avoided nil <nil> [Organic]
+   58 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Manufactured): Avoided nil <nil> [Manufactured]
+   59 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] Init: DB ADDITIONS from LUA
+   60 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] Init: Ver.6.508
+   61 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] Incognito: >>> @lua/autorun/z_autorun_add_pieces_plarail.lua
+   62 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] Incognito: Status(true): {Plarail, Plarail}
+   63 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] Incognito: RegisterDSV skip <Plarail>
+   64 [28-03-19 21:22:42] CLIENT > TRACKASSEMBLY [LUA] ExportCategory: (Plarail) Success
+   65 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] SynchronizeDSV: (Plarail) Success
+   66 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] TranslateDSV: (Plarail@PIECES) Success
+   67 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] Incognito: <<< @lua/autorun/z_autorun_add_pieces_plarail.lua
+   68 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] Incognito: >>> @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   69 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] Incognito: Status(true): {Ron's 2ft track pack, Ron_s_2ft_track_pack}
+   70 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] Incognito: RegisterDSV skip <Ron_s_2ft_track_pack>
+   71 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] ExportCategory: (Ron_s_2ft_track_pack) Success
+   72 [28-03-19 21:22:43] CLIENT > TRACKASSEMBLY [LUA] Incognito: (Ron_s_2ft_track_pack) Success
+   73 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] Incognito: (Ron_s_2ft_track_pack@PIECES) Success
+   74 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] Incognito: <<< @lua/autorun/z_autorun_add_pieces_r2fttp.lua
+   75 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] Incognito: >>> @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   76 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] Incognito: Status(true): {Ron's G Scale Track pack, Ron_s_G_Scale_Track_pack}
+   77 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] Incognito: RegisterDSV skip <Ron_s_G_Scale_Track_pack>
+   78 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] ExportCategory: (Ron_s_G_Scale_Track_pack) Success
+   79 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] SynchronizeDSV: (Ron_s_G_Scale_Track_pack) Success
+   80 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] TranslateDSV: (Ron_s_G_Scale_Track_pack@PIECES) Success
+   81 [28-03-19 21:22:44] CLIENT > TRACKASSEMBLY [LUA] Incognito: <<< @lua/autorun/z_autorun_add_pieces_rgstp.lua
+   82 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] ImportCategory: Success
+   83 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_left@models/ron/2ft/luajunctions/junctions/left/junction.mdl>
+   84 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_right@models/ron/2ft/luajunctions/junctions/right/junction.mdl>
+   85 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_n_left@models/ron/2ft/luajunctions/n_junctions/left/n_junction.mdl>
+   86 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_n_right@models/ron/2ft/luajunctions/n_junctions/right/n_junction.mdl>
+   87 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_s_left@models/ron/2ft/luajunctions/s_junctions/left/s_junction.mdl>
+   88 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_s_right@models/ron/2ft/luajunctions/s_junctions/right/s_junction.mdl>
+   89 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_x@models/ron/2ft/luajunctions/x_junctions/x_junction.mdl>
+   90 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <r2ftp_junction_y@models/ron/2ft/luajunctions/y_junctions/y_junction.mdl>
+   91 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] ImportDSV: (Ron_s_2ft_track_pack@PIECES): Success
+   92 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] ImportCategory: Success
+   93 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] DecodePOA: Mismatch <,512,3>
+   94 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] ImportDSV: (Ron_s_G_Scale_Track_pack@PIECES): Success
+   95 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] ImportCategory: Success
+   96 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar01@models/ron/plarail/tracks/misc/ar01.mdl>
+   97 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar02@models/ron/plarail/tracks/misc/ar02.mdl>
+   98 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar04_1@models/ron/plarail/tracks/misc/ar04_1.mdl>
+   99 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar04_2@models/ron/plarail/tracks/misc/ar04_2.mdl>
+  100 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar05_1@models/ron/plarail/tracks/misc/ar05_1.mdl>
+  101 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_plarail_ar05_2@models/ron/plarail/tracks/misc/ar05_2.mdl>
+  102 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] ImportDSV: (Plarail@PIECES): Success
+  103 [28-03-19 21:22:47] CLIENT > TRACKASSEMBLY [LUA] ProcessDSV: Success
+  104 [28-03-19 21:23:42] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0128.mdl> .. SKIPPING !
+  105 [28-03-19 21:23:42] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0256.mdl> .. SKIPPING !
+  106 [28-03-19 21:23:42] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s0512.mdl> .. SKIPPING !
+  107 [28-03-19 21:23:42] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <G Scale Track Pack> missing <models/gscale/ibeam/s1024.mdl> .. SKIPPING !
+  108 [28-03-19 21:23:44] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <Random Bridges> missing <models/karkar/bridge.mdl> .. SKIPPING !
+  109 [28-03-19 21:23:44] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <Random Bridges> missing <models/askari/bridge01_stlve.mdl> .. SKIPPING !
+  110 [28-03-19 21:23:44] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <Random Bridges> missing <models/props/tresslebridge.mdl> .. SKIPPING !
+  111 [28-03-19 21:23:44] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <Random Bridges> missing <models/karkar/wooden_bridge_helly.mdl> .. SKIPPING !
+  112 [28-03-19 21:23:44] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <Random Bridges> missing <models/karkar/wooden_bridge_helly_broken_bstk.mdl> .. SKIPPING !
+  113 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow.mdl> .. SKIPPING !
+  114 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow_i.mdl> .. SKIPPING !
+  115 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow_small.mdl> .. SKIPPING !
+  116 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_bow_small_i.mdl> .. SKIPPING !
+  117 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45.mdl> .. SKIPPING !
+  118 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45_i.mdl> .. SKIPPING !
+  119 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45_s.mdl> .. SKIPPING !
+  120 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_45_s_i.mdl> .. SKIPPING !
+  121 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_90.mdl> .. SKIPPING !
+  122 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_1_90_i.mdl> .. SKIPPING !
+  123 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45.mdl> .. SKIPPING !
+  124 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45_i.mdl> .. SKIPPING !
+  125 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45_s.mdl> .. SKIPPING !
+  126 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_45_s_i.mdl> .. SKIPPING !
+  127 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_90.mdl> .. SKIPPING !
+  128 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_2_90_i.mdl> .. SKIPPING !
+  129 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45.mdl> .. SKIPPING !
+  130 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45_i.mdl> .. SKIPPING !
+  131 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45_s.mdl> .. SKIPPING !
+  132 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_45_s_i.mdl> .. SKIPPING !
+  133 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_90.mdl> .. SKIPPING !
+  134 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_curve_3_90_i.mdl> .. SKIPPING !
+  135 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop_quarter.mdl> .. SKIPPING !
+  136 [28-03-19 21:23:45] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop_quarter_i.mdl> .. SKIPPING !
+  137 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop1.mdl> .. SKIPPING !
+  138 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop1i.mdl> .. SKIPPING !
+  139 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop2.mdl> .. SKIPPING !
+  140 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_loop2i.mdl> .. SKIPPING !
+  141 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp.mdl> .. SKIPPING !
+  142 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp_i.mdl> .. SKIPPING !
+  143 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp_small.mdl> .. SKIPPING !
+  144 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_ramp_small_i.mdl> .. SKIPPING !
+  145 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x4_long.mdl> .. SKIPPING !
+  146 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x4_mid.mdl> .. SKIPPING !
+  147 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x4_small.mdl> .. SKIPPING !
+  148 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_long.mdl> .. SKIPPING !
+  149 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_mid.mdl> .. SKIPPING !
+  150 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_small.mdl> .. SKIPPING !
+  151 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_splitter.mdl> .. SKIPPING !
+  152 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_splitter_i.mdl> .. SKIPPING !
+  153 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_to_x4.mdl> .. SKIPPING !
+  154 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_straight_x8_to_x4_i.mdl> .. SKIPPING !
+  155 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x4.mdl> .. SKIPPING !
+  156 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x4_i.mdl> .. SKIPPING !
+  157 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x8.mdl> .. SKIPPING !
+  158 [28-03-19 21:23:46] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Extension <SligWolf's Minihover> missing <models/sligwolf/minihover/hover_trackend_x8_i.mdl> .. SKIPPING !
+  159 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Found #1320 piece items.
+  160 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] BorderValue: Missing <trackassembly_physmater>
+  161 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] CacheQueryProperty: Types << Pool
+  162 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property = {}
+  163 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[1] = "Special"
+  164 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[2] = "Concrete"
+  165 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[3] = "Metal"
+  166 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[4] = "Wood"
+  167 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[5] = "Terrain"
+  168 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[6] = "Liquid"
+  169 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[7] = "Frozen"
+  170 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[8] = "Miscellaneous"
+  171 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[9] = "Organic"
+  172 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property[10] = "Manufactured"
+  173 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property["Size"] = 10
+  174 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.BuildCPanel: Property["Used"] = 37.784954071045
+  175 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] BorderValue: Missing <trackassembly_bgskids>
+  176 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] DRAW_RADMENU: Tool different
+  177 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.DrawToolScreen: Create screen
+  178 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] GetPlayerSpot: Cached <[Sk$Bh]Trick or treat KID!>
+  179 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] GetCacheTrace: Allocate <[Sk$Bh]Trick or treat KID!>
+  180 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.DrawHUD: Create screen
+  181 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] GetCacheRadius: Allocate <[Sk$Bh]Trick or treat KID!>
+  182 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] GetCacheSpawn: Allocate <[Sk$Bh]Trick or treat KID!>
+  183 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] DRAW_RADMENU: Menu disabled
+  184 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] TOOL.ElevateGhost: (false) <13.325333595276>
+  185 [28-03-19 21:23:47] CLIENT > TRACKASSEMBLY [LUA] DRAW_RADMENU: Menu disabled
+  186 [28-03-19 21:24:17] CLIENT > TRACKASSEMBLY [LUA] BorderValue: Missing <trackassembly_bgskids>
+  187 [28-03-19 21:24:17] CLIENT > TRACKASSEMBLY [LUA] RESET_VARIABLES: {true@nil}
+    1 [28-03-19 21:24:17] CLIENT > TRACKASSEMBLY [LUA] SetLogControl: (20000,true)
+    2 [28-03-19 21:24:17] CLIENT > TRACKASSEMBLY [LUA] RESET_VARIABLES: Variables reset complete
+    3 [28-03-19 21:24:17] CLIENT > TRACKASSEMBLY [LUA] RESET_VARIABLES: Success
+    4 [28-03-19 21:24:17] CLIENT > TRACKASSEMBLY [LUA] DRAW_RADMENU: Menu disabled
+   78 [28-03-19 21:24:17] SERVER > TRACKASSEMBLY [LUA] SetAsmCallback: (logsmax) Converted
+   79 [28-03-19 21:24:17] SERVER > TRACKASSEMBLY [LUA] SetAsmCallback: (logsmax) <0>
+    5 [28-03-19 21:24:23] CLIENT > TRACKASSEMBLY [LUA] TOOL.ElevateGhost: (false) <5.1779160499573>
+    6 [28-03-19 21:24:23] CLIENT > TRACKASSEMBLY [LUA] DRAW_RADMENU: Menu disabled
+    7 [28-03-19 21:24:35] CLIENT > TRACKASSEMBLY [LUA] TOOL.ElevateGhost: (false) <13.325333595276>
+    8 [28-03-19 21:24:35] CLIENT > TRACKASSEMBLY [LUA] DRAW_RADMENU: Menu disabled
+    9 [28-03-19 21:24:39] CLIENT > TRACKASSEMBLY [LUA] TOOL.LeftClick: Working on client
+   10 [28-03-19 21:24:39] CLIENT > TRACKASSEMBLY [LUA] DRAW_RADMENU: Menu disabled
+   11 [28-03-19 21:24:55] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel
+   12 [28-03-19 21:24:58] CLIENT > TRACKASSEMBLY [LUA] TOOL.LeftClick: Working on client
+   13 [28-03-19 21:24:58] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel
+   14 [28-03-19 21:25:03] CLIENT > TRACKASSEMBLY [LUA] TOOL.Reload: Working on client
+   15 [28-03-19 21:25:03] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel
+   16 [28-03-19 21:25:11] CLIENT > TRACKASSEMBLY [LUA] TOOL.LeftClick: Working on client
+   17 [28-03-19 21:25:11] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel
+   18 [28-03-19 21:25:15] CLIENT > TRACKASSEMBLY [LUA] TOOL.RightClick: Working on client
+   19 [28-03-19 21:25:17] CLIENT > TRACKASSEMBLY [LUA] CREATE_RELATION: {101,Player [1][[Sk$Bh]Trick or treat KID!]}
+   20 [28-03-19 21:25:17] CLIENT > TRACKASSEMBLY [LUA] CREATE_RELATION: Success
+   21 [28-03-19 21:25:17] CLIENT > TRACKASSEMBLY [LUA] TOOL.Reload: Working on client
+   22 [28-03-19 21:25:17] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel
+   23 [28-03-19 21:25:23] CLIENT > TRACKASSEMBLY [LUA] TOOL.LeftClick: Working on client
+   24 [28-03-19 21:25:23] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel
+   25 [28-03-19 21:25:25] CLIENT > TRACKASSEMBLY [LUA] TOOL.Reload: Working on client
+   26 [28-03-19 21:25:25] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel
+   27 [28-03-19 21:25:39] CLIENT > TRACKASSEMBLY [LUA] BorderValue: Missing <trackassembly_bgskids>
+   28 [28-03-19 21:25:39] CLIENT > TRACKASSEMBLY [LUA] RESET_VARIABLES: {false@nil}
+   29 [28-03-19 21:25:39] CLIENT > TRACKASSEMBLY [LUA] RESET_VARIABLES: Developer mode disabled
+   30 [28-03-19 21:25:39] CLIENT > TRACKASSEMBLY [LUA] IntersectRay: Rays parallel

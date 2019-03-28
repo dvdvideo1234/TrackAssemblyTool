@@ -17,9 +17,9 @@ if(first() || dupefinished())
     X = vec(0,0,1)
     # Rotation origin from the primary edge
     # Usually where point ID 1 is located
-    O = vec(0, -2048, 0)
+    O = vec(0, -147, 1.007)
     # Point location as local vector
-    P = vec(0,-46,6.625)
+    P = vec(0,-8.5,1.25098)
     # How much amgle to apply
     D = 45
  
@@ -43,3 +43,5 @@ if(first() || dupefinished())
         
     selfDestruct()
 }
+
+

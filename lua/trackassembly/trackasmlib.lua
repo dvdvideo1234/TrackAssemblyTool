@@ -1431,13 +1431,11 @@ end
  * ivPoID --> The POA offset ID to check and locate
 ]]--
 function LocatePOA(oRec, ivPoID)
-  if(not oRec) then
-    LogInstance("Missing record"); return nil end
-  if(not oRec.Offs) then
-    LogInstance("Missing offsets for <"..tostring(oRec.Slot)..">"); return nil end
+  if(not oRec) then LogInstance("Missing record"); return nil end
+  if(not oRec.Offs) then LogInstance("Missing offsets for <"..tostring(oRec.Slot)..">"); return nil end
   local iPoID = mathFloor(tonumber(ivPoID) or 0)
   local stPOA = oRec.Offs[iPoID]; if(not IsHere(stPOA)) then
-    LogInstance("Missing ID #"..tostring(iPoID)..tostring(ivPoID).."> for <"..tostring(oRec.Slot)..">"); return nil end
+    LogInstance("Missing ID #"..tostring(ivPoID)..">"..tostring(iPoID).."| for <"..tostring(oRec.Slot)..">"); return nil end
   return stPOA, iPoID
 end
 
@@ -2598,8 +2596,8 @@ function RemoveDSV(sTable, sPref)
     LogInstance("("..sTable..syRev..sPref..") Missing table builder")
   end
   if(fileExists(sName,"DATA")) then fileDelete(sName)
-    LogInstance("("..sPref..") File <"..sName.."> deleted")
-  else LogInstance("("..sPref..") File <"..sName.."> skipped") end; return true
+    LogInstance("("..sTable..syRev..sPref..") File <"..sName.."> deleted")
+  else LogInstance("("..sTable..syRev..sPref..") File <"..sName.."> skipped") end; return true
 end
 
 --[[
