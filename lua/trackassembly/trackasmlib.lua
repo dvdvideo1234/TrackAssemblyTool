@@ -2587,14 +2587,16 @@ function RemoveDSV(sTable, sPref)
     LogInstance("("..sPref..") Prefix empty"); return false end
   if(not IsString(sTable)) then LogInstance("("..sPref..") Table {"
     ..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
-  local makTab, syRev, sName = libQTable[sTable], GetOpVar("OPSYM_REVISION")
-  if(IsHere(makTab)) then sName = fName:format(defTab.Nick)
+  local fName  = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+        fName  = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
+  local makTab, syRev, sName = GetBuilderNick(sTable), GetOpVar("OPSYM_REVISION")
+  if(IsHere(makTab)) then
+    local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+      LogInstance("("..sTable..syRev..sPref..") Missing table definition for <"..sTable..">"); return false end
+    sName = fName:format(defTab.Nick)
   else sName = fName:format(sTable:upper())
     LogInstance("("..sTable..syRev..sPref..") Missing table builder")
-  end; local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("("..sPref..") Missing table definition for <"..sTable..">"); return false end
+  end
   if(fileExists(sName,"DATA")) then fileDelete(sName)
     LogInstance("("..sPref..") File <"..sName.."> deleted")
   else LogInstance("("..sPref..") File <"..sName.."> skipped") end; return true
@@ -2602,7 +2604,7 @@ end
 
 --[[
  * This function exports a given table to DSV file format
- * It is used by the user when he wants to export the
+ * It is used by the player when he wants to export the
  * whole database to a delimiter separator format file
  * sTable > The table you want to export
  * sPref  > The external data prefix to be used
@@ -2611,7 +2613,7 @@ end
 function ExportDSV(sTable, sPref, sDelim)
   if(not IsString(sTable)) then
     LogInstance("Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder",sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition",defTab.Nick); return nil end
@@ -2665,7 +2667,7 @@ end
 function ImportDSV(sTable, bComm, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..fPref..") Missing table definition for <"..sTable..">"); return false end
@@ -2706,7 +2708,7 @@ end
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
   local fName, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
@@ -2784,7 +2786,7 @@ end
 function TranslateDSV(sTable, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  local makTab = libQTable[sTable]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
   local defTab, sFunc, sMoDB = makTab:GetDefinition(), "TranslateDSV", GetOpVar("MODE_DATABASE")
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
