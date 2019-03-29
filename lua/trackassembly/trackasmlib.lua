@@ -2166,7 +2166,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
     -- Call the trigger when provided
     if(IsTable(qtDef.Trigs)) then local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
-      if(not bS) then LogInstance("Trigger manager fail "..sR,tabDef.Nick); return false end
+      if(not bS) then LogInstance("Trigger manager "..sR,tabDef.Nick); return false end
       if(not sR) then LogInstance("Trigger routine fail",tabDef.Nick); return false end
     end -- Populate the data after the trigger does its thing
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
@@ -2585,19 +2585,19 @@ function RemoveDSV(sTable, sPref)
     LogInstance("("..sPref..") Prefix empty"); return false end
   if(not IsString(sTable)) then LogInstance("("..sPref..") Table {"
     ..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
-  local fName  = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName  = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
-  local makTab, syRev, sName = GetBuilderNick(sTable), GetOpVar("OPSYM_REVISION")
+  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+        fName = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
+  local makTab, sName = GetBuilderNick(sTable)
   if(IsHere(makTab)) then
     local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance("("..sTable..syRev..sPref..") Missing table definition for <"..sTable..">"); return false end
+      LogInstance("("..sTable.."@"..sPref..") Missing table definition for <"..sTable..">"); return false end
     sName = fName:format(defTab.Nick)
   else sName = fName:format(sTable:upper())
-    LogInstance("("..sTable..syRev..sPref..") Missing table builder")
+    LogInstance("("..sTable.."@"..sPref..") Missing table builder")
   end
   if(fileExists(sName,"DATA")) then fileDelete(sName)
-    LogInstance("("..sTable..syRev..sPref..") File <"..sName.."> deleted")
-  else LogInstance("("..sTable..syRev..sPref..") File <"..sName.."> skipped") end; return true
+    LogInstance("("..sTable.."@"..sPref..") File <"..sName.."> deleted")
+  else LogInstance("("..sTable.."@"..sPref..") File <"..sName.."> skipped") end; return true
 end
 
 --[[
@@ -2612,9 +2612,9 @@ function ExportDSV(sTable, sPref, sDelim)
   if(not IsString(sTable)) then
     LogInstance("Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("Missing table builder",sTable); return false end
+    LogInstance("("..fPref.."@"..sTable..") Missing table builder",sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("Missing table definition",defTab.Nick); return nil end
+    LogInstance("("..fPref..") Missing table definition",defTab.Nick); return nil end
   local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
@@ -2648,11 +2648,11 @@ function ExportDSV(sTable, sPref, sDelim)
     if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Cache missing",defTab.Nick); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
-    if(not bS) then LogInstance("Cache manager fail for "..sR,defTab.Nick); return false end
-    if(not sR) then LogInstance("Cache routine fail",defTab.Nick); return false end
-  else LogInstance("Wrong database mode <"..sMoDB..">",defTab.Nick); return false end
+    if(not bS) then LogInstance("("..fPref..") Cache manager fail for "..sR,defTab.Nick); return false end
+    if(not sR) then LogInstance("("..fPref..") Cache routine fail",defTab.Nick); return false end
+  else LogInstance("("..fPref..") Wrong database mode <"..sMoDB..">",defTab.Nick); return false end
   -- The dynamic cache population was successful then send a message
-  F:Flush(); F:Close(); LogInstance("("..fPref.."@"..defTab.Nick.."): Success"); return true
+  F:Flush(); F:Close(); LogInstance("("..fPref..") Success",defTab.Nick); return true
 end
 
 --[[
@@ -2666,32 +2666,31 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref..") Missing table builder"); return nil end
+    LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("("..fPref..") Missing table definition for <"..sTable..">"); return false end
+    LogInstance("("..fPref..") Missing table definition",defTab.Nick); return false end
   local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-    LogInstance("("..fPref..") Missing table command for <"..sTable..">"); return false end
+    LogInstance("("..fPref..") Missing table command",defTab.Nick); return false end
   local fName, sMoDB = (GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")), GetOpVar("MODE_DATABASE")
         fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
-    LogInstance("("..fPref..") fileOpen("..fName..") failed"); return false end
+    LogInstance("("..fPref..") fileOpen("..fName..") failed",defTab.Nick); return false end
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.Begin)
-    LogInstance("("..fPref.."@"..sTable.."): Begin") end
+    LogInstance("("..fPref..") Begin",defTab.Nick) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
       if(sLine:sub(1,nLen) == defTab.Name) then
         local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
-        for iCnt = 1, defTab.Size do
-          tData[iCnt] = GetStrip(tData[iCnt]) end
+        for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
         if(bComm) then makTab:Record(tData) end
       end
     end
   end; F:Close()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.Commit)
-    LogInstance("("..fPref.."@"..sTable.."): Commit")
-  end; LogInstance("("..fPref.."@"..sTable.."): Success"); return true
+    LogInstance("("..fPref..") Commit",defTab.Nick)
+  end; LogInstance("("..fPref..") Success",defTab.Nick); return true
 end
 
 --[[
@@ -2707,7 +2706,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
+    LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
   local fName, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2726,33 +2725,33 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           -- Where the lime ID must be read from
           local tKey, vID, nID = fData[sKey], tLine[iD+1]; nID = (tonumber(vID) or 0)
           if((tKey.Size < 0) or (nID <= tKey.Size) or ((nID - tKey.Size) ~= 1)) then
-            I:Close(); LogInstance("("..fPref..") Read point ID #"..
-              tostring(vID).." desynchronized <"..sKey.."> of <"..sTable..">"); return false end
+            I:Close(); LogInstance("("..fPref.."@"..sTable..") Read point ID #"..
+              tostring(vID).." desynchronized <"..sKey..">"); return false end
           tKey.Size = nID; tKey[tKey.Size] = {}
           local kKey, nCnt = tKey[tKey.Size], 3
           while(tLine[nCnt]) do -- Do a value matching without quotes
             local vM = makTab:Match(tLine[nCnt],nCnt-1); if(not IsHere(vM)) then
-              I:Close(); LogInstance("("..fPref..") Read matching failed <"
+              I:Close(); LogInstance("("..fPref.."@"..sTable..") Read matching failed <"
                 ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "
-                  ..defTab[nCnt-1][1].."> of <"..sTable..">"); return false
+                  ..defTab[nCnt-1][1]..">"); return false
             end; kKey[nCnt-2] = vM; nCnt = nCnt + 1
           end
         else I:Close()
-          LogInstance("("..fPref..") Read table name mismatch <"..sTable..">"); return false end
+          LogInstance("("..fPref.."@"..sTable..") Read table name mismatch"); return false end
       end
     end; I:Close()
-  else LogInstance("("..fPref..") Creating file <"..fName..">") end
+  else LogInstance("("..fPref.."@"..sTable..") Creating file <"..fName..">") end
   for key, rec in pairs(tData) do -- Check the given table
     for pnID = 1, #rec do -- Where the line ID must be read from
       local tRec, vID, nID = rec[pnID]; vID = tRec[iD-1]
       nID = (tonumber(vID) or 0); if(pnID ~= nID) then
-          LogInstance("("..fPref..") Given point ID #"..
-            tostring(vID).." desynchronized <"..key.."> of "..sTable); return false end
+          LogInstance("("..fPref.."@"..sTable..") Given point ID #"..
+            tostring(vID).." desynchronized <"..key..">"); return false end
       for nCnt = 1, #tRec do -- Do a value matching without quotes
         local vM = makTab:Match(tRec[nCnt],nCnt+1); if(not IsHere(vM)) then
-          LogInstance("("..fPref..") Given matching failed <"
+          LogInstance("("..fPref.."@"..sTable..") Given matching failed <"
             ..tostring(tRec[nCnt]).."> to <"..tostring(nCnt+1).." # "
-              ..defTab[nCnt+1][1].."> of "..sTable); return false
+              ..defTab[nCnt+1][1]..">"); return false
         end
       end
     end -- Register the read line to the output file
@@ -2762,9 +2761,9 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     else --[[ Do not modify fData ]] end
   end
   local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
-    LogInstance("("..fPref..") Sorting failed"); return false end
+    LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
-    LogInstance("("..fPref..") Write fileOpen("..fName..") failed"); return false end
+    LogInstance("("..fPref.."@"..sTable..") Write fileOpen("..fName..") failed"); return false end
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   for rcID = 1, tSort.Size do local key = tSort[rcID].Val
@@ -2772,20 +2771,20 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     for pnID = 1, vRec.Size do local tItem = vRec[pnID]
       for nCnt = 1, #tItem do
         local vM = makTab:Match(tItem[nCnt],nCnt+1,true,"\"",true); if(not IsHere(vM)) then
-          O:Flush(); O:Close(); LogInstance("("..fPref..") Write matching failed <"
-            ..tostring(tItem[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1].."> of "..sTable); return false
+          O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable..") Write matching failed <"
+            ..tostring(tItem[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1]..">"); return false
         end; sData = sData..sDelim..tostring(vM)
       end; O:Write(sCash..sData.."\n"); sData = ""
     end
   end O:Flush(); O:Close()
-  LogInstance("("..fPref..") Success"); return true
+  LogInstance("("..fPref.."@"..sTable..") Success"); return true
 end
 
 function TranslateDSV(sTable, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref..") Missing table builder for <"..sTable..">"); return false end
+    LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return false end
   local defTab, sFunc, sMoDB = makTab:GetDefinition(), "TranslateDSV", GetOpVar("MODE_DATABASE")
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
@@ -2794,9 +2793,9 @@ function TranslateDSV(sTable, sPref, sDelim)
   sNdsv, sNins = sNdsv..fPref..defTab.Name..".txt", sNins..fPref..defTab.Name..".txt"
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local D = fileOpen(sNdsv, "rb", "DATA"); if(not D) then
-    LogInstance("("..fPref..") fileOpen("..sNdsv..") failed"); return false end
+    LogInstance("("..fPref..") fileOpen("..sNdsv..") failed",defTab.Nick); return false end
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
-    LogInstance("("..fPref..") fileOpen("..sNins..") failed"); return false end
+    LogInstance("("..fPref..") fileOpen("..sNins..") failed",defTab.Nick); return false end
   I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   I:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
@@ -2808,14 +2807,14 @@ function TranslateDSV(sTable, sPref, sDelim)
       for nCnt = 1, #tBoo do
         local vMatch = makTab:Match(GetStrip(tBoo[nCnt]),nCnt,true,"\"",true)
         if(not IsHere(vMatch)) then D:Close(); I:Flush(); I:Close()
-          LogInstance("("..sHs..") Given matching failed <"
+          LogInstance("("..fPref..") Given matching failed <"
             ..tostring(tBoo[nCnt]).."> to <"..tostring(nCnt).." # "
-              ..defTab[nCnt][1].."> of "..sTable); return false end
+              ..defTab[nCnt][1]..">",defTab.Nick); return false end
         sCat = sCat..", "..tostring(vMatch)
       end; I:Write(sFr..sCat:sub(3,-1)..sBk)
     end
   end; D:Close(); I:Flush(); I:Close()
-  LogInstance("("..sHs..") Success"); return true
+  LogInstance("("..fPref..") Success",defTab.Nick); return true
 end
 
 --[[
