@@ -2721,17 +2721,17 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTab.Name) then
           for iCnt = 1, #tLine do tLine[iCnt] = GetStrip(tLine[iCnt]) end
-          local sKey = tLine[2]; if(not fData[sKey]) then fData[sKey] = {Size = 0} end
+          local key = tLine[2]; if(not fData[key]) then fData[key] = {Size = 0} end
           -- Where the lime ID must be read from
-          local tKey, vID, nID = fData[sKey], tLine[iD+1]; nID = (tonumber(vID) or 0)
+          local tKey, vID, nID = fData[key], tLine[iD+1]; nID = (tonumber(vID) or 0)
           if((tKey.Size < 0) or (nID <= tKey.Size) or ((nID - tKey.Size) ~= 1)) then
-            I:Close(); LogInstance("("..fPref.."@"..sTable..") Read point ID #"..
-              tostring(vID).." desynchronized <"..sKey..">"); return false end
+            I:Close(); LogInstance("("..fPref.."@"..sTable..") Read line ID #"..
+              tostring(vID).." desynchronized <"..key..">"); return false end
           tKey.Size = nID; tKey[tKey.Size] = {}
           local kKey, nCnt = tKey[tKey.Size], 3
           while(tLine[nCnt]) do -- Do a value matching without quotes
             local vM = makTab:Match(tLine[nCnt],nCnt-1); if(not IsHere(vM)) then
-              I:Close(); LogInstance("("..fPref.."@"..sTable..") Read matching failed <"
+              I:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Read matching failed <"
                 ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "
                   ..defTab[nCnt-1][1]..">"); return false
             end; kKey[nCnt-2] = vM; nCnt = nCnt + 1
@@ -2745,11 +2745,11 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     for pnID = 1, #rec do -- Where the line ID must be read from
       local tRec, vID, nID = rec[pnID]; vID = tRec[iD-1]
       nID = (tonumber(vID) or 0); if(pnID ~= nID) then
-          LogInstance("("..fPref.."@"..sTable..") Given point ID #"..
+          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Given point ID #"..
             tostring(vID).." desynchronized <"..key..">"); return false end
       for nCnt = 1, #tRec do -- Do a value matching without quotes
         local vM = makTab:Match(tRec[nCnt],nCnt+1); if(not IsHere(vM)) then
-          LogInstance("("..fPref.."@"..sTable..") Given matching failed <"
+          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Given matching failed <"
             ..tostring(tRec[nCnt]).."> to <"..tostring(nCnt+1).." # "
               ..defTab[nCnt+1][1]..">"); return false
         end
@@ -2767,11 +2767,13 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   for rcID = 1, tSort.Size do local key = tSort[rcID].Val
-    local vRec, sCash, sData = fData[key], defTab.Name..sDelim..key, ""
+    local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
+      O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
+    local vRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
     for pnID = 1, vRec.Size do local tItem = vRec[pnID]
       for nCnt = 1, #tItem do
         local vM = makTab:Match(tItem[nCnt],nCnt+1,true,"\"",true); if(not IsHere(vM)) then
-          O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable..") Write matching failed <"
+          O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching failed <"
             ..tostring(tItem[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1]..">"); return false
         end; sData = sData..sDelim..tostring(vM)
       end; O:Write(sCash..sData.."\n"); sData = ""
@@ -3690,7 +3692,7 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
       eGho:SetColor(cPal:Select("gh"))
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
   end -- Remove all others that must not be drawn to save memory
-  for iK = iD, tGho.Size do -- Executes only when (nCnt < tGho.Size)
+  for iK = iD, tGho.Size do -- Executes only when (nCnt <= tGho.Size)
     local eGho = tGho[iD]; if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
