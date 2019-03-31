@@ -1,4 +1,4 @@
-# SynchronizeDSV:(Ron_s_G_Scale_Track_pack@PIECES) 28-12-18 23:01:00 [ SQL ]
+# SynchronizeDSV:(Ron_s_G_Scale_Track_pack@PIECES) 31-03-19 18:13:06 [ LUA ]
 # Data settings:(MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS)
 TRACKASSEMBLY_PIECES	models/ron/gscale/curves/90_1.mdl	"Ron's G Scale Track pack"	"Curve 1"	1	"NULL"	"0,0,3"	"0,-90,0"	"NULL"
 TRACKASSEMBLY_PIECES	models/ron/gscale/curves/90_1.mdl	"Ron's G Scale Track pack"	"Curve 1"	2	"NULL"	"-256,256,3"	"0,180,0"	"NULL"

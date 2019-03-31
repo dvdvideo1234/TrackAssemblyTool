@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.511")
+asmlib.SetOpVar("TOOL_VERSION","6.512")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -334,12 +334,13 @@ if(CLIENT) then
       local ghostcnt = actTool:GetGhostsCount()
       local depthcnt = mathMin(stackcnt, ghostcnt)
       local atGhost  = asmlib.GetOpVar("ARRAY_GHOST")
-      if(not (asmlib.HasGhosts()    and depthcnt == atGhost.Size and
-              atGhost.Slot == model and utilIsValidModel(model))) then
-        if(not asmlib.MakeGhosts(depthcnt, model)) then
-          asmlib.LogInstance("Population fail",gtArgsLogs); return nil end
-        actTool:ElevateGhost(atGhost[1], oPly) -- Elevate the properly created ghost
-      end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
+      if(utilIsValidModel(model)) then
+        if(not (asmlib.HasGhosts()    and depthcnt == atGhost.Size and atGhost.Slot == model)) then
+          if(not asmlib.MakeGhosts(depthcnt, model)) then
+            asmlib.LogInstance("Population fail",gtArgsLogs); return nil end
+          actTool:ElevateGhost(atGhost[1], oPly) -- Elevate the properly created ghost
+        end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
+      end
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",

@@ -15,9 +15,6 @@ TOOL.SwitchPoint
 IntersectRayRead
 IntersectRayClear
 IntersectRayHash
-RegisterPOA: Exists ID
-PIECES.InsertRecord
-InsertRecord: Cannot process offset
 MakeScreen.DrawLine: Start out of border
 MakeScreen.DrawLine: End out of border
 MakeScreen.GetColor: Color reset
@@ -26,6 +23,7 @@ MakeScreen.GetDistance: End out of border
 MakeScreen: Color list not container
 DRAW_RADMENU: Hook mismatch
 DRAW_RADMENU: Scroll release
+DRAW_RADMENU: Menu disabled
 DRAW_PHYSGUN: Extension disabled
 DRAW_RADMENU: %(gmod_tool%) Swep other
 DRAW_GHOSTS: Swep not tool

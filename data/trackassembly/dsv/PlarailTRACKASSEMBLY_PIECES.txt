@@ -1,4 +1,4 @@
-# SynchronizeDSV:(Plarail@PIECES) 28-12-18 23:00:59 [ SQL ]
+# SynchronizeDSV:(Plarail@PIECES) 31-03-19 18:13:05 [ LUA ]
 # Data settings:(MODEL	TYPE	NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS)
 TRACKASSEMBLY_PIECES	models/ron/plarail/tracks/curve/r03_left.mdl	"Plarail"	"R-03 Curve Left 1"	1	"NULL"	"0,0,0"	"0,-90,0"	"NULL"
 TRACKASSEMBLY_PIECES	models/ron/plarail/tracks/curve/r03_left.mdl	"Plarail"	"R-03 Curve Left 1"	2	"NULL"	"-37.5,90.5,0"	"0,135,0"	"NULL"

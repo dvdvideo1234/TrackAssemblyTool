@@ -1555,7 +1555,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
           if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
       end end -- Reload the transformation when is not null or empty string
     elseif(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
-      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end  
+      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
     end
   end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
   ---------- Angle ----------
@@ -2719,45 +2719,50 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
       if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
         local tLine = sDelim:Explode(sLine)
-        if(tLine[1] == defTab.Name) then
-          for iCnt = 1, #tLine do tLine[iCnt] = GetStrip(tLine[iCnt]) end
-          local key = tLine[2]; if(not fData[key]) then fData[key] = {Size = 0} end
-          -- Where the lime ID must be read from
-          local tKey, vID, nID = fData[key], tLine[iD+1]; nID = (tonumber(vID) or 0)
-          if((tKey.Size < 0) or (nID <= tKey.Size) or ((nID - tKey.Size) ~= 1)) then
+        if(tLine[1] == defTab.Name) then local nL = #tLine
+          for iCnt = 2, nL do local vV, iL = tLine[iCnt], (iCnt-1); vV = GetStrip(vV)
+            vM = makTab:Match(vV,iL,false,"",true,true); if(not IsHere(vV)) then
+            O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable
+              ..") Read matching failed <"..tostring(vV).."> to <"
+                ..tostring(iL).." # "..defTab[iL][1]..">"); return false end
+            tLine[iCnt] = vM -- Register the matched value
+          end -- Allocate table memory for the matched key
+          local vK = tLine[2]; if(not fData[vK]) then fData[vK] = {Size = 0} end
+          -- Where the line ID must be read from. Validate the value
+          local fRec, vID, nID = fData[vK], tLine[iD+1]; nID = (tonumber(vID) or 0)
+          if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
             I:Close(); LogInstance("("..fPref.."@"..sTable..") Read line ID #"..
-              tostring(vID).." desynchronized <"..key..">"); return false end
-          tKey.Size = nID; tKey[tKey.Size] = {}
-          local kKey, nCnt = tKey[tKey.Size], 3
-          while(tLine[nCnt]) do -- Do a value matching without quotes
-            local vM = makTab:Match(tLine[nCnt],nCnt-1); if(not IsHere(vM)) then
-              I:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Read matching failed <"
-                ..tostring(tLine[nCnt]).."> to <"..tostring(nCnt-1).." # "
-                  ..defTab[nCnt-1][1]..">"); return false
-            end; kKey[nCnt-2] = vM; nCnt = nCnt + 1
-          end
+              tostring(vID).." desynchronized <"..tostring(vK)..">"); return false end
+          fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Regster the new line
+          for iCnt = 3, nL do fRow[iCnt-2] = tLine[iCnt] end -- Transfer the extracted data
         else I:Close()
           LogInstance("("..fPref.."@"..sTable..") Read table name mismatch"); return false end
       end
     end; I:Close()
   else LogInstance("("..fPref.."@"..sTable..") Creating file <"..fName..">") end
-  for key, rec in pairs(tData) do -- Check the given table
-    for pnID = 1, #rec do -- Where the line ID must be read from
-      local tRec, vID, nID = rec[pnID]; vID = tRec[iD-1]
-      nID = (tonumber(vID) or 0); if(pnID ~= nID) then
-          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Given point ID #"..
-            tostring(vID).." desynchronized <"..key..">"); return false end
-      for nCnt = 1, #tRec do -- Do a value matching without quotes
-        local vM = makTab:Match(tRec[nCnt],nCnt+1); if(not IsHere(vM)) then
-          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Given matching failed <"
-            ..tostring(tRec[nCnt]).."> to <"..tostring(nCnt+1).." # "
-              ..defTab[nCnt+1][1]..">"); return false
-        end
+  for key, rec in pairs(tData) do -- Check the given table and match the key
+    local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
+      O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"
+        ..tostring(key)..") Sync matching PK failed"); return false end
+    local sKey, sVK = tostring(key), tostring(vK); if(sKey ~= sVK) then
+      LogInstance("("..fPref.."@"..sTable..") Sync key differs ["..sKey.."]["..sVK.."]");
+      tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
+    end local tRec = tData[vK] -- Create loval reference to the record of the matched key
+    for iCnt = 1, #tRec do -- Where the line ID must be read from skip the key itself
+      local tRow, vID, nID = tRec[iCnt]; vID = tRow[iD-1]
+      nID = (tonumber(vID) or 0); if(iCnt ~= nID) then -- Validate the line ID
+          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Sync point ID #"..
+            tostring(vID).." desynchronized <"..tostring(key)..">"); return false end
+      for nCnt = 1, #tRow do -- Do a value matching without quotes
+        local vM = makTab:Match(tRow[nCnt],nCnt+1,false,"",true,true); if(not IsHere(vM)) then
+          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Sync matching failed <"
+            ..tostring(tRow[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1]..">"); return false
+        end; tRow[nCnt] = vM -- Store the matched value in the same place as the original
       end
     end -- Register the read line to the output file
-    if(bRepl) then
-      if(tData[key]) then -- Update the file with the new data
-        fData[key] = rec; fData[key].Size = #rec end
+    if(bRepl) then -- Replace the data when enabled overwrites the file data
+      if(tData[vK]) then -- Update the file with the new data
+        fData[vK] = tRec; fData[vK].Size = #tRec end
     else --[[ Do not modify fData ]] end
   end
   local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
@@ -2766,15 +2771,15 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref.."@"..sTable..") Write fileOpen("..fName..") failed"); return false end
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
-  for rcID = 1, tSort.Size do local key = tSort[rcID].Val
-    local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
+  for iKey = 1, tSort.Size do local key = tSort[iKey].Val
+    local vK = makTab:Match(key,1,true,"\"",true,true); if(not IsHere(vK)) then
       O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
-    local vRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
-    for pnID = 1, vRec.Size do local tItem = vRec[pnID]
-      for nCnt = 1, #tItem do
-        local vM = makTab:Match(tItem[nCnt],nCnt+1,true,"\"",true); if(not IsHere(vM)) then
+    local fRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
+    for iCnt = 1, fRec.Size do local fRow = fRec[iCnt]
+      for nCnt = 1, #fRow do
+        local vM = makTab:Match(fRow[nCnt],nCnt+1,true,"\"",true); if(not IsHere(vM)) then
           O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching failed <"
-            ..tostring(tItem[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1]..">"); return false
+            ..tostring(fRow[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1]..">"); return false
         end; sData = sData..sDelim..tostring(vM)
       end; O:Write(sCash..sData.."\n"); sData = ""
     end
