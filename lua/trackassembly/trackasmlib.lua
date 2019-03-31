@@ -2772,7 +2772,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Val
-    local vK = makTab:Match(key,1,true,"\"",true,true); if(not IsHere(vK)) then
+    local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
       O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
     local fRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
     for iCnt = 1, fRec.Size do local fRow = fRec[iCnt]
