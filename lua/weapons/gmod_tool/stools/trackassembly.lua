@@ -79,7 +79,7 @@ local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
-  asmlib.LogInstance("Processing data list fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
+  asmlib.LogInstance("Processing external DSV fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
 end
 
 cleanupRegister(gsLimitName); asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
@@ -639,7 +639,7 @@ function TOOL:LeftClick(stTrace)
       if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Bodygroup/Skin) Failed"),gtArgsLogs); return false end
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
-      asmlib.LogInstance("(Bodygroup/Skin) Success"); return true
+      asmlib.LogInstance("(Bodygroup/Skin) Success",gtArgsLogs); return true
     end
   end -- IN_SPEED: Switch the tool mode ( Stacking )
   if(workmode == 1 and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
@@ -679,7 +679,7 @@ function TOOL:LeftClick(stTrace)
       else iTrys = iTrys - 1 end
       if(iTrys <= 0) then
         asmlib.UndoFinish(ply,sIterat) --  Make it shoot but throw the error
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": All stack attempts fail")); return true
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": All stack attempts fail"),gtArgsLogs); return true
       end -- We still have enough memory to preform the stacking
     end
     asmlib.UndoFinish(ply)
@@ -754,7 +754,7 @@ function TOOL:Reload(stTrace)
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(self:GetExportDB()) then
-      asmlib.LogInstance("(World) Exporting DB")
+      asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
       asmlib.ExportDSV("PIECES")
       asmlib.ExportDSV("ADDITIONS")
       asmlib.ExportDSV("PHYSPROPERTIES")
@@ -766,7 +766,7 @@ function TOOL:Reload(stTrace)
       elseif(workmode == 2) then self:IntersectClear(false)
         asmlib.LogInstance("Relate Clear",gtArgsLogs)
       end
-    end; asmlib.LogInstance("World Success"); return true
+    end; asmlib.LogInstance("World Success",gtArgsLogs); return true
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
@@ -775,11 +775,11 @@ function TOOL:Reload(stTrace)
       if(workmode == 1) then -- General anchor
         if(not self:SetAnchor(stTrace)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"Prop anchor set fail"),gtArgsLogs); return false end
-        asmlib.LogInstance("Prop anchor set"); return true
+        asmlib.LogInstance("Prop anchor set",gtArgsLogs); return true
       elseif(workmode == 2) then -- Intersect relation
         if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"Prop relation set fail"),gtArgsLogs); return false end
-        asmlib.LogInstance("Prop relation set"); return true
+        asmlib.LogInstance("Prop relation set",gtArgsLogs); return true
       end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
