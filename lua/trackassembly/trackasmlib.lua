@@ -2587,17 +2587,16 @@ function RemoveDSV(sTable, sPref)
     ..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
-  local makTab, sName = GetBuilderNick(sTable)
-  if(IsHere(makTab)) then
+  local makTab, sName = GetBuilderNick(sTable); if(IsHere(makTab)) then
     local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance("("..sTable.."@"..sPref..") Missing table definition for <"..sTable..">"); return false end
+      LogInstance("("..sPref..") Missing table definition",sTable); return false end
     sName = fName:format(defTab.Nick)
   else sName = fName:format(sTable:upper())
-    LogInstance("("..sTable.."@"..sPref..") Missing table builder")
+    LogInstance("("..sPref..") Missing table builder",sTable)
   end
   if(fileExists(sName,"DATA")) then fileDelete(sName)
-    LogInstance("("..sTable.."@"..sPref..") File <"..sName.."> deleted")
-  else LogInstance("("..sTable.."@"..sPref..") File <"..sName.."> skipped") end; return true
+    LogInstance("("..sPref..") File <"..sName.."> deleted",sTable)
+  else LogInstance("("..sPref..") File <"..sName.."> skipped",sTable) end; return true
 end
 
 --[[
@@ -2612,16 +2611,16 @@ function ExportDSV(sTable, sPref, sDelim)
   if(not IsString(sTable)) then
     LogInstance("Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref.."@"..sTable..") Missing table builder",sTable); return false end
+    LogInstance("("..fPref..") Missing table builder",sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("("..fPref..") Missing table definition",defTab.Nick); return nil end
+    LogInstance("("..fPref..") Missing table definition",sTable); return nil end
   local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
-    LogInstance("("..fPref..") fileOpen("..fName..") failed",defTab.Nick); return false end
+    LogInstance("("..fPref..") fileOpen("..fName..") failed",sTable); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
   local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
@@ -2631,12 +2630,12 @@ function ExportDSV(sTable, sPref, sDelim)
   if(sMoDB == "SQL") then
     local Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Get()
     if(not IsHere(Q)) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") Build statement failed",defTab.Nick); return false end
+      LogInstance("("..fPref..") Build statement failed",sTable); return false end
     F:Write("# Query ran: <"..Q..">\n")
     local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") SQL exec error <"..sqlLastError()..">",defTab.Nick); return nil end
+      LogInstance("("..fPref..") SQL exec error <"..sqlLastError()..">",sTable); return nil end
     if(not (qData and qData[1])) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") No data found <"..Q..">",defTab.Nick); return false end
+      LogInstance("("..fPref..") No data found <"..Q..">",sTable); return false end
     local sData, sTab = "", defTab.Name
     for iCnt = 1, #qData do local qRec = qData[iCnt]; sData = sTab
       for iInd = 1, defTab.Size do local sHash = defTab[iInd][1]
@@ -2646,13 +2645,13 @@ function ExportDSV(sTable, sPref, sDelim)
   elseif(sMoDB == "LUA") then
     local tCache = libCache[defTab.Name]
     if(not IsHere(tCache)) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") Cache missing",defTab.Nick); return false end
+      LogInstance("("..fPref..") Cache missing",sTable); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
-    if(not bS) then LogInstance("("..fPref..") Cache manager fail for "..sR,defTab.Nick); return false end
-    if(not sR) then LogInstance("("..fPref..") Cache routine fail",defTab.Nick); return false end
-  else LogInstance("("..fPref..") Wrong database mode <"..sMoDB..">",defTab.Nick); return false end
+    if(not bS) then LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
+    if(not sR) then LogInstance("("..fPref..") Cache routine fail",sTable); return false end
+  else LogInstance("("..fPref..") Wrong database mode <"..sMoDB..">",sTable); return false end
   -- The dynamic cache population was successful then send a message
-  F:Flush(); F:Close(); LogInstance("("..fPref..") Success",defTab.Nick); return true
+  F:Flush(); F:Close(); LogInstance("("..fPref..") Success",sTable); return true
 end
 
 --[[
@@ -2666,19 +2665,19 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return nil end
+    LogInstance("("..fPref..") Missing table builder",sTable); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("("..fPref..") Missing table definition",defTab.Nick); return false end
+    LogInstance("("..fPref..") Missing table definition",sTable); return false end
   local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-    LogInstance("("..fPref..") Missing table command",defTab.Nick); return false end
+    LogInstance("("..fPref..") Missing table command",sTable); return false end
   local fName, sMoDB = (GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")), GetOpVar("MODE_DATABASE")
         fName = fName..fPref..defTab.Name..".txt"
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
-    LogInstance("("..fPref..") fileOpen("..fName..") failed",defTab.Nick); return false end
+    LogInstance("("..fPref..") fileOpen("..fName..") failed",sTable); return false end
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.Begin)
-    LogInstance("("..fPref..") Begin",defTab.Nick) end
+    LogInstance("("..fPref..") Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
       if(sLine:sub(1,nLen) == defTab.Name) then
@@ -2689,8 +2688,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
     end
   end; F:Close()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.Commit)
-    LogInstance("("..fPref..") Commit",defTab.Nick)
-  end; LogInstance("("..fPref..") Success",defTab.Nick); return true
+    LogInstance("("..fPref..") Commit",sTable)
+  end; LogInstance("("..fPref..") Success",sTable); return true
 end
 
 --[[
@@ -2791,7 +2790,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table {"..type(sTable).."}<"..tostring(sTable).."> not string"); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return false end
+    LogInstance("("..fPref..") Missing table builder",sTable); return false end
   local defTab, sFunc, sMoDB = makTab:GetDefinition(), "TranslateDSV", GetOpVar("MODE_DATABASE")
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
@@ -2800,13 +2799,13 @@ function TranslateDSV(sTable, sPref, sDelim)
   sNdsv, sNins = sNdsv..fPref..defTab.Name..".txt", sNins..fPref..defTab.Name..".txt"
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local D = fileOpen(sNdsv, "rb", "DATA"); if(not D) then
-    LogInstance("("..fPref..") fileOpen("..sNdsv..") failed",defTab.Nick); return false end
+    LogInstance("("..fPref..") fileOpen("..sNdsv..") failed",sTable); return false end
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
-    LogInstance("("..fPref..") fileOpen("..sNins..") failed",defTab.Nick); return false end
+    LogInstance("("..fPref..") fileOpen("..sNins..") failed",sTable); return false end
   I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
   I:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
-  local sFr, sBk, sHs = sTable:upper()..":Record({", "})\n", (fPref.."@"..sTable)
+  local sFr, sBk = sTable:upper()..":Record({", "})\n"
   while(not isEOF) do sLine, isEOF = GetStringFile(D)
     if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
       sLine = sLine:gsub(defTab.Name,""):Trim()
@@ -2816,12 +2815,12 @@ function TranslateDSV(sTable, sPref, sDelim)
         if(not IsHere(vMatch)) then D:Close(); I:Flush(); I:Close()
           LogInstance("("..fPref..") Given matching failed <"
             ..tostring(tBoo[nCnt]).."> to <"..tostring(nCnt).." # "
-              ..defTab[nCnt][1]..">",defTab.Nick); return false end
+              ..defTab[nCnt][1]..">",sTable); return false end
         sCat = sCat..", "..tostring(vMatch)
       end; I:Write(sFr..sCat:sub(3,-1)..sBk)
     end
   end; D:Close(); I:Flush(); I:Close()
-  LogInstance("("..fPref..") Success",defTab.Nick); return true
+  LogInstance("("..fPref..") Success",sTable); return true
 end
 
 --[[
@@ -2833,10 +2832,10 @@ end
  * bSkip  > Skip addition for the DSV prefix if exists
 ]]--
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
-  if(CLIENT and gameSinglePlayer()) then
-    LogInstance("Single client"); return true end
   local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("("..sPref..") Prefix empty"); return false end
+  if(CLIENT and gameSinglePlayer()) then
+    LogInstance("("..sPref..") Single client"); return true end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
   local lbNam = GetOpVar("NAME_LIBRARY")
