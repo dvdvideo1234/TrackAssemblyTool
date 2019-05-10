@@ -790,7 +790,7 @@ function TOOL:Reload(stTrace)
   return false
 end
 
-function TOOL:Holster() asmlib.ClearGhosts(true) end
+function TOOL:Holster() asmlib.ClearGhosts(nil, true) end
 
 function TOOL:UpdateGhost(oPly)
   if(not asmlib.FadeGhosts(true)) then return nil end

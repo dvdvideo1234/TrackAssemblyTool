@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.516")
+asmlib.SetOpVar("TOOL_VERSION","6.517")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -333,12 +333,12 @@ if(CLIENT) then
       local stackcnt = actTool:GetStackCount()
       local ghostcnt = actTool:GetGhostsCount()
       local depthcnt = mathMin(stackcnt, ghostcnt)
-      local atGhost  = asmlib.GetOpVar("ARRAY_GHOST")
+      local atGhosts = asmlib.GetOpVar("ARRAY_GHOST")
       if(utilIsValidModel(model)) then
-        if(not (asmlib.HasGhosts()    and depthcnt == atGhost.Size and atGhost.Slot == model)) then
+        if(not (asmlib.HasGhosts() and depthcnt == atGhosts.Size and atGhosts.Slot == model)) then
           if(not asmlib.MakeGhosts(depthcnt, model)) then
-            asmlib.LogInstance("Population fail",gtArgsLogs); return nil end
-          actTool:ElevateGhost(atGhost[1], oPly) -- Elevate the properly created ghost
+            asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
+          actTool:ElevateGhost(atGhosts[1], oPly) -- Elevate the properly created ghost
         end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
       end
     end) -- Read client configuration
@@ -646,6 +646,18 @@ if(CLIENT) then
             actSpawn = asmlib.GetEntitySpawn(oPly,trE,oTr.HitPos,trRec.Slot,trID,activrad,
                          spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
             if(actSpawn) then
+              local stackcnt = asmlib.GetAsmConvar("stackcnt", "FLT")
+              local ghostcnt = asmlib.GetAsmConvar("ghostcnt", "FLT")
+              local depthcnt = mathMin(stackcnt, ghostcnt)
+              if(depthcnt > 0) then -- The ghosting is enabled
+                if(utilIsValidModel(trRec.Slot)) then -- The model has valid precashe
+                  local atGhosts = asmlib.GetOpVar("ARRAY_GHOST")
+                  if(not (asmlib.HasGhosts() and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
+                    if(not asmlib.MakeGhosts(1, model)) then
+                      asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
+                  end; atGhosts[1]:SetPos(actSpawn.SPos); atGhosts[1]:SetAngles(actSpawn.SAng)
+                end -- When the ghosting is disabled saves memory
+              else asmlib.ClearGhosts(nil, false) end
               actSpawn.F:Mul(30); actSpawn.F:Add(actSpawn.OPos)
               actSpawn.U:Mul(15); actSpawn.U:Add(actSpawn.OPos)
               local xyO = actSpawn.OPos:ToScreen()

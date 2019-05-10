@@ -3637,6 +3637,10 @@ function InitLocalify(sCode)
   end; for key, val in pairs(auSet) do thSet[key] = auSet[key]; languageAdd(key, val) end
 end
 
+--[[
+ * Checks if the ghosts searched for are available
+ * When a key is given searches the extended ghost space
+]]
 function HasGhosts() -- Could you do it for a Scooby snacks?
   if(SERVER) then return false end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST")
@@ -3644,6 +3648,10 @@ function HasGhosts() -- Could you do it for a Scooby snacks?
   return (eGho and eGho:IsValid() and nSiz and nSiz > 0)
 end
 
+--[[
+ * Fades the ghosts stack
+ * bNoD > The state of the No-Draw flag
+]]
 function FadeGhosts(bNoD) -- Wait a minute, Ghosts can't leave fingerprints!
   if(SERVER) then return true end -- Ghosting is client side only
   if(not HasGhosts()) then return true end
@@ -3657,6 +3665,11 @@ function FadeGhosts(bNoD) -- Wait a minute, Ghosts can't leave fingerprints!
   end; return true
 end
 
+--[[
+ * Clears the ghosts stack
+ * vSiz > The custom stack size. Nil makes it take the `tGho.Size`
+ * bCol > When enabled calls the garbage collector
+]]
 function ClearGhosts(vSiz, bCol) -- Well gang, I guess that wraps up the mystery.
   if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST")
@@ -3669,31 +3682,49 @@ function ClearGhosts(vSiz, bCol) -- Well gang, I guess that wraps up the mystery
   if(bCol) then collectgarbage() end; return true
 end
 
+--[[
+ * Creates single ghost entity to be used for the process
+ * sModel > The model which the creation is requested for
+ * vPos   > Position for the entity, otherwise zero is used
+ * aAng   > Angles for the entity, otherwise zero is used
+]]
+local function MakeEntityGhost(sModel, vPos, aAng)
+  local cPal = GetOpVar("CONTAINER_PALETTE")
+  local eGho = entsCreateClientProp(sModel)
+  if(not (eGho and eGho:IsValid())) then eGho = nil
+    LogInstance("Ghost invalid "..sModel); return nil end
+  eGho:SetModel(sModel)
+  eGho:SetPos(vPos or GetOpVar("VEC_ZERO"))
+  eGho:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+  eGho:Spawn()
+  eGho:SetSolid(SOLID_NONE)
+  eGho:SetMoveType(MOVETYPE_NONE)
+  eGho:SetNotSolid(true)
+  eGho:SetNoDraw(true)
+  eGho:DrawShadow(false)
+  eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
+  eGho:SetColor(cPal:Select("gh"))
+  return eGho
+end
+
+--[[
+ * Creates ghost entity stack as array to be used for the process
+ * nCnt   > The ghost stack requested depth
+ * sModel > The model which the creation is requested for
+]]
 function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
   if(nCnt == 0 and tGho.Size ~= 0) then return ClearGhosts() end -- Disabled ghosting
-  local cPal = GetOpVar("CONTAINER_PALETTE"); FadeGhosts(true)
-  local vZero, aZero, iD = GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO"), 1
+  local iD, vPos, vAng = 1, GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO"); FadeGhosts(true)
   while(iD <= nCnt) do local eGho = tGho[iD]
     if(eGho and eGho:IsValid() and eGho:GetModel() ~= sModel) then
       eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end
     if(not (eGho and eGho:IsValid())) then
-      tGho[iD] = entsCreateClientProp(sModel); eGho = tGho[iD]
+      tGho[iD] = MakeEntityGhost(sModel, vPos, vAng); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then ClearGhosts(iD)
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
-      eGho:SetModel(sModel)
-      eGho:SetPos(vZero)
-      eGho:SetAngles(aZero)
-      eGho:Spawn()
-      eGho:SetSolid(SOLID_NONE)
-      eGho:SetMoveType(MOVETYPE_NONE)
-      eGho:SetNotSolid(true)
-      eGho:SetNoDraw(true)
-      eGho:DrawShadow(false)
-      eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
-      eGho:SetColor(cPal:Select("gh"))
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
   end -- Remove all others that must not be drawn to save memory
   for iK = iD, tGho.Size do -- Executes only when (nCnt <= tGho.Size)
@@ -3730,7 +3761,7 @@ function GetConvarList(tC)
 end
 
 function GetLinearSpace(nBeg, nEnd, nAmt)
-  local fAmt = math.floor(tonumber(nAmt) or 0); if(fAmt < 0) then
+  local fAmt = mathFloor(tonumber(nAmt) or 0); if(fAmt < 0) then
     return common.logStatus("Samples count invalid <"..tostring(fAmt)..">",nil) end
   local iAmt, dAmt = (fAmt + 1), (nEnd - nBeg)
   local fBeg, fEnd, nAdd = 1, (fAmt+2), (dAmt / iAmt)
@@ -3765,13 +3796,13 @@ end
 
 function GetCatmullRomCurve(tV, nT, nA) if(not IsTable(tV)) then
     LogInstance("Curve vertices {"..type(tV).."}<"..tostring(tV).."> not table"); return nil end
-  nT, nV = math.floor(tonumber(nT) or 100), #tV; if(nT < 0) then
+  nT, nV = mathFloor(tonumber(nT) or 100), #tV; if(nT < 0) then
     LogInstance("Curve samples count invalid <"..tostring(nT)..">",nil); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed",nil); return nil end
   local vM, iC, tC = GetOpVar("EPSILON_ZERO"), 1, {}
   local cS = Vector(); cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
   local cE = Vector(); cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
-  table.insert(tV, 1, cS); table.insert(tV, cE); nV = (nV + 2);
+  tableInsert(tV, 1, cS); tableInsert(tV, cE); nV = (nV + 2);
   for iD = 1, (nV-3) do
     local cA, cB, cC, cD = tV[iD], tV[iD+1], tV[iD+2], tV[iD+3]
     local tS = GetCatmullRomCurveSegment(cA, cB, cC, cD, nT, nA)
