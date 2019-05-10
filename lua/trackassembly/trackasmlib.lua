@@ -496,6 +496,8 @@ function InitBase(sName,sPurpose)
       {"F"     ,"VEC", "Forward direction"},
       {"R"     ,"VEC", "Right direction"},
       {"U"     ,"VEC", "Up direction"},
+      {"BPos"  ,"VEC", "Base position"},
+      {"BAng"  ,"ANG", "Base angles"},
       {"OPos"  ,"VEC", "Origin position"},
       {"OAng"  ,"ANG", "Origin angles"},
       {"SPos"  ,"VEC", "Spawn position"},
@@ -1679,10 +1681,10 @@ function GetCacheSpawn(pPly)
     stData.F    = Vector() -- Origin forward vector
     stData.R    = Vector() -- Origin right vector
     stData.U    = Vector() -- Origin up vector
-    stData.OPos = Vector() -- Origin position
-    stData.OAng = Angle () -- Origin angle
     stData.BPos = Vector() -- Base coordinate position
     stData.BAng = Angle () -- Base coordinate angle
+    stData.OPos = Vector() -- Origin position
+    stData.OAng = Angle () -- Origin angle
     stData.SPos = Vector() -- Piece spawn position
     stData.SAng = Angle () -- Piece spawn angle
     stData.SMtx = Matrix() -- Spawn translation and rotation matrix
@@ -3021,7 +3023,7 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucs
   stSpawn.HMtx:Invert()
   -- Calculate the spawn matrix
   stSpawn.SMtx:Set(stSpawn.TMtx * stSpawn.HMtx)
-  -- Read the spown origin position and angle
+  -- Read the spawn origin position and angle
   stSpawn.SPos:Set(stSpawn.SMtx:GetTranslation())
   stSpawn.SAng:Set(stSpawn.SMtx:GetAngles())
   -- Store the active point position of holder

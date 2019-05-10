@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.517")
+asmlib.SetOpVar("TOOL_VERSION","6.518")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -646,9 +646,7 @@ if(CLIENT) then
             actSpawn = asmlib.GetEntitySpawn(oPly,trE,oTr.HitPos,trRec.Slot,trID,activrad,
                          spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
             if(actSpawn) then
-              local stackcnt = asmlib.GetAsmConvar("stackcnt", "FLT")
               local ghostcnt = asmlib.GetAsmConvar("ghostcnt", "FLT")
-              local depthcnt = mathMin(stackcnt, ghostcnt)
               if(depthcnt > 0) then -- The ghosting is enabled
                 if(utilIsValidModel(trRec.Slot)) then -- The model has valid precashe
                   local atGhosts = asmlib.GetOpVar("ARRAY_GHOST")
@@ -660,14 +658,21 @@ if(CLIENT) then
               else asmlib.ClearGhosts(nil, false) end
               actSpawn.F:Mul(30); actSpawn.F:Add(actSpawn.OPos)
               actSpawn.U:Mul(15); actSpawn.U:Add(actSpawn.OPos)
+              actSpawn.R:Mul(15); actSpawn.R:Add(actSpawn.OPos)
               local xyO = actSpawn.OPos:ToScreen()
-              local xyF = actSpawn.F:ToScreen()
-              local xyU = actSpawn.U:ToScreen()
+              local xyB = actSpawn.BPos:ToScreen()
               local xyS = actSpawn.SPos:ToScreen()
-              actMonitor:DrawLine  (xyO, xyH)
-              actMonitor:DrawCircle(xyO, rdS)
+              local xyP = actSpawn.TPnt:ToScreen()
+              local xyF = actSpawn.F:ToScreen()
+              local xyR = actSpawn.R:ToScreen()
+              local xyU = actSpawn.U:ToScreen()
+              actMonitor:DrawLine  (xyH, xyP, "g")
+              actMonitor:DrawCircle(xyB, rdS / 2, "r")
+              actMonitor:DrawLine  (xyB, xyP, "r")
+              actMonitor:DrawLine  (xyB, xyO, "y")
               actMonitor:DrawLine  (xyO, xyF, "r")
               actMonitor:DrawLine  (xyO, xyU, "b")
+              actMonitor:DrawLine  (xyO, xyR, "g")
               actMonitor:DrawLine  (xyO, xyS, "m")
               actMonitor:DrawCircle(xyS, rdS, "c")
             end
