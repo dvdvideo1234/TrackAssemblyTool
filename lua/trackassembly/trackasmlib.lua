@@ -574,6 +574,14 @@ local function BorderValue(nsVal, vKey)
   return nsVal
 end
 
+function SetBorder(vKey, vLow, vHig)
+  if(not IsHere(vKey)) then
+    LogInstance("Key missing"); return false end
+  local tB = GetOpVar("TABLE_BORDERS"); if(IsHere(tB[vKey])) then
+    LogInstance("Exists <"..tostring(vKey)..">") end; tB[vKey] = {vLow, vHig}
+  LogInstance("Created <"..tostring(vKey)..">"); return true
+end
+
 ------------- COLOR ---------------
 
 function FixColor(nC)
@@ -908,6 +916,7 @@ end
  * LIN - Drawing lines
  * REC - Drawing a rectangle
  * CIR - Drawing a circle
+ * UCS - Drawing a coordinate system
 ]]--
 function MakeScreen(sW,sH,eW,eH,conColors)
   if(SERVER) then return nil end; local tLogs = {"MakeScreen"}
@@ -1092,6 +1101,23 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       renderDrawSphere (pC,nRad,mathClamp(tArgs[2] or 1,1,200),
                                 mathClamp(tArgs[3] or 1,1,200),rgbCl)
     else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
+  end
+  function self:DrawUCS(vO,aO,sMeth,tArgs)
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"UCS")
+    local nSiz = BorderValue(tonumber(tArgs[1]), "non-neg")
+    local nRad = BorderValue(tonumber(tArgs[2]), "non-neg")
+    if(nSiz > 0) then
+      if(sMeth == "SURF") then
+        local xyP = vO:ToScreen()
+        local xyZ = (vO + nSiz * aO:Up()):ToScreen()
+        local xyY = (vO + nSiz * aO:Right()):ToScreen()
+        local xyX = (vO + nSiz * aO:Forward()):ToScreen()
+        self:DrawCircle(xyP,nRad,"y",sMeth)
+        self:DrawLine(xyP,xyX,"r",sMeth)
+        self:DrawLine(xyP,xyY,"g")
+        self:DrawLine(xyP,xyZ,"b"); return xyP, xyX, xyY, xyZ
+      else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
+    end
   end; setmetatable(self, GetOpVar("TYPEMT_SCREEN")); return self
 end
 
@@ -3542,17 +3568,14 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
   end; LogInstance("Success"); return true
 end
 
-function MakeAsmConvar(sName, vVal, vBord, vFlg, vInf)
+function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
   if(not IsString(sName)) then
     LogInstance("CVar name {"..type(sName).."}<"..tostring(sName).."> not string"); return nil end
   local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
-  local cVal, sInf = (tonumber(vVal) or tostring(vVal)), tostring(vInf or "")
-  local tBrd, nFlg = GetOpVar("TABLE_BORDERS"), mathFloor(tonumber(vFlg) or 0)
-  if(IsHere(tBrd[sLow])) then LogInstance("Exists <"..sLow..">"); return nil end
-  tBrd[sLow] = (vBord or {}); tBrd = tBrd[sLow]; tBrd[3] = cVal
-  local mIn, mAx, dEf = tostring(tBrd[1]), tostring(tBrd[2]), tostring(tBrd[3])
-  LogInstance("("..sLow..")<"..mIn.."/"..mAx..">["..dEf.."]")
-  return CreateConVar(sLow, cVal, nFlg, sInf)
+  local cVal, sInf, nFlg = (tonumber(vVal) or tostring(vVal)), tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0)
+  local mIn, mAx = (tBord and tBord[1] or nil), (tBord and tBord[2] or nil)
+  LogInstance("("..sLow..")<"..tostring(mIn).."/"..tostring(mAx)..">["..tostring(cVal).."]")
+  SetBorder(sLow, mIn, mAx); return CreateConVar(sLow, cVal, nFlg, sInf)
 end
 
 function GetAsmConvar(sName, sMode)

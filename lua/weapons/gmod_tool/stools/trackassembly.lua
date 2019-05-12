@@ -786,8 +786,7 @@ function TOOL:Reload(stTrace)
     if(asmlib.IsHere(trRec)) then trEnt:Remove()
       asmlib.LogInstance("Prop removed a piece",gtArgsLogs); return true
     end
-  end
-  return false
+  end; return false
 end
 
 function TOOL:Holster() asmlib.ClearGhosts(nil, true) end
@@ -988,17 +987,10 @@ function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn, nRad)
 end
 
 function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, nRad, bTr)
-  local UCS = self:GetSizeUCS()
-  local Os, Tp = vOrg:ToScreen(), vHit:ToScreen()
-  local Zs = (vOrg + UCS * aOrg:Up()):ToScreen()
-  local Ys = (vOrg + UCS * aOrg:Right()):ToScreen()
-  local Xs = (vOrg + UCS * aOrg:Forward()):ToScreen()
-  oScreen:DrawLine(Os,Xs,"r","SURF")
-  oScreen:DrawLine(Os,Ys,"g")
-  oScreen:DrawLine(Os,Zs,"b")
-  oScreen:DrawCircle(Os,nRad,"y","SURF")
+  local tArgs, Tp = {self:GetSizeUCS(), nRad}, vHit:ToScreen()
+  local Os, Xs, Ys, Zs = oScreen:DrawUCS(vOrg, aOrg, "SURF", tArgs)
   if(bTr) then -- Draw the trace
-    oScreen:DrawLine(Os,Tp)
+    oScreen:DrawLine(Os,Tp,"y")
     oScreen:DrawCircle(Tp,nRad / 2)
   end; return Os, Tp, Xs, Ys, Zs
 end

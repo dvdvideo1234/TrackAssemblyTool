@@ -27,6 +27,7 @@ local mathClamp                     = math and math.Clamp
 local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
 local mathAbs                       = math and math.abs
+local mathHuge                      = math and math.huge
 local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
@@ -48,11 +49,14 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.518")
+asmlib.SetOpVar("TOOL_VERSION","6.519")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
+
+------ BORDERS -------------
+asmlib.SetBorder("non-neg", 0, mathHuge)
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
@@ -623,58 +627,73 @@ if(CLIENT) then
         asmlib.SetOpVar("MONITOR_GAME", actMonitor)
         asmlib.LogInstance("Create screen",gtArgsLogs)
       end -- Make sure we have a valid game monitor for the draw OOP
-      local nextx    = asmlib.GetAsmConvar("nextx", "FLT")
-      local nexty    = asmlib.GetAsmConvar("nexty", "FLT")
-      local nextz    = asmlib.GetAsmConvar("nextz", "FLT")
-      local nextpic  = asmlib.GetAsmConvar("nextpic", "FLT")
-      local nextyaw  = asmlib.GetAsmConvar("nextyaw", "FLT")
-      local nextrol  = asmlib.GetAsmConvar("nextrol", "FLT")
-      local igntype  = asmlib.GetAsmConvar("igntype", "BUL")
-      local spnflat  = asmlib.GetAsmConvar("spnflat", "BUL")
+      local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
+      local sizeucs  = mathClamp(asmlib.GetAsmConvar("sizeucs", "FLT"),0,nMaxOffLin)
+      local nextx    = mathClamp(asmlib.GetAsmConvar("nextx"  , "FLT"),0,nMaxOffLin)
+      local nexty    = mathClamp(asmlib.GetAsmConvar("nexty"  , "FLT"),0,nMaxOffLin)
+      local nextz    = mathClamp(asmlib.GetAsmConvar("nextz"  , "FLT"),0,nMaxOffLin)
+      local nextpic  = mathClamp(asmlib.GetAsmConvar("nextpic", "FLT"),-gnMaxOffRot,gnMaxOffRot)
+      local nextyaw  = mathClamp(asmlib.GetAsmConvar("nextyaw", "FLT"),-gnMaxOffRot,gnMaxOffRot)
+      local nextrol  = mathClamp(asmlib.GetAsmConvar("nextrol", "FLT"),-gnMaxOffRot,gnMaxOffRot)
+      local igntype  = asmlib.GetAsmConvar("igntype" , "BUL")
+      local spnflat  = asmlib.GetAsmConvar("spnflat" , "BUL")
       local activrad = asmlib.GetAsmConvar("activrad", "FLT")
+      local atGhosts = asmlib.GetOpVar("ARRAY_GHOST"); asmlib.FadeGhosts(true)
       for trID = 1, trRec.Size, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
         local rdS = asmlib.GetCacheRadius(oPly, oDt.start, 1)
         if(oTr and oTr.Hit) then actMonitor:GetColor()
-          local trE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
-          if(trE and trE:IsValid()) then
+          local tgE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
+          if(tgE and tgE:IsValid()) then
             actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
             actMonitor:DrawLine  (xyS, xyH, "g", "SURF")
             actMonitor:DrawCircle(xyH, rdS, "g")
             actMonitor:DrawLine  (xyH, xyE, "y")
-            actSpawn = asmlib.GetEntitySpawn(oPly,trE,oTr.HitPos,trRec.Slot,trID,activrad,
+            actSpawn = asmlib.GetEntitySpawn(oPly,tgE,oTr.HitPos,trRec.Slot,trID,activrad,
                          spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
             if(actSpawn) then
-              local ghostcnt = asmlib.GetAsmConvar("ghostcnt", "FLT")
-              if(depthcnt > 0) then -- The ghosting is enabled
-                if(utilIsValidModel(trRec.Slot)) then -- The model has valid precashe
-                  local atGhosts = asmlib.GetOpVar("ARRAY_GHOST")
+              if(utilIsValidModel(trRec.Slot)) then -- The model has valid precashe
+                local ghostcnt = asmlib.GetAsmConvar("ghostcnt", "FLT")
+                if(ghostcnt > 0) then -- The ghosting is enabled
                   if(not (asmlib.HasGhosts() and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
-                    if(not asmlib.MakeGhosts(1, model)) then
+                    if(not asmlib.MakeGhosts(1, trRec.Slot)) then
                       asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
-                  end; atGhosts[1]:SetPos(actSpawn.SPos); atGhosts[1]:SetAngles(actSpawn.SAng)
+                  end local eGho = atGhosts[1]; eGho:SetNoDraw(false)
+                  eGho:SetPos(actSpawn.SPos); eGho:SetAngles(actSpawn.SAng)
                 end -- When the ghosting is disabled saves memory
               else asmlib.ClearGhosts(nil, false) end
-              actSpawn.F:Mul(30); actSpawn.F:Add(actSpawn.OPos)
-              actSpawn.U:Mul(15); actSpawn.U:Add(actSpawn.OPos)
-              actSpawn.R:Mul(15); actSpawn.R:Add(actSpawn.OPos)
               local xyO = actSpawn.OPos:ToScreen()
               local xyB = actSpawn.BPos:ToScreen()
               local xyS = actSpawn.SPos:ToScreen()
               local xyP = actSpawn.TPnt:ToScreen()
-              local xyF = actSpawn.F:ToScreen()
-              local xyR = actSpawn.R:ToScreen()
-              local xyU = actSpawn.U:ToScreen()
               actMonitor:DrawLine  (xyH, xyP, "g")
-              actMonitor:DrawCircle(xyB, rdS / 2, "r")
+              actMonitor:DrawCircle(xyP, rdS / 2, "r")
+              actMonitor:DrawCircle(xyB, rdS, "y")
               actMonitor:DrawLine  (xyB, xyP, "r")
               actMonitor:DrawLine  (xyB, xyO, "y")
-              actMonitor:DrawLine  (xyO, xyF, "r")
-              actMonitor:DrawLine  (xyO, xyU, "b")
-              actMonitor:DrawLine  (xyO, xyR, "g")
+              -- Origin and spawn infoarmation
               actMonitor:DrawLine  (xyO, xyS, "m")
               actMonitor:DrawCircle(xyS, rdS, "c")
+              -- Origin and base coordinate systems
+              actMonitor:DrawUCS(actSpawn.OPos, actSpawn.OAng, "SURF", {sizeucs, rdS})
+              actMonitor:DrawUCS(actSpawn.BPos, actSpawn.BAng)
+            else local tgRec = asmlib.CacheQueryPiece(tgE:GetModel())
+              if(not asmlib.IsHere(tgRec)) then return nil end
+              local vP, vO, vR = Vector(), Vector(), (activrad * oPly:GetRight())
+              local tgP, tgA = tgE:GetPos(), tgE:GetAngles()
+              for tgI = 1, tgRec.Size do
+                local tgPOA = asmlib.LocatePOA(tgRec, tgI); if(not asmlib.IsHere(tgPOA)) then
+                  asmlib.LogInstance("ID #"..tostring(ID).." not located",gtArgsLogs); return nil end
+                asmlib.SetVector(vO,tgPOA.O); vO:Rotate(tgA); vO:Add(tgP)
+                asmlib.SetVector(vP,tgPOA.P); vP:Rotate(tgA); vP:Add(tgP)
+                local xyO, xyP = vO:ToScreen(), vP:ToScreen(); vO:Add(vR)
+                local xyR = vO:ToScreen()
+                local nR = asmlib.LenXY(asmlib.SubXY(xyR, xyR, xyO))
+                actMonitor:DrawCircle(xyO, rdS, "y")
+                actMonitor:DrawCircle(xyP, nR, "r","SEGM",{35})
+                actMonitor:DrawLine(xyO, xyP)
+              end
             end
           else
             actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
