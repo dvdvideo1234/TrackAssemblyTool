@@ -1121,14 +1121,15 @@ function MakeScreen(sW,sH,eW,eH,conColors)
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end
   end
-  function self:DrawPOA(oPly,ePOA,stPOA,nRad)
+  function self:DrawPOA(oPly,ePOA,stPOA,nAct,nRad)
     if(not (ePOA and ePOA:IsValid())) then
       LogInstance("Entity invalid", tLogs); return nil end
     if(not IsPlayer(oPly)) then
       LogInstance("player invalid", tLogs); return nil end
     local nRad = BorderValue(tonumber(nRad) or 0, "non-neg")
+    local nAct = BorderValue(tonumber(nAct) or 0, "non-neg")
     local veP, aeA = ePOA:GetPos(), ePOA:GetAngles()
-    local vO, vP, vR = Vector(), Vector(), (nRad * oPly:GetRight())
+    local vO, vP, vR = Vector(), Vector(), (nAct * oPly:GetRight())
     asmlib.SetVector(vO,stPOA.O); vO:Rotate(aeA); vO:Add(veP)
     asmlib.SetVector(vP,stPOA.P); vP:Rotate(aeA); vP:Add(veP)
     local Op = vO:ToScreen(); vO:Add(vR)

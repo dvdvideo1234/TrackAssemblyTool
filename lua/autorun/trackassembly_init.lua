@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.520")
+asmlib.SetOpVar("TOOL_VERSION","6.521")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -641,7 +641,7 @@ if(CLIENT) then
       for trID = 1, trRec.Size, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
-        local rdS = asmlib.GetCacheRadius(oPly, oDt.start, 1)
+        local rdS = asmlib.GetCacheRadius(oPly, oTr.HitPos, 1)
         if(oTr and oTr.Hit) then actMonitor:GetColor()
           local tgE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
           if(tgE and tgE:IsValid()) then
@@ -682,7 +682,7 @@ if(CLIENT) then
               for tgI = 1, tgRec.Size do
                 local tgPOA = asmlib.LocatePOA(tgRec, tgI); if(not asmlib.IsHere(tgPOA)) then
                   asmlib.LogInstance("ID #"..tostring(ID).." not located",gtArgsLogs); return nil end
-                actMonitor:DrawPOA(oPly,tgE,tgPOA,rdS)
+                actMonitor:DrawPOA(oPly,tgE,tgPOA,activrad,rdS)
               end
             end
           else

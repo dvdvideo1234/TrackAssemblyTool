@@ -156,10 +156,10 @@ if(asmlib) then
    *          If it is empty uses the string /TYPE/, so make sure you fill this.
    * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
    *          the model ( from the last slash to the file extension ).
-   * LINEID > This is the ID of the point that can be selected for building. They are be
-   *          sequential and mandatory.
-   * POINT  > This is the local position vector that TA searches and selects the related ORIGIN.
-   *          An empty string is treated as taking the ORIGIN.
+   * LINEID > This is the ID of the point that can be selected for building. They must be
+   *          sequential and mandatory. The ID is the same as the row index under a given model key.
+   * POINT  > This is the local position vector that TA searches and selects the related
+   *          ORIGIN for. An empty string is treated as taking the ORIGIN.
    *          Disabling this using the disable event makes it hidden when the active point is searched for
    * ORIGIN > This is the origin relative to which the next track piece position is calculated
    *          An empty string is treated as {0,0,0}. Disabling this makes it non-selectable by the holder
@@ -168,7 +168,7 @@ if(asmlib) then
    *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
    *          You can also fill it with attachment event /!/ followed by your attachment name. 
    * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
-   *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop
+   *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
   ]]--
   local myTable = {
     ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack

@@ -65,7 +65,7 @@ Also, another great achievement progress is in place, so 10x guys for
 #### Where can I find the tool in-game ?
 You can find the tool in the `Constriction` section of Garry's mod
 [spawn menu](https://wiki.garrysmod.com/page/Opening_The_Spawnmenu) under the name of `Track assembly`.
-*The name of the tool depends on what language are you using when playing Garry's mod.*
+**The name of the tool depends on what language are you using when playing Garry's mod.**
 On the right in the tool's menu, you can locate the track pieces tree.
 Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
 
@@ -125,48 +125,48 @@ wheels of the train will follow only the track that is currently set being solid
         please check `Ignore track type` check-box.
       * If `Enable advisor` is checked, a coordinate system will appear,
         marking the origin position on the traced piece
-      * If `Enable ghosting` is checked the ghost track piece will be
+      * If `Ghosts count` is larger than zero ghosted track pieces will be
         rendered to assist you with the building.
     3. When you are not looking at one of track piece's pre-defined active points,
       * Pressing USE ( Default: E ) Applies the physical settings/properties on a piece.
       * If not, you will update the piece's bodygroups/skin.
 2. Pressing SPEED ( Default: SHIFT ) + ATTACK1 ( Default: Left mouse button )
 Will stack as many pieces as shown by the slider `Pieces count`.
-    1. Pressing ATTACK2 ( Default: Right mouse button )
+3. Pressing ATTACK2 ( Default: Right mouse button )
       * Will select the trace model to use as a piece for building a track.
-    2. Pressing USE ( Default: E ) + ATTACK2 ( Default: Right mouse button )
+4. Pressing USE ( Default: E ) + ATTACK2 ( Default: Right mouse button )
       * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame, from where
        you can select your routine pieces to use again in the track building process
        as well as [searching in the table](https://github.com/dvdvideo1234/TrackAssemblyTool#hey-there-is-a-text-box-and-a-drop-down-menu-next-to-the-exportdb-button-what-are-these-for-) either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece
        you want to continue your track with.
-    3. Pressing RELOAD ( Default: R )
+5. Pressing RELOAD ( Default: R )
       * When used in the world exports the database if the console variable `trackassembly_exportdb` is set to <>0,
       * When used on trace it removes it, if it's a track piece.
-    4. Pressing RELOAD ( Default: R ) + SPEED ( Default: SHIFT )
+6. Pressing RELOAD ( Default: R ) + SPEED ( Default: SHIFT )
       * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
       * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
-3. If you want to obtain different grip behavior for a wheel-powered/sliding train,
+7. If you want to obtain different grip behavior for a wheel-powered/sliding train,
    you must use the surface material drop-down menus as you select first `TYPE` then `NAME`.
-4. If you want to use desired bodygroups and/or skins on a piece, in the text field you must type bodygroup/skin
+8. If you want to use desired bodygroups and/or skins on a piece, in the text field you must type bodygroup/skin
    selection code or generate one using the SCORE ( Default: TAB ) key while pointing to a prop with
    bodygroups/skins set by Garry's mod [context menu](https://wiki.garrysmod.com/page/The_Context_Menu). Press `ENTER` in the text field if you
    are happy with the selection to apply it.
-5. Piece mass slider is used to set the mass of the next track piece to be spawned.
-6. Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
-7. Pieces count shows the maximum number of pieces to be stacked.
-8. The `Angular alignment` slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
+9. Piece mass slider is used to set the mass of the next track piece to be spawned.
+10. Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
+11. Pieces count shows the maximum number of pieces to be stacked.
+12. The `Angular alignment` slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
    to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
    whole track build will be snapped also because you are building it relative to the first piece.
-9. The force limit slider ( Requested by `The Arbitor 90` ) defines the maximum force to be applied
+13. The force limit slider ( Requested by `The Arbitor 90` ) defines the maximum force to be applied
    on the weld joint between two pieces connected before it breaks. You can use this to build collapsible
    track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
-10. The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
+14. The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
    because they are defined by their own and not going to be explained further.
-11. The `Ignore track type` check-box if checked, will enable snapping between pieces of a different type.
-12. The `Spawn horizontally` ( as the name suggests ) if checked, will spawn the next pieces horizontally to the
+15. The `Ignore track type` check-box if checked, will enable snapping between pieces of a different type.
+16. The `Spawn horizontally` ( as the name suggests ) if checked, will spawn the next pieces horizontally to the
    map ground if the additional angle offsets are zeros. If not they will be added to the resulting angle.
-13. The `Origin from mass-centre` check-box if checked, will align the piece spawned to its mass-centre.
-14. The `Snap to trace surface` check-box if checked, will snap the chosen track directly to the trace surface.
+17. The `Origin from mass-centre` check-box if checked, will align the piece spawned to its mass-centre.
+18. The `Snap to trace surface` check-box if checked, will snap the chosen track directly to the trace surface.
 ![SurfSnap](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.jpg)
 
 15. The `Draw adviser` check-box if checked, will draw a composition of lines and circles to assist you with the building.

@@ -762,29 +762,29 @@ function TOOL:Reload(stTrace)
     end
     if(ply:KeyDown(IN_SPEED)) then
       if(workmode == 1) then self:ClearAnchor(false)
-        asmlib.LogInstance("Anchor Clear",gtArgsLogs)
+        asmlib.LogInstance("(World) Anchor Clear",gtArgsLogs)
       elseif(workmode == 2) then self:IntersectClear(false)
-        asmlib.LogInstance("Relate Clear",gtArgsLogs)
+        asmlib.LogInstance("(World) Relate Clear",gtArgsLogs)
       end
-    end; asmlib.LogInstance("World Success",gtArgsLogs); return true
+    end; asmlib.LogInstance("(World) Success",gtArgsLogs); return true
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
-      asmlib.LogInstance("Prop trace other object",gtArgsLogs); return false end
+      asmlib.LogInstance("(Prop) Trace other object",gtArgsLogs); return false end
     if(ply:KeyDown(IN_SPEED)) then
       if(workmode == 1) then -- General anchor
         if(not self:SetAnchor(stTrace)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"Prop anchor set fail"),gtArgsLogs); return false end
-        asmlib.LogInstance("Prop anchor set",gtArgsLogs); return true
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor set fail"),gtArgsLogs); return false end
+        asmlib.LogInstance("(Prop) Anchor set",gtArgsLogs); return true
       elseif(workmode == 2) then -- Intersect relation
         if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"Prop relation set fail"),gtArgsLogs); return false end
-        asmlib.LogInstance("Prop relation set",gtArgsLogs); return true
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation set fail"),gtArgsLogs); return false end
+        asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
       end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(asmlib.IsHere(trRec)) then trEnt:Remove()
-      asmlib.LogInstance("Prop removed a piece",gtArgsLogs); return true
+      asmlib.LogInstance("(Prop) Removed a piece",gtArgsLogs); return true
     end
   end; return false
 end
@@ -927,32 +927,32 @@ function TOOL:DrawRelateIntersection(oScreen, oPly, nRad)
   return Rp, Rf, Ru
 end
 
-function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
+function TOOL:DrawRelateAssist(oScreen, trEnt, oPly, vHit)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
-  local nRad = mathClamp(rm / plyd, 1, rc)
+  local nRad = asmlib.GetCacheRadius(oPly, vHit, 1)
   local vTmp, trLen, trPOA =  Vector(), 0, nil
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
     asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
-    oScreen:DrawCircle(vTmp:ToScreen(), 4 * nRad, "y"); vTmp:Sub(trHit)
+    oScreen:DrawCircle(vTmp:ToScreen(), 4 * nRad, "y"); vTmp:Sub(vHit)
     if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
   end; asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
-  local Hp, Op = trHit:ToScreen(), vTmp:ToScreen()
+  local Hp, Op = vHit:ToScreen(), vTmp:ToScreen()
   oScreen:DrawLine(Hp, Op, "y")
   oScreen:DrawCircle(Hp, nRad)
 end
 
-function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly, plyd, rm, rc)
+function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly, vHit)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
-  local nRad = mathClamp(rm / plyd, 1, rc)
+  local nRad = asmlib.GetCacheRadius(oPly, vHit, 1)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
-    oScreen:DrawPOA(oPly,trEnt,stPOA,nRad)
+    oScreen:DrawPOA(oPly,trEnt,stPOA,nActRad,nRad)
   end
 end
 
@@ -1022,9 +1022,9 @@ function TOOL:DrawHUD()
     if(not stSpawn) then
       if(not self:GetPointAssist()) then return end
       if(workmode == 1) then
-        self:DrawSnapAssist(hudMonitor, actrad, trEnt, oPly, plyd, ratiom, ratioc)
+        self:DrawSnapAssist(hudMonitor, actrad, trEnt, oPly, trHit)
       elseif(workmode == 2) then
-        self:DrawRelateAssist(hudMonitor, trHit, trEnt, plyd, ratiom, ratioc)
+        self:DrawRelateAssist(hudMonitor, trEnt, oPly, trHit)
       end; return -- The return is very very important ... Must stop on invalid spawn
     end -- Draw the assistants related to the different working modes
     local nRad, Pp = (nrad * (stSpawn.RLen / actrad)), stSpawn.TPnt:ToScreen()
