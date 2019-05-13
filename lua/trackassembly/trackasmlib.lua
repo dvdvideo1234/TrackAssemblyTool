@@ -62,7 +62,7 @@ local tostring                       = tostring
 local GetConVar                      = GetConVar
 local LocalPlayer                    = LocalPlayer
 local CreateConVar                   = CreateConVar
-local RunConsoleCommand             = RunConsoleCommand
+local RunConsoleCommand              = RunConsoleCommand
 local SetClipboardText               = SetClipboardText
 local CompileString                  = CompileString
 local CompileFile                    = CompileFile
@@ -96,6 +96,7 @@ local mathModf                       = math and math.modf
 local mathSqrt                       = math and math.sqrt
 local mathFloor                      = math and math.floor
 local mathClamp                      = math and math.Clamp
+local mathHuge                       = math and math.huge
 local mathAtan2                      = math and math.atan2
 local mathRound                      = math and math.Round
 local mathRandom                     = math and math.random
@@ -461,6 +462,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("DATE_FORMAT","%d-%m-%y")
+  SetOpVar("INFINITY",mathHuge)
   SetOpVar("TIME_FORMAT","%H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
   SetOpVar("NAME_PERP",sPurpose:lower())
@@ -1104,8 +1106,8 @@ function MakeScreen(sW,sH,eW,eH,conColors)
   end
   function self:DrawUCS(vO,aO,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"UCS")
-    local nSiz = BorderValue(tonumber(tArgs[1]), "non-neg")
-    local nRad = BorderValue(tonumber(tArgs[2]), "non-neg")
+    local nSiz = BorderValue(tonumber(tArgs[1]) or 0, "non-neg")
+    local nRad = BorderValue(tonumber(tArgs[2]) or 0, "non-neg")
     if(nSiz > 0) then
       if(sMeth == "SURF") then
         local xyP = vO:ToScreen()
@@ -1118,6 +1120,23 @@ function MakeScreen(sW,sH,eW,eH,conColors)
         self:DrawLine(xyP,xyZ,"b"); return xyP, xyX, xyY, xyZ
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end
+  end
+  function self:DrawPOA(oPly,ePOA,stPOA,nRad)
+    if(not (ePOA and ePOA:IsValid())) then
+      LogInstance("Entity invalid", tLogs); return nil end
+    if(not IsPlayer(oPly)) then
+      LogInstance("player invalid", tLogs); return nil end
+    local nRad = BorderValue(tonumber(nRad) or 0, "non-neg")
+    local veP, aeA = ePOA:GetPos(), ePOA:GetAngles()
+    local vO, vP, vR = Vector(), Vector(), (nRad * oPly:GetRight())
+    asmlib.SetVector(vO,stPOA.O); vO:Rotate(aeA); vO:Add(veP)
+    asmlib.SetVector(vP,stPOA.P); vP:Rotate(aeA); vP:Add(veP)
+    local Op = vO:ToScreen(); vO:Add(vR)
+    local Rp, Pp = vO:ToScreen(), vP:ToScreen()
+    local Rv = asmlib.LenXY(asmlib.SubXY(Rp, Rp, Op))
+    oScreen:DrawCircle(Op, nRad,"y","SURF")
+    oScreen:DrawCircle(Pp, Rv, "r","SEGM",{35})
+    oScreen:DrawLine(Op, Pp)
   end; setmetatable(self, GetOpVar("TYPEMT_SCREEN")); return self
 end
 
@@ -3663,22 +3682,24 @@ function InitLocalify(sCode)
 end
 
 --[[
- * Checks if the ghosts searched for are available
- * When a key is given searches the extended ghost space
+ * Checks if the ghosts stack contains items
+ * Ghosting is client side only
+ * Could you do it for a Scooby snacks?
 ]]
-function HasGhosts() -- Could you do it for a Scooby snacks?
-  if(SERVER) then return false end -- Ghosting is client side only
+function HasGhosts()
+  if(SERVER) then return false end
   local tGho = GetOpVar("ARRAY_GHOST")
   local eGho, nSiz = tGho[1], tGho.Size
   return (eGho and eGho:IsValid() and nSiz and nSiz > 0)
 end
 
 --[[
- * Fades the ghosts stack
+ * Fades the ghosts stack and makes the elements invisible
  * bNoD > The state of the No-Draw flag
+ * Wait a minute, ghosts can't leave fingerprints!
 ]]
-function FadeGhosts(bNoD) -- Wait a minute, Ghosts can't leave fingerprints!
-  if(SERVER) then return true end -- Ghosting is client side only
+function FadeGhosts(bNoD)
+  if(SERVER) then return true end
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
   local cPal = GetOpVar("CONTAINER_PALETTE")
@@ -3691,12 +3712,13 @@ function FadeGhosts(bNoD) -- Wait a minute, Ghosts can't leave fingerprints!
 end
 
 --[[
- * Clears the ghosts stack
+ * Clears the ghosts stack and deletes all the items
  * vSiz > The custom stack size. Nil makes it take the `tGho.Size`
  * bCol > When enabled calls the garbage collector
+ * Well gang, I guess that wraps up the mystery.
 ]]
-function ClearGhosts(vSiz, bCol) -- Well gang, I guess that wraps up the mystery.
-  if(SERVER) then return true end -- Ghosting is client side only
+function ClearGhosts(vSiz, bCol)
+  if(SERVER) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
   local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
   for iD = 1, iSiz do local eGho = tGho[iD]
@@ -3708,10 +3730,11 @@ function ClearGhosts(vSiz, bCol) -- Well gang, I guess that wraps up the mystery
 end
 
 --[[
- * Creates single ghost entity to be used for the process
+ * Creates a single ghost entity for populating the stack
  * sModel > The model which the creation is requested for
  * vPos   > Position for the entity, otherwise zero is used
  * aAng   > Angles for the entity, otherwise zero is used
+ * It must have been our imagination.
 ]]
 local function MakeEntityGhost(sModel, vPos, aAng)
   local cPal = GetOpVar("CONTAINER_PALETTE")
@@ -3733,16 +3756,17 @@ local function MakeEntityGhost(sModel, vPos, aAng)
 end
 
 --[[
- * Creates ghost entity stack as array to be used for the process
+ * Populates the ghost stack with the requested number of items
  * nCnt   > The ghost stack requested depth
  * sModel > The model which the creation is requested for
+ * Not until we walk around the ghost town and see what we can find.
 ]]
 function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
   if(nCnt == 0 and tGho.Size ~= 0) then return ClearGhosts() end -- Disabled ghosting
-  local iD, vPos, vAng = 1, GetOpVar("VEC_ZERO"), GetOpVar("ANG_ZERO"); FadeGhosts(true)
+  local iD = 1; FadeGhosts(true) -- Fade the current ghost stack
   while(iD <= nCnt) do local eGho = tGho[iD]
     if(eGho and eGho:IsValid() and eGho:GetModel() ~= sModel) then
       eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end

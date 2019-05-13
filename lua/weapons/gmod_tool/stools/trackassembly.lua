@@ -316,7 +316,7 @@ function TOOL:GetScrollMouse()
 end
 
 function TOOL:SwitchPoint(vDir, bNxt)
-  local oRec = asmlib.CacheQueryPiece(self:GetModel()); if(not oRec) then
+  local oRec = asmlib.CacheQueryPiece(self:GetModel()); if(not asmlib.IsHere(oRec)) then
     asmlib.LogInstance("Invalid record",gtArgsLogs); return 1, 2 end
   local nDir = (tonumber(vDir) or 0) -- Normalize switch direction
   local pointid, pnextid = self:GetPointID()
@@ -528,7 +528,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
 end
 
 function TOOL:SelectModel(sModel)
-  local trRec = asmlib.CacheQueryPiece(sModel); if(not trRec) then
+  local trRec = asmlib.CacheQueryPiece(sModel); if(not asmlib.IsHere(trRec)) then
     asmlib.LogInstance(self:GetStatus(stTrace,"Model <"..sModel.."> not piece"),gtArgsLogs); return false end
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
@@ -619,10 +619,10 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace not physical object"),gtArgsLogs); return false end
 
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-  if(not trRec) then asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace model not piece"),gtArgsLogs); return false end
+  if(not asmlib.IsHere(trRec)) then asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace model not piece"),gtArgsLogs); return false end
 
   local hdRec = asmlib.CacheQueryPiece(model)
-  if(not hdRec) then asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Holder model not piece"),gtArgsLogs); return false end
+  if(not asmlib.IsHere(hdRec)) then asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Holder model not piece"),gtArgsLogs); return false end
 
   local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -828,7 +828,7 @@ function TOOL:UpdateGhost(oPly)
   elseif(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return nil end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-    if(trRec) then
+    if(asmlib.IsHere(trRec)) then
       local ePiece    = atGho[1]
       local spnflat   = self:GetSpawnFlat()
       local igntype   = self:GetIgnoreType()
@@ -929,7 +929,7 @@ end
 
 function TOOL:DrawRelateAssist(oScreen, trHit, trEnt, plyd, rm, rc)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-  if(not trRec) then return end
+  if(not asmlib.IsHere(trRec)) then return end
   local nRad = mathClamp(rm / plyd, 1, rc)
   local vTmp, trLen, trPOA =  Vector(), 0, nil
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
@@ -947,20 +947,12 @@ end
 
 function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly, plyd, rm, rc)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-  if(not trRec) then return end
+  if(not asmlib.IsHere(trRec)) then return end
   local nRad = mathClamp(rm / plyd, 1, rc)
-  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
-  local O, P, R = Vector(), Vector(), (nActRad * oPly:GetRight())
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
-    asmlib.SetVector(O,stPOA.O); O:Rotate(trAng); O:Add(trPos)
-    asmlib.SetVector(P,stPOA.P); P:Rotate(trAng); P:Add(trPos)
-    local Op = O:ToScreen(); O:Add(R)
-    local Rp, Pp = O:ToScreen(), P:ToScreen()
-    oScreen:DrawCircle(Op, nRad,"y","SEGM",{35})
-    oScreen:DrawCircle(Pp, asmlib.LenXY(asmlib.SubXY(Rp, Rp, Op)),"r")
-    oScreen:DrawLine(Op, Pp)
+    oScreen:DrawPOA(oPly,trEnt,stPOA,nRad)
   end
 end
 
@@ -984,15 +976,6 @@ function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn, nRad)
     oScreen:DrawCircle(O2, nRad / 2, "g")
     return xX, O1, O2
   end; return nil
-end
-
-function TOOL:DrawUCS(oScreen, vHit, vOrg, aOrg, nRad, bTr)
-  local tArgs, Tp = {self:GetSizeUCS(), nRad}, vHit:ToScreen()
-  local Os, Xs, Ys, Zs = oScreen:DrawUCS(vOrg, aOrg, "SURF", tArgs)
-  if(bTr) then -- Draw the trace
-    oScreen:DrawLine(Os,Tp,"y")
-    oScreen:DrawCircle(Tp,nRad / 2)
-  end; return Os, Tp, Xs, Ys, Zs
 end
 
 function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2, nRad)
@@ -1023,10 +1006,11 @@ function TOOL:DrawHUD()
   if(not stTrace) then return end
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
   local nrad, plyd, ratiom, ratioc = asmlib.GetCacheRadius(oPly, trHit, 1)
-  local workmode, model = self:GetWorkingMode(), self:GetModel()
+  local workmode, model  = self:GetWorkingMode(), self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+  local sizeucs, Tp = self:GetSizeUCS(), trHit:ToScreen()
   if(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
     local spnflat = self:GetSpawnFlat()
@@ -1044,9 +1028,11 @@ function TOOL:DrawHUD()
       end; return -- The return is very very important ... Must stop on invalid spawn
     end -- Draw the assistants related to the different working modes
     local nRad, Pp = (nrad * (stSpawn.RLen / actrad)), stSpawn.TPnt:ToScreen()
-    local Ob = self:DrawUCS(hudMonitor, trHit, stSpawn.BPos, stSpawn.BAng, nRad, true)
-    local Os = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
-    hudMonitor:DrawLine(Ob,Os,"y")
+    local Ob = hudMonitor:DrawUCS(stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs, nRad})
+    local Os = hudMonitor:DrawUCS(stSpawn.OPos, stSpawn.OAng)
+    hudMonitor:DrawLine(Os,Tp,"y")
+    hudMonitor:DrawCircle(Tp,nRad / 2)
+    hudMonitor:DrawLine(Ob,Os)
     hudMonitor:DrawLine(Ob,Pp,"r")
     hudMonitor:DrawCircle(Pp, nRad / 2)
     if(workmode == 1) then
@@ -1091,7 +1077,7 @@ function TOOL:DrawHUD()
             vPos:Add(nextx * aAng:Forward())
             vPos:Add(nexty * aAng:Right())
             vPos:Add(nextz * aAng:Up())
-      local Tp, Os = self:DrawUCS(hudMonitor, trHit, vPos, aAng, nRad)
+      hudMonitor:DrawUCS(vPos, aAng, "SURF", {sizeucs, nRad})
       if(workmode == 2) then -- Draw point intersection
         self:DrawRelateIntersection(hudMonitor, oPly, nRad) end
       if(not self:GetDeveloperMode()) then return end
@@ -1104,9 +1090,11 @@ function TOOL:DrawHUD()
       local stSpawn  = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
-      local Ob = self:DrawUCS(hudMonitor, trHit, stSpawn.BPos, stSpawn.BAng, nRad, true)
-      local Os = self:DrawUCS(hudMonitor, trHit, stSpawn.OPos, stSpawn.OAng, nRad)
-      hudMonitor:DrawLine(Ob,Os,"y")
+      local Ob = hudMonitor:DrawUCS(stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs, nRad})
+      local Os = hudMonitor:DrawUCS(stSpawn.OPos, stSpawn.OAng)
+      hudMonitor:DrawLine(Os,Tp,"y")
+      hudMonitor:DrawCircle(Tp,nRad / 2)
+      hudMonitor:DrawLine(Ob,Os)
       if(workmode == 1) then
         local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
         if(nxPOA and stSpawn.HRec.Size > 1) then
@@ -1155,7 +1143,7 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
-  if(not hdRec) then
+  if(not asmlib.IsHere(hdRec)) then
     scrTool:DrawText("Holds Model: Invalid","r")
     scrTool:DrawTextAdd("  ["..gsModeDataB.."]","db")
     return
@@ -1181,7 +1169,7 @@ function TOOL:DrawToolScreen(w, h)
       trOID  = stSpawn.TID
       trRLen = mathRound(stSpawn.RLen,2)
     end
-    if(trRec) then
+    if(asmlib.IsHere(trRec)) then
       trMaxCN = trRec.Size
       trModel = trModel:GetFileFromFilename()
     else trModel = "["..gsNoMD.."]"..trModel:GetFileFromFilename() end

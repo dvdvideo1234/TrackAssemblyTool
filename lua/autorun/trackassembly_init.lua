@@ -27,7 +27,6 @@ local mathClamp                     = math and math.Clamp
 local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
 local mathAbs                       = math and math.abs
-local mathHuge                      = math and math.huge
 local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
@@ -49,14 +48,14 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.519")
+asmlib.SetOpVar("TOOL_VERSION","6.520")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
 
 ------ BORDERS -------------
-asmlib.SetBorder("non-neg", 0, mathHuge)
+asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
@@ -680,19 +679,10 @@ if(CLIENT) then
               actMonitor:DrawUCS(actSpawn.BPos, actSpawn.BAng)
             else local tgRec = asmlib.CacheQueryPiece(tgE:GetModel())
               if(not asmlib.IsHere(tgRec)) then return nil end
-              local vP, vO, vR = Vector(), Vector(), (activrad * oPly:GetRight())
-              local tgP, tgA = tgE:GetPos(), tgE:GetAngles()
               for tgI = 1, tgRec.Size do
                 local tgPOA = asmlib.LocatePOA(tgRec, tgI); if(not asmlib.IsHere(tgPOA)) then
                   asmlib.LogInstance("ID #"..tostring(ID).." not located",gtArgsLogs); return nil end
-                asmlib.SetVector(vO,tgPOA.O); vO:Rotate(tgA); vO:Add(tgP)
-                asmlib.SetVector(vP,tgPOA.P); vP:Rotate(tgA); vP:Add(tgP)
-                local xyO, xyP = vO:ToScreen(), vP:ToScreen(); vO:Add(vR)
-                local xyR = vO:ToScreen()
-                local nR = asmlib.LenXY(asmlib.SubXY(xyR, xyR, xyO))
-                actMonitor:DrawCircle(xyO, rdS, "y")
-                actMonitor:DrawCircle(xyP, nR, "r","SEGM",{35})
-                actMonitor:DrawLine(xyO, xyP)
+                actMonitor:DrawPOA(oPly,tgE,tgPOA,rdS)
               end
             end
           else
