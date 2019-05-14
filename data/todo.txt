@@ -1,3 +1,4 @@
 1. Test ray intersection
 2. Test coordinate system drawing on physgun snap and regular snap/stack
 3. Test if the POA structures are drawn correctly by `oScreen:DrawPOA(...)`
+4. Force DSV auto generation and test if the processor will load them

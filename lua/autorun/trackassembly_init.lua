@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.522")
+asmlib.SetOpVar("TOOL_VERSION","6.523")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -211,7 +211,7 @@ if(SERVER) then
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
           if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
-            asmlib.LogInstance(""..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds",gtArgsLogs); return nil end
+            asmlib.LogInstance("User "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds",gtArgsLogs); return nil end
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance("Failed to apply physical settings",gtArgsLogs); return nil end
@@ -732,6 +732,7 @@ asmlib.CreateTable("PIECES",{
   },
   Cache = {
     Record = function(makTab, tCache, snPK, arLine, vSrc)
+      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
@@ -741,7 +742,7 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match <"..tostring(arLine[4])..
-          "> to "..defTab[4][1].." for "..tostring(snPK),vSrc); return false end
+          "> to "..defTab[4][1].." for <"..tostring(snPK)..">",vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
         if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
@@ -807,14 +808,14 @@ asmlib.CreateTable("ADDITIONS",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nCnt, sFld, nAddID = 2, "", makTab:Match(arLine[4],4)
-      if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..
-        tostring(arLine[4]).."> to "..defTab[4][1].." for "..tostring(snPK),vSrc); return false end
+      if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match <"..
+        tostring(arLine[4]).."> to "..defTab[4][1].." for <"..tostring(snPK)..">",vSrc); return false end
       stData[nAddID] = {} -- LineID has to be set properly
       while(nCnt <= defTab.Size) do sFld = defTab[nCnt][1]
         stData[nAddID][sFld] = makTab:Match(arLine[nCnt],nCnt)
         if(not asmlib.IsHere(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
-          asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[nCnt]).."> to "..
-            defTab[nCnt][1].." for "..tostring(snPK),vSrc); return false
+          asmlib.LogInstance("Cannot match <"..tostring(arLine[nCnt]).."> to "..
+            defTab[nCnt][1].." for <"..tostring(snPK)..">",vSrc); return false
         end; nCnt = (nCnt + 1)
       end; stData.Size = nAddID; return true
     end,
@@ -856,14 +857,15 @@ asmlib.CreateTable("PHYSPROPERTIES",{
     Record = function(makTab, tCache, snPK, arLine, vSrc)
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
+      local defTab = makTab:GetDefinition()
       local tTypes = tCache[skType]; if(not tTypes) then
         tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
       local tNames = tCache[skName]; if(not tNames) then
         tCache[skName] = {}; tNames = tCache[skName] end
       local iNameID = makTab:Match(arLine[2],2)
       if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
-        asmlib.LogInstance("Cannot match "..defTab.Nick.." <"..tostring(arLine[2])..
-          "> to "..defTab[2][1].." for "..tostring(snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match <"..tostring(arLine[2])..
+          "> to "..defTab[2][1].." for <"..tostring(snPK)..">",vSrc); return false end
       if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
         tTypes.Size = (tTypes.Size + 1)
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}

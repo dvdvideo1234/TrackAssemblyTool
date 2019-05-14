@@ -1573,7 +1573,7 @@ function GetTransformPOA(sModel,sKey)
   local mOA = ePiece:GetAttachment(ePiece:LookupAttachment(sKey)); if(not mOA) then
     LogInstance("Attachment missing <"..sKey..">@"..sModel); return nil end
   local vtPos, atAng = mOA[sKey].Pos, mOA[sKey].Ang -- Extract transform data
-  LogInstance("Extract <"..sKey.."><"..tostring(vtPos).."><"..tostring(atAng)..">")
+  LogInstance("Extract {"..sKey.."}<"..tostring(vtPos).."><"..tostring(atAng)..">")
   return vtPos, atAng -- The function must return transform position and angle
 end
 
@@ -1885,7 +1885,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
     defCol[3] = GetTerm(tostring(defCol[3] or symDis), symDis)
     defCol[4] = GetTerm(tostring(defCol[4] or symDis), symDis)
-  end; libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
+  end; tableInsert(libQTable, defTab.Nick)
+  libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
   -- Read table definition
   function self:GetDefinition(vK)
     if(vK) then return tabDef[vK] end; return tabDef
@@ -1908,7 +1909,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   -- Removes the object from the list
   function self:Remove(vRet)
     local qtDef = self:GetDefinition()
-    libQTable[qtDef.Nick]  = nil
+    libQTable[qtDef.Nick] = nil
     collectgarbage(); return vRet
   end
   -- Generates a timer settings table and keeps the defaults
@@ -2970,18 +2971,12 @@ function ProcessDSV(sDelim)
             LogInstance("("..prf..") Failed CATEGORY") end
         end
       end
-      if(fileExists(dir.."PIECES.txt", "DATA")) then
-        if(not ImportDSV("PIECES", true, prf)) then
-          LogInstance("("..prf..") Failed PIECES") end
-      end
-      if(fileExists(dir.."ADDITIONS.txt", "DATA")) then
-        if(not ImportDSV("ADDITIONS", true, prf)) then
-          LogInstance("("..prf..") Failed ADDITIONS") end
-      end
-      if(fileExists(dir.."PHYSPROPERTIES.txt", "DATA")) then
-        if(not ImportDSV("PHYSPROPERTIES", true, prf)) then
-          LogInstance("("..prf..") Failed PHYSPROPERTIES") end
-      end
+      for iD = 1, #libQTable do local sNick = libQTable[iD]
+        if(fileExists(dir..sNick..".txt", "DATA")) then
+          if(not ImportDSV(sNick, true, prf)) then
+            LogInstance("("..prf..") Failed "..sNick) end
+        else LogInstance("("..prf..") Missing "..sNick) end
+      end   
     end
   end; LogInstance("Success"); return true
 end
