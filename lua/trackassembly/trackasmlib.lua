@@ -584,9 +584,12 @@ end
 function SetBorder(vKey, vLow, vHig)
   if(not IsHere(vKey)) then
     LogInstance("Key missing"); return false end
-  local tB = GetOpVar("TABLE_BORDERS"); if(IsHere(tB[vKey])) then
-    LogInstance("Exists <"..tostring(vKey)..">") end; tB[vKey] = {vLow, vHig}
-  LogInstance("Created <"..tostring(vKey)..">"); return true
+  local tB = GetOpVar("TABLE_BORDERS")
+  if(IsHere(tB[vKey])) then local tU = tB[vKey]
+    local vL, vH = tostring(tU[1]), tostring(tU[2])
+    LogInstance("Exists ("..tostring(vKey)..")<"..vL.."/"..vH..">")
+  end; tB[vKey] = {vLow, vHig}; local vL, vH = tostring(vLow), tostring(vHig)
+  LogInstance("Apply ("..tostring(vKey)..")<"..vL.."/"..vH..">"); return true
 end
 
 ------------- COLOR ---------------
@@ -1135,14 +1138,14 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     local nAct = BorderValue(tonumber(nAct) or 0, "non-neg")
     local veP, aeA = ePOA:GetPos(), ePOA:GetAngles()
     local vO, vP, vR = Vector(), Vector(), (nAct * oPly:GetRight())
-    asmlib.SetVector(vO,stPOA.O); vO:Rotate(aeA); vO:Add(veP)
-    asmlib.SetVector(vP,stPOA.P); vP:Rotate(aeA); vP:Add(veP)
+    SetVector(vO,stPOA.O); vO:Rotate(aeA); vO:Add(veP)
+    SetVector(vP,stPOA.P); vP:Rotate(aeA); vP:Add(veP)
     local Op = vO:ToScreen(); vO:Add(vR)
     local Rp, Pp = vO:ToScreen(), vP:ToScreen()
-    local Rv = asmlib.LenXY(asmlib.SubXY(Rp, Rp, Op))
-    oScreen:DrawCircle(Op, nRad,"y","SURF")
-    oScreen:DrawCircle(Pp, Rv, "r","SEGM",{35})
-    oScreen:DrawLine(Op, Pp)
+    local Rv = LenXY(SubXY(Rp, Rp, Op))
+    self:DrawCircle(Op, nRad,"y","SURF")
+    self:DrawCircle(Pp, Rv, "r","SEGM",{35})
+    self:DrawLine(Op, Pp)
   end; setmetatable(self, GetOpVar("TYPEMT_SCREEN")); return self
 end
 
@@ -2976,7 +2979,7 @@ function ProcessDSV(sDelim)
           if(not ImportDSV(sNick, true, prf)) then
             LogInstance("("..prf..") Failed "..sNick) end
         else LogInstance("("..prf..") Missing "..sNick) end
-      end   
+      end
     end
   end; LogInstance("Success"); return true
 end
@@ -3594,10 +3597,10 @@ function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
   if(not IsString(sName)) then
     LogInstance("CVar name "..GetReport(sName).." not string"); return nil end
   local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
-  local cVal, sInf, nFlg = (tonumber(vVal) or tostring(vVal)), tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0)
-  local mIn, mAx = (tBord and tBord[1] or nil), (tBord and tBord[2] or nil)
-  LogInstance("("..sLow..")<"..tostring(mIn).."/"..tostring(mAx)..">["..tostring(cVal).."]")
-  SetBorder(sLow, mIn, mAx); return CreateConVar(sLow, cVal, nFlg, sInf)
+  local cVal = (tonumber(vVal) or tostring(vVal)); LogInstance("("..sLow..")["..tostring(cVal).."]")
+  local sInf, nFlg = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0)
+  SetBorder(sLow, (tBord and tBord[1] or nil), (tBord and tBord[2] or nil))
+  return CreateConVar(sLow, cVal, nFlg, sInf)
 end
 
 function GetAsmConvar(sName, sMode)

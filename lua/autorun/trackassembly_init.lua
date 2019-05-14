@@ -48,14 +48,11 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.523")
+asmlib.SetOpVar("TOOL_VERSION","6.524")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
-
------- BORDERS -------------
-asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
 
 ------ VARIABLE FLAGS ------
 -- Client and server have independent value
@@ -110,6 +107,9 @@ cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
   asmlib.GetBuilderNick("PHYSPROPERTIES"):TimerSetup(arTim[3])
   asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
 end)
+
+------ BORDERS -------------
+asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
 
 ------ GLOBAL VARIABLES ------
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
