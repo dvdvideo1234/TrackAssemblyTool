@@ -371,16 +371,19 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
   end
   local mx, o1, o2 = asmlib.IntersectRayModel(model, pointid, pnextid)
   if(not mx) then if(bMute) then return nil
-    else asmlib.LogInstance("Model ray mismatch",gtArgsLogs); return nil end
+    else asmlib.Notify(ply, "Model intersection mismatch !", "ERROR")
+      asmlib.LogInstance("Model ray mismatch",gtArgsLogs); return nil end
   end
   local aOrg, vx, vy, vz = stSpawn.OAng, asmlib.ExpVector(stSpawn.PNxt)
   if(self:ApplyAngularFirst()) then aOrg = stRay1.Diw end
-  mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate newly created entity local intersection to world
+  mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate entity local intersection to world
   stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx); -- Update spawn position with the ray intersection
   local cx, cy, cz = aOrg:Forward(), aOrg:Right(), aOrg:Up()
   if(self:ApplyLinearFirst()) then
-    local dx = Vector(); dx:Set(o1); dx:Rotate(stSpawn.SAng); dx:Add(stSpawn.SPos); dx:Sub(stRay1.Orw)
-    local dy = Vector(); dy:Set(o2); dy:Rotate(stSpawn.SAng); dy:Add(stSpawn.SPos); dy:Sub(stRay2.Orw)
+    local dx = Vector(); dx:Set(o1); dx:Rotate(stSpawn.SAng)
+          dx:Add(stSpawn.SPos); dx:Sub(stRay1.Orw)
+    local dy = Vector(); dy:Set(o2); dy:Rotate(stSpawn.SAng)
+          dy:Add(stSpawn.SPos); dy:Sub(stRay2.Orw)
     local dz = 0.5 * (stRay2.Orw - stRay1.Orw)
     local lx = mathAbs(dx:Dot(aOrg:Forward()))
     local ly = mathAbs(dy:Dot(aOrg:Right()))
@@ -930,7 +933,7 @@ end
 function TOOL:DrawRelateAssist(oScreen, trEnt, oPly, vHit)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
-  local nRad = asmlib.GetCacheRadius(oPly, vHit, 1)
+  local nRad = asmlib.GetCacheRadius(oPly, vHit)
   local vTmp, trLen, trPOA =  Vector(), 0, nil
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Size do
@@ -948,7 +951,7 @@ end
 function TOOL:DrawSnapAssist(oScreen, nActRad, trEnt, oPly, vHit)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
-  local nRad = asmlib.GetCacheRadius(oPly, vHit, 1)
+  local nRad = asmlib.GetCacheRadius(oPly, vHit)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
@@ -1005,7 +1008,7 @@ function TOOL:DrawHUD()
   local stTrace = asmlib.GetCacheTrace(oPly)
   if(not stTrace) then return end
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
-  local nrad, plyd, ratiom, ratioc = asmlib.GetCacheRadius(oPly, trHit, 1)
+  local nrad, plyd, ratiom, ratioc = asmlib.GetCacheRadius(oPly, trHit)
   local workmode, model  = self:GetWorkingMode(), self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()

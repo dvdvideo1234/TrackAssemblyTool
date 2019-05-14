@@ -1,2 +1,3 @@
-1. Test angular snap for 90/180 goes to positive when slider is zero
-2. Test that tool translations are available on server.
+1. Test ray intersection
+2. Test coordinate system drawing on physgun snap and regular snap/stack
+3. Test if the POA structures are drawn correctly by `oScreen:DrawPOA(...)`
