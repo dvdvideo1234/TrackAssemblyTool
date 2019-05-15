@@ -24,8 +24,8 @@ MakeScreen: Color list not container
 DRAW_RADMENU: Hook mismatch
 DRAW_RADMENU: Scroll release
 DRAW_RADMENU: Menu disabled
-DRAW_PHYSGUN: Extension disabled
 DRAW_RADMENU: %(gmod_tool%) Swep other
+DRAW_PHYSGUN: Extension disabled
 DRAW_GHOSTS: Swep not tool
 DRAW_GHOSTS: %(gmod_tool%) Swep other
 DRAW_GHOSTS: Tool different
@@ -36,7 +36,6 @@ PHYSGUN_DRAW: Swep not physgun
 PHYSGUN_DRAW: Extension disabled
 POINT_SELECT: Bind not pressed
 POINT_SELECT: Active key missing
-BIND_PRESS
 BIND_PRESS: Swep not tool
 BIND_PRESS: Tool different
 BIND_PRESS: Active key missing

@@ -141,6 +141,7 @@ local languageAdd                    = language and language.Add
 local constructSetPhysProp           = construct and construct.SetPhysProp
 local constraintWeld                 = constraint and constraint.Weld
 local constraintNoCollide            = constraint and constraint.NoCollide
+local constraintCanConstrain         = constraint and constraint.CanConstrain
 local cvarsAddChangeCallback         = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback      = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
@@ -3625,9 +3626,9 @@ end
 function SetAsmConvar(pPly,sNam,snVal)
   if(not IsString(sNam)) then -- Make it like so the space will not be forgotten
     LogInstance("Convar "..GetReport(sNam).." not string"); return nil end
-  if(not IsPlayer(pPly)) then -- Appl
-    RunConsoleCommand(GetOpVar("TOOLNAME_PL")..sNam, snVal); return nil end
-  return pPly:ConCommand(GetOpVar("FORM_CONCMD"):format(sNam, tostring(snVal)))
+  if(IsPlayer(pPly)) then local sFmt = GetOpVar("FORM_CONCMD")
+    return pPly:ConCommand(sFmt:format(sNam, tostring(snVal)))
+  end; return RunConsoleCommand(GetOpVar("TOOLNAME_PL")..sNam, snVal)
 end
 
 function SetAsmCallback(sName, sType, sHash, fHand)
