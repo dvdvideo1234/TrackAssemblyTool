@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.525")
+asmlib.SetOpVar("TOOL_VERSION","6.526")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -102,10 +102,12 @@ local sName = asmlib.GetAsmConvar("timermode", "NAM")
 cvarsRemoveChangeCallback(sName, sName.."_call")
 cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
   local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
-  asmlib.GetBuilderNick("PIECES"):TimerSetup(arTim[1])
-  asmlib.GetBuilderNick("ADDITIONS"):TimerSetup(arTim[2])
-  asmlib.GetBuilderNick("PHYSPROPERTIES"):TimerSetup(arTim[3])
-  asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
+  local mkTab, ID = asmlib.GetBuilderID(1), 1
+  while(mkTab) do local sTim = arTim[ID]
+    local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
+    asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..sTim..">",gtInitLogs)
+    ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
+  end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
 end)
 
 ------ BORDERS -------------
@@ -146,6 +148,43 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
 local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER_WORKING", conWorkMode)
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
+
+-------- RECORDS ----------
+asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition",
+  {Name = "Origin", 
+    {"F"   , "VEC", "Origin forward vector                           "},
+    {"R"   , "VEC", "Origin right vector                             "},
+    {"U"   , "VEC", "Origin up vector                                "},
+    {"BPos", "VEC", "Base coordinate position                        "},
+    {"BAng", "ANG", "Base coordinate angle                           "},
+    {"OPos", "VEC", "Origin position                                 "},
+    {"OAng", "ANG", "Origin angle                                    "},
+    {"SPos", "VEC", "Piece spawn position                            "},
+    {"SAng", "ANG", "Piece spawn angle                               "},
+    {"SMtx", "MTX", "Spawn translation and rotation matrix           "},
+    {"RLen", "FLT", "Piece active radius                             "}
+  },
+  {Name = "Holder",
+    {"HRec", "REC", "Pointer to the holder record                    "},
+    {"HID" , "INT", "Point ID the holder has selected                "},
+    {"HPnt", "VEC", "P > Holder active point location                "},
+    {"HOrg", "VEC", "O > Holder piece location origin when snapped   "},
+    {"HAng", "ANG", "A > Holder piece orientation origin when snapped"},
+    {"HMtx", "MTX", "Holder translation and rotation matrix          "}
+  },
+  {Name = "Traced",
+    {"TRec", "REC", "Pointer to the trace record                     "},
+    {"TID" , "INT", "Point ID that the trace has found               "},
+    {"TPnt", "VEC", "P > Trace active point location                 "},
+    {"TOrg", "VEC", "O > Trace piece location origin when snapped    "},
+    {"TAng", "ANG", "A > Trace piece orientation origin when snapped "},
+    {"TMtx", "MTX", "Trace translation and rotation matrix           "}
+  },
+  {Name = "Offsets",
+    {"ANxt", "ANG", "Origin angle offsets                            "},
+    {"PNxt", "VEC", "Piece position offsets                          "}
+  }
+})
 
 -------- ACTIONS ----------
 if(SERVER) then
@@ -382,11 +421,12 @@ if(CLIENT) then
       elseif(bgskids:sub(1,7) == "delete ") then
         local tPref = (" "):Explode(bgskids:sub(8,-1))
         for iCnt = 1, #tPref do local vPr = tPref[iCnt]
-          asmlib.RemoveDSV("PIECES", vPr)
           asmlib.RemoveDSV("CATEGORY", vPr)
-          asmlib.RemoveDSV("ADDITIONS", vPr)
-          asmlib.RemoveDSV("PHYSPROPERTIES", vPr)
-          asmlib.LogInstance("Match <"..vPr..">",gtArgsLogs)
+          local iD, makTab = 1, asmlib.GetBuilderID(1)
+          while(makTab) do local defTab = makTab:GetDefinition()
+            asmlib.RemoveDSV(defTab.Nick, vPr) -- Remove all exterms
+            iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
+          end; asmlib.LogInstance("Match <"..vPr..">",gtArgsLogs)
         end
       else asmlib.LogInstance("Command <"..bgskids.."> skipped",gtArgsLogs); return nil end
       asmlib.LogInstance("Success",gtArgsLogs); return nil

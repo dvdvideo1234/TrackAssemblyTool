@@ -499,31 +499,6 @@ function InitBase(sName,sPurpose)
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("LOCALIFY_TABLE",{})
     SetOpVar("TABLE_CATEGORIES",{})
-    SetOpVar("STRUCT_SPAWN",{
-      {"--- Origin ---"},
-      {"F"     ,"VEC", "Forward direction"},
-      {"R"     ,"VEC", "Right direction"},
-      {"U"     ,"VEC", "Up direction"},
-      {"BPos"  ,"VEC", "Base position"},
-      {"BAng"  ,"ANG", "Base angles"},
-      {"OPos"  ,"VEC", "Origin position"},
-      {"OAng"  ,"ANG", "Origin angles"},
-      {"SPos"  ,"VEC", "Spawn position"},
-      {"SAng"  ,"ANG", "Spawn angles"},
-      {"RLen"  ,"FLT", "Active radius"},
-      {"--- Holder ---"},
-      {"HID"   ,"INT", "Point ID"},
-      {"HPnt"  ,"VEC", "Search location"},
-      {"HOrg"  ,"VEC", "Custom offset"},
-      {"HAng"  ,"ANG", "Custom angles"},
-      {"--- Traced ---"},
-      {"TID"   ,"INT", "Point ID"},
-      {"TPnt"  ,"VEC", "Search location"},
-      {"TOrg"  ,"VEC", "Custom offset"},
-      {"TAng"  ,"ANG", "Custom angles"},
-      {"--- Offset ---"},
-      {"PNxt"  ,"VEC", "Custom user position"},
-      {"ANxt"  ,"ANG", "Custom user angles"}})
   end
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
@@ -1731,36 +1706,19 @@ function GetCacheSpawn(pPly)
     LogInstance("Spot missing"); return nil end
   local stData = stSpot["SPAWN"]
   if(not IsHere(stData)) then
+    local stSpawn = GetOpVar("STRUCT_SPAWN"); if(not IsHere(stSpawn)) then
+      LogInstance("Spawn definition invalid"); return false end
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
-    stData.F    = Vector() -- Origin forward vector
-    stData.R    = Vector() -- Origin right vector
-    stData.U    = Vector() -- Origin up vector
-    stData.BPos = Vector() -- Base coordinate position
-    stData.BAng = Angle () -- Base coordinate angle
-    stData.OPos = Vector() -- Origin position
-    stData.OAng = Angle () -- Origin angle
-    stData.SPos = Vector() -- Piece spawn position
-    stData.SAng = Angle () -- Piece spawn angle
-    stData.SMtx = Matrix() -- Spawn translation and rotation matrix
-    stData.RLen = 0        -- Piece active radius
-    --- Holder ---
-    stData.HRec = 0        -- Pointer to the holder record
-    stData.HID  = 0        -- Point ID the holder has selected
-    stData.HPnt = Vector() -- P > Local location of the active point
-    stData.HOrg = Vector() -- O > Local new piece location origin when snapped
-    stData.HAng = Angle () -- A > Local new piece orientation origin when snapped
-    stData.HMtx = Matrix() -- Holder translation and rotation matrix
-    --- Traced ---
-    stData.TRec = 0        -- Pointer to the trace record
-    stData.TID  = 0        -- Point ID that the trace has found
-    stData.TPnt = Vector() -- P > Local location of the active point
-    stData.TOrg = Vector() -- O > Local new piece location origin when snapped
-    stData.TAng = Angle () -- A > Local new piece orientation origin when snapped
-    stData.TMtx = Matrix() -- Trace translation and rotation matrix
-    --- Offsets ---
-    stData.ANxt = Angle () -- Origin angle offsets
-    stData.PNxt = Vector() -- Piece position offsets
+    for iD = 1, #stSpawn do local tSec = stSpawn[iD]
+      for iK = 1, #tSec do
+        local key, typ, dsc = tSec[1], tSec[2], tSec[3]
+        if    (typ == "VEC") then stData[key] = Vector()
+        elseif(typ == "ANG") then stData[key] = Angle()
+        elseif(typ == "MTX") then stData[key] = Matrix()
+        else stData[key] = 0.0 end -- Default non-nil
+      end
+    end
   end; return stData
 end
 
@@ -1862,6 +1820,15 @@ function GetBuilderNick(sTable)
     LogInstance("Missing table builder for <"..sTable..">"); return nil end
   if(not makTab:IsValid()) then
     LogInstance("Builder object invalid <"..sTable..">"); return nil end
+  return makTab -- Return the dedicated table builder object
+end
+
+function GetBuilderID(vID)
+  local nID = tonumber(vID); if(not IsHere(nID)) then
+    LogInstance("ID "..GetReport(vID).." not number"); return nil end
+  if(nID <= 0) then LogInstance("ID mismatch "..tostring(nID)); return nil end
+  local makTab = GetBuilderNick(libQTable[nID]); if(not IsHere(makTab)) then
+    LogInstance("Builder object missing #"..tostring(nID)); return nil end
   return makTab -- Return the dedicated table builder object
 end
 
@@ -2974,12 +2941,13 @@ function ProcessDSV(sDelim)
           if(not ImportCategory(3, prf)) then
             LogInstance("("..prf..") Failed CATEGORY") end
         end
-      end
-      for iD = 1, #libQTable do local sNick = libQTable[iD]
-        if(fileExists(dir..sNick..".txt", "DATA")) then
-          if(not ImportDSV(sNick, true, prf)) then
-            LogInstance("("..prf..") Failed "..sNick) end
-        else LogInstance("("..prf..") Missing "..sNick) end
+      end local iD, makTab = 1, GetBuilderID(1)
+      while(makTab) do local defTab = makTab:GetDefinition()
+        if(fileExists(dir..defTab.Nick..".txt", "DATA")) then
+          if(not ImportDSV(defTab.Nick, true, prf)) then
+            LogInstance("("..prf..") Failed "..defTab.Nick) end
+        else LogInstance("("..prf..") Missing "..defTab.Nick) end
+        iD = (iD + 1); makTab = GetBuilderID(iD)
       end
     end
   end; LogInstance("Success"); return true

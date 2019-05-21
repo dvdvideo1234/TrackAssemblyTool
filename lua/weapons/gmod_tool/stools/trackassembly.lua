@@ -900,17 +900,25 @@ end
 ]]--
 function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local ply = LocalPlayer()
-  local stS = asmlib.GetCacheSpawn(ply)
+  local gnR = asmlib.GetOpVar("GOLDEN_RATIO")
+  local stS = asmlib.CacheSpawnPly(ply)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
   local w,h = oScreen:GetSize()
-  oScreen:SetTextEdge(w - 500,0)
-  oScreen:DrawText("Spawn debug information",sCol,sMeth,tArgs)
-  for ID = 1, #arK, 1 do local def = arK[ID]
-    local key, typ, inf = def[1], def[2], tostring(def[3] or "")
-    local cnv = ((not asmlib.IsBlank(inf)) and (" > "..inf) or "")
-    if(not asmlib.IsHere(typ)) then oScreen:DrawText(tostring(key))
-    else local typ, val = tostring(typ or ""), tostring(stS[key] or "")
-      oScreen:DrawText("<"..key.."> "..typ..": "..val..cnv) end
+  oScreen:SetTextEdge(w - (2 - gnR)*w,0)
+  oScreen:DrawText(tostring(arK.Name),sCol,sMeth,tArgs)
+  if(not arK.Size) then arK.Size = #arK end
+  for iD = 1, arK.Size, 1 do local def = arK[iD]
+    oScreen:DrawText("---- "..tostring(def.Name).." ----")
+    if(not def.Size) then def.Size = #def end
+    for iK = 1, def.Size do local key = def[1]
+      if(asmlib.IsHere(key)) then
+        local key = tostring(def[1] or "")
+        local typ = tostring(def[2] or "")
+        local inf = tostring(def[3] or "")
+        local val = tostring(stS[key] or "")
+        oScreen:DrawText("["..key.."]{"..typ.."}: "..val.." > "..inf)
+      end
+    end
   end
 end
 
