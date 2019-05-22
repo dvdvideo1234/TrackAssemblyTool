@@ -901,22 +901,21 @@ end
 function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local ply = LocalPlayer()
   local gnR = asmlib.GetOpVar("GOLDEN_RATIO")
-  local stS = asmlib.CacheSpawnPly(ply)
+  local stS = asmlib.GetCacheSpawn(ply)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
   local w,h = oScreen:GetSize()
   oScreen:SetTextEdge(w - (2 - gnR)*w,0)
   oScreen:DrawText(tostring(arK.Name),sCol,sMeth,tArgs)
-  if(not arK.Size) then arK.Size = #arK end
   for iD = 1, arK.Size, 1 do local def = arK[iD]
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
-    if(not def.Size) then def.Size = #def end
-    for iK = 1, def.Size do local key = def[1]
-      if(asmlib.IsHere(key)) then
-        local key = tostring(def[1] or "")
-        local typ = tostring(def[2] or "")
-        local inf = tostring(def[3] or "")
-        local val = tostring(stS[key] or "")
-        oScreen:DrawText("["..key.."]{"..typ.."}: "..val.." > "..inf)
+    for iK = 1, def.Size do local row = def[iK]
+      if(asmlib.IsHere(row[1])) then 
+        local inf = tostring(row[3] or "")
+        local key = tostring(row[1] or "")
+        local drw = arK.Draw[1]:format("<"..key..">")
+        local typ = arK.Draw[2]:format(tostring(row[2] or ""))        
+        local val = arK.Draw[3]:format(tostring(stS[key] or ""))
+        oScreen:DrawText(drw..typ..":"..val.." > "..inf)
       end
     end
   end

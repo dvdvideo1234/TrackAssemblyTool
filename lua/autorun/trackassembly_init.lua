@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.526")
+asmlib.SetOpVar("TOOL_VERSION","6.527")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -150,8 +150,8 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
 -------- RECORDS ----------
-asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition",
-  {Name = "Origin", 
+asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition", Size = 4, Draw = {"[%6s]", "{%3s}", "%10s"},
+  {Name = "Origin", Size = 11,
     {"F"   , "VEC", "Origin forward vector                           "},
     {"R"   , "VEC", "Origin right vector                             "},
     {"U"   , "VEC", "Origin up vector                                "},
@@ -164,7 +164,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition",
     {"SMtx", "MTX", "Spawn translation and rotation matrix           "},
     {"RLen", "FLT", "Piece active radius                             "}
   },
-  {Name = "Holder",
+  {Name = "Holder", Size = 6,
     {"HRec", "REC", "Pointer to the holder record                    "},
     {"HID" , "INT", "Point ID the holder has selected                "},
     {"HPnt", "VEC", "P > Holder active point location                "},
@@ -172,7 +172,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition",
     {"HAng", "ANG", "A > Holder piece orientation origin when snapped"},
     {"HMtx", "MTX", "Holder translation and rotation matrix          "}
   },
-  {Name = "Traced",
+  {Name = "Traced", Size = 6,
     {"TRec", "REC", "Pointer to the trace record                     "},
     {"TID" , "INT", "Point ID that the trace has found               "},
     {"TPnt", "VEC", "P > Trace active point location                 "},
@@ -180,7 +180,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition",
     {"TAng", "ANG", "A > Trace piece orientation origin when snapped "},
     {"TMtx", "MTX", "Trace translation and rotation matrix           "}
   },
-  {Name = "Offsets",
+  {Name = "Offsets", Size = 2,
     {"ANxt", "ANG", "Origin angle offsets                            "},
     {"PNxt", "VEC", "Piece position offsets                          "}
   }

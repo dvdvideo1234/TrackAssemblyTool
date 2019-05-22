@@ -1710,13 +1710,15 @@ function GetCacheSpawn(pPly)
       LogInstance("Spawn definition invalid"); return false end
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
-    for iD = 1, #stSpawn do local tSec = stSpawn[iD]
-      for iK = 1, #tSec do
-        local key, typ, dsc = tSec[1], tSec[2], tSec[3]
+    for iD = 1, stSpawn.Size do local tSec = stSpawn[iD]
+      for iK = 1, tSec.Size do local def = tSec[iK]
+        local key = tostring(def[1] or "")
+        local typ = tostring(def[2] or "")
+        local inf = tostring(def[3] or "")
         if    (typ == "VEC") then stData[key] = Vector()
         elseif(typ == "ANG") then stData[key] = Angle()
         elseif(typ == "MTX") then stData[key] = Matrix()
-        else stData[key] = 0.0 end -- Default non-nil
+        else stData[key] = 0 end -- Default non-nil
       end
     end
   end; return stData
