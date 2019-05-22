@@ -1372,11 +1372,9 @@ function SnapReview(ivPoID, ivPnID, ivMaxN)
   return iPoID, iPnID
 end
 
-function SwitchID(vID,vDir,oRec)
-  local ID = tonumber(vID); if(not IsHere(ID)) then
-    LogInstance("ID NAN "..GetReport(vID)); return 1 end
-  local stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
-    LogInstance("ID #"..tostring(ID).." not located"); return 1 end
+function SwitchID(vID,vDir,oRec)   
+  local stPOA, ID = LocatePOA(oRec,vID); if(not IsHere(stPOA)) then
+    LogInstance("ID #"..GetReport(vID).." not located"); return 1 end
   local nDir = (tonumber(vDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
   if(nDir == 0) then LogInstance("Direction mismatch"); return ID end
   ID = GetWrap(ID + nDir,1,oRec.Size) -- Move around the edge selected
@@ -1388,14 +1386,13 @@ end
 function GetPointElevation(oEnt,ivPoID)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity Invalid"); return nil end
-  local sModel, iPoID = oEnt:GetModel(), tonumber(ivPoID); if(not IsHere(iPoID)) then
-    LogInstance("PointID NAN "..GetReport(ivPoID).." for <"..sModel..">"); return nil end
+  local sModel = oEnt:GetModel() -- Read the model
   local hdRec = CacheQueryPiece(sModel); if(not IsHere(hdRec)) then
     LogInstance("Record not found for <"..sModel..">"); return nil end
-  local hdPnt = LocatePOA(hdRec,iPoID); if(not IsHere(hdPnt)) then
-    LogInstance("Point #"..tostring(iPoID).." not located on model <"..sModel..">"); return nil end
+  local hdPnt, iPoID = LocatePOA(hdRec,ivPoID); if(not IsHere(hdPnt)) then
+    LogInstance("Point #"..GetReport(ivPoID).." not located on model <"..sModel..">"); return nil end
   if(not (hdPnt.O and hdPnt.A)) then
-    LogInstance("Invalid POA #"..tostring(iPoID).." for <"..sModel..">"); return nil end
+    LogInstance("Invalid POA #"..GetReport(ivPoID).." for <"..sModel..">"); return nil end
   local aDiffBB, vDiffBB = Angle(), oEnt:OBBMins()
   SetAngle(aDiffBB,hdPnt.A) ; aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
   SubVector(vDiffBB,hdPnt.O); DecomposeByAngle(vDiffBB,aDiffBB)
@@ -1465,9 +1462,10 @@ end
 function LocatePOA(oRec, ivPoID)
   if(not oRec) then LogInstance("Missing record"); return nil end
   if(not oRec.Offs) then LogInstance("Missing offsets for <"..tostring(oRec.Slot)..">"); return nil end
-  local iPoID = mathFloor(tonumber(ivPoID) or 0)
+  local iPoID = tonumber(ivPoID); if(iPoID) then iPoID = mathFloor(iPoID)
+    else LogInstance("Mismatch ID #"..GetReport(ivPoID)); return nil end
   local stPOA = oRec.Offs[iPoID]; if(not IsHere(stPOA)) then
-    LogInstance("Missing ID #"..tostring(ivPoID)..">"..tostring(iPoID).."| for <"..tostring(oRec.Slot)..">"); return nil end
+    LogInstance("Missing ID #"..tostring(iPoID).." for <"..tostring(oRec.Slot)..">"); return nil end
   return stPOA, iPoID
 end
 
@@ -3000,11 +2998,9 @@ end
 function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
     LogInstance("No record located for <"..shdModel..">"); return nil end
-  local ihdPoID = tonumber(ivhdPoID); if(not IsHere(ihdPoID)) then
-    LogInstance("Index NAN "..GetReport(ivhdPoID)); return nil end
-  local hdPOA = LocatePOA(hdRec,ihdPoID); if(not IsHere(hdPOA)) then
-    LogInstance("Holder point ID invalid #"..tostring(ihdPoID)); return nil end
-  local stSpawn = GetCacheSpawn(oPly); stSpawn.HRec = hdRec
+  local hdPOA, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdPOA)) then
+    LogInstance("Holder point ID invalid #"..GetReport(ivhdPoID)); return nil end
+  local stSpawn = GetCacheSpawn(oPly); stSpawn.HRec, stSpawn.HID = hdRec, ihdPoID
   if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
@@ -3072,8 +3068,6 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
     LogInstance("Trace entity not valid"); return nil end
   if(IsOther(trEnt)) then
     LogInstance("Trace is of other type"); return nil end
-  local ihdPoID = tonumber(ivhdPoID); if(not IsHere(ihdPoID)) then
-    LogInstance("Holder PointID NAN "..GetReport(ivhdPoID)); return nil end
   local nActRadius = tonumber(nvActRadius); if(not IsHere(nActRadius)) then
     LogInstance("Active radius NAN "..GetReport(nvActRadius)); return nil end
   local trRec = CacheQueryPiece(trEnt:GetModel()); if(not IsHere(trRec)) then
@@ -3082,8 +3076,8 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
     LogInstance("Trace has no points"); return nil end
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
     LogInstance("Holder model missing <"..tostring(shdModel)..">"); return nil end
-  local hdOffs = LocatePOA(hdRec,ihdPoID); if(not IsHere(hdOffs)) then
-    LogInstance("Holder point invalid #"..tostring(ihdPoID)); return nil end
+  local hdOffs, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdOffs)) then
+    LogInstance("Holder point invalid #"..GetReport(ivhdPoID)); return nil end
   -- If there is no Type exit immediately
   if(not (IsHere(trRec.Type) and IsString(trRec.Type))) then
     LogInstance("Trace type invalid <"..tostring(trRec.Type)..">"); return nil end
@@ -3324,9 +3318,9 @@ function IntersectRayModel(sModel, nPntID, nNxtID)
   local mRec = CacheQueryPiece(sModel); if(not mRec) then
     LogInstance("Not piece <"..tostring(sModel)..">"); return nil end
   local stPOA1 = LocatePOA(mRec, nPntID); if(not stPOA1) then
-    LogInstance("No start ID <"..tostring(nPntID)..">"); return nil end
+    LogInstance("No start ID "..GetReport(nPntID)); return nil end
   local stPOA2 = LocatePOA(mRec, nNxtID); if(not stPOA2) then
-    LogInstance("No end ID <"..tostring(nNxtID)..">"); return nil end
+    LogInstance("No end ID "..GetReport(nNxtID)); return nil end
   local aD1, aD2 = Angle(), Angle(); SetAngle(aD1, stPOA1.A); SetAngle(aD2, stPOA2.A)
   local vO1, vD1 = Vector(), Vector(); SetVector(vO1, stPOA1.O); vD1:Set(-aD1:Forward())
   local vO2, vD2 = Vector(), Vector(); SetVector(vO2, stPOA2.O); vD2:Set(-aD2:Forward())
@@ -3550,18 +3544,23 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
     LogInstance("Piece <"..tostring(ePiece).."> not valid"); return false end
   if(not (eBase and eBase:IsValid())) then
     LogInstance("Base <"..tostring(eBase).."> constraint ignored"); return true end
-  if(bNc) then -- NoCollide should be made separately
-    local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
-    if(cnN and cnN:IsValid()) then
-      ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
-    else LogInstance("NoCollide ignored") end
-  end
-  if(bWe) then -- Weld using force limit given here V
-    local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
-    if(cnW and cnW:IsValid()) then
-      ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
-    else LogInstance("Weld ignored "..tostring(cnW)) end
-  end; LogInstance("Success"); return true
+  if(constraintCanConstrain(eBase, 0)) then -- Check base for contrainability
+    if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
+      if(bNc) then -- NoCollide should be made separately
+        local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
+        if(cnN and cnN:IsValid()) then
+          ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
+        else LogInstance("NoCollide ignored") end
+      end
+      if(bWe) then -- Weld using force limit given here V
+        local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
+        if(cnW and cnW:IsValid()) then
+          ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
+        else LogInstance("Weld ignored "..tostring(cnW)) end
+      end
+    else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
+  else LogInstance("Unconstrain <"..eBase:GetModel()..">") end
+  LogInstance("Success"); return true
 end
 
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)

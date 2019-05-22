@@ -909,13 +909,13 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   for iD = 1, arK.Size, 1 do local def = arK[iD]
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
     for iK = 1, def.Size do local row = def[iK]
-      if(asmlib.IsHere(row[1])) then 
+      if(asmlib.IsHere(row[1])) then
         local inf = tostring(row[3] or "")
         local key = tostring(row[1] or "")
         local drw = arK.Draw[1]:format("<"..key..">")
-        local typ = arK.Draw[2]:format(tostring(row[2] or ""))        
-        local val = arK.Draw[3]:format(tostring(stS[key] or ""))
-        oScreen:DrawText(drw..typ..":"..val.." > "..inf)
+        local typ = arK.Draw[2]:format(tostring(row[2] or ""))
+        local val = tostring(stS[key] or "")
+        oScreen:DrawText(drw.."{"..typ.."}:"..val.." > "..inf)
       end
     end
   end

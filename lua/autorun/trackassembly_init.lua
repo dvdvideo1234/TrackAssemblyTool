@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.527")
+asmlib.SetOpVar("TOOL_VERSION","6.528")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -150,7 +150,7 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
 -------- RECORDS ----------
-asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition", Size = 4, Draw = {"[%6s]", "{%3s}", "%10s"},
+asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition", Size = 4, Draw = {"[%6s]", "%s"},
   {Name = "Origin", Size = 11,
     {"F"   , "VEC", "Origin forward vector                           "},
     {"R"   , "VEC", "Origin right vector                             "},
