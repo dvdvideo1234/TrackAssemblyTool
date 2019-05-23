@@ -910,12 +910,19 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
     for iK = 1, def.Size do local row = def[iK]
       if(asmlib.IsHere(row[1])) then
-        local inf = tostring(row[3] or "")
         local key = tostring(row[1] or "")
-        local drw = arK.Draw[1]:format("<"..key..">")
-        local typ = arK.Draw[2]:format(tostring(row[2] or ""))
-        local val = tostring(stS[key] or "")
-        oScreen:DrawText(drw.."{"..typ.."}:"..val.." > "..inf)
+        local typ = tostring(row[2] or "")
+        local inf = tostring(row[3] or "")
+        local foo = arK.Draw[typ]
+        if(foo) then
+          local bs, se = pcall(foo, oScreen, key, typ, inf, arK, stS)
+          if(not bs) then asmlib.LogInstance(se,gtArgsLogs); return end
+        else
+          local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
+          local val = tostring(stS[key] or "")
+          local fky = tostring(arK.Draw[1] or "%s")
+          oScreen:DrawText(fmt:format(fky:format(key), typ, val, inf))
+        end
       end
     end
   end

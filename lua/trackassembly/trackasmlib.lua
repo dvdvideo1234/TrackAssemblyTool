@@ -494,6 +494,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("FORM_CONCMD", GetOpVar("TOOLNAME_PL").."%s %s\n")
+  SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
   if(CLIENT) then
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("LOCALIFY_AUTO","en")

@@ -26,6 +26,7 @@ local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
 local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
+local tableConcat                   = table and table.concat
 local mathAbs                       = math and math.abs
 local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
@@ -48,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.528")
+asmlib.SetOpVar("TOOL_VERSION","6.529")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -150,39 +151,57 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
 -------- RECORDS ----------
-asmlib.SetOpVar("STRUCT_SPAWN",{Name = "Spawn data definition", Size = 4, Draw = {"[%6s]", "%s"},
+asmlib.SetOpVar("STRUCT_SPAWN",{
+  Name = "Spawn data definition", Size = 4,
+  Draw = {"%+6s",
+    ["REC"] = function(scr, key, typ, inf, def, spn)
+      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
+      local out = tostring(spn[key] or ""):sub(8, -1)
+      local fky = tostring(def.Draw[1] or "%s")
+      scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
+    end,
+    ["MTX"] = function(scr, key, typ, inf, def, spn)
+      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
+      local tab = spn[key]:ToTable()
+      local fky = tostring(def.Draw[1] or "%s")
+      for iR = 1, 4 do
+        local out = "{"..tostring(iR).."}["..tableConcat(tab[iR], ",").."]"
+        scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
+      end
+    end,
+  },
   {Name = "Origin", Size = 11,
-    {"F"   , "VEC", "Origin forward vector                           "},
-    {"R"   , "VEC", "Origin right vector                             "},
-    {"U"   , "VEC", "Origin up vector                                "},
-    {"BPos", "VEC", "Base coordinate position                        "},
-    {"BAng", "ANG", "Base coordinate angle                           "},
-    {"OPos", "VEC", "Origin position                                 "},
-    {"OAng", "ANG", "Origin angle                                    "},
-    {"SPos", "VEC", "Piece spawn position                            "},
-    {"SAng", "ANG", "Piece spawn angle                               "},
-    {"SMtx", "MTX", "Spawn translation and rotation matrix           "},
-    {"RLen", "FLT", "Piece active radius                             "}
+    {"F"   , "VEC", "Origin forward vector"},
+    {"R"   , "VEC", "Origin right vector"},
+    {"U"   , "VEC", "Origin up vector"},
+    {"BPos", "VEC", "Base coordinate position"},
+    {"BAng", "ANG", "Base coordinate angle"},
+    {"OPos", "VEC", "Origin position"},
+    {"OAng", "ANG", "Origin angle"},
+    {"SPos", "VEC", "Piece spawn position"},
+    {"SAng", "ANG", "Piece spawn angle"},
+    {"SMtx", "MTX", "Spawn translation and rotation matrix"},
+    {"RLen", "NUM", "Piece active radius"}
   },
   {Name = "Holder", Size = 6,
-    {"HRec", "REC", "Pointer to the holder record                    "},
-    {"HID" , "INT", "Point ID the holder has selected                "},
-    {"HPnt", "VEC", "P > Holder active point location                "},
-    {"HOrg", "VEC", "O > Holder piece location origin when snapped   "},
-    {"HAng", "ANG", "A > Holder piece orientation origin when snapped"},
-    {"HMtx", "MTX", "Holder translation and rotation matrix          "}
+    {"HRec", "REC", "Pointer to the holder record"},
+    {"HID" , "NUM", "Point ID the holder has selected"},
+    {"HPnt", "VEC", "P # Holder active point location"},
+    {"HOrg", "VEC", "O # Holder piece location origin when snapped"},
+    {"HAng", "ANG", "A # Holder piece orientation origin when snapped"},
+    {"HMtx", "MTX", "Holder translation and rotation matrix"}
   },
   {Name = "Traced", Size = 6,
-    {"TRec", "REC", "Pointer to the trace record                     "},
-    {"TID" , "INT", "Point ID that the trace has found               "},
-    {"TPnt", "VEC", "P > Trace active point location                 "},
-    {"TOrg", "VEC", "O > Trace piece location origin when snapped    "},
-    {"TAng", "ANG", "A > Trace piece orientation origin when snapped "},
-    {"TMtx", "MTX", "Trace translation and rotation matrix           "}
+    {"TRec", "REC", "Pointer to the trace record"},
+    {"TID" , "NUM", "Point ID that the trace has found"},
+    {"TPnt", "VEC", "P # Trace active point location"},
+    {"TOrg", "VEC", "O # Trace piece location origin when snapped"},
+    {"TAng", "ANG", "A # Trace piece orientation origin when snapped"},
+    {"TMtx", "MTX", "Trace translation and rotation matrix"}
   },
   {Name = "Offsets", Size = 2,
-    {"ANxt", "ANG", "Origin angle offsets                            "},
-    {"PNxt", "VEC", "Piece position offsets                          "}
+    {"ANxt", "ANG", "Origin angle offsets"},
+    {"PNxt", "VEC", "Piece position offsets"}
   }
 })
 
