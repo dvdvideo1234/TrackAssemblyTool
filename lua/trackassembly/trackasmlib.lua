@@ -2125,16 +2125,16 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:Where(...) local tWhere = {...}
     if(not tWhere[1]) then return self end
     local iCnt, qtDef, qtCmd = 1, self:GetDefinition(), self:GetCommand()
-    qtCmd.Select = qtCmd.Select:Trim("%s"):Trim(";")
+    local sStmt = qtCmd.Select:Trim("%s"):Trim(";")
     while(tWhere[iCnt]) do local k = tonumber(tWhere[iCnt][1])
       local v, t = tWhere[iCnt][2], qtDef[k][2]; if(not (k and v and t) ) then
         LogInstance("Where clause inconsistent col index, {"..tostring(k)..","..tostring(v)..","..tostring(t).."}",tabDef.Nick); return nil end
       if(not IsHere(v)) then
         LogInstance("Data matching failed index #"..tostring(iCnt).." value <"..tostring(v)..">",tabDef.Nick); return nil end
-      if(iCnt == 1) then qtCmd.Select = qtCmd.Select.." WHERE "..qtDef[k][1].." = "..tostring(v)
-      else               qtCmd.Select = qtCmd.Select.." AND "  ..qtDef[k][1].." = "..tostring(v) end
+      if(iCnt == 1) then sStmt = sStmt.." WHERE "..qtDef[k][1].." = "..tostring(v)
+      else               sStmt = sStmt.." AND "  ..qtDef[k][1].." = "..tostring(v) end
       iCnt = iCnt + 1
-    end; qtCmd.Select = qtCmd.Select..";"; return self
+    end; qtCmd.Select = sStmt..";"; return self
   end
   -- Add order by clause to the select statement
   function self:Order(...) local tOrder = {...}
@@ -2154,7 +2154,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:Insert(...)
     local qtCmd, iCnt, qIns = self:GetCommand(), 1, ""
     local tInsert, qtDef = {...}, self:GetDefinition(); qtCmd.STMT = "Insert"
-    qtCmd.Insert = "INSERT INTO "..qtDef.Name.." ( "
+    local sStmt = "INSERT INTO "..qtDef.Name.." ( "
     if(not tInsert[1]) then
       for iCnt = 1, qtDef.Size do qIns = qIns..qtDef[iCnt][1]
         if(iCnt < qtDef.Size) then qIns = qIns..", " else qIns = qIns.." ) " end end
@@ -2167,17 +2167,17 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         iCnt, qIns = (iCnt + 1), qIns..cIns[1]
         if(tInsert[iCnt]) then qIns = qIns..", " else qIns = qIns.." ) " end
       end
-    end; qtCmd.Insert = qtCmd.Insert..qIns; return self
+    end; qtCmd.Insert = sStmt..qIns; return self
   end
   -- Build SQL values statement
   function self:Values(...)
     local qtDef, tValues = self:GetDefinition(), {...}
     local qtCmd, iCnt, qVal = self:GetCommand(), 1, ""
-    qtCmd.Insert = qtCmd.Insert.." VALUES ( "
+    local sStmt = qtCmd.Insert.." VALUES ( "
     while(tValues[iCnt]) do
       iCnt, qVal = (iCnt + 1), qVal..tostring(tValues[iCnt])
       if(tValues[iCnt]) then qVal = qVal..", " else qVal = qVal.." )" end
-    end; qtCmd.Insert = qtCmd.Insert..qVal..";"; return self
+    end; qtCmd.Insert = sStmt..qVal..";"; return self
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
