@@ -1373,7 +1373,7 @@ function SnapReview(ivPoID, ivPnID, ivMaxN)
   return iPoID, iPnID
 end
 
-function SwitchID(vID,vDir,oRec)   
+function SwitchID(vID,vDir,oRec)
   local stPOA, ID = LocatePOA(oRec,vID); if(not IsHere(stPOA)) then
     LogInstance("ID #"..GetReport(vID).." not located"); return 1 end
   local nDir = (tonumber(vDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
@@ -1709,16 +1709,22 @@ function GetCacheSpawn(pPly)
       LogInstance("Spawn definition invalid"); return false end
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
-    for iD = 1, stSpawn.Size do local tSec = stSpawn[iD]
-      for iK = 1, tSec.Size do local def = tSec[iK]
+    local iD = 1; stSpawn.Size = 0 -- Initialize length
+    while(stSpawn[iD]) do stSpawn.Size = iD
+      local tSec, iK = stSpawn[iD], 1
+      while(tSec[iK]) do tSec.Size = iK
+        local def = tSec[iK]
         local key = tostring(def[1] or "")
         local typ = tostring(def[2] or "")
         local inf = tostring(def[3] or "")
         if    (typ == "VEC") then stData[key] = Vector()
         elseif(typ == "ANG") then stData[key] = Angle()
         elseif(typ == "MTX") then stData[key] = Matrix()
-        else stData[key] = 0 end -- Default non-nil
-      end
+        elseif(typ == "TAB") then stData[key] = nil
+        elseif(typ == "NUM") then stData[key] = 0
+        else LogInstance("Spawn skip <"..typ..">")
+        end; iK = iK + 1 -- Update members count
+      end; iD = iD + 1 -- Update categories count
     end
   end; return stData
 end

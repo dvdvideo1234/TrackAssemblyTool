@@ -49,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.530")
+asmlib.SetOpVar("TOOL_VERSION","6.531")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -152,11 +152,12 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
-  Name = "Spawn data definition", Size = 4,
+  Name = "Spawn data definition",
   Draw = {"%+6s",
-    ["REC"] = function(scr, key, typ, inf, def, spn)
+    ["TAB"] = function(scr, key, typ, inf, def, spn)
       local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
-      local out = tostring(spn[key] or ""):sub(8, -1)
+      local nav = asmlib.GetOpVar("MISS_NOAV")
+      local out = (spn[key] and tostring(spn[key]):sub(8, -1) or nav)
       local fky = tostring(def.Draw[1] or "%s")
       scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
     end,
@@ -170,7 +171,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
       end
     end,
   },
-  {Name = "Origin", Size = 11,
+  {Name = "Origin",
     {"F"   , "VEC", "Origin forward vector"},
     {"R"   , "VEC", "Origin right vector"},
     {"U"   , "VEC", "Origin up vector"},
@@ -183,23 +184,23 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     {"SMtx", "MTX", "Spawn translation and rotation matrix"},
     {"RLen", "NUM", "Piece active radius"}
   },
-  {Name = "Holder", Size = 6,
-    {"HRec", "REC", "Pointer to the holder record"},
+  {Name = "Holder",
+    {"HRec", "TAB", "Pointer to the holder record"},
     {"HID" , "NUM", "Point ID the holder has selected"},
     {"HPnt", "VEC", "P # Holder active point location"},
     {"HOrg", "VEC", "O # Holder piece location origin when snapped"},
     {"HAng", "ANG", "A # Holder piece orientation origin when snapped"},
     {"HMtx", "MTX", "Holder translation and rotation matrix"}
   },
-  {Name = "Traced", Size = 6,
-    {"TRec", "REC", "Pointer to the trace record"},
+  {Name = "Traced",
+    {"TRec", "TAB", "Pointer to the trace record"},
     {"TID" , "NUM", "Point ID that the trace has found"},
     {"TPnt", "VEC", "P # Trace active point location"},
     {"TOrg", "VEC", "O # Trace piece location origin when snapped"},
     {"TAng", "ANG", "A # Trace piece orientation origin when snapped"},
     {"TMtx", "MTX", "Trace translation and rotation matrix"}
   },
-  {Name = "Offsets", Size = 2,
+  {Name = "Offsets",
     {"ANxt", "ANG", "Origin angle offsets"},
     {"PNxt", "VEC", "Piece position offsets"}
   }

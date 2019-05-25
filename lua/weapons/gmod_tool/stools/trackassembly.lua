@@ -901,11 +901,10 @@ end
 ]]--
 function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local ply = LocalPlayer()
-  local gnR = asmlib.GetOpVar("GOLDEN_RATIO")
   local stS = asmlib.GetCacheSpawn(ply)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
   local w,h = oScreen:GetSize()
-  oScreen:SetTextEdge(w - (2 - gnR)*w,0)
+  oScreen:SetTextEdge(0,230)
   oScreen:DrawText(tostring(arK.Name),sCol,sMeth,tArgs)
   for iD = 1, arK.Size, 1 do local def = arK[iD]
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
