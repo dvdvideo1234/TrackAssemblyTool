@@ -220,6 +220,7 @@ The ones that are **included** in Garry's mod do not have links and are marked b
   * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) ( [Maintained by the owner](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-maintained) )
   * [AlexCookie's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
   * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167)
+  * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805) **COMMING SOON**
 
 #### Where are the trains/vehicles[,](https://tfwiki.net/wiki/Team_Bullet_Train) are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
@@ -240,8 +241,8 @@ the minimum requirements.
 ( Made a model once, but it turned out quite nasty xD, so better leave the job to the right people.)
 
 #### Hey, do you remember that roller coaster assistant addon ?
-It was snapping pieces when you got them close to each other and they magically connect.
-Does this script has a feature like this ? Yes, it does. When looking at the panel in the right, there is a check-box labeled
+Yes, it was snapping pieces when you got them too close to each other and they magically connect.
+When looking at the panel in the right, there is a check-box labeled
 `Enable physgun snap` that you must check. This makes the server to perform some
 traces relative to the active points of the piece and search for other pieces to snap to.
 If the snapping conditions are present, it will snap the trace piece on physgun release at
