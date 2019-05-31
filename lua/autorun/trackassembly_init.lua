@@ -37,7 +37,6 @@ local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
-local languageGetPhrase             = language and language.GetPhrase
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
@@ -49,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.533")
+asmlib.SetOpVar("TOOL_VERSION","6.534")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -463,11 +462,11 @@ if(CLIENT) then
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         pnFrame:Remove(); asmlib.LogInstance("Failed to create base frame",gtArgsLogs); return nil end
       local pnElements = asmlib.MakeContainer("FREQ_VGUI")
-            pnElements:Insert(1,{Label = { "DButton"    ,languageGetPhrase("tool."..gsToolNameL..".pn_export_lb") , languageGetPhrase("tool."..gsToolNameL..".pn_export")}})
-            pnElements:Insert(2,{Label = { "DListView"  ,languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_routine")}})
-            pnElements:Insert(3,{Label = { "DModelPanel",languageGetPhrase("tool."..gsToolNameL..".pn_display_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_display")}})
-            pnElements:Insert(4,{Label = { "DTextEntry" ,languageGetPhrase("tool."..gsToolNameL..".pn_pattern_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_pattern")}})
-            pnElements:Insert(5,{Label = { "DComboBox"  ,languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"), languageGetPhrase("tool."..gsToolNameL..".pn_srchcol")}})
+            pnElements:Insert(1,{Label = { "DButton"    ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb") , asmlib.GetPhrase("tool."..gsToolNameL..".pn_export")}})
+            pnElements:Insert(2,{Label = { "DListView"  ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine")}})
+            pnElements:Insert(3,{Label = { "DModelPanel",asmlib.GetPhrase("tool."..gsToolNameL..".pn_display_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_display")}})
+            pnElements:Insert(4,{Label = { "DTextEntry" ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern")}})
+            pnElements:Insert(5,{Label = { "DComboBox"  ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol")}})
       ------------ Manage the invalid panels -------------------
       local iNdex, iSize, sItem, vItem = 1, pnElements:GetSize(), "", nil
       while(iNdex <= iSize) do
@@ -507,7 +506,7 @@ if(CLIENT) then
       xyPos.y = (scrH / 4)
       xySiz.x = 750
       xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
-      pnFrame:SetTitle(languageGetPhrase("tool."..gsToolNameL..".pn_routine_hd")..oPly:Nick().." {"..asmlib.GetOpVar("TOOL_VERSION").."}")
+      pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd")..oPly:Nick().." {"..asmlib.GetOpVar("TOOL_VERSION").."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
@@ -556,10 +555,10 @@ if(CLIENT) then
       pnComboBox:SetSize(xySiz.x,xySiz.y)
       pnComboBox:SetVisible(true)
       pnComboBox:SetValue(pnElements:Select(5).Label[2])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTab[1][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTab[2][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTab[3][1])
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTab[4][1])
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTab[1][1])
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTab[2][1])
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTab[3][1])
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTab[4][1])
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
         asmlib.LogInstance("ComboBox.OnSelect ID #"..nInd.."<"..sVal..">"..tostring(anyData),gtArgsLogs)
         pnSelf:SetValue(sVal)
@@ -631,10 +630,10 @@ if(CLIENT) then
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(xyPos.x,xyPos.y)
       pnListView:SetSize(xySiz.x,xySiz.y)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb1")):SetFixedWidth(wUse) -- (1)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb2")):SetFixedWidth(wAct) -- (2)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
+      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb1")):SetFixedWidth(wUse) -- (1)
+      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb2")):SetFixedWidth(wAct) -- (2)
+      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
+      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0 ) -- The active points count to be used for change
