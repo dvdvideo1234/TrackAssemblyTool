@@ -139,7 +139,6 @@ if(CLIENT) then
     { name = "right_use",icon2 = "gui/e.png" },
     { name = "reload"    }
   }
-  asmlib.InitLocalify(varLanguage:GetString())
   languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))

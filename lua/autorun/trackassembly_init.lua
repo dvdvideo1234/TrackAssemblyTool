@@ -48,13 +48,14 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.534")
+asmlib.SetOpVar("TOOL_VERSION","6.535")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
 
 ------ VARIABLE FLAGS ------
+local varLanguage = GetConVar("gmod_language")
 -- Client and server have independent value
 local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
 -- Server tells the client what value to use
@@ -280,7 +281,7 @@ if(SERVER) then
     end)
 end
 
-if(CLIENT) then
+if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString()) 
 
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
