@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.535")
+asmlib.SetOpVar("TOOL_VERSION","6.536")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -154,11 +154,10 @@ local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER
 asmlib.SetOpVar("STRUCT_SPAWN",{
   Name = "Spawn data definition",
   Draw = {"%+6s",
-    ["TAB"] = function(scr, key, typ, inf, def, spn)
-      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
-      local nav = asmlib.GetOpVar("MISS_NOAV")
-      local out = (spn[key] and tostring(spn[key]):sub(8, -1) or nav)
-      local fky = tostring(def.Draw[1] or "%s")
+    ["RDB"] = function(scr, key, typ, inf, def, spn)
+      local rec, fmt = spn[key], asmlib.GetOpVar("FORM_DRAWDBG")
+      local fky, nav = tostring(def.Draw[1] or "%s"), asmlib.GetOpVar("MISS_NOAV")
+      local out = (rec and tostring(rec.Slot:GetFileFromFilename()) or nav)
       scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
     end,
     ["MTX"] = function(scr, key, typ, inf, def, spn)
@@ -281,7 +280,7 @@ if(SERVER) then
     end)
 end
 
-if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString()) 
+if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
@@ -636,7 +635,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
-      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5))
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0 ) -- The active points count to be used for change
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
                       pnModelPanel:SetModel(uiMod)

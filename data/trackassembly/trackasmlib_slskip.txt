@@ -40,3 +40,5 @@ BIND_PRESS: Swep not tool
 BIND_PRESS: Tool different
 BIND_PRESS: Active key missing
 BIND_PRESS: Bind not pressed
+GetBuilderNick: Key mismatch
+GetBuilderID: Builder object missing

@@ -1547,9 +1547,11 @@ function GetTransformPOA(sModel,sKey)
       LogInstance("Basis invalid @"..sModel); return nil end
     SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
   end -- Transfer the data from the transform attachment location
-  local mOA = ePiece:GetAttachment(ePiece:LookupAttachment(sKey)); if(not mOA) then
-    LogInstance("Attachment missing <"..sKey..">@"..sModel); return nil end
-  local vtPos, atAng = mOA[sKey].Pos, mOA[sKey].Ang -- Extract transform data
+  local mID = ePiece:LookupAttachment(sKey); if(not IsNumber(mID)) then
+    LogInstance("Attachment missing ID "..GetReport(sKey).."@"..sModel); return nil end
+  local mOA = ePiece:GetAttachment(mID); if(not IsHere(mOA)) then
+    LogInstance("Attachment missing OA "..GetReport(mID).."@"..sModel); return nil end
+  local vtPos, atAng = mOA.Pos, mOA.Ang -- Extract transform data
   LogInstance("Extract {"..sKey.."}<"..tostring(vtPos).."><"..tostring(atAng)..">")
   return vtPos, atAng -- The function must return transform position and angle
 end
@@ -1719,7 +1721,7 @@ function GetCacheSpawn(pPly)
         if    (typ == "VEC") then stData[key] = Vector()
         elseif(typ == "ANG") then stData[key] = Angle()
         elseif(typ == "MTX") then stData[key] = Matrix()
-        elseif(typ == "TAB") then stData[key] = nil
+        elseif(typ == "RDB") then stData[key] = nil
         elseif(typ == "NUM") then stData[key] = 0
         else LogInstance("Spawn skip <"..typ..">")
         end; iK = iK + 1 -- Update members count
