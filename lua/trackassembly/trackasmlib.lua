@@ -488,6 +488,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
+  SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
@@ -1198,17 +1199,15 @@ end
 function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   if(not (IsHere(frUsed) and IsHere(frUsed[1]))) then
     LogInstance("Missing data"); return false end
-  local nCount = tonumber(nCount) or 0
-  if(nCount <= 0) then
+  local nCount = (tonumber(nCount) or 0); if(nCount <= 0) then
     LogInstance("Count not applicable"); return false end
   if(IsHere(pnListView)) then
     if(not IsValid(pnListView)) then
       LogInstance("Invalid ListView"); return false end
-    pnListView:SetVisible(false)
-    pnListView:Clear()
+    pnListView:SetVisible(false); pnListView:Clear()
   else LogInstance("Missing ListView"); return false end
-  local sCol, sPat = tostring(sCol or ""), tostring(sPat or "")
-  local iCnt, sDat = 1, nil
+  local sCol, iCnt = tostring(sCol or ""), 1
+  local sPat, sDat = tostring(sPat or ""), nil
   while(frUsed[iCnt]) do
     if(IsBlank(sPat)) then
       if(not AddLineListView(pnListView,frUsed,iCnt)) then
@@ -1276,7 +1275,8 @@ function GetFrequentModels(snCount)
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Missing table cache space"); return nil end
-  local iInd, tmNow, frUsed = 1, Time(), GetOpVar("TABLE_FREQUENT_MODELS"); tableEmpty(frUsed)
+  local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
+  local iInd, tmNow = 1, Time(); tableEmpty(frUsed)
   for mod, rec in pairs(tCache) do
     if(IsHere(rec.Used) and IsHere(rec.Size) and rec.Size > 0) then
       iInd = PushSortValues(frUsed,snCount,tmNow-rec.Used,{
@@ -1304,18 +1304,23 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   pPanel:InvalidateChildren()
   pPanel:SetSize(sX, sY)
   if(IsTable(tBtn) and tBtn[1]) then
+    local sPtn = GetOpVar("FORM_LOGBTNSLD")
     local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
     local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
     while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
+      local sTxt, sTyp = tostring(vBtn.Text), tostring(vBtn.Tip)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
-        LogInstance("Button["..iCnt.."] invalid"); return nil end
+        LogInstance(sPtn:format(sVar,sTxt,"Panel invalid")); return nil end
       pButton:SetParent(pPanel)
       pButton:SizeToContents()
-      pButton:SetText(tostring(vBtn.Text))
-      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
+      pButton:SetText(sTxt)
+      if(vBtn.Tip) then pButton:SetTooltip(sTyp) end
       pButton:SetPos(bX, bY)
       pButton:SetSize(wB, hB)
-      pButton.DoClick = function() vBtn.Click(pButton, sVar, GetAsmConvar(sVar, sTyp)) end
+      pButton.DoClick = function()
+        local pS, sE = pcall(vBtn.Click, pButton, sVar, GetAsmConvar(sVar, sTyp))
+        if(not pS) then LogInstance(sPtn:format(sVar,sTxt,"Error: "..sE)); return nil end
+      end
       pButton:SetVisible(true)
       bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
     end; pY = pY + (dY + hB)
@@ -1438,14 +1443,16 @@ end
 --[[
  * Creates a basis instance for entity-related operations
  * The instance is invisible and cannot be hit by traces
- * By default spawns at origin  and angle {0,0,0}
+ * By default spawns at origin and angle {0,0,0}
  * sModel --> The model to use for creating the entity
 ]]
-local function MakeEntityNone(sModel) local eNone
+local function MakeEntityNone(sModel, vPos, vAng) local eNone
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
   if(not (eNone and eNone:IsValid())) then
     LogInstance("Entity invalid @"..sModel); return nil end
+  eNone:SetPos(vPos or GetOpVar("VEC_ZERO"))
+  eNone:SetAngles(vAng or GetOpVar("ANG_ZERO"))
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
