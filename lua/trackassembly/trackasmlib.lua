@@ -1313,13 +1313,13 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
     local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
     local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
     while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
-      local sTxt, sTyp = tostring(vBtn.Text), tostring(vBtn.Tip)
+      local sTxt = tostring(vBtn.Text)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance(sPtn:format(sVar,sTxt,"Panel invalid")); return nil end
       pButton:SetParent(pPanel)
       pButton:SizeToContents()
       pButton:SetText(sTxt)
-      if(vBtn.Tip) then pButton:SetTooltip(sTyp) end
+      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
       pButton:SetPos(bX, bY)
       pButton:SetSize(wB, hB)
       pButton.DoClick = function()

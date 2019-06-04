@@ -35,6 +35,7 @@ local fileExists                    = file and file.Exists
 local fileFind                      = file and file.Find
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
+local inputGetCursorPos             = input and input.GetCursorPos
 local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
@@ -48,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.538")
+asmlib.SetOpVar("TOOL_VERSION","6.539")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -633,7 +634,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
-      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5))
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0); pnModelPanel:SetModel(uiMod) -- Active points amount
         local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,nRatio,nRatio-1); if(not asmlib.IsHere(uiBox)) then
@@ -646,7 +647,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        SetClipboardText(pnLine:GetColumnText(5))
+        local nCnt, nX, nY = 0, inputGetCursorPos(); nX, nY = pnListView:ScreenToLocal(nX, nY)
+        while(nX > 0) do nCnt = (nCnt + 1); nX = (nX - pnListView:ColumnWidth(nCnt)) end
+        SetClipboardText(pnLine:GetColumnText(nCnt))
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
