@@ -1195,6 +1195,11 @@ end
  * and a column name selected `sCol`.
  * On success populates "pnListView" with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
+ * pnListView -> The panel which must be updated
+ * frUsed     -> The list of the frequently used tracks
+ * nCount     -> The amount of pieces to check
+ * sCol       -> The name of the column it preforms search by
+ * sPat       -> Search pattern to preform the search with
 ]]--
 function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   if(not (IsHere(frUsed) and IsHere(frUsed[1]))) then
@@ -1445,6 +1450,8 @@ end
  * The instance is invisible and cannot be hit by traces
  * By default spawns at origin and angle {0,0,0}
  * sModel --> The model to use for creating the entity
+ * vPos   --> Custom position for the placeholder ( zero if none )
+ * vAng   --> Custom angles for the placeholder ( zero if none )
 ]]
 local function MakeEntityNone(sModel, vPos, vAng) local eNone
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))

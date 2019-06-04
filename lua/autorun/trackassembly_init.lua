@@ -48,7 +48,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.537")
+asmlib.SetOpVar("TOOL_VERSION","6.538")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -502,9 +502,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local xyPos        = {x =  0, y =  0} -- Current panel position
       local xyTmp        = {x =  0, y =  0} -- Temporary coordinate
       ------------ Frame --------------
-      xyPos.x = (scrW / 4)
-      xyPos.y = (scrH / 4)
-      xySiz.x = 750
+      xySiz.x = 750 -- This defines the size of the frame
+      xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
       xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd")..oPly:Nick().." {"..asmlib.GetOpVar("TOOL_VERSION").."}")
       pnFrame:SetVisible(true)
@@ -548,8 +547,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
       xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
-      xySiz.x = nRatio * xyTmp.x
-      xySiz.y = xyTmp.y
+      xySiz.x, xySiz.y = (nRatio * xyTmp.x), xyTmp.y
       pnComboBox:SetParent(pnFrame)
       pnComboBox:SetPos(xyPos.x,xyPos.y)
       pnComboBox:SetSize(xySiz.x,xySiz.y)
@@ -564,7 +562,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel --------------
-      xySiz.x = 250 -- Display the model properly
+      xySiz.x = 250 -- Used by the model panel to display the piece properly
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xyPos.x, xyPos.y = pnComboBox:GetPos()
       xyPos.x = xyTmp.x - xySiz.x - xyDelta.x
@@ -600,12 +598,12 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnTextEntry:SetSize(xySiz.x,xySiz.y)
       pnTextEntry:SetVisible(true)
       pnTextEntry.OnEnter = function(pnSelf)
-        local sPattr = tostring(pnSelf:GetValue() or "")
-        local sAbrev, sField = pnComboBox:GetSelected()
-              sAbrev, sField = tostring(sAbrev or ""), tostring(sField or "")
-        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sField,sPattr)) then
-          asmlib.LogInstance("TextEntry.OnEnter Failed to update ListView {"..sAbrev..
-            "#"..sField.."#"..sPattr.."}",gtArgsLogs); return nil
+        local sPat = tostring(pnSelf:GetValue() or "")
+        local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
+              sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
+        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
+          asmlib.LogInstance("TextEntry.OnEnter Failed to update ListView {"
+            ..sAbr.."#"..sCol.."#"..sPat.."}",gtArgsLogs); return nil
         end
       end
       ------------ ListView --------------
@@ -635,13 +633,10 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
-      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5))
-        local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0 ) -- The active points count to be used for change
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
-                      pnModelPanel:SetModel(uiMod)
-        local uiEnt = pnModelPanel:GetEntity()
-        local uiBox = asmlib.CacheBoxLayout(uiEnt,0,nRatio,nRatio-1)
-        if(not asmlib.IsHere(uiBox)) then
+        local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0); pnModelPanel:SetModel(uiMod) -- Active points amount
+        local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,nRatio,nRatio-1); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("ListView.OnRowSelected Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmConvar("pointid","INT"), asmlib.GetAsmConvar("pnextid","INT")
@@ -650,7 +645,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly,"pnextid", pnextid)
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
-      pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine) SetClipboardText(pnLine:GetColumnText(5)) end
+      pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
+        SetClipboardText(pnLine:GetColumnText(5))
+      end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
