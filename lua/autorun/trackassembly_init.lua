@@ -49,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.540")
+asmlib.SetOpVar("TOOL_VERSION","6.541")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -129,7 +129,7 @@ local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmConvar("timermode","STR"))
-local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_PALETTE", conPalette)
+local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_COLR", conPalette)
       conPalette:Insert("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
       conPalette:Insert("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
       conPalette:Insert("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
@@ -147,9 +147,11 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_P
       conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
       conPalette:Insert("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
 
-local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER_WORKING", conWorkMode)
+local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER_WORK", conWorkMode)
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
+
+local conElements = asmlib.MakeContainer("FREQ_VGUI"); asmlib.SetOpVar("CONTAINER_FREQ", pnElements)
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
@@ -462,7 +464,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         pnFrame:Remove(); asmlib.LogInstance("Failed to create base frame",gtArgsLogs); return nil end
-      local pnElements = asmlib.MakeContainer("FREQ_VGUI")
+      local pnElements = asmlib.GetOpVar("CONTAINER_FREQ"):Clear()
             pnElements:Insert(1,{Label = { "DButton"    ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb") , asmlib.GetPhrase("tool."..gsToolNameL..".pn_export")}})
             pnElements:Insert(2,{Label = { "DListView"  ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine")}})
             pnElements:Insert(3,{Label = { "DModelPanel",asmlib.GetPhrase("tool."..gsToolNameL..".pn_display_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_display")}})

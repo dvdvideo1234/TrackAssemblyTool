@@ -74,8 +74,8 @@ local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
-local conPalette  = asmlib.GetOpVar("CONTAINER_PALETTE")
-local conWorkMode = asmlib.GetOpVar("CONTAINER_WORKING")
+local conPalette  = asmlib.GetOpVar("CONTAINER_COLR")
+local conWorkMode = asmlib.GetOpVar("CONTAINER_WORK")
 local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 

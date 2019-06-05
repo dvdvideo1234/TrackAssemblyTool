@@ -202,7 +202,7 @@ function IsBool(vVal)
 end
 
 function IsNumber(vVal)
-  return ((tonumber(vVal) and true) or false)
+  return (type(vVal) == "number")
 end
 
 function IsTable(vVal)
@@ -550,9 +550,9 @@ end
 local function BorderValue(nsVal, vKey)
   if(not IsHere(vKey)) then return nsVal end
   if(not (IsString(nsVal) or IsNumber(nsVal))) then
-    LogInstance("Value not comparable"); return nsVal end
+    LogInstance("Value not comparable "..GetReport(nsVal)); return nsVal end
   local tB = GetOpVar("TABLE_BORDERS")[vKey]; if(not IsHere(tB)) then
-    LogInstance("Missing <"..tostring(vKey)..">"); return nsVal end
+    LogInstance("Missing "..GetReport(vKey)); return nsVal end
   if(tB and tB[1] and nsVal < tB[1]) then return tB[1] end
   if(tB and tB[2] and nsVal > tB[2]) then return tB[2] end
   return nsVal
@@ -860,36 +860,58 @@ end
 
 ----------------- OOP ------------------
 
-function MakeContainer(sInfo,sDefKey)
-  local Curs, Data, self = 0, {}, {}
-  local sSel, sIns, sDel, sMet = "", "", "", ""
-  local Info = tostring(sInfo or "Storage container")
-  local Key  = sDefKey or GetOpVar("OOP_DEFAULTKEY")
-  function self:GetInfo() return Info end
-  function self:GetSize() return Curs end
-  function self:GetData() return Data end
-  function self:Insert(nsKey,vVal)
-    sIns = nsKey or Key; sMet = "I"
-    if(not IsHere(Data[sIns])) then Curs = Curs + 1; end
-    Data[sIns] = vVal
+function MakeContainer(sInfo, sDefKey)
+  local mData, mHash, mID, self = {}, {}, {}, {}
+  local mInfo = tostring(sInfo or "Storage container")
+  local mKey  = sDefKey or GetOpVar("OOP_DEFAULTKEY")
+  local miTop, mhTop, miAll, mhAll = 0, 0, 0, 0
+  function self:GetInfo() return mInfo end
+  function self:GetSize() return miTop, mhTop end
+  function self:GetHole() return miAll, mhAll end
+  function self:Collect() collectgarbage(); return self end
+  function self:GetData() return mData end
+  function self:GetHash() return mHash end
+  function self:GetHashID() return mID end
+  function self:Select(nsKey) local iK = (nsKey or mKey)
+    if(IsNumber(iK)) then return mData[iK] else return mHash[iK] end
   end
-  function self:Select(nsKey)
-    sSel = nsKey or Key; return Data[sSel]
+  function self:Clear() tableEmpty(self:GetHashID());
+    tableEmpty(self:GetData()); tableEmpty(self:GetHash())
+    miTop, mhTop, miAll, mhAll = 0, 0, 0, 0
+    return self
   end
-  function self:Delete(nsKey,fnDel)
-    sDel = nsKey or Key; sMet = "D"
-    if(IsHere(Data[sDel])) then
-      if(IsHere(fnDel)) then fnDel(Data[sDel]) end
-      Curs, Data[sDel] = (Curs - 1), nil
-    end
+  function self:Insert(nsKey, vVal)
+    local iK = (nsKey or mKey)
+    if(IsNumber(iK)) then
+      if(iK > miTop) then miTop = iK end
+      if(not IsHere(mData[iK])) then miAll = miAll + 1; end
+      mData[iK] = vVal
+    else
+      if(not IsHere(mHash[iK])) then
+        mhAll = mhAll + 1
+        if(mhAll > mhTop) then mhTop = mhAll end
+        mID[mhTop], mHash[iK] = iK, vVal
+      else mHash[iK] = vVal end
+    end; return self
   end
-  function self:GetHistory()
-    return tostring(sMet)..GetOpVar("OPSYM_REVISION")..
-           tostring(sSel)..GetOpVar("OPSYM_DIRECTORY")..
-           tostring(sIns)..GetOpVar("OPSYM_DIRECTORY")..tostring(sDel)
+  function self:Delete(nsKey)
+    local iK = (nsKey or mKey)
+    if(IsNumber(iK)) then
+      if(iK > miTop) then return self end
+      if(not IsHere(mData[iK])) then return self end
+      mData[iK] = nil; miAll = miAll - 1
+      while(not mData[miTop]) do miTop = miTop - 1 end
+    else
+      if(not IsHere(mHash[iK])) then return self end
+      for iD = 1, mhTop do local k = mID[iD]
+        if(k == iK) then
+          tableRemove(mID, iD); mHash[iK] = nil
+          mhAll, mhTop = (mhAll - 1), (mhTop - 1); break
+        end
+      end
+    end; return self
   end
-  setmetatable(self,GetOpVar("TYPEMT_CONTAINER"))
-  return self
+  setmetatable(self, GetOpVar("TYPEMT_CONTAINER")); return self
 end
 
 --[[
@@ -3700,7 +3722,7 @@ function FadeGhosts(bNoD)
   if(SERVER) then return true end
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
-  local cPal = GetOpVar("CONTAINER_PALETTE")
+  local cPal = GetOpVar("CONTAINER_COLR")
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
@@ -3735,7 +3757,7 @@ end
  * It must have been our imagination.
 ]]
 local function MakeEntityGhost(sModel, vPos, aAng)
-  local cPal = GetOpVar("CONTAINER_PALETTE")
+  local cPal = GetOpVar("CONTAINER_COLR")
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
     LogInstance("Ghost invalid "..sModel); return nil end
