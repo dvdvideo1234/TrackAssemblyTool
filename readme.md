@@ -145,41 +145,54 @@ Will stack as many pieces as shown by the slider `Pieces count`.
 6. Pressing RELOAD ( Default: R ) + SPEED ( Default: SHIFT )
       * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
       * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
-7. If you want to obtain different grip behavior for a wheel-powered/sliding train,
-   you must use the surface material drop-down menus as you select first `TYPE` then `NAME`.
-8. If you want to use desired bodygroups and/or skins on a piece, in the text field you must type bodygroup/skin
-   selection code or generate one using the SCORE ( Default: TAB ) key while pointing to a prop with
-   bodygroups/skins set by Garry's mod [context menu](https://wiki.garrysmod.com/page/The_Context_Menu). Press `ENTER` in the text field if you
-   are happy with the selection to apply it.
-9. Piece mass slider is used to set the mass of the next track piece to be spawned.
-10. Active radius is used to set the minimum distance needed to select an active point when pointing at a piece.
-11. Pieces count shows the maximum number of pieces to be stacked.
-12. The `Angular alignment` slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
-   to a user-defined angle ( Usually 45 ) so that the track building process becomes easier. The
-   whole track build will be snapped also because you are building it relative to the first piece.
-13. The force limit slider ( Requested by `The Arbitor 90` ) defines the maximum force to be applied
-   on the weld joint between two pieces connected before it breaks. You can use this to build collapsible
-   track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
-14. The weld/no-collide/freeze/phys-gun grab/gravity are considered basic Gmod knowledge,
-   because they are defined by their own and not going to be explained further.
-15. The `Ignore track type` check-box if checked, will enable snapping between pieces of a different type.
-16. The `Spawn horizontally` ( as the name suggests ) if checked, will spawn the next pieces horizontally to the
-   map ground if the additional angle offsets are zeros. If not they will be added to the resulting angle.
-17. The `Origin from mass-centre` check-box if checked, will align the piece spawned to its mass-centre.
-18. The `Snap to trace surface` check-box if checked, will snap the chosen track directly to the trace surface.
+      
+#### How to use the tool caontrol panel and what function does each item has ?
+1. `Track surface grip modifier` combo box is used if you want to obtain different
+    grip behavior for a wheel-powered/sliding train,
+    you must use the surface material drop-down menu combo boxes as you select first
+    `TYPE` from the top one to setup the group of properties you want to apply then
+    `NAME`, to select the actual surface material you want applied.
+2. `Piece bodygroups and skin selection` is used when you want desired bodygroups
+    and/or skins on a piece. In the text field you must type `bodygroup/skin` (ex. 1,2,3,4/5)
+    selection code or generate one using the SCORE ( Default: TAB ) key while pointing to a prop with
+    `bodygroups` and `skins` set by Garry's mod [context menu](https://wiki.garrysmod.com/page/The_Context_Menu). Press `ENTER` in the text field if you
+    are happy with the selection to apply it.
+3. `Mass` setup control
+    Piece mass slider is used to set the mass of the next track piece to be spawned.
+4. `Active radius` control
+    The slider is used to set the minimum distance needed to select an active point when pointing at a piece.
+5. `Stack count` control
+    This value shows the maximum number of pieces to be snapped in `stacking` mode.
+6. `Angular alignment` control
+    The slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
+    to a user-defined angle ( Usually `45` ) so that the track building process becomes easier. The
+    whole track build will be snapped also because you are building it relative to the first piece.
+7. `Force limit` control ( Requested by `The Arbitor 90` ) defines the maximum force to be applied
+    on the weld joint between two pieces connected before it breaks. You can use this to build collapsible
+    track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
+8. Options `weld`, `no-collide`, `freeze`, `phys-gun grab` and `gravity` are considered basic Gmod knowledge,
+    because they are defined by their own and not going to be explained further.
+9. Option `Ignore track type` if checked, will enable snapping between pieces of a different types.
+10. Option `Spawn horizontally` ( as the name suggests ) if checked, will spawn the next pieces horizontally
+    relative to the map ground if the additional angle offsets are zeros. If not they will be added to the resulting angle.
+11. Option `Origin from mass-center` if checked, will align the piece spawned to its mass-center.
+12. Option `Snap to trace surface` if checked, will snap the chosen track directly to the trace surface.
 ![SurfSnap](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.jpg)
 
-15. The `Draw adviser` check-box if checked, will draw a composition of lines and circles to assist you with the building.
+13. Option `Draw adviser` if checked, will draw a composition of lines and circles to assist you with the building.
 ![DrawAdvaiser](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/snapadvaiser.jpg)
 
-16. The `Draw assistant` check-box if checked, will draw circles to assist you where the active points are.
+14. Option `Draw assistant` if checked, will draw circles to assist you where the active points are.
 ![PointAssist](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/pointassist.jpg)
 
-17. The `Draw holder ghost` check-box if checked, will render the current piece that you are holding at the moment.
-18. When building a track using a different than the default way is needed you may use:
-     UCS Pitch/Yaw/Roll are angle offsets used for orientating the base coordinate system in order to snap the piece as the user desires.
-     Offset X(Forward-RED)/Y(Right-GREEN)/Z(Up-BLUE) are linear offsets used for additional user offset regarding the next track piece to be spawned.
-19. The button `Reset All Offsets` as the name suggests clears the offsets mentioned above ( UCS% and Offset% ).
+15. Option `Ghosts count` if greater than zero, will create a ghosts stack client-side to assist you with the track
+    building process. If you set this option to zero, ghosting will be disabled.
+16. When building a track using a different than the default way is needed you may use:
+  * `Origin <ang_comp>`, where `<ang_comp>` can be either `pitch`, `yaw` or `roll` are the angle
+    offsets used for orientating the base coordinate system in order to snap the piece as the user desires.
+  * `Offset <vec_comp>`, where `<vec_comp>` can be either `X`, `Y` or `Z` are linear offsets used for
+    additional user offset regarding the next track piece to be spawned.
+17. The button `V Reset variables V` as the name suggests clears the offsets mentioned in (16).
 
 #### What will happen if something gets updated?
 First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that

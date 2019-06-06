@@ -74,8 +74,8 @@ local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
-local conPalette  = asmlib.GetOpVar("CONTAINER_COLR")
-local conWorkMode = asmlib.GetOpVar("CONTAINER_WORK")
+local conPalette  = asmlib.MakeContainer("COLORS_LIST")
+local conWorkMode = asmlib.MakeContainer("WORK_MODE")
 local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
@@ -1006,16 +1006,9 @@ end
 
 function TOOL:DrawHUD()
   if(SERVER) then return end
-  local hudMonitor = asmlib.GetOpVar("MONITOR_GAME")
-  if(not hudMonitor) then
-    local scrW = surfaceScreenWidth()
-    local scrH = surfaceScreenHeight()
-    hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
-    if(not hudMonitor) then
-      asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-    asmlib.SetOpVar("MONITOR_GAME", hudMonitor)
-    asmlib.LogInstance("Create screen",gtArgsLogs)
-  end; hudMonitor:GetColor()
+  local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
+  local hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
+  if(not hudMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
   if(not self:GetAdviser()) then return end
   local oPly = LocalPlayer()
   local stTrace = asmlib.GetCacheTrace(oPly)
@@ -1137,14 +1130,9 @@ end
 
 function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
-  local scrTool = asmlib.GetOpVar("MONITOR_TOOL")
-  if(not scrTool) then
-    scrTool = asmlib.MakeScreen(0,0,w,h,conPalette)
-    if(not scrTool) then
-      asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-    asmlib.SetOpVar("MONITOR_TOOL", scrTool)
-    asmlib.LogInstance("Create screen",gtArgsLogs)
-  end; local xyT, xyB = scrTool:GetCorners(); scrTool:GetColor()
+  local scrTool = asmlib.MakeScreen(0,0,w,h,conPalette,"TOOL")
+  if(not scrTool) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
+  local xyT, xyB = scrTool:GetCorners()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
   scrTool:SetTextEdge(xyT.x,xyT.y)
   local oPly = LocalPlayer()

@@ -234,7 +234,7 @@ end
 
 -- Reports the type and actual value
 function GetReport(vVal)
-  return ("{"..type(sKey).."}<"..tostring(sKey)..">")
+  return ("{"..type(vVal).."}<"..tostring(vVal)..">")
 end
 
 -- Returns the sign of a number [-1,0,1]
@@ -500,6 +500,8 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_BORDERS",{})
+  SetOpVar("TABLE_MONITOR", {})
+  SetOpVar("TABLE_CONTAINER",{})
   SetOpVar("TABLE_CONVARLIST",{})
   SetOpVar("TOOL_DEFMODE","gmod_tool")
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
@@ -860,62 +862,67 @@ end
 
 ----------------- OOP ------------------
 
-function MakeContainer(sInfo, sDefKey)
-  local mData, mHash, mID, self = {}, {}, {}, {}
-  local mInfo = tostring(sInfo or "Storage container")
-  local mKey  = sDefKey or GetOpVar("OOP_DEFAULTKEY")
-  local miTop, mhTop, miAll, mhAll = 0, 0, 0, 0
+function MakeContainer(sKey, sDef)
+  local mKey = tostring(sKey or "STORAGE_CONTAINER")
+  local mHash = GetOpVar("TABLE_CONTAINER")
+  if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
+  local mData, mID, self = {}, {}, {}
+  local mDef = sDef or GetOpVar("OOP_DEFAULTKEY")
+  local miTop, miAll, mhCnt = 0, 0, 0
   function self:GetInfo() return mInfo end
-  function self:GetSize() return miTop, mhTop end
-  function self:GetHole() return miAll, mhAll end
-  function self:Collect() collectgarbage(); return self end
+  function self:GetSize() return miTop end
+  function self:GetCount() return miAll end
+  function self:GetKept() return mhCnt end
   function self:GetData() return mData end
-  function self:GetHash() return mHash end
   function self:GetHashID() return mID end
-  function self:Select(nsKey) local iK = (nsKey or mKey)
-    if(IsNumber(iK)) then return mData[iK] else return mHash[iK] end
+  function self:Collect() collectgarbage(); return self end
+  function self:Select(nsKey)
+    local iK = (nsKey or mDef); return mData[iK]
   end
-  function self:Clear() tableEmpty(self:GetHashID());
-    tableEmpty(self:GetData()); tableEmpty(self:GetHash())
-    miTop, mhTop, miAll, mhAll = 0, 0, 0, 0
+  function self:Clear() 
+    tableEmpty(self:GetData())
+    tableEmpty(self:GetHashID())
+    miTop, miAll, mhCnt = 0, 0, 0
     return self
   end
-  function self:Insert(nsKey, vVal)
-    local iK = (nsKey or mKey)
+  function self:Insert(nsKey, vVal) local iK = (nsKey or mDef)
     if(IsNumber(iK)) then
       if(iK > miTop) then miTop = iK end
-      if(not IsHere(mData[iK])) then miAll = miAll + 1; end
-      mData[iK] = vVal
+      if(not IsHere(mData[iK])) then
+        miAll = (miAll + 1); end; mData[iK] = vVal
     else
-      if(not IsHere(mHash[iK])) then
-        mhAll = mhAll + 1
-        if(mhAll > mhTop) then mhTop = mhAll end
-        mID[mhTop], mHash[iK] = iK, vVal
-      else mHash[iK] = vVal end
+      if(not IsHere(mData[iK])) then mhCnt = (mhCnt + 1)
+        mID[mhCnt], mData[iK] = iK, vVal
+      else mData[iK] = vVal end
     end; return self
   end
-  function self:Delete(nsKey)
-    local iK = (nsKey or mKey)
+  function self:Delete(nsKey) local iK = (nsKey or mDef)
+    if(not IsHere(mData[iK])) then return self end
     if(IsNumber(iK)) then
       if(iK > miTop) then return self end
-      if(not IsHere(mData[iK])) then return self end
-      mData[iK] = nil; miAll = miAll - 1
-      while(not mData[miTop]) do miTop = miTop - 1 end
+      miAll, mData[iK] = (miAll - 1), nil
+      while(not mData[miTop] and miTop > 0) do miTop = (miTop - 1) end
     else
-      if(not IsHere(mHash[iK])) then return self end
-      for iD = 1, mhTop do local k = mID[iD]
-        if(k == iK) then
-          tableRemove(mID, iD); mHash[iK] = nil
-          mhAll, mhTop = (mhAll - 1), (mhTop - 1); break
+      for iD = 1, mhCnt do local k = mID[iD]
+        if(k == iK) then tableRemove(mID, iD)
+          mhCnt, mData[iK] = (mhCnt - 1), nil; break
         end
       end
     end; return self
   end
+  if(IsHere(sKey)) then mHash[mKey] = self
+    LogInstance("Container registered "..GetReport(mKey)) end
   setmetatable(self, GetOpVar("TYPEMT_CONTAINER")); return self
 end
 
 --[[
  * Creates a screen object better user API for drawing on the gmod screens
+ * sW     -> Start screen width
+ * sH     -> Start screen height
+ * eW     -> End screen width
+ * eH     -> End screen height
+ * conClr -> Screen color container
+ * aKey   -> Screen cache storage key
  * The drawing methods are the following:
  * SURF - Uses the surface library to draw directly
  * SEGM - Uses the surface library to draw line segment interpolations
@@ -927,19 +934,22 @@ end
  * CIR - Drawing a circle
  * UCS - Drawing a coordinate system
 ]]--
-function MakeScreen(sW,sH,eW,eH,conColors)
-  if(SERVER) then return nil end; local tLogs = {"MakeScreen"}
+function MakeScreen(sW,sH,eW,eH,conClr,aKey)
+  if(SERVER) then return nil end
+  local tLogs, tMon = {"MakeScreen"}, GetOpVar("TABLE_MONITOR")
+  if(IsHere(aKey) and tMon[aKey]) then -- Return the cached screen
+    local oMon = tMon[aKey]; oMon:GetColor(); return oMon end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid", tLogs); return nil end
   if(eW < 0 or eH < 0) then LogInstance("End dimension invalid", tLogs); return nil end
   local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
-  local Colors = {List = conColors, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
+  local Colors = {List = conClr, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
       then LogInstance("Color list not container", tLogs); return nil end
   else -- Color list is not present then create one
-    Colors.List = MakeContainer("Colors")
+    Colors.List = MakeContainer("COLORS_LIST") -- Default color container
   end
   local DrawMeth, DrawArgs, Text, TxID = {}, {}, {}, {}
   Text.DrwX, Text.DrwY = 0, 0
@@ -1145,7 +1155,10 @@ function MakeScreen(sW,sH,eW,eH,conColors)
     self:DrawCircle(Op, nRad,"y","SURF")
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
-  end; setmetatable(self, GetOpVar("TYPEMT_SCREEN")); return self
+  end; setmetatable(self, GetOpVar("TYPEMT_SCREEN"))
+  if(IsHere(aKey)) then tMon[aKey] = self
+    LogInstance("Screen registered "..GetReport(aKey)) end
+  return self -- Register the screen under the key
 end
 
 function SetAction(sKey,fAct,tDat)
@@ -3722,7 +3735,7 @@ function FadeGhosts(bNoD)
   if(SERVER) then return true end
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
-  local cPal = GetOpVar("CONTAINER_COLR")
+  local cPal = MakeContainer("COLORS_LIST")
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
@@ -3757,7 +3770,7 @@ end
  * It must have been our imagination.
 ]]
 local function MakeEntityGhost(sModel, vPos, aAng)
-  local cPal = GetOpVar("CONTAINER_COLR")
+  local cPal = MakeContainer("COLORS_LIST")
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
     LogInstance("Ghost invalid "..sModel); return nil end

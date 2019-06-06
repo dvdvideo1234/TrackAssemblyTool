@@ -49,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.541")
+asmlib.SetOpVar("TOOL_VERSION","6.542")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -129,7 +129,7 @@ local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmConvar("timermode","STR"))
-local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_COLR", conPalette)
+local conPalette  = asmlib.MakeContainer("COLORS_LIST")
       conPalette:Insert("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
       conPalette:Insert("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
       conPalette:Insert("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
@@ -139,7 +139,7 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_C
       conPalette:Insert("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
       conPalette:Insert("w" ,asmlib.GetColor(255,255,255,255)) -- White
       conPalette:Insert("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
-      conPalette:Insert("gh",asmlib.GetColor(255,255,255,150)) -- self.GhostEntity
+      conPalette:Insert("gh",asmlib.GetColor(255,255,255,150)) -- Ghosts base color
       conPalette:Insert("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
       conPalette:Insert("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
       conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
@@ -147,11 +147,11 @@ local conPalette  = asmlib.MakeContainer("Colors"); asmlib.SetOpVar("CONTAINER_C
       conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
       conPalette:Insert("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
 
-local conWorkMode = asmlib.MakeContainer("WorkMode"); asmlib.SetOpVar("CONTAINER_WORK", conWorkMode)
+local conWorkMode = asmlib.MakeContainer("WORK_MODE")
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
 
-local conElements = asmlib.MakeContainer("FREQ_VGUI"); asmlib.SetOpVar("CONTAINER_FREQ", pnElements)
+local conElements = asmlib.MakeContainer("FREQ_VGUI")
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
@@ -338,13 +338,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         guiEnableScreenClicker(false); asmlib.LogInstance("Scroll release",gtArgsLogs); return nil
       end -- Draw while holding the mouse middle button
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-      local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
-      if(not actMonitor) then
-        actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette); if(not actMonitor) then
-          asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-        asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("Create screen",gtArgsLogs)
-      end -- Make sure we have a valid game monitor for the draw OOP
+      local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
+      if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
       local vBs = asmlib.NewXY(4,4)
       local nN  = conWorkMode:GetSize()
       local nDr = asmlib.GetOpVar("DEG_RAD")
@@ -464,7 +459,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         pnFrame:Remove(); asmlib.LogInstance("Failed to create base frame",gtArgsLogs); return nil end
-      local pnElements = asmlib.GetOpVar("CONTAINER_FREQ"):Clear()
+      local pnElements = asmlib.MakeContainer("FREQ_VGUI"):Clear():Collect()
             pnElements:Insert(1,{Label = { "DButton"    ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb") , asmlib.GetPhrase("tool."..gsToolNameL..".pn_export")}})
             pnElements:Insert(2,{Label = { "DListView"  ,asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine")}})
             pnElements:Insert(3,{Label = { "DModelPanel",asmlib.GetPhrase("tool."..gsToolNameL..".pn_display_lb"), asmlib.GetPhrase("tool."..gsToolNameL..".pn_display")}})
@@ -677,15 +672,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
-      local actMonitor = asmlib.GetOpVar("MONITOR_GAME")
-      if(not actMonitor) then
-        local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-        actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette)
-        if(not actMonitor) then
-          asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-        asmlib.SetOpVar("MONITOR_GAME", actMonitor)
-        asmlib.LogInstance("Create screen",gtArgsLogs)
-      end -- Make sure we have a valid game monitor for the draw OOP
+      local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
+      local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
+      if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
       local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
       local sizeucs  = mathClamp(asmlib.GetAsmConvar("sizeucs", "FLT"),0,nMaxOffLin)
       local nextx    = mathClamp(asmlib.GetAsmConvar("nextx"  , "FLT"),0,nMaxOffLin)
