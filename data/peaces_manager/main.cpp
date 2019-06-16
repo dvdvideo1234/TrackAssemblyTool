@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     strcpy(fName,argv[1]);
     strcat(fName,argv[4]);
     strcat(fName,".txt");
-    L = fopen(fName,"wt");
+    L = fopen(fName,"at");
     if(L != NULL)
     {
       stmatch::setLog(L);

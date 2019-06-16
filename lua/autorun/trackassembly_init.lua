@@ -49,7 +49,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.542")
+asmlib.SetOpVar("TOOL_VERSION","6.543")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -3095,6 +3095,33 @@ else
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 1, "", "0,0,13.04688", "", ""})
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0", ""})
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0", ""})
+  asmlib.GetCategory("Joe's track pack",[[function(m)
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:gsub("models/joe/jtp/",""):gsub("[\\/]([^\\/]+)$","");
+    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1))} end]])
+  PIECES:Record({"models/joe/jtp/straight/32.mdl"  , "#", "#", 1, "", "0, 16 ,6.56348", "0, 90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/32.mdl"  , "#", "#", 2, "", "0,-16 ,6.56348", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/64.mdl"  , "#", "#", 1, "", "0, 32 ,6.56348", "0, 90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/64.mdl"  , "#", "#", 2, "", "0,-32 ,6.56348", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/128.mdl" , "#", "#", 1, "", "0, 64 ,6.56348", "0, 90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/128.mdl" , "#", "#", 2, "", "0,-64 ,6.56348", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/256.mdl" , "#", "#", 1, "", "0, 128,6.56348", "0, 90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/256.mdl" , "#", "#", 2, "", "0,-128,6.56348", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/512.mdl" , "#", "#", 1, "", "0, 256,6.56348", "0, 90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/512.mdl" , "#", "#", 2, "", "0,-256,6.56348", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/1024.mdl", "#", "#", 1, "", "0, 512,6.56348", "0, 90,0", ""})
+  PIECES:Record({"models/joe/jtp/straight/1024.mdl", "#", "#", 2, "", "0,-512,6.56348", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/curve/1536.mdl", "#", "#", 1, "", "0,0,6.56348", "", ""})
+  PIECES:Record({"models/joe/jtp/curve/1536.mdl", "#", "#", 2, "", "-1536,1536,6.56348", "0,90,0", ""})
+  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 1, "", "0,0,6.56348", "0,90,0", ""})
+  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.56348", "", ""})
+  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0.0014,6.56348", "", ""})
+  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 2, "", "-2005,2005,6.5625", "0,90,0", ""})
+  PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 1, "", "0, 256,14.56738", "0,90,0", ""})
+  PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 2, "", "0,-256,-1.43457", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 1, "", "0,512,-9.43457", "0,90,0", ""})
+  PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 2, "", "0,-512,22.56836", "0,-90,0", ""})
+  PIECES:Record({"models/joe/jtp/throw/harpstand_2_pos.mdl", "#", "#", 1, "", "0, -86, 0", "", ""})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

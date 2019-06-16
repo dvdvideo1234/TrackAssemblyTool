@@ -81,7 +81,7 @@ function void printPoint(Type:string, Name:string, Mode:string, Hash:string, Poi
     elseif(Mode == "INS")
     {
         Del  = ", "
-        Ins = "  asmlib.InsertRecord({"+
+        Ins = "  PIECES:Record({"+
             "\""+Hash+"\""+Del+
             "\""+Type+"\""+Del+
             "\""+Name+"\""+Del+
@@ -172,7 +172,7 @@ if(first() || dupefinished())
     Base = Chip:isConstrainedTo("weld")
     Mod  = Base:model()
     No   = findByModel(Prop)
-    Dev  = findClosest(Chip:massCenter())
+    Dev  = findClosest(Chip:pos())
     Dev:setColor(0,255,0,255)
     TrackRangerMaxW = TrackPieceW * 2
     TrackRangerMaxH = TrackPieceH * 2

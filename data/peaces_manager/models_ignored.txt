@@ -4157,3 +4157,13 @@ models/buildingspack/stores/4_1gas_station_b_nolot.mdl
 models/buildingspack/stores/4_2pcshop_nolot.mdl
 models/buildingspack/stores/4_3gunshop_nolot.mdl
 models/buildingspack/stores/4_4bank_nolot.mdl
+
+# Joe's track pack 
+models/joe/props_promontory/engine_shed.mdl
+models/joe/props_promontory/insulators.mdl
+models/joe/props_promontory/station_1.mdl
+models/joe/props_promontory/store_1.mdl
+models/joe/props_promontory/telegraph_pole.mdl
+models/joe/props_promontory/tent_1.mdl
+models/joe/props_promontory/tent_2.mdl
+models/joe/props_promontory/tent_3.mdl
