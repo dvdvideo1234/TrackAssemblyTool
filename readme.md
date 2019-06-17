@@ -95,6 +95,19 @@ In this working mode the angular and linear offsets adjust the piece offsets rel
 position where the trace and relation rays meet. Press `ATTACK1` ( Def: Left click ) if you are happy with where
 the ghost is located and where the spawn piece will go at.
 
+#### The tool has too few track varieties. Can you make the pieces resizable ?
+In sorta yes, however, there is no way to add this feature natively and so far I did not found a decent method,
+which will not potentially break the entire game. While resizing props client-side is quite easy, in the server,
+this task is very hard, close to impossible. The gmod API does not provide an ellegant solution to this,
+which meets the real-time performance requirements. Resizing track curves is by far the most complex task of this
+sort as far as evert single piece is conserned. If you take the track width in consideratoion, the resizing method
+must not just select `X`, `Y` or `Z` axes, because the piece will get distortions along the curve ( ex. For 90
+degree curves streching by `X` will increase first point lenght, however, it will also adjust the second point width )
+In Gmod there is this [`PhysicsInitConvex`](https://wiki.garrysmod.com/page/Entity/PhysicsInitConvex) API that does
+just that, but the spawning will take a very long time considering the amount it tates to resize every polygon on the
+server. When the track is spawned outside the map bounds it will immidiately crash the game.
+Thus, I beleve that stacking two or more tracks is always better than resizing a prop !
+
 #### How can I use switchers ? I can't seem to make them work.
 Every addon has its own way for dealing with the switchers. Others that are not listed here do not
 have dedicated track switchers, so to switch them you must use two track pieces inside of each other.
@@ -118,35 +131,35 @@ wheels of the train will follow only the track that is currently set being solid
 
 #### How to use the tool control options when building a track ?
 1. Pressing ATTACK1 ( Default: Left mouse button )
-    1. When you are looking at the world the piece will just be spawned on the map.
-    2. When you are looking at one of track piece's pre-defined active points
-      * Will snap the piece that you're holding to the trace one.
-      * If the traced piece's type is different than the holder piece's type,
-        please check `Ignore track type` check-box.
-      * If `Enable advisor` is checked, a coordinate system will appear,
-        marking the origin position on the traced piece
-      * If `Ghosts count` is larger than zero ghosted track pieces will be
-        rendered to assist you with the building.
-    3. When you are not looking at one of track piece's pre-defined active points,
-      * Pressing USE ( Default: E ) Applies the physical settings/properties on a piece.
-      * If not, you will update the piece's bodygroups/skin.
+  * When you are looking at the world the piece will just be spawned on the map.
+  * When you are looking at one of track piece's pre-defined active points
+    * Will snap the piece that you're holding to the trace one.
+    * If the traced piece's type is different than the holder piece's type,
+      please check `Ignore track type` check-box.
+    * If `Enable advisor` is checked, a coordinate system will appear,
+      marking the origin position on the traced piece
+    * If `Ghosts count` is larger than zero ghosted track pieces will be
+      rendered to assist you with the building.
+  * When you are not looking at one of track piece's pre-defined active points,
+    * Pressing USE ( Default: E ) Applies the physical settings/properties on a piece.
+    * If not, you will update the piece's bodygroups/skin.
 2. Pressing SPEED ( Default: SHIFT ) + ATTACK1 ( Default: Left mouse button )
-Will stack as many pieces as shown by the slider `Pieces count`.
+  * Will stack as many pieces as shown by the slider `Pieces count`.
 3. Pressing ATTACK2 ( Default: Right mouse button )
-      * Will select the trace model to use as a piece for building a track.
+  * Will select the trace model to use as a piece for building a track.
 4. Pressing USE ( Default: E ) + ATTACK2 ( Default: Right mouse button )
-      * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame, from where
-       you can select your routine pieces to use again in the track building process
-       as well as [searching in the table](https://github.com/dvdvideo1234/TrackAssemblyTool#hey-there-is-a-text-box-and-a-drop-down-menu-next-to-the-exportdb-button-what-are-these-for-) either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece
-       you want to continue your track with.
+  * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame, from where
+    you can select your routine pieces to use again in the track building process
+    as well as [searching in the table](https://github.com/dvdvideo1234/TrackAssemblyTool#hey-there-is-a-text-box-and-a-drop-down-menu-next-to-the-exportdb-button-what-are-these-for-) either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece
+    you want to continue your track with.
 5. Pressing RELOAD ( Default: R )
-      * When used in the world exports the database if the console variable `trackassembly_exportdb` is set to <>0,
-      * When used on trace it removes it, if it's a track piece.
+  * When used in the world exports the database if the console variable `trackassembly_exportdb` is set to <>0,
+  * When used on trace it removes it, if it's a track piece.
 6. Pressing RELOAD ( Default: R ) + SPEED ( Default: SHIFT )
-      * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
-      * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
-      
-#### How to use the tool caontrol panel and what function does each item has ?
+  * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
+  * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
+
+#### How to use the tool control panel and what function does each item have ?
 1. `Track surface grip modifier` combo box is used if you want to obtain different
     grip behavior for a wheel-powered/sliding train,
     you must use the surface material drop-down menu combo boxes as you select first
