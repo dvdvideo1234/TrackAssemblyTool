@@ -879,7 +879,7 @@ function MakeContainer(sKey, sDef)
   function self:Select(nsKey)
     local iK = (nsKey or mDef); return mData[iK]
   end
-  function self:Clear() 
+  function self:Clear()
     tableEmpty(self:GetData())
     tableEmpty(self:GetHashID())
     miTop, miAll, mhCnt = 0, 0, 0

@@ -914,8 +914,8 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
         local inf = tostring(row[3] or "")
         local foo = arK.Draw[typ]
         if(foo) then
-          local bs, se = pcall(foo, oScreen, key, typ, inf, arK, stS)
-          if(not bs) then asmlib.LogInstance(se,gtArgsLogs); return end
+          local bs, sr = pcall(foo, oScreen, key, typ, inf, arK, stS)
+          if(not bs) then asmlib.LogInstance(sr, gtArgsLogs); return end
         else
           local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
           local val = tostring(stS[key] or "")
@@ -1343,7 +1343,11 @@ function TOOL.BuildCPanel(CPanel)
             asmlib.SetAsmConvar(nil,"bgskids",sTX)
           end
         end; CurY = CurY + pText:GetTall() + 2
-  CPanel:AddItem(pText)
+  local sName = asmlib.GetAsmConvar("bgskids", "NAM")
+  cvarsRemoveChangeCallback(sName, sName.."_call")
+  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
+    pText:SetText(vNew); pText:SetValue(vNew)
+  end); CPanel:AddItem(pText)
 
   local snapInc    = asmlib.GetActionCode("INCREMENT_SNAP")
   local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")

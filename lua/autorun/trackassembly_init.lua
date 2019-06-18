@@ -40,6 +40,7 @@ local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
+local propertiesAdd                 = properties and properties.Add
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -49,7 +50,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.544")
+asmlib.SetOpVar("TOOL_VERSION","6.545")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -116,6 +117,7 @@ end)
 asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
 
 ------ GLOBAL VARIABLES ------
+local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -187,7 +189,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     {"RLen", "NUM", "Piece active radius"}
   },
   {Name = "Holder",
-    {"HRec", "TAB", "Pointer to the holder record"},
+    {"HRec", "RDB", "Pointer to the holder record"},
     {"HID" , "NUM", "Point ID the holder has selected"},
     {"HPnt", "VEC", "P # Holder active point location"},
     {"HOrg", "VEC", "O # Holder piece location origin when snapped"},
@@ -195,7 +197,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     {"HMtx", "MTX", "Holder translation and rotation matrix"}
   },
   {Name = "Traced",
-    {"TRec", "TAB", "Pointer to the trace record"},
+    {"TRec", "RDB", "Pointer to the trace record"},
     {"TID" , "NUM", "Point ID that the trace has found"},
     {"TPnt", "VEC", "P # Trace active point location"},
     {"TOrg", "VEC", "O # Trace piece location origin when snapped"},
@@ -720,7 +722,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               actMonitor:DrawCircle(xyB, rdS, "y")
               actMonitor:DrawLine  (xyB, xyP, "r")
               actMonitor:DrawLine  (xyB, xyO, "y")
-              -- Origin and spawn infoarmation
+              -- Origin and spawn information
               actMonitor:DrawLine  (xyO, xyS, "m")
               actMonitor:DrawCircle(xyS, rdS, "c")
               -- Origin and base coordinate systems
@@ -759,6 +761,43 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
     end)
 
 end
+
+------ INITIALIZE CONTEXT PROPERTIES ------
+
+propertiesAdd("track_assembly",{
+  Order = 500,
+  MenuIcon = "icon16/database_gear.png",
+  MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name"),
+  ManuList = {
+    {"Export visuals", function(ent)
+      local bgskids = GetPropBodyGroup(ent)..gsSymDir..asmlib.GetPropSkin(ent)
+      SetAsmConvar(nil, "bgskids", bgskids)
+    end}
+  }; ManuList.Size = #ManuList
+
+
+  Filter = function(self, ent, ply)
+    if(amlib.IsOther(ent)) then return false end
+    if(ent:IsPlayer()) then return false end
+    local oRec = asmlib.CacheQueryPiece(ent:GetModel())
+    if(not asmlib.IsHere(oRec)) then return false end
+    return true -- The entity is track piece
+  end,
+
+  MenuOpen = function(self, option, ent, tr)
+    local subMenu = option:AddSubMenu()
+
+    for iD = 1, ManuList.Size do local vL = ManuList[iD]
+      local subOpt = subMenu:AddOption(vL[1], vL[2])
+    end
+  end,
+
+  Action = function(self, ent)
+
+
+
+  end
+})
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
