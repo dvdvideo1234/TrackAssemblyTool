@@ -3678,7 +3678,8 @@ end
 
 function GetPhrase(sKey)
   local sDef = GetOpVar("MISS_NOTR")
-  local tSet = GetOpVar("LOCALIFY_TABLE")
+  local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
+    LogInstance("Skip <"..sKey..">"); return GetOpVar("MISS_NOTR") end
   local sKey = tostring(sKey) if(not IsHere(tSet[sKey])) then
     LogInstance("Miss <"..sKey..">"); return GetOpVar("MISS_NOTR") end
   return (tSet[sKey] or GetOpVar("MISS_NOTR")) -- Translation fail safe

@@ -1334,20 +1334,13 @@ function TOOL.BuildCPanel(CPanel)
         pText:SetTall(18)
         pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
         pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
-        pText.OnKeyCodeTyped = function(pnSelf, nKey)
-          if(nKey == KEY_TAB) then
-            local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()
-            pnSelf:SetText(sTX); pnSelf:SetValue(sTX)
-          elseif(nKey == KEY_ENTER) then
-            local sTX = tostring(pnSelf:GetValue() or "")
-            asmlib.SetAsmConvar(nil,"bgskids",sTX)
-          end
-        end; CurY = CurY + pText:GetTall() + 2
-  local sName = asmlib.GetAsmConvar("bgskids", "NAM")
-  cvarsRemoveChangeCallback(sName, sName.."_call")
-  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
-    pText:SetText(vNew); pText:SetValue(vNew)
-  end); CPanel:AddItem(pText)
+        pText:SetEnabled(false)
+        CurY = CurY + pText:GetTall() + 2
+  local sText = asmlib.GetAsmConvar("bgskids", "NAM")
+  local fText = function(sVar, vOld, vNew) pText:SetText(vNew); pText:SetValue(vNew) end
+  cvarsRemoveChangeCallback(sText, sText.."_call")
+  cvarsAddChangeCallback(sText, fText, sText.."_call");
+  CPanel:AddItem(pText)
 
   local snapInc    = asmlib.GetActionCode("INCREMENT_SNAP")
   local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")

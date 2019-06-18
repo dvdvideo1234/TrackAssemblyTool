@@ -5,6 +5,7 @@ end
 include("trackassembly/trackasmlib.lua")
 
 ------ LOCALIZNG FUNCTIONS ---
+local pcall                         = pcall
 local Angle                         = Angle
 local Vector                        = Vector
 local IsValid                       = IsValid
@@ -38,6 +39,7 @@ local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
 local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
+local gamemodeCall                  = gamemode and gamemode.Call
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local propertiesAdd                 = properties and properties.Add
@@ -50,7 +52,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.545")
+asmlib.SetOpVar("TOOL_VERSION","6.546")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -101,9 +103,9 @@ asmlib.SetAsmCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
   function(v) return mathFloor(tonumber(v) or 0) end)
 asmlib.SetAsmCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
 
-local sName = asmlib.GetAsmConvar("timermode", "NAM")
-cvarsRemoveChangeCallback(sName, sName.."_call")
-cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
+local gsTimerMD = asmlib.GetAsmConvar("timermode", "NAM")
+cvarsRemoveChangeCallback(gsTimerMD, gsTimerMD.."_call")
+cvarsAddChangeCallback(gsTimerMD, function(sVar, vOld, vNew)
   local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
   local mkTab, ID = asmlib.GetBuilderID(1), 1
   while(mkTab) do local sTim = arTim[ID]
@@ -111,7 +113,7 @@ cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
     asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..sTim..">",gtInitLogs)
     ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
   end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
-end)
+end, gsTimerMD.."_call")
 
 ------ BORDERS -------------
 asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
@@ -763,41 +765,37 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 end
 
 ------ INITIALIZE CONTEXT PROPERTIES ------
-
-propertiesAdd("track_assembly",{
-  Order = 500,
-  MenuIcon = "icon16/database_gear.png",
-  MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name"),
-  ManuList = {
-    {"Export visuals", function(ent)
-      local bgskids = GetPropBodyGroup(ent)..gsSymDir..asmlib.GetPropSkin(ent)
-      SetAsmConvar(nil, "bgskids", bgskids)
-    end}
-  }; ManuList.Size = #ManuList
-
-
-  Filter = function(self, ent, ply)
-    if(amlib.IsOther(ent)) then return false end
-    if(ent:IsPlayer()) then return false end
-    local oRec = asmlib.CacheQueryPiece(ent:GetModel())
-    if(not asmlib.IsHere(oRec)) then return false end
-    return true -- The entity is track piece
-  end,
-
-  MenuOpen = function(self, option, ent, tr)
-    local subMenu = option:AddSubMenu()
-
-    for iD = 1, ManuList.Size do local vL = ManuList[iD]
-      local subOpt = subMenu:AddOption(vL[1], vL[2])
-    end
-  end,
-
-  Action = function(self, ent)
-
-
-
+local gsOptionsCM = gsToolNameL.."_context_menu"
+local gtOptionsCM = {}
+gtOptionsCM.Order = 1600
+gtOptionsCM.MenuIcon = "icon16/database_gear.png"
+gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
+gtOptionsCM.Filter = function(self, ent, ply)
+  if(asmlib.IsOther(ent)) then return false end
+  if(ent:IsPlayer()) then return false end
+  local oRec = asmlib.CacheQueryPiece(ent:GetModel())
+  if(not asmlib.IsHere(oRec)) then return false end
+  if (not gamemodeCall("CanProperty", ply, gsOptionsCM, ent)) then return false end
+  return true -- The entity is track piece
+end
+gtOptionsCM.MenuOpen = function(self, option, ent, tr)
+  gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
+  local subOpts = gtOptionsCM.__Options
+  local subMenu = option:AddSubMenu()
+  for iD = 1, subOpts.Size do local vL = subOpts[iD]
+    local subOpt = subMenu:AddOption(asmlib.GetPhrase(vL[1]), function()
+      local bs, sr = pcall(vL[2], self, option, ent, tr)
+      if(not bs) then asmlib.LogInstance(sr, gtArgsLogs); return end
+    end)
   end
-})
+end
+gtOptionsCM.__Options = {
+  {"tool."..gsToolNameL..".bgskids", function(tab, option, ent, tr)
+    local bgskids = asmlib.GetPropBodyGroup(ent)..gsSymDir..
+      asmlib.GetPropSkin(ent); asmlib.SetAsmConvar(nil, "bgskids", bgskids) end
+  }
+}; gtOptionsCM.__Options.Size = #gtOptionsCM.__Options
+propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
