@@ -1226,7 +1226,7 @@ function TOOL.BuildCPanel(CPanel)
   local pTree    = vguiCreate("DTree", CPanel)
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 400)
-        pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con"))
+        pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
         pTree:SetIndentSize(0)
   local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
   while(cqPanel[iCnt]) do local vRec = cqPanel[iCnt]
@@ -1267,7 +1267,7 @@ function TOOL.BuildCPanel(CPanel)
       -- Register the node associated with the track piece
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
-      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model").." > "..sMod)
+      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
       pNode.Icon:SetImage("icon16/brick.png")
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
@@ -1324,6 +1324,10 @@ function TOOL.BuildCPanel(CPanel)
       while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
+  local sText = asmlib.GetAsmConvar("physmater", "NAM")
+  local fText = function(sVar, vOld, vNew) pComboPhysName:SetValue(vNew) end
+  cvarsRemoveChangeCallback(sText, sText.."_call")
+  cvarsAddChangeCallback(sText, fText, sText.."_call");
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
   CPanel:AddItem(pComboPhysName); asmlib.LogTable(cqProperty,"Property",sLog)

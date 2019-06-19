@@ -52,7 +52,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.548")
+asmlib.SetOpVar("TOOL_VERSION","6.549")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -767,6 +767,12 @@ end
 
 ------ INITIALIZE CONTEXT PROPERTIES ------
 local gtOptionsFL = {
+  {"tool."..gsToolNameL..".model_con",
+    function(oPly, ePiece)
+      local model = ePiece:GetModel()
+      asmlib.SetAsmConvar(oPly, "model", model)
+    end
+  },
   {"tool."..gsToolNameL..".bgskids_con",
     function(oPly, ePiece)
       local bgskids = asmlib.GetPropBodyGroup(ePiece)..gsSymDir..
@@ -775,12 +781,14 @@ local gtOptionsFL = {
   {"tool."..gsToolNameL..".mass_con",
     function(oPly, ePiece)
       local mass = ePiece:GetPhysicsObject():GetMass()
-        asmlib.SetAsmConvar(oPly, "mass", mass) end
+      asmlib.SetAsmConvar(oPly, "mass", mass)
+    end
   },
-  {"tool."..gsToolNameL..".physmater_con",
+  {"tool."..gsToolNameL..".phyname_con",
     function(oPly, ePiece)
       local physmater = ePiece:GetPhysicsObject():GetMaterial()
-        asmlib.SetAsmConvar(oPly, "physmater", physmater) end
+      asmlib.SetAsmConvar(oPly, "physmater", physmater)
+    end
   },
   {"tool."..gsToolNameL..".ignphysgn_con",
     function(oPly, ePiece)
@@ -788,6 +796,18 @@ local gtOptionsFL = {
         ePiece.PhysgunDisabled = bPi
         ePiece:SetUnFreezable(bPi)
         ePiece:SetMoveType(MOVETYPE_VPHYSICS) end
+  },
+  {"tool."..gsToolNameL..".freeze_con",
+    function(oPly, ePiece) local phPiece = ePiece:GetPhysicsObject()
+      local freeze = (not phPiece:IsMotionEnabled())
+      phPiece:EnableMotion(freeze)
+    end
+  },
+  {"tool."..gsToolNameL..".gravity_con",
+    function(oPly, ePiece) local phPiece = ePiece:GetPhysicsObject()
+      local gravity = phPiece:IsGravityEnabled()
+      phPiece:EnableGravity(not gravity)
+    end
   }
 }; gtOptionsFL.Size = #gtOptionsFL
 
@@ -806,19 +826,20 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
   gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
   local mnu = option:AddSubMenu()
   for iD = 1, gtOptionsFL.Size do local lin = gtOptionsFL[iD]
-    mnu:AddOption(asmlib.GetPhrase(lin[1]):sub(1,-2), function() self:Transfer(ent, iD) end)
+    mnu:AddOption(asmlib.GetPhrase(lin[1]):Trim():Trim(":"),
+      function() self:Transfer(ent, iD) end)
   end
 end
 gtOptionsCM.Action = function(self, ent, tr)
   -- Not used. Use the transfer function instead
 end
-gtOptionsCM.Transfer = function(ent, idx)
+gtOptionsCM.Transfer = function(self, ent, idx)
   self:MsgStart()
     net.WriteEntity(ent)
     net.WriteUInt(idx, 8)
   self:MsgEnd()
 end
-gtOptionsCM.Receive = function(self, len, ply);
+gtOptionsCM.Receive = function(self, len, ply)
   local ent = net.ReadEntity()
   local idx = net.ReadUInt(8)
   local log = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
