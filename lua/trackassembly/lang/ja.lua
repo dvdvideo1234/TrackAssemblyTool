@@ -75,7 +75,7 @@
   tSet["tool."..sTool..".pn_export"     ] = "クリックでクライアントデータベースをファイルにエクスポート"
   tSet["tool."..sTool..".pn_export_lb"  ] = "DB エクスポート"
   tSet["tool."..sTool..".pn_routine"    ] = "よく使った線路部分表"
-  tSet["tool."..sTool..".pn_routine_hd" ] = "よく使った部分: "
+  tSet["tool."..sTool..".pn_routine_hd" ] = "よく使った部分:"
   tSet["tool."..sTool..".pn_display"    ] = "プレーやの線路部分ここに映る"
   tSet["tool."..sTool..".pn_pattern"    ] = "ここにパターンを書くとサーチするためにENTERを押して"
   tSet["tool."..sTool..".pn_srchcol"    ] = "サーチするコラムを選択し"

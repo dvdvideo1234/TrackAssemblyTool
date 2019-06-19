@@ -75,7 +75,7 @@
   tSet["tool."..sTool..".pn_export"     ] = "Нажмите чтобы сохранить файл базы данных"
   tSet["tool."..sTool..".pn_export_lb"  ] = "Экспорт БД"
   tSet["tool."..sTool..".pn_routine"    ] = "Список регулярно используемых кусков дороги"
-  tSet["tool."..sTool..".pn_routine_hd" ] = "Часто используемых кусков пользователя: "
+  tSet["tool."..sTool..".pn_routine_hd" ] = "Часто используемых кусков пользователя:"
   tSet["tool."..sTool..".pn_display"    ] = "Модель вашего куска дороги здесь отображается"
   tSet["tool."..sTool..".pn_pattern"    ] = "Напишите шаблон здесь и нажмите ВВОД для выполнения поиска"
   tSet["tool."..sTool..".pn_srchcol"    ] = "Выберите столбец для поиска"

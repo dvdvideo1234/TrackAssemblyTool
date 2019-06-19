@@ -75,7 +75,7 @@
   tSet["tool."..sTool..".pn_export"     ] = "Cliquer pour exporter la base de donnees client dans un fichier"
   tSet["tool."..sTool..".pn_export_lb"  ] = "Exporter"
   tSet["tool."..sTool..".pn_routine"    ] = "La liste de vos pieces de pistes utilises frequemment"
-  tSet["tool."..sTool..".pn_routine_hd" ] = "Pieces frequents par: "
+  tSet["tool."..sTool..".pn_routine_hd" ] = "Pieces frequents par:"
   tSet["tool."..sTool..".pn_display"    ] = "Le modele de votre piece de piste est affiche ici"
   tSet["tool."..sTool..".pn_pattern"    ] = "Ecrire un modele ici et appuyer sur ENTREE pour effectuer une recherche"
   tSet["tool."..sTool..".pn_srchcol"    ] = "Choisir la liste de colonne auquel vous voulez effectuer une recherche sur"

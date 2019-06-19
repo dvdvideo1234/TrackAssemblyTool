@@ -75,7 +75,7 @@
   tSet["tool."..sTool..".pn_export"     ] = "Цъкнете за да съхраните базата данни на файл"
   tSet["tool."..sTool..".pn_export_lb"  ] = "Съхрани DB"
   tSet["tool."..sTool..".pn_routine"    ] = "Списъкът с редовно използваните ви парчета трасе"
-  tSet["tool."..sTool..".pn_routine_hd" ] = "Редовни парчета на: "
+  tSet["tool."..sTool..".pn_routine_hd" ] = "Редовни парчета на:"
   tSet["tool."..sTool..".pn_display"    ] = "Моделът на вашето парче трасе се показва тук"
   tSet["tool."..sTool..".pn_pattern"    ] = "Напишете шаблон тук и натиснете ЕНТЪР за да извършите търсене"
   tSet["tool."..sTool..".pn_srchcol"    ] = "Изберете по коя колона да извършите търсене"
