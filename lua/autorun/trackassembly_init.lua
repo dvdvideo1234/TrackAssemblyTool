@@ -52,7 +52,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.550")
+asmlib.SetOpVar("TOOL_VERSION","6.551")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -793,14 +793,15 @@ local gtOptionsFL = {
   {"tool."..gsToolNameL..".ignphysgn_con",
     function(oPly, ePiece)
       local bPi = (not tobool(ePiece.PhysgunDisabled))
-        ePiece.PhysgunDisabled = bPi
-        ePiece:SetUnFreezable(bPi)
-        ePiece:SetMoveType(MOVETYPE_VPHYSICS) end
+      ePiece.PhysgunDisabled = bPi
+      ePiece:SetUnFreezable(bPi)
+      ePiece:SetMoveType(MOVETYPE_VPHYSICS)
+    end
   },
   {"tool."..gsToolNameL..".freeze_con",
     function(oPly, ePiece) local phPiece = ePiece:GetPhysicsObject()
-      local freeze = (not phPiece:IsMotionEnabled())
-      phPiece:EnableMotion(freeze)
+      local motion = phPiece:IsMotionEnabled()
+      phPiece:EnableMotion(not motion)
     end
   },
   {"tool."..gsToolNameL..".gravity_con",
