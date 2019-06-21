@@ -1268,9 +1268,9 @@ function GetDirectoryObj(pCurr, vName)
     LogInstance("Location invalid"); return nil end
   local sName = tostring(vName or "")
         sName = IsBlank(sName) and "Other" or sName
-  if(not pCurr[sName]) then
+  local pItem = pCurr[sName]; if(not IsHere(pItem)) then
     LogInstance("Name missing <"..sName..">"); return nil end
-  return pCurr[sName], pCurr[sName].__ObjPanel__
+  return pItem, pItem.__ObjPanel__
 end
 
 function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)

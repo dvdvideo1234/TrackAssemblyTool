@@ -52,7 +52,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.552")
+asmlib.SetOpVar("TOOL_VERSION","6.553")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -765,7 +765,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
 end
 
------- INITIALIZE CONTEXT PROPERTIES ------ (label, function, instance)
+------ INITIALIZE CONTEXT PROPERTIES ------ (label, function, transfer)
 local gtOptionsFL = {
   {"tool."..gsToolNameL..".model_con",
     function(ePiece, oPly)
@@ -832,17 +832,17 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
   end
 end
 gtOptionsCM.Action = function(self, ent, tr)
-  -- Not used. Use the transfer function instead
+  -- Not used. Use the evaluate function instead
 end
 gtOptionsCM.Evaluate = function(self, ent, idx)
   local lin = gtOptionsFL[idx]; if(not lin) then
     asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),log); return end
-  if(lin[3]) then -- SERVER
+  if(lin[3]) then -- Transfer to SERVER
     self:MsgStart()
       net.WriteEntity(ent)
       net.WriteUInt(idx, 8)
     self:MsgEnd()
-  else -- CLIENT
+  else -- Execute on the CLIENT
     local bs, ve = pcall(lin[2], ent, LocalPlayer()); if(not bs) then
       asmlib.LogInstance("Fail: "..tostring(ve),log); return end
   end
@@ -3292,8 +3292,8 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 2 , "water" })
   PHYSPROPERTIES:Record({"#", 3 , "wade"  })
   asmlib.GetCategory("Frozen")
-  PHYSPROPERTIES:Record({"#", 1 , "snow" })
-  PHYSPROPERTIES:Record({"#", 2 , "ice"  })
+  PHYSPROPERTIES:Record({"#", 1 , "snow"      })
+  PHYSPROPERTIES:Record({"#", 2 , "ice"       })
   PHYSPROPERTIES:Record({"#", 3 , "gmod_ice"  })
   asmlib.GetCategory("Miscellaneous")
   PHYSPROPERTIES:Record({"#", 1 , "carpet"       })
