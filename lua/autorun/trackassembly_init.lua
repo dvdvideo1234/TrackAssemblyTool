@@ -52,7 +52,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.553")
+asmlib.SetOpVar("TOOL_VERSION","6.554")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -765,55 +765,68 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
 end
 
------- INITIALIZE CONTEXT PROPERTIES ------ (label, function, transfer)
+------ INITIALIZE CONTEXT PROPERTIES ------ (label, transmit, handler, menudata)
 local gtOptionsFL = {
-  {"tool."..gsToolNameL..".model_con",
-    function(ePiece, oPly)
+  {"tool."..gsToolNameL..".model_con", true,
+    function(ePiece, oPly, oTr, sKey)
       local model = ePiece:GetModel()
       asmlib.SetAsmConvar(oPly, "model", model)
-    end, true
+    end,
+    function(ePiece, oPly, oTr, sKey)
+      return ePiece:GetModel()
+    end
   },
-  {"tool."..gsToolNameL..".bgskids_con",
-    function(ePiece, oPly)
-      local bgskids = asmlib.GetPropBodyGroup(ePiece)..gsSymDir..
-        asmlib.GetPropSkin(ePiece); asmlib.SetAsmConvar(oPly, "bgskids", bgskids)
-    end, true
+  {"tool."..gsToolNameL..".bgskids_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local ski = asmlib.GetPropSkin(ePiece)
+      local bgr = asmlib.GetPropBodyGroup(ePiece)
+      asmlib.SetAsmConvar(oPly, "bgskids", bgr..gsSymDir..ski)
+    end,
+    function(ePiece, oPly, oTr, sKey)
+      local ski = asmlib.GetPropSkin(ePiece)
+      local bgr = asmlib.GetPropBodyGroup(ePiece)
+      return (bgr..gsSymDir..ski)
+    end
   },
-  {"tool."..gsToolNameL..".mass_con",
-    function(ePiece, oPly)
-      local mass = ePiece:GetPhysicsObject():GetMass()
-      asmlib.SetAsmConvar(oPly, "mass", mass)
-    end, true
-  },
-  {"tool."..gsToolNameL..".phyname_con",
-    function(ePiece, oPly)
+  {"tool."..gsToolNameL..".phyname_con", true,
+    function(ePiece, oPly, oTr, sKey)
       local physmater = ePiece:GetPhysicsObject():GetMaterial()
       asmlib.SetAsmConvar(oPly, "physmater", physmater)
-    end, true
+    end
   },
-  {"tool."..gsToolNameL..".ignphysgn_con",
-    function(ePiece, oPly)
+  {"tool."..gsToolNameL..".mass_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local phPiece = ePiece:GetPhysicsObject()
+      local mass = phPiece:GetMass()
+      asmlib.SetAsmConvar(oPly, "mass", mass)
+    end
+  },
+  {"tool."..gsToolNameL..".ignphysgn_con", true,
+    function(ePiece, oPly, oTr, sKey)
       local bPi = (not tobool(ePiece.PhysgunDisabled))
       ePiece.PhysgunDisabled = bPi
       ePiece:SetUnFreezable(bPi)
       ePiece:SetMoveType(MOVETYPE_VPHYSICS)
-    end, true
+    end
   },
-  {"tool."..gsToolNameL..".freeze_con",
-    function(ePiece, oPly) local phPiece = ePiece:GetPhysicsObject()
+  {"tool."..gsToolNameL..".freeze_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local phPiece = ePiece:GetPhysicsObject()
       local motion = phPiece:IsMotionEnabled()
       phPiece:EnableMotion(not motion)
-    end, true
+    end
   },
-  {"tool."..gsToolNameL..".gravity_con",
-    function(ePiece, oPly) local phPiece = ePiece:GetPhysicsObject()
+  {"tool."..gsToolNameL..".gravity_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local phPiece = ePiece:GetPhysicsObject()
       local gravity = phPiece:IsGravityEnabled()
       phPiece:EnableGravity(not gravity)
-    end, true
+    end
   }
 }; gtOptionsFL.Size = #gtOptionsFL
 
 local gsOptionsCM, gtOptionsCM = gsToolPrefL.."context_menu", {}
+local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
 gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
 gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 gtOptionsCM.Filter = function(self, ent, ply)
@@ -825,37 +838,47 @@ gtOptionsCM.Filter = function(self, ent, ply)
 end
 gtOptionsCM.MenuOpen = function(self, option, ent, tr)
   gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
-  local mnu = option:AddSubMenu()
-  for iD = 1, gtOptionsFL.Size do local lin = gtOptionsFL[iD]
-    mnu:AddOption(asmlib.GetPhrase(lin[1]):Trim():Trim(":"),
-      function() self:Evaluate(ent, iD) end)
+  local mnu, oPly = option:AddSubMenu(), LocalPlayer()
+  for iD = 1, gtOptionsFL.Size do
+    local sLine = gtOptionsFL[iD]
+    local sKey, fDraw  = sLine[1], sLine[4]
+    local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
+    if(type(fDraw) == "function") then
+      local bs, ve = pcall(fDraw, ent, oPly, tr, sKey); if(not bs) then
+        asmlib.LogInstance("Fail("..tostring(iD).."): "..tostring(ve),gsOptionsLG); return end
+      sName = sName..": "..tostring(ve)
+    end; mnu:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
   end
 end
 gtOptionsCM.Action = function(self, ent, tr)
   -- Not used. Use the evaluate function instead
 end
-gtOptionsCM.Evaluate = function(self, ent, idx)
-  local lin = gtOptionsFL[idx]; if(not lin) then
-    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),log); return end
-  if(lin[3]) then -- Transfer to SERVER
+gtOptionsCM.Evaluate = function(self, ent, idx, key)
+  local tLine = gtOptionsFL[idx]; if(not tLine) then
+    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
+  local bTrans, fHandle = tLine[2], tLine[3]
+  if(bTrans) then -- Transfer to SERVER
     self:MsgStart()
       net.WriteEntity(ent)
       net.WriteUInt(idx, 8)
     self:MsgEnd()
-  else -- Execute on the CLIENT
-    local bs, ve = pcall(lin[2], ent, LocalPlayer()); if(not bs) then
-      asmlib.LogInstance("Fail: "..tostring(ve),log); return end
+  else
+    local oPly = LocalPlayer()
+    local oTr  = oPly:GetEyeTrace()
+    local bs, ve = pcall(fHandle, ent, oPly, oTr, key); if(not bs) then
+      asmlib.LogInstance("Fail: "..tostring(ve),gsOptionsLG); return end
   end
 end
 gtOptionsCM.Receive = function(self, len, ply)
   local ent = net.ReadEntity()
   local idx = net.ReadUInt(8)
-  local log = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
-  local lin = gtOptionsFL[idx]; if(not lin) then
-    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),log); return end
+  local oTr = ply:GetEyeTrace()
+  local tLine = gtOptionsFL[idx]; if(not tLine) then
+    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
   if(not self:Filter(ent, ply)) then return end
-  local bs, ve = pcall(lin[2], ent, ply); if(not bs) then
-    asmlib.LogInstance("Fail: "..tostring(ve),log); return end
+  local fHandle = tLine[3] -- Menu function handle
+  local bs, ve = pcall(fHandle, ent, ply, oTr); if(not bs) then
+    asmlib.LogInstance("Fail: "..tostring(ve),gsOptionsLG); return end
 end -- Register the setup in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)
 
