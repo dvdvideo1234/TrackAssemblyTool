@@ -914,8 +914,8 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
         local inf = tostring(row[3] or "")
         local foo = arK.Draw[typ]
         if(foo) then
-          local bs, se = pcall(foo, oScreen, key, typ, inf, arK, stS)
-          if(not bs) then asmlib.LogInstance(se,gtArgsLogs); return end
+          local bs, sr = pcall(foo, oScreen, key, typ, inf, arK, stS)
+          if(not bs) then asmlib.LogInstance(sr, gtArgsLogs); return end
         else
           local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
           local val = tostring(stS[key] or "")
@@ -1226,7 +1226,7 @@ function TOOL.BuildCPanel(CPanel)
   local pTree    = vguiCreate("DTree", CPanel)
         pTree:SetPos(2, CurY)
         pTree:SetSize(2, 400)
-        pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con"))
+        pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
         pTree:SetIndentSize(0)
   local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
   while(cqPanel[iCnt]) do local vRec = cqPanel[iCnt]
@@ -1267,7 +1267,7 @@ function TOOL.BuildCPanel(CPanel)
       -- Register the node associated with the track piece
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
-      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model").." > "..sMod)
+      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
       pNode.Icon:SetImage("icon16/brick.png")
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
@@ -1324,6 +1324,10 @@ function TOOL.BuildCPanel(CPanel)
       while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
+  local sText = asmlib.GetAsmConvar("physmater", "NAM")
+  local fText = function(sVar, vOld, vNew) pComboPhysName:SetValue(vNew) end
+  cvarsRemoveChangeCallback(sText, sText.."_call")
+  cvarsAddChangeCallback(sText, fText, sText.."_call");
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
   CPanel:AddItem(pComboPhysName); asmlib.LogTable(cqProperty,"Property",sLog)
@@ -1334,15 +1338,12 @@ function TOOL.BuildCPanel(CPanel)
         pText:SetTall(18)
         pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
         pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
-        pText.OnKeyCodeTyped = function(pnSelf, nKey)
-          if(nKey == KEY_TAB) then
-            local sTX = asmlib.GetPropBodyGroup()..gsSymDir..asmlib.GetPropSkin()
-            pnSelf:SetText(sTX); pnSelf:SetValue(sTX)
-          elseif(nKey == KEY_ENTER) then
-            local sTX = tostring(pnSelf:GetValue() or "")
-            asmlib.SetAsmConvar(nil,"bgskids",sTX)
-          end
-        end; CurY = CurY + pText:GetTall() + 2
+        pText:SetEnabled(false)
+        CurY = CurY + pText:GetTall() + 2
+  local sText = asmlib.GetAsmConvar("bgskids", "NAM")
+  local fText = function(sVar, vOld, vNew) pText:SetText(vNew); pText:SetValue(vNew) end
+  cvarsRemoveChangeCallback(sText, sText.."_call")
+  cvarsAddChangeCallback(sText, fText, sText.."_call");
   CPanel:AddItem(pText)
 
   local snapInc    = asmlib.GetActionCode("INCREMENT_SNAP")

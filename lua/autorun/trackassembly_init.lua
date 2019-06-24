@@ -5,6 +5,7 @@ end
 include("trackassembly/trackasmlib.lua")
 
 ------ LOCALIZNG FUNCTIONS ---
+local pcall                         = pcall
 local Angle                         = Angle
 local Vector                        = Vector
 local IsValid                       = IsValid
@@ -38,8 +39,10 @@ local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
 local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
+local gamemodeCall                  = gamemode and gamemode.Call
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
+local propertiesAdd                 = properties and properties.Add
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -49,7 +52,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.544")
+asmlib.SetOpVar("TOOL_VERSION","6.545")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -100,9 +103,9 @@ asmlib.SetAsmCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
   function(v) return mathFloor(tonumber(v) or 0) end)
 asmlib.SetAsmCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
 
-local sName = asmlib.GetAsmConvar("timermode", "NAM")
-cvarsRemoveChangeCallback(sName, sName.."_call")
-cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
+local gsTimerMD = asmlib.GetAsmConvar("timermode", "NAM")
+cvarsRemoveChangeCallback(gsTimerMD, gsTimerMD.."_call")
+cvarsAddChangeCallback(gsTimerMD, function(sVar, vOld, vNew)
   local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
   local mkTab, ID = asmlib.GetBuilderID(1), 1
   while(mkTab) do local sTim = arTim[ID]
@@ -110,12 +113,13 @@ cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
     asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..sTim..">",gtInitLogs)
     ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
   end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
-end)
+end, gsTimerMD.."_call")
 
 ------ BORDERS -------------
 asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
 
 ------ GLOBAL VARIABLES ------
+local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -187,7 +191,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     {"RLen", "NUM", "Piece active radius"}
   },
   {Name = "Holder",
-    {"HRec", "TAB", "Pointer to the holder record"},
+    {"HRec", "RDB", "Pointer to the holder record"},
     {"HID" , "NUM", "Point ID the holder has selected"},
     {"HPnt", "VEC", "P # Holder active point location"},
     {"HOrg", "VEC", "O # Holder piece location origin when snapped"},
@@ -195,7 +199,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     {"HMtx", "MTX", "Holder translation and rotation matrix"}
   },
   {Name = "Traced",
-    {"TRec", "TAB", "Pointer to the trace record"},
+    {"TRec", "RDB", "Pointer to the trace record"},
     {"TID" , "NUM", "Point ID that the trace has found"},
     {"TPnt", "VEC", "P # Trace active point location"},
     {"TOrg", "VEC", "O # Trace piece location origin when snapped"},
@@ -494,6 +498,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local pnTextEntry  = pnElements:Select(4).Panel
       local pnComboBox   = pnElements:Select(5).Panel
       local nRatio       = asmlib.GetOpVar("GOLDEN_RATIO")
+      local sVersion     = asmlib.GetOpVar("TOOL_VERSION")
       local xyZero       = {x =  0, y = 20} -- The start location of left-top
       local xyDelta      = {x = 10, y = 10} -- Distance between panels
       local xySiz        = {x =  0, y =  0} -- Current panel size
@@ -503,7 +508,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       xySiz.x = 750 -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
       xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
-      pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd")..oPly:Nick().." {"..asmlib.GetOpVar("TOOL_VERSION").."}")
+      pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd").." "..oPly:Nick().." {"..sVersion.."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
@@ -573,7 +578,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40); if(not asmlib.IsHere(uiBox)) then
-          asmlib.LogInstance("pnModelPanel.LayoutEntity Box invalid",gtArgsLogs); return nil end
+          asmlib.LogInstance("ModelPanel.LayoutEntity Box invalid",gtArgsLogs); return nil end
         local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
@@ -720,7 +725,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               actMonitor:DrawCircle(xyB, rdS, "y")
               actMonitor:DrawLine  (xyB, xyP, "r")
               actMonitor:DrawLine  (xyB, xyO, "y")
-              -- Origin and spawn infoarmation
+              -- Origin and spawn information
               actMonitor:DrawLine  (xyO, xyS, "m")
               actMonitor:DrawCircle(xyS, rdS, "c")
               -- Origin and base coordinate systems
@@ -759,6 +764,123 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
     end)
 
 end
+
+------ INITIALIZE CONTEXT PROPERTIES ------ (label, transmit, handler, menudata)
+local gtOptionsFL = {
+  {"tool."..gsToolNameL..".model_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local model = ePiece:GetModel()
+      asmlib.SetAsmConvar(oPly, "model", model)
+    end,
+    function(ePiece, oPly, oTr, sKey)
+      return ePiece:GetModel()
+    end
+  },
+  {"tool."..gsToolNameL..".bgskids_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local ski = asmlib.GetPropSkin(ePiece)
+      local bgr = asmlib.GetPropBodyGroup(ePiece)
+      asmlib.SetAsmConvar(oPly, "bgskids", bgr..gsSymDir..ski)
+    end,
+    function(ePiece, oPly, oTr, sKey)
+      local ski = asmlib.GetPropSkin(ePiece)
+      local bgr = asmlib.GetPropBodyGroup(ePiece)
+      return (bgr..gsSymDir..ski)
+    end
+  },
+  {"tool."..gsToolNameL..".phyname_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local physmater = ePiece:GetPhysicsObject():GetMaterial()
+      asmlib.SetAsmConvar(oPly, "physmater", physmater)
+    end
+  },
+  {"tool."..gsToolNameL..".mass_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local phPiece = ePiece:GetPhysicsObject()
+      local mass = phPiece:GetMass()
+      asmlib.SetAsmConvar(oPly, "mass", mass)
+    end
+  },
+  {"tool."..gsToolNameL..".ignphysgn_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local bPi = (not tobool(ePiece.PhysgunDisabled))
+      ePiece.PhysgunDisabled = bPi
+      ePiece:SetUnFreezable(bPi)
+      ePiece:SetMoveType(MOVETYPE_VPHYSICS)
+    end
+  },
+  {"tool."..gsToolNameL..".freeze_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local phPiece = ePiece:GetPhysicsObject()
+      local motion = phPiece:IsMotionEnabled()
+      phPiece:EnableMotion(not motion)
+    end
+  },
+  {"tool."..gsToolNameL..".gravity_con", true,
+    function(ePiece, oPly, oTr, sKey)
+      local phPiece = ePiece:GetPhysicsObject()
+      local gravity = phPiece:IsGravityEnabled()
+      phPiece:EnableGravity(not gravity)
+    end
+  }
+}; gtOptionsFL.Size = #gtOptionsFL
+
+local gsOptionsCM, gtOptionsCM = gsToolPrefL.."context_menu", {}
+local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
+gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
+gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
+gtOptionsCM.Filter = function(self, ent, ply)
+  if(asmlib.IsOther(ent)) then return false end
+  local oRec = asmlib.CacheQueryPiece(ent:GetModel())
+  if(not asmlib.IsHere(oRec)) then return false end
+  if(not gamemodeCall("CanProperty", ply, gsOptionsCM, ent)) then return false end
+  return true -- The entity is track piece and TA menu is available
+end
+gtOptionsCM.MenuOpen = function(self, option, ent, tr)
+  gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
+  local mnu, oPly = option:AddSubMenu(), LocalPlayer()
+  for iD = 1, gtOptionsFL.Size do
+    local sLine = gtOptionsFL[iD]
+    local sKey, fDraw  = sLine[1], sLine[4]
+    local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
+    if(type(fDraw) == "function") then
+      local bs, ve = pcall(fDraw, ent, oPly, tr, sKey); if(not bs) then
+        asmlib.LogInstance("Fail("..tostring(iD).."): "..tostring(ve),gsOptionsLG); return end
+      sName = sName..": "..tostring(ve)
+    end; mnu:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
+  end
+end
+gtOptionsCM.Action = function(self, ent, tr)
+  -- Not used. Use the evaluate function instead
+end
+gtOptionsCM.Evaluate = function(self, ent, idx, key)
+  local tLine = gtOptionsFL[idx]; if(not tLine) then
+    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
+  local bTrans, fHandle = tLine[2], tLine[3]
+  if(bTrans) then -- Transfer to SERVER
+    self:MsgStart()
+      net.WriteEntity(ent)
+      net.WriteUInt(idx, 8)
+    self:MsgEnd()
+  else
+    local oPly = LocalPlayer()
+    local oTr  = oPly:GetEyeTrace()
+    local bs, ve = pcall(fHandle, ent, oPly, oTr, key); if(not bs) then
+      asmlib.LogInstance("Fail: "..tostring(ve),gsOptionsLG); return end
+  end
+end
+gtOptionsCM.Receive = function(self, len, ply)
+  local ent = net.ReadEntity()
+  local idx = net.ReadUInt(8)
+  local oTr = ply:GetEyeTrace()
+  local tLine = gtOptionsFL[idx]; if(not tLine) then
+    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
+  if(not self:Filter(ent, ply)) then return end
+  local fHandle = tLine[3] -- Menu function handle
+  local bs, ve = pcall(fHandle, ent, ply, oTr); if(not bs) then
+    asmlib.LogInstance("Fail: "..tostring(ve),gsOptionsLG); return end
+end -- Register the setup in the context menu
+propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
@@ -3193,8 +3315,8 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 2 , "water" })
   PHYSPROPERTIES:Record({"#", 3 , "wade"  })
   asmlib.GetCategory("Frozen")
-  PHYSPROPERTIES:Record({"#", 1 , "snow" })
-  PHYSPROPERTIES:Record({"#", 2 , "ice"  })
+  PHYSPROPERTIES:Record({"#", 1 , "snow"      })
+  PHYSPROPERTIES:Record({"#", 2 , "ice"       })
   PHYSPROPERTIES:Record({"#", 3 , "gmod_ice"  })
   asmlib.GetCategory("Miscellaneous")
   PHYSPROPERTIES:Record({"#", 1 , "carpet"       })

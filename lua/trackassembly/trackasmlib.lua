@@ -879,7 +879,7 @@ function MakeContainer(sKey, sDef)
   function self:Select(nsKey)
     local iK = (nsKey or mDef); return mData[iK]
   end
-  function self:Clear() 
+  function self:Clear()
     tableEmpty(self:GetData())
     tableEmpty(self:GetHashID())
     miTop, miAll, mhCnt = 0, 0, 0
@@ -1268,9 +1268,9 @@ function GetDirectoryObj(pCurr, vName)
     LogInstance("Location invalid"); return nil end
   local sName = tostring(vName or "")
         sName = IsBlank(sName) and "Other" or sName
-  if(not pCurr[sName]) then
+  local pItem = pCurr[sName]; if(not IsHere(pItem)) then
     LogInstance("Name missing <"..sName..">"); return nil end
-  return pCurr[sName], pCurr[sName].__ObjPanel__
+  return pItem, pItem.__ObjPanel__
 end
 
 function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
@@ -3678,7 +3678,8 @@ end
 
 function GetPhrase(sKey)
   local sDef = GetOpVar("MISS_NOTR")
-  local tSet = GetOpVar("LOCALIFY_TABLE")
+  local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
+    LogInstance("Skip <"..sKey..">"); return GetOpVar("MISS_NOTR") end
   local sKey = tostring(sKey) if(not IsHere(tSet[sKey])) then
     LogInstance("Miss <"..sKey..">"); return GetOpVar("MISS_NOTR") end
   return (tSet[sKey] or GetOpVar("MISS_NOTR")) -- Translation fail safe
