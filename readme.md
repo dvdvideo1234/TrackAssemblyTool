@@ -159,6 +159,33 @@ wheels of the train will follow only the track that is currently set being solid
   * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
   * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
 
+#### Context menu pieces manipulation
+The [context menu](https://wiki.garrysmod.com/page/The_Context_Menu)
+options are used to manipulate the selected track pieces directly or
+as an interface to export various entity values to the tool console variables.
+Explanation of each control option is given in the summary below.
+1. `Piece model` option exports the selected track model to the tool console
+    variables. This is the same as copying the model via right click.
+2. `Bodygroup/Skin` option transfers the generated bodygroup/skin selection
+    to the tool console variables and populates the dedicated value display in the
+    tool panel. The textbox is only a display and cannot be modified manually.
+3. `Surface material name` option will export the surface material name to the
+    tool console variables. This option will also update the properties name
+    combo box to display the new value that is used.
+4. `Piece mass` option exports the selected track mass to the
+    tool console variables. The tool panel mass slider is updated accordingly
+5. `Ignore physics gun` option toggles the physics gun grabbing function on the track piece
+    selected. When the grabbing is disabled, the player cannot interact with the
+    track piece in any way, including grab, shake or unfreeze. This is good when you make
+    turntables or attach moving tracks or needles, which must not be affected by any player's
+    physics gun. If the option is enabled, click it again to disable it or the other way around.
+6. `Freeze piece` option will put the track piece in a frozen state and it will disable
+    its motion. The piece stays in the same position until external fore is applied on it.
+    This is good when you want your track bridge to have fake non-welded pieces.
+    If the option is enabled, click it again to disable it or the other way around.
+7. `Apply piece gravity` option controlls the gravity affecting the selected track piece.
+    If the option is enabled, click it again to disable it or the other way around.
+
 #### How to use the tool control panel and what function does each item have ?
 1. `Track surface grip modifier` combo box is used if you want to obtain different
     grip behavior for a wheel-powered/sliding train,
@@ -166,16 +193,17 @@ wheels of the train will follow only the track that is currently set being solid
     `TYPE` from the top one to setup the group of properties you want to apply then
     `NAME`, to select the actual surface material you want applied.
 2. `Piece bodygroups and skin selection` is used when you want desired bodygroups
-    and/or skins on a piece. In the text field you must type `bodygroup/skin` (ex. 1,2,3,4/5)
-    selection code or generate one using the SCORE ( Default: TAB ) key while pointing to a prop with
-    `bodygroups` and `skins` set by Garry's mod [context menu](https://wiki.garrysmod.com/page/The_Context_Menu). Press `ENTER` in the text field if you
-    are happy with the selection to apply it.
-3. `Mass` setup control
-    Piece mass slider is used to set the mass of the next track piece to be spawned.
-4. `Active radius` control
-    The slider is used to set the minimum distance needed to select an active point when pointing at a piece.
-5. `Stack count` control
-    This value shows the maximum number of pieces to be snapped in `stacking` mode.
+    and/or skins on a piece. The textbox is a display showing the `bodygroup/skin`
+    selection code (ex. 1,2,3,4/5) generated using the [context menu](https://wiki.garrysmod.com/page/The_Context_Menu).
+    You cannot change the textbox value manually by tiping. Currently `Bodygroup/Skin`
+    (ex. [English](https://en.wikipedia.org/wiki/English_language)) option name will vary based on the language used.
+    When you click it it will populate the text display in the tool menu.
+3. `Piece mass` setup control slider is used to set the mass of the next track piece to be spawned.
+    The larger the number the havier spawned track piece gets. Larger values are recommended.
+4. `Active radius` control slider is used to set the minimum distance needed to select an active point when
+    pointing at a piece. Keep this maxed out if you don't want to bother with track end selection.
+5. `Stack count` control value shows the maximum number of pieces to be snapped in `stacking` mode.
+    Change this to something larger than one if you want to extend your track by stacking.
 6. `Angular alignment` control
     The slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
     to a user-defined angle ( Usually `45` ) so that the track building process becomes easier. The
