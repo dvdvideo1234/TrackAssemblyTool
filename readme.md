@@ -34,6 +34,7 @@ Also, another great achievement progress is in place, so 10x guys for
 [helping me, help you, help us all](https://www.youtube.com/watch?v=2TZyb0n2DAw) !
 
 #### What kind of features does this script has?
+  * Context menu for direct track entity [value export and manipulation](https://www.youtube.com/watch?v=mEEpO3w8BLs)
   * Track curve fitting alignment based on [ray intersection for precise piece layout](https://www.youtube.com/watch?v=1rsDHU79J50)
   * [Extendible database](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension) via delimited [text file](https://www.youtube.com/watch?v=Pz0_RGwgfaY) or a [lua script](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua)
   * [Extendible database](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension) via text file [load list](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt) and [list prefixes](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt) [categories](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt)
