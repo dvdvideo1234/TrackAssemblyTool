@@ -1944,7 +1944,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:TimerSetup(vTim)
     local qtCmd = self:GetCommand()
     local qtDef = self:GetDefinition()
-    local sTm = (vTim and tostring(vTim or "") or qtDef.Timer)
+    local sTm = tostring((vTim and vTim or qtDef.Timer) or "")
     local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTm)
     tTm[1] =   tostring(tTm[1]  or "CQT")                     -- Timer mode
     tTm[2] =  (tonumber(tTm[2]) or 0)                         -- Record life
