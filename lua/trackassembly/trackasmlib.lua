@@ -1942,8 +1942,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- Generates a timer settings table and keeps the defaults
   function self:TimerSetup(vTim)
-    local qtCmd = self:GetCommand()
-    local qtDef = self:GetDefinition()
+    local qtCmd, qtDef = self:GetCommand(), self:GetDefinition()
     local sTm = tostring((vTim and vTim or qtDef.Timer) or "")
     local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTm)
     tTm[1] =   tostring(tTm[1]  or "CQT")                     -- Timer mode

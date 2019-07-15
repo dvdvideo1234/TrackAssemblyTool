@@ -52,7 +52,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.548")
+asmlib.SetOpVar("TOOL_VERSION","6.549")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -110,7 +110,7 @@ cvarsAddChangeCallback(gsTimerMD, function(sVar, vOld, vNew)
   local mkTab, ID = asmlib.GetBuilderID(1), 1
   while(mkTab) do local sTim = arTim[ID]
     local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
-    asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..sTim..">",gtInitLogs)
+    asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..tostring(sTim)..">",gtInitLogs)
     ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
   end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
 end, gsTimerMD.."_call")
