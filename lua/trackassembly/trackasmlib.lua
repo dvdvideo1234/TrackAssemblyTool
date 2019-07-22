@@ -2668,13 +2668,14 @@ function RemoveDSV(sTable, sPref)
     ..GetReport(sTable).." not string"); return false end
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
-  local makTab, sName = GetBuilderNick(sTable); if(IsHere(makTab)) then
+  local makTab, sName = GetBuilderNick(sTable)
+  if(IsHere(makTab)) then -- When table maker is located
     local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
       LogInstance("("..sPref..") Missing table definition",sTable); return false end
-    sName = fName:format(defTab.Nick)
-  else sName = fName:format(sTable:upper())
-    LogInstance("("..sPref..") Missing table builder",sTable)
-  end
+    sName = fName:format(defTab.Nick) -- Use the table nickname
+  else LogInstance("("..sPref..") Missing table builder",sTable)
+    sName = fName:format(sTable:upper()) -- Use first parameter
+  end -- Delete the file with the given prefix and nickname
   if(fileExists(sName,"DATA")) then fileDelete(sName)
     LogInstance("("..sPref..") File <"..sName.."> deleted",sTable)
   else LogInstance("("..sPref..") File <"..sName.."> skipped",sTable) end; return true
@@ -2827,7 +2828,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     local sKey, sVK = tostring(key), tostring(vK); if(sKey ~= sVK) then
       LogInstance("("..fPref.."@"..sTable..") Sync key mismatch ["..sKey.."]["..sVK.."]");
       tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
-    end local tRec = tData[vK] -- Create loval reference to the record of the matched key
+    end local tRec = tData[vK] -- Create local reference to the record of the matched key
     for iCnt = 1, #tRec do -- Where the line ID must be read from skip the key itself
       local tRow, vID, nID = tRec[iCnt]; vID = tRow[iD-1]
       nID = (tonumber(vID) or 0); if(iCnt ~= nID) then -- Validate the line ID
