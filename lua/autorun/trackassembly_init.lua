@@ -14,8 +14,13 @@ local tonumber                      = tonumber
 local tostring                      = tostring
 local CreateConVar                  = CreateConVar
 local SetClipboardText              = SetClipboardText
+local netSend                       = net and net.Send
+local netStart                      = net and net.Start
+local netSendToServer               = net and net.SendToServer
+local netReceive                    = net and net.Receive
 local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
+local netWriteString                = net and net.WriteString
 local bitBor                        = bit and bit.bor
 local sqlQuery                      = sql and sql.Query
 local sqlBegin                      = sql and sql.Begin
@@ -52,7 +57,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.550")
+asmlib.SetOpVar("TOOL_VERSION","6.552")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -790,7 +795,8 @@ local gtOptionsFL = {
   },
   {"tool."..gsToolNameL..".phyname_con", true,
     function(ePiece, oPly, oTr, sKey)
-      local physmater = ePiece:GetPhysicsObject():GetMaterial()
+      local phPiece = ePiece:GetPhysicsObject()
+      local physmater = phPiece:GetMaterial()
       asmlib.SetAsmConvar(oPly, "physmater", physmater)
     end
   },
@@ -799,6 +805,11 @@ local gtOptionsFL = {
       local phPiece = ePiece:GetPhysicsObject()
       local mass = phPiece:GetMass()
       asmlib.SetAsmConvar(oPly, "mass", mass)
+    end, nil,
+    function(nLen, oPly)
+      local phPiece = ePiece:GetPhysicsObject()
+      local mass    = phPiece:GetMass()
+      oPly:SetNWFloat(mass)
     end
   },
   {"tool."..gsToolNameL..".ignphysgn_con", true,
@@ -825,6 +836,18 @@ local gtOptionsFL = {
   }
 }; gtOptionsFL.Size = #gtOptionsFL
 
+if(SERVER) then
+  for iD = 1, gtOptionsFL.Size do
+    local tLine = gtOptionsFL[iD]
+    local sKey  = tLine[1]
+    local wDraw = tLine[5]
+    if(type(wDraw) == "function") then
+      utilAddNetworkString(gsLibName..sKey)
+      netReceive(gsLibName..sKey, wDraw)
+    end
+  end
+end
+
 local gsOptionsCM, gtOptionsCM = gsToolPrefL.."context_menu", {}
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
 gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
@@ -840,13 +863,16 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
   gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
   local mnu, oPly = option:AddSubMenu(), LocalPlayer()
   for iD = 1, gtOptionsFL.Size do
-    local sLine = gtOptionsFL[iD]
-    local sKey, fDraw  = sLine[1], sLine[4]
+    local tLine = gtOptionsFL[iD]
+    local sKey, fDraw, wDraw = tLine[1], tLine[4], tLine[5]
     local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
     if(type(fDraw) == "function") then
       local bs, ve = pcall(fDraw, ent, oPly, tr, sKey); if(not bs) then
         asmlib.LogInstance("Fail("..tostring(iD).."): "..tostring(ve),gsOptionsLG); return end
       sName = sName..": "..tostring(ve)
+    elseif(type(wDraw) == "function") then
+      netStart(gsLibName..sKey)
+      netWriteString(sKey)
     end; mnu:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
   end
 end
