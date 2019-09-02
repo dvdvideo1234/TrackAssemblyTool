@@ -20,7 +20,11 @@ local netSendToServer               = net and net.SendToServer
 local netReceive                    = net and net.Receive
 local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
+local netReadString                 = net and net.ReadString
+local netReadUInt                   = net and net.ReadUInt
 local netWriteString                = net and net.WriteString
+local netWriteEntity                = net and net.WriteEntity
+local netWriteUInt                  = net and net.WriteUInt
 local bitBor                        = bit and bit.bor
 local sqlQuery                      = sql and sql.Query
 local sqlBegin                      = sql and sql.Begin
@@ -57,7 +61,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.552")
+asmlib.SetOpVar("TOOL_VERSION","6.553")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -89,7 +93,8 @@ asmlib.MakeAsmConvar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum line
 asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmConvar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off on restart server side")
+asmlib.MakeAsmConvar("entacmall", 0  , {0, 1 }, gnServerControled, "Toggle the track-only context menu on/off server side")
+asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
 
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -770,7 +775,17 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
 end
 
------- INITIALIZE CONTEXT PROPERTIES ------ (label, transmit, handler, menudata)
+------ INITIALIZE CONTEXT PROPERTIES ------
+local gsOptionsCM, gtOptionsCM = gsToolPrefL.."context_menu", {}
+local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
+gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
+gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
+
+-- [1]: Translation language key
+-- [2]: Flag to transmit the data to the server
+-- [3]: Tells what is to be done with the value
+-- [4]: Display when the data is avaliable on the client
+-- [5]: Network massage ro assign the value to a player
 local gtOptionsFL = {
   {"tool."..gsToolNameL..".model_con", true,
     function(ePiece, oPly, oTr, sKey)
@@ -806,10 +821,10 @@ local gtOptionsFL = {
       local mass = phPiece:GetMass()
       asmlib.SetAsmConvar(oPly, "mass", mass)
     end, nil,
-    function(nLen, oPly)
-      local phPiece = ePiece:GetPhysicsObject()
-      local mass    = phPiece:GetMass()
-      oPly:SetNWFloat(mass)
+    function(sKey, oEnt, oPly)
+      local pEnt = oEnt:GetPhysicsObject()
+      local mass = pEnt:GetMass()
+      oPly:SetNWString(sKey, tostring(mass or ""))
     end
   },
   {"tool."..gsToolNameL..".ignphysgn_con", true,
@@ -843,25 +858,30 @@ if(SERVER) then
     local wDraw = tLine[5]
     if(type(wDraw) == "function") then
       utilAddNetworkString(gsLibName..sKey)
-      netReceive(gsLibName..sKey, wDraw)
+      netReceive(gsLibName..sKey, function(nLen, oPly)
+        local sKey = netReadString()
+        local oEnt = netReadEntity()
+        local oPly = netReadEntity()
+        local bS, vE = pcall(wDraw, sKey, oEnt, oPly); if(not bS) then
+          asmlib.LogInstance("Request value fail ("..sKey..")",gsOptionsLG); end
+        oPly:SetNWBool(gsOptionsBS, true)
+      end)
     end
   end
 end
 
-local gsOptionsCM, gtOptionsCM = gsToolPrefL.."context_menu", {}
-local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
-gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
-gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 gtOptionsCM.Filter = function(self, ent, ply)
   if(asmlib.IsOther(ent)) then return false end
-  local oRec = asmlib.CacheQueryPiece(ent:GetModel())
-  if(not asmlib.IsHere(oRec)) then return false end
+  if(asmlib.GetAsmConvar("entacmall", "BUL")) then
+    local oRec = asmlib.CacheQueryPiece(ent:GetModel())
+    if(not asmlib.IsHere(oRec)) then return false end
+  end -- Check if the filter is enabled only for track props
   if(not gamemodeCall("CanProperty", ply, gsOptionsCM, ent)) then return false end
   return true -- The entity is track piece and TA menu is available
 end
 gtOptionsCM.MenuOpen = function(self, option, ent, tr)
   gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
-  local mnu, oPly = option:AddSubMenu(), LocalPlayer()
+  local mSub, oPly = option:AddSubMenu(), LocalPlayer()
   for iD = 1, gtOptionsFL.Size do
     local tLine = gtOptionsFL[iD]
     local sKey, fDraw, wDraw = tLine[1], tLine[4], tLine[5]
@@ -871,9 +891,15 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
         asmlib.LogInstance("Fail("..tostring(iD).."): "..tostring(ve),gsOptionsLG); return end
       sName = sName..": "..tostring(ve)
     elseif(type(wDraw) == "function") then
+      oPly:SetNWBool(gsOptionsCM,false)
       netStart(gsLibName..sKey)
       netWriteString(sKey)
-    end; mnu:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
+      netWriteEntity(ent)
+      netWriteString(oPly)
+      netSend(oPly)
+      while(not oPly:GetNWBool(gsOptionsCM))
+      sName = sName..": "..oPly:GetNWString(sKey)
+    end; mSub:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
   end
 end
 gtOptionsCM.Action = function(self, ent, tr)
@@ -885,8 +911,8 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
   local bTrans, fHandle = tLine[2], tLine[3]
   if(bTrans) then -- Transfer to SERVER
     self:MsgStart()
-      net.WriteEntity(ent)
-      net.WriteUInt(idx, 8)
+      netWriteEntity(ent)
+      netWriteUInt(idx, 8)
     self:MsgEnd()
   else
     local oPly = LocalPlayer()
@@ -896,8 +922,8 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
   end
 end
 gtOptionsCM.Receive = function(self, len, ply)
-  local ent = net.ReadEntity()
-  local idx = net.ReadUInt(8)
+  local ent = netReadEntity()
+  local idx = netReadUInt(8)
   local oTr = ply:GetEyeTrace()
   local tLine = gtOptionsFL[idx]; if(not tLine) then
     asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end

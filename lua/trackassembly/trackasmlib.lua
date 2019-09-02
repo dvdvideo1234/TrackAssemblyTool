@@ -1582,27 +1582,26 @@ function DecodePOA(sStr)
   end; return arPOA
 end
 
-function GetTransformPOA(sModel,sKey)
+function GetTransformOA(sModel,sKey)
   if(not IsString(sModel)) then
-    LogInstance("Model mismatch <"..tostring(sModel)..">"); return nil end
+    LogInstance("Model mismatch "..GetReport(sKey)); return nil end
   if(not IsString(sKey)) then
-    LogInstance("Key mismatch <"..tostring(sKey)..">@"..sModel); return nil end
+    LogInstance("Key mismatch "..GetReport(sKey)..sModel); return nil end
   local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
   if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
     if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
-      LogInstance("Update {"..tostring(ePiece).."}@"..sModel) end
+      LogInstance("Update ["..tostring(ePiece:EntIndex()).."]"..sModel) end
   else -- If there is no basis need to create one for attachment extraction
-    ePiece = MakeEntityNone(sModel); if(not ePiece) then
-      LogInstance("Basis invalid @"..sModel); return nil end
+    ePiece = MakeEntityNone(sModel); if(not (ePiece and ePiece:IsValid())) then
+      LogInstance("Basis creation fail @"..sModel); return nil end
     SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
   end -- Transfer the data from the transform attachment location
   local mID = ePiece:LookupAttachment(sKey); if(not IsNumber(mID)) then
-    LogInstance("Attachment missing ID "..GetReport(sKey).."@"..sModel); return nil end
-  local mOA = ePiece:GetAttachment(mID); if(not IsHere(mOA)) then
-    LogInstance("Attachment missing OA "..GetReport(mID).."@"..sModel); return nil end
-  local vtPos, atAng = mOA.Pos, mOA.Ang -- Extract transform data
-  LogInstance("Extract {"..sKey.."}<"..tostring(vtPos).."><"..tostring(atAng)..">")
-  return vtPos, atAng -- The function must return transform position and angle
+    LogInstance("Attachment missing ID "..GetReport(sKey)..sModel); return nil end
+  local mTOA = ePiece:GetAttachment(mID); if(not IsHere(mTOA)) then
+    LogInstance("Attachment missing OA "..GetReport(mID)..sModel); return nil end
+  LogInstance("Extract {"..sKey.."}<"..tostring(mTOA.Pos).."><"..tostring(mTOA.Ang)..">")
+  return mTOA -- The function must return transform structure of origin and angle
 end
 
 function RegisterPOA(stPiece, ivID, sP, sO, sA)
@@ -1617,7 +1616,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   local sA = (sA or sNull); if(not IsString(sA)) then
     LogInstance("Angle mismatch "..GetReport(sA)); return nil end
   if(not stPiece.Offs) then if(iID > 1) then
-    LogInstance("Mismatch ID <"..tostring(iID)..">@"..stPiece.Slot); return nil end
+    LogInstance("Mismatch ID <"..tostring(iID)..">"..stPiece.Slot); return nil end
     stPiece.Offs = {}
   end
   local tOffs = stPiece.Offs; if(tOffs[iID]) then
@@ -1630,32 +1629,40 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   ---------- Origin ----------
   if(sO:sub(1,1) == sD) then ReloadPOA() else
     if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO; sO = sO:sub(2,-1)
-      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sO)
-      if(IsHere(vtPos)) then ReloadPOA(vtPos[cvX], vtPos[cvY], vtPos[cvZ]) else
+      local stTOA = GetTransformOA(stPiece.Slot, sO)
+      if(IsHere(stTOA) and IsHere(stTOA.Pos)) then
+        ReloadPOA(stTOA.Pos[cvX], stTOA.Pos[cvY], stTOA.Pos[cvZ])
+      else -- Decode the transform origin and angle when not applicable
         if(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
-          if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
-      end end -- Reload the transformation when is not null or empty string
+          if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stPiece.Slot) end
+      end end -- Decode the transformation when is not null or empty string
     elseif(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
-      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]@"..stPiece.Slot) end
+      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stPiece.Slot) end
     end
   end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
   ---------- Angle ----------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
     if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA; sA = sA:sub(2,-1)
-      local vtPos, atAng = GetTransformPOA(stPiece.Slot, sA)
-      if(IsHere(atAng)) then ReloadPOA(atAng[caP], atAng[caY], atAng[caR]) else
+      local stTOA = GetTransformOA(stPiece.Slot, sA)
+      if(IsHere(stTOA) and IsHere(stTOA.Ang)) then
+        ReloadPOA(stTOA.Ang[caP], stTOA.Ang[caY], stTOA.Ang[caR])
+      else -- Decode the transform origin and angle when not applicable
         if(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
-          if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
-      end end -- Reload the transformation when is not null or empty string
+          if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stPiece.Slot) end
+      end end -- Decode the transformation when is not null or empty string
     elseif(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
-      if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]@"..stPiece.Slot) end
+      if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stPiece.Slot) end
     end
   end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle mismatch"); return nil end
   ---------- Point ----------
-  if(sP:sub(1,1) == sD) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]) else
-    if(IsNull(sP) or IsBlank(sP)) then ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ]) else
-      if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]@"..stPiece.Slot) end
-    end -- When the point is empty use the origin otherwise decode the value
+  if(sP:sub(1,1) == sD) then
+    ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
+  else -- when the point is disabled take the origin
+    if(IsNull(sP) or IsBlank(sP)) then
+      ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
+    else -- When the point is empty use the origin otherwise decode the value
+      if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]"..stPiece.Slot) end
+    end
   end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
   return tOffs
 end
