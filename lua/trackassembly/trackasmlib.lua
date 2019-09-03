@@ -340,7 +340,7 @@ local function LogCeption(tT,sS,tP)
   local vK, sS = "", tostring(sS or "Data")
   if(vT ~= "table") then
     LogInstance("{"..vT.."}["..sS.."] = <"..tostring(tT)..">",tP); return nil end
-  if(next(tT) == nil) then
+  if(not IsHere(next(tT))) then
     LogInstance(sS.." = {}",tP); return nil end; LogInstance(sS.." = {}",tP)
   for k,v in pairs(tT) do
     if(type(k) == "string") then
@@ -870,14 +870,17 @@ function MakeContainer(sKey, sDef)
   local mDef = sDef or GetOpVar("OOP_DEFAULTKEY")
   local miTop, miAll, mhCnt = 0, 0, 0
   function self:GetInfo() return mInfo end
-  function self:GetSize() return miTop end
-  function self:GetCount() return miAll end
-  function self:GetKept() return mhCnt end
+  function self:GetSize() return miTop end  -- Largest index in array part
+  function self:GetCount() return miAll end -- Actual populated slots <= `miTop`
+  function self:GetKept() return mhCnt end  -- The hash part slots maximum count
   function self:GetData() return mData end
   function self:GetHashID() return mID end
   function self:Collect() collectgarbage(); return self end
   function self:Select(nsKey)
     local iK = (nsKey or mDef); return mData[iK]
+  end
+  function self:GetKeyID(nsKey)
+    local iK = (nsKey or mDef); return mID[iK]
   end
   function self:Clear()
     tableEmpty(self:GetData())
@@ -1210,7 +1213,7 @@ local function AddLineListView(pnListView,frUsed,ivNdex)
     LogInstance("Index mismatch "..GetReport(ivNdex)); return false end
   local tValue = frUsed[iNdex]; if(not IsHere(tValue)) then
     LogInstance("Missing data on index #"..tostring(iNdex)); return false end
-  local makTab = libQTable["PIECES"]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return false end
@@ -1309,7 +1312,7 @@ end
 function GetFrequentModels(snCount)
   local snCount = (tonumber(snCount) or 0); if(snCount < 1) then
     LogInstance("Count not applicable"); return nil end
-  local makTab = libQTable["PIECES"]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
@@ -2361,7 +2364,7 @@ function CacheQueryPiece(sModel)
     LogInstance("Model empty string"); return nil end
   if(not utilIsValidModel(sModel)) then
     LogInstance("Model invalid <"..sModel..">"); return nil end
-  local makTab = libQTable["PIECES"]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
@@ -2415,7 +2418,7 @@ function CacheQueryAdditions(sModel)
     LogInstance("Model empty string"); return nil end
   if(not utilIsValidModel(sModel)) then
     LogInstance("Model invalid"); return nil end
-  local makTab = libQTable["ADDITIONS"]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("ADDITIONS"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
@@ -2461,7 +2464,7 @@ end
  * Caches the date needed to populate the CPanel tree
 ]]--
 function CacheQueryPanel()
-  local makTab = libQTable["PIECES"]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
@@ -2512,7 +2515,7 @@ end
  * If type is not chosen, it gets a list of all types
 ]]--
 function CacheQueryProperty(sType)
-  local makTab = libQTable["PHYSPROPERTIES"]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("PHYSPROPERTIES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
@@ -3401,7 +3404,7 @@ function AttachAdditions(ePiece)
   local stAddit = CacheQueryAdditions(eMod); if(not IsHere(stAddit)) then
     LogInstance("Model <"..eMod.."> has no additions"); return true end
   LogInstance("Called for model <"..eMod..">")
-  local makTab = libQTable["ADDITIONS"]; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("ADDITIONS"); if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
   local defTab, iCnt = makTab:GetDefinition(), 1
   while(stAddit[iCnt]) do local arRec = stAddit[iCnt]; LogInstance("Addition ["..iCnt.."]")

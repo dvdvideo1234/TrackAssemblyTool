@@ -52,6 +52,7 @@ local gamemodeCall                  = gamemode and gamemode.Call
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local propertiesAdd                 = properties and properties.Add
+local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -61,7 +62,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.553")
+asmlib.SetOpVar("TOOL_VERSION","6.554")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -93,7 +94,6 @@ asmlib.MakeAsmConvar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum line
 asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmConvar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmConvar("entacmall", 0  , {0, 1 }, gnServerControled, "Toggle the track-only context menu on/off server side")
 asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
 
 if(SERVER) then
@@ -786,127 +786,129 @@ gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 -- [3]: Tells what is to be done with the value
 -- [4]: Display when the data is avaliable on the client
 -- [5]: Network massage ro assign the value to a player
-local gtOptionsFL = {
-  {"tool."..gsToolNameL..".model_con", true,
-    function(ePiece, oPly, oTr, sKey)
-      local model = ePiece:GetModel()
-      asmlib.SetAsmConvar(oPly, "model", model)
-    end,
-    function(ePiece, oPly, oTr, sKey)
-      return ePiece:GetModel()
-    end
-  },
-  {"tool."..gsToolNameL..".bgskids_con", true,
-    function(ePiece, oPly, oTr, sKey)
-      local ski = asmlib.GetPropSkin(ePiece)
-      local bgr = asmlib.GetPropBodyGroup(ePiece)
-      asmlib.SetAsmConvar(oPly, "bgskids", bgr..gsSymDir..ski)
-    end,
-    function(ePiece, oPly, oTr, sKey)
-      local ski = asmlib.GetPropSkin(ePiece)
-      local bgr = asmlib.GetPropBodyGroup(ePiece)
-      return (bgr..gsSymDir..ski)
-    end
-  },
-  {"tool."..gsToolNameL..".phyname_con", true,
-    function(ePiece, oPly, oTr, sKey)
-      local phPiece = ePiece:GetPhysicsObject()
-      local physmater = phPiece:GetMaterial()
-      asmlib.SetAsmConvar(oPly, "physmater", physmater)
-    end
-  },
-  {"tool."..gsToolNameL..".mass_con", true,
-    function(ePiece, oPly, oTr, sKey)
-      local phPiece = ePiece:GetPhysicsObject()
-      local mass = phPiece:GetMass()
-      asmlib.SetAsmConvar(oPly, "mass", mass)
-    end, nil,
-    function(sKey, oEnt, oPly)
-      local pEnt = oEnt:GetPhysicsObject()
-      local mass = pEnt:GetMass()
-      oPly:SetNWString(sKey, tostring(mass or ""))
-    end
-  },
-  {"tool."..gsToolNameL..".ignphysgn_con", true,
-    function(ePiece, oPly, oTr, sKey)
-      local bPi = (not tobool(ePiece.PhysgunDisabled))
-      ePiece.PhysgunDisabled = bPi
-      ePiece:SetUnFreezable(bPi)
-      ePiece:SetMoveType(MOVETYPE_VPHYSICS)
-    end
-  },
-  {"tool."..gsToolNameL..".freeze_con", true,
-    function(ePiece, oPly, oTr, sKey)
-      local phPiece = ePiece:GetPhysicsObject()
-      local motion = phPiece:IsMotionEnabled()
-      phPiece:EnableMotion(not motion)
-    end
-  },
-  {"tool."..gsToolNameL..".gravity_con", true,
-    function(ePiece, oPly, oTr, sKey)
-      local phPiece = ePiece:GetPhysicsObject()
-      local gravity = phPiece:IsGravityEnabled()
-      phPiece:EnableGravity(not gravity)
-    end
-  }
-}; gtOptionsFL.Size = #gtOptionsFL
+local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
+      conContextMenu:Insert(1,
+        {"tool."..gsToolNameL..".model_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local model = ePiece:GetModel()
+            asmlib.SetAsmConvar(oPly, "model", model)
+          end,
+          function(ePiece, oPly, oTr, sKey)
+            return ePiece:GetModel()
+          end
+        })
+      conContextMenu:Insert(2,
+        {"tool."..gsToolNameL..".bgskids_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local ski = asmlib.GetPropSkin(ePiece)
+            local bgr = asmlib.GetPropBodyGroup(ePiece)
+            asmlib.SetAsmConvar(oPly, "bgskids", bgr..gsSymDir..ski)
+          end,
+          function(ePiece, oPly, oTr, sKey)
+            local ski = asmlib.GetPropSkin(ePiece)
+            local bgr = asmlib.GetPropBodyGroup(ePiece)
+            return (bgr..gsSymDir..ski)
+          end
+        })
+      conContextMenu:Insert(3,
+        {"tool."..gsToolNameL..".phyname_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local phPiece = ePiece:GetPhysicsObject()
+            local physmater = phPiece:GetMaterial()
+            asmlib.SetAsmConvar(oPly, "physmater", physmater)
+          end
+        })
+      conContextMenu:Insert(4,
+        {"tool."..gsToolNameL..".mass_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local phPiece = ePiece:GetPhysicsObject()
+            local mass = phPiece:GetMass()
+            asmlib.SetAsmConvar(oPly, "mass", mass)
+          end, nil,
+          function(sKey, oEnt, oPly)
+            local pEnt = oEnt:GetPhysicsObject()
+            local mass = pEnt:GetMass()
+            oPly:SetNWString(sKey, tostring(mass or ""))
+          end
+        })
+      conContextMenu:Insert(5,
+        {"tool."..gsToolNameL..".ignphysgn_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local bPi = (not tobool(ePiece.PhysgunDisabled))
+            ePiece.PhysgunDisabled = bPi
+            ePiece:SetUnFreezable(bPi)
+            ePiece:SetMoveType(MOVETYPE_VPHYSICS)
+          end
+        })
+      conContextMenu:Insert(6,
+        {"tool."..gsToolNameL..".freeze_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local phPiece = ePiece:GetPhysicsObject()
+            local motion = phPiece:IsMotionEnabled()
+            phPiece:EnableMotion(not motion)
+          end
+        })
+      conContextMenu:Insert(7,
+        {"tool."..gsToolNameL..".gravity_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local phPiece = ePiece:GetPhysicsObject()
+            local gravity = phPiece:IsGravityEnabled()
+            phPiece:EnableGravity(not gravity)
+          end
+        })
 
 if(SERVER) then
-  for iD = 1, gtOptionsFL.Size do
-    local tLine = gtOptionsFL[iD]
-    local sKey  = tLine[1]
-    local wDraw = tLine[5]
+  for iD = 1, conContextMenu:GetSize() do
+    local tLine = conContextMenu:Select(iD)
+    local sKey, wDraw = tLine[1], tLine[5]
     if(type(wDraw) == "function") then
       utilAddNetworkString(gsLibName..sKey)
-      netReceive(gsLibName..sKey, function(nLen, oPly)
-        local sKey = netReadString()
-        local oEnt = netReadEntity()
-        local oPly = netReadEntity()
+      netReceive(gsLibName..sKey, function(nLen)
+        local sKey = netReadString() -- Localized scope for the routine
+        local oEnt, oPly = netReadEntity(), netReadEntity()
         local bS, vE = pcall(wDraw, sKey, oEnt, oPly); if(not bS) then
-          asmlib.LogInstance("Request value fail ("..sKey..")",gsOptionsLG); end
-        oPly:SetNWBool(gsOptionsBS, true)
+          asmlib.LogInstance("Request fail ("..sKey.."): "..vE, gsOptionsLG); end
+        oPly:SetNWBool(gsOptionsBS, true) -- The data is ready to be read
       end)
     end
   end
 end
-
+-- This filters what the context menu is available for
 gtOptionsCM.Filter = function(self, ent, ply)
   if(asmlib.IsOther(ent)) then return false end
-  if(asmlib.GetAsmConvar("entacmall", "BUL")) then
-    local oRec = asmlib.CacheQueryPiece(ent:GetModel())
-    if(not asmlib.IsHere(oRec)) then return false end
-  end -- Check if the filter is enabled only for track props
+  if(not (ply and ply:IsValid())) then return false end
   if(not gamemodeCall("CanProperty", ply, gsOptionsCM, ent)) then return false end
   return true -- The entity is track piece and TA menu is available
 end
+-- The routine which builds the context menu
 gtOptionsCM.MenuOpen = function(self, option, ent, tr)
   gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
   local mSub, oPly = option:AddSubMenu(), LocalPlayer()
-  for iD = 1, gtOptionsFL.Size do
-    local tLine = gtOptionsFL[iD]
+  for iD = 1, conContextMenu:GetSize() do
+    local tLine = conContextMenu:Select(iD)
     local sKey, fDraw, wDraw = tLine[1], tLine[4], tLine[5]
     local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
     if(type(fDraw) == "function") then
-      local bs, ve = pcall(fDraw, ent, oPly, tr, sKey); if(not bs) then
-        asmlib.LogInstance("Fail("..tostring(iD).."): "..tostring(ve),gsOptionsLG); return end
-      sName = sName..": "..tostring(ve)
+      local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
+        asmlib.LogInstance("Fail["..tostring(iD).."]: "..vE,gsOptionsLG); return end
+      sName = sName..": "..tostring(vE)
     elseif(type(wDraw) == "function") then
-      oPly:SetNWBool(gsOptionsCM,false)
-      netStart(gsLibName..sKey)
-      netWriteString(sKey)
-      netWriteEntity(ent)
-      netWriteString(oPly)
-      netSend(oPly)
-      while(not oPly:GetNWBool(gsOptionsCM))
-      sName = sName..": "..oPly:GetNWString(sKey)
+      oPly:SetNWBool(gsOptionsCM,false) -- Data not ready
+      netStart(gsLibName..sKey)         -- Triggerr massage
+      netWriteString(sKey)              -- Writhe key
+      netWriteEntity(ent)               -- Write clicked entity
+      netWriteString(oPly)              -- Write the player
+      netSend(oPly)                     -- Send to server
+      while(not oPly:GetNWBool(gsOptionsCM)) do end -- Check ready
+      sName = sName..": "..oPly:GetNWString(sKey)   -- Attach server value
     end; mSub:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
   end
 end
-gtOptionsCM.Action = function(self, ent, tr)
-  -- Not used. Use the evaluate function instead
-end
+-- Not used. Use the evaluate function instead
+gtOptionsCM.Action = function(self, ent, tr) end
+-- Use the custom evaluation finction with index and key arguments
 gtOptionsCM.Evaluate = function(self, ent, idx, key)
-  local tLine = gtOptionsFL[idx]; if(not tLine) then
+  local tLine = conContextMenu:Select(idx); if(not tLine) then
     asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
   local bTrans, fHandle = tLine[2], tLine[3]
   if(bTrans) then -- Transfer to SERVER
@@ -914,24 +916,27 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
       netWriteEntity(ent)
       netWriteUInt(idx, 8)
     self:MsgEnd()
-  else
+  else -- Call on the CLIENT
     local oPly = LocalPlayer()
     local oTr  = oPly:GetEyeTrace()
-    local bs, ve = pcall(fHandle, ent, oPly, oTr, key); if(not bs) then
-      asmlib.LogInstance("Fail: "..tostring(ve),gsOptionsLG); return end
+    local bS, vE = pcall(fHandle, ent, oPly, oTr, key); if(not bS) then
+      asmlib.LogInstance("Fail["..tostring(idx).."]: "..vE,gsOptionsLG); return end
   end
 end
+-- What to happen on the server with our entity
 gtOptionsCM.Receive = function(self, len, ply)
   local ent = netReadEntity()
   local idx = netReadUInt(8)
   local oTr = ply:GetEyeTrace()
-  local tLine = gtOptionsFL[idx]; if(not tLine) then
+  local tLine = conContextMenu:Select(idx); if(not tLine) then
     asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
   if(not self:Filter(ent, ply)) then return end
-  local fHandle = tLine[3] -- Menu function handle
-  local bs, ve = pcall(fHandle, ent, ply, oTr); if(not bs) then
-    asmlib.LogInstance("Fail: "..tostring(ve),gsOptionsLG); return end
-end -- Register the setup in the context menu
+  if(not propertiesCanBeTargeted(ent, ply)) then return end
+  local fHandle = tLine[3] -- Menu function handler
+  local bS, vE = pcall(fHandle, ent, ply, oTr); if(not bS) then
+    asmlib.LogInstance("Fail["..tostring(idx).."]: "..vE,gsOptionsLG); return end
+end
+-- Register the trackassembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 ------ INITIALIZE DB ------
