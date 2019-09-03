@@ -442,6 +442,8 @@ function InitBase(sName,sPurpose)
   if(IsBlank(sPurpose) or tonumber(sPurpose:sub(1,1))) then
     LogInstance("Purpose invalid <"..sPurpose..">", true); return false end
   SetOpVar("TIME_INIT",Time())
+  SetOpVar("DELAY_CONMENU", 0.01)
+  SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_SKIP",{})
@@ -449,7 +451,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("LOG_LOGFILE","")
   SetOpVar("LOG_LOGLAST","")
   SetOpVar("MAX_ROTATION",360)
-  SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
   SetOpVar("ANG_REV",Angle(0,180,0))
@@ -3855,7 +3856,7 @@ end
 
 function GetLinearSpace(nBeg, nEnd, nAmt)
   local fAmt = mathFloor(tonumber(nAmt) or 0); if(fAmt < 0) then
-    return common.logStatus("Samples count invalid <"..tostring(fAmt)..">",nil) end
+    LogInstance("Samples count invalid <"..tostring(fAmt)..">"); return nil end
   local iAmt, dAmt = (fAmt + 1), (nEnd - nBeg)
   local fBeg, fEnd, nAdd = 1, (fAmt+2), (dAmt / iAmt)
   local tO = {[fBeg] = nBeg, [fEnd] = nEnd}

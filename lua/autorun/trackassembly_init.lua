@@ -10,11 +10,11 @@ local Angle                         = Angle
 local Vector                        = Vector
 local IsValid                       = IsValid
 local tobool                        = tobool
+local Time                          = CurTime
 local tonumber                      = tonumber
 local tostring                      = tostring
 local CreateConVar                  = CreateConVar
 local SetClipboardText              = SetClipboardText
-local netSend                       = net and net.Send
 local netStart                      = net and net.Start
 local netSendToServer               = net and net.SendToServer
 local netReceive                    = net and net.Receive
@@ -62,7 +62,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.554")
+asmlib.SetOpVar("TOOL_VERSION","6.555")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -776,16 +776,18 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 end
 
 ------ INITIALIZE CONTEXT PROPERTIES ------
-local gsOptionsCM, gtOptionsCM = gsToolPrefL.."context_menu", {}
+local gsOptionsCM = gsToolPrefL.."context_menu"
+local gsOptionsCV = gsToolPrefL.."context_value"
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
+local gtOptionsCM = {} -- This stores the context menu configuration
 gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
 gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 
 -- [1]: Translation language key
 -- [2]: Flag to transmit the data to the server
 -- [3]: Tells what is to be done with the value
--- [4]: Display when the data is avaliable on the client
--- [5]: Network massage ro assign the value to a player
+-- [4]: Display when the data is available on the client
+-- [5]: Network massage or assign the value to a player
 local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(1,
         {"tool."..gsToolNameL..".model_con", true,
@@ -825,10 +827,10 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local mass = phPiece:GetMass()
             asmlib.SetAsmConvar(oPly, "mass", mass)
           end, nil,
-          function(sKey, oEnt, oPly)
-            local pEnt = oEnt:GetPhysicsObject()
-            local mass = pEnt:GetMass()
-            oPly:SetNWString(sKey, tostring(mass or ""))
+          function(oEnt, oPly)
+            local mass = oEnt:GetPhysicsObject():GetMass()
+            asmlib.LogInstance("Mass = <"..tostring(mass or "")..">")
+            oPly:SetNWString(gsOptionsCV, tostring(mass or ""))
           end
         })
       conContextMenu:Insert(5,
@@ -862,14 +864,19 @@ if(SERVER) then
     local tLine = conContextMenu:Select(iD)
     local sKey, wDraw = tLine[1], tLine[5]
     if(type(wDraw) == "function") then
-      utilAddNetworkString(gsLibName..sKey)
-      netReceive(gsLibName..sKey, function(nLen)
-        local sKey = netReadString() -- Localized scope for the routine
+      local function ReadValueSV(nLen)
         local oEnt, oPly = netReadEntity(), netReadEntity()
-        local bS, vE = pcall(wDraw, sKey, oEnt, oPly); if(not bS) then
-          asmlib.LogInstance("Request fail ("..sKey.."): "..vE, gsOptionsLG); end
-        oPly:SetNWBool(gsOptionsBS, true) -- The data is ready to be read
-      end)
+        asmlib.LogInstance("2. Context message executed!")
+        asmlib.LogInstance("   Ent = <"..tostring(oEnt)..">")
+        asmlib.LogInstance("   Ply = <"..tostring(oPly)..">")
+        local bS, vE = pcall(wDraw, oEnt, oPly); if(not bS) then
+          asmlib.LogInstance("Request fail: "..vE, gsOptionsLG); end
+        asmlib.LogInstance("3. Context message ready!")
+        asmlib.LogInstance("3a. Value = ["..oPly:GetNWString(gsOptionsCV).."]!")
+        oPly:SetNWBool(gsOptionsCM, true) -- The data is ready to be read
+      end
+      utilAddNetworkString(gsLibName..sKey)
+      netReceive(gsLibName..sKey, ReadValueSV)
     end
   end
 end
@@ -894,19 +901,26 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
       sName = sName..": "..tostring(vE)
     elseif(type(wDraw) == "function") then
       oPly:SetNWBool(gsOptionsCM,false) -- Data not ready
-      netStart(gsLibName..sKey)         -- Triggerr massage
-      netWriteString(sKey)              -- Writhe key
+      netStart(gsLibName..sKey)         -- Trigger massage
       netWriteEntity(ent)               -- Write clicked entity
-      netWriteString(oPly)              -- Write the player
-      netSend(oPly)                     -- Send to server
-      while(not oPly:GetNWBool(gsOptionsCM)) do end -- Check ready
-      sName = sName..": "..oPly:GetNWString(sKey)   -- Attach server value
+      netWriteEntity(oPly)              -- Write the player
+      netSendToServer()                 -- Send to server
+      asmlib.LogInstance("1. ["..iD.."]Context menu message sent!")
+      asmlib.LogInstance("   ["..iD.."]Ent = <"..tostring(ent)..">")
+      asmlib.LogInstance("   ["..iD.."]Ply = <"..tostring(oPly)..">")
+      local nEnd = asmlib.GetOpVar("DELAY_CONMENU") + Time()
+      while(not oPly:GetNWBool(gsOptionsCM)) do
+        local nDif = (nEnd - Time()); if(nDif < 0) then
+          asmlib.LogInstance("Time overdue ["..nDif.."]["..sKey.."]"); break end
+      end -- Check ready
+      asmlib.LogInstance("5. ["..iD.."]Context menu message received!")
+      sName = sName..": "..oPly:GetNWString(gsOptionsCV)   -- Attach server value
     end; mSub:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
   end
 end
 -- Not used. Use the evaluate function instead
 gtOptionsCM.Action = function(self, ent, tr) end
--- Use the custom evaluation finction with index and key arguments
+-- Use the custom evaluation function with index and key arguments
 gtOptionsCM.Evaluate = function(self, ent, idx, key)
   local tLine = conContextMenu:Select(idx); if(not tLine) then
     asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
