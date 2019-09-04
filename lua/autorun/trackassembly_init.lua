@@ -52,6 +52,7 @@ local gamemodeCall                  = gamemode and gamemode.Call
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local propertiesAdd                 = properties and properties.Add
+local propertiesGetHovered          = properties and properties.GetHovered
 local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
@@ -62,7 +63,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.556")
+asmlib.SetOpVar("TOOL_VERSION","6.557")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -860,18 +861,17 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
         })
 
 if(SERVER) then
-  local gsLogsPopulate = "*"..gsOptionsLG..".PopulateEntity"
-  local function PopulateEntity(nLen)
+  local function PopulateEntity(nLen) gtArgsLogs[1] = "*POPULATE_ENTITY"
     local oEnt = netReadEntity()
-    asmlib.LogInstance("Entity<"..tostring(oEnt)..">", gsLogsPopulate)
+    asmlib.LogInstance("Entity<"..tostring(oEnt)..">", gtArgsLogs)
     for iD = 1, conContextMenu:GetSize() do
       local tLine = conContextMenu:Select(iD)
       local sKey, wDraw = tLine[1], tLine[5]
       if(type(wDraw) == "function") then
-        asmlib.LogInstance("Handler["..iD.."]<"..sKey..">", gsLogsPopulate)
+        asmlib.LogInstance("Handler["..iD.."]<"..sKey..">", gtArgsLogs)
         local bS, vE = pcall(wDraw, oEnt, oPly); if(not bS) then
-          asmlib.LogInstance("Request["..iD.."]<"..sKey.."> fail: "..vE, gsLogsPopulate); end
-        asmlib.LogInstance("Value["..iD.."]<"..tostring(vE or "")..">!", gsLogsPopulate)
+          asmlib.LogInstance("Request["..iD.."]<"..sKey.."> fail: "..vE, gtArgsLogs); end
+        asmlib.LogInstance("Value["..iD.."]<"..tostring(vE or "")..">", gtArgsLogs)
         oEnt:SetNWString(sKey, tostring(vE or ""))
       end
     end
@@ -880,11 +880,18 @@ if(SERVER) then
   netReceive(gsOptionsCV, PopulateEntity)
 end
 
-if(CLIENT)
-  -- CALL THESE WHEN THE ENTITY IS HOVERED
-  -- netStart(gsOptionsCV)
-  -- netWriteEntity(ent)
-  -- netSendToServer()
+if(CLIENT) then
+  asmlib.SetAction("UPDATE_CONTEXTVAL", -- Must have the same parameters as the hook
+    function() gtArgsLogs[1] = "*UPDATE_CONTEXTVAL"
+      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+        asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly))..">", gtArgsLogs); return nil end
+      local vEye, vAim = EyePos(), oPly:GetAimVector()
+      local oEnt = propertiesGetHovered(); if(asmlib.IsOther(oEnt)) then
+        asmlib.LogInstance("Entity invalid "..asmlib.GetReport(oEnt))..">", gtArgsLogs); return nil end
+      netStart(gsOptionsCV)
+      netWriteEntity(oEnt)
+      netSendToServer()
+    end) -- Read client configuration
 end
 
 -- This filters what the context menu is available for

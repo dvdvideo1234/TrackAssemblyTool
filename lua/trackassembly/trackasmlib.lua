@@ -1145,7 +1145,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     if(not (ePOA and ePOA:IsValid())) then
       LogInstance("Entity invalid", tLogs); return nil end
     if(not IsPlayer(oPly)) then
-      LogInstance("player invalid", tLogs); return nil end
+      LogInstance("Player invalid", tLogs); return nil end
     local nRad = BorderValue(tonumber(nRad) or 0, "non-neg")
     local nAct = BorderValue(tonumber(nAct) or 0, "non-neg")
     local veP, aeA = ePOA:GetPos(), ePOA:GetAngles()
