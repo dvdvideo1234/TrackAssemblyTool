@@ -523,8 +523,9 @@ function InitBase(sName,sPurpose)
   SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   if(CLIENT) then
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
-    SetOpVar("LOCALIFY_AUTO","en")
+    SetOpVar("HOVER_TRIGGER",{})
     SetOpVar("LOCALIFY_TABLE",{})
+    SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("TABLE_CATEGORIES",{})
   end; LogInstance("Success"); return true
 end
@@ -1425,7 +1426,7 @@ function SwitchID(vID,vDir,oRec)
     LogInstance("ID missing "..GetReport(vID)); return 1 end
   local nDir = (tonumber(vDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
   if(nDir == 0) then LogInstance("Direction mismatch"); return ID end
-  ID = GetWrap(ID + nDir,1,oRec.Size) -- Move around the edge selected
+  ID = GetWrap(ID + nDir,1,oRec.Size) -- Move around the snap location selected
   stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
     LogInstance("Offset missing "..GetReport(ID)); return 1 end
   return ID

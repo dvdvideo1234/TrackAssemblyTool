@@ -63,7 +63,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.557")
+asmlib.SetOpVar("TOOL_VERSION","6.558")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -797,7 +797,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             asmlib.SetAsmConvar(oPly, "model", model)
           end,
           function(ePiece, oPly, oTr, sKey)
-            return ePiece:GetModel()
+            return tostring(ePiece:GetModel())
           end
         })
       conContextMenu:Insert(2,
@@ -810,7 +810,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           function(ePiece, oPly, oTr, sKey)
             local ski = asmlib.GetPropSkin(ePiece)
             local bgr = asmlib.GetPropBodyGroup(ePiece)
-            return (bgr..gsSymDir..ski)
+            return tostring(bgr..gsSymDir..ski)
           end
         })
       conContextMenu:Insert(3,
@@ -819,6 +819,9 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local phPiece = ePiece:GetPhysicsObject()
             local physmater = phPiece:GetMaterial()
             asmlib.SetAsmConvar(oPly, "physmater", physmater)
+          end, nil,
+          function(ePiece)
+            return tostring(ePiece:GetPhysicsObject():GetMaterial())
           end
         })
       conContextMenu:Insert(4,
@@ -828,10 +831,8 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local mass = phPiece:GetMass()
             asmlib.SetAsmConvar(oPly, "mass", mass)
           end, nil,
-          function(oEnt, oPly)
-            local mass = oEnt:GetPhysicsObject():GetMass()
-            asmlib.LogInstance("Mass<"..tostring(mass or "")..">")
-            return mass
+          function(ePiece)
+            return tonumber(ePiece:GetPhysicsObject():GetMass())
           end
         })
       conContextMenu:Insert(5,
@@ -841,6 +842,9 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             ePiece.PhysgunDisabled = bPi
             ePiece:SetUnFreezable(bPi)
             ePiece:SetMoveType(MOVETYPE_VPHYSICS)
+          end, nil,
+          function(ePiece)
+            return tobool(ePiece.PhysgunDisabled)
           end
         })
       conContextMenu:Insert(6,
@@ -849,6 +853,9 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local phPiece = ePiece:GetPhysicsObject()
             local motion = phPiece:IsMotionEnabled()
             phPiece:EnableMotion(not motion)
+          end, nil,
+          function(ePiece)
+            return tobool(not ePiece:GetPhysicsObject():IsMotionEnabled())
           end
         })
       conContextMenu:Insert(7,
@@ -857,22 +864,26 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local phPiece = ePiece:GetPhysicsObject()
             local gravity = phPiece:IsGravityEnabled()
             phPiece:EnableGravity(not gravity)
+          end, nil,
+          function(ePiece)
+            return tobool(ePiece:GetPhysicsObject():IsGravityEnabled())
           end
         })
 
 if(SERVER) then
-  local function PopulateEntity(nLen) gtArgsLogs[1] = "*POPULATE_ENTITY"
-    local oEnt = netReadEntity()
-    asmlib.LogInstance("Entity<"..tostring(oEnt)..">", gtArgsLogs)
+  local function PopulateEntity(nLen)
+    local oEnt = netReadEntity(); gtArgsLogs[1] = "*POPULATE_ENTITY"
+    local sNoA = asmlib.GetOpVar("MISS_NOAV") -- Default drawn string
+    asmlib.LogInstance("Entity{"..oEnt:GetClass().."}["..oEnt:EntIndex().."]", gtArgsLogs)
     for iD = 1, conContextMenu:GetSize() do
-      local tLine = conContextMenu:Select(iD)
-      local sKey, wDraw = tLine[1], tLine[5]
-      if(type(wDraw) == "function") then
-        asmlib.LogInstance("Handler["..iD.."]<"..sKey..">", gtArgsLogs)
-        local bS, vE = pcall(wDraw, oEnt, oPly); if(not bS) then
-          asmlib.LogInstance("Request["..iD.."]<"..sKey.."> fail: "..vE, gtArgsLogs); end
-        asmlib.LogInstance("Value["..iD.."]<"..tostring(vE or "")..">", gtArgsLogs)
-        oEnt:SetNWString(sKey, tostring(vE or ""))
+      local tLine = conContextMenu:Select(iD) -- Grab the value from the container
+      local sKey, wDraw = tLine[1], tLine[5]  -- Extract the key and handler
+      if(type(wDraw) == "function") then      -- Check when the value is function
+        local bS, vE = pcall(wDraw, oEnt); vE = tostring(vE) -- Always being string
+        if(not bS) then oEnt:SetNWString(sKey, sNoA)
+          asmlib.LogInstance("Request{"..sKey.."}["..iD.."] fail: "..vE, gtArgsLogs); return end
+        asmlib.LogInstance("Handler{"..sKey.."}["..iD.."]<"..vE..">", gtArgsLogs)
+        oEnt:SetNWString(sKey, vE) -- Write networked value to the hover entity
       end
     end
   end
@@ -884,13 +895,13 @@ if(CLIENT) then
   asmlib.SetAction("UPDATE_CONTEXTVAL", -- Must have the same parameters as the hook
     function() gtArgsLogs[1] = "*UPDATE_CONTEXTVAL"
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly))..">", gtArgsLogs); return nil end
-      local vEye, vAim = EyePos(), oPly:GetAimVector()
-      local oEnt = propertiesGetHovered(); if(asmlib.IsOther(oEnt)) then
-        asmlib.LogInstance("Entity invalid "..asmlib.GetReport(oEnt))..">", gtArgsLogs); return nil end
-      netStart(gsOptionsCV)
-      netWriteEntity(oEnt)
-      netSendToServer()
+        asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly)..">", gtArgsLogs); return nil end
+      local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
+      local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
+      if(not asmlib.IsOther(tTrig[1]) and tTrig[1] ~= tTrig[2]) then
+        netStart(gsOptionsCV); netWriteEntity(oEnt); netSendToServer()
+        asmlib.LogInstance("Entity{"..oEnt:GetClass().."}["..oEnt:EntIndex().."]", gtArgsLogs)
+      end -- Start the population message only on entity trigger hover
     end) -- Read client configuration
 end
 
@@ -911,7 +922,7 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
     local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
     if(type(fDraw) == "function") then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
-        asmlib.LogInstance("Fail["..tostring(iD).."]: "..vE,gsOptionsLG); return end
+        asmlib.LogInstance("Request{"..sKey.."}["..iD.."] fail: "..vE,gsOptionsLG); return end
       sName = sName..": "..tostring(vE)
     elseif(type(wDraw) == "function") then
       sName = sName..": "..ent:GetNWString(sKey)   -- Attach server value
@@ -924,7 +935,7 @@ gtOptionsCM.Action = function(self, ent, tr) end
 gtOptionsCM.Evaluate = function(self, ent, idx, key)
   local tLine = conContextMenu:Select(idx); if(not tLine) then
     asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
-  local bTrans, fHandle = tLine[2], tLine[3]
+  local sKey, bTrans, fHandle = tLine[1], tLine[2], tLine[3]
   if(bTrans) then -- Transfer to SERVER
     self:MsgStart()
       netWriteEntity(ent)
@@ -934,7 +945,7 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
     local oPly = LocalPlayer()
     local oTr  = oPly:GetEyeTrace()
     local bS, vE = pcall(fHandle, ent, oPly, oTr, key); if(not bS) then
-      asmlib.LogInstance("Fail["..tostring(idx).."]: "..vE,gsOptionsLG); return end
+      asmlib.LogInstance("Request{"..sKey.."}["..idx.."] fail: "..vE,gsOptionsLG); return end
   end
 end
 -- What to happen on the server with our entity
@@ -946,11 +957,11 @@ gtOptionsCM.Receive = function(self, len, ply)
     asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
   if(not self:Filter(ent, ply)) then return end
   if(not propertiesCanBeTargeted(ent, ply)) then return end
-  local fHandle = tLine[3] -- Menu function handler
+  local sKey, fHandle = tLine[1], tLine[3] -- Menu function handler
   local bS, vE = pcall(fHandle, ent, ply, oTr); if(not bS) then
-    asmlib.LogInstance("Fail["..tostring(idx).."]: "..vE,gsOptionsLG); return end
+    asmlib.LogInstance("Request{"..sKey.."}["..idx.."] fail: "..vE,gsOptionsLG); return end
 end
--- Register the trackassembly setup options in the context menu
+-- Register the track assembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 ------ INITIALIZE DB ------
