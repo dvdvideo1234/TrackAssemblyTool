@@ -442,7 +442,6 @@ function InitBase(sName,sPurpose)
   if(IsBlank(sPurpose) or tonumber(sPurpose:sub(1,1))) then
     LogInstance("Purpose invalid <"..sPurpose..">", true); return false end
   SetOpVar("TIME_INIT",Time())
-  SetOpVar("DELAY_CONMENU", 0.01)
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)

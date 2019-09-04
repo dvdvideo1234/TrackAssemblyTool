@@ -62,7 +62,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.555")
+asmlib.SetOpVar("TOOL_VERSION","6.556")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -777,7 +777,7 @@ end
 
 ------ INITIALIZE CONTEXT PROPERTIES ------
 local gsOptionsCM = gsToolPrefL.."context_menu"
-local gsOptionsCV = gsToolPrefL.."context_value"
+local gsOptionsCV = gsToolPrefL.."context_values"
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
 local gtOptionsCM = {} -- This stores the context menu configuration
 gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
@@ -829,8 +829,8 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end, nil,
           function(oEnt, oPly)
             local mass = oEnt:GetPhysicsObject():GetMass()
-            asmlib.LogInstance("Mass = <"..tostring(mass or "")..">")
-            oPly:SetNWString(gsOptionsCV, tostring(mass or ""))
+            asmlib.LogInstance("Mass<"..tostring(mass or "")..">")
+            return mass
           end
         })
       conContextMenu:Insert(5,
@@ -860,26 +860,33 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
         })
 
 if(SERVER) then
-  for iD = 1, conContextMenu:GetSize() do
-    local tLine = conContextMenu:Select(iD)
-    local sKey, wDraw = tLine[1], tLine[5]
-    if(type(wDraw) == "function") then
-      local function ReadValueSV(nLen)
-        local oEnt, oPly = netReadEntity(), netReadEntity()
-        asmlib.LogInstance("2. Context message executed!")
-        asmlib.LogInstance("   Ent = <"..tostring(oEnt)..">")
-        asmlib.LogInstance("   Ply = <"..tostring(oPly)..">")
+  local gsLogsPopulate = "*"..gsOptionsLG..".PopulateEntity"
+  local function PopulateEntity(nLen)
+    local oEnt = netReadEntity()
+    asmlib.LogInstance("Entity<"..tostring(oEnt)..">", gsLogsPopulate)
+    for iD = 1, conContextMenu:GetSize() do
+      local tLine = conContextMenu:Select(iD)
+      local sKey, wDraw = tLine[1], tLine[5]
+      if(type(wDraw) == "function") then
+        asmlib.LogInstance("Handler["..iD.."]<"..sKey..">", gsLogsPopulate)
         local bS, vE = pcall(wDraw, oEnt, oPly); if(not bS) then
-          asmlib.LogInstance("Request fail: "..vE, gsOptionsLG); end
-        asmlib.LogInstance("3. Context message ready!")
-        asmlib.LogInstance("3a. Value = ["..oPly:GetNWString(gsOptionsCV).."]!")
-        oPly:SetNWBool(gsOptionsCM, true) -- The data is ready to be read
+          asmlib.LogInstance("Request["..iD.."]<"..sKey.."> fail: "..vE, gsLogsPopulate); end
+        asmlib.LogInstance("Value["..iD.."]<"..tostring(vE or "")..">!", gsLogsPopulate)
+        oEnt:SetNWString(sKey, tostring(vE or ""))
       end
-      utilAddNetworkString(gsLibName..sKey)
-      netReceive(gsLibName..sKey, ReadValueSV)
     end
   end
+  utilAddNetworkString(gsOptionsCV)
+  netReceive(gsOptionsCV, PopulateEntity)
 end
+
+if(CLIENT)
+  -- CALL THESE WHEN THE ENTITY IS HOVERED
+  -- netStart(gsOptionsCV)
+  -- netWriteEntity(ent)
+  -- netSendToServer()
+end
+
 -- This filters what the context menu is available for
 gtOptionsCM.Filter = function(self, ent, ply)
   if(asmlib.IsOther(ent)) then return false end
@@ -900,21 +907,7 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
         asmlib.LogInstance("Fail["..tostring(iD).."]: "..vE,gsOptionsLG); return end
       sName = sName..": "..tostring(vE)
     elseif(type(wDraw) == "function") then
-      oPly:SetNWBool(gsOptionsCM,false) -- Data not ready
-      netStart(gsLibName..sKey)         -- Trigger massage
-      netWriteEntity(ent)               -- Write clicked entity
-      netWriteEntity(oPly)              -- Write the player
-      netSendToServer()                 -- Send to server
-      asmlib.LogInstance("1. ["..iD.."]Context menu message sent!")
-      asmlib.LogInstance("   ["..iD.."]Ent = <"..tostring(ent)..">")
-      asmlib.LogInstance("   ["..iD.."]Ply = <"..tostring(oPly)..">")
-      local nEnd = asmlib.GetOpVar("DELAY_CONMENU") + Time()
-      while(not oPly:GetNWBool(gsOptionsCM)) do
-        local nDif = (nEnd - Time()); if(nDif < 0) then
-          asmlib.LogInstance("Time overdue ["..nDif.."]["..sKey.."]"); break end
-      end -- Check ready
-      asmlib.LogInstance("5. ["..iD.."]Context menu message received!")
-      sName = sName..": "..oPly:GetNWString(gsOptionsCV)   -- Attach server value
+      sName = sName..": "..ent:GetNWString(sKey)   -- Attach server value
     end; mSub:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
   end
 end
