@@ -63,7 +63,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.558")
+asmlib.SetOpVar("TOOL_VERSION","6.559")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -420,18 +420,18 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
   asmlib.SetAction("RESET_VARIABLES",
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
       local devmode = asmlib.GetAsmConvar("devmode", "BUL")
-      local bgskids = asmlib.GetAsmConvar("bgskids", "STR")
       asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
-      asmlib.SetAsmConvar(oPly,"nextx"  , 0)
-      asmlib.SetAsmConvar(oPly,"nexty"  , 0)
-      asmlib.SetAsmConvar(oPly,"nextz"  , 0)
-      asmlib.SetAsmConvar(oPly,"nextpic", 0)
-      asmlib.SetAsmConvar(oPly,"nextyaw", 0)
-      asmlib.SetAsmConvar(oPly,"nextrol", 0)
-      if(not devmode) then
-        asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
-      asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax" , "INT"), asmlib.GetAsmConvar("logfile" , "BUL"))
-      if(bgskids == "reset convars") then -- Reset also the maximum spawned pieces
+      if(not inputIsKeyDown(KEY_LSHIFT)) then
+        asmlib.SetAsmConvar(oPly,"nextx"  , 0)
+        asmlib.SetAsmConvar(oPly,"nexty"  , 0)
+        asmlib.SetAsmConvar(oPly,"nextz"  , 0)
+        asmlib.SetAsmConvar(oPly,"nextpic", 0)
+        asmlib.SetAsmConvar(oPly,"nextyaw", 0)
+        asmlib.SetAsmConvar(oPly,"nextrol", 0)
+      else
+        if(not devmode) then
+          asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
+        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax" , "INT"), asmlib.GetAsmConvar("logfile" , "BUL"))
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         for key, val in pairs(asmlib.GetConvarList()) do
           oPly:ConCommand(key.." "..tostring(val).."\n") end
@@ -450,17 +450,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
         asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
         asmlib.LogInstance("Variables reset complete",gtArgsLogs)
-      elseif(bgskids:sub(1,7) == "delete ") then
-        local tPref = (" "):Explode(bgskids:sub(8,-1))
-        for iCnt = 1, #tPref do local vPr = tPref[iCnt]
-          asmlib.RemoveDSV("CATEGORY", vPr)
-          local iD, makTab = 1, asmlib.GetBuilderID(1)
-          while(makTab) do local defTab = makTab:GetDefinition()
-            asmlib.RemoveDSV(defTab.Nick, vPr) -- Remove all exterms
-            iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-          end; asmlib.LogInstance("Match <"..vPr..">",gtArgsLogs)
-        end
-      else asmlib.LogInstance("Command <"..bgskids.."> skipped",gtArgsLogs); return nil end
+      end
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
@@ -881,8 +871,8 @@ if(SERVER) then
       if(type(wDraw) == "function") then      -- Check when the value is function
         local bS, vE = pcall(wDraw, oEnt); vE = tostring(vE) -- Always being string
         if(not bS) then oEnt:SetNWString(sKey, sNoA)
-          asmlib.LogInstance("Request{"..sKey.."}["..iD.."] fail: "..vE, gtArgsLogs); return end
-        asmlib.LogInstance("Handler{"..sKey.."}["..iD.."]<"..vE..">", gtArgsLogs)
+          asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE, gtArgsLogs); return end
+        asmlib.LogInstance("Handler"..asmlib.GetReport2(sKey,iD,vE), gtArgsLogs)
         oEnt:SetNWString(sKey, vE) -- Write networked value to the hover entity
       end
     end
@@ -900,7 +890,7 @@ if(CLIENT) then
       local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
       if(not asmlib.IsOther(tTrig[1]) and tTrig[1] ~= tTrig[2]) then
         netStart(gsOptionsCV); netWriteEntity(oEnt); netSendToServer()
-        asmlib.LogInstance("Entity{"..oEnt:GetClass().."}["..oEnt:EntIndex().."]", gtArgsLogs)
+        asmlib.LogInstance("Entity"..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), gtArgsLogs)
       end -- Start the population message only on entity trigger hover
     end) -- Read client configuration
 end
@@ -922,11 +912,11 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
     local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
     if(type(fDraw) == "function") then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
-        asmlib.LogInstance("Request{"..sKey.."}["..iD.."] fail: "..vE,gsOptionsLG); return end
+        asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
       sName = sName..": "..tostring(vE)
     elseif(type(wDraw) == "function") then
       sName = sName..": "..ent:GetNWString(sKey)   -- Attach server value
-    end; mSub:AddOption(sName, function() self:Evaluate(ent, iD, tr, sKey) end)
+    end; mSub:AddOption(sName, function() self:Evaluate(ent,iD,tr,sKey) end)
   end
 end
 -- Not used. Use the evaluate function instead
@@ -934,7 +924,7 @@ gtOptionsCM.Action = function(self, ent, tr) end
 -- Use the custom evaluation function with index and key arguments
 gtOptionsCM.Evaluate = function(self, ent, idx, key)
   local tLine = conContextMenu:Select(idx); if(not tLine) then
-    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
+    asmlib.LogInstance("Skip"..asmlib.GetReport(idx),gsOptionsLG); return end
   local sKey, bTrans, fHandle = tLine[1], tLine[2], tLine[3]
   if(bTrans) then -- Transfer to SERVER
     self:MsgStart()
@@ -944,8 +934,8 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
   else -- Call on the CLIENT
     local oPly = LocalPlayer()
     local oTr  = oPly:GetEyeTrace()
-    local bS, vE = pcall(fHandle, ent, oPly, oTr, key); if(not bS) then
-      asmlib.LogInstance("Request{"..sKey.."}["..idx.."] fail: "..vE,gsOptionsLG); return end
+    local bS, vE = pcall(fHandle,ent,oPly,oTr,key); if(not bS) then
+      asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
   end
 end
 -- What to happen on the server with our entity
@@ -954,12 +944,12 @@ gtOptionsCM.Receive = function(self, len, ply)
   local idx = netReadUInt(8)
   local oTr = ply:GetEyeTrace()
   local tLine = conContextMenu:Select(idx); if(not tLine) then
-    asmlib.LogInstance("Skip: "..asmlib.GetReport(idx),gsOptionsLG); return end
+    asmlib.LogInstance("Mismatch"..asmlib.GetReport(idx),gsOptionsLG); return end
   if(not self:Filter(ent, ply)) then return end
   if(not propertiesCanBeTargeted(ent, ply)) then return end
   local sKey, fHandle = tLine[1], tLine[3] -- Menu function handler
   local bS, vE = pcall(fHandle, ent, ply, oTr); if(not bS) then
-    asmlib.LogInstance("Request{"..sKey.."}["..idx.."] fail: "..vE,gsOptionsLG); return end
+    asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
 end
 -- Register the track assembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)

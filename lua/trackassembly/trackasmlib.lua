@@ -233,8 +233,18 @@ function IsOther(oEnt)
 end
 
 -- Reports the type and actual value
-function GetReport(vVal)
-  return ("{"..type(vVal).."}<"..tostring(vVal)..">")
+function GetReport(vA)
+  return GetOpVar("FORM_VREPORT2"):format(type(vA), tostring(vA))
+end
+
+-- Reports vararg containing two values
+function GetReport2(vA, vB)
+  return GetOpVar("FORM_VREPORT2"):format(tostring(vA), tostring(vB))
+end
+
+-- Reports vararg containing three values
+function GetReport3(vA, vB, vC)
+  return GetOpVar("FORM_VREPORT3"):format(tostring(vA), tostring(vB), tostring(vC))
 end
 
 -- Returns the sign of a number [-1,0,1]
@@ -487,9 +497,10 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOSQL","NULL") -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_KEYSTMT","%s(%s)")
+  SetOpVar("FORM_VREPORT2","{%s}[%s]")
+  SetOpVar("FORM_VREPORT3","{%s}[%s]<%s>")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
-  SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
@@ -503,9 +514,10 @@ function InitBase(sName,sPurpose)
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
   SetOpVar("TABLE_CONVARLIST",{})
+  SetOpVar("TABLE_FREQUENT_MODELS",{})
+  SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("TOOL_DEFMODE","gmod_tool")
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
-  SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
@@ -1578,12 +1590,14 @@ function DecodePOA(sStr)
   if(not IsString(sStr)) then
     LogInstance("Argument mismatch "..GetReport(sStr)); return nil end
   if(sStr:len() == 0) then return ReloadPOA() end; ReloadPOA()
-  local symSep, arPOA = GetOpVar("OPSYM_SEPARATOR"), GetOpVar("ARRAY_DECODEPOA")
-  local atPOA = symSep:Explode(sStr)
-  for iD = 1, arPOA.Size do local nCom = tonumber(atPOA[iD])
-    if(not IsHere(nCom)) then nCom = 0
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
+  local arPOA  = GetOpVar("ARRAY_DECODEPOA")
+  local atPOA  = symSep:Explode(sStr)   -- Read the components
+  for iD = 1, arPOA.Size do             -- Apply on all components
+    local nCom = tonumber(atPOA[iD])    -- Is the data really a number
+    if(not IsHere(nCom)) then nCom = 0  -- If not write zero and report it
       LogInstance("Mismatch <"..sStr..">") end; arPOA[iD] = nCom
-  end; return arPOA
+  end; return arPOA -- Return the converted string to POA
 end
 
 function GetTransformOA(sModel,sKey)
@@ -1605,7 +1619,7 @@ function GetTransformOA(sModel,sKey)
   local mTOA = ePiece:GetAttachment(mID); if(not IsHere(mTOA)) then
     LogInstance("Attachment missing OA "..GetReport(mID)..sModel); return nil end
   LogInstance("Extract {"..sKey.."}<"..tostring(mTOA.Pos).."><"..tostring(mTOA.Ang)..">")
-  return mTOA -- The function must return transform structure of origin and angle
+  return mTOA.Pos, mTOA.Ang -- The function must return transform origin and angle
 end
 
 function RegisterPOA(stPiece, ivID, sP, sO, sA)
@@ -1633,9 +1647,8 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   ---------- Origin ----------
   if(sO:sub(1,1) == sD) then ReloadPOA() else
     if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO; sO = sO:sub(2,-1)
-      local stTOA = GetTransformOA(stPiece.Slot, sO)
-      if(IsHere(stTOA) and IsHere(stTOA.Pos)) then
-        ReloadPOA(stTOA.Pos[cvX], stTOA.Pos[cvY], stTOA.Pos[cvZ])
+      local vO, aA = GetTransformOA(stPiece.Slot, sO)
+      if(IsHere(vO)) then ReloadPOA(vO[cvX], vO[cvY], vO[cvZ])
       else -- Decode the transform origin and angle when not applicable
         if(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
           if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stPiece.Slot) end
@@ -1647,9 +1660,8 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   ---------- Angle ----------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
     if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA; sA = sA:sub(2,-1)
-      local stTOA = GetTransformOA(stPiece.Slot, sA)
-      if(IsHere(stTOA) and IsHere(stTOA.Ang)) then
-        ReloadPOA(stTOA.Ang[caP], stTOA.Ang[caY], stTOA.Ang[caR])
+      local vO, aA = GetTransformOA(stPiece.Slot, sA)
+      if(IsHere(aA)) then ReloadPOA(aA[caP], aA[caY], aA[caR])
       else -- Decode the transform origin and angle when not applicable
         if(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
           if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stPiece.Slot) end
