@@ -79,6 +79,8 @@
   tSet["tool."..sTool..".pn_export_lb"  ] = "Export DB"
   tSet["tool."..sTool..".pn_routine"    ] = "The list of your frequently used track pieces"
   tSet["tool."..sTool..".pn_routine_hd" ] = "Frequent pieces by:"
+  tSet["tool."..sTool..".pn_externdb"   ] = "The external databases list"
+  tSet["tool."..sTool..".pn_externdb_hd"] = "Databases by:"
   tSet["tool."..sTool..".pn_display"    ] = "The model of your track piece is displayed here"
   tSet["tool."..sTool..".pn_pattern"    ] = "Write a pattern here and hit ENTER to preform a search"
   tSet["tool."..sTool..".pn_srchcol"    ] = "Choose which list column you want to preform a search on"

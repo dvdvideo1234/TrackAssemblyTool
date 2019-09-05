@@ -141,6 +141,7 @@ if(CLIENT) then
   }
   languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
+  concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
@@ -725,6 +726,9 @@ function TOOL:RightClick(stTrace)
     if(ply:KeyDown(IN_USE)) then
       asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
       asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
+    elseif(ply:KeyDown(IN_SPEED)) then
+      asmlib.SetAsmConvar(ply,"openextdb")
+      asmlib.LogInstance("(World) Success open expdb",gtArgsLogs); return true
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr) then
@@ -1235,7 +1239,7 @@ function TOOL.BuildCPanel(CPanel)
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
-              pRoot.Icon:SetImage("icon16/database_connect.png")
+              pRoot.Icon:SetImage(defTable.Icon.Table)
               pRoot.InternalDoClick = function() end
               pRoot.DoClick         = function() return false end
               pRoot.DoRightClick    = function() SetClipboardText(pRoot:GetText()) end
@@ -1259,7 +1263,7 @@ function TOOL.BuildCPanel(CPanel)
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
               else -- Create the last needed node regarding pItem
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,defTable.Icon.Categ,conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
           end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
@@ -1269,7 +1273,7 @@ function TOOL.BuildCPanel(CPanel)
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
       pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
-      pNode.Icon:SetImage("icon16/brick.png")
+      pNode.Icon:SetImage(defTab.Icon.Piece)
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
         asmlib.SetAsmConvar(nil, "pointid", 1)

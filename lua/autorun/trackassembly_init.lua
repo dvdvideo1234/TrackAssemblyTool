@@ -63,7 +63,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.559")
+asmlib.SetOpVar("TOOL_VERSION","6.560")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -414,6 +414,48 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
           actTool:ElevateGhost(atGhosts[1], oPly) -- Elevate the properly created ghost
         end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
+      end
+    end) -- Read client configuration
+
+  asmlib.SetAction("OPEN_EXTERNDB", -- Must have the same parameters as the hook
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_EXTERNDB"
+      local scrW = surfaceScreenWidth()
+      local scrH = surfaceScreenHeight()
+      local nRat = asmlib.GetOpVar("GOLDEN_RATIO")
+      local sVer = asmlib.GetOpVar("TOOL_VERSION")
+      local xyDsz = asmlib.NewXY(5,5)
+      local xyPos = asmlib.NewXY(scrW/4,scrH/4)
+      local xyTmp = asmlib.NewXY()
+      local xySiz = asmlib.NewXY(mathFloor((scrW/(1 + nRat))*nRat))
+            xySiz.y = mathFloor(xySiz.x / (1 + nRat))
+      local pnFrame = vguiCreate("DFrame")
+      if(not IsValid(pnFrame)) then pnFrame:Close()
+        asmlib.LogInstance("Main panel invalid",gtArgsLogs); return nil end
+      pnFrame:SetPos(xyPos.x, xyPos.y)
+      pnFrame:SetSize(xySiz.x, xySiz.y)
+      pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
+      pnFrame:SetDraggable(true)
+      pnFrame:SetDeleteOnClose(true)
+      pnFrame:SetVisible(true)
+      pnFrame:Center()
+      pnFrame:MakePopup()
+      local pnSheet = vguiCreate("DPropertySheet", pnFrame)
+      if(not IsValid(pnSheet)) then pnFrame:Close()
+        asmlib.LogInstance("Sheet invalid",gtArgsLogs); return nil end
+      pnSheet:Dock(FILL)
+      pnCategory = vguiCreate("DPanel", pnSheet)
+      if(not IsValid(pnCategory)) then pnFrame:Close()
+        asmlib.LogInstance("Category invalid",gtArgsLogs); return nil end
+      local iD, makTab = 1, asmlib.GetBuilderID(1)
+      while(makTab) do
+        local pnTable = vguiCreate("DPanel", pnSheet)
+        if(not IsValid(pnTable)) then pnFrame:Close()
+        asmlib.LogInstance("Category invalid",gtArgsLogs); return nil end
+        local defTab = makTab:GetDefinition()
+        if(defTab.Nick == "PIECES") then
+          pnSheet:AddSheet("CATEGORY", pnCategory, defTab.Icon.Categ) end
+        pnSheet:AddSheet(defTab.Nick, pnTable, defTab.Icon.Table)
+        iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
       end
     end) -- Read client configuration
 
@@ -957,6 +999,11 @@ propertiesAdd(gsOptionsCM, gtOptionsCM)
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
+  Icon  = {
+    Table = "icon16/database_connect.png",
+    Categ = "icon16/folder.png",
+    Piece = "icon16/brick.png"
+  },
   Index = {{1},{4},{1,4}},
   Trigs = {
     Record = function(arLine, vSrc)
@@ -1038,6 +1085,9 @@ asmlib.CreateTable("PIECES",{
 
 asmlib.CreateTable("ADDITIONS",{
   Timer = gaTimerSet[2],
+  Icon  = {
+    Table = "icons16/brick.png"
+  },
   Index = {{1},{4},{1,4}},
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
@@ -1090,6 +1140,9 @@ asmlib.CreateTable("ADDITIONS",{
 
 asmlib.CreateTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
+  Icon  = {
+    Table = "icons16/cog.png"
+  },
   Index = {{1},{2},{1,2}},
   Trigs = {
     Record = function(arLine)
