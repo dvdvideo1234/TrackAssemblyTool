@@ -1,4 +1,4 @@
-﻿return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
+return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
   ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/ISO_639-1
   -- con >> control # def >> default # hd >> header # lb >> label
   tSet["tool."..sTool..".1"             ] = "Assembles a prop-segmented track"
@@ -79,8 +79,9 @@
   tSet["tool."..sTool..".pn_export_lb"  ] = "Export DB"
   tSet["tool."..sTool..".pn_routine"    ] = "The list of your frequently used track pieces"
   tSet["tool."..sTool..".pn_routine_hd" ] = "Frequent pieces by:"
-  tSet["tool."..sTool..".pn_externdb"   ] = "The external databases list"
+  tSet["tool."..sTool..".pn_externdb"   ] = "The external databases available for:"
   tSet["tool."..sTool..".pn_externdb_hd"] = "Databases by:"
+  tSet["tool."..sTool..".pn_externdb_lb"] = "Delete:"
   tSet["tool."..sTool..".pn_display"    ] = "The model of your track piece is displayed here"
   tSet["tool."..sTool..".pn_pattern"    ] = "Write a pattern here and hit ENTER to preform a search"
   tSet["tool."..sTool..".pn_srchcol"    ] = "Choose which list column you want to preform a search on"

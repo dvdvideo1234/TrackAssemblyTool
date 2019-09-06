@@ -1298,7 +1298,7 @@ function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
         sName = IsBlank(sName) and "Other" or sName
   local pItem = pnBase:AddNode(sName)
   pCurr[sName] = {}; pCurr[sName].__ObjPanel__ = pItem
-  pItem.Icon:SetImage(tostring(sImage or "icon16/folder.png"))
+  pItem.Icon:SetImage(tostring(sImage))
   pItem.InternalDoClick = function() end
   pItem.DoClick         = function() return false end
   pItem.DoRightClick    = function() SetClipboardText(pItem:GetText()) end
@@ -2677,31 +2677,6 @@ function ImportCategory(vEq, sPref)
       else sPar = sPar..sLine.."\n" end
     end
   end; F:Close(); LogInstance("Success"); return true
-end
-
---[[
- * This function removes DSV associated with a given prefix
- * sTable > Extremal table nickname database to remove
- * sPref  > Prefix used on exporting ( if any ) else instance is used
-]]--
-function RemoveDSV(sTable, sPref)
-  local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
-    LogInstance("("..sPref..") Prefix empty"); return false end
-  if(not IsString(sTable)) then LogInstance("("..sPref..") Table "
-    ..GetReport(sTable).." not string"); return false end
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..sPref..GetOpVar("TOOLNAME_PU").."%s"..".txt"
-  local makTab, sName = GetBuilderNick(sTable)
-  if(IsHere(makTab)) then -- When table maker is located
-    local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance("("..sPref..") Missing table definition",sTable); return false end
-    sName = fName:format(defTab.Nick) -- Use the table nickname
-  else LogInstance("("..sPref..") Missing table builder",sTable)
-    sName = fName:format(sTable:upper()) -- Use first parameter
-  end -- Delete the file with the given prefix and nickname
-  if(fileExists(sName,"DATA")) then fileDelete(sName)
-    LogInstance("("..sPref..") File <"..sName.."> deleted",sTable)
-  else LogInstance("("..sPref..") File <"..sName.."> skipped",sTable) end; return true
 end
 
 --[[

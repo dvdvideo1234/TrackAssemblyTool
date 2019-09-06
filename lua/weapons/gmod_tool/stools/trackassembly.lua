@@ -723,13 +723,14 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(stTrace.HitWorld) then
-    if(ply:KeyDown(IN_USE)) then
-      asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
-      asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
-    elseif(ply:KeyDown(IN_SPEED)) then
-      asmlib.SetAsmConvar(ply,"openextdb")
-      asmlib.LogInstance("(World) Success open expdb",gtArgsLogs); return true
+    if(self:GetDeveloperMode()) then
+      if(ply:KeyDown(IN_USE)) then
+        asmlib.SetAsmConvar(ply,"openextdb")
+        asmlib.LogInstance("(World) Success open expdb",gtArgsLogs); return true
+      end
     end
+    asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
+    asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr) then
       if(not self:SelectModel(trEnt:GetModel())) then
@@ -1263,7 +1264,7 @@ function TOOL.BuildCPanel(CPanel)
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
               else -- Create the last needed node regarding pItem
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,defTable.Icon.Categ,conPalette:Select("tx"))
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, defTable.Icon.Categ, conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
           end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
@@ -1273,7 +1274,7 @@ function TOOL.BuildCPanel(CPanel)
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
       pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
-      pNode.Icon:SetImage(defTab.Icon.Piece)
+      pNode.Icon:SetImage(defTable.Icon.Piece)
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
         asmlib.SetAsmConvar(nil, "pointid", 1)
