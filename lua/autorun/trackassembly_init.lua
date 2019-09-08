@@ -64,7 +64,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.561")
+asmlib.SetOpVar("TOOL_VERSION","6.562")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -462,10 +462,10 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                      asmlib.GetOpVar("DIRPATH_DSV").."%s"..sPrU.."%s.txt"
         local tFile = fileFind(fDSV:format("*", defTab.Nick), "DATA")
         if(asmlib.IsTable(tFile) and tFile[1]) then
-          local nW, nH = pnFrame:GetSize()
-          xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
-          xySiz.x, xySiz.y = nW - 6 * xyDsz.x, 30
-          for iP = 1, #tFile do local sName = tFile[iP]
+          local nF, nW, nH = #tFile, pnFrame:GetSize()
+          xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
+          xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 50) / nF)
+          for iP = 1, nF do local sName = tFile[iP]
             local pnDelete = vguiCreate("DButton", pnTable)
             if(not IsValid(pnSheet)) then pnFrame:Close()
               asmlib.LogInstance("Button invalid ["..tostring(iP).."]",gtArgsLogs); return nil end
@@ -474,6 +474,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             local sFile = fDSV:format(sPref, defTab.Nick)
             pnDelete:SetPos(xyPos.x, xyPos.y)
             pnDelete:SetSize(xySiz.x, xySiz.y)
+            pnDelete:SetFont("Trebuchet24")
             pnDelete:SetText(sPref)
             pnDelete:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
             pnDelete.DoClick = function(oSelf) local sDel = sFile
@@ -487,6 +488,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                 end
               end
               pnDelete:Remove()
+            end
+            pnDelete.DoRightClick = function(oSelf)
+              SetClipboardText(oSelf:GetText())
             end
             xyPos.y = xyPos.y + xySiz.y + xyDsz.y
           end
