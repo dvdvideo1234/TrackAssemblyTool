@@ -64,7 +64,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.562")
+asmlib.SetOpVar("TOOL_VERSION","6.563")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -464,7 +464,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         if(asmlib.IsTable(tFile) and tFile[1]) then
           local nF, nW, nH = #tFile, pnFrame:GetSize()
           xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
-          xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 50) / nF)
+          xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 52) / nF)
           for iP = 1, nF do local sName = tFile[iP]
             local pnDelete = vguiCreate("DButton", pnTable)
             if(not IsValid(pnSheet)) then pnFrame:Close()
@@ -477,20 +477,35 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             pnDelete:SetFont("Trebuchet24")
             pnDelete:SetText(sPref)
             pnDelete:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
-            pnDelete.DoClick = function(oSelf) local sDel = sFile
-              if(fileExists(sDel,"DATA")) then fileDelete(sDel)
-                asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
-                if(defTab.Nick == "PIECES") then
-                  sDel = fDSV:format(sPref,"CATEGORY")
+            pnDelete.DoRightClick = function(oSelf)
+              local pnMenu = vguiCreate("DMenu")
+              if(not IsValid(pnMenu)) then pnFrame:Close()
+                asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
+                function()
+                  SetClipboardText(oSelf:GetText())
+                end):SetIcon("icon16/page_copy.png")
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
+                function()
+                  SetClipboardText(sFile)
+                end):SetIcon("icon16/page_link.png")
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
+                function()
+                  asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
+                end):SetIcon("icon16/page_edit.png")
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
+                function() local sDel = sFile
                   if(fileExists(sDel,"DATA")) then fileDelete(sDel)
                     asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
-                  end
-                end
-              end
-              pnDelete:Remove()
-            end
-            pnDelete.DoRightClick = function(oSelf)
-              SetClipboardText(oSelf:GetText())
+                    if(defTab.Nick == "PIECES") then
+                      sDel = fDSV:format(sPref,"CATEGORY")
+                      if(fileExists(sDel,"DATA")) then fileDelete(sDel)
+                        asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
+                      end
+                    end
+                  end; pnDelete:Remove()
+                end):SetIcon("icon16/page_delete.png")
+              pnMenu:Open()
             end
             xyPos.y = xyPos.y + xySiz.y + xyDsz.y
           end

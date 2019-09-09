@@ -496,6 +496,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOTP","TYPE")  -- No track type
   SetOpVar("MISS_NOSQL","NULL") -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
+  SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_VREPORT2","{%s}[%s]")
   SetOpVar("FORM_VREPORT3","{%s}[%s]<%s>")
@@ -505,7 +506,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
-  SetOpVar("FORM_CONCMD", GetOpVar("TOOLNAME_PL").."%s %s\n")
   SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
@@ -3621,7 +3621,7 @@ end
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
   if(not IsString(sName)) then
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
-  local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
+  local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
   local cVal = (tonumber(vVal) or tostring(vVal)); LogInstance("("..sLow..")["..tostring(cVal).."]")
   local sInf, nFlg = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0)
   SetBorder(sLow, (tBord and tBord[1] or nil), (tBord and tBord[2] or nil))
@@ -3633,7 +3633,7 @@ function GetAsmConvar(sName, sMode)
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
   if(not IsString(sMode)) then
     LogInstance("Mode mismatch "..GetReport(sMode)); return nil end
-  local sLow = (IsExact(sName) and sName:sub(2,-1):lower() or (GetOpVar("TOOLNAME_PL")..sName):lower())
+  local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
   local CVar = GetConVar(sLow); if(not IsHere(CVar)) then
     LogInstance("("..sLow..", "..sMode..") Missing object"); return nil end
   if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()   , sLow)) or 0)
@@ -3647,12 +3647,14 @@ function GetAsmConvar(sName, sMode)
   end; LogInstance("("..sName..", "..sMode..") Missed mode"); return nil
 end
 
-function SetAsmConvar(pPly,sNam,snVal)
-  if(not IsString(sNam)) then -- Make it like so the space will not be forgotten
-    LogInstance("Name mismatch "..GetReport(sNam)); return nil end
-  if(IsPlayer(pPly)) then local sFmt = GetOpVar("FORM_CONCMD")
-    return pPly:ConCommand(sFmt:format(sNam, tostring(snVal)))
-  end; return RunConsoleCommand(GetOpVar("TOOLNAME_PL")..sNam, snVal)
+function SetAsmConvar(pPly,sName,snVal)
+  if(not IsString(sName)) then -- Make it like so the space will not be forgotten
+    LogInstance("Name mismatch "..GetReport(sName)); return nil end
+  local sFmt, sPrf = GetOpVar("FORM_CONCMD"), GetOpVar("TOOLNAME_PL")
+  local sLow = (IsExact(sName) and sName:sub(2,-1) or (sPrf..sName)):lower()
+  if(IsPlayer(pPly)) then -- Use the player when available
+    return pPly:ConCommand(sFmt:format(sLow, tostring(snVal)).."\n")
+  end; return RunConsoleCommand(sLow, snVal)
 end
 
 function SetAsmCallback(sName, sType, sHash, fHand)
