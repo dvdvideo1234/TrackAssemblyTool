@@ -64,7 +64,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.564")
+asmlib.SetOpVar("TOOL_VERSION","6.565")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -431,9 +431,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local xyTmp = asmlib.NewXY()
       local xySiz = asmlib.NewXY(mathFloor((scrW/(4 + nRat))*nRat))
             xySiz.y = mathFloor(xySiz.x * nRat)
-      local pnFrame = vguiCreate("DFrame")
-      if(not IsValid(pnFrame)) then pnFrame:Close()
-        asmlib.LogInstance("Main panel invalid",gtArgsLogs); return nil end
+      local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
+        asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
@@ -565,7 +564,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local defTab = makTab:GetDefinition(); if(not defTab) then
         asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
-        pnFrame:Remove(); asmlib.LogInstance("Failed to create base frame",gtArgsLogs); return nil end
+        asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
       ------ Screen resolution and configuration -------
       local scrW         = surfaceScreenWidth()
       local scrH         = surfaceScreenHeight()
