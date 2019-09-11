@@ -209,7 +209,7 @@ local function getAdditionsLine(sModel, nID)
   local defTab = makTab:GetDefinition(); if(not defTab) then
     asmlib.LogInstance("No table definition"); return {} end
   local stRec = asmlib.CacheQueryAdditions(sModel); if(not stRec) then return {} end
-  if(not stRec[nID]) then return {} end; stRec = stRec[nID] 
+  if(not stRec[nID]) then return {} end; stRec = stRec[nID]
   local iRow, arData = 2, {} -- The model is missed by the main SELECT
   while(defTab[iRow]) do  -- Ordered by ID. Get the line per model
     arData[iRow-1] = stRec[defTab[iRow][1]]; iRow = (iRow + 1)
@@ -314,11 +314,11 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
 end
 
 __e2setcost(15)
-e2function entity entity:trackasmlibApplyPhysicalAnchor(entity eBase, number nWe, number nNc)
+e2function entity entity:trackasmlibApplyPhysicalAnchor(entity eBase, number nWe, number nNc, number nNw, number nFm)
   if(not (this and this:IsValid() and enFlag)) then return anyFalse end
   if(not (eBase and eBase:IsValid())) then return anyFalse end
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return anyFalse end
-  return asmlib.ApplyPhysicalAnchor(this,eBase,(nWe~=0),(nNc~=0)) and anyTrue or anyFalse
+  return asmlib.ApplyPhysicalAnchor(this,eBase,(nWe~=0),(nNc~=0),(nNw~=0),nFm) and anyTrue or anyFalse
 end
 
 __e2setcost(15)

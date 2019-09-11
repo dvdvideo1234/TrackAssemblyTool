@@ -1,5 +1,5 @@
 local DSC = E2Helper.Descriptions
-DSC["trackasmlibApplyPhysicalAnchor(e:enn)"] = "Anchors the track entity to a base entity with with additional weld 0/1 and no-collide 0/1 flag options available."
+DSC["trackasmlibApplyPhysicalAnchor(e:ennnn)"] = "Anchors the track entity to a base entity with with additional weld 0/1 and no-collide 0/1 flag options available."
 DSC["trackasmlibApplyPhysicalSettings(e:nnns)"] = "Modifies track entity physical settings with phys-gun enabled, freeze, gravity toggle and surface material behavior"
 DSC["trackasmlibAttachAdditions(e:)"] = "Attaches the track entity additions when available"
 DSC["trackasmlibAttachBodyGroups(e:s)"] = "Attaches track piece body-groups by providing selection code"

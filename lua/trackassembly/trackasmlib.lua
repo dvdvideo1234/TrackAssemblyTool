@@ -76,6 +76,7 @@ local sqlQuery                       = sql and sql.Query
 local sqlLastError                   = sql and sql.LastError
 local sqlTableExists                 = sql and sql.TableExists
 local gameSinglePlayer               = game and game.SinglePlayer
+local gameGetWorld                   = game and game.GetWorld
 local utilTraceLine                  = util and util.TraceLine
 local utilIsInWorld                  = util and util.IsInWorld
 local utilIsValidModel               = util and util.IsValidModel
@@ -142,6 +143,7 @@ local constructSetPhysProp           = construct and construct.SetPhysProp
 local constraintWeld                 = constraint and constraint.Weld
 local constraintNoCollide            = constraint and constraint.NoCollide
 local constraintCanConstrain         = constraint and constraint.CanConstrain
+local constraintAdvBallsocket        = constraint and constraint.AdvBallsocket
 local cvarsAddChangeCallback         = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback      = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
@@ -3591,27 +3593,34 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   LogInstance("Success"); return true
 end
 
-function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,nFm)
+function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   if(CLIENT) then LogInstance("Working on client"); return true end
-  local bWe, bNc, nFm = (tobool(bWe) or false), (tobool(bNc) or false), (tonumber(nFm) or 0)
-  LogInstance("{"..tostring(bWe)..","..tostring(bNc)..","..tostring(nFm).."}")
+  local bWe, bNc = (tobool(bWe) or false), (tobool(bNc) or false)
+  local nFm, bNw = (tonumber(nFm)  or  0), (tobool(bNw) or false)
+  LogInstance("{"..tostring(bWe)..","..tostring(bNc)..","..tostring(bNw)..","..tostring(nFm).."}")
   if(not (ePiece and ePiece:IsValid())) then
-    LogInstance("Piece <"..tostring(ePiece).."> not valid"); return false end
+    LogInstance("Piece invalid <"..tostring(ePiece)..">"); return false end
   if(not (eBase and eBase:IsValid())) then
-    LogInstance("Base <"..tostring(eBase).."> constraint ignored"); return true end
+    LogInstance("Base ignored <"..tostring(eBase)..">"); return true end
   if(constraintCanConstrain(eBase, 0)) then -- Check base for contrainability
     if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
-      if(bNc) then -- NoCollide should be made separately
+      if(bNc) then -- NoCollide on pieces between each other made separately
         local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
         if(cnN and cnN:IsValid()) then
           ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
         else LogInstance("NoCollide ignored") end
-      end
+      end -- Weld on pieces between each other
       if(bWe) then -- Weld using force limit given here V
         local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
         if(cnW and cnW:IsValid()) then
           ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
         else LogInstance("Weld ignored "..tostring(cnW)) end
+      end -- NoCollide between piece and world
+      if(bNw) then local nA, vO = 180, GetOpVar("VEC_ZERO")
+        local cnG = constraintAdvBallsocket(ePiece, gameGetWorld(),
+          0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
+        if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
+        else LogInstance("NoCollideWorld ignored "..tostring(cnG)) end
       end
     else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
   else LogInstance("Unconstrain <"..eBase:GetModel()..">") end

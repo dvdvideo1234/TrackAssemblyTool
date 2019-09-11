@@ -64,7 +64,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.565")
+asmlib.SetOpVar("TOOL_VERSION","6.566")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -264,6 +264,7 @@ if(SERVER) then
       local gravity    = (pPly:GetInfoNum(gsToolPrefL.."gravity"  , 0) ~= 0)
       local weld       = (pPly:GetInfoNum(gsToolPrefL.."weld"     , 0) ~= 0)
       local nocollide  = (pPly:GetInfoNum(gsToolPrefL.."nocollide", 0) ~= 0)
+      local nocollidw  = (pPly:GetInfoNum(gsToolPrefL.."nocollidw", 0) ~= 0)
       local spnflat    = (pPly:GetInfoNum(gsToolPrefL.."spnflat"  , 0) ~= 0)
       local igntype    = (pPly:GetInfoNum(gsToolPrefL.."igntype"  , 0) ~= 0)
       local physmater  = (pPly:GetInfo   (gsToolPrefL.."physmater", "metal"))
@@ -292,7 +293,7 @@ if(SERVER) then
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance("Failed to apply physical settings",gtArgsLogs); return nil end
-          if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,forcelim)) then
+          if(not asmlib.ApplyPhysicalAnchor(trEnt,trTr.Entity,weld,nocollide,nocollidew,forcelim)) then
             asmlib.LogInstance("Failed to apply physical anchor",gtArgsLogs); return nil end
         end
       end
@@ -459,8 +460,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, defTab.Icon.Table)
         tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
         local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
-        local fDSV = asmlib.GetOpVar("DIRPATH_BAS")..
-                     asmlib.GetOpVar("DIRPATH_DSV").."%s"..sPrU.."%s.txt"
+        local sDsv = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
+        local fDSV = sDsv.."%s"..sPrU.."%s.txt"
         local tFile = fileFind(fDSV:format("*", defTab.Nick), "DATA")
         if(asmlib.IsTable(tFile) and tFile[1]) then
           local nF, nW, nH = #tFile, pnFrame:GetSize()
@@ -484,27 +485,29 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               if(not IsValid(pnMenu)) then pnFrame:Close()
                 asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
-                function()
-                  SetClipboardText(oSelf:GetText())
-                end):SetIcon("icon16/page_copy.png")
+                function() SetClipboardText(oSelf:GetText()) end):SetIcon("icon16/page_copy.png")
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
-                function()
-                  SetClipboardText(sFile)
-                end):SetIcon("icon16/page_link.png")
+                function() SetClipboardText(defTab.Nick) end):SetIcon("icon16/table_go.png")
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
-                function()
+                function() SetClipboardText(sDsv) end):SetIcon("icon16/folder_page.png")
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
+                function() SetClipboardText(sFile) end):SetIcon("icon16/page_link.png")
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_5"),
+                function() local fData = fileOpen(sFile, "rb"); if(not asmlib.IsHere(fData)) then
+                  asmlib.LogInstance("File invalid: "..sFile,gtArgsLogs); return nil end
+                  SetClipboardText(asmlib.GetStringFile(fData)); fData:Close()
+                end):SetIcon("icon16/page_green.png")
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_6"),
+                function() -- Open the lualad addon to edit the database
                   asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
                 end):SetIcon("icon16/page_edit.png")
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
-                function() local sDel = sFile
-                  if(fileExists(sDel,"DATA")) then fileDelete(sDel)
-                    asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
-                    if(defTab.Nick == "PIECES") then
-                      sDel = fDSV:format(sPref,"CATEGORY")
-                      if(fileExists(sDel,"DATA")) then fileDelete(sDel)
-                        asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
-                      end
-                    end
+              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_7"),
+                function() local sDel = sFile; fileDelete(sDel)
+                  asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
+                  if(defTab.Nick == "PIECES") then
+                    sDel = fDSV:format(sPref,"CATEGORY")
+                    if(fileExists(sDel,"DATA")) then fileDelete(sDel)
+                      asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs) end
                   end; pnDelete:Remove()
                 end):SetIcon("icon16/page_delete.png")
               pnMenu:Open()
