@@ -65,7 +65,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.567")
+asmlib.SetOpVar("TOOL_VERSION","6.568")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -98,6 +98,7 @@ asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum forc
 asmlib.MakeAsmConvar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
 asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context extension on/off fot non-track props")
 
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -938,18 +939,20 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
         })
       conContextMenu:Insert(8,
         {"tool."..gsToolNameL..".nocollidew_con", true,
-          function(ePiece, oPly, oTr, sKey) local eWorld = gameGetWorld()
-            local cnG = constraintFind(ePiece, eWorld, "AdvBallsocket", 0, 0)
+          function(ePiece, oPly, oTr, sKey)
+            local eWo = gameGetWorld()
+            local scT = asmlib.GetOpVar("TYPE_CONSTRNCW")
+            local cnG = constraintFind(ePiece, eWo, scT, 0, 0)
             if(cnG and cnG:IsValid()) then cnG:Remove() else
               local maxforce = asmlib.GetAsmConvar("maxforce" , "FLT")
               local forcelim = mathClamp(asmlib.GetAsmConvar(oPly,"forcelim","FLT"),0,maxforce)
-              if(not asmlib.ApplyPhysicalAnchor(ePiece,eWorld,false,false,true,forcelim)) then
-                gtArgsLogs[1] = "*TOGGLE_NCW"; asmlib.LogInstance("Anchor fail",gtArgsLogs); return end
+              if(not asmlib.ApplyPhysicalAnchor(ePiece,eWo,false,false,true,forcelim)) then
+                gtArgsLogs[1] = "*TOGGLE_NOCOLW"; asmlib.LogInstance("Anchor fail",gtArgsLogs); return end
             end
           end, nil,
-          function(ePiece) local eWorld = gameGetWorld()
+          function(ePiece) local eWo = gameGetWorld()
             local scT = asmlib.GetOpVar("TYPE_CONSTRNCW")
-            local cnG = constraintFind(ePiece, eWorld, scT, 0, 0)
+            local cnG = constraintFind(ePiece, eWo, scT, 0, 0)
             return ((cnG and cnG:IsValid()) and true or false)
           end
         })
@@ -994,6 +997,10 @@ gtOptionsCM.Filter = function(self, ent, ply)
   if(asmlib.IsOther(ent)) then return false end
   if(not (ply and ply:IsValid())) then return false end
   if(not gamemodeCall("CanProperty", ply, gsOptionsCM, ent)) then return false end
+  if(not asmlib.GetAsmConvar(ply, "enctxmall", "BUL")) then
+    local oRec = asmlib.CacheQueryPiece(ent:GetModel())
+    if(not asmlib.IsHere(oRec)) then return false end
+  end -- If the menu is not enabled for all props ged-a-ud!
   return true -- The entity is track piece and TA menu is available
 end
 -- The routine which builds the context menu

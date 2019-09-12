@@ -508,7 +508,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOTP","TYPE")  -- No track type
   SetOpVar("MISS_NOSQL","NULL") -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
-  SetOpVar("TYPE_CONSTRNCW", "TA_NoCollideWorld")
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_VREPORT2","{%s}[%s]")
@@ -537,6 +536,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
+  SetOpVar("TYPE_CONSTRNCW", GetOpVar("TOOLNAME_PU").."NoCollideWorld")
   SetOpVar("TRACE_CLASS", {[GetOpVar("ENTITY_DEFCLASS")]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
     start  = Vector(),    -- Start position of the trace
