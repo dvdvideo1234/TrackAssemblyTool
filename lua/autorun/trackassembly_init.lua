@@ -55,6 +55,7 @@ local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local propertiesAdd                 = properties and properties.Add
 local propertiesGetHovered          = properties and properties.GetHovered
 local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
+local constraintFind                = constraint and constraint.Find
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------ MODULE POINTER -------
@@ -64,7 +65,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.566")
+asmlib.SetOpVar("TOOL_VERSION","6.567")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -840,17 +841,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       end
     end)
 
-  asmlib.SetAction("INCREMENT_SNAP",
-    function(pB, nV, aV)
-      local mV = mathAbs(aV)
-      local cV = mathRound(nV / mV) * mV
-      if(aV > 0 and cV > nV) then return cV end
-      if(aV > 0 and cV < nV) then return cV+mV end
-      if(aV < 0 and cV > nV) then return cV-mV end
-      if(aV < 0 and cV < nV) then return cV end
-      return (nV + aV)
-    end)
-
 end
 
 ------ INITIALIZE CONTEXT PROPERTIES ------
@@ -944,6 +934,23 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end, nil,
           function(ePiece)
             return tobool(ePiece:GetPhysicsObject():IsGravityEnabled())
+          end
+        })
+      conContextMenu:Insert(8,
+        {"tool."..gsToolNameL..".nocollidew_con", true,
+          function(ePiece, oPly, oTr, sKey) local eWorld = gameGetWorld()
+            local cnG = constraintFind(ePiece, eWorld, "AdvBallsocket", 0, 0)
+            if(cnG and cnG:IsValid()) then cnG:Remove() else
+              local maxforce = asmlib.GetAsmConvar("maxforce" , "FLT")
+              local forcelim = mathClamp(asmlib.GetAsmConvar(oPly,"forcelim","FLT"),0,maxforce)
+              if(not asmlib.ApplyPhysicalAnchor(ePiece,eWorld,false,false,true,forcelim)) then
+                gtArgsLogs[1] = "*TOGGLE_NCW"; asmlib.LogInstance("Anchor fail",gtArgsLogs); return end
+            end
+          end, nil,
+          function(ePiece) local eWorld = gameGetWorld()
+            local scT = asmlib.GetOpVar("TYPE_CONSTRNCW")
+            local cnG = constraintFind(ePiece, eWorld, scT, 0, 0)
+            return ((cnG and cnG:IsValid()) and true or false)
           end
         })
 

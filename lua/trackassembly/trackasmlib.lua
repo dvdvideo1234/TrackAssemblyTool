@@ -269,6 +269,16 @@ function GetStrip(vV, vQ)
   return sV:Trim()
 end
 
+function GetSnapInc(pB, nV, aV)
+  local mV = mathAbs(aV)
+  local cV = mathRound(nV / mV) * mV
+  if(aV > 0 and cV > nV) then return cV end
+  if(aV > 0 and cV < nV) then return (cV + mV) end
+  if(aV < 0 and cV > nV) then return (cV - mV) end
+  if(aV < 0 and cV < nV) then return cV end
+  return (nV + aV)
+end
+
 ------------------ LOGS ------------------------
 
 local function GetLogID()
@@ -498,6 +508,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOTP","TYPE")  -- No track type
   SetOpVar("MISS_NOSQL","NULL") -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
+  SetOpVar("TYPE_CONSTRNCW", "TA_NoCollideWorld")
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_VREPORT2","{%s}[%s]")
@@ -3620,6 +3631,10 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
         local cnG = constraintAdvBallsocket(ePiece, gameGetWorld(),
           0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
         if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
+          local tCp = cnG:GetTable(); if(not IsHere(tCp)) then
+            LogInstance("NoCollideWorld table missing") end
+          tCp.Type = GetOpVar("TYPE_CONSTRNCW") -- Must change constraint type
+          -- Constraint type must be specific to be controlled via context menu
         else LogInstance("NoCollideWorld ignored "..tostring(cnG)) end
       end
     else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
