@@ -48,6 +48,8 @@
   tSet["tool."..sTool..".ignphysgn_con" ] = "物理銃を無視する"
   tSet["tool."..sTool..".nocollide"     ] = "部分と部分とアンカーの間に「突き当たる禁止」を入れる"
   tSet["tool."..sTool..".nocollide_con" ] = "突き当たる禁止"
+  tSet["tool."..sTool..".nocollidew"    ] = "部分と世界ーの間に「突き当たる禁止」を入れる"
+  tSet["tool."..sTool..".nocollidew_con"] = "な衝突世界突き当たる禁止"
   tSet["tool."..sTool..".freeze"        ] = "動かぬ状態で部分をスポーンする"
   tSet["tool."..sTool..".freeze_con"    ] = "それは移動しません"
   tSet["tool."..sTool..".igntype"       ] = "ツールをスナップする／スタックする時部分の種類を無視させる"

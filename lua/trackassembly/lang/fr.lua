@@ -48,6 +48,8 @@
   tSet["tool."..sTool..".ignphysgn_con" ] = "Ignorer le pistolet physiques"
   tSet["tool."..sTool..".nocollide"     ] = "Faire en sorte que les pieces/ancres ne puissent jamais entrer en collision"
   tSet["tool."..sTool..".nocollide_con" ] = "Pas de collisions"
+  tSet["tool."..sTool..".nocollidew"    ] = "Faire en sorte que les pieces/monde ne puisse jamais entrer en collision"
+  tSet["tool."..sTool..".nocollidew_con"] = "Pas de collisions monde"
   tSet["tool."..sTool..".freeze"        ] = "La piece qui sera creee sera dans un etat gele"
   tSet["tool."..sTool..".freeze_con"    ] = "Gele piece"
   tSet["tool."..sTool..".igntype"       ] = "Faire ignorer a l'outil les differents types de piece des l'alignement/empilement"

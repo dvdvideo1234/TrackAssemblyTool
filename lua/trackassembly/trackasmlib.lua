@@ -489,7 +489,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
-  SetOpVar("DATE_FORMAT","%d-%m-%y")
+  SetOpVar("DATE_FORMAT","%y-%m-%d")
   SetOpVar("INFINITY",mathHuge)
   SetOpVar("TIME_FORMAT","%H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
@@ -2718,13 +2718,13 @@ function ExportDSV(sTable, sPref, sDelim)
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
   local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
   local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
-  F:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
-  F:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
+  F:Write("#1 "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
+  F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Get()
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Build statement failed",sTable); return false end
-    F:Write("# Query ran: <"..Q..">\n")
+    F:Write("#3 Query:<"..Q..">\n")
     local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") SQL exec error <"..sqlLastError()..">",sTable); return nil end
     if(not (qData and qData[1])) then F:Flush(); F:Close()
@@ -2862,7 +2862,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref.."@"..sTable..") Write fileOpen("..fName..") failed"); return false end
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
-  O:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
+  O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Val
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
       O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
@@ -2896,7 +2896,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
     LogInstance("("..fPref..") fileOpen("..sNins..") failed",sTable); return false end
   I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
-  I:Write("# Data settings:("..makTab:GetColumnList(sDelim)..")\n")
+  I:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
   while(not isEOF) do sLine, isEOF = GetStringFile(D)

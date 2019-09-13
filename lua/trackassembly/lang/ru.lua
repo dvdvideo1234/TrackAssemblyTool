@@ -48,6 +48,8 @@
   tSet["tool."..sTool..".ignphysgn_con" ] = "Игнорирует захвата физической пушки"
   tSet["tool."..sTool..".nocollide"     ] = "Делает не-столкновение между кусками или кусоком/якорем"
   tSet["tool."..sTool..".nocollide_con" ] = "Не-столкновение"
+  tSet["tool."..sTool..".nocollidew"    ] = "Делает не-столкновение между кусками и миром"
+  tSet["tool."..sTool..".nocollidew_con"] = "Не-столкновение миром"
   tSet["tool."..sTool..".freeze"        ] = "Создает заморожений кусок"
   tSet["tool."..sTool..".freeze_con"    ] = "Заморозить кусок"
   tSet["tool."..sTool..".igntype"       ] = "Игнорирует различные типы кусков прилипания/накопления"

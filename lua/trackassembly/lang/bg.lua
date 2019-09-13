@@ -48,6 +48,8 @@
   tSet["tool."..sTool..".ignphysgn_con" ] = "Пренебрегни хващането с физическо оръдие"
   tSet["tool."..sTool..".nocollide"     ] = "Създава не-сблъсък между парчетата или парчета/опора"
   tSet["tool."..sTool..".nocollide_con" ] = "Създай не-сблъсък"
+  tSet["tool."..sTool..".nocollidew"    ] = "Създава не-сблъсък между парчетата и света"
+  tSet["tool."..sTool..".nocollidew_con"] = "Създай не-сблъсък свят"
   tSet["tool."..sTool..".freeze"        ] = "Създава парчето в замразено състояние"
   tSet["tool."..sTool..".freeze_con"    ] = "Замрази парчето"
   tSet["tool."..sTool..".igntype"       ] = "Пренебрегва различните типове парчета при лепене/натрупване"
