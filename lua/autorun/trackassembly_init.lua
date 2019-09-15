@@ -68,7 +68,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.569")
+asmlib.SetOpVar("TOOL_VERSION","6.570")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -954,7 +954,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             if(cnG and cnG:IsValid()) then cnG:Remove() else
               local maxforce = asmlib.GetAsmConvar("maxforce" , "FLT")
               local forcelim = mathClamp(asmlib.GetAsmConvar(oPly,"forcelim","FLT"),0,maxforce)
-              return asmlib.ApplyPhysicalAnchor(ePiece,eWo,false,false,true,forcelim))
+              return asmlib.ApplyPhysicalAnchor(ePiece,eWo,false,false,true,forcelim)
             end; return true
           end, nil,
           function(ePiece) local eWo = gameGetWorld()
@@ -968,7 +968,7 @@ if(SERVER) then
   local function PopulateEntity(nLen)
     local oEnt = netReadEntity(); gtArgsLogs[1] = "*POPULATE_ENTITY"
     local sNoA = asmlib.GetOpVar("MISS_NOAV") -- Default drawn string
-    asmlib.LogInstance("Entity{"..oEnt:GetClass().."}["..oEnt:EntIndex().."]", gtArgsLogs)
+    asmlib.LogInstance("Entity"..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), gtArgsLogs)
     for iD = 1, conContextMenu:GetSize() do
       local tLine = conContextMenu:Select(iD) -- Grab the value from the container
       local sKey, wDraw = tLine[1], tLine[5]  -- Extract the key and handler
