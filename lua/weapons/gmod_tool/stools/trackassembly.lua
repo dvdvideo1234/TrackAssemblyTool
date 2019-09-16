@@ -86,48 +86,49 @@ end
 cleanupRegister(gsLimitName); asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
 
 TOOL.ClientConVar = {
-  [ "weld"      ] = 1,
-  [ "mass"      ] = 25000,
-  [ "model"     ] = "models/props_phx/trains/tracks/track_1x.mdl",
-  [ "nextx"     ] = 0,
-  [ "nexty"     ] = 0,
-  [ "nextz"     ] = 0,
-  [ "freeze"    ] = 1,
-  [ "anchor"    ] = gsNoAnchor,
-  [ "igntype"   ] = 0,
-  [ "spnflat"   ] = 0,
-  [ "angsnap"   ] = 15,
-  [ "sizeucs"   ] = 20,
-  [ "pointid"   ] = 1,
-  [ "pnextid"   ] = 2,
-  [ "nextpic"   ] = 0,
-  [ "nextyaw"   ] = 0,
-  [ "nextrol"   ] = 0,
-  [ "spawncn"   ] = 0,
-  [ "bgskids"   ] = "0/0",
-  [ "gravity"   ] = 1,
-  [ "adviser"   ] = 1,
-  [ "elevpnt"   ] = 0,
-  [ "activrad"  ] = 50,
-  [ "pntasist"  ] = 1,
-  [ "surfsnap"  ] = 0,
-  [ "exportdb"  ] = 0,
-  [ "forcelim"  ] = 0,
-  [ "ignphysgn" ] = 0,
-  [ "ghostcnt"  ] = 1,
-  [ "stackcnt"  ] = 5,
-  [ "maxstatts" ] = 3,
-  [ "nocollide" ] = 1,
-  [ "physmater" ] = "metal",
-  [ "enpntmscr" ] = 1,
-  [ "engunsnap" ] = 0,
-  [ "workmode"  ] = 0,
-  [ "nocollidw" ] = 0,
-  [ "appangfst" ] = 0,
-  [ "applinfst" ] = 0,
-  [ "enradmenu" ] = 0,
-  [ "incsnpang" ] = 5,
-  [ "incsnplin" ] = 5
+  [ "weld"       ] = 1,
+  [ "mass"       ] = 25000,
+  [ "model"      ] = "models/props_phx/trains/tracks/track_1x.mdl",
+  [ "nextx"      ] = 0,
+  [ "nexty"      ] = 0,
+  [ "nextz"      ] = 0,
+  [ "freeze"     ] = 1,
+  [ "anchor"     ] = gsNoAnchor,
+  [ "igntype"    ] = 0,
+  [ "spnflat"    ] = 0,
+  [ "angsnap"    ] = 15,
+  [ "sizeucs"    ] = 20,
+  [ "pointid"    ] = 1,
+  [ "pnextid"    ] = 2,
+  [ "nextpic"    ] = 0,
+  [ "nextyaw"    ] = 0,
+  [ "nextrol"    ] = 0,
+  [ "spawncn"    ] = 0,
+  [ "bgskids"    ] = "0/0",
+  [ "gravity"    ] = 1,
+  [ "adviser"    ] = 1,
+  [ "elevpnt"    ] = 0,
+  [ "activrad"   ] = 50,
+  [ "pntasist"   ] = 1,
+  [ "surfsnap"   ] = 0,
+  [ "exportdb"   ] = 0,
+  [ "forcelim"   ] = 0,
+  [ "ignphysgn"  ] = 0,
+  [ "ghostcnt"   ] = 1,
+  [ "stackcnt"   ] = 5,
+  [ "maxstatts"  ] = 3,
+  [ "nocollide"  ] = 1,
+  [ "nocollidew" ] = 0,
+  [ "physmater"  ] = "metal",
+  [ "enpntmscr"  ] = 1,
+  [ "engunsnap"  ] = 0,
+  [ "workmode"   ] = 0,
+  [ "enctxmall"  ] = 0,
+  [ "appangfst"  ] = 0,
+  [ "applinfst"  ] = 0,
+  [ "enradmenu"  ] = 0,
+  [ "incsnpang"  ] = 5,
+  [ "incsnplin"  ] = 5
 }
 
 local gtConvarList = asmlib.GetConvarList(TOOL.ClientConVar)
@@ -319,7 +320,7 @@ function TOOL:GetScrollMouse()
 end
 
 function TOOL:GetNocollideWorld()
-  return asmlib.GetAsmConvar("nocollidw", "BUL")
+  return asmlib.GetAsmConvar("nocollidew", "BUL")
 end
 
 function TOOL:SwitchPoint(vDir, bNxt)
@@ -558,33 +559,33 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   if(not stTrace.Hit) then
     asmlib.LogInstance("Trace not hit",gtArgsLogs); return false end
-  local trEnt     = stTrace.Entity
-  local weld      = self:GetWeld()
-  local mass      = self:GetMass()
-  local model     = self:GetModel()
-  local ply       = self:GetOwner()
-  local freeze    = self:GetFreeze()
-  local angsnap   = self:GetAngSnap()
-  local gravity   = self:GetGravity()
-  local elevpnt   = self:GetElevation()
-  local nocollide = self:GetNoCollide()
-  local spnflat   = self:GetSpawnFlat()
-  local stackcnt  = self:GetStackCount()
-  local igntype   = self:GetIgnoreType()
-  local forcelim  = self:GetForceLimit()
-  local spawncn   = self:GetSpawnCenter()
-  local surfsnap  = self:GetSurfaceSnap()
-  local workmode  = self:GetWorkingMode()
-  local physmater = self:GetPhysMeterial()
-  local actrad    = self:GetActiveRadius()
-  local bgskids   = self:GetBodyGroupSkin()
-  local maxstatts = self:GetStackAttempts()
-  local ignphysgn = self:GetIgnorePhysgun()
-  local bnderrmod = self:GetBoundErrorMode()
-  local appangfst = self:ApplyAngularFirst()
-  local applinfst = self:ApplyLinearFirst()
-  local nocollidw = self:GetNocollideWorld()
-  local fnmodel   = model:GetFileFromFilename()
+  local trEnt      = stTrace.Entity
+  local weld       = self:GetWeld()
+  local mass       = self:GetMass()
+  local model      = self:GetModel()
+  local ply        = self:GetOwner()
+  local freeze     = self:GetFreeze()
+  local angsnap    = self:GetAngSnap()
+  local gravity    = self:GetGravity()
+  local elevpnt    = self:GetElevation()
+  local nocollide  = self:GetNoCollide()
+  local spnflat    = self:GetSpawnFlat()
+  local stackcnt   = self:GetStackCount()
+  local igntype    = self:GetIgnoreType()
+  local forcelim   = self:GetForceLimit()
+  local spawncn    = self:GetSpawnCenter()
+  local surfsnap   = self:GetSurfaceSnap()
+  local workmode   = self:GetWorkingMode()
+  local physmater  = self:GetPhysMeterial()
+  local actrad     = self:GetActiveRadius()
+  local bgskids    = self:GetBodyGroupSkin()
+  local maxstatts  = self:GetStackAttempts()
+  local ignphysgn  = self:GetIgnorePhysgun()
+  local bnderrmod  = self:GetBoundErrorMode()
+  local appangfst  = self:ApplyAngularFirst()
+  local applinfst  = self:ApplyLinearFirst()
+  local nocollidew = self:GetNocollideWorld()
+  local fnmodel    = model:GetFileFromFilename()
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()

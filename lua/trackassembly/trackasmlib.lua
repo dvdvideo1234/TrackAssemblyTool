@@ -3611,8 +3611,11 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   LogInstance("{"..tostring(bWe)..","..tostring(bNc)..","..tostring(bNw)..","..tostring(nFm).."}")
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return false end
-  if(not (eBase and eBase:IsValid())) then
-    LogInstance("Base ignored <"..tostring(eBase)..">"); return true end
+  if(not (eBase and eBase:IsValid())) then -- Handles invalid entities non-world
+    if(eBase and eBase:IsWorld()) then LogInstance("Base using world") else
+      LogInstance("Base ignored <"..tostring(eBase)..">"); return true
+    end -- If the entity is invalid check if the world is used
+  end
   if(constraintCanConstrain(eBase, 0)) then -- Check base for contrainability
     if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
       if(bNc) then -- NoCollide on pieces between each other made separately
