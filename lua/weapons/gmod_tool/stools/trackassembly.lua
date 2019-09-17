@@ -1211,7 +1211,7 @@ function TOOL:DrawToolScreen(w, h)
   local txX, txY, txW, txH, txsX, txsY = scrTool:GetTextState()
   local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
-  local xyPs = asmlib.MakeXY(cPos, cPos)
+  local xyPs = asmlib.NewXY(cPos, cPos)
   local workmode, workname = self:GetWorkingMode()
   scrTool:DrawCircle(xyPs, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPs, nRad, "m")

@@ -454,7 +454,6 @@ end
 function InitBase(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   SetOpVar("TYPEMT_SCREEN",{})
-  SetOpVar("TYPEMT_VECTOR2D",{})
   SetOpVar("TYPEMT_CONTAINER",{})
   if(not IsString(sName)) then
     LogInstance("Name <"..tostring(sName).."> not string", true); return false end
@@ -537,7 +536,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
-  SetOpVar("TYPE_CONSTRNCW", GetOpVar("TOOLNAME_PU").."NoCollideWorld")
+  SetOpVar("HASH_CONSTRNCW", GetOpVar("TOOLNAME_PU").."NCW")
   SetOpVar("TRACE_CLASS", {[GetOpVar("ENTITY_DEFCLASS")]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
     start  = Vector(),    -- Start position of the trace
@@ -784,82 +783,110 @@ function DecomposeByAngle(vBase, aUnit)
   SetVectorXYZ(vBase,X,Y,Z)
 end
 
------------------ OOP ------------------
+-------------- 2DVECTOR ----------------
 
-function MakeXY(nX, nY)
-  local meta = GetOpVar("TYPEMT_VECTOR2D")
-  local self = {x = 0, y = 0}
-  if(getmetatable(nX) == meta) then
-    self.x = (tonumber(nX.x) or 0)
-    self.y = (tonumber(nX.y) or 0)
-  else -- Copy-constructor
-    self.x = (tonumber(nX) or 0)
-    self.y = (tonumber(nY) or 0)
-  end -- Direct call with mumbers
-  function self:Set(nX, nY)
-    if(getmetatable(nX) == meta) then
-      self.x, self.y = nX.x, nX.y; return self  end
-    self.x = (tonumber(nX.x) or 0)
-    self.y = (tonumber(nX.y) or 0)
-    return self
-  end
-  function self:Exp()
-    return self.x, self.y
-  end
-  function self:NegX()
-    self.x = -self.x; return self
-  end
-  function self:NegY()
-    self.y = -self.y; return self
-  end
-  function self:Neg()
-    return self:NegX():NegY()
-  end
-  function self:Mul(nM)
-    local nM = (tonumber(vM) or 0)
-    return self:Set(self.x * nM, self.y * nM)
-  end
-  function self:Div(nD)
-    return self:Mul(1 / nD)
-  end
-  function self:Push(nX, nY, nD)
-    local nX, nY = 0, 0
-    if(getmetatable(nX) == meta) then nX, nY = nX.x, nX.y
-    else nX, nY = (tonumber(nX) or 0), (tonumber(nY) or 0) end
-    self.x = self.x + nD * nX
-    self.y = self.y + nD * nY; return self
-  end
-  function self:Add(nX, nY)
-    return self:Push(nX, nY, 1)
-  end
-  function self:Sub(nX, nY)
-    return self:Push(nX, nY, -1)
-  end
-  function self:Unit()
-    local nL = self:Len()
-    self.x = self.x / nL
-    self.y = self.y / nL; return self
-  end
-  function self:Mid(nX, nY)
-    return self:Add(nX, nY):Mul(0.5)
-  end
-  function self:Rot(nR)
-    local nR = (tonumber(nR) or 0)
-    if(nR == 0) then return self end
-    local sX, sY = self:Exp()
-    local nS, nC = mathSin(nR), mathCos(nR)
-    self.x = (sX * nC - sY * nS)
-    self.y = (sX * nS + sY * nC); return self
-  end
-  function self:Ang()
-    return mathAtan2(self.y, self.x)
-  end
-  function self:Len()
-    local sX, sY = self:Exp()
-    return mathSqrt(sX * sX + sY * sY)
-  end
-  setmetatable(self, meta); return self
+function NewXY(nX, nY)
+  return {x=(tonumber(nX) or 0), y=(tonumber(nY) or 0)}
 end
+
+function SetXY(xyR, vA, vB) local xA, yA
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not vA ) then LogInstance("Base A invalid"); return nil end
+  if(vB) then xA, yA = (tonumber(vA) or 0), (tonumber(vB) or 0)
+  else xA, yA = (tonumber(vA.x) or 0), (tonumber(vA.y) or 0) end
+  xyR.x, xyR.y = xA, yA; return xyR
+end
+
+function NegXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  xyR.x, xyR.y = -xyR.x, -xyR.y; return xyR
+end
+
+function NegX(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  xyR.x = -xyR.x; return xyR
+end
+
+function NegY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  xyR.y = -xyR.y; return xyR
+end
+
+function MulXY(xyR, vM)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nM = (tonumber(vM) or 0)
+  xyR.x, xyR.y = (xyR.x * nM), (xyR.y * nM); return xyR
+end
+
+function DivXY(xyR, vD)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nD = (tonumber(vM) or 0)
+  xyR.x, xyR.y = (xyR.x / nD), (xyR.y / nD); return xyR
+end
+
+function AddXY(xyR, xyA, xyB)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyA) then LogInstance("Base A invalid"); return nil end
+  if(not xyB) then LogInstance("Base B invalid"); return nil end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
+  xyR.x, xyR.y = (xA + xB), (yA + yB); return xyR
+end
+
+function SubXY(xyR, xyA, xyB)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyA) then LogInstance("Base A invalid"); return nil end
+  if(not xyB) then LogInstance("Base B invalid"); return nil end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
+  xyR.x, xyR.y = (xA - xB), (yA - yB); return xyR
+end
+
+function LenXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local xA, yA = (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
+  return mathSqrt(xA * xA + yA * yA)
+end
+
+function ExpXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  return (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
+end
+
+function UnitXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nL = LenXY(xyR); if(nL == nL ) then
+    LogInstance("Length A invalid"); return nil end
+  xyR.xm, xyR.y = (tonumber(xyR.x) / nL), (tonumber(xyR.y) / nL)
+  return xyR -- Return scaled unit vector
+end
+
+function MidXY(xyR, xyA, xyB)
+  if(not xyR) then LogInstance("Base R invalid"); return nil end
+  if(not xyA) then LogInstance("Base A invalid"); return nil end
+  if(not xyB) then LogInstance("Base B invalid"); return nil end
+  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
+  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
+  xyR.x, xyR.y = ((xA + xB) / 2), ((yA + yB) / 2); return xyR
+end
+
+function RotateXY(xyR, nR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  local nA = (tonumber(nR) or 0)
+  if(nA == 0) then return xyR end
+  local nX = (tonumber(xyR.x) or 0)
+  local nY = (tonumber(xyR.y) or 0)
+  local nS, nC = mathSin(nA), mathCos(nA)
+  xyR.x = (nX * nC - nY * nS)
+  xyR.y = (nX * nS + nY * nC); return xyR
+end
+
+function GetAngleXY(xyR)
+  if(not xyR) then LogInstance("Base invalid"); return nil end
+  return mathAtan2(xyR.y, xyR.x)
+end
+
+----------------- OOP ------------------
 
 function MakeContainer(sKey, sDef)
   local mKey = tostring(sKey or "STORAGE_CONTAINER")
@@ -945,7 +972,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid", tLogs); return nil end
   if(eW < 0 or eH < 0) then LogInstance("End dimension invalid", tLogs); return nil end
-  local xyS, xyE, self = MakeXY(sW, sH), MakeXY(eW, eH), {}
+  local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
   local Colors = {List = conClr, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
@@ -1074,11 +1101,11 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
         LogInstance("End out of border", tLogs); return self end
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       if(nIter <= 0) then return self end
-      local xyD = MakeXY():Set(pE):Sub(pS):Div(nItr)
-      local xyOld, xyNew = MakeXY(pS.x, pS.y), MakeXY()
-      while(nItr > 0) do xyNew:Set(xyOld):Add(xyD)
+      local xyD = NewXY((pE.x - pS.x) / nItr, (pE.y - pS.y) / nItr)
+      local xyOld, xyNew = NewXY(pS.x, pS.y), NewXY()
+      while(nItr > 0) do AddXY(xyNew, xyOld, xyD)
         surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        xyOld:Set(xyNew); nItr = nItr - 1
+        SetXY(xyOld, xyNew); nItr = nItr - 1
       end
     elseif(sMeth == "CAM3") then
       renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
@@ -1099,7 +1126,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
       else -- Use the regular rectangle function without sin/cos rotation
         surfaceDrawTexturedRect(pO.x,pO.y,pS.x,pS.y)
       end
-    else -- Unsuppoerted method
+    else -- Unsupported method
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
     end; return self
   end
@@ -1110,12 +1137,12 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       local nMax = (GetOpVar("MAX_ROTATION") * GetOpVar("DEG_RAD"))
-      local xyOld, xyNew, xyRad = MakeXY(), MakeXY(), MakeXY(nRad, 0)
-      local nStp, nAng = (nMax / nItr), 0; xyOld:Set(xyRad):Add(pC)
+      local xyOld, xyNew, xyRad = NewXY(), NewXY(), NewXY(nRad, 0)
+      local nStp, nAng = (nMax / nItr), 0; AddXY(xyOld, xyRad, pC)
       while(nItr > 0) do nAng = nAng + nStp
-        xyNew:Set(xyRad):Rot(nAng):Add(pC)
+        SetXY(xyNew, xyRad); RotateXY(xyNew, nAng); AddXY(xyNew, xyNew, pC)
         surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        xyOld:Set(xyNew); nItr = (nItr - 1)
+        SetXY(xyOld, xyNew); nItr = (nItr - 1)
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
       renderSetMaterial(self:GetMaterial(Material, (tArgs[1] or "color")))
@@ -3613,7 +3640,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
             local tCp = cnG:GetTable(); if(not IsHere(tCp)) then
               LogInstance("NoCollideWorld table missing") end
-            tCp.Type = GetOpVar("TYPE_CONSTRNCW") -- Must change constraint type
+            tCp[GetOpVar("HASH_CONSTRNCW")] = true
             -- Constraint type must be specific to be controlled via context menu
           else LogInstance("NoCollideWorld ignored "..tostring(cnG)) end
         else LogInstance("NoCollideWorld base invalid "..GetReport(eWorld)) end

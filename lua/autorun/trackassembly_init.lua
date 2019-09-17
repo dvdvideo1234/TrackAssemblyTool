@@ -69,7 +69,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.572")
+asmlib.SetOpVar("TOOL_VERSION","6.573")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -362,40 +362,43 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-      local nBx, nN = 4, conWorkMode:GetSize()
+      local vBs = asmlib.NewXY(4,4)
+      local nN  = conWorkMode:GetSize()
       local nDr = asmlib.GetOpVar("DEG_RAD")
       local sM  = asmlib.GetOpVar("MISS_NOAV")
       local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
-      local vCn = asmlib.MakeXY(mathFloor(scrW/2),mathFloor(scrH/2))
+      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
       -- Calculate dependent parameters
-      local vFr = asmlib.MakeXY(vCn.y*nR) -- Far radius vector
-      local vNr = asmlib.MakeXY(vFr.x*nR) -- Near radius vector
+      local vFr = asmlib.NewXY(vCn.y*nR) -- Far radius vector
+      local vNr = asmlib.NewXY(vFr.x*nR) -- Near radius vector
       local dQb = (vFr.x - vNr.x) -- Bigger selected size
       local dQs = (dQb * nR) -- Smaller not selected size
-      local vMr = asmlib.MakeXY(dQb / 2 + vNr.x) -- Mddle radius vector
-      local vNt, vFt = asmlib.MakeXY(), asmlib.MakeXY() -- Temp storage
+      local vMr = asmlib.NewXY(dQb / 2 + vNr.x) -- Middle radius vector
+      local vNt, vFt = asmlib.NewXY(), asmlib.NewXY() -- Temp storage
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
       local dA, rA = (nMx / (2 * nN)), 0; actMonitor:GetColor() -- Angle delta
-      local mP = asmlib.MakeXY(guiMouseX(), guiMouseY())
+      local mP = asmlib.NewXY(guiMouseX(), guiMouseY())
       actMonitor:DrawCircle(mP, 10, "y", "SURF") -- Draw mouse position
-      -- Obrain the wiper angle relative to screen center
-      local aW = vNt:Set(mP):Sub(vCn):NegY():Ang()
+      -- Obtain the wiper angle relative to screen center
+      local aW = asmlib.GetAngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
       -- Move menu selection wiper based on the calculated angle
-      vNt:Set(vNr):Rot(aW):NegY():Add(vCn)
+      asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, aW)); asmlib.AddXY(vNt, vNt, vCn)
       actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
-      -- Convert wiper anngle to selection ID
+      -- Convert wiper angle to selection ID
       aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
       local iW = mathFloor(((aW / nMx) * nN) + 1) -- Calculate fraction ID
       -- Draw segment line dividers
       for iD = 1, nN do
-        vNt:Set(vNr):Rot(rA):NegY():Add(vCn) -- Calculated near radius positon
-        vFt:Set(vFr):Rot(rA):NegY():Add(vCn) -- Calculated far radius positon
-        actMonitor:DrawLine(vNt, vFt, "w") -- Draw the work mode divider line
+        asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
+        asmlib.SetXY(vFt, vFr); asmlib.NegY(asmlib.RotateXY(vFt, rA))
+        asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
+        actMonitor:DrawLine(vNt, vFt, "w") -- Draw divider line
         rA = (rA + dA) -- Calculate text center position
-        vNt:Set(vMr):Rot(rA):NegY():Add(vCn) -- Rectangle center point in /vNt/
-        if(iD == iW) then vFt:Set(dQb, dQb) else vFt:Set(dQs, dQs) end
+        asmlib.SetXY(vNt, vMr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
+        asmlib.AddXY(vNt, vNt, vCn) -- Rectangle center point in /vNt/
+        if(iD == iW) then asmlib.SetXY(vFt, dQb, dQb) else asmlib.SetXY(vFt, dQs, dQs) end
         actMonitor:DrawRect(vNt,vFt,"k","SURF",{"vgui/white", rA})
-        vFt:Sub(nBx, nBx); actMonitor:DrawRect(vNt,vFt,"bx")
+        asmlib.SubXY(vFt, vFt, vBs); actMonitor:DrawRect(vNt,vFt,"bx")
         local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
         actMonitor:DrawTextCenter(vNt,sW,"k","SURF",{"Trebuchet24"})
         rA = (rA + dA) -- Prepare to draw the next divider line
@@ -429,9 +432,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local scrH = surfaceScreenHeight()
       local nRat = asmlib.GetOpVar("GOLDEN_RATIO")
       local sVer = asmlib.GetOpVar("TOOL_VERSION")
-      local xyPos = asmlib.MakeXY(scrW/4,scrH/4)
-      local xyTmp, xyDsz = asmlib.MakeXY(), asmlib.MakeXY(5,5)
-      local xySiz = asmlib.MakeXY(mathFloor((scrW/(4 + nRat))*nRat))
+      local xyPos = asmlib.NewXY(scrW/4,scrH/4)
+      local xyDsz, xyTmp = asmlib.NewXY(5,5), asmlib.NewXY()
+      local xySiz = asmlib.NewXY(mathFloor((scrW/(4 + nRat))*nRat))
             xySiz.y = mathFloor(xySiz.x * nRat)
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
@@ -945,18 +948,18 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
         {"tool."..gsToolNameL..".nocollidew_con", true,
           function(ePiece, oPly, oTr, sKey)
             local eWo = gameGetWorld()
-            local scT = asmlib.GetOpVar("TYPE_CONSTRNCW")
-            local cnG = constraintFind(ePiece, eWo, scT, 0, 0)
-            if(cnG and cnG:IsValid()) then cnG:Remove() else
+            local scT = asmlib.GetOpVar("HASH_CONSTRNCW")
+            local cnG = constraintFind(ePiece, eWo, "AdvBallsocket", 0, 0)
+            if(cnG and cnG:IsValid() and cnG:GetTable()[scT]) then cnG:Remove() else
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
               return asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
             end; return true
           end, nil,
           function(ePiece) local eWo = gameGetWorld()
-            local scT = asmlib.GetOpVar("TYPE_CONSTRNCW")
-            local cnG = constraintFind(ePiece, eWo, scT, 0, 0)
-            return ((cnG and cnG:IsValid()) and true or false)
+            local scT = asmlib.GetOpVar("HASH_CONSTRNCW")
+            local cnG = constraintFind(ePiece, eWo, "AdvBallsocket", 0, 0)
+            return ((cnG and cnG:IsValid() and cnG:GetTable()[scT]) and true or false)
           end
         })
 
