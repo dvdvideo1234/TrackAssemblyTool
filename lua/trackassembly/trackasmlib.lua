@@ -454,6 +454,7 @@ end
 function InitBase(sName,sPurpose)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   SetOpVar("TYPEMT_SCREEN",{})
+  SetOpVar("TYPEMT_VECTOR2D",{})
   SetOpVar("TYPEMT_CONTAINER",{})
   if(not IsString(sName)) then
     LogInstance("Name <"..tostring(sName).."> not string", true); return false end
@@ -783,110 +784,82 @@ function DecomposeByAngle(vBase, aUnit)
   SetVectorXYZ(vBase,X,Y,Z)
 end
 
--------------- 2DVECTOR ----------------
-
-function NewXY(nX, nY)
-  return {x=(tonumber(nX) or 0), y=(tonumber(nY) or 0)}
-end
-
-function SetXY(xyR, vA, vB) local xA, yA
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
-  if(not vA ) then LogInstance("Base A invalid"); return nil end
-  if(vB) then xA, yA = (tonumber(vA) or 0), (tonumber(vB) or 0)
-  else xA, yA = (tonumber(vA.x) or 0), (tonumber(vA.y) or 0) end
-  xyR.x, xyR.y = xA, yA; return xyR
-end
-
-function NegXY(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  xyR.x, xyR.y = -xyR.x, -xyR.y; return xyR
-end
-
-function NegX(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  xyR.x = -xyR.x; return xyR
-end
-
-function NegY(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  xyR.y = -xyR.y; return xyR
-end
-
-function MulXY(xyR, vM)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  local nM = (tonumber(vM) or 0)
-  xyR.x, xyR.y = (xyR.x * nM), (xyR.y * nM); return xyR
-end
-
-function DivXY(xyR, vD)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  local nD = (tonumber(vM) or 0)
-  xyR.x, xyR.y = (xyR.x / nD), (xyR.y / nD); return xyR
-end
-
-function AddXY(xyR, xyA, xyB)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  if(not xyB) then LogInstance("Base B invalid"); return nil end
-  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
-  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
-  xyR.x, xyR.y = (xA + xB), (yA + yB); return xyR
-end
-
-function SubXY(xyR, xyA, xyB)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  if(not xyB) then LogInstance("Base B invalid"); return nil end
-  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
-  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
-  xyR.x, xyR.y = (xA - xB), (yA - yB); return xyR
-end
-
-function LenXY(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  local xA, yA = (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
-  return mathSqrt(xA * xA + yA * yA)
-end
-
-function ExpXY(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  return (tonumber(xyR.x) or 0), (tonumber(xyR.y) or 0)
-end
-
-function UnitXY(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  local nL = LenXY(xyR); if(nL == nL ) then
-    LogInstance("Length A invalid"); return nil end
-  xyR.xm, xyR.y = (tonumber(xyR.x) / nL), (tonumber(xyR.y) / nL)
-  return xyR -- Return scaled unit vector
-end
-
-function MidXY(xyR, xyA, xyB)
-  if(not xyR) then LogInstance("Base R invalid"); return nil end
-  if(not xyA) then LogInstance("Base A invalid"); return nil end
-  if(not xyB) then LogInstance("Base B invalid"); return nil end
-  local xA, yA = (tonumber(xyA.x) or 0), (tonumber(xyA.y) or 0)
-  local xB, yB = (tonumber(xyB.x) or 0), (tonumber(xyB.y) or 0)
-  xyR.x, xyR.y = ((xA + xB) / 2), ((yA + yB) / 2); return xyR
-end
-
-function RotateXY(xyR, nR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  local nA = (tonumber(nR) or 0)
-  if(nA == 0) then return xyR end
-  local nX = (tonumber(xyR.x) or 0)
-  local nY = (tonumber(xyR.y) or 0)
-  local nS, nC = mathSin(nA), mathCos(nA)
-  xyR.x = (nX * nC - nY * nS)
-  xyR.y = (nX * nS + nY * nC); return xyR
-end
-
-function GetAngleXY(xyR)
-  if(not xyR) then LogInstance("Base V invalid"); return nil end
-  return mathAtan2(xyR.y, xyR.x)
-end
-
 ----------------- OOP ------------------
+
+function MakeXY(nX, nY)
+  local meta = GetOpVar("TYPEMT_VECTOR2D")
+  local self = {x = 0, y = 0}
+  if(getmetatable(nX) == meta) then
+    self.x = (tonumber(nX.x) or 0)
+    self.y = (tonumber(nX.y) or 0)
+  else -- Copy-constructor
+    self.x = (tonumber(nX) or 0)
+    self.y = (tonumber(nY) or 0)
+  end -- Direct call with mumbers
+  function self:Set(nX, nY)
+    if(getmetatable(nX) == meta) then
+      self.x, self.y = nX.x, nX.y; return self  end
+    self.x = (tonumber(nX.x) or 0)
+    self.y = (tonumber(nX.y) or 0)
+    return self
+  end
+  function self:Exp()
+    return self.x, self.y
+  end
+  function self:NegX()
+    self.x = -self.x; return self
+  end
+  function self:NegY()
+    self.y = -self.y; return self
+  end
+  function self:Neg()
+    return self:NegX():NegY()
+  end
+  function self:Mul(nM)
+    local nM = (tonumber(vM) or 0)
+    return self:Set(self.x * nM, self.y * nM)
+  end
+  function self:Div(nD)
+    return self:Mul(1 / nD)
+  end
+  function self:Push(nX, nY, nD)
+    local nX, nY = 0, 0
+    if(getmetatable(nX) == meta) then nX, nY = nX.x, nX.y
+    else nX, nY = (tonumber(nX) or 0), (tonumber(nY) or 0) end
+    self.x = self.x + nD * nX
+    self.y = self.y + nD * nY; return self
+  end
+  function self:Add(nX, nY)
+    return self:Push(nX, nY, 1)
+  end
+  function self:Sub(nX, nY)
+    return self:Push(nX, nY, -1)
+  end
+  function self:Unit()
+    local nL = self:Len()
+    self.x = self.x / nL
+    self.y = self.y / nL; return self
+  end
+  function self:Mid(nX, nY)
+    return self:Add(nX, nY):Mul(0.5)
+  end
+  function self:Rot(nR)
+    local nR = (tonumber(nR) or 0)
+    if(nR == 0) then return self end
+    local sX, sY = self:Exp()
+    local nS, nC = mathSin(nR), mathCos(nR)
+    self.x = (sX * nC - sY * nS)
+    self.y = (sX * nS + sY * nC); return self
+  end
+  function self:Ang()
+    return mathAtan2(self.y, self.x)
+  end
+  function self:Len()
+    local sX, sY = self:Exp()
+    return mathSqrt(sX * sX + sY * sY)
+  end
+  setmetatable(self, meta); return self
+end
 
 function MakeContainer(sKey, sDef)
   local mKey = tostring(sKey or "STORAGE_CONTAINER")
@@ -972,7 +945,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid", tLogs); return nil end
   if(eW < 0 or eH < 0) then LogInstance("End dimension invalid", tLogs); return nil end
-  local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
+  local xyS, xyE, self = MakeXY(sW, sH), MakeXY(eW, eH), {}
   local Colors = {List = conClr, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
@@ -1101,11 +1074,11 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
         LogInstance("End out of border", tLogs); return self end
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       if(nIter <= 0) then return self end
-      local xyD = NewXY((pE.x - pS.x) / nItr, (pE.y - pS.y) / nItr)
-      local xyOld, xyNew = NewXY(pS.x, pS.y), NewXY()
-      while(nItr > 0) do AddXY(xyNew, xyOld, xyD)
+      local xyD = MakeXY():Set(pE):Sub(pS):Div(nItr)
+      local xyOld, xyNew = MakeXY(pS.x, pS.y), MakeXY()
+      while(nItr > 0) do xyNew:Set(xyOld):Add(xyD)
         surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        SetXY(xyOld, xyNew); nItr = nItr - 1
+        xyOld:Set(xyNew); nItr = nItr - 1
       end
     elseif(sMeth == "CAM3") then
       renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
@@ -1137,12 +1110,12 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
       local nMax = (GetOpVar("MAX_ROTATION") * GetOpVar("DEG_RAD"))
-      local xyOld, xyNew, xyRad = NewXY(), NewXY(), NewXY(nRad, 0)
-      local nStp, nAng = (nMax / nItr), 0; AddXY(xyOld, xyRad, pC)
+      local xyOld, xyNew, xyRad = MakeXY(), MakeXY(), MakeXY(nRad, 0)
+      local nStp, nAng = (nMax / nItr), 0; xyOld:Set(xyRad):Add(pC)
       while(nItr > 0) do nAng = nAng + nStp
-        SetXY(xyNew, xyRad); RotateXY(xyNew, nAng); AddXY(xyNew, xyNew, pC)
+        xyNew:Set(xyRad):Rot(nAng):Add(pC)
         surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        SetXY(xyOld, xyNew); nItr = (nItr - 1)
+        xyOld:Set(xyNew); nItr = (nItr - 1)
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
       renderSetMaterial(self:GetMaterial(Material, (tArgs[1] or "color")))
@@ -2931,9 +2904,8 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     LogInstance("("..sPref..") Single client"); return true end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
-  local lbNam = GetOpVar("NAME_LIBRARY")
-  local fName = (sBas..lbNam.."_dsv.txt")
-  local sMiss, sDelim = GetOpVar("MISS_NOAV"), tostring(sDelim or "\t"):sub(1,1)
+  local lbNam, sMiss  = GetOpVar("NAME_LIBRARY"), GetOpVar("MISS_NOAV")
+  local fName, sDelim = (sBas..lbNam.."_dsv.txt"), tostring(sDelim or "\t"):sub(1,1)
   if(bSkip) then
     local symOff = GetOpVar("OPSYM_DISABLE")
     local fPool, isEOF, isAct = {}, false, true
@@ -2946,12 +2918,12 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
         local tab = sDelim:Explode(sLine)
         local prf, src = tab[1]:Trim(), tab[2]:Trim()
         local inf = fPool[prf]; if(not inf) then
-          fPool[prf] = {Cnt = 0}; inf = fPool[prf] end
-        inf.Cnt = inf.Cnt + 1; inf[inf.Cnt] = {src, isAct}
+          fPool[prf] = {Size = 0}; inf = fPool[prf] end
+        inf.Size = inf.Size + 1; inf[inf.Size] = {src, isAct}
       end
     end; F:Close()
     if(fPool[sPref]) then local inf = fPool[sPref]
-      for ID = 1, inf.Cnt do local tab = inf[ID]
+      for ID = 1, inf.Size do local tab = inf[ID]
         LogInstance("("..sPref..") "..(tab[2] and "On " or "Off").." <"..tab[1]..">") end
       LogInstance("("..sPref..") Skip <"..sProg..">"); return true
     end
@@ -3610,38 +3582,44 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   local nFm, bNw = (tonumber(nFm)  or  0), (tobool(bNw) or false)
   LogInstance("{"..tostring(bWe)..","..tostring(bNc)..","..tostring(bNw)..","..tostring(nFm).."}")
   if(not (ePiece and ePiece:IsValid())) then
-    LogInstance("Piece invalid <"..tostring(ePiece)..">"); return false end
-  if(not (eBase and eBase:IsValid())) then -- Handles invalid entities non-world
-    if(eBase and eBase:IsWorld()) then LogInstance("Base using world") else
-      LogInstance("Base ignored <"..tostring(eBase)..">"); return true
-    end -- If the entity is invalid check if the world is used
-  end
-  if(constraintCanConstrain(eBase, 0)) then -- Check base for contrainability
-    if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
-      if(bNc) then -- NoCollide on pieces between each other made separately
-        local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
-        if(cnN and cnN:IsValid()) then
-          ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
-        else LogInstance("NoCollide ignored") end
-      end -- Weld on pieces between each other
-      if(bWe) then -- Weld using force limit given here V
-        local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
-        if(cnW and cnW:IsValid()) then
-          ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
-        else LogInstance("Weld ignored "..tostring(cnW)) end
-      end -- NoCollide between piece and world
-      if(bNw) then local nA, vO = 180, GetOpVar("VEC_ZERO")
-        local cnG = constraintAdvBallsocket(ePiece, gameGetWorld(),
-          0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
-        if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
-          local tCp = cnG:GetTable(); if(not IsHere(tCp)) then
-            LogInstance("NoCollideWorld table missing") end
-          tCp.Type = GetOpVar("TYPE_CONSTRNCW") -- Must change constraint type
-          -- Constraint type must be specific to be controlled via context menu
-        else LogInstance("NoCollideWorld ignored "..tostring(cnG)) end
-      end
-    else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
-  else LogInstance("Unconstrain <"..eBase:GetModel()..">") end
+    LogInstance("Piece invalid "..GetReport(ePiece)); return false end
+  if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
+    if(bNc) then -- NoCollide on pieces between each other made separately
+      if(eBase and eBase:IsValid()) then
+        if(constraintCanConstrain(eBase, 0)) then
+          local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
+          if(cnN and cnN:IsValid()) then
+            ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
+          else LogInstance("NoCollide ignored") end
+        else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
+      else LogInstance("NoCollide base unconstrain "..GetReport(eBase)) end
+    end -- Weld on pieces between each other
+    if(bWe) then -- Weld using force limit given here V
+      if(eBase and eBase:IsValid()) then
+        if(constraintCanConstrain(eBase, 0)) then
+          local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
+          if(cnW and cnW:IsValid()) then
+            ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
+          else LogInstance("Weld ignored "..tostring(cnW)) end
+        else LogInstance("Weld base invalid "..GetReport(eBase)) end
+      else LogInstance("Weld base unconstrain "..GetReport(eBase)) end
+    end -- NoCollide between piece and world
+    if(bNw) then local eWorld = gameGetWorld()
+      if(eWorld and eWorld:IsWorld()) then
+        if(constraintCanConstrain(eWorld, 0)) then
+          local nA, vO = 180, GetOpVar("VEC_ZERO")
+          local cnG = constraintAdvBallsocket(ePiece, eWorld,
+            0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
+          if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
+            local tCp = cnG:GetTable(); if(not IsHere(tCp)) then
+              LogInstance("NoCollideWorld table missing") end
+            tCp.Type = GetOpVar("TYPE_CONSTRNCW") -- Must change constraint type
+            -- Constraint type must be specific to be controlled via context menu
+          else LogInstance("NoCollideWorld ignored "..tostring(cnG)) end
+        else LogInstance("NoCollideWorld base invalid "..GetReport(eWorld)) end
+      else LogInstance("NoCollideWorld base unconstrain "..GetReport(eWorld)) end
+    end
+  else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
   LogInstance("Success"); return true
 end
 

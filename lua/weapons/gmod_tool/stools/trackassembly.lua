@@ -122,8 +122,8 @@ TOOL.ClientConVar = {
   [ "physmater"  ] = "metal",
   [ "enpntmscr"  ] = 1,
   [ "engunsnap"  ] = 0,
-  [ "workmode"   ] = 0,
   [ "enctxmall"  ] = 0,
+  [ "workmode"   ] = 0,
   [ "appangfst"  ] = 0,
   [ "applinfst"  ] = 0,
   [ "enradmenu"  ] = 0,
@@ -184,6 +184,10 @@ end
 
 function TOOL:ApplyLinearFirst()
   return ((self:GetClientNumber("applinfst") or 0) ~= 0)
+end
+
+function TOOL:GetContextMenuAll()
+  return ((self:GetClientNumber("enctxmall") or 0) ~= 0)
 end
 
 function TOOL:GetModel()
@@ -511,6 +515,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnCxMenuAll: <"..tostring(self:GetContextMenuAll())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackCnt:    <"..tostring(self:GetStackCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.GhostsCnt:   <"..tostring(self:GetGhostsCount())..">"..sDelim
@@ -1206,7 +1211,7 @@ function TOOL:DrawToolScreen(w, h)
   local txX, txY, txW, txH, txsX, txsY = scrTool:GetTextState()
   local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
-  local xyPs = asmlib.NewXY(cPos, cPos)
+  local xyPs = asmlib.MakeXY(cPos, cPos)
   local workmode, workname = self:GetWorkingMode()
   scrTool:DrawCircle(xyPs, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPs, nRad, "m")
