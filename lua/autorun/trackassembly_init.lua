@@ -69,7 +69,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.574")
+asmlib.SetOpVar("TOOL_VERSION","6.575")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -947,21 +947,35 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(8,
         {"tool."..gsToolNameL..".weld_con", true,
           function(ePiece, oPly, oTr, sKey)
-            local tCn, ID = asmlib.FindConstraints(ePiece, "Weld"), 1
-            while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+            local tCn = asmlib.FindConstraints(ePiece, "Weld")
+            if(asmlib.IsHere(tCn)) then local ID = 1
+              while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+            else -- Get anchor prop
+              local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
+              local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
+              return asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
+            end
           end,
           function(ePiece)
-            return asmlib.GetOpVar("MISS_VREM")
+            local tCn = asmlib.FindConstraints(ePiece, "Weld")
+            return (tCn and true or false)
           end
         })
       conContextMenu:Insert(9,
         {"tool."..gsToolNameL..".nocollide_con", true,
           function(ePiece, oPly, oTr, sKey)
-            local tCn, ID = asmlib.FindConstraints(ePiece, "NoCollide"), 1
-            while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+            local tCn = asmlib.FindConstraints(ePiece, "NoCollide")
+            if(asmlib.IsHere(tCn)) then local ID = 1
+              while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+            else -- Get anchor prop
+              local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
+              local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
+              return asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
+            end
           end,
           function(ePiece)
-            return asmlib.GetOpVar("MISS_VREM")
+            local tCn = asmlib.FindConstraints(ePiece, "NoCollide")
+            return (tCn and true or false)
           end
         })
       conContextMenu:Insert(10,
