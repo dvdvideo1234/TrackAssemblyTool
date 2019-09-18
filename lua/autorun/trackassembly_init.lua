@@ -69,7 +69,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.573")
+asmlib.SetOpVar("TOOL_VERSION","6.574")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -945,21 +945,40 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(8,
+        {"tool."..gsToolNameL..".weld_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local tCn, ID = asmlib.FindConstraints(ePiece, "Weld"), 1
+            while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+          end,
+          function(ePiece)
+            return asmlib.GetOpVar("MISS_VREM")
+          end
+        })
+      conContextMenu:Insert(9,
+        {"tool."..gsToolNameL..".nocollide_con", true,
+          function(ePiece, oPly, oTr, sKey)
+            local tCn, ID = asmlib.FindConstraints(ePiece, "NoCollide"), 1
+            while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+          end,
+          function(ePiece)
+            return asmlib.GetOpVar("MISS_VREM")
+          end
+        })
+      conContextMenu:Insert(10,
         {"tool."..gsToolNameL..".nocollidew_con", true,
           function(ePiece, oPly, oTr, sKey)
-            local eWo = gameGetWorld()
-            local scT = asmlib.GetOpVar("HASH_CONSTRNCW")
-            local cnG = constraintFind(ePiece, eWo, "AdvBallsocket", 0, 0)
-            if(cnG and cnG:IsValid() and cnG:GetTable()[scT]) then cnG:Remove() else
+            local tCn = asmlib.FindConstraints(ePiece, "AdvBallsocket")
+            if(asmlib.IsHere(tCn)) then local ID = 1
+              while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+            else
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
               return asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
-            end; return true
+            end
           end, nil,
           function(ePiece) local eWo = gameGetWorld()
-            local scT = asmlib.GetOpVar("HASH_CONSTRNCW")
-            local cnG = constraintFind(ePiece, eWo, "AdvBallsocket", 0, 0)
-            return ((cnG and cnG:IsValid() and cnG:GetTable()[scT]) and true or false)
+            local tCn = asmlib.FindConstraints(ePiece, "AdvBallsocket")
+            return (tCn and true or false)
           end
         })
 
@@ -1017,12 +1036,12 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
     local tLine = conContextMenu:Select(iD)
     local sKey, fDraw, wDraw = tLine[1], tLine[4], tLine[5]
     local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
-    if(type(fDraw) == "function") then
+    if(asmlib.IsFunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
         asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
-      sName = sName..": "..tostring(vE)
-    elseif(type(wDraw) == "function") then
-      sName = sName..": "..ent:GetNWString(sKey)   -- Attach server value
+      sName = sName..": "..tostring(vE)          -- Attach client value ( CLIENT )
+    elseif(asmlib.IsFunction(wDraw)) then
+      sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
     end; mSub:AddOption(sName, function() self:Evaluate(ent,iD,tr,sKey) end)
   end
 end

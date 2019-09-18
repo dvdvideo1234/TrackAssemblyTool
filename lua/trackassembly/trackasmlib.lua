@@ -144,6 +144,7 @@ local constraintWeld                 = constraint and constraint.Weld
 local constraintNoCollide            = constraint and constraint.NoCollide
 local constraintCanConstrain         = constraint and constraint.CanConstrain
 local constraintAdvBallsocket        = constraint and constraint.AdvBallsocket
+local constraintGetTable             = constraint and constraint.GetTable
 local cvarsAddChangeCallback         = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback      = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
@@ -502,11 +503,12 @@ function InitBase(sName,sPurpose)
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_INS","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
-  SetOpVar("MISS_NOID","N")     -- No ID selected
-  SetOpVar("MISS_NOAV","N/A")   -- Not Available
-  SetOpVar("MISS_NOMD","X")     -- No model
-  SetOpVar("MISS_NOTP","TYPE")  -- No track type
-  SetOpVar("MISS_NOSQL","NULL") -- No SQL value
+  SetOpVar("MISS_NOID","N")      -- No ID selected
+  SetOpVar("MISS_NOAV","N/A")    -- Not Available
+  SetOpVar("MISS_VREM","REMOVE") -- No value removed
+  SetOpVar("MISS_NOMD","X")      -- No model
+  SetOpVar("MISS_NOTP","TYPE")   -- No track type
+  SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
@@ -536,7 +538,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
-  SetOpVar("HASH_CONSTRNCW", GetOpVar("TOOLNAME_PU").."NCW")
+  SetOpVar("HASH_CONSTRTAB", GetOpVar("TOOLNAME_PU").."CONST")
   SetOpVar("TRACE_CLASS", {[GetOpVar("ENTITY_DEFCLASS")]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
     start  = Vector(),    -- Start position of the trace
@@ -3605,9 +3607,11 @@ end
 
 function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   if(CLIENT) then LogInstance("Working on client"); return true end
+  local sHash = GetOpVar("HASH_CONSTRTAB")
   local bWe, bNc = (tobool(bWe) or false), (tobool(bNc) or false)
   local nFm, bNw = (tonumber(nFm)  or  0), (tobool(bNw) or false)
-  LogInstance("{"..tostring(bWe)..","..tostring(bNc)..","..tostring(bNw)..","..tostring(nFm).."}")
+  LogInstance("{"..tostring(bWe)..","..tostring(bNc)
+            ..","..tostring(bNw)..","..tostring(nFm).."}")
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid "..GetReport(ePiece)); return false end
   if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
@@ -3617,6 +3621,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
           if(cnN and cnN:IsValid()) then
             ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
+            local tCp = cnG:GetTable(); if(IsHere(tCp)) then
+              tCp[sHash] = true else LogInstance("NoCollide table missing") end;
           else LogInstance("NoCollide ignored") end
         else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
       else LogInstance("NoCollide base unconstrain "..GetReport(eBase)) end
@@ -3627,6 +3633,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
           if(cnW and cnW:IsValid()) then
             ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
+            local tCp = cnG:GetTable(); if(IsHere(tCp)) then
+            tCp[sHash] = true else LogInstance("Weld table missing") end;
           else LogInstance("Weld ignored "..tostring(cnW)) end
         else LogInstance("Weld base invalid "..GetReport(eBase)) end
       else LogInstance("Weld base unconstrain "..GetReport(eBase)) end
@@ -3638,16 +3646,40 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           local cnG = constraintAdvBallsocket(ePiece, eWorld,
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
-            local tCp = cnG:GetTable(); if(not IsHere(tCp)) then
-              LogInstance("NoCollideWorld table missing") end
-            tCp[GetOpVar("HASH_CONSTRNCW")] = true
-            -- Constraint type must be specific to be controlled via context menu
-          else LogInstance("NoCollideWorld ignored "..tostring(cnG)) end
-        else LogInstance("NoCollideWorld base invalid "..GetReport(eWorld)) end
-      else LogInstance("NoCollideWorld base unconstrain "..GetReport(eWorld)) end
+            local tCp = cnG:GetTable(); if(IsTable(tCp)) then
+            tCp[sHash] = true else LogInstance("AdvBallsocket table missing") end
+          else LogInstance("AdvBallsocket ignored "..tostring(cnG)) end
+        else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
+      else LogInstance("AdvBallsocket base unconstrain "..GetReport(eWorld)) end
     end
   else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
   LogInstance("Success"); return true
+end
+
+--[[
+ * Finds the contraints of specified type associated with TA
+ * ePiece > Entity of the track piece to be searched for
+ * sType  > Contraint type associated with TA that is being searched
+ * When constraints associated with TA are present return the list otherwise nil
+]]
+function FindConstraints(ePiece, sType)
+  if(not IsString(sType)) then
+    LogInstance("Name mismatch "..GetReport(sType)); return nil end
+  if(not (ePiece and ePiece:IsValid())) then
+    LogInstance("Piece invalid "..GetReport(ePiece)); return nil end
+  local sHash = GetOpVar("HASH_CONSTRTAB") -- Constraint is done by TA
+  local tCn, tCa, ID, IK = constraintGetTable(ePiece), {}, 1, 0
+  while(tCn[ID]) do local vCn = tCn[ID]
+    if(vCn and vCn:IsValid()) then -- When the constraint is present and valid
+      local tTb = vCn:GetTable()   -- Retrieve the constraint table
+      if(IsTable(tTb)) then        -- If the the data is actual table
+        local sTy = tTb.Type       -- Read the constraint type
+        if(sTy == sType and tTb[sHash]) then -- When the type matches and made by TA
+           IK = (IK + 1); tCa[IK] = vCn end -- Add the constraint in a table
+      else LogInstance("Table missing"..GetReport(ID)) end
+    else LogInstance("Constraint invalid"..GetReport(ID)) end
+    ID = (ID + 1) -- Index the next contraint to be checked
+  end; return ((IK > 0) and tCa or nil) -- Table of associated constraints
 end
 
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
