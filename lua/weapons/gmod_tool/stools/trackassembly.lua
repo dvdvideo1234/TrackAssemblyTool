@@ -415,7 +415,8 @@ function TOOL:ClearAnchor(bMute)
     svEnt:SetColor(conPalette:Select("w"))
     if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
-      asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP") end
+      asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
+    end
   end; asmlib.LogInstance("("..tostring(bMute)..") Anchor cleared",gtArgsLogs); return true
 end
 

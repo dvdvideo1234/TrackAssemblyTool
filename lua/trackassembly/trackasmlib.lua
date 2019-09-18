@@ -505,7 +505,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("MISS_NOID","N")      -- No ID selected
   SetOpVar("MISS_NOAV","N/A")    -- Not Available
-  SetOpVar("MISS_VREM","REMOVE") -- No value removed
   SetOpVar("MISS_NOMD","X")      -- No model
   SetOpVar("MISS_NOTP","TYPE")   -- No track type
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
@@ -3621,8 +3620,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
           if(cnN and cnN:IsValid()) then
             ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
-            local tCp = cnG:GetTable(); if(IsHere(tCp)) then
-              tCp[sHash] = true else LogInstance("NoCollide table missing") end;
+            local tCp = cnN:GetTable(); if(IsHere(tCp)) then
+              tCp[sHash] = true; cnN:SetTable(tCp) else LogInstance("NoCollide table missing") end;
           else LogInstance("NoCollide ignored") end
         else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
       else LogInstance("NoCollide base unconstrain "..GetReport(eBase)) end
@@ -3633,8 +3632,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
           if(cnW and cnW:IsValid()) then
             ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
-            local tCp = cnG:GetTable(); if(IsHere(tCp)) then
-            tCp[sHash] = true else LogInstance("Weld table missing") end;
+            local tCp = cnW:GetTable(); if(IsHere(tCp)) then
+            tCp[sHash] = true; cnW:SetTable(tCp) else LogInstance("Weld table missing") end;
           else LogInstance("Weld ignored "..tostring(cnW)) end
         else LogInstance("Weld base invalid "..GetReport(eBase)) end
       else LogInstance("Weld base unconstrain "..GetReport(eBase)) end
@@ -3647,7 +3646,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
             local tCp = cnG:GetTable(); if(IsTable(tCp)) then
-            tCp[sHash] = true else LogInstance("AdvBallsocket table missing") end
+            tCp[sHash] = true; cnG:SetTable(tCp) else LogInstance("AdvBallsocket table missing") end
           else LogInstance("AdvBallsocket ignored "..tostring(cnG)) end
         else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
       else LogInstance("AdvBallsocket base unconstrain "..GetReport(eWorld)) end
@@ -3669,7 +3668,7 @@ function FindConstraints(ePiece, sType)
     LogInstance("Piece invalid "..GetReport(ePiece)); return nil end
   local sHash = GetOpVar("HASH_CONSTRTAB") -- Constraint is done by TA
   local tCn, tCa, ID, IK = constraintGetTable(ePiece), {}, 1, 0
-  while(tCn[ID]) do local vCn = tCn[ID]
+  while(tCn[ID]) do local vCn = tCn[ID].Constraint -- Use constraint entity
     if(vCn and vCn:IsValid()) then -- When the constraint is present and valid
       local tTb = vCn:GetTable()   -- Retrieve the constraint table
       if(IsTable(tTb)) then        -- If the the data is actual table

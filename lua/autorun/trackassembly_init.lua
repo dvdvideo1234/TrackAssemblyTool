@@ -33,6 +33,7 @@ local sqlCommit                     = sql and sql.Commit
 local guiMouseX                     = gui and gui.MouseX
 local guiMouseY                     = gui and gui.MouseY
 local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
+local entsGetByIndex                = ents and ents.GetByIndex
 local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
 local mathRound                     = math and math.Round
@@ -69,7 +70,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.575")
+asmlib.SetOpVar("TOOL_VERSION","6.576")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -136,6 +137,9 @@ end, gsTimerMD.."_call")
 asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
 
 ------ GLOBAL VARIABLES ------
+local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
+local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
+local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
@@ -146,6 +150,7 @@ local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
+local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
@@ -950,15 +955,21 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local tCn = asmlib.FindConstraints(ePiece, "Weld")
             if(asmlib.IsHere(tCn)) then local ID = 1
               while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
-            else -- Get anchor prop
+            else
+              local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
+              local tAnch = gsSymRev:Explode(sAnch)
+              local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
+                asmlib.Notify(plPly,"Anchor: Missing "..sAnch.." !","ERROR") return false end
+              local eBase = entsGetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
+                asmlib.Notify(plPly,"Entity: Missing "..nAnch.." !","ERROR") return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
-              return asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
+              return asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
             end
-          end,
+          end, nil,
           function(ePiece)
             local tCn = asmlib.FindConstraints(ePiece, "Weld")
-            return (tCn and true or false)
+            return tobool(asmlib.IsHere(tCn))
           end
         })
       conContextMenu:Insert(9,
@@ -968,14 +979,20 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             if(asmlib.IsHere(tCn)) then local ID = 1
               while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
             else -- Get anchor prop
+              local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
+              local tAnch = gsSymRev:Explode(sAnch)
+              local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
+                asmlib.Notify(plPly,"Anchor: Missing "..sAnch.." !","ERROR") return false end
+              local eBase = entsGetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
+                asmlib.Notify(plPly,"Entity: Missing "..nAnch.." !","ERROR") return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
-              return asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
+              return asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
             end
-          end,
+          end, nil,
           function(ePiece)
             local tCn = asmlib.FindConstraints(ePiece, "NoCollide")
-            return (tCn and true or false)
+            return tobool(asmlib.IsHere(tCn))
           end
         })
       conContextMenu:Insert(10,
@@ -992,7 +1009,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end, nil,
           function(ePiece) local eWo = gameGetWorld()
             local tCn = asmlib.FindConstraints(ePiece, "AdvBallsocket")
-            return (tCn and true or false)
+            return tobool(asmlib.IsHere(tCn))
           end
         })
 
