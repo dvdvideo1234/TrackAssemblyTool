@@ -187,7 +187,7 @@ function TOOL:ApplyLinearFirst()
 end
 
 function TOOL:GetContextMenuAll()
-  return ((self:GetClientNumber("enctxmall") or 0) ~= 0)
+  return asmlib.GetAsmConvar("enctxmall", "BUL")
 end
 
 function TOOL:GetModel()

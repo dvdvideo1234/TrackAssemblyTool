@@ -60,6 +60,7 @@ local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
 local propertiesAdd                 = properties and properties.Add
 local propertiesGetHovered          = properties and properties.GetHovered
 local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
+local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
@@ -70,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.576")
+asmlib.SetOpVar("TOOL_VERSION","6.577")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -103,6 +104,7 @@ asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum forc
 asmlib.MakeAsmConvar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
 asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
 
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -954,62 +956,83 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           function(ePiece, oPly, oTr, sKey)
             local tCn = asmlib.FindConstraints(ePiece, "Weld")
             if(asmlib.IsHere(tCn)) then local ID = 1
-              while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+              while(tCn and tCn[ID]) do local eCn = tCn[ID].Constraint
+                if(eCn and eCn:IsValid()) then eCn:Remove() end; ID = (ID + 1)
+              end; return true
             else
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(plPly,"Anchor: Missing "..sAnch.." !","ERROR") return false end
+                asmlib.Notify(plPly,"Anchor: Missing CV "..sAnch.." !","ERROR") return false end
               local eBase = entsGetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(plPly,"Entity: Missing "..nAnch.." !","ERROR") return false end
+                asmlib.Notify(plPly,"Entity: Missing ID "..tostring(nAnch).." !","ERROR") return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
-              local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
-              return asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
+              local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
+              local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
+              if(bSuc and cnW and cnW:IsValid()) then
+                local sIdx = asmlib.GetReport2(cnW:EntIndex(), cnW:GetClass())
+                asmlib.UndoCrate("TA Weld > ")
+                asmlib.UndoAddEntity(cnG)
+                asmlib.UndoFinish(oPly, sIdx); return true
+              end; return false
             end
           end, nil,
           function(ePiece)
-            local tCn = asmlib.FindConstraints(ePiece, "Weld")
-            return tobool(asmlib.IsHere(tCn))
+            local tCn = constraintFindConstraints(ePiece, "Weld"); return #tCn
           end
         })
       conContextMenu:Insert(9,
         {"tool."..gsToolNameL..".nocollide_con", true,
           function(ePiece, oPly, oTr, sKey)
-            local tCn = asmlib.FindConstraints(ePiece, "NoCollide")
-            if(asmlib.IsHere(tCn)) then local ID = 1
-              while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+            local tCn = constraintFindConstraints(ePiece, "NoCollide")
+            if(asmlib.IsTable(tCn)) then local ID = 1
+              while(tCn and tCn[ID]) do local eCn = tCn[ID].Constraint
+                if(eCn and eCn:IsValid()) then eCn:Remove() end; ID = (ID + 1)
+              end; return true
             else -- Get anchor prop
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(plPly,"Anchor: Missing "..sAnch.." !","ERROR") return false end
+                asmlib.Notify(plPly,"Anchor: Missing CV "..sAnch.." !","ERROR") return false end
               local eBase = entsGetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(plPly,"Entity: Missing "..nAnch.." !","ERROR") return false end
+                asmlib.Notify(plPly,"Entity: Missing ID "..nAnch.." !","ERROR") return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
-              local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
-              return asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
+              local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
+              local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
+              if(bSuc and cnN and cnN:IsValid()) then
+                local sIdx = asmlib.GetReport2(cnN:EntIndex(), cnN:GetClass())
+                asmlib.UndoCrate("TA NoCollide > ")
+                asmlib.UndoAddEntity(cnG)
+                asmlib.UndoFinish(oPly, sIdx); return true
+              end; return false
             end
           end, nil,
           function(ePiece)
-            local tCn = asmlib.FindConstraints(ePiece, "NoCollide")
-            return tobool(asmlib.IsHere(tCn))
+            local tCn = constraintFindConstraints(ePiece, "NoCollide"); return #tCn
           end
         })
       conContextMenu:Insert(10,
         {"tool."..gsToolNameL..".nocollidew_con", true,
           function(ePiece, oPly, oTr, sKey)
-            local tCn = asmlib.FindConstraints(ePiece, "AdvBallsocket")
-            if(asmlib.IsHere(tCn)) then local ID = 1
-              while(tCn and tCn[ID]) do tCn[ID]:Remove(); ID = (ID + 1) end; return true
+            if(oPly:KeyDown(IN_USE)) then
+              local eCn = constraintFind(ePiece, gameGetWorld(), "AdvBallsocket", 0, 0)
+              if(eCn and eCn:IsValid()) then eCn:Remove()
+                asmlib.Notify(oPly,"Removed: NoCollideWorld !","CLEANUP")
+              else asmlib.Notify(oPly,"Missing: NoCollideWorld !","CLEANUP") end
             else
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
-              local forcelim = mathClamp(asmlib.GetAsmConvar("forcelim", "FLT"), 0, maxforce)
-              return asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
+              local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
+              local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
+              if(bSuc) then local sIdx = asmlib.GetReport2(cnG:EntIndex(), cnG:GetClass())
+                asmlib.UndoCrate("TA NoCollideWorld > ")
+                asmlib.UndoAddEntity(cnG)
+                asmlib.UndoFinish(oPly, sIdx); return true
+              end; return false
             end
           end, nil,
-          function(ePiece) local eWo = gameGetWorld()
-            local tCn = asmlib.FindConstraints(ePiece, "AdvBallsocket")
-            return tobool(asmlib.IsHere(tCn))
+          function(ePiece)
+            local eCn = constraintFind(ePiece, gameGetWorld(), "AdvBallsocket", 0, 0)
+            return tobool(eCn and eCn:IsValid())
           end
         })
 

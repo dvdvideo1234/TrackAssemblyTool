@@ -144,7 +144,6 @@ local constraintWeld                 = constraint and constraint.Weld
 local constraintNoCollide            = constraint and constraint.NoCollide
 local constraintCanConstrain         = constraint and constraint.CanConstrain
 local constraintAdvBallsocket        = constraint and constraint.AdvBallsocket
-local constraintGetTable             = constraint and constraint.GetTable
 local cvarsAddChangeCallback         = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback      = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
@@ -537,7 +536,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
   SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
-  SetOpVar("HASH_CONSTRTAB", GetOpVar("TOOLNAME_PU").."CONST")
   SetOpVar("TRACE_CLASS", {[GetOpVar("ENTITY_DEFCLASS")]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
     start  = Vector(),    -- Start position of the trace
@@ -3604,81 +3602,61 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   LogInstance("Success"); return true
 end
 
+--[[
+ * Creates anchor constraints between the pice and the base prop
+ * ePiece > The piece entity to be attached
+ * eBase  > Base enity the piece is attached to
+ * bWe    > Weld constraint flag ( Weld )
+ * bNc    > NoCollide constraint flag ( NoCollide )
+ * bNw    > NoCollideWorld constraint flag ( AdvBallsocket )
+ * nFm    > Force limit of the contraint created. Defaults to never break
+]]
 function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   if(CLIENT) then LogInstance("Working on client"); return true end
-  local sHash = GetOpVar("HASH_CONSTRTAB")
   local bWe, bNc = (tobool(bWe) or false), (tobool(bNc) or false)
   local nFm, bNw = (tonumber(nFm)  or  0), (tobool(bNw) or false)
   LogInstance("{"..tostring(bWe)..","..tostring(bNc)
             ..","..tostring(bNw)..","..tostring(nFm).."}")
+  local cnW, cnN, cnG -- Create local references for constraints
   if(not (ePiece and ePiece:IsValid())) then
-    LogInstance("Piece invalid "..GetReport(ePiece)); return false end
+    LogInstance("Piece invalid "..GetReport(ePiece)); return false, cnW, cnN, cnG  end
   if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
-    if(bNc) then -- NoCollide on pieces between each other made separately
-      if(eBase and eBase:IsValid()) then
-        if(constraintCanConstrain(eBase, 0)) then
-          local cnN = constraintNoCollide(ePiece, eBase, 0, 0)
-          if(cnN and cnN:IsValid()) then
-            ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
-            local tCp = cnN:GetTable(); if(IsHere(tCp)) then
-              tCp[sHash] = true; cnN:SetTable(tCp) else LogInstance("NoCollide table missing") end;
-          else LogInstance("NoCollide ignored") end
-        else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
-      else LogInstance("NoCollide base unconstrain "..GetReport(eBase)) end
-    end -- Weld on pieces between each other
+    -- Weld on pieces between each other
     if(bWe) then -- Weld using force limit given here V
       if(eBase and eBase:IsValid()) then
         if(constraintCanConstrain(eBase, 0)) then
-          local cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
+          cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
           if(cnW and cnW:IsValid()) then
             ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
-            local tCp = cnW:GetTable(); if(IsHere(tCp)) then
-            tCp[sHash] = true; cnW:SetTable(tCp) else LogInstance("Weld table missing") end;
           else LogInstance("Weld ignored "..tostring(cnW)) end
         else LogInstance("Weld base invalid "..GetReport(eBase)) end
       else LogInstance("Weld base unconstrain "..GetReport(eBase)) end
-    end -- NoCollide between piece and world
+    end
+    -- NoCollide on pieces between each other made separately
+    if(bNc) then
+      if(eBase and eBase:IsValid()) then
+        if(constraintCanConstrain(eBase, 0)) then
+          cnN = constraintNoCollide(ePiece, eBase, 0, 0)
+          if(cnN and cnN:IsValid()) then
+            ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
+          else LogInstance("NoCollide ignored") end
+        else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
+      else LogInstance("NoCollide base unconstrain "..GetReport(eBase)) end
+    end
+    -- NoCollide between piece and world
     if(bNw) then local eWorld = gameGetWorld()
       if(eWorld and eWorld:IsWorld()) then
         if(constraintCanConstrain(eWorld, 0)) then
           local nA, vO = 180, GetOpVar("VEC_ZERO")
-          local cnG = constraintAdvBallsocket(ePiece, eWorld,
+          cnG = constraintAdvBallsocket(ePiece, eWorld,
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
-            local tCp = cnG:GetTable(); if(IsTable(tCp)) then
-            tCp[sHash] = true; cnG:SetTable(tCp) else LogInstance("AdvBallsocket table missing") end
           else LogInstance("AdvBallsocket ignored "..tostring(cnG)) end
         else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
       else LogInstance("AdvBallsocket base unconstrain "..GetReport(eWorld)) end
     end
   else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
-  LogInstance("Success"); return true
-end
-
---[[
- * Finds the contraints of specified type associated with TA
- * ePiece > Entity of the track piece to be searched for
- * sType  > Contraint type associated with TA that is being searched
- * When constraints associated with TA are present return the list otherwise nil
-]]
-function FindConstraints(ePiece, sType)
-  if(not IsString(sType)) then
-    LogInstance("Name mismatch "..GetReport(sType)); return nil end
-  if(not (ePiece and ePiece:IsValid())) then
-    LogInstance("Piece invalid "..GetReport(ePiece)); return nil end
-  local sHash = GetOpVar("HASH_CONSTRTAB") -- Constraint is done by TA
-  local tCn, tCa, ID, IK = constraintGetTable(ePiece), {}, 1, 0
-  while(tCn[ID]) do local vCn = tCn[ID].Constraint -- Use constraint entity
-    if(vCn and vCn:IsValid()) then -- When the constraint is present and valid
-      local tTb = vCn:GetTable()   -- Retrieve the constraint table
-      if(IsTable(tTb)) then        -- If the the data is actual table
-        local sTy = tTb.Type       -- Read the constraint type
-        if(sTy == sType and tTb[sHash]) then -- When the type matches and made by TA
-           IK = (IK + 1); tCa[IK] = vCn end -- Add the constraint in a table
-      else LogInstance("Table missing"..GetReport(ID)) end
-    else LogInstance("Constraint invalid"..GetReport(ID)) end
-    ID = (ID + 1) -- Index the next contraint to be checked
-  end; return ((IK > 0) and tCa or nil) -- Table of associated constraints
+  LogInstance("Success"); return true, cnW, cnN, cnG
 end
 
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
