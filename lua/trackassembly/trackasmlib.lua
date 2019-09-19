@@ -3630,7 +3630,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
             ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
           else LogInstance("Weld ignored "..tostring(cnW)) end
         else LogInstance("Weld base invalid "..GetReport(eBase)) end
-      else LogInstance("Weld base unconstrain "..GetReport(eBase)) end
+      else LogInstance("Weld base unconstrained "..GetReport(eBase)) end
     end
     -- NoCollide on pieces between each other made separately
     if(bNc) then
@@ -3641,7 +3641,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
             ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
           else LogInstance("NoCollide ignored") end
         else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
-      else LogInstance("NoCollide base unconstrain "..GetReport(eBase)) end
+      else LogInstance("NoCollide base unconstrained "..GetReport(eBase)) end
     end
     -- NoCollide between piece and world
     if(bNw) then local eWorld = gameGetWorld()
@@ -3653,9 +3653,9 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
           else LogInstance("AdvBallsocket ignored "..tostring(cnG)) end
         else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
-      else LogInstance("AdvBallsocket base unconstrain "..GetReport(eWorld)) end
+      else LogInstance("AdvBallsocket base unconstrained "..GetReport(eWorld)) end
     end
-  else LogInstance("Unconstrain <"..ePiece:GetModel()..">") end
+  else LogInstance("Unconstrained <"..ePiece:GetModel()..">") end
   LogInstance("Success"); return true, cnW, cnN, cnG
 end
 
