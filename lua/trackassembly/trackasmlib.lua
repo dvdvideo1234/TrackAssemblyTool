@@ -514,6 +514,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_VREPORT3","{%s}[%s]<%s>")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
+  SetOpVar("FORM_SKILLICON","icon16/%s.png")
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
@@ -546,6 +547,30 @@ function InitBase(sName,sPurpose)
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   if(CLIENT) then
+    SetOpVar("TABLE_SKILLICON",{
+      [GetOpVar("TOOLNAME_PU").."PIECES"        ] = "database_connect",
+      [GetOpVar("TOOLNAME_PU").."ADDITIONS"     ] = "bricks"          ,
+      [GetOpVar("TOOLNAME_PU").."PHYSPROPERTIES"] = "wand"            ,
+      [GetOpVar("TOOLNAME_PL").."context_menu"  ] = "database_gear"   ,
+      ["category_item"] = "folder",
+      ["pn_externdb_1"] = "database",
+      ["pn_externdb_2"] = "folder_database",
+      ["pn_externdb_3"] = "database_table",
+      ["pn_externdb_4"] = "database_link",
+      ["pn_externdb_5"] = "time_go",
+      ["pn_externdb_6"] = "compress",
+      ["pn_externdb_7"] = "database_edit",
+      ["pn_externdb_8"] = "database_delete",
+      ["model"        ] = "brick",
+      ["bgskids"      ] = "layers",
+      ["phyname"      ] = "wand",
+      ["ignphysgn"    ] = "lightning_go",
+      ["freeze"       ] = "lock",
+      ["gravity"      ] = "ruby_put",
+      ["weld"         ] = "wrench",
+      ["nocollide"    ] = "shape_group",
+      ["nocollidew"   ] = "world"
+    })
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("HOVER_TRIGGER",{})
     SetOpVar("LOCALIFY_TABLE",{})
@@ -1310,7 +1335,7 @@ function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
         sName = IsBlank(sName) and "Other" or sName
   local pItem = pnBase:AddNode(sName)
   pCurr[sName] = {}; pCurr[sName].__ObjPanel__ = pItem
-  pItem.Icon:SetImage(tostring(sImage))
+  pItem.Icon:SetImage(tostring(sImage or ""))
   pItem.InternalDoClick = function() end
   pItem.DoClick         = function() return false end
   pItem.DoRightClick    = function() SetClipboardText(pItem:GetText()) end
@@ -3629,8 +3654,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           if(cnW and cnW:IsValid()) then
             ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
           else LogInstance("Weld ignored "..tostring(cnW)) end
-        else LogInstance("Weld base invalid "..GetReport(eBase)) end
-      else LogInstance("Weld base unconstrained "..GetReport(eBase)) end
+        else LogInstance("Weld base unconstrained "..GetReport(eBase)) end
+      else LogInstance("Weld base invalid "..GetReport(eBase)) end
     end
     -- NoCollide on pieces between each other made separately
     if(bNc) then
@@ -3640,8 +3665,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           if(cnN and cnN:IsValid()) then
             ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
           else LogInstance("NoCollide ignored") end
-        else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
-      else LogInstance("NoCollide base unconstrained "..GetReport(eBase)) end
+        else LogInstance("NoCollide base unconstrained "..GetReport(eBase)) end
+      else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
     end
     -- NoCollide between piece and world
     if(bNw) then local eWorld = gameGetWorld()
@@ -3652,8 +3677,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
           else LogInstance("AdvBallsocket ignored "..tostring(cnG)) end
-        else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
-      else LogInstance("AdvBallsocket base unconstrained "..GetReport(eWorld)) end
+        else LogInstance("AdvBallsocket base unconstrained "..GetReport(eWorld)) end
+      else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
     end
   else LogInstance("Unconstrained <"..ePiece:GetModel()..">") end
   LogInstance("Success"); return true, cnW, cnN, cnG
@@ -3882,6 +3907,15 @@ function GetConvarList(tC)
   if(IsTable(tC)) then tableEmpty(tI)
     for key, val in pairs(tC) do tI[sT..key] = val end
   end; return tI
+end
+
+function GetIcon(vKey)
+  if(not IsHere(vKey)) then
+    LogInstance("Invalid "..GetReport(vKey)); return nil end
+  local sName = GetOpVar("TABLE_SKILLICON")[vKey]
+  if(not IsHere(sName)) then
+    LogInstance("Missing "..GetReport(vKey)); return nil end
+  return GetOpVar("FORM_SKILLICON"):format(tostring(sName))
 end
 
 function GetLinearSpace(nBeg, nEnd, nAmt)

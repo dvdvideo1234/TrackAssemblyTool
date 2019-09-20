@@ -71,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.578")
+asmlib.SetOpVar("TOOL_VERSION","6.579")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -468,7 +468,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         pnTable:DockMargin(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
         pnTable:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
         pnTable:Dock(FILL)
-        local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, defTab.Icon.Table)
+        local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.GetIcon(defTab.Name))
         tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
         local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
         local sDsv = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
@@ -496,27 +496,27 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               if(not IsValid(pnMenu)) then pnFrame:Close()
                 asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
-                function() SetClipboardText(oSelf:GetText()) end):SetIcon("icon16/database.png")
+                function() SetClipboardText(oSelf:GetText()) end):SetIcon(asmlib.GetIcon("pn_externdb_1"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
-                function() SetClipboardText(sDsv) end):SetIcon("icon16/folder_database.png")
+                function() SetClipboardText(sDsv) end):SetIcon(asmlib.GetIcon("pn_externdb_2"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
-                function() SetClipboardText(defTab.Nick) end):SetIcon("icon16/database_table.png")
+                function() SetClipboardText(defTab.Nick) end):SetIcon(asmlib.GetIcon("pn_externdb_3"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
-                function() SetClipboardText(sFile) end):SetIcon("icon16/database_link.png")
+                function() SetClipboardText(sFile) end):SetIcon(asmlib.GetIcon("pn_externdb_4"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_5"),
                 function()
                   local fDate = asmlib.GetOpVar("DATE_FORMAT")
                   local fTime = asmlib.GetOpVar("TIME_FORMAT")
                   SetClipboardText(osDate(fDate.." "..fTime, fileTime(sFile, "DATA")))
-                end):SetIcon("icon16/time_go.png")
+                end):SetIcon(asmlib.GetIcon("pn_externdb_5"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_6"),
                 function()
                   SetClipboardText(tostring(fileSize(sFile, "DATA")).."B")
-                end):SetIcon("icon16/compress.png")
+                end):SetIcon(asmlib.GetIcon("pn_externdb_6"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_7"),
                 function() -- Open the lualad addon to edit the database
                   asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
-                end):SetIcon("icon16/database_edit.png")
+                end):SetIcon(asmlib.GetIcon("pn_externdb_7"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_8"),
                 function() local sDel = sFile; fileDelete(sDel)
                   asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
@@ -525,7 +525,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                     if(fileExists(sDel,"DATA")) then fileDelete(sDel)
                       asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs) end
                   end; pnDelete:Remove()
-                end):SetIcon("icon16/database_delete.png")
+                end):SetIcon(asmlib.GetIcon("pn_externdb_8"))
               pnMenu:Open()
             end
             xyPos.y = xyPos.y + xySiz.y + xyDsz.y
@@ -863,7 +863,7 @@ local gsOptionsCM = gsToolPrefL.."context_menu"
 local gsOptionsCV = gsToolPrefL.."context_values"
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
 local gtOptionsCM = {} -- This stores the context menu configuration
-gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, "icon16/database_gear.png"
+gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, asmlib.GetIcon(gsOptionsCM)
 gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 
 -- [1]: Translation language key
@@ -873,7 +873,7 @@ gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 -- [5]: Network massage or assign the value to a player
 local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(1,
-        {"tool."..gsToolNameL..".model_con", true,
+        {"tool."..gsToolNameL..".model", true,
           function(ePiece, oPly, oTr, sKey)
             local model = ePiece:GetModel()
             asmlib.SetAsmConvar(oPly, "model", model); return true
@@ -883,7 +883,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(2,
-        {"tool."..gsToolNameL..".bgskids_con", true,
+        {"tool."..gsToolNameL..".bgskids", true,
           function(ePiece, oPly, oTr, sKey)
             local ski = asmlib.GetPropSkin(ePiece)
             local bgr = asmlib.GetPropBodyGroup(ePiece)
@@ -896,7 +896,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(3,
-        {"tool."..gsToolNameL..".phyname_con", true,
+        {"tool."..gsToolNameL..".phyname", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
             local physmater = phPiece:GetMaterial()
@@ -907,7 +907,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(4,
-        {"tool."..gsToolNameL..".mass_con", true,
+        {"tool."..gsToolNameL..".mass", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
             local mass = phPiece:GetMass()
@@ -918,7 +918,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(5,
-        {"tool."..gsToolNameL..".ignphysgn_con", true,
+        {"tool."..gsToolNameL..".ignphysgn", true,
           function(ePiece, oPly, oTr, sKey)
             local bPi = (not tobool(ePiece.PhysgunDisabled))
             ePiece.PhysgunDisabled = bPi
@@ -930,7 +930,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(6,
-        {"tool."..gsToolNameL..".freeze_con", true,
+        {"tool."..gsToolNameL..".freeze", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
             local motion = phPiece:IsMotionEnabled()
@@ -941,7 +941,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(7,
-        {"tool."..gsToolNameL..".gravity_con", true,
+        {"tool."..gsToolNameL..".gravity", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
             local gravity = phPiece:IsGravityEnabled()
@@ -952,7 +952,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(8,
-        {"tool."..gsToolNameL..".weld_con", true,
+        {"tool."..gsToolNameL..".weld", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then
               local tCn, ID = constraintFindConstraints(ePiece, "Weld"), 1
@@ -981,7 +981,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(9,
-        {"tool."..gsToolNameL..".nocollide_con", true,
+        {"tool."..gsToolNameL..".nocollide", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then
               local tCn, ID = constraintFindConstraints(ePiece, "NoCollide"), 1
@@ -1010,7 +1010,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
           end
         })
       conContextMenu:Insert(10,
-        {"tool."..gsToolNameL..".nocollidew_con", true,
+        {"tool."..gsToolNameL..".nocollidew", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then
               local eCn = constraintFind(ePiece, gameGetWorld(), "AdvBallsocket", 0, 0)
@@ -1031,8 +1031,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             print("test")
             local eCn = constraintFind(ePiece, gameGetWorld(), "AdvBallsocket", 0, 0)
             return tobool(eCn and eCn:IsValid())
-          end,
-          "icon16/group.png" -- `OnContextMenuOpen` Context menu hook
+          end
         })
 
 if(SERVER) then
@@ -1063,10 +1062,13 @@ if(CLIENT) then
         asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly)..">", gtArgsLogs); return nil end
       local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
       local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
-      if(not asmlib.IsOther(tTrig[1]) and tTrig[1] ~= tTrig[2]) then
-        netStart(gsOptionsCV); netWriteEntity(oEnt); netSendToServer()
-        asmlib.LogInstance("Entity"..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), gtArgsLogs)
-      end -- Start the population message only on entity trigger hover
+      if(asmlib.IsOther(tTrig[1]) or tTrig[1] == tTrig[2]) then return nil end
+      if(not asmlib.GetAsmConvar("enctxmall", "BUL")) then
+        local oRec = asmlib.CacheQueryPiece(ent:GetModel())
+        if(not asmlib.IsHere(oRec)) then return nil end
+      end -- If the menu is not enabled for all props ged-a-ud!
+      netStart(gsOptionsCV); netWriteEntity(oEnt); netSendToServer()
+      asmlib.LogInstance("Entity"..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), gtArgsLogs)
     end) -- Read client configuration
 end
 
@@ -1084,12 +1086,14 @@ end
 -- The routine which builds the context menu
 gtOptionsCM.MenuOpen = function(self, option, ent, tr)
   gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
-  local mSub, oPly = option:AddSubMenu(), LocalPlayer()
+  local oPly  = LocalPlayer()
+  local mSub  = option:AddSubMenu()
+  local fHash = (gsToolNameL.."%.(.*)$")
   for iD = 1, conContextMenu:GetSize() do
     local tLine, pnMenu = conContextMenu:Select(iD)
-    local sKey, fDraw = tLine[1], tLine[4]
-    local sIco, wDraw = tLine[6], tLine[5]
-    local sName = asmlib.GetPhrase(sKey):Trim():Trim(":")
+    local sKey , fDraw = tLine[1], tLine[4]
+    local wDraw, sIcon = tLine[5], sKey:match(fHash)
+    local sName = asmlib.GetPhrase(sKey.."_con"):Trim():Trim(":")
     if(asmlib.IsFunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
         asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
@@ -1097,7 +1101,7 @@ gtOptionsCM.MenuOpen = function(self, option, ent, tr)
     elseif(asmlib.IsFunction(wDraw)) then
       sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
     end; pnMenu = mSub:AddOption(sName, function() self:Evaluate(ent,iD,tr,sKey) end)
-    if(not asmlib.IsBlank(sIco)) then pnMenu:SetImage(sIco) end
+    if(not asmlib.IsBlank(sIcon)) then pnMenu:SetImage(sIcon) end
   end
 end
 -- Not used. Use the evaluate function instead
@@ -1130,7 +1134,7 @@ gtOptionsCM.Receive = function(self, len, ply)
   if(not self:Filter(ent, ply)) then return end
   if(not propertiesCanBeTargeted(ent, ply)) then return end
   local sKey, fHandle = tLine[1], tLine[3] -- Menu function handler
-  local bS, vE = pcall(fHandle, ent, ply, oTr); if(not bS) then
+  local bS, vE = pcall(fHandle, ent, ply, oTr, sKey); if(not bS) then
     asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
   if(bS and not vE) then asmlib.LogInstance("Failure"..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
 end
@@ -1140,11 +1144,6 @@ propertiesAdd(gsOptionsCM, gtOptionsCM)
 ------ INITIALIZE DB ------
 asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
-  Icon  = {
-    Table = "icon16/database_connect.png",
-    Categ = "icon16/folder.png",
-    Piece = "icon16/brick.png"
-  },
   Index = {{1},{4},{1,4}},
   Trigs = {
     Record = function(arLine, vSrc)
@@ -1226,9 +1225,6 @@ asmlib.CreateTable("PIECES",{
 
 asmlib.CreateTable("ADDITIONS",{
   Timer = gaTimerSet[2],
-  Icon  = {
-    Table = "icon16/bricks.png"
-  },
   Index = {{1},{4},{1,4}},
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
@@ -1281,9 +1277,6 @@ asmlib.CreateTable("ADDITIONS",{
 
 asmlib.CreateTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
-  Icon  = {
-    Table = "icon16/wand.png"
-  },
   Index = {{1},{2},{1,2}},
   Trigs = {
     Record = function(arLine)

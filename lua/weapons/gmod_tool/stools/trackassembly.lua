@@ -122,7 +122,6 @@ TOOL.ClientConVar = {
   [ "physmater"  ] = "metal",
   [ "enpntmscr"  ] = 1,
   [ "engunsnap"  ] = 0,
-  [ "enctxmall"  ] = 0,
   [ "workmode"   ] = 0,
   [ "appangfst"  ] = 0,
   [ "applinfst"  ] = 0,
@@ -1253,7 +1252,7 @@ function TOOL.BuildCPanel(CPanel)
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
-              pRoot.Icon:SetImage(defTable.Icon.Table)
+              pRoot.Icon:SetImage(asmlib.GetIcon(defTable.Name))
               pRoot.InternalDoClick = function() end
               pRoot.DoClick         = function() return false end
               pRoot.DoRightClick    = function() SetClipboardText(pRoot:GetText()) end
@@ -1277,7 +1276,7 @@ function TOOL.BuildCPanel(CPanel)
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
               else -- Create the last needed node regarding pItem
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, defTable.Icon.Categ, conPalette:Select("tx"))
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, asmlib.GetIcon("category_item"), conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
           end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
@@ -1287,7 +1286,7 @@ function TOOL.BuildCPanel(CPanel)
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
       pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
-      pNode.Icon:SetImage(defTable.Icon.Piece)
+      pNode.Icon:SetImage(asmlib.GetIcon("PIECENTRY"))
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
         asmlib.SetAsmConvar(nil, "pointid", 1)
