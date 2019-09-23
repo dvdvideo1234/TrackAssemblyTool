@@ -562,6 +562,7 @@ function InitBase(sName,sPurpose)
       ["pn_externdb_7"] = "database_edit",
       ["pn_externdb_8"] = "database_delete",
       ["model"        ] = "brick",
+      ["mass"         ] = "basket_put",
       ["bgskids"      ] = "layers",
       ["phyname"      ] = "wand",
       ["ignphysgn"    ] = "lightning_go",
@@ -3910,6 +3911,7 @@ function GetConvarList(tC)
 end
 
 function GetIcon(vKey)
+  if(SERVER) then return nil end
   if(not IsHere(vKey)) then
     LogInstance("Invalid "..GetReport(vKey)); return nil end
   local sName = GetOpVar("TABLE_SKILLICON")[vKey]

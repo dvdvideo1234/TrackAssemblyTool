@@ -71,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.579")
+asmlib.SetOpVar("TOOL_VERSION","6.580")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -1028,7 +1028,6 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             end
           end, nil,
           function(ePiece)
-            print("test")
             local eCn = constraintFind(ePiece, gameGetWorld(), "AdvBallsocket", 0, 0)
             return tobool(eCn and eCn:IsValid())
           end
@@ -1062,13 +1061,13 @@ if(CLIENT) then
         asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly)..">", gtArgsLogs); return nil end
       local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
       local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
-      if(asmlib.IsOther(tTrig[1]) or tTrig[1] == tTrig[2]) then return nil end
+      if(asmlib.IsOther(oEnt) or tTrig[1] == tTrig[2]) then return nil end
       if(not asmlib.GetAsmConvar("enctxmall", "BUL")) then
-        local oRec = asmlib.CacheQueryPiece(ent:GetModel())
+        local oRec = asmlib.CacheQueryPiece(oEnt:GetModel())
         if(not asmlib.IsHere(oRec)) then return nil end
       end -- If the menu is not enabled for all props ged-a-ud!
       netStart(gsOptionsCV); netWriteEntity(oEnt); netSendToServer()
-      asmlib.LogInstance("Entity"..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), gtArgsLogs)
+      asmlib.LogInstance("Entity "..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), gtArgsLogs)
     end) -- Read client configuration
 end
 
@@ -1084,24 +1083,26 @@ gtOptionsCM.Filter = function(self, ent, ply)
   return true -- The entity is track piece and TA menu is available
 end
 -- The routine which builds the context menu
-gtOptionsCM.MenuOpen = function(self, option, ent, tr)
+gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
   gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
-  local oPly  = LocalPlayer()
-  local mSub  = option:AddSubMenu()
+  local oPly, pnSub = LocalPlayer(), opt:AddSubMenu(); if(not IsValid(pnSub)) then
+    asmlib.LogInstance("Invalid context menu",gsOptionsLG); return end
   local fHash = (gsToolNameL.."%.(.*)$")
   for iD = 1, conContextMenu:GetSize() do
-    local tLine, pnMenu = conContextMenu:Select(iD)
+    local tLine = conContextMenu:Select(iD)
     local sKey , fDraw = tLine[1], tLine[4]
     local wDraw, sIcon = tLine[5], sKey:match(fHash)
     local sName = asmlib.GetPhrase(sKey.."_con"):Trim():Trim(":")
     if(asmlib.IsFunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
-        asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
+        asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
       sName = sName..": "..tostring(vE)          -- Attach client value ( CLIENT )
     elseif(asmlib.IsFunction(wDraw)) then
       sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
-    end; pnMenu = mSub:AddOption(sName, function() self:Evaluate(ent,iD,tr,sKey) end)
-    if(not asmlib.IsBlank(sIcon)) then pnMenu:SetImage(sIcon) end
+    end; local fEval = function() self:Evaluate(ent,iD,tr,sKey) end
+    local pnOpt = pnSub:AddOption(sName, fEval); if(not IsValid(pnOpt)) then
+      asmlib.LogInstance("Invalid "..asmlib.GetReport2(sKey,iD),gsOptionsLG); return end
+    if(not asmlib.IsBlank(sIcon)) then pnOpt:SetIcon(asmlib.GetIcon(sIcon)) end
   end
 end
 -- Not used. Use the evaluate function instead
@@ -1109,7 +1110,7 @@ gtOptionsCM.Action = function(self, ent, tr) end
 -- Use the custom evaluation function with index and key arguments
 gtOptionsCM.Evaluate = function(self, ent, idx, key)
   local tLine = conContextMenu:Select(idx); if(not tLine) then
-    asmlib.LogInstance("Skip"..asmlib.GetReport(idx),gsOptionsLG); return end
+    asmlib.LogInstance("Skip "..asmlib.GetReport(idx),gsOptionsLG); return end
   local sKey, bTrans, fHandle = tLine[1], tLine[2], tLine[3]
   if(bTrans) then -- Transfer to SERVER
     self:MsgStart()
@@ -1120,8 +1121,8 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
     local oPly = LocalPlayer()
     local oTr  = oPly:GetEyeTrace()
     local bS, vE = pcall(fHandle,ent,oPly,oTr,key); if(not bS) then
-      asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
-    if(bS and not vE) then asmlib.LogInstance("Failure"..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
+      asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+    if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
   end
 end
 -- What to happen on the server with our entity
@@ -1130,13 +1131,13 @@ gtOptionsCM.Receive = function(self, len, ply)
   local idx = netReadUInt(8)
   local oTr = ply:GetEyeTrace()
   local tLine = conContextMenu:Select(idx); if(not tLine) then
-    asmlib.LogInstance("Mismatch"..asmlib.GetReport(idx),gsOptionsLG); return end
+    asmlib.LogInstance("Mismatch "..asmlib.GetReport(idx),gsOptionsLG); return end
   if(not self:Filter(ent, ply)) then return end
   if(not propertiesCanBeTargeted(ent, ply)) then return end
   local sKey, fHandle = tLine[1], tLine[3] -- Menu function handler
   local bS, vE = pcall(fHandle, ent, ply, oTr, sKey); if(not bS) then
-    asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
-  if(bS and not vE) then asmlib.LogInstance("Failure"..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
+    asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+  if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
 end
 -- Register the track assembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)

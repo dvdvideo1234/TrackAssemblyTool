@@ -1286,7 +1286,7 @@ function TOOL.BuildCPanel(CPanel)
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
       pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
-      pNode.Icon:SetImage(asmlib.GetIcon("PIECENTRY"))
+      pNode.Icon:SetImage(asmlib.GetIcon("model"))
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
         asmlib.SetAsmConvar(nil, "pointid", 1)
