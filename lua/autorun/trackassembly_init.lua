@@ -71,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.581")
+asmlib.SetOpVar("TOOL_VERSION","6.582")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -113,6 +113,7 @@ if(SERVER) then
 end
 
 ------ CONFIGURE INTERNALS -----
+asmlib.IsFlag("en_context_menu", false)
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 
@@ -314,6 +315,9 @@ end
 
 if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
+  asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("en_context_menu", true ) end)
+  asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("en_context_menu", false) end)
+
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
       asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}",gtArgsLogs)
@@ -351,10 +355,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
           asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
         end; return nil -- Need to disable the zoom when bind on the mouse middle
-      elseif(sBind == "+menu_context") then -- Process the context menu stuff
-        print(sBind, bPress)
-        asmlib.IsFlag("context_menu_open", bPress) -- Store the flag
-        asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return nil
       end -- Override only for TA and skip touching anything else
       asmlib.LogInstance("("..sBind..") Skipped",gtArgsLogs); return nil
     end) -- Read client configuration
@@ -1031,7 +1031,6 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             end
           end, nil,
           function(ePiece)
-            print("nocollidew", "CALL")
             local eCn = constraintFind(ePiece, gameGetWorld(), "AdvBallsocket", 0, 0)
             return tobool(eCn and eCn:IsValid())
           end
@@ -1066,7 +1065,7 @@ if(CLIENT) then
       local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
       local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
       if(asmlib.IsOther(oEnt) or tTrig[1] == tTrig[2]) then return nil end -- Enity trigger
-      if(not asmlib.IsFlag("context_menu_open")) then return nil end -- Menu not opened
+      if(not asmlib.IsFlag("en_context_menu")) then return nil end -- Menu not opened
       if(not asmlib.GetAsmConvar("enctxmall", "BUL")) then -- Enable for all props
         local oRec = asmlib.CacheQueryPiece(oEnt:GetModel())
         if(not asmlib.IsHere(oRec)) then return nil end
