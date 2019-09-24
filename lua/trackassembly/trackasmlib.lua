@@ -463,14 +463,14 @@ function InitBase(sName,sPurpose)
     LogInstance("Name invalid <"..sName..">", true); return false end
   if(IsBlank(sPurpose) or tonumber(sPurpose:sub(1,1))) then
     LogInstance("Purpose invalid <"..sPurpose..">", true); return false end
-  SetOpVar("TIME_INIT",Time())
-  SetOpVar("DELAY_FREEZE",0.01)
-  SetOpVar("LOG_MAXLOGS",0)
-  SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_SKIP",{})
   SetOpVar("LOG_ONLY",{})
+  SetOpVar("LOG_MAXLOGS",0)
+  SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGFILE","")
   SetOpVar("LOG_LOGLAST","")
+  SetOpVar("TIME_INIT",Time())
+  SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("MAX_ROTATION",360)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
@@ -523,6 +523,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
+  SetOpVar("TABLE_FLAGS", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
@@ -3912,12 +3913,20 @@ end
 
 function GetIcon(vKey)
   if(SERVER) then return nil end
-  if(not IsHere(vKey)) then
+  local tIcon = GetOpVar("TABLE_SKILLICON"); if(not IsHere(vKey)) then
     LogInstance("Invalid "..GetReport(vKey)); return nil end
-  local sName = GetOpVar("TABLE_SKILLICON")[vKey]
-  if(not IsHere(sName)) then
+  local sIcon = tIcon[vKey]; if(not IsHere(sIcon)) then
     LogInstance("Missing "..GetReport(vKey)); return nil end
-  return GetOpVar("FORM_SKILLICON"):format(tostring(sName))
+  return GetOpVar("FORM_SKILLICON"):format(tostring(sIcon))
+end
+
+function IsFlag(vKey, vVal)
+  local tFlag = GetOpVar("TABLE_FLAGS"); if(not IsHere(vKey)) then
+    LogInstance("Invalid "..GetReport(vKey)); return nil end
+  if(IsHere(vVal)) then tFlag[vKey] = tobool(vVal) end
+  local bFlag = tFlag[vKey]; if(not IsHere(bFlag)) then
+    LogInstance("Missing "..GetReport(vKey)); return nil end
+  return tFlag[vKey] -- Return the flag status
 end
 
 function GetLinearSpace(nBeg, nEnd, nAmt)
