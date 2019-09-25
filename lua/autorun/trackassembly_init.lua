@@ -71,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.554")
+asmlib.SetOpVar("TOOL_VERSION","6.555")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -148,10 +148,11 @@ local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
-local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
+local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
+local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
@@ -315,10 +316,10 @@ end
 
 if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
-  asmlib.ToIcon(GetOpVar("TOOLNAME_PU").."PIECES"        , "database_connect")
-  asmlib.ToIcon(GetOpVar("TOOLNAME_PU").."ADDITIONS"     , "bricks"          )
-  asmlib.ToIcon(GetOpVar("TOOLNAME_PU").."PHYSPROPERTIES", "wand"            )
-  asmlib.ToIcon(GetOpVar("TOOLNAME_PL").."context_menu"  , "database_gear"   )
+  asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")
+  asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
+  asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
+  asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
   asmlib.ToIcon("category_item", "folder"         )
   asmlib.ToIcon("pn_externdb_1", "database"       )
   asmlib.ToIcon("pn_externdb_2", "folder_database")
@@ -460,8 +461,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
   asmlib.SetAction("OPEN_EXTERNDB", -- Must have the same parameters as the hook
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_EXTERNDB"
-      local devmode = asmlib.GetAsmConvar("devmode", "BUL"); if(not devmode) then
-        asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
       local nRat = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -644,9 +643,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnButton:SetPos(xyPos.x, xyPos.y)
       pnButton:SetSize(xySiz.x, xySiz.y)
       pnButton:SetVisible(true)
-      pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
-      pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
-      pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
+      pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
+      pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
+      pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
       pnButton.DoClick = function()
         asmlib.LogInstance("Button.DoClick <"..pnButton:GetText()..">",gtArgsLogs)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
@@ -672,7 +671,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnComboBox:SetVisible(true)
       pnComboBox:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
       pnComboBox:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol"))
-      pnComboBox:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol"))
+      pnComboBox:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
       pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTab[1][1])
       pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTab[2][1])
       pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTab[3][1])

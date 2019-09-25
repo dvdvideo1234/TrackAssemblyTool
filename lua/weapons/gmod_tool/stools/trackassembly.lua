@@ -742,7 +742,7 @@ function TOOL:RightClick(stTrace)
       asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
       asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
     else
-      if(ply:KeyDown(IN_USE))
+      if(ply:KeyDown(IN_USE)) then
         asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
         asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
       end
@@ -779,7 +779,7 @@ function TOOL:Reload(stTrace)
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(self:GetExportDB()) then
-      if(ply:KeyDown(IN_DUCK))
+      if(ply:KeyDown(IN_DUCK)) then
         asmlib.SetAsmConvar(ply,"openextdb")
         asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
       else
