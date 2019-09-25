@@ -738,12 +738,14 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(stTrace.HitWorld) then
-    if(ply:KeyDown(IN_USE)) then
-      asmlib.SetAsmConvar(ply,"openextdb")
-      asmlib.LogInstance("(World) Success open expdb",gtArgsLogs); return true
-    else
+    if(enpntmscr) then
       asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
       asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
+    else
+      if(ply:KeyDown(IN_USE))
+        asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
+        asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
+      end
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr) then
@@ -777,10 +779,15 @@ function TOOL:Reload(stTrace)
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(self:GetExportDB()) then
-      asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
-      asmlib.ExportDSV("PIECES")
-      asmlib.ExportDSV("ADDITIONS")
-      asmlib.ExportDSV("PHYSPROPERTIES")
+      if(ply:KeyDown(IN_DUCK))
+        asmlib.SetAsmConvar(ply,"openextdb")
+        asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
+      else
+        asmlib.ExportDSV("PIECES")
+        asmlib.ExportDSV("ADDITIONS")
+        asmlib.ExportDSV("PHYSPROPERTIES")
+        asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
+      end
       asmlib.SetAsmConvar(ply, "exportdb", 0)
     end
     if(ply:KeyDown(IN_SPEED)) then

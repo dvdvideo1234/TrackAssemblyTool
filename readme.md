@@ -34,29 +34,30 @@ Also, another great achievement progress is in place, so 10x guys for
 [helping me, help you, help us all](https://www.youtube.com/watch?v=2TZyb0n2DAw) !
 
 #### What kind of features does this script has?
-  * Context menu for direct track entity [value export and manipulation](https://www.youtube.com/watch?v=mEEpO3w8BLs)
-  * Track curve fitting alignment based on [ray intersection for precise piece layout](https://www.youtube.com/watch?v=1rsDHU79J50)
-  * [Extendible database](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension) via delimited [text file](https://www.youtube.com/watch?v=Pz0_RGwgfaY) or a [lua script](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua)
-  * [Extendible database](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension) via text file [load list](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt) and [list prefixes](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt) [categories](https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt)
+  * Context menu for direct track entity [value export and manipulation](ref-value-exp)
+  * Track curve fitting alignment based on [ray intersection for precise piece layout](ref-vid-inters)
+  * [Extendible database](ref-dbext) via delimited [text file](ref-text-file) or a [lua script](ref-lua-script)
+  * [Extendible database](ref-dbext) via text file [load list](ref-load-list) and [list prefixes](ref-list-pref)
+    [type categories](ref-categ)
   * Switching database storage between Lua table and SQL
   * Spawning pieces on the map
   * Snapping pieces on the map surface ( if checked )
   * Snapping the first piece angle to user defined value
-  * Snapping already spawned pieces by [using only the physgun](https://www.youtube.com/watch?v=BxMlZMMGHrs)
-  * Snapping/spawning with [custom user offsets](https://www.youtube.com/watch?v=e1IK2zJ_Djk)
+  * Snapping already spawned pieces by [using only the physgun](ref-vid-physnap)
+  * Snapping/spawning with [custom user offsets](ref-usr-offs)
   * Snapping/spawning with zero pitch and roll. Good for track leveling
   * Snapping/spawning at the mass-center or the active point ( if checked )
-  * Fast changing the active track ends ( Alt + mouse scroll ). Good switching turns direction
+  * Fast changing the active track ends ( `ALT` + mouse scroll ). Good switching turns direction
   * Custom user defined active radius based snapping
   * Custom active point and radius location assistant
   * Custom active point position angle and orientation adviser
   * Advanced duplicator can be used on the track created
   * Custom [entity][ref-entity] properties ( weld, freeze, no-collide )
   * User can disable phys-gun grabbing on a piece. Good for turntables
-  * Ability to list up the most used pieces on the server ( E + MRIGHT ). Close shortcut (ALT + E)
+  * Ability to list the frequent pieces on the server (`E + MRIGHT`). Close shortcut (`ALT + E`)
   * Ability to search among the most server popular pieces by [Lua patterns](https://www.lua.org/pil/20.2.html)
   * Ability to export server and client database as a file
-  * Tool-tips for every button are available and can be [translated easily](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Translations)
+  * Tool-tips for every button are available and can be [translated easily](ref-trans)
   * Ability to spawn scripted track switches of other dedicated class ( Ron's 2ft )
   * Ability to modify the bodygroups and skins of a track piece ( with duping )
   * Ability to modify track piece [surface behavior](https://www.youtube.com/watch?v=ALBnlFeC9tU) ( wood, metal, slime, tire )
@@ -71,9 +72,9 @@ On the right in the tool's menu, you can locate the track pieces tree.
 Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
 
 #### How can I chose and select a desired track end ?
-Just hold `KEY_LALT` ( Def: LALT ) and turn the mouse scroll around.
+Just hold `KEY_LALT` ( Def: `LALT` ) and turn the mouse scroll around.
 This will make the script chose the track active point you want.
-When You hold `SPEED` ( Def: SHIFT ) the script will switch to
+When You hold `SPEED` ( Def: `SHIFT` ) the script will switch to
 adjusting the next active point for the track stacking option.
 This will affect what point is chosen when you continue the track you build.
 The current and next active points will not be the same.
@@ -104,7 +105,7 @@ which meets the real-time performance requirements. Resizing track curves is by 
 sort as far as evert single piece is conserned. If you take the track width in consideratoion, the resizing method
 must not just select `X`, `Y` or `Z` axes, because the piece will get distortions along the curve ( ex. For `90`
 degree curves streching by `X` will increase first point lenght, however, it will also adjust the second point width )
-In Gmod there is this [`PhysicsInitConvex`](https://wiki.garrysmod.com/page/Entity/PhysicsInitConvex) API that does
+In Gmod there is this [`PhysicsInitConvex`](ref-resz-api) API that does
 just that, but the spawning will take a very long time considering the amount it tates to resize every polygon on the
 server. When the track is spawned outside the map bounds it will immidiately crash the game.
 Thus, I beleve that stacking two or more tracks is always better than resizing a prop !
@@ -112,13 +113,13 @@ Thus, I beleve that stacking two or more tracks is always better than resizing a
 #### How can I use switchers ? I can't seem to make them work.
 Every addon has its own way for dealing with the switchers. Others that are not listed here do not
 have dedicated track switchers, so to switch them you must use two track pieces inside of each other.
-Swap their solidness around using the [fading door tool](https://steamcommunity.com/sharedfiles/filedetails/?id=115753588),
+Swap their solidness around using the [fading door tool](ref-fade-door),
 so when one is solid a.k.a `CLOSED` and you can't pass trough it, the other must be no-collided to all `OPENED`. Therefore the
 wheels of the train will follow only the track that is currently set being solid with fading door `CLOSED` function state:
- 1. Dedicated [entity][ref-entity] addition like a lever you must press with your USE key
+ 1. Dedicated [entity][ref-entity] addition like a lever you must press with your `USE` key
     * [Shinji85's Rails](https://www.youtube.com/watch?v=cHhf83w-YNM)
  2. Dedicated switcher [entity][ref-entity] class you must press
-    with your USE key. You must press the [entity][ref-entity] custom switcher class itself:
+    with your `USE` key. You must press the [entity][ref-entity] custom switcher class itself:
     * `Sligwolf's mini trains`
     * `SligWolf's White Rails`
     * `Ron's 2ft track pack`
@@ -131,7 +132,7 @@ wheels of the train will follow only the track that is currently set being solid
     * `Battleship's abandoned rails`
 
 #### How to use the tool control options when building a track ?
-1. Pressing ATTACK1 ( Def: Left mouse button )
+1. Pressing `ATTACK1` ( Def: Left mouse button )
   * When you are looking at the world the piece will just be spawned on the map.
   * When you are looking at one of track piece's pre-defined active points
     * Will snap the piece that you're holding to the trace one.
@@ -142,23 +143,26 @@ wheels of the train will follow only the track that is currently set being solid
     * If `Ghosts count` is larger than zero ghosted track pieces will be
       rendered to assist you with the building.
   * When you are not looking at one of track piece's pre-defined active points,
-    * Pressing USE ( Def: E ) Applies the physical settings/properties on a piece.
+    * Pressing `USE` ( Def: E ) Applies the physical settings/properties on a piece.
     * If not, you will update the piece's bodygroups/skin.
-2. Pressing SPEED ( Def: SHIFT ) + ATTACK1 ( Def: Left mouse button )
+2. Pressing `SPEED` ( Def: `SHIFT` ) + `ATTACK1` ( Def: Left mouse button )
   * Will stack as many pieces as shown by the slider `Pieces count`.
-3. Pressing ATTACK2 ( Def: Right mouse button )
-  * Will select the trace model to use as a piece for building a track.
-4. Pressing USE ( Def: E ) + ATTACK2 ( Def: Right mouse button )
-  * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame, from where
-    you can select your routine pieces to use again in the track building process
-    as well as [searching in the table](https://github.com/dvdvideo1234/TrackAssemblyTool#hey-there-is-a-text-box-and-a-drop-down-menu-next-to-the-exportdb-button-what-are-these-for-) either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece
-    you want to continue your track with.
-5. Pressing RELOAD ( Def: R )
-  * When used in the world exports the database if the console variable `trackassembly_exportdb` is set to <>0,
-  * When used on trace it removes it, if it's a track piece.
-6. Pressing RELOAD ( Def: R ) + SPEED ( Def: SHIFT )
-  * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
-  * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
+3. Pressing `ATTACK2` ( Def: Right mouse button )
+  * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame,
+    from where you can select your routine pieces to use again in the track building process
+    as well as [searching in the table](ref-search) either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece you want to continue your track with.
+  * When pointing to a prop will select the trace model to use as a piece for building a track.
+  * **Note: `trackassembly_enpntmscr` is disabled, you have to press `USE` ( Def: `E` ) to run these,
+    otherwise just the active track points will be switched using the old method of selection.**
+4. Pressing `RELOAD` ( Def: `R` )
+  * When pressing it on the world will clear the tool's selected prop to attach all the
+    track pieces to ( anchor/relation ).
+  * **Note: `trackassembly_devmode` is enabled, will update the log control options.**
+  * **Note: `trackassembly_exportdb` is enabled, will run the external database manager.**
+  * **Note: Pressing `USE` ( Def: `E` ) whill open the external database manager menu,
+    otherwide will export the server database**
+  * When pressing it on the trace prop will set it as an anchor/relation for other pieces spawned
+    to be constrained to.
 
 #### Context menu pieces manipulation
 The [context menu](https://wiki.garrysmod.com/page/The_Context_Menu)
@@ -189,19 +193,20 @@ Explanation of each control option is given in the summary below.
 8. `Weld` option controlls the created welds on a piece. You must select an anchor to weld
     the right clicked piece to, when you are in regular `SNAP` mode displayed on the tool screen.
     when the anchor is not selected or it is invalid, a message will be displayed to warn you.
-    You can also remove welds by holding `IN_SPEED` ( Def: SHIFT ) and clicking the option.
+    You can also remove welds by holding `SPEED` ( Def: SHIFT ) and clicking the option.
     The amount of welds will be displayed next to the optoion control.
 9. `NoCollide` option controlls the created collides on a piece. You must select an anchor
     to nocollide the right clicked piece to, when you are in regular `SNAP` mode displayed on
     the tool screen. When the anchor is not selected or it is invalid, a message will be displayed
-    to warn you. You can also remove nocollides by holding `IN_SPEED` ( Def: SHIFT ) and clicking
+    to warn you. You can also remove nocollides by holding `SPEED` ( Def: SHIFT ) and clicking
     the option. The amount of nocollides will be displayed next to the optoion control.
 9. `NoCollide world` option controlls the created world collides on a piece. The constraint
     acnchor in this case is the world itself. Click on the option to create no collide world
-    constrant or by holding `IN_SPEED` ( Def: SHIFT ) and click to remove it. The flag of
+    constrant or by holding `SPEED` ( Def: SHIFT ) and click to remove it. The flag of
     of the constraint will be displayed in the menu control option. The value will be `true`
-    if there is a still a no-collide world and [`phys_ragdollconstraint`](https://developer.valvesoftware.com/wiki/Phys_ragdollconstraint) between the piece and the
-    world. If it stays in `true` after you remove it, that menas there are more than one.
+    if there is a still a no-collide world and [`phys_ragdollconstraint`](ref-rag-constr) between
+    the piece and the world. If it stays in `true` after you remove it, that means there are more
+    than one constraints remaining connected to the trace.
 
 #### How to use the tool control panel and what function does each item have ?
 1. `Track surface grip modifier` combo box is used if you want to obtain different
@@ -372,3 +377,18 @@ The best you can do is just point to the [original GIT repository](https://githu
 avoiding any version mismatches and confusions. So please don't upload the script to any other sites. ***[I mean it!](https://www.youtube.com/watch?v=b1Om3vX1GlA)***
 
 [ref-entity]: http://wiki.garrysmod.com/page/Category:Entity
+[ref-dbext]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension
+[ref-text-file]: https://www.youtube.com/watch?v=Pz0_RGwgfaY
+[ref-value-exp]: https://www.youtube.com/watch?v=mEEpO3w8BLs
+[ref-lua-script]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua
+[ref-load-list]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt
+[ref-list-pref]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt
+[ref-categ]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt
+[ref-vid-inters]: https://www.youtube.com/watch?v=1rsDHU79J50
+[ref-vid-physnap]: https://www.youtube.com/watch?v=BxMlZMMGHrs
+[ref-usr-offs]: https://www.youtube.com/watch?v=e1IK2zJ_Djk
+[ref-trans]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Translations
+[ref-resz-api]: https://wiki.garrysmod.com/page/Entity/PhysicsInitConvex
+[ref-fade-door]: https://steamcommunity.com/sharedfiles/filedetails/?id=115753588
+[ref-search]: https://github.com/dvdvideo1234/TrackAssemblyTool#hey-there-is-a-text-box-and-a-drop-down-menu-next-to-the-exportdb-button-what-are-these-for-
+[ref-rag-constr]: https://developer.valvesoftware.com/wiki/Phys_ragdollconstraint
