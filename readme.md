@@ -71,7 +71,7 @@ On the right in the tool's menu, you can locate the track pieces tree.
 Expand the desired piece type to use for building your track by clicking on a node, then select the desired piece.
 
 #### How can I chose and select a desired track end ?
-Just hold `KEY_LALT` ( Default: LALT ) and turn the mouse scroll around.
+Just hold `KEY_LALT` ( Def: LALT ) and turn the mouse scroll around.
 This will make the script chose the track active point you want.
 When You hold `SPEED` ( Def: SHIFT ) the script will switch to
 adjusting the next active point for the track stacking option.
@@ -87,7 +87,7 @@ to use the old-school for the way of changing and selecting track ends.
 #### Hey, I cannot align my track curves properly. Can you help ?
 Yep sure. In the right panel, there is a drop-down menu which has a bunch of tool modes listed.
 Go ahead and select the `Active point intersection`. After you change the mode, an intersection
-relation [entity][ref-entity] is needed to complete the process. Hitting `SPEED + RELOAD` ( Default: Shift + R )
+relation [entity][ref-entity] is needed to complete the process. Hitting `SPEED + RELOAD` ( Def: Shift + R )
 just like the anchor, will select the relation active point of the [entity][ref-entity] in question, which is closest
 to the player hit position. Now trace a track piece and the ghost of the curve will be drawn. You can
 clamp the spawn position in a box using the primary position flag `applinfst ( Apply linear first )` or switch
@@ -102,7 +102,7 @@ which will not potentially break the entire game. While resizing props client-si
 this task is very hard, close to impossible. The gmod API does not provide an ellegant solution to this,
 which meets the real-time performance requirements. Resizing track curves is by far the most complex task of this
 sort as far as evert single piece is conserned. If you take the track width in consideratoion, the resizing method
-must not just select `X`, `Y` or `Z` axes, because the piece will get distortions along the curve ( ex. For 90
+must not just select `X`, `Y` or `Z` axes, because the piece will get distortions along the curve ( ex. For `90`
 degree curves streching by `X` will increase first point lenght, however, it will also adjust the second point width )
 In Gmod there is this [`PhysicsInitConvex`](https://wiki.garrysmod.com/page/Entity/PhysicsInitConvex) API that does
 just that, but the spawning will take a very long time considering the amount it tates to resize every polygon on the
@@ -131,7 +131,7 @@ wheels of the train will follow only the track that is currently set being solid
     * `Battleship's abandoned rails`
 
 #### How to use the tool control options when building a track ?
-1. Pressing ATTACK1 ( Default: Left mouse button )
+1. Pressing ATTACK1 ( Def: Left mouse button )
   * When you are looking at the world the piece will just be spawned on the map.
   * When you are looking at one of track piece's pre-defined active points
     * Will snap the piece that you're holding to the trace one.
@@ -142,21 +142,21 @@ wheels of the train will follow only the track that is currently set being solid
     * If `Ghosts count` is larger than zero ghosted track pieces will be
       rendered to assist you with the building.
   * When you are not looking at one of track piece's pre-defined active points,
-    * Pressing USE ( Default: E ) Applies the physical settings/properties on a piece.
+    * Pressing USE ( Def: E ) Applies the physical settings/properties on a piece.
     * If not, you will update the piece's bodygroups/skin.
-2. Pressing SPEED ( Default: SHIFT ) + ATTACK1 ( Default: Left mouse button )
+2. Pressing SPEED ( Def: SHIFT ) + ATTACK1 ( Def: Left mouse button )
   * Will stack as many pieces as shown by the slider `Pieces count`.
-3. Pressing ATTACK2 ( Default: Right mouse button )
+3. Pressing ATTACK2 ( Def: Right mouse button )
   * Will select the trace model to use as a piece for building a track.
-4. Pressing USE ( Default: E ) + ATTACK2 ( Default: Right mouse button )
+4. Pressing USE ( Def: E ) + ATTACK2 ( Def: Right mouse button )
   * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame, from where
     you can select your routine pieces to use again in the track building process
     as well as [searching in the table](https://github.com/dvdvideo1234/TrackAssemblyTool#hey-there-is-a-text-box-and-a-drop-down-menu-next-to-the-exportdb-button-what-are-these-for-) either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece
     you want to continue your track with.
-5. Pressing RELOAD ( Default: R )
+5. Pressing RELOAD ( Def: R )
   * When used in the world exports the database if the console variable `trackassembly_exportdb` is set to <>0,
   * When used on trace it removes it, if it's a track piece.
-6. Pressing RELOAD ( Default: R ) + SPEED ( Default: SHIFT )
+6. Pressing RELOAD ( Def: R ) + SPEED ( Def: SHIFT )
   * When pressing it on the world will clear the tool's selected prop to attach all the track pieces to ( anchor ).
   * When pressing it on the trace prop will set it as an anchor for other pieces spawned to be constrained to.
 
@@ -186,6 +186,22 @@ Explanation of each control option is given in the summary below.
     If the option is enabled, click it again to disable it or the other way around.
 7. `Apply piece gravity` option controlls the gravity affecting the selected track piece.
     If the option is enabled, click it again to disable it or the other way around.
+8. `Weld` option controlls the created welds on a piece. You must select an anchor to weld
+    the right clicked piece to, when you are in regular `SNAP` mode displayed on the tool screen.
+    when the anchor is not selected or it is invalid, a message will be displayed to warn you.
+    You can also remove welds by holding `IN_SPEED` ( Def: SHIFT ) and clicking the option.
+    The amount of welds will be displayed next to the optoion control.
+9. `NoCollide` option controlls the created collides on a piece. You must select an anchor
+    to nocollide the right clicked piece to, when you are in regular `SNAP` mode displayed on
+    the tool screen. When the anchor is not selected or it is invalid, a message will be displayed
+    to warn you. You can also remove nocollides by holding `IN_SPEED` ( Def: SHIFT ) and clicking
+    the option. The amount of nocollides will be displayed next to the optoion control.
+9. `NoCollide world` option controlls the created world collides on a piece. The constraint
+    acnchor in this case is the world itself. Click on the option to create no collide world
+    constrant or by holding `IN_SPEED` ( Def: SHIFT ) and click to remove it. The flag of
+    of the constraint will be displayed in the menu control option. The value will be `true`
+    if there is a still a no-collide world and [`phys_ragdollconstraint`](https://developer.valvesoftware.com/wiki/Phys_ragdollconstraint) between the piece and the
+    world. If it stays in `true` after you remove it, that menas there are more than one.
 
 #### How to use the tool control panel and what function does each item have ?
 1. `Track surface grip modifier` combo box is used if you want to obtain different
@@ -199,9 +215,11 @@ Explanation of each control option is given in the summary below.
     You cannot change the textbox value manually by tiping. Currently `Bodygroup/Skin`
     (ex. [English](https://en.wikipedia.org/wiki/English_language)) option name will vary based on the language used.
     When you click it it will populate the text display in the tool menu.
-3. `Piece mass` setup control slider is used to set the mass of the next track piece to be spawned.
-    The larger the number the havier spawned track piece gets. Larger values are recommended.
-4. `Active radius` control slider is used to set the minimum distance needed to select an active point when
+3. `Piece mass` setup control slider is used to set the mass of the next track piece to be
+    spawned. The larger the number the havier spawned track piece gets. Larger values are
+    recommended.
+4. `Active radius` control slider is used to set the minimum distance needed to select an
+    active point when
     pointing at a piece. Keep this maxed out if you don't want to bother with track end selection.
 5. `Stack count` control value shows the maximum number of pieces to be snapped in `stacking` mode.
     Change this to something larger than one if you want to extend your track by stacking.
@@ -212,13 +230,18 @@ Explanation of each control option is given in the summary below.
 7. `Force limit` control ( Requested by `The Arbitor 90` ) defines the maximum force to be applied
     on the weld joint between two pieces connected before it breaks. You can use this to build collapsible
     track bridges. Set the option to zero if you want it to be unbreakable ( by default ).
-8. Options `weld`, `no-collide`, `freeze`, `phys-gun grab` and `gravity` are considered basic Gmod knowledge,
-    because they are defined by their own and not going to be explained further.
-9. Option `Ignore track type` if checked, will enable snapping between pieces of a different types.
-10. Option `Spawn horizontally` ( as the name suggests ) if checked, will spawn the next pieces horizontally
-    relative to the map ground if the additional angle offsets are zeros. If not they will be added to the resulting angle.
-11. Option `Origin from mass-center` if checked, will align the piece spawned to its mass-center.
-12. Option `Snap to trace surface` if checked, will snap the chosen track directly to the trace surface.
+8. Options `weld`, `no-collide`, `no-collide world` ( Requested by Frosty ), `freeze`,
+    `phys-gun grab` and `gravity` are considered basic Gmod knowledge, because they are
+    defined by their own and not going to be explained further.
+9. Option `Ignore track type` if checked, will enable snapping between pieces of a different
+   types.
+10. Option `Spawn horizontally` ( as the name suggests ) if checked, will spawn the next
+    pieces horizontally relative to the map ground if the additional angle offsets are zeros.
+    If not they will be added to the resulting angle.
+11. Option `Origin from mass-center` if checked, will align the piece spawned to its
+    mass-center.
+12. Option `Snap to trace surface` if checked, will snap the chosen track directly to the
+    trace surface.
 ![SurfSnap](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.jpg)
 
 13. Option `Draw adviser` if checked, will draw a composition of lines and circles to assist you with the building.
@@ -239,6 +262,7 @@ Explanation of each control option is given in the summary below.
 #### What will happen if something gets updated?
 First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that
 the tool supports will be represented here as a manual or something.
+More information I publish you can also find in [the wiki page here](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki).
 That's what is this FAQ for anyway ( Though most people don't bother to read it before asking )...
 
 #### Which addons did you work on?
