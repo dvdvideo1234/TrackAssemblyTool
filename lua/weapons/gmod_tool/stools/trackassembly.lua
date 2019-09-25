@@ -86,47 +86,48 @@ end
 cleanupRegister(gsLimitName); asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
 
 TOOL.ClientConVar = {
-  [ "weld"      ] = 1,
-  [ "mass"      ] = 25000,
-  [ "model"     ] = "models/props_phx/trains/tracks/track_1x.mdl",
-  [ "nextx"     ] = 0,
-  [ "nexty"     ] = 0,
-  [ "nextz"     ] = 0,
-  [ "freeze"    ] = 1,
-  [ "anchor"    ] = gsNoAnchor,
-  [ "igntype"   ] = 0,
-  [ "spnflat"   ] = 0,
-  [ "angsnap"   ] = 15,
-  [ "sizeucs"   ] = 20,
-  [ "pointid"   ] = 1,
-  [ "pnextid"   ] = 2,
-  [ "nextpic"   ] = 0,
-  [ "nextyaw"   ] = 0,
-  [ "nextrol"   ] = 0,
-  [ "spawncn"   ] = 0,
-  [ "bgskids"   ] = "0/0",
-  [ "gravity"   ] = 1,
-  [ "adviser"   ] = 1,
-  [ "elevpnt"   ] = 0,
-  [ "activrad"  ] = 50,
-  [ "pntasist"  ] = 1,
-  [ "surfsnap"  ] = 0,
-  [ "exportdb"  ] = 0,
-  [ "forcelim"  ] = 0,
-  [ "ignphysgn" ] = 0,
-  [ "ghostcnt"  ] = 1,
-  [ "stackcnt"  ] = 5,
-  [ "maxstatts" ] = 3,
-  [ "nocollide" ] = 1,
-  [ "physmater" ] = "metal",
-  [ "enpntmscr" ] = 1,
-  [ "engunsnap" ] = 0,
-  [ "workmode"  ] = 0,
-  [ "appangfst" ] = 0,
-  [ "applinfst" ] = 0,
-  [ "enradmenu" ] = 0,
-  [ "incsnpang" ] = 5,
-  [ "incsnplin" ] = 5
+  [ "weld"       ] = 1,
+  [ "mass"       ] = 25000,
+  [ "model"      ] = "models/props_phx/trains/tracks/track_1x.mdl",
+  [ "nextx"      ] = 0,
+  [ "nexty"      ] = 0,
+  [ "nextz"      ] = 0,
+  [ "freeze"     ] = 1,
+  [ "anchor"     ] = gsNoAnchor,
+  [ "igntype"    ] = 0,
+  [ "spnflat"    ] = 0,
+  [ "angsnap"    ] = 15,
+  [ "sizeucs"    ] = 20,
+  [ "pointid"    ] = 1,
+  [ "pnextid"    ] = 2,
+  [ "nextpic"    ] = 0,
+  [ "nextyaw"    ] = 0,
+  [ "nextrol"    ] = 0,
+  [ "spawncn"    ] = 0,
+  [ "bgskids"    ] = "0/0",
+  [ "gravity"    ] = 1,
+  [ "adviser"    ] = 1,
+  [ "elevpnt"    ] = 0,
+  [ "activrad"   ] = 50,
+  [ "pntasist"   ] = 1,
+  [ "surfsnap"   ] = 0,
+  [ "exportdb"   ] = 0,
+  [ "forcelim"   ] = 0,
+  [ "ignphysgn"  ] = 0,
+  [ "ghostcnt"   ] = 1,
+  [ "stackcnt"   ] = 5,
+  [ "maxstatts"  ] = 3,
+  [ "nocollide"  ] = 1,
+  [ "nocollidew" ] = 0,
+  [ "physmater"  ] = "metal",
+  [ "enpntmscr"  ] = 1,
+  [ "engunsnap"  ] = 0,
+  [ "workmode"   ] = 0,
+  [ "appangfst"  ] = 0,
+  [ "applinfst"  ] = 0,
+  [ "enradmenu"  ] = 0,
+  [ "incsnpang"  ] = 5,
+  [ "incsnplin"  ] = 5
 }
 
 local gtConvarList = asmlib.GetConvarList(TOOL.ClientConVar)
@@ -141,13 +142,17 @@ if(CLIENT) then
   }
   languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
+  concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
+  hookAdd("PreDrawHalos", gsToolPrefL.."update_contextval", asmlib.GetActionCode("UPDATE_CONTEXTVAL"))
   hookAdd("PostDrawHUD", gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
   hookAdd("PostDrawHUD", gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("DRAW_PHYSGUN"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
+  hookAdd("OnContextMenuOpen", gsToolPrefL.."ctxmenu_open", asmlib.GetActionCode("CTXMENU_OPEN"))
+  hookAdd("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
 
   -- Listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
@@ -180,6 +185,10 @@ end
 
 function TOOL:ApplyLinearFirst()
   return ((self:GetClientNumber("applinfst") or 0) ~= 0)
+end
+
+function TOOL:GetContextMenuAll()
+  return asmlib.GetAsmConvar("enctxmall", "BUL")
 end
 
 function TOOL:GetModel()
@@ -315,6 +324,10 @@ function TOOL:GetScrollMouse()
   return asmlib.GetAsmConvar("enpntmscr", "BUL")
 end
 
+function TOOL:GetNocollideWorld()
+  return asmlib.GetAsmConvar("nocollidew", "BUL")
+end
+
 function TOOL:SwitchPoint(vDir, bNxt)
   local oRec = asmlib.CacheQueryPiece(self:GetModel()); if(not asmlib.IsHere(oRec)) then
     asmlib.LogInstance("Invalid record",gtArgsLogs); return 1, 2 end
@@ -403,7 +416,8 @@ function TOOL:ClearAnchor(bMute)
     svEnt:SetColor(conPalette:Select("w"))
     if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
-      asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP") end
+      asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
+    end
   end; asmlib.LogInstance("("..tostring(bMute)..") Anchor cleared",gtArgsLogs); return true
 end
 
@@ -495,6 +509,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.Elevation:   <"..tostring(self:GetElevation())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.NoCollideW:  <"..tostring(self:GetNocollideWorld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
@@ -502,6 +517,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnCxMenuAll: <"..tostring(self:GetContextMenuAll())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackCnt:    <"..tostring(self:GetStackCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.GhostsCnt:   <"..tostring(self:GetGhostsCount())..">"..sDelim
@@ -550,32 +566,33 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   if(not stTrace.Hit) then
     asmlib.LogInstance("Trace not hit",gtArgsLogs); return false end
-  local trEnt     = stTrace.Entity
-  local weld      = self:GetWeld()
-  local mass      = self:GetMass()
-  local model     = self:GetModel()
-  local ply       = self:GetOwner()
-  local freeze    = self:GetFreeze()
-  local angsnap   = self:GetAngSnap()
-  local gravity   = self:GetGravity()
-  local elevpnt   = self:GetElevation()
-  local nocollide = self:GetNoCollide()
-  local spnflat   = self:GetSpawnFlat()
-  local stackcnt  = self:GetStackCount()
-  local igntype   = self:GetIgnoreType()
-  local forcelim  = self:GetForceLimit()
-  local spawncn   = self:GetSpawnCenter()
-  local surfsnap  = self:GetSurfaceSnap()
-  local workmode  = self:GetWorkingMode()
-  local physmater = self:GetPhysMeterial()
-  local actrad    = self:GetActiveRadius()
-  local bgskids   = self:GetBodyGroupSkin()
-  local maxstatts = self:GetStackAttempts()
-  local ignphysgn = self:GetIgnorePhysgun()
-  local bnderrmod = self:GetBoundErrorMode()
-  local appangfst = self:ApplyAngularFirst()
-  local applinfst = self:ApplyLinearFirst()
-  local fnmodel   = model:GetFileFromFilename()
+  local trEnt      = stTrace.Entity
+  local weld       = self:GetWeld()
+  local mass       = self:GetMass()
+  local model      = self:GetModel()
+  local ply        = self:GetOwner()
+  local freeze     = self:GetFreeze()
+  local angsnap    = self:GetAngSnap()
+  local gravity    = self:GetGravity()
+  local elevpnt    = self:GetElevation()
+  local nocollide  = self:GetNoCollide()
+  local spnflat    = self:GetSpawnFlat()
+  local stackcnt   = self:GetStackCount()
+  local igntype    = self:GetIgnoreType()
+  local forcelim   = self:GetForceLimit()
+  local spawncn    = self:GetSpawnCenter()
+  local surfsnap   = self:GetSurfaceSnap()
+  local workmode   = self:GetWorkingMode()
+  local physmater  = self:GetPhysMeterial()
+  local actrad     = self:GetActiveRadius()
+  local bgskids    = self:GetBodyGroupSkin()
+  local maxstatts  = self:GetStackAttempts()
+  local ignphysgn  = self:GetIgnorePhysgun()
+  local bnderrmod  = self:GetBoundErrorMode()
+  local appangfst  = self:ApplyAngularFirst()
+  local applinfst  = self:ApplyLinearFirst()
+  local nocollidew = self:GetNocollideWorld()
+  local fnmodel    = model:GetFileFromFilename()
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -604,7 +621,7 @@ function TOOL:LeftClick(stTrace)
       end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,forcelim)) then
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,nocollidew,forcelim)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
       asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.UndoAddEntity(ePiece)
@@ -633,7 +650,7 @@ function TOOL:LeftClick(stTrace)
     if(ply:KeyDown(IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,forcelim)) then
+      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,nocollidew,forcelim)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
       asmlib.LogInstance("(Physical) Success",gtArgsLogs); return true
@@ -663,9 +680,9 @@ function TOOL:LeftClick(stTrace)
       if(ePieceN) then -- Set position is valid
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply physical settings fail"),gtArgsLogs); return false end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,forcelim)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,nil,forcelim)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply weld fail"),gtArgsLogs); return false end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,forcelim)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,nocollidew,forcelim)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply no-collide fail"),gtArgsLogs); return false end
         asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntity(ePieceN)
@@ -696,9 +713,9 @@ function TOOL:LeftClick(stTrace)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail"),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,nil,forcelim)) then -- Weld all created to the anchor/previous
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply weld fail"),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,forcelim)) then       -- NoCollide all to previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,nocollidew,forcelim)) then       -- NoCollide all to previous
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply no-collide fail"),gtArgsLogs); return false end
       asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Snap prop )")
       asmlib.UndoAddEntity(ePiece)
@@ -722,6 +739,9 @@ function TOOL:RightClick(stTrace)
   local enpntmscr = self:GetScrollMouse()
   if(stTrace.HitWorld) then
     if(ply:KeyDown(IN_USE)) then
+      asmlib.SetAsmConvar(ply,"openextdb")
+      asmlib.LogInstance("(World) Success open expdb",gtArgsLogs); return true
+    else
       asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
       asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
     end
@@ -1234,7 +1254,7 @@ function TOOL.BuildCPanel(CPanel)
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
-              pRoot.Icon:SetImage("icon16/database_connect.png")
+              pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.InternalDoClick = function() end
               pRoot.DoClick         = function() return false end
               pRoot.DoRightClick    = function() SetClipboardText(pRoot:GetText()) end
@@ -1258,7 +1278,7 @@ function TOOL.BuildCPanel(CPanel)
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
               else -- Create the last needed node regarding pItem
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, asmlib.ToIcon("category_item"), conPalette:Select("tx"))
               end; iCnt = iCnt + 1;
             end
           end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
@@ -1268,7 +1288,7 @@ function TOOL.BuildCPanel(CPanel)
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
       pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
-      pNode.Icon:SetImage("icon16/brick.png")
+      pNode.Icon:SetImage(asmlib.ToIcon("model"))
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
         asmlib.SetAsmConvar(nil, "pointid", 1)
@@ -1346,7 +1366,6 @@ function TOOL.BuildCPanel(CPanel)
   cvarsAddChangeCallback(sText, fText, sText.."_call");
   CPanel:AddItem(pText)
 
-  local snapInc    = asmlib.GetActionCode("INCREMENT_SNAP")
   local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmConvar("maxmass", "FLT")  , 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
@@ -1361,44 +1380,44 @@ function TOOL.BuildCPanel(CPanel)
   pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
   asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@90" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@90" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@90" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
@@ -1408,6 +1427,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".weld"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".nocollide_con"), gsToolPrefL.."nocollide")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nocollide"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".nocollidew_con"), gsToolPrefL.."nocollidew")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nocollidew"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".freeze_con"), gsToolPrefL.."freeze")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".freeze"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".ignphysgn_con"), gsToolPrefL.."ignphysgn")

@@ -1,4 +1,4 @@
-﻿return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
+return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
   ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/ISO_639-1
   -- con >> control # def >> default # hd >> header # lb >> label
   tSet["tool."..sTool..".1"             ] = "Assembles a prop-segmented track"
@@ -48,8 +48,10 @@
   tSet["tool."..sTool..".forcelim_con"  ] = "Force limit:"
   tSet["tool."..sTool..".ignphysgn"     ] = "Ignores physics gun grab on the piece spawned/snapped/stacked"
   tSet["tool."..sTool..".ignphysgn_con" ] = "Ignore physics gun"
-  tSet["tool."..sTool..".nocollide"     ] = "Puts a no-collide between pieces or pieces/anchor"
+  tSet["tool."..sTool..".nocollide"     ] = "Creates a no-collide between pieces or pieces/anchor"
   tSet["tool."..sTool..".nocollide_con" ] = "NoCollide"
+  tSet["tool."..sTool..".nocollidew"    ] = "Creates a no-collide between pieces and world"
+  tSet["tool."..sTool..".nocollidew_con"] = "NoCollide world"
   tSet["tool."..sTool..".freeze"        ] = "Makes the piece spawn in a frozen state"
   tSet["tool."..sTool..".freeze_con"    ] = "Freeze piece"
   tSet["tool."..sTool..".igntype"       ] = "Makes the tool ignore the different piece types on snapping/stacking"
@@ -79,6 +81,17 @@
   tSet["tool."..sTool..".pn_export_lb"  ] = "Export DB"
   tSet["tool."..sTool..".pn_routine"    ] = "The list of your frequently used track pieces"
   tSet["tool."..sTool..".pn_routine_hd" ] = "Frequent pieces by:"
+  tSet["tool."..sTool..".pn_externdb"   ] = "The external databases available for:"
+  tSet["tool."..sTool..".pn_externdb_hd"] = "External databases by:"
+  tSet["tool."..sTool..".pn_externdb_lb"] = "Right click for options:"
+  tSet["tool."..sTool..".pn_externdb_1" ] = "Copy unique prefix"
+  tSet["tool."..sTool..".pn_externdb_2" ] = "Copy DSV folder"
+  tSet["tool."..sTool..".pn_externdb_3" ] = "Copy table nick"
+  tSet["tool."..sTool..".pn_externdb_4" ] = "Copy table path"
+  tSet["tool."..sTool..".pn_externdb_5" ] = "Copy table time"
+  tSet["tool."..sTool..".pn_externdb_6" ] = "Copy table size"
+  tSet["tool."..sTool..".pn_externdb_7" ] = "Edit items (Luapad)"
+  tSet["tool."..sTool..".pn_externdb_8" ] = "Delete database entry"
   tSet["tool."..sTool..".pn_display"    ] = "The model of your track piece is displayed here"
   tSet["tool."..sTool..".pn_pattern"    ] = "Write a pattern here and hit ENTER to preform a search"
   tSet["tool."..sTool..".pn_srchcol"    ] = "Choose which list column you want to preform a search on"
