@@ -71,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.582")
+asmlib.SetOpVar("TOOL_VERSION","6.552")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -315,6 +315,30 @@ end
 
 if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
+  asmlib.ToIcon(GetOpVar("TOOLNAME_PU").."PIECES"        , "database_connect")
+  asmlib.ToIcon(GetOpVar("TOOLNAME_PU").."ADDITIONS"     , "bricks"          )
+  asmlib.ToIcon(GetOpVar("TOOLNAME_PU").."PHYSPROPERTIES", "wand"            )
+  asmlib.ToIcon(GetOpVar("TOOLNAME_PL").."context_menu"  , "database_gear"   )
+  asmlib.ToIcon("category_item", "folder"         )
+  asmlib.ToIcon("pn_externdb_1", "database"       )
+  asmlib.ToIcon("pn_externdb_2", "folder_database")
+  asmlib.ToIcon("pn_externdb_3", "database_table" )
+  asmlib.ToIcon("pn_externdb_4", "database_link"  )
+  asmlib.ToIcon("pn_externdb_5", "time_go"        )
+  asmlib.ToIcon("pn_externdb_6", "compress"       )
+  asmlib.ToIcon("pn_externdb_7", "database_edit"  )
+  asmlib.ToIcon("pn_externdb_8", "database_delete")
+  asmlib.ToIcon("model"        , "brick"          )
+  asmlib.ToIcon("mass"         , "basket_put"     )
+  asmlib.ToIcon("bgskids"      , "layers"         )
+  asmlib.ToIcon("phyname"      , "wand"           )
+  asmlib.ToIcon("ignphysgn"    , "lightning_go"   )
+  asmlib.ToIcon("freeze"       , "lock"           )
+  asmlib.ToIcon("gravity"      , "ruby_put"       )
+  asmlib.ToIcon("weld"         , "wrench"         )
+  asmlib.ToIcon("nocollide"    , "shape_group"    )
+  asmlib.ToIcon("nocollidew"   , "world"          )
+
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("en_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("en_context_menu", false) end)
 
@@ -471,7 +495,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         pnTable:DockMargin(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
         pnTable:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
         pnTable:Dock(FILL)
-        local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.GetIcon(defTab.Name))
+        local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.ToIcon(defTab.Name))
         tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
         local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
         local sDsv = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
@@ -499,27 +523,27 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               if(not IsValid(pnMenu)) then pnFrame:Close()
                 asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
-                function() SetClipboardText(oSelf:GetText()) end):SetIcon(asmlib.GetIcon("pn_externdb_1"))
+                function() SetClipboardText(oSelf:GetText()) end):SetIcon(asmlib.ToIcon("pn_externdb_1"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
-                function() SetClipboardText(sDsv) end):SetIcon(asmlib.GetIcon("pn_externdb_2"))
+                function() SetClipboardText(sDsv) end):SetIcon(asmlib.ToIcon("pn_externdb_2"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
-                function() SetClipboardText(defTab.Nick) end):SetIcon(asmlib.GetIcon("pn_externdb_3"))
+                function() SetClipboardText(defTab.Nick) end):SetIcon(asmlib.ToIcon("pn_externdb_3"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
-                function() SetClipboardText(sFile) end):SetIcon(asmlib.GetIcon("pn_externdb_4"))
+                function() SetClipboardText(sFile) end):SetIcon(asmlib.ToIcon("pn_externdb_4"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_5"),
                 function()
                   local fDate = asmlib.GetOpVar("DATE_FORMAT")
                   local fTime = asmlib.GetOpVar("TIME_FORMAT")
                   SetClipboardText(osDate(fDate.." "..fTime, fileTime(sFile, "DATA")))
-                end):SetIcon(asmlib.GetIcon("pn_externdb_5"))
+                end):SetIcon(asmlib.ToIcon("pn_externdb_5"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_6"),
                 function()
                   SetClipboardText(tostring(fileSize(sFile, "DATA")).."B")
-                end):SetIcon(asmlib.GetIcon("pn_externdb_6"))
+                end):SetIcon(asmlib.ToIcon("pn_externdb_6"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_7"),
                 function() -- Open the lualad addon to edit the database
                   asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
-                end):SetIcon(asmlib.GetIcon("pn_externdb_7"))
+                end):SetIcon(asmlib.ToIcon("pn_externdb_7"))
               pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_8"),
                 function() local sDel = sFile; fileDelete(sDel)
                   asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
@@ -528,7 +552,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                     if(fileExists(sDel,"DATA")) then fileDelete(sDel)
                       asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs) end
                   end; pnDelete:Remove()
-                end):SetIcon(asmlib.GetIcon("pn_externdb_8"))
+                end):SetIcon(asmlib.ToIcon("pn_externdb_8"))
               pnMenu:Open()
             end
             xyPos.y = xyPos.y + xySiz.y + xyDsz.y
@@ -866,7 +890,7 @@ local gsOptionsCM = gsToolPrefL.."context_menu"
 local gsOptionsCV = gsToolPrefL.."context_values"
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
 local gtOptionsCM = {} -- This stores the context menu configuration
-gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, asmlib.GetIcon(gsOptionsCM)
+gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, asmlib.ToIcon(gsOptionsCM)
 gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 
 -- [1]: Translation language key
@@ -1106,7 +1130,7 @@ gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
     end; local fEval = function() self:Evaluate(ent,iD,tr,sKey) end
     local pnOpt = pnSub:AddOption(sName, fEval); if(not IsValid(pnOpt)) then
       asmlib.LogInstance("Invalid "..asmlib.GetReport2(sKey,iD),gsOptionsLG); return end
-    if(not asmlib.IsBlank(sIcon)) then pnOpt:SetIcon(asmlib.GetIcon(sIcon)) end
+    if(not asmlib.IsBlank(sIcon)) then pnOpt:SetIcon(asmlib.ToIcon(sIcon)) end
   end
 end
 -- Not used. Use the evaluate function instead

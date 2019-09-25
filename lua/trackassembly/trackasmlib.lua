@@ -548,31 +548,7 @@ function InitBase(sName,sPurpose)
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   if(CLIENT) then
-    SetOpVar("TABLE_SKILLICON",{
-      [GetOpVar("TOOLNAME_PU").."PIECES"        ] = "database_connect",
-      [GetOpVar("TOOLNAME_PU").."ADDITIONS"     ] = "bricks"          ,
-      [GetOpVar("TOOLNAME_PU").."PHYSPROPERTIES"] = "wand"            ,
-      [GetOpVar("TOOLNAME_PL").."context_menu"  ] = "database_gear"   ,
-      ["category_item"] = "folder",
-      ["pn_externdb_1"] = "database",
-      ["pn_externdb_2"] = "folder_database",
-      ["pn_externdb_3"] = "database_table",
-      ["pn_externdb_4"] = "database_link",
-      ["pn_externdb_5"] = "time_go",
-      ["pn_externdb_6"] = "compress",
-      ["pn_externdb_7"] = "database_edit",
-      ["pn_externdb_8"] = "database_delete",
-      ["model"        ] = "brick",
-      ["mass"         ] = "basket_put",
-      ["bgskids"      ] = "layers",
-      ["phyname"      ] = "wand",
-      ["ignphysgn"    ] = "lightning_go",
-      ["freeze"       ] = "lock",
-      ["gravity"      ] = "ruby_put",
-      ["weld"         ] = "wrench",
-      ["nocollide"    ] = "shape_group",
-      ["nocollidew"   ] = "world"
-    })
+    SetOpVar("TABLE_SKILLICON",{})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("HOVER_TRIGGER",{})
     SetOpVar("LOCALIFY_TABLE",{})
@@ -3911,10 +3887,11 @@ function GetConvarList(tC)
   end; return tI
 end
 
-function GetIcon(vKey)
+function ToIcon(vKey, vVal)
   if(SERVER) then return nil end
   local tIcon = GetOpVar("TABLE_SKILLICON"); if(not IsHere(vKey)) then
     LogInstance("Invalid "..GetReport(vKey)); return nil end
+  if(IsHere(vVal)) then tIcon[vKey] = tostring(vVal) end
   local sIcon = tIcon[vKey]; if(not IsHere(sIcon)) then
     LogInstance("Missing "..GetReport(vKey)); return nil end
   return GetOpVar("FORM_SKILLICON"):format(tostring(sIcon))
