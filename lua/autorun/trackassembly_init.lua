@@ -71,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.556")
+asmlib.SetOpVar("TOOL_VERSION","6.557")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -947,11 +947,8 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(5,
         {"tool."..gsToolNameL..".ignphysgn", true,
           function(ePiece, oPly, oTr, sKey)
-            local oPhy = ePiece:GetPhysicsObject()
-            local bPi = (not tobool(ePiece.PhysgunDisabled)) -- Inverted
-            local bFr = (not oPhy:IsMotionEnabled())
-            local bGr = oPhy:IsGravityEnabled()
-            local sPh = oPhy:GetMaterial()
+            local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
+            if(bSuc) then bPi = (not bPi) else return bSuc end
             return asmlib.ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
           end, nil,
           function(ePiece)
@@ -961,11 +958,8 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(6,
         {"tool."..gsToolNameL..".freeze", true,
           function(ePiece, oPly, oTr, sKey)
-            local oPhy = ePiece:GetPhysicsObject()
-            local bPi = tobool(ePiece.PhysgunDisabled)
-            local bFr = oPhy:IsMotionEnabled() -- Inverted
-            local bGr = oPhy:IsGravityEnabled()
-            local sPh = oPhy:GetMaterial()
+            local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
+            if(bSuc) then bFr = (not bFr) else return bSuc end
             return asmlib.ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
           end, nil,
           function(ePiece)
@@ -975,11 +969,8 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(7,
         {"tool."..gsToolNameL..".gravity", true,
           function(ePiece, oPly, oTr, sKey)
-            local oPhy = ePiece:GetPhysicsObject()
-            local bPi = tobool(ePiece.PhysgunDisabled)
-            local bFr = (not oPhy:IsMotionEnabled())
-            local bGr = oPhy:IsGravityEnabled() -- Inverted
-            local sPh = oPhy:GetMaterial()
+            local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
+            if(bSuc) then bGr = (not bGr) else return bSuc end
             return asmlib.ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
           end, nil,
           function(ePiece)

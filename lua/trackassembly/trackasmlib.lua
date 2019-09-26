@@ -3581,16 +3581,28 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   LogInstance("{"..tostring(ePiece).."}"..sModel); return ePiece
 end
 
+function UnpackPhysicalSettings(ePiece)
+  if(CLIENT) then LogInstance("Working on client"); return true end
+  if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
+    LogInstance("Piece entity invalid "..GetReport(ePiece)); return false end
+  local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
+  if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
+    LogInstance("Piece physical object invalid "..GetReport(ePiece)); return false end
+  local bPi, bFr = ePiece.PhysgunDisabled, (not oPhy:IsMotionEnabled())
+  local bGr, sPh = oPhy:IsGravityEnabled(), oPhy:GetMaterial()
+  return true, bPi, bFr, bGr, sPh -- Returns status and settings
+end
+
 function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   if(CLIENT) then LogInstance("Working on client"); return true end
   local bPi, bFr = (tobool(bPi) or false), (tobool(bFr) or false)
   local bGr, sPh = (tobool(bGr) or false),  tostring(sPh or "")
   LogInstance("{"..tostring(bPi)..","..tostring(bFr)..","..tostring(bGr)..","..sPh.."}")
   if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
-    LogInstance("Piece entity invalid <"..tostring(ePiece)..">"); return false end
+    LogInstance("Piece entity invalid "..GetReport(ePiece)); return false end
   local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
   if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
-    LogInstance("Piece physical object invalid <"..tostring(ePiece)..">"); return false end
+    LogInstance("Piece physical object invalid "..GetReport(ePiece)); return false end
   local arSettings = {bPi,bFr,bGr,sPh}  -- Initialize dupe settings using this array
   ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
   ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
@@ -3631,7 +3643,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
           if(cnW and cnW:IsValid()) then
             ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
-          else LogInstance("Weld ignored "..tostring(cnW)) end
+          else LogInstance("Weld ignored "..GetReport(cnW)) end
         else LogInstance("Weld base unconstrained "..GetReport(eBase)) end
       else LogInstance("Weld base invalid "..GetReport(eBase)) end
     end
@@ -3642,7 +3654,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           cnN = constraintNoCollide(ePiece, eBase, 0, 0)
           if(cnN and cnN:IsValid()) then
             ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
-          else LogInstance("NoCollide ignored") end
+          else LogInstance("NoCollide ignored "..GetReport(cnN)) end
         else LogInstance("NoCollide base unconstrained "..GetReport(eBase)) end
       else LogInstance("NoCollide base invalid "..GetReport(eBase)) end
     end
@@ -3654,7 +3666,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           cnG = constraintAdvBallsocket(ePiece, eWorld,
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
-          else LogInstance("AdvBallsocket ignored "..tostring(cnG)) end
+          else LogInstance("AdvBallsocket ignored "..GetReport(cnG)) end
         else LogInstance("AdvBallsocket base unconstrained "..GetReport(eWorld)) end
       else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
     end
