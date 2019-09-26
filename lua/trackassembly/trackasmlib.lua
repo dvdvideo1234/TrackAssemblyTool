@@ -573,8 +573,8 @@ function GetWrap(nVal,nMin,nMax) local nVal = nVal
 end
 
 --[[
- * Applies border if existent to the input value
- * according to the given gorder name. Basicly
+ * Applies border if exists to the input value
+ * according to the given border name. Basically
  * custom version of a clamp with vararg border limits
 ]]
 local function BorderValue(nsVal, vKey)
@@ -699,7 +699,7 @@ function ExpVector(vBase, pX, pY, pZ)
   return (tonumber(vBase[vX]) or 0), (tonumber(vBase[vY]) or 0), (tonumber(vBase[vZ]) or 0)
 end
 
-function GetLengthVector(vBase)
+function GetLength(vBase)
   if(not vBase) then LogInstance("Base invalid"); return nil end
   local X = (tonumber(vBase[cvX]) or 0); X = X * X
   local Y = (tonumber(vBase[cvY]) or 0); Y = Y * Y
@@ -776,7 +776,7 @@ function MulVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvZ] = vBase[cvZ] * (tonumber(nZ or 0))
 end
 
-function DecomposeByAngle(vBase, aUnit)
+function BasisVector(vBase, aUnit)
   if(not vBase) then LogInstance("Base invalid"); return nil end
   if(not aUnit) then LogInstance("Unit invalid"); return nil end
   local X = vBase:Dot(aUnit:Forward())
@@ -1471,7 +1471,7 @@ function GetPointElevation(oEnt,ivPoID)
     LogInstance("POA missing "..GetReport(ivPoID).." for <"..sModel..">"); return nil end
   local aDiffBB, vDiffBB = Angle(), oEnt:OBBMins()
   SetAngle(aDiffBB,hdPnt.A) ; aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
-  SubVector(vDiffBB,hdPnt.O); DecomposeByAngle(vDiffBB,aDiffBB)
+  SubVector(vDiffBB,hdPnt.O); BasisVector(vDiffBB,aDiffBB)
   return mathAbs(vDiffBB[cvZ])
 end
 

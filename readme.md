@@ -34,17 +34,17 @@ Also, another great achievement progress is in place, so 10x guys for
 [helping me, help you, help us all](https://www.youtube.com/watch?v=2TZyb0n2DAw) !
 
 #### What kind of features does this script has?
-  * Context menu for direct track entity [value export and manipulation](ref-value-exp)
-  * Track curve fitting alignment based on [ray intersection for precise piece layout](ref-vid-inters)
-  * [Extendible database](ref-dbext) via delimited [text file](ref-text-file) or a [lua script](ref-lua-script)
-  * [Extendible database](ref-dbext) via text file [load list](ref-load-list) and [list prefixes](ref-list-pref)
-    [type categories](ref-categ)
+  * Context menu for direct track entity [value export and manipulation][ref-value-exp]
+  * Track curve fitting alignment based on [ray intersection for precise piece layout][ref-vid-inters]
+  * [Extendible database][ref-dbext] via delimited [text file][ref-text-file] or a [lua script][ref-lua-script]
+  * [Extendible database][ref-dbext] via text file [load list][ref-load-list] and [list prefixes][ref-list-pref]
+    [type categories][ref-categ]
   * Switching database storage between Lua table and SQL
   * Spawning pieces on the map
   * Snapping pieces on the map surface ( if checked )
   * Snapping the first piece angle to user defined value
-  * Snapping already spawned pieces by [using only the physgun](ref-vid-physnap)
-  * Snapping/spawning with [custom user offsets](ref-usr-offs)
+  * Snapping already spawned pieces by [using only the physgun][ref-vid-physnap]
+  * Snapping/spawning with [custom user offsets][ref-usr-offs]
   * Snapping/spawning with zero pitch and roll. Good for track leveling
   * Snapping/spawning at the mass-center or the active point ( if checked )
   * Fast changing the active track ends ( `ALT` + mouse scroll ). Good switching turns direction
@@ -57,7 +57,7 @@ Also, another great achievement progress is in place, so 10x guys for
   * Ability to list the frequent pieces on the server (`E + MRIGHT`). Close shortcut (`ALT + E`)
   * Ability to search among the most server popular pieces by [Lua patterns](https://www.lua.org/pil/20.2.html)
   * Ability to export server and client database as a file
-  * Tool-tips for every button are available and can be [translated easily](ref-trans)
+  * Tool-tips for every button are available and can be [translated easily][ref-trans]
   * Ability to spawn scripted track switches of other dedicated class ( Ron's 2ft )
   * Ability to modify the bodygroups and skins of a track piece ( with duping )
   * Ability to modify track piece [surface behavior](https://www.youtube.com/watch?v=ALBnlFeC9tU) ( wood, metal, slime, tire )
@@ -88,13 +88,15 @@ to use the old-school for the way of changing and selecting track ends.
 #### Hey, I cannot align my track curves properly. Can you help ?
 Yep sure. In the right panel, there is a drop-down menu which has a bunch of tool modes listed.
 Go ahead and select the `Active point intersection`. After you change the mode, an intersection
-relation [entity][ref-entity] is needed to complete the process. Hitting `SPEED + RELOAD` ( Def: Shift + R )
-just like the anchor, will select the relation active point of the [entity][ref-entity] in question, which is closest
-to the player hit position. Now trace a track piece and the ghost of the curve will be drawn. You can
-clamp the spawn position in a box using the primary position flag `applinfst ( Apply linear first )` or switch
-the origin angle with the ray direction angle by using primary angle flag `appangfst ( Apply angular first )`
-In this working mode the angular and linear offsets adjust the piece offsets relative to the ray intersection
-position where the trace and relation rays meet. Press `ATTACK1` ( Def: Left click ) if you are happy with where
+relation [entity][ref-entity] is needed to complete the process. Hitting `SPEED + RELOAD`
+( Def: `SHIFT + R` ) just like the anchor, will select the relation active point of the
+[entity][ref-entity] in question, which is closest to the player hit position. Now trace a track
+piece and the ghost of the curve will be drawn. You can clamp the spawn position in a box using
+the primary position flag `applinfst ( Apply linear first )` or switch
+the origin angle with the ray direction angle by using primary angle flag
+`appangfst ( Apply angular first )`. In this working mode the angular and linear offsets adjust the
+piece offsets relative to the ray intersection position where the trace and relation rays
+meet. Press `ATTACK1` ( Def: Left click ) if you are happy with where
 the ghost is located and where the spawn piece will go at.
 
 #### The tool has too few track varieties. Can you make the pieces resizable ?
@@ -105,7 +107,7 @@ which meets the real-time performance requirements. Resizing track curves is by 
 sort as far as evert single piece is conserned. If you take the track width in consideratoion, the resizing method
 must not just select `X`, `Y` or `Z` axes, because the piece will get distortions along the curve ( ex. For `90`
 degree curves streching by `X` will increase first point lenght, however, it will also adjust the second point width )
-In Gmod there is this [`PhysicsInitConvex`](ref-resz-api) API that does
+In Gmod there is this [`PhysicsInitConvex`][ref-resz-api] API that does
 just that, but the spawning will take a very long time considering the amount it tates to resize every polygon on the
 server. When the track is spawned outside the map bounds it will immidiately crash the game.
 Thus, I beleve that stacking two or more tracks is always better than resizing a prop !
@@ -113,7 +115,7 @@ Thus, I beleve that stacking two or more tracks is always better than resizing a
 #### How can I use switchers ? I can't seem to make them work.
 Every addon has its own way for dealing with the switchers. Others that are not listed here do not
 have dedicated track switchers, so to switch them you must use two track pieces inside of each other.
-Swap their solidness around using the [fading door tool](ref-fade-door),
+Swap their solidness around using the [fading door tool][ref-fade-door],
 so when one is solid a.k.a `CLOSED` and you can't pass trough it, the other must be no-collided to all `OPENED`. Therefore the
 wheels of the train will follow only the track that is currently set being solid with fading door `CLOSED` function state:
  1. Dedicated [entity][ref-entity] addition like a lever you must press with your `USE` key
@@ -150,7 +152,7 @@ wheels of the train will follow only the track that is currently set being solid
 3. Pressing `ATTACK2` ( Def: Right mouse button )
   * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame,
     from where you can select your routine pieces to use again in the track building process
-    as well as [searching in the table](ref-search) either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece you want to continue your track with.
+    as well as [searching in the table][ref-search] either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece you want to continue your track with.
   * When pointing to a prop will select the trace model to use as a piece for building a track.
   * **Note: `trackassembly_enpntmscr` is disabled, you have to press `USE` ( Def: `E` ) to run these,
     otherwise just the active track points will be switched using the old method of selection.**
@@ -204,7 +206,7 @@ Explanation of each control option is given in the summary below.
     acnchor in this case is the world itself. Click on the option to create no collide world
     constrant or by holding `SPEED` ( Def: SHIFT ) and click to remove it. The flag of
     of the constraint will be displayed in the menu control option. The value will be `true`
-    if there is a still a no-collide world and [`phys_ragdollconstraint`](ref-rag-constr) between
+    if there is a still a no-collide world and [`phys_ragdollconstraint`][ref-rag-constr] between
     the piece and the world. If it stays in `true` after you remove it, that means there are more
     than one constraints remaining connected to the trace.
 
@@ -216,7 +218,7 @@ Explanation of each control option is given in the summary below.
     `NAME`, to select the actual surface material you want applied.
 2. `Piece bodygroups and skin selection` is used when you want desired bodygroups
     and/or skins on a piece. The textbox is a display showing the `bodygroup/skin`
-    selection code (ex. 1,2,3,4/5) generated using the [context menu](https://wiki.garrysmod.com/page/The_Context_Menu).
+    selection code (ex. `1,2,3,4/5`) generated using the [context menu](https://wiki.garrysmod.com/page/The_Context_Menu).
     You cannot change the textbox value manually by tiping. Currently `Bodygroup/Skin`
     (ex. [English](https://en.wikipedia.org/wiki/English_language)) option name will vary based on the language used.
     When you click it it will populate the text display in the tool menu.

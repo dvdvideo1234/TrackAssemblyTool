@@ -71,7 +71,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.555")
+asmlib.SetOpVar("TOOL_VERSION","6.556")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -338,7 +338,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
   asmlib.ToIcon("gravity"      , "ruby_put"       )
   asmlib.ToIcon("weld"         , "wrench"         )
   asmlib.ToIcon("nocollide"    , "shape_group"    )
-  asmlib.ToIcon("nocollidew"   , "world"          )
+  asmlib.ToIcon("nocollidew"   , "world_go"       )
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("en_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("en_context_menu", false) end)
@@ -947,10 +947,12 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(5,
         {"tool."..gsToolNameL..".ignphysgn", true,
           function(ePiece, oPly, oTr, sKey)
-            local bPi = (not tobool(ePiece.PhysgunDisabled))
-            ePiece.PhysgunDisabled = bPi
-            ePiece:SetUnFreezable(bPi)
-            ePiece:SetMoveType(MOVETYPE_VPHYSICS); return true
+            local oPhy = ePiece:GetPhysicsObject()
+            local bPi = (not tobool(ePiece.PhysgunDisabled)) -- Inverted
+            local bFr = (not oPhy:IsMotionEnabled())
+            local bGr = oPhy:IsGravityEnabled()
+            local sPh = oPhy:GetMaterial()
+            return asmlib.ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
           end, nil,
           function(ePiece)
             return tobool(ePiece.PhysgunDisabled)
@@ -959,9 +961,12 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(6,
         {"tool."..gsToolNameL..".freeze", true,
           function(ePiece, oPly, oTr, sKey)
-            local phPiece = ePiece:GetPhysicsObject()
-            local motion = phPiece:IsMotionEnabled()
-            phPiece:EnableMotion(not motion); return true
+            local oPhy = ePiece:GetPhysicsObject()
+            local bPi = tobool(ePiece.PhysgunDisabled)
+            local bFr = oPhy:IsMotionEnabled() -- Inverted
+            local bGr = oPhy:IsGravityEnabled()
+            local sPh = oPhy:GetMaterial()
+            return asmlib.ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
           end, nil,
           function(ePiece)
             return tobool(not ePiece:GetPhysicsObject():IsMotionEnabled())
@@ -970,9 +975,12 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
       conContextMenu:Insert(7,
         {"tool."..gsToolNameL..".gravity", true,
           function(ePiece, oPly, oTr, sKey)
-            local phPiece = ePiece:GetPhysicsObject()
-            local gravity = phPiece:IsGravityEnabled()
-            phPiece:EnableGravity(not gravity); return true
+            local oPhy = ePiece:GetPhysicsObject()
+            local bPi = tobool(ePiece.PhysgunDisabled)
+            local bFr = (not oPhy:IsMotionEnabled())
+            local bGr = oPhy:IsGravityEnabled() -- Inverted
+            local sPh = oPhy:GetMaterial()
+            return asmlib.ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
           end, nil,
           function(ePiece)
             return tobool(ePiece:GetPhysicsObject():IsGravityEnabled())
@@ -1048,7 +1056,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
-              if(bSuc) then
+              if(bSuc and cnG and cnG:IsValid()) then
                 asmlib.UndoCrate("TA NoCollideWorld > "..asmlib.GetReport2(ePiece:EntIndex(),cnG:GetClass()))
                 asmlib.UndoAddEntity(cnG); asmlib.UndoFinish(oPly); return true
               end; return false
