@@ -6,7 +6,7 @@
 
 ## IF YOU HAPPEN TO FIND REUPLOADS WITH DIFFERENT ORIGIN REPORT THEM TO ME IMMIDEATELY !!!
 
-![TrackAssemblyTool](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/screenshot.jpg)
+![TrackAssemblyTool][ref-screenshot]
 
 ## Description
 
@@ -36,10 +36,10 @@ Also, another great achievement progress is in place, so 10x guys for
 #### What kind of features does this script has?
   * Context menu for direct track entity [value export and manipulation][ref-value-exp]
   * Track curve fitting alignment based on [ray intersection for precise piece layout][ref-vid-inters]
-  * [Extendible database][ref-dbext] via delimited [text file][ref-text-file] or a [lua script][ref-lua-script]
-  * [Extendible database][ref-dbext] via text file [load list][ref-load-list] and [list prefixes][ref-list-pref]
+  * [Extendible database][ref-dbext] via [text file][ref-text-file] or a [lua script][ref-lua-script]
+  * [Extendible database][ref-dbext] via [load list][ref-load-list] and [list prefixes][ref-list-pref]
     [type categories][ref-categ]
-  * Switching database storage between Lua table and SQL
+  * Switching database storage between [Lua table][ref-ltab] and [SQLite][ref-tsql]
   * Spawning pieces on the map
   * Snapping pieces on the map surface ( if checked )
   * Snapping the first piece angle to user defined value
@@ -125,7 +125,9 @@ wheels of the train will follow only the track that is currently set being solid
     * `Sligwolf's mini trains`
     * `SligWolf's White Rails`
     * `Ron's 2ft track pack`
- 3. Dedicated switched/unswitched model. You have to swap the two models around to switch the track by using a script (Lua, E2, EAdv, Starfall)
+ 3. Dedicated switched/unswitched model. You have to swap the two [models][ref-model] around
+    to switch the track by using a script ( [gLua][ref-glua], [E2][ref-exp2], [EAdv][ref-expadv],
+    [Starfall][ref-starfall] )
     * `Robster's pack`
     * `AlexCookie's 2ft track pack`
  4. Dedicated switcher model and a switcher moving needle that you must assemble to get track switching functionality
@@ -152,22 +154,25 @@ wheels of the train will follow only the track that is currently set being solid
 3. Pressing `ATTACK2` ( Def: Right mouse button )
   * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame,
     from where you can select your routine pieces to use again in the track building process
-    as well as [searching in the table][ref-search] either by `MODEL`, `TYPE`, `NAME`, `LAST_USED` to obtain the piece you want to continue your track with.
+    as well as [searching in the table][ref-search] either by `MODEL`, `TYPE`, `NAME`, `LAST_USED`
+    to obtain the piece you want to continue your track with.
   * When pointing to a prop will select the trace model to use as a piece for building a track.
-  * **Note: `trackassembly_enpntmscr` is disabled, you have to press `USE` ( Def: `E` ) to run these,
-    otherwise just the active track points will be switched using the old method of selection.**
+  * **Note: When `trackassembly_enpntmscr` is disabled, you have to press `USE` ( Def: `E` )
+    to run these, otherwise just the active track points will be switched using the old
+    method of selection.**
 4. Pressing `RELOAD` ( Def: `R` )
   * When pressing it on the world will clear the tool's selected prop to attach all the
-    track pieces to ( anchor/relation ).
-  * **Note: `trackassembly_devmode` is enabled, will update the log control options.**
-  * **Note: `trackassembly_exportdb` is enabled, will run the external database manager.**
-  * **Note: Pressing `USE` ( Def: `E` ) whill open the external database manager menu,
-    otherwide will export the server database**
+    track pieces to ( anchor / relation ).
+  * **Note: When `trackassembly_devmode` is enabled, will update the log control options.**
+  * **Note: When `trackassembly_exportdb` is enabled and `USE` ( Def: `E` ) is pressed, the
+    external database manager menu will be opened to confugure database pefixes, otherwise
+    will export the [server database][ref-sv-db] [`sv_`][ref-dsv-dir] as a file
+    in [DSV format][ref-dsv-dir].**
   * When pressing it on the trace prop will set it as an anchor/relation for other pieces spawned
     to be constrained to.
 
 #### Context menu pieces manipulation
-The [context menu](https://wiki.garrysmod.com/page/The_Context_Menu)
+The [context menu][ref-ctx-menu]
 options are used to manipulate the selected track pieces directly or
 as an interface to export various entity values to the tool console variables.
 Explanation of each control option is given in the summary below.
@@ -218,9 +223,10 @@ Explanation of each control option is given in the summary below.
     `NAME`, to select the actual surface material you want applied.
 2. `Piece bodygroups and skin selection` is used when you want desired bodygroups
     and/or skins on a piece. The textbox is a display showing the `bodygroup/skin`
-    selection code (ex. `1,2,3,4/5`) generated using the [context menu](https://wiki.garrysmod.com/page/The_Context_Menu).
+    selection code (ex. `1,2,3,4/5`) generated using the [context menu][ref-ctx-menu].
     You cannot change the textbox value manually by tiping. Currently `Bodygroup/Skin`
-    (ex. [English](https://en.wikipedia.org/wiki/English_language)) option name will vary based on the language used.
+    (ex. [English](https://en.wikipedia.org/wiki/English_language)) option name will vary
+    based on the language used.
     When you click it it will populate the text display in the tool menu.
 3. `Piece mass` setup control slider is used to set the mass of the next track piece to be
     spawned. The larger the number the havier spawned track piece gets. Larger values are
@@ -249,13 +255,13 @@ Explanation of each control option is given in the summary below.
     mass-center.
 12. Option `Snap to trace surface` if checked, will snap the chosen track directly to the
     trace surface.
-![SurfSnap](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.jpg)
+![SurfSnap][ref-surf-snap]
 
 13. Option `Draw adviser` if checked, will draw a composition of lines and circles to assist you with the building.
-![DrawAdvaiser](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/snapadvaiser.jpg)
+![DrawAdvaiser][ref-adviser]
 
 14. Option `Draw assistant` if checked, will draw circles to assist you where the active points are.
-![PointAssist](https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/pointassist.jpg)
+![PointAssist][ref-pnt-assist]
 
 15. Option `Ghosts count` if greater than zero, will create a ghosts stack client-side to assist you with the track
     building process. If you set this option to zero, ghosting will be disabled.
@@ -295,20 +301,20 @@ The ones that are **included** in Garry's mod do not have links and are marked b
   * [Mr. Train's M-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=517442747)
   * [Bobsters's two gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=489114511)
   * [Mr. Train's G-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=590574800)
-  * Ron's 56 gauge rails ( Removed by the addon owner and [discontinued](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-discontinued) )
-  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( [Maintained by the owner](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-maintained) )
+  * Ron's 56 gauge rails ( Removed by the addon owner and [discontinued][ref-discontinued] )
+  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( [Maintained by the owner]() )
   * PHX Tubes **(INCLUDED)**
   * [Magnum's second track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=391016040) ( Ignore, not designed as prop )
   * [qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
   * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) ( Mini hover tracks ) ( White rails )
   * [Ron's Minitrain Props](https://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
   * [Battleship's abandoned rails](https://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
-  * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) ( [Maintained by the owner](https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-maintained) )
+  * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) ( [Maintained by the owner][maintained] )
   * [AlexCookie's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
   * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167)
-  * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805) **COMMING SOON**
+  * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805)
 
-#### Where are the trains/vehicles[,](https://tfwiki.net/wiki/Team_Bullet_Train) are there any of these?
+#### Where are the trains/vehicles[,](ref-easter) are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
 
 #### Dude the rails are not showing in the menu, what should I do ?
@@ -318,7 +324,7 @@ Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
 Yes, I developed my dynamic database, so I can insert any model I want.
 When I have free time I will make more, because it's a lot of data I insert in the DB
 
-#### Will you create more models in the future?
+#### Will you create more [models][ref-model] in the future?
 Well, It depends on what you mean by `create`.
 If it is for the making of the 3D models, then ***NO*** ( big one ) I've got no experience in
 that stuff neither am I a 3D artist. Other than that if the models are created by the 3D artists,
@@ -332,7 +338,7 @@ When looking at the panel in the right, there is a check-box labeled
 `Enable physgun snap` that you must check. This makes the server to perform some
 traces relative to the active points of the piece and search for other pieces to snap to.
 If the snapping conditions are present, it will snap the trace piece on physgun release at
-that end, which the server trace hits. Check the [wiki page](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Additional-features#physgun-snapping-feature) for more information.
+that end, which the server trace hits. Check the [wiki page][ref-phys-snap] for more information.
 
 #### Can you tell me how to read the physgun snap legend drawn on the screen ?
 Easy. Here are some things to know for never getting confused with this:
@@ -394,3 +400,21 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-fade-door]: https://steamcommunity.com/sharedfiles/filedetails/?id=115753588
 [ref-search]: https://github.com/dvdvideo1234/TrackAssemblyTool#hey-there-is-a-text-box-and-a-drop-down-menu-next-to-the-exportdb-button-what-are-these-for-
 [ref-rag-constr]: https://developer.valvesoftware.com/wiki/Phys_ragdollconstraint
+[ref-dsv-dir]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/trackassembly/dsv
+[ref-sv-db]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/sv_TRACKASSEMBLY_PIECES.txt
+[ref-phys-snap]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Additional-features#physgun-snapping-feature
+[ref-discontinued]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-discontinued
+[ref-maintained]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-maintained
+[ref-easter]: https://tfwiki.net/wiki/Team_Bullet_Train
+[ref-surf-snap]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.jpg
+[ref-adviser]:https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/snapadvaiser.jpg
+[ref-screenshot]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/screenshot.jpg
+[ref-pnt-assist]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/pointassist.jpg
+[ref-ctx-menu]: https://wiki.garrysmod.com/page/The_Context_Menu
+[ref-model]: https://developer.valvesoftware.com/wiki/Model
+[ref-glua]: https://nodecraft.com/support/games/gmod/glua-101-an-introduction-to-garrys-mod-coding
+[ref-exp2]: https://github.com/wiremod/wire/wiki/Expression-2
+[ref-expadv]: https://github.com/Rusketh/ExpAdv2
+[ref-starfall]: https://github.com/thegrb93/StarfallEx
+[ref-ltab]: http://www.lua.org/pil/2.5.html
+[ref-tsql]: https://www.sqlite.org/index.html

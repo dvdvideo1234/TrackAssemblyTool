@@ -779,7 +779,7 @@ function TOOL:Reload(stTrace)
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(self:GetExportDB()) then
-      if(ply:KeyDown(IN_DUCK)) then
+      if(ply:KeyDown(IN_USE)) then
         asmlib.SetAsmConvar(ply,"openextdb")
         asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
       else
