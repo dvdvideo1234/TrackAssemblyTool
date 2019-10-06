@@ -46,6 +46,7 @@ local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
 local fileExists                    = file and file.Exists
 local fileFind                      = file and file.Find
+local fileWrite                     = file and file.Write
 local fileDelete                    = file and file.Delete
 local fileTime                      = file and file.Time
 local fileSize                      = file and file.Size
@@ -72,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.559")
+asmlib.SetOpVar("TOOL_VERSION","6.560")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -466,11 +467,11 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
       local nRat = asmlib.GetOpVar("GOLDEN_RATIO")
+      local nAut = mathFloor((scrW/(3 + nRat))*nRat)
       local sVer = asmlib.GetOpVar("TOOL_VERSION")
       local xyPos = asmlib.NewXY(scrW/4,scrH/4)
       local xyDsz, xyTmp = asmlib.NewXY(5,5), asmlib.NewXY()
-      local xySiz = asmlib.NewXY(mathFloor((scrW/(3 + nRat))*nRat))
-            xySiz.y = mathFloor(xySiz.x * nRat)
+      local xySiz = asmlib.NewXY(nAut,nAut)
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
       pnFrame:SetPos(xyPos.x, xyPos.y)
@@ -592,8 +593,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(xySiz.x)
       pnListView:AddColumn(""):SetFixedWidth(0) -- The hidden path to the population file
       local sNam, sRev = (sBas..sLib.."_dsv.txt"), asmlib.GetOpVar("OPSYM_REVISION")
-      local oDSV = fileOpen(sNam, "rb", "DATA")
-      if(not oDSV) then pnFrame:Close()
+      if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
+      local oDSV = fileOpen(sNam, "rb", "DATA"); if(not oDSV) then pnFrame:Close()
         asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end
       local sDel, sLine, bEOF = "\t", "", false
       while(not bEOF) do
@@ -603,38 +604,29 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         pnListView:AddLine(sKey, sProg):SetTooltip(sProg)
       end; oDSV:Close()
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
-        print("1. pnListView.OnRowSelected")
-        if(inputIsKeyDown(KEY_LSHIFT)) then pnSelf:Clear()
-        else pnSelf:RemoveLine(nIndex) end
+        if(inputIsMouseDown(MOUSE_LEFT)) then
+          if(inputIsKeyDown(KEY_LSHIFT)) then pnSelf:Clear()
+          elseif(inputIsKeyDown(KEY_LALT)) then fileDelete(sNam)
+          else pnSelf:RemoveLine(nIndex) end
+        end -- Process only the left mouse button
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        print("2. pnListView.OnRowRightClick")
-        if(inputIsKeyDown(KEY_LSHIFT)) then
-        --[[  local oDSV = fileOpen(sNam, "wb", "DATA")
-          if(not oDSV) then pnFrame:Close()
-            asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end]]
-          local tLine = pnSelf:GetLines()
-          print("lol")
-          asmlib.LogTable(tLine,"tLine")
-          asmlib.LogTable(pnSelf:GetLine(1),"GetLine(1)")
-          asmlib.LogTable(pnSelf:GetLine(100),"GetLine(100)")
-
-          for iCnt = 1, #tLine do
-            local pnCur = pnSelf:GetLine(iCnt)
-            print(iCnt, pnCur)
-            local sPrf = pnCur:GetColumnText(1)
-            local sPth = pnCur:GetColumnText(2)
-            print(sPrf..sDel..sRev..sPth.."\n")
-            --oDSV:Write(sPrf..sDel..sRev..sPth.."\n")
-            iCnt = (iCnt + 1); pnCur = pnSelf:GetLine(iCnt)
+        if(inputIsMouseDown(MOUSE_RIGHT)) then
+          if(inputIsKeyDown(KEY_LSHIFT)) then
+            local oDSV = fileOpen(sNam, "wb", "DATA"); if(not oDSV) then pnFrame:Close()
+              asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end
+            local tLine = pnSelf:GetLines()
+            for iK, pnCur in pairs(tLine) do
+              local sPrf = pnCur:GetColumnText(1)
+              local sPth = pnCur:GetColumnText(2)
+              oDSV:Write(sPrf..sDel..sRev..sPth.."\n")
+            end; oDSV:Flush(); oDSV:Close()
+          else
+            local sPrf = pnLine:GetColumnText(1)
+            local sPth = pnLine:GetColumnText(2)
+            SetClipboardText(sPrf..sRev..sPth)
           end
-          --oDSV:Flush()
-          oDSV:Close()
-        else
-          local sPrf = pnLine:GetColumnText(1)
-          local sPth = pnLine:GetColumnText(2)
-          SetClipboardText(sPrf..sRev..sPth)
-        end
+        end -- Process only the right mouse button
       end
     end) -- Read client configuration
 
