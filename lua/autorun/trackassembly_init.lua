@@ -49,6 +49,7 @@ local fileFind                      = file and file.Find
 local fileDelete                    = file and file.Delete
 local fileTime                      = file and file.Time
 local fileSize                      = file and file.Size
+local fileOpen                      = file and file.Open
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
@@ -71,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.558")
+asmlib.SetOpVar("TOOL_VERSION","6.559")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -339,6 +340,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
   asmlib.ToIcon("weld"         , "wrench"         )
   asmlib.ToIcon("nocollide"    , "shape_group"    )
   asmlib.ToIcon("nocollidew"   , "world_go"       )
+  asmlib.ToIcon("dsvlist_extdb", "database_go"    )
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("en_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("en_context_menu", false) end)
@@ -467,7 +469,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local sVer = asmlib.GetOpVar("TOOL_VERSION")
       local xyPos = asmlib.NewXY(scrW/4,scrH/4)
       local xyDsz, xyTmp = asmlib.NewXY(5,5), asmlib.NewXY()
-      local xySiz = asmlib.NewXY(mathFloor((scrW/(4 + nRat))*nRat))
+      local xySiz = asmlib.NewXY(mathFloor((scrW/(3 + nRat))*nRat))
             xySiz.y = mathFloor(xySiz.x * nRat)
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
@@ -484,6 +486,11 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Sheet invalid",gtArgsLogs); return nil end
       pnSheet:SetParent(pnFrame)
       pnSheet:Dock(FILL)
+      local sLib = asmlib.GetOpVar("NAME_LIBRARY")
+      local sBas = asmlib.GetOpVar("DIRPATH_BAS")
+      local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
+      local sDsv = sBas..asmlib.GetOpVar("DIRPATH_DSV")
+      local fDSV = sDsv.."%s"..sPrU.."%s.txt"
       local iD, makTab = 1, asmlib.GetBuilderID(1)
       while(makTab) do
         local pnTable = vguiCreate("DPanel")
@@ -496,9 +503,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         pnTable:Dock(FILL)
         local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.ToIcon(defTab.Name))
         tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
-        local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
-        local sDsv = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
-        local fDSV = sDsv.."%s"..sPrU.."%s.txt"
         local tFile = fileFind(fDSV:format("*", defTab.Nick), "DATA")
         if(asmlib.IsTable(tFile) and tFile[1]) then
           local nF, nW, nH = #tFile, pnFrame:GetSize()
@@ -560,6 +564,77 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
           asmlib.LogInstance("Missing <"..defTab.Nick..">",gtArgsLogs)
         end
         iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
+      end
+      local pnDSV = vguiCreate("DPanel")
+      if(not IsValid(pnDSV)) then pnFrame:Close()
+        asmlib.LogInstance("DSV list invalid",gtArgsLogs); return nil end
+      pnDSV:SetParent(pnSheet)
+      pnDSV:DockMargin(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
+      pnDSV:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
+      pnDSV:Dock(FILL)
+      local tInfo = pnSheet:AddSheet("DSV", pnDSV, asmlib.ToIcon("dsvlist_extdb"))
+      tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." DSV")
+      local nW, nH = pnFrame:GetSize()
+      xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
+      xySiz.x = (nW - 6 * xyDsz.x)
+      xySiz.y = ((nH - 6 * xyDsz.y) - 52)
+      local pnListView = vguiCreate("DListView")
+      if(not IsValid(pnListView)) then pnFrame:Close()
+        asmlib.LogInstance("Listview invalid",gtArgsLogs); return nil end
+      pnListView:SetParent(pnDSV)
+      pnListView:SetVisible(true)
+      pnListView:SetSortable(false)
+      pnListView:SetMultiSelect(false)
+      pnListView:SetPos(xyPos.x,xyPos.y)
+      pnListView:SetSize(xySiz.x,xySiz.y)
+      pnListView:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
+      pnListView:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
+      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(xySiz.x)
+      pnListView:AddColumn(""):SetFixedWidth(0) -- The hidden path to the population file
+      local sNam, sRev = (sBas..sLib.."_dsv.txt"), asmlib.GetOpVar("OPSYM_REVISION")
+      local oDSV = fileOpen(sNam, "rb", "DATA")
+      if(not oDSV) then pnFrame:Close()
+        asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end
+      local sDel, sLine, bEOF = "\t", "", false
+      while(not bEOF) do
+        sLine, bEOF = asmlib.GetStringFile(oDSV)
+        sLine = sLine:gsub("%s+"..sRev.."*", sRev)
+        local sKey, sProg = unpack(sRev:Explode(sLine))
+        pnListView:AddLine(sKey, sProg):SetTooltip(sProg)
+      end; oDSV:Close()
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+        print("1. pnListView.OnRowSelected")
+        if(inputIsKeyDown(KEY_LSHIFT)) then pnSelf:Clear()
+        else pnSelf:RemoveLine(nIndex) end
+      end
+      pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
+        print("2. pnListView.OnRowRightClick")
+        if(inputIsKeyDown(KEY_LSHIFT)) then
+        --[[  local oDSV = fileOpen(sNam, "wb", "DATA")
+          if(not oDSV) then pnFrame:Close()
+            asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end]]
+          local tLine = pnSelf:GetLines()
+          print("lol")
+          asmlib.LogTable(tLine,"tLine")
+          asmlib.LogTable(pnSelf:GetLine(1),"GetLine(1)")
+          asmlib.LogTable(pnSelf:GetLine(100),"GetLine(100)")
+
+          for iCnt = 1, #tLine do
+            local pnCur = pnSelf:GetLine(iCnt)
+            print(iCnt, pnCur)
+            local sPrf = pnCur:GetColumnText(1)
+            local sPth = pnCur:GetColumnText(2)
+            print(sPrf..sDel..sRev..sPth.."\n")
+            --oDSV:Write(sPrf..sDel..sRev..sPth.."\n")
+            iCnt = (iCnt + 1); pnCur = pnSelf:GetLine(iCnt)
+          end
+          --oDSV:Flush()
+          oDSV:Close()
+        else
+          local sPrf = pnLine:GetColumnText(1)
+          local sPth = pnLine:GetColumnText(2)
+          SetClipboardText(sPrf..sRev..sPth)
+        end
       end
     end) -- Read client configuration
 
@@ -780,8 +855,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        local nCnt, nX, nY = 0, inputGetCursorPos(); nX, nY = pnListView:ScreenToLocal(nX, nY)
-        while(nX > 0) do nCnt = (nCnt + 1); nX = (nX - pnListView:ColumnWidth(nCnt)) end
+        local nCnt, nX, nY = 0, inputGetCursorPos(); nX, nY = pnSelf:ScreenToLocal(nX, nY)
+        while(nX > 0) do nCnt = (nCnt + 1); nX = (nX - pnSelf:ColumnWidth(nCnt)) end
         SetClipboardText(pnLine:GetColumnText(nCnt))
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then

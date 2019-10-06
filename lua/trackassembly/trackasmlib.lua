@@ -391,7 +391,7 @@ end
 
 -- Golden retriever. Retrieves file line as string
 -- But seriously returns the sting line and EOF flag
-local function GetStringFile(pFile)
+function GetStringFile(pFile)
   if(not pFile) then LogInstance("No file"); return "", true end
   local sCh, sLine = "X", "" -- Use a value to start cycle with
   while(sCh) do sCh = pFile:Read(1); if(not sCh) then break end
@@ -1259,7 +1259,7 @@ end
  * Updates a VGUI pnListView with a search preformed in the already generated
  * frequently used pieces "frUsed" for the pattern "sPat" given by the user
  * and a column name selected `sCol`.
- * On success populates "pnListView" with the search preformed
+ * On success populates `pnListView` with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
  * pnListView -> The panel which must be updated
  * frUsed     -> The list of the frequently used tracks
@@ -3588,8 +3588,8 @@ function UnpackPhysicalSettings(ePiece)
   local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
   if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
     LogInstance("Piece physical object invalid "..GetReport(ePiece)); return false end
-  local bPi, bFr = ePiece.PhysgunDisabled, (not oPhy:IsMotionEnabled())
-  local bGr, sPh = oPhy:IsGravityEnabled(), oPhy:GetMaterial()
+  local bPi, bFr = ePiece.PhysgunDisabled, (not pyPiece:IsMotionEnabled())
+  local bGr, sPh = pyPiece:IsGravityEnabled(), pyPiece:GetMaterial()
   return true, bPi, bFr, bGr, sPh -- Returns status and settings
 end
 
