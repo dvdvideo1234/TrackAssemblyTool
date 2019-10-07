@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.561")
+asmlib.SetOpVar("TOOL_VERSION","6.562")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -544,7 +544,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         if(inputIsMouseDown(MOUSE_LEFT)) then
           if(inputIsKeyDown(KEY_LSHIFT)) then -- Delecte the file
-            pnSelf:Clear(); fileDelete(sNam)  -- The panel will be recreated
+            fileDelete(sNam); pnSelf:Clear()  -- The panel will be recreated
           else pnSelf:RemoveLine(nIndex) end  -- Just remove the line selected
         end -- Process only the left mouse button
       end
@@ -559,13 +559,13 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               local sPrf = pnCur:GetColumnText(1)
               local sCom = ((pnCur:GetColumnText(2) == "true") and "" or sOff)
               local sPth = pnCur:GetColumnText(3)
-              oDSV:Write(sCom..sPrf..sDel..sRev..sPth.."\n")
+              oDSV:Write(sCom..sPrf..sDel..sPth.."\n")
             end; oDSV:Flush(); oDSV:Close()
           else
             local sPrf = pnLine:GetColumnText(1)
-            local sCom = ((pnCur:GetColumnText(2) == "true") and "" or sOff)
+            local sCom = ((pnLine:GetColumnText(2) == "true") and "" or sOff)
             local sPth = pnLine:GetColumnText(3)
-            SetClipboardText(sCom..sPrf..sRev..sPth)
+            SetClipboardText(sCom..sPrf..sPth)
           end
         end -- Process only the right mouse button
       end -- Populate the tables for every database
@@ -586,13 +586,13 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
           local nF, nW, nH = #tFile, pnFrame:GetSize()
           xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
           xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 52) / nF)
-          for iP = 1, nF do sNam = tFile[iP]
+          for iP = 1, nF do local sCur = tFile[iP]
             local pnDelete = vguiCreate("DButton")
             if(not IsValid(pnSheet)) then pnFrame:Close()
               asmlib.LogInstance("Button invalid ["..tostring(iP).."]",gtArgsLogs); return nil end
-            local nB, nE = sNam:upper():find(sPrU..defTab.Nick);
+            local nB, nE = sCur:upper():find(sPrU..defTab.Nick);
             if(nB and nE) then
-              local sPref = sNam:sub(1, nB - 1)
+              local sPref = sCur:sub(1, nB - 1)
               local sFile = fDSV:format(sPref, defTab.Nick)
               pnDelete:SetParent(pnTable)
               pnDelete:SetPos(xyPos.x, xyPos.y)
