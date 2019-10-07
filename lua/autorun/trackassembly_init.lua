@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.562")
+asmlib.SetOpVar("TOOL_VERSION","6.563")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -538,7 +538,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             sKey = sLine:sub(1, nB-1)
             sPrg = sLine:sub(nE+1,-1)
           else sKey, sPrg = sLine, sMis end
-          pnListView:AddLine(sKey, tostring(bAct), sPrg):SetTooltip(sProg)
+          pnListView:AddLine(sKey, tostring(bAct), sPrg):SetTooltip(sPrg)
         end
       end; oDSV:Close()
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
