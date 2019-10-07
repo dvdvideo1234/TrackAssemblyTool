@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.560")
+asmlib.SetOpVar("TOOL_VERSION","6.561")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -467,11 +467,10 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
       local nRat = asmlib.GetOpVar("GOLDEN_RATIO")
-      local nAut = mathFloor((scrW/(3 + nRat))*nRat)
       local sVer = asmlib.GetOpVar("TOOL_VERSION")
-      local xyPos = asmlib.NewXY(scrW/4,scrH/4)
+      local xyPos, nAut  = asmlib.NewXY(scrW/4,scrH/4), (nRat - 1)
       local xyDsz, xyTmp = asmlib.NewXY(5,5), asmlib.NewXY()
-      local xySiz = asmlib.NewXY(nAut,nAut)
+      local xySiz = asmlib.NewXY(nAut * scrW, nAut * scrH)
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
       pnFrame:SetPos(xyPos.x, xyPos.y)
@@ -487,11 +486,89 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Sheet invalid",gtArgsLogs); return nil end
       pnSheet:SetParent(pnFrame)
       pnSheet:Dock(FILL)
+      local sOff = asmlib.GetOpVar("OPSYM_DISABLE")
+      local sMis = asmlib.GetOpVar("MISS_NOAV")
       local sLib = asmlib.GetOpVar("NAME_LIBRARY")
       local sBas = asmlib.GetOpVar("DIRPATH_BAS")
       local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
+      local sRev = asmlib.GetOpVar("OPSYM_REVISION")
       local sDsv = sBas..asmlib.GetOpVar("DIRPATH_DSV")
-      local fDSV = sDsv.."%s"..sPrU.."%s.txt"
+      local fDSV = sDsv..("%s"..sPrU.."%s.txt")
+      local sNam = (sBas..sLib.."_dsv.txt")
+      local pnDSV = vguiCreate("DPanel")
+      if(not IsValid(pnDSV)) then pnFrame:Close()
+        asmlib.LogInstance("DSV list invalid",gtArgsLogs); return nil end
+      pnDSV:SetParent(pnSheet)
+      pnDSV:DockMargin(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
+      pnDSV:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
+      pnDSV:Dock(FILL)
+      local tInfo = pnSheet:AddSheet("DSV", pnDSV, asmlib.ToIcon("dsvlist_extdb"))
+      tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." DSV")
+      local nW, nH = pnFrame:GetSize()
+      xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
+      xySiz.x = (nW - 6 * xyDsz.x)
+      xySiz.y = ((nH - 6 * xyDsz.y) - 52)
+      local wUse = mathFloor(0.803398874 * xySiz.x)
+      local wAct = mathFloor(0.196601126 * xySiz.x)
+      local pnListView = vguiCreate("DListView")
+      if(not IsValid(pnListView)) then pnFrame:Close()
+        asmlib.LogInstance("Listview invalid",gtArgsLogs); return nil end
+      pnListView:SetParent(pnDSV)
+      pnListView:SetVisible(true)
+      pnListView:SetSortable(false)
+      pnListView:SetMultiSelect(false)
+      pnListView:SetPos(xyPos.x,xyPos.y)
+      pnListView:SetSize(xySiz.x,xySiz.y)
+      pnListView:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
+      pnListView:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
+      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wUse)
+      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wAct)
+      pnListView:AddColumn(""):SetFixedWidth(0) -- The hidden path to the population file
+      if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
+      local oDSV = fileOpen(sNam, "rb", "DATA"); if(not oDSV) then pnFrame:Close()
+        asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end
+      local sDel, sLine, bEOF, bAct = "\t", "", false, true
+      while(not bEOF) do
+        sLine, bEOF = asmlib.GetStringFile(oDSV)
+        if(not asmlib.IsBlank(sLine)) then local sKey, sPrg
+          if(sLine:sub(1,1) ~= sOff) then bAct = true else
+            bAct, sLine = false, sLine:sub(2,-1):Trim() end
+          local nB, nE = sLine:find("%s+")
+          if(nB and nE) then
+            sKey = sLine:sub(1, nB-1)
+            sPrg = sLine:sub(nE+1,-1)
+          else sKey, sPrg = sLine, sMis end
+          pnListView:AddLine(sKey, tostring(bAct), sPrg):SetTooltip(sProg)
+        end
+      end; oDSV:Close()
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+        if(inputIsMouseDown(MOUSE_LEFT)) then
+          if(inputIsKeyDown(KEY_LSHIFT)) then -- Delecte the file
+            pnSelf:Clear(); fileDelete(sNam)  -- The panel will be recreated
+          else pnSelf:RemoveLine(nIndex) end  -- Just remove the line selected
+        end -- Process only the left mouse button
+      end
+      pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
+        if(inputIsMouseDown(MOUSE_RIGHT)) then
+          if(inputIsKeyDown(KEY_LSHIFT)) then -- Export all lines to the file
+            local oDSV = fileOpen(sNam, "wb", "DATA")
+            if(not oDSV) then pnFrame:Close()
+              asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end
+            local tLine = pnSelf:GetLines()
+            for iK, pnCur in pairs(tLine) do
+              local sPrf = pnCur:GetColumnText(1)
+              local sCom = ((pnCur:GetColumnText(2) == "true") and "" or sOff)
+              local sPth = pnCur:GetColumnText(3)
+              oDSV:Write(sCom..sPrf..sDel..sRev..sPth.."\n")
+            end; oDSV:Flush(); oDSV:Close()
+          else
+            local sPrf = pnLine:GetColumnText(1)
+            local sCom = ((pnCur:GetColumnText(2) == "true") and "" or sOff)
+            local sPth = pnLine:GetColumnText(3)
+            SetClipboardText(sCom..sPrf..sRev..sPth)
+          end
+        end -- Process only the right mouse button
+      end -- Populate the tables for every database
       local iD, makTab = 1, asmlib.GetBuilderID(1)
       while(makTab) do
         local pnTable = vguiCreate("DPanel")
@@ -509,124 +586,64 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
           local nF, nW, nH = #tFile, pnFrame:GetSize()
           xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
           xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 52) / nF)
-          for iP = 1, nF do local sName = tFile[iP]
+          for iP = 1, nF do sNam = tFile[iP]
             local pnDelete = vguiCreate("DButton")
             if(not IsValid(pnSheet)) then pnFrame:Close()
               asmlib.LogInstance("Button invalid ["..tostring(iP).."]",gtArgsLogs); return nil end
-            local nB, nE = sName:upper():find(sPrU..defTab.Nick)
-            local sPref = sName:sub(1, nB - 1)
-            local sFile = fDSV:format(sPref, defTab.Nick)
-            pnDelete:SetParent(pnTable)
-            pnDelete:SetPos(xyPos.x, xyPos.y)
-            pnDelete:SetSize(xySiz.x, xySiz.y)
-            pnDelete:SetFont("Trebuchet24")
-            pnDelete:SetText(sPref)
-            pnDelete:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
-            pnDelete.DoRightClick = function(oSelf)
-              local pnMenu = vguiCreate("DMenu")
-              if(not IsValid(pnMenu)) then pnFrame:Close()
-                asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
-                function() SetClipboardText(oSelf:GetText()) end):SetIcon(asmlib.ToIcon("pn_externdb_1"))
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
-                function() SetClipboardText(sDsv) end):SetIcon(asmlib.ToIcon("pn_externdb_2"))
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
-                function() SetClipboardText(defTab.Nick) end):SetIcon(asmlib.ToIcon("pn_externdb_3"))
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
-                function() SetClipboardText(sFile) end):SetIcon(asmlib.ToIcon("pn_externdb_4"))
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_5"),
-                function()
-                  local fDate = asmlib.GetOpVar("DATE_FORMAT")
-                  local fTime = asmlib.GetOpVar("TIME_FORMAT")
-                  SetClipboardText(osDate(fDate.." "..fTime, fileTime(sFile, "DATA")))
-                end):SetIcon(asmlib.ToIcon("pn_externdb_5"))
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_6"),
-                function()
-                  SetClipboardText(tostring(fileSize(sFile, "DATA")).."B")
-                end):SetIcon(asmlib.ToIcon("pn_externdb_6"))
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_7"),
-                function() -- Open the lualad addon to edit the database
-                  asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
-                end):SetIcon(asmlib.ToIcon("pn_externdb_7"))
-              pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_8"),
-                function() local sDel = sFile; fileDelete(sDel)
-                  asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
-                  if(defTab.Nick == "PIECES") then
-                    sDel = fDSV:format(sPref,"CATEGORY")
-                    if(fileExists(sDel,"DATA")) then fileDelete(sDel)
-                      asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs) end
-                  end; pnDelete:Remove()
-                end):SetIcon(asmlib.ToIcon("pn_externdb_8"))
-              pnMenu:Open()
-            end
+            local nB, nE = sNam:upper():find(sPrU..defTab.Nick);
+            if(nB and nE) then
+              local sPref = sNam:sub(1, nB - 1)
+              local sFile = fDSV:format(sPref, defTab.Nick)
+              pnDelete:SetParent(pnTable)
+              pnDelete:SetPos(xyPos.x, xyPos.y)
+              pnDelete:SetSize(xySiz.x, xySiz.y)
+              pnDelete:SetFont("Trebuchet24")
+              pnDelete:SetText(sPref)
+              pnDelete:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
+              pnDelete.DoRightClick = function(oSelf)
+                local pnMenu = vguiCreate("DMenu")
+                if(not IsValid(pnMenu)) then pnFrame:Close()
+                  asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
+                  function() SetClipboardText(oSelf:GetText()) end):SetIcon(asmlib.ToIcon("pn_externdb_1"))
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
+                  function() SetClipboardText(sDsv) end):SetIcon(asmlib.ToIcon("pn_externdb_2"))
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
+                  function() SetClipboardText(defTab.Nick) end):SetIcon(asmlib.ToIcon("pn_externdb_3"))
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
+                  function() SetClipboardText(sFile) end):SetIcon(asmlib.ToIcon("pn_externdb_4"))
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_5"),
+                  function()
+                    local fDate = asmlib.GetOpVar("DATE_FORMAT")
+                    local fTime = asmlib.GetOpVar("TIME_FORMAT")
+                    SetClipboardText(osDate(fDate.." "..fTime, fileTime(sFile, "DATA")))
+                  end):SetIcon(asmlib.ToIcon("pn_externdb_5"))
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_6"),
+                  function()
+                    SetClipboardText(tostring(fileSize(sFile, "DATA")).."B")
+                  end):SetIcon(asmlib.ToIcon("pn_externdb_6"))
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_7"),
+                  function() -- Open the lualad addon to edit the database
+                    asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
+                  end):SetIcon(asmlib.ToIcon("pn_externdb_7"))
+                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_8"),
+                  function() local sDel = sFile; fileDelete(sDel)
+                    asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
+                    if(defTab.Nick == "PIECES") then
+                      sDel = fDSV:format(sPref,"CATEGORY")
+                      if(fileExists(sDel,"DATA")) then fileDelete(sDel)
+                        asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs) end
+                    end; pnDelete:Remove()
+                  end):SetIcon(asmlib.ToIcon("pn_externdb_8"))
+                pnMenu:Open()
+              end
+            else asmlib.LogInstance("File mising ["..tostring(iP).."]",gtArgsLogs) end
             xyPos.y = xyPos.y + xySiz.y + xyDsz.y
           end
         else
           asmlib.LogInstance("Missing <"..defTab.Nick..">",gtArgsLogs)
         end
         iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-      end
-      local pnDSV = vguiCreate("DPanel")
-      if(not IsValid(pnDSV)) then pnFrame:Close()
-        asmlib.LogInstance("DSV list invalid",gtArgsLogs); return nil end
-      pnDSV:SetParent(pnSheet)
-      pnDSV:DockMargin(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
-      pnDSV:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
-      pnDSV:Dock(FILL)
-      local tInfo = pnSheet:AddSheet("DSV", pnDSV, asmlib.ToIcon("dsvlist_extdb"))
-      tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." DSV")
-      local nW, nH = pnFrame:GetSize()
-      xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
-      xySiz.x = (nW - 6 * xyDsz.x)
-      xySiz.y = ((nH - 6 * xyDsz.y) - 52)
-      local pnListView = vguiCreate("DListView")
-      if(not IsValid(pnListView)) then pnFrame:Close()
-        asmlib.LogInstance("Listview invalid",gtArgsLogs); return nil end
-      pnListView:SetParent(pnDSV)
-      pnListView:SetVisible(true)
-      pnListView:SetSortable(false)
-      pnListView:SetMultiSelect(false)
-      pnListView:SetPos(xyPos.x,xyPos.y)
-      pnListView:SetSize(xySiz.x,xySiz.y)
-      pnListView:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
-      pnListView:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
-      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(xySiz.x)
-      pnListView:AddColumn(""):SetFixedWidth(0) -- The hidden path to the population file
-      local sNam, sRev = (sBas..sLib.."_dsv.txt"), asmlib.GetOpVar("OPSYM_REVISION")
-      if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
-      local oDSV = fileOpen(sNam, "rb", "DATA"); if(not oDSV) then pnFrame:Close()
-        asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end
-      local sDel, sLine, bEOF = "\t", "", false
-      while(not bEOF) do
-        sLine, bEOF = asmlib.GetStringFile(oDSV)
-        sLine = sLine:gsub("%s+"..sRev.."*", sRev)
-        local sKey, sProg = unpack(sRev:Explode(sLine))
-        pnListView:AddLine(sKey, sProg):SetTooltip(sProg)
-      end; oDSV:Close()
-      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
-        if(inputIsMouseDown(MOUSE_LEFT)) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then pnSelf:Clear()
-          elseif(inputIsKeyDown(KEY_LALT)) then fileDelete(sNam)
-          else pnSelf:RemoveLine(nIndex) end
-        end -- Process only the left mouse button
-      end
-      pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        if(inputIsMouseDown(MOUSE_RIGHT)) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then
-            local oDSV = fileOpen(sNam, "wb", "DATA"); if(not oDSV) then pnFrame:Close()
-              asmlib.LogInstance("DSV list missing",gtArgsLogs); return nil end
-            local tLine = pnSelf:GetLines()
-            for iK, pnCur in pairs(tLine) do
-              local sPrf = pnCur:GetColumnText(1)
-              local sPth = pnCur:GetColumnText(2)
-              oDSV:Write(sPrf..sDel..sRev..sPth.."\n")
-            end; oDSV:Flush(); oDSV:Close()
-          else
-            local sPrf = pnLine:GetColumnText(1)
-            local sPth = pnLine:GetColumnText(2)
-            SetClipboardText(sPrf..sRev..sPth)
-          end
-        end -- Process only the right mouse button
       end
     end) -- Read client configuration
 
@@ -689,7 +706,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local xyPos        = {x =  0, y =  0} -- Current panel position
       local xyTmp        = {x =  0, y =  0} -- Temporary coordinate
       ------------ Frame --------------
-      xySiz.x = 750 -- This defines the size of the frame
+      xySiz.x = (scrW / nRatio) -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
       xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd").." "..oPly:Nick().." {"..sVersion.."}")
@@ -699,10 +716,11 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
       ------------ Button --------------
+      xyTmp.x, xyTmp.y = pnFrame:GetSize()
+      xySiz.x = (xyTmp.x / (8.5 * nRatio)) -- Display properly the name
+      xySiz.y = (xySiz.x / (1.5 * nRatio)) -- Used by combo-box and text-box
       xyPos.x = xyZero.x + xyDelta.x
       xyPos.y = xyZero.y + xyDelta.y
-      xySiz.x = 55 -- Display properly the name
-      xySiz.y = 25 -- Used by combo-box and text-box
       local pnButton = vguiCreate("DButton")
       if(not IsValid(pnButton)) then pnFrame:Close()
         asmlib.LogInstance("Button invalid",gtArgsLogs); return nil end
@@ -748,9 +766,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel --------------
-      xySiz.x = 250 -- Used by the model panel to display the piece properly
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xyPos.x, xyPos.y = pnComboBox:GetPos()
+      xySiz.x = (xyTmp.x / (1.9 * nRatio)) -- Display the model properly
       xyPos.x = xyTmp.x - xySiz.x - xyDelta.x
       xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
       --------------------------------------
