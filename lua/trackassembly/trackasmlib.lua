@@ -904,11 +904,16 @@ function MakeContainer(sKey, sDef)
   function self:GetData() return mData end
   function self:GetHashID() return mID end
   function self:Collect() collectgarbage(); return self end
+  function self:IsRagged() return (miAll ~= miTop) end
   function self:Select(nsKey)
     local iK = (nsKey or mDef); return mData[iK]
   end
   function self:GetKeyID(nsKey)
     local iK = (nsKey or mDef); return mID[iK]
+  end
+  function self:Refresh()
+    while(not IsHere(mData[miTop]) and miTop > 0) do
+      miTop = (miTop - 1) end; return self
   end
   function self:Clear()
     tableEmpty(self:GetData())
@@ -916,32 +921,43 @@ function MakeContainer(sKey, sDef)
     miTop, miAll, mhCnt = 0, 0, 0
     return self
   end
-  function self:Insert(nsKey, vVal) local iK = (nsKey or mDef)
-    if(IsNumber(iK)) then
+  function self:Insert(nsKey, vVal)
+    local iK, bK = (nsKey or mDef), IsHere(nsKey)
+    if(IsNumber(iK) or not bK) then
+      if(not bK) then iK = (miTop + 1) end
       if(iK > miTop) then miTop = iK end
-      if(not IsHere(mData[iK])) then
+      if(not IsHere(mData[iK]) and IsHere(vVal)) then
         miAll = (miAll + 1); end; mData[iK] = vVal
     else
       if(not IsHere(mData[iK])) then mhCnt = (mhCnt + 1)
         mID[mhCnt], mData[iK] = iK, vVal
       else mData[iK] = vVal end
-    end; return self
+    end; return self:Refresh()
   end
-  function self:Delete(nsKey) local iK = (nsKey or mDef)
-    if(not IsHere(mData[iK])) then return self end
-    if(IsNumber(iK)) then
+  function self:Delete(nsKey)
+    local iK, bK = (nsKey or mDef), IsHere(nsKey)
+    if(bK and not IsHere(mData[iK])) then return self end
+    if(IsNumber(iK) or not bK) then
+      if(not bK) then iK = miTop end
       if(iK > miTop) then return self end
+      if(0 == miTop) then return self end
       miAll, mData[iK] = (miAll - 1), nil
-      while(not mData[miTop] and miTop > 0) do miTop = (miTop - 1) end
     else
       for iD = 1, mhCnt do local k = mID[iD]
         if(k == iK) then tableRemove(mID, iD)
           mhCnt, mData[iK] = (mhCnt - 1), nil; break
         end
       end
-    end; return self
+    end; return self:Refresh()
   end
-  if(IsHere(sKey)) then mHash[mKey] = self
+  function self:Pull()
+    local vVal = mData[miTop]
+    self:Delete(); return vVal
+  end
+  function self:Push(vVal)
+    return self:Insert(nil, vVal)
+  end
+  if(IsHere(sKey)) then mHash[sKey] = self
     LogInstance("Container registered "..GetReport(mKey)) end
   setmetatable(self, GetOpVar("TYPEMT_CONTAINER")); return self
 end

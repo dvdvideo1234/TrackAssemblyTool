@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","6.563")
+asmlib.SetOpVar("TOOL_VERSION","6.564")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -179,11 +179,10 @@ local conPalette  = asmlib.MakeContainer("COLORS_LIST")
       conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
       conPalette:Insert("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
 
+local conElements = asmlib.MakeContainer("LIST_VGUI")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
       conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
       conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
-
-local conElements = asmlib.MakeContainer("FREQ_VGUI")
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
@@ -644,7 +643,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
           asmlib.LogInstance("Missing <"..defTab.Nick..">",gtArgsLogs)
         end
         iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-      end
+      end; conElements:Push(pnFrame); asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
@@ -872,7 +871,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
-      asmlib.LogInstance("Success",gtArgsLogs); return nil
+      conElements:Push(pnFrame); asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
 
   asmlib.SetAction("DRAW_PHYSGUN",

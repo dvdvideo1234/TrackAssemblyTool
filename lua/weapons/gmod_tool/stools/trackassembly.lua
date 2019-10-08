@@ -76,6 +76,7 @@ local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.MakeContainer("COLORS_LIST")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
+local conElements = asmlib.MakeContainer("LIST_VGUI")
 local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
@@ -911,9 +912,9 @@ function TOOL:Think()
   if(utilIsValidModel(model)) then
     if(CLIENT) then -- Precache the model or it is invalid otherwise
       if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
-        local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
-        if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end
-      end -- Shortcut for closing the routine pieces. A `close` call :D
+        local pnFrame = conElements:Pull() -- Retrieve a panel from the stack
+        if(IsValid(pnFrame)) then pnFrame:Close() end -- Close call on it
+      end -- Shortcut for closing the routine pieces. A `close` call, get it :D
     end
   end
 end

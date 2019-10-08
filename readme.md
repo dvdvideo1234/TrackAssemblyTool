@@ -54,7 +54,7 @@ Also, another great achievement progress is in place, so 10x guys for
   * Advanced duplicator can be used on the track created
   * Custom [entity][ref-entity] properties ( weld, freeze, no-collide )
   * User can disable phys-gun grabbing on a piece. Good for turntables
-  * Ability to list the frequent pieces on the server (`E + MRIGHT`). Close shortcut (`ALT + E`)
+  * Ability to list the frequent pieces on the server (`MRIGHT`). Close shortcut (`ALT + E`)
   * Ability to search among the most server popular pieces by [Lua patterns](https://www.lua.org/pil/20.2.html)
   * Ability to export server and client database as a file
   * Tool-tips for every button are available and can be [translated easily][ref-trans]
@@ -362,19 +362,9 @@ This is an easy way of indicating which next active position ( of some )
 is chosen when stacking is in place. The end of the line with the green
 circle points to the next active position that is chosen.
 
-#### Hey, there is a text-box and a drop-down menu next to the `ExportDB` button. What are these for ?
-Well, when a server owners set the `trackassembly_maxfruse` to a higher value, a slider appears.
-If the client has used many pieces during his/her routine, he/she cannot possibly locate the ones
-he/she needs, especially, when they are at the bottom of the list as not `frequently used` pieces.
-That's why it was needed some kind of a filter. With the drop-down menu, you can chose whatever
-field to filter the data on (`<Search BY>` either `Model`, `Type`, `Name`, `Act`). Do not bother that
-the name is displayed in the pieces list. [That's normal](https://theportalwiki.com/wiki/Cave_Johnson). For 95% of the
-models, it is dynamically generated using the `*.mdl` file, so there is really no point in viewing
-the model parameter on the pieces panel. If you need the model you can right-click its dedicated line
-in the list to copy it into the clipboard. In the text-box, to search you have to enter a pattern that
-you want to perform the filtering with. The result will populate the list view, only with these
-pieces, whatever desired field value is matched by the pattern given. The pattern is a standard
-Lua one, which is supported by the `string.*` library and you can also [google it](http://lmgtfy.com/?q=lua+string+library+pattern+matching) ;)
+#### Does the script have manipulation panels of some sort like in [precision alignment][ref-PA]?
+Yes, it does. You can find the manipulation panels description in the
+[additional features][ref-add-ftr] list in the [wiki page][ref-wiki-ta].
 
 #### May I put this thing in another third party website ?
 ***No I will not give you my permission to do that... Why ...***
@@ -418,3 +408,6 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-starfall]: https://github.com/thegrb93/StarfallEx
 [ref-ltab]: http://www.lua.org/pil/2.5.html
 [ref-tsql]: https://www.sqlite.org/index.html
+[ref-PA]: https://steamcommunity.com/sharedfiles/filedetails/?id=457478322
+[ref-add-ftr]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Additional-features
+[ref-wiki-ta]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki

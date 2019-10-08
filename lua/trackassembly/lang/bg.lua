@@ -93,7 +93,7 @@
   tSet["tool."..sTool..".pn_ext_dsv_lb" ] = "Външен DSV списък"
   tSet["tool."..sTool..".pn_ext_dsv_hd" ] = "Списъкъ на DSV базите данни е показан тук"
   tSet["tool."..sTool..".pn_ext_dsv_1"  ] = "Уникален префикс на базата"
-  tSet["tool."..sTool..".pn_ext_dsv_2"  ] = "Активиран"
+  tSet["tool."..sTool..".pn_ext_dsv_2"  ] = "Активен"
   tSet["tool."..sTool..".pn_display"    ] = "Моделът на вашето парче трасе се показва тук"
   tSet["tool."..sTool..".pn_pattern"    ] = "Напишете шаблон тук и натиснете ЕНТЪР за да извършите търсене"
   tSet["tool."..sTool..".pn_srchcol"    ] = "Изберете по коя колона да извършите търсене"
