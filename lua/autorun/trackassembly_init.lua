@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.565")
+asmlib.SetOpVar("TOOL_VERSION","7.566")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -477,9 +477,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
-      pnFrame:SetVisible(true)
-      pnFrame:Center()
-      pnFrame:MakePopup()
+      pnFrame.OnClose = function() conElements:Clear() end
       local pnSheet = vguiCreate("DPropertySheet")
       if(not IsValid(pnSheet)) then pnFrame:Close()
         asmlib.LogInstance("Sheet invalid",gtArgsLogs); return nil end
@@ -643,7 +641,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
           asmlib.LogInstance("Missing <"..defTab.Nick..">",gtArgsLogs)
         end
         iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-      end; conElements:Push(pnFrame); asmlib.LogInstance("Success",gtArgsLogs); return nil
+      end; pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
+      conElements:Push(pnFrame); asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Read client configuration
 
   asmlib.SetAction("RESET_VARIABLES",
@@ -714,6 +713,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetDeleteOnClose(true)
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
+      pnFrame.OnClose = function() conElements:Clear() end
       ------------ Button --------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.x = (xyTmp.x / (8.5 * nRatio)) -- Display properly the name
