@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.567")
+asmlib.SetOpVar("TOOL_VERSION","7.568")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -94,7 +94,7 @@ asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),asmlib.GetAsmConvar("l
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------ CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeAsmConvar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database operating mode")
+asmlib.MakeAsmConvar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database storage operating mode LUA or SQL")
 asmlib.MakeAsmConvar("devmode"  ,    0 , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
 asmlib.MakeAsmConvar("maxtrmarg", 0.02 , {0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
 asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
@@ -477,7 +477,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(true)
-      pnFrame.OnClose = function() conElements:Clear() end
+      pnFrame.OnClose = function(pnSelf) conElements:Clear() end
       local pnSheet = vguiCreate("DPropertySheet")
       if(not IsValid(pnSheet)) then pnFrame:Close()
         asmlib.LogInstance("Sheet invalid",gtArgsLogs); return nil end
@@ -597,12 +597,12 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               pnDelete:SetFont("Trebuchet24")
               pnDelete:SetText(sPref)
               pnDelete:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
-              pnDelete.DoRightClick = function(oSelf)
+              pnDelete.DoRightClick = function(pnSelf)
                 local pnMenu = vguiCreate("DMenu")
                 if(not IsValid(pnMenu)) then pnFrame:Close()
                   asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
-                  function() SetClipboardText(oSelf:GetText()) end):SetIcon(asmlib.ToIcon("pn_externdb_1"))
+                  function() SetClipboardText(pnSelf:GetText()) end):SetIcon(asmlib.ToIcon("pn_externdb_1"))
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
                   function() SetClipboardText(sDsv) end):SetIcon(asmlib.ToIcon("pn_externdb_2"))
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
@@ -713,7 +713,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetDeleteOnClose(true)
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
-      pnFrame.OnClose = function() conElements:Clear() end
+      pnFrame.OnClose = function(pnSelf) conElements:Clear() end
       ------------ Button --------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.x = (xyTmp.x / (8.5 * nRatio)) -- Display properly the name
@@ -730,8 +730,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
-      pnButton.DoClick = function()
-        asmlib.LogInstance("Button.DoClick <"..pnButton:GetText()..">",gtArgsLogs)
+      pnButton.DoClick = function(pnSelf)
+        asmlib.LogInstance("Button.DoClick <"..pnSelf:GetText()..">",gtArgsLogs)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
           asmlib.LogInstance("Export DB",gtArgsLogs)
           asmlib.ExportCategory(3)
