@@ -83,7 +83,7 @@
   tSet["tool."..sTool..".pn_externdb_hd"] = "Внешние базы данных для:"
   tSet["tool."..sTool..".pn_externdb_lb"] = "Нажмите правой для вариантов:"
   tSet["tool."..sTool..".pn_externdb_1" ] = "Скопировать префикс"
-  tSet["tool."..sTool..".pn_externdb_2" ] = "Скопировать папку DSV"
+  tSet["tool."..sTool..".pn_externdb_2" ] = "Скопировать път папку DSV"
   tSet["tool."..sTool..".pn_externdb_3" ] = "Скопировать ник таблицу"
   tSet["tool."..sTool..".pn_externdb_4" ] = "Скопировать път таблицу"
   tSet["tool."..sTool..".pn_externdb_5" ] = "Скопировать время таблицу"
