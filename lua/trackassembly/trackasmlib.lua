@@ -915,13 +915,25 @@ function MakeContainer(sKey, sDef)
     while(not IsHere(mData[miTop]) and miTop > 0) do
       miTop = (miTop - 1) end; return self
   end
+  function self:Arrange(nKey, bExp)
+    if(nKey > 0 and nKey <= miTop) then
+      local nStp = (bExp and -1 or 1)
+      if(bExp) then
+        for iD = miTop, nKey, nStp do mData[iD + 1] = mData[iD] end
+      else -- Contract values
+        for iD = nKey, miTop, nStp do mData[iD] = mData[iD + 1] end
+        mData[miTop] = nil
+      end
+      miTop = (miTop - nStp)
+    end; return self:Refresh()
+  end
   function self:Clear()
     tableEmpty(self:GetData())
     tableEmpty(self:GetHashID())
     miTop, miAll, mhCnt = 0, 0, 0
     return self
   end
-  function self:Insert(nsKey, vVal)
+  function self:Record(nsKey, vVal)
     local iK, bK = (nsKey or mDef), IsHere(nsKey)
     if(IsNumber(iK) or not bK) then
       if(not bK) then iK = (miTop + 1) end
@@ -950,12 +962,35 @@ function MakeContainer(sKey, sDef)
       end
     end; return self:Refresh()
   end
-  function self:Pull()
-    local vVal = mData[miTop]
-    self:Delete(); return vVal
+  function self:Pull(nKey)
+    if(nKey) then local nKey = tonumber(nKey)
+      if(nKey and nKey > 0 and nKey <= miTop) then
+        local vVal = mData[nKey]
+        local bV = IsHere(vVal)
+        if(bV) then miAll = miAll - 1 end
+        self:Arrange(nKey, false); return vVal
+      end; return nil
+    else
+      local vVal = mData[miTop]
+      self:Delete(); return vVal
+    end
   end
-  function self:Push(vVal)
-    return self:Insert(nil, vVal)
+  function self:Push(vVal, nKey)
+    if(nKey) then
+      local bV = IsHere(vVal)
+      local nKey = tonumber(nKey)
+      if(not nKey) then return self end
+      if(nKey > 0 and nKey <= miTop) then
+        if(bV) then miAll = miAll + 1 end
+        self:Arrange(nKey, true)
+        mData[nKey] = vVal
+      elseif(nKey > miTop) then
+        if(bV) then miAll = miAll + 1 end
+        mData[nKey], miTop = vVal, nKey
+      end; return self
+    else
+      return self:Record(nil, vVal)
+    end
   end
   if(IsHere(sKey)) then mHash[sKey] = self
     LogInstance("Container registered "..GetReport(mKey)) end
