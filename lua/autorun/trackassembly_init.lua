@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.568")
+asmlib.SetOpVar("TOOL_VERSION","7.569")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -162,27 +162,27 @@ local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmConvar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("COLORS_LIST")
-      conPalette:Insert("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
-      conPalette:Insert("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
-      conPalette:Insert("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
-      conPalette:Insert("b" ,asmlib.GetColor(  0,  0,255,255)) -- Blue
-      conPalette:Insert("c" ,asmlib.GetColor(  0,255,255,255)) -- Cyan
-      conPalette:Insert("m" ,asmlib.GetColor(255,  0,255,255)) -- Magenta
-      conPalette:Insert("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
-      conPalette:Insert("w" ,asmlib.GetColor(255,255,255,255)) -- White
-      conPalette:Insert("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
-      conPalette:Insert("gh",asmlib.GetColor(255,255,255,150)) -- Ghosts base color
-      conPalette:Insert("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
-      conPalette:Insert("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
-      conPalette:Insert("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
-      conPalette:Insert("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
-      conPalette:Insert("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
-      conPalette:Insert("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
+      conPalette:Record("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
+      conPalette:Record("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
+      conPalette:Record("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
+      conPalette:Record("b" ,asmlib.GetColor(  0,  0,255,255)) -- Blue
+      conPalette:Record("c" ,asmlib.GetColor(  0,255,255,255)) -- Cyan
+      conPalette:Record("m" ,asmlib.GetColor(255,  0,255,255)) -- Magenta
+      conPalette:Record("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
+      conPalette:Record("w" ,asmlib.GetColor(255,255,255,255)) -- White
+      conPalette:Record("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
+      conPalette:Record("gh",asmlib.GetColor(255,255,255,150)) -- Ghosts base color
+      conPalette:Record("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
+      conPalette:Record("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
+      conPalette:Record("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
+      conPalette:Record("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
+      conPalette:Record("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
+      conPalette:Record("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
 
 local conElements = asmlib.MakeContainer("LIST_VGUI")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
-      conWorkMode:Insert(1, "SNAP" ) -- General spawning and snapping mode
-      conWorkMode:Insert(2, "CROSS") -- Ray cross intersect interpolation
+      conWorkMode:Record(1, "SNAP" ) -- General spawning and snapping mode
+      conWorkMode:Record(2, "CROSS") -- Ray cross intersect interpolation
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
@@ -476,8 +476,15 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetSize(xySiz.x, xySiz.y)
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
       pnFrame:SetDraggable(true)
-      pnFrame:SetDeleteOnClose(true)
-      pnFrame.OnClose = function(pnSelf) conElements:Clear() end
+      pnFrame:SetDeleteOnClose(false)
+      pnFrame.OnClose = function(pnSelf)
+        local tData = conElements:GetData()
+        for iD = 1, conElements:GetSize() do
+          local pnCur = conElements:Select(iD) -- Select the value by ID
+          if(pnCur == pnSelf) then -- Mark everyting looking like the panel
+            pnCur = conElements:Pull(iD) -- Pull the the value from the slot
+            if(IsValid(pnCur)) then pnCur:Remove() end -- Delete the valid panel
+      end end end -- Every NULL panel or panel like out frame is removed
       local pnSheet = vguiCreate("DPropertySheet")
       if(not IsValid(pnSheet)) then pnFrame:Close()
         asmlib.LogInstance("Sheet invalid",gtArgsLogs); return nil end
@@ -710,10 +717,17 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd").." "..oPly:Nick().." {"..sVersion.."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
-      pnFrame:SetDeleteOnClose(true)
+      pnFrame:SetDeleteOnClose(false)
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
-      pnFrame.OnClose = function(pnSelf) conElements:Clear() end
+      pnFrame.OnClose = function(pnSelf)
+        local tData = conElements:GetData()
+        for iD = 1, conElements:GetSize() do
+          local pnCur = conElements:Select(iD) -- Select the value by ID
+          if(pnCur == pnSelf) then -- Mark everyting looking like the panel
+            pnCur = conElements:Pull(iD) -- Pull the the value from the slot
+            if(IsValid(pnCur)) then pnCur:Remove() end -- Delete the valid panel
+      end end end -- Every NULL panel or panel like out frame is removed
       ------------ Button --------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.x = (xyTmp.x / (8.5 * nRatio)) -- Display properly the name
@@ -983,7 +997,7 @@ gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 -- [4]: Display when the data is available on the client
 -- [5]: Network massage or assign the value to a player
 local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
-      conContextMenu:Insert(1,
+      conContextMenu:Record(1,
         {"tool."..gsToolNameL..".model", true,
           function(ePiece, oPly, oTr, sKey)
             local model = ePiece:GetModel()
@@ -993,7 +1007,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tostring(ePiece:GetModel())
           end
         })
-      conContextMenu:Insert(2,
+      conContextMenu:Record(2,
         {"tool."..gsToolNameL..".bgskids", true,
           function(ePiece, oPly, oTr, sKey)
             local ski = asmlib.GetPropSkin(ePiece)
@@ -1006,7 +1020,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tostring(bgr..gsSymDir..ski)
           end
         })
-      conContextMenu:Insert(3,
+      conContextMenu:Record(3,
         {"tool."..gsToolNameL..".phyname", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
@@ -1017,7 +1031,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tostring(ePiece:GetPhysicsObject():GetMaterial())
           end
         })
-      conContextMenu:Insert(4,
+      conContextMenu:Record(4,
         {"tool."..gsToolNameL..".mass", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
@@ -1028,7 +1042,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tonumber(ePiece:GetPhysicsObject():GetMass())
           end
         })
-      conContextMenu:Insert(5,
+      conContextMenu:Record(5,
         {"tool."..gsToolNameL..".ignphysgn", true,
           function(ePiece, oPly, oTr, sKey)
             local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
@@ -1039,7 +1053,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tobool(ePiece.PhysgunDisabled)
           end
         })
-      conContextMenu:Insert(6,
+      conContextMenu:Record(6,
         {"tool."..gsToolNameL..".freeze", true,
           function(ePiece, oPly, oTr, sKey)
             local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
@@ -1050,7 +1064,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tobool(not ePiece:GetPhysicsObject():IsMotionEnabled())
           end
         })
-      conContextMenu:Insert(7,
+      conContextMenu:Record(7,
         {"tool."..gsToolNameL..".gravity", true,
           function(ePiece, oPly, oTr, sKey)
             local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
@@ -1061,7 +1075,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tobool(ePiece:GetPhysicsObject():IsGravityEnabled())
           end
         })
-      conContextMenu:Insert(8,
+      conContextMenu:Record(8,
         {"tool."..gsToolNameL..".weld", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then
@@ -1090,7 +1104,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local tCn = constraintFindConstraints(ePiece, "Weld"); return #tCn
           end
         })
-      conContextMenu:Insert(9,
+      conContextMenu:Record(9,
         {"tool."..gsToolNameL..".nocollide", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then
@@ -1119,7 +1133,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local tCn = constraintFindConstraints(ePiece, "NoCollide"); return #tCn
           end
         })
-      conContextMenu:Insert(10,
+      conContextMenu:Record(10,
         {"tool."..gsToolNameL..".nocollidew", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then

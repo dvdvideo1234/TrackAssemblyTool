@@ -913,7 +913,7 @@ function TOOL:Think()
     if(CLIENT) then -- Precache the model or it is invalid otherwise
       if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
         local pnFrame = conElements:Pull() -- Retrieve a panel from the stack
-        if(IsValid(pnFrame)) then pnFrame:Close() end -- Close call on it
+        if(IsValid(pnFrame)) then pnFrame:Close() end -- Call close on it !
       end -- Shortcut for closing the routine pieces. A `close` call, get it :D
     end
   end
