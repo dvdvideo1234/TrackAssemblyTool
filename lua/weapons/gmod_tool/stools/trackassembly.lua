@@ -911,7 +911,9 @@ function TOOL:Think()
   local wormo = self:GetWorkingMode()
   if(utilIsValidModel(model)) then
     if(CLIENT) then -- Precache the model or it is invalid otherwise
-      if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
+      local bOld = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
+      local bNew = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
+      if(not bOld and bNew and inputIsKeyDown(KEY_LALT)) then
         local pnFrame = conElements:Pull() -- Retrieve a panel from the stack
         if(IsValid(pnFrame)) then pnFrame:Close() end -- Call close on it !
       end -- Shortcut for closing the routine pieces. A `close` call, get it :D

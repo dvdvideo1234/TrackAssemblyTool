@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.571")
+asmlib.SetOpVar("TOOL_VERSION","7.573")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -115,6 +115,8 @@ if(SERVER) then
 end
 
 ------ CONFIGURE INTERNALS -----
+asmlib.IsFlag("new_close_frame", false)
+asmlib.IsFlag("old_close_frame", false)
 asmlib.IsFlag("en_context_menu", false)
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))

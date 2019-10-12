@@ -94,3 +94,8 @@ rd /S /Q !gmadRevPath!Workshop
 echo !gmadName! Published !
 echo.
 timeout 500
+
+:: Give a chance to copy the logs
+del !gmadRevPath!!gmadNameLOG!
+
+exit 0
