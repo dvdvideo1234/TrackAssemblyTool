@@ -10,7 +10,6 @@ local Angle                         = Angle
 local Vector                        = Vector
 local IsValid                       = IsValid
 local tobool                        = tobool
-local Time                          = CurTime
 local tonumber                      = tonumber
 local tostring                      = tostring
 local CreateConVar                  = CreateConVar
@@ -183,8 +182,8 @@ local conPalette  = asmlib.MakeContainer("COLORS_LIST")
 
 local conElements = asmlib.MakeContainer("LIST_VGUI")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
-      conWorkMode:Record(1, "SNAP" ) -- General spawning and snapping mode
-      conWorkMode:Record(2, "CROSS") -- Ray cross intersect interpolation
+      conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
+      conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
@@ -480,13 +479,11 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(false)
       pnFrame.OnClose = function(pnSelf)
-        local tData = conElements:GetData()
-        for iD = 1, conElements:GetSize() do
-          local pnCur = conElements:Select(iD) -- Select the value by ID
-          if(pnCur == pnSelf) then -- Mark everyting looking like the panel
-            pnCur = conElements:Pull(iD) -- Pull the the value from the slot
-            if(IsValid(pnCur)) then pnCur:Remove() end -- Delete the valid panel
-      end end end -- Every NULL panel or panel like out frame is removed
+        local kyPan = conElements:Find(pnSelf)       -- Find panel index
+        if(not asmlib.IsHere(kyPan)) then return end -- Nothing to delete
+        local pnCur = conElements:Pull(kyPan)        -- Pull reference
+        if(IsValid(pnCur)) then pnCur:Remove() end   -- Delete the valid panel
+      end
       local pnSheet = vguiCreate("DPropertySheet")
       if(not IsValid(pnSheet)) then pnFrame:Close()
         asmlib.LogInstance("Sheet invalid",gtArgsLogs); return nil end
@@ -723,13 +720,11 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
       pnFrame.OnClose = function(pnSelf)
-        local tData = conElements:GetData()
-        for iD = 1, conElements:GetSize() do
-          local pnCur = conElements:Select(iD) -- Select the value by ID
-          if(pnCur == pnSelf) then -- Mark everyting looking like the panel
-            pnCur = conElements:Pull(iD) -- Pull the the value from the slot
-            if(IsValid(pnCur)) then pnCur:Remove() end -- Delete the valid panel
-      end end end -- Every NULL panel or panel like out frame is removed
+        local kyPan = conElements:Find(pnSelf)       -- Find panel index
+        if(not asmlib.IsHere(kyPan)) then return end -- Nothing to delete
+        local pnCur = conElements:Pull(kyPan)        -- Pull reference
+        if(IsValid(pnCur)) then pnCur:Remove() end   -- Delete the valid panel
+      end
       ------------ Button --------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.x = (xyTmp.x / (8.5 * nRatio)) -- Display properly the name
@@ -999,7 +994,7 @@ gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 -- [4]: Display when the data is available on the client
 -- [5]: Network massage or assign the value to a player
 local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
-      conContextMenu:Record(1,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".model", true,
           function(ePiece, oPly, oTr, sKey)
             local model = ePiece:GetModel()
@@ -1009,7 +1004,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tostring(ePiece:GetModel())
           end
         })
-      conContextMenu:Record(2,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".bgskids", true,
           function(ePiece, oPly, oTr, sKey)
             local ski = asmlib.GetPropSkin(ePiece)
@@ -1022,7 +1017,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tostring(bgr..gsSymDir..ski)
           end
         })
-      conContextMenu:Record(3,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".phyname", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
@@ -1033,7 +1028,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tostring(ePiece:GetPhysicsObject():GetMaterial())
           end
         })
-      conContextMenu:Record(4,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".mass", true,
           function(ePiece, oPly, oTr, sKey)
             local phPiece = ePiece:GetPhysicsObject()
@@ -1044,7 +1039,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tonumber(ePiece:GetPhysicsObject():GetMass())
           end
         })
-      conContextMenu:Record(5,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".ignphysgn", true,
           function(ePiece, oPly, oTr, sKey)
             local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
@@ -1055,7 +1050,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tobool(ePiece.PhysgunDisabled)
           end
         })
-      conContextMenu:Record(6,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".freeze", true,
           function(ePiece, oPly, oTr, sKey)
             local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
@@ -1066,7 +1061,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tobool(not ePiece:GetPhysicsObject():IsMotionEnabled())
           end
         })
-      conContextMenu:Record(7,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".gravity", true,
           function(ePiece, oPly, oTr, sKey)
             local bSuc,bPi,bFr,bGr,sPh = asmlib.UnpackPhysicalSettings(ePiece)
@@ -1077,7 +1072,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             return tobool(ePiece:GetPhysicsObject():IsGravityEnabled())
           end
         })
-      conContextMenu:Record(8,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".weld", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then
@@ -1106,7 +1101,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local tCn = constraintFindConstraints(ePiece, "Weld"); return #tCn
           end
         })
-      conContextMenu:Record(9,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".nocollide", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then
@@ -1135,7 +1130,7 @@ local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
             local tCn = constraintFindConstraints(ePiece, "NoCollide"); return #tCn
           end
         })
-      conContextMenu:Record(10,
+      conContextMenu:Push(
         {"tool."..gsToolNameL..".nocollidew", true,
           function(ePiece, oPly, oTr, sKey)
             if(oPly:KeyDown(IN_SPEED)) then

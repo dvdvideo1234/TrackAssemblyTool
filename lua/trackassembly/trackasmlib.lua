@@ -119,6 +119,7 @@ local tableMaxn                      = table and table.maxn
 local tableGetKeys                   = table and table.GetKeys
 local tableInsert                    = table and table.insert
 local tableCopy                      = table and table.Copy
+local tableRemove                    = table and table.remove
 local debugGetinfo                   = debug and debug.getinfo
 local debugTrace                     = debug and debug.Trace
 local renderDrawLine                 = render and render.DrawLine
@@ -915,6 +916,13 @@ function MakeContainer(sKey, sDef)
     while(not IsHere(mData[miTop]) and miTop > 0) do
       miTop = (miTop - 1) end; return self
   end
+  function self:Find(vVal)
+    for iK, vV in pairs(mData) do
+      if(vV == vVal) then
+        return iK, (IsString(iK) and mID[iK] or nil)
+      end
+    end; return nil, nil
+  end
   function self:Arrange(nKey, bExp)
     if(nKey > 0 and nKey <= miTop) then
       local nStp = (bExp and -1 or 1)
@@ -941,8 +949,11 @@ function MakeContainer(sKey, sDef)
       if(not IsHere(mData[iK]) and IsHere(vVal)) then
         miAll = (miAll + 1); end; mData[iK] = vVal
     else
-      if(not IsHere(mData[iK])) then mhCnt = (mhCnt + 1)
-        mID[mhCnt], mData[iK] = iK, vVal
+      if(not IsHere(mData[iK])) then
+        mhCnt = (mhCnt + 1)
+        mID[mhCnt] = iK
+        mID[iK] = mhCnt
+        mData[iK] = vVal
       else mData[iK] = vVal end
     end; return self:Refresh()
   end
@@ -954,12 +965,13 @@ function MakeContainer(sKey, sDef)
       if(iK > miTop) then return self end
       if(0 == miTop) then return self end
       miAll, mData[iK] = (miAll - 1), nil
-    else
-      for iD = 1, mhCnt do local k = mID[iD]
-        if(k == iK) then tableRemove(mID, iD)
-          mhCnt, mData[iK] = (mhCnt - 1), nil; break
-        end
+    else local iD = mID[iK]
+      for iC = iD, mhCnt do
+        local vK = mID[iC]
+        mID[vK] = mID[vK] - 1
       end
+      tableRemove(mID, iD)
+      mData[iK], mID[iK] = nil, nil
     end; return self:Refresh()
   end
   function self:Pull(nKey)
