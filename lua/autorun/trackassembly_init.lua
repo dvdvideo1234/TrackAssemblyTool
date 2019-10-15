@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.573")
+asmlib.SetOpVar("TOOL_VERSION","7.574")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -106,6 +106,7 @@ asmlib.MakeAsmConvar("maxactrad", 150, {1,500}, gnServerControled, "Maximum acti
 asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
 asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
 asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
+asmlib.MakeAsmConvar("endsvlock", 0  , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
 
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -117,27 +118,10 @@ end
 asmlib.IsFlag("new_close_frame", false)
 asmlib.IsFlag("old_close_frame", false)
 asmlib.IsFlag("en_context_menu", false)
+asmlib.IsFlag("en_logging_file", false)
+asmlib.IsFlag("en_dsv_exdblock", false)
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
-
--------- CALLBACKS ----------
-asmlib.SetAsmCallback("maxtrmarg", "FLT", "TRACE_MARGIN",
-  function(v) local n = (tonumber(v) or 0) return ((n > 0) and n or 0) end)
-asmlib.SetAsmCallback("logsmax"  , "INT", "LOG_MAXLOGS" ,
-  function(v) return mathFloor(tonumber(v) or 0) end)
-asmlib.SetAsmCallback("logfile"  , "BUL", "LOG_LOGFILE" , tobool)
-
-local gsTimerMD = asmlib.GetAsmConvar("timermode", "NAM")
-cvarsRemoveChangeCallback(gsTimerMD, gsTimerMD.."_call")
-cvarsAddChangeCallback(gsTimerMD, function(sVar, vOld, vNew)
-  local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
-  local mkTab, ID = asmlib.GetBuilderID(1), 1
-  while(mkTab) do local sTim = arTim[ID]
-    local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
-    asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..tostring(sTim)..">",gtInitLogs)
-    ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
-  end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
-end, gsTimerMD.."_call")
 
 ------ BORDERS -------------
 asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
@@ -184,6 +168,48 @@ local conElements = asmlib.MakeContainer("LIST_VGUI")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
       conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
+
+-------- CALLBACKS ----------
+local gsVarName -- This stores current variable name
+
+gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  local nM = (tonumber(vNew) or 0)
+        nM = ((nM > 0) and nM or 0) end)
+  asmlib.SetOpVar("TRACE_MARGIN", nM)
+end, gsVarName.."_call")
+
+gsVarName = asmlib.GetAsmConvar("logsmax", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
+  asmlib.SetOpVar("TRACE_MARGIN", nM)
+end, gsVarName.."_call")
+
+gsVarName = asmlib.GetAsmConvar("logfile", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  asmlib.IsFlag("en_logging_file", tobool(vNew))
+end, gsVarName.."_call")
+
+gsVarName = asmlib.GetAsmConvar("endsvlock", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  asmlib.IsFlag("en_dsv_exdblock", tobool(vNew))
+end, gsVarName.."_call")
+
+gsVarName = asmlib.GetAsmConvar("timermode", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
+  local mkTab, ID = asmlib.GetBuilderID(1), 1
+  while(mkTab) do local sTim = arTim[ID]
+    local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
+    asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..tostring(sTim)..">",gtInitLogs)
+    ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
+  end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
+end, gsVarName.."_call")
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{

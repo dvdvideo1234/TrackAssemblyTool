@@ -461,7 +461,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
   if(not (iMaxlog > 0)) then return "Status N/A" end
   local ply, sDelim  = self:GetOwner(), "\n"
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
-  local sFleLog = asmlib.GetOpVar("LOG_LOGFILE")
+  local bFleLog = asmlib.IsFlag("en_logging_file")
   local sSpace  = (" "):rep(6 + tostring(iMaxlog):len())
   local workmode, workname = self:GetWorkingMode()
   local aninfo , anEnt   = self:GetAnchor()
@@ -477,9 +477,9 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local sDu = ""
         sDu = sDu..tostring(vMsg)..sDelim
         sDu = sDu..sSpace.."Dumping logs state:"..sDelim
+        sDu = sDu..sSpace.."  LogFile:        <"..tostring(bFleLog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsMax:        <"..tostring(iMaxlog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
-        sDu = sDu..sSpace.."  LogFile:        <"..tostring(sFleLog)..">"..sDelim
         sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim

@@ -145,8 +145,6 @@ local constraintWeld                 = constraint and constraint.Weld
 local constraintNoCollide            = constraint and constraint.NoCollide
 local constraintCanConstrain         = constraint and constraint.CanConstrain
 local constraintAdvBallsocket        = constraint and constraint.AdvBallsocket
-local cvarsAddChangeCallback         = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback      = cvars and cvars.RemoveChangeCallback
 local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
@@ -283,9 +281,8 @@ end
 ------------------ LOGS ------------------------
 
 local function GetLogID()
-  local nNum, nMax = GetOpVar("LOG_CURLOGS"), GetOpVar("LOG_MAXLOGS")
-  if(not (nNum and nMax)) then return "" end
-  return ("%"..(tostring(mathFloor(nMax))):len().."d"):format(nNum)
+  local nNum, fMax = GetOpVar("LOG_CURLOGS"), GetOpVar("LOG_FORMLID")
+  if(not (nNum and nMax)) then return "" end; return fMax:format(nNum)
 end
 
 local function Log(vMsg, bCon)
@@ -293,9 +290,9 @@ local function Log(vMsg, bCon)
   if(iMax <= 0) then return end
   local iCur = GetOpVar("LOG_CURLOGS") + 1
   local sData = tostring(vMsg); SetOpVar("LOG_CURLOGS",iCur)
-  if(GetOpVar("LOG_LOGFILE") and not bCon) then
+  if(IsFlag("en_logging_file") and not bCon) then
     local lbNam = GetOpVar("NAME_LIBRARY")
-    local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_log.txt"
+    local fName = GetOpVar("LOG_FILENAMЕ")
     if(iCur > iMax) then iCur = 0; fileDelete(fName) end
     fileAppend(fName,GetLogID().." ["..GetDate().."] "..sData.."\n")
   else -- The current has values 1..nMaxLogs(0)
@@ -388,7 +385,48 @@ function LogTable(tT, sS, vSrc, bCon, iDbg, tDbg)
   tP[1], tP[2] = tostring(vSrc or ""), tobool(bCon)
   tP[3], tP[4] = (nil), debugGetinfo(2); LogCeption(tT,sS,tP)
 end
------------------ INITAIALIZATION -----------------
+
+------------- VALUE ---------------
+--[[
+ * When requested wraps the first value according to
+ * the interval described by the other two values
+ * Inp: -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9 10
+ * Out:  3  1  2  3  1  2 3 1 2 3 1 2 3 1 2 3  1
+ * This is an example call for the input between 1 and 3
+]]
+function GetWrap(nVal,nMin,nMax) local nVal = nVal
+  while(nVal < nMin or nVal > nMax) do
+    nVal = ((nVal < nMin) and (nMax - (nMin - nVal) + 1) or nVal)
+    nVal = ((nVal > nMax) and (nMin + (nVal - nMax) - 1) or nVal)
+  end; return nVal -- Returns the N-stepped value
+end
+
+--[[
+ * Applies border if exists to the input value
+ * according to the given border name. Basically
+ * custom version of a clamp with vararg border limits
+]]
+local function BorderValue(nsVal, vKey)
+  if(not IsHere(vKey)) then return nsVal end
+  if(not (IsString(nsVal) or IsNumber(nsVal))) then
+    LogInstance("Value not comparable "..GetReport(nsVal)); return nsVal end
+  local tB = GetOpVar("TABLE_BORDERS")[vKey]; if(not IsHere(tB)) then
+    LogInstance("Missing "..GetReport(vKey)); return nsVal end
+  if(tB and tB[1] and nsVal < tB[1]) then return tB[1] end
+  if(tB and tB[2] and nsVal > tB[2]) then return tB[2] end
+  return nsVal
+end
+
+function SetBorder(vKey, vLow, vHig)
+  if(not IsHere(vKey)) then
+    LogInstance("Key missing"); return false end
+  local tB = GetOpVar("TABLE_BORDERS")
+  if(IsHere(tB[vKey])) then local tU = tB[vKey]
+    local vL, vH = tostring(tU[1]), tostring(tU[2])
+    LogInstance("Exists ("..tostring(vKey)..")<"..vL.."/"..vH..">")
+  end; tB[vKey] = {vLow, vHig}; local vL, vH = tostring(vLow), tostring(vHig)
+  LogInstance("Apply ("..tostring(vKey)..")<"..vL.."/"..vH..">"); return true
+end
 
 -- Golden retriever. Retrieves file line as string
 -- But seriously returns the sting line and EOF flag
@@ -400,16 +438,35 @@ function GetStringFile(pFile)
   end; return sLine:Trim(), true -- EOF has been reached. Return the last data
 end
 
+function ToIcon(vKey, vVal)
+  if(SERVER) then return nil end
+  local tIcon = GetOpVar("TABLE_SKILLICON"); if(not IsHere(vKey)) then
+    LogInstance("Invalid "..GetReport(vKey)); return nil end
+  if(IsHere(vVal)) then tIcon[vKey] = tostring(vVal) end
+  local sIcon = tIcon[vKey]; if(not IsHere(sIcon)) then
+    LogInstance("Missing "..GetReport(vKey)); return nil end
+  return GetOpVar("FORM_SKILLICON"):format(tostring(sIcon))
+end
+
+function IsFlag(vKey, vVal)
+  local tFlag = GetOpVar("TABLE_FLAGS"); if(not IsHere(vKey)) then
+    LogInstance("Invalid "..GetReport(vKey)); return nil end
+  if(IsHere(vVal)) then tFlag[vKey] = tobool(vVal) end
+  local bFlag = tFlag[vKey]; if(not IsHere(bFlag)) then
+    LogInstance("Missing "..GetReport(vKey)); return nil end
+  return tFlag[vKey] -- Return the flag status
+end
+
+----------------- INITAIALIZATION -----------------
+
 function SetLogControl(nLines,bFile)
-  SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("LOG_LOGFILE",tobool(bFile))
-  SetOpVar("LOG_MAXLOGS",mathFloor(tonumber(nLines) or 0))
-  local sBas = GetOpVar("DIRPATH_BAS")
-  local sMax = tostring(GetOpVar("LOG_MAXLOGS"))
-  local sNam = tostring(GetOpVar("LOG_LOGFILE"))
-  if(sBas and not fileExists(sBas,"DATA") and
-     not IsBlank(GetOpVar("LOG_LOGFILE"))) then fileCreateDir(sBas)
-  end; LogInstance("("..sMax..","..sNam..")")
+  local bFou, sBas = IsFlag("en_logging_file", bFile), GetOpVar("DIRPATH_BAS")
+  local nMax = (tonumber(nLines) or 0)); nMax = mathFloor(((nMax > 0) and nMax or 0))
+  local sMax, sFou = tostring(GetOpVar("LOG_MAXLOGS")), tostring(bFou)
+  if(sBas and not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
+  SetOpVar("LOG_CURLOGS", 0); SetOpVar("LOG_MAXLOGS", nMax)
+  SetOpVar("LOG_FORMLID", "%"..(tostring(nMax)):len().."d")
+  LogInstance("("..sMax..","..sFou..")")
 end
 
 function SettingsLogs(sHash)
@@ -468,7 +525,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("LOG_ONLY",{})
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("LOG_LOGFILE","")
   SetOpVar("LOG_LOGLAST","")
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_FREEZE",0.01)
@@ -516,6 +572,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
   SetOpVar("FORM_SKILLICON","icon16/%s.png")
+  SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
@@ -556,48 +613,6 @@ function InitBase(sName,sPurpose)
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("TABLE_CATEGORIES",{})
   end; LogInstance("Success"); return true
-end
-
-------------- VALUE ---------------
---[[
- * When requested wraps the first value according to
- * the interval described by the other two values
- * Inp: -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9 10
- * Out:  3  1  2  3  1  2 3 1 2 3 1 2 3 1 2 3  1
- * This is an example call for the input between 1 and 3
-]]
-function GetWrap(nVal,nMin,nMax) local nVal = nVal
-  while(nVal < nMin or nVal > nMax) do
-    nVal = ((nVal < nMin) and (nMax - (nMin - nVal) + 1) or nVal)
-    nVal = ((nVal > nMax) and (nMin + (nVal - nMax) - 1) or nVal)
-  end; return nVal -- Returns the N-stepped value
-end
-
---[[
- * Applies border if exists to the input value
- * according to the given border name. Basically
- * custom version of a clamp with vararg border limits
-]]
-local function BorderValue(nsVal, vKey)
-  if(not IsHere(vKey)) then return nsVal end
-  if(not (IsString(nsVal) or IsNumber(nsVal))) then
-    LogInstance("Value not comparable "..GetReport(nsVal)); return nsVal end
-  local tB = GetOpVar("TABLE_BORDERS")[vKey]; if(not IsHere(tB)) then
-    LogInstance("Missing "..GetReport(vKey)); return nsVal end
-  if(tB and tB[1] and nsVal < tB[1]) then return tB[1] end
-  if(tB and tB[2] and nsVal > tB[2]) then return tB[2] end
-  return nsVal
-end
-
-function SetBorder(vKey, vLow, vHig)
-  if(not IsHere(vKey)) then
-    LogInstance("Key missing"); return false end
-  local tB = GetOpVar("TABLE_BORDERS")
-  if(IsHere(tB[vKey])) then local tU = tB[vKey]
-    local vL, vH = tostring(tU[1]), tostring(tU[2])
-    LogInstance("Exists ("..tostring(vKey)..")<"..vL.."/"..vH..">")
-  end; tB[vKey] = {vLow, vHig}; local vL, vH = tostring(vLow), tostring(vHig)
-  LogInstance("Apply ("..tostring(vKey)..")<"..vL.."/"..vH..">"); return true
 end
 
 ------------- COLOR ---------------
@@ -2696,6 +2711,8 @@ function ExportCategory(vEq, tData, sPref)
     LogInstance("Wrong equality <"..tostring(vEq)..">"); return false end
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("("..fPref..") Prefix empty"); return false end
+  if(IsFlag("en_dsv_exdblock")) then
+    LogInstance("("..sPref..") User disabled"); return true end
   local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
@@ -2773,6 +2790,8 @@ function ExportDSV(sTable, sPref, sDelim)
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..fPref..") Missing table definition",sTable); return nil end
   local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
+  if(IsFlag("en_dsv_exdblock")) then
+    LogInstance("("..sPref..") User disabled"); return true end
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2862,6 +2881,8 @@ end
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
+  if(IsFlag("en_dsv_exdblock")) then
+    LogInstance("("..sPref..") User disabled"); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
@@ -2947,6 +2968,8 @@ end
 function TranslateDSV(sTable, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
+  if(IsFlag("en_dsv_exdblock")) then
+    LogInstance("("..sPref..") User disabled"); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder",sTable); return false end
   local defTab, sFunc, sMoDB = makTab:GetDefinition(), "TranslateDSV", GetOpVar("MODE_DATABASE")
@@ -2992,6 +3015,8 @@ end
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
   local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("("..sPref..") Prefix empty"); return false end
+  if(IsFlag("en_dsv_exdblock")) then
+    LogInstance("("..sPref..") User disabled"); return true end
   if(CLIENT and gameSinglePlayer()) then
     LogInstance("("..sPref..") Single client"); return true end
   local sBas = GetOpVar("DIRPATH_BAS")
@@ -3776,25 +3801,6 @@ function SetAsmConvar(pPly,sName,snVal)
   end; return RunConsoleCommand(sLow, snVal)
 end
 
-function SetAsmCallback(sName, sType, sHash, fHand)
-  local sFunc = "*SetAsmCallback"
-  if(not (sName and IsString(sName))) then
-    LogInstance("Key mismatch "..GetReport(sName),sFunc); return nil end
-  if(not (sType and IsString(sType))) then
-    LogInstance("Type mismatch "..GetReport(sType),sFunc); return nil end
-  if(IsString(sHash)) then local sLong = GetAsmConvar(sName, "NAM")
-    cvarsRemoveChangeCallback(sLong, sLong.."_call")
-    cvarsAddChangeCallback(sLong, function(sVar, vOld, vNew)
-      local aVal, bS = GetAsmConvar(sName, sType), true
-      if(type(fHand) == "function") then bS, aVal = pcall(fHand, aVal)
-        if(not bS) then LogInstance("Fail "..tostring(aVal),sFunc); return nil end
-        LogInstance("("..sName..") Converted",sFunc)
-      end; LogInstance("("..sName..") <"..tostring(aVal)..">",sFunc)
-      SetOpVar(sHash, aVal) -- Make sure we write down the processed value in the hashes
-    end, sLong.."_call")
-  end
-end
-
 function GetPhrase(sKey)
   local sDef = GetOpVar("MISS_NOTR")
   local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
@@ -3960,25 +3966,6 @@ function GetConvarList(tC)
   if(IsTable(tC)) then tableEmpty(tI)
     for key, val in pairs(tC) do tI[sT..key] = val end
   end; return tI
-end
-
-function ToIcon(vKey, vVal)
-  if(SERVER) then return nil end
-  local tIcon = GetOpVar("TABLE_SKILLICON"); if(not IsHere(vKey)) then
-    LogInstance("Invalid "..GetReport(vKey)); return nil end
-  if(IsHere(vVal)) then tIcon[vKey] = tostring(vVal) end
-  local sIcon = tIcon[vKey]; if(not IsHere(sIcon)) then
-    LogInstance("Missing "..GetReport(vKey)); return nil end
-  return GetOpVar("FORM_SKILLICON"):format(tostring(sIcon))
-end
-
-function IsFlag(vKey, vVal)
-  local tFlag = GetOpVar("TABLE_FLAGS"); if(not IsHere(vKey)) then
-    LogInstance("Invalid "..GetReport(vKey)); return nil end
-  if(IsHere(vVal)) then tFlag[vKey] = tobool(vVal) end
-  local bFlag = tFlag[vKey]; if(not IsHere(bFlag)) then
-    LogInstance("Missing "..GetReport(vKey)); return nil end
-  return tFlag[vKey] -- Return the flag status
 end
 
 function GetLinearSpace(nBeg, nEnd, nAmt)
