@@ -2711,7 +2711,7 @@ function ExportCategory(vEq, tData, sPref)
     LogInstance("Wrong equality <"..tostring(vEq)..">"); return false end
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("("..fPref..") Prefix empty"); return false end
-  if(IsFlag("en_dsv_exdblock")) then
+  if(IsFlag("en_dsv_datalock")) then
     LogInstance("("..sPref..") User disabled"); return true end
   local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2790,7 +2790,7 @@ function ExportDSV(sTable, sPref, sDelim)
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..fPref..") Missing table definition",sTable); return nil end
   local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
-  if(IsFlag("en_dsv_exdblock")) then
+  if(IsFlag("en_dsv_datalock")) then
     LogInstance("("..sPref..") User disabled"); return true end
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
@@ -2881,7 +2881,7 @@ end
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
-  if(IsFlag("en_dsv_exdblock")) then
+  if(IsFlag("en_dsv_datalock")) then
     LogInstance("("..sPref..") User disabled"); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return false end
@@ -2968,7 +2968,7 @@ end
 function TranslateDSV(sTable, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
-  if(IsFlag("en_dsv_exdblock")) then
+  if(IsFlag("en_dsv_datalock")) then
     LogInstance("("..sPref..") User disabled"); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder",sTable); return false end
@@ -3015,7 +3015,7 @@ end
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
   local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
     LogInstance("("..sPref..") Prefix empty"); return false end
-  if(IsFlag("en_dsv_exdblock")) then
+  if(IsFlag("en_dsv_datalock")) then
     LogInstance("("..sPref..") User disabled"); return true end
   if(CLIENT and gameSinglePlayer()) then
     LogInstance("("..sPref..") Single client"); return true end

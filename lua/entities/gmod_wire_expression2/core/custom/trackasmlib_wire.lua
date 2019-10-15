@@ -2,12 +2,14 @@
 local asmlib      = trackasmlib
 
 ----- Localizing needed functions
-local Vector      = Vector
-local Angle       = Angle
-local Color       = Color
-local tonumber    = tonumber
-local tostring    = tostring
-local mathClamp   = math and math.Clamp
+local Vector    = Vector
+local Angle     = Angle
+local Color     = Color
+local tonumber  = tonumber
+local tostring  = tostring
+local mathClamp = math and math.Clamp
+local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 
 ----- Get extension enabled flag
 local anyTrue, anyFalse  = 1, 0
@@ -22,18 +24,26 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
 local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
------ Refresh callbacks global variables
-cvars.AddChangeCallback(gsToolPrefL.."bnderrmod", function()
-  gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
-end)
+--------- CALLBACKS ---------
+local gsVarName -- This stores current variable name
+local gsCbcHash = "_wire" -- This keeps suffix realted to the file
 
-cvars.AddChangeCallback(gsToolPrefL.."enwiremod", function()
-  enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
-end)
+gsVarName = asmlib.GetAsmConvar("enwiremod", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  enFlag = ((tonumber(vNew) or 0) ~= 0) end, gsVarName..gsCbcHash)
 
-cvars.AddChangeCallback(gsToolPrefL.."maxmass", function()
-  gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
-end)
+gsVarName = asmlib.GetAsmConvar("bnderrmod", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  gsBErr = tostring(vNew) end, gsVarName..gsCbcHash)
+
+gsVarName = asmlib.GetAsmConvar("maxmass", "NAM")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+  local nM = (tonumber(vNew) or 0) -- Zero is invalid mass
+  gnMaxMass = ((nM > 0) and nM or 1) -- Apply mass clamp
+end, gsVarName..gsCbcHash)
 
 --------- EXPORT ---------
 

@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.574")
+asmlib.SetOpVar("TOOL_VERSION","7.575")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -105,6 +105,7 @@ asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum forc
 asmlib.MakeAsmConvar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
 asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmConvar("enctxmenu", 1  , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
 asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
 asmlib.MakeAsmConvar("endsvlock", 0  , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
 
@@ -115,11 +116,10 @@ if(SERVER) then
 end
 
 ------ CONFIGURE INTERNALS -----
-asmlib.IsFlag("new_close_frame", false)
-asmlib.IsFlag("old_close_frame", false)
-asmlib.IsFlag("en_context_menu", false)
-asmlib.IsFlag("en_logging_file", false)
-asmlib.IsFlag("en_dsv_exdblock", false)
+asmlib.IsFlag("new_close_frame", false) -- The old state for frame shorcut detecting a pulse
+asmlib.IsFlag("old_close_frame", false) -- The new state for frame shorcut detecting a pulse
+asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the game context menu
+asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 
@@ -171,36 +171,37 @@ local conWorkMode = asmlib.MakeContainer("WORK_MODE")
 
 -------- CALLBACKS ----------
 local gsVarName -- This stores current variable name
+local gsCbcHash = "_init" -- This keeps suffix realted to the file
 
 gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local nM = (tonumber(vNew) or 0)
         nM = ((nM > 0) and nM or 0) end)
   asmlib.SetOpVar("TRACE_MARGIN", nM)
-end, gsVarName.."_call")
+end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("logsmax", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
   asmlib.SetOpVar("TRACE_MARGIN", nM)
-end, gsVarName.."_call")
+end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("logfile", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   asmlib.IsFlag("en_logging_file", tobool(vNew))
-end, gsVarName.."_call")
+end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("endsvlock", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  asmlib.IsFlag("en_dsv_exdblock", tobool(vNew))
-end, gsVarName.."_call")
+  asmlib.IsFlag("en_dsv_datalock", tobool(vNew))
+end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("timermode", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName.."_call")
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
   local mkTab, ID = asmlib.GetBuilderID(1), 1
@@ -209,7 +210,7 @@ cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
     asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..tostring(sTim)..">",gtInitLogs)
     ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
   end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
-end, gsVarName.."_call")
+end, gsVarName..gsCbcHash)
 
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
@@ -369,8 +370,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
   asmlib.ToIcon("nocollidew"   , "world_go"       )
   asmlib.ToIcon("dsvlist_extdb", "database_go"    )
 
-  asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("en_context_menu", true ) end)
-  asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("en_context_menu", false) end)
+  asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
+  asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
 
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
@@ -1204,12 +1205,13 @@ end
 if(CLIENT) then
   asmlib.SetAction("UPDATE_CONTEXTVAL", -- Must have the same parameters as the hook
     function() gtArgsLogs[1] = "*UPDATE_CONTEXTVAL"
+      if(not asmlib.IsFlag("tg_context_menu")) then return nil end -- Menu not opened
+      if(not asmlib.GetAsmConvar("enctxmenu", "BUL")) then return nil end -- Menu not enabled
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly)..">", gtArgsLogs); return nil end
       local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
       local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
       if(asmlib.IsOther(oEnt) or tTrig[1] == tTrig[2]) then return nil end -- Enity trigger
-      if(not asmlib.IsFlag("en_context_menu")) then return nil end -- Menu not opened
       if(not asmlib.GetAsmConvar("enctxmall", "BUL")) then -- Enable for all props
         local oRec = asmlib.CacheQueryPiece(oEnt:GetModel())
         if(not asmlib.IsHere(oRec)) then return nil end
@@ -1224,10 +1226,11 @@ gtOptionsCM.Filter = function(self, ent, ply)
   if(asmlib.IsOther(ent)) then return false end
   if(not (ply and ply:IsValid())) then return false end
   if(not gamemodeCall("CanProperty", ply, gsOptionsCM, ent)) then return false end
+  if(not asmlib.GetAsmConvar("enctxmenu", "BUL")) then return false end
   if(not asmlib.GetAsmConvar("enctxmall", "BUL")) then
     local oRec = asmlib.CacheQueryPiece(ent:GetModel())
     if(not asmlib.IsHere(oRec)) then return false end
-  end -- If the menu is not enabled for all props ged-a-ud!
+  end -- If the menu is not enabled for all props check for track and ged-a-ud!
   return true -- The entity is track piece and TA menu is available
 end
 -- The routine which builds the context menu
