@@ -929,15 +929,16 @@ end
  * tArgs   > Text draw arguments
 ]]--
 function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
-  local ply = LocalPlayer()
+  local ply, iD = LocalPlayer(), 1
   local stS = asmlib.GetCacheSpawn(ply)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
+  local fky = asmlib.GetOpVar("FORM_DRWSPKY")
   local w,h = oScreen:GetSize()
   oScreen:SetTextEdge(0,230)
   oScreen:DrawText(tostring(arK.Name),sCol,sMeth,tArgs)
-  for iD = 1, arK.Size, 1 do local def = arK[iD]
+  while(arK[iD]) do local def, iK = arK[iD], 1
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
-    for iK = 1, def.Size do local row = def[iK]
+    while(def[iK]) do local row = def[iK]
       if(asmlib.IsHere(row[1])) then
         local key = tostring(row[1] or "")
         local typ = tostring(row[2] or "")
@@ -949,11 +950,10 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
         else
           local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
           local val = tostring(stS[key] or "")
-          local fky = tostring(arK.Draw[1] or "%s")
           oScreen:DrawText(fmt:format(fky:format(key), typ, val, inf))
         end
-      end
-    end
+      end; iK = iK + 1
+    end; iD = iD + 1
   end
 end
 

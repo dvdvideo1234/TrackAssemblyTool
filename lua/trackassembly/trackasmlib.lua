@@ -578,6 +578,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
+  SetOpVar("FORM_DRWSPKY", "%+6s")
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
@@ -1870,16 +1871,11 @@ function GetCacheSpawn(pPly)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end
   local stData = stSpot["SPAWN"]
-  if(not IsHere(stData)) then
-    local stSpawn = GetOpVar("STRUCT_SPAWN"); if(not IsHere(stSpawn)) then
-      LogInstance("Spawn definition invalid"); return false end
-    LogInstance("Allocate <"..pPly:Nick()..">")
-    stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
-    local iD = 1; stSpawn.Size = 0 -- Initialize length
-    while(stSpawn[iD]) do stSpawn.Size = iD
-      local tSec, iK = stSpawn[iD], 1
-      while(tSec[iK]) do tSec.Size = iK
-        local def = tSec[iK]
+  if(not IsHere(stData)) then local stSpawn, iD = GetOpVar("STRUCT_SPAWN"), 1
+    if(not IsHere(stSpawn)) then LogInstance("Spawn definition invalid"); return false end
+    LogInstance("Allocate <"..pPly:Nick()..">"); stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
+    while(stSpawn[iD]) do local tSec, iK = stSpawn[iD], 1
+      while(tSec[iK]) do local def = tSec[iK]
         local key = tostring(def[1] or "")
         local typ = tostring(def[2] or "")
         local inf = tostring(def[3] or "")
@@ -1888,7 +1884,7 @@ function GetCacheSpawn(pPly)
         elseif(typ == "MTX") then stData[key] = Matrix()
         elseif(typ == "RDB") then stData[key] = nil
         elseif(typ == "NUM") then stData[key] = 0
-        else LogInstance("Spawn skip <"..typ..">")
+        else LogInstance("Spawn skip "..GetReport3(key,typ,inf))
         end; iK = iK + 1 -- Update members count
       end; iD = iD + 1 -- Update categories count
     end

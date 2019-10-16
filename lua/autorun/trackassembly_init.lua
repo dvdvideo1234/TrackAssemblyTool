@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.575")
+asmlib.SetOpVar("TOOL_VERSION","7.576")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -215,17 +215,17 @@ end, gsVarName..gsCbcHash)
 -------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
   Name = "Spawn data definition",
-  Draw = {"%+6s",
+  Draw = {
     ["RDB"] = function(scr, key, typ, inf, def, spn)
       local rec, fmt = spn[key], asmlib.GetOpVar("FORM_DRAWDBG")
-      local fky, nav = tostring(def.Draw[1] or "%s"), asmlib.GetOpVar("MISS_NOAV")
+      local fky, nav = asmlib.GetOpVar("FORM_DRWSPKY"), asmlib.GetOpVar("MISS_NOAV")
       local out = (rec and tostring(rec.Slot:GetFileFromFilename()) or nav)
       scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
     end,
     ["MTX"] = function(scr, key, typ, inf, def, spn)
-      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
       local tab = spn[key]:ToTable()
-      local fky = tostring(def.Draw[1] or "%s")
+      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
+      local fky = asmlib.GetOpVar("FORM_DRWSPKY")
       for iR = 1, 4 do
         local out = "{"..tostring(iR).."}["..tableConcat(tab[iR], ",").."]"
         scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
