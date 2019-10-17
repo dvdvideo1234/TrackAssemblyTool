@@ -1280,7 +1280,7 @@ function TOOL.BuildCPanel(CPanel)
         -- If the call is successful in protected mode and a folder table is present
         if(bSuc) then local pCurr = pCateg[sTyp]
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
-          if(ptCat and not IsTable(ptCat)) then ptCat = {ptCat} end
+          if(ptCat and not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
           if(ptCat and ptCat[1]) then
             local iCnt = 1; while(ptCat[iCnt]) do
               local sCat = tostring(ptCat[iCnt])

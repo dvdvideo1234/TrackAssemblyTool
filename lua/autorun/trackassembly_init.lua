@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.577")
+asmlib.SetOpVar("TOOL_VERSION","7.578")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -177,7 +177,7 @@ gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local nM = (tonumber(vNew) or 0)
-        nM = ((nM > 0) and nM or 0) end)
+        nM = ((nM > 0) and nM or 0)
   asmlib.SetOpVar("TRACE_MARGIN", nM)
 end, gsVarName..gsCbcHash)
 
@@ -185,7 +185,7 @@ gsVarName = asmlib.GetAsmConvar("logsmax", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
-  asmlib.SetOpVar("TRACE_MARGIN", nM)
+  asmlib.SetOpVar("LOG_MAXLOGS", nM)
 end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("logfile", "NAM")
@@ -689,10 +689,12 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly,"nextpic", 0)
         asmlib.SetAsmConvar(oPly,"nextyaw", 0)
         asmlib.SetAsmConvar(oPly,"nextrol", 0)
-      else
         if(not devmode) then
           asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
         asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax" , "INT"), asmlib.GetAsmConvar("logfile" , "BUL"))
+      else
+        if(not devmode) then
+          asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
         for key, val in pairs(asmlib.GetConvarList()) do
           oPly:ConCommand(key.." "..tostring(val).."\n") end
@@ -3655,6 +3657,9 @@ else
   PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 1, "", "0,512,-9.43457", "0,90,0", ""})
   PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 2, "", "0,-512,22.56836", "0,-90,0", ""})
   PIECES:Record({"models/joe/jtp/throw/harpstand_2_pos.mdl", "#", "#", 1, "", "0, -86, 0", "", ""})
+  asmlib.GetCategory("StephenTechno's Buildings 2.0")
+  PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 1, "", "0,0,3.03125", "", ""})
+  PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,-180,0", ""})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

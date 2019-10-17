@@ -282,7 +282,7 @@ end
 
 local function GetLogID()
   local nNum, fMax = GetOpVar("LOG_CURLOGS"), GetOpVar("LOG_FORMLID")
-  if(not (nNum and nMax)) then return "" end; return fMax:format(nNum)
+  if(not (nNum and fMax)) then return "" end; return fMax:format(nNum)
 end
 
 local function Log(vMsg, bCon)
@@ -292,7 +292,7 @@ local function Log(vMsg, bCon)
   local sData = tostring(vMsg); SetOpVar("LOG_CURLOGS",iCur)
   if(IsFlag("en_logging_file") and not bCon) then
     local lbNam = GetOpVar("NAME_LIBRARY")
-    local fName = GetOpVar("LOG_FILENAMЕ")
+    local fName = GetOpVar("LOG_FILENAME")
     if(iCur > iMax) then iCur = 0; fileDelete(fName) end
     fileAppend(fName,GetLogID().." ["..GetDate().."] "..sData.."\n")
   else -- The current has values 1..nMaxLogs(0)
@@ -405,7 +405,7 @@ end
  * according to the given border name. Basically
  * custom version of a clamp with vararg border limits
 ]]
-local function BorderValue(nsVal, vKey)
+function BorderValue(nsVal, vKey)
   if(not IsHere(vKey)) then return nsVal end
   if(not (IsString(nsVal) or IsNumber(nsVal))) then
     LogInstance("Value not comparable "..GetReport(nsVal)); return nsVal end
