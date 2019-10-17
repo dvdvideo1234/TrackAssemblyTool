@@ -356,18 +356,17 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
 end
 
 local function LogCeption(tT,sS,tP)
-  local vS, vT = type(sS), type(tT)
   local vK, sS = "", tostring(sS or "Data")
-  if(vT ~= "table") then
-    LogInstance("{"..vT.."}["..sS.."] = <"..tostring(tT)..">",tP); return nil end
+  if(not IsTable(tT)) then
+    LogInstance("{"..type(tT).."}["..sS.."] = <"..tostring(tT)..">",tP); return nil end
   if(not IsHere(next(tT))) then
     LogInstance(sS.." = {}",tP); return nil end; LogInstance(sS.." = {}",tP)
   for k,v in pairs(tT) do
-    if(type(k) == "string") then
+    if(IsString(k)) then
       vK = sS.."[\""..k.."\"]"
     else vK = sS.."["..tostring(k).."]" end
-    if(type(v) ~= "table") then
-      if(type(v) == "string") then
+    if(not IsTable(v)) then
+      if(IsString(v)) then
         LogInstance(vK.." = \""..v.."\"",tP)
       else LogInstance(vK.." = "..tostring(v),tP) end
     else
@@ -461,7 +460,7 @@ end
 
 function SetLogControl(nLines,bFile)
   local bFou, sBas = IsFlag("en_logging_file", bFile), GetOpVar("DIRPATH_BAS")
-  local nMax = (tonumber(nLines) or 0)); nMax = mathFloor(((nMax > 0) and nMax or 0))
+  local nMax = (tonumber(nLines) or 0); nMax = mathFloor((nMax > 0) and nMax or 0)
   local sMax, sFou = tostring(GetOpVar("LOG_MAXLOGS")), tostring(bFou)
   if(sBas and not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
   SetOpVar("LOG_CURLOGS", 0); SetOpVar("LOG_MAXLOGS", nMax)
@@ -1403,7 +1402,7 @@ end
 
 local function PushSortValues(tTable,snCnt,nsValue,tData)
   local iCnt, iInd = mathFloor(tonumber(snCnt) or 0), 1
-  if(not (tTable and (type(tTable) == "table") and (iCnt > 0))) then return 0 end
+  if(not (tTable and IsTable(tTable) and (iCnt > 0))) then return 0 end
   if(not tTable[iInd]) then
     tTable[iInd] = {Value = nsValue, Table = tData }; return iInd
   else
@@ -1797,7 +1796,7 @@ function Sort(tTable, tCols)
   local tC = tCols or {}; tC.Size = #tC
   for key, rec in pairs(tTable) do
     iS = (iS + 1); tS[iS] = {}; tS[iS].Key = key
-    if(type(rec) == "table") then tS[iS].Val = ""
+    if(IsTable(rec)) then tS[iS].Val = ""
       if(tC.Size > 0) then
         for iI = 1, tC.Size do local sC = tC[iI]; if(not IsHere(rec[sC])) then
           LogInstance("Col <"..sC.."> not found on the current record"); return nil end
@@ -2006,7 +2005,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     LogInstance("Table nick mismatch "..GetReport(sTable)); return false end
   if(IsBlank(sTable)) then
     LogInstance("Table name must not be empty"); return false end
-  if(not (type(defTab) == "table")) then
+  if(not IsTable(defTab)) then
     LogInstance("Table definition missing for "..sTable); return false end
   defTab.Size = #defTab; if(defTab.Size <= 0) then
     LogInstance("Record definition missing for "..sTable); return false end
@@ -2150,7 +2149,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Name lower <"..defTab.Name..">",tabDef.Nick); bStat = false end
     local nS, nE = defTab.Name:find(defTab.Nick); if(not (nS and nE and nS > 1 and nE == defTab.Name:len())) then
       LogInstance("Mismatch <"..defTab.Name..">",tabDef.Nick); bStat = false end
-    for iD = 1, qtDef.Size do local tCol = qtDef[iD] if(type(tCol) ~= "table") then
+    for iD = 1, qtDef.Size do local tCol = qtDef[iD] if(not IsTable(tCol)) then
         LogInstance("Mismatch type ["..iD.."]",tabDef.Nick); bStat = false end
       if(not IsString(tCol[1])) then
         LogInstance("Mismatch name ["..iD.."]",tabDef.Nick); bStat = false end
@@ -2256,7 +2255,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     if(IsTable(qtCmd.Index)) then tableEmpty(qtCmd.Index)
       else qtCmd.Index = {} end; local iCnt, iInd = 1, 1
     while(tIndex[iInd]) do -- Build index query and reload index commands
-      local vI = tIndex[iInd]; if(type(vI) ~= "table") then
+      local vI = tIndex[iInd]; if(not IsTable(vI)) then
         LogInstance("Mismatch value ["..tostring(vI).."] not table for ID ["..tostring(iInd).."]",tabDef.Nick); return nil end
       local cU, cC = "", ""; qtCmd.Index[iInd], iCnt = "CREATE INDEX IND_"..qtDef.Name, 1
       while(vI[iCnt]) do local vF = tonumber(vI[iCnt]); if(not vF) then
@@ -2717,7 +2716,7 @@ function ExportCategory(vEq, tData, sPref)
   local F = fileOpen(fName, "wb", "DATA")
   if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") failed from"); return false end
   local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
-  local tCat = (type(tData) == "table") and tData or GetOpVar("TABLE_CATEGORIES")
+  local tCat = (IsTable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
   F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDate().." [ "..sMoDB.." ]\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
