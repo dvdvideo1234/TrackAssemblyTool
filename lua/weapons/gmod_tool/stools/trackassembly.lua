@@ -1227,8 +1227,8 @@ function TOOL:DrawToolScreen(w, h)
   local workmode, workname = self:GetWorkingMode()
   scrTool:DrawCircle(xyPs, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPs, nRad, "m")
-  scrTool:DrawText("Date: "..osDate(asmlib.GetOpVar("DATE_FORMAT")),"w")
-  scrTool:DrawText("Time: "..osDate(asmlib.GetOpVar("TIME_FORMAT")))
+  scrTool:DrawText("Date: "..asmlib.GetDate(),"w")
+  scrTool:DrawText("Time: "..asmlib.GetTime())
   if(trRLen) then scrTool:DrawCircle(xyPs, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end

@@ -48,14 +48,14 @@ set emd_chew_adddir[4]=SProps
 set emd_chew_adddir[5]=Magnum's Rails
 set emd_chew_adddir[6]=Shinji85's Rails
 set emd_chew_adddir[7]=SligWolf's Railcar
-set emd_chew_adddir[8]=StephenTechno's Buildings
+set emd_chew_adddir[8]=StevenTechno's Buildings 1.0
 set emd_chew_adddir[9]=Mr.Train's M-Gauge
 set emd_chew_adddir[10]=G Scale Track Pack
 set emd_chew_adddir[11]=Ron's Minitrain Props
 set emd_chew_adddir[12]=Battleship's abandoned rails
 set emd_chew_adddir[13]=AlexCookie's 2ft track pack
 set emd_chew_adddir[14]=Joe's track pack
-set emd_chew_adddir[15]=StephenTechno's Buildings 2.0
+set emd_chew_adddir[15]=StevenTechno's Buildings 2.0
 
 :: AUTOMATIC STUFF ::
 

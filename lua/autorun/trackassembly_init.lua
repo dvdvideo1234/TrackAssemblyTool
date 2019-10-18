@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.578")
+asmlib.SetOpVar("TOOL_VERSION","7.579")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -207,9 +207,9 @@ cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local mkTab, ID = asmlib.GetBuilderID(1), 1
   while(mkTab) do local sTim = arTim[ID]
     local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
-    asmlib.LogInstance("Timer apply {"..defTab.Nick.."}<"..tostring(sTim)..">",gtInitLogs)
+    asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
     ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
-  end; asmlib.LogInstance("Timer update <"..tostring(vNew)..">",gtInitLogs)
+  end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vNew),gtInitLogs)
 end, gsVarName..gsCbcHash)
 
 -------- RECORDS ----------
@@ -227,7 +227,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
       local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
       local fky = asmlib.GetOpVar("FORM_DRWSPKY")
       for iR = 1, 4 do
-        local out = "{"..tostring(iR).."}["..tableConcat(tab[iR], ",").."]"
+        local out = asmlib.GetReport2(iR,tableConcat(tab[iR], ","))
         scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
       end
     end,
@@ -682,17 +682,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
       local devmode = asmlib.GetAsmConvar("devmode", "BUL")
       asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
-      if(not inputIsKeyDown(KEY_LSHIFT)) then
-        asmlib.SetAsmConvar(oPly,"nextx"  , 0)
-        asmlib.SetAsmConvar(oPly,"nexty"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextz"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextpic", 0)
-        asmlib.SetAsmConvar(oPly,"nextyaw", 0)
-        asmlib.SetAsmConvar(oPly,"nextrol", 0)
-        if(not devmode) then
-          asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
-        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax" , "INT"), asmlib.GetAsmConvar("logfile" , "BUL"))
-      else
+      if(inputIsKeyDown(KEY_LSHIFT)) then
         if(not devmode) then
           asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
         oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
@@ -714,6 +704,17 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
         asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
         asmlib.LogInstance("Variables reset complete",gtArgsLogs)
+      else
+        asmlib.SetAsmConvar(oPly,"nextx"  , 0)
+        asmlib.SetAsmConvar(oPly,"nexty"  , 0)
+        asmlib.SetAsmConvar(oPly,"nextz"  , 0)
+        asmlib.SetAsmConvar(oPly,"nextpic", 0)
+        asmlib.SetAsmConvar(oPly,"nextyaw", 0)
+        asmlib.SetAsmConvar(oPly,"nextrol", 0)
+        if(devmode) then
+          asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                               asmlib.GetAsmConvar("logfile","BUL"))
+        end
       end
       asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)
@@ -2318,7 +2319,7 @@ else
   PIECES:Record({"models/props_viaduct_event/underworld_bridge04.mdl", "#", "#", 2, "", "-2.253, 480.851, 10.696", "0, 90,0"})
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 1, "", "5056, 219.145, 992.765", ""})
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 2, "", "-576, 219.145, 992.765", "0, 180,0"})
-  asmlib.GetCategory("StephenTechno's Buildings",[[function(m)
+  asmlib.GetCategory("StevenTechno's Buildings 1.0",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/buildingspack/",""):gsub("_","/")
     local s = r:find("/"); r = (s and r:sub(1,s-1) or "")
@@ -3657,7 +3658,11 @@ else
   PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 1, "", "0,512,-9.43457", "0,90,0", ""})
   PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 2, "", "0,-512,22.56836", "0,-90,0", ""})
   PIECES:Record({"models/joe/jtp/throw/harpstand_2_pos.mdl", "#", "#", 1, "", "0, -86, 0", "", ""})
-  asmlib.GetCategory("StephenTechno's Buildings 2.0")
+  asmlib.GetCategory("StevenTechno's Buildings 2.0",[[function(m) local o = {r}
+    local function conv(x) return " "..x:sub(2,2):upper() end
+    local r = m:match("/.*/"):sub(2,-2):match("/.*$"):sub(2,-1)
+    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.ModelToNameRule("SET",nil,{"^[%d-_]*",""},nil)
   PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 1, "", "0,0,3.03125", "", ""})
   PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,-180,0", ""})
   if(gsMoDB == "SQL") then sqlCommit() end

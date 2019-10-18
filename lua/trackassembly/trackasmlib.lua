@@ -254,9 +254,18 @@ function GetSign(nVal)
 end
 
 -- Gets the date according to the specified format
-function GetDate()
-  return (osDate(GetOpVar("DATE_FORMAT"))
-   .." "..osDate(GetOpVar("TIME_FORMAT")))
+function GetDate(vD, fD)
+  return osDate(fD or GetOpVar("DATE_FORMAT"), vD)
+end
+
+-- Gets the time according to the specified format
+function GetTime(vT, fT)
+  return osDate(fT or GetOpVar("TIME_FORMAT"), vT)
+end
+
+-- Gets the date and time according to the specified format
+function GetDateTime(vDT, fDT)
+  return GetDate(vDT, fDT).." "..GetTime(vDT, fDT)
 end
 
 -- Strips a string from quotes
@@ -288,16 +297,17 @@ end
 local function Log(vMsg, bCon)
   local iMax = GetOpVar("LOG_MAXLOGS")
   if(iMax <= 0) then return end
+  local sMsg = tostring(vMsg)
   local iCur = GetOpVar("LOG_CURLOGS") + 1
-  local sData = tostring(vMsg); SetOpVar("LOG_CURLOGS",iCur)
   if(IsFlag("en_logging_file") and not bCon) then
     local lbNam = GetOpVar("NAME_LIBRARY")
     local fName = GetOpVar("LOG_FILENAME")
-    if(iCur > iMax) then iCur = 0; fileDelete(fName) end
-    fileAppend(fName,GetLogID().." ["..GetDate().."] "..sData.."\n")
+    if(iCur > iMax) then
+      fileDelete(fName); SetOpVar("LOG_CURLOGS",1) end
+    fileAppend(fName,GetLogID().." ["..GetDateTime().."] "..sMsg.."\n")
   else -- The current has values 1..nMaxLogs(0)
-    if(iCur > iMax) then iCur = 0 end
-    print(GetLogID().." ["..GetDate().."] "..sData)
+    if(iCur > iMax) then SetOpVar("LOG_CURLOGS",1) end
+    print(GetLogID().." ["..GetDateTime().."] "..sMsg)
   end
 end
 
@@ -2717,7 +2727,7 @@ function ExportCategory(vEq, tData, sPref)
   if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") failed from"); return false end
   local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (IsTable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
-  F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDate().." [ "..sMoDB.." ]\n")
+  F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   for cat, rec in pairs(tCat) do
     if(IsString(rec.Txt)) then
       local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
@@ -2797,7 +2807,7 @@ function ExportDSV(sTable, sPref, sDelim)
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
   local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
   local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
-  F:Write("#1 "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
+  F:Write("#1 "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Get()
@@ -2942,7 +2952,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref.."@"..sTable..") Write fileOpen("..fName..") failed"); return false end
-  O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
+  O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Val
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
@@ -2978,7 +2988,7 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") fileOpen("..sNdsv..") failed",sTable); return false end
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
     LogInstance("("..fPref..") fileOpen("..sNins..") failed",sTable); return false end
-  I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDate().." [ "..sMoDB.." ]\n")
+  I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   I:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
