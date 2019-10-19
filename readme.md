@@ -79,6 +79,13 @@ adjusting the next active point for the track stacking option.
 This will affect what point is chosen when you continue the track you build.
 The current and next active points will not be the same.
 
+#### I am scrolling and the point mouse scroll is enabled. Why is the track end not switched?
+Sometimes selecting last weapon is bind to the `KEY_LALT` ( Def: `LALT` )
+button by default. If that condition is present for you, the mouse scroll track piece
+selecttion will not work. If you insist of using the mouse scroll and I don't blame you,
+because it's faster and much convinient, just unbind the `KEY_LALT` ( Def: `LALT` ) button
+via `unbind alt` ( `unbind <key_binded> ` ). That way the game will no longer process alt with priority to last weapon switch.
+
 #### How do I use the old way for switching between the active points ?
 There is this variable `trackassembly_enpntmscr` and as its name suggests
 it controls the ***enable end-point mouse scroll***. Set it to `1` if you want
