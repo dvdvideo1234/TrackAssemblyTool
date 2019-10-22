@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.580")
+asmlib.SetOpVar("TOOL_VERSION","7.581")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -3700,24 +3700,22 @@ else
   PIECES:Record({"models/buildingspack2/emptylots/0-8_empty_lot_x64x32.mdl", "#", "#", 2, "", "-268,-2304,3.03125", "0,-90,0", ""})
   PIECES:Record({"models/buildingspack2/emptylots/0-9_empty_lot_x128x64.mdl", "#", "#", 1, "", "-268, 4608,3.03125", "0, 90,0", ""})
   PIECES:Record({"models/buildingspack2/emptylots/0-9_empty_lot_x128x64.mdl", "#", "#", 2, "", "-268,-4608,3.03125", "0,-90,0", ""})
-  --[[ Need +/- Y equalization waiting responce
-  PIECES:Record({"models/buildingspack2/housing/1-0_apartments.mdl", "#", "#", 1, "", "-268, 612,3.03125", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-0_apartments.mdl", "#", "#", 2, "", "-268,-612,3.03125", "0,-90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-0_apartments_nodoors.mdl", "#", "#", 1, "", "-268, 612,3.03125", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-0_apartments_nodoors.mdl", "#", "#", 2, "", "-268,-612,3.03125", "0,-90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-1_apartments.mdl", "#", "#", 1, "", "-268, 1016,3.03125", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-1_apartments.mdl", "#", "#", 2, "", "-268,-1072,3.03125", "0,-90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-1_apartments_nodoors.mdl", "#", "#", 1, "", "-268, 1016,3.03125", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-1_apartments_nodoors.mdl", "#", "#", 2, "", "-268,-1072,3.03125", "0,-90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-0_apartments.mdl", "#", "#", 1, "", "-268, 616,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-0_apartments.mdl", "#", "#", 2, "", "-268,-608,3.03125", "0,-90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-0_apartments_nodoors.mdl", "#", "#", 1, "", "-268, 616,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-0_apartments_nodoors.mdl", "#", "#", 2, "", "-268,-608,3.03125", "0,-90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-1_apartments.mdl", "#", "#", 1, "", "-268, 1072,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-1_apartments.mdl", "#", "#", 2, "", "-268,-1016,3.03125", "0,-90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-1_apartments_nodoors.mdl", "#", "#", 1, "", "-268, 1072,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-1_apartments_nodoors.mdl", "#", "#", 2, "", "-268,-1016,3.03125", "0,-90,0", ""})
   PIECES:Record({"models/buildingspack2/housing/1-2_apartments.mdl", "#", "#", 1, "", "-268, 576,3.03125", "0, 90,0", ""})
   PIECES:Record({"models/buildingspack2/housing/1-2_apartments.mdl", "#", "#", 2, "", "-268,-576,3.03125", "0,-90,0", ""})
   PIECES:Record({"models/buildingspack2/housing/1-2_apartments_nodoors.mdl", "#", "#", 1, "", "-268, 576,3.03125", "0, 90,0", ""})
   PIECES:Record({"models/buildingspack2/housing/1-2_apartments_nodoors.mdl", "#", "#", 2, "", "-268,-576,3.03125", "0,-90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-3_apartments.mdl", "#", "#", 1, "", "-268, 1728,3.03125", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-3_apartments.mdl", "#", "#", 2, "", "-268,-1728,3.03125", "0,-90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-3_apartments_nodoors.mdl", "#", "#", 1, "", "-268, 1728,3.03125", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/housing/1-3_apartments_nodoors.mdl", "#", "#", 2, "", "-268,-1728,3.03125", "0,-90,0", ""})
-  ]]
+  PIECES:Record({"models/buildingspack2/housing/1-3_apartments.mdl", "#", "#", 1, "", "-268, 900,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-3_apartments.mdl", "#", "#", 2, "", "-268,-900,3.03125", "0,-90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-3_apartments_nodoors.mdl", "#", "#", 1, "", "-268, 900,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/housing/1-3_apartments_nodoors.mdl", "#", "#", 2, "", "-268,-900,3.03125", "0,-90,0", ""})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
