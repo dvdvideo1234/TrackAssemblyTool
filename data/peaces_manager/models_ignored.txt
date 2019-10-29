@@ -4254,6 +4254,13 @@ models/props_foliage/tree_pine_tall_cluster_01.mdl
 models/props_joe/coal_unloader.mdl
 
 # StephenTechno's Buildings 2.0
+models/buildingspack2/public/2-0-1_car_garage_door.mdl
+models/buildingspack2/public/2-4-1_gas_stop_door.mdl
+models/buildingspack2/public/2-6-1_gun_shop_door.mdl
+models/buildingspack2/public/2-7-1_bank_door_a.mdl
+models/buildingspack2/public/2-7-2_bank_door_b.mdl
+models/buildingspack2/public/2-9-1_school_house_door_l.mdl
+models/buildingspack2/public/2-9-2_school_house_door_r.mdl
 models/buildingspack2_nolot/housing/1-0_apartments.mdl
 models/buildingspack2_nolot/housing/1-0_apartments_nodoors.mdl
 models/buildingspack2_nolot/housing/1-2_apartments.mdl
@@ -4262,8 +4269,6 @@ models/buildingspack2_nolot/housing/1-3_apartments.mdl
 models/buildingspack2_nolot/housing/1-3_apartments_nodoors.mdl
 models/buildingspack2_nolot/housing/1-4_apartments.mdl
 models/buildingspack2_nolot/housing/1-4_apartments_nodoors.mdl
-models/buildingspack2/public/2-0-1_car_garage_door.mdl
-models/buildingspack2/public/2-4-1_gas_stop_door.mdl
 models/buildingspack2_nolot/public/2-0_car_garage.mdl
 models/buildingspack2_nolot/public/2-0_car_garage_nodoors.mdl
 models/buildingspack2_nolot/public/2-1_office_building.mdl
@@ -4276,6 +4281,16 @@ models/buildingspack2_nolot/public/2-4-2_gas_stop_awning.mdl
 models/buildingspack2_nolot/public/2-4-3_gas_stop_sign.mdl
 models/buildingspack2_nolot/public/2-4_gas_stop.mdl
 models/buildingspack2_nolot/public/2-4_gas_stop_nolot_nodoors.mdl
-
-
-
+models/buildingspack2_nolot/public/2-5_pc_shop.mdl
+models/buildingspack2_nolot/public/2-5_pc_shop_nodoors.mdl
+models/buildingspack2_nolot/public/2-6_gun_shop.mdl
+models/buildingspack2_nolot/public/2-6_gun_shop_nodoors.mdl
+models/buildingspack2_nolot/public/2-7_bank.mdl
+models/buildingspack2_nolot/public/2-7_bank_nodoors.mdl
+models/buildingspack2_nolot/public/2-9_school_house.mdl
+models/buildingspack2_nolot/public/2-9_school_house_nodoors.mdl
+models/buildingspack2_nolot/skyscraper/3-0_skyscraper_a.mdl
+models/buildingspack2_nolot/skyscraper/3-1_skyscraper_b.mdl
+models/buildingspack2_nolot/skyscraper/3-2_skyscraper_c.mdl
+models/buildingspack2_nolot/skyscraper/3-3_skyscraper_d.mdl
+models/buildingspack2_nolot/skyscraper/3-4_skyscraper_e.mdl
