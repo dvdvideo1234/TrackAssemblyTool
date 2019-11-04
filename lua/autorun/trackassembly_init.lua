@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.583")
+asmlib.SetOpVar("TOOL_VERSION","7.584")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -506,10 +506,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(false)
       pnFrame.OnClose = function(pnSelf)
-        local kyPan = conElements:Find(pnSelf)       -- Find panel index
-        if(not asmlib.IsHere(kyPan)) then return end -- Nothing to delete
-        local pnCur = conElements:Pull(kyPan)        -- Pull reference
-        if(IsValid(pnCur)) then pnCur:Remove() end   -- Delete the valid panel
+        local iK = conElements:Find(pnSelf) -- Find panel key index
+        if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
+        if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
       local pnSheet = vguiCreate("DPropertySheet")
       if(not IsValid(pnSheet)) then pnFrame:Close()
@@ -617,20 +616,20 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
           xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
           xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 52) / nF)
           for iP = 1, nF do local sCur = tFile[iP]
-            local pnDelete = vguiCreate("DButton")
+            local pnManage = vguiCreate("DButton")
             if(not IsValid(pnSheet)) then pnFrame:Close()
               asmlib.LogInstance("Button invalid ["..tostring(iP).."]",gtArgsLogs); return nil end
             local nB, nE = sCur:upper():find(sPrU..defTab.Nick);
             if(nB and nE) then
               local sPref = sCur:sub(1, nB - 1)
               local sFile = fDSV:format(sPref, defTab.Nick)
-              pnDelete:SetParent(pnTable)
-              pnDelete:SetPos(xyPos.x, xyPos.y)
-              pnDelete:SetSize(xySiz.x, xySiz.y)
-              pnDelete:SetFont("Trebuchet24")
-              pnDelete:SetText(sPref)
-              pnDelete:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
-              pnDelete.DoRightClick = function(pnSelf)
+              pnManage:SetParent(pnTable)
+              pnManage:SetPos(xyPos.x, xyPos.y)
+              pnManage:SetSize(xySiz.x, xySiz.y)
+              pnManage:SetFont("Trebuchet24")
+              pnManage:SetText(sPref)
+              pnManage:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
+              pnManage.DoRightClick = function(pnSelf)
                 local pnMenu = vguiCreate("DMenu")
                 if(not IsValid(pnMenu)) then pnFrame:Close()
                   asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
@@ -643,18 +642,13 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
                   function() SetClipboardText(sFile) end):SetIcon(asmlib.ToIcon("pn_externdb_4"))
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_5"),
-                  function()
-                    local fDate = asmlib.GetOpVar("DATE_FORMAT")
-                    local fTime = asmlib.GetOpVar("TIME_FORMAT")
-                    SetClipboardText(osDate(fDate.." "..fTime, fileTime(sFile, "DATA")))
+                  function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA")))
                   end):SetIcon(asmlib.ToIcon("pn_externdb_5"))
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_6"),
-                  function()
-                    SetClipboardText(tostring(fileSize(sFile, "DATA")).."B")
+                  function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B")
                   end):SetIcon(asmlib.ToIcon("pn_externdb_6"))
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_7"),
-                  function() -- Open the lualad addon to edit the database
-                    asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
+                  function() asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
                   end):SetIcon(asmlib.ToIcon("pn_externdb_7"))
                 pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_8"),
                   function() local sDel = sFile; fileDelete(sDel)
@@ -663,7 +657,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                       sDel = fDSV:format(sPref,"CATEGORY")
                       if(fileExists(sDel,"DATA")) then fileDelete(sDel)
                         asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs) end
-                    end; pnDelete:Remove()
+                    end; pnManage:Remove()
                   end):SetIcon(asmlib.ToIcon("pn_externdb_8"))
                 pnMenu:Open()
               end
@@ -750,10 +744,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
       pnFrame.OnClose = function(pnSelf)
-        local kyPan = conElements:Find(pnSelf)       -- Find panel index
-        if(not asmlib.IsHere(kyPan)) then return end -- Nothing to delete
-        local pnCur = conElements:Pull(kyPan)        -- Pull reference
-        if(IsValid(pnCur)) then pnCur:Remove() end   -- Delete the valid panel
+        local iK = conElements:Find(pnSelf) -- Find panel key index
+        if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
+        if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
       ------------ Button --------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
