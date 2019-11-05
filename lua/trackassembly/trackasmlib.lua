@@ -3802,8 +3802,8 @@ function SetAsmConvar(pPly,sName,snVal)
   local sFmt, sPrf = GetOpVar("FORM_CONCMD"), GetOpVar("TOOLNAME_PL")
   local sLow = (IsExact(sName) and sName:sub(2,-1) or (sPrf..sName)):lower()
   if(IsPlayer(pPly)) then -- Use the player when available
-    return pPly:ConCommand(sFmt:format(sLow, tostring(snVal)).."\n")
-  end; return RunConsoleCommand(sLow, snVal)
+    return pPly:ConCommand(sFmt:format(sLow, tostring(snVal or "")).."\n")
+  end; return RunConsoleCommand(sLow, tostring(snVal or ""))
 end
 
 function GetPhrase(sKey)

@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.584")
+asmlib.SetOpVar("TOOL_VERSION","7.585")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -112,7 +112,7 @@ asmlib.MakeAsmConvar("endsvlock", 0  , {0, 1 }, gnServerControled, "Toggle the D
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
   asmlib.MakeAsmConvar("maxfruse" ,  50 , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
-  asmlib.MakeAsmConvar("*sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME"), 1500, {0}, gnServerControled, "Maximum number of tracks to be spawned")
+  asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, {0}, gnServerControled, "Maximum number of tracks to be spawned")
 end
 
 ------ CONFIGURE INTERNALS -----
@@ -633,33 +633,26 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                 local pnMenu = vguiCreate("DMenu")
                 if(not IsValid(pnMenu)) then pnFrame:Close()
                   asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_1"),
-                  function() SetClipboardText(pnSelf:GetText()) end):SetIcon(asmlib.ToIcon("pn_externdb_1"))
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_2"),
-                  function() SetClipboardText(sDsv) end):SetIcon(asmlib.ToIcon("pn_externdb_2"))
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_3"),
-                  function() SetClipboardText(defTab.Nick) end):SetIcon(asmlib.ToIcon("pn_externdb_3"))
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_4"),
-                  function() SetClipboardText(sFile) end):SetIcon(asmlib.ToIcon("pn_externdb_4"))
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_5"),
-                  function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA")))
-                  end):SetIcon(asmlib.ToIcon("pn_externdb_5"))
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_6"),
-                  function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B")
-                  end):SetIcon(asmlib.ToIcon("pn_externdb_6"))
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_7"),
-                  function() asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL)
-                  end):SetIcon(asmlib.ToIcon("pn_externdb_7"))
-                pnMenu:AddOption(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_8"),
-                  function() local sDel = sFile; fileDelete(sDel)
-                    asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs)
-                    if(defTab.Nick == "PIECES") then
-                      sDel = fDSV:format(sPref,"CATEGORY")
-                      if(fileExists(sDel,"DATA")) then fileDelete(sDel)
-                        asmlib.LogInstance("Deleted <"..sDel..">",gtArgsLogs) end
+                local iO, tOptions = 1, {
+                  function() SetClipboardText(pnSelf:GetText()) end,
+                  function() SetClipboardText(sDsv) end,
+                  function() SetClipboardText(defTab.Nick) end,
+                  function() SetClipboardText(sFile) end,
+                  function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end,
+                  function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end,
+                  function() asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end,
+                  function() fileDelete(sFile); asmlib.LogInstance("Deleted <"..sFile..">",gtArgsLogs)
+                    if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref,"CATEGORY")
+                      if(fileExists(sCat,"DATA")) then fileDelete(sCat)
+                        asmlib.LogInstance("Deleted <"..sCat..">",gtArgsLogs) end
                     end; pnManage:Remove()
-                  end):SetIcon(asmlib.ToIcon("pn_externdb_8"))
-                pnMenu:Open()
+                  end
+                }
+                while(tOptions[iO]) do local sO = tostring(iO)
+                  local sDescr = asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_"..sO)
+                  pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_"..sO))
+                  iO = iO + 1 -- Loop trought the functions list and add to the menu
+                end; pnMenu:Open()
               end
             else asmlib.LogInstance("File mising ["..tostring(iP).."]",gtArgsLogs) end
             xyPos.y = xyPos.y + xySiz.y + xyDsz.y
@@ -679,9 +672,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       if(inputIsKeyDown(KEY_LSHIFT)) then
         if(not devmode) then
           asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
-        oPly:ConCommand("sbox_max"..asmlib.GetOpVar("CVAR_LIMITNAME").." 1500\n")
+        asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName, 1500)
         for key, val in pairs(asmlib.GetConvarList()) do
-          oPly:ConCommand(key.." "..tostring(val).."\n") end
+          asmlib.SetAsmConvar(oPly, "*"..key, val) end
         asmlib.SetAsmConvar(oPly, "logsmax"  , 0)
         asmlib.SetAsmConvar(oPly, "logfile"  , 0)
         asmlib.SetAsmConvar(oPly, "modedb"   , "LUA")
