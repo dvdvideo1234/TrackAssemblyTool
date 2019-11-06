@@ -4294,3 +4294,7 @@ models/buildingspack2_nolot/skyscraper/3-1_skyscraper_b.mdl
 models/buildingspack2_nolot/skyscraper/3-2_skyscraper_c.mdl
 models/buildingspack2_nolot/skyscraper/3-3_skyscraper_d.mdl
 models/buildingspack2_nolot/skyscraper/3-4_skyscraper_e.mdl
+models/buildingspack2_nolot/housing/1-1_apartments.mdl
+models/buildingspack2_nolot/housing/1-1_apartments_nodoors.mdl
+models/buildingspack2_nolot/public/2-8_parking_garage.mdl
+
