@@ -2714,10 +2714,10 @@ function ExportCategory(vEq, tData, sPref)
   if(SERVER) then LogInstance("Working on server"); return true end
   local nEq   = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality <"..tostring(vEq)..">"); return false end
-  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
     LogInstance("("..fPref..") Prefix empty"); return false end
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..sPref..") User disabled"); return true end
+    LogInstance("("..fPref..") User disabled"); return true end
   local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
@@ -2795,8 +2795,10 @@ function ExportDSV(sTable, sPref, sDelim)
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("("..fPref..") Missing table definition",sTable); return nil end
   local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
+  if(IsBlank(fPref)) then
+    LogInstance("("..fPref..") Prefix empty"); return false end
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..sPref..") User disabled"); return true end
+    LogInstance("("..fPref..") User disabled"); return true end
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -2884,10 +2886,12 @@ end
  * sDelim > What delimiter is the server using
 ]]--
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
-  local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+    LogInstance("("..fPref..") Prefix empty"); return false end
+  if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..sPref..") User disabled"); return true end
+    LogInstance("("..fPref..") User disabled"); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
@@ -2971,10 +2975,12 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
 end
 
 function TranslateDSV(sTable, sPref, sDelim)
-  local fPref = tostring(sPref or GetInstPref()); if(not IsString(sTable)) then
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+    LogInstance("("..fPref..") Prefix empty"); return false end
+  if(not IsString(sTable)) then
     LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..sPref..") User disabled"); return true end
+    LogInstance("("..fPref..") User disabled"); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder",sTable); return false end
   local defTab, sFunc, sMoDB = makTab:GetDefinition(), "TranslateDSV", GetOpVar("MODE_DATABASE")
@@ -3018,12 +3024,12 @@ end
  * bSkip  > Skip addition for the DSV prefix if exists
 ]]--
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
-  local sPref = tostring(sPref or GetInstPref()); if(IsBlank(sPref)) then
-    LogInstance("("..sPref..") Prefix empty"); return false end
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+    LogInstance("("..fPref..") Prefix empty"); return false end
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..sPref..") User disabled"); return true end
+    LogInstance("("..fPref..") User disabled"); return true end
   if(CLIENT and gameSinglePlayer()) then
-    LogInstance("("..sPref..") Single client"); return true end
+    LogInstance("("..fPref..") Single client"); return true end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
   local lbNam, sMiss  = GetOpVar("NAME_LIBRARY"), GetOpVar("MISS_NOAV")
@@ -3032,7 +3038,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     local symOff = GetOpVar("OPSYM_DISABLE")
     local fPool, isEOF, isAct = {}, false, true
     local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""
-    if(not F) then LogInstance("("..sPref..") fileOpen("..fName..") read failed"); return false end
+    if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") read failed"); return false end
     while(not isEOF) do sLine, isEOF = GetStringFile(F)
       if(not IsBlank(sLine)) then
         if(sLine:sub(1,1) == symOff) then
@@ -3044,16 +3050,16 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
         inf.Size = inf.Size + 1; inf[inf.Size] = {src, isAct}
       end
     end; F:Close()
-    if(fPool[sPref]) then local inf = fPool[sPref]
+    if(fPool[fPref]) then local inf = fPool[fPref]
       for ID = 1, inf.Size do local tab = inf[ID]
-        LogInstance("("..sPref..") "..(tab[2] and "On " or "Off").." <"..tab[1]..">") end
-      LogInstance("("..sPref..") Skip <"..sProg..">"); return true
+        LogInstance("("..fPref..") "..(tab[2] and "On " or "Off").." <"..tab[1]..">") end
+      LogInstance("("..fPref..") Skip <"..sProg..">"); return true
     end
   end
   local F = fileOpen(fName, "ab" ,"DATA"); if(not F) then
-    LogInstance("("..sPref..") fileOpen("..fName..") append failed"); return false end
-  F:Write(sPref..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
-  LogInstance("("..sPref..") Register"); return true
+    LogInstance("("..fPref..") fileOpen("..fName..") append failed"); return false end
+  F:Write(fPref..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
+  LogInstance("("..fPref..") Register"); return true
 end
 
 --[[
