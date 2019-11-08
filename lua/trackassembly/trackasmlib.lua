@@ -568,10 +568,11 @@ function InitBase(sName,sPurpose)
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_INS","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("MISS_NOMD","X")      -- No model
   SetOpVar("MISS_NOID","N")      -- No ID selected
   SetOpVar("MISS_NOAV","N/A")    -- Not Available
-  SetOpVar("MISS_NOMD","X")      -- No model
   SetOpVar("MISS_NOTP","TYPE")   -- No track type
+  SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
   SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_CONCMD", "%s %s")
@@ -1861,7 +1862,7 @@ function GetCategory(oTyp,fCat)
         LogInstance("Compilation failed <"..fCat.."> ["..sTyp.."]", ssLog); return nil end
       tCat[sTyp].Cmp = out; tTyp = tCat[sTyp]
       return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-    else LogInstance("Avoided "..GetReport(fCat).." ["..sTyp.."]", ssLog) end
+    else LogInstance("Skip "..GetReport(fCat).." ["..sTyp.."]", ssLog) end
   end
 end
 

@@ -70,6 +70,7 @@ local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", stringUpper)..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
+local gsNoBS      = asmlib.GetOpVar("MISS_NOBS") -- No Bodygroup skin
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
@@ -105,7 +106,7 @@ TOOL.ClientConVar = {
   [ "nextyaw"    ] = 0,
   [ "nextrol"    ] = 0,
   [ "spawncn"    ] = 0,
-  [ "bgskids"    ] = "0/0",
+  [ "bgskids"    ] = gsNoBS,
   [ "gravity"    ] = 1,
   [ "adviser"    ] = 1,
   [ "elevpnt"    ] = 0,
@@ -242,7 +243,7 @@ function TOOL:GetIgnoreType()
 end
 
 function TOOL:GetBodyGroupSkin()
-  return tostring(self:GetClientInfo("bgskids") or "")
+  return tostring(self:GetClientInfo("bgskids") or gsNoBS)
 end
 
 function TOOL:GetGravity()
@@ -453,8 +454,7 @@ function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
   elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
   return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV):sub(1,6)
-  -- Reset settings server-side where available and return the value
-end
+end -- Reset settings server-side where available and return the value
 
 function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
