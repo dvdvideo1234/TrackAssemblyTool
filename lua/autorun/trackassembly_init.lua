@@ -72,7 +72,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.590")
+asmlib.SetOpVar("TOOL_VERSION","7.591")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -3724,10 +3724,10 @@ else
   PIECES:Record({"models/buildingspack2/public/2-0_car_garage.mdl", "#", "#", 2, "", "-268,-936,3.03125", "0,-90,0", ""})
   PIECES:Record({"models/buildingspack2/public/2-0_car_garage_nodoors.mdl", "#", "#", 1, "", "-268, 936,3.03125", "0, 90,0", ""})
   PIECES:Record({"models/buildingspack2/public/2-0_car_garage_nodoors.mdl", "#", "#", 2, "", "-268,-936,3.03125", "0,-90,0", ""})
-  PIECES:Record({"models/buildingspack2/public/2-1_office_building.mdl", "#", "#", 1, "", "-268, 1224,4.0625", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/public/2-1_office_building.mdl", "#", "#", 2, "", "-268,-1224,4.0625", "0,-90,0", ""})
-  PIECES:Record({"models/buildingspack2/public/2-1_office_building_nodoors.mdl", "#", "#", 1, "", "-268, 1224,4.0625", "0, 90,0", ""})
-  PIECES:Record({"models/buildingspack2/public/2-1_office_building_nodoors.mdl", "#", "#", 2, "", "-268,-1224,4.0625", "0,-90,0", ""})
+  PIECES:Record({"models/buildingspack2/public/2-1_office_building.mdl", "#", "#", 1, "", "-268, 1224,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/public/2-1_office_building.mdl", "#", "#", 2, "", "-268,-1224,3.03125", "0,-90,0", ""})
+  PIECES:Record({"models/buildingspack2/public/2-1_office_building_nodoors.mdl", "#", "#", 1, "", "-268, 1224,3.03125", "0, 90,0", ""})
+  PIECES:Record({"models/buildingspack2/public/2-1_office_building_nodoors.mdl", "#", "#", 2, "", "-268,-1224,3.03125", "0,-90,0", ""})
   PIECES:Record({"models/buildingspack2/public/2-2_lgbt_club_a.mdl", "#", "#", 1, "", "-268, 936,4.0625", "0, 90,0", ""})
   PIECES:Record({"models/buildingspack2/public/2-2_lgbt_club_a.mdl", "#", "#", 2, "", "-268,-936,4.0625", "0,-90,0", ""})
   PIECES:Record({"models/buildingspack2/public/2-2_lgbt_club_a_nodoors.mdl", "#", "#", 1, "", "-268, 936,4.0625", "0, 90,0", ""})
