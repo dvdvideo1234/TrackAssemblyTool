@@ -1819,13 +1819,19 @@ function Sort(tTable, tCols)
 end
 
 ------------- VARIABLE INTERFACES --------------
-
+--[[
+ * Returns a string term whrever it is is missing or disabled
+ * If these conditions are not met the function returns missing token
+ * sBas > The string to check whenever it is disabled or missing
+ * vDef > The default value to return when base is not string
+ * vDsb > The disable value to return when the base is disabled string
+]]
 function GetTerm(sBas, vDef, vDsb)
-  local sM, sS = GetOpVar("MISS_NOAV"), GetOpVar("MISS_NOSQL")
+  local sMiss = GetOpVar("MISS_NOAV")
   if(IsString(sBas)) then local sD = GetOpVar("OPSYM_DISABLE")
-    if(sBas:sub(1,1) == sD) then return tostring(vDsb or sM)
+    if(sBas:sub(1,1) == sD) then return tostring(vDsb or sMiss)
     elseif(not (IsNull(sBas) or IsBlank(sBas))) then return sBas end
-  end; if(IsString(vDef)) then return vDef end; return sM
+  end; if(IsString(vDef)) then return vDef end; return sMiss
 end
 
 function ModelToNameRule(sRule, gCut, gSub, gApp)
