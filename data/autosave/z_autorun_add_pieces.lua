@@ -144,10 +144,10 @@ if(asmlib) then
    * and then for every active point, you must have one array of
    * strings, where the elements match the following data settings.
    * You can use the disable event /#/ to make TA auto-fill
-   * the value provided and you can also add miltiple track types myType[1-n].
+   * the value provided and you can also add multiple track types myType[1-n].
    * If you need to use piece origin/angle with model attachment, you must use
    * the attachment extraction event /!/. The model attachment format is
-   * /!<attachment_name>/ and it depemds what attachment name you gave it when you
+   * /!<attachment_name>/ and it depends what attachment name you gave it when you
    * created the model. If you need TA to extract the origin/angle from an attachment named
    * /test/ for example, you just need to put the string /!test/ in the origin/angle column for that model.
    * {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}

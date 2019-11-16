@@ -302,11 +302,12 @@ local function Log(vMsg, bCon)
   if(IsFlag("en_logging_file") and not bCon) then
     local lbNam = GetOpVar("NAME_LIBRARY")
     local fName = GetOpVar("LOG_FILENAME")
-    if(iCur > iMax) then
-      fileDelete(fName); SetOpVar("LOG_CURLOGS",1) end
+    if(iCur > iMax) then SetOpVar("LOG_CURLOGS", 1)
+      fileDelete(fName) else SetOpVar("LOG_CURLOGS", iCur) end
     fileAppend(fName,GetLogID().." ["..GetDateTime().."] "..sMsg.."\n")
   else -- The current has values 1..nMaxLogs(0)
-    if(iCur > iMax) then SetOpVar("LOG_CURLOGS",1) end
+    if(iCur > iMax) then SetOpVar("LOG_CURLOGS", 1)
+    else SetOpVar("LOG_CURLOGS", iCur) end
     print(GetLogID().." ["..GetDateTime().."] "..sMsg)
   end
 end
@@ -1727,7 +1728,7 @@ function GetTransformOA(sModel,sKey)
 end
 
 function RegisterPOA(stPiece, ivID, sP, sO, sA)
-  if(not stPiece) then
+  local sNull = GetOpVar("MISS_NOSQL"); if(not stPiece) then
     LogInstance("Cache record invalid"); return nil end
   local iID = tonumber(ivID); if(not IsHere(iID)) then
     LogInstance("Offset ID mismatch "..GetReport(ivID)); return nil end
@@ -1865,10 +1866,10 @@ function GetCategory(oTyp,fCat)
       tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local suc, out = pcall(tCat[sTyp].Cmp); if(not suc) then
-        LogInstance("Compilation failed <"..fCat.."> ["..sTyp.."]", ssLog); return nil end
+        LogInstance("Compilation failed "..GetReport(fCat), ssLog); return nil end
       tCat[sTyp].Cmp = out; tTyp = tCat[sTyp]
       return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-    else LogInstance("Skip "..GetReport(fCat).." ["..sTyp.."]", ssLog) end
+    else LogInstance("Skip code "..GetReport(fCat), ssLog) end
   end
 end
 
