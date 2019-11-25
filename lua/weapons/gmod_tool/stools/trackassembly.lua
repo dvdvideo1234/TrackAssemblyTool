@@ -1281,15 +1281,14 @@ function TOOL.BuildCPanel(CPanel)
         if(bSuc) then local pCurr = pCateg[sTyp]
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
           if(ptCat and not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
-          if(ptCat and ptCat[1]) then
-            local iCnt = 1; while(ptCat[iCnt]) do
-              local sCat = tostring(ptCat[iCnt])
+          if(ptCat and ptCat[1]) then local iCnt = 1;
+            while(ptCat[iCnt]) do local sCat = tostring(ptCat[iCnt])
               if(asmlib.IsBlank(sCat)) then sCat = "Other" end
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
-              else -- Create the last needed node regarding pItem
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, asmlib.ToIcon("category_item"), conPalette:Select("tx"))
-              end; iCnt = iCnt + 1;
+              else local sI, cC = asmlib.ToIcon("category_item"), conPalette:Select("tx")
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, sI, cC)
+              end; iCnt = iCnt + 1; -- Create the last needed node regarding pItem
             end
           end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
         end -- Custom name to override via category
