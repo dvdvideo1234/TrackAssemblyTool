@@ -1184,8 +1184,8 @@ function TOOL:DrawToolScreen(w, h)
   end
   scrTool:DrawText("Holds Model: Valid","g")
   scrTool:DrawTextAdd("  ["..gsModeDataB.."]","db")
-  local workmode = self:GetWorkingMode()
   local trEnt    = stTrace.Entity
+  local workmode = self:GetWorkingMode()
   local actrad   = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
   local trMaxCN, trModel, trOID, trRLen

@@ -3999,7 +3999,7 @@ function GetLinearSpace(nBeg, nEnd, nAmt)
 end
 
 local function GetCatmullRomCurveTangent(cS, cE, nT, nA)
-  local vD = Vector(); vD:Set(cE); vD:Sub(cS)
+  local vD = Vector(); vD:(cE); vD:Sub(cS)
   return ((vD:Length()^(tonumber(nA) or 0.5))+nT)
 end
 
@@ -4027,9 +4027,9 @@ function GetCatmullRomCurve(tV, nT, nA) if(not IsTable(tV)) then
     LogInstance("Curve samples mismatch "..GetReport(nT)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
   if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
-  local vM, iC, tC = GetOpVar("EPSILON_ZERO"), 1, {}
-  local cS = Vector(); cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
-  local cE = Vector(); cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
+  local vM, tC, iC, cS, cE = GetOpVar("EPSILON_ZERO"), {}, 1, Vector(), Vector()
+  cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
+  cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
   tableInsert(tV, 1, cS); tableInsert(tV, cE); nV = (nV + 2);
   for iD = 1, (nV-3) do
     local cA, cB, cC, cD = tV[iD], tV[iD+1], tV[iD+2], tV[iD+3]
