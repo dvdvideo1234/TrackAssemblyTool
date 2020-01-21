@@ -2943,11 +2943,14 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       LogInstance("("..fPref.."@"..sTable..") Sync key mismatch ["..sKey.."]["..sVK.."]");
       tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
     end local tRec = tData[vK] -- Create local reference to the record of the matched key
-    for iCnt = 1, #tRec do -- Where the line ID must be read from skip the key itself
-      local tRow, vID, nID = tRec[iCnt]; vID = tRow[iD-1]
-      nID = (tonumber(vID) or 0); if(iCnt ~= nID) then -- Validate the line ID
-          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Sync point ID #"..
-            tostring(vID).." desynchronized <"..tostring(key)..">"); return false end
+    for iCnt = 1, #tRec do local tRow, vID, nID, sID = tRec[iCnt] -- Read the processed row reference
+      vID = tRow[iD-1]; nID, sID = tonumber(vID), tostring(vID)
+      nID = (nID or (sID:sub(1,1) == symOff and iCnt or 0))
+      -- Where the line ID must be read from. Skip the key itself and convert the disabled value
+      if(iCnt ~= nID) then -- Validate the line ID being in proper borders abd sequential
+          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Sync point ["
+            ..tostring(iCnt).."] ID "..tostring(vID).." desynchronized "
+            ..tostring(nID)); return false end; tRow[iD-1] = nID
       for nCnt = 1, #tRow do -- Do a value matching without quotes
         local vM = makTab:Match(tRow[nCnt],nCnt+1,false,"",true,true); if(not IsHere(vM)) then
           LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Sync matching failed <"
@@ -3999,8 +4002,8 @@ function GetLinearSpace(nBeg, nEnd, nAmt)
 end
 
 local function GetCatmullRomCurveTangent(cS, cE, nT, nA)
-  local vD = Vector(); vD:(cE); vD:Sub(cS)
-  return ((vD:Length()^(tonumber(nA) or 0.5))+nT)
+  local vD = Vector(); vD:Set(cE); vD:Sub(cS)
+  return ((vD:Length() ^ (tonumber(nA) or 0.5)) + nT)
 end
 
 local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)

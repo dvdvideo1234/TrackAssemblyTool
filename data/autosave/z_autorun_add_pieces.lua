@@ -31,7 +31,7 @@ local myType  = myAddon -- The type your addon resides in the tool with
 local myError = print
 
 -- This is used for addon relation prefix. Fingers away from it
-local myPrefix = myAddon:gsub("[^%w]","_")
+local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix
 
 -- This is the script path. It tells TA who wants to add these models
 -- Do not touch this also, it is used for debugging
@@ -51,6 +51,9 @@ local function myThrowError(vMesg)
 end
 
 if(asmlib) then
+  -- Store a reference to disable symbol
+  local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
+
   -- This is the path to your DSV
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
                 asmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
@@ -157,7 +160,10 @@ if(asmlib) then
    * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
    *          the model ( from the last slash to the file extension ).
    * LINEID > This is the ID of the point that can be selected for building. They must be
-   *          sequential and mandatory. The ID is the same as the row index under a given model key.
+   *          sequential and mandatory. If provided, the ID must the same as the row index under
+   *          a given model key. Disabling this, makes it use the the index of the current line.
+   *          Use that to swap the active points around by only moving the desired row up or down.
+   *          For the example table definition below, the line ID in the database will be the same.
    * POINT  > This is the local position vector that TA searches and selects the related
    *          ORIGIN for. An empty string is treated as taking the ORIGIN.
    *          Disabling this using the disable event makes it hidden when the active point is searched for
@@ -166,18 +172,18 @@ if(asmlib) then
    *          You can also fill it with attachment event /!/ followed by your attachment name.
    * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
    *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
-   *          You can also fill it with attachment event /!/ followed by your attachment name. 
+   *          You can also fill it with attachment event /!/ followed by your attachment name.
    * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
    *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
   ]]--
   local myTable = {
     ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack
-      {myType ,"#", 1, "","0,-47.455105,1.482965","0,-90,0",""}, -- The first point parameter
-      {myType ,"#", 2, "","0, 47.455105,1.482965","0, 90,0",""}  -- The second point parameter
+      {myType , gsSymOff, 1, "","0,-47.455105,1.482965","0,-90,0",""}, -- The first point parameter
+      {myType , gsSymOff, 2, "","0, 47.455105,1.482965","0, 90,0",""}  -- The second point parameter
     },
     ["models/props_phx/construct/windows/window1x2.mdl"] = {
-      {myType ,"#", 1, "","0,-23.73248,1.482965","0,-90,0",""},
-      {myType ,"#", 2, "","0, 71.17773,1.482965","0, 90,0",""}
+      {myType , gsSymOff, gsSymOff, "","0,-23.73248,1.482965","0,-90,0",""},
+      {myType , gsSymOff, gsSymOff, "","0, 71.17773,1.482965","0, 90,0",""}
     }
   }
 

@@ -16,7 +16,7 @@ local myType  = myAddon -- The type your addon resides in the tool with
 local myError = print
 
 -- This is used for addon relation prefix. Fingers away from it
-local myPrefix = myAddon:gsub("[^%w]","_")
+local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix
 
 -- This is the script path. It tells TA who wants to add these models
 -- Do not touch this also, it is used for debugging
@@ -30,6 +30,9 @@ local function myThrowError(vMesg)
 end
 
 if(asmlib) then
+  -- Store a reference to disable symbol
+  local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
+
   -- This is the path to your DSV
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
                 asmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
@@ -71,11 +74,10 @@ if(asmlib) then
     asmlib.LogInstance("ExportCategory skip <"..myPrefix..">")
   end
 
-
   local myTable = {
     ["models/ron/maglev/track/straight/straight_128.mdl"] = { -- Here goes the model of your pack
-      {myType ,"#", 1, "","!1","",""}, -- The first point parameter
-      {myType ,"#", 2, "","!2","",""}  -- The second point parameter
+      {myType , gsSymOff, gsSymOff, "","!1","",""}, -- The first point parameter
+      {myType , gsSymOff, gsSymOff, "","!2","",""}  -- The second point parameter
     }
   }
 
