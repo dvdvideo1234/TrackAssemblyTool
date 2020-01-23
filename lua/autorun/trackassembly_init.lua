@@ -37,6 +37,7 @@ local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
 local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
+local mathHuge                      = math and math.huge
 local gameGetWorld                  = game and game.GetWorld
 local tableConcat                   = table and table.concat
 local mathAbs                       = math and math.abs
@@ -72,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.597")
+asmlib.SetOpVar("TOOL_VERSION","7.598")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -135,15 +136,15 @@ if(SERVER) then
 end
 
 ------ CONFIGURE INTERNALS -----
-asmlib.IsFlag("new_close_frame", false) -- The old state for frame shorcut detecting a pulse
-asmlib.IsFlag("old_close_frame", false) -- The new state for frame shorcut detecting a pulse
+asmlib.IsFlag("new_close_frame", false) -- The old state for frame shortcut detecting a pulse
+asmlib.IsFlag("old_close_frame", false) -- The new state for frame shortcut detecting a pulse
 asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the game context menu
 asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 
 ------ BORDERS -------------
-asmlib.SetBorder("non-neg", 0, asmlib.GetOpVar("INFINITY"))
+asmlib.SetBorder("non-neg", 0, mathHuge)
 
 ------ GLOBAL VARIABLES ------
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
@@ -173,7 +174,7 @@ local conWorkMode = asmlib.MakeContainer("WORK_MODE")
 
 -------- CALLBACKS ----------
 local gsVarName -- This stores current variable name
-local gsCbcHash = "_init" -- This keeps suffix realted to the file
+local gsCbcHash = "_init" -- This keeps suffix related to the file
 
 gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
@@ -406,7 +407,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         local nDir = ((sBind == "invnext") and -1) or ((sBind == "invprev") and 1) or 0
         actTool:SwitchPoint(nDir,inputIsKeyDown(KEY_LSHIFT))
         asmlib.LogInstance("("..sBind..") Processed",gtArgsLogs); return true
-      elseif((sBind == "+zoom") and bPress) then -- Workmode radial menu selection
+      elseif((sBind == "+zoom") and bPress) then -- Work mode radial menu selection
         if(inputIsMouseDown(MOUSE_MIDDLE)) then -- Reserve the mouse middle for radial menu
           if(not actTool:GetRadialMenu()) then -- Zoom is bind on the middle mouse button
             asmlib.LogInstance("("..sBind..") Menu disabled",gtArgsLogs); return nil end
@@ -543,7 +544,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local wAct = mathFloor(0.196601126 * xySiz.x)
       local pnListView = vguiCreate("DListView")
       if(not IsValid(pnListView)) then pnFrame:Close()
-        asmlib.LogInstance("Listview invalid",gtArgsLogs); return nil end
+        asmlib.LogInstance("List view invalid",gtArgsLogs); return nil end
       pnListView:SetParent(pnDSV)
       pnListView:SetVisible(true)
       pnListView:SetSortable(false)
@@ -574,7 +575,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       end; oDSV:Close()
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         if(inputIsMouseDown(MOUSE_LEFT)) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then -- Delecte the file
+          if(inputIsKeyDown(KEY_LSHIFT)) then -- Delete the file
             fileDelete(sNam); pnSelf:Clear()  -- The panel will be recreated
           else pnSelf:RemoveLine(nIndex) end  -- Just remove the line selected
         end -- Process only the left mouse button
@@ -653,10 +654,10 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                 while(tOptions[iO]) do local sO = tostring(iO)
                   local sDescr = asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_"..sO)
                   pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_"..sO))
-                  iO = iO + 1 -- Loop trought the functions list and add to the menu
+                  iO = iO + 1 -- Loop trough the functions list and add to the menu
                 end; pnMenu:Open()
               end
-            else asmlib.LogInstance("File mising ["..tostring(iP).."]",gtArgsLogs) end
+            else asmlib.LogInstance("File missing ["..tostring(iP).."]",gtArgsLogs) end
             xyPos.y = xyPos.y + xySiz.y + xyDsz.y
           end
         else
@@ -866,7 +867,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local wNam = xySiz.x - wUse - wAct - wTyp
       local pnListView = vguiCreate("DListView")
       if(not IsValid(pnListView)) then pnFrame:Close()
-        asmlib.LogInstance("Listview invalid",gtArgsLogs); return nil end
+        asmlib.LogInstance("List view invalid",gtArgsLogs); return nil end
       pnListView:SetParent(pnFrame)
       pnListView:SetVisible(false)
       pnListView:SetSortable(true)
@@ -950,7 +951,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             actSpawn = asmlib.GetEntitySpawn(oPly,tgE,oTr.HitPos,trRec.Slot,trID,activrad,
                          spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
             if(actSpawn) then
-              if(utilIsValidModel(trRec.Slot)) then -- The model has valid precashe
+              if(utilIsValidModel(trRec.Slot)) then -- The model has valid pre-cache
                 local ghostcnt = asmlib.GetAsmConvar("ghostcnt", "FLT")
                 if(ghostcnt > 0) then -- The ghosting is enabled
                   if(not (asmlib.HasGhosts() and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
@@ -1202,7 +1203,7 @@ if(CLIENT) then
         asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly)..">", gtArgsLogs); return nil end
       local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
       local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
-      if(asmlib.IsOther(oEnt) or tTrig[1] == tTrig[2]) then return nil end -- Enity trigger
+      if(asmlib.IsOther(oEnt) or tTrig[1] == tTrig[2]) then return nil end -- Entity trigger
       if(not asmlib.GetAsmConvar("enctxmall", "BUL")) then -- Enable for all props
         local oRec = asmlib.CacheQueryPiece(oEnt:GetModel())
         if(not asmlib.IsHere(oRec)) then return nil end

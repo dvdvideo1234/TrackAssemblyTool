@@ -97,7 +97,6 @@ local mathModf                       = math and math.modf
 local mathSqrt                       = math and math.sqrt
 local mathFloor                      = math and math.floor
 local mathClamp                      = math and math.Clamp
-local mathHuge                       = math and math.huge
 local mathAtan2                      = math and math.atan2
 local mathRound                      = math and math.Round
 local mathRandom                     = math and math.random
@@ -557,7 +556,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("DATE_FORMAT","%y-%m-%d")
-  SetOpVar("INFINITY",mathHuge)
   SetOpVar("TIME_FORMAT","%H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
   SetOpVar("NAME_PERP",sPurpose:lower())
@@ -1865,9 +1863,9 @@ function GetCategory(oTyp,fCat)
     if(IsString(fCat)) then tCat[sTyp] = {}
       tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
-      local suc, out = pcall(tCat[sTyp].Cmp); if(not suc) then
-        LogInstance("Compilation failed "..GetReport(fCat), ssLog); return nil end
-      tCat[sTyp].Cmp = out; tTyp = tCat[sTyp]
+      local bS, vO = pcall(tCat[sTyp].Cmp); if(not bS) then
+        LogInstance("Compilation failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
+      tCat[sTyp].Cmp = vO; tTyp = tCat[sTyp]
       return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
     else LogInstance("Skip code "..GetReport(fCat), ssLog) end
   end
@@ -2775,9 +2773,9 @@ function ImportCategory(vEq, sPref)
             if(key:sub(1,1) ~= symOff) then
               tCat[key] = {}; tCat[key].Txt = txt:Trim()
               tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
-              local suc, out = pcall(tCat[key].Cmp)
-              if(suc) then tCat[key].Cmp = out else tCat[key].Cmp = nil
-                LogInstance("Compilation fail <"..key..">")
+              local bS, vO = pcall(tCat[key].Cmp)
+              if(bS) then tCat[key].Cmp = vO else tCat[key].Cmp = nil
+                LogInstance("Compilation fail <"..key..">: "..vO)
               end
             else LogInstance("Key skipped <"..key..">") end
           else LogInstance("Function missing <"..key..">") end
