@@ -1,4 +1,4 @@
-return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
+﻿return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
   ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/ISO_639-1
   -- con >> control # def >> default # hd >> header # lb >> label
   tSet["tool."..sTool..".1"             ] = "Assembles a prop-segmented track"
@@ -92,8 +92,8 @@ return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
   tSet["tool."..sTool..".pn_externdb_6" ] = "Copy table size"
   tSet["tool."..sTool..".pn_externdb_7" ] = "Edit table content (Luapad)"
   tSet["tool."..sTool..".pn_externdb_8" ] = "Delete database entry"
-  tSet["tool."..sTool..".pn_ext_dsv_lb" ] = "Extrernal DSV list"
-  tSet["tool."..sTool..".pn_ext_dsv_hd" ] = "Extrernal DSV databases list is displayed here"
+  tSet["tool."..sTool..".pn_ext_dsv_lb" ] = "External DSV list"
+  tSet["tool."..sTool..".pn_ext_dsv_hd" ] = "External DSV databases list is displayed here"
   tSet["tool."..sTool..".pn_ext_dsv_1"  ] = "Database unique prefix"
   tSet["tool."..sTool..".pn_ext_dsv_2"  ] = "Active"
   tSet["tool."..sTool..".pn_display"    ] = "The model of your track piece is displayed here"

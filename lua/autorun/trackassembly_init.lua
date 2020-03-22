@@ -73,7 +73,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.599")
+asmlib.SetOpVar("TOOL_VERSION","7.600")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -540,8 +540,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
       xySiz.x = (nW - 6 * xyDsz.x)
       xySiz.y = ((nH - 6 * xyDsz.y) - 52)
-      local wUse = mathFloor(0.803398874 * xySiz.x)
-      local wAct = mathFloor(0.196601126 * xySiz.x)
+      local wAct = mathFloor(((nRat - 1) / 6) * xySiz.x)
+      local wUse = mathFloor(xySiz.x - wAct)
       local pnListView = vguiCreate("DListView")
       if(not IsValid(pnListView)) then pnFrame:Close()
         asmlib.LogInstance("List view invalid",gtArgsLogs); return nil end
