@@ -51,6 +51,7 @@ local fileDelete                    = file and file.Delete
 local fileTime                      = file and file.Time
 local fileSize                      = file and file.Size
 local fileOpen                      = file and file.Open
+local timerSimple                   = timer and timer.Simple
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
@@ -73,7 +74,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.600")
+asmlib.SetOpVar("TOOL_VERSION","7.601")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -303,7 +304,7 @@ if(SERVER) then
         asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
-      local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
+      local maxlinear  = asmlib.GetAsmConvar("maxlinear","FLT")
       local bnderrmod  = asmlib.GetAsmConvar("bnderrmod","STR")
       local ignphysgn  = (pPly:GetInfoNum(gsToolPrefL.."ignphysgn" , 0) ~= 0)
       local freeze     = (pPly:GetInfoNum(gsToolPrefL.."freeze"    , 0) ~= 0)
@@ -314,12 +315,12 @@ if(SERVER) then
       local spnflat    = (pPly:GetInfoNum(gsToolPrefL.."spnflat"   , 0) ~= 0)
       local igntype    = (pPly:GetInfoNum(gsToolPrefL.."igntype"   , 0) ~= 0)
       local physmater  = (pPly:GetInfo   (gsToolPrefL.."physmater" , "metal"))
-      local nextx      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextx"   , 0),-nMaxOffLin , nMaxOffLin)
-      local nexty      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nexty"   , 0),-nMaxOffLin , nMaxOffLin)
-      local nextz      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextz"   , 0),-nMaxOffLin , nMaxOffLin)
-      local nextpic    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextpic" , 0),-gnMaxOffRot,gnMaxOffRot)
-      local nextyaw    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw" , 0),-gnMaxOffRot,gnMaxOffRot)
-      local nextrol    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol" , 0),-gnMaxOffRot,gnMaxOffRot)
+      local nextx      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextx"   , 0),-maxlinear, maxlinear)
+      local nexty      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nexty"   , 0),-maxlinear, maxlinear)
+      local nextz      = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextz"   , 0),-maxlinear, maxlinear)
+      local nextpic    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextpic" , 0),-gnMaxOffRot, gnMaxOffRot)
+      local nextyaw    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw" , 0),-gnMaxOffRot, gnMaxOffRot)
+      local nextrol    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol" , 0),-gnMaxOffRot, gnMaxOffRot)
       local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmConvar("maxforce" , "FLT"))
       local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmConvar("maxactrad", "FLT"))
       local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
@@ -910,10 +911,13 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
       if(not asmlib.GetAsmConvar("adviser", "BUL")) then
         asmlib.LogInstance("Adviser disabled",gtArgsLogs); return nil end
-      if(not inputIsMouseDown(MOUSE_LEFT)) then
-        asmlib.LogInstance("Physgun not hold",gtArgsLogs); return nil end
       local oPly, actSwep = asmlib.GetHookInfo(gtArgsLogs, "weapon_physgun")
       if(not oPly) then asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
+      local hasghost = asmlib.HasGhosts(); asmlib.FadeGhosts(true)
+      if(not inputIsMouseDown(MOUSE_LEFT)) then
+        if(hasghost) then timerSimple(0, asmlib.ClearGhosts) end
+        asmlib.LogInstance("Physgun not hold",gtArgsLogs); return nil
+      end -- When the player is not holding the piece clear ghosts
       local actTr = asmlib.GetCacheTrace(oPly); if(not actTr) then
         asmlib.LogInstance("Trace missing",gtArgsLogs); return nil end
       if(not actTr.Hit) then asmlib.LogInstance("Trace not hit",gtArgsLogs); return nil end
@@ -925,18 +929,19 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-      local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
-      local sizeucs  = mathClamp(asmlib.GetAsmConvar("sizeucs", "FLT"),0,nMaxOffLin)
-      local nextx    = mathClamp(asmlib.GetAsmConvar("nextx"  , "FLT"),0,nMaxOffLin)
-      local nexty    = mathClamp(asmlib.GetAsmConvar("nexty"  , "FLT"),0,nMaxOffLin)
-      local nextz    = mathClamp(asmlib.GetAsmConvar("nextz"  , "FLT"),0,nMaxOffLin)
-      local nextpic  = mathClamp(asmlib.GetAsmConvar("nextpic", "FLT"),-gnMaxOffRot,gnMaxOffRot)
-      local nextyaw  = mathClamp(asmlib.GetAsmConvar("nextyaw", "FLT"),-gnMaxOffRot,gnMaxOffRot)
-      local nextrol  = mathClamp(asmlib.GetAsmConvar("nextrol", "FLT"),-gnMaxOffRot,gnMaxOffRot)
-      local igntype  = asmlib.GetAsmConvar("igntype" , "BUL")
-      local spnflat  = asmlib.GetAsmConvar("spnflat" , "BUL")
-      local activrad = asmlib.GetAsmConvar("activrad", "FLT")
-      local atGhosts = asmlib.GetOpVar("ARRAY_GHOST"); asmlib.FadeGhosts(true)
+      local atGhosts  = asmlib.GetOpVar("ARRAY_GHOST")
+      local ghostcnt  = asmlib.GetAsmConvar("ghostcnt", "FLT")
+      local igntype   = asmlib.GetAsmConvar("igntype" , "BUL")
+      local spnflat   = asmlib.GetAsmConvar("spnflat" , "BUL")
+      local activrad  = asmlib.GetAsmConvar("activrad", "FLT")
+      local maxlinear = asmlib.GetAsmConvar("maxlinear","FLT")
+      local sizeucs   = mathClamp(asmlib.GetAsmConvar("sizeucs", "FLT"),0,maxlinear)
+      local nextx     = mathClamp(asmlib.GetAsmConvar("nextx"  , "FLT"),0,maxlinear)
+      local nexty     = mathClamp(asmlib.GetAsmConvar("nexty"  , "FLT"),0,maxlinear)
+      local nextz     = mathClamp(asmlib.GetAsmConvar("nextz"  , "FLT"),0,maxlinear)
+      local nextpic   = mathClamp(asmlib.GetAsmConvar("nextpic", "FLT"),-gnMaxOffRot,gnMaxOffRot)
+      local nextyaw   = mathClamp(asmlib.GetAsmConvar("nextyaw", "FLT"),-gnMaxOffRot,gnMaxOffRot)
+      local nextrol   = mathClamp(asmlib.GetAsmConvar("nextrol", "FLT"),-gnMaxOffRot,gnMaxOffRot)
       for trID = 1, trRec.Size, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
         local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
@@ -950,33 +955,33 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             actMonitor:DrawLine  (xyH, xyE, "y")
             actSpawn = asmlib.GetEntitySpawn(oPly,tgE,oTr.HitPos,trRec.Slot,trID,activrad,
                          spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
-            if(actSpawn) then
+            if(actSpawn) then -- When spawn data is availabe draw adviser
               if(utilIsValidModel(trRec.Slot)) then -- The model has valid pre-cache
-                local ghostcnt = asmlib.GetAsmConvar("ghostcnt", "FLT")
                 if(ghostcnt > 0) then -- The ghosting is enabled
-                  if(not (asmlib.HasGhosts() and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
+                  if(not (hasghost and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
                     if(not asmlib.MakeGhosts(1, trRec.Slot)) then
                       asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
                   end local eGho = atGhosts[1]; eGho:SetNoDraw(false)
                   eGho:SetPos(actSpawn.SPos); eGho:SetAngles(actSpawn.SAng)
                 end -- When the ghosting is disabled saves memory
-              else asmlib.ClearGhosts(nil, false) end
-              local xyO = actSpawn.OPos:ToScreen()
-              local xyB = actSpawn.BPos:ToScreen()
-              local xyS = actSpawn.SPos:ToScreen()
-              local xyP = actSpawn.TPnt:ToScreen()
-              actMonitor:DrawLine  (xyH, xyP, "g")
-              actMonitor:DrawCircle(xyP, rdS / 2, "r")
-              actMonitor:DrawCircle(xyB, rdS, "y")
-              actMonitor:DrawLine  (xyB, xyP, "r")
-              actMonitor:DrawLine  (xyB, xyO, "y")
-              -- Origin and spawn information
-              actMonitor:DrawLine  (xyO, xyS, "m")
-              actMonitor:DrawCircle(xyS, rdS, "c")
-              -- Origin and base coordinate systems
-              actMonitor:DrawUCS(actSpawn.OPos, actSpawn.OAng, "SURF", {sizeucs, rdS})
-              actMonitor:DrawUCS(actSpawn.BPos, actSpawn.BAng)
-            else local tgRec = asmlib.CacheQueryPiece(tgE:GetModel())
+                local xyO = actSpawn.OPos:ToScreen()
+                local xyB = actSpawn.BPos:ToScreen()
+                local xyS = actSpawn.SPos:ToScreen()
+                local xyP = actSpawn.TPnt:ToScreen()
+                actMonitor:DrawLine  (xyH, xyP, "g")
+                actMonitor:DrawCircle(xyP, rdS / 2, "r")
+                actMonitor:DrawCircle(xyB, rdS, "y")
+                actMonitor:DrawLine  (xyB, xyP, "r")
+                actMonitor:DrawLine  (xyB, xyO, "y")
+                -- Origin and spawn information
+                actMonitor:DrawLine  (xyO, xyS, "m")
+                actMonitor:DrawCircle(xyS, rdS, "c")
+                -- Origin and base coordinate systems
+                actMonitor:DrawUCS(actSpawn.OPos, actSpawn.OAng, "SURF", {sizeucs, rdS})
+                actMonitor:DrawUCS(actSpawn.BPos, actSpawn.BAng)
+              end
+            else
+              local tgRec = asmlib.CacheQueryPiece(tgE:GetModel())
               if(not asmlib.IsHere(tgRec)) then return nil end
               for tgI = 1, tgRec.Size do
                 local tgPOA = asmlib.LocatePOA(tgRec, tgI); if(not asmlib.IsHere(tgPOA)) then
