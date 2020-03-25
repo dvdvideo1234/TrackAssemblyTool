@@ -74,7 +74,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.601")
+asmlib.SetOpVar("TOOL_VERSION","7.602")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -149,7 +149,7 @@ asmlib.SetBorder("non-neg", 0, mathHuge)
 
 ------ GLOBAL VARIABLES ------
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
-local gaTimerSet  = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(asmlib.GetAsmConvar("timermode","STR"))
+local gaTimerSet  = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("COLORS_LIST")
       conPalette:Record("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
       conPalette:Record("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
@@ -207,7 +207,7 @@ end, gsVarName..gsCbcHash)
 gsVarName = asmlib.GetAsmConvar("timermode", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local arTim = asmlib.GetOpVar("OPSYM_DIRECTORY"):Explode(vNew)
+  local arTim = gsSymDir:Explode(vNew)
   local mkTab, ID = asmlib.GetBuilderID(1), 1
   while(mkTab) do local sTim = arTim[ID]
     local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
