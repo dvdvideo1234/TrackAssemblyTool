@@ -40,6 +40,7 @@ local mathMin                       = math and math.min
 local mathHuge                      = math and math.huge
 local gameGetWorld                  = game and game.GetWorld
 local tableConcat                   = table and table.concat
+local tableRemove                   = table and table.remove
 local mathAbs                       = math and math.abs
 local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
@@ -74,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.603")
+asmlib.SetOpVar("TOOL_VERSION","7.604")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -761,14 +762,22 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
-      pnButton.DoClick = function(pnSelf)
-        asmlib.LogInstance("Button.DoClick <"..pnSelf:GetText()..">",gtArgsLogs)
+      pnButton.DoClick = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.Button"
+        asmlib.LogInstance("Click"..asmlib.GetReport(pnSelf:GetText()), gtArgsLogs)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          asmlib.LogInstance("Export DB",gtArgsLogs)
-          asmlib.ExportCategory(3)
-          asmlib.ExportDSV("PIECES")
-          asmlib.ExportDSV("ADDITIONS")
-          asmlib.ExportDSV("PHYSPROPERTIES")
+          if(inputIsKeyDown(KEY_LSHIFT)) then
+            local model = asmlib.GetAsmConvar("model", "STR")
+            local oRec  = asmlib.CacheQueryPiece(model)
+            if(asmlib.IsHere(oRec)) then asmlib.ExportTypeDSV(oRec.Type)
+              asmlib.LogInstance("Success type export "..asmlib.GetReport(oRec.Type), gtArgsLogs)
+            end
+          else
+            asmlib.LogInstance("Export instance", gtArgsLogs)
+            asmlib.ExportCategory(3)
+            asmlib.ExportDSV("PIECES")
+            asmlib.ExportDSV("ADDITIONS")
+            asmlib.ExportDSV("PHYSPROPERTIES")
+          end
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
         end
       end
@@ -787,12 +796,12 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnComboBox:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
       pnComboBox:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol"))
       pnComboBox:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), defTab[1][1])
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), defTab[2][1])
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), defTab[3][1])
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), defTab[4][1])
-      pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
-        asmlib.LogInstance("ComboBox.OnSelect ID #"..nInd.."<"..sVal..">"..tostring(anyData),gtArgsLogs)
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), makTab:GetColumnName(1))
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), makTab:GetColumnName(2))
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), makTab:GetColumnName(3))
+      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), makTab:GetColumnName(4))
+      pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData) gtArgsLogs[1] = "OPEN_FRAME.ComboBox"
+        asmlib.LogInstance("Selected "..asmlib.GetReport3(nInd,sVal,anyData),gtArgsLogs)
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel --------------
@@ -811,7 +820,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnModelPanel:SetVisible(true)
       pnModelPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_display_lb"))
       pnModelPanel:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_display"))
-      pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
+      pnModelPanel.LayoutEntity = function(pnSelf, oEnt) gtArgsLogs[1] = "OPEN_FRAME.ModelPanel"
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("ModelPanel.LayoutEntity Box invalid",gtArgsLogs); return nil end
@@ -841,15 +850,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnTextEntry:SetVisible(true)
       pnTextEntry:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern_lb"))
       pnTextEntry:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern"))
-      pnTextEntry.OnEnter = function(pnSelf)
-        local sPat = tostring(pnSelf:GetValue() or "")
-        local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
-              sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
-        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
-          asmlib.LogInstance("TextEntry.OnEnter Failed to update ListView {"
-            ..sAbr.."#"..sCol.."#"..sPat.."}",gtArgsLogs); return nil
-        end
-      end
       ------------ ListView --------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
@@ -882,7 +882,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
       pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
-      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+      pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine) gtArgsLogs[1] = "OPEN_FRAME.ListView"
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0); pnModelPanel:SetModel(uiMod) -- Active points amount
         local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,nRatio,nRatio-1); if(not asmlib.IsHere(uiBox)) then
@@ -901,6 +901,15 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
+      -- Leave the TextEntry here so it can access and update the local ListView reference
+      pnTextEntry.OnEnter = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.TextEntry"
+        local sPat = tostring(pnSelf:GetValue() or "")
+        local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
+              sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
+        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
+          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport3(sAbr,sCol,sPat,gtArgsLogs)); return nil
+        end
+      end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",gtArgsLogs); return nil
     end)

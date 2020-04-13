@@ -118,6 +118,7 @@ local tableMaxn                      = table and table.maxn
 local tableGetKeys                   = table and table.GetKeys
 local tableInsert                    = table and table.insert
 local tableCopy                      = table and table.Copy
+local tableConcat                    = table and table.concat
 local tableRemove                    = table and table.remove
 local debugGetinfo                   = debug and debug.getinfo
 local debugTrace                     = debug and debug.Trace
@@ -439,12 +440,17 @@ end
 
 -- Golden retriever. Retrieves file line as string
 -- But seriously returns the sting line and EOF flag
-function GetStringFile(pFile)
+function GetStringFile(pFile,bNoTrim)
   if(not pFile) then LogInstance("No file"); return "", true end
   local sCh, sLine = "X", "" -- Use a value to start cycle with
   while(sCh) do sCh = pFile:Read(1); if(not sCh) then break end
-    if(sCh == "\n") then return sLine:Trim(), false else sLine = sLine..sCh end
-  end; return sLine:Trim(), true -- EOF has been reached. Return the last data
+    if(sCh == "\n") then
+      if(bNoTrim) then return sLine, false end
+      return sLine:Trim(), false
+    else sLine = sLine..sCh end
+  end -- EOF has been reached. Return the last data
+  if(bNoTrim) then return sLine, true end
+  return sLine:Trim(), true
 end
 
 function ToIcon(vKey, vVal)
@@ -1280,17 +1286,19 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
   return self -- Register the screen under the key
 end
 
-function SetAction(sKey,fAct,tDat)
+function SetAction(sKey,fAct,tDat,...)
   if(not (sKey and IsString(sKey))) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
   if(not (fAct and type(fAct) == "function")) then
     LogInstance("Action mismatch "..GetReport(fAct)); return nil end
   if(not libAction[sKey]) then libAction[sKey] = {} end
-  libAction[sKey].Act, libAction[sKey].Dat = fAct, {}
-  if(IsTable(tDat)) then for key, val in pairs(tDat) do
-    libAction[sKey].Dat[key] = tDat[key] end
-  else libAction[sKey].Dat[1] = tDat end
-  libAction[sKey].Dat.Slot = sKey; return true
+  local tAct = libAction[sKey]; tAct.Act, tAct.Dat = fAct, {}
+  if(IsTable(tDat)) then
+    for key, val in pairs(tDat) do
+      tAct.Dat[key] = tDat[key]
+    end
+  else tAct.Dat = {tDat, ...} end
+  tAct.Dat.Slot = sKey; return true
 end
 
 function GetActionCode(sKey)
@@ -2059,7 +2067,27 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:GetColumnID(sN)
     local sN, qtDef = tostring(sN or ""), self:GetDefinition()
     for iD = 1, qtDef.Size do if(qtDef[iD][1] == sN) then return iD end
-    end; LogInstance("Mismatch <"..tostring(sN)..">"); return 0
+    end; LogInstance("Mismatch "..GetReport(sN), tabDef.Nick); return 0
+  end
+  -- Returns the name of the found column
+  function self:GetColumnName(vD)
+    local iD, qtDef = (tonumber(vD) or 0), self:GetDefinition()
+    if(qtDef[iD]) then return qtDef[iD][1] end
+    LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
+  end
+  -- Returns the colomn information by the given ID
+  function self:GetColumnInfo(vD)
+    local iD, qtDef = (tonumber(vD) or 0), self:GetDefinition()
+    if(qtDef[iD]) then return qtDef[iD] end
+    LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
+  end
+  -- Returns row with swapped column names to indexes
+  function self:GetArrayRow(tR)
+    local tA, qtDef = {}, self:GetDefinition()
+    for iD = 1, qtDef.Size do
+      local sN = self:GetColumnName(iD); if(sN) then tA[iD] = tR[sN]
+      else LogInstance("Mismatch "..GetReport(vD), tabDef.Nick) end
+    end; return tA
   end
   -- Removes the object from the list
   function self:Remove(vRet)
@@ -2512,9 +2540,9 @@ function CacheQueryPiece(sModel)
         LogInstance("No data found <"..Q..">"); return nil end
       local iCnt = 1 --- Nothing registered. Start from the beginning
       stPiece.Slot, stPiece.Size = sModel, 0
-      stPiece.Type = qData[1][defTab[2][1]]
-      stPiece.Name = qData[1][defTab[3][1]]
-      stPiece.Unit = qData[1][defTab[8][1]]
+      stPiece.Type = qData[1][makTab:GetColumnName(2)]
+      stPiece.Name = qData[1][makTab:GetColumnName(3)]
+      stPiece.Unit = qData[1][makTab:GetColumnName(8)]
       while(qData[iCnt]) do local qRec = qData[iCnt]
         if(not IsHere(RegisterPOA(stPiece,iCnt,
           qRec[defTab[5][1]], qRec[defTab[6][1]], qRec[defTab[7][1]]))) then
@@ -2618,9 +2646,9 @@ function CacheQueryPanel()
         LogInstance("Cannot sort cache data"); return nil end; stPanel.Size = 0
       for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
         local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
-        vPanel[defTab[1][1]] = vSort.Key
-        vPanel[defTab[2][1]] = tCache[vSort.Key].Type
-        vPanel[defTab[3][1]] = tCache[vSort.Key].Name; stPanel.Size = iCnt
+        vPanel[makTab:GetColumnName(1)] = vSort.Key
+        vPanel[makTab:GetColumnName(2)] = tCache[vSort.Key].Type
+        vPanel[makTab:GetColumnName(3)] = tCache[vSort.Key].Name; stPanel.Size = iCnt
       end; return stPanel
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
@@ -4037,4 +4065,121 @@ function GetCatmullRomCurve(tV, nT, nA) if(not IsTable(tV)) then
     local tS = GetCatmullRomCurveSegment(cA, cB, cC, cD, nT, nA)
     for iK = 1, (nT+1) do tC[iC] = tS[iK]; iC = (iC + 1) end
   end; tC[iC] = Vector(); tC[iC]:Set(tV[nV-1]); return tC
+end
+
+local function ExportExternalDSV(fF,qData,makTab,sName,sInd,tAddit)
+  local bAddit, makA = (IsHere(tAddit) and IsTable(tAddit))
+  if(bAddit) then
+    makA = GetBuilderNick("ADDITIONS")
+    if(not IsHere(makA)) then
+      LogInstance("Missing table builder ADDITIONS")
+      fE:Flush(); fE:Close(); fS:Close(); return nil
+    end
+  end
+  fF:Write(sInd:rep(1).."local "..sName.." = {\n")
+  local modID, typID, idxID, fRow, sMod = 1, 2, 4, true, ""
+  for iD = 1, #qData do local qRow = qData[iD]
+    local aRow = makTab:GetArrayRow(qRow)
+    for iA = 1, #aRow do local vA = aRow[iA]
+      aRow[iA] = makTab:Match(vA,iA,true,"\"",true,true)
+      if(not IsHere(aRow[iA])) then
+        LogInstance("Matching error "..GetReport2(vA,sMod))
+        fF:Flush(); fF:Close(); fS:Close(); return nil
+      end
+    end
+    if(fRow) then sMod = aRow[modID]
+      fF:Write(sInd:rep(2).."["..sMod.."] = {\n")
+      aRow[typID], aRow[idxID] = "myType", "gsSymOff"
+      tableRemove(aRow, 1)
+      fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+      fRow = false
+      if(bAddit) then -- Analyize addision for given model
+      end -- Store the addition data in the table. Format: qData
+    else
+      if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2); sMod = aRow[modID]
+        fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..sMod.."] = {\n")
+        aRow[typID], aRow[idxID] = "myType", "gsSymOff"
+        tableRemove(aRow, 1)
+        fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+        if(bAddit) then -- Analyize addision for given model
+        end -- Store the addition data in the table. Format: qData
+      else
+        aRow[typID], aRow[idxID] = "myType", "gsSymOff"
+        tableRemove(aRow, 1)
+        fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+      end
+    end
+  end
+  fF:Seek(fF:Tell() - 2)
+  fF:Write("\n"..sInd:rep(2).."}\n")
+  fF:Write(sInd:rep(1).."}\n")
+end
+
+function ExportTypeDSV(sType)
+  if(SERVER) then return nil end
+  local sMoDB = GetOpVar("MODE_DATABASE")
+  local qsKey = GetOpVar("FORM_KEYSTMT")
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local sPref = sType:gsub("[^%w]","_")
+  local sFunc = "ExportTypeDSV"
+  if(not IsBlank(sType)) then
+    local sS = "data/autosave/z_autorun_add_"..sTool..".lua"
+    local sN = GetOpVar("DIRPATH_BAS")
+          sN = sN..GetOpVar("DIRPATH_INS")
+          sN = sN.."z_autorun_add_"..sPref..".txt"
+    local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
+      LogInstance("Autoexport generation fail"); return nil end
+    local fS = fileOpen(sS, "rb", "GAME"); if(not fS) then
+      LogInstance("Autoexport source fail"); fE:Flush(); fE:Close(); return nil end
+    if(sMoDB == "SQL") then
+      local makP = GetBuilderNick("PIECES")
+      if(not IsHere(makP)) then
+        LogInstance("Missing table builder PIECES")
+        fE:Flush(); fE:Close(); fS:Close(); return nil
+      end
+      local qType = makP:Match(sType, 2, true)
+      local Q = CacheStmt(qsKey:format(sFunc, "PIECES"), nil, qType)
+      if(not Q) then
+        local sStmt = makP:Select():Where({2,"%s"}):Order(1,4):Get()
+        if(not IsHere(sStmt)) then LogInstance("Build statement failed")
+          fE:Flush(); fE:Close(); fS:Close(); return nil
+        end
+        Q = CacheStmt(qsKey:format(sFunc, "PIECES"), sStmt, qType)
+      end
+      local qData = sqlQuery(Q)
+      if(not qData and IsBool(qData)) then
+        LogInstance("SQL exec error <"..sqlLastError()..">")
+        LogInstance("SQL exec query <"..Q..">")
+        fE:Flush(); fE:Close(); fS:Close(); return nil
+      end
+      if(qData and qData[1]) then
+        local sLine, isEOF, isSkip, sInd, tAddit = "", false, false, "  ", {}
+        while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)
+          if(sLine:find("%s*local%s+myAddon%s+=%s+")) then isSkip = true
+            fE:Write("local myAddon = \""..sType.."\" -- Your addon name goes here\n")
+          elseif(sLine:find("%s*local%s+myCategory%s+=%s+")) then isSkip = true
+            local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
+            if(IsTable(tCat) and tCat.Txt) then
+              fE:Write(sInd:rep(1).."local myCategory = {\n")
+              fE:Write(sInd:rep(2).."[myType] = {Txt = [[\n")
+              fE:Write(sInd:rep(3)..tCat.Txt:gsub("\n","\n"..sInd:rep(3)).."\n")
+              fE:Write(sInd:rep(2).."]]}\n")
+              fE:Write(sInd:rep(1).."}\n")
+            else
+              fE:Write(sInd:rep(1).."local myCategory = {}\n")
+            end
+          elseif(sLine:find("%s*local%s+myPieces%s+=%s+")) then isSkip = true
+            ExportExternalDSV(fE, qData, makP, "myPieces", sInd, tAddit)
+          else
+            if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
+          end
+          if(not isSkip) then fE:Write(sLine.."\n") end
+        end
+        fE:Flush(); fE:Close(); fS:Close()
+      end
+    else
+      LogInstance("Wrong database mode <"..sMoDB..">")
+      fE:Flush(); fE:Close(); fS:Close(); return nil
+    end
+  end
 end

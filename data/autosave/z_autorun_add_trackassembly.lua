@@ -7,6 +7,7 @@
  * must be greater alphabetically than /trackasmlib/, so the API of the
  * module can be loaded before you can use it like seen below.
 ]]--
+
 -- Local reference to the module.
 local asmlib = trackasmlib
 
@@ -93,6 +94,7 @@ if(asmlib) then
     end -- Third argument is the delimiter. The default tab is used
     asmlib.LogInstance("RegisterDSV done <"..myPrefix..">")
   end
+
   --[[
    * This is used if you want to make internal categories for your addon
    * You must make a function as a string under the hash of your addon
@@ -132,18 +134,17 @@ if(asmlib) then
    *          it must be related to your addon ( default is instance prefix )
   ]]--
   asmlib.LogInstance("ExportCategory start <"..myPrefix..">")
-  if(CLIENT) then
-    if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
-      myThrowError("Failed to synchronize category")
-    end
-    asmlib.LogInstance("ExportCategory done <"..myPrefix..">")
-  else
-    asmlib.LogInstance("ExportCategory skip <"..myPrefix..">")
-  end
+  if(CLIENT) then -- Category handling is client side only
+    if(asmlib.IsTable(myCategory) and asmlib.IsHere(next(myCategory))) then
+      if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
+        myThrowError("Failed to synchronize category")
+      end; asmlib.LogInstance("ExportCategory done <"..myPrefix..">")
+    else asmlib.LogInstance("ExportCategory skip <"..myPrefix..">") end
+  else asmlib.LogInstance("ExportCategory server <"..myPrefix..">") end
 
   --[[
    * Create a table and populate it as shown below
-   * In the square brackets goes your model,
+   * In the square brackets goes your MODEL,
    * and then for every active point, you must have one array of
    * strings, where the elements match the following data settings.
    * You can use the disable event /#/ to make TA auto-fill
@@ -153,7 +154,7 @@ if(asmlib) then
    * /!<attachment_name>/ and it depends what attachment name you gave it when you
    * created the model. If you need TA to extract the origin/angle from an attachment named
    * /test/ for example, you just need to put the string /!test/ in the origin/angle column for that model.
-   * {TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
+   * {MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
    * TYPE   > This string is the name of the type your stuff will reside in the panel.
    *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable.
    *          If it is empty uses the string /TYPE/, so make sure you fill this.
@@ -176,7 +177,7 @@ if(asmlib) then
    * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
    *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
   ]]--
-  local myTable = {
+  local myPieces = {
     ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack
       {myType , gsSymOff, 1, "","0,-47.455105,1.482965","0,-90,0",""}, -- The first point parameter
       {myType , gsSymOff, 2, "","0, 47.455105,1.482965","0, 90,0",""}  -- The second point parameter
@@ -206,15 +207,88 @@ if(asmlib) then
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
    * sDelim > The delimiter used by the server/client ( default is a tab symbol )
   ]]--
-  asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
-  if(not asmlib.SynchronizeDSV("PIECES", myTable, true, myPrefix)) then
-    myThrowError("Failed to synchronize track pieces")
-  else -- You are saving me from all the work for manually generating these
-    asmlib.LogInstance("TranslateDSV start <"..myPrefix..">")
-    if(not asmlib.TranslateDSV("PIECES", myPrefix)) then
-      myThrowError("Failed to translate DSV into Lua") end
-    asmlib.LogInstance("TranslateDSV done <"..myPrefix..">")
-  end -- Now we have Lua inserts and DSV
+  if(asmlib.IsTable(myPieces) and asmlib.IsHere(next(myPieces))) then
+    asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
+    if(not asmlib.SynchronizeDSV("PIECES", myPieces, true, myPrefix)) then
+      myThrowError("Failed to synchronize track pieces")
+    else -- You are saving me from all the work for manually generating these
+      asmlib.LogInstance("TranslateDSV start <"..myPrefix..">")
+      if(not asmlib.TranslateDSV("PIECES", myPrefix)) then
+        myThrowError("Failed to translate DSV into Lua") end
+      asmlib.LogInstance("TranslateDSV done <"..myPrefix..">")
+    end -- Now we have Lua inserts and DSV
+  end
+
+  --[[
+   * Create a table and populate it as shown below
+   * In the square brackets goes your MODELBASE,
+   * and then for every active point, you must have one array of
+   * strings and numbers, where the elements match the following data settings.
+   * {MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID}
+   * MODELADD > This is the model of the addition entity. It is mandatory and cannot be disabled.
+   * ENTCLASS > This is the class of the addition entity. It is mandatory and cannot be disabled.
+   * LINEID   > This is the ID of the point that can be selected for building. They must be
+   *            sequential and mandatory. If provided, the ID must the same as the row index under
+   *            a given model key. Disabling this, makes it use the the index of the current line.
+   *            Use that to swap the active points around by only moving the desired row up or down.
+   *            For the example table definition below, the line ID in the database will be the same.
+   * POSOFF   > This is the local position vector offset that TA uses to place the addition.
+   *            A NULL, empty or not available string is treated as taking the base model position.
+   *            Disabling this using the disable event makes it take {0,0,0}
+   * ANGOFF   > This is the local angle offset that TA uses to place the addition.
+   *            A NULL, empty or not available string is treated as taking the base model angle.
+   *            Disabling this using the disable event makes it take {0,0,0}
+   * MOVETYPE > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
+   * PHYSINIT > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
+   * DRSHADOW > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
+   *            When the parameter is equal to zero skips the call of /Entity:DrawShadow/
+   * PHMOTION > This internally calls /Entity:EnableMotion/ if the database parameter is not zero.
+   *            When the parameter is equal to zero skips the call of /Entity:EnableMotion/
+   * PHYSLEEP > This internally calls /Entity:Sleep/ if the database parameter is grater than zero.
+   *            When the parameter is equal or less than zero skips the call of /Entity:Sleep/
+   * SETSOLID > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
+  ]]--
+  local myAdditions = {}
+
+  if(asmlib.IsTable(myAdditions) and asmlib.IsHere(next(myAdditions))) then
+    asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
+    if(not asmlib.SynchronizeDSV("ADDITIONS", myAdditions, true, myPrefix)) then
+      myThrowError("Failed to synchronize track additions")
+    else -- You are saving me from all the work for manually generating these
+      asmlib.LogInstance("TranslateDSV start <"..myPrefix..">")
+      if(not asmlib.TranslateDSV("ADDITIONS", myPrefix)) then
+        myThrowError("Failed to translate DSV into Lua") end
+      asmlib.LogInstance("TranslateDSV done <"..myPrefix..">")
+    end -- Now we have Lua inserts and DSV
+  end
+
+  --[[
+   * Create a table and populate it as shown below
+   * In the square brackets goes your TYPE,
+   * and then for every active point, you must have one array of
+   * strings and numbers, where the elements match the following data settings.
+   * {TYPE, LINEID, NAME}
+   * LINEID   > This is the ID of the point that can be selected for building. They must be
+   *            sequential and mandatory. If provided, the ID must the same as the row index under
+   *            a given model key. Disabling this, makes it use the the index of the current line.
+   *            Use that to swap the active points around by only moving the desired row up or down.
+   *            For the example table definition below, the line ID in the database will be the same.
+   * NAME     > This stores the name of the physical property
+  ]]--
+
+  local myPhysproperties = {}
+
+  if(asmlib.IsTable(myPhysproperties) and asmlib.IsHere(next(myPhysproperties))) then
+    asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
+    if(not asmlib.SynchronizeDSV("PHYSPROPERTIES", myPhysproperties, true, myPrefix)) then
+      myThrowError("Failed to synchronize track additions")
+    else -- You are saving me from all the work for manually generating these
+      asmlib.LogInstance("TranslateDSV start <"..myPrefix..">")
+      if(not asmlib.TranslateDSV("PHYSPROPERTIES", myPrefix)) then
+        myThrowError("Failed to translate DSV into Lua") end
+      asmlib.LogInstance("TranslateDSV done <"..myPrefix..">")
+    end -- Now we have Lua inserts and DSV
+  end
 
   asmlib.LogInstance("<<< "..myScript)
 else
