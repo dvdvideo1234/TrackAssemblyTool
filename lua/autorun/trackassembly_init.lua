@@ -75,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.604")
+asmlib.SetOpVar("TOOL_VERSION","7.605")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -768,8 +768,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
           if(inputIsKeyDown(KEY_LSHIFT)) then
             local model = asmlib.GetAsmConvar("model", "STR")
             local oRec  = asmlib.CacheQueryPiece(model)
-            if(asmlib.IsHere(oRec)) then asmlib.ExportTypeDSV(oRec.Type)
-              asmlib.LogInstance("Success type export "..asmlib.GetReport(oRec.Type), gtArgsLogs)
+            if(asmlib.IsHere(oRec)) then asmlib.ExportTypeAR(oRec.Type)
+              asmlib.LogInstance("Type export "..asmlib.GetReport(oRec.Type), gtArgsLogs)
             end
           else
             asmlib.LogInstance("Export instance", gtArgsLogs)
@@ -1412,8 +1412,10 @@ asmlib.CreateTable("ADDITIONS",{
       for mod, rec in pairs(tCache) do
         local sData = defTab.Name..sDelim..mod
         for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
-          for iID = 2, defTab.Size do local vData = tData[defTab[iID][1]]
-            oFile:Write(sDelim..makTab:Match(tData[defTab[iID][1]],iID,true,"\""))
+          for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
+            local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
+              asmlib.LogInstance("Cannot match "..asmlib.GetReport3()); return false
+            end; oFile:Write(sDelim..tostring(vM or ""))
           end; oFile:Write("\n") -- Data is already inserted, there will be no crash
         end
       end; return true

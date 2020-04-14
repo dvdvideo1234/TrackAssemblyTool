@@ -1260,7 +1260,9 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetIndentSize(0)
   local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
   while(cqPanel[iCnt]) do local vRec = cqPanel[iCnt]
-    local sMod, sTyp, sNam = vRec[defTable[1][1]], vRec[defTable[2][1]], vRec[defTable[3][1]]
+    local sMod = vRec[makTab:GetColumnName(1)]
+    local sTyp = vRec[makTab:GetColumnName(2)]
+    local sNam = vRec[makTab:GetColumnName(3)]
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
