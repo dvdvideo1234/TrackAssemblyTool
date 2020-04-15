@@ -12,7 +12,7 @@
 local asmlib = trackasmlib
 
 -- Change this to your addon name.
-local myAddon = "Test's track pack" -- Your addon name goes here
+local myAddon = "Shinji85's Rails" -- Your addon name goes here
 
 --[[
  * Change this if you want to use different in-game type
@@ -53,12 +53,16 @@ end
 
 if(asmlib) then
   -- Store a reference to disable symbol
+  local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
+  local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
   local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
+  local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
 
   -- This is the path to your DSV
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
-                asmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
-                asmlib.GetOpVar("TOOLNAME_PU")
+                asmlib.GetOpVar("DIRPATH_DSV")..
+                gsFormPF:format(myPrefix, gsToolPF.."PIECES")
+
   --[[
    * This flag is used when the track pieces list needs to be processed.
    * It generally represents the locking file persistence flag. It is
@@ -68,7 +72,7 @@ if(asmlib) then
    * your local database every time Gmod loads, but then the user will
    * skip the available updates of your addon until he/she deletes the DSVs.
   ]]--
-  local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
+  local myFlag = file.Exists(myDsv, "DATA")
 
   -- Tell TA what custom script we just called don't touch it
   asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
@@ -108,18 +112,15 @@ if(asmlib) then
   ]]--
   local myCategory = {
     [myType] = {Txt = [[
-      function(m)
-        local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
-        local s = r:find("/"); r = s and r:sub(1,s-1) or nil
-        local n = nil
-        if(r) then
-          if(r ==  "metal" ) then n = "My metal plate" end
-          if(r == "windows") then n = "My glass plate" end
-        end
-        r = r and r:gsub("^%l", string.upper) or nil
-        p = r and {r} or nil
-        return p, n
-      end
+      function(m) local c
+      local r = m:gsub("models/shinji85/train/rail_", "")
+      if(r:find("cross")) then c = "crossing"
+      elseif(r:find("switch")) then c = "switch"
+      elseif(r:find("curve")) then c = "curve"
+      elseif(r:find("bumper")) then c = "bumper"
+      elseif(r:find("junction")) then c = "junction"
+      elseif(r:find("%dx")) then c = "straight"
+      end; c = (c and c:gsub("^%l", string.upper) or nil) return c end
     ]]}
   }
 
@@ -135,7 +136,7 @@ if(asmlib) then
   ]]--
   asmlib.LogInstance("ExportCategory start <"..myPrefix..">")
   if(CLIENT) then -- Category handling is client side only
-    if(asmlib.IsTable(myCategory) and asmlib.IsHere(next(myCategory))) then
+    if(not asmlib.IsEmpty(myCategory)) then
       if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
         myThrowError("Failed to synchronize category")
       end; asmlib.LogInstance("ExportCategory done <"..myPrefix..">")
@@ -178,13 +179,108 @@ if(asmlib) then
    *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
   ]]--
   local myPieces = {
-    ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack
-      {myType , gsSymOff, 1, "","0,-47.455105,1.482965","0,-90,0",""}, -- The first point parameter
-      {myType , gsSymOff, 2, "","0, 47.455105,1.482965","0, 90,0",""}  -- The second point parameter
+    ["models/shinji85/train/rail_16x.mdl"] = {
+      {myType, "Straight 16x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Straight 16x", gsSymOff, gsMissDB, "-2048,0,7.346", "0,180,0", gsMissDB}
     },
-    ["models/props_phx/construct/windows/window1x2.mdl"] = {
-      {myType , gsSymOff, gsSymOff, "","0,-23.73248,1.482965","0,-90,0",""},
-      {myType , gsSymOff, gsSymOff, "","0, 71.17773,1.482965","0, 90,0",""}
+    ["models/shinji85/train/rail_1x.mdl"] = {
+      {myType, "Straight 1x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Straight 1x", gsSymOff, gsMissDB, "-128,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_2x.mdl"] = {
+      {myType, "Straight 2x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Straight 2x", gsSymOff, gsMissDB, "-256,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_4x.mdl"] = {
+      {myType, "Straight 4x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Straight 4x", gsSymOff, gsMissDB, "-512,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_4x_crossing.mdl"] = {
+      {myType, "Crossing 4x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Crossing 4x", gsSymOff, gsMissDB, "-512,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_8x.mdl"] = {
+      {myType, "Straight 8x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Straight 8x", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_bumper.mdl"] = {
+      {myType, "Bumper", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB}
+    },
+    ["models/shinji85/train/rail_cross_4x.mdl"] = {
+      {myType, "Cross 4x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Cross 4x", gsSymOff, gsMissDB, "-512,0,7.346", "0,180,0", gsMissDB},
+      {myType, "Cross 4x", gsSymOff, gsMissDB, "-256,-256,7.346", "0,270,0", gsMissDB},
+      {myType, "Cross 4x", gsSymOff, gsMissDB, "-256,256,7.346", "0,90,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_cs.mdl"] = {
+      {myType, "Counter Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Counter Switch", gsSymOff, gsMissDB, "-908.81165,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_csfix.mdl"] = {
+      {myType, "Counter Switch Fix", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Counter Switch Fix", gsSymOff, gsMissDB, "-115.18847,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_curve_cc.mdl"] = {
+      {myType, "Curve Cc", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Curve Cc", gsSymOff, gsMissDB, "-966.40515 ,128, 7.346", "0,165,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_curve_r1.mdl"] = {
+      {myType, "Curve R1", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Curve R1", gsSymOff, gsMissDB, "-1060.12341 ,139.56763 ,7.346", "0,165,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_curve_r11.mdl"] = {
+      {myType, "Curve R11", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Curve R11", gsSymOff, gsMissDB, "-1086.11584 ,449.88458 ,7.346", "0,135,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_curve_r12.mdl"] = {
+      {myType, "Curve R12", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Curve R12", gsSymOff, gsMissDB, "-905.09656 ,374.90414 ,7.346", "0,135,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_curve_r13.mdl"] = {
+      {myType, "Curve R13", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Curve R13", gsSymOff, gsMissDB, "-724.07727 ,299.92276 ,7.346", "0,135,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_curve_r2.mdl"] = {
+      {myType, "Curve R2", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Curve R2", gsSymOff, gsMissDB, "-993.86572 ,130.84471 ,7.346", "0,165,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_curve_r3.mdl"] = {
+      {myType, "Curve R3", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Curve R3", gsSymOff, gsMissDB, "-927.60797 ,122.1218 ,7.346", "0,165,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_cx.mdl"] = {
+      {myType, "Counter X", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Counter X", gsSymOff, gsMissDB, "-362.51361,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_cxfix.mdl"] = {
+      {myType, "Counter X Fix", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Counter X Fix", gsSymOff, gsMissDB, "-149.48648,0,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_double_4x_crossing.mdl"] = {
+      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "0,128,7.346", gsMissDB, gsMissDB},
+      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "-512,128,7.346", "0,180,0", gsMissDB},
+      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "0,-128,7.346", gsMissDB, gsMissDB},
+      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "-512,-128,7.346", "0,180,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_double_bumper.mdl"] = {
+      {myType, "Bumper Double", gsSymOff, gsMissDB, "0,128,7.346", gsMissDB, gsMissDB},
+      {myType, "Bumper Double", gsSymOff, gsMissDB, "0,-128,7.346", gsMissDB, gsMissDB}
+    },
+    ["models/shinji85/train/rail_l_switch.mdl"] = {
+      {myType, "Left Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Left Switch", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB},
+      {myType, "Left Switch", gsSymOff, gsMissDB, "-966.40515 ,-128, 7.346", "0,195,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_r_switch.mdl"] = {
+      {myType, "Right Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "Right Switch", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB},
+      {myType, "Right Switch", gsSymOff, gsMissDB, "-966.40515 ,128, 7.346", "0,165,0", gsMissDB}
+    },
+    ["models/shinji85/train/rail_x_junction.mdl"] = {
+      {myType, "X Junction", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
+      {myType, "X Junction", gsSymOff, gsMissDB, "-494.55,0,7.346", "0,180,0", gsMissDB},
+      {myType, "X Junction", gsSymOff, gsMissDB, "-33.129,-123.63866,7.346", "0,-30,0", gsMissDB},
+      {myType, "X Junction", gsSymOff, gsMissDB, "-461.42175,123.63649,7.346", "0,150,0", gsMissDB}
     }
   }
 
@@ -207,7 +303,7 @@ if(asmlib) then
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
    * sDelim > The delimiter used by the server/client ( default is a tab symbol )
   ]]--
-  if(asmlib.IsTable(myPieces) and asmlib.IsHere(next(myPieces))) then
+  if(not asmlib.IsEmpty(myPieces)) then
     asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
     if(not asmlib.SynchronizeDSV("PIECES", myPieces, true, myPrefix)) then
       myThrowError("Failed to synchronize track pieces")
@@ -232,12 +328,10 @@ if(asmlib) then
    *            a given model key. Disabling this, makes it use the the index of the current line.
    *            Use that to swap the active points around by only moving the desired row up or down.
    *            For the example table definition below, the line ID in the database will be the same.
-   * POSOFF   > This is the local position vector offset that TA uses to place the addition.
-   *            A NULL, empty or not available string is treated as taking the base model position.
-   *            Disabling this using the disable event makes it take {0,0,0}
+   * POSOFF   > This is the local position vector offset that TA uses to place the addition relative to MODELBASE.
+   *            A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
    * ANGOFF   > This is the local angle offset that TA uses to place the addition.
-   *            A NULL, empty or not available string is treated as taking the base model angle.
-   *            Disabling this using the disable event makes it take {0,0,0}
+   *            A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
    * MOVETYPE > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
    * PHYSINIT > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
    * DRSHADOW > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
@@ -248,9 +342,20 @@ if(asmlib) then
    *            When the parameter is equal or less than zero skips the call of /Entity:Sleep/
    * SETSOLID > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
   ]]--
-  local myAdditions = {}
+  local myAdditions = {
+    ["models/shinji85/train/rail_l_switch.mdl"] = {
+      {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,-125,0", "0,180,0", -1, -1, -1, 0, -1, -1},
+      {"models/shinji85/train/rail_l_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, -1, 1, 6},
+      {"models/shinji85/train/rail_l_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, 0, -1, 0}
+    },
+    ["models/shinji85/train/rail_r_switch.mdl"] = {
+      {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,125,0", gsMissDB, -1, -1, -1, 0, -1, -1},
+      {"models/shinji85/train/rail_r_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, -1, 1, 6},
+      {"models/shinji85/train/rail_r_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, 0, -1, 0}
+    }
+  }
 
-  if(asmlib.IsTable(myAdditions) and asmlib.IsHere(next(myAdditions))) then
+  if(not asmlib.IsEmpty(myAdditions)) then
     asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
     if(not asmlib.SynchronizeDSV("ADDITIONS", myAdditions, true, myPrefix)) then
       myThrowError("Failed to synchronize track additions")
@@ -278,7 +383,7 @@ if(asmlib) then
 
   local myPhysproperties = {}
 
-  if(asmlib.IsTable(myPhysproperties) and asmlib.IsHere(next(myPhysproperties))) then
+  if(not asmlib.IsEmpty(myPhysproperties)) then
     asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
     if(not asmlib.SynchronizeDSV("PHYSPROPERTIES", myPhysproperties, true, myPrefix)) then
       myThrowError("Failed to synchronize track additions")

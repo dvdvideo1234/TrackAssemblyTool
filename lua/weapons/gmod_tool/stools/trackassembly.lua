@@ -563,6 +563,8 @@ end
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then
     asmlib.LogInstance("Working on client",gtArgsLogs); return true end
+  if(not asmlib.IsInit()) then
+    asmlib.LogInstance("Library fail",gtArgsLogs); return false end
   if(not stTrace) then
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   if(not stTrace.Hit) then
@@ -732,8 +734,12 @@ end
  * Changes the active point chosen by the holder or copy the model
 ]]--
 function TOOL:RightClick(stTrace)
-  if(CLIENT) then asmlib.LogInstance("Working on client",gtArgsLogs); return true end
-  if(not stTrace) then asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
+  if(CLIENT) then
+    asmlib.LogInstance("Working on client",gtArgsLogs); return true end
+  if(not asmlib.IsInit()) then
+    asmlib.LogInstance("Library fail",gtArgsLogs); return false end
+  if(not stTrace) then
+    asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   local trEnt     = stTrace.Entity
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
@@ -907,6 +913,7 @@ function TOOL:ElevateGhost(oEnt, oPly)
 end
 
 function TOOL:Think()
+  if(not asmlib.IsInit()) then return end
   local model = self:GetModel()
   local wormo = self:GetWorkingMode()
   if(utilIsValidModel(model)) then
@@ -1036,6 +1043,7 @@ end
 
 function TOOL:DrawHUD()
   if(SERVER) then return end
+  if(not asmlib.IsInit()) then return end
   local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
   local hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
   if(not hudMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
@@ -1160,6 +1168,7 @@ end
 
 function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
+  if(not asmlib.IsInit()) then return end
   local scrTool = asmlib.MakeScreen(0,0,w,h,conPalette,"TOOL")
   if(not scrTool) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
   local xyT, xyB = scrTool:GetCorners()

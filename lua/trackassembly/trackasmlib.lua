@@ -173,6 +173,10 @@ function SetOpVar(sName, vVal)
   libOpVars[sName] = vVal
 end
 
+function IsInit()
+  return (GetOpVar("TOOLNAME_NU") ~= nil)
+end
+
 function IsHere(vVal)
   return (vVal ~= nil)
 end
@@ -565,6 +569,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
   SetOpVar("OPSYM_ENTPOSANG","!")
+  SetOpVar("KEYQ_BUILDER", "DATA_BUILDER")
   SetOpVar("DEG_RAD", mathPi / 180)
   SetOpVar("WIDTH_CPANEL", 281)
   SetOpVar("EPSILON_ZERO", 1e-5)
@@ -596,6 +601,8 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_VREPORT4","{%s}[%s]<%s>|%s|")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
+  SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s].txt")
+  SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_SKILLICON","icon16/%s.png")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
@@ -2071,7 +2078,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCmd = self:GetCommand()
     local iK = (vK or qtCmd.STMT); return qtCmd[iK]
   end
-  -- Returns ID of the found column
+  -- Returns ID of the found column valid > 0
   function self:GetColumnID(sN)
     local sN, qtDef = tostring(sN or ""), self:GetDefinition()
     for iD = 1, qtDef.Size do if(qtDef[iD][1] == sN) then return iD end
@@ -2079,22 +2086,27 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- Returns the name of the found column
   function self:GetColumnName(vD)
-    local iD, qtDef = (tonumber(vD) or 0), self:GetDefinition()
-    if(qtDef[iD]) then return qtDef[iD][1] end
+    local iD = (tonumber(vD) or 0)
+    local qtDef = self:GetDefinition()
+    local qtCol = qtDef[iD]; if(qtCol) then return qtCol[1] end
     LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
   end
-  -- Returns the colomn information by the given ID
-  function self:GetColumnInfo(vD)
-    local iD, qtDef = (tonumber(vD) or 0), self:GetDefinition()
-    if(qtDef[iD]) then return qtDef[iD] end
-    LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
+  -- Returns the colomn information by the given ID > 0
+  function self:GetColumnInfo(vD, vI)
+    local iD = (tonumber(vD) or 0)
+    local iI = (tonumber(vI) or 0)
+    local qtDef = self:GetDefinition()
+    local qtCol = qtDef[iD]
+    if(qtCol) then local qvSet = qtCol[iI]
+      if(vI) then return qvSet end; return qtCol
+    end; LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
   end
-  -- Returns row with swapped column names to indexes
-  function self:GetArrayRow(tR)
-    local tA, qtDef = {}, self:GetDefinition()
-    for iD = 1, qtDef.Size do
-      local sN = self:GetColumnName(iD); if(sN) then tA[iD] = tR[sN]
-      else LogInstance("Mismatch "..GetReport(vD), tabDef.Nick) end
+  -- Returns the row with swapped column names to indexes
+  function self:GetArrayRow(tR, bM)
+    local tA = {} -- Store the values here
+    for key, val in pairs(tR) do
+      local iD = self:GetColumnID(key); if(iD > 0) then tA[iD] = val
+      else LogInstance("Mismatch "..GetReport(key), tabDef.Nick) end
     end; return tA
   end
   -- Removes the object from the list
@@ -2764,7 +2776,8 @@ function ExportCategory(vEq, tData, sPref)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..fPref..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
+  local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
+  fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "wb", "DATA")
   if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") failed from"); return false end
   local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
@@ -2784,9 +2797,10 @@ function ImportCategory(vEq, sPref)
   if(SERVER) then LogInstance("Working on server"); return true end
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality <"..tostring(vEq)..">"); return false end
+  local fPref = tostring(sPref or GetInstPref())
+  local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
-        fName = fName..tostring(sPref or GetInstPref())
-        fName = fName..GetOpVar("TOOLNAME_PU").."CATEGORY.txt"
+        fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "rb", "DATA")
   if(not F) then LogInstance("fileOpen("..fName..") failed"); return false end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
@@ -2844,7 +2858,8 @@ function ExportDSV(sTable, sPref, sDelim)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..fPref..defTab.Name..".txt"
+  local fForm = GetOpVar("FORM_PREFIXDSV")
+  fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("("..fPref..") fileOpen("..fName..") failed",sTable); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
@@ -2896,8 +2911,9 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
     LogInstance("("..fPref..") Missing table definition",sTable); return false end
   local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
     LogInstance("("..fPref..") Missing table command",sTable); return false end
-  local fName, sMoDB = (GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")), GetOpVar("MODE_DATABASE")
-        fName = fName..fPref..defTab.Name..".txt"
+  local fName = (GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV"))
+  local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
+        fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
     LogInstance("("..fPref..") fileOpen("..fName..") failed",sTable); return false end
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
@@ -2941,8 +2957,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..GetOpVar("DIRPATH_DSV")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..fPref..defTab.Name..".txt"
-  local sFunc, sMoDB = "SynchronizeDSV", GetOpVar("MODE_DATABASE")
+  local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
+  local sFunc = "SynchronizeDSV"; fName = fName..fForm:format(fPref, defTab.Name)
   local I, fData, symOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
   if(I) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
@@ -3028,12 +3044,13 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..") User disabled"); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("("..fPref..") Missing table builder",sTable); return false end
-  local defTab, sFunc, sMoDB = makTab:GetDefinition(), "TranslateDSV", GetOpVar("MODE_DATABASE")
+  local defTab, sFunc = makTab:GetDefinition(), "TranslateDSV"
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
   sNdsv, sNins = sNdsv..GetOpVar("DIRPATH_DSV"), sNins..GetOpVar("DIRPATH_INS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
-  sNdsv, sNins = sNdsv..fPref..defTab.Name..".txt", sNins..fPref..defTab.Name..".txt"
+  local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
+  sNdsv, sNins = sNdsv..fForm:format(fPref, defTab.Name), sNins..fForm:format(fPref, defTab.Name)
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local D = fileOpen(sNdsv, "rb", "DATA"); if(not D) then
     LogInstance("("..fPref..") fileOpen("..sNdsv..") failed",sTable); return false end
@@ -3108,7 +3125,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
 end
 
 --[[
- * This function cycles all the lines made via @RegisterDSV(sPref, sDelim, sProg)
+ * This function cycles all the lines made via @RegisterDSV(sProg, sPref, sDelim, bSkip)
  * or manually added and loads all the content bound by the prefix line read
  * to the database. It is used by addon creators when they want automatically
  * include and auto-process their custom pieces. The addon creator must
@@ -3121,8 +3138,8 @@ function ProcessDSV(sDelim)
   local F = fileOpen(fName, "rb" ,"DATA")
   if(not F) then LogInstance("fileOpen("..fName..") failed"); return false end
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
-  local sNt, tProc = GetOpVar("TOOLNAME_PU"), {}
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
+  local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
   local sDv = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if(not IsBlank(sLine)) then
@@ -3132,11 +3149,10 @@ function ProcessDSV(sDelim)
         local fSrc = GetStrip(tostring(tInf[2] or ""):Trim())
         if(not IsBlank(fPrf)) then -- Is there something
           if(not tProc[fPrf]) then
-            tProc[fPrf] = {Cnt = 1, [1] = {Prog = fSrc, File = (sDv..fPrf..sNt)}}
-          else -- Prefix is processed already
-            local tStore = tProc[fPrf]
+            tProc[fPrf] = {Cnt = 1, [1] = fSrc}
+          else local tStore = tProc[fPrf] -- Prefix is processed already
             tStore.Cnt = tStore.Cnt + 1 -- Store the count of the repeated prefixes
-            tStore[tStore.Cnt] = {Prog = fSrc, File = (sDv..fPrf..sNt)}
+            tStore[tStore.Cnt] = fSrc
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
       else LogInstance("Skipped <"..sLine..">") end
@@ -3145,18 +3161,16 @@ function ProcessDSV(sDelim)
   for prf, tab in pairs(tProc) do
     if(tab.Cnt > 1) then
       LogInstance("Prefix <"..prf.."> clones #"..tostring(tab.Cnt).." @"..fName)
-      for i = 1, tab.Cnt do
-        LogInstance("Prefix <"..prf.."> "..tab[i].Prog)
-      end
-    else local dir = tab[tab.Cnt].File
+      for iD = 1, tab.Cnt do LogInstance("Prefix "..GetReport3(iD, prf, tab[iD])) end
+    else
       if(CLIENT) then
-        if(fileExists(dir.."CATEGORY.txt", "DATA")) then
+        if(fileExists(sDv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
           if(not ImportCategory(3, prf)) then
             LogInstance("("..prf..") Failed CATEGORY") end
         end
       end local iD, makTab = 1, GetBuilderID(1)
       while(makTab) do local defTab = makTab:GetDefinition()
-        if(fileExists(dir..defTab.Nick..".txt", "DATA")) then
+        if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
           if(not ImportDSV(defTab.Nick, true, prf)) then
             LogInstance("("..prf..") Failed "..defTab.Nick) end
         else LogInstance("("..prf..") Missing "..defTab.Nick) end
@@ -3549,9 +3563,9 @@ function AttachAdditions(ePiece)
   local eAng, ePos, eMod = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
   local stAddit = CacheQueryAdditions(eMod); if(not IsHere(stAddit)) then
     LogInstance("Model <"..eMod.."> has no additions"); return true end
-  LogInstance("Called for model <"..eMod..">")
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
+  local sD = GetOpVar("OPSYM_DISABLE"); LogInstance("Attach model <"..eMod..">")
   while(stAddit[iCnt]) do -- While additions are present keep adding them
     local arRec  = stAddit[iCnt]; LogInstance("Addition ["..iCnt.."]")
     local eAddit = entsCreate(arRec[makTab:GetColumnName(3)])
@@ -3565,14 +3579,14 @@ function AttachAdditions(ePiece)
       eAddit:SetModel(adMod) LogInstance("SetModel("..adMod..")")
       local ofPos = arRec[makTab:GetColumnName(5)]; if(not IsString(ofPos)) then
         LogInstance("Position mismatch "..GetReport(ofPos)); return false end
-      if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos))) then
+      if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos) or ofPos:sub(1,1) == sD)) then
         local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
         SetVectorXYZ(vpAdd, arPOA[1], arPOA[2], arPOA[3])
         vpAdd:Set(ePiece:LocalToWorld(vpAdd)); eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
       else eAddit:SetPos(ePos); LogInstance("SetPos(ePos)") end
       local ofAng = arRec[makTab:GetColumnName(6)]; if(not IsString(ofAng)) then
         LogInstance("Angle mismatch "..GetReport(ofAng)); return false end
-      if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng))) then
+      if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng) or ofAng:sub(1,1) == sD)) then
         local apAdd, arPOA = Angle(), DecodePOA(ofAng)
         SetAnglePYR(apAdd, arPOA[1], arPOA[2], arPOA[3])
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
@@ -3857,6 +3871,7 @@ function SetAsmConvar(pPly,sName,snVal)
 end
 
 function GetPhrase(sKey)
+  if(not CLIENT) then return end
   local sDef = GetOpVar("MISS_NOTR")
   local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
     LogInstance("Skip <"..sKey..">"); return GetOpVar("MISS_NOTR") end
@@ -4074,9 +4089,8 @@ function GetCatmullRomCurve(tV, nT, nA) if(not IsTable(tV)) then
   end; tC[iC] = Vector(); tC[iC]:Set(tV[nV-1]); return tC
 end
 
-local function SetAdditionsAR(sModel,makTab,qOutData)
-  if(not IsHere(makTab)) then
-    LogInstance("Missing table builder ADDITIONS"); return end
+local function SetAdditionsAR(sModel, makTab, qOutData)
+  if(not IsHere(makTab)) then return end
   local sFunc, qsKey = "SetAdditionsAR", GetOpVar("FORM_KEYSTMT")
   local qModel = makTab:Match(tostring(sModel or ""), 1, true)
   local Q = CacheStmt(qsKey:format(sFunc, "ADDITIONS"), nil, qModel)
@@ -4085,55 +4099,61 @@ local function SetAdditionsAR(sModel,makTab,qOutData)
     if(not IsHere(sStmt)) then LogInstance("Build statement failed"); return
     end; Q = CacheStmt(qsKey:format(sFunc, "ADDITIONS"), sStmt, qModel)
   end
-  local qData, iE = sqlQuery(Q), #qOutData
+  local qData = sqlQuery(Q)
   if(not qData and IsBool(qData)) then
     LogInstance("SQL exec error <"..sqlLastError()..">")
     LogInstance("SQL exec query <"..Q..">"); return
-  end
+  end; local iE = #qOutData
   if(not IsHere(qData) or IsEmpty(qData)) then return end
   for iD = 1, #qData do qOutData[iE + iD] = qData[iD] end
 end
 
+local function ExportLineAR(fF, makTab, aRow, idxID, sInd)
+  local dbNick = makTab:GetDefinition().Nick
+  if(dbNick == "PIECES") then
+    local typID = makTab:GetColumnID("TYPE")
+    aRow[typID], aRow[idxID] = "myType", "gsSymOff"
+  elseif(dbNick == "ADDITIONS") then
+    aRow[idxID] = "gsSymOff"
+  end
+  tableRemove(aRow, 1)
+  fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+end
+
 local function ExportPiecesAR(fF,qData,sName,sInd,qOutData)
-  local makTab, makAdd = qData["SQL_BUILDER"], nil
+  local dbNull = GetOpVar("MISS_NOSQL")
+  local keyBld = GetOpVar("KEYQ_BUILDER")
+  local makTab, makAdd = qData[keyBld], nil
   if(IsHere(qOutData) and IsTable(qOutData)) then
-    if(IsHere(qOutData["SQL_BUILDER"])) then
-      makAdd = qOutData["SQL_BUILDER"]
-    else
+    if(IsHere(qOutData[keyBld])) then makAdd = qOutData[keyBld] else
       makAdd = GetBuilderNick("ADDITIONS"); if(not IsHere(makAdd)) then
         LogInstance("Missing table builder ADDITIONS"); return end
-      qOutData["SQL_BUILDER"] = makAdd
-      LogInstance("Store table builder ADDITIONS")
+      qOutData[keyBld] = makAdd; LogInstance("Store builder ADDITIONS")
     end
   end
-  if(IsTable(qData) and not IsEmpty(qData)) then
+  if(IsTable(qData) and IsHere(qData[1])) then
     fF:Write(sInd:rep(1).."local "..sName.." = {\n")
-    local modID, typID, idxID, fRow, sMod = 1, 2, 4, true, ""
+    local pkID, sInd, fRow = 1, "  ", true
+    local idxID = makTab:GetColumnID("LINEID")
     for iD = 1, #qData do local qRow = qData[iD]
+      local mMod = qRow[makTab:GetColumnName(1)]
       local aRow = makTab:GetArrayRow(qRow)
       for iA = 1, #aRow do local vA = aRow[iA]
         aRow[iA] = makTab:Match(vA,iA,true,"\"",true,true); if(not IsHere(aRow[iA])) then
-          LogInstance("Matching error "..GetReport2(vA,sMod)); return end
+          LogInstance("Matching error "..GetReport3(iA,vA,mMod)); return end
+        if(vA == dbNull) then aRow[iA] = "gsMissDB" end
       end
-      if(fRow) then sMod = aRow[modID]; fRow = false
-        fF:Write(sInd:rep(2).."["..sMod.."] = {\n")
-        aRow[typID], aRow[idxID] = "myType", "gsSymOff"
-        tableRemove(aRow, 1)
-        fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
-        -- Analyize addisions for given model. Store the addition data in the table qOutData
-        if(makAdd) then SetAdditionsAR(sMod, makAdd, qOutData) end
+      if(fRow) then fRow = false
+        fF:Write(sInd:rep(2).."["..aRow[pkID].."] = {\n")
+        ExportLineAR(fF, makTab, aRow, idxID, sInd)
+        SetAdditionsAR(mMod, makAdd, qOutData)
       else
-        if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2); sMod = aRow[modID]
-          fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..sMod.."] = {\n")
-          aRow[typID], aRow[idxID] = "myType", "gsSymOff"
-          tableRemove(aRow, 1)
-          fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
-          -- Analyize addisions for given model. Store the addition data in the table qOutData
-          if(makAdd) then SetAdditionsAR(sMod, makAdd, qOutData) end
+        if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
+          fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..aRow[pkID].."] = {\n")
+          ExportLineAR(fF, makTab, aRow, idxID, sInd)
+          SetAdditionsAR(mMod, makAdd, qOutData)
         else
-          aRow[typID], aRow[idxID] = "myType", "gsSymOff"
-          tableRemove(aRow, 1)
-          fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+          ExportLineAR(fF, makTab, aRow, idxID, sInd)
         end
       end
     end
@@ -4151,14 +4171,14 @@ function ExportTypeAR(sType)
     local sTool = GetOpVar("TOOLNAME_NL")
     local sPref = sType:gsub("[^%w]","_")
     local sMoDB = GetOpVar("MODE_DATABASE")
-    local sS = "data/autosave/z_autorun_add_"..sTool..".lua"
-    local sN = GetOpVar("DIRPATH_BAS")
-          sN = sN..GetOpVar("DIRPATH_INS")
-          sN = sN.."z_autorun_add_"..sPref..".txt"
+    local sForm = GetOpVar("FORM_FILENAMEAR")
+    local sS = "data/autosave/"..sForm:format(sTool)
+    local sN = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_INS")
+          sN = sN..sForm:format(sPref)
     local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
-      LogInstance("Autoexport generation fail"); return end
-    local fS = fileOpen(sS, "rb", "GAME"); if(not fS) then
-      LogInstance("Autoexport source fail"); fE:Flush(); fE:Close(); return end
+      LogInstance("Autoexport generation fail "..GetReport(sN)); return end
+    local fS = fileOpen(sS, "rb", "GAME"); if(not fS) then fE:Flush(); fE:Close()
+      LogInstance("Autoexport source fail "..GetReport(sS)) return end
     if(sMoDB == "SQL") then
       local sFunc = "ExportTypeAR"
       local qsKey = GetOpVar("FORM_KEYSTMT")
@@ -4181,7 +4201,8 @@ function ExportTypeAR(sType)
         LogInstance("SQL exec query <"..Q..">")
         fE:Flush(); fE:Close(); fS:Close(); return
       end
-      if(qData and qData[1]) then qData["SQL_BUILDER"] = makP
+      if(IsHere(qData) and not IsEmpty(qData)) then
+        local keyBld = GetOpVar("KEYQ_BUILDER"); qData[keyBld] = makP
         local sLine, isEOF, isSkip, sInd, qAdd = "", false, false, "  ", {}
         while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)
           if(sLine:find("%s*local%s+myAddon%s*=%s*")) then isSkip = true
@@ -4204,7 +4225,9 @@ function ExportTypeAR(sType)
           else
             if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
           end
-          if(not isSkip) then fE:Write(sLine.."\n") end
+          if(not isSkip) then
+            if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
+          end
         end
         fE:Flush(); fE:Close(); fS:Close()
       end

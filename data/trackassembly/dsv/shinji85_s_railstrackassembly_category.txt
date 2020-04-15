@@ -1,0 +1,10 @@
+# ExportCategory:(3@Shinji85_s_Rails) 20-04-15 16:20:30 [ SQL ]
+[===[Shinji85's Rails===function(m) local c
+      local r = m:gsub("models/shinji85/train/rail_", "")
+      if(r:find("cross")) then c = "crossing"
+      elseif(r:find("switch")) then c = "switch"
+      elseif(r:find("curve")) then c = "curve"
+      elseif(r:find("bumper")) then c = "bumper"
+      elseif(r:find("junction")) then c = "junction"
+      elseif(r:find("%dx")) then c = "straight"
+      end; c = (c and c:gsub("^%l", string.upper) or nil) return c end]===]
