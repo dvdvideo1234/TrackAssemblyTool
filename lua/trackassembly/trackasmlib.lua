@@ -2094,17 +2094,15 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   -- Returns the colomn information by the given ID > 0
   function self:GetColumnInfo(vD, vI)
     local iD = (tonumber(vD) or 0)
-    local iI = (tonumber(vI) or 0)
     local qtDef = self:GetDefinition()
-    local qtCol = qtDef[iD]
-    if(qtCol) then local qvSet = qtCol[iI]
-      if(vI) then return qvSet end; return qtCol
+    local qtCol, iI = qtDef[iD], (tonumber(vI) or 0)
+    if(qtCol) then local qtInf = qtCol[iI]
+      if(vI and qtInf) then return qtInf end; return qtCol
     end; LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
   end
   -- Returns the row with swapped column names to indexes
-  function self:GetArrayRow(tR, bM)
-    local tA = {} -- Store the values here
-    for key, val in pairs(tR) do
+  function self:GetArrayRow(tR, bM) local tA = {} -- Store the values here
+    for key, val in pairs(tR) do -- Column name tables are not ordered
       local iD = self:GetColumnID(key); if(iD > 0) then tA[iD] = val
       else LogInstance("Mismatch "..GetReport(key), tabDef.Nick) end
     end; return tA
@@ -3180,6 +3178,206 @@ function ProcessDSV(sDelim)
   end; LogInstance("Success"); return true
 end
 
+--[[
+ * This function adds the extracted addition for fiven model to a list
+ * sType > Track type the autorun file is creaded for
+]]--
+local function SetAdditionsAR(sModel, makTab, qList)
+  if(not IsHere(makTab)) then return end
+  local sFunc, qData = "SetAdditionsAR"
+  local sMoDB = GetOpVar("MODE_DATABASE")
+  if(sMoDB == "SQL") then
+    local qsKey = GetOpVar("FORM_KEYSTMT")
+    local qModel = makTab:Match(tostring(sModel or ""), 1, true)
+    local Q = CacheStmt(qsKey:format(sFunc, "ADDITIONS"), nil, qModel)
+    if(not Q) then
+      local sStmt = makTab:Select():Where({1,"%s"}):Order(4):Get()
+      if(not IsHere(sStmt)) then LogInstance("Build statement failed"); return
+      end; Q = CacheStmt(qsKey:format(sFunc, "ADDITIONS"), sStmt, qModel)
+    end
+    qData = sqlQuery(Q)
+    if(not qData and IsBool(qData)) then
+      LogInstance("SQL exec error <"..sqlLastError()..">")
+      LogInstance("SQL exec query <"..Q..">"); return
+    end
+  elseif(sMoDB == "LUA") then
+    local stAddit = CacheQueryAdditions(sModel)
+    if(stAddit) then qData = {}
+      local snNamPK = makTab:GetColumnName(1)
+      local defSize = makTab:GetDefinition().Size
+      for iD = 1, stAddit.Size do
+        qData[iD] = {[snNamPK] = stAddit.Slot}
+        for iC = 2, defSize do
+          local sN = makTab:GetColumnName(iC)
+          qData[iD][sN] = stAddit[iD][sN]
+        end
+      end
+    end
+  else
+    LogInstance("Wrong database mode <"..sMoDB..">")
+    fE:Flush(); fE:Close(); fS:Close(); return
+  end; local iE = #qList
+  if(not IsHere(qData) or IsEmpty(qData)) then return end
+  for iD = 1, #qData do qList[iE + iD] = qData[iD] end
+end
+
+local function ExportPiecesAR(fF,qData,sName,sInd,qList)
+  local dbNull = GetOpVar("MISS_NOSQL")
+  local keyBld, makAdd = GetOpVar("KEYQ_BUILDER")
+  local makTab = qData[keyBld]; if(not makTab) then
+    LogInstance("Missing table builder"); return end
+  local defTab = makTab:GetDefinition(); if(defTab) then
+    LogInstance("Missing table definition"); return end
+  if(not IsHere(defTab.ExportAR)) then
+    LogInstance("Missing table handler"); return end
+  if(IsHere(qList) and IsTable(qList)) then
+    if(IsHere(qList[keyBld])) then makAdd = qList[keyBld] else
+      makAdd = GetBuilderNick("ADDITIONS"); if(not IsHere(makAdd)) then
+        LogInstance("Missing table list builder"); return end
+      qList[keyBld] = makAdd; LogInstance("Store list builder")
+    end
+  end
+  if(IsTable(qData) and IsHere(qData[1])) then
+    fF:Write(sInd:rep(1).."local "..sName.." = {\n")
+    local pkID, sInd, fRow = 1, "  ", true
+    local idxID = makTab:GetColumnID("LINEID")
+    for iD = 1, #qData do local qRow = qData[iD]
+      local mMod = qRow[makTab:GetColumnName(1)]
+      local aRow = makTab:GetArrayRow(qRow)
+      for iA = 1, #aRow do local vA = aRow[iA]
+        aRow[iA] = makTab:Match(vA,iA,true,"\"",true,true); if(not IsHere(aRow[iA])) then
+          LogInstance("Matching error "..GetReport3(iA,vA,mMod)); return end
+        if(vA == dbNull) then aRow[iA] = "gsMissDB" end
+      end
+      defTab.ExportAR(aRow)
+      if(fRow) then fRow = false
+        fF:Write(sInd:rep(2).."["..aRow[pkID].."] = {\n")
+        SetAdditionsAR(mMod, makAdd, qList)
+      else
+        if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
+          fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..aRow[pkID].."] = {\n")
+          SetAdditionsAR(mMod, makAdd, qList)
+        else
+          ExportLineAR(fF, makTab, aRow, idxID, sInd)
+        end
+      end
+      tableRemove(aRow, 1)
+      fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+    end
+    fF:Seek(fF:Tell() - 2)
+    fF:Write("\n"..sInd:rep(2).."}\n")
+    fF:Write(sInd:rep(1).."}\n")
+  else
+    fF:Write(sInd:rep(1).."local "..sName.." = {}\n")
+  end
+end
+
+--[[
+ * This function extracts some track type from the database and creates
+ * desicated autorin control script files adding the given type argument
+ * to the database by using external pluggable DSV prefix list
+ * sType > Track type the autorun file is creaded for
+]]--
+function ExportTypeAR(sType)
+  if(SERVER) then return nil end
+  if(not IsBlank(sType)) then
+    local qPieces, qAdditions
+    local sFunc = "ExportTypeAR"
+    local sTool = GetOpVar("TOOLNAME_NL")
+    local sPref = sType:gsub("[^%w]","_")
+    local sMoDB = GetOpVar("MODE_DATABASE")
+    local sForm = GetOpVar("FORM_FILENAMEAR")
+    local sS = "data/autosave/"..sForm:format(sTool)
+    local sN = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_INS")
+          sN = sN..sForm:format(sPref)
+    local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
+      LogInstance("Autoexport generation fail "..GetReport(sN)); return end
+    local fS = fileOpen(sS, "rb", "GAME"); if(not fS) then fE:Flush(); fE:Close()
+      LogInstance("Autoexport source fail "..GetReport(sS)) return end
+    local makP  = GetBuilderNick("PIECES"); if(not makP) then
+      LogInstance("Missing table builder"); return end
+    local defP = makP:GetDefinition(); if(defP) then
+      LogInstance("Missing table definition"); return end
+    if(sMoDB == "SQL") then
+      local qsKey = GetOpVar("FORM_KEYSTMT")
+      if(not IsHere(makP)) then
+        LogInstance("Missing table builder PIECES")
+        fE:Flush(); fE:Close(); fS:Close(); return
+      end
+      local qType = makP:Match(sType, 2, true)
+      local Q = CacheStmt(qsKey:format(sFunc, "PIECES"), nil, qType)
+      if(not Q) then
+        local sStmt = makP:Select():Where({2,"%s"}):Order(1,4):Get()
+        if(not IsHere(sStmt)) then LogInstance("Build statement failed")
+          fE:Flush(); fE:Close(); fS:Close(); return
+        end; Q = CacheStmt(qsKey:format(sFunc, "PIECES"), sStmt, qType)
+      end
+      qPieces = sqlQuery(Q)
+      if(not qPieces and IsBool(qPieces)) then
+        LogInstance("SQL exec error <"..sqlLastError()..">")
+        LogInstance("SQL exec query <"..Q..">")
+        fE:Flush(); fE:Close(); fS:Close(); return
+      end
+    elseif(sMoDB == "LUA") then
+      local iCnt = 0; qPieces = {}
+      local sPrefx = GetOpVar("TOOLNAME_PU")
+      local tCache = libCache[defP.Name]
+      for mod, rec in pairs(tCache) do
+        if(rec.Type == sType) then iCnt, iID = iCnt + 1, 1
+          local rPOA = LocatePOA(rec, iID); if(not IsHere(rPOA)) then
+            LogInstance("Missing cache point ID "..GetReport2(iID, rec.Slot)); return end
+          while(rPOA) do qPieces[iCnt] = {}
+            local qRow = qPieces[iCnt]
+            qRow[makP:GetColumnName(1)] = rec.Slot
+            qRow[makP:GetColumnName(2)] = rec.Type
+            qRow[makP:GetColumnName(3)] = rec.Name
+            qRow[makP:GetColumnName(4)] = iID
+            qRow[makP:GetColumnName(5)] = rPOA.P
+            qRow[makP:GetColumnName(6)] = rPOA.O
+            qRow[makP:GetColumnName(7)] = rPOA.A
+            qRow[makP:GetColumnName(8)] = rec.Unit
+            iCnt, iID = iCnt + 1, iID + 1
+            rPOA = LocatePOA(rec, iID)
+          end
+        end
+      end
+    else
+      LogInstance("Wrong database mode <"..sMoDB..">")
+      fE:Flush(); fE:Close(); fS:Close(); return
+    end
+    if(IsHere(qPieces) and not IsEmpty(qPieces)) then
+      local keyBld = GetOpVar("KEYQ_BUILDER"); qPieces[keyBld] = makP
+      local sLine, isEOF, isSkip, sInd, qAdditions = "", false, false, "  ", {}
+      while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)
+        if(sLine:find("%s*local%s+myAddon%s*=%s*")) then isSkip = true
+          fE:Write("local myAddon = \""..sType.."\" -- Your addon name goes here\n")
+        elseif(sLine:find("%s*local%s+myCategory%s*=%s*")) then isSkip = true
+          local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
+          if(IsTable(tCat) and tCat.Txt) then
+            fE:Write(sInd:rep(1).."local myCategory = {\n")
+            fE:Write(sInd:rep(2).."[myType] = {Txt = [[\n")
+            fE:Write(sInd:rep(3)..tCat.Txt:gsub("\n","\n"..sInd:rep(3)).."\n")
+            fE:Write(sInd:rep(2).."]]}\n")
+            fE:Write(sInd:rep(1).."}\n")
+          else
+            fE:Write(sInd:rep(1).."local myCategory = {}\n")
+          end
+        elseif(sLine:find("%s*local%s+myPieces%s*=%s*")) then isSkip = true
+          ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)
+        elseif(sLine:find("%s*local%s+myAdditions%s*=%s*")) then isSkip = true
+          ExportPiecesAR(fE, qAdditions, "myAdditions", sInd)
+        else
+          if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
+        end
+        if(not isSkip) then
+          if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
+        end
+      end
+      fE:Flush(); fE:Close(); fS:Close()
+    end
+  end
+end
+
 ----------------------------- SNAPPING ------------------------------
 
 local function GetSurfaceAngle(oPly, vNorm)
@@ -4087,153 +4285,4 @@ function GetCatmullRomCurve(tV, nT, nA) if(not IsTable(tV)) then
     local tS = GetCatmullRomCurveSegment(cA, cB, cC, cD, nT, nA)
     for iK = 1, (nT+1) do tC[iC] = tS[iK]; iC = (iC + 1) end
   end; tC[iC] = Vector(); tC[iC]:Set(tV[nV-1]); return tC
-end
-
-local function SetAdditionsAR(sModel, makTab, qOutData)
-  if(not IsHere(makTab)) then return end
-  local sFunc, qsKey = "SetAdditionsAR", GetOpVar("FORM_KEYSTMT")
-  local qModel = makTab:Match(tostring(sModel or ""), 1, true)
-  local Q = CacheStmt(qsKey:format(sFunc, "ADDITIONS"), nil, qModel)
-  if(not Q) then
-    local sStmt = makTab:Select():Where({1,"%s"}):Order(4):Get()
-    if(not IsHere(sStmt)) then LogInstance("Build statement failed"); return
-    end; Q = CacheStmt(qsKey:format(sFunc, "ADDITIONS"), sStmt, qModel)
-  end
-  local qData = sqlQuery(Q)
-  if(not qData and IsBool(qData)) then
-    LogInstance("SQL exec error <"..sqlLastError()..">")
-    LogInstance("SQL exec query <"..Q..">"); return
-  end; local iE = #qOutData
-  if(not IsHere(qData) or IsEmpty(qData)) then return end
-  for iD = 1, #qData do qOutData[iE + iD] = qData[iD] end
-end
-
-local function ExportLineAR(fF, makTab, aRow, idxID, sInd)
-  local dbNick = makTab:GetDefinition().Nick
-  if(dbNick == "PIECES") then
-    local typID = makTab:GetColumnID("TYPE")
-    aRow[typID], aRow[idxID] = "myType", "gsSymOff"
-  elseif(dbNick == "ADDITIONS") then
-    aRow[idxID] = "gsSymOff"
-  end
-  tableRemove(aRow, 1)
-  fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
-end
-
-local function ExportPiecesAR(fF,qData,sName,sInd,qOutData)
-  local dbNull = GetOpVar("MISS_NOSQL")
-  local keyBld = GetOpVar("KEYQ_BUILDER")
-  local makTab, makAdd = qData[keyBld], nil
-  if(IsHere(qOutData) and IsTable(qOutData)) then
-    if(IsHere(qOutData[keyBld])) then makAdd = qOutData[keyBld] else
-      makAdd = GetBuilderNick("ADDITIONS"); if(not IsHere(makAdd)) then
-        LogInstance("Missing table builder ADDITIONS"); return end
-      qOutData[keyBld] = makAdd; LogInstance("Store builder ADDITIONS")
-    end
-  end
-  if(IsTable(qData) and IsHere(qData[1])) then
-    fF:Write(sInd:rep(1).."local "..sName.." = {\n")
-    local pkID, sInd, fRow = 1, "  ", true
-    local idxID = makTab:GetColumnID("LINEID")
-    for iD = 1, #qData do local qRow = qData[iD]
-      local mMod = qRow[makTab:GetColumnName(1)]
-      local aRow = makTab:GetArrayRow(qRow)
-      for iA = 1, #aRow do local vA = aRow[iA]
-        aRow[iA] = makTab:Match(vA,iA,true,"\"",true,true); if(not IsHere(aRow[iA])) then
-          LogInstance("Matching error "..GetReport3(iA,vA,mMod)); return end
-        if(vA == dbNull) then aRow[iA] = "gsMissDB" end
-      end
-      if(fRow) then fRow = false
-        fF:Write(sInd:rep(2).."["..aRow[pkID].."] = {\n")
-        ExportLineAR(fF, makTab, aRow, idxID, sInd)
-        SetAdditionsAR(mMod, makAdd, qOutData)
-      else
-        if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
-          fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..aRow[pkID].."] = {\n")
-          ExportLineAR(fF, makTab, aRow, idxID, sInd)
-          SetAdditionsAR(mMod, makAdd, qOutData)
-        else
-          ExportLineAR(fF, makTab, aRow, idxID, sInd)
-        end
-      end
-    end
-    fF:Seek(fF:Tell() - 2)
-    fF:Write("\n"..sInd:rep(2).."}\n")
-    fF:Write(sInd:rep(1).."}\n")
-  else
-    fF:Write(sInd:rep(1).."local "..sName.." = {}\n")
-  end
-end
-
-function ExportTypeAR(sType)
-  if(SERVER) then return nil end
-  if(not IsBlank(sType)) then
-    local sTool = GetOpVar("TOOLNAME_NL")
-    local sPref = sType:gsub("[^%w]","_")
-    local sMoDB = GetOpVar("MODE_DATABASE")
-    local sForm = GetOpVar("FORM_FILENAMEAR")
-    local sS = "data/autosave/"..sForm:format(sTool)
-    local sN = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_INS")
-          sN = sN..sForm:format(sPref)
-    local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
-      LogInstance("Autoexport generation fail "..GetReport(sN)); return end
-    local fS = fileOpen(sS, "rb", "GAME"); if(not fS) then fE:Flush(); fE:Close()
-      LogInstance("Autoexport source fail "..GetReport(sS)) return end
-    if(sMoDB == "SQL") then
-      local sFunc = "ExportTypeAR"
-      local qsKey = GetOpVar("FORM_KEYSTMT")
-      local makP  = GetBuilderNick("PIECES")
-      if(not IsHere(makP)) then
-        LogInstance("Missing table builder PIECES")
-        fE:Flush(); fE:Close(); fS:Close(); return
-      end
-      local qType = makP:Match(sType, 2, true)
-      local Q = CacheStmt(qsKey:format(sFunc, "PIECES"), nil, qType)
-      if(not Q) then
-        local sStmt = makP:Select():Where({2,"%s"}):Order(1,4):Get()
-        if(not IsHere(sStmt)) then LogInstance("Build statement failed")
-          fE:Flush(); fE:Close(); fS:Close(); return
-        end; Q = CacheStmt(qsKey:format(sFunc, "PIECES"), sStmt, qType)
-      end
-      local qData = sqlQuery(Q)
-      if(not qData and IsBool(qData)) then
-        LogInstance("SQL exec error <"..sqlLastError()..">")
-        LogInstance("SQL exec query <"..Q..">")
-        fE:Flush(); fE:Close(); fS:Close(); return
-      end
-      if(IsHere(qData) and not IsEmpty(qData)) then
-        local keyBld = GetOpVar("KEYQ_BUILDER"); qData[keyBld] = makP
-        local sLine, isEOF, isSkip, sInd, qAdd = "", false, false, "  ", {}
-        while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)
-          if(sLine:find("%s*local%s+myAddon%s*=%s*")) then isSkip = true
-            fE:Write("local myAddon = \""..sType.."\" -- Your addon name goes here\n")
-          elseif(sLine:find("%s*local%s+myCategory%s*=%s*")) then isSkip = true
-            local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
-            if(IsTable(tCat) and tCat.Txt) then
-              fE:Write(sInd:rep(1).."local myCategory = {\n")
-              fE:Write(sInd:rep(2).."[myType] = {Txt = [[\n")
-              fE:Write(sInd:rep(3)..tCat.Txt:gsub("\n","\n"..sInd:rep(3)).."\n")
-              fE:Write(sInd:rep(2).."]]}\n")
-              fE:Write(sInd:rep(1).."}\n")
-            else
-              fE:Write(sInd:rep(1).."local myCategory = {}\n")
-            end
-          elseif(sLine:find("%s*local%s+myPieces%s*=%s*")) then isSkip = true
-            ExportPiecesAR(fE, qData, "myPieces", sInd, qAdd)
-          elseif(sLine:find("%s*local%s+myAdditions%s*=%s*")) then isSkip = true
-            ExportPiecesAR(fE, qAdd, "myAdditions", sInd)
-          else
-            if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
-          end
-          if(not isSkip) then
-            if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
-          end
-        end
-        fE:Flush(); fE:Close(); fS:Close()
-      end
-    else
-      LogInstance("Wrong database mode <"..sMoDB..">")
-      fE:Flush(); fE:Close(); fS:Close(); return
-    end
-  end
 end

@@ -75,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.606")
+asmlib.SetOpVar("TOOL_VERSION","7.607")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -1372,7 +1372,8 @@ asmlib.CreateTable("PIECES",{
             "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
-    end
+    end,
+    ExportAR = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff" end
   },
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%s","%s"},
@@ -1426,7 +1427,8 @@ asmlib.CreateTable("ADDITIONS",{
           end; oFile:Write("\n") -- Data is already inserted, there will be no crash
         end
       end; return true
-    end
+    end,
+    ExportAR = function(aRow) aRow[4] = "gsSymOff" end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -1486,7 +1488,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
                                    sDelim..makTab:Match(vType,3,true,"\"").."\n")
         end
       end; return true
-    end
+    end,
+    ExportAR = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff" end
   },
   Query = {
     Record = {"%s","%d","%s"},
