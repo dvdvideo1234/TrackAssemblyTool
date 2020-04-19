@@ -2666,8 +2666,8 @@ function CacheQueryPanel()
       for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
         local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
         vPanel[makTab:GetColumnName(1)] = vSort.Key
-        vPanel[makTab:GetColumnName(2)] = tCache[vSort.Key].Type
-        vPanel[makTab:GetColumnName(3)] = tCache[vSort.Key].Name; stPanel.Size = iCnt
+        vPanel[makTab:GetColumnName(2)] = vSort.Rec.Type
+        vPanel[makTab:GetColumnName(3)] = vSort.Rec.Name; stPanel.Size = iCnt
       end; return stPanel
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
@@ -2893,8 +2893,7 @@ function ExportDSV(sTable, sPref, sDelim)
       end; F:Write(sData.."\n"); sData = ""
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
-    local tCache = libCache[defTab.Name]
-    if(not IsHere(tCache)) then F:Flush(); F:Close()
+    local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Cache missing",sTable); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
     if(not bS) then LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
