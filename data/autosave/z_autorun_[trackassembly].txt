@@ -54,12 +54,15 @@ end
 if(asmlib) then
   -- Store a reference to disable symbol
   local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
+  local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
   local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
+  local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
 
   -- This is the path to your DSV
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
-                asmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
-                asmlib.GetOpVar("TOOLNAME_PU")
+                asmlib.GetOpVar("DIRPATH_DSV")..
+                gsFormPF:format(myPrefix, gsToolPF.."PIECES")
+
   --[[
    * This flag is used when the track pieces list needs to be processed.
    * It generally represents the locking file persistence flag. It is
@@ -69,7 +72,7 @@ if(asmlib) then
    * your local database every time Gmod loads, but then the user will
    * skip the available updates of your addon until he/she deletes the DSVs.
   ]]--
-  local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
+  local myFlag = file.Exists(myDsv, "DATA")
 
   -- Tell TA what custom script we just called don't touch it
   asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")

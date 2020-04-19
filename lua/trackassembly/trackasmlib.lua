@@ -1828,7 +1828,8 @@ function Sort(tTable, tCols)
   local tS, iS = {Size = 0}, 0
   local tC = tCols or {}; tC.Size = #tC
   for key, rec in pairs(tTable) do
-    iS = (iS + 1); tS[iS] = {}; tS[iS].Key = key
+    iS = (iS + 1); tS[iS] = {}
+    tS[iS].Key, tS[iS].Rec = key, rec
     if(IsTable(rec)) then tS[iS].Val = ""
       if(tC.Size > 0) then
         for iI = 1, tC.Size do local sC = tC[iI]; if(not IsHere(rec[sC])) then
@@ -2046,18 +2047,18 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     LogInstance("Table name must not be empty"); return false end
   if(not IsTable(defTab)) then
     LogInstance("Table definition missing for "..sTable); return false end
-  defTab.Size = #defTab; if(defTab.Size <= 0) then
-    LogInstance("Record definition missing for "..sTable); return false end
-  for iCnt = 1, defTab.Size do
-    local sN = tostring(defTab[iCnt][1] or ""); if(IsBlank(sN)) then
-      LogInstance("Missing table "..sTable.." col ["..tostring(iCnt).."] name"); return false end
-    local sT = tostring(defTab[iCnt][2] or ""); if(IsBlank(sT)) then
-      LogInstance("Missing table "..sTable.." col ["..tostring(iCnt).."] type"); return false end
-    defTab[iCnt][1], defTab[iCnt][2] = sN, sT
-  end
-  if(defTab.Size ~= tableMaxn(defTab)) then
-    LogInstance("Record definition mismatch for "..sTable); return false end
   defTab.Nick = sTable:upper(); defTab.Name = GetOpVar("TOOLNAME_PU")..defTab.Nick
+  defTab.Size = #defTab; if(defTab.Size <= 0) then
+    LogInstance("Record definition missing for ", defTab.Nick); return false end
+  if(defTab.Size ~= tableMaxn(defTab)) then
+    LogInstance("Record definition mismatch for ", defTab.Nick); return false end
+  for iCnt = 1, defTab.Size do local defRow = defTab[iCnt]
+    local sN = tostring(defRow[1] or ""); if(IsBlank(sN)) then
+      LogInstance("Missing table column name "..GetReport(iCnt), defTab.Nick); return false end
+    local sT = tostring(defRow[2] or ""); if(IsBlank(sT)) then
+      LogInstance("Missing table column type "..GetReport(iCnt), defTab.Nick); return false end
+    defRow[1], defRow[2] = sN, sT -- Convert settings to string and store back
+  end
   local self, tabDef, tabCmd = {}, defTab, {}
   local symDis, sMoDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
@@ -2581,7 +2582,7 @@ function CacheQueryAdditions(sModel)
   if(IsBlank(sModel)) then
     LogInstance("Model empty string"); return nil end
   if(not utilIsValidModel(sModel)) then
-    LogInstance("Model invalid"); return nil end
+    LogInstance("Model invalid "..GetReport(sModel)); return nil end
   local makTab = GetBuilderNick("ADDITIONS"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
@@ -2624,7 +2625,7 @@ end
 ----------------------- PANEL QUERY -------------------------------
 
 --[[
- * Caches the date needed to populate the CPanel tree
+ * Caches the data needed to populate the CPanel tree
 ]]--
 function CacheQueryPanel()
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
@@ -2755,6 +2756,16 @@ function CacheQueryProperty(sType)
 end
 
 ---------------------- EXPORT --------------------------------
+
+function ExportPOA(stPOA,sOut)
+  local sE = tostring(sOut or GetOpVar("MISS_NOSQL"))
+  local sP = (IsEqualPOA(stPOA.P, stPOA.O) and sE or StringPOA(stPOA.P, "V"))
+  local sO = (IsZeroPOA(stPOA.O, "V") and sE or StringPOA(stPOA.O, "V"))
+        sO = (stPOA.O.Slot and stPOA.O.Slot or sO)
+  local sA = (IsZeroPOA(stPOA.A, "A") and sE or StringPOA(stPOA.A, "A"))
+        sA = (stPOA.A.Slot and stPOA.A.Slot or sA)
+  return sP, sO, sA -- Recieve three strings as POA exports
+end
 
 --[[
  * Save/Load the category generation
@@ -3179,13 +3190,16 @@ function ProcessDSV(sDelim)
 end
 
 --[[
- * This function adds the extracted addition for fiven model to a list
- * sType > Track type the autorun file is creaded for
+ * This function adds the extracted addition for given model to a list
+ * sModel > The model to be checked for addotions
+ * makTab > Reference to addotions table builder
+ * qList  > The list to insert the found addotions
 ]]--
 local function SetAdditionsAR(sModel, makTab, qList)
   if(not IsHere(makTab)) then return end
-  local sFunc, qData = "SetAdditionsAR"
-  local sMoDB = GetOpVar("MODE_DATABASE")
+  local defTab = makTab:GetDefinition()
+  if(not IsHere(defTab)) then LogInstance("Table definition missing") end
+  local sMoDB, sFunc, qData = GetOpVar("MODE_DATABASE"), "SetAdditionsAR"
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qModel = makTab:Match(tostring(sModel or ""), 1, true)
@@ -3201,18 +3215,24 @@ local function SetAdditionsAR(sModel, makTab, qList)
       LogInstance("SQL exec query <"..Q..">"); return
     end
   elseif(sMoDB == "LUA") then
-    local stAddit = CacheQueryAdditions(sModel)
-    if(stAddit) then qData = {}
-      local snNamPK = makTab:GetColumnName(1)
-      local defSize = makTab:GetDefinition().Size
-      for iD = 1, stAddit.Size do
-        qData[iD] = {[snNamPK] = stAddit.Slot}
-        for iC = 2, defSize do
-          local sN = makTab:GetColumnName(iC)
-          qData[iD][sN] = stAddit[iD][sN]
+    local iCnt = 0; qData = {}
+    local tCache = libCache[defTab.Name]
+    local pkModel = makTab:GetColumnName(1)
+    local sLineID = makTab:GetColumnName(4)
+    for mod, rec in pairs(tCache) do
+      if(mod == sModel) then
+        for iD = 1, rec.Size do iCnt = (iCnt + 1)
+          qData[iCnt] = {[pkModel] = mod}
+          for iC = 2, defTab.Size do
+            local sN = makTab:GetColumnName(iC)
+            qData[iCnt][sN] = rec[iD][sN]
+          end
         end
       end
     end
+    local tSort = Sort(qData, {pkModel, sLineID}); if(not tSort) then
+        LogInstance("Sort cache mismatch"); return end; tableEmpty(qData)
+    for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
   else
     LogInstance("Wrong database mode <"..sMoDB..">")
     fE:Flush(); fE:Close(); fS:Close(); return
@@ -3224,12 +3244,14 @@ end
 local function ExportPiecesAR(fF,qData,sName,sInd,qList)
   local dbNull = GetOpVar("MISS_NOSQL")
   local keyBld, makAdd = GetOpVar("KEYQ_BUILDER")
-  local makTab = qData[keyBld]; if(not makTab) then
+  local makTab = qData[keyBld]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return end
-  local defTab = makTab:GetDefinition(); if(defTab) then
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return end
-  if(not IsHere(defTab.ExportAR)) then
-    LogInstance("Missing table handler"); return end
+  local mgrTab = defTab.Cache; if(not IsHere(mgrTab)) then
+    LogInstance("Cache manager missing"); return end
+  if(not IsHere(mgrTab.ExportAR)) then
+    LogInstance("Missing data handler"); return end
   if(IsHere(qList) and IsTable(qList)) then
     if(IsHere(qList[keyBld])) then makAdd = qList[keyBld] else
       makAdd = GetBuilderNick("ADDITIONS"); if(not IsHere(makAdd)) then
@@ -3249,7 +3271,6 @@ local function ExportPiecesAR(fF,qData,sName,sInd,qList)
           LogInstance("Matching error "..GetReport3(iA,vA,mMod)); return end
         if(vA == dbNull) then aRow[iA] = "gsMissDB" end
       end
-      defTab.ExportAR(aRow)
       if(fRow) then fRow = false
         fF:Write(sInd:rep(2).."["..aRow[pkID].."] = {\n")
         SetAdditionsAR(mMod, makAdd, qList)
@@ -3257,11 +3278,9 @@ local function ExportPiecesAR(fF,qData,sName,sInd,qList)
         if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
           fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..aRow[pkID].."] = {\n")
           SetAdditionsAR(mMod, makAdd, qList)
-        else
-          ExportLineAR(fF, makTab, aRow, idxID, sInd)
         end
       end
-      tableRemove(aRow, 1)
+      mgrTab.ExportAR(aRow); tableRemove(aRow, 1)
       fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
     end
     fF:Seek(fF:Tell() - 2)
@@ -3284,6 +3303,7 @@ function ExportTypeAR(sType)
     local qPieces, qAdditions
     local sFunc = "ExportTypeAR"
     local sTool = GetOpVar("TOOLNAME_NL")
+    local noSQL = GetOpVar("MISS_NOSQL")
     local sPref = sType:gsub("[^%w]","_")
     local sMoDB = GetOpVar("MODE_DATABASE")
     local sForm = GetOpVar("FORM_FILENAMEAR")
@@ -3296,7 +3316,7 @@ function ExportTypeAR(sType)
       LogInstance("Autoexport source fail "..GetReport(sS)) return end
     local makP  = GetBuilderNick("PIECES"); if(not makP) then
       LogInstance("Missing table builder"); return end
-    local defP = makP:GetDefinition(); if(defP) then
+    local defP = makP:GetDefinition(); if(not defP) then
       LogInstance("Missing table definition"); return end
     if(sMoDB == "SQL") then
       local qsKey = GetOpVar("FORM_KEYSTMT")
@@ -3320,32 +3340,40 @@ function ExportTypeAR(sType)
       end
     elseif(sMoDB == "LUA") then
       local iCnt = 0; qPieces = {}
-      local sPrefx = GetOpVar("TOOLNAME_PU")
       local tCache = libCache[defP.Name]
+      local pkModel = makP:GetColumnName(1)
+      local sLineID = makP:GetColumnName(4)
       for mod, rec in pairs(tCache) do
-        if(rec.Type == sType) then iCnt, iID = iCnt + 1, 1
+        if(rec.Type == sType) then local iID = 1
           local rPOA = LocatePOA(rec, iID); if(not IsHere(rPOA)) then
-            LogInstance("Missing cache point ID "..GetReport2(iID, rec.Slot)); return end
-          while(rPOA) do qPieces[iCnt] = {}
+            LogInstance("Missing point ID "..GetReport2(iID, rec.Slot))
+            fE:Flush(); fE:Close(); fS:Close(); return
+          end
+          while(rPOA) do iCnt = (iCnt + 1)
+            qPieces[iCnt] = {} -- Allocate row memory
             local qRow = qPieces[iCnt]
+            local sP, sO, sA = ExportPOA(rPOA, noSQL)
+            local sC = (rec.Unit and tostring(rec.Unit or noSQL) or noSQL)
             qRow[makP:GetColumnName(1)] = rec.Slot
             qRow[makP:GetColumnName(2)] = rec.Type
             qRow[makP:GetColumnName(3)] = rec.Name
             qRow[makP:GetColumnName(4)] = iID
-            qRow[makP:GetColumnName(5)] = rPOA.P
-            qRow[makP:GetColumnName(6)] = rPOA.O
-            qRow[makP:GetColumnName(7)] = rPOA.A
-            qRow[makP:GetColumnName(8)] = rec.Unit
-            iCnt, iID = iCnt + 1, iID + 1
-            rPOA = LocatePOA(rec, iID)
+            qRow[makP:GetColumnName(5)] = sP
+            qRow[makP:GetColumnName(6)] = sO
+            qRow[makP:GetColumnName(7)] = sA
+            qRow[makP:GetColumnName(8)] = sC
+            iID = (iID + 1); rPOA = LocatePOA(rec, iID)
           end
         end
       end
+      local tSort = Sort(qPieces, {pkModel, sLineID}); if(not tSort) then
+        LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
+      for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
     else
       LogInstance("Wrong database mode <"..sMoDB..">")
       fE:Flush(); fE:Close(); fS:Close(); return
     end
-    if(IsHere(qPieces) and not IsEmpty(qPieces)) then
+    if(IsHere(qPieces) and IsHere(qPieces[1])) then
       local keyBld = GetOpVar("KEYQ_BUILDER"); qPieces[keyBld] = makP
       local sLine, isEOF, isSkip, sInd, qAdditions = "", false, false, "  ", {}
       while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)

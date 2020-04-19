@@ -222,31 +222,31 @@ if(asmlib) then
     },
     ["models/shinji85/train/rail_curve_cc.mdl"] = {
       {myType, "Curve Cc", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve Cc", gsSymOff, gsMissDB, "-966.40515 ,128, 7.346", "0,165,0", gsMissDB}
+      {myType, "Curve Cc", gsSymOff, gsMissDB, "-966.40515,128,7.346", "0,165,0", gsMissDB}
     },
     ["models/shinji85/train/rail_curve_r1.mdl"] = {
       {myType, "Curve R1", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R1", gsSymOff, gsMissDB, "-1060.12341 ,139.56763 ,7.346", "0,165,0", gsMissDB}
+      {myType, "Curve R1", gsSymOff, gsMissDB, "-1060.12341,139.56763,7.346", "0,165,0", gsMissDB}
     },
     ["models/shinji85/train/rail_curve_r11.mdl"] = {
       {myType, "Curve R11", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R11", gsSymOff, gsMissDB, "-1086.11584 ,449.88458 ,7.346", "0,135,0", gsMissDB}
+      {myType, "Curve R11", gsSymOff, gsMissDB, "-1086.11584,449.88458,7.346", "0,135,0", gsMissDB}
     },
     ["models/shinji85/train/rail_curve_r12.mdl"] = {
       {myType, "Curve R12", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R12", gsSymOff, gsMissDB, "-905.09656 ,374.90414 ,7.346", "0,135,0", gsMissDB}
+      {myType, "Curve R12", gsSymOff, gsMissDB, "-905.09656,374.90414,7.346", "0,135,0", gsMissDB}
     },
     ["models/shinji85/train/rail_curve_r13.mdl"] = {
       {myType, "Curve R13", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R13", gsSymOff, gsMissDB, "-724.07727 ,299.92276 ,7.346", "0,135,0", gsMissDB}
+      {myType, "Curve R13", gsSymOff, gsMissDB, "-724.07727,299.92276,7.346", "0,135,0", gsMissDB}
     },
     ["models/shinji85/train/rail_curve_r2.mdl"] = {
       {myType, "Curve R2", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R2", gsSymOff, gsMissDB, "-993.86572 ,130.84471 ,7.346", "0,165,0", gsMissDB}
+      {myType, "Curve R2", gsSymOff, gsMissDB, "-993.86572,130.84471,7.346", "0,165,0", gsMissDB}
     },
     ["models/shinji85/train/rail_curve_r3.mdl"] = {
       {myType, "Curve R3", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R3", gsSymOff, gsMissDB, "-927.60797 ,122.1218 ,7.346", "0,165,0", gsMissDB}
+      {myType, "Curve R3", gsSymOff, gsMissDB, "-927.60797,122.1218,7.346", "0,165,0", gsMissDB}
     },
     ["models/shinji85/train/rail_cx.mdl"] = {
       {myType, "Counter X", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
@@ -269,12 +269,12 @@ if(asmlib) then
     ["models/shinji85/train/rail_l_switch.mdl"] = {
       {myType, "Left Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
       {myType, "Left Switch", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB},
-      {myType, "Left Switch", gsSymOff, gsMissDB, "-966.40515 ,-128, 7.346", "0,195,0", gsMissDB}
+      {myType, "Left Switch", gsSymOff, gsMissDB, "-966.40515,-128,7.346", "0,195,0", gsMissDB}
     },
     ["models/shinji85/train/rail_r_switch.mdl"] = {
       {myType, "Right Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
       {myType, "Right Switch", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB},
-      {myType, "Right Switch", gsSymOff, gsMissDB, "-966.40515 ,128, 7.346", "0,165,0", gsMissDB}
+      {myType, "Right Switch", gsSymOff, gsMissDB, "-966.40515,128,7.346", "0,165,0", gsMissDB}
     },
     ["models/shinji85/train/rail_x_junction.mdl"] = {
       {myType, "X Junction", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
