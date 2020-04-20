@@ -75,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.604")
+asmlib.SetOpVar("TOOL_VERSION","7.605")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -762,25 +762,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
-      pnButton.DoClick = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.Button"
-        asmlib.LogInstance("Click"..asmlib.GetReport(pnSelf:GetText()), gtArgsLogs)
-        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then
-            local model = asmlib.GetAsmConvar("model", "STR")
-            local oRec  = asmlib.CacheQueryPiece(model)
-            if(asmlib.IsHere(oRec)) then asmlib.ExportTypeDSV(oRec.Type)
-              asmlib.LogInstance("Success type export "..asmlib.GetReport(oRec.Type), gtArgsLogs)
-            end
-          else
-            asmlib.LogInstance("Export instance", gtArgsLogs)
-            asmlib.ExportCategory(3)
-            asmlib.ExportDSV("PIECES")
-            asmlib.ExportDSV("ADDITIONS")
-            asmlib.ExportDSV("PHYSPROPERTIES")
-          end
-          asmlib.SetAsmConvar(oPly, "exportdb", 0)
-        end
-      end
       ------------- ComboBox ---------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
@@ -901,6 +882,30 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
+      -- The button dababase export by type uses the current active type in the ListView line
+      pnButton.DoClick = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.Button"
+        asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), gtArgsLogs)
+        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
+          if(inputIsKeyDown(KEY_LSHIFT)) then local sType
+            local iD, pnLine = pnListView:GetSelectedLine()
+            if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
+            else local model = asmlib.GetAsmConvar("model", "STR")
+              local oRec = asmlib.CacheQueryPiece(model)
+              if(asmlib.IsHere(oRec)) then sType = oRec.Type
+              else LogInstance("Not piece <"..model..">") end
+            end
+            asmlib.ExportTypeAR(sType)
+            asmlib.LogInstance("Export type "..asmlib.GetReport(sType), gtArgsLogs)
+          else
+            asmlib.ExportCategory(3)
+            asmlib.ExportDSV("PIECES")
+            asmlib.ExportDSV("ADDITIONS")
+            asmlib.ExportDSV("PHYSPROPERTIES")
+            asmlib.LogInstance("Export instance", gtArgsLogs)
+          end
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+        end
+      end
       -- Leave the TextEntry here so it can access and update the local ListView reference
       pnTextEntry.OnEnter = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.TextEntry"
         local sPat = tostring(pnSelf:GetValue() or "")
@@ -916,6 +921,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
   asmlib.SetAction("DRAW_PHYSGUN",
     function() gtArgsLogs[1] = "*DRAW_PHYSGUN"
+      if(not asmlib.IsInit()) then return nil end
       if(not asmlib.GetAsmConvar("engunsnap", "BUL")) then
         asmlib.LogInstance("Extension disabled",gtArgsLogs); return nil end
       if(not asmlib.GetAsmConvar("adviser", "BUL")) then
@@ -1211,6 +1217,7 @@ end
 if(CLIENT) then
   asmlib.SetAction("UPDATE_CONTEXTVAL", -- Must have the same parameters as the hook
     function() gtArgsLogs[1] = "*UPDATE_CONTEXTVAL"
+      if(not asmlib.IsInit()) then return nil end
       if(not asmlib.IsFlag("tg_context_menu")) then return nil end -- Menu not opened
       if(not asmlib.GetAsmConvar("enctxmenu", "BUL")) then return nil end -- Menu not enabled
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
@@ -1329,8 +1336,7 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
-        asmlib.LogInstance("Cannot match <"..tostring(arLine[4])..
-          "> to "..defTab[4][1].." for <"..tostring(snPK)..">",vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(4,arLine[4],snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
         if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
@@ -1355,17 +1361,14 @@ asmlib.CreateTable("PIECES",{
                 makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
         for iInd = 1, #tOffs do local stPnt = tData.Offs[iInd]
-          local sP = (asmlib.IsEqualPOA(stPnt.P,stPnt.O) and "" or asmlib.StringPOA(stPnt.P,"V"))
-          local sO = (asmlib.IsZeroPOA(stPnt.O,"V") and "" or asmlib.StringPOA(stPnt.O,"V"))
-                sO = (stPnt.O.Slot and stPnt.O.Slot or sO)
-          local sA = (asmlib.IsZeroPOA(stPnt.A,"A") and "" or asmlib.StringPOA(stPnt.A,"A"))
-                sA = (stPnt.A.Slot and stPnt.A.Slot or sA)
+          local sP, sO, sA = asmlib.ExportPOA(stPnt, "")
           local sC = (tData.Unit and tostring(tData.Unit or "") or "")
           oFile:Write(sData..sDelim..makTab:Match(iInd,4,true,"\"")..sDelim..
             "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
-    end
+    end,
+    ExportAR = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff" end
   },
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%s","%s"},
@@ -1395,29 +1398,30 @@ asmlib.CreateTable("ADDITIONS",{
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
-      local nCnt, sFld, nAddID = 2, "", makTab:Match(arLine[4],4)
-      if(not asmlib.IsHere(nAddID)) then asmlib.LogInstance("Cannot match <"..
-        tostring(arLine[4]).."> to "..defTab[4][1].." for <"..tostring(snPK)..">",vSrc); return false end
-      stData[nAddID] = {} -- LineID has to be set properly
-      while(nCnt <= defTab.Size) do sFld = defTab[nCnt][1]
-        stData[nAddID][sFld] = makTab:Match(arLine[nCnt],nCnt)
-        if(not asmlib.IsHere(stData[nAddID][sFld])) then  -- ADDITIONS is full of numbers
-          asmlib.LogInstance("Cannot match <"..tostring(arLine[nCnt]).."> to "..
-            defTab[nCnt][1].." for <"..tostring(snPK)..">",vSrc); return false
+      local nCnt, iID = 2, makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(4,arLine[4],snPK),vSrc); return false end
+      stData[iID] = {} -- LineID has to be set properly
+      while(nCnt <= defTab.Size) do sCol = makTab:GetColumnName(nCnt)
+        stData[iID][sCol] = makTab:Match(arLine[nCnt],nCnt)
+        if(not asmlib.IsHere(stData[iID][sCol])) then -- Check data conversion output
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport3(nCnt,arLine[nCnt],snPK),vSrc); return false
         end; nCnt = (nCnt + 1)
-      end; stData.Size = nAddID; return true
+      end; stData.Size = iID; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
         local sData = defTab.Name..sDelim..mod
         for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
-          for iID = 2, defTab.Size do local vData = tData[defTab[iID][1]]
-            oFile:Write(sDelim..makTab:Match(tData[defTab[iID][1]],iID,true,"\""))
+          for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
+            local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
+              asmlib.LogInstance("Cannot match "..asmlib.GetReport3()); return false
+            end; oFile:Write(sDelim..tostring(vM or ""))
           end; oFile:Write("\n") -- Data is already inserted, there will be no crash
         end
       end; return true
-    end
+    end,
+    ExportAR = function(aRow) aRow[4] = "gsSymOff" end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -1450,10 +1454,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
       local tNames = tCache[skName]; if(not tNames) then
         tCache[skName] = {}; tNames = tCache[skName] end
-      local iNameID = makTab:Match(arLine[2],2)
-      if(not asmlib.IsHere(iNameID)) then -- LineID has to be set properly
-        asmlib.LogInstance("Cannot match <"..tostring(arLine[2])..
-          "> to "..defTab[2][1].." for <"..tostring(snPK)..">",vSrc); return false end
+      local iNameID = makTab:Match(arLine[2],2); if(not asmlib.IsHere(iNameID)) then
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(2,arLine[2],snPK),vSrc); return false end
       if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
         tTypes.Size = (tTypes.Size + 1)
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
@@ -1477,7 +1479,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
                                    sDelim..makTab:Match(vType,3,true,"\"").."\n")
         end
       end; return true
-    end
+    end,
+    ExportAR = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff" end
   },
   Query = {
     Record = {"%s","%d","%s"},
@@ -2173,82 +2176,6 @@ else
   PIECES:Record({"models/magtrains1ga/switch_straight.mdl", "#", "#", 2, "", "-384,0,0.01599", "0,-180,0"})
   PIECES:Record({"models/magtrains1ga/switch_curve.mdl", "#", "#", 1, "", "0,0,0.01563"})
   PIECES:Record({"models/magtrains1ga/switch_curve.mdl", "#", "#", 2, "", "-373.42453,-45.55976,0.01562", "0,-166.08,0"})
-  asmlib.GetCategory("Shinji85's Rails",[[function(m) local c
-    local r = m:gsub("models/shinji85/train/rail_", "")
-    if(r:find("cross")) then c = "crossing"
-    elseif(r:find("switch")) then c = "switch"
-    elseif(r:find("curve")) then c = "curve"
-    elseif(r:find("bumper")) then c = "bumper"
-    elseif(r:find("junction")) then c = "junction"
-    elseif(r:find("%dx")) then c = "straight"
-    end; c = (c and c:gsub("^%l", string.upper) or nil) return c end]])
-  asmlib.ModelToNameRule("SET",nil,{"rail_","straight_"},nil)
-  PIECES:Record({"models/shinji85/train/rail_1x.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_1x.mdl", "#", "#", 2, "", "-128,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_2x.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_2x.mdl", "#", "#", 2, "", "-256,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_4x.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_4x.mdl", "#", "#", 2, "", "-512,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_8x.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_8x.mdl", "#", "#", 2, "", "-1024,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_16x.mdl", "#","#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_16x.mdl", "#","#", 2, "", "-2048,0,7.346", "0,180,0"})
-  asmlib.ModelToNameRule("SET",nil,{"_crossing","","rail_","crossing_"},nil)
-  PIECES:Record({"models/shinji85/train/rail_4x_crossing.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_4x_crossing.mdl", "#", "#", 2, "", "-512,0,7.346", "0,180,0"})
-  asmlib.ModelToNameRule("SET",{1,5})
-  PIECES:Record({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 2, "", "-512,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 3, "", "-256,-256,7.346", "0,270,0"})
-  PIECES:Record({"models/shinji85/train/rail_cross_4x.mdl", "#", "#", 4, "", "-256,256,7.346", "0,90,0"})
-  asmlib.ModelToNameRule("SET",{1,5},{"_crossing","","double_","crossing_double_"})
-  PIECES:Record({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 1, "", "0,128,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 2, "", "-512,128,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 3, "", "0,-128,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_double_4x_crossing.mdl", "#", "#", 4, "", "-512,-128,7.346", "0,180,0"})
-  asmlib.ModelToNameRule("SET",{1,5})
-  PIECES:Record({"models/shinji85/train/rail_bumper.mdl", "#", "#", 1, "", "0,0,7.346"})
-  asmlib.ModelToNameRule("SET",{1,5},{"double_bumper","bumper_double"},nil)
-  PIECES:Record({"models/shinji85/train/rail_double_bumper.mdl", "#", "#", 1, "", "0,128,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_double_bumper.mdl", "#", "#", 2, "", "0,-128,7.346"})
-  asmlib.ModelToNameRule("SET",{1,5})
-  --- Shinji85 Curve ---
-  PIECES:Record({"models/shinji85/train/rail_curve_r1.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r1.mdl", "#", "#", 2, "", "-1060.12341 ,139.56763 ,7.346", "0,165,0"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r2.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r2.mdl", "#", "#", 2, "", "-993.86572 ,130.84471 ,7.346", "0,165,0"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r3.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r3.mdl", "#", "#", 2, "", "-927.60797 ,122.1218 ,7.346", "0,165,0"})
-  PIECES:Record({"models/shinji85/train/rail_curve_cc.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_curve_cc.mdl", "#", "#", 2, "", "-966.40515 ,128, 7.346", "0,165,0"})
-  --- Shinji85 Switch ---
-  asmlib.ModelToNameRule("SET",{1,5},{"r_","right_","l_","left_"},nil)
-  PIECES:Record({"models/shinji85/train/rail_r_switch.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_r_switch.mdl", "#", "#", 2, "", "-1024,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_r_switch.mdl", "#", "#", 3, "", "-966.40515 ,128, 7.346", "0,165,0"})
-  PIECES:Record({"models/shinji85/train/rail_l_switch.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_l_switch.mdl", "#", "#", 2, "", "-1024,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_l_switch.mdl", "#", "#", 3, "", "-966.40515 ,-128, 7.346", "0,195,0"})
-  asmlib.ModelToNameRule("SET",{1,5})
-  --- Shinji85 Raccordi ---
-  PIECES:Record({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 2, "", "-494.55,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 3, "", "-33.129,-123.63866,7.346", "0,-30,0"})
-  PIECES:Record({"models/shinji85/train/rail_x_junction.mdl", "#", "#", 4, "", "-461.42175,123.63649,7.346", "0,150,0"})
-  PIECES:Record({"models/shinji85/train/rail_cx.mdl", "#", "Counter X", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_cx.mdl", "#", "Counter X", 2, "", "-362.51361,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_cs.mdl", "#", "Counter Switch", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_cs.mdl", "#", "Counter Switch", 2, "", "-908.81165,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_cxfix.mdl", "#", "Counter X Fix", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_cxfix.mdl", "#", "Counter X Fix", 2, "", "-149.48648,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_csfix.mdl", "#", "Counter Switch Fix", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_csfix.mdl", "#", "Counter Switch Fix", 2, "", "-115.18847,0,7.346", "0,180,0"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r11.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r11.mdl", "#", "#", 2, "", "-1086.11584 ,449.88458 ,7.346", "0,135,0"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r12.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r12.mdl", "#", "#", 2, "", "-905.09656 ,374.90414 ,7.346", "0,135,0"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r13.mdl", "#", "#", 1, "", "0,0,7.346"})
-  PIECES:Record({"models/shinji85/train/rail_curve_r13.mdl", "#", "#", 2, "", "-724.07727 ,299.92276 ,7.346", "0,135,0"})
   asmlib.GetCategory("SligWolf's Railcar")
   PIECES:Record({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 1, "", "500,0,0"})
   PIECES:Record({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 2, "", "-2673,0,0", "0,180,0"})
@@ -4018,13 +3945,6 @@ else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)
   local ADDITIONS = asmlib.GetBuilderNick("ADDITIONS"); asmlib.ModelToNameRule("CLR")
-  --- Shinji's Switchers ---
-  ADDITIONS:Record({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,125,0","",-1,-1,-1,0,-1,-1})
-  ADDITIONS:Record({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,1,SOLID_VPHYSICS})
-  ADDITIONS:Record({"models/shinji85/train/rail_r_switch.mdl","models/shinji85/train/rail_r_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
-  ADDITIONS:Record({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/sw_lever.mdl"        ,"buttonswitch",1,"-100,-125,0","0,180,0",-1,-1,-1,0,-1,-1})
-  ADDITIONS:Record({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher1.mdl","prop_dynamic",2,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1,-1,1,SOLID_VPHYSICS})
-  ADDITIONS:Record({"models/shinji85/train/rail_l_switch.mdl","models/shinji85/train/rail_l_switcher2.mdl","prop_dynamic",3,"","",MOVETYPE_VPHYSICS,SOLID_VPHYSICS,-1, 0,-1,SOLID_NONE})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

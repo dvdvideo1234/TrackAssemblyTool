@@ -53,12 +53,16 @@ end
 
 if(asmlib) then
   -- Store a reference to disable symbol
+  local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
+  local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
   local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
+  local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
 
   -- This is the path to your DSV
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
-                asmlib.GetOpVar("DIRPATH_DSV")..myPrefix..
-                asmlib.GetOpVar("TOOLNAME_PU")
+                asmlib.GetOpVar("DIRPATH_DSV")..
+                gsFormPF:format(myPrefix, gsToolPF.."PIECES")
+
   --[[
    * This flag is used when the track pieces list needs to be processed.
    * It generally represents the locking file persistence flag. It is
@@ -68,7 +72,7 @@ if(asmlib) then
    * your local database every time Gmod loads, but then the user will
    * skip the available updates of your addon until he/she deletes the DSVs.
   ]]--
-  local myFlag = file.Exists(myDsv.."PIECES.txt","DATA")
+  local myFlag = file.Exists(myDsv, "DATA")
 
   -- Tell TA what custom script we just called don't touch it
   asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
@@ -135,7 +139,7 @@ if(asmlib) then
   ]]--
   asmlib.LogInstance("ExportCategory start <"..myPrefix..">")
   if(CLIENT) then -- Category handling is client side only
-    if(asmlib.IsTable(myCategory) and asmlib.IsHere(next(myCategory))) then
+    if(not asmlib.IsEmpty(myCategory)) then
       if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
         myThrowError("Failed to synchronize category")
       end; asmlib.LogInstance("ExportCategory done <"..myPrefix..">")
@@ -207,7 +211,7 @@ if(asmlib) then
    * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
    * sDelim > The delimiter used by the server/client ( default is a tab symbol )
   ]]--
-  if(asmlib.IsTable(myPieces) and asmlib.IsHere(next(myPieces))) then
+  if(not asmlib.IsEmpty(myPieces)) then
     asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
     if(not asmlib.SynchronizeDSV("PIECES", myPieces, true, myPrefix)) then
       myThrowError("Failed to synchronize track pieces")
@@ -232,12 +236,10 @@ if(asmlib) then
    *            a given model key. Disabling this, makes it use the the index of the current line.
    *            Use that to swap the active points around by only moving the desired row up or down.
    *            For the example table definition below, the line ID in the database will be the same.
-   * POSOFF   > This is the local position vector offset that TA uses to place the addition.
-   *            A NULL, empty or not available string is treated as taking the base model position.
-   *            Disabling this using the disable event makes it take {0,0,0}
+   * POSOFF   > This is the local position vector offset that TA uses to place the addition relative to MODELBASE.
+   *            A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
    * ANGOFF   > This is the local angle offset that TA uses to place the addition.
-   *            A NULL, empty or not available string is treated as taking the base model angle.
-   *            Disabling this using the disable event makes it take {0,0,0}
+   *            A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
    * MOVETYPE > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
    * PHYSINIT > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
    * DRSHADOW > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
@@ -250,7 +252,7 @@ if(asmlib) then
   ]]--
   local myAdditions = {}
 
-  if(asmlib.IsTable(myAdditions) and asmlib.IsHere(next(myAdditions))) then
+  if(not asmlib.IsEmpty(myAdditions)) then
     asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
     if(not asmlib.SynchronizeDSV("ADDITIONS", myAdditions, true, myPrefix)) then
       myThrowError("Failed to synchronize track additions")
@@ -278,7 +280,7 @@ if(asmlib) then
 
   local myPhysproperties = {}
 
-  if(asmlib.IsTable(myPhysproperties) and asmlib.IsHere(next(myPhysproperties))) then
+  if(not asmlib.IsEmpty(myPhysproperties)) then
     asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")
     if(not asmlib.SynchronizeDSV("PHYSPROPERTIES", myPhysproperties, true, myPrefix)) then
       myThrowError("Failed to synchronize track additions")
