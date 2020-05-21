@@ -1483,7 +1483,6 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
   pPanel:SetParent(cPanel)
   cPanel:InvalidateLayout()
-  pPanel:InvalidateChildren()
   pPanel:SetSize(sX, sY)
   if(IsTable(tBtn) and tBtn[1]) then
     local sPtn = GetOpVar("FORM_LOGBTNSLD")
@@ -1524,7 +1523,7 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   pPanel:InvalidateChildren()
   pPanel:SizeToContents()
   pPanel:SizeToChildren(true, false)
-  cPanel:AddItem(pPanel)
+  cPanel:AddPanel(pPanel)
   return pPanel
 end
 
@@ -4200,6 +4199,7 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   eGho:SetAngles(aAng or GetOpVar("ANG_ZERO"))
   eGho:Spawn()
   eGho:SetSolid(SOLID_NONE)
+  eGho:SetCollisionGroup(COLLISION_GROUP_NONE)
   eGho:SetMoveType(MOVETYPE_NONE)
   eGho:SetNotSolid(true)
   eGho:SetNoDraw(true)
