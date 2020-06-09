@@ -243,10 +243,12 @@ if(asmlib) then
    * MOVETYPE > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
    * PHYSINIT > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
    * DRSHADOW > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
+   *            The call evaluates to /true/ for positive numbers and /false/ for negative.
    *            When the parameter is equal to zero skips the call of /Entity:DrawShadow/
-   * PHMOTION > This internally calls /Entity:EnableMotion/ if the database parameter is not zero.
+   * PHMOTION > This internally calls /PhysObj:EnableMotion/ if the database parameter is not zero on the validated physics object.
+   *            The call evaluates to /true/ for positive numbers and /false/ for negative.
    *            When the parameter is equal to zero skips the call of /Entity:EnableMotion/
-   * PHYSLEEP > This internally calls /Entity:Sleep/ if the database parameter is grater than zero.
+   * PHYSLEEP > This internally calls /PhysObj:Sleep/ if the database parameter is grater than zero on the validated physics object.
    *            When the parameter is equal or less than zero skips the call of /Entity:Sleep/
    * SETSOLID > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
   ]]--

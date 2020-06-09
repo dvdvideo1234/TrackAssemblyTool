@@ -3822,9 +3822,9 @@ function AttachAdditions(ePiece)
       local phInt = (tonumber(arRec[makTab:GetColumnName(8)]) or -1)
       if(phInt >= 0) then eAddit:PhysicsInit(phInt)
         LogInstance("PhysicsInit("..phInt..")") end
-      local drShd = (tonumber(arRec[makTab:GetColumnName(9)]) or 0)
-      if(drShd ~= 0) then drShd = (drShd > 0)
-        eAddit:DrawShadow(drShd); LogInstance("DrawShadow("..tostring(drShd)..")") end
+      local drSha = (tonumber(arRec[makTab:GetColumnName(9)]) or 0)
+      if(drSha ~= 0) then drSha = (drSha > 0); eAddit:DrawShadow(drSha)
+        LogInstance("DrawShadow("..tostring(drSha)..")") end
       eAddit:SetParent(ePiece); LogInstance("SetParent(ePiece)")
       eAddit:Spawn(); LogInstance("Spawn()")
       phAddit = eAddit:GetPhysicsObject()
@@ -3832,8 +3832,8 @@ function AttachAdditions(ePiece)
         local enMot = (tonumber(arRec[makTab:GetColumnName(10)]) or 0)
         if(enMot ~= 0) then enMot = (enMot > 0); phAddit:EnableMotion(enMot)
           LogInstance("EnableMotion("..tostring(enMot)..")") end
-        local nbSlp = (tonumber(arRec[makTab:GetColumnName(11)]) or 0)
-        if(nbSlp > 0) then phAddit:Sleep(); LogInstance("Sleep()") end
+        local nbZee = (tonumber(arRec[makTab:GetColumnName(11)]) or 0)
+        if(nbZee > 0) then phAddit:Sleep(); LogInstance("Sleep()") end
       end
       eAddit:Activate(); LogInstance("Activate()")
       ePiece:DeleteOnRemove(eAddit); LogInstance("DeleteOnRemove(eAddit)")
@@ -4197,7 +4197,6 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   eGho:SetModel(sModel)
   eGho:SetPos(vPos or GetOpVar("VEC_ZERO"))
   eGho:SetAngles(aAng or GetOpVar("ANG_ZERO"))
-  eGho:Spawn()
   eGho:SetSolid(SOLID_NONE)
   eGho:SetCollisionGroup(COLLISION_GROUP_NONE)
   eGho:SetMoveType(MOVETYPE_NONE)
@@ -4206,6 +4205,7 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   eGho:DrawShadow(false)
   eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
   eGho:SetColor(cPal:Select("gh"))
+  eGho:Spawn()
   return eGho
 end
 

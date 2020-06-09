@@ -335,23 +335,25 @@ if(asmlib) then
    * MOVETYPE > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
    * PHYSINIT > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
    * DRSHADOW > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
+   *            The call evaluates to /true/ for positive numbers and /false/ for negative.
    *            When the parameter is equal to zero skips the call of /Entity:DrawShadow/
-   * PHMOTION > This internally calls /Entity:EnableMotion/ if the database parameter is not zero.
+   * PHMOTION > This internally calls /PhysObj:EnableMotion/ if the database parameter is not zero on the validated physics object.
+   *            The call evaluates to /true/ for positive numbers and /false/ for negative.
    *            When the parameter is equal to zero skips the call of /Entity:EnableMotion/
-   * PHYSLEEP > This internally calls /Entity:Sleep/ if the database parameter is grater than zero.
+   * PHYSLEEP > This internally calls /PhysObj:Sleep/ if the database parameter is grater than zero on the validated physics object.
    *            When the parameter is equal or less than zero skips the call of /Entity:Sleep/
    * SETSOLID > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
   ]]--
   local myAdditions = {
     ["models/shinji85/train/rail_l_switch.mdl"] = {
       {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,-125,0", "0,180,0", -1, -1, -1, 0, -1, -1},
-      {"models/shinji85/train/rail_l_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, -1, 1, 6},
-      {"models/shinji85/train/rail_l_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, 0, -1, 0}
+      {"models/shinji85/train/rail_l_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, -1, 1, SOLID_VPHYSICS},
+      {"models/shinji85/train/rail_l_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, 0, -1, SOLID_NONE}
     },
     ["models/shinji85/train/rail_r_switch.mdl"] = {
       {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,125,0", gsMissDB, -1, -1, -1, 0, -1, -1},
-      {"models/shinji85/train/rail_r_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, -1, 1, 6},
-      {"models/shinji85/train/rail_r_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, 6, 6, -1, 0, -1, 0}
+      {"models/shinji85/train/rail_r_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, -1, 1, SOLID_VPHYSICS},
+      {"models/shinji85/train/rail_r_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, 0, -1, SOLID_NONE}
     }
   }
 
