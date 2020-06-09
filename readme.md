@@ -321,6 +321,7 @@ The ones that are **included** in Garry's mod do not have links and are marked b
   * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167)
   * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805)
   * [StevenTechno's Buildings pack 2.0](https://steamcommunity.com/sharedfiles/filedetails/?id=1888013789)
+  * [Modular canal props](https://steamcommunity.com/sharedfiles/filedetails/?id=1336622735) ( Interior only )
 
 #### Where are the trains/vehicles[,](ref-easter) are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
