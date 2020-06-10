@@ -70,12 +70,14 @@ local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", stringUpper)..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
+local gsNoBS      = asmlib.GetOpVar("MISS_NOBS") -- No Bodygroup skin
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.MakeContainer("COLORS_LIST")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
+local conElements = asmlib.MakeContainer("LIST_VGUI")
 local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
@@ -86,47 +88,48 @@ end
 cleanupRegister(gsLimitName); asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
 
 TOOL.ClientConVar = {
-  [ "weld"      ] = 1,
-  [ "mass"      ] = 25000,
-  [ "model"     ] = "models/props_phx/trains/tracks/track_1x.mdl",
-  [ "nextx"     ] = 0,
-  [ "nexty"     ] = 0,
-  [ "nextz"     ] = 0,
-  [ "freeze"    ] = 1,
-  [ "anchor"    ] = gsNoAnchor,
-  [ "igntype"   ] = 0,
-  [ "spnflat"   ] = 0,
-  [ "angsnap"   ] = 15,
-  [ "sizeucs"   ] = 20,
-  [ "pointid"   ] = 1,
-  [ "pnextid"   ] = 2,
-  [ "nextpic"   ] = 0,
-  [ "nextyaw"   ] = 0,
-  [ "nextrol"   ] = 0,
-  [ "spawncn"   ] = 0,
-  [ "bgskids"   ] = "0/0",
-  [ "gravity"   ] = 1,
-  [ "adviser"   ] = 1,
-  [ "elevpnt"   ] = 0,
-  [ "activrad"  ] = 50,
-  [ "pntasist"  ] = 1,
-  [ "surfsnap"  ] = 0,
-  [ "exportdb"  ] = 0,
-  [ "forcelim"  ] = 0,
-  [ "ignphysgn" ] = 0,
-  [ "ghostcnt"  ] = 1,
-  [ "stackcnt"  ] = 5,
-  [ "maxstatts" ] = 3,
-  [ "nocollide" ] = 1,
-  [ "physmater" ] = "metal",
-  [ "enpntmscr" ] = 1,
-  [ "engunsnap" ] = 0,
-  [ "workmode"  ] = 0,
-  [ "appangfst" ] = 0,
-  [ "applinfst" ] = 0,
-  [ "enradmenu" ] = 0,
-  [ "incsnpang" ] = 5,
-  [ "incsnplin" ] = 5
+  [ "weld"       ] = 1,
+  [ "mass"       ] = 25000,
+  [ "model"      ] = "models/props_phx/trains/tracks/track_1x.mdl",
+  [ "nextx"      ] = 0,
+  [ "nexty"      ] = 0,
+  [ "nextz"      ] = 0,
+  [ "freeze"     ] = 1,
+  [ "anchor"     ] = gsNoAnchor,
+  [ "igntype"    ] = 0,
+  [ "spnflat"    ] = 0,
+  [ "angsnap"    ] = 15,
+  [ "sizeucs"    ] = 20,
+  [ "pointid"    ] = 1,
+  [ "pnextid"    ] = 2,
+  [ "nextpic"    ] = 0,
+  [ "nextyaw"    ] = 0,
+  [ "nextrol"    ] = 0,
+  [ "spawncn"    ] = 0,
+  [ "bgskids"    ] = gsNoBS,
+  [ "gravity"    ] = 1,
+  [ "adviser"    ] = 1,
+  [ "elevpnt"    ] = 0,
+  [ "activrad"   ] = 50,
+  [ "pntasist"   ] = 1,
+  [ "surfsnap"   ] = 0,
+  [ "exportdb"   ] = 0,
+  [ "forcelim"   ] = 0,
+  [ "ignphysgn"  ] = 0,
+  [ "ghostcnt"   ] = 1,
+  [ "stackcnt"   ] = 5,
+  [ "maxstatts"  ] = 3,
+  [ "nocollide"  ] = 1,
+  [ "nocollidew" ] = 0,
+  [ "physmater"  ] = "metal",
+  [ "enpntmscr"  ] = 1,
+  [ "engunsnap"  ] = 0,
+  [ "workmode"   ] = 0,
+  [ "appangfst"  ] = 0,
+  [ "applinfst"  ] = 0,
+  [ "enradmenu"  ] = 0,
+  [ "incsnpang"  ] = 5,
+  [ "incsnplin"  ] = 5
 }
 
 local gtConvarList = asmlib.GetConvarList(TOOL.ClientConVar)
@@ -141,13 +144,17 @@ if(CLIENT) then
   }
   languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
+  concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
   concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   hookAdd("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
+  hookAdd("PreDrawHalos", gsToolPrefL.."update_contextval", asmlib.GetActionCode("UPDATE_CONTEXTVAL"))
   hookAdd("PostDrawHUD", gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
   hookAdd("PostDrawHUD", gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("DRAW_PHYSGUN"))
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
+  hookAdd("OnContextMenuOpen", gsToolPrefL.."ctxmenu_open", asmlib.GetActionCode("CTXMENU_OPEN"))
+  hookAdd("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
 
   -- Listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
@@ -180,6 +187,10 @@ end
 
 function TOOL:ApplyLinearFirst()
   return ((self:GetClientNumber("applinfst") or 0) ~= 0)
+end
+
+function TOOL:GetContextMenuAll()
+  return asmlib.GetAsmConvar("enctxmall", "BUL")
 end
 
 function TOOL:GetModel()
@@ -232,7 +243,7 @@ function TOOL:GetIgnoreType()
 end
 
 function TOOL:GetBodyGroupSkin()
-  return tostring(self:GetClientInfo("bgskids") or "")
+  return tostring(self:GetClientInfo("bgskids") or gsNoBS)
 end
 
 function TOOL:GetGravity()
@@ -313,6 +324,10 @@ end
 
 function TOOL:GetScrollMouse()
   return asmlib.GetAsmConvar("enpntmscr", "BUL")
+end
+
+function TOOL:GetNocollideWorld()
+  return asmlib.GetAsmConvar("nocollidew", "BUL")
 end
 
 function TOOL:SwitchPoint(vDir, bNxt)
@@ -403,7 +418,8 @@ function TOOL:ClearAnchor(bMute)
     svEnt:SetColor(conPalette:Select("w"))
     if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
-      asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP") end
+      asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
+    end
   end; asmlib.LogInstance("("..tostring(bMute)..") Anchor cleared",gtArgsLogs); return true
 end
 
@@ -438,15 +454,14 @@ function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
   elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
   return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV):sub(1,6)
-  -- Reset settings server-side where available and return the value
-end
+end -- Reset settings server-side where available and return the value
 
 function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
   if(not (iMaxlog > 0)) then return "Status N/A" end
   local ply, sDelim  = self:GetOwner(), "\n"
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
-  local sFleLog = asmlib.GetOpVar("LOG_LOGFILE")
+  local bFleLog = asmlib.IsFlag("en_logging_file")
   local sSpace  = (" "):rep(6 + tostring(iMaxlog):len())
   local workmode, workname = self:GetWorkingMode()
   local aninfo , anEnt   = self:GetAnchor()
@@ -462,9 +477,9 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local sDu = ""
         sDu = sDu..tostring(vMsg)..sDelim
         sDu = sDu..sSpace.."Dumping logs state:"..sDelim
+        sDu = sDu..sSpace.."  LogFile:        <"..tostring(bFleLog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsMax:        <"..tostring(iMaxlog)..">"..sDelim
         sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
-        sDu = sDu..sSpace.."  LogFile:        <"..tostring(sFleLog)..">"..sDelim
         sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim
@@ -495,6 +510,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.Elevation:   <"..tostring(self:GetElevation())..">"..sDelim
         sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.NoCollideW:  <"..tostring(self:GetNocollideWorld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
@@ -502,6 +518,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnCxMenuAll: <"..tostring(self:GetContextMenuAll())..">"..sDelim
         sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackCnt:    <"..tostring(self:GetStackCount())..">"..sDelim
         sDu = sDu..sSpace.."  HD.GhostsCnt:   <"..tostring(self:GetGhostsCount())..">"..sDelim
@@ -546,36 +563,39 @@ end
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then
     asmlib.LogInstance("Working on client",gtArgsLogs); return true end
+  if(not asmlib.IsInit()) then
+    asmlib.LogInstance("Library fail",gtArgsLogs); return false end
   if(not stTrace) then
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   if(not stTrace.Hit) then
     asmlib.LogInstance("Trace not hit",gtArgsLogs); return false end
-  local trEnt     = stTrace.Entity
-  local weld      = self:GetWeld()
-  local mass      = self:GetMass()
-  local model     = self:GetModel()
-  local ply       = self:GetOwner()
-  local freeze    = self:GetFreeze()
-  local angsnap   = self:GetAngSnap()
-  local gravity   = self:GetGravity()
-  local elevpnt   = self:GetElevation()
-  local nocollide = self:GetNoCollide()
-  local spnflat   = self:GetSpawnFlat()
-  local stackcnt  = self:GetStackCount()
-  local igntype   = self:GetIgnoreType()
-  local forcelim  = self:GetForceLimit()
-  local spawncn   = self:GetSpawnCenter()
-  local surfsnap  = self:GetSurfaceSnap()
-  local workmode  = self:GetWorkingMode()
-  local physmater = self:GetPhysMeterial()
-  local actrad    = self:GetActiveRadius()
-  local bgskids   = self:GetBodyGroupSkin()
-  local maxstatts = self:GetStackAttempts()
-  local ignphysgn = self:GetIgnorePhysgun()
-  local bnderrmod = self:GetBoundErrorMode()
-  local appangfst = self:ApplyAngularFirst()
-  local applinfst = self:ApplyLinearFirst()
-  local fnmodel   = model:GetFileFromFilename()
+  local trEnt      = stTrace.Entity
+  local weld       = self:GetWeld()
+  local mass       = self:GetMass()
+  local model      = self:GetModel()
+  local ply        = self:GetOwner()
+  local freeze     = self:GetFreeze()
+  local angsnap    = self:GetAngSnap()
+  local gravity    = self:GetGravity()
+  local elevpnt    = self:GetElevation()
+  local nocollide  = self:GetNoCollide()
+  local spnflat    = self:GetSpawnFlat()
+  local stackcnt   = self:GetStackCount()
+  local igntype    = self:GetIgnoreType()
+  local forcelim   = self:GetForceLimit()
+  local spawncn    = self:GetSpawnCenter()
+  local surfsnap   = self:GetSurfaceSnap()
+  local workmode   = self:GetWorkingMode()
+  local physmater  = self:GetPhysMeterial()
+  local actrad     = self:GetActiveRadius()
+  local bgskids    = self:GetBodyGroupSkin()
+  local maxstatts  = self:GetStackAttempts()
+  local ignphysgn  = self:GetIgnorePhysgun()
+  local bnderrmod  = self:GetBoundErrorMode()
+  local appangfst  = self:ApplyAngularFirst()
+  local applinfst  = self:ApplyLinearFirst()
+  local nocollidew = self:GetNocollideWorld()
+  local fnmodel    = model:GetFileFromFilename()
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -604,7 +624,7 @@ function TOOL:LeftClick(stTrace)
       end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,forcelim)) then
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,nocollidew,forcelim)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
       asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( World spawn )")
       asmlib.UndoAddEntity(ePiece)
@@ -633,7 +653,7 @@ function TOOL:LeftClick(stTrace)
     if(ply:KeyDown(IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,forcelim)) then
+      if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,nocollidew,forcelim)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
       asmlib.LogInstance("(Physical) Success",gtArgsLogs); return true
@@ -663,9 +683,9 @@ function TOOL:LeftClick(stTrace)
       if(ePieceN) then -- Set position is valid
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply physical settings fail"),gtArgsLogs); return false end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,forcelim)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,nil,forcelim)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply weld fail"),gtArgsLogs); return false end
-        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,forcelim)) then
+        if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,nocollidew,forcelim)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply no-collide fail"),gtArgsLogs); return false end
         asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntity(ePieceN)
@@ -696,9 +716,9 @@ function TOOL:LeftClick(stTrace)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail"),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,forcelim)) then -- Weld all created to the anchor/previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,nil,forcelim)) then -- Weld all created to the anchor/previous
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply weld fail"),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,forcelim)) then       -- NoCollide all to previous
+      if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,nocollidew,forcelim)) then       -- NoCollide all to previous
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply no-collide fail"),gtArgsLogs); return false end
       asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Snap prop )")
       asmlib.UndoAddEntity(ePiece)
@@ -714,16 +734,25 @@ end
  * Changes the active point chosen by the holder or copy the model
 ]]--
 function TOOL:RightClick(stTrace)
-  if(CLIENT) then asmlib.LogInstance("Working on client",gtArgsLogs); return true end
-  if(not stTrace) then asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
+  if(CLIENT) then
+    asmlib.LogInstance("Working on client",gtArgsLogs); return true end
+  if(not asmlib.IsInit()) then
+    asmlib.LogInstance("Library fail",gtArgsLogs); return false end
+  if(not stTrace) then
+    asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   local trEnt     = stTrace.Entity
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(stTrace.HitWorld) then
-    if(ply:KeyDown(IN_USE)) then
+    if(enpntmscr) then
       asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
       asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
+    else
+      if(ply:KeyDown(IN_USE)) then
+        asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
+        asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
+      end
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr) then
@@ -757,10 +786,15 @@ function TOOL:Reload(stTrace)
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
     if(self:GetExportDB()) then
-      asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
-      asmlib.ExportDSV("PIECES")
-      asmlib.ExportDSV("ADDITIONS")
-      asmlib.ExportDSV("PHYSPROPERTIES")
+      if(ply:KeyDown(IN_USE)) then
+        asmlib.SetAsmConvar(ply,"openextdb")
+        asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
+      else
+        asmlib.ExportDSV("PIECES")
+        asmlib.ExportDSV("ADDITIONS")
+        asmlib.ExportDSV("PHYSPROPERTIES")
+        asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
+      end
       asmlib.SetAsmConvar(ply, "exportdb", 0)
     end
     if(ply:KeyDown(IN_SPEED)) then
@@ -792,7 +826,7 @@ function TOOL:Reload(stTrace)
   end; return false
 end
 
-function TOOL:Holster() asmlib.ClearGhosts(nil, true) end
+function TOOL:Holster() asmlib.ClearGhosts() end
 
 function TOOL:UpdateGhost(oPly)
   if(not asmlib.FadeGhosts(true)) then return nil end
@@ -879,14 +913,17 @@ function TOOL:ElevateGhost(oEnt, oPly)
 end
 
 function TOOL:Think()
+  if(not asmlib.IsInit()) then return end
   local model = self:GetModel()
   local wormo = self:GetWorkingMode()
   if(utilIsValidModel(model)) then
     if(CLIENT) then -- Precache the model or it is invalid otherwise
-      if(inputIsKeyDown(KEY_LALT) and inputIsKeyDown(KEY_E)) then
-        local pnFrame = asmlib.GetOpVar("PANEL_FREQUENT_MODELS")
-        if(pnFrame and IsValid(pnFrame)) then pnFrame.OnClose() end
-      end -- Shortcut for closing the routine pieces. A `close` call :D
+      local bOld = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
+      local bNew = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
+      if(not bOld and bNew and inputIsKeyDown(KEY_LALT)) then
+        local pnFrame = conElements:Pull() -- Retrieve a panel from the stack
+        if(IsValid(pnFrame)) then pnFrame:Close() end -- Call close on it !
+      end -- Shortcut for closing the routine pieces. A `close` call, get it :D
     end
   end
 end
@@ -899,15 +936,16 @@ end
  * tArgs   > Text draw arguments
 ]]--
 function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
-  local ply = LocalPlayer()
+  local ply, iD = LocalPlayer(), 1
   local stS = asmlib.GetCacheSpawn(ply)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
+  local fky = asmlib.GetOpVar("FORM_DRWSPKY")
   local w,h = oScreen:GetSize()
   oScreen:SetTextEdge(0,230)
   oScreen:DrawText(tostring(arK.Name),sCol,sMeth,tArgs)
-  for iD = 1, arK.Size, 1 do local def = arK[iD]
+  while(arK[iD]) do local def, iK = arK[iD], 1
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
-    for iK = 1, def.Size do local row = def[iK]
+    while(def[iK]) do local row = def[iK]
       if(asmlib.IsHere(row[1])) then
         local key = tostring(row[1] or "")
         local typ = tostring(row[2] or "")
@@ -919,11 +957,10 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
         else
           local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
           local val = tostring(stS[key] or "")
-          local fky = tostring(arK.Draw[1] or "%s")
           oScreen:DrawText(fmt:format(fky:format(key), typ, val, inf))
         end
-      end
-    end
+      end; iK = iK + 1
+    end; iD = iD + 1
   end
 end
 
@@ -1006,6 +1043,7 @@ end
 
 function TOOL:DrawHUD()
   if(SERVER) then return end
+  if(not asmlib.IsInit()) then return end
   local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
   local hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
   if(not hudMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
@@ -1130,6 +1168,7 @@ end
 
 function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
+  if(not asmlib.IsInit()) then return end
   local scrTool = asmlib.MakeScreen(0,0,w,h,conPalette,"TOOL")
   if(not scrTool) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
   local xyT, xyB = scrTool:GetCorners()
@@ -1154,8 +1193,8 @@ function TOOL:DrawToolScreen(w, h)
   end
   scrTool:DrawText("Holds Model: Valid","g")
   scrTool:DrawTextAdd("  ["..gsModeDataB.."]","db")
-  local workmode = self:GetWorkingMode()
   local trEnt    = stTrace.Entity
+  local workmode = self:GetWorkingMode()
   local actrad   = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
   local trMaxCN, trModel, trOID, trRLen
@@ -1197,8 +1236,8 @@ function TOOL:DrawToolScreen(w, h)
   local workmode, workname = self:GetWorkingMode()
   scrTool:DrawCircle(xyPs, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPs, nRad, "m")
-  scrTool:DrawText("Date: "..osDate(asmlib.GetOpVar("DATE_FORMAT")),"w")
-  scrTool:DrawText("Time: "..osDate(asmlib.GetOpVar("TIME_FORMAT")))
+  scrTool:DrawText("Date: "..asmlib.GetDate(),"w")
+  scrTool:DrawText("Time: "..asmlib.GetTime())
   if(trRLen) then scrTool:DrawCircle(xyPs, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end
@@ -1230,11 +1269,13 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetIndentSize(0)
   local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
   while(cqPanel[iCnt]) do local vRec = cqPanel[iCnt]
-    local sMod, sTyp, sNam = vRec[defTable[1][1]], vRec[defTable[2][1]], vRec[defTable[3][1]]
+    local sMod = vRec[makTab:GetColumnName(1)]
+    local sTyp = vRec[makTab:GetColumnName(2)]
+    local sNam = vRec[makTab:GetColumnName(3)]
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
-              pRoot.Icon:SetImage("icon16/database_connect.png")
+              pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.InternalDoClick = function() end
               pRoot.DoClick         = function() return false end
               pRoot.DoRightClick    = function() SetClipboardText(pRoot:GetText()) end
@@ -1250,16 +1291,15 @@ function TOOL.BuildCPanel(CPanel)
         -- If the call is successful in protected mode and a folder table is present
         if(bSuc) then local pCurr = pCateg[sTyp]
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
-          if(ptCat and type(ptCat) ~= "table") then ptCat = {ptCat} end
-          if(ptCat and ptCat[1]) then
-            local iCnt = 1; while(ptCat[iCnt]) do
-              local sCat = tostring(ptCat[iCnt])
+          if(ptCat and not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
+          if(ptCat and ptCat[1]) then local iCnt = 1;
+            while(ptCat[iCnt]) do local sCat = tostring(ptCat[iCnt])
               if(asmlib.IsBlank(sCat)) then sCat = "Other" end
               if(pCurr[sCat]) then -- Jump next if already created
                 pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
-              else -- Create the last needed node regarding pItem
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat,"icon16/folder.png",conPalette:Select("tx"))
-              end; iCnt = iCnt + 1;
+              else local sI, cC = asmlib.ToIcon("category_item"), conPalette:Select("tx")
+                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, sI, cC)
+              end; iCnt = iCnt + 1; -- Create the last needed node regarding pItem
             end
           end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
         end -- Custom name to override via category
@@ -1268,7 +1308,7 @@ function TOOL.BuildCPanel(CPanel)
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end
       pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
-      pNode.Icon:SetImage("icon16/brick.png")
+      pNode.Icon:SetImage(asmlib.ToIcon("model"))
       pNode.DoClick = function(pSelf)
         asmlib.SetAsmConvar(nil, "model"  , sMod)
         asmlib.SetAsmConvar(nil, "pointid", 1)
@@ -1346,7 +1386,6 @@ function TOOL.BuildCPanel(CPanel)
   cvarsAddChangeCallback(sText, fText, sText.."_call");
   CPanel:AddItem(pText)
 
-  local snapInc    = asmlib.GetActionCode("INCREMENT_SNAP")
   local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmConvar("maxmass", "FLT")  , 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
@@ -1361,44 +1400,44 @@ function TOOL.BuildCPanel(CPanel)
   pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
   asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@90" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@90" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxOffRot, gnMaxOffRot,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@90" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxOffLin, nMaxOffLin,7,
-    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,snapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
@@ -1408,6 +1447,8 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".weld"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".nocollide_con"), gsToolPrefL.."nocollide")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nocollide"))
+  pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".nocollidew_con"), gsToolPrefL.."nocollidew")
+           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".nocollidew"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".freeze_con"), gsToolPrefL.."freeze")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".freeze"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".ignphysgn_con"), gsToolPrefL.."ignphysgn")

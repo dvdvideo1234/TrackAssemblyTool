@@ -21,7 +21,7 @@ set emd_chew_dbase=%emd_chew_addon%\TrackAssemblyTool_GIT\lua\autorun\trackassem
 set emd_chew_skip=%emd_chew_addon%\TrackAssemblyTool_GIT\data\peaces_manager\models_ignored.txt
 
 :: How many addons are to be processed
-set emd_chew_addcnt=14
+set emd_chew_addcnt=15
 
 :: GMA addons to be processed
 set emd_chew_addlst[1]=sligwolfs_minitrains_149759773
@@ -30,14 +30,15 @@ set emd_chew_addlst[3]=sligwolfs_rerailer_132843280
 set emd_chew_addlst[4]=sprops_workshop_edition_173482196
 set emd_chew_addlst[5]=[1-gauge]_magnums_train_model_pack_290130567
 set emd_chew_addlst[6]=shinji85s_rails_train_pack_326640186
-set emd_chew_addlst[7]=sligwolfs_rail_car_173717507
-set emd_chew_addlst[8]=steventechnos_buildings_pack_331192490
+set emd_chew_addlst[7]=sligwolfs_bgc_173717507
+set emd_chew_addlst[8]=(classic)_steventechnos_buildings_and_roads_pack__331192490
 set emd_chew_addlst[9]=mr.train_m_gauge_517442747
 set emd_chew_addlst[10]=g_scale_track_pack_718239260
 set emd_chew_addlst[11]=rons_minitrain_props_728833183
 set emd_chew_addlst[12]=battleships_abandoned_rails(penn_central_simulator_2017)(wip)_807162936
 set emd_chew_addlst[13]=alexcookies_2ft_track_pack_740453553
 set emd_chew_addlst[14]=joes_track_pack_1658816805
+set emd_chew_addlst[15]=steventechnos_buildings_and_roads_pack_2.0_1888013789
 
 :: Folder list for extraction and the directories they will be extracted
 set emd_chew_adddir[1]=SligWolf's Minitrains
@@ -47,13 +48,14 @@ set emd_chew_adddir[4]=SProps
 set emd_chew_adddir[5]=Magnum's Rails
 set emd_chew_adddir[6]=Shinji85's Rails
 set emd_chew_adddir[7]=SligWolf's Railcar
-set emd_chew_adddir[8]=StephenTechno's Buildings
+set emd_chew_adddir[8]=StevenTechno's Buildings 1.0
 set emd_chew_adddir[9]=Mr.Train's M-Gauge
 set emd_chew_adddir[10]=G Scale Track Pack
 set emd_chew_adddir[11]=Ron's Minitrain Props
 set emd_chew_adddir[12]=Battleship's abandoned rails
 set emd_chew_adddir[13]=AlexCookie's 2ft track pack
 set emd_chew_adddir[14]=Joe's track pack
+set emd_chew_adddir[15]=StevenTechno's Buildings 2.0
 
 :: AUTOMATIC STUFF ::
 
