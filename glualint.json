@@ -1,5 +1,5 @@
 {
-    "lint_maxScopeDepth":               7,
+    "lint_maxScopeDepth":               10,
     "lint_syntaxErrors":                true,
     "lint_syntaxInconsistencies":       true,
     "lint_deprecated":                  true,
@@ -23,7 +23,7 @@
     "prettyprint_spaceAfterBrackets":   false,
     "prettyprint_spaceAfterBraces":     false,
     "prettyprint_spaceBeforeComma":     false,
-    "prettyprint_spaceAfterComma":      true,
+    "prettyprint_spaceAfterComma":      false,
     "prettyprint_semicolons":           false,
     "prettyprint_cStyle":               false,
     "prettyprint_rejectInvalidCode":    false,
