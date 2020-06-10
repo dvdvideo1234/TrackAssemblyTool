@@ -4175,6 +4175,11 @@ models/joe/jtp/curve/1536_45_left.mdl
 models/joe/jtp/curve/1536_45_right.mdl
 models/joe/jtp/curve/3072_45_left.mdl
 models/joe/jtp/curve/3072_45_right.mdl
+models/joe/jtp/straight/1024_225.mdl
+models/joe/jtp/straight/1024_45.mdl
+models/joe/jtp/straight/4096_64.mdl
+models/joe/jtp/straight/512_45.mdl
+models/joe/jtp/straight/96_225.mdl
 
 # Branchwood Valley
 models/animals/cow.mdl

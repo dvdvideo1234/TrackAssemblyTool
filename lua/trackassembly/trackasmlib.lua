@@ -2659,8 +2659,8 @@ function CacheQueryPanel()
         stPanel[iCnt] = qData[iCnt]; stPanel.Size, iCnt = iCnt, (iCnt + 1)
       end; stPanel = makTab:TimerAttach(sFunc, keyPan); return stPanel
     elseif(sMoDB == "LUA") then
-      local tCache = libCache[defTab.Name]
-      local tSort  = Sort(tCache,{"Type","Name"}); if(not tSort) then
+      local tCache = libCache[defTab.Name] -- Sort directly by the model
+      local tSort  = Sort(tCache,{"Type","Slot"}); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end; stPanel.Size = 0
       for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
         local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
