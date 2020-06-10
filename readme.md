@@ -387,7 +387,7 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-dbext]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension
 [ref-text-file]: https://www.youtube.com/watch?v=Pz0_RGwgfaY
 [ref-value-exp]: https://www.youtube.com/watch?v=mEEpO3w8BLs
-[ref-lua-script]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua
+[ref-lua-script]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_%5Btrackassembly%5D.txt
 [ref-load-list]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt
 [ref-list-pref]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt
 [ref-categ]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt
