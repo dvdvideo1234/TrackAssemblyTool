@@ -4,7 +4,7 @@
     "lint_syntaxInconsistencies":       true,
     "lint_deprecated":                  true,
     "lint_trailingWhitespace":          true,
-    "lint_whitespaceStyle":             true,
+    "lint_whitespaceStyle":             false,
     "lint_beginnerMistakes":            true,
     "lint_emptyBlocks":                 true,
     "lint_shadowing":                   true,
@@ -17,7 +17,7 @@
     "lint_unusedVars":                  true,
     "lint_unusedParameters":            false,
     "lint_unusedLoopVars":              false,
-    "lint_ignoreFiles":                 [],
+    "lint_ignoreFiles":                 ["data/hooks/pre-commit.lua", "lua/entities/gmod_wire_expression2/core/custom/trackasmlib_wire.lua"],
 
     "prettyprint_spaceAfterParens":     false,
     "prettyprint_spaceAfterBrackets":   false,

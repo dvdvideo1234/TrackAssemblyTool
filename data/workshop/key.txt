@@ -1,2 +1,7 @@
 .git
 .svn
+.github
+.gitattributes
+.gitignore
+glualint.json
+data

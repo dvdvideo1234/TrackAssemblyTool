@@ -75,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.611")
+asmlib.SetOpVar("TOOL_VERSION","7.613")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -181,8 +181,7 @@ local gsCbcHash = "_init" -- This keeps suffix related to the file
 gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = (tonumber(vNew) or 0)
-        nM = ((nM > 0) and nM or 0)
+  local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
   asmlib.SetOpVar("TRACE_MARGIN", nM)
 end, gsVarName..gsCbcHash)
 
