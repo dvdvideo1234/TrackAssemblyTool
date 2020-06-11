@@ -17,7 +17,7 @@
     "lint_unusedVars":                  true,
     "lint_unusedParameters":            false,
     "lint_unusedLoopVars":              false,
-    "lint_ignoreFiles":                 ["./data/hooks/pre-commit.lua", "lua/entities/gmod_wire_expression2/core/custom/trackasmlib_wire.lua"],
+    "lint_ignoreFiles":                 ["data/*", "lua/entities/gmod_wire_expression2/core/custom/trackasmlib_wire.lua"],
 
     "prettyprint_spaceAfterParens":     false,
     "prettyprint_spaceAfterBrackets":   false,
