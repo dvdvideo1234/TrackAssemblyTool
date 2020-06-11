@@ -112,7 +112,7 @@ local timerStart                     = timer and timer.Start
 local timerSimple                    = timer and timer.Simple
 local timerExists                    = timer and timer.Exists
 local timerCreate                    = timer and timer.Create
-local timerDestroy                   = timer and timer.Destroy
+local timerRemove                    = timer and timer.Remove
 local tableEmpty                     = table and table.Empty
 local tableMaxn                      = table and table.maxn
 local tableGetKeys                   = table and table.GetKeys
@@ -2165,7 +2165,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         timerCreate(tmID, tmLif, 1, function()
           LogInstance("["..tmID.."]("..tmLif..") > Dead",tabDef.Nick)
           if(tmDie) then oSpot[kKey] = nil; LogInstance("Killed <"..kKey..">",tabDef.Nick) end
-          timerStop(tmID); timerDestroy(tmID)
+          timerStop(tmID); timerRemove(tmID)
           if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
         end); timerStart(tmID); return oSpot[kKey]
       else LogInstance("Mode mismatch <"..smTM..">",tabDef.Nick); return oSpot[kKey] end
@@ -3018,7 +3018,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     if(bRepl) then -- Replace the data when enabled overwrites the file data
       if(tData[vK]) then -- Update the file with the new data
         fData[vK] = tRec; fData[vK].Size = #tRec end
-    else --[[ Do not modify fData ]] end
+    end
   end
   local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
     LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end

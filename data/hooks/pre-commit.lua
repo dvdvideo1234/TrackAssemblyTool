@@ -14,7 +14,7 @@ function trim(s) return s:match("^%s*(.-)%s*$") end
 local sLog = tostring(arg[4]):gsub("\\","/")
 
 local fLog, sE = io.open(sLog,"a+")
-if(fLog) then io.output(fLog) end
+if(fLog) then io.output(fLog) else io.output("Error: "..sE) end
 
 io.write(fSta:format("START"))
 
@@ -79,5 +79,3 @@ if(fLog) then
   fLog:flush()
   fLog:close()
 end
-
-

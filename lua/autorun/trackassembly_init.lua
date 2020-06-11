@@ -75,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.611")
+asmlib.SetOpVar("TOOL_VERSION","7.613")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -181,8 +181,7 @@ local gsCbcHash = "_init" -- This keeps suffix related to the file
 gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
 cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = (tonumber(vNew) or 0)
-        nM = ((nM > 0) and nM or 0)
+  local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
   asmlib.SetOpVar("TRACE_MARGIN", nM)
 end, gsVarName..gsCbcHash)
 
@@ -432,11 +431,10 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
-      local vBs = asmlib.NewXY(4,4)
+      local vBs, nR = asmlib.NewXY(4,4), (gnRatio-1)
       local nN  = conWorkMode:GetSize()
       local nDr = asmlib.GetOpVar("DEG_RAD")
       local sM  = asmlib.GetOpVar("MISS_NOAV")
-      local nR  = (asmlib.GetOpVar("GOLDEN_RATIO")-1)
       local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
       -- Calculate dependent parameters
       local vFr = asmlib.NewXY(vCn.y*nR) -- Far radius vector
@@ -498,9 +496,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_EXTERNDB"
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
-      local nRat = asmlib.GetOpVar("GOLDEN_RATIO")
       local sVer = asmlib.GetOpVar("TOOL_VERSION")
-      local xyPos, nAut  = asmlib.NewXY(scrW/4,scrH/4), (nRat - 1)
+      local xyPos, nAut  = asmlib.NewXY(scrW/4,scrH/4), (gnRatio - 1)
       local xyDsz, xyTmp = asmlib.NewXY(5,5), asmlib.NewXY()
       local xySiz = asmlib.NewXY(nAut * scrW, nAut * scrH)
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
@@ -542,7 +539,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
       xySiz.x = (nW - 6 * xyDsz.x)
       xySiz.y = ((nH - 6 * xyDsz.y) - 52)
-      local wAct = mathFloor(((nRat - 1) / 6) * xySiz.x)
+      local wAct = mathFloor(((gnRatio - 1) / 6) * xySiz.x)
       local wUse = mathFloor(xySiz.x - wAct)
       local pnListView = vguiCreate("DListView")
       if(not IsValid(pnListView)) then pnFrame:Close()
@@ -724,7 +721,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       ------ Screen resolution and configuration -------
       local scrW         = surfaceScreenWidth()
       local scrH         = surfaceScreenHeight()
-      local nRatio       = asmlib.GetOpVar("GOLDEN_RATIO")
       local sVersion     = asmlib.GetOpVar("TOOL_VERSION")
       local xyZero       = {x =  0, y = 20} -- The start location of left-top
       local xyDelta      = {x = 10, y = 10} -- Distance between panels
@@ -732,9 +728,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local xyPos        = {x =  0, y =  0} -- Current panel position
       local xyTmp        = {x =  0, y =  0} -- Temporary coordinate
       ------------ Frame --------------
-      xySiz.x = (scrW / nRatio) -- This defines the size of the frame
+      xySiz.x = (scrW / gnRatio) -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
-      xySiz.y = mathFloor(xySiz.x / (1 + nRatio))
+      xySiz.y = mathFloor(xySiz.x / (1 + gnRatio))
       pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd").." "..oPly:Nick().." {"..sVersion.."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
@@ -748,8 +744,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       end
       ------------ Button --------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
-      xySiz.x = (xyTmp.x / (8.5 * nRatio)) -- Display properly the name
-      xySiz.y = (xySiz.x / (1.5 * nRatio)) -- Used by combo-box and text-box
+      xySiz.x = (xyTmp.x / (8.5 * gnRatio)) -- Display properly the name
+      xySiz.y = (xySiz.x / (1.5 * gnRatio)) -- Used by combo-box and text-box
       xyPos.x = xyZero.x + xyDelta.x
       xyPos.y = xyZero.y + xyDelta.y
       local pnButton = vguiCreate("DButton")
@@ -766,7 +762,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
       xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
-      xySiz.x, xySiz.y = (nRatio * xyTmp.x), xyTmp.y
+      xySiz.x, xySiz.y = (gnRatio * xyTmp.x), xyTmp.y
       local pnComboBox = vguiCreate("DComboBox")
       if(not IsValid(pnComboBox)) then pnFrame:Close()
         asmlib.LogInstance("Combo invalid",gtArgsLogs); return nil end
@@ -788,7 +784,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       ------------ ModelPanel --------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xyPos.x, xyPos.y = pnComboBox:GetPos()
-      xySiz.x = (xyTmp.x / (1.9 * nRatio)) -- Display the model properly
+      xySiz.x = (xyTmp.x / (1.9 * gnRatio)) -- Display the model properly
       xyPos.x = xyTmp.x - xySiz.x - xyDelta.x
       xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
       --------------------------------------
@@ -866,7 +862,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine) gtArgsLogs[1] = "OPEN_FRAME.ListView"
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0); pnModelPanel:SetModel(uiMod) -- Active points amount
-        local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,nRatio,nRatio-1); if(not asmlib.IsHere(uiBox)) then
+        local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("ListView.OnRowSelected Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmConvar("pointid","INT"), asmlib.GetAsmConvar("pnextid","INT")

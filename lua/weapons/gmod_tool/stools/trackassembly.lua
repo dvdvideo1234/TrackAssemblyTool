@@ -451,14 +451,13 @@ end
 function TOOL:GetWorkingMode() -- Put cases in new mode resets here
   local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, conWorkMode:GetSize())
   -- Perform various actions to stabilize data across working modes
-  if    (workmode == 1) then self:IntersectClear(true) -- Reset ray list in snap mode
-  elseif(workmode == 2) then --[[ Nothing to reset in intersect mode ]] end
+  if(workmode == 1) then self:IntersectClear(true) end -- Reset ray list in snap mode
   return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV):sub(1,6)
 end -- Reset settings server-side where available and return the value
 
 function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
-  if(not (iMaxlog > 0)) then return "Status N/A" end
+  if(iMaxlog <= 0) then return "Status N/A" end
   local ply, sDelim  = self:GetOwner(), "\n"
   local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
   local bFleLog = asmlib.IsFlag("en_logging_file")
