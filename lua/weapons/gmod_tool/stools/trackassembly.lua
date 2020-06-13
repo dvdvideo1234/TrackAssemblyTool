@@ -82,7 +82,7 @@ local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
-  asmlib.LogInstance("Processing external DSV fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
+  asmlib.LogInstance("Processing DSV fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
 end
 
 cleanupRegister(gsLimitName); asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)

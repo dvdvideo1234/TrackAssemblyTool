@@ -75,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.613")
+asmlib.SetOpVar("TOOL_VERSION","7.614")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -800,7 +800,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt) gtArgsLogs[1] = "OPEN_FRAME.ModelPanel"
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40); if(not asmlib.IsHere(uiBox)) then
-          asmlib.LogInstance("ModelPanel.LayoutEntity Box invalid",gtArgsLogs); return nil end
+          asmlib.LogInstance("Box invalid",gtArgsLogs); return nil end
         local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
@@ -861,9 +861,10 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine) gtArgsLogs[1] = "OPEN_FRAME.ListView"
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
-        local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0); pnModelPanel:SetModel(uiMod) -- Active points amount
+        local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0) -- Active points amount or track ends per model
+        pnModelPanel:SetModel(uiMod); pnModelPanel:GetEntity():SetModel(uiMod) -- Apply the model on the model panel
         local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
-          asmlib.LogInstance("ListView.OnRowSelected Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
+          asmlib.LogInstance("Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmConvar("pointid","INT"), asmlib.GetAsmConvar("pnextid","INT")
               pointid, pnextid = asmlib.SnapReview(pointid, pnextid, uiAct); SetClipboardText(uiMod)
@@ -877,7 +878,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         SetClipboardText(pnLine:GetColumnText(nCnt))
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
-        asmlib.LogInstance("ListView.OnRowSelected Populate the list view failed",gtArgsLogs); return nil end
+        asmlib.LogInstance("Populate the list view failed",gtArgsLogs); return nil end
       -- The button dababase export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.Button"
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), gtArgsLogs)

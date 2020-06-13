@@ -242,23 +242,23 @@ function IsOther(oEnt)
 end
 
 -- Reports the type and actual value
-function GetReport(vA)
-  return GetOpVar("FORM_VREPORT2"):format(type(vA), tostring(vA))
+function GetReport(vA) local sR = GetOpVar("FORM_VREPORT2")
+  return (sR and sR:format(type(vA), tostring(vA)) or "")
 end
 
 -- Reports vararg containing two values
-function GetReport2(vA, vB)
-  return GetOpVar("FORM_VREPORT2"):format(tostring(vA), tostring(vB))
+function GetReport2(vA, vB) local sR = GetOpVar("FORM_VREPORT2")
+  return (sR and sR:format(tostring(vA), tostring(vB)) or "")
 end
 
 -- Reports vararg containing three values
-function GetReport3(vA, vB, vC)
-  return GetOpVar("FORM_VREPORT3"):format(tostring(vA), tostring(vB), tostring(vC))
+function GetReport3(vA, vB, vC) local sR = GetOpVar("FORM_VREPORT3")
+  return (sR and sR:format(tostring(vA), tostring(vB), tostring(vC)) or "")
 end
 
 -- Reports vararg containing three values
-function GetReport4(vA, vB, vC, vD)
-  return GetOpVar("FORM_VREPORT4"):format(tostring(vA), tostring(vB), tostring(vC), tostring(vD))
+function GetReport4(vA, vB, vC, vD) local sR = GetOpVar("FORM_VREPORT4")
+  return (sR and sR:format(tostring(vA), tostring(vB), tostring(vC), tostring(vD)) or "")
 end
 
 -- Returns the sign of a number [-1,0,1]
@@ -2497,9 +2497,9 @@ end
 function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity invalid <"..tostring(oEnt)..">"); return nil end
-  local sMod = oEnt:GetModel()
+  local sMod = oEnt:GetModel() -- Extract the entity model
   local oRec = CacheQueryPiece(sMod); if(not IsHere(oRec)) then
-    LogInstance("Piece record invalid <"..sMod..">"); return nil end
+    LogInstance("Record invalid <"..sMod..">"); return nil end
   local stBox = oRec.Layout; if(not IsHere(stBox)) then
     local vMin, vMax; oRec.Layout = {}; stBox = oRec.Layout
     if    (CLIENT) then vMin, vMax = oEnt:GetRenderBounds()
