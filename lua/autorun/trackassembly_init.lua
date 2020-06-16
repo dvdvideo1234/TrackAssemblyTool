@@ -75,7 +75,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.614")
+asmlib.SetOpVar("TOOL_VERSION","7.615")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -861,8 +861,10 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine) gtArgsLogs[1] = "OPEN_FRAME.ListView"
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
-        local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0) -- Active points amount or track ends per model
-        pnModelPanel:SetModel(uiMod); pnModelPanel:GetEntity():SetModel(uiMod) -- Apply the model on the model panel
+        local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0); pnModelPanel:SetModel(uiMod) -- Active track ends per model create entity
+        local uiEnt = pnModelPanel:GetEntity(); if(not (uiEnt and uiEnt:IsValid())) then -- Makes sure the entity is validated first
+          asmlib.LogInstance("Model entity invalid "..asmlib.GetReport(uiMod), gtArgsLogs); return nil end
+        uiEnt:SetModel(uiMod); uiEnt:SetModelName(uiMod) -- Apply the model on the model panel even for changed compiled model paths
         local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("Box invalid for <"..uiMod..">",gtArgsLogs); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
@@ -3640,15 +3642,15 @@ else
   PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.56348"})
   PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0.0014,6.56348"})
   PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 2, "", "-2005,2005,6.5625", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 1, "", "0, 256,14.56738", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 2, "", "0,-256,-1.43457", "0,-90,0"})
-  PIECES:Record({"models/joe/jtp/grades/512_32.mdl", "#", "#", 1, "", "0,512,38.56152", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/grades/512_32.mdl", "#", "#", 2, "", "0,0,6.56152", "0,-90,0"})
+  PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 1, "", "0,-256,-1.43457", "0,-90,0"})
+  PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 2, "", "0, 256,14.56738", "0,90,0"})
+  PIECES:Record({"models/joe/jtp/grades/512_32.mdl", "#", "#", 1, "", "0,0,6.56152", "0,-90,0"})
+  PIECES:Record({"models/joe/jtp/grades/512_32.mdl", "#", "#", 2, "", "0,512,38.56152", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/1024_16.mdl", "#", "#", 1, "", "0,0,6.5625", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/1024_16.mdl", "#", "#", 2, "", "0,-1024,22.5625", "0,-90,0"})
   PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 1, "", "0,512,-9.43457", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/1024_32.mdl", "#", "#", 2, "", "0,-512,22.56836", "0,-90,0"})
-  PIECES:Record({"models/joe/jtp/throw/harpstand_2_pos.mdl", "#", "#", 1, "", "0, -86, 0"})
+  PIECES:Record({"models/joe/jtp/throw/harpstand_2_pos.mdl", "#", "#", 1, "", "0, -86.5, 0"})
   PIECES:Record({"models/joe/jtp/trestle/trestle_1.mdl", "#", "#", 1, "", "0,0,249", "0,90,0"})
   PIECES:Record({"models/joe/jtp/trestle/trestle_2.mdl", "#", "#", 1, "", "0,0,249", "0,90,0"})
   PIECES:Record({"models/joe/jtp/trestle/trestle_3.mdl", "#", "#", 1, "", "0,0,249", "0,90,0"})
