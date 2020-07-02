@@ -3169,18 +3169,22 @@ function ProcessDSV(sDelim)
     if(tab.Cnt > 1) then
       LogInstance("Prefix <"..prf.."> clones #"..tostring(tab.Cnt).." @"..fName)
       for iD = 1, tab.Cnt do LogInstance("Prefix "..GetReport3(iD, prf, tab[iD])) end
-    else
+    else local irf = GetInstPref()
       if(CLIENT) then
-        if(fileExists(sDv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
-          if(not ImportCategory(3, prf)) then
-            LogInstance("("..prf..") Failed CATEGORY") end
-        end
+        if(not fileExists(sDv..fForm:format(irf, sNt.."CATEGORY"), "DATA")) then
+          if(fileExists(sDv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
+            if(not ImportCategory(3, prf)) then
+              LogInstance("("..prf..") Failed CATEGORY") end
+          else LogInstance("("..prf..") Missing CATEGORY") end
+        else LogInstance("("..prf..") Generic CATEGORY") end
       end local iD, makTab = 1, GetBuilderID(1)
       while(makTab) do local defTab = makTab:GetDefinition()
-        if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
-          if(not ImportDSV(defTab.Nick, true, prf)) then
-            LogInstance("("..prf..") Failed "..defTab.Nick) end
-        else LogInstance("("..prf..") Missing "..defTab.Nick) end
+        if(not fileExists(sDv..fForm:format(irf, sNt..defTab.Nick), "DATA")) then
+          if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
+            if(not ImportDSV(defTab.Nick, true, prf)) then
+              LogInstance("("..prf..") Failed "..defTab.Nick) end
+          else LogInstance("("..prf..") Missing "..defTab.Nick) end
+        else LogInstance("("..prf..") Generic "..defTab.Nick) end
         iD = (iD + 1); makTab = GetBuilderID(iD)
       end
     end
@@ -4197,6 +4201,7 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   eGho:SetModel(sModel)
   eGho:SetPos(vPos or GetOpVar("VEC_ZERO"))
   eGho:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+  eGho:PhysicsDestroy()
   eGho:SetSolid(SOLID_NONE)
   eGho:SetCollisionGroup(COLLISION_GROUP_NONE)
   eGho:SetMoveType(MOVETYPE_NONE)
