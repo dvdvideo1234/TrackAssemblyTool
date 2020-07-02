@@ -59,7 +59,7 @@ local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 --- Global References
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
-local gnMaxOffRot = asmlib.GetOpVar("MAX_ROTATION")
+local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
@@ -214,16 +214,16 @@ function TOOL:GetDeveloperMode()
 end
 
 function TOOL:GetPosOffsets()
-  local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
-  return (mathClamp(self:GetClientNumber("nextx") or 0,-nMaxOffLin,nMaxOffLin)),
-         (mathClamp(self:GetClientNumber("nexty") or 0,-nMaxOffLin,nMaxOffLin)),
-         (mathClamp(self:GetClientNumber("nextz") or 0,-nMaxOffLin,nMaxOffLin))
+  local nMaxLin = asmlib.GetAsmConvar("maxlinear","FLT")
+  return (mathClamp(self:GetClientNumber("nextx") or 0,-nMaxLin,nMaxLin)),
+         (mathClamp(self:GetClientNumber("nexty") or 0,-nMaxLin,nMaxLin)),
+         (mathClamp(self:GetClientNumber("nextz") or 0,-nMaxLin,nMaxLin))
 end
 
 function TOOL:GetAngOffsets()
-  return (mathClamp(self:GetClientNumber("nextpic") or 0,-gnMaxOffRot,gnMaxOffRot)),
-         (mathClamp(self:GetClientNumber("nextyaw") or 0,-gnMaxOffRot,gnMaxOffRot)),
-         (mathClamp(self:GetClientNumber("nextrol") or 0,-gnMaxOffRot,gnMaxOffRot))
+  return (mathClamp(self:GetClientNumber("nextpic") or 0,-gnMaxRot,gnMaxRot)),
+         (mathClamp(self:GetClientNumber("nextyaw") or 0,-gnMaxRot,gnMaxRot)),
+         (mathClamp(self:GetClientNumber("nextrol") or 0,-gnMaxRot,gnMaxRot))
 end
 
 function TOOL:GetElevation()
@@ -287,7 +287,7 @@ function TOOL:GetActiveRadius()
 end
 
 function TOOL:GetAngSnap()
-  return mathClamp(self:GetClientNumber("angsnap"),0,gnMaxOffRot)
+  return mathClamp(self:GetClientNumber("angsnap"),0,gnMaxRot)
 end
 
 function TOOL:GetForceLimit()
@@ -1243,7 +1243,7 @@ end
 
 function TOOL.BuildCPanel(CPanel)
   local sLog = "*TOOL.BuildCPanel"; CPanel:ClearControls()
-  local CurY, pItem = 0 -- pItem is the current panel created
+  local CurY, sCall, pItem, sText, fText = 0, "_cpan" -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
   CurY  = CurY + pItem:GetTall() + 2
@@ -1363,10 +1363,10 @@ function TOOL.BuildCPanel(CPanel)
       while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
-  local sText = asmlib.GetAsmConvar("physmater", "NAM")
-  local fText = function(sVar, vOld, vNew) pComboPhysName:SetValue(vNew) end
-  cvarsRemoveChangeCallback(sText, sText.."_call")
-  cvarsAddChangeCallback(sText, fText, sText.."_call");
+  sText = asmlib.GetAsmConvar("physmater", "NAM")
+  fText = function(sVar, vOld, vNew) pComboPhysName:SetValue(vNew) end
+  cvarsRemoveChangeCallback(sText, sText..sCall)
+  cvarsAddChangeCallback(sText, fText, sText..sCall);
   CPanel:AddItem(pComboToolMode)
   CPanel:AddItem(pComboPhysType)
   CPanel:AddItem(pComboPhysName); asmlib.LogTable(cqProperty,"Property",sLog)
@@ -1379,26 +1379,26 @@ function TOOL.BuildCPanel(CPanel)
         pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
         pText:SetEnabled(false)
         CurY = CurY + pText:GetTall() + 2
-  local sText = asmlib.GetAsmConvar("bgskids", "NAM")
-  local fText = function(sVar, vOld, vNew) pText:SetText(vNew); pText:SetValue(vNew) end
-  cvarsRemoveChangeCallback(sText, sText.."_call")
-  cvarsAddChangeCallback(sText, fText, sText.."_call");
+  sText = asmlib.GetAsmConvar("bgskids", "NAM")
+  fText = function(sVar, vOld, vNew) pText:SetText(vNew); pText:SetValue(vNew) end
+  cvarsRemoveChangeCallback(sText, sText..sCall)
+  cvarsAddChangeCallback(sText, fText, sText..sCall);
   CPanel:AddItem(pText)
 
-  local nMaxOffLin = asmlib.GetAsmConvar("maxlinear","FLT")
+  local nMaxLin, iMaxDec = asmlib.GetAsmConvar("maxlinear","FLT"), asmlib.GetAsmConvar("maxmenupr","INT")
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmConvar("maxmass", "FLT")  , 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmConvar("maxactrad", "FLT"), 7)
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmConvar("maxactrad", "FLT"), iMaxDec)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".activrad"))
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".stackcnt_con"), gsToolPrefL.."stackcnt", 1, asmlib.GetAsmConvar("maxstcnt", "INT"), 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".stackcnt"))
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", 0, asmlib.GetAsmConvar("maxstcnt", "INT"), 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".ghostcnt"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxOffRot, 7)
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxRot, iMaxDec)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".angsnap"))
   pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
-  asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxOffRot, gnMaxOffRot,7,
+  asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
     {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
@@ -1406,7 +1406,7 @@ function TOOL.BuildCPanel(CPanel)
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxOffRot, gnMaxOffRot,7,
+  asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
     {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
@@ -1414,7 +1414,7 @@ function TOOL.BuildCPanel(CPanel)
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxOffRot, gnMaxOffRot,7,
+  asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
     {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
@@ -1422,25 +1422,25 @@ function TOOL.BuildCPanel(CPanel)
      {Text="@180", Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxOffLin, nMaxOffLin,7,
+  asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxLin, nMaxLin,iMaxDec,
     {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxOffLin, nMaxOffLin,7,
+  asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxLin, nMaxLin,iMaxDec,
     {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxOffLin, nMaxOffLin,7,
+  asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxLin, nMaxLin,iMaxDec,
     {{Text="+"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="-"   , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Text="+/-" , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Text="@M"  , Click=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Text="@0"  , Click=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmConvar("maxforce" ,"FLT"), 7)
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".forcelim_con"), gsToolPrefL.."forcelim", 0, asmlib.GetAsmConvar("maxforce" ,"FLT"), iMaxDec)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".forcelim"))
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".weld_con"), gsToolPrefL.."weld")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".weld"))
