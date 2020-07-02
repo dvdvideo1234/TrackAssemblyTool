@@ -26,6 +26,7 @@ DRAW_RADMENU: Scroll release
 DRAW_RADMENU: Menu disabled
 DRAW_PHYSGUN: Extension disabled
 DRAW_RADMENU: %(gmod_tool%) Swep other
+DRAW_GHOSTS: Swep invalid
 DRAW_GHOSTS: Swep not tool
 DRAW_GHOSTS: %(gmod_tool%) Swep other
 DRAW_GHOSTS: Tool different
@@ -34,6 +35,7 @@ DRAW_PHYSGUN: Trace world
 DRAW_PHYSGUN: Hook mismatch
 DRAW_PHYSGUN: Physgun not hold
 DRAW_PHYSGUN: Swep not physgun
+DRAW_PHYSGUN: Swep invalid
 DRAW_PHYSGUN: Extension disabled
 DRAW_PHYSGUN: %(weapon_physgun%) Swep other
 POINT_SELECT: Bind not pressed
