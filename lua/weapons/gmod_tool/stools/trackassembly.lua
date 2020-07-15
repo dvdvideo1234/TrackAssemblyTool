@@ -32,6 +32,7 @@ local hookAdd                          = hook and hook.Add
 local tableGetKeys                     = table and table.GetKeys
 local inputIsKeyDown                   = input and input.IsKeyDown
 local cleanupRegister                  = cleanup and cleanup.Register
+local stringGetFileName                = string and string.GetFileFromFilename
 local surfaceScreenWidth               = surface and surface.ScreenWidth
 local surfaceScreenHeight              = surface and surface.ScreenHeight
 local languageAdd                      = language and language.Add
@@ -351,7 +352,7 @@ function TOOL:IntersectClear(bMute)
     if(SERVER) then local ryEnt, sRel = stRay.Ent
       netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
       if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w"))
-        sRel = ryEnt:EntIndex()..gsSymRev..ryEnt:GetModel():GetFileFromFilename() end
+        sRel = ryEnt:EntIndex()..gsSymRev..stringGetFileName(ryEnt:GetModel()) end
       if(not bMute) then sRel = (sRel and (": "..tostring(sRel)) or "")
         asmlib.LogInstance("Relation cleared <"..sRel..">",gtArgsLogs)
         asmlib.Notify(oPly,"Intersect relation clear"..sRel.." !","CLEANUP")
@@ -368,7 +369,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
   if(SERVER) then -- Only the server is allowed to define relation ray
     netStart(gsLibName.."SendIntersectRelate")
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
-    local sRel = oEnt:EntIndex()..gsSymRev..oEnt:GetModel():GetFileFromFilename()
+    local sRel = oEnt:EntIndex()..gsSymRev..stringGetFileName(oEnt:GetModel())
     asmlib.Notify(oPly,"Intersect relation set: "..sRel.." !","UNDO")
     stRay.Ent:SetColor(conPalette:Select("ry"))
   end return true
@@ -417,7 +418,7 @@ function TOOL:ClearAnchor(bMute)
     svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
     svEnt:SetColor(conPalette:Select("w"))
     if(not bMute) then
-      local sAnchor = svEnt:EntIndex()..gsSymRev..svEnt:GetModel():GetFileFromFilename()
+      local sAnchor = svEnt:EntIndex()..gsSymRev..stringGetFileName(svEnt:GetModel())
       asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
     end
   end; asmlib.LogInstance("("..tostring(bMute)..") Anchor cleared",gtArgsLogs); return true
@@ -433,7 +434,7 @@ function TOOL:SetAnchor(stTrace)
   if(not (phEnt and phEnt:IsValid())) then asmlib.LogInstance("Trace no physics",gtArgsLogs); return false end
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then asmlib.LogInstance("Player invalid",gtArgsLogs); return false end
-  local sAnchor = trEnt:EntIndex()..gsSymRev..trEnt:GetModel():GetFileFromFilename()
+  local sAnchor = trEnt:EntIndex()..gsSymRev..stringGetFileName(trEnt:GetModel())
   trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
   trEnt:SetColor(conPalette:Select("an"))
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
@@ -494,11 +495,11 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTr and stTr.HitWorld or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTr and stTr.Entity or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  TR.File:        <"..(trModel and tostring(trModel):GetFileFromFilename() or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.File:        <"..(trModel and stringGetFileName(tostring(trModel)) or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
         sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
         sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel or gsNoAV):GetFileFromFilename()..">"..sDelim
+        sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel or stringGetFileName(gsNoAV))..">"..sDelim
         sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
@@ -552,7 +553,7 @@ function TOOL:SelectModel(sModel)
   local ply = self:GetOwner()
   local pointid, pnextid = self:GetPointID()
         pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Size)
-  asmlib.Notify(ply,"Model: "..sModel:GetFileFromFilename().." selected !","UNDO")
+  asmlib.Notify(ply,"Model: "..stringGetFileName(sModel).." selected !","UNDO")
   asmlib.SetAsmConvar(ply,"pointid", pointid)
   asmlib.SetAsmConvar(ply,"pnextid", pnextid)
   asmlib.SetAsmConvar(ply, "model" , sModel)
@@ -594,7 +595,7 @@ function TOOL:LeftClick(stTrace)
   local appangfst  = self:ApplyAngularFirst()
   local applinfst  = self:ApplyLinearFirst()
   local nocollidew = self:GetNocollideWorld()
-  local fnmodel    = model:GetFileFromFilename()
+  local fnmodel    = stringGetFileName(model)
   local aninfo , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -743,33 +744,37 @@ function TOOL:RightClick(stTrace)
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
-  if(stTrace.HitWorld) then
-    if(enpntmscr) then
-      asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
-      asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
-    else
-      if(ply:KeyDown(IN_USE)) then
+  if(workmode == 3) then -- Add node to curve
+
+  else
+    if(stTrace.HitWorld) then
+      if(enpntmscr) then
         asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
         asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
+      else
+        if(ply:KeyDown(IN_USE)) then
+          asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
+          asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
+        end
       end
-    end
-  elseif(trEnt and trEnt:IsValid()) then
-    if(enpntmscr) then
-      if(not self:SelectModel(trEnt:GetModel())) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
-      asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
-    else
-      if(ply:KeyDown(IN_USE)) then
+    elseif(trEnt and trEnt:IsValid()) then
+      if(enpntmscr) then
         if(not self:SelectModel(trEnt:GetModel())) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
         asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
+      else
+        if(ply:KeyDown(IN_USE)) then
+          if(not self:SelectModel(trEnt:GetModel())) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
+          asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
+        end
       end
     end
-  end
-  if(not enpntmscr) then
-    local Dir = (ply:KeyDown(IN_SPEED) and -1 or 1)
-    self:SwitchPoint(Dir,ply:KeyDown(IN_DUCK))
-    asmlib.LogInstance("(Point) Success",gtArgsLogs); return true
+    if(not enpntmscr) then
+      local Dir = (ply:KeyDown(IN_SPEED) and -1 or 1)
+      self:SwitchPoint(Dir,ply:KeyDown(IN_DUCK))
+      asmlib.LogInstance("(Point) Success",gtArgsLogs); return true
+    end
   end
 end
 
@@ -781,46 +786,49 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
-  if(stTrace.HitWorld) then
-    if(self:GetDeveloperMode()) then
-      asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
-    if(self:GetExportDB()) then
-      if(ply:KeyDown(IN_USE)) then
-        asmlib.SetAsmConvar(ply,"openextdb")
-        asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
-      else
-        asmlib.ExportDSV("PIECES")
-        asmlib.ExportDSV("ADDITIONS")
-        asmlib.ExportDSV("PHYSPROPERTIES")
-        asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
+  if(workmode == 3) then -- Remove node from curve
+  else
+    if(stTrace.HitWorld) then
+      if(self:GetDeveloperMode()) then
+        asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
+      if(self:GetExportDB()) then
+        if(ply:KeyDown(IN_USE)) then
+          asmlib.SetAsmConvar(ply,"openextdb")
+          asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
+        else
+          asmlib.ExportDSV("PIECES")
+          asmlib.ExportDSV("ADDITIONS")
+          asmlib.ExportDSV("PHYSPROPERTIES")
+          asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
+        end
+        asmlib.SetAsmConvar(ply, "exportdb", 0)
       end
-      asmlib.SetAsmConvar(ply, "exportdb", 0)
-    end
-    if(ply:KeyDown(IN_SPEED)) then
-      if(workmode == 1) then self:ClearAnchor(false)
-        asmlib.LogInstance("(World) Anchor Clear",gtArgsLogs)
-      elseif(workmode == 2) then self:IntersectClear(false)
-        asmlib.LogInstance("(World) Relate Clear",gtArgsLogs)
+      if(ply:KeyDown(IN_SPEED)) then
+        if(workmode == 1) then self:ClearAnchor(false)
+          asmlib.LogInstance("(World) Anchor Clear",gtArgsLogs)
+        elseif(workmode == 2) then self:IntersectClear(false)
+          asmlib.LogInstance("(World) Relate Clear",gtArgsLogs)
+        end
+      end; asmlib.LogInstance("(World) Success",gtArgsLogs); return true
+    elseif(trEnt and trEnt:IsValid()) then
+      if(not asmlib.IsPhysTrace(stTrace)) then return false end
+      if(asmlib.IsOther(trEnt)) then
+        asmlib.LogInstance("(Prop) Trace other object",gtArgsLogs); return false end
+      if(ply:KeyDown(IN_SPEED)) then
+        if(workmode == 1) then -- General anchor
+          if(not self:SetAnchor(stTrace)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor set fail"),gtArgsLogs); return false end
+          asmlib.LogInstance("(Prop) Anchor set",gtArgsLogs); return true
+        elseif(workmode == 2) then -- Intersect relation
+          if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation set fail"),gtArgsLogs); return false end
+          asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
+        end
       end
-    end; asmlib.LogInstance("(World) Success",gtArgsLogs); return true
-  elseif(trEnt and trEnt:IsValid()) then
-    if(not asmlib.IsPhysTrace(stTrace)) then return false end
-    if(asmlib.IsOther(trEnt)) then
-      asmlib.LogInstance("(Prop) Trace other object",gtArgsLogs); return false end
-    if(ply:KeyDown(IN_SPEED)) then
-      if(workmode == 1) then -- General anchor
-        if(not self:SetAnchor(stTrace)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor set fail"),gtArgsLogs); return false end
-        asmlib.LogInstance("(Prop) Anchor set",gtArgsLogs); return true
-      elseif(workmode == 2) then -- Intersect relation
-        if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation set fail"),gtArgsLogs); return false end
-        asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+      if(asmlib.IsHere(trRec)) then trEnt:Remove()
+        asmlib.LogInstance("(Prop) Removed a piece",gtArgsLogs); return true
       end
-    end
-    local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-    if(asmlib.IsHere(trRec)) then trEnt:Remove()
-      asmlib.LogInstance("(Prop) Removed a piece",gtArgsLogs); return true
     end
   end; return false
 end
@@ -1213,10 +1221,10 @@ function TOOL:DrawToolScreen(w, h)
     end
     if(asmlib.IsHere(trRec)) then
       trMaxCN = trRec.Size
-      trModel = trModel:GetFileFromFilename()
-    else trModel = "["..gsNoMD.."]"..trModel:GetFileFromFilename() end
+      trModel = stringGetFileName(trModel)
+    else trModel = "["..gsNoMD.."]"..stringGetFileName(trModel) end
   end
-  model  = model:GetFileFromFilename()
+  model  = stringGetFileName(model)
   actrad = mathRound(actrad,2)
   maxrad = asmlib.GetAsmConvar("maxactrad", "FLT")
   scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")

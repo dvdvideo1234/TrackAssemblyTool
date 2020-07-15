@@ -125,6 +125,7 @@ local debugTrace                     = debug and debug.Trace
 local renderDrawLine                 = render and render.DrawLine
 local renderDrawSphere               = render and render.DrawSphere
 local renderSetMaterial              = render and render.SetMaterial
+local stringGetFileName              = string and string.GetFileFromFilename
 local surfaceSetFont                 = surface and surface.SetFont
 local surfaceDrawLine                = surface and surface.DrawLine
 local surfaceDrawText                = surface and surface.DrawText
@@ -1591,7 +1592,7 @@ function ModelToName(sModel, bNoSet)
   if(IsBlank(sModel)) then LogInstance("Empty string"); return "" end
   local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
   local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
-        sModel = (sModel:GetFileFromFilename():gsub(GetOpVar("MODELNAM_FILE"),""))
+        sModel = (stringGetFileName(sModel):gsub(GetOpVar("MODELNAM_FILE"),""))
   local gModel = (sModel:sub(1,-1)) -- Create a copy so we can select cut-off parts later
   if(not bNoSet) then local iCnt, iNxt
     local tCut, tSub, tApp = ModelToNameRule("GET")
@@ -2543,7 +2544,7 @@ function CacheQueryPiece(sModel)
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
       local qModel = makTab:Match(sModel,1,true)
-      LogInstance("Model >> Pool <"..sModel:GetFileFromFilename()..">")
+      LogInstance("Model >> Pool <"..stringGetFileName(sModel)..">")
       tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Size = 0
       local Q = CacheStmt(qsKey:format(sFunc, ""), nil, qModel)
       if(not Q) then
@@ -2598,7 +2599,7 @@ function CacheQueryAdditions(sModel)
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
       local qModel = makTab:Match(sModel,1,true)
-      LogInstance("Model >> Pool <"..sModel:GetFileFromFilename()..">")
+      LogInstance("Model >> Pool <"..stringGetFileName(sModel)..">")
       tCache[sModel] = {}; stAddit = tCache[sModel]; stAddit.Size = 0
       local Q = CacheStmt(qsKey:format(sFunc, ""), nil, qModel)
       if(not Q) then

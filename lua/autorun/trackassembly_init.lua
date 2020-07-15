@@ -56,6 +56,7 @@ local timerSimple                   = timer and timer.Simple
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
+local stringGetFileName             = string and string.GetFileFromFilename
 local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
 local gamemodeCall                  = gamemode and gamemode.Call
@@ -75,7 +76,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.618")
+asmlib.SetOpVar("TOOL_VERSION","7.619")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -131,6 +132,7 @@ asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the w
 asmlib.MakeAsmConvar("enctxmenu", 1  , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
 asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
 asmlib.MakeAsmConvar("endsvlock", 0  , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
+asmlib.MakeAsmConvar("curvefact", 0.5, {0, 1 }, gnServerControled, "The parametric constant track curving factor")
 
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -174,6 +176,7 @@ local conElements = asmlib.MakeContainer("LIST_VGUI")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
       conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
+      conWorkMode:Push("CURVE") -- Catmull–Rom spline interpolation fitting
 
 -------- CALLBACKS ----------
 local gsVarName -- This stores current variable name
@@ -224,7 +227,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     ["RDB"] = function(scr, key, typ, inf, def, spn)
       local rec, fmt = spn[key], asmlib.GetOpVar("FORM_DRAWDBG")
       local fky, nav = asmlib.GetOpVar("FORM_DRWSPKY"), asmlib.GetOpVar("MISS_NOAV")
-      local out = (rec and tostring(rec.Slot:GetFileFromFilename()) or nav)
+      local out = (rec and tostring(stringGetFileName(rec.Slot)) or nav)
       scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
     end,
     ["MTX"] = function(scr, key, typ, inf, def, spn)
@@ -694,6 +697,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly, "enctxmall", 0)
         asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
         asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
+        asmlib.SetAsmConvar(oPly, "curvefact", 0.5)
         asmlib.LogInstance("Variables reset complete",gtArgsLogs)
       else
         asmlib.SetAsmConvar(oPly,"nextx"  , 0)
