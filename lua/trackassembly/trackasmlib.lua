@@ -1270,14 +1270,14 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     local nRad = BorderValue(tonumber(tArgs[2]) or 0, "non-neg")
     if(nSiz > 0) then
       if(sMeth == "SURF") then
-        local xyP = vO:ToScreen()
+        local xyO = vO:ToScreen()
         local xyZ = (vO + nSiz * aO:Up()):ToScreen()
         local xyY = (vO + nSiz * aO:Right()):ToScreen()
         local xyX = (vO + nSiz * aO:Forward()):ToScreen()
-        self:DrawCircle(xyP,nRad,"y",sMeth)
-        self:DrawLine(xyP,xyX,"r",sMeth)
-        self:DrawLine(xyP,xyY,"g")
-        self:DrawLine(xyP,xyZ,"b"); return xyP, xyX, xyY, xyZ
+        self:DrawCircle(xyO,nRad,"y",sMeth)
+        self:DrawLine(xyO,xyX,"r",sMeth)
+        self:DrawLine(xyO,xyY,"g")
+        self:DrawLine(xyO,xyZ,"b"); return xyO, xyX, xyY, xyZ
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end
   end
@@ -1899,7 +1899,7 @@ end
 
 local function GetPlayerSpot(pPly)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly)"> invalid"); return nil end
+    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Cached <"..pPly:Nick()..">")
     libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
@@ -1978,6 +1978,18 @@ function GetCacheTrace(pPly)
     stData["DAT"] = utilGetPlayerTrace(pPly)           -- Get output trace data
     stData["REZ"] = utilTraceLine(stData["DAT"])       -- Make a trace
   end; return stData["REZ"]
+end
+
+function GetCacheCurve(pPly)
+  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
+    LogInstance("Spot missing"); return nil end
+  local stData = stSpot["CURVE"]
+  if(not IsHere(stData)) then -- Allocate curve data
+    LogInstance("Allocate <"..pPly:Nick()..">")
+    stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
+    stData.Node , stData.Norm  = {}, {}
+    stData.CNode, stData.CNorm = {}, {}
+  end; return stData
 end
 
 function Notify(pPly,sText,sNotifType)
@@ -4303,13 +4315,17 @@ local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
   end; return tC
 end
 
-function GetCatmullRomCurve(tV, nT, nA) if(not IsTable(tV)) then
-    LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
+function GetCatmullRomCurve(tV, nT, nA, tO)
+  if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
+  if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
   local nT, nV = mathFloor(tonumber(nT) or 100), #tV; if(nT < 0) then
     LogInstance("Curve samples mismatch "..GetReport(nT)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
   if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
-  local vM, tC, iC, cS, cE = GetOpVar("EPSILON_ZERO"), {}, 1, Vector(), Vector()
+  local tC = tO or {}; if(not IsTable(tC)) then -- Check of outut is table
+    LogInstance("Ouput mismatch "..GetReport(tC)); return nil end
+  if(not IsEmpty(tC)) then tableEmpty(tC) end -- Clear the output
+  local vM, iC, cS, cE = GetOpVar("EPSILON_ZERO"), 1, Vector(), Vector()
   cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
   cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
   tableInsert(tV, 1, cS); tableInsert(tV, cE); nV = (nV + 2);

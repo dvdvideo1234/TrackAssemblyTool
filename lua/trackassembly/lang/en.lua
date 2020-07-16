@@ -77,6 +77,7 @@
   tSet["tool."..sTool..".workmode"      ] = "Change this option to select a different working mode"
   tSet["tool."..sTool..".workmode_1"    ] = "General spawn/snap pieces"
   tSet["tool."..sTool..".workmode_2"    ] = "Active point intersection"
+  tSet["tool."..sTool..".workmode_3"    ] = "Curve line segment fitting"
   tSet["tool."..sTool..".pn_export"     ] = "Click to export the client database as a file"
   tSet["tool."..sTool..".pn_export_lb"  ] = "Export DB"
   tSet["tool."..sTool..".pn_routine"    ] = "The list of your frequently used track pieces"

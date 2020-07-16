@@ -22,11 +22,16 @@ local vguiCreate                       = vgui and vgui.Create
 local utilIsValidModel                 = util and util.IsValidModel
 local stringUpper                      = string and string.upper
 local mathAbs                          = math and math.abs
+local mathMin                          = math and math.min
+local mathMax                          = math and math.max
 local mathSqrt                         = math and math.sqrt
 local mathClamp                        = math and math.Clamp
 local mathAtan2                        = math and math.atan2
 local mathRound                        = math and math.Round
 local fileExists                       = file and file.Exists
+local tableInsert                      = table and table.insert
+local tableRemove                      = table and table.remove
+local tableEmpty                       = table and table.Empty
 local controlpanelGet                  = controlpanel and controlpanel.Get
 local hookAdd                          = hook and hook.Add
 local tableGetKeys                     = table and table.GetKeys
@@ -560,11 +565,43 @@ function TOOL:SelectModel(sModel)
   asmlib.LogInstance("Success <"..sModel..">",gtArgsLogs); return true
 end
 
+-- Needs more work !
+function TOOL:CurveClear(bAll)
+  local ply = self:GetOwner()
+  local tC  = asmlib.GetCacheCurve(ply)
+  if(tC.Size > 0) then
+    if(bAll) then -- Clear all the nodes
+      asmlib.Notify(ply, "Nodes cleared !", "CLEANUP")
+      tableEmpty(tC); tC.Size = 0
+    else -- Clear the last specific node from the array
+      asmlib.Notify(ply, "Node ["..#tC.."] removed !", "CLEANUP")
+      tableRemove(tC); tC.Size = (tC.Size - 1)
+    end
+  end; return tC -- Returns the updated curve nodes table
+end
+
+-- Needs more work !
+function TOOL:CurveInsert(stTrace)
+  local ply      = self:GetOwner()
+  local sizeucs  = self:GetSizeUCS()
+  local angsnap  = self:GetAngSnap()
+  local surfsnap = self:GetSurfaceSnap()
+  local actrad   = self:GetActiveRadius()
+  local aAng     = asmlib.GetNormalAngle(oPly, stTrace, surfsnap, angsnap)
+  local vOrg     = Vector(); vOrg:Set(stTrace.HitNormal)
+        vOrg:Mul(actrad); vOrg:Add(stTrace.HitPos)
+  local tC  = asmlib.GetCacheCurve(ply); tC.Size = (tC.Size + 1)
+  tC.Node[tC.Size] = vOrg
+  tC.Norm[tC.Size] = Vector(stTrace.HitNormal)
+  asmlib.Notify(ply, "Node ["..#tC.."] inserted !", "CLEANUP")
+  return tC -- Returns the updated curve nodes table
+end
+
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then
     asmlib.LogInstance("Working on client",gtArgsLogs); return true end
   if(not asmlib.IsInit()) then
-    asmlib.LogInstance("Library fail",gtArgsLogs); return false end
+    asmlib.LogInstance("Library error",gtArgsLogs); return false end
   if(not stTrace) then
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   if(not stTrace.Hit) then
@@ -744,37 +781,26 @@ function TOOL:RightClick(stTrace)
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
-  if(workmode == 3) then -- Add node to curve
-
-  else
-    if(stTrace.HitWorld) then
-      if(enpntmscr) then
+  if(stTrace.HitWorld) then
+    if(enpntmscr or (ply:KeyDown(IN_USE) and not enpntmscr)) then
+      if(workmode == 3) then self:CurveInsert(stTrace); return true else
         asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
         asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
-      else
-        if(ply:KeyDown(IN_USE)) then
-          asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
-          asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
-        end
       end
-    elseif(trEnt and trEnt:IsValid()) then
-      if(enpntmscr) then
+    end
+  elseif(trEnt and trEnt:IsValid()) then
+    if(enpntmscr or (ply:KeyDown(IN_USE) and not enpntmscr)) then
+      if(workmode == 3) then self:CurveInsert(stTrace); return true else
         if(not self:SelectModel(trEnt:GetModel())) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
         asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
-      else
-        if(ply:KeyDown(IN_USE)) then
-          if(not self:SelectModel(trEnt:GetModel())) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
-          asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
-        end
       end
     end
-    if(not enpntmscr) then
-      local Dir = (ply:KeyDown(IN_SPEED) and -1 or 1)
-      self:SwitchPoint(Dir,ply:KeyDown(IN_DUCK))
-      asmlib.LogInstance("(Point) Success",gtArgsLogs); return true
-    end
+  end
+  if(not enpntmscr) then
+    local nDir = (ply:KeyDown(IN_SPEED) and -1 or 1)
+    self:SwitchPoint(nDir,ply:KeyDown(IN_DUCK))
+    asmlib.LogInstance("(Point) Success",gtArgsLogs); return true
   end
 end
 
@@ -786,54 +812,65 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
-  if(workmode == 3) then -- Remove node from curve
-  else
-    if(stTrace.HitWorld) then
-      if(self:GetDeveloperMode()) then
-        asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
-      if(self:GetExportDB()) then
-        if(ply:KeyDown(IN_USE)) then
-          asmlib.SetAsmConvar(ply,"openextdb")
-          asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
-        else
-          asmlib.ExportDSV("PIECES")
-          asmlib.ExportDSV("ADDITIONS")
-          asmlib.ExportDSV("PHYSPROPERTIES")
-          asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
-        end
-        asmlib.SetAsmConvar(ply, "exportdb", 0)
+  if(stTrace.HitWorld) then
+    if(self:GetDeveloperMode()) then
+      asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
+    if(self:GetExportDB()) then
+      if(ply:KeyDown(IN_USE)) then
+        asmlib.SetAsmConvar(ply,"openextdb")
+        asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
+      else
+        asmlib.ExportDSV("PIECES")
+        asmlib.ExportDSV("ADDITIONS")
+        asmlib.ExportDSV("PHYSPROPERTIES")
+        asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
       end
-      if(ply:KeyDown(IN_SPEED)) then
-        if(workmode == 1) then self:ClearAnchor(false)
-          asmlib.LogInstance("(World) Anchor Clear",gtArgsLogs)
-        elseif(workmode == 2) then self:IntersectClear(false)
-          asmlib.LogInstance("(World) Relate Clear",gtArgsLogs)
-        end
-      end; asmlib.LogInstance("(World) Success",gtArgsLogs); return true
-    elseif(trEnt and trEnt:IsValid()) then
-      if(not asmlib.IsPhysTrace(stTrace)) then return false end
-      if(asmlib.IsOther(trEnt)) then
-        asmlib.LogInstance("(Prop) Trace other object",gtArgsLogs); return false end
-      if(ply:KeyDown(IN_SPEED)) then
-        if(workmode == 1) then -- General anchor
-          if(not self:SetAnchor(stTrace)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor set fail"),gtArgsLogs); return false end
-          asmlib.LogInstance("(Prop) Anchor set",gtArgsLogs); return true
-        elseif(workmode == 2) then -- Intersect relation
-          if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation set fail"),gtArgsLogs); return false end
-          asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
-        end
+      asmlib.SetAsmConvar(ply, "exportdb", 0)
+    end
+    if(ply:KeyDown(IN_SPEED)) then
+      if(workmode == 1) then self:ClearAnchor(false)
+        asmlib.LogInstance("(World) Anchor clear",gtArgsLogs)
+      elseif(workmode == 2) then self:IntersectClear(false)
+        asmlib.LogInstance("(World) Relate clear",gtArgsLogs)
+      elseif(workmode == 3) then self:CurveClear(true)
+        asmlib.LogInstance("(World) Nodes cleared",gtArgsLogs)
       end
-      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-      if(asmlib.IsHere(trRec)) then trEnt:Remove()
-        asmlib.LogInstance("(Prop) Removed a piece",gtArgsLogs); return true
+    else
+      if(workmode == 3) then self:CurveClear(false)
+        asmlib.LogInstance("(World) Node removed",gtArgsLogs)
       end
+    end; asmlib.LogInstance("(World) Success",gtArgsLogs); return true
+  elseif(trEnt and trEnt:IsValid()) then
+    if(not asmlib.IsPhysTrace(stTrace)) then return false end
+    if(asmlib.IsOther(trEnt)) then
+      asmlib.LogInstance("(Prop) Trace other object",gtArgsLogs); return false end
+    if(ply:KeyDown(IN_SPEED)) then
+      if(workmode == 1) then -- General anchor
+        if(not self:SetAnchor(stTrace)) then
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor set fail"),gtArgsLogs); return false end
+        asmlib.LogInstance("(Prop) Anchor set",gtArgsLogs); return true
+      elseif(workmode == 2) then -- Intersect relation
+        if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation set fail"),gtArgsLogs); return false end
+        asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
+      elseif(workmode == 3) then self:CurveClear(true)
+        asmlib.LogInstance("(Prop) Nodes cleared",gtArgsLogs); return true
+      end
+    else
+      if(workmode == 3) then self:CurveClear(false)
+        asmlib.LogInstance("(Prop) Node removed",gtArgsLogs); return true
+      end
+    end
+    local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+    if(asmlib.IsHere(trRec)) then trEnt:Remove()
+      asmlib.LogInstance("(Prop) Remove piece",gtArgsLogs); return true
     end
   end; return false
 end
 
-function TOOL:Holster() asmlib.ClearGhosts() end
+function TOOL:Holster()
+  asmlib.ClearGhosts()
+end
 
 function TOOL:UpdateGhost(oPly)
   if(not asmlib.FadeGhosts(true)) then return nil end
@@ -841,10 +878,10 @@ function TOOL:UpdateGhost(oPly)
   local stTrace = asmlib.GetCacheTrace(oPly)
   if(not stTrace) then return nil end
   if(not asmlib.HasGhosts()) then return nil end
-  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
-  local trEnt = stTrace.Entity
-  local model = self:GetModel()
   local workmode = self:GetWorkingMode()
+  if(workmode == 3) then asmlib.ClearGhosts(); return nil end
+  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
+  local trEnt, model = stTrace.Entity, self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
@@ -1048,6 +1085,29 @@ function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2, nRad)
   return XX, X1, X2
 end
 
+function TOOL:DrawNodeHit(oScreen, oPly, stTrace)
+  local sizeucs  = self:GetSizeUCS()
+  local angsnap  = self:GetAngSnap()
+  local surfsnap = self:GetSurfaceSnap()
+  local actrad   = self:GetActiveRadius()
+  local aAng = asmlib.GetNormalAngle(oPly, stTrace, surfsnap, angsnap)
+  local vOrg, xyT = Vector(), asmlib.NewXY(); vOrg:Set(stTrace.HitNormal)
+        vOrg:Mul(actrad); vOrg:Add(stTrace.HitPos)
+  local xyO, xyH = vOrg:ToScreen(), stTrace.HitPos:ToScreen()
+  local xyZ = (vOrg + sizeucs * aAng:Up()):ToScreen()
+  local xyY = (vOrg + sizeucs * aAng:Right()):ToScreen()
+  local xyX = (vOrg + sizeucs * aAng:Forward()):ToScreen()
+  local nX = asmlib.LenXY(asmlib.SubXY(xyT, xyO, xyX))
+  local nY = asmlib.LenXY(asmlib.SubXY(xyT, xyO, xyY))
+  local nZ = asmlib.LenXY(asmlib.SubXY(xyT, xyO, xyZ))
+  local nR = mathMax(nX, nY, nZ) / 4
+  oScreen:DrawCircle(xyH,nR,"y","SURF")
+  oScreen:DrawLine(xyO,xyH,"y","SURF")
+  oScreen:DrawCircle(xyO,nR,"r")
+  oScreen:DrawLine(xyO,xyX)
+  oScreen:DrawLine(xyO,xyZ,"b")
+end
+
 function TOOL:DrawHUD()
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
@@ -1079,96 +1139,107 @@ function TOOL:DrawHUD()
         self:DrawSnapAssist(hudMonitor, actrad, trEnt, oPly, trHit)
       elseif(workmode == 2) then
         self:DrawRelateAssist(hudMonitor, trEnt, oPly, trHit)
+      elseif(workmode == 3) then
+        self:DrawNodeHit(hudMonitor, oPly, stTrace)
       end; return -- The return is very very important ... Must stop on invalid spawn
-    end -- Draw the assistants related to the different working modes
-    local nRad, Pp = (nrad * (stSpawn.RLen / actrad)), stSpawn.TPnt:ToScreen()
-    local Ob = hudMonitor:DrawUCS(stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs, nRad})
-    local Os = hudMonitor:DrawUCS(stSpawn.OPos, stSpawn.OAng)
-    hudMonitor:DrawLine(Ob,Tp,"y")
-    hudMonitor:DrawCircle(Tp,nRad / 2)
-    hudMonitor:DrawLine(Ob,Os)
-    hudMonitor:DrawLine(Ob,Pp,"r")
-    hudMonitor:DrawCircle(Pp, nRad / 2)
-    if(workmode == 1) then
-      local nxPOA = asmlib.LocatePOA(stSpawn.HRec,pnextid)
-      if(nxPOA and stSpawn.HRec.Size > 1) then
-        local vNext = Vector(); asmlib.SetVector(vNext,nxPOA.O)
-              vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
-        local Np = vNext:ToScreen() -- Draw Next Point
-        hudMonitor:DrawLine(Os,Np,"g")
-        hudMonitor:DrawCircle(Np, nRad / 2, "g")
-      end
-    elseif(workmode == 2) then -- Draw point intersection
-      local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
-      local Rp, Re = self:DrawRelateIntersection(hudMonitor, oPly, nRad)
-      if(Rp and vX) then
-        local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, oPly, stSpawn, nRad)
-        local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2, nRad)
-        hudMonitor:DrawLine(Rp,xX,"ry")
-        hudMonitor:DrawLine(Os,xX)
-        hudMonitor:DrawLine(Rp,O2,"g")
-        hudMonitor:DrawLine(Os,O1,"r")
-        hudMonitor:DrawLine(xX,pXx,"b")
+    else -- Patch the drawing for certain working modes
+      if(workmode == 3) then
+        self:DrawNodeHit(hudMonitor, oPly, stTrace); return
+      else -- Draw the assistants related to the different working modes
+        local nRad, Pp = (nrad * (stSpawn.RLen / actrad)), stSpawn.TPnt:ToScreen()
+        local Ob = hudMonitor:DrawUCS(stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs, nRad})
+        local Os = hudMonitor:DrawUCS(stSpawn.OPos, stSpawn.OAng)
+        hudMonitor:DrawLine(Ob,Tp,"y")
+        hudMonitor:DrawCircle(Tp,nRad / 2)
+        hudMonitor:DrawLine(Ob,Os)
+        hudMonitor:DrawLine(Ob,Pp,"r")
+        hudMonitor:DrawCircle(Pp, nRad / 2)
+        if(workmode == 1) then
+          local nxPOA = asmlib.LocatePOA(stSpawn.HRec,pnextid)
+          if(nxPOA and stSpawn.HRec.Size > 1) then
+            local vNext = Vector(); asmlib.SetVector(vNext,nxPOA.O)
+                  vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
+            local Np = vNext:ToScreen() -- Draw Next Point
+            hudMonitor:DrawLine(Os,Np,"g")
+            hudMonitor:DrawCircle(Np, nRad / 2, "g")
+          end
+        elseif(workmode == 2) then -- Draw point intersection
+          local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
+          local Rp, Re = self:DrawRelateIntersection(hudMonitor, oPly, nRad)
+          if(Rp and vX) then
+            local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, oPly, stSpawn, nRad)
+            local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2, nRad)
+            hudMonitor:DrawLine(Rp,xX,"ry")
+            hudMonitor:DrawLine(Os,xX)
+            hudMonitor:DrawLine(Rp,O2,"g")
+            hudMonitor:DrawLine(Os,O1,"r")
+            hudMonitor:DrawLine(xX,pXx,"b")
+          end
+        end
+        local Ss = stSpawn.SPos:ToScreen()
+        hudMonitor:DrawLine(Os,Ss,"m")
+        hudMonitor:DrawCircle(Ss, nRad,"c")
+        if(not self:GetDeveloperMode()) then return end
+        self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
       end
     end
-    local Ss = stSpawn.SPos:ToScreen()
-    hudMonitor:DrawLine(Os,Ss,"m")
-    hudMonitor:DrawCircle(Ss, nRad,"c")
-    if(not self:GetDeveloperMode()) then return end
-    self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
-  elseif(stTrace.HitWorld) then local nRad = nrad
-    local angsnap  = self:GetAngSnap()
-    local elevpnt  = self:GetElevation()
-    local surfsnap = self:GetSurfaceSnap()
-    local workmode = self:GetWorkingMode()
-    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
-    if(self:GetSpawnCenter()) then -- Relative to MC
-            aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
-            aAng:RotateAroundAxis(aAng:Right()  , nextpic)
-            aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-      local vPos = Vector()
-            vPos:Set(trHit + elevpnt * stTrace.HitNormal)
-            vPos:Add(nextx * aAng:Forward())
-            vPos:Add(nexty * aAng:Right())
-            vPos:Add(nextz * aAng:Up())
-      hudMonitor:DrawUCS(vPos, aAng, "SURF", {sizeucs, nRad})
-      if(workmode == 2) then -- Draw point intersection
-        self:DrawRelateIntersection(hudMonitor, oPly, nRad) end
-      if(not self:GetDeveloperMode()) then return end
-      local x,y = hudMonitor:GetCenter(10,10)
-      hudMonitor:SetTextEdge(x,y)
-      hudMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
-      hudMonitor:DrawText("Org ANG: "..tostring(aAng))
-    else -- Relative to the active Point
-      if(not (pointid > 0 and pnextid > 0)) then return end
-      local stSpawn  = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
-                         aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-      if(not stSpawn) then return end
-      local Ob = hudMonitor:DrawUCS(stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs, nRad})
-      local Os = hudMonitor:DrawUCS(stSpawn.OPos, stSpawn.OAng)
-      hudMonitor:DrawLine(Ob,Tp,"y")
-      hudMonitor:DrawCircle(Tp,nRad / 2)
-      hudMonitor:DrawLine(Ob,Os)
-      if(workmode == 1) then
-        local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
-        if(nxPOA and stSpawn.HRec.Size > 1) then
-          local vNext = Vector() -- Draw next point when available
-                asmlib.SetVector(vNext,nxPOA.O)
-                vNext:Rotate(stSpawn.SAng)
-                vNext:Add(stSpawn.SPos)
-          local Np = vNext:ToScreen()
-          hudMonitor:DrawLine(Os,Np,"g")
-          hudMonitor:DrawCircle(Np,nRad / 2)
+  elseif(stTrace.HitWorld) then
+    if(workmode == 3) then
+      self:DrawNodeHit(hudMonitor, oPly, stTrace); return
+    else local nRad = nrad
+      local angsnap  = self:GetAngSnap()
+      local elevpnt  = self:GetElevation()
+      local surfsnap = self:GetSurfaceSnap()
+      local workmode = self:GetWorkingMode()
+      local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
+      if(self:GetSpawnCenter()) then -- Relative to MC
+              aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+              aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+              aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+        local vPos = Vector()
+              vPos:Set(trHit + elevpnt * stTrace.HitNormal)
+              vPos:Add(nextx * aAng:Forward())
+              vPos:Add(nexty * aAng:Right())
+              vPos:Add(nextz * aAng:Up())
+        hudMonitor:DrawUCS(vPos, aAng, "SURF", {sizeucs, nRad})
+        if(workmode == 2) then -- Draw point intersection
+          self:DrawRelateIntersection(hudMonitor, oPly, nRad) end
+        if(not self:GetDeveloperMode()) then return end
+        local x,y = hudMonitor:GetCenter(10,10)
+        hudMonitor:SetTextEdge(x,y)
+        hudMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
+        hudMonitor:DrawText("Org ANG: "..tostring(aAng))
+      else -- Relative to the active Point
+        if(not (pointid > 0 and pnextid > 0)) then return end
+        local stSpawn  = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
+                           aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+        if(not stSpawn) then return end
+        local Ob = hudMonitor:DrawUCS(stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs, nRad})
+        local Os = hudMonitor:DrawUCS(stSpawn.OPos, stSpawn.OAng)
+        hudMonitor:DrawLine(Ob,Tp,"y")
+        hudMonitor:DrawCircle(Tp,nRad / 2)
+        hudMonitor:DrawLine(Ob,Os)
+        if(workmode == 1) then
+          local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
+          if(nxPOA and stSpawn.HRec.Size > 1) then
+            local vNext = Vector() -- Draw next point when available
+                  asmlib.SetVector(vNext,nxPOA.O)
+                  vNext:Rotate(stSpawn.SAng)
+                  vNext:Add(stSpawn.SPos)
+            local Np = vNext:ToScreen()
+            hudMonitor:DrawLine(Os,Np,"g")
+            hudMonitor:DrawCircle(Np,nRad / 2)
+          end
+        elseif(workmode == 2) then -- Draw point intersection
+          self:DrawRelateIntersection(hudMonitor, oPly, nRad)
+          self:DrawModelIntersection(hudMonitor, oPly, stSpawn, nRad)
         end
-      elseif(workmode == 2) then -- Draw point intersection
-        self:DrawRelateIntersection(hudMonitor, oPly, nRad)
-        self:DrawModelIntersection(hudMonitor, oPly, stSpawn, nRad)
+        local Ss = stSpawn.SPos:ToScreen()
+        hudMonitor:DrawLine(Os,Ss,"m")
+        hudMonitor:DrawCircle(Ss, nRad,"c")
+        if(not self:GetDeveloperMode()) then return end
+        self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
       end
-      local Ss = stSpawn.SPos:ToScreen()
-      hudMonitor:DrawLine(Os,Ss,"m")
-      hudMonitor:DrawCircle(Ss, nRad,"c")
-      if(not self:GetDeveloperMode()) then return end
-      self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
     end
   end
 end
@@ -1328,18 +1399,30 @@ function TOOL.BuildCPanel(CPanel)
   CurY = CurY + pTree:GetTall() + 2
   asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.",sLog)
 
+  -- Extract panel text and place it in the clipboard
+  local function setDermaClipboard(pnPanel)
+    local iD = pnPanel:GetSelectedID()
+    local sD = pnPanel:GetOptionText(iD)
+    local vD = tostring(sD or "")
+          vD = asmlib.GetTerm(vD, pnPanel:GetValue())
+          vD = asmlib.GetTerm(vD, gsNoAV)
+    SetClipboardText(vD)
+  end
+
   -- http://wiki.garrysmod.com/page/Category:DComboBox
+  local workmode = asmlib.GetAsmConvar("workmode", "INT")
   local pComboToolMode = vguiCreate("DComboBox", CPanel)
         pComboToolMode:SetPos(2, CurY)
-        pComboToolMode:SetSortItems(false)
-        pComboToolMode:SetTall(18); asmlib.SetAsmConvar(nil,"workmode", 1)
+        pComboToolMode:SetSortItems(false); pComboToolMode:SetTall(18)
         pComboToolMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".workmode"))
-        pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_1"), 1 ,true)
-        pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_2"), 2)
-        pComboToolMode.DoRightClick = function()
-          SetClipboardText(pComboToolMode:GetOptionText(pComboToolMode:GetSelectedID()) or "") end
+        pComboToolMode.DoRightClick = function(pnSelf) setDermaClipboard(pnSelf) end
         pComboToolMode.OnSelect = function(pnSelf, nInd, sVal, anyData)
           asmlib.SetAsmConvar(nil,"workmode", anyData) end
+        for iD = 1, conWorkMode:GetSize() do
+          local sI = tostring(conWorkMode:Select(iD) or gsNoAV):lower()
+          local sD, bS = tostring(iD), (iD == workmode); sI = asmlib.ToIcon("workmode_"..sI)
+          pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_"..sD), iD, bS, sI)
+        end
         CurY = CurY + pComboToolMode:GetTall() + 2
 
   local pComboPhysType = vguiCreate("DComboBox", CPanel)
@@ -1347,8 +1430,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysType:SetTall(18)
         pComboPhysType:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phytype"))
         pComboPhysType:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_def"))
-        pComboPhysType.DoRightClick = function()
-          SetClipboardText(pComboPhysType:GetOptionText(pComboPhysType:GetSelectedID()) or "") end
+        pComboPhysType.DoRightClick = function(pnSelf) setDermaClipboard(pnSelf) end
         CurY = CurY + pComboPhysType:GetTall() + 2
   local pComboPhysName = vguiCreate("DComboBox", CPanel)
         pComboPhysName:SetPos(2, CurY)
@@ -1356,19 +1438,24 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phyname"))
         pComboPhysName:SetValue(asmlib.GetTerm(asmlib.GetAsmConvar("physmater","STR"),
                                 asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def")))
-        pComboPhysName.DoRightClick = function()
-          SetClipboardText(pComboPhysName:GetOptionText(pComboPhysName:GetSelectedID()) or "") end
+        pComboPhysName.DoRightClick = function(pnSelf) setDermaClipboard(pnSelf) end
         pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
           asmlib.SetAsmConvar(nil,"physmater", sVal) end
         CurY = CurY + pComboPhysName:GetTall() + 2
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
     asmlib.LogInstance("Property population empty",sLog); return nil end
-  while(cqProperty[iTyp]) do pComboPhysType:AddChoice(cqProperty[iTyp]); iTyp = iTyp + 1 end
+  while(cqProperty[iTyp]) do local sT = cqProperty[iTyp]
+    pComboPhysType:AddChoice(sT, sT, false, asmlib.ToIcon("property_type"))
+    iTyp = iTyp + 1
+  end
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local cqNames = asmlib.CacheQueryProperty(sVal)
     if(cqNames) then local iNam = 1; pComboPhysName:Clear()
       pComboPhysName:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def"))
-      while(cqNames[iNam]) do pComboPhysName:AddChoice(cqNames[iNam]); iNam = iNam + 1 end
+      while(cqNames[iNam]) do local sN = cqNames[iNam]
+        pComboPhysName:AddChoice(sN, sN, false, asmlib.ToIcon("property_name"))
+        iNam = iNam + 1
+      end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
   sText = asmlib.GetAsmConvar("physmater", "NAM")
