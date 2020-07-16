@@ -1898,7 +1898,7 @@ end
 
 local function GetPlayerSpot(pPly)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly)"> invalid"); return nil end
+    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Cached <"..pPly:Nick()..">")
     libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
@@ -1931,7 +1931,7 @@ end
 
 function CacheClear(pPly)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly)"> invalid"); return false end
+    LogInstance("Player <"..tostring(pPly).."> invalid"); return false end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Clean"); return true end
   libPlayer[pPly] = nil; collectgarbage(); return true
@@ -1939,7 +1939,7 @@ end
 
 function GetDistanceHit(pPly, vHit)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly)"> invalid"); return nil end
+    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
   return (vHit - pPly:GetPos()):Length()
 end
 
@@ -1981,7 +1981,7 @@ end
 
 function Notify(pPly,sText,sNotifType)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly)"> invalid"); return false end
+    LogInstance("Player <"..tostring(pPly).."> invalid"); return false end
   if(SERVER) then -- Send notification to client that something happened
     pPly:SendLua(GetOpVar("FORM_NTFGAME"):format(sText, sNotifType))
     pPly:SendLua(GetOpVar("FORM_NTFPLAY"):format(mathRandom(1, 4)))
@@ -2001,7 +2001,7 @@ end
 
 function UndoFinish(pPly,vMsg)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly)"> invalid"); return false end
+    LogInstance("Player <"..tostring(pPly).."> invalid"); return false end
   pPly:EmitSound(GetOpVar("FORM_SNAPSND"):format(mathRandom(1, 3)))
   undoSetCustomUndoText(GetOpVar("LABEL_UNDO")..tostring(vMsg or ""))
   undoSetPlayer(pPly); undoFinish(); return true
@@ -3911,7 +3911,7 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
   if(not IsHere(vPos)) then
     LogInstance("Position missing"); return false end
   if(not IsPlayer(oPly)) then
-    LogInstance("Player <"..tostring(oPly)"> invalid"); return false end
+    LogInstance("Player <"..tostring(oPly).."> invalid"); return false end
   local sMode = tostring(sMode or "LOG") -- Error mode is "LOG" by default
   if(sMode == "OFF") then ePiece:SetPos(vPos)
     LogInstance("("..sMode..") Skip"); return true end
