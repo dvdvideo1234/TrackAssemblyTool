@@ -76,7 +76,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.621")
+asmlib.SetOpVar("TOOL_VERSION","7.622")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -378,8 +378,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
   asmlib.ToIcon("nocollidew"    , "world_go"       )
   asmlib.ToIcon("dsvlist_extdb" , "database_go"    )
   asmlib.ToIcon("workmode_snap" , "plugin"         ) -- General spawning and snapping mode
-  asmlib.ToIcon("workmode_cross", "arrow_in"       ) -- Ray cross intersect interpolation
-  asmlib.ToIcon("workmode_curve", "chart_line"     ) -- Catmull–Rom curve line segment fitting
+  asmlib.ToIcon("workmode_cross", "chart_line"     ) -- Ray cross intersect interpolation
+  asmlib.ToIcon("workmode_curve", "vector"         ) -- Catmull–Rom curve line segment fitting
   asmlib.ToIcon("property_type" , "package_green"  )
   asmlib.ToIcon("property_name" , "note"           )
 

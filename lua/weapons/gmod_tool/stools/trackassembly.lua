@@ -1085,7 +1085,7 @@ function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2, nRad)
   return XX, X1, X2
 end
 
-function TOOL:DrawNodeHit(oScreen, oPly, stTrace)
+function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local sizeucs  = self:GetSizeUCS()
   local angsnap  = self:GetAngSnap()
   local surfsnap = self:GetSurfaceSnap()
@@ -1140,11 +1140,11 @@ function TOOL:DrawHUD()
       elseif(workmode == 2) then
         self:DrawRelateAssist(hudMonitor, trEnt, oPly, trHit)
       elseif(workmode == 3) then
-        self:DrawNodeHit(hudMonitor, oPly, stTrace)
+        self:DrawCurveNode(hudMonitor, oPly, stTrace)
       end; return -- The return is very very important ... Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
       if(workmode == 3) then
-        self:DrawNodeHit(hudMonitor, oPly, stTrace); return
+        self:DrawCurveNode(hudMonitor, oPly, stTrace); return
       else -- Draw the assistants related to the different working modes
         local nRad, Pp = (nrad * (stSpawn.RLen / actrad)), stSpawn.TPnt:ToScreen()
         local Ob = hudMonitor:DrawUCS(stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs, nRad})
@@ -1185,7 +1185,7 @@ function TOOL:DrawHUD()
     end
   elseif(stTrace.HitWorld) then
     if(workmode == 3) then
-      self:DrawNodeHit(hudMonitor, oPly, stTrace); return
+      self:DrawCurveNode(hudMonitor, oPly, stTrace); return
     else local nRad = nrad
       local angsnap  = self:GetAngSnap()
       local elevpnt  = self:GetElevation()
