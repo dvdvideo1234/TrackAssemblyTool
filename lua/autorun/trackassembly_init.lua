@@ -41,6 +41,8 @@ local mathHuge                      = math and math.huge
 local gameGetWorld                  = game and game.GetWorld
 local tableConcat                   = table and table.concat
 local tableRemove                   = table and table.remove
+local tableEmpty                    = table and table.Empty
+local tableInsert                   = table and table.insert
 local mathAbs                       = math and math.abs
 local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
@@ -76,7 +78,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.622")
+asmlib.SetOpVar("TOOL_VERSION","7.623")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -283,6 +285,10 @@ if(SERVER) then
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
+  utilAddNetworkString(gsLibName.."SendCreateCurveNode")
+  utilAddNetworkString(gsLibName.."SendRepairCurveNode")
+  utilAddNetworkString(gsLibName.."SendDeleteCurveNode")
+  utilAddNetworkString(gsLibName.."SendDeleteAllCurveNode")
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
     function(oPly,oEnt,tData) gtArgsLogs[1] = "*DUPE_PHYS_SETTINGS"
@@ -387,6 +393,35 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
+
+  asmlib.SetAction("CREATE_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETE_CURVE_NODE"
+      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local tC = asmlib.GetCacheCurve(oPly) -- Read the curve data location
+      tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm); tableInsert(tC.Base, vBase);
+      tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
+    end)
+
+  asmlib.SetAction("REPAIR_CURVE_NODE",
+    function(nLen)
+
+    end)
+
+  asmlib.SetAction("DELETE_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETE_CURVE_NODE"
+      local tC = asmlib.GetCacheCurve(oPly)
+      tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
+      tableRemove(tC.Node); tableRemove(tC.Norm); tableRemove(tC.Base)
+    end)
+
+  asmlib.SetAction("DELETE_ALL_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETEALL_CURVE_NODE"
+      local tC = asmlib.GetCacheCurve(oPly)
+      if(tC.Size and tC.Size > 0) then
+        tableEmpty(tC.Node); tableEmpty(tC.Norm); tableEmpty(tC.Base)
+        tC.Size = 0 -- Register the index before wiping the data for drawing
+      end
+    end)
 
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
@@ -4111,5 +4146,5 @@ else
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"),gtInitLogs)
+asmlib.LogInstance("Version: "..asmlib.GetOpVar("TOOL_VERSION"), gtInitLogs)
 collectgarbage()

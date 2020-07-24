@@ -308,6 +308,10 @@ local function GetLogID()
   if(not (nNum and fMax)) then return "" end; return fMax:format(nNum)
 end
 
+--[[
+  sMsg > Message being displayed
+  bCon > Force outout in the console
+]]
 local function Log(vMsg, bCon)
   local iMax = GetOpVar("LOG_MAXLOGS")
   if(iMax <= 0) then return end
@@ -1130,8 +1134,8 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     end; return rgbCl, keyCl
   end
   function self:GetDrawParam(sMeth,tArgs,sKey)
-    tArgs = (tArgs or DrawArgs[sKey])
-    sMeth = tostring(sMeth or DrawMeth[sKey])
+    local tArgs = (tArgs or DrawArgs[sKey])
+    local sMeth = tostring(sMeth or DrawMeth[sKey])
     if(sMeth == "SURF") then
       if(sKey == "TXT" and tArgs ~= DrawArgs[sKey]) then
         surfaceSetFont(tostring(tArgs[1] or "Default")) end -- Time to set the font again
@@ -1930,12 +1934,12 @@ function GetCacheSpawn(pPly)
   end; return stData
 end
 
-function CacheClear(pPly)
+function CacheClear(pPly, bNow)
   if(not IsPlayer(pPly)) then
     LogInstance("Player <"..tostring(pPly).."> invalid"); return false end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Clean"); return true end
-  libPlayer[pPly] = nil; collectgarbage(); return true
+  libPlayer[pPly] = nil; if(bNow) then collectgarbage() end; return true
 end
 
 function GetDistanceHit(pPly, vHit)
@@ -1944,6 +1948,29 @@ function GetDistanceHit(pPly, vHit)
   return (vHit - pPly:GetPos()):Length()
 end
 
+--[[
+ * Used for scaling distant circles from the player
+ * pPly > Player the radius is scaled for
+ * vPos > Position of the distance scale
+ * nSca > Radius multiplier scaler
+ * nTop > Radius upper limit
+]]
+function GetViewRadius(pPly, vPos, nSca, nTop)
+  local nTop = mathClamp(tonumber(nTop or 100), 0, 100)
+  local nSca = mathClamp(tonumber(nSca or 1), 1, 100)
+  local nM = (GetOpVar("GOLDEN_RATIO") - 1)
+  local nR = mathClamp(tonumber(nR) or (nM * (nTop / 5)), 0, nTop)
+  local vPly = pPly:GetShootPos() vPly:Sub(vPos)
+  local nV = (250 * nR / vPly:Length())
+  return nSca * mathClamp(nV, 0, nTop)
+end
+
+--[[
+ * Used for scaling hit position circle
+ * pPly > Player the radius is scaled for
+ * vHit > Hit position circle to be scaled
+ * nSca > Radius multiplier scaler
+]]
 function GetCacheRadius(pPly, vHit, nSca)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end
@@ -1987,9 +2014,17 @@ function GetCacheCurve(pPly)
   if(not IsHere(stData)) then -- Allocate curve data
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
-    stData.Node , stData.Norm  = {}, {}
-    stData.CNode, stData.CNorm = {}, {}
-  end; return stData
+    stData.Node  = {} -- Contains array of node positions for the curve caculation
+    stData.Norm  = {} -- Contains array of normal vector for the curve caculation
+    stData.Base  = {} -- Contains array of hit positions for the curve caculation
+    stData.CNode = {} -- The place where the curve nodes are stored
+    stData.CNorm = {} -- The place where the curve normals are stored
+    stData.Size  = 0  -- The amount of points for the primary node array
+    stData.CSize = 0  -- The amount of points for the calculated nodes array
+  end;
+  if(not stData.Size) then stData.Size = 0 end
+  if(not stData.CSize) then stData.CSize = 0 end
+  return stData
 end
 
 function Notify(pPly,sText,sNotifType)
