@@ -1268,29 +1268,27 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
                                 mathClamp(tArgs[3] or 1,1,200),rgbCl)
     else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
   end
-  function self:DrawUCS(vO,aO,sMeth,tArgs)
+  function self:DrawUCS(oPly,vO,aO,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"UCS")
     local nSiz = BorderValue(tonumber(tArgs[1]) or 0, "non-neg")
-    local nRad = BorderValue(tonumber(tArgs[2]) or 0, "non-neg")
     if(nSiz > 0) then
       if(sMeth == "SURF") then
         local xyO = vO:ToScreen()
         local xyZ = (vO + nSiz * aO:Up()):ToScreen()
         local xyY = (vO + nSiz * aO:Right()):ToScreen()
         local xyX = (vO + nSiz * aO:Forward()):ToScreen()
-        self:DrawCircle(xyO,nRad,"y",sMeth)
+        self:DrawCircle(xyO,GetViewRadius(oPly, vO),"y",sMeth)
         self:DrawLine(xyO,xyX,"r",sMeth)
         self:DrawLine(xyO,xyY,"g")
         self:DrawLine(xyO,xyZ,"b"); return xyO, xyX, xyY, xyZ
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end
   end
-  function self:DrawPOA(oPly,ePOA,stPOA,nAct,nRad)
+  function self:DrawPOA(oPly,ePOA,stPOA,nAct)
     if(not (ePOA and ePOA:IsValid())) then
       LogInstance("Entity invalid", tLogs); return nil end
     if(not IsPlayer(oPly)) then
       LogInstance("Player invalid", tLogs); return nil end
-    local nRad = BorderValue(tonumber(nRad) or 0, "non-neg")
     local nAct = BorderValue(tonumber(nAct) or 0, "non-neg")
     local veP, aeA = ePOA:GetPos(), ePOA:GetAngles()
     local vO, vP, vR = Vector(), Vector(), (nAct * oPly:GetRight())
@@ -1299,7 +1297,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     local Op = vO:ToScreen(); vO:Add(vR)
     local Rp, Pp = vO:ToScreen(), vP:ToScreen()
     local Rv = LenXY(SubXY(Rp, Rp, Op))
-    self:DrawCircle(Op, nRad,"y","SURF")
+    self:DrawCircle(Op, GetViewRadius(oPly, vO),"y","SURF")
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
   end; setmetatable(self, GetOpVar("TYPEMT_SCREEN"))
@@ -1952,17 +1950,15 @@ end
  * Used for scaling distant circles from the player
  * pPly > Player the radius is scaled for
  * vPos > Position of the distance scale
- * nSca > Radius multiplier scaler
- * nTop > Radius upper limit
+ * nMul > Radius scale resize multiplier
 ]]
-function GetViewRadius(pPly, vPos, nSca, nTop)
-  local nTop = mathClamp(tonumber(nTop or 100), 0, 100)
-  local nSca = mathClamp(tonumber(nSca or 1), 1, 100)
+function GetViewRadius(pPly, vPos, nMul)
   local nM = (GetOpVar("GOLDEN_RATIO") - 1)
-  local nR = mathClamp(tonumber(nR) or (nM * (nTop / 5)), 0, nTop)
+  local nS = mathClamp(tonumber(nMul or 1), 0, 10)
+  local nR = mathClamp(tonumber(nR) or (nM * 100), 0, 100)
   local vPly = pPly:GetShootPos() vPly:Sub(vPos)
-  local nV = (250 * nR / vPly:Length())
-  return nSca * mathClamp(nV, 0, nTop)
+  local nV = (50 * nR / vPly:Length())
+  return nS * mathClamp(nV, 0, 100)
 end
 
 --[[
