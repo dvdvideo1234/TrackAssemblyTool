@@ -456,6 +456,19 @@ function SetBorder(vKey, vLow, vHig)
   LogInstance("Apply ("..tostring(vKey)..")<"..vL.."/"..vH..">"); return true
 end
 
+--[[
+ * Used for scaling distant circles for player perspective
+ * pPly > Player the radius is scaled for
+ * vPos > Position of the distance scale
+ * nMul > Radius scale resize multiplier
+]]
+function GetViewRadius(pPly, vPos, nMul)
+  local nM = 5000 * (GetOpVar("GOLDEN_RATIO") - 1)
+  local nS = mathClamp(tonumber(nMul or 1), 0, 10)
+  local vP = pPly:GetShootPos() vP:Sub(vPos)
+  return nS * mathClamp(nM / vP:Length(), 0, 100)
+end
+
 -- Golden retriever. Retrieves file line as string
 -- But seriously returns the sting line and EOF flag
 function GetStringFile(pFile,bNoTrim)
@@ -1944,21 +1957,6 @@ function GetDistanceHit(pPly, vHit)
   if(not IsPlayer(pPly)) then
     LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
   return (vHit - pPly:GetPos()):Length()
-end
-
---[[
- * Used for scaling distant circles from the player
- * pPly > Player the radius is scaled for
- * vPos > Position of the distance scale
- * nMul > Radius scale resize multiplier
-]]
-function GetViewRadius(pPly, vPos, nMul)
-  local nM = (GetOpVar("GOLDEN_RATIO") - 1)
-  local nS = mathClamp(tonumber(nMul or 1), 0, 10)
-  local nR = mathClamp(tonumber(nR) or (nM * 100), 0, 100)
-  local vPly = pPly:GetShootPos() vPly:Sub(vPos)
-  local nV = (50 * nR / vPly:Length())
-  return nS * mathClamp(nV, 0, 100)
 end
 
 --[[

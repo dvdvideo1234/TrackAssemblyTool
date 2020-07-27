@@ -1132,12 +1132,12 @@ end
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local vOrg, aAng, vHit = self:GetCurveTransform(stTrace); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtArgsLogs); return end
-  local tC, xyT = asmlib.GetCacheCurve(oPly), asmlib.NewXY(); if(not tC) then
+  local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS(); if(not tC) then
     asmlib.LogInstance("Curve missing", gtArgsLogs); return end
-  local xyO, xyH, sizeucs = vOrg:ToScreen(), vHit:ToScreen(), self:GetSizeUCS()
+  local xyO, xyH = vOrg:ToScreen(), vHit:ToScreen()
   local nR = asmlib.GetCacheRadius(oPly, vHit, 2)
-  local xyZ = (vOrg + sizeucs * aAng:Up()):ToScreen()
-  local xyX = (vOrg + sizeucs * aAng:Forward()):ToScreen()
+  local xyZ = (vOrg + nS * aAng:Up()):ToScreen()
+  local xyX = (vOrg + nS * aAng:Forward()):ToScreen()
   oScreen:DrawLine(xyO, xyH, "y", "SURF")
   oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, 2), "y", "SURF")
   oScreen:DrawLine(xyO, xyX, "r")
@@ -1149,7 +1149,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       local nB = asmlib.GetViewRadius(oPly, vB, 2)
       local nD = asmlib.GetViewRadius(oPly, vD, 2)
       local xyB, xyD = vB:ToScreen(), vD:ToScreen()
-      local xyN = (vD + sizeucs * vN):ToScreen()
+      local xyN = (vD + nS * vN):ToScreen()
       oScreen:DrawLine(xyB, xyD, "y")
       oScreen:DrawCircle(xyB, nB)
       oScreen:DrawCircle(xyD, nD)
