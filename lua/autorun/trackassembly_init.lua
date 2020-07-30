@@ -78,7 +78,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.624")
+asmlib.SetOpVar("TOOL_VERSION","7.625")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -286,7 +286,7 @@ if(SERVER) then
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
   utilAddNetworkString(gsLibName.."SendCreateCurveNode")
-  utilAddNetworkString(gsLibName.."SendRepairCurveNode")
+  utilAddNetworkString(gsLibName.."SendUpdateCurveNode")
   utilAddNetworkString(gsLibName.."SendDeleteCurveNode")
   utilAddNetworkString(gsLibName.."SendDeleteAllCurveNode")
 
@@ -402,9 +402,11 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
     end)
 
-  asmlib.SetAction("REPAIR_CURVE_NODE",
-    function(nLen)
-
+  asmlib.SetAction("UPDATE_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*UPDATE_CURVE_NODE"
+      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
+      tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm); tC.Base[iD]:Set(vBase)
     end)
 
   asmlib.SetAction("DELETE_CURVE_NODE",
@@ -415,7 +417,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
     end)
 
   asmlib.SetAction("DELETE_ALL_CURVE_NODE",
-    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETEALL_CURVE_NODE"
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETE_ALL_CURVE_NODE"
       local tC = asmlib.GetCacheCurve(oPly)
       if(tC.Size and tC.Size > 0) then
         tableEmpty(tC.Node); tableEmpty(tC.Norm); tableEmpty(tC.Base)

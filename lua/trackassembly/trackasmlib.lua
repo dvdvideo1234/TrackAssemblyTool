@@ -464,9 +464,9 @@ end
 ]]
 function GetViewRadius(pPly, vPos, nMul)
   local nM = 5000 * (GetOpVar("GOLDEN_RATIO") - 1)
-  local nS = mathClamp(tonumber(nMul or 1), 0, 10)
+  local nS = mathClamp(tonumber(nMul or 1), 0, 1000)
   local vP = pPly:GetShootPos() vP:Sub(vPos)
-  return nS * mathClamp(nM / vP:Length(), 0, 100)
+  return nS * mathClamp(nM / vP:Length(), 0, 5000)
 end
 
 -- Golden retriever. Retrieves file line as string
@@ -1303,17 +1303,17 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     if(not IsPlayer(oPly)) then
       LogInstance("Player invalid", tLogs); return nil end
     local nAct = BorderValue(tonumber(nAct) or 0, "non-neg")
-    local veP, aeA = ePOA:GetPos(), ePOA:GetAngles()
-    local vO, vP, vR = Vector(), Vector(), (nAct * oPly:GetRight())
-    SetVector(vO,stPOA.O); vO:Rotate(aeA); vO:Add(veP)
-    SetVector(vP,stPOA.P); vP:Rotate(aeA); vP:Add(veP)
-    local Op = vO:ToScreen(); vO:Add(vR)
-    local Rp, Pp = vO:ToScreen(), vP:ToScreen()
-    local Rv = LenXY(SubXY(Rp, Rp, Op))
+    local eP, eA = ePOA:GetPos(), ePOA:GetAngles()
+    local vO, vP = Vector(), Vector()
+    SetVector(vO,stPOA.O); vO:Rotate(eA); vO:Add(eP)
+    SetVector(vP,stPOA.P); vP:Rotate(eA); vP:Add(eP)
+    local Op, Pp = vO:ToScreen(), vP:ToScreen()
+    local Rv = GetViewRadius(oPly, vP, nAct)
     self:DrawCircle(Op, GetViewRadius(oPly, vO),"y","SURF")
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
-  end; setmetatable(self, GetOpVar("TYPEMT_SCREEN"))
+  end
+  setmetatable(self, GetOpVar("TYPEMT_SCREEN"))
   if(IsHere(aKey)) then tMon[aKey] = self
     LogInstance("Screen registered "..GetReport(aKey)) end
   return self -- Register the screen under the key
@@ -3482,6 +3482,32 @@ function GetNormalAngle(oPly, soTr, bSnp, nSnp)
 end
 
 --[[
+ * Selects a point ID on the entity based on the hit vector provided
+ * oEnt --> Entity to search the point on
+ * vHit --> World space hit vector to find the closest point to
+ * bPnt --> Use the point local offset ( true ) else origin offset
+]]--
+function GetEntityHitID(oEnt, vHit, bPnt)
+  if(not (oEnt and oEnt:IsValid())) then
+    LogInstance("Entity invalid"); return nil end
+  local oRec = CacheQueryPiece(oEnt:GetModel()); if(not oRec) then
+    LogInstance("Trace not piece <"..oEnt:GetModel()..">"); return nil end
+  local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
+  local oAnc, oID, oMin, oPOA = Vector(), nil, nil, nil
+  for ID = 1, oRec.Size do -- Ignore the point disabled flag
+    local tPOA, tID = LocatePOA(oRec, ID); if(not IsHere(tPOA)) then
+      LogInstance("Point missing "..GetReport(ID)); return nil end
+    if(bPnt) then SetVector(oAnc, tPOA.P) else SetVector(oAnc, tPOA.O) end
+    oAnc:Rotate(eAng); oAnc:Add(ePos); oAnc:Sub(vHit)
+    local tMin = oAnc:Length() -- Calculate vector absolute ( distance )
+    if(oID and oMin) then -- Check if current distance is minimum
+      if(oMin >= tMin) then oID, oMin, oPOA = tID, tMin, tPOA end
+    else -- The shortest distance if the first one checked until others are looped
+      oID, oMin, oPOA = tID, tMin, tPOA end
+  end; return oID, oMin, oAnc, oPOA, oRec
+end
+
+--[[
  * This function is the backbone of the tool snapping and spawning.
  * Anything related to dealing with the track assembly database
  * Calculates SPos, SAng based on the DB inserts and input parameters
@@ -3564,13 +3590,16 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   if(not trEnt:IsValid()) then
     LogInstance("Trace entity not valid"); return nil end
   if(IsOther(trEnt)) then
-    LogInstance("Trace is of other type"); return nil end
+    LogInstance("Trace other type"); return nil end
   local nActRadius = tonumber(nvActRadius); if(not IsHere(nActRadius)) then
     LogInstance("Active radius mismatch "..GetReport(nvActRadius)); return nil end
-  local trRec = CacheQueryPiece(trEnt:GetModel()); if(not IsHere(trRec)) then
-    LogInstance("Trace model missing <"..trEnt:GetModel()..">"); return nil end
-  if(not IsHere(LocatePOA(trRec,1))) then
+  local trID, trRad, trAnc, trPOA, trRec = GetEntityHitID(trEnt, trHitPos, true)
+  if(not IsHere(trID)) then
+    LogInstance("Active point missed <"..trEnt:GetModel()..">"); return nil end
+  if(not IsHere(LocatePOA(trRec, 1))) then
     LogInstance("Trace has no points"); return nil end
+  if(trRad > nActRadius) then
+    LogInstance("Trace outside radius"); return nil end
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
     LogInstance("Holder model missing <"..tostring(shdModel)..">"); return nil end
   local hdOffs, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdOffs)) then
@@ -3583,22 +3612,12 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   -- If the types are different and disabled
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
     LogInstance("Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">"); return nil end
-  local stSpawn, trPOA = GetCacheSpawn(oPly) -- We have the next Piece Offset
-        stSpawn.TRec, stSpawn.RLen = trRec, nActRadius
-        stSpawn.HID , stSpawn.TID  = ihdPoID, 0
+  local stSpawn = GetCacheSpawn(oPly) -- We have the next Piece Offset
+        stSpawn.TRec, stSpawn.RLen = trRec, trRad
+        stSpawn.HID , stSpawn.TID  = ihdPoID, trID
         stSpawn.TOrg:Set(trEnt:GetPos())
         stSpawn.TAng:Set(trEnt:GetAngles())
-  for ID = 1, trRec.Size do -- Indexing is actually with 70% faster than pairs
-    local stPOA = LocatePOA(trRec,ID); if(not IsHere(stPOA)) then
-      LogInstance("Trace point missing "..GetReport(ID)); return nil end
-    local vTemp = Vector(); SetVector(vTemp, stPOA.P)
-    vTemp:Rotate(stSpawn.TAng); vTemp:Add(stSpawn.TOrg); vTemp:Sub(trHitPos)
-    local trAcDis = vTemp:Length()
-    if(trAcDis < stSpawn.RLen) then
-      trPOA, stSpawn.TID, stSpawn.RLen = stPOA, ID, trAcDis
-      stSpawn.TPnt:Set(vTemp); stSpawn.TPnt:Add(trHitPos)
-    end
-  end
+        stSpawn.TPnt:Set(trAnc); stSpawn.TPnt:Add(trHitPos)
   if(not IsHere(trPOA)) then
     LogInstance("Not hitting active point"); return nil end
   -- Found the active point ID on trEnt. Initialize origins
@@ -3631,31 +3650,6 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen)
   SetAngle (trAng     , trPOA.A); trAng:Set(trEnt:LocalToWorldAngles(trAng))
   trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
   return utilTraceLine(trDt), trDt
-end
-
---[[
- * Selects a point ID on the entity based on the hit vector provided
- * oEnt --> Entity to search the point on
- * vHit --> World space hit vector to find the closest point to
-]]--
-function GetEntityHitID(oEnt, vHit)
-  if(not (oEnt and oEnt:IsValid())) then
-    LogInstance("Entity invalid"); return nil end
-  local oRec = CacheQueryPiece(oEnt:GetModel())
-  if(not oRec) then LogInstance("Trace not piece <"..oEnt:GetModel()..">"); return nil end
-  local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
-  local vTmp, nID, nMin, oPOA = Vector(), nil, nil, nil
-  for ID = 1, oRec.Size do -- Ignore the point disabled flag
-    local tPOA, tID = LocatePOA(oRec, ID)
-    if(not IsHere(tPOA)) then -- Get intersection rays list for the player
-      LogInstance("Point missing "..GetReport(ID)); return nil end
-    SetVector(vTmp, tPOA.O) -- Translate origin to a world-space
-    vTmp:Rotate(eAng); vTmp:Add(ePos); vTmp:Sub(vHit)
-    if(nID and nMin) then
-      if(nMin >= vTmp:Length()) then nID, nMin, oPOA = tID, vTmp:Length(), tPOA end
-    else -- The shortest distance if the first one checked until others are looped
-      nID, nMin, oPOA = tID, vTmp:Length(), tPOA end
-  end; return nID, nMin, oPOA, oRec
 end
 
 --[[

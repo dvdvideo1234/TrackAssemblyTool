@@ -18,6 +18,7 @@ local netStart                         = net and net.Start
 local netReceive                       = net and net.Receive
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
+local netWriteUInt                     = net and net.WriteUInt
 local vguiCreate                       = vgui and vgui.Create
 local utilIsValidModel                 = util and util.IsValidModel
 local stringUpper                      = string and string.upper
@@ -155,7 +156,7 @@ if(CLIENT) then
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   netReceive(gsLibName.."SendCreateCurveNode", asmlib.GetActionCode("CREATE_CURVE_NODE"))
-  netReceive(gsLibName.."SendRepairCurveNode", asmlib.GetActionCode("REPAIR_CURVE_NODE"))
+  netReceive(gsLibName.."SendUpdateCurveNode", asmlib.GetActionCode("UPDATE_CURVE_NODE"))
   netReceive(gsLibName.."SendDeleteCurveNode", asmlib.GetActionCode("DELETE_CURVE_NODE"))
   netReceive(gsLibName.."SendDeleteAllCurveNode", asmlib.GetActionCode("DELETE_ALL_CURVE_NODE"))
 
@@ -570,19 +571,19 @@ function TOOL:SelectModel(sModel)
   asmlib.LogInstance("Success <"..sModel..">",gtArgsLogs); return true
 end
 
--- Needs more work !
 function TOOL:CurveClear(bAll)
   local ply = self:GetOwner()
   local tC  = asmlib.GetCacheCurve(ply)
   if(tC.Size and tC.Size > 0) then
+    local nS = tC.Size -- Store the size
     if(bAll) then -- Clear all the nodes
-      asmlib.Notify(ply, "Nodes cleared !", "CLEANUP")
+      asmlib.Notify(ply, "Nodes cleared ["..nS.."] !", "CLEANUP")
       tableEmpty(tC.Node)
       tableEmpty(tC.Norm)
       tableEmpty(tC.Base); tC.Size = 0
       netStart(gsLibName.."SendDeleteAllCurveNode"); netWriteEntity(ply); netSend(ply)
     else -- Clear the last specific node from the array
-      asmlib.Notify(ply, "Node ["..tC.Size.."] removed !", "CLEANUP")
+      asmlib.Notify(ply, "Node removed ["..nS.."] !", "CLEANUP")
       tableRemove(tC.Node)
       tableRemove(tC.Norm)
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
@@ -614,24 +615,60 @@ function TOOL:GetCurveTransform(stTrace)
   return vOrg, aAng, vHit
 end
 
--- Needs more work !
+-- TODO: Implement node population from track active point
 function TOOL:CurveInsert(stTrace)
-  local ply = self:GetOwner()
+  local ply, model = self:GetOwner(), self:GetModel()
   local vOrg, aAng, vHit = self:GetCurveTransform(stTrace); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtArgsLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtArgsLogs); return nil end
   tC.Size = (tC.Size + 1)
-  tC.Node[tC.Size] = vOrg
-  tC.Norm[tC.Size] = aAng:Up()
-  tC.Base[tC.Size] = Vector(); tC.Base[tC.Size]:Set(vHit)
+  if(ply:KeyDown(IN_USE)) then -- Use track active point
+    tC.Node[tC.Size] = Vector()
+    tC.Norm[tC.Size] = Vector()
+    tC.Base[tC.Size] = Vector()
+  else -- Use the trace to create node
+    tC.Node[tC.Size] = vOrg
+    tC.Norm[tC.Size] = aAng:Up()
+    tC.Base[tC.Size] = Vector(); tC.Base[tC.Size]:Set(vHit)
+  end
   netStart(gsLibName.."SendCreateCurveNode")
     netWriteEntity(ply)
     netWriteVector(tC.Node[tC.Size])
     netWriteVector(tC.Norm[tC.Size])
     netWriteVector(tC.Base[tC.Size])
   netSend(ply)
-  asmlib.Notify(ply, "Node ["..tC.Size.."] inserted !", "CLEANUP")
+  asmlib.Notify(ply, "Node inserted ["..tC.Size.."] !", "CLEANUP")
+  return tC -- Returns the updated curve nodes table
+end
+
+function TOOL:CurveUpdate(stTrace)
+  local ply, vT, iD, mD, mL = self:GetOwner(), Vector(), 1
+  local vOrg, aAng, vHit = self:GetCurveTransform(stTrace); if(not vOrg) then
+    asmlib.LogInstance("Transform missing", gtArgsLogs); return nil end
+  local tC = asmlib.GetCacheCurve(ply); if(not tC) then
+    asmlib.LogInstance("Curve missing", gtArgsLogs); return nil end
+  if(not (tC.Size and tC.Size > 0)) then
+    asmlib.Notify(ply,"Populate nodes first!","ERROR")
+    asmlib.LogInstance("Nodes missing", gtArgsLogs); return nil
+  end
+  while(tC.Base[iD]) do vT:Set(vHit); vT:Sub(tC.Base[iD])
+    local nT = vT:Length() -- Get current length
+    if(mL and mD) then -- Length is allocated
+      if(nT <= mL) then mD, mL = iD, nT end
+    else mD, mL = iD, nT end; iD = iD + 1
+  end
+  tC.Node[mD]:Set(vOrg)
+  tC.Norm[mD]:Set(aAng:Up())
+  tC.Base[mD]:Set(vHit)
+  netStart(gsLibName.."SendUpdateCurveNode")
+    netWriteEntity(ply)
+    netWriteVector(tC.Node[mD])
+    netWriteVector(tC.Norm[mD])
+    netWriteVector(tC.Base[mD])
+    netWriteUInt(mD, 16)
+  netSend(ply)
+  asmlib.Notify(ply, "Node ["..tC.Size.."] updated !", "CLEANUP")
   return tC -- Returns the updated curve nodes table
 end
 
@@ -826,20 +863,20 @@ function TOOL:RightClick(stTrace)
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
+  if(workmode == 3) then local tC
+    if(ply:KeyDown(IN_SPEED)) then tC = self:CurveUpdate(stTrace)
+    else tC = self:CurveInsert(stTrace) end; return (tC and true or false)
+  end
   if(stTrace.HitWorld) then
     if(enpntmscr or (ply:KeyDown(IN_USE) and not enpntmscr)) then
-      if(workmode == 3) then self:CurveInsert(stTrace); return true else
-        asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
-        asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
-      end
+      asmlib.SetAsmConvar(ply,"openframe",asmlib.GetAsmConvar("maxfruse" ,"INT"))
+      asmlib.LogInstance("(World) Success open frame",gtArgsLogs); return true
     end
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr or (ply:KeyDown(IN_USE) and not enpntmscr)) then
-      if(workmode == 3) then self:CurveInsert(stTrace); return true else
-        if(not self:SelectModel(trEnt:GetModel())) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
-        asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
-      end
+      if(not self:SelectModel(trEnt:GetModel())) then
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtArgsLogs); return false end
+      asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtArgsLogs); return true
     end
   end
   if(not enpntmscr) then
@@ -1093,7 +1130,7 @@ function TOOL:DrawSnapAssist(oScreen, oPly, stTrace)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
-    oScreen:DrawPOA(oPly,stTrace.Entity,stPOA,actrad)
+    oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, actrad / 4.9)
   end
 end
 
@@ -1122,8 +1159,8 @@ end
 function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2)
   local oPly, XX = self:GetOwner(), vX:ToScreen()
   local X1, X2 = vX1:ToScreen(), vX2:ToScreen()
-  oScreen:DrawLine(X1,X2,"ry","SURF")
-  oScreen:DrawCircle(X1, asmlib.GetViewRadius(oPly, vX1),"r","SURF")
+  oScreen:DrawLine(X1,X2,"ry")
+  oScreen:DrawCircle(X1, asmlib.GetViewRadius(oPly, vX1),"r")
   oScreen:DrawCircle(X2, asmlib.GetViewRadius(oPly, vX2),"g")
   oScreen:DrawCircle(XX, asmlib.GetViewRadius(oPly, vX),"b")
   return XX, X1, X2
@@ -1138,16 +1175,17 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local nR = asmlib.GetCacheRadius(oPly, vHit, 2)
   local xyZ = (vOrg + nS * aAng:Up()):ToScreen()
   local xyX = (vOrg + nS * aAng:Forward()):ToScreen()
+  local bRp, vT, mD, mL = inputIsKeyDown(KEY_LSHIFT), Vector()
   oScreen:DrawLine(xyO, xyH, "y", "SURF")
   oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, 2), "y", "SURF")
   oScreen:DrawLine(xyO, xyX, "r")
-  oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, 2))
+  oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, 6))
   oScreen:DrawLine(xyO, xyZ, "b")
   if(tC.Size and tC.Size > 0) then
-    for iD = 1, tC.Size do
+    for iD = 1, tC.Size do local rN = (iD == 1 and 6 or 2)
       local vB, vD, vN = tC.Base[iD], tC.Node[iD], tC.Norm[iD]
       local nB = asmlib.GetViewRadius(oPly, vB, 2)
-      local nD = asmlib.GetViewRadius(oPly, vD, 2)
+      local nD = asmlib.GetViewRadius(oPly, vD, rN)
       local xyB, xyD = vB:ToScreen(), vD:ToScreen()
       local xyN = (vD + nS * vN):ToScreen()
       oScreen:DrawLine(xyB, xyD, "y")
@@ -1158,12 +1196,36 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       if(tC.Node[iD - 1]) then
         local xyP = tC.Node[iD - 1]:ToScreen()
         oScreen:DrawLine(xyP, xyD, "g", sM)
-      end; bF = false
+      end
+      if(bRp) then vT:Set(vB); vT:Sub(vHit)
+        local nT = vT:Length() -- Get current length
+        if(mL and mD) then -- Length is allocated
+          if(nT <= mL) then mD, mL = iD, nT end
+        else mD, mL = iD, nT end
+      end
     end
   end
-  if(tC.Size and tC.Size > 0 and tC.Base) then
-    local xyN = tC.Node[tC.Size]:ToScreen()
-    oScreen:DrawLine(xyN, xyO, "g")
+  if(tC.Size and tC.Size > 0) then
+    if(bRp) then
+      local xyN = tC.Node[mD]:ToScreen()
+      oScreen:DrawLine(xyN, xyO, "r")
+    else
+      local xyN = tC.Node[tC.Size]:ToScreen()
+      oScreen:DrawLine(xyN, xyO, "g")
+    end
+  end
+end
+
+function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
+  local pointid, pnextid = self:GetPointID()
+  local oRec  = stSpawn.HRec
+  local stPOA = asmlib.LocatePOA(oRec, pnextid)
+  if(stPOA and oRec.Size > 1) then
+    local vN = Vector(); asmlib.SetVector(vN, stPOA.O)
+          vN:Rotate(stSpawn.SAng); vN:Add(stSpawn.SPos)
+    local Np, Op = vN:ToScreen(), stSpawn.OPos:ToScreen()
+    oScreen:DrawLine(Op, Np, "g")
+    oScreen:DrawCircle(Np, asmlib.GetViewRadius(oPly, vN, 0.5), "g")
   end
 end
 
@@ -1209,16 +1271,9 @@ function TOOL:DrawHUD()
       hudMonitor:DrawCircle(Tp,(nrad * (stSpawn.RLen / actrad)) / 2)
       hudMonitor:DrawLine(Ob,Os)
       hudMonitor:DrawLine(Ob,Pp,"r")
-      hudMonitor:DrawCircle(Hp, asmlib.GetViewRadius(oPly, stSpawn.HPnt, 0.5),"r")
+      hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, stSpawn.OPos, 0.5),"r")
       if(workmode == 1) then
-        local nxPOA = asmlib.LocatePOA(stSpawn.HRec,pnextid)
-        if(nxPOA and stSpawn.HRec.Size > 1) then
-          local vNext = Vector(); asmlib.SetVector(vNext,nxPOA.O)
-                vNext:Rotate(stSpawn.SAng); vNext:Add(stSpawn.SPos)
-          local Np = vNext:ToScreen() -- Draw Next Point
-          hudMonitor:DrawLine(Os,Np,"g")
-          hudMonitor:DrawCircle(Np, asmlib.GetViewRadius(oPly, vNext, 0.5), "g")
-        end
+        self:DrawNextPoint(hudMonitor, oPly, stSpawn)
       elseif(workmode == 2) then -- Draw point intersection
         local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
         local Rp, Re = self:DrawRelateIntersection(hudMonitor, oPly)
@@ -1263,7 +1318,7 @@ function TOOL:DrawHUD()
       hudMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
-      local stSpawn  = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
+      local stSpawn = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       local Hp = stSpawn.HPnt:ToScreen()
@@ -1272,18 +1327,9 @@ function TOOL:DrawHUD()
       hudMonitor:DrawLine(Ob,Tp,"y")
       hudMonitor:DrawCircle(Tp,nrad / 2)
       hudMonitor:DrawLine(Ob,Os)
-      hudMonitor:DrawCircle(Hp, asmlib.GetViewRadius(oPly, stSpawn.HPnt, 0.5), "r")
+      hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, stSpawn.OPos, 0.5), "r")
       if(workmode == 1) then
-        local nxPOA = asmlib.LocatePOA(stSpawn.HRec, pnextid)
-        if(nxPOA and stSpawn.HRec.Size > 1) then
-          local vNext = Vector() -- Draw next point when available
-                asmlib.SetVector(vNext,nxPOA.O)
-                vNext:Rotate(stSpawn.SAng)
-                vNext:Add(stSpawn.SPos)
-          local Np = vNext:ToScreen()
-          hudMonitor:DrawLine(Os,Np,"g")
-          hudMonitor:DrawCircle(Np, asmlib.GetViewRadius(oPly, vNext, 0.5))
-        end
+        self:DrawNextPoint(hudMonitor, oPly, stSpawn)
       elseif(workmode == 2) then -- Draw point intersection
         self:DrawRelateIntersection(hudMonitor, oPly)
         self:DrawModelIntersection(hudMonitor, oPly, stSpawn)
