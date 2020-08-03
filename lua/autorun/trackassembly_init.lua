@@ -78,7 +78,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.625")
+asmlib.SetOpVar("TOOL_VERSION","7.626")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -134,7 +134,8 @@ asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the w
 asmlib.MakeAsmConvar("enctxmenu", 1  , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
 asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
 asmlib.MakeAsmConvar("endsvlock", 0  , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
-asmlib.MakeAsmConvar("curvefact", 0.5, {0, 1 }, gnServerControled, "The parametric constant track curving factor")
+asmlib.MakeAsmConvar("curvefact", 0.5, {0, 1 }, gnServerControled, "Parametric constant track curving factor")
+asmlib.MakeAsmConvar("curvsmple", 50 , {0,200}, gnServerControled, "Amount of samples between two curve nodes")
 
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -742,6 +743,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
         asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
         asmlib.SetAsmConvar(oPly, "curvefact", 0.5)
+        asmlib.SetAsmConvar(oPly, "curvsmple", 50)
         asmlib.LogInstance("Variables reset complete",gtArgsLogs)
       else
         asmlib.SetAsmConvar(oPly,"nextx"  , 0)

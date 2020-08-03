@@ -3504,7 +3504,7 @@ function GetEntityHitID(oEnt, vHit, bPnt)
       if(oMin >= tMin) then oID, oMin, oPOA = tID, tMin, tPOA end
     else -- The shortest distance if the first one checked until others are looped
       oID, oMin, oPOA = tID, tMin, tPOA end
-  end; return oID, oMin, oAnc, oPOA, oRec
+  end; return oID, oMin, oPOA, oRec
 end
 
 --[[
@@ -3593,8 +3593,8 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
     LogInstance("Trace other type"); return nil end
   local nActRadius = tonumber(nvActRadius); if(not IsHere(nActRadius)) then
     LogInstance("Active radius mismatch "..GetReport(nvActRadius)); return nil end
-  local trID, trRad, trAnc, trPOA, trRec = GetEntityHitID(trEnt, trHitPos, true)
-  if(not IsHere(trID)) then
+  local trID, trRad, trPOA, trRec = GetEntityHitID(trEnt, trHitPos, true)
+  if(not (IsHere(trID) and IsHere(trRad) and IsHere(trPOA) and IsHere(trRec))) then
     LogInstance("Active point missed <"..trEnt:GetModel()..">"); return nil end
   if(not IsHere(LocatePOA(trRec, 1))) then
     LogInstance("Trace has no points"); return nil end
@@ -3617,12 +3617,12 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID
         stSpawn.TOrg:Set(trEnt:GetPos())
         stSpawn.TAng:Set(trEnt:GetAngles())
-        stSpawn.TPnt:Set(trAnc); stSpawn.TPnt:Add(trHitPos)
-  if(not IsHere(trPOA)) then
-    LogInstance("Not hitting active point"); return nil end
+        SetVector(stSpawn.TPnt, trPOA.P)
+        stSpawn.TPnt:Rotate(stSpawn.TAng)
+        stSpawn.TPnt:Add(stSpawn.TOrg)
   -- Found the active point ID on trEnt. Initialize origins
-  SetVector(stSpawn.BPos,trPOA.O) -- Read origin
-  SetAngle (stSpawn.BAng,trPOA.A) -- Read angle
+  SetVector(stSpawn.BPos, trPOA.O) -- Read origin
+  SetAngle (stSpawn.BAng, trPOA.A) -- Read angle
   stSpawn.BPos:Rotate(stSpawn.TAng); stSpawn.BPos:Add(stSpawn.TOrg)
   stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
   -- Do the flatten flag right now Its important !
@@ -4338,23 +4338,30 @@ local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
   end; return tC
 end
 
-function GetCatmullRomCurve(tV, nT, nA, tO)
+local function GetCatmullRomCurve(tV, nT, nA, tO)
   if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
-  local nT, nV = mathFloor(tonumber(nT) or 100), #tV; if(nT < 0) then
+  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
     LogInstance("Curve samples mismatch "..GetReport(nT)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
   if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
-  local tC = tO or {}; if(not IsTable(tC)) then -- Check of outut is table
-    LogInstance("Ouput mismatch "..GetReport(tC)); return nil end
-  if(not IsEmpty(tC)) then tableEmpty(tC) end -- Clear the output
-  local vM, iC, cS, cE = GetOpVar("EPSILON_ZERO"), 1, Vector(), Vector()
+  local vM, iC, cS, cE, tN = GetOpVar("EPSILON_ZERO"), 1, Vector(), Vector(), tO or {}
   cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
   cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
-  tableInsert(tV, 1, cS); tableInsert(tV, cE); nV = (nV + 2);
+  tableInsert(tV, 1, cS); tableInsert(tV, cE); nV = (nV + 2); tableEmpty(tN)
   for iD = 1, (nV-3) do
     local cA, cB, cC, cD = tV[iD], tV[iD+1], tV[iD+2], tV[iD+3]
     local tS = GetCatmullRomCurveSegment(cA, cB, cC, cD, nT, nA)
-    for iK = 1, (nT+1) do tC[iC] = tS[iK]; iC = (iC + 1) end
-  end; tC[iC] = Vector(); tC[iC]:Set(tV[nV-1]); return tC
+    for iK = 1, (nT+1) do tN[iC] = tS[iK]; iC = (iC + 1) end
+  end; tN[iC] = Vector(); tN[iC]:Set(tV[nV-1])
+  tableRemove(tV, 1); tableRemove(tV); return tN
+end
+
+function CalculateRomCurve(oPly, nSmp, nFac)
+  local tC = GetCacheCurve(oPly); if(not tC) then
+    LogInstance("Curve missing"); return nil end
+  GetCatmullRomCurve(tC.Node, nSmp, nFac, tC.CNode)
+  GetCatmullRomCurve(tC.Norm, nSmp, nFac, tC.CNorm)
+  tC.CSize = (tC.Size - 1) * nSmp + tC.Size
+  return tC -- Return the updated reference
 end
