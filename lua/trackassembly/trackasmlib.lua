@@ -1491,14 +1491,14 @@ function GetFrequentModels(snCount)
 end
 
 function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
-  local pPanel = vguiCreate("DPanel"); if(not IsValid(pPanel)) then
+  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
     LogInstance("Panel invalid"); return nil end
   local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
   local sX = GetOpVar("WIDTH_CPANEL")
   local sNam = GetOpVar("TOOLNAME_PL")..sVar
   local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
   pPanel:SetParent(cPanel)
-  cPanel:InvalidateLayout()
+  cPanel:InvalidateLayout(true)
   pPanel:SetSize(sX, sY)
   if(IsTable(tBtn) and tBtn[1]) then
     local sPtn = GetOpVar("FORM_LOGBTNSLD")
@@ -1509,6 +1509,7 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance(sPtn:format(sVar,sTxt,"Panel invalid")); return nil end
       pButton:SetParent(pPanel)
+      pButton:InvalidateLayout(true)
       pButton:SizeToContents()
       pButton:SetText(sTxt)
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
@@ -1525,6 +1526,7 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
   pSlider:SetParent(pPanel)
+  pSlider:InvalidateLayout(true)
   pSlider:SizeToContents()
   pSlider:SetPos(0, pY)
   pSlider:SetSize(sX-2*dX, sY-pY-dY)
@@ -1543,11 +1545,15 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   return pPanel
 end
 
-function GetCenter(oEnt) -- Set the ENT's Angles first!
+function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity Invalid"); return Vector(0,0,0) end
-  local vRez = oEnt:OBBCenter(); NegVector(vRez); vRez[cvZ] = 0
-  return vRez -- Returns X-Y centered model
+  oEnt:SetPos(vPos); oEnt:SetAngles(aAng)
+  local vCen, vMin = oEnt:OBBCenter(), oEnt:OBBMins()
+  NegVector(vCen); vCen[cvZ] = 0 -- Adjust only X and Y
+  AddVectorXYZ(vCen, nX, -nY, nZ-vMin[cvZ])
+  vCen:Rotate(aAng); vCen:Add(vPos); oEnt:SetPos(vCen)
+  return vCen -- Returns X-Y OBB centered model
 end
 
 function IsPhysTrace(Trace)
@@ -4364,4 +4370,30 @@ function CalculateRomCurve(oPly, nSmp, nFac)
   GetCatmullRomCurve(tC.Norm, nSmp, nFac, tC.CNorm)
   tC.CSize = (tC.Size - 1) * nSmp + tC.Size
   return tC -- Return the updated reference
+end
+
+function IntersectLineSphere(vS, vE, vC, nR)
+  local nE = GetOpVar("EPSILON_ZERO")
+  local vD = Vector(); vD:Set(vE); vD:Sub(vS)
+  local nA = vD:LengthSqr(); if(nA < nE) then
+    LogInstance("Norm less than margin"); return nil end
+  local vR = Vector(); vR:Set(vS) vR:Sub(vC)
+  local nB, nC = 2 * vD:Dot(vR), (vR:LengthSqr() - nR^2)
+  local nD = (nB^2 - 4*nA*nC); if(nD < 0) then
+    LogInstance("Imaginary roots"); return nil end
+  local dA = (1/(2*nA)); nD, nB = dA*math.sqrt(nD), -nB*dA
+  local xP = Vector(); xP:Set(vD); xP:Mul(nB + nD); xP:Add(vS)
+  local xM = Vector(); xM:Set(vD); xM:Mul(nB - nD); xM:Add(vS)
+  return xP, xM -- Return the intersected +/- root point
+end
+
+function IsAmongLine(vO, vS, vE)
+  local nE = GetOpVar("EPSILON_ZERO")
+  local vD = Vector(); vD:Set(vE); vD:Sub(vS)
+  local oS = Vector(); oS:Set(vS); oS:Sub(vO)
+  local oE = Vector(); oE:Set(vE); oE:Sub(vO)
+  local rS = oS:Cross(vD):LengthSqr()
+  local rE = oE:Cross(vD):LengthSqr()
+  if(rS >= nE or rE >= nE) then return false end
+  return (oS:Dot(vD) * oE:Dot(vD) < 0)
 end

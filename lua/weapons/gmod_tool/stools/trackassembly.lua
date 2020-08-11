@@ -772,14 +772,14 @@ function TOOL:LeftClick(stTrace)
   end
 
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
-    local vPos = Vector(); vPos:Set(stTrace.HitPos)
+    local vPos = Vector(); vPos:Set(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
     local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,angsnap)
     if(spawncn) then  -- Spawn on mass center
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
     else
-      local stSpawn = asmlib.GetNormalSpawn(ply,stTrace.HitPos + elevpnt * stTrace.HitNormal,aAng,model,
+      local stSpawn = asmlib.GetNormalSpawn(ply,vPos,aAng,model,
                         pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then -- Make sure it persists to set it afterwards
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Cannot obtain spawn data"),gtArgsLogs); return false end
@@ -788,10 +788,7 @@ function TOOL:LeftClick(stTrace)
     local ePiece = asmlib.MakePiece(ply,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(spawncn) then -- Adjust the position when created correctly
-        local vOBB = ePiece:OBBMins()
-        local vCen = asmlib.GetCenter(ePiece)
-                     asmlib.AddVectorXYZ(vCen, nextx, -nexty, nextz-vOBB[cvZ])
-        vCen:Rotate(aAng); vPos:Add(vCen); ePiece:SetPos(vPos)
+        asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
       end
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
@@ -1019,20 +1016,19 @@ function TOOL:UpdateGhost(oPly)
   if(stTrace.HitWorld) then
     local ePiece   = atGho[1]
     local angsnap  = self:GetAngSnap()
+    local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()
+    local vPos = Vector(); vPos:Set(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
     local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
     if(self:GetSpawnCenter()) then
       aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
       aAng:RotateAroundAxis(aAng:Right()  , nextpic)
       aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-      local vOBB, vPos = ePiece:OBBMins(), Vector(); vPos:Set(stTrace.HitPos)
-      local vCen = asmlib.GetCenter(ePiece)
-                   asmlib.AddVectorXYZ(vCen, nextx, -nexty, nextz-vOBB[cvZ])
-      vCen:Rotate(aAng); vPos:Add(vCen)
-      ePiece:SetPos(vPos); ePiece:SetAngles(aAng); ePiece:SetNoDraw(false)
+      asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
+      ePiece:SetNoDraw(false)
     else
-      local stSpawn = asmlib.GetNormalSpawn(oPly,stTrace.HitPos + self:GetElevation() * stTrace.HitNormal,
-                        aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+      local stSpawn = asmlib.GetNormalSpawn(oPly,vPos,aAng,model,pointid,
+                        nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
         ePiece:SetAngles(stSpawn.SAng); ePiece:SetPos(stSpawn.SPos); ePiece:SetNoDraw(false)
       end
