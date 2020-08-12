@@ -737,7 +737,7 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
 
   if(workmode == 3) then
-    local nE, sP = asmlib.GetOpVar("EPSILON_ZERO"), "[".pointid.."]["..pnextid.."]"
+    local nE, sP = asmlib.GetOpVar("EPSILON_ZERO"), "["..pointid.."]["..pnextid.."]"
     -- Disable for stack having less than two vertices
     local tC = self:CurveInsert(stTrace, true); if(tC.Size and tC.Size < 2) then
       asmlib.Notify(ply,"Two vertices needed !","ERROR")
@@ -748,30 +748,30 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Holder model not segment"),gtArgsLogs); return false end
     -- Disable for missing start track segments
     local sPOA = asmlib.LocatePOA(hdRec, pointid); if(not sPOA) then
-      asmlib.Notify(ply,"Start segment missing "..sPnt.." !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Start segment missing "..sPnt),gtArgsLogs); return false
+      asmlib.Notify(ply,"Start segment missing "..sP.." !","ERROR")
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Start segment missing "..sP),gtArgsLogs); return false
     end
     -- Disable for missing end track segments
     local ePOA = asmlib.LocatePOA(hdRec, pnextid); if(not ePOA) then
-      asmlib.Notify(ply,"End segment missing "..sPnt.." !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) End segment missing "..sPnt),gtArgsLogs); return false
+      asmlib.Notify(ply,"End segment missing "..sP.." !","ERROR")
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) End segment missing "..sP),gtArgsLogs); return false
     end
     local sA, sO = Angle(), Vector(); asmlib.SetAngle(sA, sPOA.A); asmlib.SetVector(sO, sPOA.O)
     local eA, eO = Angle(), Vector(); asmlib.SetAngle(eA, ePOA.A); asmlib.SetVector(eO, ePOA.O)
     -- Disable for non-straight track segments
     if(sA:Forward():Cross(eA:Forward()):Length() >= nE) then
-      asmlib.Notify(ply,"Segment not straight "..sPnt..fnmodel.." !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Segment not straight "..sPnt..fnmodel),gtArgsLogs); return false
+      asmlib.Notify(ply,"Segment curved "..sP..fnmodel.." !","ERROR")
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Segment not straight "..sP..fnmodel),gtArgsLogs); return false
     end
     -- Disable for 180 curve track segments
     if(sA:Forward():Dot(eA:Forward()) >= 0) then
-      asmlib.Notify(ply,"Segment asymmetric "..sPnt..fnmodel.." !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Segment asymmetric "..sPnt..fnmodel),gtArgsLogs); return false
+      asmlib.Notify(ply,"Segment asymmetric "..sP..fnmodel.." !","ERROR")
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Segment asymmetric "..sP..fnmodel),gtArgsLogs); return false
     end
     -- Disable for ramp track segments
     if(sA:Forward():Dot((sO - eO):GetNormalized()) < (1 - nE)) then
-      asmlib.Notify(ply,"Segment ramp "..sPnt..fnmodel.." !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Segment ramp "..sPnt..fnmodel),gtArgsLogs); return false
+      asmlib.Notify(ply,"Segment gradient "..sP..fnmodel.." !","ERROR")
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Segment ramp "..sP..fnmodel),gtArgsLogs); return false
     end
     local curvefact = self:GetCurveFactor()
     local curvsmple = self:GetCurveSamples()
