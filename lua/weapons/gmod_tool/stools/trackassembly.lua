@@ -13,6 +13,7 @@ local GetConVar                        = GetConVar
 local LocalPlayer                      = LocalPlayer
 local SetClipboardText                 = SetClipboardText
 local osDate                           = os and os.date
+local guiOpenURL                       = gui and gui.OpenURL
 local netSend                          = net and net.Send
 local netStart                         = net and net.Start
 local netReceive                       = net and net.Receive
@@ -1519,11 +1520,17 @@ function TOOL.BuildCPanel(CPanel)
     local sNam = vRec[makTab:GetColumnName(3)]
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
+        local pCatg = catTypes[sTyp]
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.InternalDoClick = function() end
               pRoot.DoClick         = function() return false end
-              pRoot.DoRightClick    = function() SetClipboardText(pRoot:GetText()) end
+              pRoot.DoRightClick    = function()
+                local ID = asmlib.WorkshopID(sTyp)
+                if(ID and ID > 0 and inputIsKeyDown(KEY_LSHIFT)) then
+                  guiOpenURL(asmlib.GetOpVar("FORM_URLADDON"):format(ID))
+                else SetClipboardText(pRoot:GetText()) end
+              end
               pRoot.Label.UpdateColours = function(pSelf)
                 return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
         pFolders[sTyp] = pRoot

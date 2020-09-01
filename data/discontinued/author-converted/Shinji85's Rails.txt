@@ -1,4 +1,4 @@
-asmlib.GetCategory("Shinji85's Rails",[[function(m) local c
+asmlib.Categorize("Shinji85's Rails",[[function(m) local c
   local r = m:gsub("models/shinji85/train/rail_", "")
   if(r:find("cross")) then c = "crossing"
   elseif(r:find("switch")) then c = "switch"

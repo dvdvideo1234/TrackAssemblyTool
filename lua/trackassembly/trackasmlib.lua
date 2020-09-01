@@ -494,6 +494,17 @@ function ToIcon(vKey, vVal)
   return GetOpVar("FORM_SKILLICON"):format(tostring(sIcon))
 end
 
+function WorkshopID(sKey, nVal)
+  if(SERVER) then return nil end
+  local tID = GetOpVar("TABLE_WSIDADDON"); if(not IsString(sKey)) then
+    LogInstance("Invalid "..GetReport(sKey)); return nil end
+  if(IsHere(nVal)) then
+    if(IsNumber(nVal) and nVal > 0) then tID[sKey] = nVal else
+      LogInstance("("..sKey..") Mismatch "..GetReport(nVal)); return nil
+    end
+  end; return tID[sKey]
+end
+
 function IsFlag(vKey, vVal)
   local tFlag = GetOpVar("TABLE_FLAGS"); if(not IsHere(vKey)) then
     LogInstance("Invalid "..GetReport(vKey)); return nil end
@@ -622,6 +633,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s].txt")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_SKILLICON","icon16/%s.png")
+  SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%d")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
@@ -637,6 +649,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
   SetOpVar("TABLE_CONVARLIST",{})
+  SetOpVar("TABLE_WSIDADDON", {})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("TOOL_DEFMODE","gmod_tool")
@@ -1894,7 +1907,7 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
   else LogInstance("Wrong mode name "..sRule); return false end
 end
 
-function GetCategory(oTyp,fCat)
+function Categorize(oTyp, fCat, iID)
   local tCat = GetOpVar("TABLE_CATEGORIES")
   if(not IsHere(oTyp)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
@@ -1904,7 +1917,7 @@ function GetCategory(oTyp,fCat)
   if(CLIENT) then local tTyp -- Categories for the panel
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-    local ssLog = "*"..fsLog:format("TYPE","GetCategory",tostring(oTyp))
+    local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
     if(IsString(fCat)) then tCat[sTyp] = {}
       tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)

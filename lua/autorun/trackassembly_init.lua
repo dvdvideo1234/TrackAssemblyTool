@@ -78,7 +78,7 @@ local gtInitLogs = {"*Init", false, 0}
 
 ------ CONFIGURE ASMLIB ------
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.631")
+asmlib.SetOpVar("TOOL_VERSION","7.632")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -360,6 +360,7 @@ end
 
 if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
+  -- http://www.famfamfam.com/lab/icons/silk/preview.php
   asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
@@ -390,7 +391,27 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
   asmlib.ToIcon("property_type" , "package_green"  )
   asmlib.ToIcon("property_name" , "note"           )
 
-  -- http://www.famfamfam.com/lab/icons/silk/preview.php
+  -- Workshop matching crap
+  asmlib.WorkshopID("Shinji85's Rails"            , 326640186)
+  asmlib.WorkshopID("SligWolf's Rerailers"        , 132843280)
+  asmlib.WorkshopID("SligWolf's Minitrains"       , 149759773)
+  asmlib.WorkshopID("SProps"                      , 173482196)
+  asmlib.WorkshopID("Magnum's Rails"              , 290130567)
+  asmlib.WorkshopID("SligWolf's Railcar"          , 173717507)
+  asmlib.WorkshopID("Random Bridges"              , 343061215)
+  asmlib.WorkshopID("StevenTechno's Buildings 1.0", 331192490)
+  asmlib.WorkshopID("Mr.Train's M-Gauge"          , 517442747)
+  asmlib.WorkshopID("Mr.Train's G-Gauge"          , 590574800)
+  asmlib.WorkshopID("Bobster's two feet rails"    , 489114511)
+  asmlib.WorkshopID("G Scale Track Pack"          , 718239260)
+  asmlib.WorkshopID("Ron's Minitrain Props"       , 728833183)
+  asmlib.WorkshopID("SligWolf's White Rails"      , 147812851)
+  asmlib.WorkshopID("SligWolf's Minihover"        , 147812851)
+  asmlib.WorkshopID("Battleship's abandoned rails", 807162936)
+  asmlib.WorkshopID("AlexCookie's 2ft track pack" , 740453553)
+  asmlib.WorkshopID("Joe's track pack"            , 1658816805)
+  asmlib.WorkshopID("StevenTechno's Buildings 2.0", 1888013789)
+  asmlib.WorkshopID("Trackmania United Props"     , 1955876643)
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
@@ -1367,7 +1388,7 @@ asmlib.CreateTable("PIECES",{
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.GetTerm(arLine[2], noTY, asmlib.GetCategory())
+      arLine[2] = asmlib.GetTerm(arLine[2], noTY, asmlib.Categorize())
       arLine[3] = asmlib.GetTerm(arLine[3], noMD, asmlib.ModelToName(arLine[1]))
       arLine[8] = asmlib.GetTerm(arLine[8], noSQL, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
@@ -1493,7 +1514,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Index = {{1},{2},{1,2}},
   Trigs = {
     Record = function(arLine)
-      arLine[1] = asmlib.GetTerm(arLine[1],"TYPE",asmlib.GetCategory()); return true
+      arLine[1] = asmlib.GetTerm(arLine[1],"TYPE",asmlib.Categorize()); return true
     end
   },
   Cache = {
@@ -1555,11 +1576,11 @@ end
 --[[ Track pieces parametrization legend
  * Disabling of a component is preformed by using "OPSYM_DISABLE"
  * Disabling A     - The ID angle is treated as {0,0,0}
- * Disabling Type  - Makes it use the value of GetCategory()
+ * Disabling Type  - Makes it use the value of Categorize()
  * Disabling Name  - Makes it generate it using the model via ModelToName()
  * Disabling Class - Makes it use the default /prop_physics/
- * First  argument of GetCategory() is used to provide default track type for TABLE:Record()
- * Second argument of GetCategory() is used to generate track categories for the processed addon
+ * First  argument of Categorize() is used to provide default track type for TABLE:Record()
+ * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
@@ -1569,23 +1590,23 @@ else
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
   local PIECES = asmlib.GetBuilderNick("PIECES"); asmlib.ModelToNameRule("CLR")
   if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
-    asmlib.GetCategory("Develop Sprops")
+    asmlib.Categorize("Develop Sprops")
     PIECES:Record({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1})
     PIECES:Record({"models/sprops/cuboids/height12/size_1/cube_12x12x12.mdl", "#", "x2", 1})
     PIECES:Record({"models/sprops/cuboids/non_set/cube_18x18x18.mdl"        , "#", "x3", 1})
     PIECES:Record({"models/sprops/cuboids/height24/size_1/cube_24x24x24.mdl", "#", "x4", 1})
     PIECES:Record({"models/sprops/cuboids/height36/size_1/cube_36x36x36.mdl", "#", "x5", 1})
     PIECES:Record({"models/sprops/cuboids/height48/size_1/cube_48x48x48.mdl", "#", "x6", 1})
-    asmlib.GetCategory("Develop PHX")
+    asmlib.Categorize("Develop PHX")
     PIECES:Record({"models/hunter/blocks/cube025x025x025.mdl", "#", "x1", 1})
     PIECES:Record({"models/hunter/blocks/cube05x05x05.mdl"   , "#", "x2", 1})
     PIECES:Record({"models/hunter/blocks/cube075x075x075.mdl", "#", "x3", 1})
     PIECES:Record({"models/hunter/blocks/cube1x1x1.mdl"      , "#", "x4", 1})
-    asmlib.GetCategory("Develop Test")
+    asmlib.Categorize("Develop Test")
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "-90,  0,180"})
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "90,180,180"})
   end
-  asmlib.GetCategory("SligWolf's Rerailers")
+  asmlib.Categorize("SligWolf's Rerailers")
   PIECES:Record({"models/props_phx/trains/sw_rerailer_1.mdl", "#", "Short Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
   PIECES:Record({"models/props_phx/trains/sw_rerailer_2.mdl", "#", "Middle Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
   PIECES:Record({"models/props_phx/trains/sw_rerailer_3.mdl", "#", "Long Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
@@ -1595,7 +1616,7 @@ else
   PIECES:Record({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Middle Double", 2, "-1882.106, 0, 3.031", "-2367.072, 0, -5.412", "0,-180,0"})
   PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 1, "-221.409, 0, 3.031", "219.412, 0, -5.411"})
   PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 2, "-1103.05, 0, 0.009", "-1543.871, 0, -5.411", "0,-180,0"})
-  asmlib.GetCategory("SligWolf's Minitrains",[[function(m)
+  asmlib.Categorize("SligWolf's Minitrains",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/minitrains/",""):gsub("_","/")
     local s = r:find("/") or r:find("%.")
@@ -1748,7 +1769,7 @@ else
   PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y6"})
   PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 2, "", "-110.40305,13.45934,1", "0,157.5,0", "gmod_sw_minitrain_switch_y6"})
   PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_y6"})
-  asmlib.GetCategory("PHX Monorail")
+  asmlib.Categorize("PHX Monorail")
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 1, "", "229.885559,0.23999,13.87915"})
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 2, "", "-228.885254,0.239726,13.87915", "0,-180,0"})
   PIECES:Record({"models/props_phx/trains/monorail2.mdl", "#", "Straight Middle", 1, "", "0.239726,-462.635468,13.879296", "0,-90,0"})
@@ -1761,7 +1782,7 @@ else
   PIECES:Record({"models/props_phx/trains/monorail_curve2.mdl", "#", "Turn 45", 2, "", "-428.018524,-428.362335,13.881714", "0,135,0"})
   PIECES:Record({"models/props_phx/trains/monorail_curve.mdl", "#", "Turn 90", 1, "", "-0.030518,-605.638184,13.880554"})
   PIECES:Record({"models/props_phx/trains/monorail_curve.mdl", "#", "Turn 90", 2, "", "-605.380859,-0.307583,13.881714", "0,90,0"})
-  asmlib.GetCategory("PHX Metal")
+  asmlib.Categorize("PHX Metal")
   asmlib.ModelToNameRule("SET",nil,{"track_","straight_"},nil)
   PIECES:Record({"models/props_phx/trains/track_32.mdl" , "#", "#", 1, "-0.327,-61.529,8.714", " 15.755127,0.001953,9.215"})
   PIECES:Record({"models/props_phx/trains/track_32.mdl" , "#", "#", 2, "-0.327, 61.529,8.714", "-16.239746,0.000244,9.215", "0,-180,0"})
@@ -1779,7 +1800,7 @@ else
   PIECES:Record({"models/props_phx/trains/track_2048.mdl", "#", "#", 2, "", "-1024.242676,-0.109433,9.215", "0,180,0"})
   PIECES:Record({"models/props_phx/trains/track_4096.mdl", "#", "#", 1, "", " 2047.755249, 0.001923,9.215"})
   PIECES:Record({"models/props_phx/trains/track_4096.mdl", "#", "#", 2, "", "-2048.240479,-0.225247,9.215", "0,-180,0"})
-  asmlib.GetCategory("PHX Regular")
+  asmlib.Categorize("PHX Regular")
   asmlib.ModelToNameRule("SET",{1,6})
   PIECES:Record({"models/props_phx/trains/tracks/track_single.mdl", "#", "#", 1, "-0.327,-61.529,8.714", " 15.451782, 1.5e-005,12.548828"})
   PIECES:Record({"models/props_phx/trains/tracks/track_single.mdl", "#", "#", 2, "-0.327, 61.529,8.714", "-16.094971,-1.0e-006,12.548828", "0,-180,0"})
@@ -1822,7 +1843,7 @@ else
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 1, "", " 829.880005,  -0.001465, 11.218994"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 2, "", "-370.037262,  -0.000456, 11.218994", "0,-180,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 3, "", "-158.311356,-338.111572, 11.218994", "0,-135,0"})
-  asmlib.GetCategory("SProps",[[function(m)
+  asmlib.Categorize("SProps",[[function(m)
     local r = m:gsub("models/sprops/trans/train/",""):gsub("_","/")
     if(r:find("track/")) then r = r:gsub("track/","") end;
     local s = r:sub(1,1); if(s == "s") then return {"Straight"}
@@ -1854,7 +1875,7 @@ else
   PIECES:Record({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 1, "", "0,0,7.624"})
   PIECES:Record({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 2, "", "-825,825,7.624", "0,90,0"})
   PIECES:Record({"models/sprops/trans/train/rerailer.mdl",     "#", "#", 1, "-1088.178,0,19.886", "-1280.383,0,7.618", "0,180,0"})
-  asmlib.GetCategory("XQM Coaster",[[function(m)
+  asmlib.Categorize("XQM Coaster",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/xqm/coastertrack/",""):gsub("_","/")
     local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
@@ -2105,7 +2126,7 @@ else
   PIECES:Record({"models/xqm/coastertrack/straight_4.mdl", "#", "#", 2, "", "-300.189, -0.013, 4.887", "0,180,0"})
   PIECES:Record({"models/xqm/coastertrack/special_station.mdl", "#", "#", 1, "", "150.194, -0.045, 4.887"})
   PIECES:Record({"models/xqm/coastertrack/special_station.mdl", "#", "#", 2, "", "-150.184, -0.045, 4.887", "0,-180,0"})
-  asmlib.GetCategory("PHX Road")
+  asmlib.Categorize("PHX Road")
   PIECES:Record({"models/props_phx/huge/road_short.mdl",  "#", "#", 1, "", "0, 299.693, 1.765", "0, 90,0"})
   PIECES:Record({"models/props_phx/huge/road_short.mdl",  "#", "#", 2, "", "0,-299.693, 1.765", "0,-90,0"})
   PIECES:Record({"models/props_phx/huge/road_medium.mdl", "#", "#", 1, "", "0, 599.386, 1.765", "0, 90,0"})
@@ -2118,7 +2139,7 @@ else
   PIECES:Record({"models/props_phx/misc/small_ramp.mdl",  "#", "#", 2, "", " 312.608, -3.599976, 236.11", "-45,0,0"})
   PIECES:Record({"models/props_phx/misc/big_ramp.mdl",    "#", "#", 1, "", "-569.177, -7.199953, -3.075",  "0,-180,0"})
   PIECES:Record({"models/props_phx/misc/big_ramp.mdl",    "#", "#", 2, "", "625.022, -7.199953, 472.427", "-45,0,0"})
-  asmlib.GetCategory("PHX Monorail Beam")
+  asmlib.Categorize("PHX Monorail Beam")
   PIECES:Record({"models/props_phx/misc/iron_beam1.mdl", "#", "#", 1, "", " 22.411, 0.001, 5.002", "0, 0,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam1.mdl", "#", "#", 2, "", "-22.413, 0.001, 5.002", "0,180,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam2.mdl", "#", "#", 1, "", " 45.298, 0.001, 5.002", "0, 0,0"})
@@ -2127,7 +2148,7 @@ else
   PIECES:Record({"models/props_phx/misc/iron_beam3.mdl", "#", "#", 2, "", "-94.079, 0.002, 5.002", "0,180,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 1, "", " 175.507, 0.001, 5.002",  "0, 0,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 2, "", "-201.413, 0.001, 5.002", "0,180,0"})
-  asmlib.GetCategory("XQM Ball Rails",[[function(m)
+  asmlib.Categorize("XQM Ball Rails",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/xqm/rails/",""):gsub("_","/")
     local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
@@ -2191,7 +2212,7 @@ else
   PIECES:Record({"models/xqm/rails/loop_left.mdl", "#", "#", 2, "", "-13.7315, -41.726, -0.968", "0,-157.5,-2.2585"})
   PIECES:Record({"models/xqm/rails/loop_right.mdl", "#", "#", 1, "", "13.864, -41.787, -0.953", "0,-22.5,2.433"})
   PIECES:Record({"models/xqm/rails/loop_right.mdl", "#", "#", 2, "", "-13.562, 41.789, -0.952", "0,157.5,2.433"})
-  asmlib.GetCategory("Magnum's Rails",[[function(m)
+  asmlib.Categorize("Magnum's Rails",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/magtrains1ga/","")
     local s = r:find("_"); r = (s and r:sub(1,s-1) or nil)
@@ -2227,7 +2248,7 @@ else
   PIECES:Record({"models/magtrains1ga/switch_straight.mdl", "#", "#", 2, "", "-384,0,0.01599", "0,-180,0"})
   PIECES:Record({"models/magtrains1ga/switch_curve.mdl", "#", "#", 1, "", "0,0,0.01563"})
   PIECES:Record({"models/magtrains1ga/switch_curve.mdl", "#", "#", 2, "", "-373.42453,-45.55976,0.01562", "0,-166.08,0"})
-  asmlib.GetCategory("SligWolf's Railcar")
+  asmlib.Categorize("SligWolf's Railcar")
   PIECES:Record({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 1, "", "500,0,0"})
   PIECES:Record({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 2, "", "-2673,0,0", "0,180,0"})
   PIECES:Record({"models/swrcs/swrccurve001.mdl", "#", "U-Turn", 1, "", "890, 748.009, 2.994"})
@@ -2244,7 +2265,7 @@ else
   PIECES:Record({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 1, "", "0, -152.532, 0"})
   PIECES:Record({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 2, "", "0, 152.554, 0"})
   PIECES:Record({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 3, "", "0, 0, 0.042"})
-  asmlib.GetCategory("Random Bridges")
+  asmlib.Categorize("Random Bridges")
   PIECES:Record({"models/props_canal/canal_bridge01.mdl", "#", "#", 1, "", "455.345, -6.815, 201.73"})
   PIECES:Record({"models/props_canal/canal_bridge01.mdl", "#", "#", 2, "", "-456.655, -6.815, 201.73", "0,-180,0"})
   PIECES:Record({"models/props_canal/canal_bridge01b.mdl", "#", "#", 1, "", "910.69, -13.63, 403.46"})
@@ -2300,7 +2321,7 @@ else
   PIECES:Record({"models/props_viaduct_event/underworld_bridge04.mdl", "#", "#", 2, "", "-2.253, 480.851, 10.696", "0, 90,0"})
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 1, "", "5056, 219.145, 992.765"})
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 2, "", "-576, 219.145, 992.765", "0, 180,0"})
-  asmlib.GetCategory("StevenTechno's Buildings 1.0",[[function(m)
+  asmlib.Categorize("StevenTechno's Buildings 1.0",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/buildingspack/",""):gsub("_","/")
     local s = r:find("/"); r = (s and r:sub(1,s-1) or "")
@@ -2484,7 +2505,7 @@ else
   PIECES:Record({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 2, "", "0,0,315.031616"})
   PIECES:Record({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 3, "", "0,671.995,3.03125"})
   PIECES:Record({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 4, "", "-4160,0,15.202", "0,-180,0"})
-  asmlib.GetCategory("Portal Tubes")
+  asmlib.Categorize("Portal Tubes")
   PIECES:Record({"models/props_bts/clear_tube_straight.mdl", "#", "#", 1, "", "0.009,0    , 63.896", "-90,  0,180"})
   PIECES:Record({"models/props_bts/clear_tube_straight.mdl", "#", "#", 2, "", "0.008,0.004,-63.897", " 90,180,180"})
   PIECES:Record({"models/props_bts/clear_tube_90deg.mdl" , "#", "#", 1, "", "64.041,0.049,  0.131"})
@@ -2494,7 +2515,7 @@ else
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 1, "", "-0.014,0.13,96.075", "-90,0,180"})
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 2, "", "-0.004,-95.763,0.016", "0,-90,-90"})
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 3, "", "0,96,0.083", "0,90,90"})
-  asmlib.GetCategory("Mr.Train's M-Gauge",[[function(m)
+  asmlib.Categorize("Mr.Train's M-Gauge",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/props/m_gauge/track/m_gauge_",""):gsub("_","/")
     local s = r:find("/"); r = tonumber(r:sub(1,1)) and "straight" or (s and r:sub(1,s-1) or "")
@@ -2569,7 +2590,7 @@ else
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 1, "", "0,10,0.016"})
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 2, "", "-384,160,0.016", "0,180,0"})
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 3, "", "-256,10,0.016", "0,180,0"})
-  asmlib.GetCategory("Mr.Train's G-Gauge",[[function(m)
+  asmlib.Categorize("Mr.Train's G-Gauge",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/props/g_gauge/track/g_gauge_track_",""):gsub("%.mdl","")
     local s = r:find("_")
@@ -2646,7 +2667,7 @@ else
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_45.mdl"   , "#", "#", 2, "", "-98.326,98.323,1.516", "0,-135,0"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 1, "", "263.75, 248.25,1.516"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 2, "", "-248.25,-263.75,1.516", "0,-90,0"})
-  asmlib.GetCategory("Bobster's two feet rails",[[function(m)
+  asmlib.Categorize("Bobster's two feet rails",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r, o = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("_","/")
     local s = r:find("/"); g = (s and r:sub(1,s-1) or "");
@@ -2786,7 +2807,7 @@ else
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_right_1024.mdl", "#", "#", 2, "", "651.898,-651.899,3.016", "0,-90,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
-  asmlib.GetCategory("PHX Tubes Miscellaneous",[[function(m)
+  asmlib.Categorize("PHX Tubes Miscellaneous",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
@@ -2905,7 +2926,7 @@ else
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
-  asmlib.GetCategory("PHX Tubes Plastic",[[function(m)
+  asmlib.Categorize("PHX Tubes Plastic",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/hunter/","")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
@@ -3181,7 +3202,7 @@ else
   PIECES:Record({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 2, "", "0,0,-379.6"   , " 90,0, 0 "})
   PIECES:Record({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 1, "", "0, 94.9,0" , "0,90,90"})
   PIECES:Record({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 2, "", "0,0,-94.9" , "90,-180,180"})
-  asmlib.GetCategory("G Scale Track Pack",[[function(m)
+  asmlib.Categorize("G Scale Track Pack",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/gscale/","")
     local s = r:find("/"); r = s and r:sub(1,s-1) or nil
@@ -3293,7 +3314,7 @@ else
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 1, "", "   0,0,1.016"})
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
-  asmlib.GetCategory("Ron's Minitrain Props",[[function(m)
+  asmlib.Categorize("Ron's Minitrain Props",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/ron/minitrains/","")
     local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
@@ -3374,7 +3395,7 @@ else
   PIECES:Record({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 2, "", "0,528,33", "0, 90,0"})
   PIECES:Record({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
   PIECES:Record({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
-  asmlib.GetCategory("SligWolf's White Rails",[[function(m)
+  asmlib.Categorize("SligWolf's White Rails",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/sligwolf/rails/","")
     local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
@@ -3403,7 +3424,7 @@ else
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 1, "", "0,-46,6.625", "","gmod_sw_modelpack_switch_l"})
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 2, "", "-768,-46,6.625", "0,-180,0","gmod_sw_modelpack_switch_l"})
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 3, "", "-766.132,-198.393, 6.625", "0,-157.5,0","gmod_sw_modelpack_switch_l"})
-  asmlib.GetCategory("SligWolf's Minihover",[[function(m)
+  asmlib.Categorize("SligWolf's Minihover",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/sligwolf/minihover/hover_","")
     local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
@@ -3502,7 +3523,7 @@ else
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90.mdl"            , "#", "#", 2, "", "528,431.999939,5.81", "0,90,0"})
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 1, "", "9.2e-005,95.999756,5.81", "0,180,0"})
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 2, "", "527.999756,-431.999878,5.81", "0,-90,0"})
-  asmlib.GetCategory("Transrapid",[[function(m)
+  asmlib.Categorize("Transrapid",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/ron/maglev/",""):gsub("[\\/]([^\\/]+)$","");
     if(r:find("track")) then r = r:gsub("track/","")
@@ -3526,7 +3547,7 @@ else
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096.mdl", "#", "#", 2, "", "-2048,0,3.984", "0,-180,0"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 1, "", " 2048,0,3.984"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 2, "", "-2048,0,3.984", "0,-180,0"})
-  asmlib.GetCategory("Battleship's abandoned rails",[[function(m)
+  asmlib.Categorize("Battleship's abandoned rails",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/craptrax/","")
     local s = r:find("[^%a]"); r = s and r:sub(1,s-1) or nil
@@ -3581,7 +3602,7 @@ else
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 1, "", " 512,0,-16.110403"})
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 2, "", "-512,0,-16.110403", "0,180,0"})
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 3, "", "-454.48437,128.0936,-16.110403", "0,165,0"})
-  asmlib.GetCategory("AlexCookie's 2ft track pack",[[function(m)
+  asmlib.Categorize("AlexCookie's 2ft track pack",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:gsub("models/alexcookie/2ft/",""):gsub("[\\/]([^\\/]+)$","");
     return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1))} end]])
@@ -3612,7 +3633,7 @@ else
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 1, "", "0,0,13.04688"})
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0"})
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0"})
-  asmlib.GetCategory("Joe's track pack",[[function(m)
+  asmlib.Categorize("Joe's track pack",[[function(m)
     local function split(s)
       local o, k = {s}, 1
       local f, b = o[k]:find("/")
@@ -3690,10 +3711,12 @@ else
   PIECES:Record({"models/joe/jtp/turntable/base_1.mdl", "#", "#", 2, "", "-450,0,2.59372", "0,-180,0"})
   PIECES:Record({"models/joe/jtp/curve/1536.mdl", "#", "#", 1, "", "0,0,6.56348"})
   PIECES:Record({"models/joe/jtp/curve/1536.mdl", "#", "#", 2, "", "-1536,1536,6.56348", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 1, "", "0,0,6.56348", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.56348"})
-  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0.0014,6.56348"})
+  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0,6.5625"})
   PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 2, "", "-2005,2005,6.5625", "0,90,0"})
+  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,90,0"})
+  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.5625"})
+  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,-90,0"})
+  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 2, "", "-3072,3072,6.5625", "0,180,0"})
   PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 1, "", "0,-256,-1.43457", "0,-90,0"})
   PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 2, "", "0, 256,14.56738", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/512_32.mdl", "#", "#", 1, "", "0,0,6.56152", "0,-90,0"})
@@ -3735,13 +3758,7 @@ else
   PIECES:Record({"models/joe/jtp/grades/curve/4096_48_left.mdl", "#", "#", 2, "", "3072,-3072,54.56152"})
   PIECES:Record({"models/joe/jtp/grades/curve/4096_64_right.mdl", "#", "#", 1, "", "0,0,6.56152", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/curve/4096_64_right.mdl", "#", "#", 2, "", "-4096,-4096,70.56152", "0,-180,0"})
-  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0,6.5625"})
-  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 2, "", "-2005,2005,6.5625", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.5625"})
-  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,-90,0"})
-  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 2, "", "-3072,3072,6.5625", "0,180,0"})
-  asmlib.GetCategory("StevenTechno's Buildings 2.0",[[function(m)
+  asmlib.Categorize("StevenTechno's Buildings 2.0",[[function(m)
     local function conv(x) return " "..x:sub(2,2):upper() end
     local r = m:match("/.*/"):sub(2,-2):match("/.*$"):sub(2,-1)
     if(r == "") then return nil end; local o = {r}
@@ -3979,7 +3996,7 @@ else
   PIECES:Record({"models/roads_pack/highway_turns/6-0_highway_turn_a.mdl", "#", "#", 2, "", "-628,546,314.03125", "0,90,0"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 1, "", "0,0,315.03125"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 2, "", "-2860,2860,315.03125", "0,90,0"})
-  asmlib.GetCategory("Modular canals")
+  asmlib.Categorize("Modular canals")
   PIECES:Record({"models/props_d47_canals/interior_narrow_128.mdl", "#", "#", 1, "", "64,64,0"})
   PIECES:Record({"models/props_d47_canals/interior_narrow_128.mdl", "#", "#", 2, "", "-64,64,0", "0,-180,0"})
   PIECES:Record({"models/props_d47_canals/interior_narrow_256.mdl", "#", "#", 1, "", "128,0,0"})
@@ -4028,6 +4045,9 @@ else
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 2, "", "0,-256,0", "0,-90,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 3, "", "-256,0,0", "0,180,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 4, "", "0,256,0", "0,90,0"})
+  asmlib.Categorize("Trackmania United Props")
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 1, "", " 480,0,5.657"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 2, "", "-480,0,5.657", "0,-180,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
@@ -4038,7 +4058,7 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
   local PHYSPROPERTIES = asmlib.GetBuilderNick("PHYSPROPERTIES"); asmlib.ModelToNameRule("CLR")
-  asmlib.GetCategory("Special")
+  asmlib.Categorize("Special")
   PHYSPROPERTIES:Record({"#", 1 , "default"             })
   PHYSPROPERTIES:Record({"#", 2 , "default_silent"      })
   PHYSPROPERTIES:Record({"#", 3 , "floatingstandable"   })
@@ -4047,13 +4067,13 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 6 , "no_decal"            })
   PHYSPROPERTIES:Record({"#", 7 , "player"              })
   PHYSPROPERTIES:Record({"#", 8 , "player_control_clip" })
-  asmlib.GetCategory("Concrete")
+  asmlib.Categorize("Concrete")
   PHYSPROPERTIES:Record({"#", 1 , "brick"          })
   PHYSPROPERTIES:Record({"#", 2 , "concrete"       })
   PHYSPROPERTIES:Record({"#", 3 , "concrete_block" })
   PHYSPROPERTIES:Record({"#", 4 , "gravel"         })
   PHYSPROPERTIES:Record({"#", 5 , "rock"           })
-  asmlib.GetCategory("Metal")
+  asmlib.Categorize("Metal")
   PHYSPROPERTIES:Record({"#", 1 , "canister"              })
   PHYSPROPERTIES:Record({"#", 2 , "chain"                 })
   PHYSPROPERTIES:Record({"#", 3 , "chainlink"             })
@@ -4078,14 +4098,14 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 22, "solidmetal"            })
   PHYSPROPERTIES:Record({"#", 23, "strider"               })
   PHYSPROPERTIES:Record({"#", 24, "weapon"                })
-  asmlib.GetCategory("Wood")
+  asmlib.Categorize("Wood")
   PHYSPROPERTIES:Record({"#", 1 , "wood"          })
   PHYSPROPERTIES:Record({"#", 2 , "Wood_Box"      })
   PHYSPROPERTIES:Record({"#", 3 , "Wood_Furniture"})
   PHYSPROPERTIES:Record({"#", 4 , "Wood_Plank"    })
   PHYSPROPERTIES:Record({"#", 5 , "Wood_Panel"    })
   PHYSPROPERTIES:Record({"#", 6 , "Wood_Solid"    })
-  asmlib.GetCategory("Terrain")
+  asmlib.Categorize("Terrain")
   PHYSPROPERTIES:Record({"#", 1 , "dirt"          })
   PHYSPROPERTIES:Record({"#", 2 , "grass"         })
   PHYSPROPERTIES:Record({"#", 3 , "gravel"        })
@@ -4094,20 +4114,20 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 6 , "sand"          })
   PHYSPROPERTIES:Record({"#", 7 , "slipperyslime" })
   PHYSPROPERTIES:Record({"#", 8 , "antlionsand"   })
-  asmlib.GetCategory("Liquid")
+  asmlib.Categorize("Liquid")
   PHYSPROPERTIES:Record({"#", 1 , "slime" })
   PHYSPROPERTIES:Record({"#", 2 , "water" })
   PHYSPROPERTIES:Record({"#", 3 , "wade"  })
-  asmlib.GetCategory("Frozen")
+  asmlib.Categorize("Frozen")
   PHYSPROPERTIES:Record({"#", 1 , "snow"      })
   PHYSPROPERTIES:Record({"#", 2 , "ice"       })
   PHYSPROPERTIES:Record({"#", 3 , "gmod_ice"  })
-  asmlib.GetCategory("Miscellaneous")
+  asmlib.Categorize("Miscellaneous")
   PHYSPROPERTIES:Record({"#", 1 , "carpet"       })
   PHYSPROPERTIES:Record({"#", 2 , "ceiling_tile" })
   PHYSPROPERTIES:Record({"#", 3 , "computer"     })
   PHYSPROPERTIES:Record({"#", 4 , "pottery"      })
-  asmlib.GetCategory("Organic")
+  asmlib.Categorize("Organic")
   PHYSPROPERTIES:Record({"#", 1 , "alienflesh"  })
   PHYSPROPERTIES:Record({"#", 2 , "antlion"     })
   PHYSPROPERTIES:Record({"#", 3 , "armorflesh"  })
@@ -4116,7 +4136,7 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 6 , "foliage"     })
   PHYSPROPERTIES:Record({"#", 7 , "watermelon"  })
   PHYSPROPERTIES:Record({"#", 8 , "zombieflesh" })
-  asmlib.GetCategory("Manufactured")
+  asmlib.Categorize("Manufactured")
   PHYSPROPERTIES:Record({"#", 1 , "jeeptire"                })
   PHYSPROPERTIES:Record({"#", 2 , "jalopytire"              })
   PHYSPROPERTIES:Record({"#", 3 , "rubber"                  })

@@ -88,7 +88,7 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
 end
 
 __e2setcost(80)
-e2function array trackasmlibSnapNormal(vector ucsPos   , angle ucsAng    , string hdModel,
+e2function array trackasmlibSnapNormal(vector ucsPos, angle  ucsAng   , string hdModel,
                                        number hdPoID, vector ucsOffPos, angle ucsOffAng)
   if(not enFlag) then return {} end
   local stSpawn = asmlib.GetNormalSpawn(self.player,
@@ -289,6 +289,16 @@ e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nM
 end
 
 __e2setcost(50)
+e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
+  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
+end
+
+__e2setcost(50)
+e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
+  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
+end
+
+__e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
   return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor)
 end
@@ -297,6 +307,7 @@ __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
   return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor)
 end
+
 
 __e2setcost(50)
 e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID)

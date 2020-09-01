@@ -27,15 +27,16 @@ int onExit(int errID, const char * const errFormat)
 }
 
 int main(int argc, char **argv)
-// int main(void)
+/// int main(void)
 {
-  /* Only for test !
+  /* Only for test ! */
+  /*
     int argc = 5;
-    char argv[6][500];
-    strcpy(argv[0], "chewpath.exe");
-    strcpy(argv[1], "E:\\Documents\\CodeBlocks-Projs\\chewpath\\bin\\Debug\\");
-    strcpy(argv[2], "E:\\Documents\\Lua-Projs\\SVN\\TrackAssemblyTool_GIT_master\\lua\\autorun\\trackassembly_init.lua");
-    strcpy(argv[3], "E:\\Documents\\Lua-Projs\\SVN\\TrackAssemblyTool_GIT_master\\data\\peaces_manager\\models_ignored.txt");
+    char argv[5][500];
+    strcpy(argv[0], "O:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\peaces_manager.exe");
+    strcpy(argv[1], "O:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\");
+    strcpy(argv[2], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\lua\\autorun\\trackassembly_init.lua");
+    strcpy(argv[3], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\data\\peaces_manager\\models_ignored.txt");
     strcpy(argv[4], "system_log");
   */
   stentry::cEntryStack  Ignored;
