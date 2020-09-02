@@ -2685,9 +2685,35 @@ end
 ----------------------- PANEL QUERY -------------------------------
 
 --[[
+ * Exports panel indormation to dedicated DB file
+ * stPanel --> The actual panel information to export
+ * bExp    --> Export panel data into a DB file
+]]
+local function ExportPanelDB(stPanel, bExp, makTab, sFunc)
+  if(bExp) then
+    local sMoDB = GetOpVar("MODE_DATABASE")
+    local symSep = GetOpVar("OPSYM_SEPARATOR")
+    local iCnt, sBase = 1, GetOpVar("DIRPATH_BAS")
+    if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
+    local fName = (sBase..GetOpVar("NAME_LIBRARY").."_db.txt")
+    local F = fileOpen(fName, "wb" ,"DATA"); if(not F) then
+      LogInstance("("..fName..") Open fail"); return stPanel end
+    F:Write("# "..sFunc..":("..tostring(bExp)..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+    while(stPanel[iCnt]) do local vPanel = stPanel[iCnt]
+      local sM = vPanel[makTab:GetColumnName(1)]
+      local sT = vPanel[makTab:GetColumnName(2)]
+      local sN = vPanel[makTab:GetColumnName(3)]
+      F:Write("\""..sM.."\""..symSep.."\""..sT.."\""..symSep.."\""..sN.."\"")
+      F:Write("\n"); iCnt = iCnt + 1
+    end; F:Flush(); F:Close()
+  end; return stPanel
+end
+
+--[[
  * Caches the data needed to populate the CPanel tree
-]]--
-function CacheQueryPanel()
+ * bExp --> Export panel data into a DB file
+]]
+function CacheQueryPanel(bExp)
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
@@ -2699,7 +2725,7 @@ function CacheQueryPanel()
   if(IsHere(stPanel) and IsHere(stPanel.Size)) then LogInstance("From Pool")
     if(stPanel.Size <= 0) then stPanel = nil else
       stPanel = makTab:TimerRestart(sFunc, keyPan) end
-    return stPanel
+    return ExportPanelDB(stPanel, bExp, makTab, sFunc)
   else
     libCache[keyPan] = {}; stPanel = libCache[keyPan]
     local sMoDB = GetOpVar("MODE_DATABASE")
@@ -2715,10 +2741,12 @@ function CacheQueryPanel()
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found <"..Q..">"); return nil end
-      local iCnt = 1; stPanel.Size = 1
+      local iCnt = 1; stPanel.Size = 0
       while(qData[iCnt]) do
-        stPanel[iCnt] = qData[iCnt]; stPanel.Size, iCnt = iCnt, (iCnt + 1)
-      end; stPanel = makTab:TimerAttach(sFunc, keyPan); return stPanel
+        stPanel[iCnt] = qData[iCnt]
+        stPanel.Size, iCnt = iCnt, (iCnt + 1)
+      end; stPanel = makTab:TimerAttach(sFunc, keyPan)
+      return ExportPanelDB(stPanel, bExp, makTab, sFunc)
     elseif(sMoDB == "LUA") then
       local tCache = libCache[defTab.Name] -- Sort directly by the model
       local tSort  = Sort(tCache,{"Type","Slot"}); if(not tSort) then
@@ -2728,7 +2756,7 @@ function CacheQueryPanel()
         vPanel[makTab:GetColumnName(1)] = vSort.Key
         vPanel[makTab:GetColumnName(2)] = vSort.Rec.Type
         vPanel[makTab:GetColumnName(3)] = vSort.Rec.Name; stPanel.Size = iCnt
-      end; return stPanel
+      end; return ExportPanelDB(stPanel, bExp, makTab, sFunc)
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
 end
@@ -2848,7 +2876,7 @@ function ExportCategory(vEq, tData, sPref)
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
   fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "wb", "DATA")
-  if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") failed from"); return false end
+  if(not F) then LogInstance("("..fPref..")("..fName..") Open fail"); return false end
   local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (IsTable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
   F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDateTime().." [ "..sMoDB.." ]\n")
@@ -2871,7 +2899,7 @@ function ImportCategory(vEq, sPref)
   local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
         fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "rb", "DATA")
-  if(not F) then LogInstance("fileOpen("..fName..") failed"); return false end
+  if(not F) then LogInstance("("..fName..") Open fail"); return false end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk = "["..sEq.."[", "]"..sEq.."]"
   local tCat, symOff = GetOpVar("TABLE_CATEGORIES"), GetOpVar("OPSYM_DISABLE")
@@ -2930,7 +2958,7 @@ function ExportDSV(sTable, sPref, sDelim)
   local fForm = GetOpVar("FORM_PREFIXDSV")
   fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
-    LogInstance("("..fPref..") fileOpen("..fName..") failed",sTable); return false end
+    LogInstance("("..fPref..")("..fName..") Open fail",sTable); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
   local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
@@ -2983,7 +3011,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
   local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
         fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
-    LogInstance("("..fPref..") fileOpen("..fName..") failed",sTable); return false end
+    LogInstance("("..fPref..")("..fName..") Open fail",sTable); return false end
   local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.Begin)
@@ -3084,7 +3112,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
     LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
-    LogInstance("("..fPref.."@"..sTable..") Write fileOpen("..fName..") failed"); return false end
+    LogInstance("("..fPref.."@"..sTable..")("..fName..") Open fail"); return false end
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Val
@@ -3121,9 +3149,9 @@ function TranslateDSV(sTable, sPref, sDelim)
   sNdsv, sNins = sNdsv..fForm:format(fPref, defTab.Name), sNins..fForm:format(fPref, defTab.Name)
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local D = fileOpen(sNdsv, "rb", "DATA"); if(not D) then
-    LogInstance("("..fPref..") fileOpen("..sNdsv..") failed",sTable); return false end
+    LogInstance("("..fPref..")("..sNdsv..") Open fail",sTable); return false end
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
-    LogInstance("("..fPref..") fileOpen("..sNins..") failed",sTable); return false end
+    LogInstance("("..fPref..")("..sNins..") Open fail",sTable); return false end
   I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   I:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
@@ -3168,7 +3196,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     local symOff = GetOpVar("OPSYM_DISABLE")
     local fPool, isEOF, isAct = {}, false, true
     local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""
-    if(not F) then LogInstance("("..fPref..") fileOpen("..fName..") read failed"); return false end
+    if(not F) then LogInstance("("..fPref..")("..fName..") Open fail"); return false end
     while(not isEOF) do sLine, isEOF = GetStringFile(F)
       if(not IsBlank(sLine)) then
         if(sLine:sub(1,1) == symOff) then
@@ -3187,7 +3215,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     end
   end
   local F = fileOpen(fName, "ab" ,"DATA"); if(not F) then
-    LogInstance("("..fPref..") fileOpen("..fName..") append failed"); return false end
+    LogInstance("("..fPref..")("..fName..") Open fail"); return false end
   F:Write(fPref..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
   LogInstance("("..fPref..") Register"); return true
 end
@@ -3204,7 +3232,7 @@ function ProcessDSV(sDelim)
   local lbNam = GetOpVar("NAME_LIBRARY")
   local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_dsv.txt"
   local F = fileOpen(fName, "rb" ,"DATA")
-  if(not F) then LogInstance("fileOpen("..fName..") failed"); return false end
+  if(not F) then LogInstance("("..fName..") Open fail"); return false end
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
   local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
   local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
@@ -3374,9 +3402,9 @@ function ExportTypeAR(sType)
     local sN = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_INS")
           sN = sN..sForm:format(sPref)
     local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
-      LogInstance("Autoexport generation fail "..GetReport(sN)); return end
+      LogInstance("("..sN..") Generate fail "..GetReport(sN)); return end
     local fS = fileOpen(sS, "rb", "GAME"); if(not fS) then fE:Flush(); fE:Close()
-      LogInstance("Autoexport source fail "..GetReport(sS)) return end
+      LogInstance("("..sS..") Source fail "..GetReport(sS)) return end
     local makP  = GetBuilderNick("PIECES"); if(not makP) then
       LogInstance("Missing table builder"); return end
     local defP = makP:GetDefinition(); if(not defP) then

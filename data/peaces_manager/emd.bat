@@ -16,8 +16,9 @@ set emd_chew_binloc=%emd_chew_gmod%\bin
 :: Repository local clone locatioon
 set emd_chew_repo=%emd_chew_addon%\TrackAssemblyTool_GIT
 
-:: The path to the "trackassembly_init.lua"
-set emd_chew_dbase=%emd_chew_repo%\lua\autorun\trackassembly_init.lua
+:: The path to the "garrysmod/data/trackassembly/trackasmlib_db.txt"
+:: Such file is generated when tool control panel is refreshed in developer mode
+set emd_chew_dbase=%emd_chew_gmod%\garrysmod\data\trackassembly\trackasmlib_db.txt
 
 :: The path to the skipped models list
 set emd_chew_skip=%emd_chew_repo%\data\peaces_manager\models_ignored.txt

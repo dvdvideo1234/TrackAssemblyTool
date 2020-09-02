@@ -1,10 +1,11 @@
------- INCLUDE LIBRARY ------
+------------ INCLUDE LIBRARY ------------
 if(SERVER) then
   AddCSLuaFile("trackassembly/trackasmlib.lua")
 end
 include("trackassembly/trackasmlib.lua")
 
------- LOCALIZNG FUNCTIONS ---
+------------ LOCALIZNG FUNCTIONS ------------
+
 local pcall                         = pcall
 local Angle                         = Angle
 local Vector                        = Vector
@@ -59,6 +60,7 @@ local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
 local stringGetFileName             = string and string.GetFileFromFilename
+local surfaceCreateFont             = surface and surface.CreateFont
 local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
 local gamemodeCall                  = gamemode and gamemode.Call
@@ -71,20 +73,23 @@ local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
------- MODULE POINTER -------
+------------ MODULE POINTER ------------
+
 local asmlib     = trackasmlib
 local gtArgsLogs = {"", false, 0}
 local gtInitLogs = {"*Init", false, 0}
 
------- CONFIGURE ASMLIB ------
+------------ CONFIGURE ASMLIB ------------
+
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.632")
+asmlib.SetOpVar("TOOL_VERSION","7.634")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
 
------- CONFIGURE GLOBAL INIT OPVARS ------
+------------ CONFIGURE GLOBAL INIT OPVARS ------------
+
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
@@ -103,28 +108,32 @@ local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 
------- VARIABLE FLAGS ------
+------------ VARIABLE FLAGS ------------
+
 local varLanguage = GetConVar("gmod_language")
 -- Client and server have independent value
 local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
 -- Server tells the client what value to use
 local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
 
------- CONFIGURE LOGGING ------
+------------ CONFIGURE LOGGING ------------
+
 asmlib.SetOpVar("LOG_DEBUGEN",false)
 asmlib.MakeAsmConvar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines being written")
 asmlib.MakeAsmConvar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
------- CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
+------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
+
 asmlib.MakeAsmConvar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database storage operating mode LUA or SQL")
 asmlib.MakeAsmConvar("devmode"  ,    0 , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
 asmlib.MakeAsmConvar("maxtrmarg", 0.02 , {0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
 asmlib.MakeAsmConvar("maxmenupr",    5 , {0, 20 }, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
 asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
------- CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
+------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
+
 asmlib.MakeAsmConvar("maxmass"  , 50000 ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
 asmlib.MakeAsmConvar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum linear offset of the piece")
 asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
@@ -143,7 +152,8 @@ if(SERVER) then
   asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, {0}, gnServerControled, "Maximum number of tracks to be spawned")
 end
 
------- CONFIGURE INTERNALS -----
+------------ CONFIGURE INTERNALS ------------
+
 asmlib.IsFlag("new_close_frame", false) -- The old state for frame shortcut detecting a pulse
 asmlib.IsFlag("old_close_frame", false) -- The new state for frame shortcut detecting a pulse
 asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the game context menu
@@ -151,10 +161,12 @@ asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 
------- BORDERS -------------
+------------ BORDERS ------------
+
 asmlib.SetBorder("non-neg", 0, mathHuge)
 
------- GLOBAL VARIABLES ------
+------------ GLOBAL VARIABLES ------------
+
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gaTimerSet  = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("COLORS_LIST")
@@ -181,7 +193,8 @@ local conWorkMode = asmlib.MakeContainer("WORK_MODE")
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
       conWorkMode:Push("CURVE") -- Catmull–Rom spline interpolation fitting
 
--------- CALLBACKS ----------
+------------ CALLBACKS ------------
+
 local gsVarName -- This stores current variable name
 local gsCbcHash = "_init" -- This keeps suffix related to the file
 
@@ -223,7 +236,8 @@ cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vNew),gtInitLogs)
 end, gsVarName..gsCbcHash)
 
--------- RECORDS ----------
+------------ RECORDS ------------
+
 asmlib.SetOpVar("STRUCT_SPAWN",{
   Name = "Spawn data definition",
   Draw = {
@@ -278,7 +292,8 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
   }
 })
 
--------- ACTIONS ----------
+------------ ACTIONS ------------
+
 if(SERVER) then
 
   -- Send language definitions to the client to populate the menu
@@ -360,6 +375,12 @@ end
 
 if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
+  surfaceCreateFont("DebugSpawnTA",{
+    font = "Courier New",
+    size = 14,
+    weight = 600
+  })
+
   -- http://www.famfamfam.com/lab/icons/silk/preview.php
   asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
@@ -392,7 +413,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
   asmlib.ToIcon("property_name" , "note"           )
 
   -- Workshop matching crap
-  asmlib.WorkshopID("Shinji85's Rails"            , 326640186)
   asmlib.WorkshopID("SligWolf's Rerailers"        , 132843280)
   asmlib.WorkshopID("SligWolf's Minitrains"       , 149759773)
   asmlib.WorkshopID("SProps"                      , 173482196)
@@ -791,7 +811,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
-      ------ Screen resolution and configuration -------
+      ------------ Screen resolution and configuration ------------
       local scrW         = surfaceScreenWidth()
       local scrH         = surfaceScreenHeight()
       local sVersion     = asmlib.GetOpVar("TOOL_VERSION")
@@ -800,7 +820,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local xySiz        = {x =  0, y =  0} -- Current panel size
       local xyPos        = {x =  0, y =  0} -- Current panel position
       local xyTmp        = {x =  0, y =  0} -- Temporary coordinate
-      ------------ Frame --------------
+      ------------ Frame ------------
       xySiz.x = (scrW / gnRatio) -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
       xySiz.y = mathFloor(xySiz.x / (1 + gnRatio))
@@ -815,7 +835,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
-      ------------ Button --------------
+      ------------ Button ------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.x = (xyTmp.x / (8.5 * gnRatio)) -- Display properly the name
       xySiz.y = (xySiz.x / (1.5 * gnRatio)) -- Used by combo-box and text-box
@@ -831,7 +851,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
-      ------------- ComboBox ---------------
+      ------------ ComboBox ------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
       xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
@@ -854,13 +874,13 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Selected "..asmlib.GetReport3(nInd,sVal,anyData),gtArgsLogs)
         pnSelf:SetValue(sVal)
       end
-      ------------ ModelPanel --------------
+      ------------ ModelPanel ------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xyPos.x, xyPos.y = pnComboBox:GetPos()
       xySiz.x = (xyTmp.x / (1.9 * gnRatio)) -- Display the model properly
       xyPos.x = xyTmp.x - xySiz.x - xyDelta.x
       xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
-      --------------------------------------
+      ------------------------------------------------
       local pnModelPanel = vguiCreate("DModelPanel")
       if(not IsValid(pnModelPanel)) then pnFrame:Close()
         asmlib.LogInstance("Model display invalid",gtArgsLogs); return nil end
@@ -882,15 +902,15 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
       end
-      ------------ TextEntry --------------
+      ------------ TextEntry ------------
       xyPos.x, xyPos.y = pnComboBox:GetPos()
       xyTmp.x, xyTmp.y = pnComboBox:GetSize()
       xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
       xySiz.y = xyTmp.y
-      -------------------------------------
+      ------------------------------------------------
       xyTmp.x, xyTmp.y = pnModelPanel:GetPos()
       xySiz.x = xyTmp.x - xyPos.x - xyDelta.x
-      -------------------------------------
+      ------------------------------------------------
       local pnTextEntry = vguiCreate("DTextEntry")
       if(not IsValid(pnTextEntry)) then pnFrame:Close()
         asmlib.LogInstance("Textbox invalid",gtArgsLogs); return nil end
@@ -900,18 +920,18 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnTextEntry:SetVisible(true)
       pnTextEntry:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern_lb"))
       pnTextEntry:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern"))
-      ------------ ListView --------------
+      ------------ ListView ------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
       xyPos.y = xyPos.y + xyTmp.y + xyDelta.y
-      ------------------------------------
+      ------------------------------------------------
       xyTmp.x, xyTmp.y = pnTextEntry:GetPos()
       xySiz.x, xySiz.y = pnTextEntry:GetSize()
       xySiz.x = xyTmp.x + xySiz.x - xyDelta.x
-      ------------------------------------
+      ------------------------------------------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
-      ------------------------------------
+      ------------------------------------------------
       local wUse = mathFloor(0.120377559 * xySiz.x)
       local wAct = mathFloor(0.047460893 * xySiz.x)
       local wTyp = mathFloor(0.314127559 * xySiz.x)
@@ -1091,7 +1111,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
 
 end
 
------- INITIALIZE CONTEXT PROPERTIES ------
+------------ INITIALIZE CONTEXT PROPERTIES ------------
+
 local gsOptionsCM = gsToolPrefL.."context_menu"
 local gsOptionsCV = gsToolPrefL.."context_values"
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
@@ -1378,7 +1399,8 @@ end
 -- Register the track assembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)
 
------- INITIALIZE DB ------
+------------ INITIALIZE DB------------
+
 asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
@@ -1563,7 +1585,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
 },true,true)
 
------- POPULATE DB ------
+------------ POPULATE DB ------------
 
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
@@ -1928,7 +1950,7 @@ else
   PIECES:Record({"models/xqm/coastertrack/slope_90_down_3.mdl", "#", "#", 2, "", "-355.101, 0.01, -524.496", "90,0,180"})
   PIECES:Record({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 1, "", "290.8, -0.013, 61.604"})
   PIECES:Record({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 2, "", "-473.228, -0.013, -701.956", "90,0,180"})
-  --- XQM Turn ---
+  ------------ XQM Turn ------------
   PIECES:Record({"models/xqm/coastertrack/turn_45_1.mdl", "#", "#", 1, "", "73.232, -14.287, 4.894"})
   PIECES:Record({"models/xqm/coastertrack/turn_45_1.mdl", "#", "#", 2, "", "-62.119, 41.771, 4.888", "0,135,0"})
   PIECES:Record({"models/xqm/coastertrack/turn_45_2.mdl", "#", "#", 1, "", "145.801, -28.557, 4.893"})
@@ -4045,9 +4067,32 @@ else
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 2, "", "0,-256,0", "0,-90,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 3, "", "-256,0,0", "0,180,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 4, "", "0,256,0", "0,90,0"})
-  asmlib.Categorize("Trackmania United Props")
+  asmlib.Categorize("Trackmania United Props",[[function (m)
+    local r = m:gsub("models/nokillnando/trackmania/ground/", "")
+    return {r:gsub("/.+$", ""):gsub("^%l", string.upper)} end]])
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 1, "", " 480,0,5.657"})
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 2, "", "-480,0,5.657", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/dipmiddle.mdl", "#", "#", 1, "", " 477.1748,0,65.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/dipmiddle.mdl", "#", "#", 2, "", "-482.8252,0,65.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclenomiddle.mdl", "#", "#", 1, "", " 477.1748,0,5.657"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclenomiddle.mdl", "#", "#", 2, "", "-482.8252,0,5.657", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclex.mdl", "#", "#", 1, "", " 477.1748,0,5.657"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclex.mdl", "#", "#", 2, "", "-482.8252,0,5.657", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillardouble.mdl", "#", "#", 1, "", " 477.1748,0,5.657"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillardouble.mdl", "#", "#", 2, "", "-482.8252,0,5.657", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillarmiddle.mdl", "#", "#", 1, "", " 477.1748,0,5.657"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillarmiddle.mdl", "#", "#", 2, "", "-482.8252,0,5.657", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillartriple.mdl", "#", "#", 1, "", " 477.1748,0,5.657"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillartriple.mdl", "#", "#", 2, "", "-482.8252,0,5.657", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/boost.mdl", "#", "#", 1, "", " 478.86475,0,5.65527"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/boost.mdl", "#", "#", 2, "", "-481.13525,0,5.65527", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightstart.mdl", "#", "#", 1, "", "-122.82617,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/trackstart.mdl", "#", "#", 1, "", "-9.6377,0,5.65723", "0,-180,0"})
+  -- Needs aligmnent
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 1, "", " 1984,-1143,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 2, "", "-1984, 1143,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 1, "", " 1984, 1143,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 2, "", "-1984,-1143,5.65723","0,-180,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

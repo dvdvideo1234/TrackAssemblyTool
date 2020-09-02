@@ -93,7 +93,7 @@ if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   asmlib.LogInstance("Processing DSV fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
 end
 
-cleanupRegister(gsLimitName); asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
+cleanupRegister(gsLimitName)
 
 TOOL.ClientConVar = {
   [ "weld"       ] = 1,
@@ -168,6 +168,9 @@ if(CLIENT) then
   hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
   hookAdd("OnContextMenuOpen", gsToolPrefL.."ctxmenu_open", asmlib.GetActionCode("CTXMENU_OPEN"))
   hookAdd("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
+
+  -- Store reference to the tool object
+  asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
 
   -- Listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
@@ -1360,7 +1363,7 @@ function TOOL:DrawHUD()
       hudMonitor:DrawLine(Os,Ss,"m")
       hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
       if(not self:GetDeveloperMode()) then return end
-      self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
+      self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
   elseif(stTrace.HitWorld) then
     local angsnap  = self:GetAngSnap()
@@ -1407,7 +1410,7 @@ function TOOL:DrawHUD()
       hudMonitor:DrawLine(Os,Ss,"m")
       hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
       if(not self:GetDeveloperMode()) then return end
-      self:DrawTextSpawn(hudMonitor, "k","SURF",{"Trebuchet18"})
+      self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
   end
 end
@@ -1489,6 +1492,7 @@ function TOOL:DrawToolScreen(w, h)
 end
 
 function TOOL.BuildCPanel(CPanel)
+  local devmode = asmlib.GetAsmConvar("devmode", "BUL")
   local sLog = "*TOOL.BuildCPanel"; CPanel:ClearControls()
   local CurY, sCall, pItem, sText, fText = 0, "_cpan" -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
@@ -1502,7 +1506,7 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
 
-  local cqPanel = asmlib.CacheQueryPanel(); if(not cqPanel) then
+  local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return nil end
@@ -1520,7 +1524,6 @@ function TOOL.BuildCPanel(CPanel)
     local sNam = vRec[makTab:GetColumnName(3)]
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
-        local pCatg = catTypes[sTyp]
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.InternalDoClick = function() end

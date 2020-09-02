@@ -77,6 +77,9 @@ if(asmlib) then
   -- Tell TA what custom script we just called don't touch it
   asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
 
+  -- Register the addon to the workshop ID list
+  asmlib.WorkshopID(myAddon, 326640186)
+
   --[[
    * Register the addon to the auto-load prefix list when the
    * PIECES file is missing. The auto-load list is located in
@@ -119,8 +122,8 @@ if(asmlib) then
       elseif(r:find("curve")) then c = "curve"
       elseif(r:find("bumper")) then c = "bumper"
       elseif(r:find("junction")) then c = "junction"
-      elseif(r:find("%dx")) then c = "straight"
-      end; c = (c and c:gsub("^%l", string.upper) or nil) return c end
+      elseif(r:find("%dx")) then c = "straight" else c = "other" end
+      c = (c and c:gsub("^%l", string.upper) or nil); return c end
     ]]}
   }
 

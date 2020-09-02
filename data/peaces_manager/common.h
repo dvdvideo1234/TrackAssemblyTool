@@ -130,13 +130,13 @@
         if(strData[E] <= ' '){ E--; }
       }
       if(S == 0 && E == L)
-      {
-        logSystem(fLog,"trimAll: Already trimmed");
+      { // logSystem(fLog,"trimAll: Already trimmed {<%s>,%d,%d,%d}",strData,S,E,L);
         return strData;
       }
       if((S >= 0) && (S <= L) && (E >= 0) && (E <= L) && (S <= E)){
         L = E - S + 1; /// Memmove must be used because the pointers are overlapping
         memmove(strData,&strData[S],L); strData[L] = '\0';
+        // logSystem(fLog,"trimAll: After trim <%s>",strData);
       }else{ strData[0] = '\0'; }
       return strData;
     }
