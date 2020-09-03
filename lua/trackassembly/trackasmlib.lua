@@ -622,7 +622,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("MISS_NOTP","TYPE")   -- No track type
   SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
-  SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_VREPORT2","{%s}[%s]")
@@ -630,17 +629,12 @@ function InitBase(sName,sPurpose)
   SetOpVar("FORM_VREPORT4","{%s}[%s]<%s>|%s|")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
-  SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s].txt")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
-  SetOpVar("FORM_SKILLICON","icon16/%s.png")
-  SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%d")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
-  SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
-  SetOpVar("FORM_DRWSPKY", "%+6s")
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
@@ -649,10 +643,8 @@ function InitBase(sName,sPurpose)
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
   SetOpVar("TABLE_CONVARLIST",{})
-  SetOpVar("TABLE_WSIDADDON", {})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
-  SetOpVar("TOOL_DEFMODE","gmod_tool")
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
   SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
@@ -670,7 +662,15 @@ function InitBase(sName,sPurpose)
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   if(CLIENT) then
+    SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
+    SetOpVar("TOOL_DEFMODE","gmod_tool")
+    SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s].txt")
+    SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
+    SetOpVar("FORM_DRWSPKY", "%+6s")
+    SetOpVar("FORM_SKILLICON","icon16/%s.png")
+    SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%d")
     SetOpVar("TABLE_SKILLICON",{})
+    SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("HOVER_TRIGGER",{})
     SetOpVar("LOCALIFY_TABLE",{})
@@ -1867,7 +1867,7 @@ function Sort(tTable, tCols)
     if(IsTable(rec)) then tS[iS].Val = ""
       if(tC.Size > 0) then
         for iI = 1, tC.Size do local sC = tC[iI]; if(not IsHere(rec[sC])) then
-          LogInstance("Col <"..sC.."> not found on the current record"); return nil end
+          LogInstance("Key <"..sC.."> not found on the current record"); return nil end
             tS[iS].Val = tS[iS].Val..tostring(rec[sC])
         end -- When no sort columns are provided use keys instead
       else tS[iS].Val = key end -- Use the table key
@@ -4182,7 +4182,7 @@ function SetAsmConvar(pPly,sName,snVal)
 end
 
 function GetPhrase(sKey)
-  if(not CLIENT) then return end
+  if(SERVER) then return end
   local sDef = GetOpVar("MISS_NOTR")
   local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
     LogInstance("Skip <"..sKey..">"); return GetOpVar("MISS_NOTR") end
@@ -4193,7 +4193,7 @@ end
 
 local function GetLocalify(sCode)
   local sCode = tostring(sCode or GetOpVar("MISS_NOAV"))
-  if(not CLIENT) then LogInstance("("..sCode..") Not client"); return nil end
+  if(SERVER) then LogInstance("("..sCode..") Not client"); return nil end
   local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
   local sPath = GetOpVar("FORM_LANGPATH"):format("", sCode..".lua") -- Translation file path
   if(not fileExists("lua/"..sPath, "GAME")) then

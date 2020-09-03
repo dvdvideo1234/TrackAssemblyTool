@@ -20,7 +20,7 @@ local myAddon = "Test's track pack" -- Your addon name goes here
  * myType3, ... myType/n when your addon contains
  * multiple model packs.
 ]]--
-local myType  = myAddon -- The type your addon resides in the tool with
+local myType = myAddon -- The type your addon resides in the tool with
 
 --[[
  * For actually produce an error you can replace the /print/
@@ -29,7 +29,7 @@ local myType  = myAddon -- The type your addon resides in the tool with
  * http://wiki.garrysmod.com/page/Global/Error
  * http://wiki.garrysmod.com/page/Global/ErrorNoHalt
 ]]
-local myError = print
+local myError = ErrorNoHalt
 
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix

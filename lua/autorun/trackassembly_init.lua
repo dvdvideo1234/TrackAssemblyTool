@@ -71,6 +71,7 @@ local propertiesGetHovered          = properties and properties.GetHovered
 local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
 local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
+local controlpanelGet               = controlpanel and controlpanel.Get
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 
 ------------ MODULE POINTER ------------
@@ -82,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.634")
+asmlib.SetOpVar("TOOL_VERSION","7.635")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -97,12 +98,13 @@ local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
-local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
+local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
+local gtCallBack  = asmlib.GetOpVar("TABLE_CALLBACK")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
@@ -195,46 +197,37 @@ local conWorkMode = asmlib.MakeContainer("WORK_MODE")
 
 ------------ CALLBACKS ------------
 
-local gsVarName -- This stores current variable name
-local gsCbcHash = "_init" -- This keeps suffix related to the file
+local conCallBack = asmlib.MakeContainer("CALLBAC_FUNC")
+      conCallBack:Push({"maxtrmarg", function(sVar, vOld, vNew)
+        local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
+        asmlib.SetOpVar("TRACE_MARGIN", nM)
+      end})
+      conCallBack:Push({"logsmax", function(sVar, vOld, vNew)
+        local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
+        asmlib.SetOpVar("LOG_MAXLOGS", nM)
+      end})
+      conCallBack:Push({"logfile", function(sVar, vOld, vNew)
+        asmlib.IsFlag("en_logging_file", tobool(vNew))
+      end})
+      conCallBack:Push({"endsvlock", function(sVar, vOld, vNew)
+        asmlib.IsFlag("en_dsv_datalock", tobool(vNew))
+      end})
+      conCallBack:Push({"timermode", function(sVar, vOld, vNew)
+        local arTim = gsSymDir:Explode(vNew)
+        local mkTab, ID = asmlib.GetBuilderID(1), 1
+        while(mkTab) do local sTim = arTim[ID]
+          local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
+          asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
+          ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
+        end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vNew),gtInitLogs)
+      end})
 
-gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
-  asmlib.SetOpVar("TRACE_MARGIN", nM)
-end, gsVarName..gsCbcHash)
-
-gsVarName = asmlib.GetAsmConvar("logsmax", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
-  asmlib.SetOpVar("LOG_MAXLOGS", nM)
-end, gsVarName..gsCbcHash)
-
-gsVarName = asmlib.GetAsmConvar("logfile", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  asmlib.IsFlag("en_logging_file", tobool(vNew))
-end, gsVarName..gsCbcHash)
-
-gsVarName = asmlib.GetAsmConvar("endsvlock", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  asmlib.IsFlag("en_dsv_datalock", tobool(vNew))
-end, gsVarName..gsCbcHash)
-
-gsVarName = asmlib.GetAsmConvar("timermode", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local arTim = gsSymDir:Explode(vNew)
-  local mkTab, ID = asmlib.GetBuilderID(1), 1
-  while(mkTab) do local sTim = arTim[ID]
-    local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
-    asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
-    ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
-  end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vNew),gtInitLogs)
-end, gsVarName..gsCbcHash)
+for iD = 1, conCallBack:GetSize() do
+  local val = conCallBack:Select(iD)
+  local nam =asmlib.GetAsmConvar(val[1], "NAM")
+  cvarsRemoveChangeCallback(nam, nam.."_init")
+  cvarsAddChangeCallback(nam, val[2], nam.."_init")
+end
 
 ------------ RECORDS ------------
 
@@ -373,13 +366,27 @@ if(SERVER) then
     end)
 end
 
-if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
+if(CLIENT) then
 
   surfaceCreateFont("DebugSpawnTA",{
     font = "Courier New",
     size = 14,
     weight = 600
   })
+
+  -- Initialize tool translations and load the lua file dedicated to the language
+  asmlib.InitLocalify(varLanguage:GetString())
+
+  -- Listen for changes to the localify language and reload the tool's menu to update the localizations
+  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
+  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
+    gtArgsLogs[1] = "*UPDATE_CONTROL_PANEL"; asmlib.InitLocalify(vN)
+    local oTool = asmlib.GetOpVar("STORE_TOOLOBJ"); if(not asmlib.IsHere(oTool)) then
+      asmlib.LogInstance("Tool object missing", gtArgsLogs); return end
+    local cPanel = controlpanelGet(oTool.Mode); if(not IsValid(cPanel)) then
+      asmlib.LogInstance("Control panel invalid", gtArgsLogs); return end
+    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
+  end, gsToolPrefL.."lang")
 
   -- http://www.famfamfam.com/lab/icons/silk/preview.php
   asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")

@@ -35,7 +35,6 @@ local tableInsert                      = table and table.insert
 local tableRemove                      = table and table.remove
 local tableEmpty                       = table and table.Empty
 local tableGetKeys                     = table and table.GetKeys
-local controlpanelGet                  = controlpanel and controlpanel.Get
 local hookAdd                          = hook and hook.Add
 local inputIsKeyDown                   = input and input.IsKeyDown
 local cleanupRegister                  = cleanup and cleanup.Register
@@ -86,7 +85,6 @@ local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.MakeContainer("COLORS_LIST")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
 local conElements = asmlib.MakeContainer("LIST_VGUI")
-local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
@@ -170,16 +168,7 @@ if(CLIENT) then
   hookAdd("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
 
   -- Store reference to the tool object
-  asmlib.SetOpVar("REFER_TOOLOBJ", TOOL)
-
-  -- Listen for changes to the localify language and reload the tool's menu to update the localizations
-  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
-  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
-    asmlib.InitLocalify(vN) -- Initialize the new langauge from the didicated file
-    local oTool  = asmlib.GetOpVar("REFER_TOOLOBJ") -- Take the tool reference
-    local cPanel = controlpanelGet(oTool.Mode); if(not IsValid(cPanel)) then return end
-    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
-  end, gsToolPrefL.."lang")
+  asmlib.SetOpVar("STORE_TOOLOBJ", TOOL)
 end
 
 if(SERVER) then
