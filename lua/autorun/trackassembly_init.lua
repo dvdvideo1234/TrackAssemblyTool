@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.636")
+asmlib.SetOpVar("TOOL_VERSION","7.637")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -4076,7 +4076,7 @@ else
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 4, "", "0,256,0", "0,90,0"})
   asmlib.Categorize("Trackmania United Props",[[function (m)
     local r = m:gsub("models/nokillnando/trackmania/ground/", "")
-    return {r:gsub("/.+$", ""):gsub("^%l", string.upper)} end]])
+          r = r:gsub("/.+$", ""):gsub("^%l", string.upper) return r end]])
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 1, "", " 480,0,5.657"})
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 2, "", "-480,0,5.657", "0,-180,0"})
   PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/dipmiddle.mdl", "#", "#", 1, "", " 477.1748,0,65.65723"})
@@ -4095,11 +4095,25 @@ else
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/boost.mdl", "#", "#", 2, "", "-481.13525,0,5.65527", "0,180,0"})
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightstart.mdl", "#", "#", 1, "", "-122.82617,0,5.65723", "0,-180,0"})
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/trackstart.mdl", "#", "#", 1, "", "-9.6377,0,5.65723", "0,-180,0"})
-  -- Needs aligmnent
-  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 1, "", " 1984,-1143,5.65723"})
-  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 2, "", "-1984, 1143,5.65723", "0,-180,0"})
-  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 1, "", " 1984, 1143,5.65723"})
-  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 2, "", "-1984,-1143,5.65723","0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 1, "", "1983.89588,1142.77014,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 2, "", "-1856.09961,-777.21912,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 1, "", " 1983.89088,-1142.76953,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 2, "", "-1856.09950,777.21912,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yout.mdl", "#", "#", 1, "", "-27.11389,0,5.65723", "0,180,0", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yout.mdl", "#", "#", 2, "", "1412.886,-1440,5.65723", "0,-90,0", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yout.mdl", "#", "#", 3, "", "1412.886,1440,5.65723", "0,90,0", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yin.mdl", "#", "#", 1, "", "-31.29919,0,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yin.mdl", "#", "#", 2, "", "1888.66163,-960,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yin.mdl", "#", "#", 3, "", "1888.66163,960,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 1, "", "477.174,0.00024,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 2, "", "-2.69753,-479.99927,5.65723", "0,-90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 3, "", "-482.82501,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 4, "", "-2.82444,479.99878,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/t.mdl", "#", "#", 1, "", "13.46277,465.00085,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/t.mdl", "#", "#", 2, "", "-465.00076,-14.71875,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/t.mdl", "#", "#", 3, "", "492.17401,-14.99945,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/l.mdl", "#", "#", 1, "", "-391.19399,-91.63025,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/l.mdl", "#", "#", 2, "", "88.80608,388.36523,5.65723", "0,90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
