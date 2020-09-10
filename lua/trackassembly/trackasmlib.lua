@@ -1864,14 +1864,14 @@ function Sort(tTable, tCols)
   for key, rec in pairs(tTable) do
     iS = (iS + 1); tS[iS] = {}
     tS[iS].Key, tS[iS].Rec = key, rec
-    if(IsTable(rec)) then tS[iS].Val = ""
-      if(tC.Size > 0) then
+    if(IsTable(rec)) then tS[iS].Val = "" -- Allocate sorting value
+      if(tC.Size > 0) then -- When there are sorting column names provided
         for iI = 1, tC.Size do local sC = tC[iI]; if(not IsHere(rec[sC])) then
           LogInstance("Key <"..sC.."> not found on the current record"); return nil end
-            tS[iS].Val = tS[iS].Val..tostring(rec[sC])
-        end -- When no sort columns are provided use keys instead
-      else tS[iS].Val = key end -- Use the table key
-    else tS[iS].Val = rec end -- Use the actual value
+            tS[iS].Val = tS[iS].Val..tostring(rec[sC]) -- Concatenate sort value
+        end -- When no sort columns are provided sort by the keys instead
+      else tS[iS].Val = key end -- When column list not specified use the key
+    else tS[iS].Val = rec end -- When the element is not a table use the value
   end; tS.Size = iS; QuickSort(tS,1,iS); return tS
 end
 
@@ -2337,13 +2337,19 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:Drop()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "Drop"
-    qtCmd.Drop  = "DROP TABLE "..qtDef.Name..";"; return self
+    local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "TABLE")
+    local sStmt = CacheStmt(qsKey, nil, qtDef.Name)
+    if(not sStmt) then sStmt = CacheStmt(qsKey, "DROP TABLE %s;", qtDef.Name) end
+    qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Build delete statment
   function self:Delete()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "Delete"
-    qtCmd.Delete = "DELETE FROM "..qtDef.Name..";"; return self
+    local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "TABLE")
+    local sStmt = CacheStmt(qsKey, nil, qtDef.Name)
+    if(not sStmt) then sStmt = CacheStmt(qsKey, "DELETE FROM %s;", qtDef.Name) end
+    qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Bhttps://wiki.garrysmod.com/page/sql/Begin
   function self:Begin()
@@ -2361,10 +2367,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCmd, iInd = self:GetCommand(), 1; qtCmd.STMT = "Create"
     qtCmd.Create = "CREATE TABLE "..qtDef.Name.." ( "
     while(qtDef[iInd]) do local v = qtDef[iInd]
-      if(not v[1]) then
-        LogInstance("Missing col name #"..tostring(iInd),tabDef.Nick); return nil end
-      if(not v[2]) then
-        LogInstance("Missing col type #"..tostring(iInd),tabDef.Nick); return nil end
+      if(not v[1]) then LogInstance("Missing col name #"..tostring(iInd),tabDef.Nick); return nil end
+      if(not v[2]) then LogInstance("Missing col type #"..tostring(iInd),tabDef.Nick); return nil end
       qtCmd.Create = qtCmd.Create..(v[1]):upper().." "..(v[2]):upper()
       iInd = (iInd + 1); if(qtDef[iInd]) then qtCmd.Create = qtCmd.Create ..", " end
     end
@@ -2527,29 +2531,49 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Build timer failed"); return self:Remove(false) end
     local tQ = self:GetCommand(); if(not IsHere(tQ)) then
       LogInstance("Build statement failed"); return self:Remove(false) end
-    -- When the table is present delete all records
-    if(bDelete and sqlTableExists(defTab.Name)) then
-      local qRez = sqlQuery(tQ.Delete); if(not qRez and IsBool(qRez)) then
-        LogInstance("Table delete error <"..sqlLastError()..">",tabDef.Nick)
-      else LogInstance("Table delete skipped",tabDef.Nick) end
-    end
     -- When enabled forces a table drop
-    if(bReload) then local qRez = sqlQuery(tQ.Drop)
-      if(not qRez and IsBool(qRez)) then
-        LogInstance("Table drop error <"..sqlLastError()..">",tabDef.Nick)
+    if(bReload) then
+      if(sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.Drop)
+        if(not qRez and IsBool(qRez)) then -- Remove table when SQL error is present
+          LogInstance("Table drop fail: "..sqlLastError().." Query > "..tQ.Drop,tabDef.Nick)
+          return self:Remove(false) -- Remove table when SQL error is present
+        else LogInstance("Table drop success",tabDef.Nick) end
       else LogInstance("Table drop skipped",tabDef.Nick) end
     end
+    -- Create the table using the given name and properties
     if(sqlTableExists(defTab.Name)) then
-      LogInstance("Table exists",tabDef.Nick); return self:IsValid()
-    else local qRez = sqlQuery(tQ.Create); if(not qRez and IsBool(qRez)) then
-        LogInstance("Table create fail because of "..sqlLastError(),tabDef.Nick); return self:Remove(false) end
+      LogInstance("Table create skipped",tabDef.Nick)
+    else local qRez = sqlQuery(tQ.Create)
+      if(not qRez and IsBool(qRez)) then -- Remove table when SQL error is present
+        LogInstance("Table create fail: "..sqlLastError().." Query > "..tQ.Create,tabDef.Nick)
+        return self:Remove(false) -- Remove table when SQL error is present
+      end -- Check when SQL query has passed and the table is not yet created
       if(sqlTableExists(defTab.Name)) then
-        for k, v in pairs(tQ.Index) do qRez = sqlQuery(v); if(not qRez and IsBool(qRez)) then
-          LogInstance("Table index create fail ["..k.."] > "..v .." > because of "..sqlLastError(),tabDef.Nick); return self:Remove(false) end
-        end; LogInstance("Indexed table created",tabDef.Nick); return self:IsValid()
-      else LogInstance("Table create fail because of "..sqlLastError().." Query ran > "..tQ.Create,tabDef.Nick); return self:Remove(false) end
+        for k, v in pairs(tQ.Index) do local qRez = sqlQuery(v)
+          if(not qRez and IsBool(qRez)) then -- Check when the index query has passed
+            LogInstance("Table create index fail ["..k.."]: "..sqlLastError().." Query > "..v,tabDef.Nick)
+            return self:Remove(false) -- Clear table when index is not created
+          end
+          LogInstance("Table create index: "..v,tabDef.Nick)
+        end
+      else
+        LogInstance("Table create check fail: "..sqlLastError().." Query > "..tQ.Create,tabDef.Nick)
+        return self:Remove(false) -- Clear table when it is not created by the first pass
+      end
     end
-  elseif(sMoDB == "LUA") then LogInstance("Created",tabDef.Nick); return self:IsValid()
+    -- When the table is present delete all records
+    if(bDelete) then
+      if(sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.Delete)
+        if(not qRez and IsBool(qRez)) then -- Remove table when SQL error is present
+          LogInstance("Table delete fail: "..sqlLastError().." Query > "..tQ.Delete,tabDef.Nick)
+          return self:Remove(false) -- Remove table when SQL error is present
+        else LogInstance("Table delete success",tabDef.Nick) end
+      else LogInstance("Table delete skipped",tabDef.Nick) end
+    end
+  elseif(sMoDB == "LUA") then local tCache = libCache[tabDef.Nick]
+    if(IsHere(tCache)) then -- Empty the table when its cache is located
+      tableEmpty(tCache); LogInstance("Table create empty",tabDef.Nick)
+    else libCache[tabDef.Nick] = {}; LogInstance("Table create allocate",tabDef.Nick); end
   else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return self:Remove(false) end
 end
 
@@ -2732,7 +2756,7 @@ function CacheQueryPanel(bExp)
     if(sMoDB == "SQL") then
       local Q = CacheStmt(qsKey:format(sFunc,""), nil, 1)
       if(not Q) then
-        local sStmt = makTab:Select(1,2,3):Where({4,"%d"}):Order(2,3):Get()
+        local sStmt = makTab:Select(1,2,3):Where({4,"%d"}):Order(2,1):Get()
         if(not IsHere(sStmt)) then
           LogInstance("Build statement failed"); return nil end
         Q = CacheStmt(qsKey:format(sFunc,""), sStmt, 1)

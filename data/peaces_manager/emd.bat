@@ -78,8 +78,8 @@ del %emd_chew_pathb%%emd_clog_lfile%.txt
 for /L %%k in (1,1,%emd_chew_addcnt%) do (
   cd %emd_chew_pathb%
   rd /S /Q "!emd_chew_adddir[%%k]!"
-  call %emd_chew_binloc%\gmad.exe extract -file "%emd_chew_addon%\!emd_chew_addlst[%%k]!.gma" -out "%emd_chew_pathb%!emd_chew_adddir[%%k]!"
-  echo [%%k]!emd_chew_adddir[%%k]! >> %emd_clog_lfile%.txt
+  call %emd_chew_binloc%\gmad.exe extract -file "%emd_chew_addon%\!emd_chew_addlst[%%k]!.gma" -out "%emd_chew_pathb%!emd_chew_adddir[%%k]!" >> %emd_clog_lfile%.txt
+  echo [%%k]!emd_chew_adddir[%%k]! @ %TIME%
 )
 
 :: Get all the model files in the current directory

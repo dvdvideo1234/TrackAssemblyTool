@@ -159,6 +159,9 @@ if(asmlib) then
    * created the model. If you need TA to extract the origin/angle from an attachment named
    * /test/ for example, you just need to put the string /!test/ in the origin/angle column for that model.
    * {MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
+   * MODEL  > This string contains the path to your /*.mdl/ file. It is mandatory and
+   *          taken in pairs with LINEID, it forms the unique identifier of every record.
+   *          When used in /DSV/ mode ( like seen below ) is is used as a hash index.
    * TYPE   > This string is the name of the type your stuff will reside in the panel.
    *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable.
    *          If it is empty uses the string /TYPE/, so make sure you fill this.
@@ -324,28 +327,31 @@ if(asmlib) then
    * and then for every active point, you must have one array of
    * strings and numbers, where the elements match the following data settings.
    * {MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID}
-   * MODELADD > This is the model of the addition entity. It is mandatory and cannot be disabled.
-   * ENTCLASS > This is the class of the addition entity. It is mandatory and cannot be disabled.
-   * LINEID   > This is the ID of the point that can be selected for building. They must be
-   *            sequential and mandatory. If provided, the ID must the same as the row index under
-   *            a given model key. Disabling this, makes it use the the index of the current line.
-   *            Use that to swap the active points around by only moving the desired row up or down.
-   *            For the example table definition below, the line ID in the database will be the same.
-   * POSOFF   > This is the local position vector offset that TA uses to place the addition relative to MODELBASE.
-   *            A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
-   * ANGOFF   > This is the local angle offset that TA uses to place the addition.
-   *            A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
-   * MOVETYPE > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
-   * PHYSINIT > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
-   * DRSHADOW > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
-   *            The call evaluates to /true/ for positive numbers and /false/ for negative.
-   *            When the parameter is equal to zero skips the call of /Entity:DrawShadow/
-   * PHMOTION > This internally calls /PhysObj:EnableMotion/ if the database parameter is not zero on the validated physics object.
-   *            The call evaluates to /true/ for positive numbers and /false/ for negative.
-   *            When the parameter is equal to zero skips the call of /Entity:EnableMotion/
-   * PHYSLEEP > This internally calls /PhysObj:Sleep/ if the database parameter is grater than zero on the validated physics object.
-   *            When the parameter is equal or less than zero skips the call of /Entity:Sleep/
-   * SETSOLID > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
+   * MODELBASE > This string contains the path to your base /*.mdl/ file the additions are gonna be attached to.
+   *             It is mandatory and taken in pairs with LINEID, it forms the unique identifier of every record.
+   *             When used in /DSV/ mode ( like seen below ) is is used as a hash index.
+   * MODELADD  > This is the /*.mdl/ path of the addition entity. It is mandatory and cannot be disabled.
+   * ENTCLASS  > This is the class of the addition entity. It is mandatory and cannot be disabled.
+   * LINEID    > This is the ID of the point that can be selected for building. They must be
+   *             sequential and mandatory. If provided, the ID must the same as the row index under
+   *             a given model key. Disabling this, makes it use the the index of the current line.
+   *             Use that to swap the active points around by only moving the desired row up or down.
+   *             For the example table definition below, the line ID in the database will be the same.
+   * POSOFF    > This is the local position vector offset that TA uses to place the addition relative to MODELBASE.
+   *             A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
+   * ANGOFF    > This is the local angle offset that TA uses to place the addition.
+   *             A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
+   * MOVETYPE  > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
+   * PHYSINIT  > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
+   * DRSHADOW  > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
+   *             The call evaluates to /true/ for positive numbers and /false/ for negative.
+   *             When the parameter is equal to zero skips the call of /Entity:DrawShadow/
+   * PHMOTION  > This internally calls /PhysObj:EnableMotion/ if the database parameter is not zero on the validated physics object.
+   *             The call evaluates to /true/ for positive numbers and /false/ for negative.
+   *             When the parameter is equal to zero skips the call of /Entity:EnableMotion/
+   * PHYSLEEP  > This internally calls /PhysObj:Sleep/ if the database parameter is grater than zero on the validated physics object.
+   *             When the parameter is equal or less than zero skips the call of /Entity:Sleep/
+   * SETSOLID  > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
   ]]--
   local myAdditions = {
     ["models/shinji85/train/rail_l_switch.mdl"] = {
@@ -378,12 +384,15 @@ if(asmlib) then
    * and then for every active point, you must have one array of
    * strings and numbers, where the elements match the following data settings.
    * {TYPE, LINEID, NAME}
-   * LINEID   > This is the ID of the point that can be selected for building. They must be
-   *            sequential and mandatory. If provided, the ID must the same as the row index under
-   *            a given model key. Disabling this, makes it use the the index of the current line.
-   *            Use that to swap the active points around by only moving the desired row up or down.
-   *            For the example table definition below, the line ID in the database will be the same.
-   * NAME     > This stores the name of the physical property
+   * TYPE   > This is the category under your physical properties are stored internally.
+   *          It is mandatory and taken in pairs with LINEID, it forms the unique identifier of every record.
+   *          When used in /DSV/ mode ( like seen below ) is is used as a hash index.
+   * LINEID > This is the ID of the point that can be selected for building. They must be
+   *          sequential and mandatory. If provided, the ID must the same as the row index under
+   *          a given model key. Disabling this, makes it use the the index of the current line.
+   *          Use that to swap the active points around by only moving the desired row up or down.
+   *          For the example table definition below, the line ID in the database will be the same.
+   * NAME   > This stores the name of the physical property. It must an actual physical property.
   ]]--
   local myPhysproperties = {}
 
