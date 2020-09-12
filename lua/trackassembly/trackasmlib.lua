@@ -2337,7 +2337,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:Drop()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "Drop"
-    local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "TABLE")
+    local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "")
     local sStmt = CacheStmt(qsKey, nil, qtDef.Name)
     if(not sStmt) then sStmt = CacheStmt(qsKey, "DROP TABLE %s;", qtDef.Name) end
     qtCmd[qtCmd.STMT] = sStmt; return self
@@ -2346,7 +2346,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:Delete()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "Delete"
-    local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "TABLE")
+    local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "")
     local sStmt = CacheStmt(qsKey, nil, qtDef.Name)
     if(not sStmt) then sStmt = CacheStmt(qsKey, "DELETE FROM %s;", qtDef.Name) end
     qtCmd[qtCmd.STMT] = sStmt; return self
@@ -3900,12 +3900,12 @@ function AttachAdditions(ePiece)
     LogInstance("Model <"..eMod.."> has no additions"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
-  local sD = GetOpVar("OPSYM_DISABLE"); LogInstance("Attach model <"..eMod..">")
+  local sD = GetOpVar("OPSYM_DISABLE"); LogInstance("PIECE:MOD("..eMod..")")
   while(stAddit[iCnt]) do -- While additions are present keep adding them
-    local arRec  = stAddit[iCnt]; LogInstance("Addition ["..iCnt.."]")
+    local arRec  = stAddit[iCnt]; LogInstance("ADDITION ["..iCnt.."]")
     local eAddit = entsCreate(arRec[makTab:GetColumnName(3)])
+    LogInstance("ents.Create("..arRec[makTab:GetColumnName(3)]..")")
     if(eAddit and eAddit:IsValid()) then
-      LogInstance("ents.Create("..arRec[makTab:GetColumnName(3)]..")")
       local adMod = tostring(arRec[makTab:GetColumnName(2)])
       if(not fileExists(adMod, "GAME")) then
         LogInstance("Missing attachment file "..adMod); return false end
@@ -3917,8 +3917,9 @@ function AttachAdditions(ePiece)
       if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos) or ofPos:sub(1,1) == sD)) then
         local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
         SetVectorXYZ(vpAdd, arPOA[1], arPOA[2], arPOA[3])
-        vpAdd:Set(ePiece:LocalToWorld(vpAdd)); eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
-      else eAddit:SetPos(ePos); LogInstance("SetPos(ePos)") end
+        vpAdd:Set(ePiece:LocalToWorld(vpAdd))
+        eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
+      else eAddit:SetPos(ePos); LogInstance("SetPos(PIECE:POS)") end
       local ofAng = arRec[makTab:GetColumnName(6)]; if(not IsString(ofAng)) then
         LogInstance("Angle mismatch "..GetReport(ofAng)); return false end
       if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng) or ofAng:sub(1,1) == sD)) then
@@ -3926,7 +3927,7 @@ function AttachAdditions(ePiece)
         SetAnglePYR(apAdd, arPOA[1], arPOA[2], arPOA[3])
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
         eAddit:SetAngles(apAdd); LogInstance("SetAngles(DB)")
-      else eAddit:SetAngles(eAng); LogInstance("SetAngles(eAng)") end
+      else eAddit:SetAngles(eAng); LogInstance("SetAngles(PIECE:ANG)") end
       local mvTyp = (tonumber(arRec[makTab:GetColumnName(7)]) or -1)
       if(mvTyp >= 0) then eAddit:SetMoveType(mvTyp)
         LogInstance("SetMoveType("..mvTyp..")") end
@@ -3936,7 +3937,7 @@ function AttachAdditions(ePiece)
       local drSha = (tonumber(arRec[makTab:GetColumnName(9)]) or 0)
       if(drSha ~= 0) then drSha = (drSha > 0); eAddit:DrawShadow(drSha)
         LogInstance("DrawShadow("..tostring(drSha)..")") end
-      eAddit:SetParent(ePiece); LogInstance("SetParent(ePiece)")
+      eAddit:SetParent(ePiece); LogInstance("SetParent(PIECE)")
       eAddit:Spawn(); LogInstance("Spawn()")
       phAddit = eAddit:GetPhysicsObject()
       if(phAddit and phAddit:IsValid()) then
@@ -3947,7 +3948,7 @@ function AttachAdditions(ePiece)
         if(nbZee > 0) then phAddit:Sleep(); LogInstance("Sleep()") end
       end
       eAddit:Activate(); LogInstance("Activate()")
-      ePiece:DeleteOnRemove(eAddit); LogInstance("DeleteOnRemove(eAddit)")
+      ePiece:DeleteOnRemove(eAddit); LogInstance("DeleteOnRemove()")
       local nbSld = (tonumber(arRec[makTab:GetColumnName(12)]) or -1)
       if(nbSld >= 0) then eAddit:SetSolid(nbSld)
         LogInstance("SetSolid("..tostring(nbSld)..")") end

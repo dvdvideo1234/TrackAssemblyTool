@@ -1560,7 +1560,11 @@ function TOOL.BuildCPanel(CPanel)
       end -- Custom name to override via category
       -- Register the node associated with the track piece
       pNode = pItem:AddNode(sNam)
-      pNode.DoRightClick = function() SetClipboardText(sMod) end
+      pNode.DoRightClick = function()
+        if(inputIsKeyDown(KEY_LSHIFT)) then
+          SetClipboardText(sMod)
+        else SetClipboardText(sNam) end
+      end
       pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
       pNode.Icon:SetImage(asmlib.ToIcon("model"))
       pNode.DoClick = function(pSelf)
