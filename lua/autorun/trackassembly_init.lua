@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.638")
+asmlib.SetOpVar("TOOL_VERSION","7.639")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -438,6 +438,7 @@ if(CLIENT) then
   asmlib.WorkshopID("AlexCookie's 2ft track pack" , 740453553)
   asmlib.WorkshopID("Joe's track pack"            , 1658816805)
   asmlib.WorkshopID("StevenTechno's Buildings 2.0", 1888013789)
+  asmlib.WorkshopID("Modular canals"              , 1336622735)
   asmlib.WorkshopID("Trackmania United Props"     , 1955876643)
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
@@ -1646,12 +1647,8 @@ else
   PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 1, "-221.409, 0, 3.031", "219.412, 0, -5.411"})
   PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 2, "-1103.05, 0, 0.009", "-1543.871, 0, -5.411", "0,-180,0"})
   asmlib.Categorize("SligWolf's Minitrains",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/minitrains/",""):gsub("_","/")
-    local s = r:find("/") or r:find("%.")
-    r = (s and r:sub(1,s-1) or "other"); o = {r}
-    if(r == "sw") then o = {"buffer"} end;
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local r = m:gsub("models/minitrains/",""):gsub("%W.+$","")
+    if(r == "sw") then r = "buffer" end; return r; end]])
   PIECES:Record({"models/minitrains/straight_16.mdl",   "#", "#", 1, "", "0, -8.507, 1"})
   PIECES:Record({"models/minitrains/straight_16.mdl",   "#", "#", 2, "", "-16, -8.507, 1", "0,-180,0"})
   PIECES:Record({"models/minitrains/straight_32.mdl",   "#", "#", 1, "", "0, -8.507, 1"})
@@ -1873,11 +1870,9 @@ else
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 2, "", "-370.037262,  -0.000456, 11.218994", "0,-180,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 3, "", "-158.311356,-338.111572, 11.218994", "0,-135,0"})
   asmlib.Categorize("SProps",[[function(m)
-    local r = m:gsub("models/sprops/trans/train/",""):gsub("_","/")
-    if(r:find("track/")) then r = r:gsub("track/","") end;
-    local s = r:sub(1,1); if(s == "s") then return {"Straight"}
-    elseif(s == "t") then return {"Turn"}
-    elseif(s == "h") then return {"Ramp"} else return nil end end]])
+    local r = m:gsub("models/sprops/trans/train/",""):gsub("track_",""):sub(1,1)
+    if(r == "s") then return "straight" elseif(r == "t") then return "turn"
+    elseif(r == "h") then return "ramp" else return nil end end]])
   asmlib.ModelToNameRule("SET",nil,{"track_s0","straight_"},{"","x"})
   PIECES:Record({"models/sprops/trans/train/track_s01.mdl", "#", "#", 1, "", " 0,0,7.624"})
   PIECES:Record({"models/sprops/trans/train/track_s01.mdl", "#", "#", 2, "", "-162,0,7.624", "0,180,0"})
@@ -1905,10 +1900,9 @@ else
   PIECES:Record({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 2, "", "-825,825,7.624", "0,90,0"})
   PIECES:Record({"models/sprops/trans/train/rerailer.mdl",     "#", "#", 1, "-1088.178,0,19.886", "-1280.383,0,7.618", "0,180,0"})
   asmlib.Categorize("XQM Coaster",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/xqm/coastertrack/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r} end]])
+    local g = m:gsub("models/xqm/coastertrack/",""):gsub("%.mdl","")
+    local r = g:match(".-_"):sub(1,-2)
+    local n = g:gsub(r.."_", ""); return r, n; end]])
   PIECES:Record({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 1, "", "75.790,-0.013,-2.414"})
   PIECES:Record({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003,26.580", "-22.5,180,0"})
   PIECES:Record({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 1, "", "149.8, -0.013, -9.62"})
@@ -2178,10 +2172,12 @@ else
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 1, "", " 175.507, 0.001, 5.002",  "0, 0,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 2, "", "-201.413, 0.001, 5.002", "0,180,0"})
   asmlib.Categorize("XQM Ball Rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/xqm/rails/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r} or nil end]])
+    local g = m:gsub("models/xqm/rails/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local t, n = g:match(".-_"), g:gsub("%.mdl","")
+    if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+      if(r:find(t)) then n = n:gsub(t.."_", "")
+    end; end; return r, n; end]])
   PIECES:Record({"models/xqm/rails/tunnel_1.mdl", "#", "#", 1, "", "6, 0, -2.25"})
   PIECES:Record({"models/xqm/rails/tunnel_1.mdl", "#", "#", 2, "", "-6, 0, -2.25", "0,180,0"})
   PIECES:Record({"models/xqm/rails/tunnel_2.mdl", "#", "#", 1, "", "6, 0, -2.25"})
@@ -2242,11 +2238,12 @@ else
   PIECES:Record({"models/xqm/rails/loop_right.mdl", "#", "#", 1, "", "13.864, -41.787, -0.953", "0,-22.5,2.433"})
   PIECES:Record({"models/xqm/rails/loop_right.mdl", "#", "#", 2, "", "-13.562, 41.789, -0.952", "0,157.5,2.433"})
   asmlib.Categorize("Magnum's Rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/magtrains1ga/","")
-    local s = r:find("_"); r = (s and r:sub(1,s-1) or nil)
-          r = (r and (r:find("switchbase") and "switch" or r):gsub("^%l", string.upper) or nil)
-    return (r and {r} or nil) end]])
+      local g = m:gsub("models/magtrains1ga/",""):gsub("/","_")
+      local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+      local t, n = g:match(".-_"), g:gsub("%.mdl","")
+      if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; if(r:find("switchbase")) then r = "switch" end; return r, n end]])
   PIECES:Record({"models/magtrains1ga/straight_0032.mdl", "#", "#", 1, "", " 16  , 0, 3.016"})
   PIECES:Record({"models/magtrains1ga/straight_0032.mdl", "#", "#", 2, "", "-16  , 0, 3.016", "0,180,0"})
   PIECES:Record({"models/magtrains1ga/straight_0064.mdl", "#", "#", 1, "", " 32  , 0, 3.016"})
@@ -2351,14 +2348,10 @@ else
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 1, "", "5056, 219.145, 992.765"})
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 2, "", "-576, 219.145, 992.765", "0, 180,0"})
   asmlib.Categorize("StevenTechno's Buildings 1.0",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/buildingspack/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1) or "")
+    local r = m:gsub("models/buildingspack/",""):gsub("%W.+$","")
     if  (r:find("emptylots")) then r = "empty_lots"
     elseif(r:find("roadsdw")) then r = r:gsub("roadsdw","double_")
-    elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end; return r; end]])
   asmlib.ModelToNameRule("SET",{1,3})
   PIECES:Record({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 1, "", "0,0,3.03125"})
   PIECES:Record({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,180,0"})
@@ -2545,11 +2538,9 @@ else
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 2, "", "-0.004,-95.763,0.016", "0,-90,-90"})
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 3, "", "0,96,0.083", "0,90,90"})
   asmlib.Categorize("Mr.Train's M-Gauge",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props/m_gauge/track/m_gauge_",""):gsub("_","/")
-    local s = r:find("/"); r = tonumber(r:sub(1,1)) and "straight" or (s and r:sub(1,s-1) or "")
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local r = m:gsub("models/props/m_gauge/track/m_gauge_","")
+    local n = r:gsub("%.mdl", ""); r = r:gsub("%W.+$","")
+    if(tonumber(r:sub(1,1))) then r = "straight" else n = n:gsub(r.."_", "") end; return r, n; end]])
   asmlib.ModelToNameRule("SET",nil,{"m_gauge","straight"},nil)
   PIECES:Record({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 1, "", "16,0,0.016"})
   PIECES:Record({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 2, "", "-16,0,0.016", "0,-180,0"})
@@ -2620,13 +2611,9 @@ else
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 2, "", "-384,160,0.016", "0,180,0"})
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 3, "", "-256,10,0.016", "0,180,0"})
   asmlib.Categorize("Mr.Train's G-Gauge",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props/g_gauge/track/g_gauge_track_",""):gsub("%.mdl","")
-    local s = r:find("_")
-    local o, n = {(s and r:sub(1,s-1) or "other")}, r:sub(s+1,-1)
-    if(o[1] == "s") then o[1] = "curves" end
-    n = n and ("_"..n):gsub("_%w",conv):sub(2,-1) or nil
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]])
+    local r = m:gsub("models/props/g_gauge/track/g_gauge_track_","")
+    local n = r:gsub("%.mdl",""); r = r:gsub("%W.+$","")
+    n = n:gsub(r.."_", ""); if(r == "s") then r = "curves" end; return r, n end]])
   asmlib.ModelToNameRule("SET",nil,{"g_gauge_track_",""},nil)
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 1, "", " 16,0,1.516"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 2, "", "-16,0,1.516", "0,-180,0"})
@@ -2697,21 +2684,12 @@ else
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 1, "", "263.75, 248.25,1.516"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 2, "", "-248.25,-263.75,1.516", "0,-90,0"})
   asmlib.Categorize("Bobster's two feet rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r, o = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("_","/")
-    local s = r:find("/"); g = (s and r:sub(1,s-1) or "");
-    if(g == "") then return nil end
-    if(g == "straight") then
-      local r = r:sub(s+1,-1)
-      local e = r:find("/"); r = e and r:sub(1,e-1) or nil; o = {g,r}
-    elseif(g == "curves") then
-      local r = r:sub(s+1,-1); r = r:gsub("curve/","")
-      local e = r:find("/"); r = (not tonumber(r:sub(1,1))) and (e and r:sub(1,e-1) or nil) or nil; o = {g,r}
-    elseif(g == "switches") then
-      local r = r:sub(s+1,-1); r = r:gsub("switch/","")
-      local e = r:find("/"); r = e and r:sub(1,e-1) or nil; o = {g,r}
-    else o = {g} end
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local g = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local t, n = g:match(".-_"), g:gsub("%.mdl","")
+    if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+      if(r:find(t)) then n = n:gsub(t.."_", "") end
+    end; return r, n; end]])
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 1, "0,-32,1.5", "8,0,3.017"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 2, "0,32,1.5", "-8,0,3.017", "0,180,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016"})
@@ -2837,10 +2815,12 @@ else
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
   asmlib.Categorize("PHX Tubes Miscellaneous",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
-    local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+      local g = m:gsub("models/props_phx/construct/",""):gsub("/","_")
+      local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+      local t, n = g:match(".-_"), g:gsub("%.mdl","")
+      if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; return r, n; end]])
   --- Tubes Metal ---
   PIECES:Record({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
   PIECES:Record({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
@@ -2956,10 +2936,8 @@ else
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   asmlib.Categorize("PHX Tubes Plastic",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/hunter/","")
-    local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local g = m:gsub("models/hunter/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); return r end]])
   PIECES:Record({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
   PIECES:Record({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
   PIECES:Record({"models/hunter/misc/platehole1x1b.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
@@ -3232,15 +3210,13 @@ else
   PIECES:Record({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 1, "", "0, 94.9,0" , "0,90,90"})
   PIECES:Record({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 2, "", "0,0,-94.9" , "90,-180,180"})
   asmlib.Categorize("G Scale Track Pack",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/gscale/","")
-    local s = r:find("/"); r = s and r:sub(1,s-1) or nil
-    if    (r == "j") then r = "J-Switcher"
-    elseif(r == "s") then r = "S-Switcher"
-    elseif(r == "c0512") then r = "Curve 512"
-    elseif(r == "ibeam") then r = "Iron Beam"
-    elseif(r == "ramp313") then r = "Ramp 313"
-    else r = ("_"..r):gsub("_%w", conv):sub(2,-1) end return {r} end]])
+      local g = m:gsub("models/gscale/","")
+      local r = g:match(".-/"):sub(1, -2)
+      if    (r == "j") then r = "j switcher"
+      elseif(r == "s") then r = "s switcher"
+      elseif(r == "c0512") then r = "curve 512"
+      elseif(r == "ibeam") then r = "iron beam"
+      elseif(r == "ramp313") then r = "ramp 313" end; return r; end]])
   PIECES:Record({"models/gscale/straight/s0008.mdl", "#", "#", 1, "", "   0,0,1.016"})
   PIECES:Record({"models/gscale/straight/s0008.mdl", "#", "#", 2, "", "  -8,0,1.016", "0,-180,0"})
   PIECES:Record({"models/gscale/straight/s0016.mdl", "#", "#", 1, "", "   0,0,1.016"})
@@ -3344,10 +3320,15 @@ else
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
   asmlib.Categorize("Ron's Minitrain Props",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/ron/minitrains/","")
-    local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local g = m:gsub("models/ron/minitrains/","")
+    local r = g:match(".-/"):sub(1, -2)
+    if(r == "elevations") then
+      local s = g:gsub(r.."/", ""):gsub("/.+$", "")
+      local n = g:match("[\\/]([^/\\]+)$"):gsub("%.mdl","")
+      local p = n:match(".-_")
+      if(p) then p = p:sub(1, -2)
+        if(r:find(p)) then n = n:gsub(p, ""):sub(2,-1) end
+      end; return {r, s}, n; end; return r; end]])
   PIECES:Record({"models/ron/minitrains/straight/1.mdl",   "#", "#", 1, "", " 0, 8.507, 1"})
   PIECES:Record({"models/ron/minitrains/straight/1.mdl",   "#", "#", 2, "", "-1, 8.507, 1", "0,-180,0"})
   PIECES:Record({"models/ron/minitrains/straight/2.mdl",   "#", "#", 1, "", " 0, 8.507, 1"})
@@ -3425,10 +3406,12 @@ else
   PIECES:Record({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
   PIECES:Record({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
   asmlib.Categorize("SligWolf's White Rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/sligwolf/rails/","")
-    local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local g = m:gsub("models/sligwolf/rails/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local t, n = g:match(".-_"), g:gsub("%.mdl","")
+    if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+      if(r:find(t)) then n = n:gsub(t.."_", "") end
+    end; return r, n; end]])
   PIECES:Record({"models/sligwolf/rails/straight_128.mdl" , "#", "#", 1, "", "   0,-46,6.625"})
   PIECES:Record({"models/sligwolf/rails/straight_128.mdl" , "#", "#", 2, "", "-128,-46,6.625", "0,-180,0"})
   PIECES:Record({"models/sligwolf/rails/straight_256.mdl" , "#", "#", 1, "", "   0,-46,6.625"})
@@ -3454,10 +3437,8 @@ else
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 2, "", "-768,-46,6.625", "0,-180,0","gmod_sw_modelpack_switch_l"})
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 3, "", "-766.132,-198.393, 6.625", "0,-157.5,0","gmod_sw_modelpack_switch_l"})
   asmlib.Categorize("SligWolf's Minihover",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/sligwolf/minihover/hover_","")
-    local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local n = m:gsub("models/sligwolf/minihover/hover_","")
+    local r = n:match("%a+"); n = n:gsub("%.mdl",""); return r, n; end]])
   PIECES:Record({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 1, "", " 104, 32,5.81"})
   PIECES:Record({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 2, "", "-104, 32,5.81", "0,-180,0"})
   PIECES:Record({"models/sligwolf/minihover/hover_straight_x4_mid.mdl"       , "#", "#", 1, "", " 208, 32,5.81"})
@@ -3553,10 +3534,15 @@ else
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 1, "", "9.2e-005,95.999756,5.81", "0,180,0"})
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 2, "", "527.999756,-431.999878,5.81", "0,-90,0"})
   asmlib.Categorize("Transrapid",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/ron/maglev/",""):gsub("[\\/]([^\\/]+)$","");
-    if(r:find("track")) then r = r:gsub("track/","")
-    elseif(r:find("support")) then r = nil end; return r and {("_"..r):gsub("_%w",conv):sub(2,-1)} end]])
+      local g = m:gsub("models/ron/maglev/",""):gsub("/","_")
+            g = g:gsub("[\\/]([^\\/]+)$",""):gsub("%.mdl","")
+      local r = g:match(".-_"):sub(1, -2)
+      if(r == "track") then g = g:gsub(r.."_", "")
+        r = g:match(".-_"):sub(1, -2) else return nil end
+      local t, n = g:match(".-_"), g:gsub(r.."_", "")
+      if(t) then t = t:sub(1, -2); g = g:gsub(t.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; return r, n; end]])
   PIECES:Record({"models/ron/maglev/support/support_a.mdl", "#", "#", 1, "", "0,0,3.984", "0,-180,0"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 1, "", " 64,0,3.984"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 2, "", "-64,0,3.984", "0,-180,0"})
@@ -3577,10 +3563,14 @@ else
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 1, "", " 2048,0,3.984"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 2, "", "-2048,0,3.984", "0,-180,0"})
   asmlib.Categorize("Battleship's abandoned rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/craptrax/","")
-    local s = r:find("[^%a]"); r = s and r:sub(1,s-1) or nil
-    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1) or nil)} end]])
+    local g = m:gsub("models/craptrax/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    if(r:find("straight")) then r = "straight"
+    elseif(r:find("curve")) then r = "curve"
+    elseif(r:find("switch")) then r = "switch" end
+    local t = n:match(r.."_")
+    if(t) then n = n:gsub(t,"") end; return r, n; end]])
   PIECES:Record({"models/craptrax/straight1x/straight_1x_nodamage.mdl", "#", "#", 1, "", " 64,0,-16.110403"})
   PIECES:Record({"models/craptrax/straight1x/straight_1x_nodamage.mdl", "#", "#", 2, "", "-64,0,-16.110403", "0,-180,0"})
   PIECES:Record({"models/craptrax/straight1x/straight_1x_damaged.mdl" , "#", "#", 1, "", " 64,0,-16.110403"})
@@ -3632,9 +3622,10 @@ else
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 2, "", "-512,0,-16.110403", "0,180,0"})
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 3, "", "-454.48437,128.0936,-16.110403", "0,165,0"})
   asmlib.Categorize("AlexCookie's 2ft track pack",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/alexcookie/2ft/",""):gsub("[\\/]([^\\/]+)$","");
-    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1))} end]])
+    local g = m:gsub("models/alexcookie/2ft/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = n:match(r.."_"); if(t) then n = n:gsub(t,"") end; return r, n; end]])
   PIECES:Record({"models/alexcookie/2ft/misc/end1.mdl", "#", "#", 1, "", "0,0,13.04688"})
   PIECES:Record({"models/alexcookie/2ft/straight/straight_32.mdl", "#", "#", 1, "", "32,0,13.04688"})
   PIECES:Record({"models/alexcookie/2ft/straight/straight_32.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0"})
@@ -3663,17 +3654,11 @@ else
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0"})
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0"})
   asmlib.Categorize("Joe's track pack",[[function(m)
-    local function split(s)
-      local o, k = {s}, 1
-      local f, b = o[k]:find("/")
-      while(f and b) do
-        o[k + 1] = o[k]:sub(b + 1, -1)
-        o[k] = o[k]:sub(1, f -1):gsub("^%l", string.upper)
-        k = k + 1; f, b = o[k]:find("/")
-      end; o[k] = o[k]:gsub("^%l", string.upper); return o
-    end; local r = m:gsub("models/joe/jtp/",""):gsub("[\\/]*([^\\/]+)$","")
-    return ((r ~= "") and split(r) or nil)
-  end]])
+    local g = m:gsub("models/joe/jtp/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = r:find("/")
+    if(t) then return {r:sub(1, t-1), r:sub(t+1, -1)}, n end; return r, n; end]])
   PIECES:Record({"models/joe/jtp/switch/1536/225_left_switch.mdl", "#", "#", 1, "", "0,0,6.56348", "0,90,0"})
   PIECES:Record({"models/joe/jtp/switch/1536/225_left_switch.mdl", "#", "#", 2, "", "0,-512,6.56348", "0,-90,0"})
   PIECES:Record({"models/joe/jtp/switch/1536/225_left_switch.mdl", "#", "#", 3, "", "117,-588,6.56348", "0,-67.5,0"})
@@ -3788,10 +3773,14 @@ else
   PIECES:Record({"models/joe/jtp/grades/curve/4096_64_right.mdl", "#", "#", 1, "", "0,0,6.56152", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/curve/4096_64_right.mdl", "#", "#", 2, "", "-4096,-4096,70.56152", "0,-180,0"})
   asmlib.Categorize("StevenTechno's Buildings 2.0",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:match("/.*/"):sub(2,-2):match("/.*$"):sub(2,-1)
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    local g = m:gsub("models/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = r:find("/")
+    if(t) then r, g = r:sub(1, t-1), r:sub(t+1, -1)
+      if(r:find("road")) then r = "roads"
+      elseif(r:find("building")) then r = "buildings" end
+      return {r, g}, n end; return r, n; end]])
   asmlib.ModelToNameRule("SET",nil,{"^[%d-_]*",""},nil)
   PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 1, "", "0,0,3.03125"})
   PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,-180,0"})
@@ -4025,7 +4014,9 @@ else
   PIECES:Record({"models/roads_pack/highway_turns/6-0_highway_turn_a.mdl", "#", "#", 2, "", "-628,546,314.03125", "0,90,0"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 1, "", "0,0,315.03125"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 2, "", "-2860,2860,315.03125", "0,90,0"})
-  asmlib.Categorize("Modular canals")
+  asmlib.Categorize("Modular canals",[[function(m)
+    local n = m:gsub("models/props_d47_canals/interior_","")
+    local r = n:match("%a+"); n = n:gsub("%.mdl",""); return r, n; end]])
   PIECES:Record({"models/props_d47_canals/interior_narrow_128.mdl", "#", "#", 1, "", "64,64,0"})
   PIECES:Record({"models/props_d47_canals/interior_narrow_128.mdl", "#", "#", 2, "", "-64,64,0", "0,-180,0"})
   PIECES:Record({"models/props_d47_canals/interior_narrow_256.mdl", "#", "#", 1, "", "128,0,0"})
@@ -4074,9 +4065,9 @@ else
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 2, "", "0,-256,0", "0,-90,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 3, "", "-256,0,0", "0,180,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 4, "", "0,256,0", "0,90,0"})
-  asmlib.Categorize("Trackmania United Props",[[function (m)
-    local r = m:gsub("models/nokillnando/trackmania/ground/", "")
-          r = r:gsub("/.+$", ""):gsub("^%l", string.upper) return r end]])
+  asmlib.Categorize("Trackmania United Props",[[function(m)
+    local g = m:gsub("models/nokillnando/trackmania/ground/", "")
+    local r = g:match(".+/"):sub(1,-2); return r; end]])
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 1, "", " 480,0,5.65723"})
   PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 2, "", "-480,0,5.65723", "0,-180,0"})
   PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/dipmiddle.mdl", "#", "#", 1, "", " 477.1748,0,65.65723"})

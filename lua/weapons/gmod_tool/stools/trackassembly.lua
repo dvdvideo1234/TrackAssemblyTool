@@ -1495,6 +1495,8 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
 
+  local fncConv = asmlib.GetOpVar("MODELNAM_FUNC")
+  local symDiv  = asmlib.GetOpVar("OPSYM_DIVIDER")
   local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
@@ -1535,19 +1537,27 @@ function TOOL.BuildCPanel(CPanel)
         -- If the call is successful in protected mode and a folder table is present
         if(bSuc) then local pCurr = pCateg[sTyp]
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
-          if(ptCat and not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
-          if(ptCat and ptCat[1]) then local iCnt = 1;
-            while(ptCat[iCnt]) do local sCat = tostring(ptCat[iCnt])
-              if(asmlib.IsBlank(sCat)) then sCat = "Other" end
-              if(pCurr[sCat]) then -- Jump next if already created
-                pCurr, pItem = asmlib.GetDirectoryObj(pCurr, sCat)
-              else local sI, cC = asmlib.ToIcon("category_item"), conPalette:Select("tx")
-                pCurr, pItem = asmlib.SetDirectoryObj(pItem, pCurr, sCat, sI, cC)
-              end; iCnt = iCnt + 1; -- Create the last needed node regarding pItem
-            end
-          end; if(psNam and not asmlib.IsBlank(psNam)) then sNam = tostring(psNam) end
-        end -- Custom name to override via category
-      end
+          if(asmlib.IsHere(ptCat)) then
+            if(not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
+            if(ptCat[1]) then local iD = 1
+              while(ptCat[iD]) do local sCat = tostring(ptCat[iD]):lower():Trim()
+                if(asmlib.IsBlank(sCat)) then sCat = "other" end
+                  sCat = ("_"..sCat):gsub(symDiv.."%w", fncConv):sub(2,-1)
+                if(pCurr[sCat]) then -- Jump next if already created
+                  pCurr, pItem = asmlib.GetDirectory(pCurr, sCat)
+                else local sI, cC = asmlib.ToIcon("category_item"), conPalette:Select("tx")
+                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat, sI, cC)
+                end; iD = iD + 1 -- Create the last needed node regarding pItem
+              end
+            end -- When the category has atleast one element
+          end -- Is there any category
+        end
+
+        if(psNam and not asmlib.IsBlank(psNam)) then
+          sNam = tostring(psNam):lower():Trim()
+          sNam = ("_"..sNam):gsub(symDiv.."%w", fncConv):sub(2,-1)
+        end
+      end -- Custom name to override via category
       -- Register the node associated with the track piece
       pNode = pItem:AddNode(sNam)
       pNode.DoRightClick = function() SetClipboardText(sMod) end

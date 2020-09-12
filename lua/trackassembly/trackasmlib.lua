@@ -1434,7 +1434,7 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   LogInstance("Crated #"..tostring(iCnt-1)); return true
 end
 
-function GetDirectoryObj(pCurr, vName)
+function GetDirectory(pCurr, vName)
   if(not pCurr) then
     LogInstance("Location invalid"); return nil end
   local sName = tostring(vName or "")
@@ -1444,7 +1444,7 @@ function GetDirectoryObj(pCurr, vName)
   return pItem, pItem.__ObjPanel__
 end
 
-function SetDirectoryObj(pnBase, pCurr, vName, sImage, txCol)
+function SetDirectory(pnBase, pCurr, vName, sImage, txCol)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
   if(not pCurr) then

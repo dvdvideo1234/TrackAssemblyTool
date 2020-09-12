@@ -122,8 +122,8 @@ if(asmlib) then
       elseif(r:find("curve")) then c = "curve"
       elseif(r:find("bumper")) then c = "bumper"
       elseif(r:find("junction")) then c = "junction"
-      elseif(r:find("%dx")) then c = "straight" else c = "other" end
-      c = (c and c:gsub("^%l", string.upper) or nil); return c end
+      elseif(r:find("%dx")) then c = "straight"
+      else c = "other" end; return c end
     ]]}
   }
 
