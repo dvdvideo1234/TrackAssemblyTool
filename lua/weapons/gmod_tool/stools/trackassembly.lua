@@ -1495,6 +1495,13 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
 
+  local function nodeDoClick(pnSelf, sModel)
+    asmlib.SetAsmConvar(nil, "model"  , sModel)
+    asmlib.SetAsmConvar(nil, "pointid", 1)
+    asmlib.SetAsmConvar(nil, "pnextid", 2)
+  end
+
+  local kyPanel = asmlib.GetOpVar("TREE_KEYPANEL")
   local fncConv = asmlib.GetOpVar("MODELNAM_FUNC")
   local symDiv  = asmlib.GetOpVar("OPSYM_DIVIDER")
   local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
@@ -1508,13 +1515,14 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetSize(2, 400)
         pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
         pTree:SetIndentSize(0)
-  local iCnt, iTyp, pFolders, pCateg, pNode = 1, 1, {}, {}
-  while(cqPanel[iCnt]) do local vRec = cqPanel[iCnt]
+  local iCnt, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
+  while(cqPanel[iCnt]) do
+    local vRec, bNow = cqPanel[iCnt], true
     local sMod = vRec[makTab:GetColumnName(1)]
     local sTyp = vRec[makTab:GetColumnName(2)]
     local sNam = vRec[makTab:GetColumnName(3)]
     if(fileExists(sMod, "GAME")) then
-      if(not (asmlib.IsBlank(sTyp) or pFolders[sTyp])) then
+      if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.InternalDoClick = function() end
@@ -1527,15 +1535,20 @@ function TOOL.BuildCPanel(CPanel)
               end
               pRoot.Label.UpdateColours = function(pSelf)
                 return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
-        pFolders[sTyp] = pRoot
+        pTypes[sTyp] = pRoot
       end -- Reset the primary tree node pointer
-      if(pFolders[sTyp]) then pItem = pFolders[sTyp] else pItem = pTree end
+      if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
       -- Register the category if definition functional is given
       if(catTypes[sTyp]) then -- There is a category definition
-        if(not pCateg[sTyp]) then pCateg[sTyp] = {} end
         local bSuc, ptCat, psNam = pcall(catTypes[sTyp].Cmp, sMod)
-        -- If the call is successful in protected mode and a folder table is present
-        if(bSuc) then local pCurr = pCateg[sTyp]
+        if(bSuc) then -- When the call is successful in protected mode
+          if(psNam and not asmlib.IsBlank(psNam)) then
+            sNam = tostring(psNam):lower():Trim()
+            sNam = ("_"..sNam):gsub(symDiv.."%w", fncConv):sub(2,-1)
+          end -- Custom name override when the addon requests
+          local pCurr = pCateg[sTyp]
+          if(not asmlib.IsHere(pCurr)) then
+            pCateg[sTyp] = {}; pCurr = pCateg[sTyp] end
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
           if(asmlib.IsHere(ptCat)) then
             if(not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
@@ -1545,39 +1558,34 @@ function TOOL.BuildCPanel(CPanel)
                   sCat = ("_"..sCat):gsub(symDiv.."%w", fncConv):sub(2,-1)
                 if(pCurr[sCat]) then -- Jump next if already created
                   pCurr, pItem = asmlib.GetDirectory(pCurr, sCat)
-                else local sI, cC = asmlib.ToIcon("category_item"), conPalette:Select("tx")
-                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat, sI, cC)
+                else local cC = conPalette:Select("tx")
+                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat, cC)
                 end; iD = iD + 1 -- Create the last needed node regarding pItem
               end
             end -- When the category has atleast one element
-          end -- Is there any category
+          else -- Store the creation information of the ones without category for later
+            tableInsert(pCateg[sTyp], {sNam, sMod}); bNow = false
+          end -- Is there is any category apply it
         end
-
-        if(psNam and not asmlib.IsBlank(psNam)) then
-          sNam = tostring(psNam):lower():Trim()
-          sNam = ("_"..sNam):gsub(symDiv.."%w", fncConv):sub(2,-1)
-        end
-      end -- Custom name to override via category
-      -- Register the node associated with the track piece
-      pNode = pItem:AddNode(sNam)
-      pNode.DoRightClick = function()
-        if(inputIsKeyDown(KEY_LSHIFT)) then
-          SetClipboardText(sMod)
-        else SetClipboardText(sNam) end
       end
-      pNode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model_con").." "..sMod)
-      pNode.Icon:SetImage(asmlib.ToIcon("model"))
-      pNode.DoClick = function(pSelf)
-        asmlib.SetAsmConvar(nil, "model"  , sMod)
-        asmlib.SetAsmConvar(nil, "pointid", 1)
-        asmlib.SetAsmConvar(nil, "pnextid", 2)
-      end -- SnapReview is ignored because a query must be executed for points count
-    else asmlib.LogInstance("Extension <"..sTyp.."> missing <"..sMod.."> .. SKIPPING !",sLog) end
+      -- Register the node associated with the track piece now when now intended for later
+      if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod, nodeDoClick) end
+      -- SnapReview is ignored because a query must be executed for points count
+    else asmlib.LogInstance("Ignoring item "..asmlib.GetReport3(sTyp, sNam, sMod),sLog) end
     iCnt = iCnt + 1
   end
+  -- Attach the uncategorized items to the type root
+  for typ, val in pairs(pCateg) do
+    for iD = 1, #val do
+      local pan = pTypes[typ]
+      local nam, mod = unpack(val[iD])
+      asmlib.SetDirectoryNode(pan, nam, mod, nodeDoClick)
+      asmlib.LogInstance("Rooting item "..asmlib.GetReport3(typ, nam, mod),sLog)
+    end
+  end -- Process all the items without category defined
   CPanel:AddItem(pTree)
   CurY = CurY + pTree:GetTall() + 2
-  asmlib.LogInstance("Found #"..tostring(iCnt-1).." piece items.",sLog)
+  asmlib.LogInstance("Found items #"..tostring(iCnt-1),sLog)
 
   -- Extract panel text and place it in the clipboard
   local function setDermaClipboard(pnPanel)
