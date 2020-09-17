@@ -1495,15 +1495,6 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
 
-  local function nodeDoClick(pnSelf, sModel)
-    asmlib.SetAsmConvar(nil, "model"  , sModel)
-    asmlib.SetAsmConvar(nil, "pointid", 1)
-    asmlib.SetAsmConvar(nil, "pnextid", 2)
-  end
-
-  local kyPanel = asmlib.GetOpVar("TREE_KEYPANEL")
-  local fncConv = asmlib.GetOpVar("MODELNAM_FUNC")
-  local symDiv  = asmlib.GetOpVar("OPSYM_DIVIDER")
   local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
@@ -1543,8 +1534,7 @@ function TOOL.BuildCPanel(CPanel)
         local bSuc, ptCat, psNam = pcall(catTypes[sTyp].Cmp, sMod)
         if(bSuc) then -- When the call is successful in protected mode
           if(psNam and not asmlib.IsBlank(psNam)) then
-            sNam = tostring(psNam):lower():Trim()
-            sNam = ("_"..sNam):gsub(symDiv.."%w", fncConv):sub(2,-1)
+            sNam = asmlib.GetBeautifyName(psNam)
           end -- Custom name override when the addon requests
           local pCurr = pCateg[sTyp]
           if(not asmlib.IsHere(pCurr)) then
@@ -1555,7 +1545,7 @@ function TOOL.BuildCPanel(CPanel)
             if(ptCat[1]) then local iD = 1
               while(ptCat[iD]) do local sCat = tostring(ptCat[iD]):lower():Trim()
                 if(asmlib.IsBlank(sCat)) then sCat = "other" end
-                  sCat = ("_"..sCat):gsub(symDiv.."%w", fncConv):sub(2,-1)
+                sCat = asmlib.GetBeautifyName(sCat) -- Beautify the category
                 if(pCurr[sCat]) then -- Jump next if already created
                   pCurr, pItem = asmlib.GetDirectory(pCurr, sCat)
                 else local cC = conPalette:Select("tx")
@@ -1569,7 +1559,7 @@ function TOOL.BuildCPanel(CPanel)
         end
       end
       -- Register the node associated with the track piece now when now intended for later
-      if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod, nodeDoClick) end
+      if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport3(sTyp, sNam, sMod),sLog) end
     iCnt = iCnt + 1
@@ -1579,7 +1569,7 @@ function TOOL.BuildCPanel(CPanel)
     for iD = 1, #val do
       local pan = pTypes[typ]
       local nam, mod = unpack(val[iD])
-      asmlib.SetDirectoryNode(pan, nam, mod, nodeDoClick)
+      asmlib.SetDirectoryNode(pan, nam, mod)
       asmlib.LogInstance("Rooting item "..asmlib.GetReport3(typ, nam, mod),sLog)
     end
   end -- Process all the items without category defined

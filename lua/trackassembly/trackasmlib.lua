@@ -1466,7 +1466,7 @@ function SetDirectory(pnBase, pCurr, vName, txCol)
   return pCurr[sName], pItem
 end
 
-function SetDirectoryNode(pnBase, sName, sModel, fClick)
+function SetDirectoryNode(pnBase, sName, sModel)
   if(not IsValid(pnBase)) then LogInstance("Base invalid "
     ..GetReport2(sName, sModel)); return nil end
   local pNode = pnBase:AddNode(sName)
@@ -1481,7 +1481,11 @@ function SetDirectoryNode(pnBase, sName, sModel, fClick)
   end
   pNode:SetTooltip(sModC.." "..sModel)
   pNode.Icon:SetImage(ToIcon("model"))
-  pNode.DoClick = function(pnSelf) fClick(pnSelf, sModel) end
+  pNode.DoClick = function(pnSelf)
+    SetAsmConvar(nil, "model"  , sModel)
+    SetAsmConvar(nil, "pointid", 1)
+    SetAsmConvar(nil, "pnextid", 2)
+  end
   return pNode
 end
 
@@ -1643,6 +1647,13 @@ function GetPointElevation(oEnt,ivPoID)
   return mathAbs(vDiffBB[cvZ])
 end
 
+function GetBeautifyName(sName)
+  local sDiv = GetOpVar("OPSYM_DIVIDER")
+  local fCon = GetOpVar("MODELNAM_FUNC")
+  local sNam = tostring(sName or ""):lower():Trim()
+  return ("_"..sNam):gsub(sDiv.."%w", fCon):sub(2,-1)
+end
+
 function ModelToName(sModel, bNoSet)
   if(not IsString(sModel)) then
     LogInstance("Argument mismatch "..GetReport(sModel)); return "" end
@@ -1675,8 +1686,7 @@ function ModelToName(sModel, bNoSet)
       gModel = (fCh..gModel..bCh); LogInstance("App{"..fCh..","..bCh.."}@"..gModel)
     end
   end -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
-  if(gModel:sub(1,1) ~= sSymDiv) then gModel = sSymDiv..gModel end
-  return gModel:gsub(sSymDiv.."%w",GetOpVar("MODELNAM_FUNC")):sub(2,-1)
+  return GetBeautifyName(gModel:Trim("_"))
 end
 
 --[[
