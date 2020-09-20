@@ -1447,23 +1447,26 @@ function GetDirectory(pCurr, vName)
   return pItem, pItem[keyOb]
 end
 
-function SetDirectory(pnBase, pCurr, vName, txCol)
+function SetDirectory(pnBase, pCurr, vName)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
   if(not pCurr) then
     LogInstance("Location invalid"); return nil end
+  local tSkin = pnBase:GetSkin()
+  local sTool = GetOpVar("TOOLNAME_NL")
   local keyOb = GetOpVar("TREE_KEYPANEL")
   local sName = tostring(vName or "")
         sName = (IsBlank(sName) and "Other" or sName)
-  local pItem = pnBase:AddNode(sName)
-  pCurr[sName] = {}; pCurr[sName][keyOb] = pItem
-  pItem.Icon:SetImage(ToIcon("category_item"))
-  pItem.InternalDoClick = function() end
-  pItem.DoClick         = function() return false end
-  pItem.DoRightClick    = function() SetClipboardText(pItem:GetText()) end
-  pItem.Label.UpdateColours = function(pSelf)
-    return pSelf:SetTextStyleColor(txCol or GetColor(0,0,0,255)) end
-  return pCurr[sName], pItem
+  local pNode = pnBase:AddNode(sName)
+  pCurr[sName] = {}; pCurr[sName][keyOb] = pNode
+  pNode:SetTooltip(GetPhrase("tool."..sTool..".category"))
+  pNode.Icon:SetImage(ToIcon("category_item"))
+  pNode.InternalDoClick = function() end
+  pNode.DoClick         = function() return false end
+  pNode.DoRightClick    = function() SetClipboardText(pNode:GetText()) end
+  pNode.Label:UpdateColours(tSkin)
+  pNode:UpdateColours(tSkin)
+  return pCurr[sName], pNode
 end
 
 function SetDirectoryNode(pnBase, sName, sModel)
@@ -1472,6 +1475,7 @@ function SetDirectoryNode(pnBase, sName, sModel)
   local pNode = pnBase:AddNode(sName)
   if(not IsValid(pNode)) then LogInstance("Node invalid "
     ..GetReport2(sName, sModel)); return nil end
+  local tSkin = pnBase:GetSkin()
   local sTool = GetOpVar("TOOLNAME_NL")
   local sModC = GetPhrase("tool."..sTool..".model_con")
   pNode.DoRightClick = function()
@@ -1482,10 +1486,18 @@ function SetDirectoryNode(pnBase, sName, sModel)
   pNode:SetTooltip(sModC.." "..sModel)
   pNode.Icon:SetImage(ToIcon("model"))
   pNode.DoClick = function(pnSelf)
+    local pnP = pnSelf:GetParent()
+    local tpC = pnP:GetSelectedChildren()
+    for key, val in pairs(tpC) do
+      val:UpdateColours(tSkin)
+      val.Label:UpdateColours(tSkin)
+    end
     SetAsmConvar(nil, "model"  , sModel)
     SetAsmConvar(nil, "pointid", 1)
     SetAsmConvar(nil, "pnextid", 2)
   end
+  pNode.Label:UpdateColours(tSkin)
+  pNode:UpdateColours(tSkin)
   return pNode
 end
 

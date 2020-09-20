@@ -1481,6 +1481,7 @@ function TOOL:DrawToolScreen(w, h)
 end
 
 function TOOL.BuildCPanel(CPanel)
+  local drmSkin = CPanel:GetSkin()
   local devmode = asmlib.GetAsmConvar("devmode", "BUL")
   local sLog = "*TOOL.BuildCPanel"; CPanel:ClearControls()
   local CurY, sCall, pItem, sText, fText = 0, "_cpan" -- pItem is the current panel created
@@ -1506,6 +1507,7 @@ function TOOL.BuildCPanel(CPanel)
         pTree:SetSize(2, 400)
         pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
         pTree:SetIndentSize(0)
+        pTree:UpdateColours(drmSkin)
   local iCnt, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
   while(cqPanel[iCnt]) do
     local vRec, bNow = cqPanel[iCnt], true
@@ -1515,6 +1517,7 @@ function TOOL.BuildCPanel(CPanel)
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
+              pRoot:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.InternalDoClick = function() end
               pRoot.DoClick         = function() return false end
@@ -1524,8 +1527,8 @@ function TOOL.BuildCPanel(CPanel)
                   guiOpenURL(asmlib.GetOpVar("FORM_URLADDON"):format(ID))
                 else SetClipboardText(pRoot:GetText()) end
               end
-              pRoot.Label.UpdateColours = function(pSelf)
-                return pSelf:SetTextStyleColor(conPalette:Select("tx")) end
+              pRoot:UpdateColours(drmSkin)
+              pRoot.Label:UpdateColours(drmSkin)
         pTypes[sTyp] = pRoot
       end -- Reset the primary tree node pointer
       if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
@@ -1548,8 +1551,8 @@ function TOOL.BuildCPanel(CPanel)
                 sCat = asmlib.GetBeautifyName(sCat) -- Beautify the category
                 if(pCurr[sCat]) then -- Jump next if already created
                   pCurr, pItem = asmlib.GetDirectory(pCurr, sCat)
-                else local cC = conPalette:Select("tx")
-                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat, cC)
+                else
+                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat)
                 end; iD = iD + 1 -- Create the last needed node regarding pItem
               end
             end -- When the category has atleast one element
