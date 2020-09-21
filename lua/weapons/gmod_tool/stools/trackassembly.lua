@@ -186,6 +186,10 @@ function TOOL:GetCurveFactor()
   return asmlib.GetAsmConvar("curvefact", "FLT")
 end
 
+function TOOL:GetEnPhysgunSnap()
+  return ((self:GetClientNumber("engunsnap") or 0) ~= 0)
+end
+
 function TOOL:GetCurveSamples()
   return asmlib.GetAsmConvar("curvsmple", "INT")
 end
@@ -1519,8 +1523,7 @@ function TOOL.BuildCPanel(CPanel)
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
-              pRoot.InternalDoClick = function() end
-              pRoot.DoClick         = function() return false end
+              pRoot.DoClick         = function(pnSelf) pnSelf:SetExpanded(true) end
               pRoot.DoRightClick    = function()
                 local ID = asmlib.WorkshopID(sTyp)
                 if(ID and ID > 0 and inputIsKeyDown(KEY_LSHIFT)) then
@@ -1528,7 +1531,6 @@ function TOOL.BuildCPanel(CPanel)
                 else SetClipboardText(pRoot:GetText()) end
               end
               pRoot:UpdateColours(drmSkin)
-              pRoot.Label:UpdateColours(drmSkin)
         pTypes[sTyp] = pRoot
       end -- Reset the primary tree node pointer
       if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
@@ -1749,3 +1751,16 @@ function TOOL.BuildCPanel(CPanel)
   pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".engunsnap_con"), gsToolPrefL.."engunsnap")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".engunsnap"))
 end
+
+--[[
+-- This is not really needed for normal tool operation.
+-- It is intended only of you need to test the control panel
+if CLIENT then
+  local cPanel = controlpanel.Get(TOOL.Mode)
+  if(not IsValid(cPanel)) then
+    ErrorNoHalt("Panel invalid: "..tostring(cPanel).."\n") end
+  cPanel:ClearControls()
+  local b, e = pcall(TOOL.BuildCPanel, cPanel)
+  if(not b) then ErrorNoHalt("Panel error: "..e.."\n") end
+end
+]]

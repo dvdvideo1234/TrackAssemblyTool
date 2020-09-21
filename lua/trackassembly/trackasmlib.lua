@@ -1461,10 +1461,9 @@ function SetDirectory(pnBase, pCurr, vName)
   pCurr[sName] = {}; pCurr[sName][keyOb] = pNode
   pNode:SetTooltip(GetPhrase("tool."..sTool..".category"))
   pNode.Icon:SetImage(ToIcon("category_item"))
-  pNode.InternalDoClick = function() end
-  pNode.DoClick         = function() return false end
+  --pNode.InternalDoClick = function() end
+  pNode.DoClick         = function(pnSelf) pnSelf:SetExpanded(true) end
   pNode.DoRightClick    = function() SetClipboardText(pNode:GetText()) end
-  pNode.Label:UpdateColours(tSkin)
   pNode:UpdateColours(tSkin)
   return pCurr[sName], pNode
 end
@@ -1489,14 +1488,11 @@ function SetDirectoryNode(pnBase, sName, sModel)
     local pnP = pnSelf:GetParent()
     local tpC = pnP:GetSelectedChildren()
     for key, val in pairs(tpC) do
-      val:UpdateColours(tSkin)
-      val.Label:UpdateColours(tSkin)
-    end
+      val:UpdateColours(tSkin) end
     SetAsmConvar(nil, "model"  , sModel)
     SetAsmConvar(nil, "pointid", 1)
     SetAsmConvar(nil, "pnextid", 2)
   end
-  pNode.Label:UpdateColours(tSkin)
   pNode:UpdateColours(tSkin)
   return pNode
 end
@@ -4141,8 +4137,10 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
   if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
     LogInstance("Piece physical object invalid "..GetReport(ePiece)); return false end
+  local sToolPrefL = GetOpVar("TOOLNAME_PL") -- Use the general tool prefix for networking
   local arSettings = {bPi,bFr,bGr,sPh}  -- Initialize dupe settings using this array
   ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
+  ePiece:SetNWBool(sToolPrefL.."physgundisabled", bPi) -- Disable drawing physgun grab and move
   ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
   ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
   -- Delay the freeze by a tiny amount because on physgun snap the piece
@@ -4151,7 +4149,7 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
     LogInstance("Freeze", "*DELAY_FREEZE");  -- Make sure that the physics are valid
     if(pyPiece and pyPiece:IsValid()) then pyPiece:EnableMotion(not bFr) end end )
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
-  duplicatorStoreEntityModifier(ePiece,GetOpVar("TOOLNAME_PL").."dupe_phys_set",arSettings)
+  duplicatorStoreEntityModifier(ePiece,sToolPrefL.."dupe_phys_set",arSettings)
   LogInstance("Success"); return true
 end
 

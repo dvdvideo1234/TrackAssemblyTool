@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.646")
+asmlib.SetOpVar("TOOL_VERSION","7.647")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -1039,6 +1039,8 @@ if(CLIENT) then
       if(actTr.HitWorld) then asmlib.LogInstance("Trace world",gtArgsLogs); return nil end
       local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
         asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
+      if(trEnt:GetNWBool(gsToolPrefL.."physgundisabled")) then
+        asmlib.LogInstance("Trace entity physgun disabled",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
@@ -2683,13 +2685,13 @@ else
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_45.mdl"   , "#", "#", 2, "", "-98.326,98.323,1.516", "0,-135,0"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 1, "", "263.75, 248.25,1.516"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 2, "", "-248.25,-263.75,1.516", "0,-90,0"})
-  asmlib.Categorize("Bobster's two feet rails",[[function(m)
-    local g = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("/","_")
-    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
-    local t, n = g:match(".-_"), g:gsub("%.mdl","")
-    if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
-      if(r:find(t)) then n = n:gsub(t.."_", "") end
-    end; return r, n; end]])
+  asmlib.Categorize("Bobster's two feet rails",[[function(m) local o = {}
+    local n = m:gsub("models/bobsters_trains/rails/2ft/","")
+    local r = n:match("^%a+"); n = n:gsub("%.mdl","")
+    for w in n:gmatch("%a+") do
+      if(r:find(w)) then n = n:gsub(w.."%W+", "") end
+    end table.insert(o, r); local f = n:match("^%a+")
+    if(f) then table.insert(o, f); n = n:gsub(f.."%W+", "") end; return o, n; end]])
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 1, "0,-32,1.5", "8,0,3.017"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 2, "0,32,1.5", "-8,0,3.017", "0,180,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016"})
