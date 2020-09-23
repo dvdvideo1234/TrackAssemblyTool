@@ -1523,8 +1523,12 @@ function TOOL.BuildCPanel(CPanel)
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
-              pRoot.DoClick         = function(pnSelf) pnSelf:SetExpanded(true) end
-              pRoot.DoRightClick    = function()
+              pRoot.DoClick = function(pnSelf)
+                if(inputIsKeyDown(KEY_LSHIFT)) then
+                  pnSelf:ExpandRecurse(true)
+                else pnSelf:SetExpanded(true) end
+              end
+              pRoot.DoRightClick = function()
                 local ID = asmlib.WorkshopID(sTyp)
                 if(ID and ID > 0 and inputIsKeyDown(KEY_LSHIFT)) then
                   guiOpenURL(asmlib.GetOpVar("FORM_URLADDON"):format(ID))

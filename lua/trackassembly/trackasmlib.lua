@@ -1461,9 +1461,14 @@ function SetDirectory(pnBase, pCurr, vName)
   pCurr[sName] = {}; pCurr[sName][keyOb] = pNode
   pNode:SetTooltip(GetPhrase("tool."..sTool..".category"))
   pNode.Icon:SetImage(ToIcon("category_item"))
-  --pNode.InternalDoClick = function() end
-  pNode.DoClick         = function(pnSelf) pnSelf:SetExpanded(true) end
-  pNode.DoRightClick    = function() SetClipboardText(pNode:GetText()) end
+  pNode.DoClick = function(pnSelf)
+    if(inputIsKeyDown(KEY_LSHIFT)) then
+      pNode:ExpandRecurse(true)
+    else pnSelf:SetExpanded(true) end
+  end
+  pNode.DoRightClick = function()
+    SetClipboardText(pNode:GetText())
+  end
   pNode:UpdateColours(tSkin)
   return pCurr[sName], pNode
 end
