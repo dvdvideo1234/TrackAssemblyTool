@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.648")
+asmlib.SetOpVar("TOOL_VERSION","7.651")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -764,50 +764,6 @@ if(CLIENT) then
       end; pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Read client configuration
-
-  asmlib.SetAction("RESET_VARIABLES",
-    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
-      local devmode = asmlib.GetAsmConvar("devmode", "BUL")
-      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
-      if(inputIsKeyDown(KEY_LSHIFT)) then
-        if(not devmode) then
-          asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
-        asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName, 1500)
-        for key, val in pairs(asmlib.GetConvarList()) do
-          asmlib.SetAsmConvar(oPly, "*"..key, val) end
-        asmlib.SetAsmConvar(oPly, "logsmax"  , 0)
-        asmlib.SetAsmConvar(oPly, "logfile"  , 0)
-        asmlib.SetAsmConvar(oPly, "modedb"   , "LUA")
-        asmlib.SetAsmConvar(oPly, "devmode"  , 0)
-        asmlib.SetAsmConvar(oPly, "maxtrmarg", 0.02)
-        asmlib.SetAsmConvar(oPly, "maxmenupr", 5)
-        asmlib.SetAsmConvar(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
-        asmlib.SetAsmConvar(oPly, "maxmass"  , 50000)
-        asmlib.SetAsmConvar(oPly, "maxlinear", 250)
-        asmlib.SetAsmConvar(oPly, "maxforce" , 100000)
-        asmlib.SetAsmConvar(oPly, "maxactrad", 150)
-        asmlib.SetAsmConvar(oPly, "maxstcnt" , 200)
-        asmlib.SetAsmConvar(oPly, "enwiremod", 1)
-        asmlib.SetAsmConvar(oPly, "enctxmall", 0)
-        asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
-        asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
-        asmlib.SetAsmConvar(oPly, "curvefact", 0.5)
-        asmlib.SetAsmConvar(oPly, "curvsmple", 50)
-        asmlib.LogInstance("Variables reset complete",gtArgsLogs)
-      else
-        asmlib.SetAsmConvar(oPly,"nextx"  , 0)
-        asmlib.SetAsmConvar(oPly,"nexty"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextz"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextpic", 0)
-        asmlib.SetAsmConvar(oPly,"nextyaw", 0)
-        asmlib.SetAsmConvar(oPly,"nextrol", 0)
-        if(devmode) then
-          asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
-                               asmlib.GetAsmConvar("logfile","BUL"))
-        end
-      end
-      asmlib.LogInstance("Success",gtArgsLogs); return nil
-    end)
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_FRAME"

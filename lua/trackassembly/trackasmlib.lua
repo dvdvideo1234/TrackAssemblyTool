@@ -643,7 +643,6 @@ function InitBase(sName,sPurpose)
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
-  SetOpVar("TABLE_CONVARLIST",{})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
@@ -4414,14 +4413,6 @@ function GetHookInfo(tInfo, sW)
   local actTool = actSwep:GetToolObject(); if(not actTool) then
     LogInstance("Tool invalid",tInfo); return nil end
   return oPly, actSwep, actTool
-end
-
-function GetConvarList(tC)
-  local sT = GetOpVar("TOOLNAME_PL")
-  local tI = GetOpVar("TABLE_CONVARLIST")
-  if(IsTable(tC)) then tableEmpty(tI)
-    for key, val in pairs(tC) do tI[sT..key] = val end
-  end; return tI
 end
 
 function GetLinearSpace(nBeg, nEnd, nAmt)

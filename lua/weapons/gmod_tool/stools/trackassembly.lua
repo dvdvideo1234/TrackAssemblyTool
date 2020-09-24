@@ -138,8 +138,6 @@ TOOL.ClientConVar = {
   [ "incsnplin"  ] = 5
 }
 
-local gtConvarList = asmlib.GetConvarList(TOOL.ClientConVar)
-
 if(CLIENT) then
   TOOL.Information = {
     { name = "info",  stage = 1   },
@@ -151,7 +149,6 @@ if(CLIENT) then
   languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
-  concommandAdd(gsToolPrefL.."resetvars", asmlib.GetActionCode("RESET_VARIABLES"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   netReceive(gsLibName.."SendCreateCurveNode", asmlib.GetActionCode("CREATE_CURVE_NODE"))
@@ -167,8 +164,53 @@ if(CLIENT) then
   hookAdd("OnContextMenuOpen", gsToolPrefL.."ctxmenu_open", asmlib.GetActionCode("CTXMENU_OPEN"))
   hookAdd("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
 
-  -- Store reference to the tool object
+  concommandAdd(gsToolPrefL.."resetvars",
+    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
+      local devmode = asmlib.GetAsmConvar("devmode", "BUL")
+      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
+      if(inputIsKeyDown(KEY_LSHIFT)) then
+        if(not devmode) then
+          asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
+        asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName, 1500)
+        for key, val in pairs(asmlib.GetOpVar("STORE_CONVARS")) do
+          asmlib.SetAsmConvar(oPly, "*"..key, val) end
+        asmlib.SetAsmConvar(oPly, "logsmax"  , 0)
+        asmlib.SetAsmConvar(oPly, "logfile"  , 0)
+        asmlib.SetAsmConvar(oPly, "modedb"   , "LUA")
+        asmlib.SetAsmConvar(oPly, "devmode"  , 0)
+        asmlib.SetAsmConvar(oPly, "maxtrmarg", 0.02)
+        asmlib.SetAsmConvar(oPly, "maxmenupr", 5)
+        asmlib.SetAsmConvar(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
+        asmlib.SetAsmConvar(oPly, "maxmass"  , 50000)
+        asmlib.SetAsmConvar(oPly, "maxlinear", 250)
+        asmlib.SetAsmConvar(oPly, "maxforce" , 100000)
+        asmlib.SetAsmConvar(oPly, "maxactrad", 150)
+        asmlib.SetAsmConvar(oPly, "maxstcnt" , 200)
+        asmlib.SetAsmConvar(oPly, "enwiremod", 1)
+        asmlib.SetAsmConvar(oPly, "enctxmall", 0)
+        asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
+        asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
+        asmlib.SetAsmConvar(oPly, "curvefact", 0.5)
+        asmlib.SetAsmConvar(oPly, "curvsmple", 50)
+        asmlib.LogInstance("Variables reset complete",gtArgsLogs)
+      else
+        asmlib.SetAsmConvar(oPly,"nextx"  , 0)
+        asmlib.SetAsmConvar(oPly,"nexty"  , 0)
+        asmlib.SetAsmConvar(oPly,"nextz"  , 0)
+        asmlib.SetAsmConvar(oPly,"nextpic", 0)
+        asmlib.SetAsmConvar(oPly,"nextyaw", 0)
+        asmlib.SetAsmConvar(oPly,"nextrol", 0)
+        if(devmode) then
+          asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                               asmlib.GetAsmConvar("logfile","BUL"))
+        end
+      end
+      asmlib.LogInstance("Success",gtArgsLogs); return nil
+    end)
+
+  -- Store referencies and stuff realted to the tool file
   asmlib.SetOpVar("STORE_TOOLOBJ", TOOL)
+  asmlib.SetOpVar("STORE_CONVARS", TOOL:BuildConVarList())
 end
 
 if(SERVER) then
@@ -685,7 +727,7 @@ function TOOL:CurveUpdate(stTrace)
     netWriteVector(tC.Base[mD])
     netWriteUInt(mD, 16)
   netSend(ply)
-  asmlib.Notify(ply, "Node ["..tC.Size.."] updated !", "CLEANUP")
+  asmlib.Notify(ply, "Node ["..mD.."] updated !", "CLEANUP")
   return tC -- Returns the updated curve nodes table
 end
 
@@ -1495,8 +1537,8 @@ function TOOL.BuildCPanel(CPanel)
 
   local pComboPresets = vguiCreate("ControlPresets", CPanel)
         pComboPresets:SetPreset(gsToolNameL)
-        pComboPresets:AddOption("default", gtConvarList)
-        for key, val in pairs(tableGetKeys(gtConvarList)) do
+        pComboPresets:AddOption("Default", asmlib.GetOpVar("STORE_CONVARS"))
+        for key, val in pairs(tableGetKeys(asmlib.GetOpVar("STORE_CONVARS"))) do
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
 
