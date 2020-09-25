@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.651")
+asmlib.SetOpVar("TOOL_VERSION","7.652")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -224,7 +224,7 @@ local conCallBack = asmlib.MakeContainer("CALLBAC_FUNC")
 
 for iD = 1, conCallBack:GetSize() do
   local val = conCallBack:Select(iD)
-  local nam =asmlib.GetAsmConvar(val[1], "NAM")
+  local nam = asmlib.GetAsmConvar(val[1], "NAM")
   cvarsRemoveChangeCallback(nam, nam.."_init")
   cvarsAddChangeCallback(nam, val[2], nam.."_init")
 end
