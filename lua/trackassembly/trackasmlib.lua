@@ -187,6 +187,14 @@ function IsString(vVal)
   return (getmetatable(vVal) == GetOpVar("TYPEMT_STRING"))
 end
 
+function IsVector(vVal)
+  return (getmetatable(vVal) == GetOpVar("TYPEMT_VECTOR"))
+end
+
+function IsAngle(vVal)
+  return (getmetatable(vVal) == GetOpVar("TYPEMT_ANGLE"))
+end
+
 function IsBlank(vVal)
   if(not IsString(vVal)) then return false end
   return (vVal == "")
@@ -567,18 +575,16 @@ function UseIndexes(pB1,pB2,pB3,pD1,pD2,pD3)
   return (pB1 or pD1), (pB2 or pD2), (pB3 or pD3)
 end
 
-function InitBase(sName,sPurpose)
+function InitBase(sName, sPurp)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
-  SetOpVar("TYPEMT_SCREEN",{})
-  SetOpVar("TYPEMT_CONTAINER",{})
   if(not IsString(sName)) then
     LogInstance("Name <"..tostring(sName).."> not string", true); return false end
-  if(not IsString(sPurpose)) then
-    LogInstance("Purpose <"..tostring(sPurpose).."> not string", true); return false end
+  if(not IsString(sPurp)) then
+    LogInstance("Purpose <"..tostring(sPurp).."> not string", true); return false end
   if(IsBlank(sName) or tonumber(sName:sub(1,1))) then
     LogInstance("Name invalid <"..sName..">", true); return false end
-  if(IsBlank(sPurpose) or tonumber(sPurpose:sub(1,1))) then
-    LogInstance("Purpose invalid <"..sPurpose..">", true); return false end
+  if(IsBlank(sPurp) or tonumber(sPurp:sub(1,1))) then
+    LogInstance("Purpose invalid <"..sPurp..">", true); return false end
   SetOpVar("LOG_SKIP",{})
   SetOpVar("LOG_ONLY",{})
   SetOpVar("LOG_MAXLOGS",0)
@@ -608,7 +614,7 @@ function InitBase(sName,sPurpose)
   SetOpVar("DATE_FORMAT","%y-%m-%d")
   SetOpVar("TIME_FORMAT","%H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
-  SetOpVar("NAME_PERP",sPurpose:lower())
+  SetOpVar("NAME_PERP",sPurp:lower())
   SetOpVar("NAME_LIBRARY", GetOpVar("NAME_INIT").."asmlib")
   SetOpVar("TOOLNAME_NL",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):lower())
   SetOpVar("TOOLNAME_NU",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):upper())
@@ -639,6 +645,10 @@ function InitBase(sName,sPurpose)
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
+  SetOpVar("TYPEMT_SCREEN",{})
+  SetOpVar("TYPEMT_CONTAINER",{})
+  SetOpVar("TYPEMT_VECTOR",getmetatable(GetOpVar("VEC_ZERO")))
+  SetOpVar("TYPEMT_ANGLE" ,getmetatable(GetOpVar("ANG_ZERO")))
   SetOpVar("TABLE_FLAGS", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
@@ -1137,12 +1147,14 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     local nY = (nH / 2) + (tonumber(nY) or 0)
     return nX, nY
   end
-  function self:GetMaterial(fC, sP) local tS = TxID[fC]
-    if(not tS) then TxID[fC] = {} end; tS = TxID[fC]
-    if(not tS[sP]) then bS, vV = pcall(fC, sP)
-      if(not bS) then LogInstance("Call fail <"..vV..">", tLogs); return nil end
-      tS[sP] = vV -- Store the value in the cache
-    end; return tS[sP] -- Return cached material or texture
+  function self:GetMaterial(fC, sP)
+    local tM = TxID[fC] -- Read the function metadata
+    if(not tM) then TxID[fC] = {}; tM = TxID[fC] end
+    if(not tM[sP]) then bS, vV = pcall(fC, sP)
+      if(not bS) then -- Report the error in the log
+        LogInstance("Call fail <"..vV..">", tLogs); return nil end
+      tM[sP] = vV -- Store the value in the cache
+    end; return tM[sP] -- Return cached material or texture
   end
   function self:GetColor(keyCl,sMeth)
     if(not IsHere(keyCl) and not IsHere(sMeth)) then
@@ -2072,6 +2084,7 @@ function GetCacheCurve(pPly)
   if(not IsHere(stData)) then -- Allocate curve data
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
+    stData.Info  = {Vector(), Angle(), Vector(), Angle()}
     stData.Node  = {} -- Contains array of node positions for the curve caculation
     stData.Norm  = {} -- Contains array of normal vector for the curve caculation
     stData.Base  = {} -- Contains array of hit positions for the curve caculation
@@ -4428,25 +4441,26 @@ end
 
 local function GetCatmullRomCurveTangent(cS, cE, nT, nA)
   local vD = Vector(); vD:Set(cE); vD:Sub(cS)
-  return ((vD:Length() ^ (tonumber(nA) or 0.5)) + nT)
+  local nL, nM = vD:Length(), GetOpVar("EPSILON_ZERO")
+  return ((((nL == 0) and nM or nL) ^ (tonumber(nA) or 0.5)) + nT)
 end
 
 local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
-  local nT0, tC = 0, {} -- Start point is always zero
+  local nT0, tS = 0, {} -- Start point is always zero
   local nT1 = GetCatmullRomCurveTangent(vP0, vP1, nT0, nA)
   local nT2 = GetCatmullRomCurveTangent(vP1, vP2, nT1, nA)
   local nT3 = GetCatmullRomCurveTangent(vP2, vP3, nT2, nA)
   local tTN = GetLinearSpace(nT1, nT2, nN)
   local vB1, vB2 = Vector(), Vector()
   local vA1, vA2, vA3 = Vector(), Vector(), Vector()
-  for iD = 1, #tTN do tC[iD] = Vector(); local nTn, vTn = tTN[iD], tC[iD]
+  for iD = 1, #tTN do tS[iD] = Vector(); local nTn, vTn = tTN[iD], tS[iD]
     vA1:Set(vP0); vA1:Mul((nT1-nTn)/(nT1-nT0)); vA1:Add(vP1 * ((nTn-nT0)/(nT1-nT0)))
     vA2:Set(vP1); vA2:Mul((nT2-nTn)/(nT2-nT1)); vA2:Add(vP2 * ((nTn-nT1)/(nT2-nT1)))
     vA3:Set(vP2); vA3:Mul((nT3-nTn)/(nT3-nT2)); vA3:Add(vP3 * ((nTn-nT2)/(nT3-nT2)))
     vB1:Set(vA1); vB1:Mul((nT2-nTn)/(nT2-nT0)); vB1:Add(vA2 * ((nTn-nT0)/(nT2-nT0)))
     vB2:Set(vA2); vB2:Mul((nT3-nTn)/(nT3-nT1)); vB2:Add(vA3 * ((nTn-nT1)/(nT3-nT1)))
     vTn:Set(vB1); vTn:Mul((nT2-nTn)/(nT2-nT1)); vTn:Add(vB2 * ((nTn-nT1)/(nT2-nT1)))
-  end; return tC
+  end; return tS
 end
 
 local function GetCatmullRomCurve(tV, nT, nA, tO)
@@ -4486,7 +4500,7 @@ function IntersectLineSphere(vS, vE, vC, nR)
   local nB, nC = 2 * vD:Dot(vR), (vR:LengthSqr() - nR^2)
   local nD = (nB^2 - 4*nA*nC); if(nD < 0) then
     LogInstance("Imaginary roots"); return nil end
-  local dA = (1/(2*nA)); nD, nB = dA*math.sqrt(nD), -nB*dA
+  local dA = (1/(2*nA)); nD, nB = dA*mathSqrt(nD), -nB*dA
   local xP = Vector(); xP:Set(vD); xP:Mul(nB + nD); xP:Add(vS)
   local xM = Vector(); xM:Set(vD); xM:Mul(nB - nD); xM:Add(vS)
   return xP, xM -- Return the intersected +/- root point

@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.652")
+asmlib.SetOpVar("TOOL_VERSION","7.653")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -533,6 +533,7 @@ if(CLIENT) then
       local nN  = conWorkMode:GetSize()
       local nDr = asmlib.GetOpVar("DEG_RAD")
       local sM  = asmlib.GetOpVar("MISS_NOAV")
+      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
       local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
       -- Calculate dependent parameters
       local vFr = asmlib.NewXY(vCn.y*nR) -- Far radius vector
@@ -541,7 +542,6 @@ if(CLIENT) then
       local dQs = (dQb * nR) -- Smaller not selected size
       local vMr = asmlib.NewXY(dQb / 2 + vNr.x) -- Middle radius vector
       local vNt, vFt = asmlib.NewXY(), asmlib.NewXY() -- Temp storage
-      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
       local dA, rA = (nMx / (2 * nN)), 0; actMonitor:GetColor() -- Angle delta
       local mP = asmlib.NewXY(guiMouseX(), guiMouseY())
       actMonitor:DrawCircle(mP, 10, "y", "SURF") -- Draw mouse position
