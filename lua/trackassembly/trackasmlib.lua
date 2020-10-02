@@ -31,6 +31,7 @@ local IN_ZOOM      = IN_ZOOM
 
 ---------------- Localizing ENT Properties ----------------
 
+local KEY_LSHIFT            = KEY_LSHIFT
 local MASK_SOLID            = MASK_SOLID
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
 local SOLID_NONE            = SOLID_NONE
@@ -176,7 +177,7 @@ function SetOpVar(sName, vVal)
 end
 
 function IsInit()
-  return (GetOpVar("TOOLNAME_NU") ~= nil)
+  return (GetOpVar("TIME_INIT") ~= nil)
 end
 
 function IsHere(vVal)
