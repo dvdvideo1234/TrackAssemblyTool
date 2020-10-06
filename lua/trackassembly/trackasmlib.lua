@@ -1122,7 +1122,7 @@ end
 function MakeScreen(sW,sH,eW,eH,conClr,aKey)
   if(SERVER) then return nil end
   local tLogs, tMon = {"MakeScreen"}, GetOpVar("TABLE_MONITOR")
-  if(IsHere(aKey) and tMon[aKey]) then -- Return the cached screen
+  if(IsHere(aKey) and IsHere(tMon) and tMon[aKey]) then -- Return the cached screen
     local oMon = tMon[aKey]; oMon:GetColor(); return oMon end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
@@ -1619,6 +1619,20 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
   AddVectorXYZ(vCen, nX, -nY, nZ-vMin[cvZ])
   vCen:Rotate(aAng); vCen:Add(vPos); oEnt:SetPos(vCen)
   return vCen -- Returns X-Y OBB centered model
+end
+
+function GetTransformOBB(eBase, wOrg, vNorm)
+  local vOBB = eBase:OBBCenter()
+  local wOBB = eBase:LocalToWorld(vOBB)
+  local wAng = eBase:GetAngles()
+  local nRot = (GetOpVar("MAX_ROTATION") / 2)
+        wAng:RotateAroundAxis(vNorm, nRot)
+  local wDir = Vector(); wDir:Set(wOrg); wDir:Sub(wOBB)
+  local pDir = 2 * wDir:Dot(vNorm)
+  local wPos = Vector(); wPos:Set(wOrg)
+        wPos:Add(wDir); wPos:Sub(pDir * vNorm)
+        vOBB:Rotate(wAng); wPos:Sub(vOBB)
+  return wPos, wAng
 end
 
 function IsPhysTrace(Trace)

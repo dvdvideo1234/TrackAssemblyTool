@@ -828,6 +828,9 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
+  local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
+
   if(workmode == 3) then
     local tC = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Arguments validation fail"), gtArgsLogs); return nil end
@@ -858,9 +861,6 @@ function TOOL:LeftClick(stTrace)
 
     return true
   end
-
-  local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
 
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector(); vPos:Set(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
@@ -908,18 +908,32 @@ function TOOL:LeftClick(stTrace)
   if(not stSpawn) then -- Not aiming into an active point update settings/properties
     if(ply:KeyDown(IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical settings",trEnt),gtArgsLogs); return false end
       if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,nocollidew,forcelim)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",trEnt),gtArgsLogs); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
-      asmlib.LogInstance("(Physical) Success",gtArgsLogs); return true
+      asmlib.LogInstance("(Physical) Success",gtArgsLogs)
+    elseif(ply:KeyDown(IN_SPEED)) then -- Mirror the anchor relative to a piece
+      if(not (anEnt and anEnt:IsValid())) then return false end
+      if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Mirror) Failed to apply physical settings",trEnt),gtArgsLogs); return false end
+      local spPos, spAng = asmlib.GetTransformOBB(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()), stTrace.HitNormal)
+      local ePiece = asmlib.MakePiece(ply,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+      if(ePiece) then
+        if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Mirror) Apply physical settings fail"),gtArgsLogs); return false end
+        asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Mirror prop )")
+        asmlib.UndoAddEntity(ePiece)
+        asmlib.UndoFinish(ply)
+        asmlib.LogInstance("(Mirror) Success",gtArgsLogs); return true
+      end
     else -- Visual
       local IDs = gsSymDir:Explode(bgskids)
       if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Bodygroup/Skin) Failed"),gtArgsLogs); return false end
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Bodygroup/Skin) Failed",trEnt),gtArgsLogs); return false end
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
-      asmlib.LogInstance("(Bodygroup/Skin) Success",gtArgsLogs); return true
-    end
+      asmlib.LogInstance("(Bodygroup/Skin) Success",gtArgsLogs)
+    end; return true
   end -- IN_SPEED: Switch the tool mode ( Stacking )
   if(workmode == 1 and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count not properly picked"),gtArgsLogs); return false end
