@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.654")
+asmlib.SetOpVar("TOOL_VERSION","7.656")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -194,6 +194,7 @@ local conWorkMode = asmlib.MakeContainer("WORK_MODE")
       conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
       conWorkMode:Push("CURVE") -- Catmull–Rom spline interpolation fitting
+      conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
 
 ------------ CALLBACKS ------------
 
@@ -416,6 +417,7 @@ if(CLIENT) then
   asmlib.ToIcon("workmode_snap" , "plugin"         ) -- General spawning and snapping mode
   asmlib.ToIcon("workmode_cross", "chart_line"     ) -- Ray cross intersect interpolation
   asmlib.ToIcon("workmode_curve", "vector"         ) -- Catmull–Rom curve line segment fitting
+  asmlib.ToIcon("workmode_over" , "shape_move_back") -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("property_type" , "package_green"  )
   asmlib.ToIcon("property_name" , "note"           )
 

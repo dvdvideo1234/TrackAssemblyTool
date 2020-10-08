@@ -1683,11 +1683,9 @@ function TOOL.BuildCPanel(CPanel)
   -- Extract panel text and place it in the clipboard
   local function setDermaClipboard(pnPanel)
     local iD = pnPanel:GetSelectedID()
-    local sD = pnPanel:GetOptionText(iD)
-    local vD = tostring(sD or "")
-          vD = asmlib.GetTerm(vD, pnPanel:GetValue())
-          vD = asmlib.GetTerm(vD, gsNoAV)
-    SetClipboardText(vD)
+    local vT = pnPanel:GetOptionText(iD)
+    local sV = asmlib.GetTerm(tostring(vT or ""), pnPanel:GetValue())
+    SetClipboardText(asmlib.GetTerm(sV, gsNoAV))
   end
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
@@ -1700,8 +1698,8 @@ function TOOL.BuildCPanel(CPanel)
         pComboToolMode.OnSelect = function(pnSelf, nInd, sVal, anyData)
           asmlib.SetAsmConvar(nil,"workmode", anyData) end
         for iD = 1, conWorkMode:GetSize() do
-          local sI = tostring(conWorkMode:Select(iD) or gsNoAV):lower()
-          local sD, bS = tostring(iD), (iD == workmode); sI = asmlib.ToIcon("workmode_"..sI)
+          local sW, sD = tostring(conWorkMode:Select(iD) or gsNoAV):lower(), tostring(iD)
+          local sI, bS = asmlib.ToIcon("workmode_"..sW), (iD == workmode)
           pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_"..sD), iD, bS, sI)
         end
         CurY = CurY + pComboToolMode:GetTall() + 2
