@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.656")
+asmlib.SetOpVar("TOOL_VERSION","7.657")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -188,6 +188,7 @@ local conPalette  = asmlib.MakeContainer("COLORS_LIST")
       conPalette:Record("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
       conPalette:Record("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
       conPalette:Record("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
+      conPalette:Record("fo",asmlib.GetColor(147, 92,204,255)) -- Flip over rails
 
 local conElements = asmlib.MakeContainer("LIST_VGUI")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
@@ -579,13 +580,11 @@ if(CLIENT) then
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
       local model    = actTool:GetModel()
-      local stackcnt = actTool:GetStackCount()
-      local ghostcnt = actTool:GetGhostsCount()
-      local depthcnt = mathMin(stackcnt, ghostcnt)
+      local ghostcnt = actTool:GetGhostsDepth()
       local atGhosts = asmlib.GetOpVar("ARRAY_GHOST")
       if(utilIsValidModel(model)) then
-        if(not (asmlib.HasGhosts() and depthcnt == atGhosts.Size and atGhosts.Slot == model)) then
-          if(not asmlib.MakeGhosts(depthcnt, model)) then
+        if(not (asmlib.HasGhosts() and ghostcnt == atGhosts.Size and atGhosts.Slot == model)) then
+          if(not asmlib.MakeGhosts(ghostcnt, model)) then
             asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
           actTool:ElevateGhost(atGhosts[1], oPly) -- Elevate the properly created ghost
         end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player

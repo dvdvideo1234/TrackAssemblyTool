@@ -1174,12 +1174,15 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     end; return rgbCl, keyCl
   end
   function self:GetDrawParam(sMeth,tArgs,sKey)
-    local tArgs = (tArgs or DrawArgs[sKey])
     local sMeth = tostring(sMeth or DrawMeth[sKey])
+    if(not DrawArgs[sMeth]) then DrawArgs[sMeth] = {} end
+    local tArgs = (tArgs or DrawArgs[sMeth][sKey])
     if(sMeth == "SURF") then
       if(sKey == "TXT" and tArgs ~= DrawArgs[sKey]) then
         surfaceSetFont(tostring(tArgs[1] or "Default")) end -- Time to set the font again
-    end; DrawMeth[sKey], DrawArgs[sKey] = sMeth, tArgs; return sMeth, tArgs
+    end
+    DrawMeth[sKey] = sMeth
+    DrawArgs[sMeth][sKey] = tArgs; return sMeth, tArgs
   end
   function self:SetTextEdge(nX,nY)
     Text.ScrW, Text.ScrH = 0, 0
@@ -1253,17 +1256,14 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
         LogInstance("End out of border", tLogs); return self end
       surfaceDrawLine(pS.x,pS.y,pE.x,pE.y)
     elseif(sMeth == "SEGM") then
-      if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border", tLogs); return self end
-      if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border", tLogs); return self end
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
-      if(nIter <= 0) then return self end
+      if(nItr <= 0) then return self end
       local xyD = NewXY((pE.x - pS.x) / nItr, (pE.y - pS.y) / nItr)
       local xyOld, xyNew = NewXY(pS.x, pS.y), NewXY()
       while(nItr > 0) do AddXY(xyNew, xyOld, xyD)
-        surfaceDrawLine(xyOld.x,xyOld.y,xyNew.x,xyNew.y)
-        SetXY(xyOld, xyNew); nItr = nItr - 1
+        if((self:Enclose(xyOld) ~= -1) and (self:Enclose(xyNew) ~= -1)) then
+          surfaceDrawLine(xyOld.x, xyOld.y, xyNew.x, xyNew.y)
+        end; SetXY(xyOld, xyNew); nItr = nItr - 1
       end
     elseif(sMeth == "CAM3") then
       renderDrawLine(pS,pE,rgbCl,(tArgs[1] and true or false))
@@ -1621,17 +1621,15 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
   return vCen -- Returns X-Y OBB centered model
 end
 
-function GetTransformOBB(eBase, wOrg, vNorm)
-  local vOBB = eBase:OBBCenter()
-  local wOBB = eBase:LocalToWorld(vOBB)
+function GetTransformFO(eBase, wOrg, vNorm)
+  local wPos = eBase:GetPos()
   local wAng = eBase:GetAngles()
   local nRot = (GetOpVar("MAX_ROTATION") / 2)
         wAng:RotateAroundAxis(vNorm, nRot)
-  local wDir = Vector(); wDir:Set(wOrg); wDir:Sub(wOBB)
+  local wDir = Vector(); wDir:Set(wOrg); wDir:Sub(wPos)
   local pDir = 2 * wDir:Dot(vNorm)
-  local wPos = Vector(); wPos:Set(wOrg)
-        wPos:Add(wDir); wPos:Sub(pDir * vNorm)
-        vOBB:Rotate(wAng); wPos:Sub(vOBB)
+        wPos:Set(wOrg); wPos:Add(wDir)
+        wPos:Sub(pDir * vNorm)
   return wPos, wAng
 end
 
@@ -4343,10 +4341,13 @@ function FadeGhosts(bNoD)
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
   local cPal = MakeContainer("COLORS_LIST")
+  local sMis, sSlt = GetOpVar("MISS_NOMD"), tGho.Slot
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
       eGho:SetColor(cPal:Select("gh"))
+      if(sSlt and sSlt ~= sMis and sSlt ~= eGho:GetModel()) then
+        eGho:SetModel(tGho.Slot) end
     end
   end; return true
 end
@@ -4443,6 +4444,13 @@ function GetHookInfo(tInfo, sW)
   return oPly, actSwep, actTool
 end
 
+--[[
+ * Creates a linear set of numbers with borders and given amount
+ * nBeg > The numbert to start from ( BEGIN )
+ * nEnd > The numbert to end with ( END )
+ * nAmt > Amount of middle points to be generated
+ * Returns table with the numbers
+]]
 function GetLinearSpace(nBeg, nEnd, nAmt)
   local fAmt = mathFloor(tonumber(nAmt) or 0); if(fAmt < 0) then
     LogInstance("Samples count invalid <"..tostring(fAmt)..">"); return nil end
@@ -4454,12 +4462,28 @@ function GetLinearSpace(nBeg, nEnd, nAmt)
   end return tO
 end
 
+--[[
+ * Calculates Catmull-Rom curve tangent
+ * cS > The start vector ( BEGIN )
+ * cE > The end vector ( END )
+ * nT > Amount of points to be calculated
+ * nA > Amount of points to be calculated
+ * Returns the value of the tangent
+]]
 local function GetCatmullRomCurveTangent(cS, cE, nT, nA)
   local vD = Vector(); vD:Set(cE); vD:Sub(cS)
   local nL, nM = vD:Length(), GetOpVar("EPSILON_ZERO")
   return ((((nL == 0) and nM or nL) ^ (tonumber(nA) or 0.5)) + nT)
 end
 
+--[[
+ * Calculates Catmull-Rom curve segment on four points
+ * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline#Definition
+ * vPN > The given anchor point N ( KNOTS )
+ * nN  > Amount of points to be calculated
+ * nA  > Parametric constant curve factor [0 ; 1]
+ * Returns a table containing the generated sequence
+]]
 local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
   local nT0, tS = 0, {} -- Start point is always zero
   local nT1 = GetCatmullRomCurveTangent(vP0, vP1, nT0, nA)
@@ -4478,6 +4502,14 @@ local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
   end; return tS
 end
 
+--[[
+ * Calculates a full Catmull-Rom curve when there are no repeating points
+ * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+ * tV > A table containg the curve control points ( KNOTS )
+ * nT > Amount of points to be calculated between the control points
+ * nA > Parametric constant curve factor [0 ; 1]
+ * Returns a table containing the generated curve including the control points
+]]
 local function GetCatmullRomCurve(tV, nT, nA, tO)
   if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
@@ -4497,15 +4529,75 @@ local function GetCatmullRomCurve(tV, nT, nA, tO)
   tableRemove(tV, 1); tableRemove(tV); return tN
 end
 
+--[[
+ * Calculates a full Catmull-Rom curve when there are repeating points present
+ * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+ * tV > A table containg the curve control points ( KNOTS )
+ * nT > Amount of points to be calculated between the control points
+ * nA > Parametric constant curve factor [0 ; 1]
+ * Returns a table containing the generated curve including the control points
+]]
+local function GetCatmullRomCurveDupe(tV, nT, nA, tO)
+  if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
+  if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
+  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
+    LogInstance("Curve samples mismatch "..GetReport(nT)); return nil end
+  if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
+  if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
+  local tN, tF, nN = {tV[1], ID = {{true, 1}}}, (tO or {}), 1
+  local nM, vT = GetOpVar("EPSILON_ZERO"), Vector()
+  for iD = 2, nV do
+    vT:Set(tV[iD]); vT:Sub(tN[nN])
+    if(vT:Length() > nM) then
+      table.insert(tN, tV[iD])
+      tN.ID[iD], nN = {true, nN}, (nN + 1)
+    else tN.ID[iD] = {false} end
+  end
+  if(nN > 1) then
+    local tC = GetCatmullRomCurve(tN, nT, nA)
+    for iD = 1, nV-1 do local iC = iD + 1
+      table.insert(tF, ToVector(tV[iD]))
+      if(not tN.ID[iC][1]) then
+        for iK = 1, nT do table.insert(tF, ToVector(tV[iD])) end
+      else
+        local iP = (tN.ID[iC][2] - 1) * (nT + 1)
+        for iK = 1, nT do local iI = (iP + iK + 1)
+          table.insert(tF, ToVector(tC[iI])) end
+      end
+    end; table.insert(tF, ToVector(tV[nV]))
+  else
+    for iD = 1, nV-1 do
+      table.insert(tF, ToVector(tV[1]))
+      for iK = 1, nT do table.insert(tF, ToVector(tV[1])) end
+    end; table.insert(tF, ToVector(tV[1]))
+  end
+  return tF, tN
+end
+
+--[[
+ * Fills up the the general curve space for the given player
+ * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+ * oPly > Player to fill the calculation for
+ * nSmp > Amount of samples between each node
+ * nFac > Parametric constant curve factor [0 ; 1]
+]]
 function CalculateRomCurve(oPly, nSmp, nFac)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
-  GetCatmullRomCurve(tC.Node, nSmp, nFac, tC.CNode)
-  GetCatmullRomCurve(tC.Norm, nSmp, nFac, tC.CNorm)
+  GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
+  GetCatmullRomCurveDupe(tC.Norm, nSmp, nFac, tC.CNorm)
   tC.CSize = (tC.Size - 1) * nSmp + tC.Size
   return tC -- Return the updated reference
 end
 
+--[[
+ * Intersects a line with a sphere
+ * vS > Line start point vector
+ * vE > Line end point vector
+ * vC > Sphere center vector
+ * nR > Sphere radius number
+ * Returns the vector position of intersection
+]]
 function IntersectLineSphere(vS, vE, vC, nR)
   local nE = GetOpVar("EPSILON_ZERO")
   local vD = Vector(); vD:Set(vE); vD:Sub(vS)
@@ -4521,6 +4613,13 @@ function IntersectLineSphere(vS, vE, vC, nR)
   return xP, xM -- Return the intersected +/- root point
 end
 
+--[[
+ * Checks if a point exists on a given line
+ * vO > The point position vector
+ * vS > Line start point vector
+ * vE > Line end point vector
+ * Returns bolean if the condition is present
+]]
 function IsAmongLine(vO, vS, vE)
   local nE = GetOpVar("EPSILON_ZERO")
   local vD = Vector(); vD:Set(vE); vD:Sub(vS)

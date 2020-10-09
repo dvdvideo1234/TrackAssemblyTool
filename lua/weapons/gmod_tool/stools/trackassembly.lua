@@ -35,6 +35,7 @@ local tableInsert                      = table and table.insert
 local tableRemove                      = table and table.remove
 local tableEmpty                       = table and table.Empty
 local tableGetKeys                     = table and table.GetKeys
+local tableConcat                      = table and table.concat
 local hookAdd                          = hook and hook.Add
 local inputIsKeyDown                   = input and input.IsKeyDown
 local cleanupRegister                  = cleanup and cleanup.Register
@@ -135,7 +136,8 @@ TOOL.ClientConVar = {
   [ "applinfst"  ] = 0,
   [ "enradmenu"  ] = 0,
   [ "incsnpang"  ] = 5,
-  [ "incsnplin"  ] = 5
+  [ "incsnplin"  ] = 5,
+  [ "flipoverid" ] = "",
 }
 
 if(CLIENT) then
@@ -373,6 +375,10 @@ function TOOL:GetPhysMeterial()
   return tostring(self:GetClientInfo("physmater") or "metal")
 end
 
+function TOOL:GetFlipOverID()
+  return tostring(self:GetClientInfo("flipoverid") or "")
+end
+
 function TOOL:GetBoundErrorMode()
   return asmlib.GetAsmConvar("bnderrmod", "STR")
 end
@@ -507,12 +513,29 @@ function TOOL:GetAnchor()
   return (self:GetClientInfo("anchor") or gsNoAnchor), svEnt
 end
 
-function TOOL:GetWorkingMode() -- Put cases in new mode resets here
-  local workmode = mathClamp(self:GetClientNumber("workmode") or 0, 1, conWorkMode:GetSize())
-  -- Perform various actions to stabilize data across working modes
-  if(workmode == 1) then self:IntersectClear(true) end -- Reset ray list in snap mode
-  return workmode, tostring(conWorkMode:Select(workmode) or gsNoAV):sub(1,6)
-end -- Reset settings server-side where available and return the value
+function TOOL:GetWorkingMode()
+  local nWork = self:GetClientNumber("workmode", 0)
+  local cWork = mathClamp(nWork or 0, 1, conWorkMode:GetSize())
+  local sWork = tostring(conWorkMode:Select(cWork) or gsNoAV):sub(1,6)
+  return cWork, sWork
+end
+
+-- Sends the proper ghost stack depth to DRAW_GHOSTS
+function TOOL:GetGhostsDepth()
+  local workmode = self:GetWorkingMode() -- Switches the scenario
+  local ghostcnt = self:GetGhostsCount() -- The base control value
+  if(workmode == 1) then -- Defined by the stack count otherwise 1
+    return mathMin(ghostcnt, self:GetStackCount())
+  elseif(workmode == 2) then    -- Put second value 1 here
+    return mathMin(ghostcnt, 1) -- to be able to disable it
+  elseif(workmode == 3) then    -- This is about to be defined
+    return mathMin(ghostcnt, self:GetStackCount())
+  elseif(workmode == 4) then    -- Put second value 1 here
+    local tArr = self:GetFlipOverArray() -- to be used in no array
+    local nLen = (tArr and #tArr or 1) -- flip-over mode snapping
+    return mathMin(ghostcnt, nLen) -- Use ghosts count to disable it
+  end; return 0
+end
 
 function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
@@ -603,6 +626,89 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
   if(hdEnt and hdEnt:IsValid()) then hdEnt:Remove() end
   return sDu
+end
+
+-- Returns an array of strings numbers or nil
+function TOOL:GetFlipOverArray()
+  local sID = self:GetFlipOverID()
+  if(sID:len() <= 0) then return nil end
+  local sYm = asmlib.GetOpVar("OPSYM_DIVIDER")
+  return sYm:Explode(sID)
+end
+
+function TOOL:SetFlipOver(trEnt)
+  if(not (trEnt and trEnt:IsValid())) then return nil end
+  local sYm = asmlib.GetOpVar("OPSYM_DIVIDER")
+  local iID, bRe = trEnt:EntIndex(), false
+  local ply, sID = self:GetOwner(), tostring(iID)
+  local tFO = (self:GetFlipOverArray() or {})
+  for iD = 1, #tFO do local eID = tonumber(tFO[iD])
+    if(eID) then local eFO = Entity(eID)
+      if(eFO and eFO:IsValid()) then
+        if(eID == iID) then
+          tableRemove(tFO, iD); bRe = true
+          eFO:SetRenderMode(RENDERMODE_TRANSALPHA)
+          eFO:SetColor(conPalette:Select("w"))
+        end
+      else tableRemove(tFO, iD) end
+    else tableRemove(tFO, iD) end
+  end
+  if(not bRe) then tableInsert(tFO, sID)
+    trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+    trEnt:SetColor(conPalette:Select("fo"))
+  end
+  local data = tableConcat(tFO, sYm)
+  asmlib.SetAsmConvar(ply, "flipoverid", data)
+end
+
+function TOOL:GetFlipOverEntity()
+  local tFO = self:GetFlipOverArray()
+  if(not tFO) then return nil end
+  for iD = 1, #tFO do local eID = tonumber(tFO[iD])
+    if(eID) then local eFO = Entity(eID)
+      if(eFO and eFO:IsValid()) then tFO[iD] = eFO end
+    end -- Register the entity whenvalid and ID is number
+  end; return tFO
+end
+
+function TOOL:ClearFlipOver(bMute)
+  local tFO = self:GetFlipOverArray()
+  if(tFO) then
+    for iD = 1, #tFO do local eID = tonumber(tFO[iD])
+      if(eID) then local eFO = Entity(eID)
+        if(eFO and eFO:IsValid()) then
+          eFO:SetRenderMode(RENDERMODE_TRANSALPHA)
+          eFO:SetColor(conPalette:Select("w"))
+        end
+      end
+    end
+  end; asmlib.SetAsmConvar(ply, "flipoverid", "")
+  if(not bMute) then
+    asmlib.LogInstance("Flip over cleared", gtArgsLogs)
+    asmlib.Notify(oPly,"Flip over cleared !","CLEANUP")
+  end -- Make sure to delete the relation on both client and server
+end
+
+function TOOL:GetFlipOverOrigin(stTrace, bPnt)
+  local trEnt, trHit = stTrace.Entity, stTrace.HitNormal
+  local wOver, wNorm = Vector(), Vector()
+  if(trEnt and trEnt:IsValid()) then
+    if(bPnt) then local wAucs = Angle()
+      local trID, trMin, trPOA, trRec = asmlib.GetEntityHitID(trEnt, stTrace.HitPos)
+      if(trID and trMin and trPOA and trRec) then
+        asmlib.SetVector(wOver, trPOA.O); wOver:Set(trEnt:LocalToWorld(wOver))
+        asmlib.SetAngle (wAucs, trPOA.A); wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
+        wNorm:Set(wAucs:Up())
+      else
+        wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
+        wNorm:Set(trHit)
+      end
+    else
+      wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
+      wNorm:Set(trHit)
+    end
+  else wOver:Set(stTrace.HitPos); wNorm:Set(trHit) end
+  return wOver, wNorm
 end
 
 function TOOL:SelectModel(sModel)
@@ -714,7 +820,7 @@ function TOOL:CurveUpdate(stTrace)
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtArgsLogs); return nil end
   if(not (tC.Size and tC.Size > 0)) then
-    asmlib.Notify(ply,"Populate nodes first!","ERROR")
+    asmlib.Notify(ply,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtArgsLogs); return nil
   end
   while(tC.Base[iD]) do vT:Set(vHit); vT:Sub(tC.Base[iD])
@@ -828,10 +934,9 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
-  local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
-
   if(workmode == 3) then
+    local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
     local tC = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Arguments validation fail"), gtArgsLogs); return nil end
     local curvefact = self:GetCurveFactor()
@@ -860,7 +965,30 @@ function TOOL:LeftClick(stTrace)
     end
 
     return true
+  elseif(workmode == 4 and self:GetFlipOverID():len() > 0) then
+    local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
+    local tEF = self:GetFlipOverEntity()
+    for iD = 1, #tEF do local eID = tEF[iD]
+      if(eID and eID:IsValid()) then
+        local sD, sM = tostring(iD), eID:GetModel()
+        asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(eID:GetModel()).." ( Flip over )")
+        local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
+        local ePiece = asmlib.MakePiece(ply,eID:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+        if(ePiece) then
+          if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtArgsLogs); return false end
+          asmlib.UndoAddEntity(ePiece)
+        end
+        asmlib.UndoFinish(ply)
+      else
+        asmlib.Notify(ply, "Flip over entity invalid ["..sD.."] !", "ERROR")
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed obtaining active point",trEnt),gtArgsLogs); return false
+      end
+    end; return true
   end
+
+  local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
 
   if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
     local vPos = Vector(); vPos:Set(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
@@ -913,19 +1041,19 @@ function TOOL:LeftClick(stTrace)
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",trEnt),gtArgsLogs); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
       asmlib.LogInstance("(Physical) Success",gtArgsLogs)
-    elseif(ply:KeyDown(IN_SPEED)) then -- Mirror the anchor relative to a piece
+    elseif(ply:KeyDown(IN_SPEED)) then -- Fast single flip over the anchor relative to a piece
       if(not (anEnt and anEnt:IsValid())) then return false end
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Mirror) Failed to apply physical settings",trEnt),gtArgsLogs); return false end
-      local spPos, spAng = asmlib.GetTransformOBB(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()), stTrace.HitNormal)
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",trEnt),gtArgsLogs); return false end
+      local spPos, spAng = asmlib.GetTransformFO(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()), stTrace.HitNormal)
       local ePiece = asmlib.MakePiece(ply,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Mirror) Apply physical settings fail"),gtArgsLogs); return false end
-        asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Mirror prop )")
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtArgsLogs); return false end
+        asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Flip over )")
         asmlib.UndoAddEntity(ePiece)
         asmlib.UndoFinish(ply)
-        asmlib.LogInstance("(Mirror) Success",gtArgsLogs); return true
+        asmlib.LogInstance("(Over) Success",gtArgsLogs); return true
       end
     else -- Visual
       local IDs = gsSymDir:Explode(bgskids)
@@ -964,7 +1092,7 @@ function TOOL:LeftClick(stTrace)
         stSpawn = asmlib.GetEntitySpawn(ply,ePieceN,vTemp,model,pointid,
                     actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then -- Look both ways in a one way street :D
-          asmlib.Notify(ply,"Cannot obtain spawn data!","ERROR")
+          asmlib.Notify(ply,"Cannot obtain spawn data !", "ERROR")
           asmlib.UndoFinish(ply,sIterat)
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Stacking has invalid user data"),gtArgsLogs); return false
         end -- Spawn data is valid for the current iteration iNdex
@@ -1017,6 +1145,8 @@ function TOOL:RightClick(stTrace)
   if(workmode == 3) then local tC
     if(ply:KeyDown(IN_SPEED)) then tC = self:CurveUpdate(stTrace)
     else tC = self:CurveInsert(stTrace) end; return (tC and true or false)
+  elseif(workmode == 4) then
+    self:SetFlipOver(trEnt); return true
   end
   if(stTrace.HitWorld) then
     if(enpntmscr or (ply:KeyDown(IN_USE) and not enpntmscr)) then
@@ -1045,6 +1175,7 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
+  local bfover   = (self:GetFlipOverID():len() > 0)
   if(stTrace.HitWorld) then
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
@@ -1067,10 +1198,14 @@ function TOOL:Reload(stTrace)
         asmlib.LogInstance("(World) Relate clear",gtArgsLogs)
       elseif(workmode == 3) then self:CurveClear(true)
         asmlib.LogInstance("(World) Nodes cleared",gtArgsLogs)
+      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
+        asmlib.LogInstance("(World) Flip over cleared",gtArgsLogs)
       end
     else
       if(workmode == 3) then self:CurveClear(false)
         asmlib.LogInstance("(World) Node removed",gtArgsLogs)
+      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
+        asmlib.LogInstance("(World) Flip over cleared",gtArgsLogs)
       end
     end; asmlib.LogInstance("(World) Success",gtArgsLogs); return true
   elseif(trEnt and trEnt:IsValid()) then
@@ -1088,10 +1223,14 @@ function TOOL:Reload(stTrace)
         asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
       elseif(workmode == 3) then self:CurveClear(true)
         asmlib.LogInstance("(Prop) Nodes cleared",gtArgsLogs); return true
+      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
+        asmlib.LogInstance("(Prop) Flip over cleared",gtArgsLogs); return true
       end
     else
       if(workmode == 3) then self:CurveClear(false)
         asmlib.LogInstance("(Prop) Node removed",gtArgsLogs); return true
+      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
+        asmlib.LogInstance("(Prop) Flip over cleared",gtArgsLogs); return true
       end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
@@ -1103,6 +1242,26 @@ end
 
 function TOOL:Holster()
   asmlib.ClearGhosts()
+end
+
+function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
+  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
+  local tEF, gID = self:GetFlipOverEntity(), atGho[1]
+  if(tEF and self:GetFlipOverID():len() > 0) then
+    for iD = 1, #tEF do
+      local bPK = inputIsKeyDown(KEY_LSHIFT)
+      local eID, gID = tEF[iD], atGho[iD]
+      if(eID and eID:IsValid() and gID and gID:IsValid()) then
+        local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bPK)
+        local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
+        gID:SetPos(spPos); gID:SetAngles(spAng)
+        gID:SetModel(eID:GetModel()); gID:SetNoDraw(false)
+      end
+    end
+  else
+    if(sPos and sAng) then
+      gID:SetPos(sPos); gID:SetAngles(sAng); gID:SetNoDraw(false) end
+  end
 end
 
 function TOOL:UpdateGhost(oPly)
@@ -1118,7 +1277,8 @@ function TOOL:UpdateGhost(oPly)
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   if(workmode == 3) then
-    return nil -- Do noting for now until properly calculate ghosts
+    return nil -- Do noting for now until decide
+               -- how to properly calculate ghosts
   end
   if(stTrace.HitWorld) then
     local ePiece   = atGho[1]
@@ -1137,7 +1297,11 @@ function TOOL:UpdateGhost(oPly)
       local stSpawn = asmlib.GetNormalSpawn(oPly,vPos,aAng,model,pointid,
                         nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
-        ePiece:SetAngles(stSpawn.SAng); ePiece:SetPos(stSpawn.SPos); ePiece:SetNoDraw(false)
+        if(workmode == 4) then
+          self:UpdateGhostFlipOver(stTrace, stSpawn.SPos, stSpawn.SAng)
+        else
+          ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
+        end
       end
     end
   elseif(trEnt and trEnt:IsValid()) then
@@ -1152,7 +1316,7 @@ function TOOL:UpdateGhost(oPly)
       local applinfst = self:ApplyLinearFirst()
       local appangfst = self:ApplyAngularFirst()
       local stSpawn   = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
-                        actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+                          actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(stSpawn) then
         if(workmode == 1) then
           if(stackcnt > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
@@ -1167,11 +1331,18 @@ function TOOL:UpdateGhost(oPly)
                 actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
               if(not stSpawn) then return nil end
             end
-          else ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false) end
+          else
+            ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
+          end
+        elseif(workmode == 4) then
+          self:UpdateGhostFlipOver(stTrace, stSpawn.SPos, stSpawn.SAng)
         elseif(workmode == 2) then
           self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
           ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
         end
+      else
+        if(workmode == 4) then
+          self:UpdateGhostFlipOver(stTrace) end
       end
     end
   end
@@ -1388,6 +1559,35 @@ function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
   end
 end
 
+function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
+  local actrad, vT = self:GetActiveRadius(), Vector()
+  local trEnt, bActp = stTrace.Entity, inputIsKeyDown(KEY_LSHIFT)
+  local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bActp)
+  vT:Set(wNorm); vT:Mul(actrad); vT:Add(wOver)
+  local oO, oN = wOver:ToScreen(), vT:ToScreen()
+  local xH = stTrace.HitPos:ToScreen()
+  hudMonitor:DrawLine(oO, oN, "y", "SURF")
+  hudMonitor:DrawCircle(oN, asmlib.GetViewRadius(oPly, vT, 0.5), "r")
+  hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5))
+  hudMonitor:DrawLine(oO, xH, "g")
+  hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5))
+  local tEF = self:GetFlipOverEntity()
+  if(tEF) then
+    for iD = 1, #tEF do local eID = tEF[iD]
+      if(eID and eID:IsValid()) then
+        local vePos = eID:GetPos()
+        local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
+        local Os = vePos:ToScreen()
+        local Oe = spPos:ToScreen()
+        hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
+        hudMonitor:DrawLine(oO, Oe, "y")
+        hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, vePos), "c", "SURF")
+        hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
+      end
+    end
+  end
+end
+
 function TOOL:DrawHUD()
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
@@ -1421,8 +1621,12 @@ function TOOL:DrawHUD()
         self:DrawSnapAssist(hudMonitor, oPly, stTrace)
       elseif(workmode == 2) then
         self:DrawRelateAssist(hudMonitor, oPly, stTrace)
+      elseif(workmode == 4) then
+        self:DrawFlipOver(hudMonitor, oPly, stTrace)
       end; return -- The return is very very important ... Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
+      if(workmode == 4 and self:GetFlipOverID():len() > 0) then
+        self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
       local Hp = stSpawn.HPnt:ToScreen()
       local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
       local Os = hudMonitor:DrawUCS(oPly, stSpawn.OPos, stSpawn.OAng)
@@ -1453,6 +1657,8 @@ function TOOL:DrawHUD()
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
   elseif(stTrace.HitWorld) then
+    if(workmode == 4 and self:GetFlipOverID():len() > 0) then
+      self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
     local angsnap  = self:GetAngSnap()
     local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()
