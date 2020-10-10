@@ -628,76 +628,106 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
   return sDu
 end
 
--- Returns an array of strings numbers or nil
+-- Returns an array or entity ID numbers
 function TOOL:GetFlipOverArray()
-  local sID = self:GetFlipOverID()
-  if(sID:len() <= 0) then return nil end
-  local sYm = asmlib.GetOpVar("OPSYM_DIVIDER")
-  return sYm:Explode(sID)
+  local sID, nF = self:GetFlipOverID(), 0
+  if(sID:len() <= 0) then return nil, nF end
+  local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
+  local tF = sYm:Explode(sID); nF = #tF
+  for iD = 1, nF do tF[iD] = (tonumber(tF[iD]) or 0) end
+  -- Convert to number as other methods use the number data
+  return tF, nF -- Return the table and elements count
+end
+
+-- Returns true if there are entity ID stored
+function TOOL:GetFlipOverFlag()
+  return (self:GetFlipOverID():len() > 0)
 end
 
 function TOOL:SetFlipOver(trEnt)
-  if(not (trEnt and trEnt:IsValid())) then return nil end
-  local sYm = asmlib.GetOpVar("OPSYM_DIVIDER")
-  local iID, bRe = trEnt:EntIndex(), false
-  local ply, sID = self:GetOwner(), tostring(iID)
-  local tFO = (self:GetFlipOverArray() or {})
-  for iD = 1, #tFO do local eID = tonumber(tFO[iD])
-    if(eID) then local eFO = Entity(eID)
-      if(eFO and eFO:IsValid()) then
-        if(eID == iID) then
-          tableRemove(tFO, iD); bRe = true
-          eFO:SetRenderMode(RENDERMODE_TRANSALPHA)
-          eFO:SetColor(conPalette:Select("w"))
-        end
-      else tableRemove(tFO, iD) end
-    else tableRemove(tFO, iD) end
+  if(CLIENT) then return nil end
+  if(asmlib.IsOther(trEnt)) then return nil end
+  local trMod, oPly = trEnt:GetModel(), self:GetOwner()
+  local trRec = asmlib.CacheQueryPiece(trMod)
+  if(not asmlib.IsHere(trRec)) then
+    asmlib.Notify(oPly,"Flip over <"..trMod.."> not piece !","ERROR")
+    asmlib.LogInstance("Flip over <"..trMod.."> not piece",gtArgsLogs)
+    return nil -- Just disable overall flipping for the otther models
   end
-  if(not bRe) then tableInsert(tFO, sID)
+  local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
+  local iID, bBr = trEnt:EntIndex(), false
+  local tF, nF = self:GetFlipOverArray()
+  local sVr = asmlib.GetAsmConvar("flipoverid", "NAM")
+  if(nF <= 0) then tF = {} -- Create table
+  else -- Remove entity from the convar
+    for iD = 1, nF do nID = tF[iD]
+      if(nID == iID) then bBr = true
+        local eID = Entity(nID)
+        if(not asmlib.IsOther(eID)) then
+          eID:SetRenderMode(RENDERMODE_TRANSALPHA)
+          eID:SetColor(conPalette:Select("w"))
+          eID:SetNWBool(sVr, false)
+        end; tableRemove(tF, iD); break
+      end
+    end
+  end
+  if(not bBr) then tableInsert(tF, tostring(iID))
     trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
     trEnt:SetColor(conPalette:Select("fo"))
+    trEnt:SetNWBool(sVr, true)
   end
-  local data = tableConcat(tFO, sYm)
-  asmlib.SetAsmConvar(ply, "flipoverid", data)
+  asmlib.SetAsmConvar(oPly, "flipoverid", tableConcat(tF, sYm))
 end
 
-function TOOL:GetFlipOverEntity()
-  local tFO = self:GetFlipOverArray()
-  if(not tFO) then return nil end
-  for iD = 1, #tFO do local eID = tonumber(tFO[iD])
-    if(eID) then local eFO = Entity(eID)
-      if(eFO and eFO:IsValid()) then tFO[iD] = eFO end
-    end -- Register the entity whenvalid and ID is number
-  end; return tFO
-end
-
-function TOOL:ClearFlipOver(bMute)
-  local tFO = self:GetFlipOverArray()
-  if(tFO) then
-    for iD = 1, #tFO do local eID = tonumber(tFO[iD])
-      if(eID) then local eFO = Entity(eID)
-        if(eFO and eFO:IsValid()) then
-          eFO:SetRenderMode(RENDERMODE_TRANSALPHA)
-          eFO:SetColor(conPalette:Select("w"))
-        end
+function TOOL:GetFlipOverEntity(bMute)
+  local tF, nF = self:GetFlipOverArray()
+  if(not tF or nF <= 0) then return nil, nF end
+  local tE, nE, ply = {}, 0, self:GetOwner()
+  local sVr = asmlib.GetAsmConvar("flipoverid", "NAM")
+  for iD = 1, nF do local eID = Entity(tF[iD])
+    local bID = (not asmlib.IsOther(eID))
+    local bMR = eID:GetNWBool(sVr)
+    if(bID and bMR) then
+      nE = (nE + 1); tE[nE] = eID
+    else
+      if(SERVER and not bMute) then
+        local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
+        asmlib.LogInstance("Flip over mismatch ID "..sR, gtArgsLogs)
+        asmlib.Notify(ply, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
       end
+    end
+  end; return tE, nE
+end
+
+function TOOL:ClearFlipOver(bSync, bMute)
+  local ply = self:GetOwner()
+  local tF, nF = self:GetFlipOverArray()
+  local sVr = asmlib.GetAsmConvar("flipoverid", "NAM")
+  for iD = 1, nF do local eID = Entity(tF[iD])
+    if(not asmlib.IsOther(eID)) then
+      eID:SetRenderMode(RENDERMODE_TRANSALPHA)
+      eID:SetColor(conPalette:Select("w"))
+      eID:SetNWBool(sVr, false)
     end
   end; asmlib.SetAsmConvar(ply, "flipoverid", "")
   if(not bMute) then
     asmlib.LogInstance("Flip over cleared", gtArgsLogs)
-    asmlib.Notify(oPly,"Flip over cleared !","CLEANUP")
+    asmlib.Notify(ply,"Flip over cleared !","CLEANUP")
   end -- Make sure to delete the relation on both client and server
 end
 
 function TOOL:GetFlipOverOrigin(stTrace, bPnt)
   local trEnt, trHit = stTrace.Entity, stTrace.HitNormal
-  local wOver, wNorm = Vector(), Vector()
+  local wOver, wNorm, wOrig = Vector(), Vector(), Vector()
   if(trEnt and trEnt:IsValid()) then
     if(bPnt) then local wAucs = Angle()
       local trID, trMin, trPOA, trRec = asmlib.GetEntityHitID(trEnt, stTrace.HitPos)
       if(trID and trMin and trPOA and trRec) then
-        asmlib.SetVector(wOver, trPOA.O); wOver:Set(trEnt:LocalToWorld(wOver))
-        asmlib.SetAngle (wAucs, trPOA.A); wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
+        wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
+        asmlib.SetVector(wOrig, trPOA.O)
+        wOrig:Set(trEnt:LocalToWorld(wOrig))
+        asmlib.SetAngle (wAucs, trPOA.A)
+        wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
       else
         wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
@@ -708,7 +738,7 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
       wNorm:Set(trHit)
     end
   else wOver:Set(stTrace.HitPos); wNorm:Set(trHit) end
-  return wOver, wNorm
+  return wOver, wNorm, wOrig
 end
 
 function TOOL:SelectModel(sModel)
@@ -965,24 +995,27 @@ function TOOL:LeftClick(stTrace)
     end
 
     return true
-  elseif(workmode == 4 and self:GetFlipOverID():len() > 0) then
+  elseif(workmode == 4 and self:GetFlipOverFlag()) then
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
-    local tEF = self:GetFlipOverEntity()
-    for iD = 1, #tEF do local eID = tEF[iD]
-      if(eID and eID:IsValid()) then
-        local sD, sM = tostring(iD), eID:GetModel()
-        asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(eID:GetModel()).." ( Flip over )")
+    local tE, nE = self:GetFlipOverEntity()
+    if(not tE or nE <= 0) then
+      asmlib.Notify(ply, "Flip over no tracks selected !", "ERROR")
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtArgsLogs); return false
+    end
+    for iD = 1, nE do local eID = tE[iD]
+      if(not asmlib.IsOther(eID)) then local sM = eID:GetModel()
+        asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Flip over )")
         local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
-        local ePiece = asmlib.MakePiece(ply,eID:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+        local ePiece = asmlib.MakePiece(ply,sM,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
         if(ePiece) then
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtArgsLogs); return false end
           asmlib.UndoAddEntity(ePiece)
+        else
+          asmlib.UndoFinish(ply, asmlib.GetReport2(iD, stringGetFileName(sM)))
+          asmlib.Notify(ply, "Flip over spawn invalid "..asmlib.GetReport2(iD, sM).." !", "ERROR")
         end
         asmlib.UndoFinish(ply)
-      else
-        asmlib.Notify(ply, "Flip over entity invalid ["..sD.."] !", "ERROR")
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed obtaining active point",trEnt),gtArgsLogs); return false
       end
     end; return true
   end
@@ -1175,7 +1208,7 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
-  local bfover   = (self:GetFlipOverID():len() > 0)
+  local bfover   = self:GetFlipOverFlag()
   if(stTrace.HitWorld) then
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
@@ -1246,12 +1279,12 @@ end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
   local atGho = asmlib.GetOpVar("ARRAY_GHOST")
-  local tEF, gID = self:GetFlipOverEntity(), atGho[1]
-  if(tEF and self:GetFlipOverID():len() > 0) then
-    for iD = 1, #tEF do
+  local tE, nE = self:GetFlipOverEntity(true)
+  if(tE and self:GetFlipOverFlag()) then
+    for iD = 1, nE do
       local bPK = inputIsKeyDown(KEY_LSHIFT)
-      local eID, gID = tEF[iD], atGho[iD]
-      if(eID and eID:IsValid() and gID and gID:IsValid()) then
+      local eID, gID = tE[iD], atGho[iD]
+      if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
         local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bPK)
         local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
         gID:SetPos(spPos); gID:SetAngles(spAng)
@@ -1259,7 +1292,7 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
       end
     end
   else
-    if(sPos and sAng) then
+    if(sPos and sAng) then local gID = atGho[1]
       gID:SetPos(sPos); gID:SetAngles(sAng); gID:SetNoDraw(false) end
   end
 end
@@ -1562,7 +1595,7 @@ end
 function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
   local actrad, vT = self:GetActiveRadius(), Vector()
   local trEnt, bActp = stTrace.Entity, inputIsKeyDown(KEY_LSHIFT)
-  local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bActp)
+  local wOver, wNorm, wOrig = self:GetFlipOverOrigin(stTrace, bActp)
   vT:Set(wNorm); vT:Mul(actrad); vT:Add(wOver)
   local oO, oN = wOver:ToScreen(), vT:ToScreen()
   local xH = stTrace.HitPos:ToScreen()
@@ -1571,20 +1604,23 @@ function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
   hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5))
   hudMonitor:DrawLine(oO, xH, "g")
   hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5))
-  local tEF = self:GetFlipOverEntity()
-  if(tEF) then
-    for iD = 1, #tEF do local eID = tEF[iD]
-      if(eID and eID:IsValid()) then
-        local vePos = eID:GetPos()
-        local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
-        local Os = vePos:ToScreen()
-        local Oe = spPos:ToScreen()
-        hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
-        hudMonitor:DrawLine(oO, Oe, "y")
-        hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, vePos), "c", "SURF")
-        hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
-      end
+  local tE, nE = self:GetFlipOverEntity(true)
+  for iD = 1, nE do local eID = tE[iD]
+    if(not asmlib.IsOther(eID)) then
+      local vePos = eID:GetPos()
+      local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
+      local Os = vePos:ToScreen()
+      local Oe = spPos:ToScreen()
+      hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
+      hudMonitor:DrawLine(oO, Oe, "y")
+      hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, vePos), "c", "SURF")
+      hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
     end
+  end
+  if(bActp) then
+    local Op = wOrig:ToScreen()
+    hudMonitor:DrawLine(xH, Op, "r")
+    hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOrig))
   end
 end
 
@@ -1625,7 +1661,7 @@ function TOOL:DrawHUD()
         self:DrawFlipOver(hudMonitor, oPly, stTrace)
       end; return -- The return is very very important ... Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
-      if(workmode == 4 and self:GetFlipOverID():len() > 0) then
+      if(workmode == 4 and self:GetFlipOverFlag()) then
         self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
       local Hp = stSpawn.HPnt:ToScreen()
       local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
@@ -1657,7 +1693,7 @@ function TOOL:DrawHUD()
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
   elseif(stTrace.HitWorld) then
-    if(workmode == 4 and self:GetFlipOverID():len() > 0) then
+    if(workmode == 4 and self:GetFlipOverFlag()) then
       self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
     local angsnap  = self:GetAngSnap()
     local elevpnt  = self:GetElevation()

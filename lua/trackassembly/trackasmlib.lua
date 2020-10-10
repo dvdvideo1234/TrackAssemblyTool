@@ -54,6 +54,7 @@ local Vector                         = Vector
 local Matrix                         = Matrix
 local unpack                         = unpack
 local include                        = include
+local IsEntity                       = IsEntity
 local IsValid                        = IsValid
 local Material                       = Material
 local require                        = require
@@ -234,14 +235,16 @@ function IsEmpty(tVal)
 end
 
 function IsPlayer(oPly)
-  if(not IsHere(oPly)) then return false end
-  if(not oPly:IsValid  ()) then return false end
-  if(not oPly:IsPlayer ()) then return false end
+  if(not IsHere(oPly))    then return false end
+  if(not IsEntity(oPly))  then return false end
+  if(not oPly:IsValid())  then return false end
+  if(not oPly:IsPlayer()) then return false end
   return true
 end
 
 function IsOther(oEnt)
   if(not IsHere(oEnt))   then return true end
+  if(not IsEntity(oEnt)) then return true end
   if(not oEnt:IsValid()) then return true end
   if(oEnt:IsPlayer())    then return true end
   if(oEnt:IsVehicle())   then return true end
