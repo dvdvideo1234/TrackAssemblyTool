@@ -674,7 +674,6 @@ function InitBase(sName, sPurp)
     filter = function(oEnt) -- Only valid props which are not the main entity or world or TRACE_FILTER ( if set )
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
-  SetOpVar("RAY_INTERSECT",{}) -- General structure for handling rail crosses and curves
   if(CLIENT) then
     SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
     SetOpVar("TOOL_DEFMODE","gmod_tool")
@@ -3882,7 +3881,9 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
     LogInstance("Player invalid <"..tostring(oPly)..">"); return nil end
   local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit); if(not trID) then
     LogInstance("Entity no hit <"..tostring(oEnt).."/"..tostring(vHit)..">"); return nil end
-  local tRay = GetOpVar("RAY_INTERSECT"); if(not tRay[oPly]) then tRay[oPly] = {} end; tRay = tRay[oPly]
+  local stSpot, iKey = GetPlayerSpot(oPly), "INTERSECT"; if(not IsHere(stSpot)) then
+    LogInstance("Spot missing"); return nil end -- Retrieve general player spot
+  local tRay = stSpot[iKey]; if(not tRay) then stSpot[iKey] = {}; tRay = stSpot[iKey] end
   local stRay = tRay[sKey] -- Index the ray type. Relate or origin
   if(not stRay) then -- Define a ray via origin and direction
     tRay[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
@@ -3903,7 +3904,9 @@ function IntersectRayRead(oPly, sKey)
     LogInstance("Player mismatch "..GetReport(oPly)); return nil end
   if(not IsString(sKey)) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
-  local tRay = GetOpVar("RAY_INTERSECT")[oPly]; if(not tRay) then
+  local stSpot, iKey = GetPlayerSpot(oPly), "INTERSECT"; if(not IsHere(stSpot)) then
+    LogInstance("Spot missing"); return nil end -- Retrieve general player spot
+  local tRay = stSpot[iKey]; if(not tRay) then
     LogInstance("No ray <"..oPly:Nick()..">"); return nil end
   local stRay = tRay[sKey]; if(not stRay) then
     LogInstance("No key <"..sKey..">"); return nil end
@@ -3913,14 +3916,11 @@ end
 function IntersectRayClear(oPly, sKey)
   if(not IsPlayer(oPly)) then
     LogInstance("Player mismatch "..GetReport(oPly)); return false end
-  local tRay = GetOpVar("RAY_INTERSECT")[oPly]
-  if(not tRay) then LogInstance("Clean"); return true end
-  if(sKey) then
-    if(not IsString(sKey)) then
-      LogInstance("Key mismatch "..GetReport(sKey)); return false end
-    tRay[sKey] = nil; collectgarbage()
-  else GetOpVar("RAY_INTERSECT")[oPly] = nil; collectgarbage() end
-  LogInstance("Clear {"..tostring(sKey).."}<"..tostring(oPly)..">"); return true
+  local stSpot, iKey = GetPlayerSpot(oPly), "INTERSECT"; if(not IsHere(stSpot)) then
+    LogInstance("Spot missing"); return nil end -- Retrieve general player spot
+  local tRay = stSpot[iKey]; if(not tRay) then LogInstance("Clean"); return true end
+  if(not IsHere(sKey)) then stSpot[iKey] = nil else tRay[sKey] = nil end
+  LogInstance("Clear "..GetReport2(sKey, oPly:Nick())); return true
 end
 
 --[[

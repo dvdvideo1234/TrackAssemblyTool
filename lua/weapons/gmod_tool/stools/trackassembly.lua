@@ -395,6 +395,25 @@ function TOOL:GetNocollideWorld()
   return asmlib.GetAsmConvar("nocollidew", "BUL")
 end
 
+function TOOL:UpdateColorEnt(oEnt, sVar, sCol, bSet)
+  if(asmlib.IsOther(oEnt)) then return nil end
+  if(asmlib.IsHere(bSet)) then
+    if(bSet) then
+      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetColor(conPalette:Select(sCol))
+      oEnt:SetNWBool(gsToolPrefL..sVar, true)
+    else
+      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetColor(conPalette:Select("w"))
+      oEnt:SetNWBool(gsToolPrefL..sVar, false)
+    end
+  else
+    local bSet = oEnt:GetNWBool(sVar, false)
+    if(bSet) then
+      self:UpdateColorEnt(oEnt, sVar, sCol, bSet) end
+  end
+end
+
 function TOOL:SwitchPoint(vDir, bNxt)
   local oRec = asmlib.CacheQueryPiece(self:GetModel()); if(not asmlib.IsHere(oRec)) then
     asmlib.LogInstance("Invalid record",gtArgsLogs); return 1, 2 end
@@ -415,7 +434,8 @@ function TOOL:IntersectClear(bMute)
   if(stRay) then asmlib.IntersectRayClear(oPly, "relate")
     if(SERVER) then local ryEnt, sRel = stRay.Ent
       netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
-      if(ryEnt and ryEnt:IsValid()) then ryEnt:SetColor(conPalette:Select("w"))
+      if(ryEnt and ryEnt:IsValid()) then
+        self:UpdateColorEnt(ryEnt, "intersect", "ry", false)
         sRel = ryEnt:EntIndex()..gsSymRev..stringGetFileName(ryEnt:GetModel()) end
       if(not bMute) then sRel = (sRel and (": "..tostring(sRel)) or "")
         asmlib.LogInstance("Relation cleared <"..sRel..">",gtArgsLogs)
@@ -435,7 +455,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
     local sRel = oEnt:EntIndex()..gsSymRev..stringGetFileName(oEnt:GetModel())
     asmlib.Notify(oPly,"Intersect relation set: "..sRel.." !","UNDO")
-    stRay.Ent:SetColor(conPalette:Select("ry"))
+    self:UpdateColorEnt(oEnt, "intersect", "ry", true)
   end return true
 end
 
@@ -479,8 +499,7 @@ function TOOL:ClearAnchor(bMute)
   if(CLIENT) then return end; self:ClearObjects()
   asmlib.SetAsmConvar(plPly,"anchor",gsNoAnchor)
   if(svEnt and svEnt:IsValid()) then
-    svEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-    svEnt:SetColor(conPalette:Select("w"))
+    self:UpdateColorEnt(svEnt, "anchor", "an", false)
     if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..stringGetFileName(svEnt:GetModel())
       asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
@@ -499,8 +518,7 @@ function TOOL:SetAnchor(stTrace)
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then asmlib.LogInstance("Player invalid",gtArgsLogs); return false end
   local sAnchor = trEnt:EntIndex()..gsSymRev..stringGetFileName(trEnt:GetModel())
-  trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-  trEnt:SetColor(conPalette:Select("an"))
+  self:UpdateColorEnt(trEnt, "anchor", "an", true)
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
   asmlib.SetAsmConvar(plPly,"anchor",sAnchor)
   asmlib.Notify(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
@@ -657,24 +675,19 @@ function TOOL:SetFlipOver(trEnt)
   local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
   local iID, bBr = trEnt:EntIndex(), false
   local tF, nF = self:GetFlipOverArray()
-  local sVr = asmlib.GetAsmConvar("flipoverid", "NAM")
   if(nF <= 0) then tF = {} -- Create table
   else -- Remove entity from the convar
     for iD = 1, nF do nID = tF[iD]
       if(nID == iID) then bBr = true
         local eID = Entity(nID)
         if(not asmlib.IsOther(eID)) then
-          eID:SetRenderMode(RENDERMODE_TRANSALPHA)
-          eID:SetColor(conPalette:Select("w"))
-          eID:SetNWBool(sVr, false)
+          self:UpdateColorEnt(eID, "flipover", "fo", false)
         end; tableRemove(tF, iD); break
       end
     end
   end
   if(not bBr) then tableInsert(tF, tostring(iID))
-    trEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-    trEnt:SetColor(conPalette:Select("fo"))
-    trEnt:SetNWBool(sVr, true)
+    self:UpdateColorEnt(trEnt, "flipover", "fo", true)
   end
   asmlib.SetAsmConvar(oPly, "flipoverid", tableConcat(tF, sYm))
 end
@@ -683,12 +696,12 @@ function TOOL:GetFlipOverEntity(bMute)
   local tF, nF = self:GetFlipOverArray()
   if(not tF or nF <= 0) then return nil, nF end
   local tE, nE, ply = {}, 0, self:GetOwner()
-  local sVr = asmlib.GetAsmConvar("flipoverid", "NAM")
   for iD = 1, nF do local eID = Entity(tF[iD])
     local bID = (not asmlib.IsOther(eID))
-    local bMR = eID:GetNWBool(sVr)
+    local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
     if(bID and bMR) then
       nE = (nE + 1); tE[nE] = eID
+      self:UpdateColorEnt(eID, "flipover", "fo")
     else
       if(SERVER and not bMute) then
         local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
@@ -702,13 +715,9 @@ end
 function TOOL:ClearFlipOver(bSync, bMute)
   local ply = self:GetOwner()
   local tF, nF = self:GetFlipOverArray()
-  local sVr = asmlib.GetAsmConvar("flipoverid", "NAM")
   for iD = 1, nF do local eID = Entity(tF[iD])
     if(not asmlib.IsOther(eID)) then
-      eID:SetRenderMode(RENDERMODE_TRANSALPHA)
-      eID:SetColor(conPalette:Select("w"))
-      eID:SetNWBool(sVr, false)
-    end
+      self:UpdateColorEnt(eID, "flipover", "fo", false) end
   end; asmlib.SetAsmConvar(ply, "flipoverid", "")
   if(not bMute) then
     asmlib.LogInstance("Flip over cleared", gtArgsLogs)
@@ -1455,27 +1464,35 @@ function TOOL:DrawRelateIntersection(oScreen, oPly)
   local Ru = (rOrg + nLn * 0.5 * rDir:Up()):ToScreen()
   oScreen:DrawLine(Rp, Rf, "r")
   oScreen:DrawLine(Rp, Ru, "b")
-  oScreen:DrawCircle(Rp, asmlib.GetViewRadius(oPly, rOrg), "y")
+  oScreen:DrawCircle(Rp, asmlib.GetViewRadius(oPly, rOrg), "y", "SEGM", {35})
   return Rp, Rf, Ru
 end
 
 function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
+  local nLn = self:GetActiveRadius()
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
   local nRad = asmlib.GetCacheRadius(oPly, trHit)
-  local vTmp, trLen, trPOA =  Vector(), 0, nil
+  local vTmp, aTmp, trLen, trPOA = Vector(), Angle(), 0, nil
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
-    asmlib.SetVector(vTmp,stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
-    oScreen:DrawCircle(vTmp:ToScreen(), asmlib.GetViewRadius(oPly, vTmp, 4), "r", "SEGM", {35})
+    asmlib.SetVector(vTmp, stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
+    oScreen:DrawCircle(vTmp:ToScreen(), asmlib.GetViewRadius(oPly, vTmp), "y", "SEGM", {35})
     vTmp:Sub(trHit); if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
-  end; asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
+  end
+  asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
+  asmlib.SetAngle (aTmp,trPOA.A); aTmp:Set(trEnt:LocalToWorldAngles(aTmp))
   local Hp, Op = trHit:ToScreen(), vTmp:ToScreen()
+  local vF, vU = aTmp:Forward(), aTmp:Up()
+  vF:Mul(nLn); vU:Mul(0.5 * nLn); vF:Add(vTmp); vU:Add(vTmp)
+  local xF, xU = vF:ToScreen(), vU:ToScreen()
   oScreen:DrawCircle(Hp, nRad, "y")
   oScreen:DrawLine(Hp, Op, "g")
+  oScreen:DrawLine(xF, Op, "r")
+  oScreen:DrawLine(xU, Op, "b")
 end
 
 function TOOL:DrawSnapAssist(oScreen, oPly, stTrace)
