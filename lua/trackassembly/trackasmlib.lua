@@ -1623,15 +1623,25 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
   return vCen -- Returns X-Y OBB centered model
 end
 
-function GetTransformFO(eBase, wOrg, vNorm)
-  local wPos = eBase:GetPos()
+function GetTransformOBB(eBase, wOrg, vNorm, nX, nY, nZ, rP, rY, rR)
+  local vOBB = eBase:OBBCenter()
+  local wOBB = eBase:LocalToWorld(vOBB)
   local wAng = eBase:GetAngles()
+        wAng:RotateAroundAxis(wAng:Up(), (tonumber(rY) or 0))
+        wAng:RotateAroundAxis(wAng:Right(), (tonumber(rP) or 0))
+        wAng:RotateAroundAxis(wAng:Forward(), (tonumber(rR) or 0))
   local nRot = (GetOpVar("MAX_ROTATION") / 2)
         wAng:RotateAroundAxis(vNorm, nRot)
-  local wDir = Vector(); wDir:Set(wOrg); wDir:Sub(wPos)
+  local wDir = Vector(); wDir:Set(wOrg); wDir:Sub(wOBB)
   local pDir = 2 * wDir:Dot(vNorm)
-        wPos:Set(wOrg); wPos:Add(wDir)
-        wPos:Sub(pDir * vNorm)
+  local wPos = Vector(); wPos:Set(wOrg)
+        wPos:Add(wDir); wPos:Sub(pDir * vNorm)
+        vOBB:Rotate(wAng)
+  local wAim = (wPos - wOBB):AngleEx(vNorm)
+        wPos:Sub(vOBB)
+        wPos:Add((tonumber(nX) or 0) * wAim:Forward())
+        wPos:Add((tonumber(nY) or 0) * wAim:Right())
+        wPos:Add((tonumber(nZ) or 0) * wAim:Up())
   return wPos, wAng
 end
 
@@ -3644,7 +3654,7 @@ function GetEntityHitID(oEnt, vHit, bPnt)
     if(bPnt) then SetVector(oAnc, tPOA.P) else SetVector(oAnc, tPOA.O) end
     oAnc:Rotate(eAng); oAnc:Add(ePos); oAnc:Sub(vHit)
     local tMin = oAnc:Length() -- Calculate vector absolute ( distance )
-    if(oID and oMin) then -- Check if current distance is minimum
+    if(oID and oMin and oPOA) then -- Check if current distance is minimum
       if(oMin >= tMin) then oID, oMin, oPOA = tID, tMin, tPOA end
     else -- The shortest distance if the first one checked until others are looped
       oID, oMin, oPOA = tID, tMin, tPOA end
@@ -3958,12 +3968,12 @@ function IntersectRayModel(sModel, nPntID, nNxtID)
   local stPOA2 = LocatePOA(mRec, nNxtID); if(not stPOA2) then
     LogInstance("End ID missing "..GetReport(nNxtID)); return nil end
   local aD1, aD2 = Angle(), Angle(); SetAngle(aD1, stPOA1.A); SetAngle(aD2, stPOA2.A)
-  local vO1, vD1 = Vector(), Vector(); SetVector(vO1, stPOA1.O); vD1:Set(-aD1:Forward())
-  local vO2, vD2 = Vector(), Vector(); SetVector(vO2, stPOA2.O); vD2:Set(-aD2:Forward())
+  local vO1, vD1 = Vector(), aD1:Forward(); SetVector(vO1, stPOA1.O); vD1:Mul(-1)
+  local vO2, vD2 = Vector(), aD2:Forward(); SetVector(vO2, stPOA2.O); vD2:Mul(-1)
   local f1, f2, x1, x2, xx = IntersectRay(vO1,vD1,vO2,vD2)
   if(not xx) then -- Attempts taking the mean vector when the rays are parallel for straight tracks
     f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
-  return xx, vO1, vO2
+  return xx, vO1, vO2, aD1, aD2
 end
 
 function AttachAdditions(ePiece)

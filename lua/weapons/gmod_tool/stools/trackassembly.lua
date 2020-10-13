@@ -725,29 +725,42 @@ function TOOL:ClearFlipOver(bSync, bMute)
   end -- Make sure to delete the relation on both client and server
 end
 
-function TOOL:GetFlipOverOrigin(stTrace, bPnt)
+function TOOL:GetFlipOverOrigin(stTrace, bPntN)
   local trEnt, trHit = stTrace.Entity, stTrace.HitNormal
-  local wOver, wNorm, wOrig = Vector(), Vector(), Vector()
-  if(trEnt and trEnt:IsValid()) then
-    if(bPnt) then local wAucs = Angle()
-      local trID, trMin, trPOA, trRec = asmlib.GetEntityHitID(trEnt, stTrace.HitPos)
-      if(trID and trMin and trPOA and trRec) then
-        wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
+  local wOver, wNorm = Vector(), Vector()
+  if(not (trEnt and trEnt:IsValid())) then
+    wOver:Set(stTrace.HitPos); wNorm:Set(trHit)
+    return wOver, wNorm
+  end
+  wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter())); wNorm:Set(trHit)
+  if(bPntN) then
+    local wOrig, wAucs = Vector(), Angle()
+    local model, trMod = self:GetModel(), trEnt:GetModel()
+    local trID, trMin, trPOA, trRec = asmlib.GetEntityHitID(trEnt, stTrace.HitPos, true)
+    if(model == trMod and trRec and (tonumber(trRec.Size) or 0) > 1) then
+      local pointid, pnextid = self:GetPointID()
+      local vXX, vO1, vO2 = asmlib.IntersectRayModel(trMod, pointid, pnextid)
+      if(vXX) then
+        wOver:Set(trEnt:LocalToWorld(vXX))
+        vO1:Set(trEnt:LocalToWorld(vO1))
+        vO2:Set(trEnt:LocalToWorld(vO2))
+        asmlib.SetAngle (wAucs, trPOA.A)
+        wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
+        wNorm:Set(wAucs:Up())
+        return wOver, wNorm, vO1, vO2
+      end
+    else
+      if(trPOA) then
         asmlib.SetVector(wOrig, trPOA.O)
         wOrig:Set(trEnt:LocalToWorld(wOrig))
         asmlib.SetAngle (wAucs, trPOA.A)
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
-      else
-        wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
-        wNorm:Set(trHit)
+        return wOver, wNorm, wOrig
       end
-    else
-      wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
-      wNorm:Set(trHit)
     end
-  else wOver:Set(stTrace.HitPos); wNorm:Set(trHit) end
-  return wOver, wNorm, wOrig
+  end
+  return wOver, wNorm
 end
 
 function TOOL:SelectModel(sModel)
@@ -1014,7 +1027,7 @@ function TOOL:LeftClick(stTrace)
     for iD = 1, nE do local eID = tE[iD]
       if(not asmlib.IsOther(eID)) then local sM = eID:GetModel()
         asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Flip over )")
-        local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
+        local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         local ePiece = asmlib.MakePiece(ply,sM,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
         if(ePiece) then
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
@@ -1087,7 +1100,8 @@ function TOOL:LeftClick(stTrace)
       if(not (anEnt and anEnt:IsValid())) then return false end
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",trEnt),gtArgsLogs); return false end
-      local spPos, spAng = asmlib.GetTransformFO(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()), stTrace.HitNormal)
+      local spPos, spAng = asmlib.GetTransformOBB(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()),
+                             stTrace.HitNormal, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
       local ePiece = asmlib.MakePiece(ply,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
@@ -1187,7 +1201,7 @@ function TOOL:RightClick(stTrace)
   if(workmode == 3) then local tC
     if(ply:KeyDown(IN_SPEED)) then tC = self:CurveUpdate(stTrace)
     else tC = self:CurveInsert(stTrace) end; return (tC and true or false)
-  elseif(workmode == 4) then
+  elseif(workmode == 4 and not ply:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
   end
   if(stTrace.HitWorld) then
@@ -1290,12 +1304,15 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
   local atGho = asmlib.GetOpVar("ARRAY_GHOST")
   local tE, nE = self:GetFlipOverEntity(true)
   if(tE and self:GetFlipOverFlag()) then
+    local nextx  , nexty  , nextz   = self:GetPosOffsets()
+    local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     for iD = 1, nE do
       local bPK = inputIsKeyDown(KEY_LSHIFT)
       local eID, gID = tE[iD], atGho[iD]
       if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
         local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bPK)
-        local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
+        local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm,
+                               nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         gID:SetPos(spPos); gID:SetAngles(spAng)
         gID:SetModel(eID:GetModel()); gID:SetNoDraw(false)
       end
@@ -1610,22 +1627,24 @@ function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
 end
 
 function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
+  local model, trEnt = self:GetModel(), stTrace.Entity
   local actrad, vT = self:GetActiveRadius(), Vector()
-  local trEnt, bActp = stTrace.Entity, inputIsKeyDown(KEY_LSHIFT)
-  local wOver, wNorm, wOrig = self:GetFlipOverOrigin(stTrace, bActp)
+  local bActp, xH = inputIsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
+  local wOver, wNorm, wOr1, wOr2  = self:GetFlipOverOrigin(stTrace, bActp)
+  local nextx  , nexty  , nextz   = self:GetPosOffsets()
+  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   vT:Set(wNorm); vT:Mul(actrad); vT:Add(wOver)
   local oO, oN = wOver:ToScreen(), vT:ToScreen()
-  local xH = stTrace.HitPos:ToScreen()
   hudMonitor:DrawLine(oO, oN, "y", "SURF")
   hudMonitor:DrawCircle(oN, asmlib.GetViewRadius(oPly, vT, 0.5), "r")
-  hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5))
   hudMonitor:DrawLine(oO, xH, "g")
   hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5))
   local tE, nE = self:GetFlipOverEntity(true)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
-      local spPos, spAng = asmlib.GetTransformFO(eID, wOver, wNorm)
+      local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm,
+                             nextx, nexty, nextz, nextpic, nextyaw, nextrol)
       local Os = vePos:ToScreen()
       local Oe = spPos:ToScreen()
       hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
@@ -1634,10 +1653,23 @@ function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
       hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
     end
   end
-  if(bActp) then
-    local Op = wOrig:ToScreen()
-    hudMonitor:DrawLine(xH, Op, "r")
-    hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOrig))
+  if(bActp and not stTrace.HitWorld and wOr1) then
+    if(model == trEnt:GetModel() and wOr2) then
+      local Op1 = wOr1:ToScreen()
+      local Op2 = wOr2:ToScreen()
+      hudMonitor:DrawLine(oO, Op1, "ry")
+      hudMonitor:DrawLine(oO, Op2)
+      hudMonitor:DrawCircle(Op1, asmlib.GetViewRadius(oPly, wOr1), "r")
+      hudMonitor:DrawCircle(Op2, asmlib.GetViewRadius(oPly, wOr2))
+      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5), "b")
+    else
+      local Op = wOr1:ToScreen()
+      hudMonitor:DrawLine(xH, Op, "r")
+      hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOr1))
+      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5))
+    end
+  else
+    hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5))
   end
 end
 
