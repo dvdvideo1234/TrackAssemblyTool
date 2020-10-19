@@ -83,7 +83,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.660")
+asmlib.SetOpVar("TOOL_VERSION","7.661")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -421,6 +421,9 @@ if(CLIENT) then
   asmlib.ToIcon("workmode_over" , "shape_move_back") -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("property_type" , "package_green"  )
   asmlib.ToIcon("property_name" , "note"           )
+  asmlib.ToIcon("database_mode" , "server_database")
+  asmlib.ToIcon("database_time" , "time_go"        )
+
 
   -- Workshop matching crap
   asmlib.WorkshopID("SligWolf's Rerailers"        , 132843280)

@@ -1476,7 +1476,7 @@ function TOOL:DrawRelateIntersection(oScreen, oPly)
   local stRay = asmlib.IntersectRayRead(oPly, "relate")
   if(not stRay) then return end
   local rOrg, rDir = stRay.Orw, stRay.Diw
-  local Rp, nLn = rOrg:ToScreen(), self:GetActiveRadius()
+  local Rp, nLn = rOrg:ToScreen(), self:GetSizeUCS()
   local Rf = (rOrg + nLn * rDir:Forward()):ToScreen()
   local Ru = (rOrg + nLn * 0.5 * rDir:Up()):ToScreen()
   oScreen:DrawLine(Rp, Rf, "r")
@@ -1486,11 +1486,10 @@ function TOOL:DrawRelateIntersection(oScreen, oPly)
 end
 
 function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
-  local nLn = self:GetActiveRadius()
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
-  local nRad = asmlib.GetCacheRadius(oPly, trHit)
+  local nRad, nLn = asmlib.GetCacheRadius(oPly, trHit), self:GetSizeUCS()
   local vTmp, aTmp, trLen, trPOA = Vector(), Angle(), 0, nil
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Size do
@@ -1872,18 +1871,18 @@ end
 function TOOL.BuildCPanel(CPanel)
   local drmSkin = CPanel:GetSkin()
   local devmode = asmlib.GetAsmConvar("devmode", "BUL")
+  -- Enter `spawnmenu_reload` in the console to reload the panel
   local sLog = "*TOOL.BuildCPanel"; CPanel:ClearControls()
-  local CurY, sCall, pItem, sText, fText = 0, "_cpan" -- pItem is the current panel created
+  local sCall, pItem, sName, aData = "_cpan" -- pItem is the current panel created
           CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
   pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
-  CurY  = CurY + pItem:GetTall() + 2
 
   local pComboPresets = vguiCreate("ControlPresets", CPanel)
         pComboPresets:SetPreset(gsToolNameL)
         pComboPresets:AddOption("Default", asmlib.GetOpVar("STORE_CONVARS"))
         for key, val in pairs(tableGetKeys(asmlib.GetOpVar("STORE_CONVARS"))) do
           pComboPresets:AddConVar(val) end
-  CPanel:AddItem(pComboPresets); CurY = CurY + pItem:GetTall() + 2
+  CPanel:AddItem(pComboPresets)
 
   local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return nil end
@@ -1892,8 +1891,7 @@ function TOOL.BuildCPanel(CPanel)
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel)
-        pTree:SetPos(2, CurY)
-        pTree:SetSize(2, 400)
+        pTree:SetTall(400)
         pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
         pTree:SetIndentSize(0)
         pTree:UpdateColours(drmSkin)
@@ -1968,50 +1966,39 @@ function TOOL.BuildCPanel(CPanel)
     end
   end -- Process all the items without category defined
   CPanel:AddItem(pTree)
-  CurY = CurY + pTree:GetTall() + 2
   asmlib.LogInstance("Found items #"..tostring(iCnt-1),sLog)
 
-  -- Extract panel text and place it in the clipboard
-  local function setDermaClipboard(pnPanel)
-    local iD = pnPanel:GetSelectedID()
-    local vT = pnPanel:GetOptionText(iD)
-    local sV = asmlib.GetTerm(tostring(vT or ""), pnPanel:GetValue())
-    SetClipboardText(asmlib.GetTerm(sV, gsNoAV))
-  end
-
   -- http://wiki.garrysmod.com/page/Category:DComboBox
-  local workmode = asmlib.GetAsmConvar("workmode", "INT")
-  local pComboToolMode = vguiCreate("DComboBox", CPanel)
-        pComboToolMode:SetPos(2, CurY)
-        pComboToolMode:SetSortItems(false); pComboToolMode:SetTall(18)
+  local sName = asmlib.GetAsmConvar("workmode", "NAM")
+  local aData = asmlib.GetAsmConvar("workmode", "INT")
+  local pComboToolMode = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_con"), sName)
+        pComboToolMode:SetSortItems(false)
         pComboToolMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".workmode"))
-        pComboToolMode.DoRightClick = function(pnSelf) setDermaClipboard(pnSelf) end
-        pComboToolMode.OnSelect = function(pnSelf, nInd, sVal, anyData)
-          asmlib.SetAsmConvar(nil,"workmode", anyData) end
+        pComboToolMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         for iD = 1, conWorkMode:GetSize() do
-          local sW, sD = tostring(conWorkMode:Select(iD) or gsNoAV):lower(), tostring(iD)
-          local sI, bS = asmlib.ToIcon("workmode_"..sW), (iD == workmode)
-          pComboToolMode:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_"..sD), iD, bS, sI)
+          local sW = tostring(conWorkMode:Select(iD) or gsNoAV):lower()
+          local sI = asmlib.ToIcon("workmode_"..sW)
+          local sT = asmlib.GetPhrase("tool."..gsToolNameL..".workmode_"..iD)
+          pComboToolMode:AddChoice(sT, iD, (iD == aData), sI)
         end
-        CurY = CurY + pComboToolMode:GetTall() + 2
+  pComboToolMode:Dock(TOP) -- Setting tallness gets ingnored otherwise
+  pComboToolMode:SetTall(20)
 
-  local pComboPhysType = vguiCreate("DComboBox", CPanel)
-        pComboPhysType:SetPos(2, CurY)
-        pComboPhysType:SetTall(18)
+  local sName = asmlib.GetAsmConvar("physmater", "NAM")
+  local pComboPhysType = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_con"))
         pComboPhysType:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phytype"))
         pComboPhysType:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_def"))
-        pComboPhysType.DoRightClick = function(pnSelf) setDermaClipboard(pnSelf) end
-        CurY = CurY + pComboPhysType:GetTall() + 2
-  local pComboPhysName = vguiCreate("DComboBox", CPanel)
-        pComboPhysName:SetPos(2, CurY)
-        pComboPhysName:SetTall(18)
+        pComboPhysType.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
+        pComboPhysType:Dock(TOP) -- Setting tallness gets ingnored otherwise
+        pComboPhysType:SetTall(20)
+  local pComboPhysName = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
+        pComboPhysName:SetTall(30)
         pComboPhysName:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phyname"))
         pComboPhysName:SetValue(asmlib.GetTerm(asmlib.GetAsmConvar("physmater","STR"),
                                 asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def")))
-        pComboPhysName.DoRightClick = function(pnSelf) setDermaClipboard(pnSelf) end
-        pComboPhysName.OnSelect = function(pnSelf, nInd, sVal, anyData)
-          asmlib.SetAsmConvar(nil,"physmater", sVal) end
-        CurY = CurY + pComboPhysName:GetTall() + 2
+        pComboPhysName.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
+        pComboPhysName:Dock(TOP) -- Setting tallness gets ingnored otherwise
+        pComboPhysName:SetTall(20)
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
     asmlib.LogInstance("Property population empty",sLog); return nil end
   while(cqProperty[iTyp]) do local sT = cqProperty[iTyp]
@@ -2028,27 +2015,24 @@ function TOOL.BuildCPanel(CPanel)
       end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
-  sText = asmlib.GetAsmConvar("physmater", "NAM")
-  fText = function(sVar, vOld, vNew) pComboPhysName:SetValue(vNew) end
-  cvarsRemoveChangeCallback(sText, sText..sCall)
-  cvarsAddChangeCallback(sText, fText, sText..sCall);
-  CPanel:AddItem(pComboToolMode)
-  CPanel:AddItem(pComboPhysType)
-  CPanel:AddItem(pComboPhysName); asmlib.LogTable(cqProperty,"Property",sLog)
+
+  cvarsRemoveChangeCallback(sName, sName..sCall)
+  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
+    pComboPhysName:SetValue(vNew) end, sName..sCall);
+  asmlib.LogTable(cqProperty,"Property",sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
-  local pText = vguiCreate("DTextEntry", CPanel)
-        pText:SetPos(2, CurY)
-        pText:SetTall(18)
+  local sName = asmlib.GetAsmConvar("bgskids", "NAM")
+  local pText = CPanel:TextEntry(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_con"), sName)
         pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
-        pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
-        pText:SetEnabled(false)
-        CurY = CurY + pText:GetTall() + 2
-  sText = asmlib.GetAsmConvar("bgskids", "NAM")
-  fText = function(sVar, vOld, vNew) pText:SetText(vNew); pText:SetValue(vNew) end
-  cvarsRemoveChangeCallback(sText, sText..sCall)
-  cvarsAddChangeCallback(sText, fText, sText..sCall);
-  CPanel:AddItem(pText)
+        pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),
+                      asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
+        pText:SetEnabled(false); pText:SetTall(20)
+
+  local sName = asmlib.GetAsmConvar("bgskids", "NAM")
+  cvarsRemoveChangeCallback(sName, sName..sCall)
+  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
+    pText:SetText(vNew); pText:SetValue(vNew) end, sName..sCall);
 
   local nMaxLin, iMaxDec = asmlib.GetAsmConvar("maxlinear","FLT"), asmlib.GetAsmConvar("maxmenupr","INT")
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmConvar("maxmass", "FLT")  , 0)
@@ -2139,6 +2123,86 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".engunsnap"))
 end
 
+if(CLIENT) then
+
+  function setAdminSettings(CPanel)
+    local pItem; CPanel:ClearControls()
+    local nMaxLin, iMaxDec = asmlib.GetAsmConvar("maxlinear","FLT"), asmlib.GetAsmConvar("maxmenupr","INT")
+            CPanel:ControlHelp("Client side player preferences")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".sizeucs_con"), gsToolPrefL.."sizeucs", 0, nMaxLin, iMaxDec)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".sizeucs"))
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstatts_con"), gsToolPrefL.."maxstatts", 0, 10, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxstatts"))
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnpang_con"), gsToolPrefL.."incsnpang", 0, gnMaxRot, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".incsnpang"))
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnplin_con"), gsToolPrefL.."incsnplin", 0, nMaxLin, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".incsnplin"))
+    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enradmenu_con"), gsToolPrefL.."enradmenu")
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
+    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enpntmscr_con"), gsToolPrefL.."enpntmscr")
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enpntmscr"))
+    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enradmenu_con"), gsToolPrefL.."enradmenu")
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
+    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".exportdb_con"), gsToolPrefL.."exportdb")
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".exportdb"))
+            CPanel:ControlHelp("Non-replicated convar controls")
+    local sName = asmlib.GetAsmConvar("modedb", "NAM")
+    pItem = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".modedb_con"), sName)
+    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(20)
+    pItem:SetValue(asmlib.GetOpVar("MODE_DATABASE"))
+    pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".modedb"))
+    pItem.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
+    pItem.OnSelect = function(pnSelf, nInd, sVal, anyData)
+      asmlib.SetAsmConvar(nil, "modedb", anyData) end
+    pItem:AddChoice("LUA", "LUA", false, asmlib.ToIcon("database_mode"))
+    pItem:AddChoice("SQL", "SQL", false, asmlib.ToIcon("database_mode"))
+    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".devmode_con"), gsToolPrefL.."devmode")
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".devmode"))
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxtrmarg_con"), gsToolPrefL.."maxtrmarg", 0, 1, iMaxDec)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxtrmarg"))
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxmenupr_con"), gsToolPrefL.."maxmenupr", 0, 25, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxmenupr"))
+    pItem = vguiCreate("DCategoryList", CPanel)
+    pItem:Dock(TOP); pItem:SetTall(200)
+
+    --[[
+    local tM = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
+    local iD, mkTab, sRev = 1, GetBuilderID(1), asmlib.GetOpVar("OPSYM_REVISION")
+    while(mkTab) do
+      local tSet = sRev:Explode(tostring(tM[iD] or ""))
+      local pDef = mkTab:GetDefinition()
+      local pMem = pItem:Add("SQL mamory manager: "..pDef.Nick)
+      local pMod = vguiCreate("DComboBox", CPanel)
+        pMod:SetPos(2, CurY)
+        pMod:SetSortItems(false); pMod:SetTall(18)
+        pMod:SetValue(asmlib.GetOpVar("MODE_DATABASE"))
+        pMod:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_1"))
+        pMod.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
+        pMod:AddChoice("CQT", "CQT", false, asmlib.ToIcon("database_time"))
+        pMod:AddChoice("OBJ", "OBJ", false, asmlib.ToIcon("database_time"))
+        pMem:Add(pMod)
+      local pTim = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".timermode_con"), nil, 0, 3600, 0)
+                    pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode"))
+
+    end
+
+
+]]
+
+
+
+
+
+
+  end
+
+  hookAdd("PopulateToolMenu", "CustomMenuSettings", function()
+    local sName = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
+    spawnmenu.AddToolMenuOption("Utilities", "Admin", gsToolPrefL.."admin_settings", sName, "", "", setAdminSettings)
+  end)
+end
+
+
 --[[
 -- This is not really needed for normal tool operation.
 -- It is intended only of you need to test the control panel
@@ -2149,5 +2213,14 @@ if CLIENT then
   cPanel:ClearControls()
   local b, e = pcall(TOOL.BuildCPanel, cPanel)
   if(not b) then ErrorNoHalt("Panel error: "..e.."\n") end
+end
+
+if CLIENT then
+  local cPanel = controlpanel.Get(TOOL.Mode.."admin_settings")
+  if(not IsValid(cPanel)) then
+    ErrorNoHalt("Admin invalid: "..tostring(cPanel).."\n") end
+  cPanel:ClearControls()
+  local b, e = pcall(setAdminSettings, cPanel)
+  if(not b) then ErrorNoHalt("Admin error: "..e.."\n") end
 end
 ]]

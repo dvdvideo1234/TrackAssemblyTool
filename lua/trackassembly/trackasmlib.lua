@@ -1612,6 +1612,13 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   return pPanel
 end
 
+function SetComboBoxClipboard(pnCombo)
+  local iD = pnCombo:GetSelectedID()
+  local vT = pnCombo:GetOptionText(iD)
+  local sV = GetTerm(tostring(vT or ""), pnCombo:GetValue())
+  SetClipboardText(GetTerm(sV, gsNoAV))
+end
+
 function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity Invalid"); return Vector(0,0,0) end
