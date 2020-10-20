@@ -32,6 +32,7 @@ local sqlBegin                      = sql and sql.Begin
 local sqlCommit                     = sql and sql.Commit
 local guiMouseX                     = gui and gui.MouseX
 local guiMouseY                     = gui and gui.MouseY
+local guiOpenURL                    = gui and gui.OpenURL
 local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
 local entsGetByIndex                = ents and ents.GetByIndex
 local mathFloor                     = math and math.floor
@@ -83,7 +84,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.661")
+asmlib.SetOpVar("TOOL_VERSION","7.662")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -137,9 +138,9 @@ asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, g
 ------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
 
 asmlib.MakeAsmConvar("maxmass"  , 50000 ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmConvar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum linear offset of the piece")
+asmlib.MakeAsmConvar("maxlinear", 5000  ,  {0}, gnServerControled, "Maximum linear offset of the piece")
 asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmConvar("maxactrad", 200, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmConvar("maxactrad", 200, {1,400}, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
 asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
 asmlib.MakeAsmConvar("enctxmenu", 1  , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
@@ -395,35 +396,40 @@ if(CLIENT) then
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
-  asmlib.ToIcon("category_item" , "folder"         )
-  asmlib.ToIcon("pn_externdb_1" , "database"       )
-  asmlib.ToIcon("pn_externdb_2" , "folder_database")
-  asmlib.ToIcon("pn_externdb_3" , "database_table" )
-  asmlib.ToIcon("pn_externdb_4" , "database_link"  )
-  asmlib.ToIcon("pn_externdb_5" , "time_go"        )
-  asmlib.ToIcon("pn_externdb_6" , "compress"       )
-  asmlib.ToIcon("pn_externdb_7" , "database_edit"  )
-  asmlib.ToIcon("pn_externdb_8" , "database_delete")
-  asmlib.ToIcon("model"         , "brick"          )
-  asmlib.ToIcon("mass"          , "basket_put"     )
-  asmlib.ToIcon("bgskids"       , "layers"         )
-  asmlib.ToIcon("phyname"       , "wand"           )
-  asmlib.ToIcon("ignphysgn"     , "lightning_go"   )
-  asmlib.ToIcon("freeze"        , "lock"           )
-  asmlib.ToIcon("gravity"       , "ruby_put"       )
-  asmlib.ToIcon("weld"          , "wrench"         )
-  asmlib.ToIcon("nocollide"     , "shape_group"    )
-  asmlib.ToIcon("nocollidew"    , "world_go"       )
-  asmlib.ToIcon("dsvlist_extdb" , "database_go"    )
-  asmlib.ToIcon("workmode_snap" , "plugin"         ) -- General spawning and snapping mode
-  asmlib.ToIcon("workmode_cross", "chart_line"     ) -- Ray cross intersect interpolation
-  asmlib.ToIcon("workmode_curve", "vector"         ) -- Catmull–Rom curve line segment fitting
-  asmlib.ToIcon("workmode_over" , "shape_move_back") -- Trace normal ray location piece flip-spawn
-  asmlib.ToIcon("property_type" , "package_green"  )
-  asmlib.ToIcon("property_name" , "note"           )
-  asmlib.ToIcon("database_mode" , "server_database")
-  asmlib.ToIcon("database_time" , "time_go"        )
-
+  asmlib.ToIcon("category_item"    , "folder"         )
+  asmlib.ToIcon("pn_externdb_1"    , "database"       )
+  asmlib.ToIcon("pn_externdb_2"    , "folder_database")
+  asmlib.ToIcon("pn_externdb_3"    , "database_table" )
+  asmlib.ToIcon("pn_externdb_4"    , "database_link"  )
+  asmlib.ToIcon("pn_externdb_5"    , "time_go"        )
+  asmlib.ToIcon("pn_externdb_6"    , "compress"       )
+  asmlib.ToIcon("pn_externdb_7"    , "database_edit"  )
+  asmlib.ToIcon("pn_externdb_8"    , "database_delete")
+  asmlib.ToIcon("model"            , "brick"          )
+  asmlib.ToIcon("mass"             , "basket_put"     )
+  asmlib.ToIcon("bgskids"          , "layers"         )
+  asmlib.ToIcon("phyname"          , "wand"           )
+  asmlib.ToIcon("ignphysgn"        , "lightning_go"   )
+  asmlib.ToIcon("freeze"           , "lock"           )
+  asmlib.ToIcon("gravity"          , "ruby_put"       )
+  asmlib.ToIcon("weld"             , "wrench"         )
+  asmlib.ToIcon("nocollide"        , "shape_group"    )
+  asmlib.ToIcon("nocollidew"       , "world_go"       )
+  asmlib.ToIcon("dsvlist_extdb"    , "database_go"    )
+  asmlib.ToIcon("workmode_snap"    , "plugin"         ) -- General spawning and snapping mode
+  asmlib.ToIcon("workmode_cross"   , "chart_line"     ) -- Ray cross intersect interpolation
+  asmlib.ToIcon("workmode_curve"   , "vector"         ) -- Catmull–Rom curve line segment fitting
+  asmlib.ToIcon("workmode_over"    , "shape_move_back") -- Trace normal ray location piece flip-spawn
+  asmlib.ToIcon("property_type"    , "package_green"  )
+  asmlib.ToIcon("property_name"    , "note"           )
+  asmlib.ToIcon("database_mode_lua", "database_lightning")
+  asmlib.ToIcon("database_mode_sql", "database_link"     )
+  asmlib.ToIcon("timermode_time"   , "time"              )
+  asmlib.ToIcon("bnderrmod_off"    , "shape_square"      )
+  asmlib.ToIcon("bnderrmod_log"    , "shape_square_edit" )
+  asmlib.ToIcon("bnderrmod_hint"   , "shape_square_go"   )
+  asmlib.ToIcon("bnderrmod_generic", "shape_square_link" )
+  asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
 
   -- Workshop matching crap
   asmlib.WorkshopID("SligWolf's Rerailers"        , 132843280)
@@ -947,7 +953,7 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.Button"
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), gtArgsLogs)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then local sType
+          if(inputIsKeyDown(KEY_LALT)) then local sType
             local iD, pnLine = pnListView:GetSelectedLine()
             if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
             else local model = asmlib.GetAsmConvar("model", "STR")
@@ -965,6 +971,11 @@ if(CLIENT) then
             asmlib.LogInstance("Export instance", gtArgsLogs)
           end
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
+        else
+          if(inputIsKeyDown(KEY_LSHIFT)) then
+            local fW = asmlib.GetOpVar("FORM_GITWIKI")
+            guiOpenURL(fW:format("Additional-features"))
+          end
         end
       end
       -- Leave the TextEntry here so it can access and update the local ListView reference

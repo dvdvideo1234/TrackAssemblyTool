@@ -94,6 +94,8 @@ local mathPi                         = math and math.pi
 local mathAbs                        = math and math.abs
 local mathSin                        = math and math.sin
 local mathCos                        = math and math.cos
+local mathMax                        = math and math.max
+local mathMin                        = math and math.min
 local mathCeil                       = math and math.ceil
 local mathModf                       = math and math.modf
 local mathSqrt                       = math and math.sqrt
@@ -519,8 +521,9 @@ function WorkshopID(sKey, nVal)
 end
 
 function IsFlag(vKey, vVal)
-  local tFlag = GetOpVar("TABLE_FLAGS"); if(not IsHere(vKey)) then
-    LogInstance("Invalid "..GetReport(vKey)); return nil end
+  local tFlag = GetOpVar("TABLE_FLAGS")
+  if(not IsHere(tFlag)) then LogInstance("Missing "..GetReport(tFlag)); return nil end
+  if(not IsHere(vKey)) then LogInstance("Invalid "..GetReport(vKey)); return nil end
   if(IsHere(vVal)) then tFlag[vKey] = tobool(vVal) end
   local bFlag = tFlag[vKey]; if(not IsHere(bFlag)) then
     LogInstance("Missing "..GetReport(vKey)); return nil end
@@ -641,6 +644,7 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
+  SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
   SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
@@ -1313,18 +1317,18 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
   function self:DrawUCS(oPly,vO,aO,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"UCS")
     local nSiz = BorderValue(tonumber(tArgs[1]) or 0, "non-neg")
+    local xyO, nRad = vO:ToScreen(), GetViewRadius(oPly, vO)
+    self:DrawCircle(xyO, nRad, "y", sMeth, tArgs)
     if(nSiz > 0) then
       if(sMeth == "SURF") then
-        local xyO = vO:ToScreen()
         local xyZ = (vO + nSiz * aO:Up()):ToScreen()
         local xyY = (vO + nSiz * aO:Right()):ToScreen()
         local xyX = (vO + nSiz * aO:Forward()):ToScreen()
-        self:DrawCircle(xyO,GetViewRadius(oPly, vO),"y",sMeth)
         self:DrawLine(xyO,xyX,"r",sMeth)
         self:DrawLine(xyO,xyY,"g")
         self:DrawLine(xyO,xyZ,"b"); return xyO, xyX, xyY, xyZ
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
-    end
+    end; return xyO -- Do not draw the rays when the size is zero
   end
   function self:DrawPOA(oPly,ePOA,stPOA,nAct)
     if(not (ePOA and ePOA:IsValid())) then
@@ -2802,6 +2806,8 @@ end
  * Exports panel indormation to dedicated DB file
  * stPanel --> The actual panel information to export
  * bExp    --> Export panel data into a DB file
+ * makTab  --> Table maker object
+ * sFunc   --> Export requestor ( CacheQueryPanel )
 ]]
 local function ExportPanelDB(stPanel, bExp, makTab, sFunc)
   if(bExp) then
@@ -4381,6 +4387,7 @@ end
 function ClearGhosts(vSiz, bCol)
   if(SERVER) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
+  if(not IsHere(tGho)) then return true end
   local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
   for iD = 1, iSiz do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
