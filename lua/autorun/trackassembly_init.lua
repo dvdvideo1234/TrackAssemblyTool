@@ -56,10 +56,12 @@ local fileDelete                    = file and file.Delete
 local fileTime                      = file and file.Time
 local fileSize                      = file and file.Size
 local fileOpen                      = file and file.Open
+local hookAdd                       = hook and hook.Add
 local timerSimple                   = timer and timer.Simple
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
+local stringUpper                   = string and string.upper
 local stringGetFileName             = string and string.GetFileFromFilename
 local surfaceCreateFont             = surface and surface.CreateFont
 local surfaceScreenWidth            = surface and surface.ScreenWidth
@@ -74,6 +76,7 @@ local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
 local controlpanelGet               = controlpanel and controlpanel.Get
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
+local spawnmenuAddToolMenuOption    = spawnmenu and spawnmenu.AddToolMenuOption
 
 ------------ MODULE POINTER ------------
 
@@ -84,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.662")
+asmlib.SetOpVar("TOOL_VERSION","7.663")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -122,32 +125,32 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 ------------ CONFIGURE LOGGING ------------
 
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmConvar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines being written")
-asmlib.MakeAsmConvar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File logging output flag control")
+asmlib.MakeAsmConvar("logsmax"  , 0 , {0, 100000}, gnIndependentUsed, "Maximum logging lines being written")
+asmlib.MakeAsmConvar("logfile"  , 0 , {0,   1   }, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
 
-asmlib.MakeAsmConvar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database storage operating mode LUA or SQL")
-asmlib.MakeAsmConvar("devmode"  ,    0 , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
-asmlib.MakeAsmConvar("maxtrmarg", 0.02 , {0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
-asmlib.MakeAsmConvar("maxmenupr",    5 , {0, 20 }, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
+asmlib.MakeAsmConvar("modedb"   , "LUA",    nil , gnIndependentUsed, "Database storage operating mode LUA or SQL")
+asmlib.MakeAsmConvar("devmode"  ,    0 , {0,  1}, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmConvar("maxtrmarg", 0.02 , {0,  1}, gnIndependentUsed, "Maximum time to avoid performing new traces")
+asmlib.MakeAsmConvar("maxmenupr",    5 , {0, 20}, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
 asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
 ------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
 
-asmlib.MakeAsmConvar("maxmass"  , 50000 ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmConvar("maxlinear", 5000  ,  {0}, gnServerControled, "Maximum linear offset of the piece")
-asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmConvar("maxactrad", 200, {1,400}, gnServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
-asmlib.MakeAsmConvar("enctxmenu", 1  , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
-asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
-asmlib.MakeAsmConvar("endsvlock", 0  , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
-asmlib.MakeAsmConvar("curvefact", 0.5, {0, 1 }, gnServerControled, "Parametric constant track curving factor")
-asmlib.MakeAsmConvar("curvsmple", 50 , {0,200}, gnServerControled, "Amount of samples between two curve nodes")
+asmlib.MakeAsmConvar("maxmass"  , 50000 , {1, 100000}, gnServerControled, "Maximum mass that can be applied on a piece")
+asmlib.MakeAsmConvar("maxlinear", 5000  , {0, 10000 }, gnServerControled, "Maximum linear offset of the piece")
+asmlib.MakeAsmConvar("maxforce" , 100000, {0, 200000}, gnServerControled, "Maximum force limit when creating welds")
+asmlib.MakeAsmConvar("maxactrad", 200   , {1,200}, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmConvar("maxstcnt" , 200   , {1,400}, gnServerControled, "Maximum spawned pieces in stacking mode")
+asmlib.MakeAsmConvar("enwiremod", 1     , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmConvar("enctxmenu", 1     , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
+asmlib.MakeAsmConvar("enctxmall", 0     , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
+asmlib.MakeAsmConvar("endsvlock", 0     , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
+asmlib.MakeAsmConvar("curvefact", 0.5   , {0, 1 }, gnServerControled, "Parametric constant track curving factor")
+asmlib.MakeAsmConvar("curvsmple", 50    , {0,200}, gnServerControled, "Amount of samples between two curve nodes")
 
 if(SERVER) then
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
@@ -167,6 +170,11 @@ asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 ------------ BORDERS ------------
 
 asmlib.SetBorder("non-neg", 0, mathHuge)
+asmlib.SetBorder(gsToolPrefL.."maxstatts", 0, 10)
+asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 10)
+asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, 10)
+asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 10)
+asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, 10)
 
 ------------ GLOBAL VARIABLES ------------
 
@@ -1091,6 +1099,27 @@ if(CLIENT) then
       end
     end)
 
+    asmlib.SetAction("TWEAK_PANEL",
+      function(tDat, ...)
+        local tArg = {...}; gtArgsLogs[1] = "*TWEAK_PANEL"
+        local sDir, sSub = tostring(tArg[1]):lower(), tostring(tArg[2]):lower()
+        local fFoo = tArg[3]; if(not asmlib.IsFunction(fFoo)) then
+          asmlib.LogInstance("Function miss "..asmlib.GetReport2(sDir, sSub), gtArgsLogs); return end
+        local bS, lDir = pcall(tDat.Foo, sDir); if (not bS) then
+          asmlib.LogInstance("Folder ["..sDir.."] "..lDir, gtArgsLogs); return end
+        local bS, lSub = pcall(tDat.Foo, sSub); if (not bS) then
+          asmlib.LogInstance("Subfolder ["..sSub.."] "..lSub, gtArgsLogs); return end
+        local sKey = tDat.Key:format(sDir, sSub)
+        hookAdd("PopulateToolMenu", sKey, function()
+          local sNam = asmlib.GetPhrase(tDat.Nam)
+          spawnmenuAddToolMenuOption(lDir, lSub, sKey, sNam, "", "", tArg[3])
+        end)
+      end,
+      {
+        Key = gsToolPrefL.."%s_%s",
+        Nam = "tool."..gsToolNameL..".name",
+        Foo = function(s) return s:gsub("^%l", stringUpper) end
+      })
 end
 
 ------------ INITIALIZE CONTEXT PROPERTIES ------------

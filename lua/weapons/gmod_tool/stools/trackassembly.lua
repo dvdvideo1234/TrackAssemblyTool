@@ -368,7 +368,7 @@ function TOOL:GetSpawnCenter()
 end
 
 function TOOL:GetStackAttempts()
-  return (mathClamp(self:GetClientNumber("maxstatts"),1,10))
+  return (mathClamp(self:GetClientNumber("maxstatts"),0,10))
 end
 
 function TOOL:GetPhysMeterial()
@@ -594,11 +594,11 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTr and stTr.HitWorld or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTr and stTr.Entity or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  TR.File:        <"..(trModel and stringGetFileName(tostring(trModel)) or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  TR.File:        <"..tostring(trModel and stringGetFileName(trModel) or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
         sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
         sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel or stringGetFileName(gsNoAV))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel and stringGetFileName(hdModel) or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
@@ -741,13 +741,15 @@ function TOOL:GetFlipOverOrigin(stTrace, bPntN)
       local pointid, pnextid = self:GetPointID()
       local vXX, vO1, vO2 = asmlib.IntersectRayModel(trMod, pointid, pnextid)
       if(vXX) then
+        asmlib.SetVector(wOrig, trPOA.O)
+        wOrig:Set(trEnt:LocalToWorld(wOrig))
         wOver:Set(trEnt:LocalToWorld(vXX))
         vO1:Set(trEnt:LocalToWorld(vO1))
         vO2:Set(trEnt:LocalToWorld(vO2))
         asmlib.SetAngle (wAucs, trPOA.A)
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
-        return wOver, wNorm, vO1, vO2
+        return wOver, wNorm, wOrig, vO1, vO2
       end
     else
       if(trPOA) then
@@ -1629,11 +1631,11 @@ function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
   local model, trEnt = self:GetModel(), stTrace.Entity
   local actrad, vT = self:GetActiveRadius(), Vector()
   local bActp, xH = inputIsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
-  local wOver, wNorm, wOr1, wOr2  = self:GetFlipOverOrigin(stTrace, bActp)
+  local wOv, wNr, wOr, wO1, wO2  = self:GetFlipOverOrigin(stTrace, bActp)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  vT:Set(wNorm); vT:Mul(actrad); vT:Add(wOver)
-  local oO, oN = wOver:ToScreen(), vT:ToScreen()
+  vT:Set(wNr); vT:Mul(actrad); vT:Add(wOv)
+  local oO, oN = wOv:ToScreen(), vT:ToScreen()
   hudMonitor:DrawLine(oO, oN, "y", "SURF")
   hudMonitor:DrawCircle(oN, asmlib.GetViewRadius(oPly, vT, 0.5), "r")
   hudMonitor:DrawLine(oO, xH, "g")
@@ -1642,7 +1644,7 @@ function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
-      local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm,
+      local spPos, spAng = asmlib.GetTransformOBB(eID, wOv, wNr,
                              nextx, nexty, nextz, nextpic, nextyaw, nextrol)
       local Os = vePos:ToScreen()
       local Oe = spPos:ToScreen()
@@ -1652,23 +1654,23 @@ function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
       hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
     end
   end
-  if(bActp and not stTrace.HitWorld and wOr1) then
-    if(model == trEnt:GetModel() and wOr2) then
-      local Op1 = wOr1:ToScreen()
-      local Op2 = wOr2:ToScreen()
+  if(bActp and not stTrace.HitWorld and wOr) then
+    local Op = wOr:ToScreen()
+    hudMonitor:DrawLine(xH, Op, "r")
+    if(model == trEnt:GetModel() and wO1 and wO2) then
+      local Op1 = wO1:ToScreen()
+      local Op2 = wO2:ToScreen()
       hudMonitor:DrawLine(oO, Op1, "ry")
       hudMonitor:DrawLine(oO, Op2)
-      hudMonitor:DrawCircle(Op1, asmlib.GetViewRadius(oPly, wOr1), "r")
-      hudMonitor:DrawCircle(Op2, asmlib.GetViewRadius(oPly, wOr2))
-      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5), "b")
+      hudMonitor:DrawCircle(Op1, asmlib.GetViewRadius(oPly, wO1), "r")
+      hudMonitor:DrawCircle(Op2, asmlib.GetViewRadius(oPly, wO2))
+      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5), "b")
     else
-      local Op = wOr1:ToScreen()
-      hudMonitor:DrawLine(xH, Op, "r")
-      hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOr1))
-      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5))
+      hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOr))
+      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5))
     end
   else
-    hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOver, 1.5))
+    hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5))
   end
 end
 
@@ -2124,20 +2126,30 @@ end
 if(CLIENT) then
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupUserSettings(CPanel)
-    local nMaxStk = asmlib.GetAsmConvar("maxstcnt", "INT")
+    local nMaxStk, nLow, nHig = asmlib.GetAsmConvar("maxstcnt", "INT")
     local drmSkin, pItem = CPanel:GetSkin(); CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
     local nMaxLin, iMaxDec = asmlib.GetAsmConvar("maxlinear","FLT"), asmlib.GetAsmConvar("maxmenupr","INT")
     CPanel:ControlHelp("Client side player preferences ( Convars created in the tool client configuration )")
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".sizeucs_con"), gsToolPrefL.."sizeucs", 0, nMaxLin, iMaxDec)
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."sizeucs")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".sizeucs_con"), gsToolPrefL.."sizeucs", nLow, nMaxLin, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".sizeucs"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstatts_con"), gsToolPrefL.."maxstatts", 0, 10, 0)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("sizeucs", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxstatts")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstatts_con"), gsToolPrefL.."maxstatts", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxstatts"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnpang_con"), gsToolPrefL.."incsnpang", 0, gnMaxRot, 0)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxstatts", "INT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."incsnpang")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnpang_con"), gsToolPrefL.."incsnpang", nLow, gnMaxRot, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".incsnpang"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnplin_con"), gsToolPrefL.."incsnplin", 0, nMaxLin, 0)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("incsnpang", "INT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."incsnplin")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnplin_con"), gsToolPrefL.."incsnplin", nLow, nMaxLin, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".incsnplin"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", 0, nMaxStk, 0)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("incsnplin", "INT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."ghostcnt")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", nLow, nMaxStk, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".ghostcnt"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("ghostcnt", "INT"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enradmenu_con"), gsToolPrefL.."enradmenu")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enpntmscr_con"), gsToolPrefL.."enpntmscr")
@@ -2148,37 +2160,50 @@ if(CLIENT) then
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".exportdb"))
   end
 
-  hookAdd("PopulateToolMenu", gsToolPrefL.."user_settings", function()
-    local sName = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
-    spawnmenu.AddToolMenuOption("Utilities", "User", gsToolPrefL.."user_settings", sName, "", "", setupUserSettings)
-  end)
+  asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
 
   -- Enter `spawnmenu_reload` in the console to reload the panel
-  local function setupAdminSettings(CPanel)
+  local function setupAdminSettings(CPanel) local nLow, nHig = 0, 0
     local drmSkin, pItem = CPanel:GetSkin(); CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
     local nMaxLin, iMaxDec = asmlib.GetAsmConvar("maxlinear","FLT"), asmlib.GetAsmConvar("maxmenupr","INT")
     CPanel:ControlHelp("Non-replicated convar controls ( Different values on server and client )")
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".logfile_con"), gsToolPrefL.."logfile")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".logfile"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".logsmax_con"), gsToolPrefL.."logsmax", 0, 100000, 0)
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."logsmax")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".logsmax_con"), gsToolPrefL.."logsmax", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".logsmax"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("logsmax", "INT"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".devmode_con"), gsToolPrefL.."devmode")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".devmode"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxtrmarg_con"), gsToolPrefL.."maxtrmarg", 0, 1, iMaxDec)
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxtrmarg")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxtrmarg_con"), gsToolPrefL.."maxtrmarg", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxtrmarg"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxmenupr_con"), gsToolPrefL.."maxmenupr", 0, 25, 0)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxtrmarg", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxmenupr")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxmenupr_con"), gsToolPrefL.."maxmenupr", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxmenupr"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxmenupr", "INT"))
     CPanel:ControlHelp("Replicated convar controls ( The server value is sent to all clients to be used )")
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxmass_con"), gsToolPrefL.."maxmass", 1, 100000, iMaxDec)
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxmass")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxmass_con"), gsToolPrefL.."maxmass", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxmass"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxlinear_con"), gsToolPrefL.."maxlinear", 0, 10000, iMaxDec)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxmass", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxlinear")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxlinear_con"), gsToolPrefL.."maxlinear", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxlinear"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxforce_con"), gsToolPrefL.."maxforce", 0, 200000, iMaxDec)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxlinear", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxforce")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxforce_con"), gsToolPrefL.."maxforce", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxforce"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxactrad_con"), gsToolPrefL.."maxactrad", 1, 400, iMaxDec)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxforce", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxactrad")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxactrad_con"), gsToolPrefL.."maxactrad", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxactrad"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstcnt_con"), gsToolPrefL.."maxstcnt", 1, 800, 0)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxactrad", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxstcnt")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstcnt_con"), gsToolPrefL.."maxstcnt", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxstcnt"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxstcnt", "INT"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enwiremod_con"), gsToolPrefL.."enwiremod")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enwiremod"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enctxmenu_con"), gsToolPrefL.."enctxmenu")
@@ -2187,10 +2212,14 @@ if(CLIENT) then
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enctxmall"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".endsvlock_con"), gsToolPrefL.."endsvlock")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".endsvlock"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".curvefact_con"), gsToolPrefL.."curvefact", 0, 1, iMaxDec)
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."curvefact")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".curvefact_con"), gsToolPrefL.."curvefact", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".curvefact"))
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".curvsmple_con"), gsToolPrefL.."curvsmple", 0, 200, 0)
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("curvefact", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."curvsmple")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".curvsmple_con"), gsToolPrefL.."curvsmple", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".curvsmple"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("curvsmple", "INT"))
     local sName, tSet = asmlib.GetAsmConvar("modedb", "NAM"), {"LUA", "SQL"}
     pItem = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".modedb_con"), sName)
     pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(20)
@@ -2284,8 +2313,5 @@ if(CLIENT) then
     pItem:Dock(TOP); pItem:SetTall(30)
   end
 
-  hookAdd("PopulateToolMenu", gsToolPrefL.."admin_settings", function()
-    local sName = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
-    spawnmenu.AddToolMenuOption("Utilities", "Admin", gsToolPrefL.."admin_settings", sName, "", "", setupAdminSettings)
-  end)
+  asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
 end

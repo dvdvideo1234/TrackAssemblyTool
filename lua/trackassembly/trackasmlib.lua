@@ -463,12 +463,22 @@ end
 function SetBorder(vKey, vLow, vHig)
   if(not IsHere(vKey)) then
     LogInstance("Key missing"); return false end
-  local tB = GetOpVar("TABLE_BORDERS")
-  if(IsHere(tB[vKey])) then local tU = tB[vKey]
-    local vL, vH = tostring(tU[1]), tostring(tU[2])
-    LogInstance("Exists ("..tostring(vKey)..")<"..vL.."/"..vH..">")
-  end; tB[vKey] = {vLow, vHig}; local vL, vH = tostring(vLow), tostring(vHig)
-  LogInstance("Apply ("..tostring(vKey)..")<"..vL.."/"..vH..">"); return true
+  local tB = GetOpVar("TABLE_BORDERS"); if(not IsHere(tB)) then
+    LogInstance("List missing"); return false end
+  local tU = tB[vKey]; if(IsHere(tU)) then
+    LogInstance("Entry exists "..GetReport3(vKey, tU[1], tU[2]))
+  end; tB[vKey] = {vLow, vHig} -- Write the border in the list
+  LogInstance("Entry apply "..GetReport3(vKey, vLow, vHig)); return true
+end
+
+function GetBorder(vKey)
+  if(not IsHere(vKey)) then
+    LogInstance("Key missing"); return nil end
+  local tB = GetOpVar("TABLE_BORDERS"); if(not IsHere(tB)) then
+    LogInstance("List missing"); return nil end
+  local tU = tB[vKey]; if(not IsHere(tU)) then
+    LogInstance("Entry missing "..GetReport(vKey)); return nil end
+  return unpack(tU)
 end
 
 --[[
@@ -1352,7 +1362,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
   return self -- Register the screen under the key
 end
 
-function SetAction(sKey,fAct,tDat,...)
+function SetAction(sKey, fAct, tDat)
   if(not (sKey and IsString(sKey))) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
   if(not (fAct and type(fAct) == "function")) then
@@ -1363,7 +1373,7 @@ function SetAction(sKey,fAct,tDat,...)
     for key, val in pairs(tDat) do
       tAct.Dat[key] = tDat[key]
     end
-  else tAct.Dat = {tDat, ...} end
+  else tAct.Dat = {tDat} end
   tAct.Dat.Slot = sKey; return true
 end
 
@@ -1371,7 +1381,7 @@ function GetActionCode(sKey)
   if(not (sKey and IsString(sKey))) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
   if(not (libAction and libAction[sKey])) then
-    LogInstance("Missing key <"..sKey..">"); return nil end
+    LogInstance("Missing key "..GetReport(sKey)); return nil end
   return libAction[sKey].Act
 end
 
@@ -1379,17 +1389,16 @@ function GetActionData(sKey)
   if(not (sKey and IsString(sKey))) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
   if(not (libAction and libAction[sKey])) then
-    LogInstance("Missing key <"..sKey..">"); return nil end
+    LogInstance("Missing key "..GetReport(sKey)); return nil end
   return libAction[sKey].Dat
 end
 
-function CallAction(sKey,...)
+function DoAction(sKey, ...)
   if(not (sKey and IsString(sKey))) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
-  if(not (libAction and libAction[sKey])) then
-    LogInstance("Missing key <"..sKey..">"); return nil end
-  local fAct, tDat = libAction[sKey].Act, libAction[sKey].Dat
-  return pcall(fAct, tDat, ...)
+  local tAct = libAction[sKey]; if(not IsHere(tAct)) then
+    LogInstance("Missing key "..GetReport(sKey)); return nil end
+  return pcall(tAct.Act, tAct.Dat, ...)
 end
 
 local function AddLineListView(pnListView,frUsed,ivNdex)
@@ -4147,7 +4156,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
   if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly,sMode)) then
-    LogInstance(pPly:Nick().." spawned <"..sModel.."> outside"); return nil end
+    LogInstance("Misplaced "..GetReport2(pPly:Nick(), sModel)); return nil end
   ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
   ePiece:Spawn()
   ePiece:Activate()
