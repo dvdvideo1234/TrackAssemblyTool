@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.663")
+asmlib.SetOpVar("TOOL_VERSION","7.664")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -961,7 +961,7 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf) gtArgsLogs[1] = "OPEN_FRAME.Button"
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), gtArgsLogs)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          if(inputIsKeyDown(KEY_LALT)) then local sType
+          if(inputIsKeyDown(KEY_LSHIFT)) then local sType
             local iD, pnLine = pnListView:GetSelectedLine()
             if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
             else local model = asmlib.GetAsmConvar("model", "STR")
