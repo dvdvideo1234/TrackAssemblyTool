@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.665")
+asmlib.SetOpVar("TOOL_VERSION","7.666")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -544,11 +544,11 @@ if(CLIENT) then
       if(not actTool:GetRadialMenu()) then
         asmlib.LogInstance("Menu disabled",gtArgsLogs); return nil end
       if(inputIsMouseDown(MOUSE_MIDDLE)) then guiEnableScreenClicker(true) else
-        guiEnableScreenClicker(false); asmlib.LogInstance("Scroll release",gtArgsLogs); return nil
+        guiEnableScreenClicker(false); asmlib.LogInstance("Release",gtArgsLogs); return nil
       end -- Draw while holding the mouse middle button
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
-      if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
+      if(not actMonitor) then asmlib.LogInstance("Screen invalid",gtArgsLogs); return nil end
       local vBs, nR = asmlib.NewXY(4,4), (gnRatio-1)
       local nN  = conWorkMode:GetSize()
       local nDr = asmlib.GetOpVar("DEG_RAD")

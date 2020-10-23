@@ -947,6 +947,27 @@ function TOOL:CurveCheck()
   return tC
 end
 
+function TOOL:CurveTransform(nD, vP0, vN0, vP1, vN1, vP2, vN2)
+  local nS = (vP1 - vP0):Length()
+  local nE = (vP2 - vP0):Length()
+  if(nS <= nD and nE >= nD) then
+    local oPos, oAng = Vector(), Angle()
+    local xP, xM = asmlib.IntersectLineSphere(vP1, vP2, vP0, nD)
+    local bOn = asmlib.IsAmongLine(xP, vP1, vP2)
+    local xX = (bOn and xP or xM)
+    local nFr = (vP1 - vP2):Length()
+    local nF1 = (xX - vP1):Length()
+    local nF2 = (xX - vP2):Length()
+    local vF1 = Vector(vN1); vF1:Mul(nF1 / nFr)
+    local vF2 = Vector(vN2); vF2:Mul(nF2 / nFr)
+    local xN = Vector(); xN:Add(vF1); xN:Add(vF2); xN:Normalize()
+    local vF, vU = (xX - vP0), (vN0 + xN)
+    oPos:Set(vP0); oAng:Set(vF:AngleEx(vU))
+    vP0:Set(xX); vN0:Set(xN)
+    return oPos, oAng
+  end
+end
+
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then
     asmlib.LogInstance("Working on client",gtArgsLogs); return true end
@@ -997,28 +1018,32 @@ function TOOL:LeftClick(stTrace)
     local curvsmple = self:GetCurveSamples()
     local sO, sA = tC.Info[1], tC.Info[2]
     local eO, eA = tC.Info[3], tC.Info[4]
-    local nD, iD = (eO - sO):Length(), 1
+    local nD, iD, iTrys = (eO - sO):Length(), 1, 0
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
-    local vP0, vN0 = tC.CNode[iD], tC.CNorm[iD]
-
-
-    asmlib.LogTable(tC, "CURVE")
-
-
+    local vP0 = Vector(); vP0:Set(tC.CNode[iD])
+    local vN0 = Vector(); vN0:Set(tC.CNorm[iD])
+    asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
     for iD = 1, tC.CSize-1 do
+      -- TODO: Make sure that curve goes to the end and not force increment the segment ID
+      local sItr, ePiece = "["..tostring(iD).."]"
       local vP1, vP2 = tC.CNode[iD], tC.CNode[iD + 1]
       local vN1, vN2 = tC.CNorm[iD], tC.CNorm[iD + 1]
-      print(iD, tostring(vP0), tostring(vP1), tostring(vP2))
-      if((vP1 - vP0):Length() < nD and (vP2 - vP0):Length() > nD) then
-        local xP, xM = asmlib.IntersectLineSphere(vP1, vP2, vP0, nD)
-        local xX = asmlib.IsAmongLine(xP, vP1, vP2) and xP or xM
-        print(iD, vP0, xX, (xX - vP0):Length(), nD)
-        vP0:Set(xX)
+      local vOrg, aOrg = self:CurveTransform(nD, vP0, vN0, vP1, vN1, vP2, vN2)
+      if(vOrg and aOrg) then -- Amke sure there is some origing to snap the piece
+        local stSpawn = asmlib.GetNormalSpawn(ply,vOrg,aOrg,model,pointid)
+        if(not stSpawn) then -- Make sure it persists to set it afterwards
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
+        while(iTrys < maxstatts and not ePiece) do iTrys = (iTrys + 1)
+          ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+        if(ePiece) then -- We still have enough memory to preform the stacking
+          asmlib.UndoAddEntity(ePiece); iTrys = 0 -- Reset the stack attempts count
+        else asmlib.UndoFinish(ply, sItr) -- We still have enough memory to preform the stacking
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true
+        end
       end
-
     end
-
-    return true
+    asmlib.UndoFinish(ply)
+    asmlib.LogInstance("(Curve) Success",gtArgsLogs); return true
   elseif(workmode == 4 and self:GetFlipOverFlag()) then
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOverEntity()
@@ -1028,7 +1053,7 @@ function TOOL:LeftClick(stTrace)
     end
     for iD = 1, nE do local eID = tE[iD]
       if(not asmlib.IsOther(eID)) then local sM = eID:GetModel()
-        asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Flip over )")
+        asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Over )")
         local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         local ePiece = asmlib.MakePiece(ply,sM,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
         if(ePiece) then
@@ -1070,7 +1095,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,nocollidew,forcelim)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
-      asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( World spawn )")
+      asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( World )")
       asmlib.UndoAddEntity(ePiece)
       asmlib.UndoFinish(ply)
       asmlib.LogInstance("(World) Success",gtArgsLogs); return true
@@ -1098,7 +1123,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",trEnt),gtArgsLogs); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
       asmlib.LogInstance("(Physical) Success",gtArgsLogs)
-    elseif(ply:KeyDown(IN_SPEED)) then -- Fast single flip over the anchor relative to a piece
+    elseif(ply:KeyDown(IN_SPEED)) then -- Fast single flip over the anchor relative to a piece OBB
       if(not (anEnt and anEnt:IsValid())) then return false end
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",trEnt),gtArgsLogs); return false end
@@ -1108,7 +1133,7 @@ function TOOL:LeftClick(stTrace)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtArgsLogs); return false end
-        asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Flip over )")
+        asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Over )")
         asmlib.UndoAddEntity(ePiece)
         asmlib.UndoFinish(ply)
         asmlib.LogInstance("(Over) Success",gtArgsLogs); return true
@@ -1124,8 +1149,7 @@ function TOOL:LeftClick(stTrace)
   if(workmode == 1 and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count not properly picked"),gtArgsLogs); return false end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
-    local ePieceO, ePieceN = trEnt
-    local iNdex, iTrys = 1, maxstatts
+    local ePieceO, iTrys, ePieceN = trEnt, 0, nil
     local vTemp, trPos = Vector(), trEnt:GetPos()
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
     if(not hdOffs) then -- Make sure it is present
@@ -1133,16 +1157,17 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"),gtArgsLogs); return false
     end -- Validated existent next point ID
     asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(stackcnt).." )")
-    while(iNdex <= stackcnt) do
-      local sIterat = "["..tostring(iNdex).."]"
-      ePieceN = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
-      if(ePieceN) then -- Set position is valid
+    for iD = 1, stackcnt do
+      local sItr, ePiece = "["..tostring(iD).."]", nil
+      while(iTrys < maxstatts and not ePiece) do iTrys = (iTrys + 1)
+        ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+      if(ePiece) then ePieceN = ePiece -- Set position is valid and store reference to the track piece
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply physical settings fail"),gtArgsLogs); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,nil,forcelim)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply weld fail"),gtArgsLogs); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
         if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,nocollidew,forcelim)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Apply no-collide fail"),gtArgsLogs); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
         asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntity(ePieceN)
         if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
@@ -1151,14 +1176,11 @@ function TOOL:LeftClick(stTrace)
                     actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then -- Look both ways in a one way street :D
           asmlib.Notify(ply,"Cannot obtain spawn data !", "ERROR")
-          asmlib.UndoFinish(ply,sIterat)
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": Stacking has invalid user data"),gtArgsLogs); return false
-        end -- Spawn data is valid for the current iteration iNdex
-        ePieceO, iNdex, iTrys = ePieceN, (iNdex + 1), maxstatts
-      else iTrys = iTrys - 1 end
-      if(iTrys <= 0) then
-        asmlib.UndoFinish(ply,sIterat) --  Make it shoot but throw the error
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sIterat..": All stack attempts fail"),gtArgsLogs); return true
+          asmlib.UndoFinish(ply, sItr)
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stacking has invalid user data"),gtArgsLogs); return false
+        end; ePieceO, iTrys = ePieceN, 0 -- Spawn data is valid for the current iteration iNdex
+      else asmlib.UndoFinish(ply, sItr) --  Make it shoot but throw the error
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": All stack attempts fail"),gtArgsLogs); return true
       end -- We still have enough memory to preform the stacking
     end
     asmlib.UndoFinish(ply)
@@ -1176,7 +1198,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply weld fail"),gtArgsLogs); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,nocollidew,forcelim)) then       -- NoCollide all to previous
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply no-collide fail"),gtArgsLogs); return false end
-      asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Snap prop )")
+      asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Snap )")
       asmlib.UndoAddEntity(ePiece)
       asmlib.UndoFinish(ply)
       asmlib.LogInstance("(Snap) Success",gtArgsLogs); return true

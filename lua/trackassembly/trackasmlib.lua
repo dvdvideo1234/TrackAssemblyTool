@@ -4585,27 +4585,27 @@ local function GetCatmullRomCurveDupe(tV, nT, nA, tO)
   for iD = 2, nV do
     vT:Set(tV[iD]); vT:Sub(tN[nN])
     if(vT:Length() > nM) then
-      table.insert(tN, tV[iD])
+      tableInsert(tN, tV[iD])
       tN.ID[iD], nN = {true, nN}, (nN + 1)
     else tN.ID[iD] = {false} end
   end
   if(nN > 1) then
     local tC = GetCatmullRomCurve(tN, nT, nA)
     for iD = 1, nV-1 do local iC = iD + 1
-      table.insert(tF, ToVector(tV[iD]))
+      tableInsert(tF, Vector(tV[iD]))
       if(not tN.ID[iC][1]) then
-        for iK = 1, nT do table.insert(tF, ToVector(tV[iD])) end
+        for iK = 1, nT do tableInsert(tF, Vector(tV[iD])) end
       else
         local iP = (tN.ID[iC][2] - 1) * (nT + 1)
         for iK = 1, nT do local iI = (iP + iK + 1)
-          table.insert(tF, ToVector(tC[iI])) end
+          tableInsert(tF, Vector(tC[iI])) end
       end
-    end; table.insert(tF, ToVector(tV[nV]))
+    end; tableInsert(tF, Vector(tV[nV]))
   else
     for iD = 1, nV-1 do
-      table.insert(tF, ToVector(tV[1]))
-      for iK = 1, nT do table.insert(tF, ToVector(tV[1])) end
-    end; table.insert(tF, ToVector(tV[1]))
+      tableInsert(tF, Vector(tV[1]))
+      for iK = 1, nT do tableInsert(tF, Vector(tV[1])) end
+    end; tableInsert(tF, Vector(tV[1]))
   end
   return tF, tN
 end
@@ -4620,6 +4620,7 @@ end
 function CalculateRomCurve(oPly, nSmp, nFac)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
+  tableEmpty(tC.CNode); tableEmpty(tC.CNorm)
   GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
   GetCatmullRomCurveDupe(tC.Norm, nSmp, nFac, tC.CNorm)
   tC.CSize = (tC.Size - 1) * nSmp + tC.Size
@@ -4658,11 +4659,12 @@ end
 ]]
 function IsAmongLine(vO, vS, vE)
   local nE = GetOpVar("EPSILON_ZERO")
-  local vD = Vector(); vD:Set(vE); vD:Sub(vS)
-  local oS = Vector(); oS:Set(vS); oS:Sub(vO)
-  local oE = Vector(); oE:Set(vE); oE:Sub(vO)
-  local rS = oS:Cross(vD):LengthSqr()
-  local rE = oE:Cross(vD):LengthSqr()
-  if(rS >= nE or rE >= nE) then return false end
-  return (oS:Dot(vD) * oE:Dot(vD) < 0)
+  local oS = Vector(vO); oS:Sub(vS)
+  local oE = Vector(vO); oE:Sub(vE)
+  local oR = Vector(vE); oR:Sub(vE)
+  local nC = oS:Cross(oR):Length()
+  if(mathAbs(nC) > nE) then return false end
+  local dS, dE = oS:Dot(oR), oE:Dot(oR)
+  if(dS * dE > 0) then return false end
+  return true
 end
