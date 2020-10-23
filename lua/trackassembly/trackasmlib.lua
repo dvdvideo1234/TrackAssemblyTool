@@ -4638,7 +4638,7 @@ end
 function IntersectLineSphere(vS, vE, vC, nR)
   local nE = GetOpVar("EPSILON_ZERO")
   local vD = Vector(); vD:Set(vE); vD:Sub(vS)
-  local nA = vD:LengthSqr(); if(nA < nE) then
+  local nA = vD:Length(); if(nA < nE) then
     LogInstance("Norm less than margin"); return nil end
   local vR = Vector(); vR:Set(vS) vR:Sub(vC)
   local nB, nC = 2 * vD:Dot(vR), (vR:LengthSqr() - nR^2)

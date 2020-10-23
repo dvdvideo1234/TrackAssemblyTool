@@ -947,12 +947,12 @@ function TOOL:CurveCheck()
   return tC
 end
 
-function TOOL:CurveTransform(nD, vP0, vN0, vP1, vN1, vP2, vN2)
+function TOOL:GetCurveSnap(nD, vP0, vN0, vP1, vN1, vP2, vN2)
   local nS = (vP1 - vP0):Length()
   local nE = (vP2 - vP0):Length()
   if(nS <= nD and nE >= nD) then
     local oPos, oAng = Vector(), Angle()
-    local xP, xM = asmlib.IntersectLineSphere(vP1, vP2, vP0, nD)
+    local xP, xM = asmlib.IntersectLineSphere(vP0, vP2, vP0, nD)
     local bOn = asmlib.IsAmongLine(xP, vP1, vP2)
     local xX = (bOn and xP or xM)
     local nFr = (vP1 - vP2):Length()
