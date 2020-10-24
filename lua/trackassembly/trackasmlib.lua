@@ -626,6 +626,7 @@ function InitBase(sName, sPurp)
   SetOpVar("DEG_RAD", mathPi / 180)
   SetOpVar("WIDTH_CPANEL", 281)
   SetOpVar("EPSILON_ZERO", 1e-5)
+  SetOpVar("CURVE_MARGIN", 15)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("DATE_FORMAT","%y-%m-%d")
@@ -2130,6 +2131,7 @@ function GetCacheCurve(pPly)
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
     stData.Info  = {Vector(), Angle(), Vector(), Angle()}
+    stData.Snap  = {} -- Contains array of position and angle snap information
     stData.Node  = {} -- Contains array of node positions for the curve caculation
     stData.Norm  = {} -- Contains array of normal vector for the curve caculation
     stData.Base  = {} -- Contains array of hit positions for the curve caculation
@@ -2137,9 +2139,11 @@ function GetCacheCurve(pPly)
     stData.CNorm = {} -- The place where the curve normals are stored
     stData.Size  = 0  -- The amount of points for the primary node array
     stData.CSize = 0  -- The amount of points for the calculated nodes array
+    stData.SSize = 0  -- The amount of points for position and angle snap information
   end;
-  if(not stData.Size) then stData.Size = 0 end
+  if(not  stData.Size) then  stData.Size = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
+  if(not stData.SSize) then stData.SSize = 0 end
   return stData
 end
 
@@ -4553,7 +4557,7 @@ local function GetCatmullRomCurve(tV, nT, nA, tO)
     LogInstance("Curve samples mismatch "..GetReport(nT)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
   if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
-  local vM, iC, cS, cE, tN = GetOpVar("EPSILON_ZERO"), 1, Vector(), Vector(), (tO or {})
+  local vM, iC, cS, cE, tN = GetOpVar("CURVE_MARGIN"), 1, Vector(), Vector(), (tO or {})
   cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
   cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
   tableInsert(tV, 1, cS); tableInsert(tV, cE); nV = (nV + 2); tableEmpty(tN)
@@ -4637,16 +4641,16 @@ end
 ]]
 function IntersectLineSphere(vS, vE, vC, nR)
   local nE = GetOpVar("EPSILON_ZERO")
-  local vD = Vector(); vD:Set(vE); vD:Sub(vS)
-  local nA = vD:Length(); if(nA < nE) then
+  local vD = Vector(vE); vD:Sub(vS)
+  local nA = vD:LengthSqr(); if(nA < nE) then
     LogInstance("Norm less than margin"); return nil end
-  local vR = Vector(); vR:Set(vS) vR:Sub(vC)
+  local vR = Vector(vS) vR:Sub(vC)
   local nB, nC = 2 * vD:Dot(vR), (vR:LengthSqr() - nR^2)
   local nD = (nB^2 - 4*nA*nC); if(nD < 0) then
     LogInstance("Imaginary roots"); return nil end
   local dA = (1/(2*nA)); nD, nB = dA*mathSqrt(nD), -nB*dA
-  local xP = Vector(); xP:Set(vD); xP:Mul(nB + nD); xP:Add(vS)
-  local xM = Vector(); xM:Set(vD); xM:Mul(nB - nD); xM:Add(vS)
+  local xP = Vector(vD); xP:Mul(nB + nD); xP:Add(vS)
+  local xM = Vector(vD); xM:Mul(nB - nD); xM:Add(vS)
   return xP, xM -- Return the intersected +/- root point
 end
 
