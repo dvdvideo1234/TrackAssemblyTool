@@ -259,7 +259,7 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetStackCount()
-  return mathClamp(self:GetClientNumber("stackcnt"),1,asmlib.GetAsmConvar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("stackcnt"),0,asmlib.GetAsmConvar("maxstcnt", "INT"))
 end
 
 function TOOL:GetMass()
@@ -546,8 +546,9 @@ function TOOL:GetGhostsDepth()
     return mathMin(ghostcnt, self:GetStackCount())
   elseif(workmode == 2) then    -- Put second value 1 here
     return mathMin(ghostcnt, 1) -- to be able to disable it
-  elseif(workmode == 3) then    -- This is about to be defined
-    return mathMin(ghostcnt, self:GetStackCount())
+  elseif(workmode == 3) then    -- Track interpolation curvaing
+    local stackcnt = self:GetStackCount() -- Return stacking as limit
+    return (stackcnt > 0 and mathMin(stackcnt, ghostcnt) or ghostcnt)
   elseif(workmode == 4) then    -- Put second value 1 here
     local tArr = self:GetFlipOverArray() -- to be used in no array
     local nLen = (tArr and #tArr or 1) -- flip-over mode snapping
@@ -925,9 +926,12 @@ function TOOL:CurveCheck()
     asmlib.Notify(ply,"End segment missing !","ERROR")
     asmlib.LogInstance("End segment missing: "..fnmodel, gtArgsLogs); return nil
   end
-  -- Check track piece shape
-  local sO, sA = tC.Info[1], tC.Info[2]; asmlib.SetVector(sO, sPOA.O); asmlib.SetAngle(sA, sPOA.A)
-  local eO, eA = tC.Info[3], tC.Info[4]; asmlib.SetVector(eO, ePOA.O); asmlib.SetAngle(eA, ePOA.A)
+  -- Read the active point and check piece shape
+  local sO, sA = tC.Info.Pos[1], tC.Info.Ang[1]
+        asmlib.SetVector(sO, sPOA.O); asmlib.SetAngle(sA, sPOA.A)
+  -- Read the next point to check the piece shape
+  local eO, eA = tC.Info.Pos[2], tC.Info.Ang[2]
+        asmlib.SetVector(eO, ePOA.O); asmlib.SetAngle(eA, ePOA.A)
   -- Disable for non-straight track segments
   if(sA:Forward():Cross(eA:Forward()):Length() >= nEps) then
     asmlib.Notify(ply,"Segment curved "..fnmodel.." !","ERROR")
@@ -943,44 +947,7 @@ function TOOL:CurveCheck()
     asmlib.Notify(ply,"Segment gradient "..fnmodel.." !","ERROR")
     asmlib.LogInstance("Segment gradient: "..fnmodel, gtArgsLogs); return nil
   end
-
-  return tC
-end
-
-function TOOL:InsertCurveSnap(nD, vP0, vN0, tC, iD)
-  tableEmpty(tC.Snap); tC.SSize = 0
-  local vP1, vN1 = tC.CNode[iD + 0], tC.CNorm[iD + 0]
-  local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
-  local nS = (vP0 - vP1):Length()
-  local nE = (vP2 - vP0):Length()
-  local nR = (vP2 - vP1):Length()
-  if(nS <= nD and nE >= nD) then
-    local xP, xM = asmlib.IntersectLineSphere(vP1, vP2, vP0, nD)
-    local bOn = asmlib.IsAmongLine(xP, vP1, vP2)
-    local xX = (bOn and xP or xM)
-    local nF1 = (xX - vP1):Length()
-    local nF2 = (xX - vP2):Length()
-    local vF1 = Vector(vN1); vF1:Mul(1 - (nF1 / nR))
-    local vF2 = Vector(vN2); vF2:Mul(1 - (nF2 / nR))
-    local xN = Vector(vF1); xN:Add(vF2); xN:Normalize()
-    local vF, vU = (xX - vP0), (vN0 + xN)
-    tableInsert(tC.Snap, {Vector(vP0), vF:AngleEx(vU)})
-    tC.SSize = (tC.SSize + 1); vP0:Set(xX); vN0:Set(xN)
-    local nL = (vP2 - vP0):Length()
-    while(nL > nD) do
-      local xP, xM = asmlib.IntersectLineSphere(vP0, vP2, vP0, nD)
-      local bOn = asmlib.IsAmongLine(xP, vP0, vP2)
-      local xX = (bOn and xP or xM)
-      local nF1 = (xX - vP0):Length()
-      local nF2 = (xX - vP2):Length()
-      local vF1 = Vector(vN0); vF1:Mul(1 - (nF1 / nL))
-      local vF2 = Vector(vN2); vF2:Mul(1 - (nF2 / nL))
-      local xN = Vector(vF1); xN:Add(vF2); xN:Normalize()
-      local vF, vU = (xX - vP0), (vN0 + xN)
-      tableInsert(tC.Snap, {Vector(vP0), vF:AngleEx(vU)})
-      tC.SSize, nL = (tC.SSize + 1), (nL - nD); vP0:Set(xX); vN0:Set(xN)
-    end
-  end
+  return tC -- Returns the updated curve nodes table
 end
 
 function TOOL:LeftClick(stTrace)
@@ -1031,32 +998,35 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Arguments validation fail"), gtArgsLogs); return nil end
     local curvefact = self:GetCurveFactor()
     local curvsmple = self:GetCurveSamples()
-    local sO, sA, ePieceO = tC.Info[1], tC.Info[2], nil
-    local eO, eA, ePieceN = tC.Info[3], tC.Info[4], nil
-    local nD, iD, iTrys = (eO - sO):Length(), 1, 0
+    local sO, sA, ePieceO = tC.Info.Pos[1], tC.Info.Ang[1], nil
+    local eO, eA, ePieceN = tC.Info.Pos[2], tC.Info.Ang[2], nil
+    local nD, iTry = (eO - sO):Length(), 0
+    local iMak, iStk, sItr = 0, 0
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
-    local vP0, vN0 = Vector(tC.CNode[iD]), Vector(tC.CNorm[iD])
     asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
     for iD = 1, tC.CSize-1 do
-      local sItr = "["..tostring(iD).."]"
-      self:InsertCurveSnap(nD, vP0, vN0, tC, iD)
-      for iK = 1, tC.SSize do local tS = tC.Snap[iK]
-        local vOrg, aOrg, ePiece = tS[1], tS[2], nil
-        local stSpawn = asmlib.GetNormalSpawn(ply, vOrg, aOrg, model, pointid)
-        if(not stSpawn) then -- Make sure it persists to set it afterwards
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
-        while(iTrys < maxstatts and not ePiece) do iTrys = (iTrys + 1)
-          ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
-        if(ePiece) then ePieceO, ePieceN = ePieceN, ePiece -- We still have enough memory to preform the stacking
-          if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,nil,forcelim)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,nocollidew,forcelim)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
-          asmlib.UndoAddEntity(ePieceN); iTrys = 0 -- Reset the stack attempts count
-        else asmlib.UndoFinish(ply, sItr) -- We still have enough memory to preform the stacking
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true
+      local tSnp, nL = asmlib.UpdateCurveSnap(ply, iD, nD)
+      if(tSnp and tSnp[1] and tSnp.Size and tSnp.Size > 0) then
+        for iK = 1, tSnp.Size do local tS = tSnp[iK]
+          local vOrg, aOrg, ePiece = tS[1], tS[2], nil
+          local stSpawn = asmlib.GetNormalSpawn(ply, vOrg, aOrg, model, pointid)
+          if(not stSpawn) then -- Make sure it persists to set it afterwards
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
+          while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
+            ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+          if(stackcnt > 0) then if(iStk < stackcnt) then iStk = (iStk + 1) else ePiece:Remove(); ePiece = nil end end
+          iMak = (iMak + (ePiece and 1 or 0)); sItr = asmlib.GetOpVar("FORM_ITERAT"):format(iMak)
+          if(ePiece) then ePieceO, ePieceN = ePieceN, ePiece -- We still have enough memory to preform the stacking
+            if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
+            if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,nil,forcelim)) then
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
+            if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,nocollidew,forcelim)) then
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
+            asmlib.UndoAddEntity(ePieceN); iTry = 0 -- Reset the stack attempts count
+          else asmlib.UndoFinish(ply, sItr) -- We still have enough memory to preform the stacking
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true
+          end
         end
       end
     end
@@ -1167,9 +1137,9 @@ function TOOL:LeftClick(stTrace)
 
   -- IN_SPEED: Switch the tool mode ( Stacking )
   if(workmode == 1 and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count not properly picked"),gtArgsLogs); return false end
+    if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count mismatch"),gtArgsLogs); return false end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
-    local ePieceO, iTrys, ePieceN = trEnt, 0, nil
+    local ePieceO, iTry, ePieceN = trEnt, 0, nil
     local vTemp, trPos = Vector(), trEnt:GetPos()
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
     if(not hdOffs) then -- Make sure it is present
@@ -1178,8 +1148,8 @@ function TOOL:LeftClick(stTrace)
     end -- Validated existent next point ID
     asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(stackcnt).." )")
     for iD = 1, stackcnt do
-      local sItr, ePiece = "["..tostring(iD).."]", nil
-      while(iTrys < maxstatts and not ePiece) do iTrys = (iTrys + 1)
+      local sItr, ePiece = asmlib.GetOpVar("FORM_ITERAT"):format(iD), nil
+      while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
         ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
       if(ePiece) then ePieceN = ePiece -- Set position is valid and store reference to the track piece
         if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
@@ -1198,7 +1168,7 @@ function TOOL:LeftClick(stTrace)
           asmlib.Notify(ply,"Cannot obtain spawn data !", "ERROR")
           asmlib.UndoFinish(ply, sItr)
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stacking has invalid user data"),gtArgsLogs); return false
-        end; ePieceO, iTrys = ePieceN, 0 -- Spawn data is valid for the current iteration iNdex
+        end; ePieceO, iTry = ePieceN, 0 -- Spawn data is valid for the current iteration iNdex
       else asmlib.UndoFinish(ply, sItr) --  Make it shoot but throw the error
         asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": All stack attempts fail"),gtArgsLogs); return true
       end -- We still have enough memory to preform the stacking
@@ -2083,7 +2053,7 @@ function TOOL.BuildCPanel(CPanel)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmConvar("maxactrad", "FLT"), iMaxDec)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".activrad"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".stackcnt_con"), gsToolPrefL.."stackcnt", 1, asmlib.GetAsmConvar("maxstcnt", "INT"), 0)
+  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".stackcnt_con"), gsToolPrefL.."stackcnt", 0, asmlib.GetAsmConvar("maxstcnt", "INT"), 0)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".stackcnt"))
   pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxRot, iMaxDec)
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".angsnap"))

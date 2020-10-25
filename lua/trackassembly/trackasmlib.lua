@@ -648,6 +648,7 @@ function InitBase(sName, sPurp)
   SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
   SetOpVar("FORM_CONCMD", "%s %s")
+  SetOpVar("FORM_ITERAT", "[%d]")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_VREPORT2","{%s}[%s]")
   SetOpVar("FORM_VREPORT3","{%s}[%s]<%s>")
@@ -2130,7 +2131,10 @@ function GetCacheCurve(pPly)
   if(not IsHere(stData)) then -- Allocate curve data
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
-    stData.Info  = {Vector(), Angle(), Vector(), Angle()}
+    stData.Info  = {}
+    stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
+    stData.Info.Ang = {Angle (), Angle ()} -- Start and end anngles of active points
+    stData.Info.UCS = {Vector(), Vector()} -- Origin and normal vector for the iteration
     stData.Snap  = {} -- Contains array of position and angle snap information
     stData.Node  = {} -- Contains array of node positions for the curve caculation
     stData.Norm  = {} -- Contains array of normal vector for the curve caculation
@@ -2139,11 +2143,9 @@ function GetCacheCurve(pPly)
     stData.CNorm = {} -- The place where the curve normals are stored
     stData.Size  = 0  -- The amount of points for the primary node array
     stData.CSize = 0  -- The amount of points for the calculated nodes array
-    stData.SSize = 0  -- The amount of points for position and angle snap information
   end;
   if(not  stData.Size) then  stData.Size = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
-  if(not stData.SSize) then stData.SSize = 0 end
   return stData
 end
 
@@ -4619,14 +4621,18 @@ end
  * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
  * oPly > Player to fill the calculation for
  * nSmp > Amount of samples between each node
- * nFac > Parametric constant curve factor [0 ; 1]
+ * nFac > Parametric constant curve factor [0;1]
 ]]
 function CalculateRomCurve(oPly, nSmp, nFac)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
-  tableEmpty(tC.CNode); tableEmpty(tC.CNorm)
+  tableEmpty(tC.Snap)  -- The size is in every entry
+  tableEmpty(tC.CNode) -- Reset the curve and snapping
+  tableEmpty(tC.CNorm); tC.CSize = 0 -- And normals
   GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
   GetCatmullRomCurveDupe(tC.Norm, nSmp, nFac, tC.CNorm)
+  tC.Info.UCS[1]:Set(tC.CNode[1])
+  tC.Info.UCS[2]:Set(tC.CNorm[1])
   tC.CSize = (tC.Size - 1) * nSmp + tC.Size
   return tC -- Return the updated reference
 end
@@ -4671,4 +4677,55 @@ function IsAmongLine(vO, vS, vE)
   local dS, dE = oS:Dot(oR), oE:Dot(oR)
   if(dS * dE > 0) then return false end
   return true
+end
+
+--[[
+ * Populates one track location in the snapping stack
+ * and prepares the coordiante location to be moved
+ * iD  > The current snap ID being populated
+ * vvS > Start location vector
+ * vnS > Start normal vector
+ * vvE > End location vector
+ * vnE > End normal vector
+ * vO  > Search sphere location vector
+ * nD  > Search sphere radius
+]]
+local function UpdateCurveNormUCS(oPly, iD, vvS, vnS, vvE, vnE, vO, nD)
+  local tC = GetCacheCurve(oPly); if(not tC) then
+    LogInstance("Curve missing"); return nil end
+  local nR, tU = (vvE - vvS):Length(), tC.Info.UCS
+  local vP, vN = tU[1], tU[2] -- Index origin UCS
+  local xP, xM = IntersectLineSphere(vvS, vvE, vO, nD)
+  local bOn = IsAmongLine(xP, vvS, vvE)
+  local xXX = (bOn and xP or xM) -- The nearest point has more weight
+  local nF1 = (xXX - vvS):Length() -- Start point fracttion
+  local nF2 = (xXX - vvE):Length() -- End point fracttion
+  local vF1 = Vector(vnS); vF1:Mul(1 - (nF1 / nR))
+  local vF2 = Vector(vnE); vF2:Mul(1 - (nF2 / nR))
+  local xNN = Vector(vF1); xNN:Add(vF2); xNN:Normalize()
+  local vF, vU = (xXX - vP), (vN + xNN) -- Spwan angle as FU
+  local tS, tO = tC.Snap[iD], {Vector(vP), vF:AngleEx(vU)}
+  tS.Size = (tS.Size + 1); tS[tS.Size] = tO
+  vP:Set(xXX); vN:Set(xNN) -- Update the new origin point
+  return tS, (vvE - vP):Length() -- Return remaining length
+end
+
+--[[
+ * Populates one node stack entry with segment snaps
+ * iD > Stack entry ID ( also the node segment ID )
+ * nD > The desired track interpolation length
+]]
+function UpdateCurveSnap(oPly, iD, nD)
+  local tC = GetCacheCurve(oPly); if(not tC) then
+    LogInstance("Curve missing"); return nil end
+  local vP0, vN0 = tC.Info.UCS[1], tC.Info.UCS[2]
+  local vP1, vN1 = tC.CNode[iD + 0], tC.CNorm[iD + 0]
+  local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
+  local nS, nE = (vP0 - vP1):Length(), (vP2 - vP0):Length()
+  if(nS <= nD and nE >= nD) then tC.Snap[iD] = {Size = 0}
+    local tO, nL = UpdateCurveNormUCS(oPly, iD, vP1, vN1, vP2, vN2, vP0, nD)
+    while(nL > nD) do -- First segment track is snapped but end is not reached
+      tO, nL = UpdateCurveNormUCS(oPly, iD, vP0, vN0, vP2, vN2, vP0, nD) end
+    return tO, nL -- Return the populated segment and the rest of the length
+  end
 end
