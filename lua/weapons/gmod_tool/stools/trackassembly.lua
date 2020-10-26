@@ -538,18 +538,21 @@ function TOOL:GetWorkingMode()
   return cWork, sWork
 end
 
--- Sends the proper ghost stack depth to DRAW_GHOSTS
+-- Sends the proper ghost stack depth to DRAW_GHOSTS [0;N]
 function TOOL:GetGhostsDepth()
   local workmode = self:GetWorkingMode() -- Switches the scenario
   local ghostcnt = self:GetGhostsCount() -- The base control value
+  local stackcnt = self:GetStackCount()
   if(workmode == 1) then -- Defined by the stack count otherwise 1
-    return mathMin(ghostcnt, self:GetStackCount())
-  elseif(workmode == 2) then    -- Put second value 1 here
+    local bS = inputIsKeyDown(KEY_LSHIFT)
+    local nC = (bS and stackcnt or mathMax(stackcnt, 1))
+    return mathMin(ghostcnt, nC)
+  elseif(workmode == 2) then -- Put second value 1 here
     return mathMin(ghostcnt, 1) -- to be able to disable it
-  elseif(workmode == 3) then    -- Track interpolation curvaing
-    local stackcnt = self:GetStackCount() -- Return stacking as limit
-    return (stackcnt > 0 and mathMin(stackcnt, ghostcnt) or ghostcnt)
-  elseif(workmode == 4) then    -- Put second value 1 here
+  elseif(workmode == 3) then -- Track interpolation curvaing
+    local nC = mathMin(mathMax(stackcnt, 1), ghostcnt)
+    return (stackcnt > 0 and nC or ghostcnt)
+  elseif(workmode == 4) then -- Put second value 1 here
     local tArr = self:GetFlipOverArray() -- to be used in no array
     local nLen = (tArr and #tArr or 1) -- flip-over mode snapping
     return mathMin(ghostcnt, nLen) -- Use ghosts count to disable it
@@ -787,6 +790,7 @@ function TOOL:CurveClear(bAll, bMute)
     if(bAll) then -- Clear all the nodes
       if(not bMute) then
         asmlib.Notify(ply, "Nodes cleared ["..nS.."] !", "CLEANUP") end
+      tableEmpty(tC.Snap); tC.SSize = 0
       tableEmpty(tC.Node)
       tableEmpty(tC.Norm)
       tableEmpty(tC.Base); tC.Size = 0
@@ -796,9 +800,12 @@ function TOOL:CurveClear(bAll, bMute)
         netStart(gsLibName.."SendDeleteAllCurveNode")
         netWriteEntity(ply); netSend(ply)
       end
+      ply:SetNWBool(gsToolPrefL.."engcurve", false)
     else -- Clear the last specific node from the array
       if(not bMute) then
         asmlib.Notify(ply, "Node removed ["..nS.."] !", "CLEANUP") end
+      tableEmpty(tC.Snap); tC.SSize = 0
+      tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Node)
       tableRemove(tC.Norm)
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
@@ -806,27 +813,25 @@ function TOOL:CurveClear(bAll, bMute)
         netStart(gsLibName.."SendDeleteCurveNode");
         netWriteEntity(ply); netSend(ply)
       end
+      ply:SetNWBool(gsToolPrefL.."engcurve", true)
     end
-  end;
-
-  asmlib.LogTable(tC, "CLEAR-CURVE")
-
-  return tC -- Returns the updated curve nodes table
+  end; return tC -- Returns the updated curve nodes table
 end
 
 function TOOL:GetCurveTransform(stTrace)
-  local aAng, vHit = Angle(), Vector()
-  local eEnt, vOrg = stTrace.Entity, Vector()
   if(not stTrace) then
     asmlib.LogInstance("Trace missing", gtArgsLogs); return nil end
   if(not stTrace.Hit) then
     asmlib.LogInstance("Trace not hit", gtArgsLogs); return nil end
   local ply      = self:GetOwner()
   local angsnap  = self:GetAngSnap()
+  local elevpnt  = self:GetElevation()
   local surfsnap = self:GetSurfaceSnap()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   local oID, oMin, oPOA, oRec     = nil, nil, nil, nil
+  local aAng, vHit, vOrg = Angle(), Vector(), Vector()
+  local eEnt, vNrm = stTrace.Entity, stTrace.HitNormal
   aAng:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
   vHit:Set(stTrace.HitPos); vOrg:Add(vHit)
   if(ply:KeyDown(IN_USE) and eEnt and eEnt:IsValid()) then
@@ -836,6 +841,7 @@ function TOOL:GetCurveTransform(stTrace)
       asmlib.SetAngle (aAng, oPOA.A); aAng:Set(eEnt:LocalToWorldAngles(aAng))
     end -- Use the track piece active end to create realative curve node
   end
+  vOrg:Add(vNrm * elevpnt)
   vOrg:Add(aAng:Up()      * nextz)
   vOrg:Add(aAng:Right()   * nexty)
   vOrg:Add(aAng:Forward() * nextx)
@@ -857,6 +863,7 @@ function TOOL:CurveInsert(stTrace, bMute)
   tC.Norm[tC.Size] = aAng:Up()
   tC.Base[tC.Size] = vHit
   if(not bMute) then
+    ply:SetNWBool(gsToolPrefL.."engcurve", true)
     netStart(gsLibName.."SendCreateCurveNode")
       netWriteEntity(ply)
       netWriteVector(tC.Node[tC.Size])
@@ -887,6 +894,7 @@ function TOOL:CurveUpdate(stTrace)
   tC.Node[mD]:Set(vOrg)
   tC.Norm[mD]:Set(aAng:Up())
   tC.Base[mD]:Set(vHit)
+  ply:SetNWBool(gsToolPrefL.."engcurve", true)
   netStart(gsLibName.."SendUpdateCurveNode")
     netWriteEntity(ply)
     netWriteVector(tC.Node[mD])
@@ -1004,12 +1012,11 @@ function TOOL:LeftClick(stTrace)
     local iMak, iStk, sItr = 0, 0
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
     asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
-    for iD = 1, tC.CSize-1 do
-      local tSnp, nL = asmlib.UpdateCurveSnap(ply, iD, nD)
-      if(tSnp and tSnp[1] and tSnp.Size and tSnp.Size > 0) then
-        for iK = 1, tSnp.Size do local tS = tSnp[iK]
-          local vOrg, aOrg, ePiece = tS[1], tS[2], nil
-          local stSpawn = asmlib.GetNormalSpawn(ply, vOrg, aOrg, model, pointid)
+    for iD = 1, (tC.CSize - 1) do
+      local tS, nL = asmlib.UpdateCurveSnap(ply, iD, nD)
+      if(tS and tS[1] and tS.Size and tS.Size > 0) then
+        for iK = 1, tS.Size do local tV, ePiece = tS[iK], nil
+          local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
           if(not stSpawn) then -- Make sure it persists to set it afterwards
             asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
           while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
@@ -1025,7 +1032,9 @@ function TOOL:LeftClick(stTrace)
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
             asmlib.UndoAddEntity(ePieceN); iTry = 0 -- Reset the stack attempts count
           else asmlib.UndoFinish(ply, sItr) -- We still have enough memory to preform the stacking
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true
+            if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Segment limit reached"), gtArgsLogs); return true
+            else asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true end
           end
         end
       end
@@ -1337,6 +1346,53 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
   end
 end
 
+function TOOL:UpdateGhostCurve()
+  local ply = self:GetOwner()
+  local tCrv = self:CurveCheck()
+  local bCrv = ply:GetNWBool(gsToolPrefL.."engcurve", false)
+  if(tCrv and tCrv.Size and tCrv.Size > 1) then
+    local model = self:GetModel()
+    local pointid, pnextid = self:GetPointID()
+    local atGho, iGho, eGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
+    if(bCrv) then
+      asmlib.LogInstance("(Curve) Recalc ghost",gtArgsLogs)
+      ply:SetNWBool(gsToolPrefL.."engcurve", false)
+      local curvefact = self:GetCurveFactor()
+      local curvsmple = self:GetCurveSamples()
+      local sO, sA, ePieceO = tCrv.Info.Pos[1], tCrv.Info.Ang[1], nil
+      local eO, eA, ePieceN = tCrv.Info.Pos[2], tCrv.Info.Ang[2], nil
+      local nD, iTry = (eO - sO):Length(), 0
+      local iMak, iStk, sItr = 0, 0
+      asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
+      for iD = 1, tCrv.CSize-1 do
+        local tS, nL = asmlib.UpdateCurveSnap(ply, iD, nD)
+        if(tS and tS[1] and tS.Size and tS.Size > 0) then
+          for iK = 1, tS.Size do local tV = tS[iK]
+            local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
+            if(stSpawn) then iGho = (iGho + 1); eGho = atGho[iGho]
+              if(eGho and eGho:IsValid()) then
+                eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
+            end
+          end
+        end
+      end
+    else
+      local tSnp, iGho, eGho = tCrv.Snap, 0, nil
+      if(tSnp and tSnp[1] and tCrv.SSize and tCrv.SSize > 0) then
+        for iD = 1, tCrv.SSize do local tS = tSnp[iD]
+          for iK = 1, tS.Size  do local tV = tS[iK]
+            local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
+            if(stSpawn) then iGho = (iGho + 1); eGho = atGho[iGho]
+              if(eGho and eGho:IsValid()) then
+                eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 function TOOL:UpdateGhost(oPly)
   if(not asmlib.FadeGhosts(true)) then return nil end
   if(self:GetGhostsCount() <= 0) then return nil end
@@ -1344,15 +1400,12 @@ function TOOL:UpdateGhost(oPly)
   if(not stTrace) then return nil end
   if(not asmlib.HasGhosts()) then return nil end
   local workmode = self:GetWorkingMode()
+  if(workmode == 3) then self:UpdateGhostCurve() return nil end
   local atGho = asmlib.GetOpVar("ARRAY_GHOST")
   local trEnt, model = stTrace.Entity, self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  if(workmode == 3) then
-    return nil -- Do noting for now until decide
-               -- how to properly calculate ghosts
-  end
   if(stTrace.HitWorld) then
     local ePiece   = atGho[1]
     local angsnap  = self:GetAngSnap()

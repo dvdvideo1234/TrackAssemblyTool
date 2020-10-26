@@ -2143,9 +2143,11 @@ function GetCacheCurve(pPly)
     stData.CNorm = {} -- The place where the curve normals are stored
     stData.Size  = 0  -- The amount of points for the primary node array
     stData.CSize = 0  -- The amount of points for the calculated nodes array
+    stData.SSize = 0  -- The amount of points for the snaps node array
   end;
   if(not  stData.Size) then  stData.Size = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
+  if(not stData.SSize) then stData.SSize = 0 end
   return stData
 end
 
@@ -4626,7 +4628,7 @@ end
 function CalculateRomCurve(oPly, nSmp, nFac)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
-  tableEmpty(tC.Snap)  -- The size is in every entry
+  tableEmpty(tC.Snap); tC.SSize = 0 -- The size of all snaps
   tableEmpty(tC.CNode) -- Reset the curve and snapping
   tableEmpty(tC.CNorm); tC.CSize = 0 -- And normals
   GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
@@ -4690,7 +4692,7 @@ end
  * vO  > Search sphere location vector
  * nD  > Search sphere radius
 ]]
-local function UpdateCurveNormUCS(oPly, iD, vvS, vnS, vvE, vnE, vO, nD)
+local function UpdateCurveNormUCS(oPly, vvS, vnS, vvE, vnE, vO, nD)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
   local nR, tU = (vvE - vvS):Length(), tC.Info.UCS
@@ -4704,7 +4706,7 @@ local function UpdateCurveNormUCS(oPly, iD, vvS, vnS, vvE, vnE, vO, nD)
   local vF2 = Vector(vnE); vF2:Mul(1 - (nF2 / nR))
   local xNN = Vector(vF1); xNN:Add(vF2); xNN:Normalize()
   local vF, vU = (xXX - vP), (vN + xNN) -- Spwan angle as FU
-  local tS, tO = tC.Snap[iD], {Vector(vP), vF:AngleEx(vU)}
+  local tS, tO = tC.Snap[tC.SSize], {Vector(vP), vF:AngleEx(vU)}
   tS.Size = (tS.Size + 1); tS[tS.Size] = tO
   vP:Set(xXX); vN:Set(xNN) -- Update the new origin point
   return tS, (vvE - vP):Length() -- Return remaining length
@@ -4722,10 +4724,11 @@ function UpdateCurveSnap(oPly, iD, nD)
   local vP1, vN1 = tC.CNode[iD + 0], tC.CNorm[iD + 0]
   local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
   local nS, nE = (vP0 - vP1):Length(), (vP2 - vP0):Length()
-  if(nS <= nD and nE >= nD) then tC.Snap[iD] = {Size = 0}
-    local tO, nL = UpdateCurveNormUCS(oPly, iD, vP1, vN1, vP2, vN2, vP0, nD)
+  if(nS <= nD and nE >= nD) then
+    tC.SSize = (tC.SSize + 1)  tC.Snap[tC.SSize] = {Size = 0};
+    local tO, nL = UpdateCurveNormUCS(oPly, vP1, vN1, vP2, vN2, vP0, nD)
     while(nL > nD) do -- First segment track is snapped but end is not reached
-      tO, nL = UpdateCurveNormUCS(oPly, iD, vP0, vN0, vP2, vN2, vP0, nD) end
-    return tO, nL -- Return the populated segment and the rest of the length
+      tO, nL = UpdateCurveNormUCS(oPly, vP0, vN0, vP2, vN2, vP0, nD) end
+    return tO, nL, tC.SSize -- Return the populated segment and the rest of the length
   end
 end
