@@ -786,10 +786,7 @@ function TOOL:CurveClear(bAll, bMute)
   local ply = self:GetOwner()
   local tC  = asmlib.GetCacheCurve(ply)
   if(tC.Size and tC.Size > 0) then
-    local nS = tC.Size -- Store the size
     if(bAll) then -- Clear all the nodes
-      if(not bMute) then
-        asmlib.Notify(ply, "Nodes cleared ["..nS.."] !", "CLEANUP") end
       tableEmpty(tC.Snap); tC.SSize = 0
       tableEmpty(tC.Node)
       tableEmpty(tC.Norm)
@@ -797,23 +794,23 @@ function TOOL:CurveClear(bAll, bMute)
       tableEmpty(tC.CNode)
       tableEmpty(tC.CNorm); tC.CSize = 0
       if(not bMute) then
+        asmlib.Notify(ply, "Nodes cleared ["..tC.Size.."] !", "CLEANUP")
         netStart(gsLibName.."SendDeleteAllCurveNode")
         netWriteEntity(ply); netSend(ply)
+        ply:SetNWBool(gsToolPrefL.."engcurve", false)
       end
-      ply:SetNWBool(gsToolPrefL.."engcurve", false)
     else -- Clear the last specific node from the array
-      if(not bMute) then
-        asmlib.Notify(ply, "Node removed ["..nS.."] !", "CLEANUP") end
       tableEmpty(tC.Snap); tC.SSize = 0
       tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Node)
       tableRemove(tC.Norm)
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
       if(not bMute) then
+        asmlib.Notify(ply, "Node removed ["..tC.Size.."] !", "CLEANUP")
         netStart(gsLibName.."SendDeleteCurveNode");
         netWriteEntity(ply); netSend(ply)
+        ply:SetNWBool(gsToolPrefL.."engcurve", true)
       end
-      ply:SetNWBool(gsToolPrefL.."engcurve", true)
     end
   end; return tC -- Returns the updated curve nodes table
 end
@@ -851,7 +848,6 @@ function TOOL:GetCurveTransform(stTrace)
   return vOrg, aAng, vHit, oPOA
 end
 
--- TODO: Implement node population from track active point
 function TOOL:CurveInsert(stTrace, bMute)
   local ply, model = self:GetOwner(), self:GetModel(), stTrace.Entity
   local vOrg, aAng, vHit = self:GetCurveTransform(stTrace); if(not vOrg) then
@@ -863,20 +859,20 @@ function TOOL:CurveInsert(stTrace, bMute)
   tC.Norm[tC.Size] = aAng:Up()
   tC.Base[tC.Size] = vHit
   if(not bMute) then
-    ply:SetNWBool(gsToolPrefL.."engcurve", true)
+    asmlib.Notify(ply, "Node inserted ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendCreateCurveNode")
       netWriteEntity(ply)
       netWriteVector(tC.Node[tC.Size])
       netWriteVector(tC.Norm[tC.Size])
       netWriteVector(tC.Base[tC.Size])
     netSend(ply)
-    asmlib.Notify(ply, "Node inserted ["..tC.Size.."] !", "CLEANUP")
+    ply:SetNWBool(gsToolPrefL.."engcurve", true)
   end
   return tC -- Returns the updated curve nodes table
 end
 
-function TOOL:CurveUpdate(stTrace)
-  local ply, vT, iD, mD, mL = self:GetOwner(), Vector(), 1
+function TOOL:CurveUpdate(stTrace, bMute)
+  local ply = self:GetOwner()
   local vOrg, aAng, vHit = self:GetCurveTransform(stTrace); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtArgsLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
@@ -885,25 +881,21 @@ function TOOL:CurveUpdate(stTrace)
     asmlib.Notify(ply,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtArgsLogs); return nil
   end
-  while(tC.Base[iD]) do vT:Set(vHit); vT:Sub(tC.Base[iD])
-    local nT = vT:Length() -- Get current length
-    if(mL and mD) then -- Length is allocated
-      if(nT <= mL) then mD, mL = iD, nT end
-    else mD, mL = iD, nT end; iD = iD + 1
-  end
+  local mD, mL = asmlib.GetNearest(vHit, tC.Base)
   tC.Node[mD]:Set(vOrg)
   tC.Norm[mD]:Set(aAng:Up())
   tC.Base[mD]:Set(vHit)
-  ply:SetNWBool(gsToolPrefL.."engcurve", true)
-  netStart(gsLibName.."SendUpdateCurveNode")
-    netWriteEntity(ply)
-    netWriteVector(tC.Node[mD])
-    netWriteVector(tC.Norm[mD])
-    netWriteVector(tC.Base[mD])
-    netWriteUInt(mD, 16)
-  netSend(ply)
-  asmlib.Notify(ply, "Node ["..mD.."] updated !", "CLEANUP")
-  return tC -- Returns the updated curve nodes table
+  if(not bMute) then
+    asmlib.Notify(ply, "Node ["..mD.."] updated !", "CLEANUP")
+    netStart(gsLibName.."SendUpdateCurveNode")
+      netWriteEntity(ply)
+      netWriteVector(tC.Node[mD])
+      netWriteVector(tC.Norm[mD])
+      netWriteVector(tC.Base[mD])
+      netWriteUInt(mD, 16)
+    netSend(ply)
+    ply:SetNWBool(gsToolPrefL.."engcurve", true)
+  end; return tC -- Returns the updated curve nodes table
 end
 
 function TOOL:CurveCheck()
@@ -1011,7 +1003,11 @@ function TOOL:LeftClick(stTrace)
     local nD, iTry = (eO - sO):Length(), 0
     local iMak, iStk, sItr = 0, 0
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
-    asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
+    if(stackcnt > 0) then
+      asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve #"..stackcnt.." )")
+    else
+      asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
+    end
     for iD = 1, (tC.CSize - 1) do
       local tS, nL = asmlib.UpdateCurveSnap(ply, iD, nD)
       if(tS and tS[1] and tS.Size and tS.Size > 0) then
@@ -1155,7 +1151,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.Notify(ply,"Cannot find next PointID !","ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"),gtArgsLogs); return false
     end -- Validated existent next point ID
-    asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..tostring(stackcnt).." )")
+    asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )")
     for iD = 1, stackcnt do
       local sItr, ePiece = asmlib.GetOpVar("FORM_ITERAT"):format(iD), nil
       while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
@@ -2191,24 +2187,19 @@ end
 if(CLIENT) then
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupUserSettings(CPanel)
-    local nMaxStk, nLow, nHig = asmlib.GetAsmConvar("maxstcnt", "INT")
-    local drmSkin, pItem = CPanel:GetSkin(); CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
-    local nMaxLin, iMaxDec = asmlib.GetAsmConvar("maxlinear","FLT"), asmlib.GetAsmConvar("maxmenupr","INT")
+    local drmSkin, pItem, nLow, nHig = CPanel:GetSkin(); CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
+    local iMaxDec, nMaxStk = asmlib.GetAsmConvar("maxmenupr","INT"), asmlib.GetAsmConvar("maxstcnt", "INT")
     CPanel:ControlHelp("Client side player preferences ( Convars created in the tool client configuration )")
     nLow, nHig = asmlib.GetBorder(gsToolPrefL.."sizeucs")
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".sizeucs_con"), gsToolPrefL.."sizeucs", nLow, nMaxLin, iMaxDec)
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".sizeucs_con"), gsToolPrefL.."sizeucs", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".sizeucs"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("sizeucs", "FLT"))
-    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxstatts")
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstatts_con"), gsToolPrefL.."maxstatts", nLow, nHig, 0)
-             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxstatts"))
-             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxstatts", "INT"))
     nLow, nHig = asmlib.GetBorder(gsToolPrefL.."incsnpang")
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnpang_con"), gsToolPrefL.."incsnpang", nLow, gnMaxRot, 0)
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnpang_con"), gsToolPrefL.."incsnpang", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".incsnpang"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("incsnpang", "INT"))
     nLow, nHig = asmlib.GetBorder(gsToolPrefL.."incsnplin")
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnplin_con"), gsToolPrefL.."incsnplin", nLow, nMaxLin, 0)
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".incsnplin_con"), gsToolPrefL.."incsnplin", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".incsnplin"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("incsnplin", "INT"))
     nLow, nHig = asmlib.GetBorder(gsToolPrefL.."ghostcnt")
@@ -2221,8 +2212,6 @@ if(CLIENT) then
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enpntmscr"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enradmenu_con"), gsToolPrefL.."enradmenu")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
-    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".exportdb_con"), gsToolPrefL.."exportdb")
-             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".exportdb"))
   end
 
   asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
@@ -2240,6 +2229,8 @@ if(CLIENT) then
              pItem:SetDefaultValue(asmlib.GetAsmConvar("logsmax", "INT"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".devmode_con"), gsToolPrefL.."devmode")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".devmode"))
+    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".exportdb_con"), gsToolPrefL.."exportdb")
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".exportdb"))
     nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxtrmarg")
     pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxtrmarg_con"), gsToolPrefL.."maxtrmarg", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxtrmarg"))
@@ -2269,6 +2260,10 @@ if(CLIENT) then
     pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstcnt_con"), gsToolPrefL.."maxstcnt", nLow, nHig, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxstcnt"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("maxstcnt", "INT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxstatts")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxstatts_con"), gsToolPrefL.."maxstatts", nLow, nHig, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxstatts"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxstatts", "INT"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enwiremod_con"), gsToolPrefL.."enwiremod")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enwiremod"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enctxmenu_con"), gsToolPrefL.."enctxmenu")

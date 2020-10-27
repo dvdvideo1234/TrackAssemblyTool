@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.670")
+asmlib.SetOpVar("TOOL_VERSION","7.672")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -170,11 +170,11 @@ asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 ------------ BORDERS ------------
 
 asmlib.SetBorder("non-neg", 0, mathHuge)
-asmlib.SetBorder(gsToolPrefL.."maxstatts", 0, 10)
-asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 10)
-asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, 10)
-asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 10)
-asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, 10)
+asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
+asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
+asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
+asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 200)
+asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0)
 
 ------------ GLOBAL VARIABLES ------------
 

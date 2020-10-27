@@ -3673,7 +3673,9 @@ end
 ]]--
 function GetEntityHitID(oEnt, vHit, bPnt)
   if(not (oEnt and oEnt:IsValid())) then
-    LogInstance("Entity invalid"); return nil end
+    LogInstance("Entity invalid "..GetReport(oEnt)); return nil end
+  if(not IsVector(vHit)) then
+    LogInstance("Origin missing "..GetReport(vHit)); return nil end
   local oRec = CacheQueryPiece(oEnt:GetModel()); if(not oRec) then
     LogInstance("Trace not piece <"..oEnt:GetModel()..">"); return nil end
   local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
@@ -3689,6 +3691,21 @@ function GetEntityHitID(oEnt, vHit, bPnt)
     else -- The shortest distance if the first one checked until others are looped
       oID, oMin, oPOA = tID, tMin, tPOA end
   end; return oID, oMin, oPOA, oRec
+end
+
+function GetNearest(vHit, tVec)
+  if(not IsVector(vHit)) then
+    LogInstance("Origin missing "..GetReport(vHit)); return nil end
+  if(not IsTable(tVec)) then
+    LogInstance("Vertices mismatch "..GetReport(tVec)); return nil end
+  local vT, iD, mD, mL = Vector(), 1, nil, nil
+  while(tVec[iD]) do
+    vT:Set(vHit); vT:Sub(tVec[iD])
+    local nT = vT:Length() -- Get current length
+    if(mL and mD) then -- Length is allocated
+      if(nT <= mL) then mD, mL = iD, nT end
+    else mD, mL = iD, nT end; iD = (iD + 1)
+  end; return mD, mL
 end
 
 --[[
@@ -3915,12 +3932,14 @@ end
  * sKey  --> String identifier. Used to distinguish rays form one another
 ]]--
 function IntersectRayCreate(oPly, oEnt, vHit, sKey)
-  if(not IsString(sKey)) then
-    LogInstance("Key invalid <"..tostring(sKey)..">"); return nil end
   if(not IsPlayer(oPly)) then
-    LogInstance("Player invalid <"..tostring(oPly)..">"); return nil end
+    LogInstance("Player invalid "..GetReport(oPly)); return nil end
+  if(not IsVector(vHit)) then
+    LogInstance("Origin missing "..GetReport(vHit)); return nil end
+  if(not IsString(sKey)) then
+    LogInstance("Key invalid "..GetReport(sKey)); return nil end
   local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit); if(not trID) then
-    LogInstance("Entity no hit <"..tostring(oEnt).."/"..tostring(vHit)..">"); return nil end
+    LogInstance("Entity no hit "..GetReport2(oEnt, vHit)); return nil end
   local stSpot, iKey = GetPlayerSpot(oPly), "INTERSECT"; if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end -- Retrieve general player spot
   local tRay = stSpot[iKey]; if(not tRay) then stSpot[iKey] = {}; tRay = stSpot[iKey] end
@@ -4529,6 +4548,14 @@ end
  * Returns a table containing the generated sequence
 ]]
 local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
+  if(not IsVector(vP0)) then
+    LogInstance("Position(0) mismatch "..GetReport(vP0)); return nil end
+  if(not IsVector(vP1)) then
+    LogInstance("Position(1) mismatch "..GetReport(vP1)); return nil end
+  if(not IsVector(vP2)) then
+    LogInstance("Position(2) mismatch "..GetReport(vP2)); return nil end
+  if(not IsVector(vP3)) then
+    LogInstance("Position(3) mismatch "..GetReport(vP3)); return nil end
   local nT0, tS = 0, {} -- Start point is always zero
   local nT1 = GetCatmullRomCurveTangent(vP0, vP1, nT0, nA)
   local nT2 = GetCatmullRomCurveTangent(vP1, vP2, nT1, nA)
@@ -4647,7 +4674,7 @@ end
  * nR > Sphere radius number
  * Returns the vector position of intersection
 ]]
-function IntersectLineSphere(vS, vE, vC, nR)
+local function IntersectLineSphere(vS, vE, vC, nR)
   local nE = GetOpVar("EPSILON_ZERO")
   local vD = Vector(vE); vD:Sub(vS)
   local nA = vD:LengthSqr(); if(nA < nE) then
@@ -4669,7 +4696,7 @@ end
  * vE > Line end point vector
  * Returns bolean if the condition is present
 ]]
-function IsAmongLine(vO, vS, vE)
+local function IsAmongLine(vO, vS, vE)
   local nE = GetOpVar("EPSILON_ZERO")
   local oS = Vector(vO); oS:Sub(vS)
   local oE = Vector(vO); oE:Sub(vE)
@@ -4693,6 +4720,16 @@ end
  * nD  > Search sphere radius
 ]]
 local function UpdateCurveNormUCS(oPly, vvS, vnS, vvE, vnE, vO, nD)
+  if(not IsVector(vvS)) then
+    LogInstance("Start mismatch "..GetReport(vvS)); return nil end
+  if(not IsVector(vnS)) then
+    LogInstance("End mismatch "..GetReport(vnS)); return nil end
+  if(not IsVector(vvE)) then
+    LogInstance("Start mismatch "..GetReport(vvE)); return nil end
+  if(not IsVector(vnE)) then
+    LogInstance("End mismatch "..GetReport(vnE)); return nil end
+  if(not IsVector(vO)) then
+    LogInstance("End mismatch "..GetReport(vO)); return nil end
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
   local nR, tU = (vvE - vvS):Length(), tC.Info.UCS
@@ -4720,6 +4757,12 @@ end
 function UpdateCurveSnap(oPly, iD, nD)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
+  local iD = (tonumber(iD) or 0); if(iD <= 0) then
+    LogInstance("Index mismatch "..GetReport(nD)); return nil end
+  if(mathFloor(iD) ~= mathCeil(iD)) then
+    LogInstance("Index fraction "..GetReport(nD)); return nil end
+  local nD = (tonumber(nD) or 0); if(nD <= 0) then
+    LogInstance("Distance mismatch "..GetReport(nD)); return nil end
   local vP0, vN0 = tC.Info.UCS[1], tC.Info.UCS[2]
   local vP1, vN1 = tC.CNode[iD + 0], tC.CNorm[iD + 0]
   local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
