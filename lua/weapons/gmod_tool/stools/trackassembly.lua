@@ -137,7 +137,8 @@ TOOL.ClientConVar = {
   [ "enradmenu"  ] = 0,
   [ "incsnpang"  ] = 5,
   [ "incsnplin"  ] = 5,
-  [ "flipoverid" ] = "",
+  [ "crvturnlm"  ] = 0,
+  [ "flipoverid" ] = ""
 }
 
 if(CLIENT) then
@@ -289,6 +290,10 @@ end
 
 function TOOL:GetElevation()
   return (self:GetClientNumber("elevpnt") or 0)
+end
+
+function TOOL:GetCurveSharpLim()
+  return (self:GetClientNumber("crvturnlm") or 0)
 end
 
 function TOOL:GetPointAssist()
@@ -837,8 +842,9 @@ function TOOL:GetCurveTransform(stTrace)
       asmlib.SetVector(vOrg, oPOA.O); vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
       asmlib.SetAngle (aAng, oPOA.A); aAng:Set(eEnt:LocalToWorldAngles(aAng))
     end -- Use the track piece active end to create realative curve node
+  else -- Offset the curve node when it is not driven by an active point
+    vOrg:Add(vNrm * elevpnt)
   end
-  vOrg:Add(vNrm * elevpnt)
   vOrg:Add(aAng:Up()      * nextz)
   vOrg:Add(aAng:Right()   * nexty)
   vOrg:Add(aAng:Forward() * nextx)
@@ -998,10 +1004,11 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Arguments validation fail"), gtArgsLogs); return nil end
     local curvefact = self:GetCurveFactor()
     local curvsmple = self:GetCurveSamples()
+    local crvturnlm = self:GetCurveSharpLim()
     local sO, sA, ePieceO = tC.Info.Pos[1], tC.Info.Ang[1], nil
     local eO, eA, ePieceN = tC.Info.Pos[2], tC.Info.Ang[2], nil
-    local nD, iTry = (eO - sO):Length(), 0
-    local iMak, iStk, sItr = 0, 0
+    local nD, iTry, iMak, iStk = (eO - sO):Length(), 0, 0, 0
+    local sItr, fInt = "", asmlib.GetOpVar("FORM_INTEGER")
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
     if(stackcnt > 0) then
       asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve #"..stackcnt.." )")
@@ -1015,10 +1022,20 @@ function TOOL:LeftClick(stTrace)
           local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
           if(not stSpawn) then -- Make sure it persists to set it afterwards
             asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
+          if(crvturnlm > 0) then
+            local nC = asmlib.GetTurningFactor(ply, tS, iK)
+            if(nC and nC < crvturnlm) then sItr = fInt:format(iD)
+              local sCan = ("[%1.3f]"):format(nC)
+              local sNar = fInt:format(asmlib.GetNearest(tV[1], tC.Node))
+              asmlib.UndoFinish(ply, sItr..sNar)
+              asmlib.Notify(ply, "Curve too narrow at "..sNar.."["..sCan.."]".." !", "ERROR")
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..fInt..": Curve narrow "..sNar), gtArgsLogs); return true
+            end
+          end
           while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
             ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(stackcnt > 0) then if(iStk < stackcnt) then iStk = (iStk + 1) else ePiece:Remove(); ePiece = nil end end
-          iMak = (iMak + (ePiece and 1 or 0)); sItr = asmlib.GetOpVar("FORM_ITERAT"):format(iMak)
+          iMak = (iMak + (ePiece and 1 or 0)); sItr = fInt:format(iMak)
           if(ePiece) then ePieceO, ePieceN = ePieceN, ePiece -- We still have enough memory to preform the stacking
             if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
@@ -1153,7 +1170,7 @@ function TOOL:LeftClick(stTrace)
     end -- Validated existent next point ID
     asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )")
     for iD = 1, stackcnt do
-      local sItr, ePiece = asmlib.GetOpVar("FORM_ITERAT"):format(iD), nil
+      local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
       while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
         ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
       if(ePiece) then ePieceN = ePiece -- Set position is valid and store reference to the track piece
@@ -2206,6 +2223,10 @@ if(CLIENT) then
     pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".ghostcnt_con"), gsToolPrefL.."ghostcnt", nLow, nMaxStk, 0)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".ghostcnt"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("ghostcnt", "INT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."crvturnlm")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".crvturnlm_con"), gsToolPrefL.."crvturnlm", nLow, nHig, iMaxDec)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".crvturnlm"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("crvturnlm", "FLT"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enradmenu_con"), gsToolPrefL.."enradmenu")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enpntmscr_con"), gsToolPrefL.."enpntmscr")

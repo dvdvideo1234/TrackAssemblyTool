@@ -170,6 +170,8 @@
   tSet["tool."..sTool..".curvefact_con"    ] = "Curve factor:"
   tSet["tool."..sTool..".curvsmple"        ] = "Change this to adjust the curving interpolation samples"
   tSet["tool."..sTool..".curvsmple_con"    ] = "Curve samples:"
+  tSet["tool."..sTool..".crvturnlm"        ] = "Change this to adjust the turn curving sharpness limit for the segment"
+  tSet["tool."..sTool..".crvturnlm_con"    ] = "Curves sharp:"
   tSet["tool."..sTool..".bnderrmod"        ] = "Change this to define the behavior when clients are spawning pieces outside of map bounds"
   tSet["tool."..sTool..".bnderrmod_off"    ] = "Allow stack/spawn without restriction"
   tSet["tool."..sTool..".bnderrmod_log"    ] = "Deny stack/spawn the error is logged"

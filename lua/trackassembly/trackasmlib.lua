@@ -648,7 +648,7 @@ function InitBase(sName, sPurp)
   SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
   SetOpVar("FORM_CONCMD", "%s %s")
-  SetOpVar("FORM_ITERAT", "[%d]")
+  SetOpVar("FORM_INTEGER", "[%d]")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_VREPORT2","{%s}[%s]")
   SetOpVar("FORM_VREPORT3","{%s}[%s]<%s>")
@@ -4308,8 +4308,8 @@ function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
   local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
   local cVal = (tonumber(vVal) or tostring(vVal)); LogInstance("("..sLow..")["..tostring(cVal).."]")
   local sInf, nFlg = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0)
-  SetBorder(sLow, (tBord and tBord[1] or nil), (tBord and tBord[2] or nil))
-  return CreateConVar(sLow, cVal, nFlg, sInf)
+  local nMin, nMax = (tBord and tBord[1] or nil), (tBord and tBord[2] or nil)
+  SetBorder(sLow, nMin, nMax); return CreateConVar(sLow, cVal, nFlg, sInf, nMin, nMax)
 end
 
 function GetAsmConvar(sName, sMode)
@@ -4751,16 +4751,17 @@ end
 
 --[[
  * Populates one node stack entry with segment snaps
- * iD > Stack entry ID ( also the node segment ID )
- * nD > The desired track interpolation length
+ * oPly > Player to do the calculation for
+ * iD   > Stack entry ID ( also the node segment ID )
+ * nD   > The desired track interpolation length
 ]]
 function UpdateCurveSnap(oPly, iD, nD)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
   local iD = (tonumber(iD) or 0); if(iD <= 0) then
-    LogInstance("Index mismatch "..GetReport(nD)); return nil end
+    LogInstance("Index mismatch "..GetReport(iD)); return nil end
   if(mathFloor(iD) ~= mathCeil(iD)) then
-    LogInstance("Index fraction "..GetReport(nD)); return nil end
+    LogInstance("Index fraction "..GetReport(iD)); return nil end
   local nD = (tonumber(nD) or 0); if(nD <= 0) then
     LogInstance("Distance mismatch "..GetReport(nD)); return nil end
   local vP0, vN0 = tC.Info.UCS[1], tC.Info.UCS[2]
@@ -4768,10 +4769,35 @@ function UpdateCurveSnap(oPly, iD, nD)
   local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
   local nS, nE = (vP0 - vP1):Length(), (vP2 - vP0):Length()
   if(nS <= nD and nE >= nD) then
-    tC.SSize = (tC.SSize + 1)  tC.Snap[tC.SSize] = {Size = 0};
+    tC.SSize = (tC.SSize + 1)  tC.Snap[tC.SSize] = {Size = 0, ID = tC.SSize};
     local tO, nL = UpdateCurveNormUCS(oPly, vP1, vN1, vP2, vN2, vP0, nD)
     while(nL > nD) do -- First segment track is snapped but end is not reached
       tO, nL = UpdateCurveNormUCS(oPly, vP0, vN0, vP2, vN2, vP0, nD) end
     return tO, nL, tC.SSize -- Return the populated segment and the rest of the length
   end
+end
+
+--[[
+ * Calculates the curving factor for given curve sample
+ * oPly > Player to do the calculation for
+ * tS   > The snap list for the cirrent iteration
+ * iD   > Snap origin information ID
+]]
+function GetTurningFactor(oPly, tS, iD)
+  local tC = GetCacheCurve(oPly); if(not tC) then
+    LogInstance("Curve missing"); return nil end
+  if(not IsTable(tS)) then
+    LogInstance("Snap mismatch "..GetReport(tS)); return nil end
+  local iD = (tonumber(iD) or 0); if(iD <= 0) then
+    LogInstance("Index mismatch "..GetReport(iD)); return nil end
+  if(mathFloor(iD) ~= mathCeil(iD)) then
+    LogInstance("Index fraction "..GetReport(iD)); return nil end
+  local tV = tS[iD]; if(not IsTable(tV)) then
+    LogInstance("Snap mismatch "..GetReport(tV)); return nil end
+  local tP = tS[iD - 1]; if(not IsHere(tP)) then
+    tP = tC.Snap[tS.ID - 1]; tP = (tP and tP[tP.Size] or nil)
+  end -- When a previous entry is not located return nothing
+  if(not IsHere(tP)) then -- Previos entry being validated
+    LogInstance("Prev mismatch "..GetReport(tP)); return nil end
+  return tV[2]:Forward():Dot(tP[2]:Forward())
 end
