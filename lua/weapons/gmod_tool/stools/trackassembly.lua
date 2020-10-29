@@ -805,10 +805,9 @@ function TOOL:CurveClear(bAll, bMute)
         ply:SetNWBool(gsToolPrefL.."engcurve", false)
       end
     else -- Clear the last specific node from the array
-      tableEmpty(tC.Snap); tC.SSize = 0
-      tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Node)
       tableRemove(tC.Norm)
+      tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
       if(not bMute) then
         asmlib.Notify(ply, "Node removed ["..tC.Size.."] !", "CLEANUP")
@@ -945,8 +944,8 @@ function TOOL:CurveCheck()
   end
   -- Disable for 180 curve track segments
   if(sA:Forward():Dot(eA:Forward()) >= 0) then
-    asmlib.Notify(ply,"Segment asymmetric "..fnmodel.." !","ERROR")
-    asmlib.LogInstance("Segment asymmetric: "..fnmodel, gtArgsLogs); return nil
+    asmlib.Notify(ply,"Segment overturn "..fnmodel.." !","ERROR")
+    asmlib.LogInstance("Segment overturn: "..fnmodel, gtArgsLogs); return nil
   end
   -- Disable for ramp track segments
   if(sA:Forward():Dot((sO - eO):GetNormalized()) < (1 - nEps)) then
@@ -1378,12 +1377,12 @@ function TOOL:UpdateGhostCurve()
       local iMak, iStk, sItr = 0, 0
       asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
       for iD = 1, tCrv.CSize-1 do
-        local tS, nL = asmlib.UpdateCurveSnap(ply, iD, nD)
+        local tS = asmlib.UpdateCurveSnap(ply, iD, nD)
         if(tS and tS[1] and tS.Size and tS.Size > 0) then
           for iK = 1, tS.Size do local tV = tS[iK]
             local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
-            if(stSpawn) then iGho = (iGho + 1); eGho = atGho[iGho]
-              if(eGho and eGho:IsValid()) then
+            if(not stSpawn) then eGho:SetNoDraw(true) else
+              iGho = (iGho + 1); eGho = atGho[iGho]; if(eGho and eGho:IsValid()) then
                 eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
             end
           end
@@ -1395,8 +1394,8 @@ function TOOL:UpdateGhostCurve()
         for iD = 1, tCrv.SSize do local tS = tSnp[iD]
           for iK = 1, tS.Size  do local tV = tS[iK]
             local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
-            if(stSpawn) then iGho = (iGho + 1); eGho = atGho[iGho]
-              if(eGho and eGho:IsValid()) then
+            if(not stSpawn) then eGho:SetNoDraw(true) else
+              iGho = (iGho + 1); eGho = atGho[iGho]; if(eGho and eGho:IsValid()) then
                 eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
             end
           end
