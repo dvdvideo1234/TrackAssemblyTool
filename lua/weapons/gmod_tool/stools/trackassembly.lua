@@ -1502,8 +1502,8 @@ end
 function TOOL:Think()
   if(not asmlib.IsInit()) then return end
   local model = self:GetModel()
-  local wormo = self:GetWorkingMode()
   if(utilIsValidModel(model)) then
+    local workmode = self:GetWorkingMode()
     if(CLIENT) then -- Precache the model or it is invalid otherwise
       local bOld = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
       local bNew = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
@@ -1511,6 +1511,10 @@ function TOOL:Think()
         local pnFrame = conElements:Pull() -- Retrieve a panel from the stack
         if(IsValid(pnFrame)) then pnFrame:Close() end -- Call close on it !
       end -- Shortcut for closing the routine pieces. A `close` call, get it :D
+    elseif(SERVER) then
+      if(workmode == 1) then
+
+      end
     end
   end
 end
@@ -2260,6 +2264,10 @@ if(CLIENT) then
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxmenupr"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("maxmenupr", "INT"))
     CPanel:ControlHelp("Replicated convar controls ( The server value is sent to all clients to be used )")
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxsprate")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxsprate_con"), gsToolPrefL.."maxsprate", nLow, nHig, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxsprate"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxsprate", "INT"))
     nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxmass")
     pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxmass_con"), gsToolPrefL.."maxmass", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxmass"))

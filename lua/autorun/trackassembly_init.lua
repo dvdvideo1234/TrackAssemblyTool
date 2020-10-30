@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.675")
+asmlib.SetOpVar("TOOL_VERSION","7.679")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -153,6 +153,7 @@ asmlib.MakeAsmConvar("curvefact", 0.5   , {0, 1 }, gnServerControled, "Parametri
 asmlib.MakeAsmConvar("curvsmple", 50    , {0,200}, gnServerControled, "Amount of samples between two curve nodes")
 
 if(SERVER) then
+  asmlib.MakeAsmConvar("maxsprate",  5  , {1, 10}, gnServerControled, "Maximum pieces spawned in every think tick")
   asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
   asmlib.MakeAsmConvar("maxfruse" ,  50 , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
   asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, {0}, gnServerControled, "Maximum number of tracks to be spawned")

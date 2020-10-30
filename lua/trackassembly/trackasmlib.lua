@@ -2044,6 +2044,32 @@ local function GetPlayerSpot(pPly)
   end; return stSpot
 end
 
+-- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
+function GetCacheThink(pPly)
+  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
+    LogInstance("Spot missing"); return nil end
+  local stData = stSpot["THINK"]
+  if(not IsHere(stData)) then
+    stSpot["THINK"] = {}
+    stData = stSpot["THINK"]
+    stData.Key  = 0 -- Unique process identifier for destinguish
+    stData.Work = false -- Does the hook still process stuff
+    stData.Size = 0  -- Forced arguments count to pass
+    stData.Args = {} -- Actual argument list non-nil + nils
+    stData.Data = {} -- Some other data being shared across
+  end; return stData
+end
+
+function SetCacheThink(pPly, sKey, sbWrk, tDat, iCnt, ...)
+  local tO, tA = GetCacheThink(pPly)
+  tableEmpty(tO.Args); tA = {...}
+  tO.Size = mathFloor(tonumber(iCnt) or 0)
+  if(tO.Size <= 0) then tO.Size = 0 else
+    for iD = 1, tO.Size do tO.Args[iD] = tA[iD] end
+  end; tO.Data = tDat; tO.Key = tostring(sKey or "")
+  return tO
+end
+
 function GetCacheSpawn(pPly)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end
