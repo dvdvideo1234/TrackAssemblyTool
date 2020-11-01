@@ -549,9 +549,7 @@ function TOOL:GetGhostsDepth()
   local ghostcnt = self:GetGhostsCount() -- The base control value
   local stackcnt = self:GetStackCount()
   if(workmode == 1) then -- Defined by the stack count otherwise 1
-    local bS = inputIsKeyDown(KEY_LSHIFT)
-    local nC = (bS and stackcnt or mathMax(stackcnt, 1))
-    return mathMin(ghostcnt, nC)
+    return mathMin(ghostcnt, mathMax(stackcnt, 1))
   elseif(workmode == 2) then -- Put second value 1 here
     return mathMin(ghostcnt, 1) -- to be able to disable it
   elseif(workmode == 3) then -- Track interpolation curvaing
@@ -1157,8 +1155,7 @@ function TOOL:LeftClick(stTrace)
   end
 
   -- IN_SPEED: Switch the tool mode ( Stacking )
-  if(workmode == 1 and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(stackcnt <= 0) then asmlib.LogInstance(self:GetStatus(stTrace,"Stack count mismatch"),gtArgsLogs); return false end
+  if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
     local ePieceO, iTry, ePieceN = trEnt, 0, nil
     local vTemp, trPos = Vector(), trEnt:GetPos()
@@ -2264,10 +2261,10 @@ if(CLIENT) then
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxmenupr"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("maxmenupr", "INT"))
     CPanel:ControlHelp("Replicated convar controls ( The server value is sent to all clients to be used )")
-    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxsprate")
-    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxsprate_con"), gsToolPrefL.."maxsprate", nLow, nHig, 0)
-             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxsprate"))
-             pItem:SetDefaultValue(asmlib.GetAsmConvar("maxsprate", "INT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."spawnrate")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".spawnrate_con"), gsToolPrefL.."spawnrate", nLow, nHig, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".spawnrate"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("spawnrate", "INT"))
     nLow, nHig = asmlib.GetBorder(gsToolPrefL.."maxmass")
     pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".maxmass_con"), gsToolPrefL.."maxmass", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".maxmass"))

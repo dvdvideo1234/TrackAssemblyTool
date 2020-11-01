@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.679")
+asmlib.SetOpVar("TOOL_VERSION","7.680")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -122,41 +122,70 @@ local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 -- Server tells the client what value to use
 local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
 
+------------ BORDERS ------------
+
+asmlib.SetBorder("non-neg", 0, mathHuge)
+asmlib.SetBorder("sbox_max"..gsLimitName , 0, mathHuge)
+asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."curvefact", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."curvsmple", 0, 200)
+asmlib.SetBorder(gsToolPrefL.."devmode"  , 0, 1)
+asmlib.SetBorder(gsToolPrefL.."enctxmall", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."enctxmenu", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."endsvlock", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."enwiremod", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, 200)
+asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
+asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 200)
+asmlib.SetBorder(gsToolPrefL.."logfile"  , 0, 1)
+asmlib.SetBorder(gsToolPrefL.."logsmax"  , 0, 100000)
+asmlib.SetBorder(gsToolPrefL.."maxactrad", 1, 200)
+asmlib.SetBorder(gsToolPrefL.."maxforce" , 0, 200000)
+asmlib.SetBorder(gsToolPrefL.."maxfruse" , 1, 100)
+asmlib.SetBorder(gsToolPrefL.."maxlinear", 0, 10000)
+asmlib.SetBorder(gsToolPrefL.."maxmass"  , 1, 100000)
+asmlib.SetBorder(gsToolPrefL.."maxmenupr", 0, 10)
+asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
+asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1, 400)
+asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
+asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 20)
+
 ------------ CONFIGURE LOGGING ------------
 
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmConvar("logsmax"  , 0 , {0, 100000}, gnIndependentUsed, "Maximum logging lines being written")
-asmlib.MakeAsmConvar("logfile"  , 0 , {0,   1   }, gnIndependentUsed, "File logging output flag control")
+asmlib.MakeAsmConvar("logsmax"  , 0 , nil, gnIndependentUsed, "Maximum logging lines being written")
+asmlib.MakeAsmConvar("logfile"  , 0 , nil, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
 
-asmlib.MakeAsmConvar("modedb"   , "LUA",    nil , gnIndependentUsed, "Database storage operating mode LUA or SQL")
-asmlib.MakeAsmConvar("devmode"  ,    0 , {0,  1}, gnIndependentUsed, "Toggle developer mode on/off server side")
-asmlib.MakeAsmConvar("maxtrmarg", 0.02 , {0,  1}, gnIndependentUsed, "Maximum time to avoid performing new traces")
-asmlib.MakeAsmConvar("maxmenupr",    5 , {0, 20}, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
+asmlib.MakeAsmConvar("modedb"   , "LUA", nil, gnIndependentUsed, "Database storage operating mode LUA or SQL")
+asmlib.MakeAsmConvar("devmode"  ,    0 , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmConvar("maxtrmarg", 0.02 , nil, gnIndependentUsed, "Maximum time to avoid performing new traces")
+asmlib.MakeAsmConvar("maxmenupr",    5 , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
 asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
 ------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
 
-asmlib.MakeAsmConvar("maxmass"  , 50000 , {1, 100000}, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmConvar("maxlinear", 5000  , {0, 10000 }, gnServerControled, "Maximum linear offset of the piece")
-asmlib.MakeAsmConvar("maxforce" , 100000, {0, 200000}, gnServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmConvar("maxactrad", 200   , {1,200}, gnServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmConvar("maxstcnt" , 200   , {1,400}, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmConvar("enwiremod", 1     , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
-asmlib.MakeAsmConvar("enctxmenu", 1     , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
-asmlib.MakeAsmConvar("enctxmall", 0     , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
-asmlib.MakeAsmConvar("endsvlock", 0     , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
-asmlib.MakeAsmConvar("curvefact", 0.5   , {0, 1 }, gnServerControled, "Parametric constant track curving factor")
-asmlib.MakeAsmConvar("curvsmple", 50    , {0,200}, gnServerControled, "Amount of samples between two curve nodes")
+asmlib.MakeAsmConvar("maxmass"  , 50000 , nil, gnServerControled, "Maximum mass that can be applied on a piece")
+asmlib.MakeAsmConvar("maxlinear", 5000  , nil, gnServerControled, "Maximum linear offset of the piece")
+asmlib.MakeAsmConvar("maxforce" , 100000, nil, gnServerControled, "Maximum force limit when creating welds")
+asmlib.MakeAsmConvar("maxactrad", 200   , nil, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmConvar("maxstcnt" , 200   , nil, gnServerControled, "Maximum spawned pieces in stacking mode")
+asmlib.MakeAsmConvar("enwiremod", 1     , nil, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmConvar("enctxmenu", 1     , nil, gnServerControled, "Toggle the context menu on/off in general")
+asmlib.MakeAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the context menu on/off for all props")
+asmlib.MakeAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
+asmlib.MakeAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
+asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
 
 if(SERVER) then
-  asmlib.MakeAsmConvar("maxsprate",  5  , {1, 10}, gnServerControled, "Maximum pieces spawned in every think tick")
-  asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
-  asmlib.MakeAsmConvar("maxfruse" ,  50 , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
-  asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, {0}, gnServerControled, "Maximum number of tracks to be spawned")
+  asmlib.MakeAsmConvar("spawnrate",  5  , nil, gnServerControled, "Maximum pieces spawned in every think tick")
+  asmlib.MakeAsmConvar("bnderrmod","LOG", nil, gnServerControled, "Unreasonable position error handling mode")
+  asmlib.MakeAsmConvar("maxfruse" ,  50 , nil, gnServerControled, "Maximum frequent pieces to be listed")
+  asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 end
 
 ------------ CONFIGURE INTERNALS ------------
@@ -167,16 +196,6 @@ asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the ga
 asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
-
------------- BORDERS ------------
-
-asmlib.SetBorder("non-neg", 0, mathHuge)
-asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
-asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
-asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
-asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 200)
-asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, nil)
-asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
 
 ------------ GLOBAL VARIABLES ------------
 

@@ -466,9 +466,9 @@ function SetBorder(vKey, vLow, vHig)
   local tB = GetOpVar("TABLE_BORDERS"); if(not IsHere(tB)) then
     LogInstance("List missing"); return false end
   local tU = tB[vKey]; if(IsHere(tU)) then
-    LogInstance("Entry exists "..GetReport3(vKey, tU[1], tU[2]))
+    LogInstance("Exists "..GetReport3(vKey, tU[1], tU[2]))
   end; tB[vKey] = {vLow, vHig} -- Write the border in the list
-  LogInstance("Entry apply "..GetReport3(vKey, vLow, vHig)); return true
+  LogInstance("Apply "..GetReport3(vKey, vLow, vHig)); return true
 end
 
 function GetBorder(vKey)
@@ -4333,9 +4333,13 @@ function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
   local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
   local cVal = (tonumber(vVal) or tostring(vVal)); LogInstance("("..sLow..")["..tostring(cVal).."]")
-  local sInf, nFlg = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0)
-  local nMin, nMax = (tBord and tBord[1] or nil), (tBord and tBord[2] or nil)
-  SetBorder(sLow, nMin, nMax); return CreateConVar(sLow, cVal, nFlg, sInf, nMin, nMax)
+  local sInf, nFlg, nMin, nMax = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0), 0, 0
+  if(not IsHere(tBord)) then nMin, nMax = GetBorder(sLow) -- Read the border from the hash
+    LogInstance("Read border "..GetReport3(vKey, vLow, vHig))
+  else -- Force a border on the convar and update the borders list
+    nMin = (tBord and tBord[1] or nil) -- Read the minimum and maximum
+    nMax = (tBord and tBord[2] or nil); SetBorder(sLow, nMin, nMax)
+  end; return CreateConVar(sLow, cVal, nFlg, sInf, nMin, nMax)
 end
 
 function GetAsmConvar(sName, sMode)
