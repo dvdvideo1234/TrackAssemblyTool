@@ -4433,12 +4433,12 @@ function FadeGhosts(bNoD)
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
   local cPal = MakeContainer("COLORS_LIST")
-  local sMis, sSlt = GetOpVar("MISS_NOMD"), tGho.Slot
+  local sMis, sMod = GetOpVar("MISS_NOMD"), tGho.Slot
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
       eGho:SetColor(cPal:Select("gh"))
-      if(sSlt and sSlt ~= sMis and sSlt ~= eGho:GetModel()) then
+      if(sMod and sMod ~= sMis and sMod ~= eGho:GetModel()) then
         eGho:SetModel(tGho.Slot) end
     end
   end; return true
@@ -4504,17 +4504,19 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   if(nCnt == 0 and tGho.Size ~= 0) then return ClearGhosts() end -- Disabled ghosting
   local iD = 1; FadeGhosts(true) -- Fade the current ghost stack
   while(iD <= nCnt) do local eGho = tGho[iD]
-    if(eGho and eGho:IsValid() and eGho:GetModel() ~= sModel) then
-      eGho:Remove(); tGho[iD] = nil; eGho = tGho[iD] end
-    if(not (eGho and eGho:IsValid())) then
+    if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
+      if(eGho:GetModel() ~= sModel) then eGho:SetModel(sModel) end
+    else -- Reconfigure the first `nCnt` ghosts
       tGho[iD] = MakeEntityGhost(sModel, vPos, vAng); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then ClearGhosts(iD)
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
   end -- Remove all others that must not be drawn to save memory
   for iK = iD, tGho.Size do -- Executes only when (nCnt <= tGho.Size)
-    local eGho = tGho[iD]; if(eGho and eGho:IsValid()) then
-      eGho:SetNoDraw(true); eGho:Remove(); eGho = nil end; tGho[iD] = nil
+    local eGho = tGho[iD] -- Read the current ghosted entity
+    if(eGho and eGho:IsValid()) then -- When valid remove it
+      eGho:SetNoDraw(true); eGho:Remove() -- Stop drawing and remove
+    end; eGho = nil; tGho[iD] = nil -- Make sure the item is NIL
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
 

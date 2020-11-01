@@ -185,16 +185,19 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "maxmenupr", 5)
         asmlib.SetAsmConvar(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
         asmlib.SetAsmConvar(oPly, "maxmass"  , 50000)
-        asmlib.SetAsmConvar(oPly, "maxlinear", 250)
+        asmlib.SetAsmConvar(oPly, "maxlinear", 5000)
         asmlib.SetAsmConvar(oPly, "maxforce" , 100000)
-        asmlib.SetAsmConvar(oPly, "maxactrad", 150)
+        asmlib.SetAsmConvar(oPly, "maxactrad", 200)
         asmlib.SetAsmConvar(oPly, "maxstcnt" , 200)
         asmlib.SetAsmConvar(oPly, "enwiremod", 1)
+        asmlib.SetAsmConvar(oPly, "enctxmenu", 1)
         asmlib.SetAsmConvar(oPly, "enctxmall", 0)
-        asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
-        asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
+        asmlib.SetAsmConvar(oPly, "endsvlock", 0)
         asmlib.SetAsmConvar(oPly, "curvefact", 0.5)
         asmlib.SetAsmConvar(oPly, "curvsmple", 50)
+        asmlib.SetAsmConvar(oPly, "spawnrate", 5)
+        asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
+        asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
         asmlib.LogInstance("Variables reset complete",gtArgsLogs)
       else
         asmlib.SetAsmConvar(oPly,"nextx"  , 0)
@@ -1022,10 +1025,10 @@ function TOOL:LeftClick(stTrace)
           if(crvturnlm > 0) then
             local nC = asmlib.GetTurningFactor(ply, tS, iK)
             if(nC and nC < crvturnlm) then sItr = fInt:format(iD)
-              local sCan = ("[%1.3f]"):format(nC)
+              local sCan = ("[%4.3f]"):format(nC)
               local sNar = fInt:format(asmlib.GetNearest(tV[1], tC.Node))
               asmlib.UndoFinish(ply, sItr..sNar)
-              asmlib.Notify(ply, "Curve too narrow at "..sNar.."["..sCan.."]".." !", "ERROR")
+              asmlib.Notify(ply, "Curve too narrow at "..sNar..sCan.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..fInt..": Curve narrow "..sNar), gtArgsLogs); return true
             end
           end
@@ -1362,7 +1365,7 @@ function TOOL:UpdateGhostCurve()
   if(tCrv and tCrv.Size and tCrv.Size > 1) then
     local model = self:GetModel()
     local pointid, pnextid = self:GetPointID()
-    local atGho, iGho, eGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
+    local tGho, iGho, eGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
     if(bCrv) then
       asmlib.LogInstance("(Curve) Recalc ghost",gtArgsLogs)
       ply:SetNWBool(gsToolPrefL.."engcurve", false)
@@ -1376,11 +1379,10 @@ function TOOL:UpdateGhostCurve()
       for iD = 1, tCrv.CSize-1 do
         local tS = asmlib.UpdateCurveSnap(ply, iD, nD)
         if(tS and tS[1] and tS.Size and tS.Size > 0) then
-          for iK = 1, tS.Size do local tV = tS[iK]
+          for iK = 1, tS.Size do local tV = tS[iK]; iGho = (iGho + 1); eGho = tGho[iGho]
             local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
-            if(not stSpawn) then eGho:SetNoDraw(true) else
-              iGho = (iGho + 1); eGho = atGho[iGho]; if(eGho and eGho:IsValid()) then
-                eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
+            if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true); if(stSpawn) then
+              eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
             end
           end
         end
@@ -1389,11 +1391,10 @@ function TOOL:UpdateGhostCurve()
       local tSnp, iGho, eGho = tCrv.Snap, 0, nil
       if(tSnp and tSnp[1] and tCrv.SSize and tCrv.SSize > 0) then
         for iD = 1, tCrv.SSize do local tS = tSnp[iD]
-          for iK = 1, tS.Size  do local tV = tS[iK]
+          for iK = 1, tS.Size  do local tV = tS[iK]; iGho = (iGho + 1); eGho = tGho[iGho]
             local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
-            if(not stSpawn) then eGho:SetNoDraw(true) else
-              iGho = (iGho + 1); eGho = atGho[iGho]; if(eGho and eGho:IsValid()) then
-                eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
+            if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true); if(stSpawn) then
+              eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
             end
           end
         end
@@ -2231,8 +2232,6 @@ if(CLIENT) then
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enpntmscr_con"), gsToolPrefL.."enpntmscr")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enpntmscr"))
-    pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enradmenu_con"), gsToolPrefL.."enradmenu")
-             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
   end
 
   asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)

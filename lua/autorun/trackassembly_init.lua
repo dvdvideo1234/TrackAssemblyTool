@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.680")
+asmlib.SetOpVar("TOOL_VERSION","7.681")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -617,14 +617,14 @@ if(CLIENT) then
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
-      local model    = actTool:GetModel()
-      local ghostcnt = actTool:GetGhostsDepth()
-      local atGhosts = asmlib.GetOpVar("ARRAY_GHOST")
+      local model = actTool:GetModel()
+      local ghcnt = actTool:GetGhostsDepth()
+      local atGho = asmlib.GetOpVar("ARRAY_GHOST")
       if(utilIsValidModel(model)) then
-        if(not (asmlib.HasGhosts() and ghostcnt == atGhosts.Size and atGhosts.Slot == model)) then
-          if(not asmlib.MakeGhosts(ghostcnt, model)) then
+        if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
+          if(not asmlib.MakeGhosts(ghcnt, model)) then
             asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
-          actTool:ElevateGhost(atGhosts[1], oPly) -- Elevate the properly created ghost
+          actTool:ElevateGhost(atGho[1], oPly) -- Elevate the properly created ghost
         end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
       end
     end) -- Read client configuration
