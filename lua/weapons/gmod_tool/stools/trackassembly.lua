@@ -1168,9 +1168,9 @@ function TOOL:LeftClick(stTrace)
     end -- Validated existent next point ID
     asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )")
     local tArg = {
-      TOOL       = TOOL      ,
       iStart     = 1         ,
       stackcnt   = stackcnt  ,
+      toolobj    = self      ,
       gtArgsLogs = gtArgsLogs,
       iTry       = iTry      ,
       vTemp      = vTemp     ,
@@ -1205,9 +1205,11 @@ function TOOL:LeftClick(stTrace)
       actrad     = actrad    ,
       spnflat    = spnflat   ,
       igntype    = igntype   ,
+      stTrace    = stTrace
     }
+    local fToo = function(oPly, oArg)
 
-
+    end
 
 
     for iD = 1, stackcnt do

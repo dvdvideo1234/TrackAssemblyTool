@@ -666,14 +666,15 @@ function InitBase(sName, sPurp)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TYPEMT_SCREEN",{})
+  SetOpVar("TYPEMT_QUEUE",{})
   SetOpVar("TYPEMT_CONTAINER",{})
   SetOpVar("TYPEMT_VECTOR",getmetatable(GetOpVar("VEC_ZERO")))
   SetOpVar("TYPEMT_ANGLE" ,getmetatable(GetOpVar("ANG_ZERO")))
+  SetOpVar("TABLE_QUEUE",{})
   SetOpVar("TABLE_FLAGS", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
-  SetOpVar("TABLE_ITEMQUEUE",{})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
@@ -1004,7 +1005,7 @@ end
 -- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
 function MakeQueue(sKey)
   local mKey = tostring(sKey or "QUEUE")
-  local mHash = GetOpVar("TABLE_ITEMQUEUE")
+  local mHash = GetOpVar("TABLE_QUEUE")
   if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
   local self, mBusy, mS, mE = {}, {}, nil, nil
   function self:GetStart() return mS end
@@ -1032,13 +1033,16 @@ function MakeQueue(sKey)
       mE.N = tData; mE = tData
     end; return self
   end
-  function self:Do()
+  function self:Execute()
     if(self:IsEmpty()) then return self end
     local bOK, bBsy = pcall(mS.F, mS.P, mS.A)
     if(not bOK) then mBusy[mS.P] = false
       LogInstance("QUEUE["..mKey.."]: "..bBsy)
     end; mBusy[mS.P] = bBsy; return self
   end
+  if(IsHere(sKey)) then mHash[sKey] = self
+    LogInstance("Queue registered "..GetReport(mKey)) end
+  setmetatable(self, GetOpVar("TYPEMT_QUEUE")); return self
 end
 
 function MakeContainer(sKey, sDef)
