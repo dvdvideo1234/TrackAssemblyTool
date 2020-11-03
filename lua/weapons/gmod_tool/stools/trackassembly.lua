@@ -1160,14 +1160,56 @@ function TOOL:LeftClick(stTrace)
   -- IN_SPEED: Switch the tool mode ( Stacking )
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
-    local ePieceO, iTry, ePieceN = trEnt, 0, nil
-    local vTemp, trPos = Vector(), trEnt:GetPos()
+    local iTry, vTemp, ePieceO, ePieceN = 0, Vector(), trEnt, nil
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
     if(not hdOffs) then -- Make sure it is present
       asmlib.Notify(ply,"Cannot find next PointID !","ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"),gtArgsLogs); return false
     end -- Validated existent next point ID
     asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )")
+    local tArg = {
+      TOOL       = TOOL      ,
+      iStart     = 1         ,
+      stackcnt   = stackcnt  ,
+      gtArgsLogs = gtArgsLogs,
+      iTry       = iTry      ,
+      vTemp      = vTemp     ,
+      ePieceO    = ePieceO   ,
+      ePieceN    = ePieceN   ,
+      hdOffs     = hdOffs    ,
+      stSpawn    = stSpawn   ,
+      model      = model     ,
+      mass       = mass      ,
+      bgskids    = bgskids   ,
+      conPalette = conPalette,
+      bnderrmod  = bnderrmod ,
+      maxstatts  = maxstatts ,
+      ignphysgn  = ignphysgn ,
+      freeze     = freeze    ,
+      gravity    = gravity   ,
+      physmater  = physmater ,
+      anEnt      = anEnt     ,
+      weld       = weld      ,
+      forcelim   = forcelim  ,
+      nocollide  = nocollide ,
+      nocollidew = nocollidew,
+      appangfst  = appangfst ,
+      applinfst  = applinfst ,
+      nextpic    = nextpic   ,
+      nextyaw    = nextyaw   ,
+      nextrol    = nextrol   ,
+      nextx      = nextx     ,
+      nexty      = nexty     ,
+      nextz      = nextz     ,
+      pointid    = pointid   ,
+      actrad     = actrad    ,
+      spnflat    = spnflat   ,
+      igntype    = igntype   ,
+    }
+
+
+
+
     for iD = 1, stackcnt do
       local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
       while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
@@ -1181,8 +1223,8 @@ function TOOL:LeftClick(stTrace)
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
         asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
         vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntity(ePieceN)
-        if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
-        if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
+        if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0, 0, 0, false end
+        if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0, 0, 0, false end
         stSpawn = asmlib.GetEntitySpawn(ply,ePieceN,vTemp,model,pointid,
                     actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(not stSpawn) then -- Look both ways in a one way street :D

@@ -673,6 +673,7 @@ function InitBase(sName, sPurp)
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
+  SetOpVar("TABLE_ITEMQUEUE",{})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
@@ -1000,8 +1001,48 @@ end
 
 ----------------- OOP ------------------
 
+-- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
+function MakeQueue(sKey)
+  local mKey = tostring(sKey or "QUEUE")
+  local mHash = GetOpVar("TABLE_ITEMQUEUE")
+  if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
+  local self, mBusy, mS, mE = {}, {}, nil, nil
+  function self:GetStart() return mS end
+  function self:GetEnd() return mE end
+  function self:GetBusy()
+  function self:IsEmpty()
+    return (IsHere(mS) and IsHere(mE))
+  end
+  function self:IsBusy(oPly)
+    return IsHere(mBusy[oPly])
+  end
+  function self:Remove()
+    if(self:IsEmpty()) then return self end
+    if(self:IsBusy(mS.P)) then return self end
+    local pT = mS; mS = mS.N -- Move pointer
+    tableEmpty(pT); return self
+  end
+  function self:Set(oPly, tArg, fFoo)
+    local tData = {}; mBusy[oPly] = true
+    tData.P, tData.A = oPly, tArg
+    tData.F, tData.N = fFoo, nil
+    if(self:IsEmpty()) then
+      mS, mE = tData, tData
+    else -- When not empty hook at the end
+      mE.N = tData; mE = tData
+    end; return self
+  end
+  function self:Do()
+    if(self:IsEmpty()) then return self end
+    local bOK, bBsy = pcall(mS.F, mS.P, mS.A)
+    if(not bOK) then mBusy[mS.P] = false
+      LogInstance("QUEUE["..mKey.."]: "..bBsy)
+    end; mBusy[mS.P] = bBsy; return self
+  end
+end
+
 function MakeContainer(sKey, sDef)
-  local mKey = tostring(sKey or "STORAGE_CONTAINER")
+  local mKey = tostring(sKey or "CONTAINER")
   local mHash = GetOpVar("TABLE_CONTAINER")
   if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
   local mData, mID, self = {}, {}, {}
@@ -2042,32 +2083,6 @@ local function GetPlayerSpot(pPly)
     LogInstance("Cached <"..pPly:Nick()..">")
     libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
   end; return stSpot
-end
-
--- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
-function GetCacheThink(pPly)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
-    LogInstance("Spot missing"); return nil end
-  local stData = stSpot["THINK"]
-  if(not IsHere(stData)) then
-    stSpot["THINK"] = {}
-    stData = stSpot["THINK"]
-    stData.Key  = 0 -- Unique process identifier for destinguish
-    stData.Work = false -- Does the hook still process stuff
-    stData.Size = 0  -- Forced arguments count to pass
-    stData.Args = {} -- Actual argument list non-nil + nils
-    stData.Data = {} -- Some other data being shared across
-  end; return stData
-end
-
-function SetCacheThink(pPly, sKey, sbWrk, tDat, iCnt, ...)
-  local tO, tA = GetCacheThink(pPly)
-  tableEmpty(tO.Args); tA = {...}
-  tO.Size = mathFloor(tonumber(iCnt) or 0)
-  if(tO.Size <= 0) then tO.Size = 0 else
-    for iD = 1, tO.Size do tO.Args[iD] = tA[iD] end
-  end; tO.Data = tDat; tO.Key = tostring(sKey or "")
-  return tO
 end
 
 function GetCacheSpawn(pPly)
