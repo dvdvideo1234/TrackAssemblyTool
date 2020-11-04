@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.681")
+asmlib.SetOpVar("TOOL_VERSION","7.684")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -127,6 +127,7 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 asmlib.SetBorder("non-neg", 0, mathHuge)
 asmlib.SetBorder("sbox_max"..gsLimitName , 0, mathHuge)
 asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."crvleanlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."curvefact", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."curvsmple", 0, 200)
 asmlib.SetBorder(gsToolPrefL.."devmode"  , 0, 1)
@@ -202,23 +203,25 @@ asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gaTimerSet  = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
 local conPalette  = asmlib.MakeContainer("COLORS_LIST")
-      conPalette:Record("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
-      conPalette:Record("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
-      conPalette:Record("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
-      conPalette:Record("b" ,asmlib.GetColor(  0,  0,255,255)) -- Blue
-      conPalette:Record("c" ,asmlib.GetColor(  0,255,255,255)) -- Cyan
-      conPalette:Record("m" ,asmlib.GetColor(255,  0,255,255)) -- Magenta
-      conPalette:Record("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
-      conPalette:Record("w" ,asmlib.GetColor(255,255,255,255)) -- White
-      conPalette:Record("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
-      conPalette:Record("gh",asmlib.GetColor(255,255,255,150)) -- Ghosts base color
-      conPalette:Record("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
-      conPalette:Record("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
-      conPalette:Record("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
-      conPalette:Record("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
-      conPalette:Record("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
-      conPalette:Record("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
-      conPalette:Record("fo",asmlib.GetColor(147, 92,204,255)) -- Flip over rails
+      conPalette:Record("a" ,asmlib.GetColor(  0,   0,   0,   0)) -- Invisible
+      conPalette:Record("r" ,asmlib.GetColor(255,   0,   0, 255)) -- Red
+      conPalette:Record("g" ,asmlib.GetColor(  0, 255,   0, 255)) -- Green
+      conPalette:Record("b" ,asmlib.GetColor(  0,   0, 255, 255)) -- Blue
+      conPalette:Record("c" ,asmlib.GetColor(  0, 255, 255, 255)) -- Cyan
+      conPalette:Record("m" ,asmlib.GetColor(255,   0, 255, 255)) -- Magenta
+      conPalette:Record("y" ,asmlib.GetColor(255, 255,   0, 255)) -- Yellow
+      conPalette:Record("w" ,asmlib.GetColor(255, 255, 255, 255)) -- White
+      conPalette:Record("k" ,asmlib.GetColor(  0,   0,   0, 255)) -- Black
+      conPalette:Record("gh",asmlib.GetColor(255, 255, 255, 150)) -- Ghosts base color
+      conPalette:Record("tx",asmlib.GetColor( 80,  80,  80, 255)) -- Panel names text color
+      conPalette:Record("an",asmlib.GetColor(180, 255, 150, 255)) -- Selected anchor
+      conPalette:Record("db",asmlib.GetColor(220, 164,  52, 255)) -- Database mode
+      conPalette:Record("ry",asmlib.GetColor(230, 200,  80, 255)) -- Ray tracing
+      conPalette:Record("wm",asmlib.GetColor(143, 244,  66, 255)) -- Working mode HUD
+      conPalette:Record("bx",asmlib.GetColor(250, 250, 200, 255)) -- Radial menu box
+      conPalette:Record("fo",asmlib.GetColor(147,  92, 204, 255)) -- Flip over rails
+      conPalette:Record("pf",asmlib.GetColor(150, 255, 150, 240)) -- Progress bar foreground
+      conPalette:Record("pb",asmlib.GetColor(150, 150, 255, 190)) -- Progress bar background
 
 local conElements = asmlib.MakeContainer("LIST_VGUI")
 local conWorkMode = asmlib.MakeContainer("WORK_MODE")
