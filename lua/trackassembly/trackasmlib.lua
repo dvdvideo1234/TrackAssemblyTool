@@ -104,6 +104,7 @@ local mathClamp                      = math and math.Clamp
 local mathAtan2                      = math and math.atan2
 local mathRound                      = math and math.Round
 local mathRandom                     = math and math.random
+local drawRoundedBox                 = draw and draw.RoundedBox
 local mathNormalizeAngle             = math and math.NormalizeAngle
 local vguiCreate                     = vgui and vgui.Create
 local undoCreate                     = undo and undo.Create
@@ -1006,41 +1007,54 @@ end
 function MakeQueue(sKey)
   local mKey = tostring(sKey or "QUEUE")
   local mHash = GetOpVar("TABLE_QUEUE")
-  if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
+  if(IsHere(sKey)) then
+    if(mHash and mHash[mKey]) then
+      return mHash[mKey] end
+  end
   local self, mBusy, mS, mE = {}, {}, nil, nil
   function self:GetStart() return mS end
   function self:GetEnd() return mE end
-  function self:GetBusy()
+  function self:GetBusy() return mBusy end
   function self:IsEmpty()
-    return (IsHere(mS) and IsHere(mE))
+    return (not (IsHere(mS) and IsHere(mE)))
   end
   function self:IsBusy(oPly)
-    return IsHere(mBusy[oPly])
+    if(not oPly) then return true end
+    local bB = mBusy[oPly]
+    return (bB and IsBool(bB))
   end
   function self:Remove()
     if(self:IsEmpty()) then return self end
     if(self:IsBusy(mS.P)) then return self end
-    local pT = mS; mS = mS.N -- Move pointer
-    tableEmpty(pT); return self
+    LogInstance(GetReport2(mS.D, mS.P:Nick()), mKey)
+    mS.P, mS.A, mS.F = nil, nil, nil
+    mS, mS.N = mS.N, nil -- Multiple assignment
+    return self
   end
-  function self:Set(oPly, tArg, fFoo)
-    local tData = {}; mBusy[oPly] = true
-    tData.P, tData.A = oPly, tArg
-    tData.F, tData.N = fFoo, nil
-    if(self:IsEmpty()) then
-      mS, mE = tData, tData
+  function self:Set(oPly, tArg, fFoo, aDsc)
+    local tD = {D = tostring(aDsc)}
+    tD.P, tD.A = oPly, tArg
+    tD.F, tD.N = fFoo, nil
+    if(self:IsEmpty()) then -- Wne empty
+      mS, mE = tD, tD -- First is also last
     else -- When not empty hook at the end
-      mE.N = tData; mE = tData
-    end; return self
+      mE.N = tD; mE = tD -- Attach at the end
+    end; mBusy[mS.P] = true -- Mark as busy
+    LogInstance(GetReport2(mS.D, mS.P:Nick()), mKey)
+    return self
   end
   function self:Execute()
     if(self:IsEmpty()) then return self end
     local bOK, bBsy = pcall(mS.F, mS.P, mS.A)
     if(not bOK) then mBusy[mS.P] = false
-      LogInstance("QUEUE["..mKey.."]: "..bBsy)
+      LogInstance(GetReport3(mS.D, mS.P:Nick(), bBsy).." Error: "..bBsy, mKey)
+    else
+      if(not bBsy) then
+        LogInstance(GetReport3(mS.D, mS.P:Nick(), bBsy).." Complete!", mKey) end
     end; mBusy[mS.P] = bBsy; return self
   end
-  if(IsHere(sKey)) then mHash[sKey] = self
+  if(IsHere(sKey)) then
+    if(mHash) then mHash[sKey] = self end
     LogInstance("Queue registered "..GetReport(mKey)) end
   setmetatable(self, GetOpVar("TYPEMT_QUEUE")); return self
 end
@@ -1334,18 +1348,22 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
   end
   function self:DrawRect(pO,pS,keyCl,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"REC")
-    self:GetColor(keyCl,sMeth)
+    local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       if(self:Enclose(pO) == -1) then
         LogInstance("Start out of border", tLogs); return self end
       if(self:Enclose(pS) == -1) then
         LogInstance("End out of border", tLogs); return self end
-      local nR = tonumber(tArgs[2])
+      local nR, nC = tonumber(tArgs[2]), (tonumber(tArgs[3]) or 0)
       surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1]))
       if(nR) then local nD = (nR / GetOpVar("DEG_RAD"))
         surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD)
       else -- Use the regular rectangle function without sin/cos rotation
-        surfaceDrawTexturedRect(pO.x,pO.y,pS.x,pS.y)
+        if(nC and nC > 0) then
+          drawRoundedBox(nC, pO.x, pO.y, pS.x, pS.y, rgbCl)
+        else
+          surfaceDrawTexturedRect(pO.x, pO.y, pS.x, pS.y)
+        end
       end
     else -- Unsupported method
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
@@ -4850,5 +4868,7 @@ function GetTurningFactor(oPly, tS, iD)
   end -- When a previous entry is not located return nothing
   if(not IsHere(tP)) then -- Previos entry being validated
     LogInstance("Prev mismatch "..GetReport(tP)); return nil end
-  return tV[2]:Forward():Dot(tP[2]:Forward())
+  local nF = tV[2]:Forward():Dot(tP[2]:Forward())
+  local nU = tV[2]:Up():Dot(tP[2]:Up())
+  return nF, nU
 end
