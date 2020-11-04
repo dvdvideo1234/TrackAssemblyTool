@@ -1803,20 +1803,19 @@ function TOOL:DrawProgress(hudMonitor, oPly)
   local sKey = (gsToolPrefL.."progress")
   local nPrg = oPly:GetNWFloat(sKey, 0)
   if(nPrg > 0) then
-    print(nPrg)
+    local fP = asmlib.GetOpVar("FORM_PROGRESS")
     local nR = asmlib.GetOpVar("GOLDEN_RATIO")
     local xyP, nD  = asmlib.NewXY(),  2
     local xyO, xyW = hudMonitor:GetCorners()
     local nW , nH  = (xyW.x - xyO.x), (xyW.y - xyO.y)
     local xyS = asmlib.NewXY((nR - 1) * (1 / 4) * nW, 36)
-    xyP.x = (nW / 2) - xyS.x / 2
-    xyP.y = nH - (nH / 4) - xyS.y / 2
+    xyP.x, xyP.y = ((nW / 2) - xyS.x / 2), (nH - (nH / 4) - xyS.y / 2)
     hudMonitor:DrawRect(xyP, xyS,"pb","SURF",{"vgui/white", nil, 6})
-    xyS.x, xyS.y = (nPrg / 100) * (xyS.x - 2 * nD), (xyS.y - 2 * nD)
-    xyP.x, xyP.y = (nW / 2) - (xyS.x / 2) , (xyP.y + nD)
+    xyS.x, xyS.y = ((nPrg / 100) * (xyS.x - 2 * nD)), (xyS.y - 2 * nD)
+    xyP.x, xyP.y = ((nW / 2) - (xyS.x / 2)), (xyP.y + nD)
     hudMonitor:DrawRect(xyP, xyS,"pf","SURF",{"vgui/white", nil, 4})
     local xyC = asmlib.NewXY(xyP.x + xyS.x / 2, xyP.y + xyS.y / 2)
-    hudMonitor:DrawTextCenter(xyC,("% 5.2f"):format(nPrg).."%","k","SURF",{"Trebuchet24"})
+    hudMonitor:DrawTextCenter(xyC, fP:format(nPrg), "k", "SURF", {"Trebuchet24"})
   end
 end
 

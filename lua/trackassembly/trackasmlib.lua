@@ -648,6 +648,7 @@ function InitBase(sName, sPurp)
   SetOpVar("MISS_NOTP","TYPE")   -- No track type
   SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
+  SetOpVar("FORM_PROGRESS", "%5.2f%%")
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_INTEGER", "[%d]")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
@@ -1356,7 +1357,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
         LogInstance("End out of border", tLogs); return self end
       local nR, nC = tonumber(tArgs[2]), (tonumber(tArgs[3]) or 0)
       surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1]))
-      if(nR) then local nD = (nR / GetOpVar("DEG_RAD"))
+      if(nR and nR ~= 0) then local nD = (nR / GetOpVar("DEG_RAD"))
         surfaceDrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD)
       else -- Use the regular rectangle function without sin/cos rotation
         if(nC and nC > 0) then
