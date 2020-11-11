@@ -65,7 +65,7 @@ local VEC_ZERO = asmlib.GetOpVar("VEC_ZERO")
 local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
-local goThQueue   = asmlib.MakeQueue("THINK")
+local goThQueue   = (SERVER and asmlib.MakeQueue("THINK") or nil)
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
@@ -222,6 +222,7 @@ if(CLIENT) then
 end
 
 if(SERVER) then
+  hookAdd("Think", gsToolPrefL.."think_task", function() goThQueue:Execute():Remove() end)
   hookAdd("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
   hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
@@ -966,15 +967,6 @@ function TOOL:CurveCheck()
   return tC -- Returns the updated curve nodes table
 end
 
-function TOOL:IsBusy(stTrace)
-  local ply = self:GetOwner()
-  local model = self:GetModel()
-  local fnmodel = stringGetFileName(model)
-  if(goThQueue:IsBusy(ply)) then
-    asmlib.Notify(ply,"Routine busy "..fnmodel.." !","ERROR"); return true
-  end; return false
-end
-
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then -- Do not do stuff when CLIENT attempts somrthing
     asmlib.LogInstance("Working on client",gtArgsLogs); return true end
@@ -984,8 +976,6 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   if(not stTrace.Hit) then -- Do not do stuff when there is nothing hit
     asmlib.LogInstance("Trace not hit",gtArgsLogs); return false end
-  if(self:IsBusy()) then -- When the tool is busy SPAWN will be overwritten
-    asmlib.LogInstance(self:GetStatus(stTrace,"Routine busy"),gtArgsLogs); return false end
   local ply        = self:GetOwner()
   local trEnt      = stTrace.Entity
   local weld       = self:GetWeld()
@@ -1193,57 +1183,75 @@ function TOOL:LeftClick(stTrace)
 
   -- IN_SPEED: Switch the tool mode ( Stacking )
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
+    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy stacking "..fnmodel.." !","ERROR"); return true end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
-    local iTry, vTemp, ePieceO, ePieceN = 0, Vector(), trEnt, nil
     local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
     if(not hdOffs) then -- Make sure it is present
       asmlib.Notify(ply,"Cannot find next PointID !","ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"),gtArgsLogs); return false
     end -- Validated existent next point ID
     goThQueue:Set(ply, {
-      first      = true,
-      start      = 1   ,
-      spawnrate  = spawnrate
+      start = 1   ,
+      spawn = {}  ,
+      sppos = Vector(stSpawn.SPos),
+      spang = Angle (stSpawn.SAng),
+      vtemp = Vector(),
+      entpn = nil,
+      entpo = trEnt,
+      itrys = 0,
+      itera = 0,
+      srate = spawnrate
     }, function(oPly, oArg)
-      if(oArg.first) then oArg.first = false
-        asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )") end
       for iD = oArg.start, stackcnt do
         oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / stackcnt))
         local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
-        while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
-          ePiece = asmlib.MakePiece(oPly,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
-        if(ePiece) then ePieceN = ePiece -- Set position is valid and store reference to the track piece
-          if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
+        while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
+          ePiece = asmlib.MakePiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+        if(ePiece) then oArg.entpn = ePiece -- Set position is valid and store reference to the track piece
+          if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then oArg.itera = iD
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,nil,forcelim)) then
+          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then oArg.itera = iD
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,nocollidew,forcelim)) then
+          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then oArg.itera = iD
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
-          asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng)
-          vTemp:Add(ePieceN:GetPos()); asmlib.UndoAddEntity(ePieceN)
+          asmlib.SetVector(oArg.vtemp,hdOffs.P); oArg.vtemp:Rotate(oArg.spang)
+          oArg.vtemp:Add(oArg.entpn:GetPos()); tableInsert(oArg.eundo, oArg.entpn)
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
-          stSpawn = asmlib.GetEntitySpawn(oPly,ePieceN,vTemp,model,pointid,
-                      actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-          if(not stSpawn) then -- Look both ways in a one way street :D
-            asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
-            asmlib.UndoFinish(oPly, sItr)
+          oArg.spawn = asmlib.GetEntitySpawn(oPly,oArg.entpn,oArg.vtemp,model,pointid,
+                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol,oArg.spawn)
+          if(not oArg.spawn) then -- Someting happend spawn is not available and task must be removed
+            asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR"); oArg.itera = iD
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stacking has invalid user data"),gtArgsLogs); return false
-          end; ePieceO, iTry = ePieceN, 0 -- Spawn data is valid for the current iteration iNdex
-          oArg.spawnrate = (oArg.spawnrate - 1) -- Check whenever the routine item is still busy
-          if(oArg.spawnrate <= 0) then
-            oArg.start     = (iD + 1)
-            oArg.spawnrate = spawnrate
+          end -- Spawn data is valid for the current iteration iNdex
+          oArg.sppos:Set(oArg.spawn.SPos); oArg.spang:Set(oArg.spawn.SAng)
+          oArg.entpo, oArg.itrys, oArg.srate = oArg.entpn, 0, (oArg.srate - 1)
+          -- Check whenever the routine item is still busy
+          if(oArg.srate <= 0) then
+            oArg.start, oArg.srate = (iD + 1), spawnrate
             asmlib.LogInstance("(Stack) Next ["..oArg.start.."]",gtArgsLogs);
-            return true
+            return true -- The server is still busy with the task
           end
-        else asmlib.UndoFinish(oPly, sItr) --  Make it shoot but throw the error
+        else oArg.itera = iD -- Someting happend piece cannot be created and task must be removed
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": All stack attempts fail"),gtArgsLogs); return false
         end -- We still have enough memory to preform the stacking
-      end
-      asmlib.UndoFinish(oPly); oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+      end -- Update the progress and successfully tell the task we are not busy anymore
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
       asmlib.LogInstance("(Stack) Success",gtArgsLogs); return false
-    end, workname); return true
+    end, workname)
+    goThQueue:Start(ply, function(oPly, oArg) oArg.eundo = {} end)
+    goThQueue:Close(ply, function(oPly, oArg)
+      asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )")
+      for iD = 1, #oArg.eundo do
+        asmlib.UndoAddEntity(oArg.eundo[iD]) end
+      if(oArg.itera > 0) then
+        local fItr = asmlib.GetOpVar("FORM_INTEGER")
+        local sItr = fItr:format(oArg.itera)
+        asmlib.UndoFinish(oPly, sItr)
+      else
+        asmlib.UndoFinish(oPly)
+      end
+    end); return true
   else -- Switch the tool mode ( Snapping )
     if(workmode == 2) then -- Make a ray intersection spawn update
       if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
@@ -1557,8 +1565,6 @@ function TOOL:Think()
         local pnFrame = conElements:Pull() -- Retrieve a panel from the stack
         if(IsValid(pnFrame)) then pnFrame:Close() end -- Call close on it !
       end -- Shortcut for closing the routine pieces. A `close` call, get it :D
-    elseif(SERVER) then
-      goThQueue:Execute():Remove()
     end
   end
 end

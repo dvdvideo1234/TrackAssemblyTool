@@ -1013,29 +1013,44 @@ function MakeQueue(sKey)
       return mHash[mKey] end
   end
   local self, mBusy, mS, mE = {}, {}, nil, nil
+  -- Returns the queue mamber key
+  function self:GetKey() return mKey end
+  -- Returns the last item in the queue
   function self:GetStart() return mS end
+  -- Returns the first item in the queue
   function self:GetEnd() return mE end
+  -- Yo sexy ladies want par with us
   function self:GetBusy() return mBusy end
+  -- Checks when the queue is empty
   function self:IsEmpty()
     return (not (IsHere(mS) and IsHere(mE)))
   end
+  -- Checks whenever the queue is busy for that player
   function self:IsBusy(oPly)
     if(not oPly) then return true end
     local bB = mBusy[oPly]
     return (bB and IsBool(bB))
   end
+  -- Removes the finished task for the queue
   function self:Remove()
     if(self:IsEmpty()) then return self end
     if(self:IsBusy(mS.P)) then return self end
     LogInstance(GetReport2(mS.D, mS.P:Nick()), mKey)
-    mS.P, mS.A, mS.F = nil, nil, nil
+    if(mS.E) then -- Post processing. Return value is ignored
+      local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
+        LogInstance(GetReport3(mS.D, mS.P:Nick(), "CLOSE").." Error: "..bErr, mKey)
+      else LogInstance(GetReport3(mS.D, mS.P:Nick(), "CLOSE").." OK", mKey) end
+    end -- Wipe all the columns in the item and go to the next item
+    mS.P, mS.A, mS.M = nil, nil, nil
+    mS.S, mS.E, mS.D = nil, nil, nil
     mS, mS.N = mS.N, nil -- Multiple assignment
     return self
   end
+  -- Setups a task to be called in the queue
   function self:Set(oPly, tArg, fFoo, aDsc)
     local tD = {D = tostring(aDsc)}
     tD.P, tD.A = oPly, tArg
-    tD.F, tD.N = fFoo, nil
+    tD.M, tD.N = fFoo, nil
     if(self:IsEmpty()) then -- Wne empty
       mS, mE = tD, tD -- First is also last
     else -- When not empty hook at the end
@@ -1044,9 +1059,28 @@ function MakeQueue(sKey)
     LogInstance(GetReport2(mS.D, mS.P:Nick()), mKey)
     return self
   end
+  -- Calls a function before the task starts processing
+  function self:Start(oPly, fFoo)
+    if(not IsHere(mE)) then return self end
+    if(not (mE.P and mE.P:IsValid())) then return self end
+    mE.S = fFoo; return self
+  end
+  -- Calls a function when the task finishes processing
+  function self:Close(oPly, fFoo)
+    if(not IsHere(mE)) then return self end
+    if(not (mE.P and mE.P:IsValid())) then return self end
+    mE.E = fFoo; return self
+  end
+  -- Execute the current task at the beginning if the queue
   function self:Execute()
     if(self:IsEmpty()) then return self end
-    local bOK, bBsy = pcall(mS.F, mS.P, mS.A)
+    if(mS.S) then -- Pre processing. Return value is ignored
+      local bOK, bErr = pcall(mS.S, mS.P, mS.A); if(not bOK) then
+        LogInstance(GetReport3(mS.D, mS.P:Nick(), "START").." Error: "..bErr, mKey)
+      else LogInstance(GetReport3(mS.D, mS.P:Nick(), "START").." OK", mKey) end
+      mS.S = nil -- Remove the pre-processing function for other task iterations
+    end
+    local bOK, bBsy = pcall(mS.M, mS.P, mS.A)
     if(not bOK) then mBusy[mS.P] = false
       LogInstance(GetReport3(mS.D, mS.P:Nick(), bBsy).." Error: "..bBsy, mKey)
     else
@@ -1067,24 +1101,36 @@ function MakeContainer(sKey, sDef)
   local mData, mID, self = {}, {}, {}
   local mDef = sDef or GetOpVar("OOP_DEFAULTKEY")
   local miTop, miAll, mhCnt = 0, 0, 0
-  function self:GetInfo() return mInfo end
-  function self:GetSize() return miTop end  -- Largest index in array part
-  function self:GetCount() return miAll end -- Actual populated slots <= `miTop`
-  function self:GetKept() return mhCnt end  -- The hash part slots maximum count
+  -- Returns the container iser information
+  function self:GetKey() return mKey end
+  -- Returns the largest index in the array part
+  function self:GetSize() return miTop end
+  -- Returns the actual populated slots less or equal to [miTop]
+  function self:GetCount() return miAll end
+  -- The hash part slots maximum count
+  function self:GetKept() return mhCnt end
+  -- Returns the container data reference
   function self:GetData() return mData end
+  -- Returns the container hash ID reference
   function self:GetHashID() return mID end
+  -- Calls a manual collet garbage
   function self:Collect() collectgarbage(); return self end
+  -- Checkes whenever there are wholes in the array part
   function self:IsRagged() return (miAll ~= miTop) end
+  -- Reads the data from the container
   function self:Select(nsKey)
     local iK = (nsKey or mDef); return mData[iK]
   end
+  -- Retrieves hash ID by a given key
   function self:GetKeyID(nsKey)
     local iK = (nsKey or mDef); return mID[iK]
   end
+  -- Refreshes the top populated index
   function self:Refresh()
     while(not IsHere(mData[miTop]) and miTop > 0) do
       miTop = (miTop - 1) end; return self
   end
+  -- Finds a value in the container
   function self:Find(vVal)
     for iK, vV in pairs(mData) do
       if(vV == vVal) then
@@ -1092,6 +1138,7 @@ function MakeContainer(sKey, sDef)
       end
     end; return nil, nil
   end
+  -- Arranges the container data
   function self:Arrange(nKey, bExp)
     if(nKey > 0 and nKey <= miTop) then
       local nStp = (bExp and -1 or 1)
@@ -1104,12 +1151,14 @@ function MakeContainer(sKey, sDef)
       miTop = (miTop - nStp)
     end; return self:Refresh()
   end
+  -- Wipes all the container elements
   function self:Clear()
     tableEmpty(self:GetData())
     tableEmpty(self:GetHashID())
     miTop, miAll, mhCnt = 0, 0, 0
     return self
   end
+  -- Records an element from the container
   function self:Record(nsKey, vVal)
     local iK, bK = (nsKey or mDef), IsHere(nsKey)
     if(IsNumber(iK) or not bK) then
@@ -1126,6 +1175,7 @@ function MakeContainer(sKey, sDef)
       else mData[iK] = vVal end
     end; return self:Refresh()
   end
+  -- Deletes an element from the container
   function self:Delete(nsKey)
     local iK, bK = (nsKey or mDef), IsHere(nsKey)
     if(bK and not IsHere(mData[iK])) then return self end
@@ -1143,6 +1193,7 @@ function MakeContainer(sKey, sDef)
       mData[iK], mID[iK] = nil, nil
     end; return self:Refresh()
   end
+  -- Pulls an element from the container-stack
   function self:Pull(nKey)
     if(nKey) then local nKey = tonumber(nKey)
       if(nKey and nKey > 0 and nKey <= miTop) then
@@ -1156,6 +1207,7 @@ function MakeContainer(sKey, sDef)
       self:Delete(); return vVal
     end
   end
+  -- Pushes an element to the container-stack
   function self:Push(vVal, nKey)
     if(nKey) then
       local bV = IsHere(vVal)
@@ -2108,28 +2160,41 @@ local function GetPlayerSpot(pPly)
   end; return stSpot
 end
 
-function GetCacheSpawn(pPly)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
-    LogInstance("Spot missing"); return nil end
-  local stData = stSpot["SPAWN"]
-  if(not IsHere(stData)) then local stSpawn, iD = GetOpVar("STRUCT_SPAWN"), 1
-    if(not IsHere(stSpawn)) then LogInstance("Spawn definition invalid"); return false end
-    LogInstance("Allocate <"..pPly:Nick()..">"); stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
-    while(stSpawn[iD]) do local tSec, iK = stSpawn[iD], 1
-      while(tSec[iK]) do local def = tSec[iK]
-        local key = tostring(def[1] or "")
-        local typ = tostring(def[2] or "")
-        local inf = tostring(def[3] or "")
-        if    (typ == "VEC") then stData[key] = Vector()
-        elseif(typ == "ANG") then stData[key] = Angle()
-        elseif(typ == "MTX") then stData[key] = Matrix()
-        elseif(typ == "RDB") then stData[key] = nil
-        elseif(typ == "NUM") then stData[key] = 0
-        else LogInstance("Spawn skip "..GetReport3(key,typ,inf))
-        end; iK = iK + 1 -- Update members count
-      end; iD = iD + 1 -- Update categories count
-    end
+local function SetCacheSpawn(stData)
+  local stSpawn, iD = GetOpVar("STRUCT_SPAWN"), 1
+  while(stSpawn[iD]) do local tSec, iK = stSpawn[iD], 1
+    while(tSec[iK]) do local def = tSec[iK]
+      local key = tostring(def[1] or "") -- Table key
+      local typ = tostring(def[2] or ""):upper() -- Type
+      local inf = tostring(def[3] or "") -- Key information
+      if    (typ == "VEC") then stData[key] = Vector()
+      elseif(typ == "ANG") then stData[key] = Angle()
+      elseif(typ == "MTX") then stData[key] = Matrix()
+      elseif(typ == "RDB") then stData[key] = nil
+      elseif(typ == "NUM") then stData[key] = 0
+      else LogInstance("Spawn skip "..GetReport3(key,typ,inf))
+      end; iK = iK + 1 -- Update members count
+    end; iD = iD + 1 -- Update categories count
   end; return stData
+end
+
+function GetCacheSpawn(pPly, tDat)
+  local stSpot = GetPlayerSpot(pPly)
+  if(not IsHere(stSpot)) then
+    LogInstance("Spot missing"); return nil end
+  if(tDat) then stData = tDat; if(not IsTable(stData)) then
+      LogInstance("Invalid "..GetReport(stData)); return nil end
+    if(IsEmpty(stData)) then
+      stData = SetCacheSpawn(stData)
+      LogInstance("Reference <"..pPly:Nick()..">")
+    end
+  else stData = stSpot["SPAWN"]
+    if(not IsHere(stData)) then
+      stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
+      stData = SetCacheSpawn(stData)
+      LogInstance("Allocate <"..pPly:Nick()..">")
+    end
+  end return stData
 end
 
 function CacheClear(pPly, bNow)
@@ -2209,17 +2274,17 @@ function GetCacheCurve(pPly)
     stData.CSize = 0  -- The amount of points for the calculated nodes array
     stData.SSize = 0  -- The amount of points for the snaps node array
   end;
-  if(not  stData.Size) then  stData.Size = 0 end
+  if(not stData.Size ) then stData.Size  = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
   if(not stData.SSize) then stData.SSize = 0 end
   return stData
 end
 
-function Notify(pPly,sText,sNotifType)
+function Notify(pPly,sText,sType)
   if(not IsPlayer(pPly)) then
     LogInstance("Player <"..tostring(pPly).."> invalid"); return false end
   if(SERVER) then -- Send notification to client that something happened
-    pPly:SendLua(GetOpVar("FORM_NTFGAME"):format(sText, sNotifType))
+    pPly:SendLua(GetOpVar("FORM_NTFGAME"):format(sText, sType))
     pPly:SendLua(GetOpVar("FORM_NTFPLAY"):format(mathRandom(1, 4)))
   end; return true
 end
@@ -3783,12 +3848,13 @@ end
  * ucsPos(X,Y,Z) = Offset position
  * ucsAng(P,Y,R) = Offset angle
 ]]--
-function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
+function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
+                        ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
     LogInstance("No record located for <"..shdModel..">"); return nil end
   local hdPOA, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdPOA)) then
     LogInstance("Holder point ID missing "..GetReport(ivhdPoID)); return nil end
-  local stSpawn = GetCacheSpawn(oPly); stSpawn.HRec, stSpawn.HID = hdRec, ihdPoID
+  local stSpawn = GetCacheSpawn(oPly, stData); stSpawn.HRec, stSpawn.HID = hdRec, ihdPoID
   if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
@@ -3849,7 +3915,7 @@ end
 ]]--
 function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
                         nvActRadius,enFlatten,enIgnTyp,ucsPosX,
-                        ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
+                        ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
   if(not (trEnt and trHitPos and shdModel and ivhdPoID and nvActRadius)) then
     LogInstance("Mismatched input parameters"); return nil end
   if(not trEnt:IsValid()) then
@@ -3877,7 +3943,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   -- If the types are different and disabled
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
     LogInstance("Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">"); return nil end
-  local stSpawn = GetCacheSpawn(oPly) -- We have the next Piece Offset
+  local stSpawn = GetCacheSpawn(oPly, stData) -- We have the next Piece Offset
         stSpawn.TRec, stSpawn.RLen = trRec, trRad
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID
         stSpawn.TOrg:Set(trEnt:GetPos())
