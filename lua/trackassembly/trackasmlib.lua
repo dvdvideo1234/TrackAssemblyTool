@@ -1038,8 +1038,8 @@ function MakeQueue(sKey)
     LogInstance(GetReport2(mS.D, mS.P:Nick()), mKey)
     if(mS.E) then -- Post processing. Return value is ignored
       local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
-        LogInstance(GetReport3(mS.D, mS.P:Nick(), "CLOSE").." Error: "..bErr, mKey)
-      else LogInstance(GetReport3(mS.D, mS.P:Nick(), "CLOSE").." OK", mKey) end
+        LogInstance(GetReport2(mS.D, mS.P:Nick()).." Error: "..bErr, mKey)
+      else LogInstance(GetReport2(mS.D, mS.P:Nick()).." OK", mKey) end
     end -- Wipe all the columns in the item and go to the next item
     mS.P, mS.A, mS.M = nil, nil, nil
     mS.S, mS.E, mS.D = nil, nil, nil
@@ -1047,11 +1047,11 @@ function MakeQueue(sKey)
     return self
   end
   -- Setups a task to be called in the queue
-  function self:Set(oPly, tArg, fFoo, aDsc)
+  function self:Attach(oPly, tArg, fFoo, aDsc)
     local tD = {D = tostring(aDsc)}
     tD.P, tD.A = oPly, tArg
     tD.M, tD.N = fFoo, nil
-    if(self:IsEmpty()) then -- Wne empty
+    if(self:IsEmpty()) then -- When empty
       mS, mE = tD, tD -- First is also last
     else -- When not empty hook at the end
       mE.N = tD; mE = tD -- Attach at the end
@@ -1060,13 +1060,13 @@ function MakeQueue(sKey)
     return self
   end
   -- Calls a function before the task starts processing
-  function self:Start(oPly, fFoo)
+  function self:OnActive(oPly, fFoo)
     if(not IsHere(mE)) then return self end
     if(not (mE.P and mE.P:IsValid())) then return self end
     mE.S = fFoo; return self
   end
   -- Calls a function when the task finishes processing
-  function self:Close(oPly, fFoo)
+  function self:OnFinish(oPly, fFoo)
     if(not IsHere(mE)) then return self end
     if(not (mE.P and mE.P:IsValid())) then return self end
     mE.E = fFoo; return self
@@ -1076,8 +1076,8 @@ function MakeQueue(sKey)
     if(self:IsEmpty()) then return self end
     if(mS.S) then -- Pre processing. Return value is ignored
       local bOK, bErr = pcall(mS.S, mS.P, mS.A); if(not bOK) then
-        LogInstance(GetReport3(mS.D, mS.P:Nick(), "START").." Error: "..bErr, mKey)
-      else LogInstance(GetReport3(mS.D, mS.P:Nick(), "START").." OK", mKey) end
+        LogInstance(GetReport2(mS.D, mS.P:Nick()).." Error: "..bErr, mKey)
+      else LogInstance(GetReport2(mS.D, mS.P:Nick()).." OK", mKey) end
       mS.S = nil -- Remove the pre-processing function for other task iterations
     end
     local bOK, bBsy = pcall(mS.M, mS.P, mS.A)
@@ -2273,10 +2273,12 @@ function GetCacheCurve(pPly)
     stData.Size  = 0  -- The amount of points for the primary node array
     stData.CSize = 0  -- The amount of points for the calculated nodes array
     stData.SSize = 0  -- The amount of points for the snaps node array
+    stData.SKept = 0  -- The amount of total snap points the snaps node array
   end;
   if(not stData.Size ) then stData.Size  = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
   if(not stData.SSize) then stData.SSize = 0 end
+  if(not stData.SKept) then stData.SKept = 0 end
   return stData
 end
 
@@ -4782,27 +4784,6 @@ local function GetCatmullRomCurveDupe(tV, nT, nA, tO)
 end
 
 --[[
- * Fills up the the general curve space for the given player
- * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
- * oPly > Player to fill the calculation for
- * nSmp > Amount of samples between each node
- * nFac > Parametric constant curve factor [0;1]
-]]
-function CalculateRomCurve(oPly, nSmp, nFac)
-  local tC = GetCacheCurve(oPly); if(not tC) then
-    LogInstance("Curve missing"); return nil end
-  tableEmpty(tC.Snap); tC.SSize = 0 -- The size of all snaps
-  tableEmpty(tC.CNode) -- Reset the curve and snapping
-  tableEmpty(tC.CNorm); tC.CSize = 0 -- And normals
-  GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
-  GetCatmullRomCurveDupe(tC.Norm, nSmp, nFac, tC.CNorm)
-  tC.Info.UCS[1]:Set(tC.CNode[1])
-  tC.Info.UCS[2]:Set(tC.CNorm[1])
-  tC.CSize = (tC.Size - 1) * nSmp + tC.Size
-  return tC -- Return the updated reference
-end
-
---[[
  * Intersects a line with a sphere
  * vS > Line start point vector
  * vE > Line end point vector
@@ -4880,8 +4861,8 @@ local function UpdateCurveNormUCS(oPly, vvS, vnS, vvE, vnE, vO, nD)
   local xNN = Vector(vF1); xNN:Add(vF2); xNN:Normalize()
   local vF, vU = (xXX - vP), (vN + xNN) -- Spwan angle as FU
   local tS, tO = tC.Snap[tC.SSize], {Vector(vP), vF:AngleEx(vU)}
-  tS.Size = (tS.Size + 1); tS[tS.Size] = tO
-  vP:Set(xXX); vN:Set(xNN) -- Update the new origin point
+  tS.Size, tC.SKept = (tS.Size + 1), (tC.SKept + 1) -- Update snap and nodes
+  tS[tS.Size] = tO; vP:Set(xXX); vN:Set(xNN) -- Update the new origin point
   return tS, (vvE - vP):Length() -- Return remaining length
 end
 
@@ -4898,8 +4879,6 @@ function UpdateCurveSnap(oPly, iD, nD)
     LogInstance("Index mismatch "..GetReport(iD)); return nil end
   if(mathFloor(iD) ~= mathCeil(iD)) then
     LogInstance("Index fraction "..GetReport(iD)); return nil end
-  local nD = (tonumber(nD) or 0); if(nD <= 0) then
-    LogInstance("Distance mismatch "..GetReport(nD)); return nil end
   local vP0, vN0 = tC.Info.UCS[1], tC.Info.UCS[2]
   local vP1, vN1 = tC.CNode[iD + 0], tC.CNorm[iD + 0]
   local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
@@ -4938,4 +4917,29 @@ function GetTurningFactor(oPly, tS, iD)
   local nF = tV[2]:Forward():Dot(tP[2]:Forward())
   local nU = tV[2]:Up():Dot(tP[2]:Up())
   return nF, nU
+end
+
+--[[
+ * Fills up the the general curve space for the given player
+ * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+ * oPly > Player to fill the calculation for
+ * nSmp > Amount of samples between each node
+ * nFac > Parametric constant curve factor [0;1]
+]]
+function CalculateRomCurve(oPly, nSmp, nFac)
+  local tC = GetCacheCurve(oPly); if(not tC) then
+    LogInstance("Curve missing"); return nil end
+  local tPos, tUCS = tC.Info.Pos, tC.Info.UCS
+  tableEmpty(tC.Snap) -- The size of all snaps
+  tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
+  tableEmpty(tC.CNode) -- Reset the curve and snapping
+  tableEmpty(tC.CNorm); tC.CSize = 0 -- And normals
+  GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
+  GetCatmullRomCurveDupe(tC.Norm, nSmp, nFac, tC.CNorm)
+  tUCS[1]:Set(tC.CNode[1]); tUCS[2]:Set(tC.CNorm[1])
+  tC.CSize = (tC.Size - 1) * nSmp + tC.Size
+  local nD = (tPos[2] - tPos[1]):Length(); if(nD <= 0) then
+    LogInstance("Distance mismatch "..GetReport(nD)); return nil end
+  for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(ply, iD, nD) end
+  return tC -- Return the updated curve information reference
 end

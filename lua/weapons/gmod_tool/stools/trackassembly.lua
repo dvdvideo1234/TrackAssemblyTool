@@ -915,6 +915,10 @@ function TOOL:CurveUpdate(stTrace, bMute)
   end; return tC -- Returns the updated curve nodes table
 end
 
+--[[
+ * Validates curve client parameters and
+ * initializes the curve structure for the holder model
+]]
 function TOOL:CurveCheck()
   local ply = self:GetOwner()
   local model = self:GetModel()
@@ -1018,66 +1022,83 @@ function TOOL:LeftClick(stTrace)
     local curvsmple = self:GetCurveSamples()
     local crvturnlm = self:GetCurvatureTurn()
     local crvleanlm = self:GetCurvatureLean()
-    local sO, sA, ePieceO = tC.Info.Pos[1], tC.Info.Ang[1], nil
-    local eO, eA, ePieceN = tC.Info.Pos[2], tC.Info.Ang[2], nil
-    local nD, iTry, iMak, iStk = (eO - sO):Length(), 0, 0, 0
-    local sItr, fInt = "", asmlib.GetOpVar("FORM_INTEGER")
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
-    if(stackcnt > 0) then
-      asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve #"..stackcnt.." )")
-    else
-      asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
-    end
-    for iD = 1, (tC.CSize - 1) do
-      local tS, nL = asmlib.UpdateCurveSnap(ply, iD, nD)
-      if(tS and tS[1] and tS.Size and tS.Size > 0) then
-        for iK = 1, tS.Size do local tV, ePiece = tS[iK], nil
-          local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
-          if(not stSpawn) then -- Make sure it persists to set it afterwards
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
-          if(crvturnlm > 0 or crvleanlm > 0) then
-            local nF, nU = asmlib.GetTurningFactor(ply, tS, iK)
-            if(nF and nF < crvturnlm) then
-              local sItr = fInt:format(iD)
-              local nPnt = asmlib.GetNearest(tV[1], tC.Node)
-              local sCan = ("%4.3f"):format(nU)
-              local sNar = asmlib.GetReport3(sItr,nPnt,sCan)
-              asmlib.UndoFinish(ply, sItr..sNar)
-              asmlib.Notify(ply, "Curve turn excessive at "..sNar.." !", "ERROR")
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sNar..": Turn excessive"), gtArgsLogs); return true
-            end
-            if(nU and nU < crvleanlm) then
-              local sItr = fInt:format(iD)
-              local nPnt = asmlib.GetNearest(tV[1], tC.Node)
-              local sCan = ("%4.3f"):format(nU)
-              local sNar = asmlib.GetReport3(sItr,nPnt,sCan)
-              asmlib.UndoFinish(ply, sItr..sNar)
-              asmlib.Notify(ply, "Curve lean excessive at "..sNar.." !", "ERROR")
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sNar..": Lean excessive"), gtArgsLogs); return true
-            end
+    asmlib.LogTable(tC, "CURVE")
+
+--[[   oArg.imake
+    goThQueue:Attach(ply, {
+      itera = 0,
+      spawn = {}
+      itrys = 0,
+      istck = 0,
+      imake = 0,
+      entpn = nil,
+      entpo = nil,
+      srate = spawnrate
+    }, function(oPly, oArg)
+      for iK = 1, tS.Size do local tV, ePiece = tS[iK], nil
+        local stSpawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid)
+        if(not stSpawn) then -- Make sure it persists to set it afterwards
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
+        if(crvturnlm > 0 or crvleanlm > 0) then
+          local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
+          if(nF and nF < crvturnlm) then
+            local sItr = fInt:format(iD)
+            local nPnt = asmlib.GetNearest(tV[1], tC.Node)
+            local sCan = ("%4.3f"):format(nU)
+            local sNar = asmlib.GetReport3(sItr,nPnt,sCan)
+            asmlib.UndoFinish(oPly, sItr..sNar)
+            asmlib.Notify(oPly, "Curve turn excessive at "..sNar.." !", "ERROR")
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sNar..": Turn excessive"), gtArgsLogs); return true
           end
-          while(iTry < maxstatts and not ePiece) do iTry = (iTry + 1)
-            ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
-          if(stackcnt > 0) then if(iStk < stackcnt) then iStk = (iStk + 1) else ePiece:Remove(); ePiece = nil end end
-          iMak = (iMak + (ePiece and 1 or 0)); sItr = fInt:format(iMak)
-          if(ePiece) then ePieceO, ePieceN = ePieceN, ePiece -- We still have enough memory to preform the stacking
-            if(not asmlib.ApplyPhysicalSettings(ePieceN,ignphysgn,freeze,gravity,physmater)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
-            if(not asmlib.ApplyPhysicalAnchor(ePieceN,(anEnt or ePieceO),weld,nil,nil,forcelim)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
-            if(not asmlib.ApplyPhysicalAnchor(ePieceN,ePieceO,nil,nocollide,nocollidew,forcelim)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
-            asmlib.UndoAddEntity(ePieceN); iTry = 0 -- Reset the stack attempts count
-          else asmlib.UndoFinish(ply, sItr) -- We still have enough memory to preform the stacking
-            if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Segment limit reached"), gtArgsLogs); return true
-            else asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true end
+          if(nU and nU < crvleanlm) then
+            local sItr = fInt:format(iD)
+            local nPnt = asmlib.GetNearest(tV[1], tC.Node)
+            local sCan = ("%4.3f"):format(nU)
+            local sNar = asmlib.GetReport3(sItr,nPnt,sCan)
+            asmlib.UndoFinish(oPly, sItr..sNar)
+            asmlib.Notify(oPly, "Curve lean excessive at "..sNar.." !", "ERROR")
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sNar..": Lean excessive"), gtArgsLogs); return true
           end
         end
+        while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
+          ePiece = asmlib.MakePiece(oPly,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+        if(stackcnt > 0) then if(oArg.istck < stackcnt) then oArg.istck = (oArg.istck + 1) else ePiece:Remove(); ePiece = nil end end
+        oArg.imake = (oArg.imake + (ePiece and 1 or 0)); sItr = fInt:format(oArg.imake)
+        if(ePiece) then oArg.entpo, oArg.entpn = oArg.entpn, ePiece -- We still have enough memory to preform the stacking
+          if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
+          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
+          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
+          asmlib.UndoAddEntity(oArg.entpn); oArg.itrys = 0 -- Reset the stack attempts count
+        else asmlib.UndoFinish(oPly, sItr) -- We still have enough memory to preform the stacking
+          if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Segment limit reached"), gtArgsLogs); return true
+          else asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true end
+        end
       end
-    end
-    asmlib.UndoFinish(ply)
-    asmlib.LogInstance("(Curve) Success",gtArgsLogs); return true
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+      asmlib.LogInstance("(Curve) Success",gtArgsLogs); return false
+    end, workname)
+    goThQueue:OnActive(ply, function(oPly, oArg) oArg.eundo = {} end)
+    goThQueue:OnFinish(ply, function(oPly, oArg)
+      if(stackcnt > 0) then
+        asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve #"..stackcnt.." )")
+      else
+        asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
+      end
+      for iD = 1, #oArg.eundo do
+        asmlib.UndoAddEntity(oArg.eundo[iD]) end
+      if(oArg.itera <= 0) then asmlib.UndoFinish(oPly) else
+        local fItr = asmlib.GetOpVar("FORM_INTEGER")
+        local sItr = fItr:format(oArg.itera)
+        asmlib.UndoFinish(oPly, sItr)
+      end
+    end);
+    ]]
+    return true
   elseif(workmode == 4 and self:GetFlipOverFlag()) then
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOverEntity()
@@ -1190,7 +1211,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.Notify(ply,"Cannot find next PointID !","ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"),gtArgsLogs); return false
     end -- Validated existent next point ID
-    goThQueue:Set(ply, {
+    goThQueue:Attach(ply, {
       start = 1   ,
       spawn = {}  ,
       sppos = Vector(stSpawn.SPos),
@@ -1239,17 +1260,15 @@ function TOOL:LeftClick(stTrace)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
       asmlib.LogInstance("(Stack) Success",gtArgsLogs); return false
     end, workname)
-    goThQueue:Start(ply, function(oPly, oArg) oArg.eundo = {} end)
-    goThQueue:Close(ply, function(oPly, oArg)
+    goThQueue:OnActive(ply, function(oPly, oArg) oArg.eundo = {} end)
+    goThQueue:OnFinish(ply, function(oPly, oArg)
       asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )")
       for iD = 1, #oArg.eundo do
         asmlib.UndoAddEntity(oArg.eundo[iD]) end
-      if(oArg.itera > 0) then
+      if(oArg.itera <= 0) then asmlib.UndoFinish(oPly) else
         local fItr = asmlib.GetOpVar("FORM_INTEGER")
         local sItr = fItr:format(oArg.itera)
         asmlib.UndoFinish(oPly, sItr)
-      else
-        asmlib.UndoFinish(oPly)
       end
     end); return true
   else -- Switch the tool mode ( Snapping )
