@@ -1082,7 +1082,7 @@ function MakeQueue(sKey)
     end
     local bOK, bBsy = pcall(mS.M, mS.P, mS.A)
     if(not bOK) then mBusy[mS.P] = false
-      LogInstance(GetReport3(mS.D, mS.P:Nick(), bBsy).." Error: "..bBsy, mKey)
+      LogInstance(GetReport2(mS.D, mS.P:Nick()).." Error: "..bBsy, mKey)
     else
       if(not bBsy) then
         LogInstance(GetReport3(mS.D, mS.P:Nick(), bBsy).." Complete!", mKey) end
@@ -4889,13 +4889,13 @@ function UpdateCurveSnap(oPly, iD, nD)
     while(nL > nD) do -- First segment track is snapped but end is not reached
       tO, nL = UpdateCurveNormUCS(oPly, vP0, vN0, vP2, vN2, vP0, nD) end
     return tO, nL, tC.SSize -- Return the populated segment and the rest of the length
-  end
+  end; return nil
 end
 
 --[[
  * Calculates the curving factor for given curve sample
  * oPly > Player to do the calculation for
- * tS   > The snap list for the cirrent iteration
+ * tS   > The snap list for the current iteration
  * iD   > Snap origin information ID
 ]]
 function GetTurningFactor(oPly, tS, iD)
@@ -4929,17 +4929,14 @@ end
 function CalculateRomCurve(oPly, nSmp, nFac)
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
-  local tPos, tUCS = tC.Info.Pos, tC.Info.UCS
   tableEmpty(tC.Snap) -- The size of all snaps
   tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
   tableEmpty(tC.CNode) -- Reset the curve and snapping
   tableEmpty(tC.CNorm); tC.CSize = 0 -- And normals
   GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
   GetCatmullRomCurveDupe(tC.Norm, nSmp, nFac, tC.CNorm)
-  tUCS[1]:Set(tC.CNode[1]); tUCS[2]:Set(tC.CNorm[1])
-  tC.CSize = (tC.Size - 1) * nSmp + tC.Size
-  local nD = (tPos[2] - tPos[1]):Length(); if(nD <= 0) then
-    LogInstance("Distance mismatch "..GetReport(nD)); return nil end
-  for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(ply, iD, nD) end
+  tC.Info.UCS[1]:Set(tC.CNode[1]) -- Put the first node in the UCS
+  tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
+  tC.CSize = (tC.Size - 1) * nSmp + tC.Size -- Get stack depth
   return tC -- Return the updated curve information reference
 end

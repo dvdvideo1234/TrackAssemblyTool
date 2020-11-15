@@ -804,29 +804,29 @@ function TOOL:CurveClear(bAll, bMute)
   local tC  = asmlib.GetCacheCurve(ply)
   if(tC.Size and tC.Size > 0) then
     if(bAll) then -- Clear all the nodes
-      tableEmpty(tC.Snap); tC.SSize = 0
-      tableEmpty(tC.Node)
-      tableEmpty(tC.Norm)
-      tableEmpty(tC.Base); tC.Size = 0
-      tableEmpty(tC.CNode)
-      tableEmpty(tC.CNorm); tC.CSize = 0
       if(not bMute) then
         asmlib.Notify(ply, "Nodes cleared ["..tC.Size.."] !", "CLEANUP")
         netStart(gsLibName.."SendDeleteAllCurveNode")
         netWriteEntity(ply); netSend(ply)
         ply:SetNWBool(gsToolPrefL.."engcurve", false)
       end
-    else -- Clear the last specific node from the array
-      tableRemove(tC.Node)
-      tableRemove(tC.Norm)
       tableEmpty(tC.Snap); tC.SSize = 0
-      tableRemove(tC.Base); tC.Size = (tC.Size - 1)
+      tableEmpty(tC.Node)
+      tableEmpty(tC.Norm)
+      tableEmpty(tC.Base); tC.Size = 0
+      tableEmpty(tC.CNode)
+      tableEmpty(tC.CNorm); tC.CSize = 0
+    else -- Clear the last specific node from the array
       if(not bMute) then
         asmlib.Notify(ply, "Node removed ["..tC.Size.."] !", "CLEANUP")
         netStart(gsLibName.."SendDeleteCurveNode");
         netWriteEntity(ply); netSend(ply)
         ply:SetNWBool(gsToolPrefL.."engcurve", true)
       end
+      tableRemove(tC.Node)
+      tableRemove(tC.Norm)
+      tableEmpty(tC.Snap); tC.SSize = 0
+      tableRemove(tC.Base); tC.Size = (tC.Size - 1)
     end
   end; return tC -- Returns the updated curve nodes table
 end
@@ -953,6 +953,9 @@ function TOOL:CurveCheck()
   -- Read the next point to check the piece shape
   local eO, eA = tC.Info.Pos[2], tC.Info.Ang[2]
         asmlib.SetVector(eO, ePOA.O); asmlib.SetAngle(eA, ePOA.A)
+  -- Check is the distance has a valid length
+  local nD = (eO - sO):Length(); if(nD <= 0) then
+    LogInstance("Distance mismatch "..GetReport(nD)); return nil end
   -- Disable for non-straight track segments
   if(sA:Forward():Cross(eA:Forward()):Length() >= nEps) then
     asmlib.Notify(ply,"Segment curved "..fnmodel.." !","ERROR")
@@ -968,7 +971,7 @@ function TOOL:CurveCheck()
     asmlib.Notify(ply,"Segment gradient "..fnmodel.." !","ERROR")
     asmlib.LogInstance("Segment gradient: "..fnmodel, gtArgsLogs); return nil
   end
-  return tC -- Returns the updated curve nodes table
+  return tC, nD -- Returns the updated curve nodes table
 end
 
 function TOOL:LeftClick(stTrace)
@@ -1014,21 +1017,20 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
   if(workmode == 3) then
+    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy "..fnmodel.." !","ERROR"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
-    local tC = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
+    local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Arguments validation fail"), gtArgsLogs); return nil end
-    local curvefact = self:GetCurveFactor()
-    local curvsmple = self:GetCurveSamples()
-    local crvturnlm = self:GetCurvatureTurn()
-    local crvleanlm = self:GetCurvatureLean()
+    local fInt = asmlib.GetOpVar("FORM_INTEGER")
+    local curvefact, curvsmple = self:GetCurveFactor()  , self:GetCurveSamples()
+    local crvturnlm, crvleanlm = self:GetCurvatureTurn(), self:GetCurvatureLean()
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
-    asmlib.LogTable(tC, "CURVE")
-
---[[   oArg.imake
+    for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(ply, iD, nD) end
     goThQueue:Attach(ply, {
-      itera = 0,
-      spawn = {}
+      stard = 1,
+      stark = 1,
+      spawn = {},
       itrys = 0,
       istck = 0,
       imake = 0,
@@ -1036,69 +1038,75 @@ function TOOL:LeftClick(stTrace)
       entpo = nil,
       srate = spawnrate
     }, function(oPly, oArg)
-      for iK = 1, tS.Size do local tV, ePiece = tS[iK], nil
-        local stSpawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid)
-        if(not stSpawn) then -- Make sure it persists to set it afterwards
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
-        if(crvturnlm > 0 or crvleanlm > 0) then
-          local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
-          if(nF and nF < crvturnlm) then
-            local sItr = fInt:format(iD)
-            local nPnt = asmlib.GetNearest(tV[1], tC.Node)
-            local sCan = ("%4.3f"):format(nU)
-            local sNar = asmlib.GetReport3(sItr,nPnt,sCan)
-            asmlib.UndoFinish(oPly, sItr..sNar)
-            asmlib.Notify(oPly, "Curve turn excessive at "..sNar.." !", "ERROR")
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sNar..": Turn excessive"), gtArgsLogs); return true
+      for iD = oArg.stard, tC.SSize do tS = tC.Snap[iD]
+        for iK = oArg.stark, tS.Size do local tV, ePiece = tS[iK], nil
+          oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid,
+                         nextx, nexty, 0, nextpic, nextyaw, nextrol, oArg.spawn)
+          if(not oArg.spawn) then -- Make sure it persists to set it afterwards
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
+          if(crvturnlm > 0 or crvleanlm > 0) then
+            local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
+            if(nF and nF < crvturnlm) then
+              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nU))
+              asmlib.Notify(oPly, "Curve turn excessive at "..oArg.mundo.." !", "ERROR")
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..oArg.mundo..": Turn excessive"), gtArgsLogs); return false
+            end
+            if(nU and nU < crvleanlm) then
+              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
+              asmlib.Notify(oPly, "Curve lean excessive at "..oArg.mundo.." !", "ERROR")
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..oArg.mundo..": Lean excessive"), gtArgsLogs); return false
+            end
           end
-          if(nU and nU < crvleanlm) then
-            local sItr = fInt:format(iD)
-            local nPnt = asmlib.GetNearest(tV[1], tC.Node)
-            local sCan = ("%4.3f"):format(nU)
-            local sNar = asmlib.GetReport3(sItr,nPnt,sCan)
-            asmlib.UndoFinish(oPly, sItr..sNar)
-            asmlib.Notify(oPly, "Curve lean excessive at "..sNar.." !", "ERROR")
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sNar..": Lean excessive"), gtArgsLogs); return true
+          while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
+            ePiece = asmlib.MakePiece(oPly,model,oArg.spawn.SPos,oArg.spawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+          if(stackcnt > 0) then if(oArg.istck < stackcnt) then oArg.istck = (oArg.istck + 1) else ePiece:Remove(); ePiece = nil end end
+          oArg.imake = (oArg.imake + (ePiece and 1 or 0)); sItr = fInt:format(oArg.imake)
+          oPly:SetNWFloat(gsToolPrefL.."progress", (oArg.imake / tC.SKept) * 100)
+          if(ePiece) then oArg.entpo, oArg.entpn = oArg.entpn, ePiece -- We still have enough memory to preform the stacking
+            if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
+            if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
+            if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
+            oArg.itrys, oArg.srate = 0, (oArg.srate - 1) -- When the routine item is still busy
+            -- Add the entity to the undo list created at the end and reset the stack attempts count
+            tableInsert(oArg.eundo, ePiece); oArg.itrys = 0
+            if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
+              if(iK == tS.Size) then -- When current snap end is reached
+                oArg.stard, oArg.stark = (oArg.stard + 1), 1 -- Index the next snap
+              else -- When there is more stuff to snap continue snapping the cutrrent
+                oArg.stark = (oArg.stark + 1) -- Move the snap cursor to the next snap
+              end -- Write the logs that snap rate per tick has been reached
+              asmlib.LogInstance("(Curve) Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtArgsLogs)
+              return true -- The server is still busy with the task
+            end
+          else oArg.mundo = sItr -- We still have enough memory to preform the stacking
+            if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Segment limit reached"), gtArgsLogs); return false
+            else asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return false end
           end
-        end
-        while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
-          ePiece = asmlib.MakePiece(oPly,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
-        if(stackcnt > 0) then if(oArg.istck < stackcnt) then oArg.istck = (oArg.istck + 1) else ePiece:Remove(); ePiece = nil end end
-        oArg.imake = (oArg.imake + (ePiece and 1 or 0)); sItr = fInt:format(oArg.imake)
-        if(ePiece) then oArg.entpo, oArg.entpn = oArg.entpn, ePiece -- We still have enough memory to preform the stacking
-          if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
-          asmlib.UndoAddEntity(oArg.entpn); oArg.itrys = 0 -- Reset the stack attempts count
-        else asmlib.UndoFinish(oPly, sItr) -- We still have enough memory to preform the stacking
-          if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Segment limit reached"), gtArgsLogs); return true
-          else asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return true end
         end
       end
-      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+      oPly:SetNWFloat(gsToolPrefL.."progress", 100)
       asmlib.LogInstance("(Curve) Success",gtArgsLogs); return false
     end, workname)
-    goThQueue:OnActive(ply, function(oPly, oArg) oArg.eundo = {} end)
+    goThQueue:OnActive(ply, function(oPly, oArg)
+      oArg.eundo, oArg.mundo = {}, ""
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+    end)
     goThQueue:OnFinish(ply, function(oPly, oArg)
+      local nU, sM = #oArg.eundo, gsUndoPrefN..stringGetFileName(model)
       if(stackcnt > 0) then
-        asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve #"..stackcnt.." )")
-      else
-        asmlib.UndoCrate(gsUndoPrefN..stringGetFileName(model).." ( Curve )")
-      end
-      for iD = 1, #oArg.eundo do
-        asmlib.UndoAddEntity(oArg.eundo[iD]) end
-      if(oArg.itera <= 0) then asmlib.UndoFinish(oPly) else
-        local fItr = asmlib.GetOpVar("FORM_INTEGER")
-        local sItr = fItr:format(oArg.itera)
-        asmlib.UndoFinish(oPly, sItr)
-      end
-    end);
-    ]]
-    return true
+        asmlib.UndoCrate(sM.." ( Curve #"..stackcnt.." )")
+      else asmlib.UndoCrate(sM.." ( Curve )") end
+      for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
+      if(nU < tC.SKept) then
+        asmlib.UndoFinish(oPly, fInt:format(nU))
+      else asmlib.UndoFinish(oPly) end
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+      asmlib.LogInstance("(Curve) Success", gtArgsLogs)
+    end); return true
   elseif(workmode == 4 and self:GetFlipOverFlag()) then
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOverEntity()
@@ -1204,12 +1212,12 @@ function TOOL:LeftClick(stTrace)
 
   -- IN_SPEED: Switch the tool mode ( Stacking )
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy stacking "..fnmodel.." !","ERROR"); return true end
-    if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"),gtArgsLogs); return false end
-    local hdOffs = asmlib.LocatePOA(stSpawn.HRec,pnextid)
+    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Surver busy "..fnmodel.." !","ERROR"); return true end
+    if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"), gtArgsLogs); return false end
+    local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
     if(not hdOffs) then -- Make sure it is present
       asmlib.Notify(ply,"Cannot find next PointID !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"),gtArgsLogs); return false
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"), gtArgsLogs); return false
     end -- Validated existent next point ID
     goThQueue:Attach(ply, {
       start = 1   ,
@@ -1220,7 +1228,6 @@ function TOOL:LeftClick(stTrace)
       entpn = nil,
       entpo = trEnt,
       itrys = 0,
-      itera = 0,
       srate = spawnrate
     }, function(oPly, oArg)
       for iD = oArg.start, stackcnt do
@@ -1228,48 +1235,50 @@ function TOOL:LeftClick(stTrace)
         local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
         while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
           ePiece = asmlib.MakePiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
-        if(ePiece) then oArg.entpn = ePiece -- Set position is valid and store reference to the track piece
-          if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then oArg.itera = iD
+        if(ePiece) then oArg.entpo, oArg.entpn = oArg.entpn, ePiece -- Set position is valid and store reference to the track piece
+          if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then oArg.itera = iD
+          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then oArg.itera = iD
+          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
-          asmlib.SetVector(oArg.vtemp,hdOffs.P); oArg.vtemp:Rotate(oArg.spang)
-          oArg.vtemp:Add(oArg.entpn:GetPos()); tableInsert(oArg.eundo, oArg.entpn)
+          asmlib.SetVector(oArg.vtemp,hdOffs.P); oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.entpn:GetPos())
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
           oArg.spawn = asmlib.GetEntitySpawn(oPly,oArg.entpn,oArg.vtemp,model,pointid,
                          actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol,oArg.spawn)
           if(not oArg.spawn) then -- Someting happend spawn is not available and task must be removed
-            asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR"); oArg.itera = iD
+            asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stacking has invalid user data"),gtArgsLogs); return false
           end -- Spawn data is valid for the current iteration iNdex
           oArg.sppos:Set(oArg.spawn.SPos); oArg.spang:Set(oArg.spawn.SAng)
-          oArg.entpo, oArg.itrys, oArg.srate = oArg.entpn, 0, (oArg.srate - 1)
+          oArg.itrys, oArg.srate = 0, (oArg.srate - 1)
+          -- Add the entity to the undo list created at the end
+          tableInsert(oArg.eundo, ePiece)
           -- Check whenever the routine item is still busy
           if(oArg.srate <= 0) then
             oArg.start, oArg.srate = (iD + 1), spawnrate
             asmlib.LogInstance("(Stack) Next ["..oArg.start.."]",gtArgsLogs);
             return true -- The server is still busy with the task
           end
-        else oArg.itera = iD -- Someting happend piece cannot be created and task must be removed
+        else -- Someting happend piece cannot be created and task must be removed
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": All stack attempts fail"),gtArgsLogs); return false
         end -- We still have enough memory to preform the stacking
       end -- Update the progress and successfully tell the task we are not busy anymore
-      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
-      asmlib.LogInstance("(Stack) Success",gtArgsLogs); return false
+      oPly:SetNWFloat(gsToolPrefL.."progress", 100); return false
     end, workname)
-    goThQueue:OnActive(ply, function(oPly, oArg) oArg.eundo = {} end)
+    goThQueue:OnActive(ply, function(oPly, oArg)
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0); oArg.eundo = {}
+    end)
     goThQueue:OnFinish(ply, function(oPly, oArg)
-      asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Stack #"..stackcnt.." )")
-      for iD = 1, #oArg.eundo do
-        asmlib.UndoAddEntity(oArg.eundo[iD]) end
-      if(oArg.itera <= 0) then asmlib.UndoFinish(oPly) else
-        local fItr = asmlib.GetOpVar("FORM_INTEGER")
-        local sItr = fItr:format(oArg.itera)
-        asmlib.UndoFinish(oPly, sItr)
-      end
+      local nU, sM = #oArg.eundo, gsUndoPrefN..fnmodel
+      asmlib.UndoCrate(sM.." ( Stack #"..stackcnt.." )")
+      for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
+      if(nU < stackcnt) then
+        asmlib.UndoFinish(oPly, fInt:format(nU))
+      else asmlib.UndoFinish(oPly) end
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+      asmlib.LogInstance("(Stack) Success", gtArgsLogs)
     end); return true
   else -- Switch the tool mode ( Snapping )
     if(workmode == 2) then -- Make a ray intersection spawn update
@@ -1434,43 +1443,34 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
 end
 
 function TOOL:UpdateGhostCurve()
-  local ply = self:GetOwner()
-  local tCrv = self:CurveCheck()
-  local bCrv = ply:GetNWBool(gsToolPrefL.."engcurve", false)
+  local oPly = self:GetOwner()
+  local tCrv, nD = self:CurveCheck()
+  local bCrv = oPly:GetNWBool(gsToolPrefL.."engcurve", false)
   if(tCrv and tCrv.Size and tCrv.Size > 1) then
     local model = self:GetModel()
+    local stackcnt = self:GetStackCount()
     local pointid, pnextid = self:GetPointID()
-    local tGho, iGho, eGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
+    local tGho, iGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
+    local nextx, nexty, nextz = self:GetPosOffsets()
+    local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     if(bCrv) then
-      asmlib.LogInstance("(Curve) Recalc ghost",gtArgsLogs)
-      ply:SetNWBool(gsToolPrefL.."engcurve", false)
       local curvefact = self:GetCurveFactor()
       local curvsmple = self:GetCurveSamples()
-      local sO, sA, ePieceO = tCrv.Info.Pos[1], tCrv.Info.Ang[1], nil
-      local eO, eA, ePieceN = tCrv.Info.Pos[2], tCrv.Info.Ang[2], nil
-      local nD, iTry = (eO - sO):Length(), 0
-      local iMak, iStk, sItr = 0, 0
-      asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
-      for iD = 1, tCrv.CSize-1 do
-        local tS = asmlib.UpdateCurveSnap(ply, iD, nD)
-        if(tS and tS[1] and tS.Size and tS.Size > 0) then
-          for iK = 1, tS.Size do local tV = tS[iK]; iGho = (iGho + 1); eGho = tGho[iGho]
-            local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
-            if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true); if(stSpawn) then
-              eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
-            end
-          end
-        end
-      end
-    else
-      local tSnp, iGho, eGho = tCrv.Snap, 0, nil
-      if(tSnp and tSnp[1] and tCrv.SSize and tCrv.SSize > 0) then
-        for iD = 1, tCrv.SSize do local tS = tSnp[iD]
-          for iK = 1, tS.Size  do local tV = tS[iK]; iGho = (iGho + 1); eGho = tGho[iGho]
-            local stSpawn = asmlib.GetNormalSpawn(ply, tV[1], tV[2], model, pointid)
-            if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true); if(stSpawn) then
-              eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
-            end
+      asmlib.LogInstance("Calculate", gtArgsLogs)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", false)
+      asmlib.CalculateRomCurve(oPly, curvsmple, curvefact)
+      for iD = 1, (tCrv.CSize - 1) do asmlib.UpdateCurveSnap(oPly, iD, nD) end
+    end
+    for iD = 1, tCrv.SSize do local tS = tCrv.Snap[iD]
+      for iK = 1, tS.Size do iGho = (iGho + 1)
+        local tV, eGho = tS[iK], tGho[iGho]
+        local stSpawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid,
+                                  nextx, nexty, 0, nextpic, nextyaw, nextrol)
+        if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
+          if(stackcnt > 0) then if(iGho > stackcnt) then eGho:SetNoDraw(true) else
+            if(stSpawn) then eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end end
+          else
+            if(stSpawn) then eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end
           end
         end
       end
