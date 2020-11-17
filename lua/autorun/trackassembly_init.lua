@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.689")
+asmlib.SetOpVar("TOOL_VERSION","7.690")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -202,7 +202,7 @@ asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gaTimerSet  = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
-local conPalette  = asmlib.MakeContainer("COLORS_LIST")
+local conPalette  = asmlib.GetContainer("COLORS_LIST")
       conPalette:Record("a" ,asmlib.GetColor(  0,   0,   0,   0)) -- Invisible
       conPalette:Record("r" ,asmlib.GetColor(255,   0,   0, 255)) -- Red
       conPalette:Record("g" ,asmlib.GetColor(  0, 255,   0, 255)) -- Green
@@ -223,8 +223,8 @@ local conPalette  = asmlib.MakeContainer("COLORS_LIST")
       conPalette:Record("pf",asmlib.GetColor(150, 255, 150, 240)) -- Progress bar foreground
       conPalette:Record("pb",asmlib.GetColor(150, 150, 255, 190)) -- Progress bar background
 
-local conElements = asmlib.MakeContainer("LIST_VGUI")
-local conWorkMode = asmlib.MakeContainer("WORK_MODE")
+local conElements = asmlib.GetContainer("LIST_VGUI")
+local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
       conWorkMode:Push("CURVE") -- Catmull–Rom spline interpolation fitting
@@ -232,7 +232,7 @@ local conWorkMode = asmlib.MakeContainer("WORK_MODE")
 
 ------------ CALLBACKS ------------
 
-local conCallBack = asmlib.MakeContainer("CALLBAC_FUNC")
+local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       conCallBack:Push({"maxtrmarg", function(sVar, vOld, vNew)
         local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
         asmlib.SetOpVar("TRACE_MARGIN", nM)
@@ -571,7 +571,7 @@ if(CLIENT) then
         guiEnableScreenClicker(false); asmlib.LogInstance("Release",gtArgsLogs); return nil
       end -- Draw while holding the mouse middle button
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-      local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
+      local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Screen invalid",gtArgsLogs); return nil end
       local vBs, nR = asmlib.NewXY(4,4), (gnRatio-1)
       local nN  = conWorkMode:GetSize()
@@ -1048,7 +1048,7 @@ if(CLIENT) then
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-      local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
+      local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
       local atGhosts  = asmlib.GetOpVar("ARRAY_GHOST")
       local ghostcnt  = asmlib.GetAsmConvar("ghostcnt", "FLT")
@@ -1160,7 +1160,7 @@ gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 -- [3]: Tells what is to be done with the value
 -- [4]: Display when the data is available on the client
 -- [5]: Network massage or assign the value to a player
-local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
+local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
       conContextMenu:Push(
         {"tool."..gsToolNameL..".model", true,
           function(ePiece, oPly, oTr, sKey)

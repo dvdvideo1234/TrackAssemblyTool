@@ -732,6 +732,27 @@ function ToColor(vBase, pX, pY, pZ, vA)
   return GetColor(vBase[iX], vBase[iY], vBase[iZ], vA)
 end
 
+function UpdateColorPick(oEnt, sVar, sCol, bSet)
+  if(IsOther(oEnt)) then return nil end
+  local sPrf = GetOpVar("TOOLNAME_PL")
+  local cPal = GetContainer("COLORS_LIST")
+  if(IsHere(bSet)) then
+    if(bSet) then
+      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetColor(cPal:Select(sCol))
+      oEnt:SetNWBool(sPrf..sVar, true)
+    else
+      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetColor(cPal:Select("w"))
+      oEnt:SetNWBool(sPrf..sVar, false)
+    end
+  else
+    local bSet = oEnt:GetNWBool(sVar, false)
+    if(bSet) then
+      UpdateColorPick(oEnt, sVar, sCol, bSet) end
+  end
+end
+
 ------------- ANGLE ---------------
 
 function ToAngle(aBase, pP, pY, pR)
@@ -1005,7 +1026,7 @@ end
 ----------------- OOP ------------------
 
 -- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
-function MakeQueue(sKey)
+function GetQueue(sKey)
   local mKey = tostring(sKey or "QUEUE")
   local mHash = GetOpVar("TABLE_QUEUE")
   if(IsHere(sKey)) then
@@ -1094,7 +1115,7 @@ function MakeQueue(sKey)
   setmetatable(self, GetOpVar("TYPEMT_QUEUE")); return self
 end
 
-function MakeContainer(sKey, sDef)
+function GetContainer(sKey, sDef)
   local mKey = tostring(sKey or "CONTAINER")
   local mHash = GetOpVar("TABLE_CONTAINER")
   if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
@@ -1249,9 +1270,9 @@ end
  * CIR - Drawing a circle
  * UCS - Drawing a coordinate system
 ]]--
-function MakeScreen(sW,sH,eW,eH,conClr,aKey)
+function GetScreen(sW,sH,eW,eH,conClr,aKey)
   if(SERVER) then return nil end
-  local tLogs, tMon = {"MakeScreen"}, GetOpVar("TABLE_MONITOR")
+  local tLogs, tMon = {"GetScreen"}, GetOpVar("TABLE_MONITOR")
   if(IsHere(aKey) and IsHere(tMon) and tMon[aKey]) then -- Return the cached screen
     local oMon = tMon[aKey]; oMon:GetColor(); return oMon end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
@@ -1264,7 +1285,7 @@ function MakeScreen(sW,sH,eW,eH,conClr,aKey)
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
       then LogInstance("Color list not container", tLogs); return nil end
   else -- Color list is not present then create one
-    Colors.List = MakeContainer("COLORS_LIST") -- Default color container
+    Colors.List = GetContainer("COLORS_LIST") -- Default color container
   end
   local DrawMeth, DrawArgs, Text, TxID = {}, {}, {}, {}
   Text.DrwX, Text.DrwY = 0, 0
@@ -4538,7 +4559,7 @@ function FadeGhosts(bNoD)
   if(SERVER) then return true end
   if(not HasGhosts()) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
-  local cPal = MakeContainer("COLORS_LIST")
+  local cPal = GetContainer("COLORS_LIST")
   local sMis, sMod = GetOpVar("MISS_NOMD"), tGho.Slot
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
@@ -4577,7 +4598,7 @@ end
  * It must have been our imagination.
 ]]
 local function MakeEntityGhost(sModel, vPos, aAng)
-  local cPal = MakeContainer("COLORS_LIST")
+  local cPal = GetContainer("COLORS_LIST")
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
     LogInstance("Ghost invalid "..sModel); return nil end

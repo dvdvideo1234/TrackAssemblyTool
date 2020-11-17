@@ -65,7 +65,6 @@ local VEC_ZERO = asmlib.GetOpVar("VEC_ZERO")
 local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
-local goThQueue   = (SERVER and asmlib.MakeQueue("THINK") or nil)
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
@@ -84,10 +83,10 @@ local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
-local conPalette  = asmlib.MakeContainer("COLORS_LIST")
-local conWorkMode = asmlib.MakeContainer("WORK_MODE")
-local conElements = asmlib.MakeContainer("LIST_VGUI")
-local gtArgsLogs  = {"TOOL"}
+local conPalette  = asmlib.GetContainer("COLORS_LIST")
+local conWorkMode = asmlib.GetContainer("WORK_MODE")
+local conElements = asmlib.GetContainer("LIST_VGUI")
+local gtArgsLogs, goThQueue = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   asmlib.LogInstance("Processing DSV fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
@@ -222,6 +221,7 @@ if(CLIENT) then
 end
 
 if(SERVER) then
+  goThQueue = asmlib.GetQueue("THINK")
   hookAdd("Think", gsToolPrefL.."think_task", function() goThQueue:Execute():Remove() end)
   hookAdd("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
   hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
@@ -414,25 +414,6 @@ function TOOL:GetNocollideWorld()
   return asmlib.GetAsmConvar("nocollidew", "BUL")
 end
 
-function TOOL:UpdateColorEnt(oEnt, sVar, sCol, bSet)
-  if(asmlib.IsOther(oEnt)) then return nil end
-  if(asmlib.IsHere(bSet)) then
-    if(bSet) then
-      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-      oEnt:SetColor(conPalette:Select(sCol))
-      oEnt:SetNWBool(gsToolPrefL..sVar, true)
-    else
-      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
-      oEnt:SetColor(conPalette:Select("w"))
-      oEnt:SetNWBool(gsToolPrefL..sVar, false)
-    end
-  else
-    local bSet = oEnt:GetNWBool(sVar, false)
-    if(bSet) then
-      self:UpdateColorEnt(oEnt, sVar, sCol, bSet) end
-  end
-end
-
 function TOOL:SwitchPoint(vDir, bNxt)
   local oRec = asmlib.CacheQueryPiece(self:GetModel()); if(not asmlib.IsHere(oRec)) then
     asmlib.LogInstance("Invalid record",gtArgsLogs); return 1, 2 end
@@ -454,7 +435,7 @@ function TOOL:IntersectClear(bMute)
     if(SERVER) then local ryEnt, sRel = stRay.Ent
       netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
       if(ryEnt and ryEnt:IsValid()) then
-        self:UpdateColorEnt(ryEnt, "intersect", "ry", false)
+        asmlib.UpdateColorPick(ryEnt, "intersect", "ry", false)
         sRel = ryEnt:EntIndex()..gsSymRev..stringGetFileName(ryEnt:GetModel()) end
       if(not bMute) then sRel = (sRel and (": "..tostring(sRel)) or "")
         asmlib.LogInstance("Relation cleared <"..sRel..">",gtArgsLogs)
@@ -474,7 +455,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
     local sRel = oEnt:EntIndex()..gsSymRev..stringGetFileName(oEnt:GetModel())
     asmlib.Notify(oPly,"Intersect relation set: "..sRel.." !","UNDO")
-    self:UpdateColorEnt(oEnt, "intersect", "ry", true)
+    asmlib.UpdateColorPick(oEnt, "intersect", "ry", true)
   end return true
 end
 
@@ -518,7 +499,7 @@ function TOOL:ClearAnchor(bMute)
   if(CLIENT) then return end; self:ClearObjects()
   asmlib.SetAsmConvar(plPly,"anchor",gsNoAnchor)
   if(svEnt and svEnt:IsValid()) then
-    self:UpdateColorEnt(svEnt, "anchor", "an", false)
+    asmlib.UpdateColorPick(svEnt, "anchor", "an", false)
     if(not bMute) then
       local sAnchor = svEnt:EntIndex()..gsSymRev..stringGetFileName(svEnt:GetModel())
       asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
@@ -537,7 +518,7 @@ function TOOL:SetAnchor(stTrace)
   local plPly = self:GetOwner()
   if(not (plPly and plPly:IsValid())) then asmlib.LogInstance("Player invalid",gtArgsLogs); return false end
   local sAnchor = trEnt:EntIndex()..gsSymRev..stringGetFileName(trEnt:GetModel())
-  self:UpdateColorEnt(trEnt, "anchor", "an", true)
+  asmlib.UpdateColorPick(trEnt, "anchor", "an", true)
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
   asmlib.SetAsmConvar(plPly,"anchor",sAnchor)
   asmlib.Notify(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
@@ -685,6 +666,9 @@ end
 
 function TOOL:SetFlipOver(trEnt)
   if(CLIENT) then return nil end
+  asmlib.LogTable(constraint.GetTable(trEnt), "GETTABLE")
+
+
   if(asmlib.IsOther(trEnt)) then return nil end
   local trMod, oPly = trEnt:GetModel(), self:GetOwner()
   local trRec = asmlib.CacheQueryPiece(trMod)
@@ -702,13 +686,13 @@ function TOOL:SetFlipOver(trEnt)
       if(nID == iID) then bBr = true
         local eID = Entity(nID)
         if(not asmlib.IsOther(eID)) then
-          self:UpdateColorEnt(eID, "flipover", "fo", false)
+          asmlib.UpdateColorPick(eID, "flipover", "fo", false)
         end; tableRemove(tF, iD); break
       end
     end
   end
   if(not bBr) then tableInsert(tF, tostring(iID))
-    self:UpdateColorEnt(trEnt, "flipover", "fo", true)
+    asmlib.UpdateColorPick(trEnt, "flipover", "fo", true)
   end
   asmlib.SetAsmConvar(oPly, "flipoverid", tableConcat(tF, sYm))
 end
@@ -722,7 +706,7 @@ function TOOL:GetFlipOverEntity(bMute)
     local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
     if(bID and bMR) then
       nE = (nE + 1); tE[nE] = eID
-      self:UpdateColorEnt(eID, "flipover", "fo")
+      asmlib.UpdateColorPick(eID, "flipover", "fo")
     else
       if(SERVER and not bMute) then
         local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
@@ -733,12 +717,29 @@ function TOOL:GetFlipOverEntity(bMute)
   end; return tE, nE
 end
 
+function TOOL:GetFlipOverConstraints()
+  local tC, nC = {Match = {}}, 0
+  local tF, nF = self:GetFlipOverArray()
+  for iD = 1, nF do local eID, tA = Entity(tF[iD]), {}
+    if(not asmlib.IsOther(eID)) then nC = (nC + 1)
+      constraint.GetAllConstrainedEntities(eID, tA)
+      tC[nC] = {Base = iD, List = {}}
+      local tL, nL = tC[nC].List, 0
+      for key, ent in pairs(tA) do
+        if(not asmlib.IsOther(eID)) then
+          nL = (nL + 1); tL[nL] = ent:EntIndex()
+        end
+      end
+    end
+  end; return tC, nC
+end
+
 function TOOL:ClearFlipOver(bSync, bMute)
   local ply = self:GetOwner()
   local tF, nF = self:GetFlipOverArray()
   for iD = 1, nF do local eID = Entity(tF[iD])
     if(not asmlib.IsOther(eID)) then
-      self:UpdateColorEnt(eID, "flipover", "fo", false) end
+      asmlib.UpdateColorPick(eID, "flipover", "fo", false) end
   end; asmlib.SetAsmConvar(ply, "flipoverid", "")
   if(not bMute) then
     asmlib.LogInstance("Flip over cleared", gtArgsLogs)
@@ -1041,7 +1042,7 @@ function TOOL:LeftClick(stTrace)
       for iD = oArg.stard, tC.SSize do tS = tC.Snap[iD]
         for iK = oArg.stark, tS.Size do local tV, ePiece = tS[iK], nil
           oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid,
-                         nextx, nexty, 0, nextpic, nextyaw, nextrol, oArg.spawn)
+                         nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
           if(not oArg.spawn) then -- Make sure it persists to set it afterwards
             asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then
@@ -1110,16 +1111,17 @@ function TOOL:LeftClick(stTrace)
   elseif(workmode == 4 and self:GetFlipOverFlag()) then
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOverEntity()
+    local tC, nC = self:GetFlipOverConstraints()
     if(not tE or nE <= 0) then
       asmlib.Notify(ply, "Flip over no tracks selected !", "ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtArgsLogs); return false
     end
     for iD = 1, nE do local eID = tE[iD]
-      if(not asmlib.IsOther(eID)) then local sM = eID:GetModel()
+      if(not asmlib.IsOther(eID)) then local sM, iE = eID:GetModel(), eID:EntIndex()
         asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Over )")
         local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         local ePiece = asmlib.MakePiece(ply,sM,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
-        if(ePiece) then
+        if(ePiece) then tC.Match[iE] = ePiece
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtArgsLogs); return false end
           asmlib.UndoAddEntity(ePiece)
@@ -1129,7 +1131,11 @@ function TOOL:LeftClick(stTrace)
         end
         asmlib.UndoFinish(ply)
       end
-    end; return true
+    end
+
+    asmlib.LogTable(tC, "CONSTRAINTS")
+
+    return true
   end
 
   local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
@@ -1465,7 +1471,7 @@ function TOOL:UpdateGhostCurve()
       for iK = 1, tS.Size do iGho = (iGho + 1)
         local tV, eGho = tS[iK], tGho[iGho]
         local stSpawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid,
-                                  nextx, nexty, 0, nextpic, nextyaw, nextrol)
+                                  nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
           if(stackcnt > 0) then if(iGho > stackcnt) then eGho:SetNoDraw(true) else
             if(stSpawn) then eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end end
@@ -1848,7 +1854,7 @@ function TOOL:DrawHUD()
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
   local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-  local hudMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
+  local hudMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
   if(not hudMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
   if(not self:GetAdviser()) then return end
   local oPly = LocalPlayer()
@@ -1971,7 +1977,7 @@ end
 function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
-  local scrTool = asmlib.MakeScreen(0,0,w,h,conPalette,"TOOL")
+  local scrTool = asmlib.GetScreen(0,0,w,h,conPalette,"TOOL")
   if(not scrTool) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
   local xyT, xyB = scrTool:GetCorners()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
