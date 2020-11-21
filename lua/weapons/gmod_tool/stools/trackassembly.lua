@@ -648,6 +648,11 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
   return sDu
 end
 
+-- Returns true if there are entity ID stored
+function TOOL:GetFlipOverFlag()
+  return (self:GetFlipOverID():len() > 0)
+end
+
 -- Returns an array or entity ID numbers
 function TOOL:GetFlipOverArray()
   local sID, nF = self:GetFlipOverID(), 0
@@ -659,16 +664,28 @@ function TOOL:GetFlipOverArray()
   return tF, nF -- Return the table and elements count
 end
 
--- Returns true if there are entity ID stored
-function TOOL:GetFlipOverFlag()
-  return (self:GetFlipOverID():len() > 0)
+function TOOL:GetFlipOverEntity(bMute)
+  local tF, nF = self:GetFlipOverArray()
+  if(not tF or nF <= 0) then return nil, nF end
+  local tE, nE, ply = {}, 0, self:GetOwner()
+  for iD = 1, nF do local eID = Entity(tF[iD])
+    local bID = (not asmlib.IsOther(eID))
+    local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
+    if(bID and bMR) then
+      nE = (nE + 1); tE[nE] = eID
+      asmlib.UpdateColorPick(eID, "flipover", "fo")
+    else
+      if(SERVER and not bMute) then
+        local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
+        asmlib.LogInstance("Flip over mismatch ID "..sR, gtArgsLogs)
+        asmlib.Notify(ply, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
+      end
+    end
+  end; return tE, nE
 end
 
 function TOOL:SetFlipOver(trEnt)
   if(CLIENT) then return nil end
-  asmlib.LogTable(constraint.GetTable(trEnt), "GETTABLE")
-
-
   if(asmlib.IsOther(trEnt)) then return nil end
   local trMod, oPly = trEnt:GetModel(), self:GetOwner()
   local trRec = asmlib.CacheQueryPiece(trMod)
@@ -697,39 +714,12 @@ function TOOL:SetFlipOver(trEnt)
   asmlib.SetAsmConvar(oPly, "flipoverid", tableConcat(tF, sYm))
 end
 
-function TOOL:GetFlipOverEntity(bMute)
-  local tF, nF = self:GetFlipOverArray()
-  if(not tF or nF <= 0) then return nil, nF end
-  local tE, nE, ply = {}, 0, self:GetOwner()
-  for iD = 1, nF do local eID = Entity(tF[iD])
-    local bID = (not asmlib.IsOther(eID))
-    local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
-    if(bID and bMR) then
-      nE = (nE + 1); tE[nE] = eID
-      asmlib.UpdateColorPick(eID, "flipover", "fo")
-    else
-      if(SERVER and not bMute) then
-        local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
-        asmlib.LogInstance("Flip over mismatch ID "..sR, gtArgsLogs)
-        asmlib.Notify(ply, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
-      end
-    end
-  end; return tE, nE
-end
-
 function TOOL:GetFlipOverConstraints()
-  local tC, nC = {Match = {}}, 0
+  local tC, nC = {Over = {}}, 0
   local tF, nF = self:GetFlipOverArray()
-  for iD = 1, nF do local eID, tA = Entity(tF[iD]), {}
+  for iD = 1, nF do local eID = Entity(tF[iD])
     if(not asmlib.IsOther(eID)) then nC = (nC + 1)
-      constraint.GetAllConstrainedEntities(eID, tA)
-      tC[nC] = {Base = iD, List = {}}
-      local tL, nL = tC[nC].List, 0
-      for key, ent in pairs(tA) do
-        if(not asmlib.IsOther(eID)) then
-          nL = (nL + 1); tL[nL] = ent:EntIndex()
-        end
-      end
+      tC[nC] = asmlib.GetConstraintsEnt(eID)
     end
   end; return tC, nC
 end
@@ -1121,7 +1111,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Over )")
         local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         local ePiece = asmlib.MakePiece(ply,sM,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
-        if(ePiece) then tC.Match[iE] = ePiece
+        if(ePiece) then tC.Over[iE] = ePiece
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtArgsLogs); return false end
           asmlib.UndoAddEntity(ePiece)

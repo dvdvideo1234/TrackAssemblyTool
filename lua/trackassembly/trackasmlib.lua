@@ -149,9 +149,12 @@ local surfaceDrawTexturedRectRotated = surface and surface.DrawTexturedRectRotat
 local languageAdd                    = language and language.Add
 local constructSetPhysProp           = construct and construct.SetPhysProp
 local constraintWeld                 = constraint and constraint.Weld
+local constraintGetTable             = constraint and constraint.GetTable
 local constraintNoCollide            = constraint and constraint.NoCollide
 local constraintCanConstrain         = constraint and constraint.CanConstrain
 local constraintAdvBallsocket        = constraint and constraint.AdvBallsocket
+local constraintFindConstraints      = constraint and constraint.FindConstraints
+local constraintFindConstraintEntity = constraint and constraint.FindConstraintEntity
 local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
@@ -694,6 +697,7 @@ function InitBase(sName, sPurp)
     filter = function(oEnt) -- Only valid props which are not the main entity or world or TRACE_FILTER ( if set )
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
+  SetOpVar("CONSTRAINT_LIST", {"Weld", "AdvBallsocket", "NoCollide"})
   if(CLIENT) then
     SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
     SetOpVar("TOOL_DEFMODE","gmod_tool")
@@ -4413,7 +4417,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   local nFm, bNw = (tonumber(nFm)  or  0), (tobool(bNw) or false)
   LogInstance("{"..tostring(bWe)..","..tostring(bNc)
             ..","..tostring(bNw)..","..tostring(nFm).."}")
-  local cnW, cnN, cnG -- Create local references for constraints
+  local sPr, cnW, cnN, cnG = GetOpVar("TOOLNAME_PL") -- Create local references for constraints
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid "..GetReport(ePiece)); return false, cnW, cnN, cnG  end
   if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
@@ -4423,7 +4427,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
         if(constraintCanConstrain(eBase, 0)) then
           cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
           if(cnW and cnW:IsValid()) then
-            ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
+            cnW:SetNWBool(sPr.."physanchor", true)
+            ePiece:DeleteOnRemove(cnW); eBase:Dele teOnRemove(cnW)
           else LogInstance("Weld ignored "..GetReport(cnW)) end
         else LogInstance("Weld base unconstrained "..GetReport(eBase)) end
       else LogInstance("Weld base invalid "..GetReport(eBase)) end
@@ -4434,6 +4439,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
         if(constraintCanConstrain(eBase, 0)) then
           cnN = constraintNoCollide(ePiece, eBase, 0, 0)
           if(cnN and cnN:IsValid()) then
+            cnN:SetNWBool(sPr.."physanchor", true)
             ePiece:DeleteOnRemove(cnN); eBase:DeleteOnRemove(cnN)
           else LogInstance("NoCollide ignored "..GetReport(cnN)) end
         else LogInstance("NoCollide base unconstrained "..GetReport(eBase)) end
@@ -4447,12 +4453,31 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           cnG = constraintAdvBallsocket(ePiece, eWorld,
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
+            cnG:SetNWBool(sPr.."physanchor", true)
           else LogInstance("AdvBallsocket ignored "..GetReport(cnG)) end
         else LogInstance("AdvBallsocket base unconstrained "..GetReport(eWorld)) end
       else LogInstance("AdvBallsocket base invalid "..GetReport(eWorld)) end
     end
   else LogInstance("Unconstrained <"..ePiece:GetModel()..">") end
   LogInstance("Success"); return true, cnW, cnN, cnG
+end
+
+function GetConstraintsEnt(oEnt)
+  if(not (oEnt and oEnt:IsValid())) then return nil end
+  local tO = {Base = oEnt:EntIndex(), Link = {}}
+  local tC = constraintGetTable(oEnt)
+  for iD = 1, #tC do local vC = tC[iD]
+    if(vC:IsConstraint()) then tO[iD] = {}
+      local eOne, eTwo = vC:GetConstrainedEntities()
+      if(eOne and eOne:IsValid()) then
+        if(eTwo and eTwo:IsValid()) then
+          local iOne, iTwo = eOne:EntIndex(), eTwo:EntIndex()
+          if(eOne ~= oEnt) then tO.Link[iOne] = true end
+          if(eTwo ~= oEnt) then tO.Link[iTwo] = true end
+        else LogInstance("Two invalid "..GetReport(eOne)) end
+      else LogInstance("One invalid "..GetReport(eOne)) end
+    else LogInstance("Not constraint "..GetReport(vC)) end
+  end
 end
 
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
