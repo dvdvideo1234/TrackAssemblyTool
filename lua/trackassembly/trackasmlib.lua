@@ -59,6 +59,7 @@ local IsValid                        = IsValid
 local Material                       = Material
 local require                        = require
 local Time                           = CurTime
+local EntityID                       = Entity
 local tonumber                       = tonumber
 local tostring                       = tostring
 local GetConVar                      = GetConVar
@@ -153,8 +154,6 @@ local constraintGetTable             = constraint and constraint.GetTable
 local constraintNoCollide            = constraint and constraint.NoCollide
 local constraintCanConstrain         = constraint and constraint.CanConstrain
 local constraintAdvBallsocket        = constraint and constraint.AdvBallsocket
-local constraintFindConstraints      = constraint and constraint.FindConstraints
-local constraintFindConstraintEntity = constraint and constraint.FindConstraintEntity
 local duplicatorStoreEntityModifier  = duplicator and duplicator.StoreEntityModifier
 
 ---------------- CASHES SPACE --------------------
@@ -4428,7 +4427,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
           cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
           if(cnW and cnW:IsValid()) then
             cnW:SetNWBool(sPr.."physanchor", true)
-            ePiece:DeleteOnRemove(cnW); eBase:Dele teOnRemove(cnW)
+            ePiece:DeleteOnRemove(cnW); eBase:DeleteOnRemove(cnW)
           else LogInstance("Weld ignored "..GetReport(cnW)) end
         else LogInstance("Weld base unconstrained "..GetReport(eBase)) end
       else LogInstance("Weld base invalid "..GetReport(eBase)) end
@@ -4462,22 +4461,62 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   LogInstance("Success"); return true, cnW, cnN, cnG
 end
 
-function GetConstraintsEnt(oEnt)
+local function GetConstraintInfo(tC, iD)
+  if(IsHere(tC)) then
+    local iD = (tonumber(iD) or 0)
+    local eO, tO, iO = tC["Ent"..iD]
+    if(IsOther(eO)) then tO = tC["Entity"]
+      if(IsTable(tO) and tO[iD]) then tO = tO[iD]
+        if(IsTable(tO)) then -- Try ENTS info
+          eO, iO = tO["Entity"], tO["Index"]
+          eO = (IsOther(eO) and EntityID(iO) or eO)
+        else LogInstance("Missing table "..GetReport2(iD, 2)) end
+      else LogInstance("Missing table "..GetReport2(iD, 1)) end
+    else LogInstance("Entity found "..GetReport(eO)) end
+    -- When still empty extract from constraint
+    if(IsOther(eO)) then
+      if(tC.Constraint:IsConstraint()) then
+        local E1, E2 = vC.Constraint:GetConstrainedEntities()
+        local tE = {E1, E2}; eO = tE[iD]
+        LogInstance("Obtained from "..GetReport2(iD, tC.Type))
+         -- Extract first constrained entity
+      else LogInstance("Not constraint "..GetReport(tC.Constraint)) end
+    end
+  else LogInstance("Primary data missing "..GetReport(tC.Constraint)) end
+end
+
+local function GetConstraintsEnt(oEnt)
   if(not (oEnt and oEnt:IsValid())) then return nil end
-  local tO = {Base = oEnt:EntIndex(), Link = {}}
-  local tC = constraintGetTable(oEnt)
+  local tO = {}; tO.Link = {}
+        tO.Slot = oEnt:GetModel()
+        tO.Base = oEnt:EntIndex()
+  local tC, nC = constraintGetTable(oEnt), 0
   for iD = 1, #tC do local vC = tC[iD]
-    if(vC:IsConstraint()) then tO[iD] = {}
-      local eOne, eTwo = vC:GetConstrainedEntities()
-      if(eOne and eOne:IsValid()) then
-        if(eTwo and eTwo:IsValid()) then
-          local iOne, iTwo = eOne:EntIndex(), eTwo:EntIndex()
-          if(eOne ~= oEnt) then tO.Link[iOne] = true end
-          if(eTwo ~= oEnt) then tO.Link[iTwo] = true end
-        else LogInstance("Two invalid "..GetReport(eOne)) end
-      else LogInstance("One invalid "..GetReport(eOne)) end
-    else LogInstance("Not constraint "..GetReport(vC)) end
-  end
+    local eOne = GetConstraintInfo(vC, 1)
+    local eTwo = GetConstraintInfo(vC, 2)
+    -- Mark entity IDs for flip over constraint pairs
+    if(IsOther(eOne)) then LogInstance("One invalid "..GetReport(eOne)) else
+      if(IsOther(eTwo)) then LogInstance("Two invalid "..GetReport(eTwo)) else
+        local iOne, iTwo = eOne:EntIndex(), eTwo:EntIndex()
+        if(eOne ~= oEnt) then tO.Link[iOne] = eOne:GetModel() end
+        if(eTwo ~= oEnt) then tO.Link[iTwo] = eTwo:GetModel() end
+      end
+    end
+  end; return tO
+end
+
+function GetConstraintInfo(...)
+  local tC, tF, nC, nF = {Over = {}}, {...}, 0, 1
+  while(tF[nF]) do local vID, eID = tF[nF]
+    if(IsNumber(vID)) then eID = EntityID(vID) else
+      if(vID and vID:IsValid()) then eID = vID
+      else LogInstance("Mismatch "..GetReport(vID)) end
+    end -- Pass entity list or entity index list
+    if(not IsOther(eID)) then nC = (nC + 1)
+      tC[nC] = GetConstraintsEnt(eID)
+    else LogInstance("Other entity "..GetReport(eID)) end
+    nF, eID = (nF + 1), nil
+  end; return tC, nC
 end
 
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)

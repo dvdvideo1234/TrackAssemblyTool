@@ -7,6 +7,7 @@ local Angle                            = Angle
 local Color                            = Color
 local Vector                           = Vector
 local IsValid                          = IsValid
+local EntityID                         = Entity
 local tostring                         = tostring
 local tonumber                         = tonumber
 local GetConVar                        = GetConVar
@@ -551,7 +552,7 @@ function TOOL:GetGhostsDepth()
     local nC = mathMin(mathMax(stackcnt, 1), ghostcnt)
     return (stackcnt > 0 and nC or ghostcnt)
   elseif(workmode == 4) then -- Put second value 1 here
-    local tArr = self:GetFlipOverArray() -- to be used in no array
+    local tArr = self:GetFlipOver() -- to be used in no array
     local nLen = (tArr and #tArr or 1) -- flip-over mode snapping
     return mathMin(ghostcnt, nLen) -- Use ghosts count to disable it
   end; return 0
@@ -649,39 +650,35 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
 end
 
 -- Returns true if there are entity ID stored
-function TOOL:GetFlipOverFlag()
+function TOOL:IsFlipOver()
   return (self:GetFlipOverID():len() > 0)
 end
 
 -- Returns an array or entity ID numbers
-function TOOL:GetFlipOverArray()
+function TOOL:GetFlipOver(bEnt, bMute)
   local sID, nF = self:GetFlipOverID(), 0
   if(sID:len() <= 0) then return nil, nF end
   local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
   local tF = sYm:Explode(sID); nF = #tF
-  for iD = 1, nF do tF[iD] = (tonumber(tF[iD]) or 0) end
-  -- Convert to number as other methods use the number data
-  return tF, nF -- Return the table and elements count
-end
-
-function TOOL:GetFlipOverEntity(bMute)
-  local tF, nF = self:GetFlipOverArray()
-  if(not tF or nF <= 0) then return nil, nF end
-  local tE, nE, ply = {}, 0, self:GetOwner()
-  for iD = 1, nF do local eID = Entity(tF[iD])
-    local bID = (not asmlib.IsOther(eID))
-    local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
-    if(bID and bMR) then
-      nE = (nE + 1); tE[nE] = eID
-      asmlib.UpdateColorPick(eID, "flipover", "fo")
-    else
-      if(SERVER and not bMute) then
-        local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
-        asmlib.LogInstance("Flip over mismatch ID "..sR, gtArgsLogs)
-        asmlib.Notify(ply, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
+  for iD = 1, nF do
+    tF[iD] = (tonumber(tF[iD]) or 0)
+    if(bEnt) then
+      local eID = EntityID(tF[iD])
+      local bID = (not asmlib.IsOther(eID))
+      local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
+      if(bID and bMR) then tF[iD] = eID
+        asmlib.UpdateColorPick(eID, "flipover", "fo")
+      else tF[iD] = nil
+        if(SERVER and not bMute) then
+          local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
+          asmlib.LogInstance("Flip over mismatch ID "..sR, gtArgsLogs)
+          asmlib.Notify(ply, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
+        end
       end
     end
-  end; return tE, nE
+  end
+  -- Convert to number as other methods use the number data
+  return tF, nF -- Return the table and elements count
 end
 
 function TOOL:SetFlipOver(trEnt)
@@ -696,12 +693,12 @@ function TOOL:SetFlipOver(trEnt)
   end
   local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
   local iID, bBr = trEnt:EntIndex(), false
-  local tF, nF = self:GetFlipOverArray()
+  local tF, nF = self:GetFlipOver()
   if(nF <= 0) then tF = {} -- Create table
   else -- Remove entity from the convar
     for iD = 1, nF do nID = tF[iD]
       if(nID == iID) then bBr = true
-        local eID = Entity(nID)
+        local eID = EntityID(nID)
         if(not asmlib.IsOther(eID)) then
           asmlib.UpdateColorPick(eID, "flipover", "fo", false)
         end; tableRemove(tF, iD); break
@@ -714,20 +711,10 @@ function TOOL:SetFlipOver(trEnt)
   asmlib.SetAsmConvar(oPly, "flipoverid", tableConcat(tF, sYm))
 end
 
-function TOOL:GetFlipOverConstraints()
-  local tC, nC = {Over = {}}, 0
-  local tF, nF = self:GetFlipOverArray()
-  for iD = 1, nF do local eID = Entity(tF[iD])
-    if(not asmlib.IsOther(eID)) then nC = (nC + 1)
-      tC[nC] = asmlib.GetConstraintsEnt(eID)
-    end
-  end; return tC, nC
-end
-
 function TOOL:ClearFlipOver(bSync, bMute)
   local ply = self:GetOwner()
-  local tF, nF = self:GetFlipOverArray()
-  for iD = 1, nF do local eID = Entity(tF[iD])
+  local tF, nF = self:GetFlipOver()
+  for iD = 1, nF do local eID = EntityID(tF[iD])
     if(not asmlib.IsOther(eID)) then
       asmlib.UpdateColorPick(eID, "flipover", "fo", false) end
   end; asmlib.SetAsmConvar(ply, "flipoverid", "")
@@ -1098,10 +1085,10 @@ function TOOL:LeftClick(stTrace)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
       asmlib.LogInstance("(Curve) Success", gtArgsLogs)
     end); return true
-  elseif(workmode == 4 and self:GetFlipOverFlag()) then
+  elseif(workmode == 4 and self:IsFlipOver()) then
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
-    local tE, nE = self:GetFlipOverEntity()
-    local tC, nC = self:GetFlipOverConstraints()
+    local tE, nE = self:GetFlipOver(true)
+    local tC, nC = asmlib.GetConstraintInfo(unpack(tE))
     if(not tE or nE <= 0) then
       asmlib.Notify(ply, "Flip over no tracks selected !", "ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtArgsLogs); return false
@@ -1346,7 +1333,7 @@ function TOOL:Reload(stTrace)
   local ply      = self:GetOwner()
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
-  local bfover   = self:GetFlipOverFlag()
+  local bfover   = self:IsFlipOver()
   if(stTrace.HitWorld) then
     if(self:GetDeveloperMode()) then
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
@@ -1417,8 +1404,8 @@ end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
   local atGho = asmlib.GetOpVar("ARRAY_GHOST")
-  local tE, nE = self:GetFlipOverEntity(true)
-  if(tE and self:GetFlipOverFlag()) then
+  local tE, nE = self:GetFlipOver(true, true)
+  if(tE and self:IsFlipOver()) then
     local nextx  , nexty  , nextz   = self:GetPosOffsets()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     for iD = 1, nE do
@@ -1786,7 +1773,7 @@ function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
   hudMonitor:DrawCircle(oN, asmlib.GetViewRadius(oPly, vT, 0.5), "r")
   hudMonitor:DrawLine(oO, xH, "g")
   hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5))
-  local tE, nE = self:GetFlipOverEntity(true)
+  local tE, nE = self:GetFlipOver(true, true)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
@@ -1881,7 +1868,7 @@ function TOOL:DrawHUD()
         self:DrawFlipOver(hudMonitor, oPly, stTrace)
       end; return -- The return is very very important ... Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
-      if(workmode == 4 and self:GetFlipOverFlag()) then
+      if(workmode == 4 and self:IsFlipOver()) then
         self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
       local Hp = stSpawn.HPnt:ToScreen()
       local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
@@ -1913,7 +1900,7 @@ function TOOL:DrawHUD()
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
   elseif(stTrace.HitWorld) then
-    if(workmode == 4 and self:GetFlipOverFlag()) then
+    if(workmode == 4 and self:IsFlipOver()) then
       self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
     local angsnap  = self:GetAngSnap()
     local elevpnt  = self:GetElevation()
