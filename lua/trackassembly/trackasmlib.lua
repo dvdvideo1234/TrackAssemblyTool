@@ -4507,6 +4507,7 @@ end
 
 function GetConstraintInfo(...)
   local tC, tF, nC, nF = {Over = {}}, {...}, 0, 1
+  if(IsTable(tF[1])) then tF = tF[1] end
   while(tF[nF]) do local vID, eID = tF[nF]
     if(IsNumber(vID)) then eID = EntityID(vID) else
       if(vID and vID:IsValid()) then eID = vID
@@ -4516,6 +4517,30 @@ function GetConstraintInfo(...)
       tC[nC] = GetConstraintsEnt(eID)
     else LogInstance("Other entity "..GetReport(eID)) end
     nF, eID = (nF + 1), nil
+  end; tC.Size = nC; return tC, nC
+end
+
+function GetConstraintsOver(tC, nC)
+  if(IsTable(tC.Over) and IsEmpty(tC.Over)) then
+    LogInstance("Over empty"); return tC, nC end
+  local nE, tO = (tonumber(nC or tC.Size) or 0), vC.Over
+  for key, val in pairs(tO) do
+    if(IsNumber(val)) then
+      tO[key] = EntityID(key) end
+  end -- Flip over items are now entities
+  for iD = 1, nE do local vC = tC[iD]
+    if(IsHere(tO[vC.Base])) then
+      vC.Base = tO[vC.Base] -- Flip over base
+    else -- Not to be flipped over
+      vC.Base = EntityID(vC.Base)
+    end -- Replace the linked entities
+    for key, val in pairs(vC.Link) do
+      if(IsHere(tO[key])) then
+        vC.Link[key] = tO[key]
+      else -- Not to be flipped over
+        vC.Link[key] = EntityID(key)
+      end
+    end
   end; return tC, nC
 end
 

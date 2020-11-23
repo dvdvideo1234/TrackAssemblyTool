@@ -1098,9 +1098,8 @@ function TOOL:LeftClick(stTrace)
         asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Over )")
         local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         local ePiece = asmlib.MakePiece(ply,sM,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
-        if(ePiece) then tC.Over[iE] = ePiece
-          if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtArgsLogs); return false end
+        if(ePiece) then
+          tC.Over[iE] = ePiece
           asmlib.UndoAddEntity(ePiece)
         else
           asmlib.UndoFinish(ply, asmlib.GetReport2(iD, stringGetFileName(sM)))
@@ -1109,9 +1108,21 @@ function TOOL:LeftClick(stTrace)
         asmlib.UndoFinish(ply)
       end
     end
-
+    tC, nC = asmlib.GetConstraintsOver(tC)
+    for iD = 1, nC do
+      local eB, tL = tC[iD].Base, tC[iD].Link
+      if(not asmlib.IsOther(eB)) then
+        if(not asmlib.ApplyPhysicalSettings(eB,ignphysgn,freeze,gravity,physmater)) then
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",eB),gtArgsLogs); return false end
+      else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical settings invalid",eB),gtArgsLogs); return false end
+      for key, val in pairs(tL) do
+        if(not asmlib.IsOther(val)) then
+          if(not asmlib.ApplyPhysicalAnchor(eB,(anEnt or val),weld,nocollide,nocollidew,forcelim)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical anchor",val),gtArgsLogs); return false end
+        else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical anchor invalid",val),gtArgsLogs); return false end
+      end
+    end
     asmlib.LogTable(tC, "CONSTRAINTS")
-
     return true
   end
 
