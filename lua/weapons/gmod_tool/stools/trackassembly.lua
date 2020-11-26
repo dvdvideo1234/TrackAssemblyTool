@@ -995,7 +995,7 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
   if(workmode == 3) then
-    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy "..fnmodel.." !","ERROR"); return true end
+    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
@@ -1048,8 +1048,7 @@ function TOOL:LeftClick(stTrace)
             if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
             oArg.itrys, oArg.srate = 0, (oArg.srate - 1) -- When the routine item is still busy
-            -- Add the entity to the undo list created at the end and reset the stack attempts count
-            tableInsert(oArg.eundo, ePiece); oArg.itrys = 0
+            tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
               if(iK == tS.Size) then -- When current snap end is reached
                 oArg.stard, oArg.stark = (oArg.stard + 1), 1 -- Index the next snap
@@ -1086,44 +1085,77 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance("(Curve) Success", gtArgsLogs)
     end); return true
   elseif(workmode == 4 and self:IsFlipOver()) then
+    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOver(true)
-    local tC, nC = asmlib.GetConstraintInfo(unpack(tE))
+    local tC, nC = asmlib.GetConstraintOver(tE)
     if(not tE or nE <= 0) then
       asmlib.Notify(ply, "Flip over no tracks selected !", "ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtArgsLogs); return false
     end
-    for iD = 1, nE do local eID = tE[iD]
-      if(not asmlib.IsOther(eID)) then local sM, iE = eID:GetModel(), eID:EntIndex()
-        asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(iD, stringGetFileName(sM)).." ( Over )")
-        local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
-        local ePiece = asmlib.MakePiece(ply,sM,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
-        if(ePiece) then
-          tC.Over[iE] = ePiece
-          asmlib.UndoAddEntity(ePiece)
-        else
-          asmlib.UndoFinish(ply, asmlib.GetReport2(iD, stringGetFileName(sM)))
-          asmlib.Notify(ply, "Flip over spawn invalid "..asmlib.GetReport2(iD, sM).." !", "ERROR")
+    goThQueue:Attach(ply, {
+      start = 1,
+      itrys = 0,
+      wover = Vector(wOver),
+      wnorm = Vector(wNorm),
+      tents = tE,
+      ients = nE,
+      tcons = tC,
+      icons = nC,
+      srate = spawnrate
+    }, function(oPly, oArg)
+      for iD = oArg.start, oArg.ients do
+        oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / oArg.ients))
+        local eID, ePiece = oArg.tents[iD], nil
+        if(not asmlib.IsOther(eID)) then
+          oArg.mundo, oArg.munid = eID:GetModel(), eID:EntIndex()
+          local spPos, spAng = asmlib.GetTransformOBB(eID, oArg.wover, oArg.wnorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+          while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
+            ePiece = asmlib.MakePiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+          if(ePiece) then
+            asmlib.RegConstraintOver(oArg.tcons, oArg.munid, ePiece)
+            oArg.itrys, oArg.srate = 0, (oArg.srate - 1) -- When the routine item is still busy
+            tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
+            if(oArg.srate <= 0) then -- Renew the spawn rate and prepare for next spawn
+              oArg.start, oArg.srate = (iD + 1), spawnrate
+              asmlib.LogInstance("(Over) Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtArgsLogs)
+              return true -- The server is still busy with the task
+            end
+          else
+            asmlib.Notify(ply, "Flip over spawn invalid "..asmlib.GetReport2(iD, oArg.mundo).." !", "ERROR")
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Spawn invalid",trEnt),gtArgsLogs); return false
+          end
         end
-        asmlib.UndoFinish(ply)
       end
-    end
-    tC, nC = asmlib.GetConstraintsOver(tC)
-    for iD = 1, nC do
-      local eB, tL = tC[iD].Base, tC[iD].Link
-      if(not asmlib.IsOther(eB)) then
-        if(not asmlib.ApplyPhysicalSettings(eB,ignphysgn,freeze,gravity,physmater)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",eB),gtArgsLogs); return false end
-      else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical settings invalid",eB),gtArgsLogs); return false end
-      for key, val in pairs(tL) do
-        if(not asmlib.IsOther(val)) then
-          if(not asmlib.ApplyPhysicalAnchor(eB,(anEnt or val),weld,nocollide,nocollidew,forcelim)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical anchor",val),gtArgsLogs); return false end
-        else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical anchor invalid",val),gtArgsLogs); return false end
+      oPly:SetNWFloat(gsToolPrefL.."progress", 100)
+      asmlib.LogInstance("(Over) Success",gtArgsLogs); return false
+    end)
+    goThQueue:OnActive(ply, function(oPly, oArg)
+      oArg.eundo, oArg.mundo, oArg.munid  = {}, "", 0
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+    end)
+    goThQueue:OnFinish(ply, function(oPly, oArg)
+      local nU = #oArg.eundo
+      asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(oArg.ients, model).." ( Over )")
+      for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
+      asmlib.UndoFinish(oPly)
+      oPly:SetNWFloat(gsToolPrefL.."progress", 0)
+      -- Process the mirrored constraints. Replace entites and create constraints
+      oArg.tcons, oArg.icons = asmlib.SetConstraintOver(oArg.tcons)
+      for iD = 1, oArg.icons do
+        local tB, tL = oArg.tcons[iD].Base, oArg.tcons[iD].Link
+        if(not asmlib.IsOther(tB.Ent) and tB.Ovr) then
+          if(not asmlib.ApplyPhysicalSettings(tB.Ent,ignphysgn,freeze,gravity,physmater)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",tB.Ent),gtArgsLogs); return false end
+        else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical settings invalid",tB.Ent),gtArgsLogs); return false end
+        for key, val in pairs(tL) do
+          if(not asmlib.IsOther(val.Ent)) then
+            if(not asmlib.ApplyPhysicalAnchor(tB.Ent,(anEnt or val.Ent),weld,nocollide,nocollidew,forcelim)) then
+              asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical anchor",val.Ent),gtArgsLogs); return false end
+          else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical anchor invalid",val.Ent),gtArgsLogs); return false end
+        end
       end
-    end
-    asmlib.LogTable(tC, "CONSTRAINTS")
-    return true
+    end); return true
   end
 
   local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
@@ -1206,7 +1238,7 @@ function TOOL:LeftClick(stTrace)
 
   -- IN_SPEED: Switch the tool mode ( Stacking )
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Surver busy "..fnmodel.." !","ERROR"); return true end
+    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Surver busy !","ERROR"); return true end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"), gtArgsLogs); return false end
     local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
     if(not hdOffs) then -- Make sure it is present

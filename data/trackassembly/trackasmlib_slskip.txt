@@ -7,6 +7,8 @@ LocatePOA: Missing ID
 TimerRestart: Called by
 DrawToolScreen: Invalid screen
 DrawHUD: Invalid screen
+GetEntitySpawn: Trace outside radius
+GetEntitySpawn: Active point missed
 GetEntitySpawn: Not hitting active point
 CacheQueryPiece: Record not located
 GetEntitySpawn: Trace model missing
@@ -21,6 +23,7 @@ GetScreen.GetColor: Color reset
 GetScreen.GetDistance: Start out of border
 GetScreen.GetDistance: End out of border
 GetScreen: Color list not container
+DRAW_RADMENU: Release
 DRAW_RADMENU: Hook mismatch
 DRAW_RADMENU: Scroll release
 DRAW_RADMENU: Menu disabled

@@ -682,7 +682,8 @@ function InitBase(sName, sPurp)
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
-  SetOpVar("OOP_DEFAULTKEY","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
+  SetOpVar("KEY_DEFAULT","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
+  SetOpVar("KEY_FLIPOVER", "FLIPOVER")
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
@@ -1123,7 +1124,7 @@ function GetContainer(sKey, sDef)
   local mHash = GetOpVar("TABLE_CONTAINER")
   if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
   local mData, mID, self = {}, {}, {}
-  local mDef = sDef or GetOpVar("OOP_DEFAULTKEY")
+  local mDef = sDef or GetOpVar("KEY_DEFAULT")
   local miTop, miAll, mhCnt = 0, 0, 0
   -- Returns the container iser information
   function self:GetKey() return mKey end
@@ -1283,7 +1284,7 @@ function GetScreen(sW,sH,eW,eH,conClr,aKey)
   if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid", tLogs); return nil end
   if(eW < 0 or eH < 0) then LogInstance("End dimension invalid", tLogs); return nil end
   local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
-  local Colors = {List = conClr, Key = GetOpVar("OOP_DEFAULTKEY"), Default = GetColor(255,255,255,255)}
+  local Colors = {List = conClr, Key = GetOpVar("KEY_DEFAULT"), Default = GetColor(255,255,255,255)}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
       then LogInstance("Color list not container", tLogs); return nil end
@@ -1313,7 +1314,7 @@ function GetScreen(sW,sH,eW,eH,conClr,aKey)
   end
   function self:GetColor(keyCl,sMeth)
     if(not IsHere(keyCl) and not IsHere(sMeth)) then
-      Colors.Key = GetOpVar("OOP_DEFAULTKEY")
+      Colors.Key = GetOpVar("KEY_DEFAULT")
       LogInstance("Color reset", tLogs); return self end
     local keyCl = (keyCl or Colors.Key); if(not IsHere(keyCl)) then
       LogInstance("Indexing skipped", tLogs); return self end
@@ -4462,8 +4463,8 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
 end
 
 local function GetConstraintInfo(tC, iD)
-  if(IsHere(tC)) then
-    local iD = (tonumber(iD) or 0)
+  local iD = mathFloor(tonumber(iD) or 0)
+  if(IsHere(tC) and IsTable(tC) and iD > 0) then
     local eO, tO, iO = tC["Ent"..iD]
     if(IsOther(eO)) then tO = tC["Entity"]
       if(IsTable(tO) and tO[iD]) then tO = tO[iD]
@@ -4472,7 +4473,7 @@ local function GetConstraintInfo(tC, iD)
           eO = (IsOther(eO) and EntityID(iO) or eO)
         else LogInstance("Missing table "..GetReport2(iD, 2)) end
       else LogInstance("Missing table "..GetReport2(iD, 1)) end
-    else LogInstance("Entity found "..GetReport(eO)) end
+    end
     -- When still empty extract from constraint
     if(IsOther(eO)) then
       if(tC.Constraint:IsConstraint()) then
@@ -4481,15 +4482,30 @@ local function GetConstraintInfo(tC, iD)
         LogInstance("Obtained from "..GetReport2(iD, tC.Type))
          -- Extract first constrained entity
       else LogInstance("Not constraint "..GetReport(tC.Constraint)) end
-    end
+    end; return eO -- Return the entity fount for the constraint
   else LogInstance("Primary data missing "..GetReport(tC.Constraint)) end
+end
+
+local function GetRecordOver(oEnt, tI, vD)
+  if(not (oEnt and oEnt:IsValid())) then return nil end
+  local tS, iD = {}, tonumber(vD)
+  tS.Ovr, tS.Ent = false, oEnt
+  tS.ID  = oEnt:EntIndex()
+  tS.Key = oEnt:GetModel()
+  if(IsTable(tI)) then
+    tI[(iD or tS.ID)] = tS
+  end
+  return tS -- Return the created item
+end
+
+local function SetRecordOver(tD, tS)
+  tD.Ovr, tD.ID, tD.Ent = true, tS.ID, tS.Ent
 end
 
 local function GetConstraintsEnt(oEnt)
   if(not (oEnt and oEnt:IsValid())) then return nil end
   local tO = {}; tO.Link = {}
-        tO.Slot = oEnt:GetModel()
-        tO.Base = oEnt:EntIndex()
+        tO.Base = GetRecordOver(oEnt)
   local tC, nC = constraintGetTable(oEnt), 0
   for iD = 1, #tC do local vC = tC[iD]
     local eOne = GetConstraintInfo(vC, 1)
@@ -4497,48 +4513,95 @@ local function GetConstraintsEnt(oEnt)
     -- Mark entity IDs for flip over constraint pairs
     if(IsOther(eOne)) then LogInstance("One invalid "..GetReport(eOne)) else
       if(IsOther(eTwo)) then LogInstance("Two invalid "..GetReport(eTwo)) else
-        local iOne, iTwo = eOne:EntIndex(), eTwo:EntIndex()
-        if(eOne ~= oEnt) then tO.Link[iOne] = eOne:GetModel() end
-        if(eTwo ~= oEnt) then tO.Link[iTwo] = eTwo:GetModel() end
+        if(eOne ~= oEnt) then GetRecordOver(eOne, tO.Link) end
+        if(eTwo ~= oEnt) then GetRecordOver(eTwo, tO.Link) end
       end
     end
   end; return tO
 end
 
-function GetConstraintInfo(...)
-  local tC, tF, nC, nF = {Over = {}}, {...}, 0, 1
-  if(IsTable(tF[1])) then tF = tF[1] end
-  while(tF[nF]) do local vID, eID = tF[nF]
+--[[
+ * Creates a table list of entities constrained to every entity in the list
+ * tE > The entity/ID array to build the constrained entities list for
+]]
+function GetConstraintOver(tE)
+  local sK = GetOpVar("KEY_FLIPOVER"); if(not IsTable(tE)) then
+    LogInstance("Missing "..GetReport(tE)); return nil end
+  local tC, nC, nF = {[sK] = {}}, 0, 1
+  while(tE[nF]) do local vID, eID = tE[nF]
     if(IsNumber(vID)) then eID = EntityID(vID) else
       if(vID and vID:IsValid()) then eID = vID
       else LogInstance("Mismatch "..GetReport(vID)) end
     end -- Pass entity list or entity index list
     if(not IsOther(eID)) then nC = (nC + 1)
       tC[nC] = GetConstraintsEnt(eID)
-    else LogInstance("Other entity "..GetReport(eID)) end
+    else LogInstance("Other "..GetReport(eID)) end
     nF, eID = (nF + 1), nil
   end; tC.Size = nC; return tC, nC
 end
 
-function GetConstraintsOver(tC, nC)
-  if(IsTable(tC.Over) and IsEmpty(tC.Over)) then
-    LogInstance("Over empty"); return tC, nC end
-  local nE, tO = (tonumber(nC or tC.Size) or 0), vC.Over
+--[[
+ * Registers constraint information for flip over mode
+ * tC   > The genaral constrain information table
+ * vK   > Key ( entity ID ) to store the flipped etity for
+ * oEnt > The entity to be stored
+]]
+function RegConstraintOver(tC, vK, oEnt)
+  if(not (oEnt and oEnt:IsValid())) then
+    LogInstance("Invalid "..GetReport(oEnt)); return tC end
+  local sK = GetOpVar("KEY_FLIPOVER"); if(not IsTable(tC)) then
+    LogInstance("Mismatch "..GetReport(tC)); return tC end
+  local iK = (tonumber(vK) or 0); if(iK <= 0) then
+    LogInstance("Mismatch ID "..GetReport(vK)); return tC end
+  local tO = tC[sK]; if(not IsTable(tO)) then
+    LogInstance("Missing "..GetReport2(sK, tO)); return tC end
+  GetRecordOver(oEnt, tO, iK); return tC, tO
+end
+--[[
+ * Processes the table of constrained entities information
+ * tC > The table containing the constraint information
+ * nC > Forced size for the entities array
+]]
+function SetConstraintOver(tC, nE)
+  local sK = GetOpVar("KEY_FLIPOVER"); if(not IsTable(tC)) then
+    LogInstance("Missing "..GetReport(tC)); return nil end
+  local nC = (tonumber(nE or tC.Size) or 0); if(nC <= 0) then
+    LogInstance("Nothing "..GetReport(nE)); return nil end
+  local tO = tC[sK]; if(IsEmpty(tO)) then
+    LogInstance("Empty "..GetReport(tO)); return tC, nC end
   for key, val in pairs(tO) do
-    if(IsNumber(val)) then
-      tO[key] = EntityID(key) end
+    local oE, iD = val.Ent, val.ID
+    if(IsOther(oE)) then tO[key] = nil
+      LogInstance("Wipe hash #"..key)
+    end
+    if(oE:EntIndex() ~= iD) then tO[key] = nil
+      LogInstance("Wipe hash ID #"..key)
+    end
   end -- Flip over items are now entities
-  for iD = 1, nE do local vC = tC[iD]
-    if(IsHere(tO[vC.Base])) then
-      vC.Base = tO[vC.Base] -- Flip over base
-    else -- Not to be flipped over
-      vC.Base = EntityID(vC.Base)
+  for iD = 1, nC do
+    local vC = tC[iD]
+    local tB, tL = vC.Base, vC.Link
+    if(IsHere(tO[tB.ID])) then
+      SetRecordOver(tB, tO[tB.ID])
     end -- Replace the linked entities
-    for key, val in pairs(vC.Link) do
-      if(IsHere(tO[key])) then
-        vC.Link[key] = tO[key]
-      else -- Not to be flipped over
-        vC.Link[key] = EntityID(key)
+    if(IsOther(tB.Ent)) then tC[iD] = nil
+      LogInstance("Wipe link #"..iD)
+    else
+      for key, val in pairs(tL) do
+        local vO = tO[key]
+        if(IsHere(vO)) then
+          if(vO.Key == val.Key) then
+            SetRecordOver(val, vO)
+          else
+            LogInstance("Wipe model sorc: "..GetReport2(vO.ID ,  vO.Key))
+            LogInstance("Wipe model dest: "..GetReport2(val.ID, val.Key))
+            tL[key] = nil -- Wipe the link information
+          end
+        end
+        if(IsOther(val.Ent)) then
+          LogInstance("Wipe entity: "..GetReport2(val.ID, val.Key))
+          tL[key] = nil -- Wipe the link information
+        end
       end
     end
   end; return tC, nC
