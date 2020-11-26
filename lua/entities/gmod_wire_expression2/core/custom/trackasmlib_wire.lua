@@ -25,6 +25,7 @@ local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\"
 local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
 --------- CALLBACKS ---------
+
 local gsVarName -- This stores current variable name
 local gsCbcHash = "_wire" -- This keeps suffix realted to the file
 
@@ -88,7 +89,7 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
 end
 
 __e2setcost(80)
-e2function array trackasmlibSnapNormal(vector ucsPos   , angle ucsAng    , string hdModel,
+e2function array trackasmlibSnapNormal(vector ucsPos, angle  ucsAng   , string hdModel,
                                        number hdPoID, vector ucsOffPos, angle ucsOffAng)
   if(not enFlag) then return {} end
   local stSpawn = asmlib.GetNormalSpawn(self.player,
@@ -103,7 +104,7 @@ e2function array trackasmlibSnapNormal(vector ucsPos   , angle ucsAng    , strin
   return {sPos, sAng}
 end
 
---------- PIECES ----------
+--------- PIECES ---------
 
 __e2setcost(30)
 e2function number trackasmlibIsPiece(string sModel)
@@ -184,7 +185,8 @@ e2function number entity:trackasmlibGetPointsCount()
   if(stRec and stRec.Size) then return stRec.Size else return 0 end
 end
 
----------- Additions ------------
+------------ ADDITIONS ------------
+
 __e2setcost(30)
 e2function number trackasmlibHasAdditions(string sModel)
   if(not enFlag) then return anyFalse end
@@ -238,7 +240,8 @@ e2function array entity:trackasmlibGetAdditionsLine(number nID)
   return getAdditionsLine(this:GetModel(), nID)
 end
 
------------- PhysProperties ------------
+------------ PHYSPROPERTIES ------------
+
 __e2setcost(15)
 e2function array trackasmlibGetProperty(string sType)
   if(not enFlag) then return {} end
@@ -255,7 +258,7 @@ e2function array trackasmlibGetProperty()
   return stRec
 end
 
------------ PIECE CREATOR --------------
+------------ PIECE CREATOR ------------
 
 local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
   if(not enFlag) then return nil end
@@ -286,6 +289,16 @@ end
 __e2setcost(50)
 e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
   return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
+end
+
+__e2setcost(50)
+e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
+  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
+end
+
+__e2setcost(50)
+e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
+  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
 end
 
 __e2setcost(50)

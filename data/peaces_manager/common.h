@@ -16,9 +16,9 @@
   #define MATCH_MODEL_DIR "models"
   // <.mdl> OR what the model in the line ends with
   #define MATCH_MODEL_END ".mdl"
-  // <asmlib.GetCategory("PHX Metal")>
+  // <asmlib.Categorize("PHX Metal")>
   // A new track type starts from this line ( e.g. "PHX Metal" )
-  #define MATCH_START_NEW_TYPE "asmlib.GetCategory(\""
+  #define MATCH_START_NEW_TYPE "asmlib.Categorize(\""
   // The log buffer result string length
   #define MAX_BUFFER_LOG 2000
 
@@ -37,7 +37,7 @@
       vsnprintf(logBuffer, MAX_BUFFER_LOG, form, args);
       va_end(args);
       if(log==NULL){ printf(logBuffer); printf("\n"); }
-      else{ fprintf(log, logBuffer); fprintf(log,"\n"); }
+      else{ fprintf(log, "%s", logBuffer); fprintf(log, "%s", "\n"); }
     }
 
     char **strExplode(char *strIn)
@@ -122,15 +122,15 @@
     {
       unsigned int L = strlen(strData);
       if(L == 0){ return strData; } // Nothing to trim
-      unsigned int S = 0, E = L;
-      while((!(strData[S] > ' ') || !(strData[E] > ' ')) && (S >= 0) && (S <= L) && (E >= 0) && (E <= L))
+      unsigned int S = 0, E = L - 1;
+      while((!(strData[S] > ' ') || !(strData[E] > ' '))
+        && (S >= 0) && (S <= L) && (E >= 0) && (E <= L))
       {
         if(strData[S] <= ' '){ S++; }
         if(strData[E] <= ' '){ E--; }
       }
       if(S == 0 && E == L)
-      {
-        logSystem(fLog,"trimAll: Already trimmed");
+      { // logSystem(fLog,"trimAll: Already trimmed {<%s>,%d,%d,%d}",strData,S,E,L);
         return strData;
       }
       if((S >= 0) && (S <= L) && (E >= 0) && (E <= L) && (S <= E)){

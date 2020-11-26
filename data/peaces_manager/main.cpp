@@ -29,13 +29,14 @@ int onExit(int errID, const char * const errFormat)
 int main(int argc, char **argv)
 // int main(void)
 {
-  /* Only for test !
+  /* Only for test ! */
+  /*
     int argc = 5;
-    char argv[6][500];
-    strcpy(argv[0], "chewpath.exe");
-    strcpy(argv[1], "E:\\Documents\\CodeBlocks-Projs\\chewpath\\bin\\Debug\\");
-    strcpy(argv[2], "E:\\Documents\\Lua-Projs\\SVN\\TrackAssemblyTool_GIT_master\\lua\\autorun\\trackassembly_init.lua");
-    strcpy(argv[3], "E:\\Documents\\Lua-Projs\\SVN\\TrackAssemblyTool_GIT_master\\data\\peaces_manager\\models_ignored.txt");
+    char argv[5][500];
+    strcpy(argv[0], "O:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\peaces_manager.exe");
+    strcpy(argv[1], "O:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\");
+    strcpy(argv[2], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\data\\trackassembly\\trackasmlib_db.txt");
+    strcpy(argv[3], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\data\\peaces_manager\\models_ignored.txt");
     strcpy(argv[4], "system_log");
   */
   stentry::cEntryStack  Ignored;
@@ -43,8 +44,7 @@ int main(int argc, char **argv)
   stmatch::cMatchStack  Matches;
   stmatch::stMatch     *Match, *cuMch;
   stentry::stEntry     *enAd;
-  unsigned char F;
-  char *S, *E, *F1, *F2, *F3, *adNode;
+  char *S, *E, *F, *adNode;
   char resPath [MAX_PATH_LENGTH]  = {0};
   char dbsPath [MAX_PATH_LENGTH]  = {0};
   char addName [MAX_PATH_LENGTH]  = {0};
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
   char fName   [MAX_PATH_LENGTH]  = {0};
   char cpBoom  [MAX_PATH_LENGTH]  = {0};
   char **arList = NULL;
-  SSTACK_TYPE_INDEX tiCnt  = 0, uLen = 0, ID, iDb, iAd;
+  SSTACK_TYPE_INDEX tiCnt = 0, uLen = 0, ID, iDb, iAd;
   SSTACK_TYPE_ERROR teErr = 0; /// No error
 
   if(argc < 3)
@@ -168,15 +168,11 @@ int main(int argc, char **argv)
           common::logSystem(L,"Match created: <%s>",Match->Name);
           rewind(D); // Reset the stream to search for data
           while(fgets(dbsPath,MAX_PATH_LENGTH,D))
-          { /// For every line in the DB
+          { /// For every line in the DB extract one model
             common::swapSlash(common::trimAll(dbsPath));
             uLen = strlen(dbsPath);
-            F1 = strstr(dbsPath,MATCH_START_NEW_TYPE);
-            F2 = strstr(dbsPath,Match->Name);
-            F3 = strstr(dbsPath,MATCH_CLOSE_LUA); /// Closing the IF statement in LUA
-            if(!F &&  F1 != NULL &&  F2 != NULL){ F = 1; }
-            if( F && (F1 != NULL || (F3 != NULL && uLen == 3)) &&  F2 == NULL ){ F = 0; }
-            if(F)
+            F = strstr(dbsPath,Match->Name);
+            if(F != NULL)
             { common::logSystem(L,"DB Read: <%s>",dbsPath);
               S = strstr(dbsPath,MATCH_MODEL_DIR);
               if(S != NULL)

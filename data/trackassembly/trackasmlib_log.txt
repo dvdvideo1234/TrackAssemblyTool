@@ -158,7 +158,7 @@
    27 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PHYSPROPERTIES.CreateTable: Created
    28 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] Init: DB CATEGORY from LUA
    29 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] Init: DB PIECES from LUA
-   30 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(SligWolf's Rerailers): Avoided {nil}<nil> [SligWolf's Rerailers]
+   30 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(SligWolf's Rerailers): Avoided {nil}<nil> [SligWolf's Rerailers]
    31 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch@models/minitrains/switch.mdl>
    32 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_doubleswitch@models/minitrains/switch_double.mdl>
    33 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_w1@models/minitrains/switch_w_1_128.mdl>
@@ -173,28 +173,28 @@
    42 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y4@models/minitrains/switch_y_4_128.mdl>
    43 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y5@models/minitrains/switch_y_5_128.mdl>
    44 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_minitrain_switch_y6@models/minitrains/switch_y_6_128.mdl>
-   45 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Monorail): Avoided {nil}<nil> [PHX Monorail]
-   46 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Metal): Avoided {nil}<nil> [PHX Metal]
-   47 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Regular): Avoided {nil}<nil> [PHX Regular]
-   48 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Road): Avoided {nil}<nil> [PHX Road]
-   49 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(PHX Monorail Beam): Avoided {nil}<nil> [PHX Monorail Beam]
-   50 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(SligWolf's Railcar): Avoided {nil}<nil> [SligWolf's Railcar]
-   51 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Random Bridges): Avoided {nil}<nil> [Random Bridges]
-   52 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Portal Tubes): Avoided {nil}<nil> [Portal Tubes]
+   45 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(PHX Monorail): Avoided {nil}<nil> [PHX Monorail]
+   46 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(PHX Metal): Avoided {nil}<nil> [PHX Metal]
+   47 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(PHX Regular): Avoided {nil}<nil> [PHX Regular]
+   48 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(PHX Road): Avoided {nil}<nil> [PHX Road]
+   49 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(PHX Monorail Beam): Avoided {nil}<nil> [PHX Monorail Beam]
+   50 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(SligWolf's Railcar): Avoided {nil}<nil> [SligWolf's Railcar]
+   51 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Random Bridges): Avoided {nil}<nil> [Random Bridges]
+   52 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Portal Tubes): Avoided {nil}<nil> [Portal Tubes]
    53 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_y@models/sligwolf/rails/switch_225_y.mdl>
    54 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_r@models/sligwolf/rails/switch_225_r.mdl>
    55 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] PIECES.Record(Trigs): Register trace <gmod_sw_modelpack_switch_l@models/sligwolf/rails/switch_225_l.mdl>
    56 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] Init: DB PHYSPROPERTIES from LUA
-   57 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Special): Avoided {nil}<nil> [Special]
-   58 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Concrete): Avoided {nil}<nil> [Concrete]
-   59 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Metal): Avoided {nil}<nil> [Metal]
-   60 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Wood): Avoided {nil}<nil> [Wood]
-   61 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Terrain): Avoided {nil}<nil> [Terrain]
-   62 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Liquid): Avoided {nil}<nil> [Liquid]
-   63 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Frozen): Avoided {nil}<nil> [Frozen]
-   64 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Miscellaneous): Avoided {nil}<nil> [Miscellaneous]
-   65 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Organic): Avoided {nil}<nil> [Organic]
-   66 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.GetCategory(Manufactured): Avoided {nil}<nil> [Manufactured]
+   57 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Special): Avoided {nil}<nil> [Special]
+   58 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Concrete): Avoided {nil}<nil> [Concrete]
+   59 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Metal): Avoided {nil}<nil> [Metal]
+   60 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Wood): Avoided {nil}<nil> [Wood]
+   61 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Terrain): Avoided {nil}<nil> [Terrain]
+   62 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Liquid): Avoided {nil}<nil> [Liquid]
+   63 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Frozen): Avoided {nil}<nil> [Frozen]
+   64 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Miscellaneous): Avoided {nil}<nil> [Miscellaneous]
+   65 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Organic): Avoided {nil}<nil> [Organic]
+   66 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] TYPE.Categorize(Manufactured): Avoided {nil}<nil> [Manufactured]
    67 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] Init: DB ADDITIONS from LUA
    68 [14-05-19 22:53:52] CLIENT > TRACKASSEMBLY [LUA] Init: Ver.6.523
    69 [14-05-19 22:53:53] CLIENT > TRACKASSEMBLY [LUA] Incognito: >>> @lua/autorun/z_autorun_add_pieces_plarail.lua

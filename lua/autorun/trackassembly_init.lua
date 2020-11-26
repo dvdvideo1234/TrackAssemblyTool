@@ -1,10 +1,11 @@
------- INCLUDE LIBRARY ------
+------------ INCLUDE LIBRARY ------------
 if(SERVER) then
   AddCSLuaFile("trackassembly/trackasmlib.lua")
 end
 include("trackassembly/trackasmlib.lua")
 
------- LOCALIZNG FUNCTIONS ---
+------------ LOCALIZNG FUNCTIONS ------------
+
 local pcall                         = pcall
 local Angle                         = Angle
 local Vector                        = Vector
@@ -31,6 +32,7 @@ local sqlBegin                      = sql and sql.Begin
 local sqlCommit                     = sql and sql.Commit
 local guiMouseX                     = gui and gui.MouseX
 local guiMouseY                     = gui and gui.MouseY
+local guiOpenURL                    = gui and gui.OpenURL
 local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
 local entsGetByIndex                = ents and ents.GetByIndex
 local mathFloor                     = math and math.floor
@@ -41,6 +43,8 @@ local mathHuge                      = math and math.huge
 local gameGetWorld                  = game and game.GetWorld
 local tableConcat                   = table and table.concat
 local tableRemove                   = table and table.remove
+local tableEmpty                    = table and table.Empty
+local tableInsert                   = table and table.insert
 local mathAbs                       = math and math.abs
 local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
@@ -52,10 +56,14 @@ local fileDelete                    = file and file.Delete
 local fileTime                      = file and file.Time
 local fileSize                      = file and file.Size
 local fileOpen                      = file and file.Open
+local hookAdd                       = hook and hook.Add
 local timerSimple                   = timer and timer.Simple
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
 local inputGetCursorPos             = input and input.GetCursorPos
+local stringUpper                   = string and string.upper
+local stringGetFileName             = string and string.GetFileFromFilename
+local surfaceCreateFont             = surface and surface.CreateFont
 local surfaceScreenWidth            = surface and surface.ScreenWidth
 local surfaceScreenHeight           = surface and surface.ScreenHeight
 local gamemodeCall                  = gamemode and gamemode.Call
@@ -66,22 +74,27 @@ local propertiesGetHovered          = properties and properties.GetHovered
 local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
 local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
+local controlpanelGet               = controlpanel and controlpanel.Get
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
+local spawnmenuAddToolMenuOption    = spawnmenu and spawnmenu.AddToolMenuOption
 
------- MODULE POINTER -------
+------------ MODULE POINTER ------------
+
 local asmlib     = trackasmlib
 local gtArgsLogs = {"", false, 0}
 local gtInitLogs = {"*Init", false, 0}
 
------- CONFIGURE ASMLIB ------
+------------ CONFIGURE ASMLIB ------------
+
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","7.620")
+asmlib.SetOpVar("TOOL_VERSION","8.621")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
 
------- CONFIGURE GLOBAL INIT OPVARS ------
+------------ CONFIGURE GLOBAL INIT OPVARS ------------
+
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
@@ -89,56 +102,95 @@ local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
-local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
+local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
+local gtCallBack  = asmlib.GetOpVar("TABLE_CALLBACK")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 
------- VARIABLE FLAGS ------
+------------ VARIABLE FLAGS ------------
+
 local varLanguage = GetConVar("gmod_language")
 -- Client and server have independent value
 local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
 -- Server tells the client what value to use
 local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
 
------- CONFIGURE LOGGING ------
+------------ BORDERS ------------
+
+asmlib.SetBorder("non-neg", 0, mathHuge)
+asmlib.SetBorder("sbox_max"..gsLimitName , 0, mathHuge)
+asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."crvleanlm", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."curvefact", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."curvsmple", 0, 200)
+asmlib.SetBorder(gsToolPrefL.."devmode"  , 0, 1)
+asmlib.SetBorder(gsToolPrefL.."enctxmall", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."enctxmenu", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."endsvlock", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."enwiremod", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, 200)
+asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
+asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 200)
+asmlib.SetBorder(gsToolPrefL.."logfile"  , 0, 1)
+asmlib.SetBorder(gsToolPrefL.."logsmax"  , 0, 100000)
+asmlib.SetBorder(gsToolPrefL.."maxactrad", 1, 200)
+asmlib.SetBorder(gsToolPrefL.."maxforce" , 0, 200000)
+asmlib.SetBorder(gsToolPrefL.."maxfruse" , 1, 100)
+asmlib.SetBorder(gsToolPrefL.."maxlinear", 0, 10000)
+asmlib.SetBorder(gsToolPrefL.."maxmass"  , 1, 100000)
+asmlib.SetBorder(gsToolPrefL.."maxmenupr", 0, 10)
+asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
+asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1, 400)
+asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
+asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 20)
+
+------------ CONFIGURE LOGGING ------------
+
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmConvar("logsmax"  , 0 , {0}   , gnIndependentUsed, "Maximum logging lines being written")
-asmlib.MakeAsmConvar("logfile"  , 0 , {0, 1}, gnIndependentUsed, "File logging output flag control")
+asmlib.MakeAsmConvar("logsmax"  , 0 , nil, gnIndependentUsed, "Maximum logging lines being written")
+asmlib.MakeAsmConvar("logfile"  , 0 , nil, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
------- CONFIGURE NON-REPLICATED CVARS ----- Client's got a mind of its own
-asmlib.MakeAsmConvar("modedb"   , "LUA",     nil , gnIndependentUsed, "Database storage operating mode LUA or SQL")
-asmlib.MakeAsmConvar("devmode"  ,    0 , {0, 1  }, gnIndependentUsed, "Toggle developer mode on/off server side")
-asmlib.MakeAsmConvar("maxtrmarg", 0.02 , {0.0001}, gnIndependentUsed, "Maximum time to avoid performing new traces")
-asmlib.MakeAsmConvar("maxmenupr",    5 , {0, 20 }, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
+------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
+
+asmlib.MakeAsmConvar("modedb"   , "LUA", nil, gnIndependentUsed, "Database storage operating mode LUA or SQL")
+asmlib.MakeAsmConvar("devmode"  ,    0 , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.MakeAsmConvar("maxtrmarg", 0.02 , nil, gnIndependentUsed, "Maximum time to avoid performing new traces")
+asmlib.MakeAsmConvar("maxmenupr",    5 , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
 asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
------- CONFIGURE REPLICATED CVARS ----- Server tells the client what value to use
-asmlib.MakeAsmConvar("maxmass"  , 50000 ,  {1}, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmConvar("maxlinear", 1000  ,  {1}, gnServerControled, "Maximum linear offset of the piece")
-asmlib.MakeAsmConvar("maxforce" , 100000,  {0}, gnServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmConvar("maxactrad", 150, {1,500}, gnServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmConvar("maxstcnt" , 200, {1,800}, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmConvar("enwiremod", 1  , {0, 1 }, gnServerControled, "Toggle the wire extension on/off server side")
-asmlib.MakeAsmConvar("enctxmenu", 1  , {0, 1 }, gnServerControled, "Toggle the context menu on/off in general")
-asmlib.MakeAsmConvar("enctxmall", 0  , {0, 1 }, gnServerControled, "Toggle the context menu on/off for all props")
-asmlib.MakeAsmConvar("endsvlock", 0  , {0, 1 }, gnServerControled, "Toggle the DSV external database file update on/off")
+------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
+
+asmlib.MakeAsmConvar("maxmass"  , 50000 , nil, gnServerControled, "Maximum mass that can be applied on a piece")
+asmlib.MakeAsmConvar("maxlinear", 5000  , nil, gnServerControled, "Maximum linear offset of the piece")
+asmlib.MakeAsmConvar("maxforce" , 100000, nil, gnServerControled, "Maximum force limit when creating welds")
+asmlib.MakeAsmConvar("maxactrad", 200   , nil, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.MakeAsmConvar("maxstcnt" , 200   , nil, gnServerControled, "Maximum spawned pieces in stacking mode")
+asmlib.MakeAsmConvar("enwiremod", 1     , nil, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.MakeAsmConvar("enctxmenu", 1     , nil, gnServerControled, "Toggle the context menu on/off in general")
+asmlib.MakeAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the context menu on/off for all props")
+asmlib.MakeAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
+asmlib.MakeAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
+asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
 
 if(SERVER) then
-  asmlib.MakeAsmConvar("bnderrmod","LOG",   nil  , gnServerControled, "Unreasonable position error handling mode")
-  asmlib.MakeAsmConvar("maxfruse" ,  50 , {1,100}, gnServerControled, "Maximum frequent pieces to be listed")
-  asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, {0}, gnServerControled, "Maximum number of tracks to be spawned")
+  asmlib.MakeAsmConvar("spawnrate",  5  , nil, gnServerControled, "Maximum pieces spawned in every think tick")
+  asmlib.MakeAsmConvar("bnderrmod","LOG", nil, gnServerControled, "Unreasonable position error handling mode")
+  asmlib.MakeAsmConvar("maxfruse" ,  50 , nil, gnServerControled, "Maximum frequent pieces to be listed")
+  asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 end
 
------- CONFIGURE INTERNALS -----
+------------ CONFIGURE INTERNALS ------------
+
 asmlib.IsFlag("new_close_frame", false) -- The old state for frame shortcut detecting a pulse
 asmlib.IsFlag("old_close_frame", false) -- The new state for frame shortcut detecting a pulse
 asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the game context menu
@@ -146,85 +198,81 @@ asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 
------- BORDERS -------------
-asmlib.SetBorder("non-neg", 0, mathHuge)
+------------ GLOBAL VARIABLES ------------
 
------- GLOBAL VARIABLES ------
 local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
 local gaTimerSet  = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
-local conPalette  = asmlib.MakeContainer("COLORS_LIST")
-      conPalette:Record("a" ,asmlib.GetColor(  0,  0,  0,  0)) -- Invisible
-      conPalette:Record("r" ,asmlib.GetColor(255,  0,  0,255)) -- Red
-      conPalette:Record("g" ,asmlib.GetColor(  0,255,  0,255)) -- Green
-      conPalette:Record("b" ,asmlib.GetColor(  0,  0,255,255)) -- Blue
-      conPalette:Record("c" ,asmlib.GetColor(  0,255,255,255)) -- Cyan
-      conPalette:Record("m" ,asmlib.GetColor(255,  0,255,255)) -- Magenta
-      conPalette:Record("y" ,asmlib.GetColor(255,255,  0,255)) -- Yellow
-      conPalette:Record("w" ,asmlib.GetColor(255,255,255,255)) -- White
-      conPalette:Record("k" ,asmlib.GetColor(  0,  0,  0,255)) -- Black
-      conPalette:Record("gh",asmlib.GetColor(255,255,255,150)) -- Ghosts base color
-      conPalette:Record("tx",asmlib.GetColor( 80, 80, 80,255)) -- Panel names text color
-      conPalette:Record("an",asmlib.GetColor(180,255,150,255)) -- Selected anchor
-      conPalette:Record("db",asmlib.GetColor(220,164, 52,255)) -- Database mode
-      conPalette:Record("ry",asmlib.GetColor(230,200, 80,255)) -- Ray tracing
-      conPalette:Record("wm",asmlib.GetColor(143,244, 66,255)) -- Working mode HUD
-      conPalette:Record("bx",asmlib.GetColor(250,250,200,255)) -- Radial menu box
+local conPalette  = asmlib.GetContainer("COLORS_LIST")
+      conPalette:Record("a" ,asmlib.GetColor(  0,   0,   0,   0)) -- Invisible
+      conPalette:Record("r" ,asmlib.GetColor(255,   0,   0, 255)) -- Red
+      conPalette:Record("g" ,asmlib.GetColor(  0, 255,   0, 255)) -- Green
+      conPalette:Record("b" ,asmlib.GetColor(  0,   0, 255, 255)) -- Blue
+      conPalette:Record("c" ,asmlib.GetColor(  0, 255, 255, 255)) -- Cyan
+      conPalette:Record("m" ,asmlib.GetColor(255,   0, 255, 255)) -- Magenta
+      conPalette:Record("y" ,asmlib.GetColor(255, 255,   0, 255)) -- Yellow
+      conPalette:Record("w" ,asmlib.GetColor(255, 255, 255, 255)) -- White
+      conPalette:Record("k" ,asmlib.GetColor(  0,   0,   0, 255)) -- Black
+      conPalette:Record("gh",asmlib.GetColor(255, 255, 255, 150)) -- Ghosts base color
+      conPalette:Record("tx",asmlib.GetColor( 80,  80,  80, 255)) -- Panel names text color
+      conPalette:Record("an",asmlib.GetColor(180, 255, 150, 255)) -- Selected anchor
+      conPalette:Record("db",asmlib.GetColor(220, 164,  52, 255)) -- Database mode
+      conPalette:Record("ry",asmlib.GetColor(230, 200,  80, 255)) -- Ray tracing
+      conPalette:Record("wm",asmlib.GetColor(143, 244,  66, 255)) -- Working mode HUD
+      conPalette:Record("bx",asmlib.GetColor(250, 250, 200, 255)) -- Radial menu box
+      conPalette:Record("fo",asmlib.GetColor(147,  92, 204, 255)) -- Flip over rails
+      conPalette:Record("pf",asmlib.GetColor(150, 255, 150, 240)) -- Progress bar foreground
+      conPalette:Record("pb",asmlib.GetColor(150, 150, 255, 190)) -- Progress bar background
 
-local conElements = asmlib.MakeContainer("LIST_VGUI")
-local conWorkMode = asmlib.MakeContainer("WORK_MODE")
+local conElements = asmlib.GetContainer("LIST_VGUI")
+local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
+      conWorkMode:Push("CURVE") -- Catmull–Rom spline interpolation fitting
+      conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
 
--------- CALLBACKS ----------
-local gsVarName -- This stores current variable name
-local gsCbcHash = "_init" -- This keeps suffix related to the file
+------------ CALLBACKS ------------
 
-gsVarName = asmlib.GetAsmConvar("maxtrmarg", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
-  asmlib.SetOpVar("TRACE_MARGIN", nM)
-end, gsVarName..gsCbcHash)
+local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
+      conCallBack:Push({"maxtrmarg", function(sVar, vOld, vNew)
+        local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
+        asmlib.SetOpVar("TRACE_MARGIN", nM)
+      end})
+      conCallBack:Push({"logsmax", function(sVar, vOld, vNew)
+        local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
+        asmlib.SetOpVar("LOG_MAXLOGS", nM)
+      end})
+      conCallBack:Push({"logfile", function(sVar, vOld, vNew)
+        asmlib.IsFlag("en_logging_file", tobool(vNew))
+      end})
+      conCallBack:Push({"endsvlock", function(sVar, vOld, vNew)
+        asmlib.IsFlag("en_dsv_datalock", tobool(vNew))
+      end})
+      conCallBack:Push({"timermode", function(sVar, vOld, vNew)
+        local arTim = gsSymDir:Explode(vNew)
+        local mkTab, ID = asmlib.GetBuilderID(1), 1
+        while(mkTab) do local sTim = arTim[ID]
+          local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
+          asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
+          ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
+        end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vNew),gtInitLogs)
+      end})
 
-gsVarName = asmlib.GetAsmConvar("logsmax", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
-  asmlib.SetOpVar("LOG_MAXLOGS", nM)
-end, gsVarName..gsCbcHash)
+for iD = 1, conCallBack:GetSize() do
+  local val = conCallBack:Select(iD)
+  local nam = asmlib.GetAsmConvar(val[1], "NAM")
+  cvarsRemoveChangeCallback(nam, nam.."_init")
+  cvarsAddChangeCallback(nam, val[2], nam.."_init")
+end
 
-gsVarName = asmlib.GetAsmConvar("logfile", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  asmlib.IsFlag("en_logging_file", tobool(vNew))
-end, gsVarName..gsCbcHash)
+------------ RECORDS ------------
 
-gsVarName = asmlib.GetAsmConvar("endsvlock", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  asmlib.IsFlag("en_dsv_datalock", tobool(vNew))
-end, gsVarName..gsCbcHash)
-
-gsVarName = asmlib.GetAsmConvar("timermode", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local arTim = gsSymDir:Explode(vNew)
-  local mkTab, ID = asmlib.GetBuilderID(1), 1
-  while(mkTab) do local sTim = arTim[ID]
-    local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
-    asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
-    ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
-  end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vNew),gtInitLogs)
-end, gsVarName..gsCbcHash)
-
--------- RECORDS ----------
 asmlib.SetOpVar("STRUCT_SPAWN",{
   Name = "Spawn data definition",
   Draw = {
     ["RDB"] = function(scr, key, typ, inf, def, spn)
       local rec, fmt = spn[key], asmlib.GetOpVar("FORM_DRAWDBG")
       local fky, nav = asmlib.GetOpVar("FORM_DRWSPKY"), asmlib.GetOpVar("MISS_NOAV")
-      local out = (rec and tostring(rec.Slot:GetFileFromFilename()) or nav)
+      local out = (rec and tostring(stringGetFileName(rec.Slot)) or nav)
       scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
     end,
     ["MTX"] = function(scr, key, typ, inf, def, spn)
@@ -272,7 +320,8 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
   }
 })
 
--------- ACTIONS ----------
+------------ ACTIONS ------------
+
 if(SERVER) then
 
   -- Send language definitions to the client to populate the menu
@@ -280,6 +329,10 @@ if(SERVER) then
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
+  utilAddNetworkString(gsLibName.."SendCreateCurveNode")
+  utilAddNetworkString(gsLibName.."SendUpdateCurveNode")
+  utilAddNetworkString(gsLibName.."SendDeleteCurveNode")
+  utilAddNetworkString(gsLibName.."SendDeleteAllCurveNode")
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
     function(oPly,oEnt,tData) gtArgsLogs[1] = "*DUPE_PHYS_SETTINGS"
@@ -348,35 +401,123 @@ if(SERVER) then
     end)
 end
 
-if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
+if(CLIENT) then
 
+  surfaceCreateFont("DebugSpawnTA",{
+    font = "Courier New",
+    size = 14,
+    weight = 600
+  })
+
+  -- Initialize tool translations and load the lua file dedicated to the language
+  asmlib.InitLocalify(varLanguage:GetString())
+
+  -- Listen for changes to the localify language and reload the tool's menu to update the localizations
+  cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
+  cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
+    gtArgsLogs[1] = "*UPDATE_CONTROL_PANEL"; asmlib.InitLocalify(vN)
+    local oTool = asmlib.GetOpVar("STORE_TOOLOBJ"); if(not asmlib.IsHere(oTool)) then
+      asmlib.LogInstance("Tool object missing", gtArgsLogs); return end
+    local cPanel = controlpanelGet(oTool.Mode); if(not IsValid(cPanel)) then
+      asmlib.LogInstance("Control panel invalid", gtArgsLogs); return end
+    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
+  end, gsToolPrefL.."lang")
+
+  -- http://www.famfamfam.com/lab/icons/silk/preview.php
   asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
-  asmlib.ToIcon("category_item", "folder"         )
-  asmlib.ToIcon("pn_externdb_1", "database"       )
-  asmlib.ToIcon("pn_externdb_2", "folder_database")
-  asmlib.ToIcon("pn_externdb_3", "database_table" )
-  asmlib.ToIcon("pn_externdb_4", "database_link"  )
-  asmlib.ToIcon("pn_externdb_5", "time_go"        )
-  asmlib.ToIcon("pn_externdb_6", "compress"       )
-  asmlib.ToIcon("pn_externdb_7", "database_edit"  )
-  asmlib.ToIcon("pn_externdb_8", "database_delete")
-  asmlib.ToIcon("model"        , "brick"          )
-  asmlib.ToIcon("mass"         , "basket_put"     )
-  asmlib.ToIcon("bgskids"      , "layers"         )
-  asmlib.ToIcon("phyname"      , "wand"           )
-  asmlib.ToIcon("ignphysgn"    , "lightning_go"   )
-  asmlib.ToIcon("freeze"       , "lock"           )
-  asmlib.ToIcon("gravity"      , "ruby_put"       )
-  asmlib.ToIcon("weld"         , "wrench"         )
-  asmlib.ToIcon("nocollide"    , "shape_group"    )
-  asmlib.ToIcon("nocollidew"   , "world_go"       )
-  asmlib.ToIcon("dsvlist_extdb", "database_go"    )
+  asmlib.ToIcon("category_item"    , "folder"         )
+  asmlib.ToIcon("pn_externdb_1"    , "database"       )
+  asmlib.ToIcon("pn_externdb_2"    , "folder_database")
+  asmlib.ToIcon("pn_externdb_3"    , "database_table" )
+  asmlib.ToIcon("pn_externdb_4"    , "database_link"  )
+  asmlib.ToIcon("pn_externdb_5"    , "time_go"        )
+  asmlib.ToIcon("pn_externdb_6"    , "compress"       )
+  asmlib.ToIcon("pn_externdb_7"    , "database_edit"  )
+  asmlib.ToIcon("pn_externdb_8"    , "database_delete")
+  asmlib.ToIcon("model"            , "brick"          )
+  asmlib.ToIcon("mass"             , "basket_put"     )
+  asmlib.ToIcon("bgskids"          , "layers"         )
+  asmlib.ToIcon("phyname"          , "wand"           )
+  asmlib.ToIcon("ignphysgn"        , "lightning_go"   )
+  asmlib.ToIcon("freeze"           , "lock"           )
+  asmlib.ToIcon("gravity"          , "ruby_put"       )
+  asmlib.ToIcon("weld"             , "wrench"         )
+  asmlib.ToIcon("nocollide"        , "shape_group"    )
+  asmlib.ToIcon("nocollidew"       , "world_go"       )
+  asmlib.ToIcon("dsvlist_extdb"    , "database_go"    )
+  asmlib.ToIcon("workmode_snap"    , "plugin"         ) -- General spawning and snapping mode
+  asmlib.ToIcon("workmode_cross"   , "chart_line"     ) -- Ray cross intersect interpolation
+  asmlib.ToIcon("workmode_curve"   , "vector"         ) -- Catmull–Rom curve line segment fitting
+  asmlib.ToIcon("workmode_over"    , "shape_move_back") -- Trace normal ray location piece flip-spawn
+  asmlib.ToIcon("property_type"    , "package_green"  )
+  asmlib.ToIcon("property_name"    , "note"           )
+  asmlib.ToIcon("database_mode_lua", "database_lightning")
+  asmlib.ToIcon("database_mode_sql", "database_link"     )
+  asmlib.ToIcon("timermode_time"   , "time"              )
+  asmlib.ToIcon("bnderrmod_off"    , "shape_square"      )
+  asmlib.ToIcon("bnderrmod_log"    , "shape_square_edit" )
+  asmlib.ToIcon("bnderrmod_hint"   , "shape_square_go"   )
+  asmlib.ToIcon("bnderrmod_generic", "shape_square_link" )
+  asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
+
+  -- Workshop matching crap
+  asmlib.WorkshopID("SligWolf's Rerailers"        , 132843280)
+  asmlib.WorkshopID("SligWolf's Minitrains"       , 149759773)
+  asmlib.WorkshopID("SProps"                      , 173482196)
+  asmlib.WorkshopID("Magnum's Rails"              , 290130567)
+  asmlib.WorkshopID("SligWolf's Railcar"          , 173717507)
+  asmlib.WorkshopID("Random Bridges"              , 343061215)
+  asmlib.WorkshopID("StevenTechno's Buildings 1.0", 331192490)
+  asmlib.WorkshopID("Mr.Train's M-Gauge"          , 517442747)
+  asmlib.WorkshopID("Mr.Train's G-Gauge"          , 590574800)
+  asmlib.WorkshopID("Bobster's two feet rails"    , 489114511)
+  asmlib.WorkshopID("G Scale Track Pack"          , 718239260)
+  asmlib.WorkshopID("Ron's Minitrain Props"       , 728833183)
+  asmlib.WorkshopID("SligWolf's White Rails"      , 147812851)
+  asmlib.WorkshopID("SligWolf's Minihover"        , 147812851)
+  asmlib.WorkshopID("Battleship's abandoned rails", 807162936)
+  asmlib.WorkshopID("AlexCookie's 2ft track pack" , 740453553)
+  asmlib.WorkshopID("Joe's track pack"            , 1658816805)
+  asmlib.WorkshopID("StevenTechno's Buildings 2.0", 1888013789)
+  asmlib.WorkshopID("Modular canals"              , 1336622735)
+  asmlib.WorkshopID("Trackmania United Props"     , 1955876643)
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
+
+  asmlib.SetAction("CREATE_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETE_CURVE_NODE"
+      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local tC = asmlib.GetCacheCurve(oPly) -- Read the curve data location
+      tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm); tableInsert(tC.Base, vBase);
+      tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
+    end)
+
+  asmlib.SetAction("UPDATE_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*UPDATE_CURVE_NODE"
+      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
+      tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm); tC.Base[iD]:Set(vBase)
+    end)
+
+  asmlib.SetAction("DELETE_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETE_CURVE_NODE"
+      local tC = asmlib.GetCacheCurve(oPly)
+      tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
+      tableRemove(tC.Node); tableRemove(tC.Norm); tableRemove(tC.Base)
+    end)
+
+  asmlib.SetAction("DELETE_ALL_CURVE_NODE",
+    function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*DELETE_ALL_CURVE_NODE"
+      local tC = asmlib.GetCacheCurve(oPly)
+      if(tC.Size and tC.Size > 0) then
+        tableEmpty(tC.Node); tableEmpty(tC.Norm); tableEmpty(tC.Base)
+        tC.Size = 0 -- Register the index before wiping the data for drawing
+      end
+    end)
 
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly = netReadEntity(); gtArgsLogs[1] = "*CLEAR_RELATION"
@@ -427,15 +568,16 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       if(not actTool:GetRadialMenu()) then
         asmlib.LogInstance("Menu disabled",gtArgsLogs); return nil end
       if(inputIsMouseDown(MOUSE_MIDDLE)) then guiEnableScreenClicker(true) else
-        guiEnableScreenClicker(false); asmlib.LogInstance("Scroll release",gtArgsLogs); return nil
+        guiEnableScreenClicker(false); asmlib.LogInstance("Release",gtArgsLogs); return nil
       end -- Draw while holding the mouse middle button
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-      local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
-      if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
+      local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
+      if(not actMonitor) then asmlib.LogInstance("Screen invalid",gtArgsLogs); return nil end
       local vBs, nR = asmlib.NewXY(4,4), (gnRatio-1)
       local nN  = conWorkMode:GetSize()
       local nDr = asmlib.GetOpVar("DEG_RAD")
       local sM  = asmlib.GetOpVar("MISS_NOAV")
+      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
       local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
       -- Calculate dependent parameters
       local vFr = asmlib.NewXY(vCn.y*nR) -- Far radius vector
@@ -444,7 +586,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local dQs = (dQb * nR) -- Smaller not selected size
       local vMr = asmlib.NewXY(dQb / 2 + vNr.x) -- Middle radius vector
       local vNt, vFt = asmlib.NewXY(), asmlib.NewXY() -- Temp storage
-      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
       local dA, rA = (nMx / (2 * nN)), 0; actMonitor:GetColor() -- Angle delta
       local mP = asmlib.NewXY(guiMouseX(), guiMouseY())
       actMonitor:DrawCircle(mP, 10, "y", "SURF") -- Draw mouse position
@@ -479,16 +620,14 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local oPly, actSwep, actTool = asmlib.GetHookInfo(gtArgsLogs)
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",gtArgsLogs); return nil end
-      local model    = actTool:GetModel()
-      local stackcnt = actTool:GetStackCount()
-      local ghostcnt = actTool:GetGhostsCount()
-      local depthcnt = mathMin(stackcnt, ghostcnt)
-      local atGhosts = asmlib.GetOpVar("ARRAY_GHOST")
+      local model = actTool:GetModel()
+      local ghcnt = actTool:GetGhostsDepth()
+      local atGho = asmlib.GetOpVar("ARRAY_GHOST")
       if(utilIsValidModel(model)) then
-        if(not (asmlib.HasGhosts() and depthcnt == atGhosts.Size and atGhosts.Slot == model)) then
-          if(not asmlib.MakeGhosts(depthcnt, model)) then
+        if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
+          if(not asmlib.MakeGhosts(ghcnt, model)) then
             asmlib.LogInstance("Ghosting fail",gtArgsLogs); return nil end
-          actTool:ElevateGhost(atGhosts[1], oPly) -- Elevate the properly created ghost
+          actTool:ElevateGhost(atGho[1], oPly) -- Elevate the properly created ghost
         end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
       end
     end) -- Read client configuration
@@ -668,48 +807,6 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       conElements:Push(pnFrame); asmlib.LogInstance("Success",gtArgsLogs); return nil
     end) -- Read client configuration
 
-  asmlib.SetAction("RESET_VARIABLES",
-    function(oPly,oCom,oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
-      local devmode = asmlib.GetAsmConvar("devmode", "BUL")
-      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
-      if(inputIsKeyDown(KEY_LSHIFT)) then
-        if(not devmode) then
-          asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
-        asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName, 1500)
-        for key, val in pairs(asmlib.GetConvarList()) do
-          asmlib.SetAsmConvar(oPly, "*"..key, val) end
-        asmlib.SetAsmConvar(oPly, "logsmax"  , 0)
-        asmlib.SetAsmConvar(oPly, "logfile"  , 0)
-        asmlib.SetAsmConvar(oPly, "modedb"   , "LUA")
-        asmlib.SetAsmConvar(oPly, "devmode"  , 0)
-        asmlib.SetAsmConvar(oPly, "maxtrmarg", 0.02)
-        asmlib.SetAsmConvar(oPly, "maxmenupr", 5)
-        asmlib.SetAsmConvar(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
-        asmlib.SetAsmConvar(oPly, "maxmass"  , 50000)
-        asmlib.SetAsmConvar(oPly, "maxlinear", 250)
-        asmlib.SetAsmConvar(oPly, "maxforce" , 100000)
-        asmlib.SetAsmConvar(oPly, "maxactrad", 150)
-        asmlib.SetAsmConvar(oPly, "maxstcnt" , 200)
-        asmlib.SetAsmConvar(oPly, "enwiremod", 1)
-        asmlib.SetAsmConvar(oPly, "enctxmall", 0)
-        asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
-        asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
-        asmlib.LogInstance("Variables reset complete",gtArgsLogs)
-      else
-        asmlib.SetAsmConvar(oPly,"nextx"  , 0)
-        asmlib.SetAsmConvar(oPly,"nexty"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextz"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextpic", 0)
-        asmlib.SetAsmConvar(oPly,"nextyaw", 0)
-        asmlib.SetAsmConvar(oPly,"nextrol", 0)
-        if(devmode) then
-          asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
-                               asmlib.GetAsmConvar("logfile","BUL"))
-        end
-      end
-      asmlib.LogInstance("Success",gtArgsLogs); return nil
-    end)
-
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs) gtArgsLogs[1] = "*OPEN_FRAME"
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
@@ -720,7 +817,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Missing definition for table PIECES",gtArgsLogs); return nil end
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         asmlib.LogInstance("Frame invalid",gtArgsLogs); return nil end
-      ------ Screen resolution and configuration -------
+      ------------ Screen resolution and configuration ------------
       local scrW         = surfaceScreenWidth()
       local scrH         = surfaceScreenHeight()
       local sVersion     = asmlib.GetOpVar("TOOL_VERSION")
@@ -729,7 +826,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       local xySiz        = {x =  0, y =  0} -- Current panel size
       local xyPos        = {x =  0, y =  0} -- Current panel position
       local xyTmp        = {x =  0, y =  0} -- Temporary coordinate
-      ------------ Frame --------------
+      ------------ Frame ------------
       xySiz.x = (scrW / gnRatio) -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
       xySiz.y = mathFloor(xySiz.x / (1 + gnRatio))
@@ -744,7 +841,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
-      ------------ Button --------------
+      ------------ Button ------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.x = (xyTmp.x / (8.5 * gnRatio)) -- Display properly the name
       xySiz.y = (xySiz.x / (1.5 * gnRatio)) -- Used by combo-box and text-box
@@ -760,7 +857,7 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
       pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
-      ------------- ComboBox ---------------
+      ------------ ComboBox ------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
       xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
@@ -783,13 +880,13 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         asmlib.LogInstance("Selected "..asmlib.GetReport3(nInd,sVal,anyData),gtArgsLogs)
         pnSelf:SetValue(sVal)
       end
-      ------------ ModelPanel --------------
+      ------------ ModelPanel ------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xyPos.x, xyPos.y = pnComboBox:GetPos()
       xySiz.x = (xyTmp.x / (1.9 * gnRatio)) -- Display the model properly
       xyPos.x = xyTmp.x - xySiz.x - xyDelta.x
       xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
-      --------------------------------------
+      ------------------------------------------------
       local pnModelPanel = vguiCreate("DModelPanel")
       if(not IsValid(pnModelPanel)) then pnFrame:Close()
         asmlib.LogInstance("Model display invalid",gtArgsLogs); return nil end
@@ -803,7 +900,8 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("Box invalid",gtArgsLogs); return nil end
-        local stSpawn = asmlib.GetNormalSpawn(oPly,asmlib.GetOpVar("VEC_ZERO"),uiBox.Ang,oEnt:GetModel(),1)
+        local vPos, aAng = asmlib.GetOpVar("VEC_ZERO"), uiBox.Ang
+        local stSpawn = asmlib.GetNormalSpawn(oPly, vPos, aAng, oEnt:GetModel(), 1)
               stSpawn.SPos:Set(uiBox.Cen)
               stSpawn.SPos:Rotate(stSpawn.SAng)
               stSpawn.SPos:Mul(-1)
@@ -811,15 +909,15 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
       end
-      ------------ TextEntry --------------
+      ------------ TextEntry ------------
       xyPos.x, xyPos.y = pnComboBox:GetPos()
       xyTmp.x, xyTmp.y = pnComboBox:GetSize()
       xyPos.x = xyPos.x + xyTmp.x + xyDelta.x
       xySiz.y = xyTmp.y
-      -------------------------------------
+      ------------------------------------------------
       xyTmp.x, xyTmp.y = pnModelPanel:GetPos()
       xySiz.x = xyTmp.x - xyPos.x - xyDelta.x
-      -------------------------------------
+      ------------------------------------------------
       local pnTextEntry = vguiCreate("DTextEntry")
       if(not IsValid(pnTextEntry)) then pnFrame:Close()
         asmlib.LogInstance("Textbox invalid",gtArgsLogs); return nil end
@@ -829,18 +927,18 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       pnTextEntry:SetVisible(true)
       pnTextEntry:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern_lb"))
       pnTextEntry:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern"))
-      ------------ ListView --------------
+      ------------ ListView ------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
       xyPos.y = xyPos.y + xyTmp.y + xyDelta.y
-      ------------------------------------
+      ------------------------------------------------
       xyTmp.x, xyTmp.y = pnTextEntry:GetPos()
       xySiz.x, xySiz.y = pnTextEntry:GetSize()
       xySiz.x = xyTmp.x + xySiz.x - xyDelta.x
-      ------------------------------------
+      ------------------------------------------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.y = xyTmp.y - xyPos.y - xyDelta.y
-      ------------------------------------
+      ------------------------------------------------
       local wUse = mathFloor(0.120377559 * xySiz.x)
       local wAct = mathFloor(0.047460893 * xySiz.x)
       local wTyp = mathFloor(0.314127559 * xySiz.x)
@@ -905,6 +1003,11 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
             asmlib.LogInstance("Export instance", gtArgsLogs)
           end
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
+        else
+          if(inputIsKeyDown(KEY_LSHIFT)) then
+            local fW = asmlib.GetOpVar("FORM_GITWIKI")
+            guiOpenURL(fW:format("Additional-features"))
+          end
         end
       end
       -- Leave the TextEntry here so it can access and update the local ListView reference
@@ -940,10 +1043,12 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
       if(actTr.HitWorld) then asmlib.LogInstance("Trace world",gtArgsLogs); return nil end
       local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
         asmlib.LogInstance("Trace entity invalid",gtArgsLogs); return nil end
+      if(trEnt:GetNWBool(gsToolPrefL.."physgundisabled")) then
+        asmlib.LogInstance("Trace entity physgun disabled",gtArgsLogs); return nil end
       local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
         asmlib.LogInstance("Trace not piece",gtArgsLogs); return nil end
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
-      local actMonitor = asmlib.MakeScreen(0,0,scrW,scrH,conPalette,"GAME")
+      local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
       local atGhosts  = asmlib.GetOpVar("ARRAY_GHOST")
       local ghostcnt  = asmlib.GetAsmConvar("ghostcnt", "FLT")
@@ -965,9 +1070,9 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
         if(oTr and oTr.Hit) then actMonitor:GetColor()
           local tgE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
           if(tgE and tgE:IsValid()) then
-            actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
+            actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
             actMonitor:DrawLine  (xyS, xyH, "g", "SURF")
-            actMonitor:DrawCircle(xyH, rdS, "g")
+            actMonitor:DrawCircle(xyH, asmlib.GetViewRadius(oPly, oTr.HitPos), "g")
             actMonitor:DrawLine  (xyH, xyE, "y")
             actSpawn = asmlib.GetEntitySpawn(oPly,tgE,oTr.HitPos,trRec.Slot,trID,activrad,
                          spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
@@ -985,16 +1090,16 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
                 local xyS = actSpawn.SPos:ToScreen()
                 local xyP = actSpawn.TPnt:ToScreen()
                 actMonitor:DrawLine  (xyH, xyP, "g")
-                actMonitor:DrawCircle(xyP, rdS / 2, "r")
-                actMonitor:DrawCircle(xyB, rdS, "y")
+                actMonitor:DrawCircle(xyP, asmlib.GetViewRadius(oPly, actSpawn.TPnt) / 2, "r")
+                actMonitor:DrawCircle(xyB, asmlib.GetViewRadius(oPly, actSpawn.BPos), "y")
                 actMonitor:DrawLine  (xyB, xyP, "r")
                 actMonitor:DrawLine  (xyB, xyO, "y")
                 -- Origin and spawn information
                 actMonitor:DrawLine  (xyO, xyS, "m")
-                actMonitor:DrawCircle(xyS, rdS, "c")
+                actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, actSpawn.SPos), "c")
                 -- Origin and base coordinate systems
-                actMonitor:DrawUCS(actSpawn.OPos, actSpawn.OAng, "SURF", {sizeucs, rdS})
-                actMonitor:DrawUCS(actSpawn.BPos, actSpawn.BAng)
+                actMonitor:DrawUCS(oPly, actSpawn.OPos, actSpawn.OAng, "SURF", {sizeucs, rdS})
+                actMonitor:DrawUCS(oPly, actSpawn.BPos, actSpawn.BAng)
               end
             else
               local tgRec = asmlib.CacheQueryPiece(tgE:GetModel())
@@ -1006,21 +1111,43 @@ if(CLIENT) then asmlib.InitLocalify(varLanguage:GetString())
               end
             end
           else
-            actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
+            actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
             actMonitor:DrawLine  (xyS, xyH, "y", "SURF")
-            actMonitor:DrawCircle(xyH, rdS, "y")
+            actMonitor:DrawCircle(xyH, asmlib.GetViewRadius(oPly, oTr.HitPos), "y")
             actMonitor:DrawLine  (xyH, xyE, "r")
           end
         else
-          actMonitor:DrawCircle(xyS, rdS, "y", "SURF")
+          actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
           actMonitor:DrawLine  (xyS, xyE, "r", "SURF")
         end
       end
     end)
 
+    asmlib.SetAction("TWEAK_PANEL",
+      function(tDat, ...)
+        local tArg = {...}; gtArgsLogs[1] = "*TWEAK_PANEL"
+        local sDir, sSub = tostring(tArg[1]):lower(), tostring(tArg[2]):lower()
+        local fFoo = tArg[3]; if(not asmlib.IsFunction(fFoo)) then
+          asmlib.LogInstance("Function miss "..asmlib.GetReport2(sDir, sSub), gtArgsLogs); return end
+        local bS, lDir = pcall(tDat.Foo, sDir); if (not bS) then
+          asmlib.LogInstance("Folder ["..sDir.."] "..lDir, gtArgsLogs); return end
+        local bS, lSub = pcall(tDat.Foo, sSub); if (not bS) then
+          asmlib.LogInstance("Subfolder ["..sSub.."] "..lSub, gtArgsLogs); return end
+        local sKey = tDat.Key:format(sDir, sSub)
+        hookAdd("PopulateToolMenu", sKey, function()
+          local sNam = asmlib.GetPhrase(tDat.Nam)
+          spawnmenuAddToolMenuOption(lDir, lSub, sKey, sNam, "", "", tArg[3])
+        end)
+      end,
+      {
+        Key = gsToolPrefL.."%s_%s",
+        Nam = "tool."..gsToolNameL..".name",
+        Foo = function(s) return s:gsub("^%l", stringUpper) end
+      })
 end
 
------- INITIALIZE CONTEXT PROPERTIES ------
+------------ INITIALIZE CONTEXT PROPERTIES ------------
+
 local gsOptionsCM = gsToolPrefL.."context_menu"
 local gsOptionsCV = gsToolPrefL.."context_values"
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
@@ -1033,7 +1160,7 @@ gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
 -- [3]: Tells what is to be done with the value
 -- [4]: Display when the data is available on the client
 -- [5]: Network massage or assign the value to a player
-local conContextMenu = asmlib.MakeContainer("CONTEXT_MENU")
+local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
       conContextMenu:Push(
         {"tool."..gsToolNameL..".model", true,
           function(ePiece, oPly, oTr, sKey)
@@ -1307,7 +1434,8 @@ end
 -- Register the track assembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)
 
------- INITIALIZE DB ------
+------------ INITIALIZE DB------------
+
 asmlib.CreateTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
@@ -1317,7 +1445,7 @@ asmlib.CreateTable("PIECES",{
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.GetTerm(arLine[2], noTY, asmlib.GetCategory())
+      arLine[2] = asmlib.GetTerm(arLine[2], noTY, asmlib.Categorize())
       arLine[3] = asmlib.GetTerm(arLine[3], noMD, asmlib.ModelToName(arLine[1]))
       arLine[8] = asmlib.GetTerm(arLine[8], noSQL, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
@@ -1443,7 +1571,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Index = {{1},{2},{1,2}},
   Trigs = {
     Record = function(arLine)
-      arLine[1] = asmlib.GetTerm(arLine[1],"TYPE",asmlib.GetCategory()); return true
+      arLine[1] = asmlib.GetTerm(arLine[1],"TYPE",asmlib.Categorize()); return true
     end
   },
   Cache = {
@@ -1492,7 +1620,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
 },true,true)
 
------- POPULATE DB ------
+------------ POPULATE DB ------------
 
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
@@ -1505,11 +1633,11 @@ end
 --[[ Track pieces parametrization legend
  * Disabling of a component is preformed by using "OPSYM_DISABLE"
  * Disabling A     - The ID angle is treated as {0,0,0}
- * Disabling Type  - Makes it use the value of GetCategory()
+ * Disabling Type  - Makes it use the value of Categorize()
  * Disabling Name  - Makes it generate it using the model via ModelToName()
  * Disabling Class - Makes it use the default /prop_physics/
- * First  argument of GetCategory() is used to provide default track type for TABLE:Record()
- * Second argument of GetCategory() is used to generate track categories for the processed addon
+ * First  argument of Categorize() is used to provide default track type for TABLE:Record()
+ * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
@@ -1519,23 +1647,23 @@ else
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
   local PIECES = asmlib.GetBuilderNick("PIECES"); asmlib.ModelToNameRule("CLR")
   if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
-    asmlib.GetCategory("Develop Sprops")
+    asmlib.Categorize("Develop Sprops")
     PIECES:Record({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1})
     PIECES:Record({"models/sprops/cuboids/height12/size_1/cube_12x12x12.mdl", "#", "x2", 1})
     PIECES:Record({"models/sprops/cuboids/non_set/cube_18x18x18.mdl"        , "#", "x3", 1})
     PIECES:Record({"models/sprops/cuboids/height24/size_1/cube_24x24x24.mdl", "#", "x4", 1})
     PIECES:Record({"models/sprops/cuboids/height36/size_1/cube_36x36x36.mdl", "#", "x5", 1})
     PIECES:Record({"models/sprops/cuboids/height48/size_1/cube_48x48x48.mdl", "#", "x6", 1})
-    asmlib.GetCategory("Develop PHX")
+    asmlib.Categorize("Develop PHX")
     PIECES:Record({"models/hunter/blocks/cube025x025x025.mdl", "#", "x1", 1})
     PIECES:Record({"models/hunter/blocks/cube05x05x05.mdl"   , "#", "x2", 1})
     PIECES:Record({"models/hunter/blocks/cube075x075x075.mdl", "#", "x3", 1})
     PIECES:Record({"models/hunter/blocks/cube1x1x1.mdl"      , "#", "x4", 1})
-    asmlib.GetCategory("Develop Test")
+    asmlib.Categorize("Develop Test")
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "-90,  0,180"})
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "90,180,180"})
   end
-  asmlib.GetCategory("SligWolf's Rerailers")
+  asmlib.Categorize("SligWolf's Rerailers")
   PIECES:Record({"models/props_phx/trains/sw_rerailer_1.mdl", "#", "Short Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
   PIECES:Record({"models/props_phx/trains/sw_rerailer_2.mdl", "#", "Middle Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
   PIECES:Record({"models/props_phx/trains/sw_rerailer_3.mdl", "#", "Long Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
@@ -1545,13 +1673,9 @@ else
   PIECES:Record({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Middle Double", 2, "-1882.106, 0, 3.031", "-2367.072, 0, -5.412", "0,-180,0"})
   PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 1, "-221.409, 0, 3.031", "219.412, 0, -5.411"})
   PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 2, "-1103.05, 0, 0.009", "-1543.871, 0, -5.411", "0,-180,0"})
-  asmlib.GetCategory("SligWolf's Minitrains",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/minitrains/",""):gsub("_","/")
-    local s = r:find("/") or r:find("%.")
-    r = (s and r:sub(1,s-1) or "other"); o = {r}
-    if(r == "sw") then o = {"buffer"} end;
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("SligWolf's Minitrains",[[function(m)
+    local r = m:gsub("models/minitrains/",""):gsub("%W.+$","")
+    if(r == "sw") then r = "buffer" end; return r; end]])
   PIECES:Record({"models/minitrains/straight_16.mdl",   "#", "#", 1, "", "0,-8.5065,1"})
   PIECES:Record({"models/minitrains/straight_16.mdl",   "#", "#", 2, "", "-16,-8.5065,1", "0,-180,0"})
   PIECES:Record({"models/minitrains/straight_32.mdl",   "#", "#", 1, "", "0,-8.5065,1"})
@@ -1698,7 +1822,7 @@ else
   PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y6"})
   PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 2, "", "-110.40305,13.45934,1", "0,157.5,0", "gmod_sw_minitrain_switch_y6"})
   PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_y6"})
-  asmlib.GetCategory("PHX Monorail")
+  asmlib.Categorize("PHX Monorail")
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 1, "", "229.885559,0.23999,13.87915"})
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 2, "", "-228.885254,0.239726,13.87915", "0,-180,0"})
   PIECES:Record({"models/props_phx/trains/monorail2.mdl", "#", "Straight Middle", 1, "", "0.239726,-462.635468,13.879296", "0,-90,0"})
@@ -1711,7 +1835,7 @@ else
   PIECES:Record({"models/props_phx/trains/monorail_curve2.mdl", "#", "Turn 45", 2, "", "-428.018524,-428.362335,13.881714", "0,135,0"})
   PIECES:Record({"models/props_phx/trains/monorail_curve.mdl", "#", "Turn 90", 1, "", "-0.030518,-605.638184,13.880554"})
   PIECES:Record({"models/props_phx/trains/monorail_curve.mdl", "#", "Turn 90", 2, "", "-605.380859,-0.307583,13.881714", "0,90,0"})
-  asmlib.GetCategory("PHX Metal")
+  asmlib.Categorize("PHX Metal")
   asmlib.ModelToNameRule("SET",nil,{"track_","straight_"},nil)
   PIECES:Record({"models/props_phx/trains/track_32.mdl" , "#", "#", 1, "-0.327,-61.529,8.714", " 15.755127,0.001953,9.215"})
   PIECES:Record({"models/props_phx/trains/track_32.mdl" , "#", "#", 2, "-0.327, 61.529,8.714", "-16.239746,0.000244,9.215", "0,-180,0"})
@@ -1729,7 +1853,7 @@ else
   PIECES:Record({"models/props_phx/trains/track_2048.mdl", "#", "#", 2, "", "-1024.242676,-0.109433,9.215", "0,180,0"})
   PIECES:Record({"models/props_phx/trains/track_4096.mdl", "#", "#", 1, "", " 2047.755249, 0.001923,9.215"})
   PIECES:Record({"models/props_phx/trains/track_4096.mdl", "#", "#", 2, "", "-2048.240479,-0.225247,9.215", "0,-180,0"})
-  asmlib.GetCategory("PHX Regular")
+  asmlib.Categorize("PHX Regular")
   asmlib.ModelToNameRule("SET",{1,6})
   PIECES:Record({"models/props_phx/trains/tracks/track_single.mdl", "#", "#", 1, "-0.327,-61.529,8.714", " 15.451782, 1.5e-005,12.548828"})
   PIECES:Record({"models/props_phx/trains/tracks/track_single.mdl", "#", "#", 2, "-0.327, 61.529,8.714", "-16.094971,-1.0e-006,12.548828", "0,-180,0"})
@@ -1772,12 +1896,10 @@ else
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 1, "", " 829.880005,  -0.001465, 11.218994"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 2, "", "-370.037262,  -0.000456, 11.218994", "0,-180,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 3, "", "-158.311356,-338.111572, 11.218994", "0,-135,0"})
-  asmlib.GetCategory("SProps",[[function(m)
-    local r = m:gsub("models/sprops/trans/train/",""):gsub("_","/")
-    if(r:find("track/")) then r = r:gsub("track/","") end;
-    local s = r:sub(1,1); if(s == "s") then return {"Straight"}
-    elseif(s == "t") then return {"Turn"}
-    elseif(s == "h") then return {"Ramp"} else return nil end end]])
+  asmlib.Categorize("SProps",[[function(m)
+    local r = m:gsub("models/sprops/trans/train/",""):gsub("track_",""):sub(1,1)
+    if(r == "s") then return "straight" elseif(r == "t") then return "turn"
+    elseif(r == "h") then return "ramp" else return nil end end]])
   asmlib.ModelToNameRule("SET",nil,{"track_s0","straight_"},{"","x"})
   PIECES:Record({"models/sprops/trans/train/track_s01.mdl", "#", "#", 1, "", " 0,0,7.624"})
   PIECES:Record({"models/sprops/trans/train/track_s01.mdl", "#", "#", 2, "", "-162,0,7.624", "0,180,0"})
@@ -1804,11 +1926,10 @@ else
   PIECES:Record({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 1, "", "0,0,7.624"})
   PIECES:Record({"models/sprops/trans/train/track_t90_01.mdl", "#", "#", 2, "", "-825,825,7.624", "0,90,0"})
   PIECES:Record({"models/sprops/trans/train/rerailer.mdl",     "#", "#", 1, "-1088.178,0,19.886", "-1280.383,0,7.618", "0,180,0"})
-  asmlib.GetCategory("XQM Coaster",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/xqm/coastertrack/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r} end]])
+  asmlib.Categorize("XQM Coaster",[[function(m)
+    local g = m:gsub("models/xqm/coastertrack/",""):gsub("%.mdl","")
+    local r = g:match(".-_"):sub(1,-2)
+    local n = g:gsub(r.."_", ""); return r, n; end]])
   PIECES:Record({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 1, "", "75.790,-0.013,-2.414"})
   PIECES:Record({"models/xqm/coastertrack/slope_225_1.mdl", "#", "#", 2, "", "-70.806,-0.003,26.580", "-22.5,180,0"})
   PIECES:Record({"models/xqm/coastertrack/slope_225_2.mdl", "#", "#", 1, "", "149.8, -0.013, -9.62"})
@@ -1857,7 +1978,7 @@ else
   PIECES:Record({"models/xqm/coastertrack/slope_90_down_3.mdl", "#", "#", 2, "", "-355.101, 0.01, -524.496", "90,0,180"})
   PIECES:Record({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 1, "", "290.8, -0.013, 61.604"})
   PIECES:Record({"models/xqm/coastertrack/slope_90_down_4.mdl", "#", "#", 2, "", "-473.228, -0.013, -701.956", "90,0,180"})
-  --- XQM Turn ---
+  ------------ XQM Turn ------------
   PIECES:Record({"models/xqm/coastertrack/turn_45_1.mdl", "#", "#", 1, "", "73.232, -14.287, 4.894"})
   PIECES:Record({"models/xqm/coastertrack/turn_45_1.mdl", "#", "#", 2, "", "-62.119, 41.771, 4.888", "0,135,0"})
   PIECES:Record({"models/xqm/coastertrack/turn_45_2.mdl", "#", "#", 1, "", "145.801, -28.557, 4.893"})
@@ -2055,7 +2176,7 @@ else
   PIECES:Record({"models/xqm/coastertrack/straight_4.mdl", "#", "#", 2, "", "-300.189, -0.013, 4.887", "0,180,0"})
   PIECES:Record({"models/xqm/coastertrack/special_station.mdl", "#", "#", 1, "", "150.194, -0.045, 4.887"})
   PIECES:Record({"models/xqm/coastertrack/special_station.mdl", "#", "#", 2, "", "-150.184, -0.045, 4.887", "0,-180,0"})
-  asmlib.GetCategory("PHX Road")
+  asmlib.Categorize("PHX Road")
   PIECES:Record({"models/props_phx/huge/road_short.mdl",  "#", "#", 1, "", "0, 299.693, 1.765", "0, 90,0"})
   PIECES:Record({"models/props_phx/huge/road_short.mdl",  "#", "#", 2, "", "0,-299.693, 1.765", "0,-90,0"})
   PIECES:Record({"models/props_phx/huge/road_medium.mdl", "#", "#", 1, "", "0, 599.386, 1.765", "0, 90,0"})
@@ -2068,7 +2189,7 @@ else
   PIECES:Record({"models/props_phx/misc/small_ramp.mdl",  "#", "#", 2, "", " 312.608, -3.599976, 236.11", "-45,0,0"})
   PIECES:Record({"models/props_phx/misc/big_ramp.mdl",    "#", "#", 1, "", "-569.177, -7.199953, -3.075",  "0,-180,0"})
   PIECES:Record({"models/props_phx/misc/big_ramp.mdl",    "#", "#", 2, "", "625.022, -7.199953, 472.427", "-45,0,0"})
-  asmlib.GetCategory("PHX Monorail Beam")
+  asmlib.Categorize("PHX Monorail Beam")
   PIECES:Record({"models/props_phx/misc/iron_beam1.mdl", "#", "#", 1, "", " 22.411, 0.001, 5.002", "0, 0,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam1.mdl", "#", "#", 2, "", "-22.413, 0.001, 5.002", "0,180,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam2.mdl", "#", "#", 1, "", " 45.298, 0.001, 5.002", "0, 0,0"})
@@ -2077,11 +2198,13 @@ else
   PIECES:Record({"models/props_phx/misc/iron_beam3.mdl", "#", "#", 2, "", "-94.079, 0.002, 5.002", "0,180,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 1, "", " 175.507, 0.001, 5.002",  "0, 0,0"})
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 2, "", "-201.413, 0.001, 5.002", "0,180,0"})
-  asmlib.GetCategory("XQM Ball Rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/xqm/rails/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
-    return r and {r} or nil end]])
+  asmlib.Categorize("XQM Ball Rails",[[function(m)
+    local g = m:gsub("models/xqm/rails/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local t, n = g:match(".-_"), g:gsub("%.mdl","")
+    if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+      if(r:find(t)) then n = n:gsub(t.."_", "")
+    end; end; return r, n; end]])
   PIECES:Record({"models/xqm/rails/tunnel_1.mdl", "#", "#", 1, "", "6, 0, -2.25"})
   PIECES:Record({"models/xqm/rails/tunnel_1.mdl", "#", "#", 2, "", "-6, 0, -2.25", "0,180,0"})
   PIECES:Record({"models/xqm/rails/tunnel_2.mdl", "#", "#", 1, "", "6, 0, -2.25"})
@@ -2141,12 +2264,13 @@ else
   PIECES:Record({"models/xqm/rails/loop_left.mdl", "#", "#", 2, "", "-13.7315, -41.726, -0.968", "0,-157.5,-2.2585"})
   PIECES:Record({"models/xqm/rails/loop_right.mdl", "#", "#", 1, "", "13.864, -41.787, -0.953", "0,-22.5,2.433"})
   PIECES:Record({"models/xqm/rails/loop_right.mdl", "#", "#", 2, "", "-13.562, 41.789, -0.952", "0,157.5,2.433"})
-  asmlib.GetCategory("Magnum's Rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/magtrains1ga/","")
-    local s = r:find("_"); r = (s and r:sub(1,s-1) or nil)
-          r = (r and (r:find("switchbase") and "switch" or r):gsub("^%l", string.upper) or nil)
-    return (r and {r} or nil) end]])
+  asmlib.Categorize("Magnum's Rails",[[function(m)
+      local g = m:gsub("models/magtrains1ga/",""):gsub("/","_")
+      local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+      local t, n = g:match(".-_"), g:gsub("%.mdl","")
+      if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; if(r:find("switchbase")) then r = "switch" end; return r, n end]])
   PIECES:Record({"models/magtrains1ga/straight_0032.mdl", "#", "#", 1, "", " 16  , 0, 3.016"})
   PIECES:Record({"models/magtrains1ga/straight_0032.mdl", "#", "#", 2, "", "-16  , 0, 3.016", "0,180,0"})
   PIECES:Record({"models/magtrains1ga/straight_0064.mdl", "#", "#", 1, "", " 32  , 0, 3.016"})
@@ -2177,7 +2301,7 @@ else
   PIECES:Record({"models/magtrains1ga/switch_straight.mdl", "#", "#", 2, "", "-384,0,0.01599", "0,-180,0"})
   PIECES:Record({"models/magtrains1ga/switch_curve.mdl", "#", "#", 1, "", "0,0,0.01563"})
   PIECES:Record({"models/magtrains1ga/switch_curve.mdl", "#", "#", 2, "", "-373.42453,-45.55976,0.01562", "0,-166.08,0"})
-  asmlib.GetCategory("SligWolf's Railcar")
+  asmlib.Categorize("SligWolf's Railcar")
   PIECES:Record({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 1, "", "500,0,0"})
   PIECES:Record({"models/swrcs/swrccross.mdl", "#", "Switcher Cross", 2, "", "-2673,0,0", "0,180,0"})
   PIECES:Record({"models/swrcs/swrccurve001.mdl", "#", "U-Turn", 1, "", "890, 748.009, 2.994"})
@@ -2194,7 +2318,7 @@ else
   PIECES:Record({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 1, "", "0, -152.532, 0"})
   PIECES:Record({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 2, "", "0, 152.554, 0"})
   PIECES:Record({"models/swrcs/swrctraffic_lights.mdl", "#", "Start Lights", 3, "", "0, 0, 0.042"})
-  asmlib.GetCategory("Random Bridges")
+  asmlib.Categorize("Random Bridges")
   PIECES:Record({"models/props_canal/canal_bridge01.mdl", "#", "#", 1, "", "455.345, -6.815, 201.73"})
   PIECES:Record({"models/props_canal/canal_bridge01.mdl", "#", "#", 2, "", "-456.655, -6.815, 201.73", "0,-180,0"})
   PIECES:Record({"models/props_canal/canal_bridge01b.mdl", "#", "#", 1, "", "910.69, -13.63, 403.46"})
@@ -2250,15 +2374,11 @@ else
   PIECES:Record({"models/props_viaduct_event/underworld_bridge04.mdl", "#", "#", 2, "", "-2.253, 480.851, 10.696", "0, 90,0"})
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 1, "", "5056, 219.145, 992.765"})
   PIECES:Record({"models/props_wasteland/bridge_low_res.mdl", "#", "#", 2, "", "-576, 219.145, 992.765", "0, 180,0"})
-  asmlib.GetCategory("StevenTechno's Buildings 1.0",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/buildingspack/",""):gsub("_","/")
-    local s = r:find("/"); r = (s and r:sub(1,s-1) or "")
+  asmlib.Categorize("StevenTechno's Buildings 1.0",[[function(m)
+    local r = m:gsub("models/buildingspack/",""):gsub("%W.+$","")
     if  (r:find("emptylots")) then r = "empty_lots"
     elseif(r:find("roadsdw")) then r = r:gsub("roadsdw","double_")
-    elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+    elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end; return r; end]])
   asmlib.ModelToNameRule("SET",{1,3})
   PIECES:Record({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 1, "", "0,0,3.03125"})
   PIECES:Record({"models/buildingspack/roadswsidewalk/2_1road_dl_sdw_1x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,180,0"})
@@ -2434,7 +2554,7 @@ else
   PIECES:Record({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 2, "", "0,0,315.031616"})
   PIECES:Record({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 3, "", "0,671.995,3.03125"})
   PIECES:Record({"models/buildingspack/roadsdwhighway/1_1roadsdwhwy_ramp_stop.mdl", "#", "#", 4, "", "-4160,0,15.202", "0,-180,0"})
-  asmlib.GetCategory("Portal Tubes")
+  asmlib.Categorize("Portal Tubes")
   PIECES:Record({"models/props_bts/clear_tube_straight.mdl", "#", "#", 1, "", "0.009,0    , 63.896", "-90,  0,180"})
   PIECES:Record({"models/props_bts/clear_tube_straight.mdl", "#", "#", 2, "", "0.008,0.004,-63.897", " 90,180,180"})
   PIECES:Record({"models/props_bts/clear_tube_90deg.mdl" , "#", "#", 1, "", "64.041,0.049,  0.131"})
@@ -2444,12 +2564,10 @@ else
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 1, "", "-0.014,0.13,96.075", "-90,0,180"})
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 2, "", "-0.004,-95.763,0.016", "0,-90,-90"})
   PIECES:Record({"models/props_bts/clear_tube_tjoint.mdl", "#", "#", 3, "", "0,96,0.083", "0,90,90"})
-  asmlib.GetCategory("Mr.Train's M-Gauge",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props/m_gauge/track/m_gauge_",""):gsub("_","/")
-    local s = r:find("/"); r = tonumber(r:sub(1,1)) and "straight" or (s and r:sub(1,s-1) or "")
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("Mr.Train's M-Gauge",[[function(m)
+    local r = m:gsub("models/props/m_gauge/track/m_gauge_","")
+    local n = r:gsub("%.mdl", ""); r = r:gsub("%W.+$","")
+    if(tonumber(r:sub(1,1))) then r = "straight" else n = n:gsub(r.."_", "") end; return r, n; end]])
   asmlib.ModelToNameRule("SET",nil,{"m_gauge","straight"},nil)
   PIECES:Record({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 1, "", "16,0,0.016"})
   PIECES:Record({"models/props/m_gauge/track/m_gauge_32.mdl", "#", "#", 2, "", "-16,0,0.016", "0,-180,0"})
@@ -2519,14 +2637,10 @@ else
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 1, "", "0,10,0.016"})
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 2, "", "-384,160,0.016", "0,180,0"})
   PIECES:Record({"models/props/m_gauge/track/m_gauge_switch_righthand.mdl", "#", "#", 3, "", "-256,10,0.016", "0,180,0"})
-  asmlib.GetCategory("Mr.Train's G-Gauge",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props/g_gauge/track/g_gauge_track_",""):gsub("%.mdl","")
-    local s = r:find("_")
-    local o, n = {(s and r:sub(1,s-1) or "other")}, r:sub(s+1,-1)
-    if(o[1] == "s") then o[1] = "curves" end
-    n = n and ("_"..n):gsub("_%w",conv):sub(2,-1) or nil
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]])
+  asmlib.Categorize("Mr.Train's G-Gauge",[[function(m)
+    local r = m:gsub("models/props/g_gauge/track/g_gauge_track_","")
+    local n = r:gsub("%.mdl",""); r = r:gsub("%W.+$","")
+    n = n:gsub(r.."_", ""); if(r == "s") then r = "curves" end; return r, n end]])
   asmlib.ModelToNameRule("SET",nil,{"g_gauge_track_",""},nil)
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 1, "", " 16,0,1.516"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_straight_32.mdl"  , "#", "#", 2, "", "-16,0,1.516", "0,-180,0"})
@@ -2596,22 +2710,13 @@ else
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_45.mdl"   , "#", "#", 2, "", "-98.326,98.323,1.516", "0,-135,0"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 1, "", "263.75, 248.25,1.516"})
   PIECES:Record({"models/props/g_gauge/track/g_gauge_track_turn_left_90.mdl"   , "#", "#", 2, "", "-248.25,-263.75,1.516", "0,-90,0"})
-  asmlib.GetCategory("Bobster's two feet rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r, o = m:gsub("models/bobsters_trains/rails/2ft/",""):gsub("_","/")
-    local s = r:find("/"); g = (s and r:sub(1,s-1) or "");
-    if(g == "") then return nil end
-    if(g == "straight") then
-      local r = r:sub(s+1,-1)
-      local e = r:find("/"); r = e and r:sub(1,e-1) or nil; o = {g,r}
-    elseif(g == "curves") then
-      local r = r:sub(s+1,-1); r = r:gsub("curve/","")
-      local e = r:find("/"); r = (not tonumber(r:sub(1,1))) and (e and r:sub(1,e-1) or nil) or nil; o = {g,r}
-    elseif(g == "switches") then
-      local r = r:sub(s+1,-1); r = r:gsub("switch/","")
-      local e = r:find("/"); r = e and r:sub(1,e-1) or nil; o = {g,r}
-    else o = {g} end
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("Bobster's two feet rails",[[function(m) local o = {}
+    local n = m:gsub("models/bobsters_trains/rails/2ft/","")
+    local r = n:match("^%a+"); n = n:gsub("%.mdl","")
+    for w in n:gmatch("%a+") do
+      if(r:find(w)) then n = n:gsub(w.."%W+", "") end
+    end table.insert(o, r); local f = n:match("^%a+")
+    if(f) then table.insert(o, f); n = n:gsub(f.."%W+", "") end; return o, n; end]])
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 1, "0,-32,1.5", "8,0,3.017"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_16.mdl", "#", "#", 2, "0,32,1.5", "-8,0,3.017", "0,180,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/straight_32.mdl", "#", "#", 1, "0,-32,1.5", "16,0,3.016"})
@@ -2736,11 +2841,13 @@ else
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_right_1024.mdl", "#", "#", 2, "", "651.898,-651.899,3.016", "0,-90,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 1, "", "0,0,3.016", "0,180,0"})
   PIECES:Record({"models/bobsters_trains/rails/2ft/curves/curve_rack_90_left_1024.mdl", "#", "#", 2, "", "651.898,651.898,3.016", "0,90,0"})
-  asmlib.GetCategory("PHX Tubes Miscellaneous",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
-    local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("PHX Tubes Miscellaneous",[[function(m)
+      local g = m:gsub("models/props_phx/construct/",""):gsub("/","_")
+      local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+      local t, n = g:match(".-_"), g:gsub("%.mdl","")
+      if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; return r, n; end]])
   --- Tubes Metal ---
   PIECES:Record({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 1, "", "-0.001,0,3.258", "-90,0,180"})
   PIECES:Record({"models/props_phx/construct/metal_angle90.mdl", "#", "#", 2, "", "-0.001,0,0.255", "90,180,180"})
@@ -2855,11 +2962,9 @@ else
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x1.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 1, "", "0.02,0,95.076", "-90,0,180"})
   PIECES:Record({"models/props_phx/construct/wood/wood_wire_angle360x2.mdl", "#", "#", 2, "", "0.02,0,0.089", "90,180,180"})
-  asmlib.GetCategory("PHX Tubes Plastic",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/hunter/","")
-    local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("PHX Tubes Plastic",[[function(m)
+    local g = m:gsub("models/hunter/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); return r end]])
   PIECES:Record({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
   PIECES:Record({"models/hunter/misc/platehole1x1a.mdl", "#", "#", 2, "", "0,0,-1.5", " 90,180,180"})
   PIECES:Record({"models/hunter/misc/platehole1x1b.mdl", "#", "#", 1, "", "0,0, 1.5", "-90,  0,180"})
@@ -3131,16 +3236,14 @@ else
   PIECES:Record({"models/hunter/tubes/tube4x4x16d.mdl", "#", "#", 2, "", "0,0,-379.6"   , " 90,0, 0 "})
   PIECES:Record({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 1, "", "0, 94.9,0" , "0,90,90"})
   PIECES:Record({"models/hunter/tubes/tubebend4x4x90.mdl", "#", "#", 2, "", "0,0,-94.9" , "90,-180,180"})
-  asmlib.GetCategory("G Scale Track Pack",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/gscale/","")
-    local s = r:find("/"); r = s and r:sub(1,s-1) or nil
-    if    (r == "j") then r = "J-Switcher"
-    elseif(r == "s") then r = "S-Switcher"
-    elseif(r == "c0512") then r = "Curve 512"
-    elseif(r == "ibeam") then r = "Iron Beam"
-    elseif(r == "ramp313") then r = "Ramp 313"
-    else r = ("_"..r):gsub("_%w", conv):sub(2,-1) end return {r} end]])
+  asmlib.Categorize("G Scale Track Pack",[[function(m)
+      local g = m:gsub("models/gscale/","")
+      local r = g:match(".-/"):sub(1, -2)
+      if    (r == "j") then r = "j switcher"
+      elseif(r == "s") then r = "s switcher"
+      elseif(r == "c0512") then r = "curve 512"
+      elseif(r == "ibeam") then r = "iron beam"
+      elseif(r == "ramp313") then r = "ramp 313" end; return r; end]])
   PIECES:Record({"models/gscale/straight/s0008.mdl", "#", "#", 1, "", "   0,0,1.016"})
   PIECES:Record({"models/gscale/straight/s0008.mdl", "#", "#", 2, "", "  -8,0,1.016", "0,-180,0"})
   PIECES:Record({"models/gscale/straight/s0016.mdl", "#", "#", 1, "", "   0,0,1.016"})
@@ -3243,11 +3346,16 @@ else
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 1, "", "   0,0,1.016"})
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 2, "", "-256,0,1.016", "0,-180,0"})
   PIECES:Record({"models/gscale/siding/r225_t.mdl", "#", "#", 3, "", "-392,78,1.016", "0,-180,0"})
-  asmlib.GetCategory("Ron's Minitrain Props",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/ron/minitrains/","")
-    local s = r:find("/"); o = {s and r:sub(1,s-1) or "other"}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("Ron's Minitrain Props",[[function(m)
+    local g = m:gsub("models/ron/minitrains/","")
+    local r = g:match(".-/"):sub(1, -2)
+    if(r == "elevations") then
+      local s = g:gsub(r.."/", ""):gsub("/.+$", "")
+      local n = g:match("[\\/]([^/\\]+)$"):gsub("%.mdl","")
+      local p = n:match(".-_")
+      if(p) then p = p:sub(1, -2)
+        if(r:find(p)) then n = n:gsub(p, ""):sub(2,-1) end
+      end; return {r, s}, n; end; return r; end]])
   PIECES:Record({"models/ron/minitrains/straight/1.mdl",   "#", "#", 1, "", " 0, 8.507, 1"})
   PIECES:Record({"models/ron/minitrains/straight/1.mdl",   "#", "#", 2, "", "-1, 8.507, 1", "0,-180,0"})
   PIECES:Record({"models/ron/minitrains/straight/2.mdl",   "#", "#", 1, "", " 0, 8.507, 1"})
@@ -3324,11 +3432,13 @@ else
   PIECES:Record({"models/ron/minitrains/elevations/ramps/elevation_ramp_512.mdl", "#", "#", 2, "", "0,528,33", "0, 90,0"})
   PIECES:Record({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 1, "", "0, 64,33", "0, 90,0"})
   PIECES:Record({"models/ron/minitrains/elevations/straight/bridge.mdl", "#", "#", 2, "", "0,-64,33", "0,-90,0"})
-  asmlib.GetCategory("SligWolf's White Rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/sligwolf/rails/","")
-    local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("SligWolf's White Rails",[[function(m)
+    local g = m:gsub("models/sligwolf/rails/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local t, n = g:match(".-_"), g:gsub("%.mdl","")
+    if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+      if(r:find(t)) then n = n:gsub(t.."_", "") end
+    end; return r, n; end]])
   PIECES:Record({"models/sligwolf/rails/straight_128.mdl" , "#", "#", 1, "", "   0,-46,6.625"})
   PIECES:Record({"models/sligwolf/rails/straight_128.mdl" , "#", "#", 2, "", "-128,-46,6.625", "0,-180,0"})
   PIECES:Record({"models/sligwolf/rails/straight_256.mdl" , "#", "#", 1, "", "   0,-46,6.625"})
@@ -3353,11 +3463,9 @@ else
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 1, "", "0,-46,6.625", "","gmod_sw_modelpack_switch_l"})
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 2, "", "-768,-46,6.625", "0,-180,0","gmod_sw_modelpack_switch_l"})
   PIECES:Record({"models/sligwolf/rails/switch_225_l.mdl", "#", "#", 3, "", "-766.132,-198.393, 6.625", "0,-157.5,0","gmod_sw_modelpack_switch_l"})
-  asmlib.GetCategory("SligWolf's Minihover",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/sligwolf/minihover/hover_","")
-    local v = r:gmatch("%a+")(); local o = {(v and v or "other")}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("SligWolf's Minihover",[[function(m)
+    local n = m:gsub("models/sligwolf/minihover/hover_","")
+    local r = n:match("%a+"); n = n:gsub("%.mdl",""); return r, n; end]])
   PIECES:Record({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 1, "", " 104, 32,5.81"})
   PIECES:Record({"models/sligwolf/minihover/hover_straight_x4_small.mdl"     , "#", "#", 2, "", "-104, 32,5.81", "0,-180,0"})
   PIECES:Record({"models/sligwolf/minihover/hover_straight_x4_mid.mdl"       , "#", "#", 1, "", " 208, 32,5.81"})
@@ -3452,11 +3560,16 @@ else
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90.mdl"            , "#", "#", 2, "", "528,431.999939,5.81", "0,90,0"})
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 1, "", "9.2e-005,95.999756,5.81", "0,180,0"})
   PIECES:Record({"models/sligwolf/minihover/hover_curve_3_90_i.mdl"          , "#", "#", 2, "", "527.999756,-431.999878,5.81", "0,-90,0"})
-  asmlib.GetCategory("Transrapid",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/ron/maglev/",""):gsub("[\\/]([^\\/]+)$","");
-    if(r:find("track")) then r = r:gsub("track/","")
-    elseif(r:find("support")) then r = nil end; return r and {("_"..r):gsub("_%w",conv):sub(2,-1)} end]])
+  asmlib.Categorize("Transrapid",[[function(m)
+      local g = m:gsub("models/ron/maglev/",""):gsub("/","_")
+            g = g:gsub("[\\/]([^\\/]+)$",""):gsub("%.mdl","")
+      local r = g:match(".-_"):sub(1, -2)
+      if(r == "track") then g = g:gsub(r.."_", "")
+        r = g:match(".-_"):sub(1, -2) else return nil end
+      local t, n = g:match(".-_"), g:gsub(r.."_", "")
+      if(t) then t = t:sub(1, -2); g = g:gsub(t.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; return r, n; end]])
   PIECES:Record({"models/ron/maglev/support/support_a.mdl", "#", "#", 1, "", "0,0,3.984", "0,-180,0"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 1, "", " 64,0,3.984"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_128.mdl", "#", "#", 2, "", "-64,0,3.984", "0,-180,0"})
@@ -3476,11 +3589,15 @@ else
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096.mdl", "#", "#", 2, "", "-2048,0,3.984", "0,-180,0"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 1, "", " 2048,0,3.984"})
   PIECES:Record({"models/ron/maglev/track/straight/straight_4096_support.mdl", "#", "#", 2, "", "-2048,0,3.984", "0,-180,0"})
-  asmlib.GetCategory("Battleship's abandoned rails",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/craptrax/","")
-    local s = r:find("[^%a]"); r = s and r:sub(1,s-1) or nil
-    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1) or nil)} end]])
+  asmlib.Categorize("Battleship's abandoned rails",[[function(m)
+    local g = m:gsub("models/craptrax/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    if(r:find("straight")) then r = "straight"
+    elseif(r:find("curve")) then r = "curve"
+    elseif(r:find("switch")) then r = "switch" end
+    local t = n:match(r.."_")
+    if(t) then n = n:gsub(t,"") end; return r, n; end]])
   PIECES:Record({"models/craptrax/straight1x/straight_1x_nodamage.mdl", "#", "#", 1, "", " 64,0,-16.110403"})
   PIECES:Record({"models/craptrax/straight1x/straight_1x_nodamage.mdl", "#", "#", 2, "", "-64,0,-16.110403", "0,-180,0"})
   PIECES:Record({"models/craptrax/straight1x/straight_1x_damaged.mdl" , "#", "#", 1, "", " 64,0,-16.110403"})
@@ -3531,10 +3648,11 @@ else
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 1, "", " 512,0,-16.110403"})
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 2, "", "-512,0,-16.110403", "0,180,0"})
   PIECES:Record({"models/craptrax/switch_right_std/switch_right_base_std.mdl", "#", "#", 3, "", "-454.48437,128.0936,-16.110403", "0,165,0"})
-  asmlib.GetCategory("AlexCookie's 2ft track pack",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:gsub("models/alexcookie/2ft/",""):gsub("[\\/]([^\\/]+)$","");
-    return {(r and ("_"..r):gsub("_%w",conv):sub(2,-1))} end]])
+  asmlib.Categorize("AlexCookie's 2ft track pack",[[function(m)
+    local g = m:gsub("models/alexcookie/2ft/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = n:match(r.."_"); if(t) then n = n:gsub(t,"") end; return r, n; end]])
   PIECES:Record({"models/alexcookie/2ft/misc/end1.mdl", "#", "#", 1, "", "0,0,13.04688"})
   PIECES:Record({"models/alexcookie/2ft/straight/straight_32.mdl", "#", "#", 1, "", "32,0,13.04688"})
   PIECES:Record({"models/alexcookie/2ft/straight/straight_32.mdl", "#", "#", 2, "", "0 ,0,13.04688", "0,-180,0"})
@@ -3562,18 +3680,12 @@ else
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 1, "", "0,0,13.04688"})
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 2, "", "-512,0,13.04688", "0,-180,0"})
   PIECES:Record({"models/alexcookie/2ft/switch/switch_90_right_1.mdl", "#", "#", 3, "", "-480,480,13.04688", "0,90,0"})
-  asmlib.GetCategory("Joe's track pack",[[function(m)
-    local function split(s)
-      local o, k = {s}, 1
-      local f, b = o[k]:find("/")
-      while(f and b) do
-        o[k + 1] = o[k]:sub(b + 1, -1)
-        o[k] = o[k]:sub(1, f -1):gsub("^%l", string.upper)
-        k = k + 1; f, b = o[k]:find("/")
-      end; o[k] = o[k]:gsub("^%l", string.upper); return o
-    end; local r = m:gsub("models/joe/jtp/",""):gsub("[\\/]*([^\\/]+)$","")
-    return ((r ~= "") and split(r) or nil)
-  end]])
+  asmlib.Categorize("Joe's track pack",[[function(m)
+    local g = m:gsub("models/joe/jtp/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = r:find("/")
+    if(t) then return {r:sub(1, t-1), r:sub(t+1, -1)}, n end; return r, n; end]])
   PIECES:Record({"models/joe/jtp/switch/1536/225_left_switch.mdl", "#", "#", 1, "", "0,0,6.56348", "0,90,0"})
   PIECES:Record({"models/joe/jtp/switch/1536/225_left_switch.mdl", "#", "#", 2, "", "0,-512,6.56348", "0,-90,0"})
   PIECES:Record({"models/joe/jtp/switch/1536/225_left_switch.mdl", "#", "#", 3, "", "117,-588,6.56348", "0,-67.5,0"})
@@ -3640,10 +3752,12 @@ else
   PIECES:Record({"models/joe/jtp/turntable/base_1.mdl", "#", "#", 2, "", "-450,0,2.59372", "0,-180,0"})
   PIECES:Record({"models/joe/jtp/curve/1536.mdl", "#", "#", 1, "", "0,0,6.56348"})
   PIECES:Record({"models/joe/jtp/curve/1536.mdl", "#", "#", 2, "", "-1536,1536,6.56348", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 1, "", "0,0,6.56348", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.56348"})
-  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0.0014,6.56348"})
+  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0,6.5625"})
   PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 2, "", "-2005,2005,6.5625", "0,90,0"})
+  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,90,0"})
+  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.5625"})
+  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,-90,0"})
+  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 2, "", "-3072,3072,6.5625", "0,180,0"})
   PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 1, "", "0,-256,-1.43457", "0,-90,0"})
   PIECES:Record({"models/joe/jtp/grades/512_16.mdl", "#", "#", 2, "", "0, 256,14.56738", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/512_32.mdl", "#", "#", 1, "", "0,0,6.56152", "0,-90,0"})
@@ -3685,17 +3799,15 @@ else
   PIECES:Record({"models/joe/jtp/grades/curve/4096_48_left.mdl", "#", "#", 2, "", "3072,-3072,54.56152"})
   PIECES:Record({"models/joe/jtp/grades/curve/4096_64_right.mdl", "#", "#", 1, "", "0,0,6.56152", "0,90,0"})
   PIECES:Record({"models/joe/jtp/grades/curve/4096_64_right.mdl", "#", "#", 2, "", "-4096,-4096,70.56152", "0,-180,0"})
-  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 1, "", "0,0,6.5625"})
-  PIECES:Record({"models/joe/jtp/curve/2304_90.mdl", "#", "#", 2, "", "-2005,2005,6.5625", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,90,0"})
-  PIECES:Record({"models/joe/jtp/curve/2048_90.mdl", "#", "#", 2, "", "1769,-1769,6.5625"})
-  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 1, "", "0,0,6.5625", "0,-90,0"})
-  PIECES:Record({"models/joe/jtp/curve/3072_90.mdl", "#", "#", 2, "", "-3072,3072,6.5625", "0,180,0"})
-  asmlib.GetCategory("StevenTechno's Buildings 2.0",[[function(m)
-    local function conv(x) return " "..x:sub(2,2):upper() end
-    local r = m:match("/.*/"):sub(2,-2):match("/.*$"):sub(2,-1)
-    if(r == "") then return nil end; local o = {r}
-    for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o end]])
+  asmlib.Categorize("StevenTechno's Buildings 2.0",[[function(m)
+    local g = m:gsub("models/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = r:find("/")
+    if(t) then r, g = r:sub(1, t-1), r:sub(t+1, -1)
+      if(r:find("road")) then r = "roads"
+      elseif(r:find("building")) then r = "buildings" end
+      return {r, g}, n end; return r, n; end]])
   asmlib.ModelToNameRule("SET",nil,{"^[%d-_]*",""},nil)
   PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 1, "", "0,0,3.03125"})
   PIECES:Record({"models/roads_pack/single_lane/0-0_single_lane_x1.mdl", "#", "#", 2, "", "-72,0,3.03125", "0,-180,0"})
@@ -3929,7 +4041,9 @@ else
   PIECES:Record({"models/roads_pack/highway_turns/6-0_highway_turn_a.mdl", "#", "#", 2, "", "-628,546,314.03125", "0,90,0"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 1, "", "0,0,315.03125"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 2, "", "-2860,2860,315.03125", "0,90,0"})
-  asmlib.GetCategory("Modular canals")
+  asmlib.Categorize("Modular canals",[[function(m)
+    local n = m:gsub("models/props_d47_canals/interior_","")
+    local r = n:match("%a+"); n = n:gsub("%.mdl",""); return r, n; end]])
   PIECES:Record({"models/props_d47_canals/interior_narrow_128.mdl", "#", "#", 1, "", "64,64,0"})
   PIECES:Record({"models/props_d47_canals/interior_narrow_128.mdl", "#", "#", 2, "", "-64,64,0", "0,-180,0"})
   PIECES:Record({"models/props_d47_canals/interior_narrow_256.mdl", "#", "#", 1, "", "128,0,0"})
@@ -3978,6 +4092,72 @@ else
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 2, "", "0,-256,0", "0,-90,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 3, "", "-256,0,0", "0,180,0"})
   PIECES:Record({"models/props_d47_canals/interior_wide_xjunc.mdl", "#", "#", 4, "", "0,256,0", "0,90,0"})
+  asmlib.Categorize("Trackmania United Props",[[function(m)
+    local g = m:gsub("models/nokillnando/trackmania/ground/", "")
+    local r = g:match(".+/"):sub(1,-2); return r; end]])
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 1, "", " 480,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightx1.mdl", "#", "#", 2, "", "-480,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/dipmiddle.mdl", "#", "#", 1, "", " 477.1748,0,65.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/dipmiddle.mdl", "#", "#", 2, "", "-482.8252,0,65.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclenomiddle.mdl", "#", "#", 1, "", " 477.1748,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclenomiddle.mdl", "#", "#", 2, "", "-482.8252,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclex.mdl", "#", "#", 1, "", " 477.1748,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/obstaclex.mdl", "#", "#", 2, "", "-482.8252,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillardouble.mdl", "#", "#", 1, "", " 477.1748,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillardouble.mdl", "#", "#", 2, "", "-482.8252,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillarmiddle.mdl", "#", "#", 1, "", " 477.1748,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillarmiddle.mdl", "#", "#", 2, "", "-482.8252,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillartriple.mdl", "#", "#", 1, "", " 477.1748,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/obstacle/pillartriple.mdl", "#", "#", 2, "", "-482.8252,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/boost.mdl", "#", "#", 1, "", " 478.86475,0,5.65527"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/boost.mdl", "#", "#", 2, "", "-481.13525,0,5.65527", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/straightstart.mdl", "#", "#", 1, "", "-122.82617,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/straight/trackstart.mdl", "#", "#", 1, "", "-9.6377,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 1, "", "1983.89588,1142.77014,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigleft.mdl", "#", "#", 2, "", "-1856.09961,-777.21912,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 1, "", " 1983.89088,-1142.76953,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/sbigright.mdl", "#", "#", 2, "", "-1856.09950,777.21912,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yout.mdl", "#", "#", 1, "", "-27.11389,0,5.65723", "0,180,0", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yout.mdl", "#", "#", 2, "", "1412.886,-1440,5.65723", "0,-90,0", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yout.mdl", "#", "#", 3, "", "1412.886,1440,5.65723", "0,90,0", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yin.mdl", "#", "#", 1, "", "-31.29919,0,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yin.mdl", "#", "#", 2, "", "1888.66163,-960,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/yin.mdl", "#", "#", 3, "", "1888.66163,960,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 1, "", "477.174,0.00024,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 2, "", "-2.69753,-479.99927,5.65723", "0,-90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 3, "", "-482.82501,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/x.mdl", "#", "#", 4, "", "-2.82444,479.99878,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/t.mdl", "#", "#", 1, "", "13.46277,465.00085,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/t.mdl", "#", "#", 2, "", "-465.00076,-14.71875,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/t.mdl", "#", "#", 3, "", "492.17401,-14.99945,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/l.mdl", "#", "#", 1, "", "-391.19399,-91.63025,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/l.mdl", "#", "#", 2, "", "88.80608,388.36523,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/90med.mdl", "#", "#", 1, "", "700.11916,1697.05518,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/90med.mdl", "#", "#", 2, "", "-1699.87913,-702.94385,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/90small.mdl", "#", "#", 1, "", "418.94192,1018.23267,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/90small.mdl", "#", "#", 2, "", "-1021.05686,-421.76636,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/90big.mdl", "#", "#", 1, "", "-2378.70115,-984.12146,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/90big.mdl", "#", "#", 2, "", "981.29665,2375.87769,5.65723", "0,90,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/loopleft.mdl", "#", "#", 1, "", "31.69263,15,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/loopleft.mdl", "#", "#", 2, "", "31.69263,-1905,2574.34", "0,0,180", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/loopright.mdl", "#", "#", 1, "", "28.85986,-15,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/loopright.mdl", "#", "#", 2, "", "28.85986,1905,2574.34", "0,0,180", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/smedleft.mdl", "#", "#", 1, "", " 1351.56785,517.28467,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/smedleft.mdl", "#", "#", 2, "", "-1528.42796,-442.71533,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/smedright.mdl", "#", "#", 1, "", "1430.14109,-565.99805,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/smedright.mdl", "#", "#", 2, "", "-1449.85471,394.00171,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/ssmallright.mdl", "#", "#", 1, "", "958.12327,-530.2124,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/ssmallright.mdl", "#", "#", 2, "", "-961.83323,429.78589,5.65723", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/ssmallleft.mdl", "#", "#", 1, "", "958.12136,480.43057,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/turns/ssmallleft.mdl", "#", "#", 2, "", "-961.83547,-479.56793,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/startingpoint.mdl", "#", "#", 1, "", "-477.88706,0.09363,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/endingpoint.mdl", "#", "#", 1, "", "255,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/endingpoint.mdl", "#", "#", 2, "", "-255,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/checkpoint.mdl", "#", "#", 1, "", " 480,0,5.65723"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/checkpoint.mdl", "#", "#", 2, "", "-480,0,5.65723", "0,-180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/misc/checkpointground.mdl", "#", "#", 1, "", "-180,0,0", "0,180,0"})
+  PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumplow.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
+  PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumphigh.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
@@ -3988,7 +4168,7 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
   local PHYSPROPERTIES = asmlib.GetBuilderNick("PHYSPROPERTIES"); asmlib.ModelToNameRule("CLR")
-  asmlib.GetCategory("Special")
+  asmlib.Categorize("Special")
   PHYSPROPERTIES:Record({"#", 1 , "default"             })
   PHYSPROPERTIES:Record({"#", 2 , "default_silent"      })
   PHYSPROPERTIES:Record({"#", 3 , "floatingstandable"   })
@@ -3997,13 +4177,13 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 6 , "no_decal"            })
   PHYSPROPERTIES:Record({"#", 7 , "player"              })
   PHYSPROPERTIES:Record({"#", 8 , "player_control_clip" })
-  asmlib.GetCategory("Concrete")
+  asmlib.Categorize("Concrete")
   PHYSPROPERTIES:Record({"#", 1 , "brick"          })
   PHYSPROPERTIES:Record({"#", 2 , "concrete"       })
   PHYSPROPERTIES:Record({"#", 3 , "concrete_block" })
   PHYSPROPERTIES:Record({"#", 4 , "gravel"         })
   PHYSPROPERTIES:Record({"#", 5 , "rock"           })
-  asmlib.GetCategory("Metal")
+  asmlib.Categorize("Metal")
   PHYSPROPERTIES:Record({"#", 1 , "canister"              })
   PHYSPROPERTIES:Record({"#", 2 , "chain"                 })
   PHYSPROPERTIES:Record({"#", 3 , "chainlink"             })
@@ -4028,14 +4208,14 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 22, "solidmetal"            })
   PHYSPROPERTIES:Record({"#", 23, "strider"               })
   PHYSPROPERTIES:Record({"#", 24, "weapon"                })
-  asmlib.GetCategory("Wood")
+  asmlib.Categorize("Wood")
   PHYSPROPERTIES:Record({"#", 1 , "wood"          })
   PHYSPROPERTIES:Record({"#", 2 , "Wood_Box"      })
   PHYSPROPERTIES:Record({"#", 3 , "Wood_Furniture"})
   PHYSPROPERTIES:Record({"#", 4 , "Wood_Plank"    })
   PHYSPROPERTIES:Record({"#", 5 , "Wood_Panel"    })
   PHYSPROPERTIES:Record({"#", 6 , "Wood_Solid"    })
-  asmlib.GetCategory("Terrain")
+  asmlib.Categorize("Terrain")
   PHYSPROPERTIES:Record({"#", 1 , "dirt"          })
   PHYSPROPERTIES:Record({"#", 2 , "grass"         })
   PHYSPROPERTIES:Record({"#", 3 , "gravel"        })
@@ -4044,20 +4224,20 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 6 , "sand"          })
   PHYSPROPERTIES:Record({"#", 7 , "slipperyslime" })
   PHYSPROPERTIES:Record({"#", 8 , "antlionsand"   })
-  asmlib.GetCategory("Liquid")
+  asmlib.Categorize("Liquid")
   PHYSPROPERTIES:Record({"#", 1 , "slime" })
   PHYSPROPERTIES:Record({"#", 2 , "water" })
   PHYSPROPERTIES:Record({"#", 3 , "wade"  })
-  asmlib.GetCategory("Frozen")
+  asmlib.Categorize("Frozen")
   PHYSPROPERTIES:Record({"#", 1 , "snow"      })
   PHYSPROPERTIES:Record({"#", 2 , "ice"       })
   PHYSPROPERTIES:Record({"#", 3 , "gmod_ice"  })
-  asmlib.GetCategory("Miscellaneous")
+  asmlib.Categorize("Miscellaneous")
   PHYSPROPERTIES:Record({"#", 1 , "carpet"       })
   PHYSPROPERTIES:Record({"#", 2 , "ceiling_tile" })
   PHYSPROPERTIES:Record({"#", 3 , "computer"     })
   PHYSPROPERTIES:Record({"#", 4 , "pottery"      })
-  asmlib.GetCategory("Organic")
+  asmlib.Categorize("Organic")
   PHYSPROPERTIES:Record({"#", 1 , "alienflesh"  })
   PHYSPROPERTIES:Record({"#", 2 , "antlion"     })
   PHYSPROPERTIES:Record({"#", 3 , "armorflesh"  })
@@ -4066,7 +4246,7 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   PHYSPROPERTIES:Record({"#", 6 , "foliage"     })
   PHYSPROPERTIES:Record({"#", 7 , "watermelon"  })
   PHYSPROPERTIES:Record({"#", 8 , "zombieflesh" })
-  asmlib.GetCategory("Manufactured")
+  asmlib.Categorize("Manufactured")
   PHYSPROPERTIES:Record({"#", 1 , "jeeptire"                })
   PHYSPROPERTIES:Record({"#", 2 , "jalopytire"              })
   PHYSPROPERTIES:Record({"#", 3 , "rubber"                  })
@@ -4100,5 +4280,5 @@ else
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-asmlib.LogInstance("Ver."..asmlib.GetOpVar("TOOL_VERSION"),gtInitLogs)
+asmlib.LogInstance("Version: "..asmlib.GetOpVar("TOOL_VERSION"), gtInitLogs)
 collectgarbage()

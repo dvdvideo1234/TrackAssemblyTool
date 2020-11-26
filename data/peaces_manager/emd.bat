@@ -3,7 +3,6 @@ setlocal enabledelayedexpansion
 
 :: The location of the script ( Do not change )
 set emd_chew_pathb=%~dp0
-echo Running in: %emd_chew_pathb%
 
 :: The path to Garry's mod
 set emd_chew_gmod=F:\Games\Steam\steamapps\common\GarrysMod
@@ -14,14 +13,18 @@ set emd_chew_addon=%emd_chew_gmod%\garrysmod\addons
 :: Location of "gmad.exe"
 set emd_chew_binloc=%emd_chew_gmod%\bin
 
-:: The path to the "trackassembly_init.lua"
-set emd_chew_dbase=%emd_chew_addon%\TrackAssemblyTool_GIT\lua\autorun\trackassembly_init.lua
+:: Repository local clone locatioon
+set emd_chew_repo=%emd_chew_addon%\TrackAssemblyTool_GIT
+
+:: The path to the "garrysmod/data/trackassembly/trackasmlib_db.txt"
+:: Such file is generated when tool control panel is refreshed in developer mode
+set emd_chew_dbase=%emd_chew_gmod%\garrysmod\data\trackassembly\trackasmlib_db.txt
 
 :: The path to the skipped models list
-set emd_chew_skip=%emd_chew_addon%\TrackAssemblyTool_GIT\data\peaces_manager\models_ignored.txt
+set emd_chew_skip=%emd_chew_repo%\data\peaces_manager\models_ignored.txt
 
 :: How many addons are to be processed
-set emd_chew_addcnt=15
+set emd_chew_addcnt=16
 
 :: GMA addons to be processed
 set emd_chew_addlst[1]=sligwolfs_minitrains_149759773
@@ -39,6 +42,7 @@ set emd_chew_addlst[12]=battleships_abandoned_rails(penn_central_simulator_2017)
 set emd_chew_addlst[13]=alexcookies_2ft_track_pack_740453553
 set emd_chew_addlst[14]=joes_track_pack_1658816805
 set emd_chew_addlst[15]=steventechnos_buildings_and_roads_pack_2.0_1888013789
+set emd_chew_addlst[16]=trackmania_united_track_props_1955876643
 
 :: Folder list for extraction and the directories they will be extracted
 set emd_chew_adddir[1]=SligWolf's Minitrains
@@ -56,8 +60,11 @@ set emd_chew_adddir[12]=Battleship's abandoned rails
 set emd_chew_adddir[13]=AlexCookie's 2ft track pack
 set emd_chew_adddir[14]=Joe's track pack
 set emd_chew_adddir[15]=StevenTechno's Buildings 2.0
+set emd_chew_adddir[16]=Trackmania United Props
 
 :: AUTOMATIC STUFF ::
+
+echo Running in: %emd_chew_pathb%
 
 :: Output file for models list
 set emd_chew_modls=models_list
@@ -71,8 +78,8 @@ del %emd_chew_pathb%%emd_clog_lfile%.txt
 for /L %%k in (1,1,%emd_chew_addcnt%) do (
   cd %emd_chew_pathb%
   rd /S /Q "!emd_chew_adddir[%%k]!"
-  call %emd_chew_binloc%\gmad.exe extract -file "%emd_chew_addon%\!emd_chew_addlst[%%k]!.gma" -out "%emd_chew_pathb%!emd_chew_adddir[%%k]!"
-  echo [%%k]!emd_chew_adddir[%%k]! >> %emd_clog_lfile%.txt
+  call %emd_chew_binloc%\gmad.exe extract -file "%emd_chew_addon%\!emd_chew_addlst[%%k]!.gma" -out "%emd_chew_pathb%!emd_chew_adddir[%%k]!" >> %emd_clog_lfile%.txt
+  echo [%%k]!emd_chew_adddir[%%k]! @ %TIME%
 )
 
 :: Get all the model files in the current directory
