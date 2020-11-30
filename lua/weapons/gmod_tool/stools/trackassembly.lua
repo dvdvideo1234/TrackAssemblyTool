@@ -711,7 +711,7 @@ function TOOL:SetFlipOver(trEnt)
   asmlib.SetAsmConvar(oPly, "flipoverid", tableConcat(tF, sYm))
 end
 
-function TOOL:ClearFlipOver(bSync, bMute)
+function TOOL:ClearFlipOver(bMute)
   local ply = self:GetOwner()
   local tF, nF = self:GetFlipOver()
   for iD = 1, nF do local eID = EntityID(tF[iD])
@@ -1073,7 +1073,7 @@ function TOOL:LeftClick(stTrace)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
     end)
     goThQueue:OnFinish(ply, function(oPly, oArg)
-      local nU, sM = #oArg.eundo, gsUndoPrefN..stringGetFileName(model)
+      local nU, sM = #oArg.eundo, gsUndoPrefN..fnmodel
       if(stackcnt > 0) then
         asmlib.UndoCrate(sM.." ( Curve #"..stackcnt.." )")
       else asmlib.UndoCrate(sM.." ( Curve )") end
@@ -1136,7 +1136,7 @@ function TOOL:LeftClick(stTrace)
     end)
     goThQueue:OnFinish(ply, function(oPly, oArg)
       local nU = #oArg.eundo
-      asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(oArg.ients, model).." ( Over )")
+      asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(oArg.ients, fnmodel).." ( Over )")
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
       asmlib.UndoFinish(oPly)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
@@ -2072,6 +2072,7 @@ end
 
 -- Enter `spawnmenu_reload` in the console to reload the panel
 function TOOL.BuildCPanel(CPanel)
+  asmlib.SetAsmConvar(nil, "flipoverid") -- Reset flip-over mode on pickup
   CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
   local drmSkin, sLog = CPanel:GetSkin(), "*TOOL.BuildCPanel"
   local devmode = asmlib.GetAsmConvar("devmode", "BUL")
