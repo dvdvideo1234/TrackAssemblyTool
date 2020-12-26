@@ -1627,8 +1627,8 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
   local fky = asmlib.GetOpVar("FORM_DRWSPKY")
   local w,h = oScreen:GetSize()
-  oScreen:SetTextEdge(0,230)
-  oScreen:DrawText(tostring(arK.Name),sCol,sMeth,tArgs)
+  oScreen:SetTextStart(0, 230)
+  oScreen:DrawText(tostring(arK.Name), sCol, sMeth, tArgs)
   while(arK[iD]) do local def, iK = arK[iD], 1
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
     while(def[iK]) do local row = def[iK]
@@ -1657,9 +1657,10 @@ function TOOL:DrawRelateIntersection(oScreen, oPly)
   local Rp, nLn = rOrg:ToScreen(), self:GetSizeUCS()
   local Rf = (rOrg + nLn * rDir:Forward()):ToScreen()
   local Ru = (rOrg + nLn * 0.5 * rDir:Up()):ToScreen()
+  local nR = asmlib.GetViewRadius(oPly, rOrg)
   oScreen:DrawLine(Rp, Rf, "r")
   oScreen:DrawLine(Rp, Ru, "b")
-  oScreen:DrawCircle(Rp, asmlib.GetViewRadius(oPly, rOrg), "y", "SEGM", {35})
+  oScreen:DrawCircle(Rp, nR, "y", "SEGM", {35})
   return Rp, Rf, Ru
 end
 
@@ -1865,8 +1866,8 @@ function TOOL:DrawProgress(hudMonitor, oPly)
     xyS.x, xyS.y = ((nPrg / 100) * (xyS.x - 2 * nD)), (xyS.y - 2 * nD)
     xyP.x, xyP.y = ((nW / 2) - (xyS.x / 2)), (xyP.y + nD)
     hudMonitor:DrawRect(xyP, xyS,"pf","SURF",{"vgui/white", nil, 4})
-    local xyC = asmlib.NewXY(xyP.x + xyS.x / 2, xyP.y + xyS.y / 2)
-    hudMonitor:DrawTextCenter(xyC, fP:format(nPrg), "k", "SURF", {"Trebuchet24"})
+    local ncX, ncY = (xyP.x + xyS.x / 2), (xyP.y + xyS.y / 2)
+    hudMonitor:SetTextStart(ncX, ncY):DrawText(fP:format(nPrg), "k", "SURF", {"Trebuchet24", true})
   end
 end
 
@@ -1964,7 +1965,7 @@ function TOOL:DrawHUD()
         self:DrawRelateIntersection(hudMonitor, oPly) end
       if(not self:GetDeveloperMode()) then return end
       local x,y = hudMonitor:GetCenter(10,10)
-      hudMonitor:SetTextEdge(x,y)
+      hudMonitor:SetTextStart(x, y)
       hudMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
       hudMonitor:DrawText("Org ANG: "..tostring(aAng))
     else -- Relative to the active Point
@@ -2001,26 +2002,26 @@ function TOOL:DrawToolScreen(w, h)
   if(not scrTool) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
   local xyT, xyB = scrTool:GetCorners()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
-  scrTool:SetTextEdge(xyT.x,xyT.y)
+  scrTool:SetTextStart(xyT.x, xyT.y)
   local oPly = LocalPlayer()
   local stTrace = asmlib.GetCacheTrace(oPly)
   local anInfo, anEnt = self:GetAnchor()
   local tInfo = gsSymRev:Explode(anInfo)
   if(not (stTrace and stTrace.Hit)) then
     scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
-    scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an"); return nil
+    scrTool:DrawTextRe("  ["..(tInfo[1] or gsNoID).."]","an"); return nil
   end
   scrTool:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
-  scrTool:DrawTextAdd("  ["..(tInfo[1] or gsNoID).."]","an")
+  scrTool:DrawTextRe("  ["..(tInfo[1] or gsNoID).."]","an")
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not asmlib.IsHere(hdRec)) then
     scrTool:DrawText("Holds Model: Invalid","r")
-    scrTool:DrawTextAdd("  ["..gsModeDataB.."]","db")
+    scrTool:DrawTextRe("  ["..gsModeDataB.."]","db")
     return
   end
   scrTool:DrawText("Holds Model: Valid","g")
-  scrTool:DrawTextAdd("  ["..gsModeDataB.."]","db")
+  scrTool:DrawTextRe("  ["..gsModeDataB.."]","db")
   local trEnt    = stTrace.Entity
   local workmode = self:GetWorkingMode()
   local actrad   = self:GetActiveRadius()
@@ -2057,7 +2058,8 @@ function TOOL:DrawToolScreen(w, h)
                   ..") [" ..(hdRec.Size or gsNoID).."]","g")
   scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
   scrTool:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
-  local txX, txY, txW, txH, txsX, txsY = scrTool:GetTextState()
+  local txW, txH = scrTool:GetTextStScreen()
+  local txsX, txsY = scrTool:GetTextStLast()
   local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
   local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
   local xyPs = asmlib.NewXY(cPos, cPos)

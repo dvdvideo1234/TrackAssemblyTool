@@ -134,6 +134,7 @@ local renderDrawSphere               = render and render.DrawSphere
 local renderSetMaterial              = render and render.SetMaterial
 local stringGetFileName              = string and string.GetFileFromFilename
 local surfaceSetFont                 = surface and surface.SetFont
+local surfaceDrawPoly                = surface and surface.DrawPoly
 local surfaceDrawLine                = surface and surface.DrawLine
 local surfaceDrawText                = surface and surface.DrawText
 local surfaceDrawCircle              = surface and surface.DrawCircle
@@ -1273,9 +1274,11 @@ end
  * REC - Drawing a rectangle
  * CIR - Drawing a circle
  * UCS - Drawing a coordinate system
+ * PLY - Drawing a polygon
 ]]--
-function GetScreen(sW,sH,eW,eH,conClr,aKey)
+function GetScreen(sW, sH, eW, eH, conClr, aKey)
   if(SERVER) then return nil end
+  local sKeyD, cColD = GetOpVar("KEY_DEFAULT"), GetColor(255,255,255,255)
   local tLogs, tMon = {"GetScreen"}, GetOpVar("TABLE_MONITOR")
   if(IsHere(aKey) and IsHere(tMon) and tMon[aKey]) then -- Return the cached screen
     local oMon = tMon[aKey]; oMon:GetColor(); return oMon end
@@ -1284,35 +1287,36 @@ function GetScreen(sW,sH,eW,eH,conClr,aKey)
   if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid", tLogs); return nil end
   if(eW < 0 or eH < 0) then LogInstance("End dimension invalid", tLogs); return nil end
   local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
-  local Colors = {List = conClr, Key = GetOpVar("KEY_DEFAULT"), Default = GetColor(255,255,255,255)}
+  local Colors = {List = conClr, Key = sKeyD, Default = cColD}
   if(Colors.List) then -- Container check
     if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
       then LogInstance("Color list not container", tLogs); return nil end
   else -- Color list is not present then create one
     Colors.List = GetContainer("COLORS_LIST") -- Default color container
   end
-  local DrawMeth, DrawArgs, Text, TxID = {}, {}, {}, {}
-  Text.DrwX, Text.DrwY = 0, 0
-  Text.ScrW, Text.ScrH = 0, 0
-  Text.LstW, Text.LstH = 0, 0
+  local Text, TxID = {}, {[sKeyD] = "vgui/white"}
+  local DrawMeth, DrawArgs = {}, {}
+  Text.DrwX, Text.DrwY, Text.DrxC, Text.DryC = 0, 0, 0, 0
+  Text.ScrW, Text.ScrH, Text.LstW, Text.LstH = 0, 0, 0, 0
   function self:GetCorners() return xyS, xyE end
-  function self:GetSize() return (eW-sW), (eH-sH) end
-  function self:GetCenter(nX,nY)
+  function self:GetSize() return (eW - sW), (eH - sH) end
+  function self:GetCenter(nX, nY)
     local nW, nH = self:GetSize()
     local nX = (nW / 2) + (tonumber(nX) or 0)
     local nY = (nH / 2) + (tonumber(nY) or 0)
     return nX, nY
   end
   function self:GetMaterial(fC, sP)
-    local tM = TxID[fC] -- Read the function metadata
+    local tM, bP = TxID[fC], IsBlank(tostring(sP or ""))
     if(not tM) then TxID[fC] = {}; tM = TxID[fC] end
-    if(not tM[sP]) then bS, vV = pcall(fC, sP)
+    local vP = tostring(bP and TxID[sKeyD] or sP)
+    if(not tM[vP]) then bS, vV = pcall(fC, vP)
       if(not bS) then -- Report the error in the log
-        LogInstance("Call fail <"..vV..">", tLogs); return nil end
-      tM[sP] = vV -- Store the value in the cache
-    end; return tM[sP] -- Return cached material or texture
+        LogInstance("Error: "..vV, tLogs); return nil end
+      tM[vP] = vV -- Store the value in the cache
+    end; return tM[vP] -- Return cached material or texture
   end
-  function self:GetColor(keyCl,sMeth)
+  function self:GetColor(keyCl, sMeth)
     if(not IsHere(keyCl) and not IsHere(sMeth)) then
       Colors.Key = GetOpVar("KEY_DEFAULT")
       LogInstance("Color reset", tLogs); return self end
@@ -1328,7 +1332,7 @@ function GetScreen(sW,sH,eW,eH,conClr,aKey)
       Colors.Key = keyCl; -- The drawing color for these two methods uses surface library
     end; return rgbCl, keyCl
   end
-  function self:GetDrawParam(sMeth,tArgs,sKey)
+  function self:GetDrawParam(sMeth, tArgs, sKey)
     local sMeth = tostring(sMeth or DrawMeth[sKey])
     if(not DrawArgs[sMeth]) then DrawArgs[sMeth] = {} end
     local tArgs = (tArgs or DrawArgs[sMeth][sKey])
@@ -1339,52 +1343,57 @@ function GetScreen(sW,sH,eW,eH,conClr,aKey)
     DrawMeth[sKey] = sMeth
     DrawArgs[sMeth][sKey] = tArgs; return sMeth, tArgs
   end
-  function self:SetTextEdge(nX,nY)
-    Text.ScrW, Text.ScrH = 0, 0
-    Text.LstW, Text.LstH = 0, 0
-    Text.DrwX = (tonumber(nX) or 0)
-    Text.DrwY = (tonumber(nY) or 0); return self
+  function self:SetTextStart(nX, nY)
+    Text.ScrW, Text.ScrH = 0, 0 -- Rectangle where the text is drawn
+    Text.LstW, Text.LstH = 0, 0 -- The size of the last text drawn
+    Text.DrwX = (tonumber(nX) or 0) -- The location of the last text
+    Text.DrwY = (tonumber(nY) or 0) -- Write draw position to center
+    Text.DrcX, Text.DrcY = Text.DrwX, Text.DrwY; return self
   end
-  function self:GetTextState(nX,nY,nW,nH)
-    return (Text.DrwX + (nX or 0)), (Text.DrwY + (nY or 0)),
-           (Text.ScrW + (nW or 0)), (Text.ScrH + (nH or 0)),
-            Text.LstW, Text.LstH
+  function self:GetTextStDraw(nX, nY)
+    return (Text.DrwX + (tonumber(nX) or 0)), (Text.DrwY + (tonumber(nY) or 0))
   end
-  function self:DrawText(sText,keyCl,sMeth,tArgs)
+  function self:GetTextStScreen(nW, nH)
+    return (Text.ScrW + (tonumber(nW) or 0)), (Text.ScrH + (tonumber(nH) or 0))
+  end
+  function self:GetTextStLast(nX, nY)
+    return (Text.LstW + (tonumber(nW) or 0)), (Text.LstH + (tonumber(nH) or 0))
+  end
+  function self:GetTextStCenter(nX, nY)
+    return (Text.DrxC + (tonumber(nW) or 0)), (Text.DryC + (tonumber(nH) or 0))
+  end
+  function self:DrawText(sText, keyCl, sMeth, tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
-    self:GetColor(keyCl, sMeth)
+    local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
+    local bCen = tobool(tArgs[2]); self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
-      surfaceSetTextPos(Text.DrwX,Text.DrwY); surfaceDrawText(sText)
       Text.LstW, Text.LstH = surfaceGetTextSize(sText)
-      Text.DrwY = Text.DrwY + Text.LstH
+      if(bCen) then
+        Text.DrwX = Text.DrcX - (Text.LstW / 2)
+        Text.DrwY = Text.DrcY - (Text.LstH / 2)
+        Text.DrcY = Text.DrcY + Text.LstH
+      end
+      surfaceSetTextPos(Text.DrwX, Text.DrwY)
+      surfaceDrawText(sText)
+      Text.DrwY = Text.DrwY + Text.LstH; Text.ScrH = Text.DrwY
       if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
-      Text.ScrH = Text.DrwY
     else
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
     end; return self
   end
-  function self:DrawTextAdd(sText,keyCl,sMeth,tArgs)
+  function self:DrawTextRe(sText, keyCl, sMeth, tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
-    self:GetColor(keyCl, sMeth)
+    local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
+    local bCen = tobool(tArgs[2]); self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
       surfaceSetTextPos(Text.DrwX + Text.LstW,Text.DrwY - Text.LstH)
       surfaceDrawText(sText)
-      local LstW, LstH = surfaceGetTextSize(sText)
-      Text.LstW, Text.LstH = (Text.LstW + LstW), LstH
+      local txW, txH = surfaceGetTextSize(sText)
+      Text.LstW, Text.LstH = (Text.LstW + txW), txH
       if(Text.LstW > Text.ScrW) then Text.ScrW = Text.LstW end
       Text.ScrH = Text.DrwY
     else
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
-    end; return self
-  end
-  function self:DrawTextCenter(xyP,sText,keyCl,sMeth,tArgs)
-    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
-    self:GetColor(keyCl, sMeth)
-    if(sMeth == "SURF") then
-      local LstW, LstH = surfaceGetTextSize(sText)
-      LstW, LstH = (LstW / 2), (LstH / 2)
-      surfaceSetTextPos(xyP.x - LstW, xyP.y - LstH)
-      surfaceDrawText(sText)
     end; return self
   end
   function self:Enclose(xyP)
@@ -1447,6 +1456,12 @@ function GetScreen(sW,sH,eW,eH,conClr,aKey)
       LogInstance("Draw method <"..sMeth.."> invalid", tLogs)
     end; return self
   end
+  function self:DrawPoly(tV,keyCl,sMeth,tArgs)
+    local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"PLY")
+    local rgbCl, keyCl = self:GetColor(keyCl,sMeth)
+    surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1]))
+    if(sMeth == "SURF") then surfaceDrawPoly(tV) end; return self
+  end
   function self:DrawCircle(pC,nRad,keyCl,sMeth,tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"CIR")
     local rgbCl, keyCl = self:GetColor(keyCl,sMeth)
@@ -1462,7 +1477,7 @@ function GetScreen(sW,sH,eW,eH,conClr,aKey)
         SetXY(xyOld, xyNew); nItr = (nItr - 1)
       end
     elseif(sMeth == "CAM3") then -- It is a projection of a sphere
-      renderSetMaterial(self:GetMaterial(Material, (tArgs[1] or "color")))
+      renderSetMaterial(self:GetMaterial(Material, tArgs[1]))
       renderDrawSphere (pC,nRad,mathClamp(tArgs[2] or 1,1,200),
                                 mathClamp(tArgs[3] or 1,1,200),rgbCl)
     else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end

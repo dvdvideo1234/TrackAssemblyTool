@@ -1,8 +1,16 @@
+[img=https://i.imgur.com/2txEPIN.gif][/img]
+
 [h1] Description [/h1]
 This script can give you the ability to connect prop-segmented track pieces fast. It is optimized and brings the track building time consuming to a minimum. It uses pre-defined active points to snap the segments the best way there is in Garry's Mod
 
 [h1] Feature List [/h1]
 [list]
+ [*] Tool general convar [url=https://youtu.be/3Ws6Jh3JUew?t=2051]factory reset[/url] can be easily triggered by the server admins
+ [*] Tool convar tweaks is accessible via [url=https://youtu.be/3Ws6Jh3JUew?t=56]dedicated in-game manipulation panel[/url]
+ [*] Context menu for direct track entity [url=https://www.youtube.com/watch?v=mEEpO3w8BLs]value export and manipulation[/url]
+ [*] Optional [url=https://youtu.be/3Ws6Jh3JUew?t=2146]flip-over mode called from spawning/snapping[/url] for quickly flip the anchor across
+ [*] Track segment [url=https://youtu.be/3Ws6Jh3JUew?t=1358]flip over mode for mirroring[/url] already created [url=https://youtu.be/3Ws6Jh3JUew?t=1722]loops and curves[/url]
+ [*] Track segment [url=https://youtu.be/3Ws6Jh3JUew?t=200]curve node interpolation[/url] for building custom track layouts
  [*] Track curve fitting aligment based on [url=https://www.youtube.com/watch?v=1rsDHU79J50]ray intersection for precise piece layout[/url]
  [*] Extendable database via [url=https://www.youtube.com/watch?v=Pz0_RGwgfaY]text file[/url] or a [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua]lua script[/url]
  [*] Extendable database via [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt]text file load list[/url] and [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt]list prefixes[/url] [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt]categories[/url]
@@ -14,7 +22,7 @@ This script can give you the ability to connect prop-segmented track pieces fast
  [*] Snapping/spawning at the mass-center or the active point ( if checked )
  [*] Snapping the first piece yaw to user defined angle
  [*] Snapping already spawned pieces by [url=https://www.youtube.com/watch?v=BxMlZMMGHrs]using only the physgun[/url]
- [*] Fast changing the active track ends ( Alt + mouse scroll. Good switching turns direction )
+ [*] Fast changing the active track ends ( Alt + mouse scroll good switching turns direction )
  [*] Custom user defined active radius based snapping
  [*] Custom active point and radius location assistant
  [*] Custom active point position angle and orientation adviser
@@ -36,11 +44,17 @@ For detailed manual, please refer to Readme.md
 
 Readme: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/readme.md
 
+Wiki page: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki
+
 Git repository: https://github.com/dvdvideo1234/TrackAssemblyTool
 
 Report errors to: https://github.com/dvdvideo1234/TrackAssemblyTool/issues
 
 Releases: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
+
+E2 API: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Wiremod-API
+
+One way turns problem: https://github.com/dvdvideo1234/TrackAssemblyTool#how-can-i-chose-and-select-a-desired-track-end-
 
 Reuploading and source stealing will not be tolerated !
 Selling it is also out of option, as the open source suggests !

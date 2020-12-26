@@ -34,7 +34,12 @@ Also, another great achievement progress is in place, so 10x guys for
 [helping me, help you, help us all](https://www.youtube.com/watch?v=2TZyb0n2DAw) !
 
 #### What kind of features does this script has?
+  * Tool general convar [factory reset](https://youtu.be/3Ws6Jh3JUew?t=2051) can be easily triggered by the server admins
+  * Tool convar tweaks is accessible via [dedicated in-game manipulation panel](https://youtu.be/3Ws6Jh3JUew?t=56)
   * Context menu for direct track entity [value export and manipulation][ref-value-exp]
+  * Optional [flip-over mode called from spawning/snapping](https://youtu.be/3Ws6Jh3JUew?t=2146) for quickly flip the anchor across
+  * Track segment [flip over mode for mirroring](https://youtu.be/3Ws6Jh3JUew?t=1358) already created [url=https://youtu.be/3Ws6Jh3JUew?t=1722]loops and curves[/url]
+  * Track segment [curve node interpolation](https://youtu.be/3Ws6Jh3JUew?t=200) for building custom track layouts
   * Track curve fitting alignment based on [ray intersection for precise piece layout][ref-vid-inters]
   * [Extendible database][ref-dbext] via [text file][ref-text-file] or a [lua script][ref-lua-script]
   * [Extendible database][ref-dbext] via [load list][ref-load-list] and [list prefixes][ref-list-pref]
@@ -146,39 +151,81 @@ set being solid with fading door `CLOSED` function state:
 
 #### How to use the tool control options when building a track ?
 1. Pressing `ATTACK1` ( Def: `Left Mouse Button` )
-  * When you are looking at the world the piece will just be spawned on the map.
-  * When you are looking at one of track piece's pre-defined active points
+  * `CURVE`: Spawns server task to handle segmented curve interpolation on condition:
+    1. The holder piece must be valid database entry.
+    2. Two or more vertices must be present on the curve stack.
+    3. The holder piece must have more than one active points.
+    4. The holder piece start point data must persist in the cache
+    5. The holder piece end point data must persist in the cache
+    6. The holder piece active points distance must be positive
+    7. The holder piece must not be a curving track.
+    8. The holder piece must not be a U-turn track.
+    9. The holder piece must not be a ramp track.
+  * `OVER` : Flips over every entity that is a track present in the flip-over
+    list where for `flip normal` uses trace normal and for `flip origin` trace `OBB`.
+  * When you are looking at the world the piece will be spawned on the map.
+  * When you are looking at one of track piece's predefined active points
     * Will snap the piece that you're holding to the trace one.
-    * If the traced piece's type is different than the holder piece's type,
-      please check `Ignore track type` check-box.
+    * If the traced piece's type is different from the holder piece's type,
+      please check `Ignore track type` check-box to snap it.
     * If `Enable advisor` is checked, a coordinate system will appear,
-      marking the origin position on the traced piece
+      marking the origin position on the traced piece visible.
     * If `Ghosts count` is larger than zero ghosted track pieces will be
       rendered to assist you with the building.
-  * When you are not looking at one of track piece's pre-defined active points,
-    * Pressing `USE` ( Def: `E` ) Applies the physical settings/properties on a piece.
-    * If not, you will update the piece's bodygroups/skin.
-2. Pressing `SPEED` ( Def: `SHIFT` ) + `ATTACK1` ( Def: `Left Mouse Button` )
-  * Will stack as many pieces as shown by the slider `Pieces count`.
-3. Pressing `ATTACK2` ( Def: `Right Mouse Button` )
-  * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME_HERE>` frame,
+  * When not looking at trace entity piece predefined active point
+    will update the bodygroup/skin according to `trackassembly_bgskids`. 
+2. Pressing `ATTACK1` ( Def: `Left Mouse Button` ) + `USE` ( Def: `E` )
+  * When not looking at trace entity piece predefined active point
+    will update the trace entity physical settings and constraints ( Based on anchor ). 
+3. Pressing `ATTACK1` ( Def: `Left Mouse Button` ) + `SPEED` ( Def: `SHIFT` )
+  * `SNAP` : Stack pieces according to `trackassembly_stackcnt` ( `Pieces count` ):
+    1. The value in `trackassembly_stackcnt` must be positive.
+    2. The database record of the holder model must have at least two active points.
+  * `OVER` : Flips over every entity that is a track present in the flip-over
+    list where `flip normal` and `flip origin` are extracted from active
+    point. Ray intersection position between the two selected points can be
+    utilized for `flip origin` and the closest active point normal is utilized
+    for `flip normal` when the trace entity model is equal to the holder model.
+  * When you are not looking at one of track piece's predefined active points
+    will flip over the anchor entity relative to the trace normal vector as
+    `flip normal` and trace entity `OBB` center as `flip origin`.
+4. Pressing `ATTACK2` ( Def: `Right Mouse Button` )
+  * `CURVE`: Inserts a curve node on the stack.
+  * `OVER` : Inserts the trace entity ID to the flip over stack.
+  * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME>` frame,
     from where you can select your routine pieces to use again in the track building process
     as well as [searching in the table][ref-search] either by `MODEL`, `TYPE`, `NAME`, `LAST_USED`
     to obtain the piece you want to continue your track with.
+5. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `USE` ( Def: `E` )
+  * When `trackassembly_enpntmscr` is disabled, you have to press this,
+    for changing the active track points using the old method of selection.
+6. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `SPEED` ( Def: `SHIFT` )
+  * `CURVE`: Updates the hit closest curve node on the stack.
   * When pointing to a prop will select the trace model to use as a piece for building a track.
-  * **Note: When `trackassembly_enpntmscr` is disabled, you have to press `USE` ( Def: `E` )
-    to run these, otherwise just the active track points will be switched using the old
-    method of selection.**
-4. Pressing `RELOAD` ( Def: `R` )
-  * When pressing it on the world will clear the tool's selected prop to attach all the
-    track pieces to ( anchor / relation ).
-  * **Note: When `trackassembly_devmode` is enabled, will update the log control options.**
-  * **Note: When `trackassembly_exportdb` is enabled and `USE` ( Def: `E` ) is pressed, the
-    external database manager menu will be opened to confugure database pefixes, otherwise
-    will export the [server database][ref-sv-db] [`sv_`][ref-dsv-dir] as a file
-    in [DSV format][ref-dsv-dir].**
-  * When pressing it on the trace prop will set it as an anchor/relation for other pieces spawned
-    to be constrained to.
+7. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `DUCK` ( Def: `CTRL` )
+  * When `trackassembly_enpntmscr` is disabled, you have to press this,
+    for changing the next active point by using the old method of selection.
+8. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `SPEED` ( Def: `SHIFT` ) + `USE` ( Def: `E` )
+  * `CURVE`: Utilizes the trace entity active point as a curve node.
+9. Pressing `RELOAD` ( Def: `R` )
+  * When trace entity is a valid piece will just remove it.
+  * When `trackassembly_devmode` is enabled, will update the log control options.
+10. Pressing `RELOAD` ( Def: `R` ) + `USE` ( Def: `E` )
+  * When pressing on the world and `trackassembly_exportdb` is enabled, the external database
+    manager menu will be opened to configure database prefixes, otherwise will export
+    the [server database][ref-sv-db] [`sv_`][ref-dsv-dir] as a file in [DSV format][ref-dsv-dir].
+11. Pressing `RELOAD` ( Def: `R` ) + `SPEED` ( Def: `SHIFT` )
+  * When pressing it on the world will clear the tool's selected operational track
+    pieces which are used for various things. Works differently based on the mode selected.  
+    * `SNAP` : Clears the `anchor` entity which all new pieces will be automatically constrained to.
+    * `CROSS`: Clears the `relation` ray defined for using active point intersection between two pieces.
+    * `CURVE`: Clears all nodes defined for using the curving algorithm. Otherwise clears the last point on the stack.
+    * `OVER` : Clears the stack variable holder for all the flipped over entity base IDs
+  * When pressing it on the trace prop will set it as the tool's selected operational track
+    * `SNAP` : Selects the trace entity for using it as an anchor.
+    * `CROSS`: Selects the closest trace active point origin to use it as relation ray.
+    * `CURVE`: Clears all nodes defined for using the curving algorithm. Otherwise clears the last point on the stack.
+    * `OVER` : Clears the stack variable holder for all the flipped over entity base IDs
 
 #### Context menu pieces manipulation
 The [context menu][ref-ctx-menu]

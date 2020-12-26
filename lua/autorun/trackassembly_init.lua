@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.622")
+asmlib.SetOpVar("TOOL_VERSION","8.623")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -573,45 +573,33 @@ if(CLIENT) then
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Screen invalid",gtArgsLogs); return nil end
-      local vBs, nR = asmlib.NewXY(4,4), (gnRatio-1)
-      local nN  = conWorkMode:GetSize()
-      local nDr = asmlib.GetOpVar("DEG_RAD")
-      local sM  = asmlib.GetOpVar("MISS_NOAV")
+      local nR, nN = (mathMin(scrW, scrH) / (2 * gnRatio)), conWorkMode:GetSize()
+      local mXY = asmlib.NewXY(guiMouseX(), guiMouseY())
+      local vCn = asmlib.NewXY(mathFloor(scrW/2), mathFloor(scrH/2))
+      local nDr, sM = asmlib.GetOpVar("DEG_RAD"), asmlib.GetOpVar("MISS_NOAV")
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
-      local vCn = asmlib.NewXY(mathFloor(scrW/2),mathFloor(scrH/2))
-      -- Calculate dependent parameters
-      local vFr = asmlib.NewXY(vCn.y*nR) -- Far radius vector
-      local vNr = asmlib.NewXY(vFr.x*nR) -- Near radius vector
-      local dQb = (vFr.x - vNr.x) -- Bigger selected size
-      local dQs = (dQb * nR) -- Smaller not selected size
-      local vMr = asmlib.NewXY(dQb / 2 + vNr.x) -- Middle radius vector
-      local vNt, vFt = asmlib.NewXY(), asmlib.NewXY() -- Temp storage
-      local dA, rA = (nMx / (2 * nN)), 0; actMonitor:GetColor() -- Angle delta
-      local mP = asmlib.NewXY(guiMouseX(), guiMouseY())
-      actMonitor:DrawCircle(mP, 10, "y", "SURF") -- Draw mouse position
-      -- Obtain the wiper angle relative to screen center
-      local aW = asmlib.GetAngleXY(asmlib.NegY(asmlib.SubXY(vNt, mP, vCn)))
-      -- Move menu selection wiper based on the calculated angle
-      asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, aW)); asmlib.AddXY(vNt, vNt, vCn)
-      actMonitor:DrawLine(vCn, vNt, "w", "SURF"); actMonitor:DrawCircle(vNt, 8);
-      -- Convert wiper angle to selection ID
-      aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
-      local iW = mathFloor(((aW / nMx) * nN) + 1) -- Calculate fraction ID
-      -- Draw segment line dividers
+      local vA, vB, nD = asmlib.NewXY(), asmlib.NewXY(), (nR / gnRatio)
+      local tP = {asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY()}
+      local vF, vN = asmlib.NewXY(nR, 0), asmlib.NewXY(mathClamp(nR - nD, 0, nR), 0)
+      asmlib.NegY(asmlib.SubXY(vA, mXY, vCn)) -- Obtain selection wiper vector
+      local aW = asmlib.GetAngleXY(vA) -- Read wiper angle and normalize
+            aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
+      local iW = mathFloor(((aW / nMx) * nN) + 1) -- Calculate fraction ID for working mode
+      local dA = (nMx / (2 * nN)) -- Two times smaller step to hangle centers as well
+      asmlib.SetXY(vA, vF); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[4], vA)
+      asmlib.SetXY(vA, vN); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[3], vA)
       for iD = 1, nN do
-        asmlib.SetXY(vNt, vNr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
-        asmlib.SetXY(vFt, vFr); asmlib.NegY(asmlib.RotateXY(vFt, rA))
-        asmlib.AddXY(vNt, vNt, vCn); asmlib.AddXY(vFt, vFt, vCn)
-        actMonitor:DrawLine(vNt, vFt, "w") -- Draw divider line
-        rA = (rA + dA) -- Calculate text center position
-        asmlib.SetXY(vNt, vMr); asmlib.NegY(asmlib.RotateXY(vNt, rA))
-        asmlib.AddXY(vNt, vNt, vCn) -- Rectangle center point in /vNt/
-        if(iD == iW) then asmlib.SetXY(vFt, dQb, dQb) else asmlib.SetXY(vFt, dQs, dQs) end
-        actMonitor:DrawRect(vNt,vFt,"k","SURF",{"vgui/white", rA})
-        asmlib.SubXY(vFt, vFt, vBs); actMonitor:DrawRect(vNt,vFt,"bx")
+        asmlib.SetXY(tP[1], tP[4]); asmlib.SetXY(tP[2], tP[3])
         local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
-        actMonitor:DrawTextCenter(vNt,sW,"k","SURF",{"Trebuchet24"})
-        rA = (rA + dA) -- Prepare to draw the next divider line
+        local sC = ((iW == iD) and "pf" or "pb") -- Change color for selected option
+        -- Draw polygon segment using triangles with the same color and array of vertices
+        asmlib.RotateXY(vN, 2 * dA); asmlib.RotateXY(vF, 2 * dA) -- Go to the next base line
+        asmlib.SetXY(vA, vF); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[4], vA)
+        asmlib.SetXY(vA, vN); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[3], vA)
+        actMonitor:DrawPoly(tP, sC, "SURF", {"vgui/white"}) -- Draw textured polygon
+        -- Draw working mode name by placing centered text and the polygon midpoint
+        asmlib.MidXY(vA, tP[1], tP[2]); asmlib.MidXY(vB, tP[3], tP[4]); asmlib.MidXY(vA, vA, vB)
+        actMonitor:SetTextStart(vA.x, vA.y):DrawText(sW, "k", "SURF", {"Trebuchet24", true})
       end; asmlib.SetAsmConvar(oPly, "workmode", iW); return true
     end)
 
