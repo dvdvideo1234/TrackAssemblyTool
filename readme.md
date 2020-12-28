@@ -38,7 +38,7 @@ Also, another great achievement progress is in place, so 10x guys for
   * Tool convar tweaks is accessible via [dedicated in-game manipulation panel](https://youtu.be/3Ws6Jh3JUew?t=56)
   * Context menu for direct track entity [value export and manipulation][ref-value-exp]
   * Optional [flip-over mode called from spawning/snapping](https://youtu.be/3Ws6Jh3JUew?t=2146) for quickly flip the anchor across
-  * Track segment [flip over mode for mirroring](https://youtu.be/3Ws6Jh3JUew?t=1358) already created [url=https://youtu.be/3Ws6Jh3JUew?t=1722]loops and curves[/url]
+  * Track segment [flip over mode for mirroring](https://youtu.be/3Ws6Jh3JUew?t=1358) already created [loops and curves](https://youtu.be/3Ws6Jh3JUew?t=1722)
   * Track segment [curve node interpolation](https://youtu.be/3Ws6Jh3JUew?t=200) for building custom track layouts
   * Track curve fitting alignment based on [ray intersection for precise piece layout][ref-vid-inters]
   * [Extendible database][ref-dbext] via [text file][ref-text-file] or a [lua script][ref-lua-script]
@@ -173,10 +173,10 @@ set being solid with fading door `CLOSED` function state:
     * If `Ghosts count` is larger than zero ghosted track pieces will be
       rendered to assist you with the building.
   * When not looking at trace entity piece predefined active point
-    will update the bodygroup/skin according to `trackassembly_bgskids`. 
+    will update the bodygroup/skin according to `trackassembly_bgskids`.
 2. Pressing `ATTACK1` ( Def: `Left Mouse Button` ) + `USE` ( Def: `E` )
   * When not looking at trace entity piece predefined active point
-    will update the trace entity physical settings and constraints ( Based on anchor ). 
+    will update the trace entity physical settings and constraints ( Based on anchor ).
 3. Pressing `ATTACK1` ( Def: `Left Mouse Button` ) + `SPEED` ( Def: `SHIFT` )
   * `SNAP` : Stack pieces according to `trackassembly_stackcnt` ( `Pieces count` ):
     1. The value in `trackassembly_stackcnt` must be positive.
@@ -216,7 +216,7 @@ set being solid with fading door `CLOSED` function state:
     the [server database][ref-sv-db] [`sv_`][ref-dsv-dir] as a file in [DSV format][ref-dsv-dir].
 11. Pressing `RELOAD` ( Def: `R` ) + `SPEED` ( Def: `SHIFT` )
   * When pressing it on the world will clear the tool's selected operational track
-    pieces which are used for various things. Works differently based on the mode selected.  
+    pieces which are used for various things. Works differently based on the mode selected.
     * `SNAP` : Clears the `anchor` entity which all new pieces will be automatically constrained to.
     * `CROSS`: Clears the `relation` ray defined for using active point intersection between two pieces.
     * `CURVE`: Clears all nodes defined for using the curving algorithm. Otherwise clears the last point on the stack.
