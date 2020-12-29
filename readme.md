@@ -34,8 +34,8 @@ Also, another great achievement progress is in place, so 10x guys for
 [helping me, help you, help us all](https://www.youtube.com/watch?v=2TZyb0n2DAw) !
 
 #### What kind of features does this script has?
-  * Tool general convar [factory reset](https://youtu.be/3Ws6Jh3JUew?t=2051) can be easily triggered by the server admins
-  * Tool convar tweaks is accessible via [dedicated in-game manipulation panel](https://youtu.be/3Ws6Jh3JUew?t=56)
+  * General convar [factory reset](https://youtu.be/3Ws6Jh3JUew?t=2051) can be easily triggered by the server admins
+  * Convar tweaks is accessible via [dedicated in-game manipulation panel](https://youtu.be/3Ws6Jh3JUew?t=56)
   * Context menu for direct track entity [value export and manipulation][ref-value-exp]
   * Optional [flip-over mode called from spawning/snapping](https://youtu.be/3Ws6Jh3JUew?t=2146) for quickly flip the anchor across
   * Track segment [flip over mode for mirroring](https://youtu.be/3Ws6Jh3JUew?t=1358) already created [loops and curves](https://youtu.be/3Ws6Jh3JUew?t=1722)

@@ -1,7 +1,7 @@
 return function(sTool, sLimit) local tSet = {} -- French
-  tSet["tool."..sTool..".info.1"        ] = "Général créer/aligner pieces"
-  tSet["tool."..sTool..".info.2"        ] = "Intersection de point actif"
-  tSet["tool."..sTool..".info.3"        ] = "Ajustement de segment de ligne"
+  tSet["tool."..sTool..".workmode.1"    ] = "Général créer/aligner pieces"
+  tSet["tool."..sTool..".workmode.2"    ] = "Intersection de point actif"
+  tSet["tool."..sTool..".workmode.3"    ] = "Ajustement de segment de ligne"
   tSet["tool."..sTool..".desc"          ] = "Assemble une piste auquel les véhicules peuvent rouler dessus"
   tSet["tool."..sTool..".name"          ] = "Assembleur à piste"
   tSet["tool."..sTool..".phytype"       ] = "Sélectionnez une des propriétés physiques dans la liste"

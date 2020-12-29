@@ -1,21 +1,25 @@
 ﻿return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
   ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/ISO_639-1
   -- con >> control # def >> default # hd >> header # lb >> label
-  tSet["tool."..sTool..".info.1"           ] = "General spawn/snap pieces"
-  tSet["tool."..sTool..".info.2"           ] = "Active point intersection"
-  tSet["tool."..sTool..".info.3"           ] = "Curve line segment fitting"
-  tSet["tool."..sTool..".info.4"           ] = "Surface normal flip over"
+  tSet["tool."..sTool..".workmode.1"       ] = "General spawn/snap pieces"
+  tSet["tool."..sTool..".workmode.2"       ] = "Active point intersection"
+  tSet["tool."..sTool..".workmode.3"       ] = "Curve line segment fitting"
+  tSet["tool."..sTool..".workmode.4"       ] = "Surface normal flip over"
+  tSet["tool."..sTool..".info.1"           ] = "Spawns pieces on the map or snaps them relative to each other"
+  tSet["tool."..sTool..".info.2"           ] = "Connects track sections with dedicated segment designed for that"
+  tSet["tool."..sTool..".info.3"           ] = "Creates continuous track layouts passing through given checkpoints"
+  tSet["tool."..sTool..".info.4"           ] = "Flips the selected entities list across given origin and normal"
   tSet["tool."..sTool..".left.1"           ] = "Spawn/snap a track piece. Hold SHIFT to stack"
   tSet["tool."..sTool..".left.2"           ] = "Spawn track piece at the intersection point"
   tSet["tool."..sTool..".left.3"           ] = "Spawn segmented track interpolation curve"
   tSet["tool."..sTool..".left.4"           ] = "Spawn flipped over list of tracks selected"
   tSet["tool."..sTool..".right.1"          ] = "Copy track piece model or open frequent pieces frame"
-  tSet["tool."..sTool..".right.2"          ] = "Copy track piece model or open frequent pieces frame"
+  tSet["tool."..sTool..".right.2"          ] = tSet["tool."..sTool..".right.1"]
   tSet["tool."..sTool..".right.3"          ] = "Create node for the segmented curve. Hold SHIFT to update"
-  tSet["tool."..sTool..".right.4"          ] = "Register entity to flip over list. Hold SHIFT to change model"
-  tSet["tool."..sTool..".right_use.1"      ] = "Change points for SCROLL disabled. Hold SHIFT for reverse and CTRL for next"
+  tSet["tool."..sTool..".right.4"          ] = "Register entity in the flip over list. Hold SHIFT to change model"
+  tSet["tool."..sTool..".right_use.1"      ] = "Disabled SCROLL. "..tSet["tool."..sTool..".right.1"]
   tSet["tool."..sTool..".right_use.2"      ] = tSet["tool."..sTool..".right_use.1"]
-  tSet["tool."..sTool..".right_use.3"      ] = tSet["tool."..sTool..".right_use.1"]
+  tSet["tool."..sTool..".right_use.3"      ] = "Generate node form the nearest track piece active point"
   tSet["tool."..sTool..".right_use.4"      ] = tSet["tool."..sTool..".right_use.1"]
   tSet["tool."..sTool..".reload.1"         ] = "Remove a track piece. Hold SHIFT to select an anchor"
   tSet["tool."..sTool..".reload.2"         ] = "Remove a track piece. Hold SHIFT to select relation ray"

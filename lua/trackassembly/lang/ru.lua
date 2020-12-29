@@ -1,8 +1,8 @@
 ﻿return function(sTool, sLimit) local tSet = {} -- Russian
-  tSet["tool."..sTool..".info.1"        ] = "Общее создание/прилепание куски"
-  tSet["tool."..sTool..".info.2"        ] = "Пересечение активной точки"
-  tSet["tool."..sTool..".info.3"        ] = "Кривой отрезок линии фитинг"
-  tSet["tool."..sTool..".info.4"        ] = "Нормаль поверхности перевернуть"
+  tSet["tool."..sTool..".workmode.1"    ] = "Общее создание/прилепание куски"
+  tSet["tool."..sTool..".workmode.2"    ] = "Пересечение активной точки"
+  tSet["tool."..sTool..".workmode.3"    ] = "Кривой отрезок линии фитинг"
+  tSet["tool."..sTool..".workmode.4"    ] = "Нормаль поверхности перевернуть"
   tSet["tool."..sTool..".desc"          ] = "Создает дорогу для транспортных средств"
   tSet["tool."..sTool..".name"          ] = "Сборка дороги"
   tSet["tool."..sTool..".phytype"       ] = "Выберите тип физических свойств из тех которые перечислены здесь"

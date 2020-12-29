@@ -146,30 +146,34 @@ TOOL.ClientConVar = {
 if(CLIENT) then
   -- https://wiki.facepunch.com/gmod/Tool_Information_Display
   TOOL.Information = {
-    {name = "info.1",        stage = 0, op = 1, icon = "gui/info"   , icon2 = ""},
-    {name = "info.2",        stage = 0, op = 2, icon = "gui/info"   , icon2 = ""},
-    {name = "info.3",        stage = 0, op = 3, icon = "gui/info"   , icon2 = ""},
-    {name = "info.4",        stage = 0, op = 4, icon = "gui/info"   , icon2 = ""},
-    {name = "left.1",        stage = 0, op = 1, icon = "gui/lmb.png", icon2 = ""},
-    {name = "left.2",        stage = 0, op = 2, icon = "gui/lmb.png", icon2 = ""},
-    {name = "left.3",        stage = 0, op = 3, icon = "gui/lmb.png", icon2 = ""},
-    {name = "left.4",        stage = 0, op = 4, icon = "gui/lmb.png", icon2 = ""},
-    {name = "right.1",       stage = 0, op = 1, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right.2",       stage = 0, op = 2, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right.3",       stage = 0, op = 3, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right.4",       stage = 0, op = 4, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right_use.1",   stage = 0, op = 1, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "right_use.2",   stage = 0, op = 2, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "right_use.3",   stage = 0, op = 3, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "right_use.4",   stage = 0, op = 4, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "reload.1",      stage = 0, op = 1, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload.2",      stage = 0, op = 2, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload.3",      stage = 0, op = 3, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload.4",      stage = 0, op = 4, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload_use.1",  stage = 0, op = 1, icon = "gui/r.png"  , icon2 = "gui/e.png"},
-    {name = "reload_use.2",  stage = 0, op = 2, icon = "gui/r.png"  , icon2 = "gui/e.png"},
-    {name = "reload_use.3",  stage = 0, op = 3, icon = "gui/r.png"  , icon2 = "gui/e.png"},
-    {name = "reload_use.4",  stage = 0, op = 4, icon = "gui/r.png"  , icon2 = "gui/e.png"},
+    {name = "workmode.1",   stage = 0, op = 1, icon = asmlib.ToIcon("workmode_snap") , icon2 = ""},
+    {name = "workmode.2",   stage = 0, op = 2, icon = asmlib.ToIcon("workmode_cross"), icon2 = ""},
+    {name = "workmode.3",   stage = 0, op = 3, icon = asmlib.ToIcon("workmode_curve"), icon2 = ""},
+    {name = "workmode.4",   stage = 0, op = 4, icon = asmlib.ToIcon("workmode_over") , icon2 = ""},
+    {name = "info.1",       stage = 0, op = 1, icon = "gui/info"   , icon2 = ""},
+    {name = "info.2",       stage = 0, op = 2, icon = "gui/info"   , icon2 = ""},
+    {name = "info.3",       stage = 0, op = 3, icon = "gui/info"   , icon2 = ""},
+    {name = "info.4",       stage = 0, op = 4, icon = "gui/info"   , icon2 = ""},
+    {name = "left.1",       stage = 0, op = 1, icon = "gui/lmb.png", icon2 = ""},
+    {name = "left.2",       stage = 0, op = 2, icon = "gui/lmb.png", icon2 = ""},
+    {name = "left.3",       stage = 0, op = 3, icon = "gui/lmb.png", icon2 = ""},
+    {name = "left.4",       stage = 0, op = 4, icon = "gui/lmb.png", icon2 = ""},
+    {name = "right.1",      stage = 0, op = 1, icon = "gui/rmb.png", icon2 = ""},
+    {name = "right.2",      stage = 0, op = 2, icon = "gui/rmb.png", icon2 = ""},
+    {name = "right.3",      stage = 0, op = 3, icon = "gui/rmb.png", icon2 = ""},
+    {name = "right.4",      stage = 0, op = 4, icon = "gui/rmb.png", icon2 = ""},
+    {name = "right_use.1",  stage = 0, op = 1, icon = "gui/rmb.png", icon2 = "gui/e.png"},
+    {name = "right_use.2",  stage = 0, op = 2, icon = "gui/rmb.png", icon2 = "gui/e.png"},
+    {name = "right_use.3",  stage = 0, op = 3, icon = "gui/rmb.png", icon2 = "gui/e.png"},
+    {name = "right_use.4",  stage = 0, op = 4, icon = "gui/rmb.png", icon2 = "gui/e.png"},
+    {name = "reload.1",     stage = 0, op = 1, icon = "gui/r.png"  , icon2 = ""},
+    {name = "reload.2",     stage = 0, op = 2, icon = "gui/r.png"  , icon2 = ""},
+    {name = "reload.3",     stage = 0, op = 3, icon = "gui/r.png"  , icon2 = ""},
+    {name = "reload.4",     stage = 0, op = 4, icon = "gui/r.png"  , icon2 = ""},
+    {name = "reload_use.1", stage = 0, op = 1, icon = "gui/r.png"  , icon2 = "gui/e.png"},
+    {name = "reload_use.2", stage = 0, op = 2, icon = "gui/r.png"  , icon2 = "gui/e.png"},
+    {name = "reload_use.3", stage = 0, op = 3, icon = "gui/r.png"  , icon2 = "gui/e.png"},
+    {name = "reload_use.4", stage = 0, op = 4, icon = "gui/r.png"  , icon2 = "gui/e.png"},
   }
 
   languageAdd("tool."..gsToolNameL..".category", "Construction")
@@ -2207,7 +2211,7 @@ function TOOL.BuildCPanel(CPanel)
         for iD = 1, conWorkMode:GetSize() do
           local sW = tostring(conWorkMode:Select(iD) or gsNoAV):lower()
           local sI = asmlib.ToIcon("workmode_"..sW)
-          local sT = asmlib.GetPhrase("tool."..gsToolNameL..".info."..iD)
+          local sT = asmlib.GetPhrase("tool."..gsToolNameL..".workmode."..iD)
           pComboToolMode:AddChoice(sT, iD, (iD == aData), sI)
         end
   pComboToolMode:Dock(TOP) -- Setting tallness gets ingnored otherwise

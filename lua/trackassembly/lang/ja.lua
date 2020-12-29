@@ -1,7 +1,7 @@
 ﻿return function(sTool, sLimit) local tSet = {} -- Japanese
-  tSet["tool."..sTool..".info.1"        ] = "通常部分のスポーン／スナップ"
-  tSet["tool."..sTool..".info.2"        ] = "アクティブポイントの交差点"
-  tSet["tool."..sTool..".info.3"        ] = "曲線線分フィッティング"
+  tSet["tool."..sTool..".workmode.1"    ] = "通常部分のスポーン／スナップ"
+  tSet["tool."..sTool..".workmode.2"    ] = "アクティブポイントの交差点"
+  tSet["tool."..sTool..".workmode.3"    ] = "曲線線分フィッティング"
   tSet["tool."..sTool..".desc"          ] = "乗り物が走る線路を組み立てる"
   tSet["tool."..sTool..".name"          ] = "線路の組み立て"
   tSet["tool."..sTool..".phytype"       ] = "一覧済みしたものの物性タイプを選択して"
