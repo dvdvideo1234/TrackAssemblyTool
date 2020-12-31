@@ -1051,72 +1051,87 @@ function GetQueue(sKey)
   function self:IsEmpty()
     return (not (IsHere(mS) and IsHere(mE)))
   end
+  function self:GetStruct(oP, oA, oM, oD, oN, oS, oE)
+    if(not (oP and oP:IsValid())) then -- There is no valid player for task
+      LogInstance("Player invalid: "..GetReport2(oD, oP), mKey); return nil end
+    if(not IsTable(oA)) then -- There is no valid player for task
+      LogInstance("Arguments invalid: "..GetReport2(oD, oA), mKey); return nil end
+    if(not IsFunction(oM)) then -- There is no valid player for task
+      LogInstance("Routine invalid: "..GetReport2(oD, oM), mKey); return nil end
+    return {  -- Create task main routine structures
+      P = oP, -- Current task player ( mandatory )
+      A = oA, -- Current task arguments ( mandatory )
+      M = oM, -- Current task main routine ( mandatory )
+      S = oS, -- Current task start routine ( if any )
+      E = oE, -- Current task end routine ( if any )
+      D = tostring(oD), -- Current task start description ( if any )
+      N = oN  -- Current task sequential pointer ( if any )
+    }
+  end
   -- Checks whenever the queue is busy for that player
   function self:IsBusy(oPly)
-    if(not oPly) then return true end
-    local bB = mBusy[oPly]
-    return (bB and IsBool(bB))
+    if(not IsHere(oPly)) then return true end
+    local bB = mBusy[oPly]; return (bB and IsBool(bB))
   end
   -- Removes the finished task for the queue
   function self:Remove()
     if(self:IsEmpty()) then return self end
     if(self:IsBusy(mS.P)) then return self end
-    LogInstance(GetReport2(mS.D, mS.P:Nick()), mKey)
-    if(mS.E) then -- Post processing. Return value is ignored
+    LogInstance("Start: "..GetReport2(mS.D, mS.P:Nick()), mKey)
+    if(mS.E) then -- Post-processing. Return value is ignored
       local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
-        LogInstance(GetReport2(mS.D, mS.P:Nick()).." Error: "..bErr, mKey)
-      else LogInstance(GetReport2(mS.D, mS.P:Nick()).." OK", mKey) end
+        LogInstance("Error: "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
+      else LogInstance("Finish: "..GetReport2(mS.D, mS.P:Nick()), mKey) end
     end -- Wipe all the columns in the item and go to the next item
-    mS.P, mS.A, mS.M = nil, nil, nil
-    mS.S, mS.E, mS.D = nil, nil, nil
-    mS, mS.N = mS.N, nil -- Multiple assignment
-    return self
+    local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
   end
   -- Setups a task to be called in the queue
   function self:Attach(oPly, tArg, fFoo, aDsc)
-    local tD = {D = tostring(aDsc)}
-    tD.P, tD.A = oPly, tArg
-    tD.M, tD.N = fFoo, nil
-    if(self:IsEmpty()) then -- When empty
-      mS, mE = tD, tD -- First is also last
-    else -- When not empty hook at the end
-      mE.N = tD; mE = tD -- Attach at the end
-    end; mBusy[mS.P] = true -- Mark as busy
-    LogInstance(GetReport2(mS.D, mS.P:Nick()), mKey)
-    return self
+    local tD = self:GetStruct(oPly, tArg, fFoo, aDsc); if(not tD) then
+      LogInstance("Invalid: "..GetReport2(aDsc, oPly), mKey); return self end
+    if(self:IsEmpty()) then mS, mE = tD, tD else mE.N = tD; mE = tD end
+    LogInstance("Created: "..GetReport2(mS.D, mS.P:Nick()), mKey)
+    mBusy[oPly] = true; return self -- Mark as busy
   end
   -- Calls a function before the task starts processing
   function self:OnActive(oPly, fFoo)
-    if(not IsHere(mE)) then return self end
-    if(not (mE.P and mE.P:IsValid())) then return self end
+    if(not IsHere(mE)) then -- No data to setup the pre-run for just exit
+      LogInstance("Configuration missing", mKey); return self end
+    if(not (mE.P and mE.P:IsValid())) then -- There is no valid player for task
+      LogInstance("Player invalid: "..GetReport2(mE.D, mE.P), mKey); return self end
     mE.S = fFoo; return self
   end
   -- Calls a function when the task finishes processing
   function self:OnFinish(oPly, fFoo)
-    if(not IsHere(mE)) then return self end
-    if(not (mE.P and mE.P:IsValid())) then return self end
+    if(not IsHere(mE)) then -- No data to setup the post-run for just exit
+      LogInstance("Configuration missing", mKey); return self end
+    if(not (mE.P and mE.P:IsValid())) then -- There is no valid player for task
+      LogInstance("Player invalid: "..GetReport2(mE.D, mE.P), mKey); return self end
     mE.E = fFoo; return self
   end
-  -- Execute the current task at the beginning if the queue
+  -- Execute the current task at the queue beginning
   function self:Execute()
     if(self:IsEmpty()) then return self end
-    if(mS.S) then -- Pre processing. Return value is ignored
+    if(mS.S) then -- Pre-processing. Return value is ignored
       local bOK, bErr = pcall(mS.S, mS.P, mS.A); if(not bOK) then
-        LogInstance(GetReport2(mS.D, mS.P:Nick()).." Error: "..bErr, mKey)
-      else LogInstance(GetReport2(mS.D, mS.P:Nick()).." OK", mKey) end
-      mS.S = nil -- Remove the pre-processing function for other task iterations
+        LogInstance("Error: "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
+      else LogInstance("Active: "..GetReport2(mS.D, mS.P:Nick()), mKey) end
+      mS.S = nil -- Remove the pre-processing function for other iterations
     end
-    local bOK, bBsy = pcall(mS.M, mS.P, mS.A)
-    if(not bOK) then mBusy[mS.P] = false
-      LogInstance(GetReport2(mS.D, mS.P:Nick()).." Error: "..bBsy, mKey)
+    local bOK, bBsy = pcall(mS.M, mS.P, mS.A) -- Execute the main routine
+    if(not bOK) then mBusy[mS.P] = false -- Error in the routine function
+      LogInstance("Error: "..GetReport2(mS.D, mS.P:Nick()).." "..bBsy, mKey)
     else
-      if(not bBsy) then
-        LogInstance(GetReport3(mS.D, mS.P:Nick(), bBsy).." Complete!", mKey) end
+      if(bBsy) then -- No error in the routine function and not busy
+        LogInstance("Pass: "..GetReport3(mS.D, mS.P:Nick(), bBsy), mKey)
+      else -- The taks main routine is done and the player is not busy
+        LogInstance("Done: "..GetReport3(mS.D, mS.P:Nick(), bBsy), mKey)
+      end -- Update the player busy statur according to the execution
     end; mBusy[mS.P] = bBsy; return self
   end
   if(IsHere(sKey)) then
     if(mHash) then mHash[sKey] = self end
-    LogInstance("Queue registered "..GetReport(mKey)) end
+    LogInstance("Registered: "..GetReport(mKey)) end
   setmetatable(self, GetOpVar("TYPEMT_QUEUE")); return self
 end
 
