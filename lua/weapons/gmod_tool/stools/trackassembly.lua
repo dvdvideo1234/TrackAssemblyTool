@@ -2490,7 +2490,7 @@ if(CLIENT) then
              pItem:SetTooltip(asmlib.GetPhrase("sbox_max"..gsLimitName))
     -- Setup the memory manager
     pItem = vguiCreate("DCategoryList", CPanel)
-    pItem:Dock(TOP); pItem:SetTall(333)
+    pItem:Dock(TOP); pItem:SetTall(345)
     local tMod, tPan = {"CQT", "OBJ"}, {}
     local tVar = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
     local iD, mkTab, sRev = 1, asmlib.GetBuilderID(1), asmlib.GetOpVar("OPSYM_REVISION")
@@ -2500,19 +2500,20 @@ if(CLIENT) then
       local sMem = asmlib.GetPhrase("tool."..gsToolNameL..".timermode_mem")
       local pMem = pItem:Add(sMem.." "..pDef.Nick)
             pMem:SetTooltip(sMem.." "..pDef.Nick)
-      vPan["MODE"] = vguiCreate("DComboBox", pItem); local pMode = vPan["MODE"]
+      local pMode = vguiCreate("DComboBox", pItem)
       pMode:Dock(TOP); pMode:SetTall(25)
       pMode:UpdateColours(drmSkin)
       pMode:SetSortItems(false)
       pMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_md"))
       pMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
       for iK = 1, #tMod do local sK = tMod[iK]
-        local sIco = asmlib.ToIcon("timermode_time")
+        local sIco = asmlib.ToIcon("timermode_"..sK:lower())
         local sKey = ("tool."..gsToolNameL..".timermode_"..sK:lower())
         local bSel = (tostring(tSet[1]) == sK)
         pMode:AddChoice(asmlib.GetPhrase(sKey), sK, bSel, sIco)
       end
-      vPan["LIFE"] = vguiCreate("DNumSlider", pItem); local pLife = vPan["LIFE"]
+      local pLife = vguiCreate("DNumSlider", pItem)
+      pLife:Dock(TOP); pLife:SetTall(25)
       pLife:SetMin(0); pLife:SetMax(3600)
       pLife:SetDecimals(iMaxDec)
       pLife:SetValue(tonumber(tSet[2]) or 0)
@@ -2520,15 +2521,19 @@ if(CLIENT) then
       pLife:SizeToContents()
       pLife:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
       pLife:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf"))
-      vPan["CLEAR"] = vguiCreate("DCheckBoxLabel", pItem); local pCler = vPan["CLEAR"]
+      local pCler = vguiCreate("DCheckBoxLabel", pItem)
+      pCler:Dock(TOP); pCler:SetTall(25)
       pCler:SetValue((tonumber(tSet[3]) or 0) ~= 0)
       pCler:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd"))
       pCler:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
-      vPan["COLLECT"] = vguiCreate("DCheckBoxLabel", pItem); local pColl = vPan["COLLECT"]
+      local pColl =  vguiCreate("DCheckBoxLabel", pItem)
       pColl:SetValue((tonumber(tSet[4]) or 0) ~= 0)
       pColl:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct"))
       pColl:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
+      pColl:Dock(TOP); pColl:SetTall(25)
       iD = (iD + 1); mkTab = asmlib.GetBuilderID(iD)
+      vPan["MODE"], vPan["LIFE"] = pMode, pLife
+      vPan["CLER"], vPan["COLL"] = pCler, pColl
     end
     pItem:UpdateColours(drmSkin)
     pItem = CPanel:Button(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ap_con"))
@@ -2540,12 +2545,12 @@ if(CLIENT) then
       else
         local tTim, sRev = {}, asmlib.GetOpVar("OPSYM_REVISION")
         for iD = 1, #tPan do local vP, tS = tPan[iD], {}
-          local pM, pL = vP["MODE" ], vP["LIFE"]
-          local pC, bG = vP["CLEAR"], vP["COLLECT"]
+          local pM, pL = vP["MODE"], vP["LIFE"]
+          local pC, bG = vP["CLER"], vP["COLL"]
           tS[1] = tostring(pM:GetOptionData(pM:GetSelectedID()) or "")
           tS[2] = tostring(tonumber(pL:GetValue() or 0))
-          tS[3] = tostring(pC:GetValue() and 1 or 0)
-          tS[4] = tostring(bG:GetValue() and 1 or 0)
+          tS[3] = tostring(pC:GetChecked() and 1 or 0)
+          tS[4] = tostring(bG:GetChecked() and 1 or 0)
           tTim[iD] = tableConcat(tS, sRev)
         end
         asmlib.SetAsmConvar(nil, "timermode", tableConcat(tTim, gsSymDir))

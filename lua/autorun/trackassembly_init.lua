@@ -87,7 +87,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.628")
+asmlib.SetOpVar("TOOL_VERSION","8.629")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -456,7 +456,8 @@ if(CLIENT) then
   asmlib.ToIcon("property_name"    , "note"           )
   asmlib.ToIcon("database_mode_lua", "database_lightning")
   asmlib.ToIcon("database_mode_sql", "database_link"     )
-  asmlib.ToIcon("timermode_time"   , "time"              )
+  asmlib.ToIcon("timermode_cqt"    , "time_go"           )
+  asmlib.ToIcon("timermode_obj"    , "clock_go"          )
   asmlib.ToIcon("bnderrmod_off"    , "shape_square"      )
   asmlib.ToIcon("bnderrmod_log"    , "shape_square_edit" )
   asmlib.ToIcon("bnderrmod_hint"   , "shape_square_go"   )
