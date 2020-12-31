@@ -854,7 +854,7 @@ function TOOL:GetCurveTransform(stTrace)
   aAng:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
   vHit:Set(stTrace.HitPos); vOrg:Add(vHit)
   if(ply:KeyDown(IN_USE) and eEnt and eEnt:IsValid()) then
-    oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, vHit)
+    oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, vHit, true)
     if(oID and oMin and oPOA and oRec) then
       asmlib.SetVector(vOrg, oPOA.O); vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
       asmlib.SetAngle (aAng, oPOA.A); aAng:Set(eEnt:LocalToWorldAngles(aAng))
@@ -1050,10 +1050,9 @@ function TOOL:LeftClick(stTrace)
                          nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
           if(not oArg.spawn) then -- Make sure it persists to set it afterwards
             asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
-          if(crvturnlm > 0 or crvleanlm > 0) then
-            local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
+          if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
-              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nU))
+              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
               asmlib.Notify(oPly, "Curve turn excessive at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..oArg.mundo..": Turn excessive"), gtArgsLogs); return false
             end
@@ -1832,7 +1831,7 @@ function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
   end
 end
 
-function TOOL:DrawFlipOver(hudMonitor, oPly, stTrace)
+function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   local model, trEnt = self:GetModel(), stTrace.Entity
   local actrad, vT = self:GetActiveRadius(), Vector()
   local bActp, xH = inputIsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
@@ -1937,11 +1936,11 @@ function TOOL:DrawHUD()
       elseif(workmode == 2) then
         self:DrawRelateAssist(hudMonitor, oPly, stTrace)
       elseif(workmode == 4) then
-        self:DrawFlipOver(hudMonitor, oPly, stTrace)
+        self:DrawFlipAssist(hudMonitor, oPly, stTrace)
       end; return -- The return is very very important ... Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
       if(workmode == 4 and self:IsFlipOver()) then
-        self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
+        self:DrawFlipAssist(hudMonitor, oPly, stTrace); return end
       local Hp = stSpawn.HPnt:ToScreen()
       local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
       local Os = hudMonitor:DrawUCS(oPly, stSpawn.OPos, stSpawn.OAng)
@@ -1953,17 +1952,19 @@ function TOOL:DrawHUD()
       if(workmode == 1) then
         self:DrawNextPoint(hudMonitor, oPly, stSpawn)
       elseif(workmode == 2) then -- Draw point intersection
-        local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
-        local Rp, Re = self:DrawRelateIntersection(hudMonitor, oPly)
-        if(Rp and vX) then
-          local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, oPly, stSpawn)
-          local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2)
-          hudMonitor:DrawLine(Rp,xX,"ry")
-          hudMonitor:DrawLine(Os,xX)
-          hudMonitor:DrawLine(Rp,O2,"g")
-          hudMonitor:DrawLine(Os,O1,"r")
-          hudMonitor:DrawLine(xX,pXx,"b")
-        end
+        if(asmlib.IntersectRayRead(oPly, "relate")) then
+          local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
+          local Rp, Re = self:DrawRelateIntersection(hudMonitor, oPly)
+          if(Rp and vX) then
+            local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, oPly, stSpawn)
+            local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2)
+            hudMonitor:DrawLine(Rp,xX,"ry")
+            hudMonitor:DrawLine(Os,xX)
+            hudMonitor:DrawLine(Rp,O2,"g")
+            hudMonitor:DrawLine(Os,O1,"r")
+            hudMonitor:DrawLine(xX,pXx,"b")
+          end
+        else self:DrawRelateAssist(hudMonitor, oPly, stTrace) end
       end
       local Ss = stSpawn.SPos:ToScreen()
       hudMonitor:DrawLine(Os,Ss,"m")
@@ -1973,7 +1974,7 @@ function TOOL:DrawHUD()
     end
   elseif(stTrace.HitWorld) then
     if(workmode == 4 and self:IsFlipOver()) then
-      self:DrawFlipOver(hudMonitor, oPly, stTrace); return end
+      self:DrawFlipAssist(hudMonitor, oPly, stTrace); return end
     local angsnap  = self:GetAngSnap()
     local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()
