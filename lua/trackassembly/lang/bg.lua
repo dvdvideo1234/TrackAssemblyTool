@@ -21,8 +21,8 @@
   tSet["tool."..sTool..".right_use.4"   ] = tSet["tool."..sTool..".right_use.1"]
   tSet["tool."..sTool..".reload.1"      ] = "Премахване на парче трасе. Задръжте SHIFT за да изберете опора"
   tSet["tool."..sTool..".reload.2"      ] = "Премахване на парче трасе. Задръжте SHIFT изберете релационен лъч"
-  tSet["tool."..sTool..".reload.3"      ] = "Премахване на възел от интерполационната крива. Задръжте SHIFT за да изчистите стека"
-  tSet["tool."..sTool..".reload.4"      ] = "Премахване на всички предмети от списъка за обръщане. Ако няма списък маха парче"
+  tSet["tool."..sTool..".reload.3"      ] = "Премахване на възел от интерполираната крива. Задръжте SHIFT за да изчистите стека"
+  tSet["tool."..sTool..".reload.4"      ] = "Изчистване списъка от предмети за обръщане. Ако е празен маха парче"
   tSet["tool."..sTool..".reload_use.1"  ] = "Позволете експорт на данните за да отворите DSV мениджър"
   tSet["tool."..sTool..".reload_use.2"  ] = tSet["tool."..sTool..".reload_use.1"]
   tSet["tool."..sTool..".reload_use.3"  ] = tSet["tool."..sTool..".reload_use.1"]

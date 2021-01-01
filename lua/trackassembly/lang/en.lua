@@ -24,7 +24,7 @@
   tSet["tool."..sTool..".reload.1"         ] = "Remove a track piece. Hold SHIFT to select an anchor"
   tSet["tool."..sTool..".reload.2"         ] = "Remove a track piece. Hold SHIFT to select relation ray"
   tSet["tool."..sTool..".reload.3"         ] = "Removes a curve interpolation node. Hold SHIFT to clear the stack"
-  tSet["tool."..sTool..".reload.4"         ] = "Remove all entities from the selection list. When missing removes piece"
+  tSet["tool."..sTool..".reload.4"         ] = "Clear the flip entities selection list. When empty removes piece"
   tSet["tool."..sTool..".reload_use.1"     ] = "Enable database export to open DSV manager"
   tSet["tool."..sTool..".reload_use.2"     ] = tSet["tool."..sTool..".reload_use.1"]
   tSet["tool."..sTool..".reload_use.3"     ] = tSet["tool."..sTool..".reload_use.1"]
