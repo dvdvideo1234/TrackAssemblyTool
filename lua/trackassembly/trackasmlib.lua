@@ -1513,7 +1513,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end; return xyO -- Do not draw the rays when the size is zero
   end
-  function self:DrawPOA(oPly,ePOA,stPOA,nAct)
+  function self:DrawPOA(oPly,ePOA,stPOA,nAct,bNoO)
     if(not (ePOA and ePOA:IsValid())) then
       LogInstance("Entity invalid", tLogs); return nil end
     if(not IsPlayer(oPly)) then
@@ -1525,7 +1525,10 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     SetVector(vP,stPOA.P); vP:Rotate(eA); vP:Add(eP)
     local Op, Pp = vO:ToScreen(), vP:ToScreen()
     local Rv = GetViewRadius(oPly, vP, nAct)
-    self:DrawCircle(Op, GetViewRadius(oPly, vO),"y","SURF")
+    if(not bNoO) then
+      local nR = GetViewRadius(oPly, vO)
+      self:DrawCircle(Op, nR,"y","SURF")
+    end
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
   end
@@ -2234,22 +2237,24 @@ local function SetCacheSpawn(stData)
 end
 
 function GetCacheSpawn(pPly, tDat)
-  local stSpot = GetPlayerSpot(pPly)
-  if(not IsHere(stSpot)) then
-    LogInstance("Spot missing"); return nil end
-  if(tDat) then stData = tDat; if(not IsTable(stData)) then
+  if(tDat) then local stData = tDat
+    if(not IsTable(stData)) then
       LogInstance("Invalid "..GetReport(stData)); return nil end
     if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
       LogInstance("Reference <"..pPly:Nick()..">")
-    end
-  else stData = stSpot["SPAWN"]
+    end; return stData
+  else
+    local stSpot = GetPlayerSpot(pPly)
+    if(not IsHere(stSpot)) then
+      LogInstance("Spot missing"); return nil end
+    local stData = stSpot["SPAWN"]
     if(not IsHere(stData)) then
       stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
       stData = SetCacheSpawn(stData)
       LogInstance("Allocate <"..pPly:Nick()..">")
-    end
-  end return stData
+    end; return stData
+  end
 end
 
 function CacheClear(pPly, bNow)
@@ -4015,7 +4020,7 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.BAng[caP] = 0; stSpawn.BAng[caR] = 0 end
-  return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR)
+  return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
 end
 
 --[[

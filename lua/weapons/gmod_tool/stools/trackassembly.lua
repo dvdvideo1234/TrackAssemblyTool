@@ -848,7 +848,7 @@ function TOOL:GetCurveTransform(stTrace)
   local surfsnap = self:GetSurfaceSnap()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  local oID, oMin, oPOA, oRec     = nil, nil, nil, nil
+  local oID, oMin, oPOA, oRec, bAct = nil, nil, nil, nil, false
   local aAng, vHit, vOrg = Angle(), Vector(), Vector()
   local eEnt, vNrm = stTrace.Entity, stTrace.HitNormal
   aAng:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
@@ -858,7 +858,7 @@ function TOOL:GetCurveTransform(stTrace)
     if(oID and oMin and oPOA and oRec) then
       asmlib.SetVector(vOrg, oPOA.O); vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
       asmlib.SetAngle (aAng, oPOA.A); aAng:Set(eEnt:LocalToWorldAngles(aAng))
-    end -- Use the track piece active end to create realative curve node
+    end; bAct = true -- Use the track piece active end to create realative curve node
   else -- Offset the curve node when it is not driven by an active point
     vOrg:Add(vNrm * elevpnt)
   end
@@ -868,7 +868,7 @@ function TOOL:GetCurveTransform(stTrace)
   aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
   aAng:RotateAroundAxis(aAng:Right()  , nextpic)
   aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-  return vOrg, aAng, vHit, oPOA
+  return vOrg, aAng, vHit, oPOA, bAct
 end
 
 function TOOL:CurveInsert(stTrace, bMute)
@@ -1036,12 +1036,10 @@ function TOOL:LeftClick(stTrace)
     goThQueue:Attach(ply, {
       stard = 1,
       stark = 1,
-      spawn = {},
       itrys = 0,
       istck = 0,
       imake = 0,
-      entpn = nil,
-      entpo = nil,
+      spawn = {},
       srate = spawnrate
     }, function(oPly, oArg)
       for iD = oArg.stard, tC.SSize do tS = tC.Snap[iD]
@@ -1067,14 +1065,14 @@ function TOOL:LeftClick(stTrace)
           if(stackcnt > 0) then if(oArg.istck < stackcnt) then oArg.istck = (oArg.istck + 1) else ePiece:Remove(); ePiece = nil end end
           oArg.imake = (oArg.imake + (ePiece and 1 or 0)); sItr = fInt:format(oArg.imake)
           oPly:SetNWFloat(gsToolPrefL.."progress", (oArg.imake / tC.SKept) * 100)
-          if(ePiece) then oArg.entpo, oArg.entpn = oArg.entpn, ePiece -- We still have enough memory to preform the stacking
-            if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then
+          if(ePiece) then -- We still have enough memory to preform the stacking
+            if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
-            if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
+            if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
-            if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
+            if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
               asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
-            oArg.itrys, oArg.srate = 0, (oArg.srate - 1) -- When the routine item is still busy
+            oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece -- When the routine item is still busy
             tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
               if(iK == tS.Size) then -- When current snap end is reached
@@ -1117,19 +1115,19 @@ function TOOL:LeftClick(stTrace)
     local tE, nE = self:GetFlipOver(true)
     local tC, nC = asmlib.GetConstraintOver(tE)
     if(not tE or nE <= 0) then
-      asmlib.Notify(ply, "Flip over no tracks selected !", "ERROR")
+      asmlib.Notify(ply, "No tracks selected !", "ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtArgsLogs); return false
     end
     goThQueue:Attach(ply, {
       start = 1,
       itrys = 0,
-      wover = Vector(wOver),
-      wnorm = Vector(wNorm),
       tents = tE,
       ients = nE,
       tcons = tC,
       icons = nC,
-      srate = spawnrate
+      srate = spawnrate,
+      wover = Vector(wOver),
+      wnorm = Vector(wNorm)
     }, function(oPly, oArg)
       for iD = oArg.start, oArg.ients do
         oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / oArg.ients))
@@ -1149,8 +1147,8 @@ function TOOL:LeftClick(stTrace)
               return true -- The server is still busy with the task
             end
           else
-            asmlib.Notify(ply, "Flip over spawn invalid "..asmlib.GetReport2(iD, oArg.mundo).." !", "ERROR")
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Spawn invalid",trEnt),gtArgsLogs); return false
+            asmlib.Notify(ply, "Spawn data invalid "..asmlib.GetReport2(iD, oArg.mundo).." !", "ERROR")
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Spawn data invalid",trEnt),gtArgsLogs); return false
           end
         end
       end
@@ -1263,49 +1261,47 @@ function TOOL:LeftClick(stTrace)
     end; return true
   end
 
-  -- IN_SPEED: Switch the tool mode ( Stacking )
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Surver busy !","ERROR"); return true end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"), gtArgsLogs); return false end
     local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
-    if(not hdOffs) then -- Make sure it is present
-      asmlib.Notify(ply,"Cannot find next PointID !","ERROR")
+    if(not hdOffs) then -- Make sure the next point is present so we have something to stack on
+      asmlib.Notify(ply,"Missing next point ID !","ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"), gtArgsLogs); return false
     end -- Validated existent next point ID
     goThQueue:Attach(ply, {
-      start = 1   ,
-      spawn = {}  ,
-      sppos = Vector(stSpawn.SPos),
-      spang = Angle (stSpawn.SAng),
-      vtemp = Vector(),
-      entpn = nil,
-      entpo = trEnt,
+      start = 1,
       itrys = 0,
-      srate = spawnrate
+      spawn = {},
+      entpo = trEnt,
+      vtemp = Vector(),
+      srate = spawnrate,
+      sppos = Vector(stSpawn.SPos),
+      spang = Angle (stSpawn.SAng)
     }, function(oPly, oArg)
       for iD = oArg.start, stackcnt do
         oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / stackcnt))
         local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
         while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
           ePiece = asmlib.MakePiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
-        if(ePiece) then oArg.entpo, oArg.entpn = oArg.entpn, ePiece -- Set position is valid and store reference to the track piece
-          if(not asmlib.ApplyPhysicalSettings(oArg.entpn,ignphysgn,freeze,gravity,physmater)) then
+        if(ePiece) then -- Set position is valid and store reference to the track piece
+          if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
+          if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
-          if(not asmlib.ApplyPhysicalAnchor(oArg.entpn,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
+          if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
-          asmlib.SetVector(oArg.vtemp,hdOffs.P); oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.entpn:GetPos())
+          asmlib.SetVector(oArg.vtemp, hdOffs.P); oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.sppos)
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
-          oArg.spawn = asmlib.GetEntitySpawn(oPly,oArg.entpn,oArg.vtemp,model,pointid,
-                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol,oArg.spawn)
+          asmlib.GetEntitySpawn(oPly, ePiece, oArg.vtemp, model, pointid,
+            actrad, spnflat, igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
           if(not oArg.spawn) then -- Someting happend spawn is not available and task must be removed
             asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stacking has invalid user data"),gtArgsLogs); return false
+            asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Cannot obtain spawn data"),gtArgsLogs); return false
           end -- Spawn data is valid for the current iteration iNdex
           oArg.sppos:Set(oArg.spawn.SPos); oArg.spang:Set(oArg.spawn.SAng)
-          oArg.itrys, oArg.srate = 0, (oArg.srate - 1)
+          oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece
           -- Add the entity to the undo list created at the end
           tableInsert(oArg.eundo, ePiece)
           -- Check whenever the routine item is still busy
@@ -1315,7 +1311,8 @@ function TOOL:LeftClick(stTrace)
             return true -- The server is still busy with the task
           end
         else -- Someting happend piece cannot be created and task must be removed
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": All stack attempts fail"),gtArgsLogs); return false
+          asmlib.Notify(oPly,"Stack attempts extinct !", "ERROR")
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stack attempts extinct"),gtArgsLogs); return false
         end -- We still have enough memory to preform the stacking
       end -- Update the progress and successfully tell the task we are not busy anymore
       oPly:SetNWFloat(gsToolPrefL.."progress", 100); return false
@@ -1498,7 +1495,6 @@ end
 function TOOL:UpdateGhostCurve()
   local oPly = self:GetOwner()
   local tCrv, nD = self:CurveCheck()
-  local bCrv = oPly:GetNWBool(gsToolPrefL.."engcurve", false)
   if(tCrv and tCrv.Size and tCrv.Size > 1) then
     local model = self:GetModel()
     local stackcnt = self:GetStackCount()
@@ -1506,6 +1502,7 @@ function TOOL:UpdateGhostCurve()
     local tGho, iGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
     local nextx, nexty, nextz = self:GetPosOffsets()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+    local bCrv = oPly:GetNWBool(gsToolPrefL.."engcurve", false)
     if(bCrv) then
       local curvefact = self:GetCurveFactor()
       local curvsmple = self:GetCurveSamples()
@@ -1654,7 +1651,7 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
   local fky = asmlib.GetOpVar("FORM_DRWSPKY")
   local w,h = oScreen:GetSize()
-  oScreen:SetTextStart(0, 230)
+  oScreen:SetTextStart(0, 260)
   oScreen:DrawText(tostring(arK.Name), sCol, sMeth, tArgs)
   while(arK[iD]) do local def, iK = arK[iD], 1
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
@@ -1692,6 +1689,7 @@ function TOOL:DrawRelateIntersection(oScreen, oPly)
 end
 
 function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
+  if(not self:GetPointAssist()) then return end
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
@@ -1717,15 +1715,16 @@ function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
   oScreen:DrawLine(xU, Op, "b")
 end
 
-function TOOL:DrawSnapAssist(oScreen, oPly, stTrace)
-  local actrad = self:GetActiveRadius()
+function TOOL:DrawSnapAssist(oScreen, oPly, stTrace, nRad, bNoO)
+  if(not self:GetPointAssist()) then return end
+  local actrad = (tonumber(nRad) or self:GetActiveRadius())
   local trRec  = asmlib.CacheQueryPiece(stTrace.Entity:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
   local nRad = asmlib.GetCacheRadius(oPly, stTrace.HitPos)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
-    oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, actrad / 4.9)
+    oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, actrad / 5, bNoO)
   end
 end
 
@@ -1762,22 +1761,23 @@ function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2)
 end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
-  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace); if(not vOrg) then
-    asmlib.LogInstance("Transform missing", gtArgsLogs); return end
-  local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS(); if(not tC) then
-    asmlib.LogInstance("Curve missing", gtArgsLogs); return end
-  local xyO, xyH = vOrg:ToScreen(), vHit:ToScreen()
-  local nR = asmlib.GetCacheRadius(oPly, vHit, 2)
+  local vOrg, aAng, vHit, oPOA, bAct = self:GetCurveTransform(stTrace)
+  if(not vOrg) then asmlib.LogInstance("Transform missing", gtArgsLogs); return end
+  local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
+  if(not tC) then asmlib.LogInstance("Curve missing", gtArgsLogs); return end
+  local xyO, xyH, nrB, nrS = vOrg:ToScreen(), vHit:ToScreen(), 3, 1.5
   local xyZ = (vOrg + nS * aAng:Up()):ToScreen()
   local xyX = (vOrg + nS * aAng:Forward()):ToScreen()
   local bRp, vT, mD, mL = inputIsKeyDown(KEY_LSHIFT), Vector()
-  oScreen:DrawLine(xyO, xyH, "y", "SURF")
-  oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, 2), "y", "SEGM", {35})
-  oScreen:DrawLine(xyO, xyX, "r")
-  oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, 6))
+  oScreen:DrawLine(xyO, xyX, "r", "SURF")
+  oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, nrS), "y", "SEGM", {35})
+  if(bAct) then -- Check whenever active point is used for node
+    self:DrawSnapAssist(oScreen, oPly, stTrace, 10)
+  else oScreen:DrawLine(xyH, xyO, "y") end
+  oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, nrB), "g")
   oScreen:DrawLine(xyO, xyZ, "b")
   if(tC.Size and tC.Size > 0) then
-    for iD = 1, tC.Size do local rN = (iD == 1 and 6 or 2)
+    for iD = 1, tC.Size do local rN = (iD == 1 and nrB or nrS)
       local vB, vD, vN = tC.Base[iD], tC.Node[iD], tC.Norm[iD]
       local nB = asmlib.GetViewRadius(oPly, vB, 2)
       local nD = asmlib.GetViewRadius(oPly, vD, rN)
@@ -1801,7 +1801,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
     end
   end
   if(tC.Size and tC.Size > 0) then
-    if(bRp) then
+    if(bRp and mD) then
       local xyN = tC.Node[mD]:ToScreen()
       oScreen:DrawLine(xyN, xyO, "r")
     else
@@ -1809,12 +1809,13 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       oScreen:DrawLine(xyN, xyO, "y")
     end
   end
-  if(oPOA) then local trEnt = stTrace.Entity
-    asmlib.SetVector(vOrg, oPOA.O)
+  if(oPOA) then
+    local trEnt = stTrace.Entity
+    asmlib.SetVector(vOrg, oPOA.P)
     vOrg:Rotate(trEnt:GetAngles())
     vOrg:Add(trEnt:GetPos())
     local xyO = vOrg:ToScreen()
-    oScreen:DrawLine(xyH, xyO, "y")
+    oScreen:DrawLine(xyH, xyO, "g")
   end
 end
 
@@ -1832,10 +1833,11 @@ function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
 end
 
 function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
+  if(not self:GetPointAssist()) then return end
   local model, trEnt = self:GetModel(), stTrace.Entity
   local actrad, vT = self:GetActiveRadius(), Vector()
-  local bActp, xH = inputIsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
-  local wOv, wNr, wOr, wO1, wO2  = self:GetFlipOverOrigin(stTrace, bActp)
+  local bAct, xH = inputIsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
+  local wOv, wNr, wOr, wO1, wO2  = self:GetFlipOverOrigin(stTrace, bAct)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   vT:Set(wNr); vT:Mul(actrad); vT:Add(wOv)
@@ -1858,7 +1860,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
       hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
     end
   end
-  if(bActp and not stTrace.HitWorld and wOr) then
+  if(bAct and not stTrace.HitWorld and wOr) then
     local Op = wOr:ToScreen()
     hudMonitor:DrawLine(xH, Op, "r")
     if(model == trEnt:GetModel() and wO1 and wO2) then
@@ -1870,11 +1872,11 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
       hudMonitor:DrawCircle(Op2, asmlib.GetViewRadius(oPly, wO2))
       hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5), "b")
     else
-      hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOr))
+      hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOr), "r")
       hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5))
     end
   else
-    hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5))
+    hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5), "r")
   end
 end
 
@@ -1898,6 +1900,22 @@ function TOOL:DrawProgress(hudMonitor, oPly)
   end
 end
 
+function TOOL:DrawSnapRegular(hudMonitor, oPly, stSpawn, vHit)
+  local sizeucs = self:GetSizeUCS()
+  local actrad = self:GetActiveRadius()
+  local nRad = asmlib.GetCacheRadius(oPly, vHit)
+  local Ss, Tp = stSpawn.SPos:ToScreen(), vHit:ToScreen()
+  local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
+  local Os = hudMonitor:DrawUCS(oPly, stSpawn.OPos, stSpawn.OAng)
+  hudMonitor:DrawLine(Ob,Tp,"y")
+  hudMonitor:DrawCircle(Tp,(nRad * (stSpawn.RLen / actrad)) / 2)
+  hudMonitor:DrawLine(Ob,Os)
+  hudMonitor:DrawLine(Ob,Pp,"r")
+  hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, stSpawn.OPos, 0.5),"r")
+  hudMonitor:DrawLine(Os,Ss,"m")
+  hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
+end
+
 function TOOL:DrawHUD()
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
@@ -1916,7 +1934,6 @@ function TOOL:DrawHUD()
     self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"}); return
   end
   local trEnt, trHit = stTrace.Entity, stTrace.HitPos
-  local nrad = asmlib.GetCacheRadius(oPly, trHit)
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
@@ -1930,7 +1947,6 @@ function TOOL:DrawHUD()
     local stSpawn = asmlib.GetEntitySpawn(oPly,trEnt,trHit,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
-      if(not self:GetPointAssist()) then return end
       if(workmode == 1) then
         self:DrawSnapAssist(hudMonitor, oPly, stTrace)
       elseif(workmode == 2) then
@@ -1939,19 +1955,12 @@ function TOOL:DrawHUD()
         self:DrawFlipAssist(hudMonitor, oPly, stTrace)
       end; return -- The return is very very important ... Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
-      if(workmode == 4 and self:IsFlipOver()) then
-        self:DrawFlipAssist(hudMonitor, oPly, stTrace); return end
-      local Hp = stSpawn.HPnt:ToScreen()
-      local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
-      local Os = hudMonitor:DrawUCS(oPly, stSpawn.OPos, stSpawn.OAng)
-      hudMonitor:DrawLine(Ob,Tp,"y")
-      hudMonitor:DrawCircle(Tp,(nrad * (stSpawn.RLen / actrad)) / 2)
-      hudMonitor:DrawLine(Ob,Os)
-      hudMonitor:DrawLine(Ob,Pp,"r")
-      hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, stSpawn.OPos, 0.5),"r")
       if(workmode == 1) then
         self:DrawNextPoint(hudMonitor, oPly, stSpawn)
+        self:DrawSnapRegular(hudMonitor, oPly, stSpawn, trHit)
       elseif(workmode == 2) then -- Draw point intersection
+        local Os = stSpawn.OPos:ToScreen()
+        local Ss = stSpawn.SPos:ToScreen()
         if(asmlib.IntersectRayRead(oPly, "relate")) then
           local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
           local Rp, Re = self:DrawRelateIntersection(hudMonitor, oPly)
@@ -1964,11 +1973,18 @@ function TOOL:DrawHUD()
             hudMonitor:DrawLine(Os,O1,"r")
             hudMonitor:DrawLine(xX,pXx,"b")
           end
-        else self:DrawRelateAssist(hudMonitor, oPly, stTrace) end
+        else
+          self:DrawNextPoint(hudMonitor, oPly, stSpawn)
+          self:DrawRelateAssist(hudMonitor, oPly, stTrace)
+          self:DrawSnapAssist(hudMonitor, oPly, stTrace, nil, true)
+          hudMonitor:DrawLine(Os,Ss,"m")
+          hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
+        end
+      elseif(workmode == 4) then
+        self:DrawSnapRegular(hudMonitor, oPly, stSpawn, trHit)
+        if(self:IsFlipOver()) then
+          self:DrawFlipAssist(hudMonitor, oPly, stTrace) end
       end
-      local Ss = stSpawn.SPos:ToScreen()
-      hudMonitor:DrawLine(Os,Ss,"m")
-      hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
       if(not self:GetDeveloperMode()) then return end
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
@@ -1993,31 +2009,22 @@ function TOOL:DrawHUD()
       if(workmode == 2) then -- Draw point intersection
         self:DrawRelateIntersection(hudMonitor, oPly) end
       if(not self:GetDeveloperMode()) then return end
-      local x,y = hudMonitor:GetCenter(10,10)
-      hudMonitor:SetTextStart(x, y)
-      hudMonitor:DrawText("Org POS: "..tostring(vPos),"k","SURF",{"Trebuchet18"})
-      hudMonitor:DrawText("Org ANG: "..tostring(aAng))
+      local sX, sY = hudMonitor:GetSize()
+      hudMonitor:SetTextStart(0, sY / 2)
+      hudMonitor:DrawText("  POS: "..tostring(vPos),"k","SURF",{"DebugSpawnTA"})
+      hudMonitor:DrawText("  ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
       local stSpawn = asmlib.GetNormalSpawn(oPly,trHit + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
-      local Hp = stSpawn.HPnt:ToScreen()
-      local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
-      local Os = hudMonitor:DrawUCS(oPly, stSpawn.OPos, stSpawn.OAng)
-      hudMonitor:DrawLine(Ob,Tp,"y")
-      hudMonitor:DrawCircle(Tp,nrad / 2)
-      hudMonitor:DrawLine(Ob,Os)
-      hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, stSpawn.OPos, 0.5), "r")
       if(workmode == 1) then
         self:DrawNextPoint(hudMonitor, oPly, stSpawn)
       elseif(workmode == 2) then -- Draw point intersection
         self:DrawRelateIntersection(hudMonitor, oPly)
         self:DrawModelIntersection(hudMonitor, oPly, stSpawn)
       end
-      local Ss = stSpawn.SPos:ToScreen()
-      hudMonitor:DrawLine(Os,Ss,"m")
-      hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
+      self:DrawSnapRegular(hudMonitor, oPly, stSpawn, trHit)
       if(not self:GetDeveloperMode()) then return end
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
@@ -2181,10 +2188,9 @@ function TOOL.BuildCPanel(CPanel)
             end -- When the category has atleast one element
           else -- Store the creation information of the ones without category for later
             tableInsert(pCateg[sTyp], {sNam, sMod}); bNow = false
-          end -- Is there is any category apply it
+          end -- Is there is any category apply it. When available process it now
         end
-      end
-      -- Register the node associated with the track piece now when now intended for later
+      end -- Register the node associated with the track piece when is intended for later
       if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport3(sTyp, sNam, sMod),sLog) end
