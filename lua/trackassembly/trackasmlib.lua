@@ -2237,14 +2237,14 @@ local function SetCacheSpawn(stData)
 end
 
 function GetCacheSpawn(pPly, tDat)
-  if(tDat) then local stData = tDat
-    if(not IsTable(stData)) then
+  if(tDat) then -- When data spot is forced from user
+    local stData = tDat; if(not IsTable(stData)) then
       LogInstance("Invalid "..GetReport(stData)); return nil end
     if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
-      LogInstance("Reference <"..pPly:Nick()..">")
+      LogInstance("Populate <"..pPly:Nick()..">")
     end; return stData
-  else
+  else -- Use internal data spot
     local stSpot = GetPlayerSpot(pPly)
     if(not IsHere(stSpot)) then
       LogInstance("Spot missing"); return nil end

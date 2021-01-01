@@ -848,7 +848,7 @@ function TOOL:GetCurveTransform(stTrace)
   local surfsnap = self:GetSurfaceSnap()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  local oID, oMin, oPOA, oRec, bAct = nil, nil, nil, nil, false
+  local oID, oMin, oPOA, oRec = nil, nil, nil, nil
   local aAng, vHit, vOrg = Angle(), Vector(), Vector()
   local eEnt, vNrm = stTrace.Entity, stTrace.HitNormal
   aAng:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
@@ -858,17 +858,17 @@ function TOOL:GetCurveTransform(stTrace)
     if(oID and oMin and oPOA and oRec) then
       asmlib.SetVector(vOrg, oPOA.O); vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
       asmlib.SetAngle (aAng, oPOA.A); aAng:Set(eEnt:LocalToWorldAngles(aAng))
-    end; bAct = true -- Use the track piece active end to create realative curve node
+    end -- Use the track piece active end to create realative curve node
   else -- Offset the curve node when it is not driven by an active point
-    vOrg:Add(vNrm * elevpnt)
-  end
+    vOrg:Add(vNrm * elevpnt) -- Apply model active point elevation
+  end -- Apply the positioal and angular offsets to the return value
   vOrg:Add(aAng:Up()      * nextz)
   vOrg:Add(aAng:Right()   * nexty)
   vOrg:Add(aAng:Forward() * nextx)
   aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
   aAng:RotateAroundAxis(aAng:Right()  , nextpic)
   aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-  return vOrg, aAng, vHit, oPOA, bAct
+  return vOrg, aAng, vHit, oPOA
 end
 
 function TOOL:CurveInsert(stTrace, bMute)
@@ -1761,7 +1761,7 @@ function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2)
 end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
-  local vOrg, aAng, vHit, oPOA, bAct = self:GetCurveTransform(stTrace)
+  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace)
   if(not vOrg) then asmlib.LogInstance("Transform missing", gtArgsLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtArgsLogs); return end
@@ -1771,7 +1771,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local bRp, vT, mD, mL = inputIsKeyDown(KEY_LSHIFT), Vector()
   oScreen:DrawLine(xyO, xyX, "r", "SURF")
   oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, nrS), "y", "SEGM", {35})
-  if(bAct) then -- Check whenever active point is used for node
+  if(oPOA) then -- Check whenever active point is used for node
     self:DrawSnapAssist(oScreen, oPly, stTrace, 10)
   else oScreen:DrawLine(xyH, xyO, "y") end
   oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, nrB), "g")
@@ -1937,7 +1937,6 @@ function TOOL:DrawHUD()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  local sizeucs, Tp = self:GetSizeUCS(), trHit:ToScreen()
   if(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
     local spnflat = self:GetSpawnFlat()
@@ -1997,6 +1996,7 @@ function TOOL:DrawHUD()
     local workmode = self:GetWorkingMode()
     local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
     if(self:GetSpawnCenter()) then -- Relative to MC
+      local sizeucs = self:GetSizeUCS()
             aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
             aAng:RotateAroundAxis(aAng:Right()  , nextpic)
             aAng:RotateAroundAxis(aAng:Forward(), nextrol)
