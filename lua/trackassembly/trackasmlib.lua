@@ -1053,11 +1053,11 @@ function GetQueue(sKey)
   end
   function self:GetStruct(oP, oA, oM, oD, oN, oS, oE)
     if(not (oP and oP:IsValid())) then -- There is no valid player for task
-      LogInstance("Player invalid: "..GetReport2(oD, oP), mKey); return nil end
+      LogInstance("Player invalid "..GetReport2(oD, oP), mKey); return nil end
     if(not IsTable(oA)) then -- There is no valid player for task
-      LogInstance("Arguments invalid: "..GetReport2(oD, oA), mKey); return nil end
+      LogInstance("Arguments invalid "..GetReport2(oD, oA), mKey); return nil end
     if(not IsFunction(oM)) then -- There is no valid player for task
-      LogInstance("Routine invalid: "..GetReport2(oD, oM), mKey); return nil end
+      LogInstance("Routine invalid "..GetReport2(oD, oM), mKey); return nil end
     return {  -- Create task main routine structures
       P = oP, -- Current task player ( mandatory )
       A = oA, -- Current task arguments ( mandatory )
@@ -1077,11 +1077,11 @@ function GetQueue(sKey)
   function self:Remove()
     if(self:IsEmpty()) then return self end
     if(self:IsBusy(mS.P)) then return self end
-    LogInstance("Start: "..GetReport2(mS.D, mS.P:Nick()), mKey)
+    LogInstance("Start "..GetReport2(mS.D, mS.P:Nick()), mKey)
     if(mS.E) then -- Post-processing. Return value is ignored
       local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
-        LogInstance("Error: "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
-      else LogInstance("Finish: "..GetReport2(mS.D, mS.P:Nick()), mKey) end
+        LogInstance("Error "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
+      else LogInstance("Finish "..GetReport2(mS.D, mS.P:Nick()), mKey) end
     end -- Wipe all the columns in the item and go to the next item
     local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
   end
@@ -1090,7 +1090,7 @@ function GetQueue(sKey)
     local tD = self:GetStruct(oPly, tArg, fFoo, aDsc); if(not tD) then
       LogInstance("Invalid: "..GetReport2(aDsc, oPly), mKey); return self end
     if(self:IsEmpty()) then mS, mE = tD, tD else mE.N = tD; mE = tD end
-    LogInstance("Created: "..GetReport2(mS.D, mS.P:Nick()), mKey)
+    LogInstance("Create "..GetReport2(mS.D, mS.P:Nick()), mKey)
     mBusy[oPly] = true; return self -- Mark as busy
   end
   -- Calls a function before the task starts processing
@@ -1098,7 +1098,7 @@ function GetQueue(sKey)
     if(not IsHere(mE)) then -- No data to setup the pre-run for just exit
       LogInstance("Configuration missing", mKey); return self end
     if(not (mE.P and mE.P:IsValid())) then -- There is no valid player for task
-      LogInstance("Player invalid: "..GetReport2(mE.D, mE.P), mKey); return self end
+      LogInstance("Player invalid "..GetReport2(mE.D, mE.P), mKey); return self end
     mE.S = fFoo; return self
   end
   -- Calls a function when the task finishes processing
@@ -1106,7 +1106,7 @@ function GetQueue(sKey)
     if(not IsHere(mE)) then -- No data to setup the post-run for just exit
       LogInstance("Configuration missing", mKey); return self end
     if(not (mE.P and mE.P:IsValid())) then -- There is no valid player for task
-      LogInstance("Player invalid: "..GetReport2(mE.D, mE.P), mKey); return self end
+      LogInstance("Player invalid "..GetReport2(mE.D, mE.P), mKey); return self end
     mE.E = fFoo; return self
   end
   -- Execute the current task at the queue beginning
@@ -1114,24 +1114,24 @@ function GetQueue(sKey)
     if(self:IsEmpty()) then return self end
     if(mS.S) then -- Pre-processing. Return value is ignored
       local bOK, bErr = pcall(mS.S, mS.P, mS.A); if(not bOK) then
-        LogInstance("Error: "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
-      else LogInstance("Active: "..GetReport2(mS.D, mS.P:Nick()), mKey) end
+        LogInstance("Error "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
+      else LogInstance("Active "..GetReport2(mS.D, mS.P:Nick()), mKey) end
       mS.S = nil -- Remove the pre-processing function for other iterations
     end
     local bOK, bBsy = pcall(mS.M, mS.P, mS.A) -- Execute the main routine
     if(not bOK) then mBusy[mS.P] = false -- Error in the routine function
-      LogInstance("Error: "..GetReport2(mS.D, mS.P:Nick()).." "..bBsy, mKey)
+      LogInstance("Error "..GetReport2(mS.D, mS.P:Nick()).." "..bBsy, mKey)
     else
       if(bBsy) then -- No error in the routine function and not busy
-        LogInstance("Pass: "..GetReport3(mS.D, mS.P:Nick(), bBsy), mKey)
+        LogInstance("Pass "..GetReport3(mS.D, mS.P:Nick(), bBsy), mKey)
       else -- The taks main routine is done and the player is not busy
-        LogInstance("Done: "..GetReport3(mS.D, mS.P:Nick(), bBsy), mKey)
+        LogInstance("Done "..GetReport3(mS.D, mS.P:Nick(), bBsy), mKey)
       end -- Update the player busy statur according to the execution
     end; mBusy[mS.P] = bBsy; return self
   end
   if(IsHere(sKey)) then
     if(mHash) then mHash[sKey] = self end
-    LogInstance("Registered: "..GetReport(mKey)) end
+    LogInstance("Register "..GetReport(mKey)) end
   setmetatable(self, GetOpVar("TYPEMT_QUEUE")); return self
 end
 
@@ -1914,21 +1914,21 @@ function ModelToName(sModel, bNoSet)
         local fNu, bNu = tonumber(tCut[iCnt]), tonumber(tCut[iNxt])
         local fCh, bCh = tostring(tCut[iCnt]), tostring(tCut[iNxt])
         if(not (IsHere(fNu) and IsHere(bNu))) then
-          LogInstance("Cut mismatch{"..fCh..","..bCh.."}@"..sModel); return "" end
+          LogInstance("Cut mismatch "..GetReport3(fCh, bCh, sModel)); return "" end
         gModel = gModel:gsub(sModel:sub(fNu, bNu),""); iCnt, iNxt = (iCnt + 2), (iNxt + 2)
-        LogInstance("Cut{"..fCh..","..bCh.."}@"..gModel)
+        LogInstance("Cut "..GetReport3(fCh, bCh, gModel))
       end
     end -- Replace the unneeded parts by finding an in-string gModel
     if(tSub and tSub[1]) then iCnt, iNxt = 1, 2
       while(tSub[iCnt]) do
         local fCh, bCh = tostring(tSub[iCnt] or ""), tostring(tSub[iNxt] or "")
-        gModel = gModel:gsub(fCh,bCh); LogInstance("Sub{"..fCh..","..bCh.."}@"..gModel)
+        gModel = gModel:gsub(fCh,bCh); LogInstance("Sub "..GetReport3(fCh, bCh, gModel))
         iCnt, iNxt = (iCnt + 2), (iNxt + 2)
       end
     end -- Append something if needed
     if(tApp and tApp[1]) then
       local fCh, bCh = tostring(tApp[1] or ""), tostring(tApp[2] or "")
-      gModel = (fCh..gModel..bCh); LogInstance("App{"..fCh..","..bCh.."}@"..gModel)
+      gModel = (fCh..gModel..bCh); LogInstance("App "..GetReport(fCh, bCh, gModel))
     end
   end -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
   return GetBeautifyName(gModel:Trim("_"))
@@ -1946,13 +1946,13 @@ local function MakeEntityNone(sModel, vPos, vAng) local eNone
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
   if(not (eNone and eNone:IsValid())) then
-    LogInstance("Entity invalid @"..sModel); return nil end
+    LogInstance("Entity invalid "..GetReport(sModel)); return nil end
   eNone:SetPos(vPos or GetOpVar("VEC_ZERO"))
   eNone:SetAngles(vAng or GetOpVar("ANG_ZERO"))
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
-  LogInstance("{"..tostring(eNone).."}@"..sModel); return eNone
+  LogInstance("Create "..GetReport2(eNone:EntIndex(),sModel)); return eNone
 end
 
 --[[
@@ -2046,17 +2046,17 @@ function GetTransformOA(sModel,sKey)
   local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
   if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
     if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
-      LogInstance("Update ["..tostring(ePiece:EntIndex()).."]"..sModel) end
+      LogInstance("Update "..GetReport2(ePiece:EntIndex(), sModel)) end
   else -- If there is no basis need to create one for attachment extraction
     ePiece = MakeEntityNone(sModel); if(not (ePiece and ePiece:IsValid())) then
-      LogInstance("Basis creation fail @"..sModel); return nil end
+      LogInstance("Basis creation error "..GetReport(sModel)); return nil end
     SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
   end -- Transfer the data from the transform attachment location
   local mID = ePiece:LookupAttachment(sKey); if(not IsNumber(mID)) then
     LogInstance("Attachment missing ID "..GetReport(sKey)..sModel); return nil end
   local mTOA = ePiece:GetAttachment(mID); if(not IsHere(mTOA)) then
     LogInstance("Attachment missing OA "..GetReport(mID)..sModel); return nil end
-  LogInstance("Extract {"..sKey.."}<"..tostring(mTOA.Pos).."><"..tostring(mTOA.Ang)..">")
+  LogInstance("Extract "..GetReport3(sKey, mTOA.Pos, mTOA.Ang))
   return mTOA.Pos, mTOA.Ang -- The function must return transform origin and angle
 end
 

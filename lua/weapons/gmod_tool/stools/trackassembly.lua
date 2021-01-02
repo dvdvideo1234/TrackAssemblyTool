@@ -561,8 +561,8 @@ function TOOL:GetWorkingMode()
   local nWork = self:GetClientNumber("workmode", 0)
   local cWork = mathClamp(nWork or 0, 1, conWorkMode:GetSize())
   local sWork = tostring(conWorkMode:Select(cWork) or gsNoAV):sub(1,6)
-  if(SERVER) then
-    if(self:GetOperation() ~= cWork) then
+  if(SERVER) then -- Change the operation mode for tool information
+    if(self:GetOperation() ~= cWork) then -- Only when different
       self:SetOperation(cWork); self:SetStage(0) end
   end; return cWork, sWork
 end
