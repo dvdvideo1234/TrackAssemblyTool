@@ -1,5 +1,5 @@
 return function(sTool, sLimit) local tSet = {} -- French
-  tSet["tool."..sTool..".workmode.1"    ] = "(Choix par défaut) Créer/Aligner des pièces" --FIX
+  tSet["tool."..sTool..".workmode.1"    ] = "Général créer/aligner des pièces" --FIX
   tSet["tool."..sTool..".workmode.2"    ] = "Point d'intersection actif" --FIX
   tSet["tool."..sTool..".workmode.3"    ] = "Ajuster des segments de ligne courbés" --FIX
   tSet["tool."..sTool..".workmode.4"       ] = "Retourner la normale d'une surface" --NEW
