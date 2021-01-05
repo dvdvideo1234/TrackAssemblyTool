@@ -9,10 +9,12 @@ local fVer = "asmlib.SetOpVar%s*%(%s*\"TOOL_VERSION\"%s*,%s*\"%d+%.%d+\"%s*%)"
 local fNum = "%s*%d+%s*%.%s*%d+%s*"
 local tEnd = {["DOS"]="\r\n", ["UNX"]="\n"}
 
+function trim(s) return s:match("^%s*(.-)%s*$") end
+
 local sLog = tostring(arg[4]):gsub("\\","/")
 
 local fLog, sE = io.open(sLog,"a+")
-if(fLog) then io.output(fLog) end
+if(fLog) then io.output(fLog) else io.output("Error: "..sE) end
 
 io.write(fSta:format("START"))
 
@@ -52,11 +54,16 @@ while(sI) do
     io.write("Version found at line ["..nL.."]\n")
     local vB, vE = sI:find(fNum)
     if(vB and vE) then
-      io.write("Version > ["..sI:sub(vB, vE).."]\n")
-      local nW, nF = math.modf(tonumber(sI:sub(vB, vE)))
-      local sF = (tonumber(tostring(nF):sub(3,-1))+1)
-      sI = sI:sub(1,vB-1)..nW.."."..sF..sI:sub(vE+1,-1)
-      io.write("Extract > ["..sF.."]\n")
+      print(sI:sub(vB, vE))
+      local nD = sI:sub(vB, vE):find(".", 1, true)
+      if(nD) then
+        local sW = trim(sI:sub(vB, vB + nD - 2))
+        local sF = trim(sI:sub(vB + nD, vE))
+        io.write("Version > ["..sW.."]["..sF.."]\n")
+        sF = tostring(tonumber(sF) + 1)
+        sI = sI:sub(1,vB-1)..sW.."."..sF..sI:sub(vE+1,-1)
+        io.write("Extract > ["..sF.."]\n")
+      end
     end
   end
   nL = nL + 1
@@ -72,5 +79,3 @@ if(fLog) then
   fLog:flush()
   fLog:close()
 end
-
-

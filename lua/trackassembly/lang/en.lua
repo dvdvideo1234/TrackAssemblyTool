@@ -1,4 +1,4 @@
-return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
+﻿return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
   ------ CONFIGURE TRANSLATIONS ------ https://en.wikipedia.org/wiki/ISO_639-1
   -- con >> control # def >> default # hd >> header # lb >> label
   tSet["tool."..sTool..".workmode.1"       ] = "General spawn/snap pieces"
@@ -216,7 +216,7 @@ return function(sTool, sLimit) local tSet = {} -- English ( Column "ISO 639-1" )
   tSet["tool."..sTool..".timermode_mem"    ] = "Memory manager for SQL table:"
   tSet["tool."..sTool..".timermode_cqt"    ] = "Cache query timer via record request"
   tSet["tool."..sTool..".timermode_obj"    ] = "Object timer attached to cache record"
-  tSet["tool."..sTool..".logfile"          ] = "When enabled starts streaming the log into dedicated file"
+  tSet["tool."..sTool..".logfile"          ] = "When enabled starts streaming the log into a dedicated file"
   tSet["tool."..sTool..".logfile_con"      ] = "Enable logging file"
   tSet["tool."..sTool..".logsmax"          ] = "Change this to adjust the log streaming maximum output lines written"
   tSet["tool."..sTool..".logsmax_con"      ] = "Logging lines:"

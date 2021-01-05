@@ -1,8 +1,9 @@
 @name TA Exporter Generator
 @inputs
 @outputs [Dev Chip Base]:entity [F Cen Prg]:vector Time Test PU PD
-@persist Time DF StraightUp Interval TrackPieceW TrackRangerMaxW TrackPieceH TrackRangerMaxH TrackOriginInset TrackOriginTolerance:string
-@persist [Cen Prg ORG F R U]:vector [Prop Mod]:string [Dev Chip Base]:entity ARC:array OutagePercentTolerance PointID
+@persist Time DF StraightUp Interval TrackPieceW TrackRangerMaxW TrackPieceH TrackRangerMaxH TrackOriginInset
+@persist [Cen Prg ORG MOrigin F R U]:vector [Prop Mod]:string [Dev Chip Base]:entity ARC:array OutagePercentTolerance
+@persist PointID TrackOriginTolerance:string TrackJumpBackMultiplier MExtraDepth MExtraSide TrackStepDelta
 @persist OverrideZ [InsertTypeDB TypeSegment PieceType PieceName]:string PrintCount PrintTime
 @trigger none
 
@@ -98,7 +99,7 @@ function void printPoint(Type:string, Name:string, Mode:string, Hash:string, Poi
 if(first() || dupefinished())
 {
     # What model to search for vector offset
-    Prop = "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"
+    Prop = "models/sprops/cuboids/non_set/cube_18x18x18.mdl"
 
     # Piece type that you are using. It is mandatory
     # It is usually derived from the addon mame
@@ -115,53 +116,65 @@ if(first() || dupefinished())
     # Set this to <>0 to use point generation via iterative binary search
     # Set this to positive to make the algorithm trace forward
     # Set this to negative to make the algorithm trace backwards
-    PointID = 0
+    PointID = 1
 
     # What segment type are we processing
     # road     --> Roads ( PHX roads )
     # monorail --> PHX monorail
     # general  --> The two beam tracks segmentnts that we all love and joy
-    TypeSegment = "monorail"
+    TypeSegment = "road"
 
     # Set this to <>0 for direct Z local offset
     # This us used to override the Z axis magntude
-    OverrideZ = 0
+    OverrideZ = 5.65723
 
     # What mode will the point be exportet as
     InsertTypeDB = "INS"
 
-    # Automatically managed via the point ID
-    # If positive uses direct point generation
-    Interval = (PointID == 0) * 10
-
     # Outage % Defines how sensitive the algorithm is
     # Lesser number means more sensitive
-    OutagePercentTolerance = 3
+    OutagePercentTolerance = 1
 
     # Prints the delta if this many switches were made
     # The higher the number it will wait more before it prints
     PrintCount = 100
 
     # This is automatically managed by the point ID selected
-    # Set the coefficient before the sign() to adjust the process speed
-    # The fighed the number the less iteration are made
-    DF = 0.4 * sign(PointID)
+    # Set the coefficient to adjust the process speed
+    # The higher the number the less iterations are made
+    TrackStepDelta = 0.02
 
     # Track piece width and height
     # The bigger the numbers the more cross section your track piece has
-    TrackPieceW = 30
-    TrackPieceH = 30
+    TrackPieceW = 800
+    TrackPieceH = 60
 
     # Generate the origin with an inset
     # This is used for bad model ends where the program cannot start sometimes
     # Keep this to the minimum if your tracks are quite good and you want accuracy
-    TrackOriginInset = 0.0001
+    TrackOriginInset = 0.001
 
     # Tolerance of the error gained when generating an active point
     # This translates to 10 to the power of negative something..
     # The higher the power the less error algorithm has
-    TrackOriginTolerance = "e-14"
+    TrackOriginTolerance = "e-12"
 
+    # Must be positive and slaller than two for the binery search to work
+    # Defines how far does the sensor origin goes back anfter it goes out of bounds
+    # The higher the mumber the long time it will take and will be more accurate
+    TrackJumpBackMultiplier = 1.7
+
+    # Automatic value adjustment
+    Interval = (PointID == 0) * 10
+    TrackRangerMaxW = TrackPieceW * 2
+    TrackRangerMaxH = TrackPieceH * 2
+    PrintCount = abs(PrintCount)
+    PrintTime  = PrintCount
+    TrackStepDelta = abs(TrackStepDelta)
+    DF = clamp(TrackStepDelta, 0.0001, 1) * sign(PointID)
+    TrackJumpBackMultiplier = clamp(TrackJumpBackMultiplier, 1.001, 1.999)
+
+    # Initialization
     Time = 0
     Chip = entity()
     CPos = Chip:pos()
@@ -174,10 +187,6 @@ if(first() || dupefinished())
     No   = findByModel(Prop)
     Dev  = findClosest(Chip:pos())
     Dev:setColor(0,255,0,255)
-    TrackRangerMaxW = TrackPieceW * 2
-    TrackRangerMaxH = TrackPieceH * 2
-    PrintCount = abs(PrintCount)
-    PrintTime  = PrintCount
     # Set to > 0 for straight rails and place it between the beams
     # The angle must be [0,0,0]
     UpVec = Dev:pos() - CPos
@@ -242,10 +251,9 @@ if(Interval > 0)
 {
     if(Time <= 0)
     {
+        print(_HUD_PRINTTALK,"Finished: "+Prop)
         Dev:setColor(255,255,255,255)
         selfDestruct()
-        # print(_HUD_PRINTTALK,Dev:massCenter())
-        # print(_HUD_PRINTTALK,Dev:pos())
     }
     else
     {
@@ -283,11 +291,12 @@ if(Interval > 0)
           Cen = Cen - DF * F
           ALR = clampTrace(Cen,TrackPieceW,F,R,TrackRangerMaxW,0,0), VL = ALR[1,number], VR = ALR[2,number]
           Time = Time - 1
-          DF = DF * 1.7
+          DF = DF * TrackJumpBackMultiplier
         }
         DF =  0.5 * DF
-        if(PrintTime == 0 && PrintCount != 0){
-            print(_HUD_PRINTTALK,"Delta: "+toString(DF))
+        if(PrintTime == 0 && PrintCount != 0)
+        {
+            print(_HUD_PRINTTALK,"Delta: "+toString(DF)+" Time: "+toString(Time))
             PrintTime = PrintCount
         }
     }else{
@@ -306,7 +315,12 @@ if(Interval > 0)
             PRL = clampTrace(Cen - TrackOriginInset * F ,0,F,R,TrackRangerMaxW,3,4)
             TrackExtraDepth = ((ARC[1,number] - PU) / 2) + PU
             TrackExtraSide  = PRL[3,number]
-        }else{ print(_HUD_PRINTTALK,"Segment type: " + TypeSegment + " not developed") }
+        }
+        else
+        {
+            print(_HUD_PRINTTALK,"Segment type missing error: " + TypeSegment)
+            selfDestruct()
+        }
 
         ORG = Cen + TrackPieceH      * U
         ORG = ORG - TrackExtraSide   * R
@@ -315,19 +329,49 @@ if(Interval > 0)
 
         O = Base:toLocalAxis(ORG - Base:pos())
         A = Base:toLocal((F):toAngle(U))
-
         S = toString(DF):find(TrackOriginTolerance)
-
-        if(S > 0)
+        
+        # print(_HUD_PRINTTALK,"Origin: "+toString(O), (MOrigin - O):length())
+        
+        if(MOrigin:length() > 0 && (MOrigin - O):length() > 1)
         {
+            print(_HUD_PRINTTALK,"Tollerance error: "+toString((MOrigin - O):length()))
+            print(_HUD_PRINTTALK,"Extra side : "+toString(MExtraSide)+" > "+toString(TrackExtraSide))
+            print(_HUD_PRINTTALK,"Extra depth: "+toString(MExtraDepth)+" > "+toString(TrackExtraDepth))
+            print(_HUD_PRINTTALK,"Extra inset: "+toString(TrackOriginInset))
+            selfDestruct()
+        }
+        
+        if(DF > 1)
+        {
+            print(_HUD_PRINTTALK,"Origin delta error: "+toString(DF))
+            print(_HUD_PRINTTALK,"Extra side : "+toString(TrackExtraSide))
+            print(_HUD_PRINTTALK,"Extra depth: "+toString(TrackExtraDepth))
+            print(_HUD_PRINTTALK,"Extra inset: "+toString(TrackOriginInset))
+            selfDestruct()
+        }
+                    
+        if(S > 0)
+        {    
+            print(_HUD_PRINTTALK,"Finish: "+toString(DF))
             printPoint(PieceType,PieceName,InsertTypeDB,Mod,PointID,O+TrackOriginInset*F,A,OverrideZ)
             selfDestruct()
         }
+        else
+        {
+            if(PrintTime == 0 && PrintCount != 0)
+            {
+                print(_HUD_PRINTTALK,"Delta: "+toString(DF))
+                PrintTime = PrintCount
+            }  
+        }
+        
         holoPos(2,Base:pos() + O:rotate(Base:angles()))
         Cen = Cen + DF * F
-        if(PrintTime == 0 && PrintCount != 0){
-            print(_HUD_PRINTTALK,"Delta: "+toString(DF))
-            PrintTime = PrintCount
-        }
+        
+        # Memory crap
+        MOrigin     = O
+        MExtraDepth = TrackExtraDepth
+        MExtraSide  = TrackExtraSide
     }
 }

@@ -1,0 +1,17 @@
+name: CI
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download glualint
+      run: |
+        wget -O glualint.zip https://github.com/FPtje/GLuaFixer/releases/download/1.11.1/glualint-1.11.1-linux.zip
+        unzip glualint.zip
+    - name: Lint
+      run: ./glualint --config .github/workflows/glualint.json

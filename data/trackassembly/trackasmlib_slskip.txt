@@ -7,6 +7,8 @@ LocatePOA: Missing ID
 TimerRestart: Called by
 DrawToolScreen: Invalid screen
 DrawHUD: Invalid screen
+GetEntitySpawn: Trace outside radius
+GetEntitySpawn: Active point missed
 GetEntitySpawn: Not hitting active point
 CacheQueryPiece: Record not located
 GetEntitySpawn: Trace model missing
@@ -15,17 +17,19 @@ TOOL.SwitchPoint
 IntersectRayRead
 IntersectRayClear
 IntersectRayHash
-MakeScreen.DrawLine: Start out of border
-MakeScreen.DrawLine: End out of border
-MakeScreen.GetColor: Color reset
-MakeScreen.GetDistance: Start out of border
-MakeScreen.GetDistance: End out of border
-MakeScreen: Color list not container
+GetScreen.DrawLine: Start out of border
+GetScreen.DrawLine: End out of border
+GetScreen.GetColor: Color reset
+GetScreen.GetDistance: Start out of border
+GetScreen.GetDistance: End out of border
+GetScreen: Color list not container
+DRAW_RADMENU: Release
 DRAW_RADMENU: Hook mismatch
 DRAW_RADMENU: Scroll release
 DRAW_RADMENU: Menu disabled
 DRAW_PHYSGUN: Extension disabled
 DRAW_RADMENU: %(gmod_tool%) Swep other
+DRAW_GHOSTS: Swep invalid
 DRAW_GHOSTS: Swep not tool
 DRAW_GHOSTS: %(gmod_tool%) Swep other
 DRAW_GHOSTS: Tool different
@@ -34,6 +38,7 @@ DRAW_PHYSGUN: Trace world
 DRAW_PHYSGUN: Hook mismatch
 DRAW_PHYSGUN: Physgun not hold
 DRAW_PHYSGUN: Swep not physgun
+DRAW_PHYSGUN: Swep invalid
 DRAW_PHYSGUN: Extension disabled
 DRAW_PHYSGUN: %(weapon_physgun%) Swep other
 POINT_SELECT: Bind not pressed
