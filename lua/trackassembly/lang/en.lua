@@ -19,7 +19,7 @@
   tSet["tool."..sTool..".right.4"          ] = "Register entity in the flip over list. Hold SHIFT to change model"
   tSet["tool."..sTool..".right_use.1"      ] = "Disabled SCROLL. "..tSet["tool."..sTool..".right.1"]
   tSet["tool."..sTool..".right_use.2"      ] = tSet["tool."..sTool..".right_use.1"]
-  tSet["tool."..sTool..".right_use.3"      ] = "Generate node form the nearest track piece active point"
+  tSet["tool."..sTool..".right_use.3"      ] = "Generate node from the nearest track piece active point"
   tSet["tool."..sTool..".right_use.4"      ] = tSet["tool."..sTool..".right_use.1"]
   tSet["tool."..sTool..".reload.1"         ] = "Remove a track piece. Hold SHIFT to select an anchor"
   tSet["tool."..sTool..".reload.2"         ] = "Remove a track piece. Hold SHIFT to select relation ray"
@@ -198,7 +198,7 @@
   tSet["tool."..sTool..".bnderrmod"        ] = "Change this to define the behavior when clients are spawning pieces outside of map bounds"
   tSet["tool."..sTool..".bnderrmod_off"    ] = "Allow stack/spawn without restriction"
   tSet["tool."..sTool..".bnderrmod_log"    ] = "Deny stack/spawn the error is logged"
-  tSet["tool."..sTool..".bnderrmod_hint"   ] = "Deny stack/spawn hunt message is displayed"
+  tSet["tool."..sTool..".bnderrmod_hint"   ] = "Deny stack/spawn hint message is displayed"
   tSet["tool."..sTool..".bnderrmod_generic"] = "Deny stack/spawn generic message is displayed"
   tSet["tool."..sTool..".bnderrmod_error"  ] = "Deny stack/spawn error message is displayed"
   tSet["tool."..sTool..".bnderrmod_con"    ] = "Bounding mode:"
@@ -216,7 +216,7 @@
   tSet["tool."..sTool..".timermode_mem"    ] = "Memory manager for SQL table:"
   tSet["tool."..sTool..".timermode_cqt"    ] = "Cache query timer via record request"
   tSet["tool."..sTool..".timermode_obj"    ] = "Object timer attached to cache record"
-  tSet["tool."..sTool..".logfile"          ] = "When enabled starts streamming the log into dedicated file"
+  tSet["tool."..sTool..".logfile"          ] = "When enabled starts streaming the log into a dedicated file"
   tSet["tool."..sTool..".logfile_con"      ] = "Enable logging file"
   tSet["tool."..sTool..".logsmax"          ] = "Change this to adjust the log streaming maximum output lines written"
   tSet["tool."..sTool..".logsmax_con"      ] = "Logging lines:"
