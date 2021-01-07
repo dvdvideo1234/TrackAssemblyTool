@@ -12,7 +12,7 @@
 local asmlib = trackasmlib
 
 -- Change this to your addon name.
-local myAddon = "Shinji85's Rails" -- Your addon name goes here
+local myAddon = "Anyone's Horrible Trackpack" -- Your addon name goes here
 
 --[[
  * Change this if you want to use different in-game type
@@ -77,9 +77,6 @@ if(asmlib) then
   -- Tell TA what custom script we just called don't touch it
   asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
 
-  -- Register the addon to the workshop ID list
-  asmlib.WorkshopID(myAddon, "326640186")
-
   --[[
    * Register the addon to the auto-load prefix list when the
    * PIECES file is missing. The auto-load list is located in
@@ -116,13 +113,11 @@ if(asmlib) then
   local myCategory = {
     [myType] = {Txt = [[
       function(m) local c
-      local r = m:gsub("models/shinji85/train/rail_", "")
-      if(r:find("cross")) then c = "crossing"
-      elseif(r:find("switch")) then c = "switch"
+      local r = m:gsub("anytracks/", "")
+      if(r:find("straight")) then c = "straight"
       elseif(r:find("curve")) then c = "curve"
-      elseif(r:find("bumper")) then c = "bumper"
-      elseif(r:find("junction")) then c = "junction"
-      elseif(r:find("%dx")) then c = "straight" end; return c end
+      elseif(r:find("%dx")) then c = "straight"
+      end; c = (c and c:gsub("^%l", string.upper) or nil) return c end
     ]]}
   }
 
@@ -184,108 +179,77 @@ if(asmlib) then
    *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
   ]]--
   local myPieces = {
-    ["models/shinji85/train/rail_16x.mdl"] = {
-      {myType, "Straight 16x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Straight 16x", gsSymOff, gsMissDB, "-2048,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/hs_1024.mdl"] = {
+      {myType, "Hs 1024", gsSymOff, gsMissDB, "0,512,4", "0,90,0", gsMissDB},
+      {myType, "Hs 1024", gsSymOff, gsMissDB, "0,-512,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_1x.mdl"] = {
-      {myType, "Straight 1x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Straight 1x", gsSymOff, gsMissDB, "-128,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/hs_128.mdl"] = {
+      {myType, "Hs 128", gsSymOff, gsMissDB, "0,64,4", "0,90,0", gsMissDB},
+      {myType, "Hs 128", gsSymOff, gsMissDB, "0,-64,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_2x.mdl"] = {
-      {myType, "Straight 2x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Straight 2x", gsSymOff, gsMissDB, "-256,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/hs_2048.mdl"] = {
+      {myType, "Hs 2048", gsSymOff, gsMissDB, "0,1024,4", "0,90,0", gsMissDB},
+      {myType, "Hs 2048", gsSymOff, gsMissDB, "0,-1024,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_4x.mdl"] = {
-      {myType, "Straight 4x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Straight 4x", gsSymOff, gsMissDB, "-512,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/hs_256.mdl"] = {
+      {myType, "Hs 256", gsSymOff, gsMissDB, "0,128,4", "0,90,0", gsMissDB},
+      {myType, "Hs 256", gsSymOff, gsMissDB, "0,-128,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_4x_crossing.mdl"] = {
-      {myType, "Crossing 4x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Crossing 4x", gsSymOff, gsMissDB, "-512,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/hs_32.mdl"] = {
+      {myType, "Hs 32", gsSymOff, "30,0,4", "0,16,4", "0,90,0", gsMissDB},
+      {myType, "Hs 32", gsSymOff, "-30,0,4", "0,-16,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_8x.mdl"] = {
-      {myType, "Straight 8x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Straight 8x", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/hs_4096.mdl"] = {
+      {myType, "Hs 4096", gsSymOff, gsMissDB, "0,2048,4", "0,90,0", gsMissDB},
+      {myType, "Hs 4096", gsSymOff, gsMissDB, "0,-2048,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_bumper.mdl"] = {
-      {myType, "Bumper", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB}
+    ["models/anytracks/straight/hs_512.mdl"] = {
+      {myType, "Hs 512", gsSymOff, gsMissDB, "0,256,4", "0,90,0", gsMissDB},
+      {myType, "Hs 512", gsSymOff, gsMissDB, "0,-256,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_cross_4x.mdl"] = {
-      {myType, "Cross 4x", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Cross 4x", gsSymOff, gsMissDB, "-512,0,7.346", "0,180,0", gsMissDB},
-      {myType, "Cross 4x", gsSymOff, gsMissDB, "-256,-256,7.346", "0,270,0", gsMissDB},
-      {myType, "Cross 4x", gsSymOff, gsMissDB, "-256,256,7.346", "0,90,0", gsMissDB}
+    ["models/anytracks/straight/hs_64.mdl"] = {
+      {myType, "Hs 64", gsSymOff, gsMissDB, "0,32,4", "0,90,0", gsMissDB},
+      {myType, "Hs 64", gsSymOff, gsMissDB, "0,-32,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_cs.mdl"] = {
-      {myType, "Counter Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Counter Switch", gsSymOff, gsMissDB, "-908.81165,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/hs_8192.mdl"] = {
+      {myType, "Hs 8192", gsSymOff, gsMissDB, "0,4096,4", "0,90,0", gsMissDB},
+      {myType, "Hs 8192", gsSymOff, gsMissDB, "0,-4096,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_csfix.mdl"] = {
-      {myType, "Counter Switch Fix", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Counter Switch Fix", gsSymOff, gsMissDB, "-115.18847,0,7.346", "0,180,0", gsMissDB}
+    ["models/anytracks/straight/s_1024.mdl"] = {
+      {myType, "S 1024", gsSymOff, gsMissDB, "0,512,4", "0,90,0", gsMissDB},
+      {myType, "S 1024", gsSymOff, gsMissDB, "0,-512,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_curve_cc.mdl"] = {
-      {myType, "Curve Cc", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve Cc", gsSymOff, gsMissDB, "-966.40515,128,7.346", "0,165,0", gsMissDB}
+    ["models/anytracks/straight/s_128.mdl"] = {
+      {myType, "S 128", gsSymOff, gsMissDB, "0,64,4", "0,90,0", gsMissDB},
+      {myType, "S 128", gsSymOff, gsMissDB, "0,-64,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_curve_r1.mdl"] = {
-      {myType, "Curve R1", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R1", gsSymOff, gsMissDB, "-1060.12341,139.56763,7.346", "0,165,0", gsMissDB}
+    ["models/anytracks/straight/s_2048.mdl"] = {
+      {myType, "S 2048", gsSymOff, gsMissDB, "0,1024,4", "0,90,0", gsMissDB},
+      {myType, "S 2048", gsSymOff, gsMissDB, "0,-1024,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_curve_r11.mdl"] = {
-      {myType, "Curve R11", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R11", gsSymOff, gsMissDB, "-1086.11584,449.88458,7.346", "0,135,0", gsMissDB}
+    ["models/anytracks/straight/s_256.mdl"] = {
+      {myType, "S 256", gsSymOff, gsMissDB, "0,128,4", "0,90,0", gsMissDB},
+      {myType, "S 256", gsSymOff, gsMissDB, "0,-128,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_curve_r12.mdl"] = {
-      {myType, "Curve R12", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R12", gsSymOff, gsMissDB, "-905.09656,374.90414,7.346", "0,135,0", gsMissDB}
+    ["models/anytracks/straight/s_32.mdl"] = {
+      {myType, "S 32", gsSymOff, "30,0,4", "0,16,4", "0,90,0", gsMissDB},
+      {myType, "S 32", gsSymOff, "-30,0,4", "0,-16,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_curve_r13.mdl"] = {
-      {myType, "Curve R13", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R13", gsSymOff, gsMissDB, "-724.07727,299.92276,7.346", "0,135,0", gsMissDB}
+    ["models/anytracks/straight/s_4096.mdl"] = {
+      {myType, "S 4096", gsSymOff, gsMissDB, "0,2048,4", "0,90,0", gsMissDB},
+      {myType, "S 4096", gsSymOff, gsMissDB, "0,-2048,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_curve_r2.mdl"] = {
-      {myType, "Curve R2", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R2", gsSymOff, gsMissDB, "-993.86572,130.84471,7.346", "0,165,0", gsMissDB}
+    ["models/anytracks/straight/s_512.mdl"] = {
+      {myType, "S 512", gsSymOff, gsMissDB, "0,256,4", "0,90,0", gsMissDB},
+      {myType, "S 512", gsSymOff, gsMissDB, "0,-256,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_curve_r3.mdl"] = {
-      {myType, "Curve R3", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Curve R3", gsSymOff, gsMissDB, "-927.60797,122.1218,7.346", "0,165,0", gsMissDB}
+    ["models/anytracks/straight/s_64.mdl"] = {
+      {myType, "S 64", gsSymOff, gsMissDB, "0,32,4", "0,90,0", gsMissDB},
+      {myType, "S 64", gsSymOff, gsMissDB, "0,-32,4", "0,-90,0", gsMissDB}
     },
-    ["models/shinji85/train/rail_cx.mdl"] = {
-      {myType, "Counter X", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Counter X", gsSymOff, gsMissDB, "-362.51361,0,7.346", "0,180,0", gsMissDB}
-    },
-    ["models/shinji85/train/rail_cxfix.mdl"] = {
-      {myType, "Counter X Fix", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Counter X Fix", gsSymOff, gsMissDB, "-149.48648,0,7.346", "0,180,0", gsMissDB}
-    },
-    ["models/shinji85/train/rail_double_4x_crossing.mdl"] = {
-      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "0,128,7.346", gsMissDB, gsMissDB},
-      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "-512,128,7.346", "0,180,0", gsMissDB},
-      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "0,-128,7.346", gsMissDB, gsMissDB},
-      {myType, "Crossing Double 4x", gsSymOff, gsMissDB, "-512,-128,7.346", "0,180,0", gsMissDB}
-    },
-    ["models/shinji85/train/rail_double_bumper.mdl"] = {
-      {myType, "Bumper Double", gsSymOff, gsMissDB, "0,128,7.346", gsMissDB, gsMissDB},
-      {myType, "Bumper Double", gsSymOff, gsMissDB, "0,-128,7.346", gsMissDB, gsMissDB}
-    },
-    ["models/shinji85/train/rail_l_switch.mdl"] = {
-      {myType, "Left Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Left Switch", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB},
-      {myType, "Left Switch", gsSymOff, gsMissDB, "-966.40515,-128,7.346", "0,195,0", gsMissDB}
-    },
-    ["models/shinji85/train/rail_r_switch.mdl"] = {
-      {myType, "Right Switch", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "Right Switch", gsSymOff, gsMissDB, "-1024,0,7.346", "0,180,0", gsMissDB},
-      {myType, "Right Switch", gsSymOff, gsMissDB, "-966.40515,128,7.346", "0,165,0", gsMissDB}
-    },
-    ["models/shinji85/train/rail_x_junction.mdl"] = {
-      {myType, "X Junction", gsSymOff, gsMissDB, "0,0,7.346", gsMissDB, gsMissDB},
-      {myType, "X Junction", gsSymOff, gsMissDB, "-494.55,0,7.346", "0,180,0", gsMissDB},
-      {myType, "X Junction", gsSymOff, gsMissDB, "-33.129,-123.63866,7.346", "0,-30,0", gsMissDB},
-      {myType, "X Junction", gsSymOff, gsMissDB, "-461.42175,123.63649,7.346", "0,150,0", gsMissDB}
+    ["models/anytracks/straight/s_8192.mdl"] = {
+      {myType, "S 8192", gsSymOff, gsMissDB, "0,4096,4", "0,90,0", gsMissDB},
+      {myType, "S 8192", gsSymOff, gsMissDB, "0,-4096,4", "0,-90,0", gsMissDB}
     }
   }
 
@@ -352,18 +316,7 @@ if(asmlib) then
    *             When the parameter is equal or less than zero skips the call of /Entity:Sleep/
    * SETSOLID  > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
   ]]--
-  local myAdditions = {
-    ["models/shinji85/train/rail_l_switch.mdl"] = {
-      {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,-125,0", "0,180,0", -1, -1, -1, 0, -1, -1},
-      {"models/shinji85/train/rail_l_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, -1, 1, SOLID_VPHYSICS},
-      {"models/shinji85/train/rail_l_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, 0, -1, SOLID_NONE}
-    },
-    ["models/shinji85/train/rail_r_switch.mdl"] = {
-      {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,125,0", gsMissDB, -1, -1, -1, 0, -1, -1},
-      {"models/shinji85/train/rail_r_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, -1, 1, SOLID_VPHYSICS},
-      {"models/shinji85/train/rail_r_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, 0, -1, SOLID_NONE}
-    }
-  }
+  local myAdditions = {}
 
   if(not asmlib.IsEmpty(myAdditions)) then
     asmlib.LogInstance("SynchronizeDSV start <"..myPrefix..">")

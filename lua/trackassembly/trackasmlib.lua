@@ -523,15 +523,21 @@ function ToIcon(vKey, vVal)
   return GetOpVar("FORM_SKILLICON"):format(tostring(sIcon))
 end
 
-function WorkshopID(sKey, nVal)
+function WorkshopID(sKey, sID)
   if(SERVER) then return nil end
   local tID = GetOpVar("TABLE_WSIDADDON"); if(not IsString(sKey)) then
     LogInstance("Invalid "..GetReport(sKey)); return nil end
-  if(IsHere(nVal)) then
-    if(IsNumber(nVal) and nVal > 0) then tID[sKey] = nVal else
-      LogInstance("("..sKey..") Mismatch "..GetReport(nVal)); return nil
-    end
-  end; return tID[sKey]
+  local sWS = tID[sKey] -- Read the value under the key
+  if(sID) then local sPS = tostring(sID or "") -- Convert argument
+    local nS, nE = sPS:find("^%d+$") -- Check ID data format
+    if(nS and nE) then -- The number meets the format
+      if(not sWS) then tID[sKey], sWS = sPS, sPS else -- Update value
+        LogInstance("("..sKey..") Populate "..GetReport2(sWS, sID))
+      end -- Report overwrite value is present in the list
+    else -- The number does not meet the format
+      LogInstance("("..sKey..") Mismatch "..GetReport2(sWS, sID))
+    end -- Rerurn the current value under the specified key
+  end; return sWS
 end
 
 function IsFlag(vKey, vVal)
@@ -706,7 +712,7 @@ function InitBase(sName, sPurp)
     SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
     SetOpVar("FORM_DRWSPKY", "%+6s")
     SetOpVar("FORM_SKILLICON","icon16/%s.png")
-    SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%d")
+    SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%s")
     SetOpVar("TABLE_SKILLICON",{})
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})

@@ -57,6 +57,7 @@ local fileTime                      = file and file.Time
 local fileSize                      = file and file.Size
 local fileOpen                      = file and file.Open
 local hookAdd                       = hook and hook.Add
+local hookRemove                    = hook and hook.Remove
 local timerSimple                   = timer and timer.Simple
 local inputIsKeyDown                = input and input.IsKeyDown
 local inputIsMouseDown              = input and input.IsMouseDown
@@ -87,7 +88,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.634")
+asmlib.SetOpVar("TOOL_VERSION","8.637")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -465,26 +466,27 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
 
   -- Workshop matching crap
-  asmlib.WorkshopID("SligWolf's Rerailers"        , 132843280)
-  asmlib.WorkshopID("SligWolf's Minitrains"       , 149759773)
-  asmlib.WorkshopID("SProps"                      , 173482196)
-  asmlib.WorkshopID("Magnum's Rails"              , 290130567)
-  asmlib.WorkshopID("SligWolf's Railcar"          , 173717507)
-  asmlib.WorkshopID("Random Bridges"              , 343061215)
-  asmlib.WorkshopID("StevenTechno's Buildings 1.0", 331192490)
-  asmlib.WorkshopID("Mr.Train's M-Gauge"          , 517442747)
-  asmlib.WorkshopID("Mr.Train's G-Gauge"          , 590574800)
-  asmlib.WorkshopID("Bobster's two feet rails"    , 489114511)
-  asmlib.WorkshopID("G Scale Track Pack"          , 718239260)
-  asmlib.WorkshopID("Ron's Minitrain Props"       , 728833183)
-  asmlib.WorkshopID("SligWolf's White Rails"      , 147812851)
-  asmlib.WorkshopID("SligWolf's Minihover"        , 147812851)
-  asmlib.WorkshopID("Battleship's abandoned rails", 807162936)
-  asmlib.WorkshopID("AlexCookie's 2ft track pack" , 740453553)
-  asmlib.WorkshopID("Joe's track pack"            , 1658816805)
-  asmlib.WorkshopID("StevenTechno's Buildings 2.0", 1888013789)
-  asmlib.WorkshopID("Modular canals"              , 1336622735)
-  asmlib.WorkshopID("Trackmania United Props"     , 1955876643)
+  asmlib.WorkshopID("SligWolf's Rerailers"        , "132843280")
+  asmlib.WorkshopID("SligWolf's Minitrains"       , "149759773")
+  asmlib.WorkshopID("SProps"                      , "173482196")
+  asmlib.WorkshopID("Magnum's Rails"              , "290130567")
+  asmlib.WorkshopID("SligWolf's Railcar"          , "173717507")
+  asmlib.WorkshopID("Random Bridges"              , "343061215")
+  asmlib.WorkshopID("StevenTechno's Buildings 1.0", "331192490")
+  asmlib.WorkshopID("Mr.Train's M-Gauge"          , "517442747")
+  asmlib.WorkshopID("Mr.Train's G-Gauge"          , "590574800")
+  asmlib.WorkshopID("Bobster's two feet rails"    , "489114511")
+  asmlib.WorkshopID("G Scale Track Pack"          , "718239260")
+  asmlib.WorkshopID("Ron's Minitrain Props"       , "728833183")
+  asmlib.WorkshopID("SligWolf's White Rails"      , "147812851")
+  asmlib.WorkshopID("SligWolf's Minihover"        , "147812851")
+  asmlib.WorkshopID("Battleship's abandoned rails", "807162936")
+  asmlib.WorkshopID("AlexCookie's 2ft track pack" , "740453553")
+  asmlib.WorkshopID("Joe's track pack"            , "1658816805")
+  asmlib.WorkshopID("StevenTechno's Buildings 2.0", "1888013789")
+  asmlib.WorkshopID("Modular canals"              , "1336622735")
+  asmlib.WorkshopID("Trackmania United Props"     , "1955876643")
+  asmlib.WorkshopID("Anyone's Horrible Trackpack" , "2194528273")
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
@@ -1122,13 +1124,14 @@ if(CLIENT) then
           asmlib.LogInstance("Folder ["..sDir.."] "..lDir, gtArgsLogs); return end
         local bS, lSub = pcall(tDat.Foo, sSub); if (not bS) then
           asmlib.LogInstance("Subfolder ["..sSub.."] "..lSub, gtArgsLogs); return end
-        local sKey = tDat.Key:format(sDir, sSub)
-        hookAdd("PopulateToolMenu", sKey, function()
+        local sKey = tDat.Key:format(sDir, sSub); hookRemove(tDat.Hoo, sKey)
+        hookAdd(tDat.Hoo, sKey, function()
           local sNam = asmlib.GetPhrase(tDat.Nam)
-          spawnmenuAddToolMenuOption(lDir, lSub, sKey, sNam, "", "", tArg[3])
+          spawnmenuAddToolMenuOption(lDir, lSub, sKey, sNam, "", "", fFoo)
         end)
       end,
       {
+        Hoo = "PopulateToolMenu",
         Key = gsToolPrefL.."%s_%s",
         Nam = "tool."..gsToolNameL..".name",
         Foo = function(s) return s:gsub("^%l", stringUpper) end
@@ -4147,6 +4150,48 @@ else
   PIECES:Record({"models/nokillnando/trackmania/ground/misc/checkpointground.mdl", "#", "#", 1, "", "-180,0,0", "0,180,0"})
   PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumplow.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
   PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumphigh.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
+  --[===[
+  asmlib.Categorize("Anyone's Horrible Trackpack",[[function(m)
+    local n = m:gsub("models/anytracks/","")
+    local r = n:match("^%a+"); n = n:gsub("%.mdl","")
+          n = n:gsub(r, ""):sub(2, -1); return r, n end]])
+  PIECES:Record({"models/anytracks/straight/s_32.mdl", "#", "#", 1, " 30,0,4", "0, 16,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_32.mdl", "#", "#", 2, "-30,0,4", "0,-16,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_64.mdl", "#", "#", 1, "", "0, 32,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_64.mdl", "#", "#", 2, "", "0,-32,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_128.mdl", "#", "#", 1, "", "0, 64,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_128.mdl", "#", "#", 2, "", "0,-64,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_256.mdl", "#", "#", 1, "", "0, 128,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_256.mdl", "#", "#", 2, "", "0,-128,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_512.mdl", "#", "#", 1, "", "0, 256,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_512.mdl", "#", "#", 2, "", "0,-256,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_1024.mdl", "#", "#", 1, "", "0, 512,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_1024.mdl", "#", "#", 2, "", "0,-512,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_2048.mdl", "#", "#", 1, "", "0, 1024,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_2048.mdl", "#", "#", 2, "", "0,-1024,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_4096.mdl", "#", "#", 1, "", "0, 2048,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_4096.mdl", "#", "#", 2, "", "0,-2048,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_8192.mdl", "#", "#", 1, "", "0, 4096,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/s_8192.mdl", "#", "#", 2, "", "0,-4096,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_32.mdl", "#", "#", 1, " 30,0,4", "0, 16,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_32.mdl", "#", "#", 2, "-30,0,4", "0,-16,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_64.mdl", "#", "#", 1, "", "0, 32,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_64.mdl", "#", "#", 2, "", "0,-32,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_128.mdl", "#", "#", 1, "", "0, 64,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_128.mdl", "#", "#", 2, "", "0,-64,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_256.mdl", "#", "#", 1, "", "0, 128,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_256.mdl", "#", "#", 2, "", "0,-128,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_512.mdl", "#", "#", 1, "", "0, 256,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_512.mdl", "#", "#", 2, "", "0,-256,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_1024.mdl", "#", "#", 1, "", "0, 512,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_1024.mdl", "#", "#", 2, "", "0,-512,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_2048.mdl", "#", "#", 1, "", "0, 1024,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_2048.mdl", "#", "#", 2, "", "0,-1024,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_4096.mdl", "#", "#", 1, "", "0, 2048,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_4096.mdl", "#", "#", 2, "", "0,-2048,4", "0,-90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_8192.mdl", "#", "#", 1, "", "0, 4096,4", "0, 90,0", ""})
+  PIECES:Record({"models/anytracks/straight/hs_8192.mdl", "#", "#", 2, "", "0,-4096,4", "0,-90,0", ""})
+  ]===]
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
