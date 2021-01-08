@@ -78,6 +78,16 @@ if(asmlib) then
   asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
 
   --[[
+   * Register the addon to the workshop ID list. Apply the ID of your addon here!
+   * This is needed so TA user can open GUI to your addon webpage.
+   * Open your workshop addon with any brawser then copy the visited URL
+   * https://steamcommunity.com/sharedfiles/filedetails/?id=287012681
+   * This URL is used as an example obtained from the TA workshop link
+   * You only need the number at the end. Write it down as a string below.
+  ]]
+  asmlib.WorkshopID(myAddon , "2194528273")
+
+  --[[
    * Register the addon to the auto-load prefix list when the
    * PIECES file is missing. The auto-load list is located in
    * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
@@ -111,13 +121,10 @@ if(asmlib) then
    * and make every track point to its dedicated category handler.
   ]]--
   local myCategory = {
-    [myType] = {Txt = [[
-      function(m) local c
-      local r = m:gsub("anytracks/", "")
-      if(r:find("straight")) then c = "straight"
-      elseif(r:find("curve")) then c = "curve"
-      elseif(r:find("%dx")) then c = "straight"
-      end; c = (c and c:gsub("^%l", string.upper) or nil) return c end
+    [myType] = {Txt = [[function(m)
+      local n = m:gsub("models/anytracks/","")
+      local r = n:match("^%a+"); n = n:gsub("%.mdl","")
+            n = n:gsub(r, ""):sub(2, -1); return r, n end
     ]]}
   }
 
@@ -179,76 +186,76 @@ if(asmlib) then
    *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
   ]]--
   local myPieces = {
-    ["models/anytracks/straight/hs_1024.mdl"] = {
-      {myType, "Hs 1024", gsSymOff, gsMissDB, "0,512,4", "0,90,0", gsMissDB},
-      {myType, "Hs 1024", gsSymOff, gsMissDB, "0,-512,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/hs_128.mdl"] = {
-      {myType, "Hs 128", gsSymOff, gsMissDB, "0,64,4", "0,90,0", gsMissDB},
-      {myType, "Hs 128", gsSymOff, gsMissDB, "0,-64,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/hs_2048.mdl"] = {
-      {myType, "Hs 2048", gsSymOff, gsMissDB, "0,1024,4", "0,90,0", gsMissDB},
-      {myType, "Hs 2048", gsSymOff, gsMissDB, "0,-1024,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/hs_256.mdl"] = {
-      {myType, "Hs 256", gsSymOff, gsMissDB, "0,128,4", "0,90,0", gsMissDB},
-      {myType, "Hs 256", gsSymOff, gsMissDB, "0,-128,4", "0,-90,0", gsMissDB}
-    },
     ["models/anytracks/straight/hs_32.mdl"] = {
-      {myType, "Hs 32", gsSymOff, "30,0,4", "0,16,4", "0,90,0", gsMissDB},
+      {myType, "Hs 32", gsSymOff, " 30,0,4", "0, 16,4", "0, 90,0", gsMissDB},
       {myType, "Hs 32", gsSymOff, "-30,0,4", "0,-16,4", "0,-90,0", gsMissDB}
     },
-    ["models/anytracks/straight/hs_4096.mdl"] = {
-      {myType, "Hs 4096", gsSymOff, gsMissDB, "0,2048,4", "0,90,0", gsMissDB},
-      {myType, "Hs 4096", gsSymOff, gsMissDB, "0,-2048,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/hs_512.mdl"] = {
-      {myType, "Hs 512", gsSymOff, gsMissDB, "0,256,4", "0,90,0", gsMissDB},
-      {myType, "Hs 512", gsSymOff, gsMissDB, "0,-256,4", "0,-90,0", gsMissDB}
-    },
     ["models/anytracks/straight/hs_64.mdl"] = {
-      {myType, "Hs 64", gsSymOff, gsMissDB, "0,32,4", "0,90,0", gsMissDB},
+      {myType, "Hs 64", gsSymOff, gsMissDB, "0, 32,4", "0, 90,0", gsMissDB},
       {myType, "Hs 64", gsSymOff, gsMissDB, "0,-32,4", "0,-90,0", gsMissDB}
     },
+    ["models/anytracks/straight/hs_128.mdl"] = {
+      {myType, "Hs 128", gsSymOff, gsMissDB, "0, 64,4", "0, 90,0", gsMissDB},
+      {myType, "Hs 128", gsSymOff, gsMissDB, "0,-64,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/hs_256.mdl"] = {
+      {myType, "Hs 256", gsSymOff, gsMissDB, "0, 128,4", "0, 90,0", gsMissDB},
+      {myType, "Hs 256", gsSymOff, gsMissDB, "0,-128,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/hs_512.mdl"] = {
+      {myType, "Hs 512", gsSymOff, gsMissDB, "0, 256,4", "0, 90,0", gsMissDB},
+      {myType, "Hs 512", gsSymOff, gsMissDB, "0,-256,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/hs_1024.mdl"] = {
+      {myType, "Hs 1024", gsSymOff, gsMissDB, "0, 512,4", "0, 90,0", gsMissDB},
+      {myType, "Hs 1024", gsSymOff, gsMissDB, "0,-512,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/hs_2048.mdl"] = {
+      {myType, "Hs 2048", gsSymOff, gsMissDB, "0, 1024,4", "0, 90,0", gsMissDB},
+      {myType, "Hs 2048", gsSymOff, gsMissDB, "0,-1024,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/hs_4096.mdl"] = {
+      {myType, "Hs 4096", gsSymOff, gsMissDB, "0, 2048,4", "0, 90,0", gsMissDB},
+      {myType, "Hs 4096", gsSymOff, gsMissDB, "0,-2048,4", "0,-90,0", gsMissDB}
+    },
     ["models/anytracks/straight/hs_8192.mdl"] = {
-      {myType, "Hs 8192", gsSymOff, gsMissDB, "0,4096,4", "0,90,0", gsMissDB},
+      {myType, "Hs 8192", gsSymOff, gsMissDB, "0, 4096,4", "0, 90,0", gsMissDB},
       {myType, "Hs 8192", gsSymOff, gsMissDB, "0,-4096,4", "0,-90,0", gsMissDB}
     },
-    ["models/anytracks/straight/s_1024.mdl"] = {
-      {myType, "S 1024", gsSymOff, gsMissDB, "0,512,4", "0,90,0", gsMissDB},
-      {myType, "S 1024", gsSymOff, gsMissDB, "0,-512,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/s_128.mdl"] = {
-      {myType, "S 128", gsSymOff, gsMissDB, "0,64,4", "0,90,0", gsMissDB},
-      {myType, "S 128", gsSymOff, gsMissDB, "0,-64,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/s_2048.mdl"] = {
-      {myType, "S 2048", gsSymOff, gsMissDB, "0,1024,4", "0,90,0", gsMissDB},
-      {myType, "S 2048", gsSymOff, gsMissDB, "0,-1024,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/s_256.mdl"] = {
-      {myType, "S 256", gsSymOff, gsMissDB, "0,128,4", "0,90,0", gsMissDB},
-      {myType, "S 256", gsSymOff, gsMissDB, "0,-128,4", "0,-90,0", gsMissDB}
-    },
     ["models/anytracks/straight/s_32.mdl"] = {
-      {myType, "S 32", gsSymOff, "30,0,4", "0,16,4", "0,90,0", gsMissDB},
+      {myType, "S 32", gsSymOff, " 30,0,4", "0, 16,4", "0, 90,0", gsMissDB},
       {myType, "S 32", gsSymOff, "-30,0,4", "0,-16,4", "0,-90,0", gsMissDB}
     },
-    ["models/anytracks/straight/s_4096.mdl"] = {
-      {myType, "S 4096", gsSymOff, gsMissDB, "0,2048,4", "0,90,0", gsMissDB},
-      {myType, "S 4096", gsSymOff, gsMissDB, "0,-2048,4", "0,-90,0", gsMissDB}
-    },
-    ["models/anytracks/straight/s_512.mdl"] = {
-      {myType, "S 512", gsSymOff, gsMissDB, "0,256,4", "0,90,0", gsMissDB},
-      {myType, "S 512", gsSymOff, gsMissDB, "0,-256,4", "0,-90,0", gsMissDB}
-    },
     ["models/anytracks/straight/s_64.mdl"] = {
-      {myType, "S 64", gsSymOff, gsMissDB, "0,32,4", "0,90,0", gsMissDB},
+      {myType, "S 64", gsSymOff, gsMissDB, "0, 32,4", "0, 90,0", gsMissDB},
       {myType, "S 64", gsSymOff, gsMissDB, "0,-32,4", "0,-90,0", gsMissDB}
     },
+    ["models/anytracks/straight/s_128.mdl"] = {
+      {myType, "S 128", gsSymOff, gsMissDB, "0, 64,4", "0, 90,0", gsMissDB},
+      {myType, "S 128", gsSymOff, gsMissDB, "0,-64,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/s_256.mdl"] = {
+      {myType, "S 256", gsSymOff, gsMissDB, "0, 128,4", "0, 90,0", gsMissDB},
+      {myType, "S 256", gsSymOff, gsMissDB, "0,-128,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/s_512.mdl"] = {
+      {myType, "S 512", gsSymOff, gsMissDB, "0, 256,4", "0, 90,0", gsMissDB},
+      {myType, "S 512", gsSymOff, gsMissDB, "0,-256,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/s_1024.mdl"] = {
+      {myType, "S 1024", gsSymOff, gsMissDB, "0, 512,4", "0, 90,0", gsMissDB},
+      {myType, "S 1024", gsSymOff, gsMissDB, "0,-512,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/s_2048.mdl"] = {
+      {myType, "S 2048", gsSymOff, gsMissDB, "0, 1024,4", "0, 90,0", gsMissDB},
+      {myType, "S 2048", gsSymOff, gsMissDB, "0,-1024,4", "0,-90,0", gsMissDB}
+    },
+    ["models/anytracks/straight/s_4096.mdl"] = {
+      {myType, "S 4096", gsSymOff, gsMissDB, "0, 2048,4", "0, 90,0", gsMissDB},
+      {myType, "S 4096", gsSymOff, gsMissDB, "0,-2048,4", "0,-90,0", gsMissDB}
+    },
     ["models/anytracks/straight/s_8192.mdl"] = {
-      {myType, "S 8192", gsSymOff, gsMissDB, "0,4096,4", "0,90,0", gsMissDB},
+      {myType, "S 8192", gsSymOff, gsMissDB, "0, 4096,4", "0, 90,0", gsMissDB},
       {myType, "S 8192", gsSymOff, gsMissDB, "0,-4096,4", "0,-90,0", gsMissDB}
     }
   }

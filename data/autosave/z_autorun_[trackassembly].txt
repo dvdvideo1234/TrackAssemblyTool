@@ -78,6 +78,16 @@ if(asmlib) then
   asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
 
   --[[
+   * Register the addon to the workshop ID list. Apply the ID of your addon here!
+   * This is needed so TA user can open GUI to your addon webpage.
+   * Open your workshop addon with any brawser then copy the visited URL
+   * https://steamcommunity.com/sharedfiles/filedetails/?id=287012681
+   * This URL is used as an example obtained from the TA workshop link
+   * You only need the number at the end. Write it down as a string below.
+  ]]
+  asmlib.WorkshopID(myAddon , "287012681")
+
+  --[[
    * Register the addon to the auto-load prefix list when the
    * PIECES file is missing. The auto-load list is located in
    * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
