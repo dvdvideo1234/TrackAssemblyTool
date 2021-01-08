@@ -11,8 +11,8 @@
 -- Local reference to the module.
 local asmlib = trackasmlib
 
--- Change this to your addon name.
-local myAddon = "Test's track pack" -- Your addon name goes here
+-- Your addon name goes here. Change this to your addon name!
+local myAddon = "Test's track pack"
 
 --[[
  * Change this if you want to use different in-game type
@@ -80,12 +80,13 @@ if(asmlib) then
   --[[
    * Register the addon to the workshop ID list. Apply the ID of your addon here!
    * This is needed so TA user can open GUI to your addon webpage.
-   * Open your workshop addon with any brawser then copy the visited URL
+   * Open your workshop addon with any browser then copy the visited URL
    * https://steamcommunity.com/sharedfiles/filedetails/?id=287012681
    * This URL is used as an example obtained from the TA workshop link
    * You only need the number at the end. Write it down as a string below.
+   * You need to change the `WorkshopID` function second argument to your ID.
   ]]
-  asmlib.WorkshopID(myAddon , "287012681")
+  asmlib.WorkshopID(myAddon, "287012681")
 
   --[[
    * Register the addon to the auto-load prefix list when the

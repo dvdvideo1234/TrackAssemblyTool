@@ -88,7 +88,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.638")
+asmlib.SetOpVar("TOOL_VERSION","8.639")
 asmlib.SetIndexes("V" ,    "x",  "y",   "z")
 asmlib.SetIndexes("A" ,"pitch","yaw","roll")
 asmlib.SetIndexes("WV",1,2,3)
@@ -1562,8 +1562,9 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
   Index = {{1},{2},{1,2}},
   Trigs = {
-    Record = function(arLine)
-      arLine[1] = asmlib.GetTerm(arLine[1],"TYPE",asmlib.Categorize()); return true
+    Record = function(arLine, vSrc)
+      local noTY = asmlib.GetOpVar("MISS_NOTP")
+      arLine[1] = asmlib.GetTerm(arLine[1],noTY,asmlib.Categorize()); return true
     end
   },
   Cache = {

@@ -529,10 +529,10 @@ function WorkshopID(sKey, sID)
     LogInstance("Invalid "..GetReport(sKey)); return nil end
   local sWS = tID[sKey] -- Read the value under the key
   if(sID) then local sPS = tostring(sID or "") -- Convert argument
-    local nS, nE = sPS:find("^%d+$") -- Check ID data format
+    local nS, nE = sPS:find(GetOpVar("PATTEM_WORKSHID")) -- Check ID
     if(nS and nE) then -- The number meets the format
       if(not sWS) then tID[sKey], sWS = sPS, sPS else -- Update value
-        LogInstance("("..sKey..") Populate "..GetReport2(sWS, sID))
+        LogInstance("("..sKey..") Exists "..GetReport2(sWS, sID))
       end -- Report overwrite value is present in the list
     else -- The number does not meet the format
       LogInstance("("..sKey..") Mismatch "..GetReport2(sWS, sID))
@@ -705,6 +705,12 @@ function InitBase(sName, sPurp)
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("CONSTRAINT_LIST", {"Weld", "AdvBallsocket", "NoCollide"})
+  SetOpVar("PATTEX_CATEGORY", "%s*local%s+myCategory%s*=%s*")
+  SetOpVar("PATTEX_WORKSHID", "%s*asmlib%.WorkshopID%s*")
+  SetOpVar("PATTEX_TABLEDPS", "%s*local%s+myPieces%s*=%s*")
+  SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
+  SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
+  SetOpVar("PATTEM_WORKSHID", "^%d+$")
   if(CLIENT) then
     SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
     SetOpVar("TOOL_DEFMODE","gmod_tool")
@@ -3396,8 +3402,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTab.Name) then local nL = #tLine
           for iCnt = 2, nL do local vV, iL = tLine[iCnt], (iCnt-1); vV = GetStrip(vV)
-            vM = makTab:Match(vV,iL,false,"",true,true); if(not IsHere(vV)) then
-            O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable
+            vM = makTab:Match(vV,iL,false,"",true,true)
+            if(not IsHere(vV)) then LogInstance("("..fPref.."@"..sTable
               ..") Read matching failed <"..tostring(vV).."> to <"
                 ..tostring(iL).." # "..defTab[iL][1]..">"); return false end
             tLine[iCnt] = vM -- Register the matched value
@@ -3416,9 +3422,9 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end; I:Close()
   else LogInstance("("..fPref.."@"..sTable..") Creating file <"..fName..">") end
   for key, rec in pairs(tData) do -- Check the given table and match the key
-    local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
-      O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"
-        ..tostring(key)..") Sync matching PK failed"); return false end
+    local vK = makTab:Match(key,1,false,"",true,true);
+    if(not IsHere(vK)) then LogInstance("("..fPref.."@"..sTable.."@"
+      ..tostring(key)..") Sync matching PK failed"); return false end
     local sKey, sVK = tostring(key), tostring(vK); if(sKey ~= sVK) then
       LogInstance("("..fPref.."@"..sTable..") Sync key mismatch ["..sKey.."]["..sVK.."]");
       tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
@@ -3428,14 +3434,21 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       nID = (nID or (sID:sub(1,1) == symOff and iCnt or 0))
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
       if(iCnt ~= nID) then -- Validate the line ID being in proper borders abd sequential
-          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Sync point ["
-            ..tostring(iCnt).."] ID "..tostring(vID).." desynchronized "
-            ..tostring(nID)); return false end; tRow[iD-1] = nID
+          LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ["
+            ..tostring(iCnt).."] ID desynchronized "..GetReport3(vID, nID, sID))
+          return false end; tRow[iD-1] = nID
       for nCnt = 1, #tRow do -- Do a value matching without quotes
         local vM = makTab:Match(tRow[nCnt],nCnt+1,false,"",true,true); if(not IsHere(vM)) then
-          LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Sync matching failed <"
+          LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync matching failed <"
             ..tostring(tRow[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1]..">"); return false
         end; tRow[nCnt] = vM -- Store the matched value in the same place as the original
+      end -- Check whenerver triggers are available. Run them if present
+      if(IsTable(defTab.Trigs)) then tableInsert(tRow, 1, vK) -- Apply trigger format
+        local bS, sR = pcall(defTab.Trigs["Record"], tRow, sFunc); if(not bS) then
+          LogInstance("("..fPref.."@"..sTable..") Trigger "..GetReport2(nID, vK).." error: "..sR); return false end
+        if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
+          LogInstance("("..fPref.."@"..sTable..") Trigger "..GetReport2(nID, vK).." routine fail"); return false end
+        tableRemove(tRow, 1) -- Remove the fictive duplicated primary key from the row data first column
       end
     end -- Register the read line to the output file
     if(bRepl) then -- Replace the data when enabled overwrites the file data
@@ -3727,8 +3740,8 @@ function ExportTypeAR(sType)
   if(not IsBlank(sType)) then
     local qPieces, qAdditions
     local sFunc = "ExportTypeAR"
-    local sTool = GetOpVar("TOOLNAME_NL")
     local noSQL = GetOpVar("MISS_NOSQL")
+    local sTool = GetOpVar("TOOLNAME_NL")
     local sPref = sType:gsub("[^%w]","_")
     local sMoDB = GetOpVar("MODE_DATABASE")
     local sForm = GetOpVar("FORM_FILENAMEAR")
@@ -3799,12 +3812,17 @@ function ExportTypeAR(sType)
       fE:Flush(); fE:Close(); fS:Close(); return
     end
     if(IsHere(qPieces) and IsHere(qPieces[1])) then
-      local keyBld = GetOpVar("KEYQ_BUILDER"); qPieces[keyBld] = makP
+      local patCateg = GetOpVar("PATTEX_CATEGORY")
+      local patWorks = GetOpVar("PATTEX_WORKSHID")
+      local patPiece = GetOpVar("PATTEX_TABLEDPS")
+      local patAddit = GetOpVar("PATTEX_TABLEDAD")
+      local patAddon = GetOpVar("PATTEX_VARADDON")
+      local keyBuild = GetOpVar("KEYQ_BUILDER"); qPieces[keyBuild] = makP
       local sLine, isEOF, isSkip, sInd, qAdditions = "", false, false, "  ", {}
       while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)
-        if(sLine:find("%s*local%s+myAddon%s*=%s*")) then isSkip = true
-          fE:Write("local myAddon = \""..sType.."\" -- Your addon name goes here\n")
-        elseif(sLine:find("%s*local%s+myCategory%s*=%s*")) then isSkip = true
+        if(sLine:find(patAddon)) then isSkip = true
+          fE:Write("local myAddon = \""..sType.."\"\n")
+        elseif(sLine:find(patCateg)) then isSkip = true
           local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
           if(IsTable(tCat) and tCat.Txt) then
             fE:Write(sInd:rep(1).."local myCategory = {\n")
@@ -3815,9 +3833,16 @@ function ExportTypeAR(sType)
           else
             fE:Write(sInd:rep(1).."local myCategory = {}\n")
           end
-        elseif(sLine:find("%s*local%s+myPieces%s*=%s*")) then isSkip = true
+        elseif(sLine:find(patWorks)) then isSkip = true
+          local sID = WorkshopID(sType)
+          if(sID and sID:len() > 0) then
+            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
+          else
+            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon, nil)\n")
+          end
+        elseif(sLine:find(patPiece)) then isSkip = true
           ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)
-        elseif(sLine:find("%s*local%s+myAdditions%s*=%s*")) then isSkip = true
+        elseif(sLine:find(patAddit)) then isSkip = true
           ExportPiecesAR(fE, qAdditions, "myAdditions", sInd)
         else
           if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
