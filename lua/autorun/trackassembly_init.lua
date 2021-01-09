@@ -88,9 +88,9 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.639")
-asmlib.SetIndexes("V" ,    "x",  "y",   "z")
-asmlib.SetIndexes("A" ,"pitch","yaw","roll")
+asmlib.SetOpVar("TOOL_VERSION","8.640")
+asmlib.SetIndexes("V" ,1,2,3)
+asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
 asmlib.SetIndexes("WA",1,2,3)
 
@@ -156,9 +156,9 @@ asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 20)
 ------------ CONFIGURE LOGGING ------------
 
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmConvar("logsmax"  , 0 , nil, gnIndependentUsed, "Maximum logging lines being written")
-asmlib.MakeAsmConvar("logfile"  , 0 , nil, gnIndependentUsed, "File logging output flag control")
-asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),asmlib.GetAsmConvar("logfile","BUL"))
+asmlib.MakeAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written")
+asmlib.MakeAsmConvar("logfile", 0, nil, gnIndependentUsed, "File logging output flag control")
+asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
@@ -639,6 +639,7 @@ if(CLIENT) then
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(false)
       pnFrame.OnClose = function(pnSelf)
+        gtArgsLogs[1] = "OPEN_EXTERNDB.Frame"
         local iK = conElements:Find(pnSelf) -- Find panel key index
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
@@ -652,11 +653,12 @@ if(CLIENT) then
       local sMis = asmlib.GetOpVar("MISS_NOAV")
       local sLib = asmlib.GetOpVar("NAME_LIBRARY")
       local sBas = asmlib.GetOpVar("DIRPATH_BAS")
+      local sSet = asmlib.GetOpVar("DIRPATH_SET")
       local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
       local sRev = asmlib.GetOpVar("OPSYM_REVISION")
       local sDsv = sBas..asmlib.GetOpVar("DIRPATH_DSV")
       local fDSV = sDsv..("%s"..sPrU.."%s.txt")
-      local sNam = (sBas..sLib.."_dsv.txt")
+      local sNam = (sBas..sSet..sLib.."_dsv.txt")
       local pnDSV = vguiCreate("DPanel")
       if(not IsValid(pnDSV)) then pnFrame:Close()
         asmlib.LogInstance("DSV list invalid",gtArgsLogs); return nil end
@@ -704,6 +706,7 @@ if(CLIENT) then
         end
       end; oDSV:Close()
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
+        gtArgsLogs[1] = "OPEN_EXTERNDB.ListView"
         if(inputIsMouseDown(MOUSE_LEFT)) then
           if(inputIsKeyDown(KEY_LSHIFT)) then -- Delete the file
             fileDelete(sNam); pnSelf:Clear()  -- The panel will be recreated
@@ -711,6 +714,7 @@ if(CLIENT) then
         end -- Process only the left mouse button
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
+        gtArgsLogs[1] = "OPEN_EXTERNDB.ListView"
         if(inputIsMouseDown(MOUSE_RIGHT)) then
           if(inputIsKeyDown(KEY_LSHIFT)) then -- Export all lines to the file
             local oDSV = fileOpen(sNam, "wb", "DATA")
@@ -763,6 +767,7 @@ if(CLIENT) then
               pnManage:SetText(sPref)
               pnManage:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
               pnManage.DoRightClick = function(pnSelf)
+                gtArgsLogs[1] = "OPEN_EXTERNDB.Button"
                 local pnMenu = vguiCreate("DMenu")
                 if(not IsValid(pnMenu)) then pnFrame:Close()
                   asmlib.LogInstance("Menu invalid",gtArgsLogs); return nil end
@@ -774,10 +779,11 @@ if(CLIENT) then
                   function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end,
                   function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end,
                   function() asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end,
-                  function() fileDelete(sFile); asmlib.LogInstance("Deleted <"..sFile..">",gtArgsLogs)
+                  function() fileDelete(sFile)
+                    asmlib.LogInstance("Deleted "..asmlib.GetReport1(sFile),gtArgsLogs)
                     if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref,"CATEGORY")
                       if(fileExists(sCat,"DATA")) then fileDelete(sCat)
-                        asmlib.LogInstance("Deleted <"..sCat..">",gtArgsLogs) end
+                        asmlib.LogInstance("Deleted "..asmlib.GetReport1(sCat),gtArgsLogs) end
                     end; pnManage:Remove()
                   end
                 }
@@ -4151,48 +4157,6 @@ else
   PIECES:Record({"models/nokillnando/trackmania/ground/misc/checkpointground.mdl", "#", "#", 1, "", "-180,0,0", "0,180,0"})
   PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumplow.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
   PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumphigh.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
-  --[===[
-  asmlib.Categorize("Anyone's Horrible Trackpack",[[function(m)
-    local n = m:gsub("models/anytracks/","")
-    local r = n:match("^%a+"); n = n:gsub("%.mdl","")
-          n = n:gsub(r, ""):sub(2, -1); return r, n end]])
-  PIECES:Record({"models/anytracks/straight/s_32.mdl", "#", "#", 1, " 30,0,4", "0, 16,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_32.mdl", "#", "#", 2, "-30,0,4", "0,-16,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_64.mdl", "#", "#", 1, "", "0, 32,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_64.mdl", "#", "#", 2, "", "0,-32,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_128.mdl", "#", "#", 1, "", "0, 64,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_128.mdl", "#", "#", 2, "", "0,-64,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_256.mdl", "#", "#", 1, "", "0, 128,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_256.mdl", "#", "#", 2, "", "0,-128,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_512.mdl", "#", "#", 1, "", "0, 256,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_512.mdl", "#", "#", 2, "", "0,-256,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_1024.mdl", "#", "#", 1, "", "0, 512,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_1024.mdl", "#", "#", 2, "", "0,-512,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_2048.mdl", "#", "#", 1, "", "0, 1024,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_2048.mdl", "#", "#", 2, "", "0,-1024,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_4096.mdl", "#", "#", 1, "", "0, 2048,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_4096.mdl", "#", "#", 2, "", "0,-2048,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_8192.mdl", "#", "#", 1, "", "0, 4096,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/s_8192.mdl", "#", "#", 2, "", "0,-4096,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_32.mdl", "#", "#", 1, " 30,0,4", "0, 16,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_32.mdl", "#", "#", 2, "-30,0,4", "0,-16,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_64.mdl", "#", "#", 1, "", "0, 32,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_64.mdl", "#", "#", 2, "", "0,-32,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_128.mdl", "#", "#", 1, "", "0, 64,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_128.mdl", "#", "#", 2, "", "0,-64,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_256.mdl", "#", "#", 1, "", "0, 128,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_256.mdl", "#", "#", 2, "", "0,-128,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_512.mdl", "#", "#", 1, "", "0, 256,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_512.mdl", "#", "#", 2, "", "0,-256,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_1024.mdl", "#", "#", 1, "", "0, 512,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_1024.mdl", "#", "#", 2, "", "0,-512,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_2048.mdl", "#", "#", 1, "", "0, 1024,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_2048.mdl", "#", "#", 2, "", "0,-1024,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_4096.mdl", "#", "#", 1, "", "0, 2048,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_4096.mdl", "#", "#", 2, "", "0,-2048,4", "0,-90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_8192.mdl", "#", "#", 1, "", "0, 4096,4", "0, 90,0", ""})
-  PIECES:Record({"models/anytracks/straight/hs_8192.mdl", "#", "#", 2, "", "0,-4096,4", "0,-90,0", ""})
-  ]===]
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

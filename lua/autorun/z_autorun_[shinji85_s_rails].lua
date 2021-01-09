@@ -83,7 +83,7 @@ if(asmlib) then
   --[[
    * Register the addon to the auto-load prefix list when the
    * PIECES file is missing. The auto-load list is located in
-   * (/garrysmod/data/trackassembly/trackasmlib_dsv.txt)
+   * (/garrysmod/data/trackassembly/set/trackasmlib_dsv.txt)
    * a.k.a the DATA folder of Garry's mod.
    *
    * @bSuccess = RegisterDSV(sProg, sPref, sDelim)

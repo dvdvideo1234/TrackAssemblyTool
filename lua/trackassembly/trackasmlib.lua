@@ -267,6 +267,11 @@ function GetReport(vA) local sR = GetOpVar("FORM_VREPORT2")
 end
 
 -- Reports vararg containing two values
+function GetReport1(vA) local sR = GetOpVar("FORM_VREPORT1")
+  return (sR and sR:format(tostring(vA)) or "")
+end
+
+-- Reports vararg containing two values
 function GetReport2(vA, vB) local sR = GetOpVar("FORM_VREPORT2")
   return (sR and sR:format(tostring(vA), tostring(vB)) or "")
 end
@@ -329,7 +334,7 @@ end
 
 --[[
   sMsg > Message being displayed
-  bCon > Force outout in the console
+  bCon > Force output in the console
 ]]
 local function Log(vMsg, bCon)
   local iMax = GetOpVar("LOG_MAXLOGS")
@@ -352,16 +357,16 @@ end
 --[[
   sMsg > Message being displayed
   sKey > SKIP / ONLY
-  Return: exist, found
+  Return: setting exist, message found
 ]]
 local function IsLogFound(sMsg, sKey)
   local sMsg = tostring(sMsg or "")
   local sKey = tostring(sKey or "")
   if(IsBlank(sKey)) then return nil end
-  local oStat = GetOpVar("LOG_"..sKey)
-  if(IsTable(oStat) and oStat[1]) then
-    local iCnt = 1; while(oStat[iCnt]) do
-      if(sMsg:find(tostring(oStat[iCnt]))) then
+  local tLog = GetOpVar("LOG_"..sKey)
+  if(IsTable(tLog) and tLog[1]) then
+    local iCnt = 1; while(tLog[iCnt]) do
+      if(sMsg:find(tostring(tLog[iCnt]))) then
         return true, true
       end; iCnt = iCnt + 1
     end; return true, false
@@ -412,11 +417,15 @@ local function LogCeption(tT,sS,tP)
   for k,v in pairs(tT) do
     if(IsString(k)) then
       vK = sS.."[\""..k.."\"]"
-    else vK = sS.."["..tostring(k).."]" end
+    else
+      vK = sS.."["..tostring(k).."]"
+    end
     if(not IsTable(v)) then
       if(IsString(v)) then
         LogInstance(vK.." = \""..v.."\"",tP)
-      else LogInstance(vK.." = "..tostring(v),tP) end
+      else
+        LogInstance(vK.." = "..tostring(v),tP)
+      end
     else
       if(v == tT) then LogInstance(vK.." = "..sS,tP)
       else LogCeption(v,vK,tP) end
@@ -552,7 +561,7 @@ end
 
 ----------------- INITAIALIZATION -----------------
 
-function SetLogControl(nLines,bFile)
+function SetLogControl(nLines, bFile)
   local bFou, sBas = IsFlag("en_logging_file", bFile), GetOpVar("DIRPATH_BAS")
   local nMax = (tonumber(nLines) or 0); nMax = mathFloor((nMax > 0) and nMax or 0)
   local sMax, sFou = tostring(GetOpVar("LOG_MAXLOGS")), tostring(bFou)
@@ -566,9 +575,10 @@ function SettingsLogs(sHash)
   local sKey = tostring(sHash or ""):upper():Trim()
   if(not (sKey == "SKIP" or sKey == "ONLY")) then
     LogInstance("Invalid <"..sKey..">"); return false end
+  local sBas, sSet = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_SET")
   local tLogs, lbNam = GetOpVar("LOG_"..sKey), GetOpVar("NAME_LIBRARY")
   if(not tLogs) then LogInstance("Skip <"..sKey..">"); return false end
-  local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_sl"..sKey:lower()..".txt"
+  local fName = (sBas..sSet..lbNam.."_sl"..sKey:lower()..".txt")
   local S = fileOpen(fName, "rb", "DATA"); tableEmpty(tLogs)
   if(S) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(S)
@@ -587,7 +597,7 @@ function GetIndexes(sType)
   else LogInstance("Type <"..sType.."> not found"); return nil end
 end
 
-function SetIndexes(sType,...)
+function SetIndexes(sType, ...)
   if(not IsString(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return false end
   if    (sType == "V")  then cvX, cvY, cvZ = ...
@@ -598,7 +608,7 @@ function SetIndexes(sType,...)
   LogInstance("Success"); return true
 end
 
-function UseIndexes(pB1,pB2,pB3,pD1,pD2,pD3)
+function UseIndexes(pB1, pB2, pB3, pD1, pD2, pD3)
   return (pB1 or pD1), (pB2 or pD2), (pB3 or pD3)
 end
 
@@ -651,6 +661,7 @@ function InitBase(sName, sPurp)
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_INS","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("DIRPATH_SET","set"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("MISS_NOMD","X")      -- No model
   SetOpVar("MISS_NOID","N")      -- No ID selected
   SetOpVar("MISS_NOAV","N/A")    -- Not Available
@@ -661,6 +672,7 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_INTEGER", "[%d]")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
+  SetOpVar("FORM_VREPORT1","{%s}")
   SetOpVar("FORM_VREPORT2","{%s}[%s]")
   SetOpVar("FORM_VREPORT3","{%s}[%s]<%s>")
   SetOpVar("FORM_VREPORT4","{%s}[%s]<%s>|%s|")
@@ -3031,13 +3043,14 @@ end
 ]]
 local function ExportPanelDB(stPanel, bExp, makTab, sFunc)
   if(bExp) then
+    local sExpo = GetOpVar("DIRPATH_EXP")
     local sMoDB = GetOpVar("MODE_DATABASE")
     local symSep = GetOpVar("OPSYM_SEPARATOR")
     local iCnt, sBase = 1, GetOpVar("DIRPATH_BAS")
     if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
-    local fName = (sBase..GetOpVar("NAME_LIBRARY").."_db.txt")
+    local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
     local F = fileOpen(fName, "wb" ,"DATA"); if(not F) then
-      LogInstance("("..fName..") Open fail"); return stPanel end
+      LogInstance("Open fail "..GetReport1(fName)); return stPanel end
     F:Write("# "..sFunc..":("..tostring(bExp)..") "..GetDateTime().." [ "..sMoDB.." ]\n")
     while(stPanel[iCnt]) do local vPanel = stPanel[iCnt]
       local sM = vPanel[makTab:GetColumnName(1)]
@@ -3059,10 +3072,10 @@ function CacheQueryPanel(bExp)
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
   if(not IsHere(libCache[defTab.Name])) then
-    LogInstance("Missing cache allocated <"..defTab.Name..">"); return nil end
+    LogInstance("Missing cache allocated "..GetReport1(defTab.Name)); return nil end
   local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), "CacheQueryPanel"
   local stPanel, qsKey = libCache[keyPan], GetOpVar("FORM_KEYSTMT")
-  if(IsHere(stPanel) and IsHere(stPanel.Size)) then LogInstance("From Pool")
+  if(IsHere(stPanel) and IsHere(stPanel.Size)) then LogInstance("Retrieve")
     if(stPanel.Size <= 0) then stPanel = nil else
       stPanel = makTab:TimerRestart(sFunc, keyPan) end
     return ExportPanelDB(stPanel, bExp, makTab, sFunc)
@@ -3078,9 +3091,9 @@ function CacheQueryPanel(bExp)
         Q = CacheStmt(qsKey:format(sFunc,""), sStmt, 1)
       end
       local qData = sqlQuery(Q); if(not qData and IsBool(qData)) then
-        LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
+        LogInstance("SQL exec error "..GetReport1(sqlLastError())); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
-        LogInstance("No data found <"..Q..">"); return nil end
+        LogInstance("No data found "..GetReport1(Q)); return nil end
       local iCnt = 1; stPanel.Size = 0
       while(qData[iCnt]) do
         stPanel[iCnt] = qData[iCnt]
@@ -3097,7 +3110,7 @@ function CacheQueryPanel(bExp)
         vPanel[makTab:GetColumnName(2)] = vSort.Rec.Type
         vPanel[makTab:GetColumnName(3)] = vSort.Rec.Name; stPanel.Size = iCnt
       end; return ExportPanelDB(stPanel, bExp, makTab, sFunc)
-    else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
+    else LogInstance("Wrong database mode "..GetReport1(sMoDB)); return nil end
   end
 end
 
@@ -3537,34 +3550,40 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     LogInstance("("..fPref..") Single client"); return true end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
-  local lbNam, sMiss  = GetOpVar("NAME_LIBRARY"), GetOpVar("MISS_NOAV")
-  local fName, sDelim = (sBas..lbNam.."_dsv.txt"), tostring(sDelim or "\t"):sub(1,1)
+  local sBas = sBas..GetOpVar("DIRPATH_SET")
+  if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
+  local lbNam, sMiss = GetOpVar("NAME_LIBRARY"), GetOpVar("MISS_NOAV")
+  local fName = (sBas..lbNam.."_dsv.txt")
+  local sDelim = tostring(sDelim or "\t"):sub(1,1)
   if(bSkip) then
-    local symOff = GetOpVar("OPSYM_DISABLE")
-    local fPool, isEOF, isAct = {}, false, true
-    local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""
-    if(not F) then LogInstance("("..fPref..")("..fName..") Open fail"); return false end
-    while(not isEOF) do sLine, isEOF = GetStringFile(F)
-      if(not IsBlank(sLine)) then
-        if(sLine:sub(1,1) == symOff) then
-          isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
-        local tab = sDelim:Explode(sLine)
-        local prf, src = tab[1]:Trim(), tab[2]:Trim()
-        local inf = fPool[prf]; if(not inf) then
-          fPool[prf] = {Size = 0}; inf = fPool[prf] end
-        inf.Size = inf.Size + 1; inf[inf.Size] = {src, isAct}
+    if(fileExists(fName, "DATA")) then
+      local symOff = GetOpVar("OPSYM_DISABLE")
+      local fPool, isEOF, isAct = {}, false, true
+      local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""; if(not F) then
+        LogInstance("Skip fail "..GetReport2(fPref, fName)); return false end
+      while(not isEOF) do sLine, isEOF = GetStringFile(F)
+        if(not IsBlank(sLine)) then
+          if(sLine:sub(1,1) == symOff) then
+            isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
+          local tab = sDelim:Explode(sLine)
+          local prf, src = tab[1]:Trim(), tab[2]:Trim()
+          local inf = fPool[prf]; if(not inf) then
+            fPool[prf] = {Size = 0}; inf = fPool[prf] end
+          inf.Size = inf.Size + 1; inf[inf.Size] = {src, isAct}
+        end
+      end; F:Close()
+      if(fPool[fPref]) then local inf = fPool[fPref]
+        for ID = 1, inf.Size do local tab = inf[ID]
+          local sta = (tab[2] and "On " or "Off")
+          LogInstance(GetReport3(fPref, sta, tab[1])) end
+        LogInstance("Skip "..GetReport2(fPref, sProg)); return true
       end
-    end; F:Close()
-    if(fPool[fPref]) then local inf = fPool[fPref]
-      for ID = 1, inf.Size do local tab = inf[ID]
-        LogInstance("("..fPref..") "..(tab[2] and "On " or "Off").." <"..tab[1]..">") end
-      LogInstance("("..fPref..") Skip <"..sProg..">"); return true
-    end
+    else LogInstance("Skip miss "..GetReport2(fPref, fName)) end
   end
   local F = fileOpen(fName, "ab" ,"DATA"); if(not F) then
-    LogInstance("("..fPref..")("..fName..") Open fail"); return false end
+    LogInstance("Update fail "..GetReport2(fPref, fName)); return false end
   F:Write(fPref..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
-  LogInstance("("..fPref..") Register"); return true
+  LogInstance("Register "..GetReport1(fPref)); return true
 end
 
 --[[
@@ -3576,14 +3595,16 @@ end
  * sDelim > The delimiter to be used while processing the DSV list
 ]]--
 function ProcessDSV(sDelim)
+  local sBas = GetOpVar("DIRPATH_BAS")
+  local sSet = GetOpVar("DIRPATH_SET")
   local lbNam = GetOpVar("NAME_LIBRARY")
-  local fName = GetOpVar("DIRPATH_BAS")..lbNam.."_dsv.txt"
-  local F = fileOpen(fName, "rb" ,"DATA")
-  if(not F) then LogInstance("("..fName..") Open fail"); return false end
+  local fName = (sBas..sSet..lbNam.."_dsv.txt")
+  local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
+    LogInstance("Open fail "..GetReport1(fName)); return false end
   local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
   local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
   local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
-  local sDv = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+  local sDv = sBas..GetOpVar("DIRPATH_DSV")
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if(not IsBlank(sLine)) then
       if(sLine:sub(1,1) ~= symOff) then
@@ -3598,29 +3619,29 @@ function ProcessDSV(sDelim)
             tStore[tStore.Cnt] = fSrc
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
-      else LogInstance("Skipped <"..sLine..">") end
+      else LogInstance("Skipped "..GetReport1(sLine)) end
     end
   end; F:Close()
   for prf, tab in pairs(tProc) do
     if(tab.Cnt > 1) then
-      LogInstance("Prefix <"..prf.."> clones #"..tostring(tab.Cnt).." @"..fName)
+      LogInstance("Prefix clones "..GetReport3(prf, tab.Cnt, fName))
       for iD = 1, tab.Cnt do LogInstance("Prefix "..GetReport3(iD, prf, tab[iD])) end
     else local irf = GetInstPref()
       if(CLIENT) then
         if(not fileExists(sDv..fForm:format(irf, sNt.."CATEGORY"), "DATA")) then
           if(fileExists(sDv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
             if(not ImportCategory(3, prf)) then
-              LogInstance("("..prf..") Failed CATEGORY") end
-          else LogInstance("("..prf..") Missing CATEGORY") end
-        else LogInstance("("..prf..") Generic CATEGORY") end
+              LogInstance("Failed CATEGORY "..GetReport1(prf)) end
+          else LogInstance("Missing CATEGORY "..GetReport1(prf)) end
+        else LogInstance("Generic CATEGORY "..GetReport1(prf)) end
       end local iD, makTab = 1, GetBuilderID(1)
       while(makTab) do local defTab = makTab:GetDefinition()
         if(not fileExists(sDv..fForm:format(irf, sNt..defTab.Nick), "DATA")) then
           if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
-              LogInstance("("..prf..") Failed "..defTab.Nick) end
-          else LogInstance("("..prf..") Missing "..defTab.Nick) end
-        else LogInstance("("..prf..") Generic "..defTab.Nick) end
+              LogInstance("Failed "..GetReport2(prf, defTab.Nick)) end
+          else LogInstance("Missing "..GetReport2(prf, defTab.Nick)) end
+        else LogInstance("Generic "..GetReport2(prf, defTab.Nick)) end
         iD = (iD + 1); makTab = GetBuilderID(iD)
       end
     end
@@ -3740,18 +3761,20 @@ function ExportTypeAR(sType)
   if(not IsBlank(sType)) then
     local qPieces, qAdditions
     local sFunc = "ExportTypeAR"
+    local sBase = GetOpVar("DIRPATH_BAS")
     local noSQL = GetOpVar("MISS_NOSQL")
     local sTool = GetOpVar("TOOLNAME_NL")
     local sPref = sType:gsub("[^%w]","_")
     local sMoDB = GetOpVar("MODE_DATABASE")
     local sForm = GetOpVar("FORM_FILENAMEAR")
-    local sS = "data/autosave/"..sForm:format(sTool)
-    local sN = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_INS")
+    local sS = sBase..GetOpVar("DIRPATH_SET")
+          sS = sS..sForm:format(sTool)
+    local sN = sBase..GetOpVar("DIRPATH_INS")
           sN = sN..sForm:format(sPref)
     local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
-      LogInstance("("..sN..") Generate fail "..GetReport(sN)); return end
-    local fS = fileOpen(sS, "rb", "GAME"); if(not fS) then fE:Flush(); fE:Close()
-      LogInstance("("..sS..") Source fail "..GetReport(sS)) return end
+      LogInstance("Generate fail "..GetReport(sN)); return end
+    local fS = fileOpen(sS, "rb", "DATA"); if(not fS) then fE:Flush(); fE:Close()
+      LogInstance("Source fail "..GetReport(sS)) return end
     local makP  = GetBuilderNick("PIECES"); if(not makP) then
       LogInstance("Missing table builder"); return end
     local defP = makP:GetDefinition(); if(not defP) then
@@ -3772,8 +3795,8 @@ function ExportTypeAR(sType)
       end
       qPieces = sqlQuery(Q)
       if(not qPieces and IsBool(qPieces)) then
-        LogInstance("SQL exec error <"..sqlLastError()..">")
-        LogInstance("SQL exec query <"..Q..">")
+        LogInstance("SQL exec error "..GetReport1(sqlLastError()))
+        LogInstance("SQL exec query "..GetReport1(Q))
         fE:Flush(); fE:Close(); fS:Close(); return
       end
     elseif(sMoDB == "LUA") then
@@ -3808,7 +3831,7 @@ function ExportTypeAR(sType)
         LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
       for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
     else
-      LogInstance("Wrong database mode <"..sMoDB..">")
+      LogInstance("Wrong database mode "..GetReport1(sMoDB))
       fE:Flush(); fE:Close(); fS:Close(); return
     end
     if(IsHere(qPieces) and IsHere(qPieces[1])) then

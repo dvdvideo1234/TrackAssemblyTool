@@ -13,7 +13,7 @@ This script can give you the ability to connect prop-segmented track pieces fast
  [*] Track segment [url=https://youtu.be/3Ws6Jh3JUew?t=200]curve node interpolation[/url] for building custom track layouts
  [*] Track curve fitting aligment based on [url=https://www.youtube.com/watch?v=1rsDHU79J50]ray intersection for precise piece layout[/url]
  [*] Extendable database via [url=https://www.youtube.com/watch?v=Pz0_RGwgfaY]text file[/url] or a [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_add_pieces.lua]lua script[/url]
- [*] Extendable database via [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/trackasmlib_dsv.txt]text file load list[/url] and [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt]list prefixes[/url] [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt]categories[/url]
+ [*] Extendable database via [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/set/trackasmlib_dsv.txt]text file load list[/url] and [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt]list prefixes[/url] [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt]categories[/url]
  [*] Switching database storage between Lua table and SQL
  [*] Spawning pieces on the map
  [*] Snapping pieces on the map surface ( if checked )

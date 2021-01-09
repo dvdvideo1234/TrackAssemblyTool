@@ -68,6 +68,7 @@ local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 --- Global References
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
+local gsDataSet   = asmlib.GetOpVar("DIRPATH_SET")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
@@ -90,7 +91,8 @@ local conElements = asmlib.GetContainer("LIST_VGUI")
 local gtArgsLogs, goThQueue = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
-  asmlib.LogInstance("Processing DSV fail <"..gsDataRoot.."trackasmlib_dsv.txt>")
+  local sDSV = gsDataRoot..gsDataSet..gsLibName.."_dsv.txt"
+  asmlib.LogInstance("Processing DSV fail <"..sDSV..">")
 end
 
 cleanupRegister(gsLimitName)
