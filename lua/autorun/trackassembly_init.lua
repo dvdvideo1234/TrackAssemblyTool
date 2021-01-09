@@ -88,7 +88,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.640")
+asmlib.SetOpVar("TOOL_VERSION","8.641")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)

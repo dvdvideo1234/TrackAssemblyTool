@@ -293,7 +293,7 @@ pointing at a piece. Keep this maxed out if you don't want to bother with track 
 5. `Stack count` control value shows the maximum number of pieces to be snapped in `Stacking` mode.
 Change this to something larger than one if you want to extend your track by stacking.
 6. `Angular alignment` control
-The slider is used to snap the first piece ( Requested by [Magnum](http://steamcommunity.com/profiles/76561198004847743) )
+The slider is used to snap the first piece ( Requested by [Magnum][ref-magnum] )
 to a user-defined angle ( Usually `45` ) so that the track building process becomes easier. The
 whole track build will be snapped also because you are building it relative to the first piece.
 7. `Force limit` control ( Requested by `The Arbitor 90` ) defines the maximum force to be applied
@@ -330,7 +330,7 @@ additional user offset regarding the next track piece to be spawned.
 #### What will happen if something gets updated?
 First of all this FAQ will be UPDATED AS THE TOOL GOES. So everything that
 the tool supports will be represented here as a manual or something.
-More information I publish you can also find in [the wiki page here](https://github.com/dvdvideo1234/TrackAssemblyTool/wiki).
+More information I publish you can also find in [the wiki page here][ref-wiki].
 That's what is this FAQ for anyway ( Though most people don't bother to read it before asking )...
 
 #### Which addons did you work on?
@@ -357,7 +357,7 @@ The ones that are **included** in Garry's mod do not have links and are marked b
   * [Bobsters's two gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=489114511)
   * [Mr. Train's G-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=590574800)
   * Ron's 56 gauge rails ( Removed by the addon owner and [discontinued][ref-discontinued] )
-  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( [Maintained by the owner]() )
+  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( [Maintained by the owner][ref-maintained] )
   * PHX Tubes **(INCLUDED)**
   * [Magnum's second track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=391016040) ( Ignore, not designed as prop )
   * [qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
@@ -370,6 +370,7 @@ The ones that are **included** in Garry's mod do not have links and are marked b
   * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805)
   * [StevenTechno's Buildings pack 2.0](https://steamcommunity.com/sharedfiles/filedetails/?id=1888013789)
   * [Modular canal props](https://steamcommunity.com/sharedfiles/filedetails/?id=1336622735) ( Interior only )
+  * [Anyone's Horrible Trackpack](https://steamcommunity.com/sharedfiles/filedetails/?id=2194528273) ( [Maintained by the owner][ref-maintained] )
 
 #### Where are the trains/vehicles[,](ref-easter) are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
@@ -428,14 +429,17 @@ Yes, it does. You can find the manipulation panels description in the
 That way you will upload some half-baked malicious tool, waste your time with stupid
 things and confuse everybody with this so-called `unofficial` version of the Track assembly tool.
 Not to mention that the stunned people ***will NOT GET ANY updates*** !
-The best you can do is just point to the [original GIT repository](https://github.com/dvdvideo1234/TrackAssemblyTool)
+The best you can do is just point to the [original GIT repository][ref-TA-GIT]
 avoiding any version mismatches and confusions. So please don't upload the script to any other sites. ***[I mean it!](https://www.youtube.com/watch?v=b1Om3vX1GlA)***
 
+[ref-wiki]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki
+[ref-magnum]: http://steamcommunity.com/profiles/76561198004847743
+[ref-TA-GIT]: https://github.com/dvdvideo1234/TrackAssemblyTool
 [ref-entity]: https://wiki.facepunch.com/gmod/Entity
 [ref-dbext]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Database-extension
 [ref-text-file]: https://www.youtube.com/watch?v=Pz0_RGwgfaY
 [ref-value-exp]: https://www.youtube.com/watch?v=mEEpO3w8BLs
-[ref-lua-script]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/autosave/z_autorun_%5Btrackassembly%5D.txt
+[ref-lua-script]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/set/z_autorun_%5Btrackassembly%5D.txt
 [ref-load-list]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/set/trackasmlib_dsv.txt
 [ref-list-pref]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt
 [ref-categ]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt
@@ -450,13 +454,13 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-dsv-dir]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/trackassembly/dsv
 [ref-sv-db]: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/sv_TRACKASSEMBLY_PIECES.txt
 [ref-phys-snap]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Additional-features#physgun-snapping-feature
-[ref-discontinued]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-discontinued
-[ref-maintained]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/discontinued/owner-maintained
+[ref-discontinued]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/trackassembly/tools/discontinued/owner-discontinued
+[ref-maintained]: https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/trackassembly/tools/discontinued/owner-maintained
 [ref-easter]: https://tfwiki.net/wiki/Team_Bullet_Train
-[ref-surf-snap]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/surfsnap.jpg
-[ref-adviser]:https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/snapadvaiser.jpg
-[ref-screenshot]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/screenshot.jpg
-[ref-pnt-assist]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/pictures/pointassist.jpg
+[ref-surf-snap]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/trackassembly/tools/pictures/surfsnap.jpg
+[ref-adviser]:https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/trackassembly/tools/pictures/snapadvaiser.jpg
+[ref-screenshot]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/trackassembly/tools/pictures/screenshot.jpg
+[ref-pnt-assist]: https://raw.githubusercontent.com/dvdvideo1234/TrackAssemblyTool/master/data/trackassembly/tools/pictures/pointassist.jpg
 [ref-ctx-menu]: https://wiki.facepunch.com/gmod/The_Context_Menu
 [ref-model]: https://developer.valvesoftware.com/wiki/Model
 [ref-glua]: https://nodecraft.com/support/games/gmod/glua-101-an-introduction-to-garrys-mod-coding
