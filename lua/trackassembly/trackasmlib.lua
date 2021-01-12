@@ -2103,7 +2103,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
     LogInstance("Exists ID #"..tostring(iID)); return nil
   else
     if((iID > 1) and (not tOffs[iID - 1])) then
-      LogInstance("No sequential ID #"..tostring(iID - 1)); return nil end
+      LogInstance("Desynchronized ID #"..tostring(iID)); return nil end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
   ---------- Origin ----------

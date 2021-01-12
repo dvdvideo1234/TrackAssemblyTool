@@ -88,7 +88,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.641")
+asmlib.SetOpVar("TOOL_VERSION","8.642")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -1630,8 +1630,12 @@ if(CLIENT) then
 end
 
 --[[ Track pieces parametrization legend
- * Disabling of a component is preformed by using "OPSYM_DISABLE"
- * Disabling A     - The ID angle is treated as {0,0,0}
+ * Utilizing a trasnform attacment is done by using "OPSYM_ENTPOSANG"
+ * Disabling a component is preformed by using "OPSYM_DISABLE"
+ * Active points data are strings of floats delimited by "OPSYM_SEPARATOR"
+ * Disabling P     - The ID search point is treated as taking the origin
+ * Disabling O     - The ID snap origin is treated as {0,0,0} vector
+ * Disabling A     - The ID snap angle is treated as {0,0,0} angle
  * Disabling Type  - Makes it use the value of Categorize()
  * Disabling Name  - Makes it generate it using the model via ModelToName()
  * Disabling Class - Makes it use the default /prop_physics/
