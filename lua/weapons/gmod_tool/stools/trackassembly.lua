@@ -138,6 +138,7 @@ TOOL.ClientConVar = {
   [ "appangfst"  ] = 0,
   [ "applinfst"  ] = 0,
   [ "enradmenu"  ] = 0,
+  [ "sgradmenu"  ] = 1,
   [ "incsnpang"  ] = 5,
   [ "incsnplin"  ] = 5,
   [ "crvturnlm"  ] = 0,
@@ -279,6 +280,10 @@ end
 
 function TOOL:GetRadialMenu()
   return ((self:GetClientNumber("enradmenu") or 0) ~= 0)
+end
+
+function TOOL:GetRadialMenuSegm()
+  return mathClamp((self:GetClientNumber("sgradmenu") or 0), 1, 16)
 end
 
 function TOOL:ApplyLinearFirst()
@@ -2393,6 +2398,10 @@ if(CLIENT) then
     pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".crvleanlm_con"), gsToolPrefL.."crvleanlm", nLow, nHig, iMaxDec)
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".crvleanlm"))
              pItem:SetDefaultValue(asmlib.GetAsmConvar("crvleanlm", "FLT"))
+    nLow, nHig = asmlib.GetBorder(gsToolPrefL.."sgradmenu")
+    pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".sgradmenu_con"), gsToolPrefL.."sgradmenu", nLow, nHig, 0)
+             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".sgradmenu"))
+             pItem:SetDefaultValue(asmlib.GetAsmConvar("sgradmenu", "FLT"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enradmenu_con"), gsToolPrefL.."enradmenu")
              pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".enradmenu"))
     pItem = CPanel:CheckBox (asmlib.GetPhrase ("tool."..gsToolNameL..".enpntmscr_con"), gsToolPrefL.."enpntmscr")

@@ -35,6 +35,8 @@ local guiMouseY                     = gui and gui.MouseY
 local guiOpenURL                    = gui and gui.OpenURL
 local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
 local entsGetByIndex                = ents and ents.GetByIndex
+local mathAbs                       = math and math.abs
+local mathCeil                      = math and math.ceil
 local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
 local mathRound                     = math and math.Round
@@ -45,7 +47,6 @@ local tableConcat                   = table and table.concat
 local tableRemove                   = table and table.remove
 local tableEmpty                    = table and table.Empty
 local tableInsert                   = table and table.insert
-local mathAbs                       = math and math.abs
 local utilAddNetworkString          = util and util.AddNetworkString
 local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
@@ -88,7 +89,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.642")
+asmlib.SetOpVar("TOOL_VERSION","8.643")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -152,6 +153,7 @@ asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1, 400)
 asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
 asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 20)
+asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
 
 ------------ CONFIGURE LOGGING ------------
 
@@ -576,33 +578,45 @@ if(CLIENT) then
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Screen invalid",gtArgsLogs); return nil end
-      local nR, nN = (mathMin(scrW, scrH) / (2 * gnRatio)), conWorkMode:GetSize()
+      local nK, nN = actTool:GetRadialMenuSegm(), conWorkMode:GetSize()
+      local nR  = (mathMin(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(guiMouseX(), guiMouseY())
       local vCn = asmlib.NewXY(mathFloor(scrW/2), mathFloor(scrH/2))
       local nDr, sM = asmlib.GetOpVar("DEG_RAD"), asmlib.GetOpVar("MISS_NOAV")
       local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
-      local vA, vB, nD = asmlib.NewXY(), asmlib.NewXY(), (nR / gnRatio)
+      local vTx, nD = asmlib.NewXY(), (nR / gnRatio)
+      local vA, vB = asmlib.NewXY(), asmlib.NewXY()
       local tP = {asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY()}
       local vF, vN = asmlib.NewXY(nR, 0), asmlib.NewXY(mathClamp(nR - nD, 0, nR), 0)
       asmlib.NegY(asmlib.SubXY(vA, mXY, vCn)) -- Obtain selection wiper vector
       local aW = asmlib.GetAngleXY(vA) -- Read wiper angle and normalize
             aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
       local iW = mathFloor(((aW / nMx) * nN) + 1) -- Calculate fraction ID for working mode
-      local dA = (nMx / (2 * nN)) -- Two times smaller step to hangle centers as well
+      local dA = (nMx / (nK * nN)) -- Two times smaller step to hangle centers as well
       asmlib.SetXY(vA, vF); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[4], vA)
       asmlib.SetXY(vA, vN); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[3], vA)
-      for iD = 1, nN do
-        asmlib.SetXY(tP[1], tP[4]); asmlib.SetXY(tP[2], tP[3])
+      local nT, nB = mathCeil((nK - 1) / 2) + 1, mathFloor((nK - 1) / 2) + 1
+      for iD = 1, nN do asmlib.SetXY(vTx, 0, 0)
         local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
         local sC = ((iW == iD) and "pf" or "pb") -- Change color for selected option
         -- Draw polygon segment using triangles with the same color and array of vertices
-        asmlib.RotateXY(vN, 2 * dA); asmlib.RotateXY(vF, 2 * dA) -- Go to the next base line
-        asmlib.SetXY(vA, vF); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[4], vA)
-        asmlib.SetXY(vA, vN); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[3], vA)
-        actMonitor:DrawPoly(tP, sC, "SURF", {"vgui/white"}) -- Draw textured polygon
-        -- Draw working mode name by placing centered text and the polygon midpoint
-        asmlib.MidXY(vA, tP[1], tP[2]); asmlib.MidXY(vB, tP[3], tP[4]); asmlib.MidXY(vA, vA, vB)
-        actMonitor:SetTextStart(vA.x, vA.y):DrawText(sW, "k", "SURF", {"Trebuchet24", true})
+        for iK = 1, nK do -- Interpolate the circle with given number of segments
+          asmlib.SetXY(tP[1], tP[4]); asmlib.SetXY(tP[2], tP[3])
+          asmlib.RotateXY(vN, dA); asmlib.RotateXY(vF, dA) -- Go to the next base line
+          asmlib.SetXY(vA, vF); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[4], vA)
+          asmlib.SetXY(vB, vN); asmlib.NegY(vB); asmlib.AddXY(vB, vB, vCn); asmlib.SetXY(tP[3], vB)
+          actMonitor:DrawPoly(tP, sC, "SURF", {"vgui/white"}) -- Draw textured polygon
+          -- Draw working mode name by placing centered text and the polygon midpoint
+          if(nT == nB) then -- The index is at the farthest point
+            if(nB == iK) then -- Odd. Use closest four vertices are taken
+              asmlib.MidXY(vA, tP[1], tP[2]); asmlib.MidXY(vB, tP[3], tP[4])
+              asmlib.MidXY(vA, vA, vB); asmlib.AddXY(vTx, vTx, vA)
+            end -- When counter is at the top calculate text position
+          else -- Even. Use the rod middle point of the two vertexes
+            if(nB == iK) then asmlib.MidXY(vTx, vA, vB) end
+          end -- Otherwise calculation is not triggered and does nothing
+        end -- One segment for woring mode selection is drawn
+        actMonitor:SetTextStart(vTx.x, vTx.y):DrawText(sW, "k", "SURF", {"Trebuchet24", true})
       end; asmlib.SetAsmConvar(oPly, "workmode", iW); return true
     end)
 

@@ -148,6 +148,8 @@
   tSet["tool."..sTool..".incsnplin_con"    ] = "Linear step:"
   tSet["tool."..sTool..".enradmenu"        ] = "When enabled turns on the usage of the workmode radial menu"
   tSet["tool."..sTool..".enradmenu_con"    ] = "Enable radial menu"
+  tSet["tool."..sTool..".sgradmenu"        ] = "Change this to make the radial menu more round. The higher the smoother"
+  tSet["tool."..sTool..".sgradmenu_con"    ] = "Radial segments:"
   tSet["tool."..sTool..".enpntmscr"        ] = "When enabled turns on the switching active points via mouse scroll"
   tSet["tool."..sTool..".enpntmscr_con"    ] = "Enable point scroll"
   tSet["tool."..sTool..".exportdb"         ] = "When enabled turns on the database export as one large file"

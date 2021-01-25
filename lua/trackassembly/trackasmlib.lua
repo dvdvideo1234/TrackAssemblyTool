@@ -984,10 +984,10 @@ function MulXY(xyR, vM)
   xyR.x, xyR.y = (xyR.x * nM), (xyR.y * nM); return xyR
 end
 
-function DivXY(xyR, vD)
+function DivXY(xyR, vM)
   if(not xyR) then LogInstance("Base invalid"); return nil end
-  local nD = (tonumber(vM) or 0)
-  xyR.x, xyR.y = (xyR.x / nD), (xyR.y / nD); return xyR
+  local nM = (tonumber(vM) or 0)
+  xyR.x, xyR.y = (xyR.x / nM), (xyR.y / nM); return xyR
 end
 
 function AddXY(xyR, xyA, xyB)
