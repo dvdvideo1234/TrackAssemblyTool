@@ -335,9 +335,13 @@ That's what is this FAQ for anyway ( Though most people don't bother to read it 
 
 #### Which addons did you work on?
 Here they are, with available status, why I did not do some of them ( at the time of developing ).
-The ones that are **included** in Garry's mod do not have links and are marked below:
+The ones that are **INCLUDED** in Garry's mod do not have links and are marked below. Others are
+actually not meant to be used with TA at all, but instead in **HAMMER** by mappers. Some are supported
+by their own **AUTHOR** ( this is always better and easier to add stuff in a list ) so you should check with
+them. In some rare cases, the author is to busy, not bothered or not interested anymore to maintain cetain
+track packs leading in **NO SUPPORT**, which is also OK and you need to value their time and effort:
   * PHX Monorails **(INCLUDED)**
-  * PHX Regular Tracks ( For `switcher_2` `[X]` in the name as it misses collision meshes ) **(INCLUDED)**
+  * PHX Regular Tracks ( Piece `switcher_2` `[X]` misses collision meshes ) **(INCLUDED)**
   * [SligWolf's Rerailers](https://steamcommunity.com/sharedfiles/filedetails/?id=132843280) old and new(1,2,3)
   * [SProps](https://steamcommunity.com/sharedfiles/filedetails/?id=173482196)
   * PHX XQM Coaster tracks **(INCLUDED)**
@@ -345,34 +349,36 @@ The ones that are **included** in Garry's mod do not have links and are marked b
   * PHX Road Pieces ( including ramps big and small ) **(INCLUDED)**
   * PHX Monorail Iron Beams **(INCLUDED)**
   * PHX XQM BallRails **(INCLUDED)**
-  * [Magnum's gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=290130567) ( Owner support has stopped. No updates )
-  * [Metrostroi rails](https://steamcommunity.com/sharedfiles/filedetails/?id=261801217) ( Ignore, not designed as prop )
+  * [Magnum's gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=290130567) **(NO SUPPORT)**
+  * [Metrostroi rails](https://steamcommunity.com/sharedfiles/filedetails/?id=261801217) **(HAMMER)**
   * [Shinji85's BodybroupRail pieces](https://steamcommunity.com/sharedfiles/filedetails/?id=326640186)
-  * [gm_trainset map props](https://steamcommunity.com/sharedfiles/filedetails/?id=248213731) ( Ignore, not designed as prop )
+  * [gm_trainset map props](https://steamcommunity.com/sharedfiles/filedetails/?id=248213731) **(HAMMER)**
   * [SligWolf's Railcar](https://steamcommunity.com/sharedfiles/filedetails/?id=173717507)
   * [Bridges pack](https://steamcommunity.com/sharedfiles/filedetails/?id=343061215)
-  * [gm_sunsetgulch map props](https://steamcommunity.com/sharedfiles/filedetails/?id=311697867) ( Ignore, not designed as prop )
+  * [gm_sunsetgulch map props](https://steamcommunity.com/sharedfiles/filedetails/?id=311697867) **(HAMMER)**
   * [StevenTechno's Buildings pack](https://steamcommunity.com/sharedfiles/filedetails/?id=331192490)
   * [Mr. Train's M-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=517442747)
   * [Bobsters's two gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=489114511)
   * [Mr. Train's G-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=590574800)
-  * Ron's 56 gauge rails ( Removed by the addon owner and [discontinued][ref-discontinued] )
-  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) ( [Maintained by the owner][ref-maintained] )
+  * Ron's 56 gauge rails [**NO SUPPORT**][ref-discontinued]
+  * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) [**(AUTHOR)**][ref-maintained]
   * PHX Tubes **(INCLUDED)**
-  * [Magnum's second track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=391016040) ( Ignore, not designed as prop )
-  * [qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
+  * [Magnum's second track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=391016040) **(HAMMER)**
+  * [Qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
   * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) ( Mini hover tracks ) ( White rails )
   * [Ron's Minitrain Props](https://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
   * [Battleship's abandoned rails](https://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
-  * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) ( [Maintained by the owner][ref-maintained] )
+  * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) [**(AUTHOR)**][ref-maintained]
   * [AlexCookie's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
   * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167)
   * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805)
   * [StevenTechno's Buildings pack 2.0](https://steamcommunity.com/sharedfiles/filedetails/?id=1888013789)
   * [Modular canal props](https://steamcommunity.com/sharedfiles/filedetails/?id=1336622735) ( Interior only )
-  * [Anyone's Horrible Trackpack](https://steamcommunity.com/sharedfiles/filedetails/?id=2194528273) ( [Maintained by the owner][ref-maintained] )
+  * [Anyone's Horrible Trackpack](https://steamcommunity.com/sharedfiles/filedetails/?id=2194528273) [**(AUTHOR)**][ref-maintained]
+  * [Qwertyaaa's GSTP](https://steamcommunity.com/sharedfiles/filedetails/?id=2370393604) **(HAMMER)**
+  * [Magnum's third track pack](https://github.com/MagnumMacKivler/trakpak3) **(HAMMER)**
 
-#### Where are the trains/vehicles[,](ref-easter) are there any of these?
+#### Where are the trains/vehicles[,][ref-easter] are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
 
 #### Dude the rails are not showing in the menu, what should I do ?

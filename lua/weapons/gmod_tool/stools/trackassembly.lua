@@ -759,7 +759,7 @@ function TOOL:ClearFlipOver(bMute)
   end -- Make sure to delete the relation on both client and server
 end
 
-function TOOL:GetFlipOverOrigin(stTrace, bPntN)
+function TOOL:GetFlipOverOrigin(stTrace, bPnt)
   local trEnt, trHit = stTrace.Entity, stTrace.HitNormal
   local wOver, wNorm = Vector(), Vector()
   if(not (trEnt and trEnt:IsValid())) then
@@ -767,7 +767,7 @@ function TOOL:GetFlipOverOrigin(stTrace, bPntN)
     return wOver, wNorm
   end
   wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter())); wNorm:Set(trHit)
-  if(bPntN) then
+  if(bPnt) then
     local wOrig, wAucs = Vector(), Angle()
     local model, trMod = self:GetModel(), trEnt:GetModel()
     local trID, trMin, trPOA, trRec = asmlib.GetEntityHitID(trEnt, stTrace.HitPos, true)
@@ -844,7 +844,7 @@ function TOOL:CurveClear(bAll, bMute)
   end; return tC -- Returns the updated curve nodes table
 end
 
-function TOOL:GetCurveTransform(stTrace)
+function TOOL:GetCurveTransform(stTrace, bPnt)
   if(not stTrace) then
     asmlib.LogInstance("Trace missing", gtArgsLogs); return nil end
   if(not stTrace.Hit) then
@@ -860,7 +860,7 @@ function TOOL:GetCurveTransform(stTrace)
   local eEnt, vNrm = stTrace.Entity, stTrace.HitNormal
   aAng:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
   vHit:Set(stTrace.HitPos); vOrg:Add(vHit)
-  if(ply:KeyDown(IN_USE) and eEnt and eEnt:IsValid()) then
+  if(bPnt and eEnt and eEnt:IsValid()) then
     oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, vHit, true)
     if(oID and oMin and oPOA and oRec) then
       asmlib.SetVector(vOrg, oPOA.O); vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
@@ -878,9 +878,9 @@ function TOOL:GetCurveTransform(stTrace)
   return vOrg, aAng, vHit, oPOA
 end
 
-function TOOL:CurveInsert(stTrace, bMute)
+function TOOL:CurveInsert(stTrace, bPnt, bMute)
   local ply, model = self:GetOwner(), self:GetModel(), stTrace.Entity
-  local vOrg, aAng, vHit = self:GetCurveTransform(stTrace); if(not vOrg) then
+  local vOrg, aAng, vHit = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtArgsLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtArgsLogs); return nil end
@@ -901,9 +901,9 @@ function TOOL:CurveInsert(stTrace, bMute)
   return tC -- Returns the updated curve nodes table
 end
 
-function TOOL:CurveUpdate(stTrace, bMute)
+function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   local ply = self:GetOwner()
-  local vOrg, aAng, vHit = self:GetCurveTransform(stTrace); if(not vOrg) then
+  local vOrg, aAng, vHit = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtArgsLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtArgsLogs); return nil end
@@ -1374,9 +1374,9 @@ function TOOL:RightClick(stTrace)
   local ply       = self:GetOwner()
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
-  if(workmode == 3) then local tC
-    if(ply:KeyDown(IN_SPEED)) then tC = self:CurveUpdate(stTrace)
-    else tC = self:CurveInsert(stTrace) end; return (tC and true or false)
+  if(workmode == 3) then local bPnt, tC = ply:KeyDown(IN_USE)
+    if(ply:KeyDown(IN_SPEED)) then tC = self:CurveUpdate(stTrace, bPnt)
+    else tC = self:CurveInsert(stTrace, bPnt) end; return (tC and true or false)
   elseif(workmode == 4 and not ply:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
   end
@@ -1768,14 +1768,15 @@ function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2)
 end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
-  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace)
+  local bPnt, bRp = inputIsKeyDown(KEY_E), inputIsKeyDown(KEY_LSHIFT)
+  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace, bPnt)
   if(not vOrg) then asmlib.LogInstance("Transform missing", gtArgsLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtArgsLogs); return end
-  local xyO, xyH, nrB, nrS = vOrg:ToScreen(), vHit:ToScreen(), 3, 1.5
+  local vT, nrB, nrS, mD, mL = Vector(), 3, 1.5
+  local xyO, xyH = vOrg:ToScreen(), vHit:ToScreen()
   local xyZ = (vOrg + nS * aAng:Up()):ToScreen()
   local xyX = (vOrg + nS * aAng:Forward()):ToScreen()
-  local bRp, vT, mD, mL = inputIsKeyDown(KEY_LSHIFT), Vector()
   oScreen:DrawLine(xyO, xyX, "r", "SURF")
   oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, nrS), "y", "SEGM", {35})
   if(oPOA) then -- Check whenever active point is used for node
