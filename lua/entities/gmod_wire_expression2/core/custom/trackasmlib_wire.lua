@@ -1,7 +1,16 @@
------ Localizing the asmlib module
-local asmlib      = trackasmlib
+--[[ **************************** REGISTER **************************** ]]
 
------ Localizing needed functions
+E2Lib.RegisterExtension("trackassembly", true,
+  "Allows E2 chips to spawn segments for performing custom track layouts",
+  "This extension makes some track assembly features visible for the users to operate with the addon database."
+)
+
+--[[ **************************** MODULE **************************** ]]
+
+local asmlib = trackasmlib
+
+--[[ **************************** LOCALIZATION **************************** ]]
+
 local Vector    = Vector
 local Angle     = Angle
 local Color     = Color
@@ -11,8 +20,9 @@ local mathClamp = math and math.Clamp
 local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 
------ Get extension enabled flag
-local anyTrue, anyFalse  = 1, 0
+--[[ **************************** CONFIGURATION **************************** ]]
+
+local anyTrue, anyFalse = 1, 0
 local cvX, cvY, cvZ = asmlib.GetIndexes("V")
 local caP, caY, caR = asmlib.GetIndexes("A")
 local wvX, wvY, wvZ = asmlib.GetIndexes("WV")
@@ -24,7 +34,7 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
 local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
---------- CALLBACKS ---------
+--[[ **************************** CALLBACKS **************************** ]]
 
 local gsVarName -- This stores current variable name
 local gsCbcHash = "_wire" -- This keeps suffix realted to the file
@@ -46,7 +56,7 @@ cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   gnMaxMass = ((nM > 0) and nM or 1) -- Apply mass clamp
 end, gsVarName..gsCbcHash)
 
---------- EXPORT ---------
+--[[ **************************** EXPORT **************************** ]]
 
 local function getDataFormat(sForm, oEnt, ucsEnt, sType, sName, nPnt, sP)
   if(not (oEnt and oEnt:IsValid() and enFlag)) then return "" end
@@ -71,17 +81,17 @@ e2function string entity:trackasmlibGenActivePointDSV(entity ucsEnt, string sTyp
   return getDataFormat(gsDSV, this, ucsEnt, sType, sName, nPoint, sP)
 end
 
---------- SNAP ----------
+--[[ **************************** SNAP **************************** ]]
 
 __e2setcost(100)
 e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel  , number hdPoID  ,
                                               number nActRadius, number enFlatten, number enIgnTyp,
                                               vector ucsOffPos , angle ucsOffAng)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local stSpawn = asmlib.GetEntitySpawn(self.player,this, asmlib.ToVector(trHitPos, wvX, wvY, wvZ),
-                                        hdModel,hdPoID,nActRadius,(enFlatten ~= 0),(enIgnTyp ~= 0),
-                                        ucsOffPos[wvX],ucsOffPos[wvY],ucsOffPos[wvZ],
-                                        ucsOffAng[waP],ucsOffAng[waY],ucsOffAng[waR])
+  local stSpawn = asmlib.GetEntitySpawn(self.player, this, asmlib.ToVector(trHitPos, wvX, wvY, wvZ),
+                                        hdModel, hdPoID, nActRadius,(enFlatten ~= 0), (enIgnTyp ~= 0),
+                                        ucsOffPos[wvX], ucsOffPos[wvY], ucsOffPos[wvZ],
+                                        ucsOffAng[waP], ucsOffAng[waY], ucsOffAng[waR])
   if(not stSpawn) then return {} end
   local sPos = {stSpawn.SPos[cvX], stSpawn.SPos[cvY], stSpawn.SPos[cvZ]}
   local sAng = {stSpawn.SAng[caP], stSpawn.SAng[caY], stSpawn.SAng[caR]}
@@ -104,7 +114,7 @@ e2function array trackasmlibSnapNormal(vector ucsPos, angle  ucsAng   , string h
   return {sPos, sAng}
 end
 
---------- PIECES ---------
+--[[ **************************** PIECES **************************** ]]
 
 __e2setcost(30)
 e2function number trackasmlibIsPiece(string sModel)
@@ -123,7 +133,7 @@ end
 local function getPieceOffset(sModel, nID, sPOA)
   local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(sModel),nID)
   if(not stPOA) then return {} end
-  local sPOA, arOut, C1, C2, C3 = tostring(sPOA):upper():sub(1,1), {}
+  local sPOA, arOut, C1, C2, C3 = tostring(sPOA):upper():sub(1,1), {0,0,0}
   if    (sPOA == "P") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
   elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arOut end
@@ -185,7 +195,7 @@ e2function number entity:trackasmlibGetPointsCount()
   if(stRec and stRec.Size) then return stRec.Size else return 0 end
 end
 
------------- ADDITIONS ------------
+--[[ **************************** ADDITIONS **************************** ]]
 
 __e2setcost(30)
 e2function number trackasmlibHasAdditions(string sModel)
@@ -240,7 +250,7 @@ e2function array entity:trackasmlibGetAdditionsLine(number nID)
   return getAdditionsLine(this:GetModel(), nID)
 end
 
------------- PHYSPROPERTIES ------------
+--[[ **************************** PHYSPROPERTIES **************************** ]]
 
 __e2setcost(15)
 e2function array trackasmlibGetProperty(string sType)
@@ -258,7 +268,7 @@ e2function array trackasmlibGetProperty()
   return stRec
 end
 
------------- PIECE CREATOR ------------
+--[[ **************************** CREATOR **************************** ]]
 
 local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
   if(not enFlag) then return nil end
