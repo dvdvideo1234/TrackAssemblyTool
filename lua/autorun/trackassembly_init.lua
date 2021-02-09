@@ -89,7 +89,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.645")
+asmlib.SetOpVar("TOOL_VERSION","8.646")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -486,9 +486,10 @@ if(CLIENT) then
   asmlib.WorkshopID("AlexCookie's 2ft track pack" , "740453553")
   asmlib.WorkshopID("Joe's track pack"            , "1658816805")
   asmlib.WorkshopID("StevenTechno's Buildings 2.0", "1888013789")
-  asmlib.WorkshopID("Modular canals"              , "1336622735")
+  asmlib.WorkshopID("Modular Canals"              , "1336622735")
   asmlib.WorkshopID("Trackmania United Props"     , "1955876643")
   asmlib.WorkshopID("Anyone's Horrible Trackpack" , "2194528273")
+  asmlib.WorkshopID("Modular Sewer"               , "2340192251")
 
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
@@ -4058,7 +4059,7 @@ else
   PIECES:Record({"models/roads_pack/highway_turns/6-0_highway_turn_a.mdl", "#", "#", 2, "", "-628,546,314.03125", "0,90,0"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 1, "", "0,0,315.03125"})
   PIECES:Record({"models/roads_pack/highway_turns/6-1_highway_turn_b.mdl", "#", "#", 2, "", "-2860,2860,315.03125", "0,90,0"})
-  asmlib.Categorize("Modular canals",[[function(m)
+  asmlib.Categorize("Modular Canals",[[function(m)
     local n = m:gsub("models/props_d47_canals/interior_","")
     local r = n:match("%a+"); n = n:gsub("%.mdl",""); return r, n; end]])
   PIECES:Record({"models/props_d47_canals/interior_narrow_128.mdl", "#", "#", 1, "", "64,64,0"})
@@ -4175,6 +4176,21 @@ else
   PIECES:Record({"models/nokillnando/trackmania/ground/misc/checkpointground.mdl", "#", "#", 1, "", "-180,0,0", "0,180,0"})
   PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumplow.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
   PIECES:Record({"models/nokillnando/trackmania/ground/jump/jumphigh.mdl", "#", "#", 1, "", "-242.82343,0,5.65723", "0,-180,0", ""})
+  asmlib.Categorize("Modular Sewer")
+  asmlib.ModelToNameRule("SET",nil,{"sewertunnel",""},nil)
+  PIECES:Record({"models/sewerpack/sewertunneli.mdl", "#", "#", 1, "", " 113.9589,0,1", "", ""})
+  PIECES:Record({"models/sewerpack/sewertunneli.mdl", "#", "#", 2, "", "-113.9589,0,1", "0,180,0", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelcap.mdl", "#", "#", 1, "", "113.9655,0,1", "", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelexit.mdl", "#", "#", 1, "", "-2.657,0,1", "0,-180,0", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelr.mdl", "#", "#", 1, "", "0.08447,0.10266,1", "", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelr.mdl", "#", "#", 2, "", "-113.86328,114.08386,1", "0,90,0", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelt.mdl", "#", "#", 1, "", " 113.96973,0,1", "", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelt.mdl", "#", "#", 2, "", "0,-113.96973,1", "0,-90,0", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelt.mdl", "#", "#", 3, "", "-113.96973,0,1", "0,180,0", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelx.mdl", "#", "#", 1, "", "113.96973,0,1", "", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelx.mdl", "#", "#", 2, "", "0,113.96973,1", "0,90,0", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelx.mdl", "#", "#", 3, "", "0,-113.96973,1", "0,-90,0", ""})
+  PIECES:Record({"models/sewerpack/sewertunnelx.mdl", "#", "#", 4, "", "-113.96973,0,1", "0,180,0", ""})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

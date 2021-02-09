@@ -659,7 +659,7 @@ function InitBase(sName, sPurp)
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
   SetOpVar("TOOLNAME_PU",GetOpVar("TOOLNAME_NU").."_")
   SetOpVar("DIRPATH_BAS",GetOpVar("TOOLNAME_NL")..GetOpVar("OPSYM_DIRECTORY"))
-  SetOpVar("DIRPATH_INS","exp"..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("DIRPATH_EXP","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_SET","set"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("MISS_NOMD","X")      -- No model
@@ -3503,7 +3503,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   local defTab, sFunc = makTab:GetDefinition(), "TranslateDSV"
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
-  sNdsv, sNins = sNdsv..GetOpVar("DIRPATH_DSV"), sNins..GetOpVar("DIRPATH_INS")
+  sNdsv, sNins = sNdsv..GetOpVar("DIRPATH_DSV"), sNins..GetOpVar("DIRPATH_EXP")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
   local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
   sNdsv, sNins = sNdsv..fForm:format(fPref, defTab.Name), sNins..fForm:format(fPref, defTab.Name)
@@ -3769,7 +3769,7 @@ function ExportTypeAR(sType)
     local sForm = GetOpVar("FORM_FILENAMEAR")
     local sS = sBase..GetOpVar("DIRPATH_SET")
           sS = sS..sForm:format(sTool)
-    local sN = sBase..GetOpVar("DIRPATH_INS")
+    local sN = sBase..GetOpVar("DIRPATH_EXP")
           sN = sN..sForm:format(sPref)
     local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
       LogInstance("Generate fail "..GetReport(sN)); return end
