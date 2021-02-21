@@ -89,7 +89,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.647")
+asmlib.SetOpVar("TOOL_VERSION","8.648")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -431,7 +431,7 @@ if(CLIENT) then
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
-  asmlib.ToIcon("category_item"    , "folder"         )
+  asmlib.ToIcon("subfolder_item"   , "folder"         )
   asmlib.ToIcon("pn_externdb_1"    , "database"       )
   asmlib.ToIcon("pn_externdb_2"    , "folder_database")
   asmlib.ToIcon("pn_externdb_3"    , "database_table" )

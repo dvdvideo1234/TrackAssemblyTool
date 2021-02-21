@@ -1686,8 +1686,8 @@ function SetDirectory(pnBase, pCurr, vName)
         sName = (IsBlank(sName) and "Other" or sName)
   local pNode = pnBase:AddNode(sName)
   pCurr[sName] = {}; pCurr[sName][keyOb] = pNode
-  pNode:SetTooltip(GetPhrase("tool."..sTool..".category"))
-  pNode.Icon:SetImage(ToIcon("category_item"))
+  pNode:SetTooltip(GetPhrase("tool."..sTool..".subfolder"))
+  pNode.Icon:SetImage(ToIcon("subfolder_item"))
   pNode.DoClick = function(pnSelf)
     if(inputIsKeyDown(KEY_LSHIFT)) then
       pNode:ExpandRecurse(true)

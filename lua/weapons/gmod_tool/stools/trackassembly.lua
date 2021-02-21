@@ -88,7 +88,7 @@ local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetContainer("COLORS_LIST")
 local conWorkMode = asmlib.GetContainer("WORK_MODE")
 local conElements = asmlib.GetContainer("LIST_VGUI")
-local gtArgsLogs, goThQueue = {"TOOL"}
+local gtArgsLogs  = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   local sDSV = gsDataRoot..gsDataSet..gsLibName.."_dsv.txt"
@@ -249,9 +249,8 @@ if(CLIENT) then
   asmlib.SetOpVar("STORE_CONVARS", TOOL:BuildConVarList())
 end
 
-if(SERVER) then
-  goThQueue = asmlib.GetQueue("THINK")
-  hookAdd("Think", gsToolPrefL.."think_task", function() goThQueue:Execute():Remove() end)
+if(SERVER) then local poThQueue = asmlib.GetQueue("THINK")
+  hookAdd("Think", gsToolPrefL.."think_task", function() poThQueue:Execute():Remove() end)
   hookAdd("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
   hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
@@ -634,9 +633,15 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]"..sDelim
         sDu = sDu..sSpace.."  TR.File:        <"..tostring(trModel and stringGetFileName(trModel) or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
+        sDu = sDu..sSpace.."  HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
         sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]"..sDelim
         sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel and stringGetFileName(hdModel) or gsNoAV)..">"..sDelim
+        sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmConvar("modedb" ,"STR"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
+        sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
+        sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
+        sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
         sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
         sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
@@ -652,7 +657,6 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SpawnCen:    <"..tostring(self:GetSpawnCenter())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
         sDu = sDu..sSpace.."  HD.EnCxMenuAll: <"..tostring(self:GetContextMenuAll())..">"..sDelim
@@ -664,7 +668,6 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
         sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmConvar("modedb" ,"STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetAsmConvar("timermode","STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetAsmConvar("enwiremod","BUL"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetAsmConvar("devmode"  ,"BUL"))..">"..sDelim
@@ -676,10 +679,6 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.BoundErrMod: <"..tostring(asmlib.GetAsmConvar("bnderrmod","STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxFrequent: <"..tostring(asmlib.GetAsmConvar("maxfruse" ,"INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxTrMargin: <"..tostring(asmlib.GetAsmConvar("maxtrmarg","FLT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
-        sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
   if(hdEnt and hdEnt:IsValid()) then hdEnt:Remove() end
   return sDu
 end
@@ -996,6 +995,7 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
   if(not stTrace.Hit) then -- Do not do stuff when there is nothing hit
     asmlib.LogInstance("Trace not hit",gtArgsLogs); return false end
+  local poThQueue  = asmlib.GetQueue("THINK")
   local ply        = self:GetOwner()
   local trEnt      = stTrace.Entity
   local weld       = self:GetWeld()
@@ -1030,7 +1030,7 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
   if(workmode == 3) then
-    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
+    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
@@ -1040,7 +1040,7 @@ function TOOL:LeftClick(stTrace)
     local crvturnlm, crvleanlm = self:GetCurvatureTurn(), self:GetCurvatureLean()
     asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
     for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(ply, iD, nD) end
-    goThQueue:Attach(ply, {
+    poThQueue:Attach(ply, {
       stard = 1,
       stark = 1,
       itrys = 0,
@@ -1100,11 +1100,11 @@ function TOOL:LeftClick(stTrace)
       oPly:SetNWFloat(gsToolPrefL.."progress", 100)
       asmlib.LogInstance("(Curve) Success",gtArgsLogs); return false
     end, workname)
-    goThQueue:OnActive(ply, function(oPly, oArg)
+    poThQueue:OnActive(ply, function(oPly, oArg)
       oArg.eundo, oArg.mundo = {}, ""
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
     end)
-    goThQueue:OnFinish(ply, function(oPly, oArg)
+    poThQueue:OnFinish(ply, function(oPly, oArg)
       local nU, sM = #oArg.eundo, gsUndoPrefN..fnmodel
       if(stackcnt > 0) then
         asmlib.UndoCrate(sM.." ( Curve #"..stackcnt.." )")
@@ -1117,7 +1117,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance("(Curve) Success", gtArgsLogs)
     end); return true
   elseif(workmode == 4 and self:IsFlipOver()) then
-    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
+    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOver(true)
     local tC, nC = asmlib.GetConstraintOver(tE)
@@ -1125,7 +1125,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.Notify(ply, "No tracks selected !", "ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtArgsLogs); return false
     end
-    goThQueue:Attach(ply, {
+    poThQueue:Attach(ply, {
       start = 1,
       itrys = 0,
       tents = tE,
@@ -1162,11 +1162,11 @@ function TOOL:LeftClick(stTrace)
       oPly:SetNWFloat(gsToolPrefL.."progress", 100)
       asmlib.LogInstance("(Over) Success",gtArgsLogs); return false
     end)
-    goThQueue:OnActive(ply, function(oPly, oArg)
+    poThQueue:OnActive(ply, function(oPly, oArg)
       oArg.eundo, oArg.mundo, oArg.munid  = {}, "", 0
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
     end)
-    goThQueue:OnFinish(ply, function(oPly, oArg)
+    poThQueue:OnFinish(ply, function(oPly, oArg)
       local nU = #oArg.eundo
       asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(oArg.ients, fnmodel).." ( Over )")
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
@@ -1269,14 +1269,14 @@ function TOOL:LeftClick(stTrace)
   end
 
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(goThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Surver busy !","ERROR"); return true end
+    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Surver busy !","ERROR"); return true end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"), gtArgsLogs); return false end
     local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
     if(not hdOffs) then -- Make sure the next point is present so we have something to stack on
       asmlib.Notify(ply,"Missing next point ID !","ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"), gtArgsLogs); return false
     end -- Validated existent next point ID
-    goThQueue:Attach(ply, {
+    poThQueue:Attach(ply, {
       start = 1,
       itrys = 0,
       spawn = {},
@@ -1324,10 +1324,10 @@ function TOOL:LeftClick(stTrace)
       end -- Update the progress and successfully tell the task we are not busy anymore
       oPly:SetNWFloat(gsToolPrefL.."progress", 100); return false
     end, workname)
-    goThQueue:OnActive(ply, function(oPly, oArg)
+    poThQueue:OnActive(ply, function(oPly, oArg)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0); oArg.eundo = {}
     end)
-    goThQueue:OnFinish(ply, function(oPly, oArg)
+    poThQueue:OnFinish(ply, function(oPly, oArg)
       local nU, sM = #oArg.eundo, gsUndoPrefN..fnmodel
       asmlib.UndoCrate(sM.." ( Stack #"..stackcnt.." )")
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
