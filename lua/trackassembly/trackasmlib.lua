@@ -4431,6 +4431,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly,sMode)) then
     LogInstance("Misplaced "..GetReport2(pPly:Nick(), sModel)); return nil end
   ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+  ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
   ePiece:SetRenderMode(RENDERMODE_TRANSALPHA)
@@ -4440,16 +4441,17 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local phPiece = ePiece:GetPhysicsObject()
   if(not (phPiece and phPiece:IsValid())) then ePiece:Remove()
     LogInstance("Entity phys object invalid"); return nil end
-  phPiece:EnableMotion(false); ePiece.owner = pPly -- Some SPPs actually use this value
-  local Mass = (tonumber(nMass) or 1); phPiece:SetMass((Mass >= 1) and Mass or 1)
-  local BgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
-  ePiece:SetSkin(mathClamp(tonumber(BgSk[2]) or 0,0,ePiece:SkinCount()-1))
-  if(not AttachBodyGroups(ePiece,BgSk[1])) then ePiece:Remove()
+  ePiece.owner, ePiece.Owner = pPly, pPly -- Some PPs actually use this value
+  phPiece:EnableMotion(false) -- Spawn frozen by default to reduce lag
+  phPiece:SetMass(mathMax(1, (tonumber(nMass) or 1)))
+  local tBgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
+  ePiece:SetSkin(mathClamp(tonumber(tBgSk[2]) or 0, 0, ePiece:SkinCount()-1))
+  if(not AttachBodyGroups(ePiece, tBgSk[1])) then ePiece:Remove()
     LogInstance("Failed attaching bodygroups"); return nil end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     LogInstance("Failed attaching additions"); return nil end
   pPly:AddCount(sLimit , ePiece); pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
-  pPly:AddCount("props", ePiece); pPly:AddCleanup("props", ePiece) -- To be deleted with clearing props
+  pPly:AddCount("props", ePiece); pPly:AddCleanup("props", ePiece) -- Deleted with clearing props
   LogInstance("{"..tostring(ePiece).."}"..sModel); return ePiece
 end
 
