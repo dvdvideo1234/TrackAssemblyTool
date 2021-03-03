@@ -1770,7 +1770,7 @@ function GetFrequentModels(snCount)
   LogInstance("Array is empty or not available"); return nil
 end
 
-function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
+function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
     LogInstance("Panel invalid"); return nil end
   local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
@@ -1825,11 +1825,20 @@ function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
   return pPanel
 end
 
-function SetComboBoxClipboard(pnCombo)
-  local iD = pnCombo:GetSelectedID()
-  local vT = pnCombo:GetOptionText(iD)
-  local sV = GetTerm(tostring(vT or ""), pnCombo:GetValue())
-  SetClipboardText(GetTerm(sV, gsNoAV))
+function SetNumSlider(cPanel, sVar, nMin, nMax, nDig)
+  local sTool, tConv = GetOpVar("STORE_CONVARS"), GetOpVar("TOOLNAME_NL")
+  local sBase, vDefv = "tool."..sTool.."."..sVar, tConv[sTool.."_"..sVar]
+  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local pItem = cPanel:NumSlider(sMenu, sTool.."_"..sVar, nMin, nMax, nDig)
+  pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDefv); return pItem
+end
+
+local function SetCheckBoxPanel(cPanel, sVar)
+  local sTool, tConv = GetOpVar("STORE_CONVARS"), GetOpVar("TOOLNAME_NL")
+  local sBase = "tool."..sTool.."."..sVar
+  local sMenu, sTtip = getPhrase(sBase.."_con"), getPhrase(sBase)
+  local pItem = cPanel:CheckBox(sMenu, sTool.."_"..sVar)
+  pItem:SetTooltip(sTtip); return pItem
 end
 
 function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!

@@ -2283,14 +2283,11 @@ function TOOL.BuildCPanel(CPanel)
     pText:SetText(vNew); pText:SetValue(vNew) end, sName..sCall);
 
   local nMaxLin, iMaxDec = asmlib.GetAsmConvar("maxlinear","FLT"), asmlib.GetAsmConvar("maxmenupr","INT")
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".mass_con"), gsToolPrefL.."mass", 1, asmlib.GetAsmConvar("maxmass", "FLT")  , 0)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".mass"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".activrad_con"), gsToolPrefL.."activrad", 0, asmlib.GetAsmConvar("maxactrad", "FLT"), iMaxDec)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".activrad"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".stackcnt_con"), gsToolPrefL.."stackcnt", 0, asmlib.GetAsmConvar("maxstcnt", "INT"), 0)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".stackcnt"))
-  pItem = CPanel:NumSlider(asmlib.GetPhrase ("tool."..gsToolNameL..".angsnap_con"), gsToolPrefL.."angsnap", 0, gnMaxRot, iMaxDec)
-           pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".angsnap"))
+
+  pItem = asmlib.SetNumSlider(CPanel, "mass"    , 1, asmlib.GetAsmConvar("maxmass"  , "FLT"), iMaxDec)
+  pItem = asmlib.SetNumSlider(CPanel, "activrad", 0, asmlib.GetAsmConvar("maxactrad", "FLT"), iMaxDec)
+  pItem = asmlib.SetNumSlider(CPanel, "stackcnt", 0, asmlib.GetAsmConvar("maxstcnt" , "INT"), 0)
+  pItem = asmlib.SetNumSlider(CPanel, "angsnap" , 0, gnMaxRot, iMaxDec)
   pItem = CPanel:Button   (asmlib.GetPhrase ("tool."..gsToolNameL..".resetvars_con"), gsToolPrefL.."resetvars")
            pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".resetvars"))
   asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
