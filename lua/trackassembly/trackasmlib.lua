@@ -1858,25 +1858,21 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   local iDig = mathFloor(mathMax(tonumber(vDig) or 0, 0))
   if(not IsHere(vDef)) then vDef = tConv[sKey]
-    LogInstance("Default list "..GetReport2(sKey, vDef))
     if(not IsHere(vDef)) then vDef = GetAsmConvar(sVar, "DEF")
-      LogInstance("Default cvar "..GetReport2(sKey, vDef))
       if(not IsHere(vDef)) then
-        LogInstance("Default missing ".. GetReport1(sKey))
-      end -- Alert the user when default is missing
-    end -- Try reading min/max directly from the convar object
-  end -- Fill the defailt slider value automatically when missing
+        LogInstance("(D) Miss "..GetReport1(sKey))
+      else LogInstance("(D) Cvar "..GetReport2(sKey, vDef)) end
+    else LogInstance("(D) List "..GetReport2(sKey, vDef)) end
+  else LogInstance("(D) Args "..GetReport2(sKey, vDef)) end
   if(not (nMin and nMax)) then nMin, nMax = GetBorder(sKey)
-    LogInstance("Limit border "..GetReport3(sKey, nMin, nMax))
-    if(not (nMin and nMax)) then
+    if(not (nMin and nMax)) then -- Check for border in convar list
       local nMin = GetAsmConvar(sVar, "MIN")
       local nMax = GetAsmConvar(sVar, "MAX")
-      LogInstance("Limit border "..GetReport3(sKey, nMin, nMax))
       if(not (nMin and nMax)) then
-        LogInstance("Limit missing "..GetReport1(sKey))
-      end -- Alert the user when min/max is missing
-    end -- Try reading min/max directly from the convar object
-  end -- Fill the defailt slider min/max value automatically when missing
+        LogInstance("(B) Miss "..GetReport1(sKey))
+      else LogInstance("(B) Cvar "..GetReport3(sKey, nMin, nMax)) end
+    else LogInstance("(B) Bord "..GetReport3(sKey, nMin, nMax)) end
+  else LogInstance("(B) Args "..GetReport3(sKey, nMin, nMax)) end
   local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
   local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
   pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDef); return pItem
