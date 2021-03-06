@@ -218,6 +218,14 @@ function IsExact(vVal)
   return (vVal:sub(1,1) == "*")
 end
 
+function GetNameExp(vVal)
+  local bExa = IsExact(vVal)
+  local sPrf = GetOpVar("TOOLNAME_PL")
+  local sNam = (bExa and vVal:sub(2, -1) or vVal)
+  local sKey = (bExa and vVal:sub(2, -1) or (sPrf..vVal))
+  return sKey:lower(), sNam:lower(), bExa -- Extracted convar name
+end
+
 function IsBool(vVal)
   if    (vVal == true ) then return true
   elseif(vVal == false) then return true end
@@ -698,6 +706,8 @@ function InitBase(sName, sPurp)
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
+  SetOpVar("ARRAY_BNDMODE",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
+  SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
@@ -1291,7 +1301,7 @@ function GetContainer(sKey, sDef)
     end
   end
   if(IsHere(sKey)) then mHash[sKey] = self
-    LogInstance("Container registered "..GetReport(mKey)) end
+    LogInstance("Registered "..GetReport(mKey)) end
   setmetatable(self, GetOpVar("TYPEMT_CONTAINER")); return self
 end
 
@@ -1775,8 +1785,10 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
     LogInstance("Panel invalid"); return nil end
   local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
   local sX = GetOpVar("WIDTH_CPANEL")
-  local sNam = GetOpVar("TOOLNAME_PL")..sVar
-  local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local tConv = GetOpVar("STORE_CONVARS")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   pPanel:SetParent(cPanel)
   cPanel:InvalidateLayout(true)
   pPanel:SetSize(sX, sY)
@@ -1785,7 +1797,7 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
     local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
     local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
     while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
-      local sTxt = tostring(vBtn.Text)
+      local sTxt = tostring(vBtn.Tag)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance(sPtn:format(sVar,sTxt,"Panel invalid")); return nil end
       pButton:SetParent(pPanel)
@@ -1796,7 +1808,7 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
       pButton:SetPos(bX, bY)
       pButton:SetSize(wB, hB)
       pButton.DoClick = function()
-        local pS, sE = pcall(vBtn.Click, pButton, sVar, GetAsmConvar(sVar, sTyp))
+        local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar, sTyp))
         if(not pS) then LogInstance(sPtn:format(sVar,sTxt,"Error: "..sE)); return nil end
       end
       pButton:SetVisible(true)
@@ -1810,13 +1822,14 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   pSlider:SizeToContents()
   pSlider:SetPos(0, pY)
   pSlider:SetSize(sX-2*dX, sY-pY-dY)
-  pSlider:SetText(GetPhrase(sTag.."_con"))
-  pSlider:SetTooltip(GetPhrase(sTag))
+  pSlider:SetText(GetPhrase(sBase.."_con"))
+  pSlider:SetTooltip(GetPhrase(sBase))
   pSlider:SetMin(nMin)
   pSlider:SetMax(nMax)
+  pSlider:SetDefaultValue(tConv[sKey])
   pSlider:SetDecimals(nDec)
   pSlider:SetDark(true)
-  pSlider:SetConVar(sNam)
+  pSlider:SetConVar(sKey)
   pSlider:SetVisible(true)
   pPanel:InvalidateChildren()
   pPanel:SizeToContents()
@@ -1825,19 +1838,56 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   return pPanel
 end
 
-function SetNumSlider(cPanel, sVar, nMin, nMax, nDig)
-  local sTool, tConv = GetOpVar("STORE_CONVARS"), GetOpVar("TOOLNAME_NL")
-  local sBase, vDefv = "tool."..sTool.."."..sVar, tConv[sTool.."_"..sVar]
+function SetButton(cPanel, sVar)
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local tConv = GetOpVar("STORE_CONVARS")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
-  local pItem = cPanel:NumSlider(sMenu, sTool.."_"..sVar, nMin, nMax, nDig)
-  pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDefv); return pItem
+  local pItem = cPanel:Button(sMenu, sKey)
+        pItem:SetTooltip(sTtip); return pItem
 end
 
-local function SetCheckBoxPanel(cPanel, sVar)
-  local sTool, tConv = GetOpVar("STORE_CONVARS"), GetOpVar("TOOLNAME_NL")
-  local sBase = "tool."..sTool.."."..sVar
-  local sMenu, sTtip = getPhrase(sBase.."_con"), getPhrase(sBase)
-  local pItem = cPanel:CheckBox(sMenu, sTool.."_"..sVar)
+function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
+  local nMin = tonumber(vMin)
+  local nMax = tonumber(vMax)
+  local vDef = tonumber(vDev)
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local tConv = GetOpVar("STORE_CONVARS")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local iDig = mathFloor(mathMax(tonumber(vDig) or 0, 0))
+  if(not IsHere(vDef)) then vDef = tConv[sKey]
+    LogInstance("Default list "..GetReport2(sKey, vDef))
+    if(not IsHere(vDef)) then vDef = GetAsmConvar(sVar, "DEF")
+      LogInstance("Default cvar "..GetReport2(sKey, vDef))
+      if(not IsHere(vDef)) then
+        LogInstance("Default missing ".. GetReport1(sKey))
+      end -- Alert the user when default is missing
+    end -- Try reading min/max directly from the convar object
+  end -- Fill the defailt slider value automatically when missing
+  if(not (nMin and nMax)) then nMin, nMax = GetBorder(sKey)
+    LogInstance("Limit border "..GetReport3(sKey, nMin, nMax))
+    if(not (nMin and nMax)) then
+      local nMin = GetAsmConvar(sVar, "MIN")
+      local nMax = GetAsmConvar(sVar, "MAX")
+      LogInstance("Limit border "..GetReport3(sKey, nMin, nMax))
+      if(not (nMin and nMax)) then
+        LogInstance("Limit missing "..GetReport1(sKey))
+      end -- Alert the user when min/max is missing
+    end -- Try reading min/max directly from the convar object
+  end -- Fill the defailt slider min/max value automatically when missing
+  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
+  pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDef); return pItem
+end
+
+function SetCheckBox(cPanel, sVar)
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local pItem = cPanel:CheckBox(sMenu, sKey)
   pItem:SetTooltip(sTtip); return pItem
 end
 
@@ -2233,10 +2283,10 @@ function Categorize(oTyp, fCat, iID)
       tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local bS, vO = pcall(tCat[sTyp].Cmp); if(not bS) then
-        LogInstance("Compilation failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
+        LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
       tCat[sTyp].Cmp = vO; tTyp = tCat[sTyp]
       return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-    else LogInstance("Skip code "..GetReport(fCat), ssLog) end
+    else LogInstance("Skip "..GetReport(fCat), ssLog) end
   end
 end
 
@@ -3221,7 +3271,7 @@ end
  * Save/Load the category generation
  * vEq    > Amount of intenal comment depth
  * tData  > The local data table to be exported ( if given )
- * sPref  > Prefix used on exporting ( if not uses instance prefix)
+ * sPref  > Prefix used on exporting ( if not uses instance prefix )
 ]]--
 function ExportCategory(vEq, tData, sPref)
   if(SERVER) then LogInstance("Working on server"); return true end
@@ -4709,16 +4759,15 @@ end
 
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
   if(not IsString(sName)) then
-    LogInstance("Name mismatch "..GetReport(sName)); return nil end
-  local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
-  local cVal = (tonumber(vVal) or tostring(vVal)); LogInstance("("..sLow..")["..tostring(cVal).."]")
-  local sInf, nFlg, nMin, nMax = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0), 0, 0
-  if(not IsHere(tBord)) then nMin, nMax = GetBorder(sLow) -- Read the border from the hash
-    LogInstance("Read border "..GetReport3(vKey, vLow, vHig))
-  else -- Force a border on the convar and update the borders list
-    nMin = (tBord and tBord[1] or nil) -- Read the minimum and maximum
-    nMax = (tBord and tBord[2] or nil); SetBorder(sLow, nMin, nMax)
-  end; return CreateConVar(sLow, cVal, nFlg, sInf, nMin, nMax)
+    LogInstance("Mismatch "..GetReport(sName)); return nil end
+  local sKey, cVal = GetNameExp(sName), (tonumber(vVal) or tostring(vVal))
+  local sInf, nFlg, vMin, vMax = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0), 0, 0
+  if(not IsHere(tBord)) then vMin, vMax = GetBorder(sKey) else
+    -- Force a border on the convar and update the borders list
+    vMin = (tBord and tBord[1] or nil) -- Read the minimum and maximum
+    vMax = (tBord and tBord[2] or nil); SetBorder(sKey, vMin, vMax)
+  end; LogInstance("Create "..GetReport4(sKey, cVal, vMin, vMax))
+  return CreateConVar(sKey, cVal, nFlg, sInf, vMin, vMax)
 end
 
 function GetAsmConvar(sName, sMode)
@@ -4726,28 +4775,29 @@ function GetAsmConvar(sName, sMode)
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
   if(not IsString(sMode)) then
     LogInstance("Mode mismatch "..GetReport(sMode)); return nil end
-  local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
-  local CVar = GetConVar(sLow); if(not IsHere(CVar)) then
-    LogInstance("("..sLow..", "..sMode..") Missing object"); return nil end
-  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()   , sLow)) or 0)
-  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat() , sLow)) or 0)
-  elseif(sMode == "STR") then return (tostring(BorderValue(CVar:GetString(), sLow)) or "")
+  local sKey = GetNameExp(sName)
+  local CVar = GetConVar(sKey); if(not IsHere(CVar)) then
+    LogInstance("Missing "..GetReport2(sKey, sMode)); return nil end
+  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()   , sKey)) or 0)
+  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat() , sKey)) or 0)
+  elseif(sMode == "STR") then return (tostring(BorderValue(CVar:GetString(), sKey)) or "")
   elseif(sMode == "BUL") then return (CVar:GetBool() or false)
   elseif(sMode == "DEF") then return  CVar:GetDefault()
   elseif(sMode == "INF") then return  CVar:GetHelpText()
   elseif(sMode == "NAM") then return  CVar:GetName()
+  elseif(sMode == "MIN") then return  CVar:GetMin()
+  elseif(sMode == "MAX") then return  CVar:GetMax()
   elseif(sMode == "OBJ") then return  CVar
   end; LogInstance("("..sName..", "..sMode..") Missed mode"); return nil
 end
 
-function SetAsmConvar(pPly,sName,snVal)
+function SetAsmConvar(pPly, sName, snVal)
   if(not IsString(sName)) then -- Make it like so the space will not be forgotten
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
   local sFmt, sPrf = GetOpVar("FORM_CONCMD"), GetOpVar("TOOLNAME_PL")
-  local sLow = (IsExact(sName) and sName:sub(2,-1) or (sPrf..sName)):lower()
-  if(IsPlayer(pPly)) then -- Use the player when available
-    return pPly:ConCommand(sFmt:format(sLow, "\""..tostring(snVal or "")).."\"\n")
-  end; return RunConsoleCommand(sLow, tostring(snVal or ""))
+  local sKey = GetNameExp(sName); if(IsPlayer(pPly)) then -- Use the player when available
+    return pPly:ConCommand(sFmt:format(sKey, "\""..tostring(snVal or "")).."\"\n")
+  end; return RunConsoleCommand(sKey, tostring(snVal or ""))
 end
 
 function GetPhrase(sKey)

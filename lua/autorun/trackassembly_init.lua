@@ -89,7 +89,7 @@ local gtInitLogs = {"*Init", false, 0}
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.650")
+asmlib.SetOpVar("TOOL_VERSION","8.652")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -127,7 +127,7 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 ------------ BORDERS ------------
 
 asmlib.SetBorder("non-neg", 0, mathHuge)
-asmlib.SetBorder("sbox_max"..gsLimitName , 0, mathHuge)
+asmlib.SetBorder("sbox_max"..gsLimitName , 0, 3000)
 asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."crvleanlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."curvefact", 0, 1)
@@ -138,6 +138,7 @@ asmlib.SetBorder(gsToolPrefL.."enctxmenu", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."endsvlock", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."enwiremod", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, 200)
+asmlib.SetBorder(gsToolPrefL.."angsnap"  , 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 200)
 asmlib.SetBorder(gsToolPrefL.."logfile"  , 0, 1)
@@ -152,7 +153,7 @@ asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1, 400)
 asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
-asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 20)
+asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
 
 ------------ CONFIGURE LOGGING ------------
@@ -186,7 +187,7 @@ asmlib.MakeAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric co
 asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
 
 if(SERVER) then
-  asmlib.MakeAsmConvar("spawnrate",  5  , nil, gnServerControled, "Maximum pieces spawned in every think tick")
+  asmlib.MakeAsmConvar("spawnrate",  1  , nil, gnServerControled, "Maximum pieces spawned in every think tick")
   asmlib.MakeAsmConvar("bnderrmod","LOG", nil, gnServerControled, "Unreasonable position error handling mode")
   asmlib.MakeAsmConvar("maxfruse" ,  50 , nil, gnServerControled, "Maximum frequent pieces to be listed")
   asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
@@ -579,7 +580,7 @@ if(CLIENT) then
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Screen invalid",gtArgsLogs); return nil end
-      local nK, nN = actTool:GetRadialMenuSegm(), conWorkMode:GetSize()
+      local nK, nN = actTool:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (mathMin(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(guiMouseX(), guiMouseY())
       local vCn = asmlib.NewXY(mathFloor(scrW/2), mathFloor(scrH/2))
