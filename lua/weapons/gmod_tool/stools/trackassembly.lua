@@ -2226,7 +2226,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboToolMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".workmode"))
         pComboToolMode:UpdateColours(drmSkin)
         pComboToolMode:Dock(TOP) -- Setting tallness gets ingnored otherwise
-        pComboToolMode:SetTall(25)
+        pComboToolMode:SetTall(22)
         pComboToolMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         for iD = 1, conWorkMode:GetSize() do
           local sW = tostring(conWorkMode:Select(iD) or gsNoAV):lower()
@@ -2241,7 +2241,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysType:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_def"))
         pComboPhysType.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysType:Dock(TOP) -- Setting tallness gets ingnored otherwise
-        pComboPhysType:SetTall(25)
+        pComboPhysType:SetTall(22)
         pComboPhysType:UpdateColours(drmSkin)
 
   local pComboPhysName = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
@@ -2250,7 +2250,7 @@ function TOOL.BuildCPanel(CPanel)
                                 asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysName:Dock(TOP) -- Setting tallness gets ingnored otherwise
-        pComboPhysName:SetTall(25)
+        pComboPhysName:SetTall(22)
         pComboPhysName:UpdateColours(drmSkin)
 
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
@@ -2283,7 +2283,7 @@ function TOOL.BuildCPanel(CPanel)
         pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
         pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),
                       asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
-        pText:SetEnabled(false); pText:SetTall(25)
+        pText:SetEnabled(false); pText:SetTall(22)
 
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
   cvarsRemoveChangeCallback(sName, sName..sCall)
@@ -2401,9 +2401,10 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "curvefact", iMaxDec)
     asmlib.SetNumSlider(CPanel, "curvsmple", 0)
     asmlib.SetNumSlider(CPanel, "*sbox_max"..gsLimitName, 0)
-    local sName, tSet = asmlib.GetAsmConvar("modedb", "NAM"), asmlib.GetOpVar("ARRAY_MODEDB")
+    local tSet  = asmlib.GetOpVar("ARRAY_MODEDB")
+    local sName = asmlib.GetAsmConvar("modedb", "NAM")
     pItem = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".modedb_con"), sName)
-    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(25)
+    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(22)
     pItem:SetValue(asmlib.GetOpVar("MODE_DATABASE"))
     pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".modedb"))
     pItem:UpdateColours(drmSkin)
@@ -2414,9 +2415,10 @@ if(CLIENT) then
       local sIco = asmlib.ToIcon("database_mode_"..sI:lower())
       pItem:AddChoice(sI, sI, false, sIco)
     end
-    local sName, tSet = asmlib.GetAsmConvar("bnderrmod", "NAM"), asmlib.GetOpVar("ARRAY_BNDMODE")
+    local tSet  = asmlib.GetOpVar("ARRAY_BNDMODE")
+    local sName = asmlib.GetAsmConvar("bnderrmod", "NAM")
     pItem = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".bnderrmod_con"), sName)
-    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(25)
+    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(22)
     pItem:SetValue(asmlib.GetAsmConvar("bnderrmod", "STR"))
     pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bnderrmod"))
     pItem:UpdateColours(drmSkin)
@@ -2430,9 +2432,10 @@ if(CLIENT) then
     end -- Setup the memory manager
     pItem = vguiCreate("DCategoryList", CPanel)
     pItem:Dock(TOP); pItem:SetTall(345)
-    local tMod, tPan = {"CQT", "OBJ"}, {}
+    local sRev = asmlib.GetOpVar("OPSYM_REVISION")
+    local tMod, tPan = asmlib.GetOpVar("ARRAY_MODETM"), {}
     local tVar = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
-    local iD, mkTab, sRev = 1, asmlib.GetBuilderID(1), asmlib.GetOpVar("OPSYM_REVISION")
+    local iD, mkTab = 1, asmlib.GetBuilderID(1)
     while(mkTab) do tPan[iD] = {}; local vPan = tPan[iD]
       local tSet = sRev:Explode(tostring(tVar[iD] or ""))
       local pDef = mkTab:GetDefinition()
@@ -2440,7 +2443,7 @@ if(CLIENT) then
       local pMem = pItem:Add(sMem.." "..pDef.Nick)
             pMem:SetTooltip(sMem.." "..pDef.Nick)
       local pMode = vguiCreate("DComboBox", pItem)
-      pMode:Dock(TOP); pMode:SetTall(25)
+      pMode:Dock(TOP); pMode:SetTall(22)
       pMode:UpdateColours(drmSkin)
       pMode:SetSortItems(false)
       pMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_md"))
@@ -2452,7 +2455,7 @@ if(CLIENT) then
         pMode:AddChoice(asmlib.GetPhrase(sKey), sK, bSel, sIco)
       end
       local pLife = vguiCreate("DNumSlider", pItem)
-      pLife:Dock(TOP); pLife:SetTall(25)
+      pLife:Dock(TOP); pLife:SetTall(22)
       pLife:SetMin(0); pLife:SetMax(3600)
       pLife:SetDecimals(iMaxDec)
       pLife:SetValue(tonumber(tSet[2]) or 0)
@@ -2461,7 +2464,7 @@ if(CLIENT) then
       pLife:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
       pLife:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf"))
       local pCler = vguiCreate("DCheckBoxLabel", pItem)
-      pCler:Dock(TOP); pCler:SetTall(25)
+      pCler:Dock(TOP); pCler:SetTall(22)
       pCler:SetValue((tonumber(tSet[3]) or 0) ~= 0)
       pCler:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd"))
       pCler:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
@@ -2469,7 +2472,7 @@ if(CLIENT) then
       pColl:SetValue((tonumber(tSet[4]) or 0) ~= 0)
       pColl:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct"))
       pColl:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
-      pColl:Dock(TOP); pColl:SetTall(25)
+      pColl:Dock(TOP); pColl:SetTall(22)
       iD = (iD + 1); mkTab = asmlib.GetBuilderID(iD)
       vPan["MODE"], vPan["LIFE"] = pMode, pLife
       vPan["CLER"], vPan["COLL"] = pCler, pColl

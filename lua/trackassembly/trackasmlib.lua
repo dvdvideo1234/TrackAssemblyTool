@@ -708,6 +708,7 @@ function InitBase(sName, sPurp)
   SetOpVar("TABLE_CONTAINER",{})
   SetOpVar("ARRAY_BNDMODE",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
+  SetOpVar("ARRAY_MODETM",{"CQT", "OBJ"})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
@@ -1869,10 +1870,10 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
       local nMin = GetAsmConvar(sVar, "MIN")
       local nMax = GetAsmConvar(sVar, "MAX")
       if(not (nMin and nMax)) then
-        LogInstance("(B) Miss "..GetReport1(sKey))
-      else LogInstance("(B) Cvar "..GetReport3(sKey, nMin, nMax)) end
-    else LogInstance("(B) Bord "..GetReport3(sKey, nMin, nMax)) end
-  else LogInstance("(B) Args "..GetReport3(sKey, nMin, nMax)) end
+        LogInstance("(L) Miss "..GetReport1(sKey))
+      else LogInstance("(L) Cvar "..GetReport3(sKey, nMin, nMax)) end
+    else LogInstance("(L) Bord "..GetReport3(sKey, nMin, nMax)) end
+  else LogInstance("(L) Args "..GetReport3(sKey, nMin, nMax)) end
   local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
   local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
   pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDef); return pItem
