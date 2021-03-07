@@ -1839,6 +1839,13 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   return pPanel
 end
 
+function SetComboBoxClipboard(pnCombo)
+  local iD = pnCombo:GetSelectedID()
+  local vT = pnCombo:GetOptionText(iD)
+  local sV = GetTerm(tostring(vT or ""), pnCombo:GetValue())
+  SetClipboardText(GetTerm(sV, gsNoAV))
+end
+
 function SetButton(cPanel, sVar)
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
