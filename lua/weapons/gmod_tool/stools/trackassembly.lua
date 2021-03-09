@@ -2416,7 +2416,7 @@ if(CLIENT) then
       local sIco = asmlib.ToIcon("database_mode_"..sI:lower())
       pItem:AddChoice(sI, sI, false, sIco)
     end
-    -- Setup error bounding mode
+    -- Setup error bounding mode ( SetComboBoxList )
     local tSet  = asmlib.GetOpVar("ARRAY_BNDMODE")
     local sName = asmlib.GetAsmConvar("bnderrmod", "NAM")
     pItem = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".bnderrmod_con"), sName)
@@ -2432,7 +2432,7 @@ if(CLIENT) then
       local sKey = ("tool."..gsToolNameL..".bnderrmod_"..sI:lower())
       pItem:AddChoice(asmlib.GetPhrase(sKey), sI, false, sIco)
     end
-    -- Setup the memory manager
+    -- Setup the memory manager ( SetComboBoxList )
     pItem = vguiCreate("DCategoryList", CPanel)
     pItem:Dock(TOP); pItem:SetTall(345)
     pItem:DockMargin(0, 15, 0, 0)
@@ -2482,6 +2482,7 @@ if(CLIENT) then
       vPan["CLER"], vPan["COLL"] = pCler, pColl
     end
     pItem:UpdateColours(drmSkin)
+    pItem:InvalidateLayout(true)
     -- Setup memory configuration export button
     pItem = asmlib.SetButton(CPanel, "timermode_ap")
     pItem.DoClick = function(pnSelf)

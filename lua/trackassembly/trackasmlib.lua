@@ -1846,6 +1846,11 @@ function SetComboBoxClipboard(pnCombo)
   SetClipboardText(GetTerm(sV, gsNoAV))
 end
 
+function SetComboBoxList(cPanel, sVar, tList)
+  -- Setup database mode
+  -- Setup error bounding mode
+end
+
 function SetButton(cPanel, sVar)
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
