@@ -2401,6 +2401,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "curvefact", iMaxDec)
     asmlib.SetNumSlider(CPanel, "curvsmple", 0)
     asmlib.SetNumSlider(CPanel, "*sbox_max"..gsLimitName, 0)
+    -- Setup database mode
     local tSet  = asmlib.GetOpVar("ARRAY_MODEDB")
     local sName = asmlib.GetAsmConvar("modedb", "NAM")
     pItem = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".modedb_con"), sName)
@@ -2415,6 +2416,7 @@ if(CLIENT) then
       local sIco = asmlib.ToIcon("database_mode_"..sI:lower())
       pItem:AddChoice(sI, sI, false, sIco)
     end
+    -- Setup error bounding mode
     local tSet  = asmlib.GetOpVar("ARRAY_BNDMODE")
     local sName = asmlib.GetAsmConvar("bnderrmod", "NAM")
     pItem = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".bnderrmod_con"), sName)
@@ -2429,33 +2431,35 @@ if(CLIENT) then
       local sIco = asmlib.ToIcon("bnderrmod_"..sI:lower())
       local sKey = ("tool."..gsToolNameL..".bnderrmod_"..sI:lower())
       pItem:AddChoice(asmlib.GetPhrase(sKey), sI, false, sIco)
-    end -- Setup the memory manager
+    end
+    -- Setup the memory manager
     pItem = vguiCreate("DCategoryList", CPanel)
     pItem:Dock(TOP); pItem:SetTall(345)
+    pItem:DockMargin(0, 15, 0, 0)
     local sRev = asmlib.GetOpVar("OPSYM_REVISION")
     local tMod, tPan = asmlib.GetOpVar("ARRAY_MODETM"), {}
     local tVar = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
     local iD, mkTab = 1, asmlib.GetBuilderID(1)
-    while(mkTab) do tPan[iD] = {}; local vPan = tPan[iD]
+    while(mkTab) do tPan[iD] = {}
+      local vPan, pDef = tPan[iD], mkTab:GetDefinition()
       local tSet = sRev:Explode(tostring(tVar[iD] or ""))
-      local pDef = mkTab:GetDefinition()
       local sMem = asmlib.GetPhrase("tool."..gsToolNameL..".timermode_mem")
       local pMem = pItem:Add(sMem.." "..pDef.Nick)
             pMem:SetTooltip(sMem.." "..pDef.Nick)
       local pMode = vguiCreate("DComboBox", pItem)
-      pMode:Dock(TOP); pMode:SetTall(22)
+      pMode:Dock(TOP); pMode:SetTall(25)
       pMode:UpdateColours(drmSkin)
       pMode:SetSortItems(false)
       pMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_md"))
       pMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
       for iK = 1, #tMod do local sK = tMod[iK]
+        local bSel = (tostring(tSet[1]) == sK)
         local sIco = asmlib.ToIcon("timermode_"..sK:lower())
         local sKey = ("tool."..gsToolNameL..".timermode_"..sK:lower())
-        local bSel = (tostring(tSet[1]) == sK)
         pMode:AddChoice(asmlib.GetPhrase(sKey), sK, bSel, sIco)
       end
       local pLife = vguiCreate("DNumSlider", pItem)
-      pLife:Dock(TOP); pLife:SetTall(22)
+      pLife:Dock(TOP); pLife:SetTall(25)
       pLife:SetMin(0); pLife:SetMax(3600)
       pLife:SetDecimals(iMaxDec)
       pLife:SetValue(tonumber(tSet[2]) or 0)
@@ -2464,7 +2468,7 @@ if(CLIENT) then
       pLife:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
       pLife:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf"))
       local pCler = vguiCreate("DCheckBoxLabel", pItem)
-      pCler:Dock(TOP); pCler:SetTall(22)
+      pCler:Dock(TOP); pCler:SetTall(25)
       pCler:SetValue((tonumber(tSet[3]) or 0) ~= 0)
       pCler:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd"))
       pCler:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
@@ -2472,14 +2476,14 @@ if(CLIENT) then
       pColl:SetValue((tonumber(tSet[4]) or 0) ~= 0)
       pColl:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct"))
       pColl:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
-      pColl:Dock(TOP); pColl:SetTall(22)
+      pColl:Dock(TOP); pColl:SetTall(25)
       iD = (iD + 1); mkTab = asmlib.GetBuilderID(iD)
       vPan["MODE"], vPan["LIFE"] = pMode, pLife
       vPan["CLER"], vPan["COLL"] = pCler, pColl
     end
     pItem:UpdateColours(drmSkin)
-    pItem = CPanel:Button(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ap_con"))
-             pItem:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ap"))
+    -- Setup memory configuration export button
+    pItem = asmlib.SetButton(CPanel, "timermode_ap")
     pItem.DoClick = function(pnSelf)
       if(inputIsKeyDown(KEY_LSHIFT)) then
         local fW = asmlib.GetOpVar("FORM_GITWIKI")
