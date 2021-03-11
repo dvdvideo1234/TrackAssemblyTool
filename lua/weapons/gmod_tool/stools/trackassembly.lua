@@ -72,8 +72,6 @@ local gsDataSet   = asmlib.GetOpVar("DIRPATH_SET")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
-local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
-local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", stringUpper)..": "
@@ -2275,7 +2273,7 @@ function TOOL.BuildCPanel(CPanel)
   cvarsRemoveChangeCallback(sName, sName..sCall)
   cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
     pComboPhysName:SetValue(vNew) end, sName..sCall);
-  asmlib.LogTable(cqProperty,"Property",sLog)
+  asmlib.LogTable(cqProperty, "Property", sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
@@ -2359,6 +2357,8 @@ if(CLIENT) then
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupUserSettings(CPanel)
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
+    local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
+    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_user"))
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
     CPanel:ControlHelp(asmlib.GetPhrase("tool."..gsToolNameL..".client_var"))
     asmlib.SetNumSlider(CPanel, "sizeucs"  , iMaxDec)
@@ -2377,7 +2377,9 @@ if(CLIENT) then
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupAdminSettings(CPanel)
     local drmSkin, pItem = CPanel:GetSkin()
+    local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
+    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_admin"))
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
     CPanel:ControlHelp(asmlib.GetPhrase("tool."..gsToolNameL..".nonrep_var"))
     asmlib.SetCheckBox(CPanel, "logfile")

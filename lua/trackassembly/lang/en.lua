@@ -222,6 +222,8 @@
   tSet["tool."..sTool..".client_var"       ] = "Client side player preferences. Convars created in the tool client configuration"
   tSet["tool."..sTool..".nonrep_var"       ] = "Non-replicated convar controls. They have different values on server and client"
   tSet["tool."..sTool..".relica_var"       ] = "Replicated convar controls. The server value is sent to all clients to use"
+  tSet["tool."..sTool..".utilities_user"   ] = "User settings setup"
+  tSet["tool."..sTool..".utilities_admin"  ] = "Admin settings setup"
   tSet["sbox_max"..sLimit                  ] = "Change this to adjust the things spawned via track assembly tool on the server"
   tSet["sbox_max"..sLimit.."_con"          ] = "Total segments:"
   tSet["Cleanup_"..sLimit                  ] = "Assembled track pieces"

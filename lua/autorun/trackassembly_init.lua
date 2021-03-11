@@ -424,7 +424,7 @@ if(CLIENT) then
       asmlib.LogInstance("Tool object missing", gtArgsLogs); return end
     local cPanel = controlpanelGet(oTool.Mode); if(not IsValid(cPanel)) then
       asmlib.LogInstance("Control panel invalid", gtArgsLogs); return end
-    oTool.BuildCPanel(cPanel) -- Rebuild the tool control panel options
+    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool control panel options
     asmlib.DoAction("TWEAK_PANEL", "Utilities", "User")  -- Function is cached
     asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin") -- Function is cached
   end, gsToolPrefL.."lang")
@@ -1149,12 +1149,18 @@ if(CLIENT) then
         local sKey = tDat.Key:format(sDir, sSub)
         if(not asmlib.IsHere(fFoo)) then
           if(not asmlib.IsHere(tDat.Bar[sDir])) then
-            asmlib.LogInstance("Miss folder"..asmlib.GetReport1(sDir), gtArgsLogs); return end
+            asmlib.LogInstance("Miss folder "..asmlib.GetReport1(sDir), gtArgsLogs); return end
           fFoo = tDat.Bar[sDir][sSub]; if(not asmlib.IsHere(fFoo)) then
-            asmlib.LogInstance("Miss subfolder"..asmlib.GetReport2(sDir, sSub), gtArgsLogs); return end
+            asmlib.LogInstance("Miss subfolder "..asmlib.GetReport2(sDir, sSub), gtArgsLogs); return end
           if(not asmlib.IsFunction(fFoo)) then
             asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), gtArgsLogs); return end
           asmlib.LogInstance("Cache "..asmlib.GetReport2(sDir, sSub), gtArgsLogs)
+          local sTrans = asmlib.GetPhrase("tool."..gsToolNameL.."."..sDir.."_"..sSub)
+          local cPanel = controlpanelGet(sTrans); if(not IsValid(cPanel)) then
+            asmlib.LogInstance("Panel invalid "..asmlib.GetReport1(sKey), gtArgsLogs); return end
+          cPanel:ClearControls() -- Make sure the panel is cleared before population
+          local bS, sErr = pcall(fFoo, cPanel); if(not bS) then
+            asmlib.LogInstance("Panel "..asmlib.GetReport1(sKey)..": "..sErr, gtArgsLogs); return end
         else
           if(not asmlib.IsFunction(fFoo)) then
             asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), gtArgsLogs); return end
@@ -1166,7 +1172,6 @@ if(CLIENT) then
             spawnmenuAddToolMenuOption(lDir, lSub, sKey, sNam, "", "", fFoo)
           end)
         end
-        asmlib.LogTable(tDat.Bar, "tDat.Bar")
       end,
       {
         Bar = {},
