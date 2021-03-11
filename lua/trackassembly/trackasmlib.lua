@@ -31,6 +31,7 @@ local IN_ZOOM      = IN_ZOOM
 
 ---------------- Localizing ENT Properties ----------------
 
+local TOP                   = TOP
 local KEY_LSHIFT            = KEY_LSHIFT
 local MASK_SOLID            = MASK_SOLID
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
@@ -706,7 +707,7 @@ function InitBase(sName, sPurp)
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
-  SetOpVar("ARRAY_BNDMODE",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
+  SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
   SetOpVar("ARRAY_MODETM",{"CQT", "OBJ"})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
@@ -1846,9 +1847,31 @@ function SetComboBoxClipboard(pnCombo)
   SetClipboardText(GetTerm(sV, gsNoAV))
 end
 
-function SetComboBoxList(cPanel, sVar, tList)
-  -- Setup database mode
-  -- Setup error bounding mode
+function SetComboBoxList(cPanel, sVar)
+  local tSet  = GetOpVar("ARRAY_"..sVar:upper())
+  if(IsHere(tSet)) then
+    local tSkin = cPanel:GetSkin()
+    local sTool = GetOpVar("TOOLNAME_NL")
+    local sKey, sNam, bExa = GetNameExp(sVar)
+    local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+    local sName = GetAsmConvar(sVar, "NAM")
+    local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+    pItem = cPanel:ComboBox(sMenu, sName)
+    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(25)
+    pItem:SetTooltip(sTtip); pItem:UpdateColours(tSkin)
+    pItem:SetValue(GetAsmConvar(sVar, "STR"))
+    pItem.DoRightClick = function(pnSelf)
+      SetComboBoxClipboard(pnSelf)
+    end -- Copy the combo box content shown
+    pItem.OnSelect = function(pnSelf, nInd, sVal, anyData)
+      SetAsmConvar(nil, sVar, anyData)
+    end -- Apply the settinc to the specified variable
+    for iD = 1, #tSet do local sI = tSet[iD]
+      local sIco = ToIcon(sNam.."_"..sI:lower())
+      local sPrv = (sBase.."_"..sI:lower())
+      pItem:AddChoice(GetPhrase(sPrv), sI, false, sIco)
+    end
+  else LogInstance("Missing "..GetReport1(sNam)) end
 end
 
 function SetButton(cPanel, sVar)

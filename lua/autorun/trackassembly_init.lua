@@ -424,7 +424,9 @@ if(CLIENT) then
       asmlib.LogInstance("Tool object missing", gtArgsLogs); return end
     local cPanel = controlpanelGet(oTool.Mode); if(not IsValid(cPanel)) then
       asmlib.LogInstance("Control panel invalid", gtArgsLogs); return end
-    cPanel:ClearControls(); oTool.BuildCPanel(cPanel) -- Rebuild the tool panel
+    oTool.BuildCPanel(cPanel) -- Rebuild the tool control panel options
+    asmlib.DoAction("TWEAK_PANEL", "Utilities", "User")  -- Function is cached
+    asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin") -- Function is cached
   end, gsToolPrefL.."lang")
 
   -- http://www.famfamfam.com/lab/icons/silk/preview.php
@@ -458,8 +460,8 @@ if(CLIENT) then
   asmlib.ToIcon("workmode_over"    , "shape_move_back") -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("property_type"    , "package_green"  )
   asmlib.ToIcon("property_name"    , "note"           )
-  asmlib.ToIcon("database_mode_lua", "database_lightning")
-  asmlib.ToIcon("database_mode_sql", "database_link"     )
+  asmlib.ToIcon("modedb_lua"       , "database_lightning")
+  asmlib.ToIcon("modedb_sql"       , "database_link"     )
   asmlib.ToIcon("timermode_cqt"    , "time_go"           )
   asmlib.ToIcon("timermode_obj"    , "clock_go"          )
   asmlib.ToIcon("bnderrmod_off"    , "shape_square"      )
@@ -1137,22 +1139,37 @@ if(CLIENT) then
     end)
 
     asmlib.SetAction("TWEAK_PANEL",
-      function(tDat, ...)
-        local tArg = {...}; gtArgsLogs[1] = "*TWEAK_PANEL"
+      function(tDat, ...) local tArg = {...}
+        local fFoo = tArg[3]; gtArgsLogs[1] = "*TWEAK_PANEL"
         local sDir, sSub = tostring(tArg[1]):lower(), tostring(tArg[2]):lower()
-        local fFoo = tArg[3]; if(not asmlib.IsFunction(fFoo)) then
-          asmlib.LogInstance("Function miss "..asmlib.GetReport2(sDir, sSub), gtArgsLogs); return end
-        local bS, lDir = pcall(tDat.Foo, sDir); if (not bS) then
-          asmlib.LogInstance("Folder ["..sDir.."] "..lDir, gtArgsLogs); return end
-        local bS, lSub = pcall(tDat.Foo, sSub); if (not bS) then
-          asmlib.LogInstance("Subfolder ["..sSub.."] "..lSub, gtArgsLogs); return end
-        local sKey = tDat.Key:format(sDir, sSub); hookRemove(tDat.Hoo, sKey)
-        hookAdd(tDat.Hoo, sKey, function()
-          local sNam = asmlib.GetPhrase(tDat.Nam)
-          spawnmenuAddToolMenuOption(lDir, lSub, sKey, sNam, "", "", fFoo)
-        end)
+        local bS, lDir = pcall(tDat.Foo, sDir); if(not bS) then
+          asmlib.LogInstance("Fail folder "..asmlib.GetReport2(sDir, lDir), gtArgsLogs); return end
+        local bS, lSub = pcall(tDat.Foo, sSub); if(not bS) then
+          asmlib.LogInstance("Fail subfolder "..asmlib.GetReport2(sSub, lSub), gtArgsLogs); return end
+        local sKey = tDat.Key:format(sDir, sSub)
+        if(not asmlib.IsHere(fFoo)) then
+          if(not asmlib.IsHere(tDat.Bar[sDir])) then
+            asmlib.LogInstance("Miss folder"..asmlib.GetReport1(sDir), gtArgsLogs); return end
+          fFoo = tDat.Bar[sDir][sSub]; if(not asmlib.IsHere(fFoo)) then
+            asmlib.LogInstance("Miss subfolder"..asmlib.GetReport2(sDir, sSub), gtArgsLogs); return end
+          if(not asmlib.IsFunction(fFoo)) then
+            asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), gtArgsLogs); return end
+          asmlib.LogInstance("Cache "..asmlib.GetReport2(sDir, sSub), gtArgsLogs)
+        else
+          if(not asmlib.IsFunction(fFoo)) then
+            asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), gtArgsLogs); return end
+          if(not asmlib.IsHere(tDat.Bar[sDir])) then tDat.Bar[sDir] = {} end; tDat.Bar[sDir][sSub] = fFoo
+          asmlib.LogInstance("Store "..asmlib.GetReport2(sDir, sSub), gtArgsLogs)
+          hookRemove(tDat.Hoo, sKey)
+          hookAdd(tDat.Hoo, sKey, function()
+            local sNam = asmlib.GetPhrase(tDat.Nam)
+            spawnmenuAddToolMenuOption(lDir, lSub, sKey, sNam, "", "", fFoo)
+          end)
+        end
+        asmlib.LogTable(tDat.Bar, "tDat.Bar")
       end,
       {
+        Bar = {},
         Hoo = "PopulateToolMenu",
         Key = gsToolPrefL.."%s_%s",
         Nam = "tool."..gsToolNameL..".name",
