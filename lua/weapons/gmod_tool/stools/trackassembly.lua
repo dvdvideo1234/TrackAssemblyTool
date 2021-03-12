@@ -196,12 +196,13 @@ if(CLIENT) then
   hookAdd("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
 
   concommandAdd(gsToolPrefL.."resetvars",
-    function(oPly, oCom, oArgs) gtArgsLogs[1] = "*RESET_VARIABLES"
+    function(oPly, oCom, oArgs)
+      local sLog = "*RESET_VARIABLES"
       local devmode = asmlib.GetAsmConvar("devmode", "BUL")
-      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",gtArgsLogs)
+      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",sLog)
       if(inputIsKeyDown(KEY_LSHIFT)) then
         if(not devmode) then
-          asmlib.LogInstance("Developer mode disabled",gtArgsLogs); return nil end
+          asmlib.LogInstance("Developer mode disabled",sLog); return nil end
         asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName, 1500)
         for key, val in pairs(asmlib.GetOpVar("STORE_CONVARS")) do
           asmlib.SetAsmConvar(oPly, "*"..key, val) end
@@ -226,7 +227,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "spawnrate", 5)
         asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
         asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
-        asmlib.LogInstance("Variables reset complete",gtArgsLogs)
+        asmlib.LogInstance("Variables reset complete",sLog)
       else
         asmlib.SetAsmConvar(oPly,"nextx"  , 0)
         asmlib.SetAsmConvar(oPly,"nexty"  , 0)
@@ -239,7 +240,7 @@ if(CLIENT) then
                                asmlib.GetAsmConvar("logfile","BUL"))
         end
       end
-      asmlib.LogInstance("Success",gtArgsLogs); return nil
+      asmlib.LogInstance("Success",sLog); return nil
     end)
 
   -- Store referencies and stuff realted to the tool file
@@ -984,6 +985,58 @@ function TOOL:CurveCheck()
   return tC, nD -- Returns the updated curve nodes table
 end
 
+function TOOL:NormalSpawn(oPly, stTrace)
+  local mass       = self:GetMass()
+  local model      = self:GetModel()
+  local surfsnap   = self:GetSurfaceSnap()
+  local spawncn    = self:GetSpawnCenter()
+  local ignphysgn  = self:GetIgnorePhysgun()
+  local bgskids    = self:GetBodyGroupSkin()
+  local bnderrmod  = self:GetBoundErrorMode()
+  local physmater  = self:GetPhysMeterial()
+  local freeze     = self:GetFreeze()
+  local angsnap    = self:GetAngSnap()
+  local gravity    = self:GetGravity()
+  local nocollide  = self:GetNoCollide()
+  local nocollidew = self:GetNocollideWorld()
+  local weld       = self:GetWeld()
+  local forcelim   = self:GetForceLimit()
+  local elevpnt    = self:GetElevation()
+  local fnmodel    = stringGetFileName(model)
+  local aninfo , anEnt   = self:GetAnchor()
+  local pointid, pnextid = self:GetPointID()
+  local nextx  , nexty  , nextz   = self:GetPosOffsets()
+  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+  local vPos = Vector(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
+  local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
+  if(spawncn) then  -- Spawn on mass center
+    aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+    aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+    aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+  else
+    local stSpawn = asmlib.GetNormalSpawn(oPly,vPos,aAng,model,
+                      pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+    if(not stSpawn) then -- Make sure it persists to set it afterwards
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Cannot obtain spawn data"),gtArgsLogs); return false end
+    vPos:Set(stSpawn.SPos); aAng:Set(stSpawn.SAng)
+  end
+  local ePiece = asmlib.MakePiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+  if(ePiece) then
+    if(spawncn) then -- Adjust the position when created correctly
+      asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
+    end
+    if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
+    if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,nocollidew,forcelim)) then
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
+    asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Spawn )")
+    asmlib.UndoAddEntity(ePiece)
+    asmlib.UndoFinish(oPly)
+    asmlib.LogInstance("(Spawn) Success",gtArgsLogs); return true
+  end
+  asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Failed to create"),gtArgsLogs); return false
+end
+
 function TOOL:LeftClick(stTrace)
   if(CLIENT) then -- Do not do stuff when CLIENT attempts somrthing
     asmlib.LogInstance("Working on client",gtArgsLogs); return true end
@@ -1191,36 +1244,7 @@ function TOOL:LeftClick(stTrace)
   local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
     asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
 
-  if(stTrace.HitWorld) then -- Switch the tool mode ( Spawn )
-    local vPos = Vector(); vPos:Set(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
-    local aAng = asmlib.GetNormalAngle(ply,stTrace,surfsnap,angsnap)
-    if(spawncn) then  -- Spawn on mass center
-      aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
-      aAng:RotateAroundAxis(aAng:Right()  , nextpic)
-      aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-    else
-      local stSpawn = asmlib.GetNormalSpawn(ply,vPos,aAng,model,
-                        pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-      if(not stSpawn) then -- Make sure it persists to set it afterwards
-        asmlib.LogInstance(self:GetStatus(stTrace,"(World) Cannot obtain spawn data"),gtArgsLogs); return false end
-      vPos:Set(stSpawn.SPos); aAng:Set(stSpawn.SAng)
-    end
-    local ePiece = asmlib.MakePiece(ply,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
-    if(ePiece) then
-      if(spawncn) then -- Adjust the position when created correctly
-        asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
-      end
-      if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical settings",ePiece),gtArgsLogs); return false end
-      if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,nocollidew,forcelim)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to apply physical anchor",ePiece),gtArgsLogs); return false end
-      asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( World )")
-      asmlib.UndoAddEntity(ePiece)
-      asmlib.UndoFinish(ply)
-      asmlib.LogInstance("(World) Success",gtArgsLogs); return true
-    end
-    asmlib.LogInstance(self:GetStatus(stTrace,"(World) Failed to create"),gtArgsLogs); return false
-  end
+  if(stTrace.HitWorld) then return self:NormalSpawn(ply, stTrace) end -- Switch the tool mode ( Spawn )
 
   if(not (trEnt and trEnt:IsValid())) then
     asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace entity invalid"),gtArgsLogs); return false end
@@ -1229,8 +1253,8 @@ function TOOL:LeftClick(stTrace)
   if(not asmlib.IsPhysTrace(stTrace)) then
     asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace not physical object"),gtArgsLogs); return false end
 
-  local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not asmlib.IsHere(trRec)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace model not piece"),gtArgsLogs); return false end
+  local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+  if(not asmlib.IsHere(trRec)) then return self:NormalSpawn(ply, stTrace) end
 
   local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -1533,6 +1557,34 @@ function TOOL:UpdateGhostCurve()
   end
 end
 
+function TOOL:UpdateGhostSpawn(oPly, stTrace)
+  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
+  local model, ePiece = self:GetModel(), atGho[1]
+  local pointid, pnextid = self:GetPointID()
+  local nextx, nexty, nextz = self:GetPosOffsets()
+  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+  local angsnap  = self:GetAngSnap()
+  local elevpnt  = self:GetElevation()
+  local surfsnap = self:GetSurfaceSnap()
+  local vPos = Vector(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
+  local aAng = asmlib.GetNormalAngle(oPly, stTrace, surfsnap, angsnap)
+  if(self:GetSpawnCenter()) then
+    aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+    aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+    aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+    asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
+    ePiece:SetNoDraw(false)
+  else
+    local stSpawn = asmlib.GetNormalSpawn(oPly,vPos,aAng,model,pointid,
+                      nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+    if(stSpawn) then
+      ePiece:SetPos(stSpawn.SPos)
+      ePiece:SetAngles(stSpawn.SAng)
+      ePiece:SetNoDraw(false)
+    end; return stSpawn
+  end
+end
+
 function TOOL:UpdateGhost(oPly)
   if(not asmlib.FadeGhosts(true)) then return nil end
   if(self:GetGhostsCount() <= 0) then return nil end
@@ -1541,74 +1593,57 @@ function TOOL:UpdateGhost(oPly)
   if(not asmlib.HasGhosts()) then return nil end
   local workmode = self:GetWorkingMode()
   if(workmode == 3) then self:UpdateGhostCurve() return nil end
-  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
+  local atGho, trRec = asmlib.GetOpVar("ARRAY_GHOST")
   local trEnt, model = stTrace.Entity, self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  if(stTrace.HitWorld) then
-    local ePiece   = atGho[1]
-    local angsnap  = self:GetAngSnap()
-    local elevpnt  = self:GetElevation()
-    local surfsnap = self:GetSurfaceSnap()
-    local vPos = Vector(); vPos:Set(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
-    local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
-    if(self:GetSpawnCenter()) then
-      aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
-      aAng:RotateAroundAxis(aAng:Right()  , nextpic)
-      aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-      asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
-      ePiece:SetNoDraw(false)
-    else
-      local stSpawn = asmlib.GetNormalSpawn(oPly,vPos,aAng,model,pointid,
-                        nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-      if(stSpawn) then
-        if(workmode == 4) then
-          self:UpdateGhostFlipOver(stTrace, stSpawn.SPos, stSpawn.SAng)
+  if(trEnt and trEnt:IsValid()) then
+    if(asmlib.IsOther(trEnt)) then return end
+    trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+  end
+  if(trRec) then
+    local ePiece    = atGho[1]
+    local spnflat   = self:GetSpawnFlat()
+    local igntype   = self:GetIgnoreType()
+    local stackcnt  = self:GetStackCount()
+    local actrad    = self:GetActiveRadius()
+    local applinfst = self:ApplyLinearFirst()
+    local appangfst = self:ApplyAngularFirst()
+    local stSpawn   = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
+                        actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+    if(stSpawn) then
+      if(workmode == 1) then
+        if(stackcnt > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
+          local vTemp, hdOffs = Vector(), asmlib.LocatePOA(stSpawn.HRec, pnextid)
+          if(not hdOffs) then return nil end -- Validated existent next point ID
+          for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
+            ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
+            asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
+            if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
+            if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
+            stSpawn = asmlib.GetEntitySpawn(oPly,ePiece,vTemp,model,pointid,
+              actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+            if(not stSpawn) then return nil end
+          end
         else
           ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
         end
+      elseif(workmode == 4) then
+        self:UpdateGhostFlipOver(stTrace, stSpawn.SPos, stSpawn.SAng)
+      elseif(workmode == 2) then
+        self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
+        ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
       end
+    else
+      if(workmode == 4) then
+        self:UpdateGhostFlipOver(stTrace) end
     end
-  elseif(trEnt and trEnt:IsValid()) then
-    if(asmlib.IsOther(trEnt)) then return nil end
-    local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-    if(asmlib.IsHere(trRec)) then
-      local ePiece    = atGho[1]
-      local spnflat   = self:GetSpawnFlat()
-      local igntype   = self:GetIgnoreType()
-      local stackcnt  = self:GetStackCount()
-      local actrad    = self:GetActiveRadius()
-      local applinfst = self:ApplyLinearFirst()
-      local appangfst = self:ApplyAngularFirst()
-      local stSpawn   = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
-                          actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-      if(stSpawn) then
-        if(workmode == 1) then
-          if(stackcnt > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
-            local vTemp, hdOffs = Vector(), asmlib.LocatePOA(stSpawn.HRec, pnextid)
-            if(not hdOffs) then return nil end -- Validated existent next point ID
-            for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
-              ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
-              asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
-              if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
-              if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
-              stSpawn = asmlib.GetEntitySpawn(oPly,ePiece,vTemp,model,pointid,
-                actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-              if(not stSpawn) then return nil end
-            end
-          else
-            ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
-          end
-        elseif(workmode == 4) then
-          self:UpdateGhostFlipOver(stTrace, stSpawn.SPos, stSpawn.SAng)
-        elseif(workmode == 2) then
-          self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn, true)
-          ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
-        end
-      else
-        if(workmode == 4) then
-          self:UpdateGhostFlipOver(stTrace) end
+  else
+    local stSpawn = self:UpdateGhostSpawn(oPly, stTrace)
+    if(stSpawn) then
+      if(workmode == 4) then
+        self:UpdateGhostFlipOver(stTrace, stSpawn.SPos, stSpawn.SAng)
       end
     end
   end
@@ -1939,12 +1974,15 @@ function TOOL:DrawHUD()
     if(not self:GetDeveloperMode()) then return end
     self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"}); return
   end
-  local trEnt, trHit = stTrace.Entity, stTrace.HitPos
+  local trEnt, trHit, trRec = stTrace.Entity, stTrace.HitPos
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   if(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
+    trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
+  end
+  if(trRec) then
     local spnflat = self:GetSpawnFlat()
     local igntype = self:GetIgnoreType()
     local actrad  = self:GetActiveRadius()
@@ -1993,7 +2031,7 @@ function TOOL:DrawHUD()
       if(not self:GetDeveloperMode()) then return end
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
-  elseif(stTrace.HitWorld) then
+  else
     if(workmode == 4 and self:IsFlipOver()) then
       self:DrawFlipAssist(hudMonitor, oPly, stTrace); return end
     local angsnap  = self:GetAngSnap()
@@ -2134,12 +2172,13 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddItem(pComboPresets)
 
   local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
-    asmlib.LogInstance("Panel population empty",sLog); return nil end
+    asmlib.LogInstance("Panel population empty",sLog); return end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
-    asmlib.LogInstance("Missing builder table",sLog); return nil end
+    asmlib.LogInstance("Missing builder table",sLog); return end
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
-  local pTree    = vguiCreate("DTree", CPanel)
+  local pTree    = vguiCreate("DTree", CPanel); if(not pTree) then
+    asmlib.LogInstance("Database tree empty",sLog); return end
         pTree:SetTall(400)
         pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
         pTree:SetIndentSize(0)
@@ -2214,7 +2253,7 @@ function TOOL.BuildCPanel(CPanel)
     end
   end -- Process all the items without category defined
   CPanel:AddItem(pTree)
-  asmlib.LogInstance("Found items #"..tostring(iCnt-1),sLog)
+  asmlib.LogInstance("Found items #"..tostring(iCnt - 1), sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local sName = asmlib.GetAsmConvar("workmode", "NAM")
@@ -2252,7 +2291,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:UpdateColours(drmSkin)
 
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
-    asmlib.LogInstance("Property population empty",sLog); return nil end
+    asmlib.LogInstance("Property population empty",sLog); return end
 
   while(cqProperty[iTyp]) do
     local sT, sI = cqProperty[iTyp], asmlib.ToIcon("property_type")
@@ -2351,15 +2390,17 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetCheckBox(CPanel, "adviser")
   asmlib.SetCheckBox(CPanel, "pntasist")
   asmlib.SetCheckBox(CPanel, "engunsnap")
+  asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
 end
 
 if(CLIENT) then
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupUserSettings(CPanel)
+    local sLog = "*TOOL.UserSettings"
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
     local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
-    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_user"))
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
+    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_user"))
     CPanel:ControlHelp(asmlib.GetPhrase("tool."..gsToolNameL..".client_var"))
     asmlib.SetNumSlider(CPanel, "sizeucs"  , iMaxDec)
     asmlib.SetNumSlider(CPanel, "incsnplin", 0)
@@ -2370,17 +2411,19 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "sgradmenu", 0)
     asmlib.SetCheckBox(CPanel, "enradmenu")
     asmlib.SetCheckBox(CPanel, "enpntmscr")
+    asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
   end
 
   asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
 
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupAdminSettings(CPanel)
+    local sLog = "*TOOL.AdminSettings"
     local drmSkin, pItem = CPanel:GetSkin()
     local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
-    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_admin"))
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
+    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_admin"))
     CPanel:ControlHelp(asmlib.GetPhrase("tool."..gsToolNameL..".nonrep_var"))
     asmlib.SetCheckBox(CPanel, "logfile")
     asmlib.SetNumSlider(CPanel, "logsmax", 0)
@@ -2405,9 +2448,10 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "*sbox_max"..gsLimitName, 0)
     asmlib.SetComboBoxList(CPanel, "modedb")
     asmlib.SetComboBoxList(CPanel, "bnderrmod")
-    pItem = vguiCreate("DCategoryList", CPanel)
-    pItem:Dock(TOP); pItem:SetTall(345)
-    pItem:DockMargin(0, 15, 0, 0)
+    pItem = vguiCreate("DCategoryList", CPanel); if(not IsValid(pItem)) then
+      asmlib.LogInstance("Category list invalid", sLog); return end
+    CPanel:AddItem(pItem)
+    pItem:Dock(TOP); pItem:SetTall(340)
     local sRev = asmlib.GetOpVar("OPSYM_REVISION")
     local tMod, tPan = asmlib.GetOpVar("ARRAY_MODETM"), {}
     local tVar = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
@@ -2418,7 +2462,8 @@ if(CLIENT) then
       local sMem = asmlib.GetPhrase("tool."..gsToolNameL..".timermode_mem")
       local pMem = pItem:Add(sMem.." "..pDef.Nick)
             pMem:SetTooltip(sMem.." "..pDef.Nick)
-      local pMode = vguiCreate("DComboBox", pItem)
+      local pMode = vguiCreate("DComboBox", pItem); if(not IsValid(pMode)) then
+        asmlib.LogInstance("Timer mode invalid", sLog); return end
       pMode:Dock(TOP); pMode:SetTall(25)
       pMode:UpdateColours(drmSkin)
       pMode:SetSortItems(false)
@@ -2430,7 +2475,8 @@ if(CLIENT) then
         local sKey = ("tool."..gsToolNameL..".timermode_"..sK:lower())
         pMode:AddChoice(asmlib.GetPhrase(sKey), sK, bSel, sIco)
       end
-      local pLife = vguiCreate("DNumSlider", pItem)
+      local pLife = vguiCreate("DNumSlider", pItem); if(not IsValid(pLife)) then
+        asmlib.LogInstance("Record life invalid", sLog); return end
       pLife:Dock(TOP); pLife:SetTall(25)
       pLife:SetMin(0); pLife:SetMax(3600)
       pLife:SetDecimals(iMaxDec)
@@ -2439,12 +2485,14 @@ if(CLIENT) then
       pLife:SizeToContents()
       pLife:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
       pLife:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf"))
-      local pCler = vguiCreate("DCheckBoxLabel", pItem)
+      local pCler = vguiCreate("DCheckBoxLabel", pItem); if(not IsValid(pCler)) then
+        asmlib.LogInstance("Force clear invalid", sLog); return end
       pCler:Dock(TOP); pCler:SetTall(25)
       pCler:SetValue((tonumber(tSet[3]) or 0) ~= 0)
       pCler:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd"))
       pCler:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
-      local pColl =  vguiCreate("DCheckBoxLabel", pItem)
+      local pColl = vguiCreate("DCheckBoxLabel", pItem); if(not IsValid(pColl)) then
+        asmlib.LogInstance("Collect invalid", sLog); return end
       pColl:SetValue((tonumber(tSet[4]) or 0) ~= 0)
       pColl:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct"))
       pColl:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
@@ -2476,6 +2524,7 @@ if(CLIENT) then
       end
     end
     pItem:Dock(TOP); pItem:SetTall(30)
+    asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
   end
 
   asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
