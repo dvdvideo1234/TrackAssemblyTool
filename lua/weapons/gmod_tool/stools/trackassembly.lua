@@ -2179,10 +2179,12 @@ function TOOL.BuildCPanel(CPanel)
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel); if(not pTree) then
     asmlib.LogInstance("Database tree empty",sLog); return end
-        pTree:SetTall(400)
-        pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
-        pTree:SetIndentSize(0)
-        pTree:UpdateColours(drmSkin)
+  pTree:Dock(TOP) -- Initiallize to fill left and right bounds
+  pTree:SetTall(400) -- Make it quite large
+  pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
+  pTree:SetIndentSize(0) -- All track types are cloded
+  pTree:UpdateColours(drmSkin) -- Apply current skin
+  CPanel:AddItem(pTree) -- Register it to the panel
   local iCnt, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
   while(cqPanel[iCnt]) do
     local vRec, bNow = cqPanel[iCnt], true
@@ -2252,7 +2254,6 @@ function TOOL.BuildCPanel(CPanel)
       asmlib.LogInstance("Rooting item "..asmlib.GetReport3(typ, nam, mod),sLog)
     end
   end -- Process all the items without category defined
-  CPanel:AddItem(pTree)
   asmlib.LogInstance("Found items #"..tostring(iCnt - 1), sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox

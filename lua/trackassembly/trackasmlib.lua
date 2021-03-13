@@ -667,7 +667,7 @@ function InitBase(sName, sPurp)
   SetOpVar("OPSYM_ENTPOSANG","!")
   SetOpVar("KEYQ_BUILDER", "DATA_BUILDER")
   SetOpVar("DEG_RAD", mathPi / 180)
-  SetOpVar("WIDTH_CPANEL", 281)
+  SetOpVar("WIDTH_CPANEL", 265)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("CURVE_MARGIN", 15)
   SetOpVar("COLOR_CLAMP", {0, 255})
@@ -702,7 +702,6 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_VREPORT5","{%s}|%s|%s|%s|%s|")
   SetOpVar("FORM_VREPORT6","{%s}|%s|%s|%s|%s|%s|")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
-  SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
@@ -1800,46 +1799,27 @@ end
 
 function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
-    LogInstance("Panel invalid"); return nil end
+    LogInstance("Base panel invalid"); return nil end
+  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
   local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
+  local tSkin = cPanel:GetSkin()
   local sX = GetOpVar("WIDTH_CPANEL")
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   pPanel:SetParent(cPanel)
+  pPanel:Dock(TOP)
+  pPanel:SetTall(sY)
   cPanel:InvalidateLayout(true)
-  pPanel:SetSize(sX, sY)
-  if(IsTable(tBtn) and tBtn[1]) then
-    local sPtn = GetOpVar("FORM_LOGBTNSLD")
-    local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
-    local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
-    while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
-      local sTxt = tostring(vBtn.Tag)
-      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
-        LogInstance(sPtn:format(sVar,sTxt,"Panel invalid")); return nil end
-      pButton:SetParent(pPanel)
-      pButton:InvalidateLayout(true)
-      pButton:SizeToContents()
-      pButton:SetText(sTxt)
-      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
-      pButton:SetPos(bX, bY)
-      pButton:SetSize(wB, hB)
-      pButton.DoClick = function()
-        local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar, sTyp))
-        if(not pS) then LogInstance(sPtn:format(sVar,sTxt,"Error: "..sE)); return nil end
-      end
-      pButton:SetVisible(true)
-      bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
-    end; pY = pY + (dY + hB)
-  end
+  -- Setup slider parented to the base panel
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
   pSlider:SetParent(pPanel)
   pSlider:InvalidateLayout(true)
   pSlider:SizeToContents()
-  pSlider:SetPos(0, pY)
-  pSlider:SetSize(sX-2*dX, sY-pY-dY)
+  pSlider:Dock(TOP)
+  pSlider:SetTall(22)
   pSlider:SetText(GetPhrase(sBase.."_con"))
   pSlider:SetTooltip(GetPhrase(sBase))
   pSlider:SetMin(nMin)
@@ -1849,6 +1829,30 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   pSlider:SetDark(true)
   pSlider:SetConVar(sKey)
   pSlider:SetVisible(true)
+  pY = pY + dY + pSlider:GetTall()
+  -- Setup the buttons from the array provided
+  if(IsTable(tBtn) and tBtn[1]) then
+    local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
+    local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
+    while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
+      local sTxt = tostring(vBtn.Tag)
+      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
+        LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
+      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
+      pButton:SetParent(pPanel)
+      pButton:InvalidateLayout(true)
+      pButton:SizeToContents()
+      pButton:SetText(sTxt)
+      pButton:SetPos(bX, bY)
+      pButton:SetSize(wB, hB)
+      pButton.DoClick = function()
+        local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
+          LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
+      end
+      pButton:SetVisible(true)
+      bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
+    end; pY = pY + (dY + hB)
+  end
   pPanel:InvalidateChildren()
   pPanel:SizeToContents()
   pPanel:SizeToChildren(true, false)
