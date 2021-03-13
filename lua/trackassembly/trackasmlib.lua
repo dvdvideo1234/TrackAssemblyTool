@@ -4033,7 +4033,7 @@ function GetEntityHitID(oEnt, vHit, bPnt)
   if(not IsVector(vHit)) then
     LogInstance("Origin missing "..GetReport(vHit)); return nil end
   local oRec = CacheQueryPiece(oEnt:GetModel()); if(not oRec) then
-    LogInstance("Trace not piece <"..oEnt:GetModel()..">"); return nil end
+    LogInstance("Trace skip "..GetReport1(oEnt:GetModel())); return nil end
   local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
   local oAnc, oID, oMin, oPOA = Vector(), nil, nil, nil
   for ID = 1, oRec.Size do -- Ignore the point disabled flag
