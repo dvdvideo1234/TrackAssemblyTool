@@ -1,4 +1,6 @@
 QuickSort
+SetNumSlider
+GetEntityHitID
 ModelToName: Cut
 ModelToName: Sub
 ModelToName: App
@@ -7,6 +9,7 @@ LocatePOA: Missing ID
 TimerRestart: Called by
 DrawToolScreen: Invalid screen
 DrawHUD: Invalid screen
+GetHookInfo: Swep invalid
 GetEntitySpawn: Trace outside radius
 GetEntitySpawn: Active point missed
 GetEntitySpawn: Not hitting active point

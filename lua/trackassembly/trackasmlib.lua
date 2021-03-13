@@ -31,6 +31,7 @@ local IN_ZOOM      = IN_ZOOM
 
 ---------------- Localizing ENT Properties ----------------
 
+local TOP                   = TOP
 local KEY_LSHIFT            = KEY_LSHIFT
 local MASK_SOLID            = MASK_SOLID
 local SOLID_VPHYSICS        = SOLID_VPHYSICS
@@ -218,6 +219,14 @@ function IsExact(vVal)
   return (vVal:sub(1,1) == "*")
 end
 
+function GetNameExp(vVal)
+  local bExa = IsExact(vVal)
+  local sPrf = GetOpVar("TOOLNAME_PL")
+  local sNam = (bExa and vVal:sub(2, -1) or vVal)
+  local sKey = (bExa and vVal:sub(2, -1) or (sPrf..vVal))
+  return sKey:lower(), sNam:lower(), bExa -- Extracted convar name
+end
+
 function IsBool(vVal)
   if    (vVal == true ) then return true
   elseif(vVal == false) then return true end
@@ -281,9 +290,22 @@ function GetReport3(vA, vB, vC) local sR = GetOpVar("FORM_VREPORT3")
   return (sR and sR:format(tostring(vA), tostring(vB), tostring(vC)) or "")
 end
 
--- Reports vararg containing three values
+-- Reports vararg containing four values
 function GetReport4(vA, vB, vC, vD) local sR = GetOpVar("FORM_VREPORT4")
-  return (sR and sR:format(tostring(vA), tostring(vB), tostring(vC), tostring(vD)) or "")
+  return (sR and sR:format(tostring(vA), tostring(vB),
+                           tostring(vC), tostring(vD)) or "")
+end
+
+-- Reports vararg containing five values
+function GetReport5(vA, vB, vC, vD, vE) local sR = GetOpVar("FORM_VREPORT5")
+  return (sR and sR:format(tostring(vA), tostring(vB),
+                           tostring(vC), tostring(vD), tostring(vE)) or "")
+end
+
+-- Reports vararg containing six values
+function GetReport6(vA, vB, vC, vD, vE, vF) local sR = GetOpVar("FORM_VREPORT6")
+  return (sR and sR:format(tostring(vA), tostring(vB), tostring(vC),
+                           tostring(vD), tostring(vE), tostring(vF)) or "")
 end
 
 -- Returns the sign of a number [-1,0,1]
@@ -627,6 +649,7 @@ function InitBase(sName, sPurp)
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGLAST","")
+  SetOpVar("LOG_INIT",{"*Init", false, 0})
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("MAX_ROTATION",360)
@@ -644,7 +667,7 @@ function InitBase(sName, sPurp)
   SetOpVar("OPSYM_ENTPOSANG","!")
   SetOpVar("KEYQ_BUILDER", "DATA_BUILDER")
   SetOpVar("DEG_RAD", mathPi / 180)
-  SetOpVar("WIDTH_CPANEL", 281)
+  SetOpVar("WIDTH_CPANEL", 265)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("CURVE_MARGIN", 15)
   SetOpVar("COLOR_CLAMP", {0, 255})
@@ -673,11 +696,12 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_INTEGER", "[%d]")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_VREPORT1","{%s}")
-  SetOpVar("FORM_VREPORT2","{%s}[%s]")
-  SetOpVar("FORM_VREPORT3","{%s}[%s]<%s>")
-  SetOpVar("FORM_VREPORT4","{%s}[%s]<%s>|%s|")
+  SetOpVar("FORM_VREPORT2","{%s}|%s|")
+  SetOpVar("FORM_VREPORT3","{%s}|%s|%s|")
+  SetOpVar("FORM_VREPORT4","{%s}|%s|%s|%s|")
+  SetOpVar("FORM_VREPORT5","{%s}|%s|%s|%s|%s|")
+  SetOpVar("FORM_VREPORT6","{%s}|%s|%s|%s|%s|%s|")
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
-  SetOpVar("FORM_LOGBTNSLD","Button(%s)[%s] %s")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
@@ -698,6 +722,9 @@ function InitBase(sName, sPurp)
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
+  SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
+  SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
+  SetOpVar("ARRAY_MODETM",{"CQT", "OBJ"})
   SetOpVar("TABLE_FREQUENT_MODELS",{})
   SetOpVar("ARRAY_DECODEPOA",{0,0,0,Size=3})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
@@ -1291,7 +1318,7 @@ function GetContainer(sKey, sDef)
     end
   end
   if(IsHere(sKey)) then mHash[sKey] = self
-    LogInstance("Container registered "..GetReport(mKey)) end
+    LogInstance("Registered "..GetReport(mKey)) end
   setmetatable(self, GetOpVar("TYPEMT_CONTAINER")); return self
 end
 
@@ -1770,54 +1797,62 @@ function GetFrequentModels(snCount)
   LogInstance("Array is empty or not available"); return nil
 end
 
-function SetButtonSlider(cPanel,sVar,sTyp,nMin,nMax,nDec,tBtn)
+function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
-    LogInstance("Panel invalid"); return nil end
+    LogInstance("Base panel invalid"); return nil end
+  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
   local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
+  local tSkin = cPanel:GetSkin()
   local sX = GetOpVar("WIDTH_CPANEL")
-  local sNam = GetOpVar("TOOLNAME_PL")..sVar
-  local sTag = "tool."..GetOpVar("TOOLNAME_NL").."."..sVar
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local tConv = GetOpVar("STORE_CONVARS")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   pPanel:SetParent(cPanel)
+  pPanel:Dock(TOP)
+  pPanel:SetTall(sY)
   cPanel:InvalidateLayout(true)
-  pPanel:SetSize(sX, sY)
-  if(IsTable(tBtn) and tBtn[1]) then
-    local sPtn = GetOpVar("FORM_LOGBTNSLD")
-    local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
-    local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
-    while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
-      local sTxt = tostring(vBtn.Text)
-      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
-        LogInstance(sPtn:format(sVar,sTxt,"Panel invalid")); return nil end
-      pButton:SetParent(pPanel)
-      pButton:InvalidateLayout(true)
-      pButton:SizeToContents()
-      pButton:SetText(sTxt)
-      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
-      pButton:SetPos(bX, bY)
-      pButton:SetSize(wB, hB)
-      pButton.DoClick = function()
-        local pS, sE = pcall(vBtn.Click, pButton, sVar, GetAsmConvar(sVar, sTyp))
-        if(not pS) then LogInstance(sPtn:format(sVar,sTxt,"Error: "..sE)); return nil end
-      end
-      pButton:SetVisible(true)
-      bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
-    end; pY = pY + (dY + hB)
-  end
+  -- Setup slider parented to the base panel
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
   pSlider:SetParent(pPanel)
   pSlider:InvalidateLayout(true)
   pSlider:SizeToContents()
-  pSlider:SetPos(0, pY)
-  pSlider:SetSize(sX-2*dX, sY-pY-dY)
-  pSlider:SetText(GetPhrase(sTag.."_con"))
-  pSlider:SetTooltip(GetPhrase(sTag))
+  pSlider:Dock(TOP)
+  pSlider:SetTall(22)
+  pSlider:SetText(GetPhrase(sBase.."_con"))
+  pSlider:SetTooltip(GetPhrase(sBase))
   pSlider:SetMin(nMin)
   pSlider:SetMax(nMax)
+  pSlider:SetDefaultValue(tConv[sKey])
   pSlider:SetDecimals(nDec)
   pSlider:SetDark(true)
-  pSlider:SetConVar(sNam)
+  pSlider:SetConVar(sKey)
   pSlider:SetVisible(true)
+  pY = pY + dY + pSlider:GetTall()
+  -- Setup the buttons from the array provided
+  if(IsTable(tBtn) and tBtn[1]) then
+    local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
+    local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
+    while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
+      local sTxt = tostring(vBtn.Tag)
+      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
+        LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
+      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
+      pButton:SetParent(pPanel)
+      pButton:InvalidateLayout(true)
+      pButton:SizeToContents()
+      pButton:SetText(sTxt)
+      pButton:SetPos(bX, bY)
+      pButton:SetSize(wB, hB)
+      pButton.DoClick = function()
+        local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
+          LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
+      end
+      pButton:SetVisible(true)
+      bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
+    end; pY = pY + (dY + hB)
+  end
   pPanel:InvalidateChildren()
   pPanel:SizeToContents()
   pPanel:SizeToChildren(true, false)
@@ -1830,6 +1865,82 @@ function SetComboBoxClipboard(pnCombo)
   local vT = pnCombo:GetOptionText(iD)
   local sV = GetTerm(tostring(vT or ""), pnCombo:GetValue())
   SetClipboardText(GetTerm(sV, gsNoAV))
+end
+
+function SetComboBoxList(cPanel, sVar)
+  local tSet  = GetOpVar("ARRAY_"..sVar:upper())
+  if(IsHere(tSet)) then
+    local tSkin = cPanel:GetSkin()
+    local sTool = GetOpVar("TOOLNAME_NL")
+    local sKey, sNam, bExa = GetNameExp(sVar)
+    local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+    local sName = GetAsmConvar(sVar, "NAM")
+    local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+    pItem = cPanel:ComboBox(sMenu, sName)
+    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(25)
+    pItem:SetTooltip(sTtip); pItem:UpdateColours(tSkin)
+    pItem:SetValue(GetAsmConvar(sVar, "STR"))
+    pItem.DoRightClick = function(pnSelf)
+      SetComboBoxClipboard(pnSelf)
+    end -- Copy the combo box content shown
+    pItem.OnSelect = function(pnSelf, nInd, sVal, anyData)
+      SetAsmConvar(nil, sVar, anyData)
+    end -- Apply the settinc to the specified variable
+    for iD = 1, #tSet do local sI = tSet[iD]
+      local sIco = ToIcon(sNam.."_"..sI:lower())
+      local sPrv = (sBase.."_"..sI:lower())
+      pItem:AddChoice(GetPhrase(sPrv), sI, false, sIco)
+    end
+  else LogInstance("Missing "..GetReport1(sNam)) end
+end
+
+function SetButton(cPanel, sVar)
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local tConv = GetOpVar("STORE_CONVARS")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local pItem = cPanel:Button(sMenu, sKey)
+        pItem:SetTooltip(sTtip); return pItem
+end
+
+function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
+  local nMin = tonumber(vMin)
+  local nMax = tonumber(vMax)
+  local vDef = tonumber(vDev)
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local tConv = GetOpVar("STORE_CONVARS")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local iDig = mathFloor(mathMax(tonumber(vDig) or 0, 0))
+  if(not IsHere(vDef)) then vDef = tConv[sKey]
+    if(not IsHere(vDef)) then vDef = GetAsmConvar(sVar, "DEF")
+      if(not IsHere(vDef)) then
+        LogInstance("(D) Miss "..GetReport1(sKey))
+      else LogInstance("(D) Cvar "..GetReport2(sKey, vDef)) end
+    else LogInstance("(D) List "..GetReport2(sKey, vDef)) end
+  else LogInstance("(D) Args "..GetReport2(sKey, vDef)) end
+  if(not (nMin and nMax)) then nMin, nMax = GetBorder(sKey)
+    if(not (nMin and nMax)) then -- Check for border in convar list
+      local nMin = GetAsmConvar(sVar, "MIN")
+      local nMax = GetAsmConvar(sVar, "MAX")
+      if(not (nMin and nMax)) then
+        LogInstance("(L) Miss "..GetReport1(sKey))
+      else LogInstance("(L) Cvar "..GetReport3(sKey, nMin, nMax)) end
+    else LogInstance("(L) Bord "..GetReport3(sKey, nMin, nMax)) end
+  else LogInstance("(L) Args "..GetReport3(sKey, nMin, nMax)) end
+  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
+  pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDef); return pItem
+end
+
+function SetCheckBox(cPanel, sVar)
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local pItem = cPanel:CheckBox(sMenu, sKey)
+  pItem:SetTooltip(sTtip); return pItem
 end
 
 function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
@@ -2224,10 +2335,10 @@ function Categorize(oTyp, fCat, iID)
       tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
       tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
       local bS, vO = pcall(tCat[sTyp].Cmp); if(not bS) then
-        LogInstance("Compilation failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
+        LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
       tCat[sTyp].Cmp = vO; tTyp = tCat[sTyp]
       return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-    else LogInstance("Skip code "..GetReport(fCat), ssLog) end
+    else LogInstance("Skip "..GetReport(fCat), ssLog) end
   end
 end
 
@@ -3212,7 +3323,7 @@ end
  * Save/Load the category generation
  * vEq    > Amount of intenal comment depth
  * tData  > The local data table to be exported ( if given )
- * sPref  > Prefix used on exporting ( if not uses instance prefix)
+ * sPref  > Prefix used on exporting ( if not uses instance prefix )
 ]]--
 function ExportCategory(vEq, tData, sPref)
   if(SERVER) then LogInstance("Working on server"); return true end
@@ -4276,7 +4387,7 @@ function AttachAdditions(ePiece)
     LogInstance("Piece invalid"); return false end
   local eAng, ePos, eMod = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
   local stAddit = CacheQueryAdditions(eMod); if(not IsHere(stAddit)) then
-    LogInstance("Model <"..eMod.."> has no additions"); return true end
+    LogInstance("Model skip <"..eMod..">"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
   local sD = GetOpVar("OPSYM_DISABLE"); LogInstance("PIECE:MOD("..eMod..")")
@@ -4364,32 +4475,43 @@ function GetPropSkin(oEnt)
   LogInstance("Success "..tostring(skEn)); return tostring(Skin)
 end
 
+--[[
+ * Reads a bodygroup code from a given entity
+ * oEnt > The entity to read to code from
+]]
 function GetPropBodyGroup(oEnt)
   local bgEnt = GetEntityOrTrace(oEnt); if(not IsHere(bgEnt)) then
     LogInstance("Failed to gather entity"); return "" end
   if(IsOther(bgEnt)) then
     LogInstance("Entity other type"); return "" end
-  local BGs = bgEnt:GetBodyGroups(); if(not (BGs and BGs[1])) then
+  local tBG = bgEnt:GetBodyGroups(); if(not (tBG and tBG[1])) then
     LogInstance("Bodygroup table empty"); return "" end
   local sRez, iCnt, symSep = "", 1, GetOpVar("OPSYM_SEPARATOR")
-  while(BGs[iCnt]) do local sD = bgEnt:GetBodygroup(BGs[iCnt].id)
-    sRez = sRez..symSep..tostring(sD or 0); iCnt = iCnt + 1
-  end; sRez = sRez:sub(2,-1); LogTable(BGs,"BodyGroup")
-  LogInstance("Success <"..sRez..">"); return sRez
+  while(tBG[iCnt]) do local iD = tBG[iCnt].id -- Read ID
+    local sD = bgEnt:GetBodygroup(iD) -- Read value by ID
+    sRez = sRez..symSep..tostring(sD or 0) -- Attach
+    LogInstance("GetBodygroup "..GetReport3(iCnt, iD, sD))
+    iCnt = iCnt + 1 -- Prepare to take the next value
+  end; sRez = sRez:sub(2, -1) -- Remove last separator
+  LogInstance("Success "..GetReport1(sRez)); return sRez
 end
 
+--[[
+ * Attach bodygroup code to a given entity
+ * oEnt > The entity to attach the code for
+]]
 function AttachBodyGroups(ePiece,sBgID)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Base entity invalid"); return false end
-  local sBgID = tostring(sBgID or ""); LogInstance("<"..sBgID..">")
-  local iCnt, BGs = 1, ePiece:GetBodyGroups()
+  local sBgID = tostring(sBgID or "")
+  local iCnt, tBG = 1, ePiece:GetBodyGroups()
   local IDs = GetOpVar("OPSYM_SEPARATOR"):Explode(sBgID)
-  while(BGs[iCnt] and IDs[iCnt]) do local itrBG = BGs[iCnt]
-    local maxID = (ePiece:GetBodygroupCount(itrBG.id) - 1)
-    local itrID = mathClamp(mathFloor(tonumber(IDs[iCnt]) or 0),0,maxID)
-    LogInstance("SetBodygroup("..itrBG.id..","..itrID..") ["..maxID.."]")
-    ePiece:SetBodygroup(itrBG.id,itrID); iCnt = iCnt + 1
-  end; LogInstance("Success"); return true
+  while(tBG[iCnt] and IDs[iCnt]) do local vBG = tBG[iCnt]
+    local maxID = (ePiece:GetBodygroupCount(vBG.id) - 1)
+    local curID = mathClamp(mathFloor(tonumber(IDs[iCnt]) or 0), 0, maxID)
+    LogInstance("SetBodygroup "..GetReport4(iCnt, maxID, vBG.id, curID))
+    ePiece:SetBodygroup(vBG.id, curID); iCnt = iCnt + 1
+  end; LogInstance("Success "..GetReport1(sBgID)); return true
 end
 
 function SetPosBound(ePiece,vPos,oPly,sMode)
@@ -4452,7 +4574,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     LogInstance("Failed attaching additions"); return nil end
   pPly:AddCount(sLimit , ePiece); pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
   pPly:AddCount("props", ePiece); pPly:AddCleanup("props", ePiece) -- Deleted with clearing props
-  LogInstance("{"..tostring(ePiece).."}"..sModel); return ePiece
+  LogInstance(GetReport2(ePiece, sModel)); return ePiece
 end
 
 function UnpackPhysicalSettings(ePiece)
@@ -4471,7 +4593,7 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   if(CLIENT) then LogInstance("Working on client"); return true end
   local bPi, bFr = (tobool(bPi) or false), (tobool(bFr) or false)
   local bGr, sPh = (tobool(bGr) or false),  tostring(sPh or "")
-  LogInstance("{"..tostring(bPi)..","..tostring(bFr)..","..tostring(bGr)..","..sPh.."}")
+  LogInstance(GetReport5(ePiece,bPi,bFr,bGr,sPh))
   if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
     LogInstance("Piece entity invalid "..GetReport(ePiece)); return false end
   local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
@@ -4506,8 +4628,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   if(CLIENT) then LogInstance("Working on client"); return true end
   local bWe, bNc = (tobool(bWe) or false), (tobool(bNc) or false)
   local nFm, bNw = (tonumber(nFm)  or  0), (tobool(bNw) or false)
-  LogInstance("{"..tostring(bWe)..","..tostring(bNc)
-            ..","..tostring(bNw)..","..tostring(nFm).."}")
+  LogInstance(GetReport6(ePiece,eBase,bWe,bNc,bNw,nFm))
   local sPr, cnW, cnN, cnG = GetOpVar("TOOLNAME_PL") -- Create local references for constraints
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid "..GetReport(ePiece)); return false, cnW, cnN, cnG  end
@@ -4700,16 +4821,15 @@ end
 
 function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
   if(not IsString(sName)) then
-    LogInstance("Name mismatch "..GetReport(sName)); return nil end
-  local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
-  local cVal = (tonumber(vVal) or tostring(vVal)); LogInstance("("..sLow..")["..tostring(cVal).."]")
-  local sInf, nFlg, nMin, nMax = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0), 0, 0
-  if(not IsHere(tBord)) then nMin, nMax = GetBorder(sLow) -- Read the border from the hash
-    LogInstance("Read border "..GetReport3(vKey, vLow, vHig))
-  else -- Force a border on the convar and update the borders list
-    nMin = (tBord and tBord[1] or nil) -- Read the minimum and maximum
-    nMax = (tBord and tBord[2] or nil); SetBorder(sLow, nMin, nMax)
-  end; return CreateConVar(sLow, cVal, nFlg, sInf, nMin, nMax)
+    LogInstance("Mismatch "..GetReport(sName)); return nil end
+  local sKey, cVal = GetNameExp(sName), (tonumber(vVal) or tostring(vVal))
+  local sInf, nFlg, vMin, vMax = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0), 0, 0
+  if(not IsHere(tBord)) then vMin, vMax = GetBorder(sKey) else
+    -- Force a border on the convar and update the borders list
+    vMin = (tBord and tBord[1] or nil) -- Read the minimum and maximum
+    vMax = (tBord and tBord[2] or nil); SetBorder(sKey, vMin, vMax)
+  end; LogInstance("Create "..GetReport4(sKey, cVal, vMin, vMax))
+  return CreateConVar(sKey, cVal, nFlg, sInf, vMin, vMax)
 end
 
 function GetAsmConvar(sName, sMode)
@@ -4717,28 +4837,29 @@ function GetAsmConvar(sName, sMode)
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
   if(not IsString(sMode)) then
     LogInstance("Mode mismatch "..GetReport(sMode)); return nil end
-  local sLow = (IsExact(sName) and sName:sub(2,-1) or (GetOpVar("TOOLNAME_PL")..sName)):lower()
-  local CVar = GetConVar(sLow); if(not IsHere(CVar)) then
-    LogInstance("("..sLow..", "..sMode..") Missing object"); return nil end
-  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()   , sLow)) or 0)
-  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat() , sLow)) or 0)
-  elseif(sMode == "STR") then return (tostring(BorderValue(CVar:GetString(), sLow)) or "")
+  local sKey = GetNameExp(sName)
+  local CVar = GetConVar(sKey); if(not IsHere(CVar)) then
+    LogInstance("Missing "..GetReport2(sKey, sMode)); return nil end
+  if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()   , sKey)) or 0)
+  elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat() , sKey)) or 0)
+  elseif(sMode == "STR") then return (tostring(BorderValue(CVar:GetString(), sKey)) or "")
   elseif(sMode == "BUL") then return (CVar:GetBool() or false)
   elseif(sMode == "DEF") then return  CVar:GetDefault()
   elseif(sMode == "INF") then return  CVar:GetHelpText()
   elseif(sMode == "NAM") then return  CVar:GetName()
+  elseif(sMode == "MIN") then return  CVar:GetMin()
+  elseif(sMode == "MAX") then return  CVar:GetMax()
   elseif(sMode == "OBJ") then return  CVar
   end; LogInstance("("..sName..", "..sMode..") Missed mode"); return nil
 end
 
-function SetAsmConvar(pPly,sName,snVal)
+function SetAsmConvar(pPly, sName, snVal)
   if(not IsString(sName)) then -- Make it like so the space will not be forgotten
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
   local sFmt, sPrf = GetOpVar("FORM_CONCMD"), GetOpVar("TOOLNAME_PL")
-  local sLow = (IsExact(sName) and sName:sub(2,-1) or (sPrf..sName)):lower()
-  if(IsPlayer(pPly)) then -- Use the player when available
-    return pPly:ConCommand(sFmt:format(sLow, "\""..tostring(snVal or "")).."\"\n")
-  end; return RunConsoleCommand(sLow, tostring(snVal or ""))
+  local sKey = GetNameExp(sName); if(IsPlayer(pPly)) then -- Use the player when available
+    return pPly:ConCommand(sFmt:format(sKey, "\""..tostring(snVal or "")).."\"\n")
+  end; return RunConsoleCommand(sKey, tostring(snVal or ""))
 end
 
 function GetPhrase(sKey)
@@ -4890,22 +5011,22 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
 
-function GetHookInfo(tInfo, sW)
+function GetHookInfo(sW)
   if(SERVER) then return nil end
   local sMod = GetOpVar("TOOL_DEFMODE")
   local sWep = tostring(sW or sMod)
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
-    LogInstance("Player invalid",tInfo); return nil end
+    LogInstance("Player invalid"); return nil end
   local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
-    LogInstance("Swep invalid",tInfo); return nil end
+    LogInstance("Swep invalid"); return nil end
   if(actSwep:GetClass() ~= sWep) then
-    LogInstance("("..sWep..") Swep other",tInfo); return nil end
+    LogInstance("("..sWep..") Swep other"); return nil end
   if(sWep ~= sMod) then return oPly, actSwep end
   if(actSwep:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
-    LogInstance("Tool different",tInfo); return nil end
+    LogInstance("Tool different"); return nil end
   -- Here player is holding the track assembly tool
   local actTool = actSwep:GetToolObject(); if(not actTool) then
-    LogInstance("Tool invalid",tInfo); return nil end
+    LogInstance("Tool invalid"); return nil end
   return oPly, actSwep, actTool
 end
 
