@@ -1798,28 +1798,27 @@ function GetFrequentModels(snCount)
 end
 
 function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
-  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
-    LogInstance("Base panel invalid"); return nil end
-  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
-  local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
-  local tSkin = cPanel:GetSkin()
-  local sX = GetOpVar("WIDTH_CPANEL")
+  local tSkin, sY, dY = cPanel:GetSkin(), 25, 2
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
+  local iWpan = GetOpVar("WIDTH_CPANEL")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
+    LogInstance("Base invalid"); return nil end
+  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
   pPanel:SetParent(cPanel)
   pPanel:Dock(TOP)
-  pPanel:SetTall(sY)
+  pPanel:SetTall(dY)
   cPanel:InvalidateLayout(true)
   -- Setup slider parented to the base panel
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
   pSlider:SetParent(pPanel)
   pSlider:InvalidateLayout(true)
-  pSlider:SizeToContents()
+  pSlider:SizeToContentsY()
   pSlider:Dock(TOP)
-  pSlider:SetTall(22)
+  pSlider:SetTall(sY)
   pSlider:SetText(GetPhrase(sBase.."_con"))
   pSlider:SetTooltip(GetPhrase(sBase))
   pSlider:SetMin(nMin)
@@ -1829,33 +1828,38 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   pSlider:SetDark(true)
   pSlider:SetConVar(sKey)
   pSlider:SetVisible(true)
-  pY = pY + dY + pSlider:GetTall()
+  pPanel:SetTall(pPanel:GetTall() + sY + dY)
   -- Setup the buttons from the array provided
   if(IsTable(tBtn) and tBtn[1]) then
-    local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
-    local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
-    while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
+    local pGrid = vguiCreate("DGrid"); if(not IsValid(pGrid)) then
+      LogInstance("Grid invalid"); return end
+    pPanel:SetTall(pPanel:GetTall() + sY + dY)
+    pGrid:SetParent(pPanel)
+    pGrid:Dock(TOP)
+    pGrid:SetTall(sY)
+    pGrid:SetCols(#tBtn)
+    pGrid:SetColWide(mathFloor(iWpan / pGrid:GetCols()))
+    for iD = 1, pGrid:GetCols() do
+      local vBtn = tBtn[iD]
       local sTxt = tostring(vBtn.Tag)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
-      pButton:SetParent(pPanel)
-      pButton:InvalidateLayout(true)
-      pButton:SizeToContents()
       pButton:SetText(sTxt)
-      pButton:SetPos(bX, bY)
-      pButton:SetSize(wB, hB)
+      pButton:SetSize(pGrid:GetColWide(), sY)
       pButton.DoClick = function()
         local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
           LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
       end
       pButton:SetVisible(true)
-      bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
-    end; pY = pY + (dY + hB)
+      pButton:InvalidateLayout(true)
+      pGrid:AddItem(pButton)
+    end
+    pGrid:SizeToContentsY()
   end
-  pPanel:InvalidateChildren()
-  pPanel:SizeToContents()
   pPanel:SizeToChildren(true, false)
+  pPanel:SizeToContentsY()
+  pPanel:InvalidateChildren()
   cPanel:AddPanel(pPanel)
   return pPanel
 end

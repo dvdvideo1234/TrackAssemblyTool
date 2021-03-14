@@ -53,7 +53,11 @@ local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntit
 ----------------- TOOL Global Parameters ----------------
 --- Because Vec[1] is actually faster than Vec.X
 --- Store a pointer to our module
-local asmlib = trackasmlib
+local asmlib = trackasmlib; if(not asmlib) then -- Module present
+  ErrorNoHalt("TOOL: Track assembly tool module fail!\n"); return end
+
+if(not asmlib.IsInit()) then -- Make sure the module is initialized
+  ErrorNoHalt("TOOL: Track assembly tool not initialized!\n"); return end
 
 --- Vector Component indexes ---
 local cvX, cvY, cvZ = asmlib.GetIndexes("V")
