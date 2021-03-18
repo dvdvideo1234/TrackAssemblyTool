@@ -762,8 +762,11 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("HOVER_TRIGGER",{})
-    SetOpVar("LOCALIFY_TABLE",{})
-    SetOpVar("LOCALIFY_AUTO","en")
+    SetOpVar("LOCALIFY_TABLE",{
+      Auto = "en", -- The language prase to load whn not available
+      Info = {},   -- Contains the loaded phrases
+      Menu = {},   -- Table to store all the translated sound phrases
+    })
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
   end; LogInstance("Success"); return true
@@ -1798,7 +1801,7 @@ function GetFrequentModels(snCount)
 end
 
 function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
-  local tSkin, sY, dY = cPanel:GetSkin(), 25, 2
+  local tSkin, sY, dY = cPanel:GetSkin(), 22, 2
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
   local iWpan = GetOpVar("WIDTH_CPANEL")
@@ -2350,9 +2353,9 @@ end
 
 local function GetPlayerSpot(pPly)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
+    LogInstance("Invalid "..GetReport1(pPly)); return nil end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
-    LogInstance("Cached <"..pPly:Nick()..">")
+    LogInstance("Cached "..GetReport1(pPly:Nick()))
     libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
   end; return stSpot
 end
@@ -2381,7 +2384,7 @@ function GetCacheSpawn(pPly, tDat)
       LogInstance("Invalid "..GetReport(stData)); return nil end
     if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
-      LogInstance("Populate <"..pPly:Nick()..">")
+      LogInstance("Populate "..GetReport1(pPly:Nick()))
     end; return stData
   else -- Use internal data spot
     local stSpot = GetPlayerSpot(pPly)
@@ -2391,14 +2394,14 @@ function GetCacheSpawn(pPly, tDat)
     if(not IsHere(stData)) then
       stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
       stData = SetCacheSpawn(stData)
-      LogInstance("Allocate <"..pPly:Nick()..">")
+      LogInstance("Allocate "..GetReport1(pPly:Nick()))
     end; return stData
   end
 end
 
 function CacheClear(pPly, bNow)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly).."> invalid"); return false end
+    LogInstance("Invalid "..GetReport1(pPly)); return false end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Clean"); return true end
   libPlayer[pPly] = nil; if(bNow) then collectgarbage() end; return true
@@ -2406,7 +2409,7 @@ end
 
 function GetDistanceHit(pPly, vHit)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
+    LogInstance("Invalid "..GetReport1(pPly)); return nil end
   return (vHit - pPly:GetPos()):Length()
 end
 
@@ -4866,44 +4869,48 @@ function SetAsmConvar(pPly, sName, snVal)
   end; return RunConsoleCommand(sKey, tostring(snVal or ""))
 end
 
+--[[
+ * Returns translation hash dedicated to user menus
+ * sKey > The translation hash to obtain forn the information table
+ * When translation cannot be located ir is replaced by `MISS_NOTR`
+]]
 function GetPhrase(sKey)
-  if(SERVER) then return end
-  local sDef = GetOpVar("MISS_NOTR")
+  local sDef, sKey = GetOpVar("MISS_NOTR"), tostring(sKey)
+  if(SERVER) then LogInstance("Server "..GetReport1(sKey)); return sDef end
   local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
-    LogInstance("Skip <"..sKey..">"); return GetOpVar("MISS_NOTR") end
-  local sKey = tostring(sKey) if(not IsHere(tSet[sKey])) then
-    LogInstance("Miss <"..sKey..">"); return GetOpVar("MISS_NOTR") end
-  return (tSet[sKey] or GetOpVar("MISS_NOTR")) -- Translation fail safe
+    LogInstance("Skip "..GetReport1(sKey)); return sDef end
+  local tPhr = tSet.Menu; if(not IsHere(tPhr[sKey])) then
+    LogInstance("Miss "..GetReport1(sKey)); return sDef end
+  return tostring(tPhr[sKey] or sDef) -- Translation fail safe
 end
 
-local function GetLocalify(sCode)
-  local sCode = tostring(sCode or GetOpVar("MISS_NOAV"))
-  if(SERVER) then LogInstance("("..sCode..") Not client"); return nil end
-  local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
-  local sPath = GetOpVar("FORM_LANGPATH"):format("", sCode..".lua") -- Translation file path
-  if(not fileExists("lua/"..sPath, "GAME")) then
-    LogInstance("("..sCode..") Missing"); return nil end
-  local fCode = CompileFile(sPath); if(not fCode) then
-    LogInstance("("..sCode..") No function"); return nil end
-  local bFunc, fFunc = pcall(fCode); if(not bFunc) then
-    LogInstance("("..sCode..")[1] "..fFunc); return nil end
-  local bCode, tCode = pcall(fFunc, sTool, sLimit); if(not bCode) then
-    LogInstance("("..sCode..")[2] "..tCode); return nil end
-  return tCode -- The successfully extracted translations
+--[[
+ * Returns or allocates translation hash definition table
+ * sCode > The language code to allocate and return table for
+]]
+function GetLocalify(sCode)
+  local cCode = tostring(sCode or GetOpVar("MISS_NOAV"))
+  if(SERVER) then LogInstance("Server "..GetReport1(cCode)); return end
+  local tInfo = GetOpVar("LOCALIFY_TABLE").Info
+  if(not IsHere(tInfo[cCode])) then tInfo[cCode] = {}
+    LogInstance("Alloc "..GetReport1(cCode)) end
+  return tInfo[cCode]
 end
 
+--[[
+ * Switches the system to new translation provided
+ * sCode > The translation to switch all messages to
+]]
 function InitLocalify(sCode)
-  local cuCod = tostring(sCode or GetOpVar("MISS_NOAV"))
-  if(not CLIENT) then LogInstance("("..cuCod..") Not client"); return nil end
-  local thSet = GetOpVar("LOCALIFY_TABLE"); tableEmpty(thSet)
-  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
-  local auSet = GetLocalify(auCod); if(not auSet) then
-    LogInstance("Base mismatch <"..auCod..">"); return nil end
-  if(cuCod ~= auCod) then local cuSet = GetLocalify(cuCod)
-    if(cuSet) then -- When the language infornation is extracted apply on success
-      for key, val in pairs(auSet) do auSet[key] = (cuSet[key] or auSet[key]) end
-    else LogInstance("Custom skipped <"..cuCod..">") end -- Apply auto code
-  end; for key, val in pairs(auSet) do thSet[key] = auSet[key]; languageAdd(key, val) end
+  local cCode = tostring(sCode or GetOpVar("MISS_NOAV"))
+  if(SERVER) then LogInstance("Server "..GetReport1(cCode)); return end
+  local tLang = GetOpVar("LOCALIFY_TABLE"); tableEmpty(tLang.Menu)
+  -- Automatic translation code where all translation must be present
+  local auSet = GetLocalify(tLang.Auto); if(not auSet) then
+    LogInstance("Miss "..GetReport1(tLang.Auto)); return end
+  local thSet = (GetLocalify(cCode) or auSet)
+  for key, val in pairs(auSet) do languageAdd(key, val)
+    tLang.Menu[key] = (thSet[key] or auSet[key]) end
 end
 
 --[[

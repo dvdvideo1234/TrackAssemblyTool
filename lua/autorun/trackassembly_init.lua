@@ -88,7 +88,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.652")
+asmlib.SetOpVar("TOOL_VERSION","8.653")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -324,12 +324,16 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
   }
 })
 
+------------ TRANSLATIONS ------------
+
+for iD = 1, #gtTransFile do
+  local sNam = gsLangForm:format("",gtTransFile[iD])
+  if(SERVER) then AddCSLuaFile(sNam) end; include(sNam)
+end
+
 ------------ ACTIONS ------------
 
 if(SERVER) then
-
-  -- Send language definitions to the client to populate the menu
-  for iD = 1, #gtTransFile do AddCSLuaFile(gsLangForm:format("",gtTransFile[iD])) end
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
