@@ -1834,31 +1834,27 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   pPanel:SetTall(pPanel:GetTall() + sY + dY)
   -- Setup the buttons from the array provided
   if(IsTable(tBtn) and tBtn[1]) then
-    local pGrid = vguiCreate("DGrid"); if(not IsValid(pGrid)) then
-      LogInstance("Grid invalid"); return end
-    pPanel:SetTall(pPanel:GetTall() + sY + dY)
-    pGrid:SetParent(pPanel)
-    pGrid:Dock(TOP)
-    pGrid:SetTall(sY)
-    pGrid:SetCols(#tBtn)
-    pGrid:SetColWide(mathFloor(iWpan / pGrid:GetCols()))
-    for iD = 1, pGrid:GetCols() do
+    local iButn, pX, pY = #tBtn, 0, dY
+    local sX = mathFloor(iWpan / iButn)
+    for iD = 1, iButn do
       local vBtn = tBtn[iD]
       local sTxt = tostring(vBtn.Tag)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
+      pButton:SetParent(pPanel)
       pButton:SetText(sTxt)
-      pButton:SetSize(pGrid:GetColWide(), sY)
+      pButton:SetPos(pX, pY); pX = pX + sX
+      pButton:SetSize(sX, sY)
       pButton.DoClick = function()
         local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
           LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
       end
       pButton:SetVisible(true)
       pButton:InvalidateLayout(true)
-      pGrid:AddItem(pButton)
+      pPanel:AddPanel(pButton)
     end
-    pGrid:SizeToContentsY()
+    pPanel:SetTall(pPanel:GetTall() + sY + dY)
   end
   pPanel:SizeToChildren(true, false)
   pPanel:SizeToContentsY()
@@ -4016,7 +4012,7 @@ end
 ]]--
 function GetNormalAngle(oPly, soTr, bSnp, nSnp)
   local aAng, nAsn = Angle(), (tonumber(nSnp) or 0); if(not IsPlayer(oPly)) then
-    LogInstance("No player <"..tostring(oPly)..">", aAng); return aAng end
+    LogInstance("No player "..GetReport1(oPly)); return aAng end
   if(bSnp) then local stTr = soTr -- Snap to the trace surface
     if(not (stTr and stTr.Hit)) then stTr = GetCacheTrace(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
@@ -4036,16 +4032,16 @@ end
 ]]--
 function GetEntityHitID(oEnt, vHit, bPnt)
   if(not (oEnt and oEnt:IsValid())) then
-    LogInstance("Entity invalid "..GetReport(oEnt)); return nil end
+    LogInstance("Entity invalid "..GetReport1(oEnt)); return nil end
   if(not IsVector(vHit)) then
-    LogInstance("Origin missing "..GetReport(vHit)); return nil end
+    LogInstance("Origin missing "..GetReport1(vHit)); return nil end
   local oRec = CacheQueryPiece(oEnt:GetModel()); if(not oRec) then
     LogInstance("Trace skip "..GetReport1(oEnt:GetModel())); return nil end
   local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
   local oAnc, oID, oMin, oPOA = Vector(), nil, nil, nil
   for ID = 1, oRec.Size do -- Ignore the point disabled flag
     local tPOA, tID = LocatePOA(oRec, ID); if(not IsHere(tPOA)) then
-      LogInstance("Point missing "..GetReport(ID)); return nil end
+      LogInstance("Point missing "..GetReport1(ID)); return nil end
     if(bPnt) then SetVector(oAnc, tPOA.P) else SetVector(oAnc, tPOA.O) end
     oAnc:Rotate(eAng); oAnc:Add(ePos); oAnc:Sub(vHit)
     local tMin = oAnc:Length() -- Calculate vector absolute ( distance )
@@ -4058,9 +4054,9 @@ end
 
 function GetNearest(vHit, tVec)
   if(not IsVector(vHit)) then
-    LogInstance("Origin missing "..GetReport(vHit)); return nil end
+    LogInstance("Origin missing "..GetReport1(vHit)); return nil end
   if(not IsTable(tVec)) then
-    LogInstance("Vertices mismatch "..GetReport(tVec)); return nil end
+    LogInstance("Vertices mismatch "..GetReport1(tVec)); return nil end
   local vT, iD, mD, mL = Vector(), 1, nil, nil
   while(tVec[iD]) do
     vT:Set(vHit); vT:Sub(tVec[iD])
@@ -4085,9 +4081,9 @@ end
 function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
                         ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
-    LogInstance("No record located for <"..shdModel..">"); return nil end
+    LogInstance("No record located "..GetReport1(shdModel)); return nil end
   local hdPOA, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdPOA)) then
-    LogInstance("Holder point ID missing "..GetReport(ivhdPoID)); return nil end
+    LogInstance("Holder ID missing "..GetReport1(ivhdPoID)); return nil end
   local stSpawn = GetCacheSpawn(oPly, stData); stSpawn.HRec, stSpawn.HID = hdRec, ihdPoID
   if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
@@ -4151,32 +4147,32 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
                         nvActRadius,enFlatten,enIgnTyp,ucsPosX,
                         ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
   if(not (trEnt and trHitPos and shdModel and ivhdPoID and nvActRadius)) then
-    LogInstance("Mismatched input parameters"); return nil end
+    LogInstance("Parameters mismatch"); return nil end
   if(not trEnt:IsValid()) then
     LogInstance("Trace entity not valid"); return nil end
   if(IsOther(trEnt)) then
     LogInstance("Trace other type"); return nil end
   local nActRadius = tonumber(nvActRadius); if(not IsHere(nActRadius)) then
-    LogInstance("Active radius mismatch "..GetReport(nvActRadius)); return nil end
+    LogInstance("Radius mismatch "..GetReport1(nvActRadius)); return nil end
   local trID, trRad, trPOA, trRec = GetEntityHitID(trEnt, trHitPos, true)
   if(not (IsHere(trID) and IsHere(trRad) and IsHere(trPOA) and IsHere(trRec))) then
-    LogInstance("Active point missed <"..trEnt:GetModel()..">"); return nil end
+    LogInstance("Active point missed "..GetReport1(trEnt:GetModel())); return nil end
   if(not IsHere(LocatePOA(trRec, 1))) then
     LogInstance("Trace has no points"); return nil end
   if(trRad > nActRadius) then
     LogInstance("Trace outside radius"); return nil end
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
-    LogInstance("Holder model missing <"..tostring(shdModel)..">"); return nil end
+    LogInstance("Holder model missing "..GetReport1(shdModel)); return nil end
   local hdOffs, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdOffs)) then
-    LogInstance("Holder point missing "..GetReport(ivhdPoID)); return nil end
+    LogInstance("Holder point missing "..GetReport1(ivhdPoID)); return nil end
   -- If there is no Type exit immediately
   if(not (IsHere(trRec.Type) and IsString(trRec.Type))) then
-    LogInstance("Trace type invalid <"..tostring(trRec.Type)..">"); return nil end
+    LogInstance("Trace type invalid "..GetReport1(trRec.Type)); return nil end
   if(not (IsHere(hdRec.Type) and IsString(hdRec.Type))) then
-    LogInstance("Holder type invalid <"..tostring(hdRec.Type)..">"); return nil end
+    LogInstance("Holder type invalid "..GetReport1(hdRec.Type)); return nil end
   -- If the types are different and disabled
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
-    LogInstance("Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">"); return nil end
+    LogInstance("Types different "..GetReport2(trRec.Type, hdRec.Type)); return nil end
   local stSpawn = GetCacheSpawn(oPly, stData) -- We have the next Piece Offset
         stSpawn.TRec, stSpawn.RLen = trRec, trRad
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID

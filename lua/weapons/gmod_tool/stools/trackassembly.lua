@@ -268,6 +268,10 @@ function TOOL:GetCurveFactor()
   return asmlib.GetAsmConvar("curvefact", "FLT")
 end
 
+function TOOL:GetBoundErrorMode()
+  return asmlib.GetAsmConvar("bnderrmod", "STR")
+end
+
 function TOOL:GetEnPhysgunSnap()
   return ((self:GetClientNumber("engunsnap") or 0) ~= 0)
 end
@@ -433,32 +437,28 @@ function TOOL:GetFlipOverID()
   return tostring(self:GetClientInfo("flipoverid") or "")
 end
 
-function TOOL:GetBoundErrorMode()
-  return asmlib.GetAsmConvar("bnderrmod", "STR")
-end
-
 function TOOL:GetSurfaceSnap()
   return ((self:GetClientNumber("surfsnap") or 0) ~= 0)
 end
 
 function TOOL:GetScrollMouse()
-  return asmlib.GetAsmConvar("enpntmscr", "BUL")
+  return ((self:GetClientNumber("enpntmscr") or 0) ~= 0)
 end
 
 function TOOL:GetNocollideWorld()
-  return asmlib.GetAsmConvar("nocollidew", "BUL")
+  return ((self:GetClientNumber("nocollidew") or 0) ~= 0)
 end
 
 function TOOL:SwitchPoint(vDir, bNxt)
   local oRec = asmlib.CacheQueryPiece(self:GetModel()); if(not asmlib.IsHere(oRec)) then
     asmlib.LogInstance("Invalid record",gtArgsLogs); return 1, 2 end
-  local nDir = (tonumber(vDir) or 0) -- Normalize switch direction
+  local nDir, oPly = (tonumber(vDir) or 0), self:GetOwner() -- Normalize switch direction
   local pointid, pnextid = self:GetPointID()
   if(bNxt) then pnextid = asmlib.SwitchID(pnextid,nDir,oRec)
   else          pointid = asmlib.SwitchID(pointid,nDir,oRec) end
   if(pnextid == pointid) then pnextid = asmlib.SwitchID(pnextid,nDir,oRec) end
-  asmlib.SetAsmConvar(nil,"pnextid", pnextid)
-  asmlib.SetAsmConvar(nil,"pointid", pointid)
+  asmlib.SetAsmConvar(oPly, "pnextid", pnextid)
+  asmlib.SetAsmConvar(oPly, "pointid", pointid)
   asmlib.LogInstance("("..nDir..","..tostring(bNxt)..") Success",gtArgsLogs)
   return pointid, pnextid
 end
