@@ -762,8 +762,11 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("HOVER_TRIGGER",{})
-    SetOpVar("LOCALIFY_TABLE",{})
-    SetOpVar("LOCALIFY_AUTO","en")
+    SetOpVar("LOCALIFY_TABLE",{
+      Auto = "en", -- Defibes language hash source for missing phrases
+      Info = {},   -- Placeholder for the updated and replaced phrases
+      Menu = {},   -- Placeholder for all the translated hash phrases
+    })
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
   end; LogInstance("Success"); return true
@@ -1798,28 +1801,28 @@ function GetFrequentModels(snCount)
 end
 
 function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
-  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
-    LogInstance("Base panel invalid"); return nil end
-  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
-  local sY, pY, dX, dY = 45, 0, 2, 2; pY = dY
-  local tSkin = cPanel:GetSkin()
-  local sX = GetOpVar("WIDTH_CPANEL")
+  local tSkin, sY, dY = cPanel:GetSkin(), 22, 2
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
+  local iWpan = GetOpVar("WIDTH_CPANEL")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
+    LogInstance("Base invalid"); return nil end
+  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
   pPanel:SetParent(cPanel)
   pPanel:Dock(TOP)
-  pPanel:SetTall(sY)
+  pPanel:SetTall(dY)
   cPanel:InvalidateLayout(true)
   -- Setup slider parented to the base panel
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
+  pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for slider
   pSlider:SetParent(pPanel)
   pSlider:InvalidateLayout(true)
-  pSlider:SizeToContents()
+  pSlider:SizeToContentsY()
   pSlider:Dock(TOP)
-  pSlider:SetTall(22)
+  pSlider:SetTall(sY)
   pSlider:SetText(GetPhrase(sBase.."_con"))
   pSlider:SetTooltip(GetPhrase(sBase))
   pSlider:SetMin(nMin)
@@ -1829,33 +1832,32 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   pSlider:SetDark(true)
   pSlider:SetConVar(sKey)
   pSlider:SetVisible(true)
-  pY = pY + dY + pSlider:GetTall()
   -- Setup the buttons from the array provided
   if(IsTable(tBtn) and tBtn[1]) then
-    local nBtn, iCnt, bX, bY = #tBtn, 1, dX, pY
-    local wB, hB = ((sX - ((nBtn + 1) * dX)) / nBtn), 20
-    while(tBtn[iCnt]) do local vBtn = tBtn[iCnt]
+    pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for buttons
+    local iButn, pX, pY = #tBtn, 0, (sY + 2 * dY)
+    local sX = mathFloor(iWpan / iButn)
+    for iD = 1, iButn do
+      local vBtn = tBtn[iD]
       local sTxt = tostring(vBtn.Tag)
       local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
         LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
       if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
       pButton:SetParent(pPanel)
-      pButton:InvalidateLayout(true)
-      pButton:SizeToContents()
       pButton:SetText(sTxt)
-      pButton:SetPos(bX, bY)
-      pButton:SetSize(wB, hB)
+      pButton:SetPos(pX, pY); pX = pX + sX
+      pButton:SetSize(sX, sY)
       pButton.DoClick = function()
         local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
           LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
       end
       pButton:SetVisible(true)
-      bX, iCnt = (bX + (wB + dX)), (iCnt + 1)
-    end; pY = pY + (dY + hB)
+      pButton:InvalidateLayout(true)
+    end
   end
-  pPanel:InvalidateChildren()
-  pPanel:SizeToContents()
   pPanel:SizeToChildren(true, false)
+  pPanel:SizeToContentsY()
+  pPanel:InvalidateChildren()
   cPanel:AddPanel(pPanel)
   return pPanel
 end
@@ -2346,9 +2348,9 @@ end
 
 local function GetPlayerSpot(pPly)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
+    LogInstance("Invalid "..GetReport(pPly)); return nil end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
-    LogInstance("Cached <"..pPly:Nick()..">")
+    LogInstance("Cached "..GetReport1(pPly:Nick()))
     libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
   end; return stSpot
 end
@@ -2377,7 +2379,7 @@ function GetCacheSpawn(pPly, tDat)
       LogInstance("Invalid "..GetReport(stData)); return nil end
     if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
-      LogInstance("Populate <"..pPly:Nick()..">")
+      LogInstance("Populate "..GetReport1(pPly:Nick()))
     end; return stData
   else -- Use internal data spot
     local stSpot = GetPlayerSpot(pPly)
@@ -2387,14 +2389,14 @@ function GetCacheSpawn(pPly, tDat)
     if(not IsHere(stData)) then
       stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
       stData = SetCacheSpawn(stData)
-      LogInstance("Allocate <"..pPly:Nick()..">")
+      LogInstance("Allocate "..GetReport1(pPly:Nick()))
     end; return stData
   end
 end
 
 function CacheClear(pPly, bNow)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly).."> invalid"); return false end
+    LogInstance("Invalid "..GetReport(pPly)); return false end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Clean"); return true end
   libPlayer[pPly] = nil; if(bNow) then collectgarbage() end; return true
@@ -2402,7 +2404,7 @@ end
 
 function GetDistanceHit(pPly, vHit)
   if(not IsPlayer(pPly)) then
-    LogInstance("Player <"..tostring(pPly).."> invalid"); return nil end
+    LogInstance("Invalid "..GetReport(pPly)); return nil end
   return (vHit - pPly:GetPos()):Length()
 end
 
@@ -4009,7 +4011,7 @@ end
 ]]--
 function GetNormalAngle(oPly, soTr, bSnp, nSnp)
   local aAng, nAsn = Angle(), (tonumber(nSnp) or 0); if(not IsPlayer(oPly)) then
-    LogInstance("No player <"..tostring(oPly)..">", aAng); return aAng end
+    LogInstance("Invalid "..GetReport(oPly)); return aAng end
   if(bSnp) then local stTr = soTr -- Snap to the trace surface
     if(not (stTr and stTr.Hit)) then stTr = GetCacheTrace(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
@@ -4038,7 +4040,7 @@ function GetEntityHitID(oEnt, vHit, bPnt)
   local oAnc, oID, oMin, oPOA = Vector(), nil, nil, nil
   for ID = 1, oRec.Size do -- Ignore the point disabled flag
     local tPOA, tID = LocatePOA(oRec, ID); if(not IsHere(tPOA)) then
-      LogInstance("Point missing "..GetReport(ID)); return nil end
+      LogInstance("Point missing "..GetReport1(ID)); return nil end
     if(bPnt) then SetVector(oAnc, tPOA.P) else SetVector(oAnc, tPOA.O) end
     oAnc:Rotate(eAng); oAnc:Add(ePos); oAnc:Sub(vHit)
     local tMin = oAnc:Length() -- Calculate vector absolute ( distance )
@@ -4078,9 +4080,9 @@ end
 function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
                         ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
-    LogInstance("No record located for <"..shdModel..">"); return nil end
+    LogInstance("No record located "..GetReport(shdModel)); return nil end
   local hdPOA, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdPOA)) then
-    LogInstance("Holder point ID missing "..GetReport(ivhdPoID)); return nil end
+    LogInstance("Holder ID missing "..GetReport(ivhdPoID)); return nil end
   local stSpawn = GetCacheSpawn(oPly, stData); stSpawn.HRec, stSpawn.HID = hdRec, ihdPoID
   if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
@@ -4144,32 +4146,32 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
                         nvActRadius,enFlatten,enIgnTyp,ucsPosX,
                         ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
   if(not (trEnt and trHitPos and shdModel and ivhdPoID and nvActRadius)) then
-    LogInstance("Mismatched input parameters"); return nil end
+    LogInstance("Parameters mismatch"); return nil end
   if(not trEnt:IsValid()) then
     LogInstance("Trace entity not valid"); return nil end
   if(IsOther(trEnt)) then
     LogInstance("Trace other type"); return nil end
   local nActRadius = tonumber(nvActRadius); if(not IsHere(nActRadius)) then
-    LogInstance("Active radius mismatch "..GetReport(nvActRadius)); return nil end
+    LogInstance("Radius mismatch "..GetReport(nvActRadius)); return nil end
   local trID, trRad, trPOA, trRec = GetEntityHitID(trEnt, trHitPos, true)
   if(not (IsHere(trID) and IsHere(trRad) and IsHere(trPOA) and IsHere(trRec))) then
-    LogInstance("Active point missed <"..trEnt:GetModel()..">"); return nil end
+    LogInstance("Active point missed "..GetReport1(trEnt:GetModel())); return nil end
   if(not IsHere(LocatePOA(trRec, 1))) then
     LogInstance("Trace has no points"); return nil end
   if(trRad > nActRadius) then
     LogInstance("Trace outside radius"); return nil end
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
-    LogInstance("Holder model missing <"..tostring(shdModel)..">"); return nil end
+    LogInstance("Holder model missing "..GetReport(shdModel)); return nil end
   local hdOffs, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdOffs)) then
     LogInstance("Holder point missing "..GetReport(ivhdPoID)); return nil end
   -- If there is no Type exit immediately
   if(not (IsHere(trRec.Type) and IsString(trRec.Type))) then
-    LogInstance("Trace type invalid <"..tostring(trRec.Type)..">"); return nil end
+    LogInstance("Trace type invalid "..GetReport(trRec.Type)); return nil end
   if(not (IsHere(hdRec.Type) and IsString(hdRec.Type))) then
-    LogInstance("Holder type invalid <"..tostring(hdRec.Type)..">"); return nil end
+    LogInstance("Holder type invalid "..GetReport(hdRec.Type)); return nil end
   -- If the types are different and disabled
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
-    LogInstance("Types different <"..tostring(trRec.Type)..","..tostring(hdRec.Type)..">"); return nil end
+    LogInstance("Types different "..GetReport2(trRec.Type, hdRec.Type)); return nil end
   local stSpawn = GetCacheSpawn(oPly, stData) -- We have the next Piece Offset
         stSpawn.TRec, stSpawn.RLen = trRec, trRad
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID
@@ -4862,44 +4864,48 @@ function SetAsmConvar(pPly, sName, snVal)
   end; return RunConsoleCommand(sKey, tostring(snVal or ""))
 end
 
-function GetPhrase(sKey)
-  if(SERVER) then return end
-  local sDef = GetOpVar("MISS_NOTR")
+--[[
+ * Returns translation hash dedicated to user menus
+ * vKey > The translation hash to obtain forn the information table
+ * When translation cannot be located ir is replaced by `MISS_NOTR`
+]]
+function GetPhrase(vKey)
+  local sDef, sKey = GetOpVar("MISS_NOTR"), tostring(vKey)
+  if(SERVER) then LogInstance("Server "..GetReport2(vKey, sKey)); return sDef end
   local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
-    LogInstance("Skip <"..sKey..">"); return GetOpVar("MISS_NOTR") end
-  local sKey = tostring(sKey) if(not IsHere(tSet[sKey])) then
-    LogInstance("Miss <"..sKey..">"); return GetOpVar("MISS_NOTR") end
-  return (tSet[sKey] or GetOpVar("MISS_NOTR")) -- Translation fail safe
+    LogInstance("Skip "..GetReport2(vKey, sKey)); return sDef end
+  local tPhr = tSet.Menu; if(not IsHere(tPhr[sKey])) then
+    LogInstance("Miss "..GetReport2(vKey, sKey)); return sDef end
+  return tostring(tPhr[sKey] or sDef) -- Translation fail safe
 end
 
-local function GetLocalify(sCode)
-  local sCode = tostring(sCode or GetOpVar("MISS_NOAV"))
-  if(SERVER) then LogInstance("("..sCode..") Not client"); return nil end
-  local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
-  local sPath = GetOpVar("FORM_LANGPATH"):format("", sCode..".lua") -- Translation file path
-  if(not fileExists("lua/"..sPath, "GAME")) then
-    LogInstance("("..sCode..") Missing"); return nil end
-  local fCode = CompileFile(sPath); if(not fCode) then
-    LogInstance("("..sCode..") No function"); return nil end
-  local bFunc, fFunc = pcall(fCode); if(not bFunc) then
-    LogInstance("("..sCode..")[1] "..fFunc); return nil end
-  local bCode, tCode = pcall(fFunc, sTool, sLimit); if(not bCode) then
-    LogInstance("("..sCode..")[2] "..tCode); return nil end
-  return tCode -- The successfully extracted translations
+--[[
+ * Returns or allocates translation hash definition table
+ * vCode > The language code to allocate and return table for
+]]
+function GetLocalify(vCode)
+  local sCode = tostring(vCode or GetOpVar("MISS_NOAV"))
+  if(SERVER) then LogInstance("Server "..GetReport2(vCode, sCode)); return end
+  local tInfo = GetOpVar("LOCALIFY_TABLE").Info
+  if(not IsHere(tInfo[sCode])) then tInfo[sCode] = {}
+    LogInstance("Alloc "..GetReport2(vCode, sCode)) end
+  return tInfo[sCode]
 end
 
-function InitLocalify(sCode)
-  local cuCod = tostring(sCode or GetOpVar("MISS_NOAV"))
-  if(not CLIENT) then LogInstance("("..cuCod..") Not client"); return nil end
-  local thSet = GetOpVar("LOCALIFY_TABLE"); tableEmpty(thSet)
-  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
-  local auSet = GetLocalify(auCod); if(not auSet) then
-    LogInstance("Base mismatch <"..auCod..">"); return nil end
-  if(cuCod ~= auCod) then local cuSet = GetLocalify(cuCod)
-    if(cuSet) then -- When the language infornation is extracted apply on success
-      for key, val in pairs(auSet) do auSet[key] = (cuSet[key] or auSet[key]) end
-    else LogInstance("Custom skipped <"..cuCod..">") end -- Apply auto code
-  end; for key, val in pairs(auSet) do thSet[key] = auSet[key]; languageAdd(key, val) end
+--[[
+ * Switches the system to new translation provided
+ * vCode > The translation to switch all messages to
+]]
+function InitLocalify(vCode)
+  local sCode = tostring(vCode or GetOpVar("MISS_NOAV"))
+  if(SERVER) then LogInstance("Server "..GetReport2(vCode, sCode)); return end
+  local tLang = GetOpVar("LOCALIFY_TABLE"); tableEmpty(tLang.Menu)
+  -- Automatic translation code where all translation must be present
+  local auSet = GetLocalify(tLang.Auto); if(not auSet) then
+    LogInstance("Miss "..GetReport1(tLang.Auto)); return end
+  local thSet = (GetLocalify(sCode) or auSet)
+  for key, val in pairs(auSet) do languageAdd(key, val)
+    tLang.Menu[key] = (thSet[key] or auSet[key]) end
 end
 
 --[[

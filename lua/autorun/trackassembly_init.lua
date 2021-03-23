@@ -82,12 +82,13 @@ local spawnmenuAddToolMenuOption    = spawnmenu and spawnmenu.AddToolMenuOption
 
 ------------ MODULE POINTER ------------
 
-local asmlib = trackasmlib
+local asmlib = trackasmlib; if(not asmlib) then -- Module present
+  ErrorNoHalt("INIT: Track assembly tool module fail"); return end
 
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.651")
+asmlib.SetOpVar("TOOL_VERSION","8.652")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -184,13 +185,10 @@ asmlib.MakeAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the co
 asmlib.MakeAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
 asmlib.MakeAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
 asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
-
-if(SERVER) then
-  asmlib.MakeAsmConvar("spawnrate",  1  , nil, gnServerControled, "Maximum pieces spawned in every think tick")
-  asmlib.MakeAsmConvar("bnderrmod","LOG", nil, gnServerControled, "Unreasonable position error handling mode")
-  asmlib.MakeAsmConvar("maxfruse" ,  50 , nil, gnServerControled, "Maximum frequent pieces to be listed")
-  asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
-end
+asmlib.MakeAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
+asmlib.MakeAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
+asmlib.MakeAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
+asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 
 ------------ CONFIGURE INTERNALS ------------
 
@@ -323,12 +321,16 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
   }
 })
 
+------------ TRANSLATIONS ------------
+
+for iD = 1, #gtTransFile do
+  local sNam = gsLangForm:format("",gtTransFile[iD])
+  if(SERVER) then AddCSLuaFile(sNam) end; include(sNam)
+end
+
 ------------ ACTIONS ------------
 
 if(SERVER) then
-
-  -- Send language definitions to the client to populate the menu
-  for iD = 1, #gtTransFile do AddCSLuaFile(gsLangForm:format("",gtTransFile[iD])) end
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
