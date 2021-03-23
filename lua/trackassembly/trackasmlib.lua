@@ -763,9 +763,9 @@ function InitBase(sName, sPurp)
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("HOVER_TRIGGER",{})
     SetOpVar("LOCALIFY_TABLE",{
-      Auto = "en", -- The language prase to load whn not available
-      Info = {},   -- Contains the loaded phrases
-      Menu = {},   -- Table to store all the translated sound phrases
+      Auto = "en", -- Defibes language hash source for missing phrases
+      Info = {},   -- Placeholder for the updated and replaced phrases
+      Menu = {},   -- Placeholder for all the translated hash phrases
     })
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
@@ -1817,6 +1817,7 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   -- Setup slider parented to the base panel
   local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
     LogInstance("Slider invalid"); return nil end
+  pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for slider
   pSlider:SetParent(pPanel)
   pSlider:InvalidateLayout(true)
   pSlider:SizeToContentsY()
@@ -1831,10 +1832,10 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   pSlider:SetDark(true)
   pSlider:SetConVar(sKey)
   pSlider:SetVisible(true)
-  pPanel:SetTall(pPanel:GetTall() + sY + dY)
   -- Setup the buttons from the array provided
   if(IsTable(tBtn) and tBtn[1]) then
-    local iButn, pX, pY = #tBtn, 0, dY
+    pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for buttons
+    local iButn, pX, pY = #tBtn, 0, (sY + 2 * dY)
     local sX = mathFloor(iWpan / iButn)
     for iD = 1, iButn do
       local vBtn = tBtn[iD]
@@ -1852,9 +1853,7 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
       end
       pButton:SetVisible(true)
       pButton:InvalidateLayout(true)
-      pPanel:AddPanel(pButton)
     end
-    pPanel:SetTall(pPanel:GetTall() + sY + dY)
   end
   pPanel:SizeToChildren(true, false)
   pPanel:SizeToContentsY()
