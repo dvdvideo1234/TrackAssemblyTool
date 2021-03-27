@@ -90,6 +90,7 @@ local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetContainer("COLORS_LIST")
 local conWorkMode = asmlib.GetContainer("WORK_MODE")
 local conElements = asmlib.GetContainer("LIST_VGUI")
+local varLanguage = GetConVar("gmod_language")
 local gtArgsLogs  = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
@@ -149,6 +150,9 @@ TOOL.ClientConVar = {
 }
 
 if(CLIENT) then
+  -- Initialize tool translations and load the lua file dedicated to the language
+  asmlib.InitLocalify(varLanguage:GetString())
+
   -- https://wiki.facepunch.com/gmod/Tool_Information_Display
   TOOL.Information = {
     {name = "workmode.1",   stage = 0, op = 1, icon = asmlib.ToIcon("workmode_snap") , icon2 = ""},

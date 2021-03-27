@@ -762,15 +762,13 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("HOVER_TRIGGER",{})
-    SetOpVar("LOCALIFY_TABLE",{
-      Auto = "en", -- Defibes language hash source for missing phrases
-      Info = {},   -- Placeholder for the updated and replaced phrases
-      Menu = {},   -- Placeholder for all the translated hash phrases
-    })
+    SetOpVar("LOCALIFY_TABLE",{})
+    SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
   end; LogInstance("Success"); return true
 end
+
 
 ------------- COLOR ---------------
 
@@ -4870,26 +4868,33 @@ end
  * When translation cannot be located ir is replaced by `MISS_NOTR`
 ]]
 function GetPhrase(vKey)
-  local sDef, sKey = GetOpVar("MISS_NOTR"), tostring(vKey)
-  if(SERVER) then LogInstance("Server "..GetReport2(vKey, sKey)); return sDef end
+  local sDef = GetOpVar("MISS_NOTR")
+  if(SERVER) then LogInstance("Server "..GetReport(vKey)); return sDef end
   local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
-    LogInstance("Skip "..GetReport2(vKey, sKey)); return sDef end
-  local tPhr = tSet.Menu; if(not IsHere(tPhr[sKey])) then
-    LogInstance("Miss "..GetReport2(vKey, sKey)); return sDef end
-  return tostring(tPhr[sKey] or sDef) -- Translation fail safe
+    LogInstance("Mismatch "..GetReport(vKey)); return sDef end
+  local sKey = tostring(vKey); if(not IsHere(tSet[sKey])) then
+    LogInstance("Skipped "..GetReport1(sKey)); return sDef end
+  return (tSet[sKey] or sDef) -- Translation fail safe
 end
 
 --[[
  * Returns or allocates translation hash definition table
  * vCode > The language code to allocate and return table for
 ]]
-function GetLocalify(vCode)
+local function GetLocalify(vCode)
   local sCode = tostring(vCode or GetOpVar("MISS_NOAV"))
-  if(SERVER) then LogInstance("Server "..GetReport2(vCode, sCode)); return end
-  local tInfo = GetOpVar("LOCALIFY_TABLE").Info
-  if(not IsHere(tInfo[sCode])) then tInfo[sCode] = {}
-    LogInstance("Alloc "..GetReport2(vCode, sCode)) end
-  return tInfo[sCode]
+  if(SERVER) then LogInstance("Server "..GetReport(vCode)); return nil end
+  local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
+  local sPath = GetOpVar("FORM_LANGPATH"):format("", sCode..".lua")
+  if(not fileExists("lua/"..sPath, "GAME")) then -- Translation file path
+    LogInstance("Missing "..GetReport1(sCode)); return nil end
+  local fCode = CompileFile(sPath); if(not fCode) then -- Compile
+    LogInstance("Stage[0] "..GetReport2(sCode, sPath)); return nil end
+  local bFunc, fFunc = pcall(fCode); if(not bFunc) then -- Call the function factory
+    LogInstance("Stage[1] "..GetReport2(sCode, sPath)..": "..fFunc); return nil end
+  local bCode, tCode = pcall(fFunc, sTool, sLimit); if(not bCode) then -- Produce entry
+    LogInstance("Stage[2] "..GetReport2(sCode, sPath)..": "..tCode); return nil end
+  return tCode -- The successfully extracted translations table and returns the list
 end
 
 --[[
@@ -4897,15 +4902,17 @@ end
  * vCode > The translation to switch all messages to
 ]]
 function InitLocalify(vCode)
-  local sCode = tostring(vCode or GetOpVar("MISS_NOAV"))
-  if(SERVER) then LogInstance("Server "..GetReport2(vCode, sCode)); return end
-  local tLang = GetOpVar("LOCALIFY_TABLE"); tableEmpty(tLang.Menu)
-  -- Automatic translation code where all translation must be present
-  local auSet = GetLocalify(tLang.Auto); if(not auSet) then
-    LogInstance("Miss "..GetReport1(tLang.Auto)); return end
-  local thSet = (GetLocalify(sCode) or auSet)
-  for key, val in pairs(auSet) do languageAdd(key, val)
-    tLang.Menu[key] = (thSet[key] or auSet[key]) end
+  local cuCod = tostring(vCode or GetOpVar("MISS_NOAV"))
+  if(SERVER) then LogInstance("Server "..GetReport(vCode)); return nil end
+  local thSet = GetOpVar("LOCALIFY_TABLE"); tableEmpty(thSet)
+  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
+  local auSet = GetLocalify(auCod); if(not auSet) then
+    LogInstance("Mismatch "..GetReport(auCod)); return nil end
+  if(cuCod ~= auCod) then local cuSet = GetLocalify(cuCod)
+    if(cuSet) then -- When the language infornation is extracted apply on success
+      for key, val in pairs(auSet) do auSet[key] = (cuSet[key] or auSet[key]) end
+    else LogInstance("Skipped "..GetReport(auCod)) end -- Apply auto code
+  end; for key, val in pairs(auSet) do thSet[key] = auSet[key]; languageAdd(key, val) end
 end
 
 --[[
@@ -5059,7 +5066,7 @@ end
  * cS > The start vector ( BEGIN )
  * cE > The end vector ( END )
  * nT > Amount of points to be calculated
- * nA > Amount of points to be calculated
+ * nA > Parametric constant curve factor [0 ; 1]
  * Returns the value of the tangent
 ]]
 local function GetCatmullRomCurveTangent(cS, cE, nT, nA)
@@ -5070,7 +5077,7 @@ end
 
 --[[
  * Calculates Catmull-Rom curve segment on four points
- * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline#Definition
+ * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
  * vPN > The given anchor point N ( KNOTS )
  * nN  > Amount of points to be calculated
  * nA  > Parametric constant curve factor [0 ; 1]
@@ -5078,13 +5085,13 @@ end
 ]]
 local function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
   if(not IsVector(vP0)) then
-    LogInstance("Position(0) mismatch "..GetReport(vP0)); return nil end
+    LogInstance("Mismatch[0] "..GetReport(vP0)); return nil end
   if(not IsVector(vP1)) then
-    LogInstance("Position(1) mismatch "..GetReport(vP1)); return nil end
+    LogInstance("Mismatch[1] "..GetReport(vP1)); return nil end
   if(not IsVector(vP2)) then
-    LogInstance("Position(2) mismatch "..GetReport(vP2)); return nil end
+    LogInstance("Mismatch[2] "..GetReport(vP2)); return nil end
   if(not IsVector(vP3)) then
-    LogInstance("Position(3) mismatch "..GetReport(vP3)); return nil end
+    LogInstance("Mismatch[3] "..GetReport(vP3)); return nil end
   local nT0, tS = 0, {} -- Start point is always zero
   local nT1 = GetCatmullRomCurveTangent(vP0, vP1, nT0, nA)
   local nT2 = GetCatmullRomCurveTangent(vP1, vP2, nT1, nA)
@@ -5114,8 +5121,8 @@ local function GetCatmullRomCurve(tV, nT, nA, tO)
   if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
   local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
-    LogInstance("Curve samples mismatch "..GetReport(nT)); return nil end
-  if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
+    LogInstance("Samples mismatch "..GetReport1(nT)); return nil end
+  if(not (tV[1] and tV[2])) then LogInstance("Two vertices needed"); return nil end
   if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
   local vM, iC, cS, cE, tN = GetOpVar("CURVE_MARGIN"), 1, Vector(), Vector(), (tO or {})
   cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])

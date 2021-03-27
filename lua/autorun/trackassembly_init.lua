@@ -1,9 +1,3 @@
------------- INCLUDE LIBRARY ------------
-if(SERVER) then
-  AddCSLuaFile("trackassembly/trackasmlib.lua")
-end
-include("trackassembly/trackasmlib.lua")
-
 ------------ LOCALIZNG FUNCTIONS ------------
 
 local pcall                         = pcall
@@ -77,8 +71,16 @@ local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
 local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
 local controlpanelGet               = controlpanel and controlpanel.Get
+local resourceAddSingleFile         = resource and resource.AddSingleFile
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 local spawnmenuAddToolMenuOption    = spawnmenu and spawnmenu.AddToolMenuOption
+
+------------ INCLUDE LIBRARY ------------
+if(SERVER) then
+  AddCSLuaFile("trackassembly/trackasmlib.lua")
+  resourceAddSingleFile("trackassembly/trackasmlib.lua")
+end
+include("trackassembly/trackasmlib.lua")
 
 ------------ MODULE POINTER ------------
 
@@ -88,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.652")
+asmlib.SetOpVar("TOOL_VERSION","8.653")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -324,8 +326,11 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
 ------------ TRANSLATIONS ------------
 
 for iD = 1, #gtTransFile do
-  local sNam = gsLangForm:format("",gtTransFile[iD])
-  if(SERVER) then AddCSLuaFile(sNam) end; include(sNam)
+  local sNam = gsLangForm:format("", gtTransFile[iD])
+  if(SERVER) then
+    AddCSLuaFile(sNam)
+    resourceAddSingleFile(sNam)
+  end
 end
 
 ------------ ACTIONS ------------
@@ -414,12 +419,10 @@ if(CLIENT) then
     weight = 600
   })
 
-  -- Initialize tool translations and load the lua file dedicated to the language
-  asmlib.InitLocalify(varLanguage:GetString())
-
   -- Listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
   cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
+    asmlib.InitLocalify(varLanguage:GetString())
     local sLog, bS, vOut, fUser, fAdmn = "*UPDATE_CONTROL_PANEL"
     local oTool = asmlib.GetOpVar("STORE_TOOLOBJ"); if(not asmlib.IsHere(oTool)) then
       asmlib.LogInstance("Tool object missing", sLog); return end
