@@ -705,7 +705,7 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
-  SetOpVar("FORM_LANGPATH","%s"..GetOpVar("TOOLNAME_NL").."/lang/%s")
+  SetOpVar("FORM_LANGPATH",GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "GAMEMODE:AddNotify(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
@@ -4885,7 +4885,7 @@ local function GetLocalify(vCode)
   local sCode = tostring(vCode or GetOpVar("MISS_NOAV"))
   if(SERVER) then LogInstance("Server "..GetReport(vCode)); return nil end
   local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
-  local sPath = GetOpVar("FORM_LANGPATH"):format("", sCode..".lua")
+  local sPath = GetOpVar("FORM_LANGPATH"):format(sCode..".lua")
   if(not fileExists("lua/"..sPath, "GAME")) then -- Translation file path
     LogInstance("Missing "..GetReport1(sCode)); return nil end
   local fCode = CompileFile(sPath); if(not fCode) then -- Compile

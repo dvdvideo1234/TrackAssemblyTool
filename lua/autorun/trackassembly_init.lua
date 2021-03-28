@@ -71,14 +71,12 @@ local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
 local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
 local controlpanelGet               = controlpanel and controlpanel.Get
-local resourceAddSingleFile         = resource and resource.AddSingleFile
 local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 local spawnmenuAddToolMenuOption    = spawnmenu and spawnmenu.AddToolMenuOption
 
 ------------ INCLUDE LIBRARY ------------
 if(SERVER) then
   AddCSLuaFile("trackassembly/trackasmlib.lua")
-  resourceAddSingleFile("trackassembly/trackasmlib.lua")
 end
 include("trackassembly/trackasmlib.lua")
 
@@ -90,7 +88,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.653")
+asmlib.SetOpVar("TOOL_VERSION","8.654")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -114,7 +112,7 @@ local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gtCallBack  = asmlib.GetOpVar("TABLE_CALLBACK")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
-local gtTransFile = fileFind(gsLangForm:format("lua/", "*.lua"), "GAME")
+local gtTransFile = fileFind(gsLangForm:format("*.lua"), "LUA")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 
@@ -323,19 +321,13 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
   }
 })
 
------------- TRANSLATIONS ------------
-
-for iD = 1, #gtTransFile do
-  local sNam = gsLangForm:format("", gtTransFile[iD])
-  if(SERVER) then
-    AddCSLuaFile(sNam)
-    resourceAddSingleFile(sNam)
-  end
-end
-
 ------------ ACTIONS ------------
 
 if(SERVER) then
+
+  for iD = 1, #gtTransFile do
+    AddCSLuaFile(gsLangForm:format(gtTransFile[iD]))
+  end -- Add client side translation lua files
 
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
