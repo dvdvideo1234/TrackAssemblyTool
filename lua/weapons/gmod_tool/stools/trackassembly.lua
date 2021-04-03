@@ -210,7 +210,7 @@ if(CLIENT) then
       asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",sLog)
       if(inputIsKeyDown(KEY_LSHIFT)) then
         if(not devmode) then
-          asmlib.LogInstance("Developer mode disabled",sLog); return nil end
+          asmlib.LogInstance("Developer mode disabled",sLog); return end
         asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName, 1500)
         for key, val in pairs(asmlib.GetOpVar("STORE_CONVARS")) do
           asmlib.SetAsmConvar(oPly, "*"..key, val) end
@@ -248,7 +248,7 @@ if(CLIENT) then
                                asmlib.GetAsmConvar("logfile","BUL"))
         end
       end
-      asmlib.LogInstance("Success",sLog); return nil
+      asmlib.LogInstance("Success",sLog)
     end)
 
   -- Store referencies and stuff realted to the tool file
@@ -993,7 +993,7 @@ function TOOL:CurveCheck()
   return tC, nD -- Returns the updated curve nodes table
 end
 
-function TOOL:NormalSpawn(oPly, stTrace)
+function TOOL:NormalSpawn(stTrace, oPly)
   local mass       = self:GetMass()
   local model      = self:GetModel()
   local surfsnap   = self:GetSurfaceSnap()
@@ -1252,7 +1252,7 @@ function TOOL:LeftClick(stTrace)
   local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
     asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
 
-  if(stTrace.HitWorld) then return self:NormalSpawn(ply, stTrace) end -- Switch the tool mode ( Spawn )
+  if(stTrace.HitWorld) then return self:NormalSpawn(stTrace, ply) end -- Switch the tool mode ( Spawn )
 
   if(not (trEnt and trEnt:IsValid())) then
     asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace entity invalid"),gtArgsLogs); return false end
@@ -1262,7 +1262,7 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace not physical object"),gtArgsLogs); return false end
 
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-  if(not asmlib.IsHere(trRec)) then return self:NormalSpawn(ply, stTrace) end
+  if(not asmlib.IsHere(trRec)) then return self:NormalSpawn(stTrace, ply) end
 
   local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
@@ -1565,7 +1565,7 @@ function TOOL:UpdateGhostCurve()
   end
 end
 
-function TOOL:UpdateGhostSpawn(oPly, stTrace)
+function TOOL:UpdateGhostSpawn(stTrace, oPly)
   local atGho = asmlib.GetOpVar("ARRAY_GHOST")
   local model, ePiece = self:GetModel(), atGho[1]
   local pointid, pnextid = self:GetPointID()
@@ -1594,13 +1594,13 @@ function TOOL:UpdateGhostSpawn(oPly, stTrace)
 end
 
 function TOOL:UpdateGhost(oPly)
-  if(not asmlib.FadeGhosts(true)) then return nil end
-  if(self:GetGhostsCount() <= 0) then return nil end
+  if(not asmlib.FadeGhosts(true)) then return end
+  if(self:GetGhostsCount() <= 0) then return end
   local stTrace = asmlib.GetCacheTrace(oPly)
-  if(not stTrace) then return nil end
-  if(not asmlib.HasGhosts()) then return nil end
+  if(not stTrace) then return end
+  if(not asmlib.HasGhosts()) then return end
   local workmode = self:GetWorkingMode()
-  if(workmode == 3) then self:UpdateGhostCurve() return nil end
+  if(workmode == 3) then self:UpdateGhostCurve() return end
   local atGho, trRec = asmlib.GetOpVar("ARRAY_GHOST")
   local trEnt, model = stTrace.Entity, self:GetModel()
   local pointid, pnextid = self:GetPointID()
@@ -1624,7 +1624,7 @@ function TOOL:UpdateGhost(oPly)
       if(workmode == 1) then
         if(stackcnt > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
           local vTemp, hdOffs = Vector(), asmlib.LocatePOA(stSpawn.HRec, pnextid)
-          if(not hdOffs) then return nil end -- Validated existent next point ID
+          if(not hdOffs) then return end -- Validated existent next point ID
           for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
             ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
             asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
@@ -1632,7 +1632,7 @@ function TOOL:UpdateGhost(oPly)
             if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
             stSpawn = asmlib.GetEntitySpawn(oPly,ePiece,vTemp,model,pointid,
               actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
-            if(not stSpawn) then return nil end
+            if(not stSpawn) then return end
           end
         else
           ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
@@ -1648,7 +1648,7 @@ function TOOL:UpdateGhost(oPly)
         self:UpdateGhostFlipOver(stTrace) end
     end
   else
-    local stSpawn = self:UpdateGhostSpawn(oPly, stTrace)
+    local stSpawn = self:UpdateGhostSpawn(stTrace, oPly)
     if(stSpawn) then
       if(workmode == 4) then
         self:UpdateGhostFlipOver(stTrace, stSpawn.SPos, stSpawn.SAng)
@@ -1659,7 +1659,7 @@ end
 
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
-    asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtArgsLogs); return nil end
+    asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtArgsLogs); return end
   local spawncn, elevpnt = self:GetSpawnCenter(), 0
   if(oEnt and oEnt:IsValid()) then
     if(spawncn) then -- Distance for the piece spawned on the ground
@@ -1746,7 +1746,7 @@ function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
-      asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
+      asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return end
     asmlib.SetVector(vTmp, stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
     oScreen:DrawCircle(vTmp:ToScreen(), asmlib.GetViewRadius(oPly, vTmp), "y", "SEGM", {35})
     vTmp:Sub(trHit); if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
@@ -1771,7 +1771,7 @@ function TOOL:DrawSnapAssist(oScreen, oPly, stTrace, nRad, bNoO)
   local nRad = asmlib.GetCacheRadius(oPly, stTrace.HitPos)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
-      asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return nil end
+      asmlib.LogInstance("Cannot locate #"..tostring(ID),gtArgsLogs); return end
     oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, actrad / 5, bNoO)
   end
 end
@@ -1795,7 +1795,7 @@ function TOOL:DrawModelIntersection(oScreen, oPly, stSpawn)
     oScreen:DrawCircle(O1, asmlib.GetViewRadius(oPly, vO1, 0.5), "r")
     oScreen:DrawCircle(O2, asmlib.GetViewRadius(oPly, vO2, 0.5), "g")
     return xX, O1, O2
-  end; return nil
+  end
 end
 
 function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2)
@@ -1970,7 +1970,7 @@ function TOOL:DrawHUD()
   if(not asmlib.IsInit()) then return end
   local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
   local hudMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
-  if(not hudMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
+  if(not hudMonitor) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return end
   if(not self:GetAdviser()) then return end
   local oPly = LocalPlayer()
   local stTrace = asmlib.GetCacheTrace(oPly)
@@ -2087,7 +2087,7 @@ function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
   local scrTool = asmlib.GetScreen(0,0,w,h,conPalette,"TOOL")
-  if(not scrTool) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return nil end
+  if(not scrTool) then asmlib.LogInstance("Invalid screen",gtArgsLogs); return end
   local xyT, xyB = scrTool:GetCorners()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
   scrTool:SetTextStart(xyT.x, xyT.y)
@@ -2097,7 +2097,7 @@ function TOOL:DrawToolScreen(w, h)
   local tInfo = gsSymRev:Explode(anInfo)
   if(not (stTrace and stTrace.Hit)) then
     scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
-    scrTool:DrawTextRe("  ["..(tInfo[1] or gsNoID).."]","an"); return nil
+    scrTool:DrawTextRe("  ["..(tInfo[1] or gsNoID).."]","an"); return
   end
   scrTool:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
   scrTool:DrawTextRe("  ["..(tInfo[1] or gsNoID).."]","an")
