@@ -10,10 +10,11 @@ This script can give you the ability to connect prop-segmented track pieces fast
  [*] General convar [url=https://youtu.be/3Ws6Jh3JUew?t=2051]factory reset[/url] can be easily triggered by the server admins
  [*] Convar tweaks is accessible via [url=https://youtu.be/3Ws6Jh3JUew?t=56]dedicated in-game manipulation panel[/url]
  [*] Context menu for direct track entity [url=https://www.youtube.com/watch?v=mEEpO3w8BLs]value export and manipulation[/url]
- [*] Optional [url=https://youtu.be/3Ws6Jh3JUew?t=2146]flip-over mode called from spawning/snapping[/url] for quickly flip the anchor across
+ [*] Optional [url=https://youtu.be/3Ws6Jh3JUew?t=2146]flip mode called from spawning/snapping[/url] for quickly flip the anchor across
  [*] Track segment [url=https://youtu.be/3Ws6Jh3JUew?t=1358]flip over mode for mirroring[/url] already created [url=https://youtu.be/3Ws6Jh3JUew?t=1722]loops and curves[/url]
  [*] Track segment [url=https://youtu.be/3Ws6Jh3JUew?t=200]curve node interpolation[/url] for building custom track layouts
  [*] Track curve fitting aligment based on [url=https://www.youtube.com/watch?v=1rsDHU79J50]ray intersection for precise piece layout[/url]
+ [*] Track [url=https://www.youtube.com/watch?v=_qcol4_-_ZQ]tangent turn interpolation[/url] for utilizing variable curve radius
  [*] Extendable DB [url=https://www.youtube.com/watch?v=Pz0_RGwgfaY]text file[/url] or a [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/set/z_autorun_%5Btrackassembly%5D.txt]lua script[/url]
  [*] Extendable DB [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/set/trackasmlib_dsv.txt]text file load list[/url] and [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_PIECES.txt]list prefixes[/url] [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/data/trackassembly/dsv/Test_s_track_packTRACKASSEMBLY_CATEGORY.txt]categories[/url]
  [*] Switching DB storage between [b]SQL[/b] for SQL mode and [b]LUA[/b] for Lua mode
@@ -42,26 +43,20 @@ This script can give you the ability to connect prop-segmented track pieces fast
  [*] Includes integrated wiremod extension
 [/list]
 
-For detailed manual, please refer to Readme.md
-
-Readme: https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/readme.md
-
-Wiki page: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki
-
-Git repository: https://github.com/dvdvideo1234/TrackAssemblyTool
-
-Report errors to: https://github.com/dvdvideo1234/TrackAssemblyTool/issues
-
-Releases: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
-
-E2 API: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Wiremod-API
-
-One way turns problem: https://github.com/dvdvideo1234/TrackAssemblyTool#how-can-i-chose-and-select-a-desired-track-end-
-
-If the tool database does not seem to be correct please reset the external
-DSV by deleting the [url=https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/trackassembly]data/trackassembly[/url] folder!
-Please remember to backup your personal pluggable DSV database if you have created any!
-The DSV database is located in the [url=https://github.com/dvdvideo1234/TrackAssemblyTool/tree/master/data/trackassembly/dsv]data/trackassembly/dsv[/url] folder!
+[h1] Manual and troubleshooting [/h1]
+[list]
+ [*] When TA does not work as expected and has incorrect output, [url=https://steamcommunity.com/groups/SligsAddonsGroup/discussions/0/358417008723619723/]you can try testing it[/url]
+ [*] You can find the list of the [url=https://github.com/dvdvideo1234/TrackAssemblyTool#which-addons-did-you-work-on]supported addons here[/url]
+ [*] The [url=https://github.com/dvdvideo1234/TrackAssemblyTool/blob/master/readme.md]readme is designed to answer your questions[/url] so do not ignore it
+ [*] Information regarding TA gameplay and setup can be [url=https://github.com/dvdvideo1234/TrackAssemblyTool/wiki]found in the wiki[/url]
+ [*] When you are searching for [url=https://github.com/dvdvideo1234/TrackAssemblyTool]the official GIT repository click here[/url]
+ [*] When you have problems and you need to [url=https://github.com/dvdvideo1234/TrackAssemblyTool/issues]report an issue post it here[/url]
+ [*] Some people do not have accounts in Githb so [url=https://github.com/dvdvideo1234/TrackAssemblyTool/releases]here are the releases[/url]
+ [*] I no longer bother with making releases as [url=https://github.com/dvdvideo1234/trackassemblytool/archive/master.zip]you can obtain a *.ZIP file[/url]
+ [*] When you are searching for [url=https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Wiremod-E2-API]the wire Expression 2 documentation try here[/url]
+ [*] When you [url=https://github.com/dvdvideo1234/TrackAssemblyTool#how-can-i-chose-and-select-a-desired-track-end-]cannot switch track ends or there is no left turn try here[/url]
+ [*] When [url=https://github.com/dvdvideo1234/TrackAssemblyTool/issues/26]track packs are not showing in the tree menu and seem to be missing[/url]
+[/list]
 
 Reuploading and source stealing will not be tolerated !
 Selling it is also out of option, as the open source suggests !

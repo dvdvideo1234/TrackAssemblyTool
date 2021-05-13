@@ -144,8 +144,8 @@ TOOL.ClientConVar = {
   [ "sgradmenu"  ] = 1,
   [ "incsnpang"  ] = 5,
   [ "incsnplin"  ] = 5,
-  [ "crvturnlm"  ] = 0,
-  [ "crvleanlm"  ] = 0,
+  [ "crvturnlm"  ] = 0.95,
+  [ "crvleanlm"  ] = 0.95,
   [ "flipoverid" ] = ""
 }
 
@@ -154,36 +154,7 @@ if(CLIENT) then
   asmlib.InitLocalify(varLanguage:GetString())
 
   -- https://wiki.facepunch.com/gmod/Tool_Information_Display
-  TOOL.Information = {
-    {name = "workmode.1",   stage = 0, op = 1, icon = asmlib.ToIcon("workmode_snap") , icon2 = ""},
-    {name = "workmode.2",   stage = 0, op = 2, icon = asmlib.ToIcon("workmode_cross"), icon2 = ""},
-    {name = "workmode.3",   stage = 0, op = 3, icon = asmlib.ToIcon("workmode_curve"), icon2 = ""},
-    {name = "workmode.4",   stage = 0, op = 4, icon = asmlib.ToIcon("workmode_over") , icon2 = ""},
-    {name = "info.1",       stage = 0, op = 1, icon = "gui/info"   , icon2 = ""},
-    {name = "info.2",       stage = 0, op = 2, icon = "gui/info"   , icon2 = ""},
-    {name = "info.3",       stage = 0, op = 3, icon = "gui/info"   , icon2 = ""},
-    {name = "info.4",       stage = 0, op = 4, icon = "gui/info"   , icon2 = ""},
-    {name = "left.1",       stage = 0, op = 1, icon = "gui/lmb.png", icon2 = ""},
-    {name = "left.2",       stage = 0, op = 2, icon = "gui/lmb.png", icon2 = ""},
-    {name = "left.3",       stage = 0, op = 3, icon = "gui/lmb.png", icon2 = ""},
-    {name = "left.4",       stage = 0, op = 4, icon = "gui/lmb.png", icon2 = ""},
-    {name = "right.1",      stage = 0, op = 1, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right.2",      stage = 0, op = 2, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right.3",      stage = 0, op = 3, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right.4",      stage = 0, op = 4, icon = "gui/rmb.png", icon2 = ""},
-    {name = "right_use.1",  stage = 0, op = 1, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "right_use.2",  stage = 0, op = 2, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "right_use.3",  stage = 0, op = 3, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "right_use.4",  stage = 0, op = 4, icon = "gui/rmb.png", icon2 = "gui/e.png"},
-    {name = "reload.1",     stage = 0, op = 1, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload.2",     stage = 0, op = 2, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload.3",     stage = 0, op = 3, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload.4",     stage = 0, op = 4, icon = "gui/r.png"  , icon2 = ""},
-    {name = "reload_use.1", stage = 0, op = 1, icon = "gui/r.png"  , icon2 = "gui/e.png"},
-    {name = "reload_use.2", stage = 0, op = 2, icon = "gui/r.png"  , icon2 = "gui/e.png"},
-    {name = "reload_use.3", stage = 0, op = 3, icon = "gui/r.png"  , icon2 = "gui/e.png"},
-    {name = "reload_use.4", stage = 0, op = 4, icon = "gui/r.png"  , icon2 = "gui/e.png"},
-  }
+  TOOL.Information = asmlib.GetToolInformation()
 
   languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
@@ -205,50 +176,12 @@ if(CLIENT) then
 
   concommandAdd(gsToolPrefL.."resetvars",
     function(oPly, oCom, oArgs)
-      local sLog = "*RESET_VARIABLES"
-      local devmode = asmlib.GetAsmConvar("devmode", "BUL")
-      asmlib.LogInstance("{"..tostring(devmode).."@"..tostring(command).."}",sLog)
-      if(inputIsKeyDown(KEY_LSHIFT)) then
-        if(not devmode) then
-          asmlib.LogInstance("Developer mode disabled",sLog); return end
-        asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName, 1500)
-        for key, val in pairs(asmlib.GetOpVar("STORE_CONVARS")) do
-          asmlib.SetAsmConvar(oPly, "*"..key, val) end
-        asmlib.SetAsmConvar(oPly, "logsmax"  , 0)
-        asmlib.SetAsmConvar(oPly, "logfile"  , 0)
-        asmlib.SetAsmConvar(oPly, "modedb"   , "LUA")
-        asmlib.SetAsmConvar(oPly, "devmode"  , 0)
-        asmlib.SetAsmConvar(oPly, "maxtrmarg", 0.02)
-        asmlib.SetAsmConvar(oPly, "maxmenupr", 5)
-        asmlib.SetAsmConvar(oPly, "timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1")
-        asmlib.SetAsmConvar(oPly, "maxmass"  , 50000)
-        asmlib.SetAsmConvar(oPly, "maxlinear", 5000)
-        asmlib.SetAsmConvar(oPly, "maxforce" , 100000)
-        asmlib.SetAsmConvar(oPly, "maxactrad", 200)
-        asmlib.SetAsmConvar(oPly, "maxstcnt" , 200)
-        asmlib.SetAsmConvar(oPly, "enwiremod", 1)
-        asmlib.SetAsmConvar(oPly, "enctxmenu", 1)
-        asmlib.SetAsmConvar(oPly, "enctxmall", 0)
-        asmlib.SetAsmConvar(oPly, "endsvlock", 0)
-        asmlib.SetAsmConvar(oPly, "curvefact", 0.5)
-        asmlib.SetAsmConvar(oPly, "curvsmple", 50)
-        asmlib.SetAsmConvar(oPly, "spawnrate", 5)
-        asmlib.SetAsmConvar(oPly, "bnderrmod", "LOG")
-        asmlib.SetAsmConvar(oPly, "maxfruse" , 50)
-        asmlib.LogInstance("Variables reset complete",sLog)
-      else
-        asmlib.SetAsmConvar(oPly,"nextx"  , 0)
-        asmlib.SetAsmConvar(oPly,"nexty"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextz"  , 0)
-        asmlib.SetAsmConvar(oPly,"nextpic", 0)
-        asmlib.SetAsmConvar(oPly,"nextyaw", 0)
-        asmlib.SetAsmConvar(oPly,"nextrol", 0)
-        if(devmode) then
-          asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
-                               asmlib.GetAsmConvar("logfile","BUL"))
-        end
-      end
-      asmlib.LogInstance("Success",sLog)
+      asmlib.SetAsmConvar(oPly,"nextx"  , 0)
+      asmlib.SetAsmConvar(oPly,"nexty"  , 0)
+      asmlib.SetAsmConvar(oPly,"nextz"  , 0)
+      asmlib.SetAsmConvar(oPly,"nextpic", 0)
+      asmlib.SetAsmConvar(oPly,"nextyaw", 0)
+      asmlib.SetAsmConvar(oPly,"nextrol", 0)
     end)
 
   -- Store referencies and stuff realted to the tool file
@@ -589,7 +522,7 @@ function TOOL:GetGhostsDepth()
     return mathMin(ghostcnt, mathMax(stackcnt, 1))
   elseif(workmode == 2) then -- Put second value 1 here
     return mathMin(ghostcnt, 1) -- to be able to disable it
-  elseif(workmode == 3) then -- Track interpolation curvaing
+  elseif(workmode == 3 or workmode == 5) then -- Track interpolation curving
     local nC = mathMin(mathMax(stackcnt, 1), ghostcnt)
     return (stackcnt > 0 and nC or ghostcnt)
   elseif(workmode == 4) then -- Put second value 1 here
@@ -1088,7 +1021,7 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
-  if(workmode == 3) then
+  if(workmode == 3 or workmode == 5) then
     if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
@@ -1097,13 +1030,18 @@ function TOOL:LeftClick(stTrace)
     local fInt = asmlib.GetOpVar("FORM_INTEGER")
     local curvefact, curvsmple = self:GetCurveFactor()  , self:GetCurveSamples()
     local crvturnlm, crvleanlm = self:GetCurvatureTurn(), self:GetCurvatureLean()
-    asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
+    if(workmode == 3) then
+      asmlib.CalculateRomCurve(ply, curvsmple, curvefact)
+    elseif(workmode == 5) then
+      asmlib.CalculateBezierCurve(ply, curvsmple)
+    end
     for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(ply, iD, nD) end
     poThQueue:Attach(ply, {
       stard = 1,
       stark = 1,
       itrys = 0,
       istck = 0,
+      wname = workname:lower():gsub("^%l", stringUpper),
       imake = 0,
       spawn = {},
       srate = spawnrate
@@ -1113,17 +1051,17 @@ function TOOL:LeftClick(stTrace)
           oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid,
                          nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
           if(not oArg.spawn) then -- Make sure it persists to set it afterwards
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Cannot obtain spawn data"),gtArgsLogs); return false end
+            asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"),gtArgsLogs); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
               oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
-              asmlib.Notify(oPly, "Curve turn excessive at "..oArg.mundo.." !", "ERROR")
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..oArg.mundo..": Turn excessive"), gtArgsLogs); return false
+              asmlib.Notify(oPly, oArg.wname.." excessive turn at "..oArg.mundo.." !", "ERROR")
+              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"), gtArgsLogs); return false
             end
             if(nU and nU < crvleanlm) then
               oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
-              asmlib.Notify(oPly, "Curve lean excessive at "..oArg.mundo.." !", "ERROR")
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..oArg.mundo..": Lean excessive"), gtArgsLogs); return false
+              asmlib.Notify(oPly, oArg.wname.." excessive lean at "..oArg.mundo.." !", "ERROR")
+              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"), gtArgsLogs); return false
             end
           end
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
@@ -1133,11 +1071,11 @@ function TOOL:LeftClick(stTrace)
           oPly:SetNWFloat(gsToolPrefL.."progress", (oArg.imake / tC.SKept) * 100)
           if(ePiece) then -- We still have enough memory to preform the stacking
             if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
+              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply physical settings fail"),gtArgsLogs); return false end
             if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply weld fail"),gtArgsLogs); return false end
+              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply weld fail"),gtArgsLogs); return false end
             if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
+              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply no-collide fail"),gtArgsLogs); return false end
             oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece -- When the routine item is still busy
             tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
@@ -1146,18 +1084,18 @@ function TOOL:LeftClick(stTrace)
               else -- When there is more stuff to snap continue snapping the cutrrent
                 oArg.stark = (oArg.stark + 1) -- Move the snap cursor to the next snap
               end -- Write the logs that snap rate per tick has been reached
-              asmlib.LogInstance("(Curve) Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtArgsLogs)
+              asmlib.LogInstance("("..oArg.wname..") "..sItr..":  Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtArgsLogs)
               return true -- The server is still busy with the task
             end
           else oArg.mundo = sItr -- We still have enough memory to preform the stacking
             if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": Segment limit reached"), gtArgsLogs); return false
-            else asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) "..sItr..": All stack attempts fail"), gtArgsLogs); return false end
+              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Segment limit reached"), gtArgsLogs); return false
+            else asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": All stack attempts fail"), gtArgsLogs); return false end
           end
         end
       end
       oPly:SetNWFloat(gsToolPrefL.."progress", 100)
-      asmlib.LogInstance("(Curve) Success",gtArgsLogs); return false
+      asmlib.LogInstance("("..oArg.wname..") Success",gtArgsLogs); return false
     end, workname)
     poThQueue:OnActive(ply, function(oPly, oArg)
       oArg.eundo, oArg.mundo = {}, ""
@@ -1166,14 +1104,14 @@ function TOOL:LeftClick(stTrace)
     poThQueue:OnFinish(ply, function(oPly, oArg)
       local nU, sM = #oArg.eundo, gsUndoPrefN..fnmodel
       if(stackcnt > 0) then
-        asmlib.UndoCrate(sM.." ( Curve #"..stackcnt.." )")
-      else asmlib.UndoCrate(sM.." ( Curve )") end
+        asmlib.UndoCrate(sM.." ( "..oArg.wname.." #"..stackcnt.." )")
+      else asmlib.UndoCrate(sM.." ( "..oArg.wname.." )") end
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
       if(nU < tC.SKept) then
         asmlib.UndoFinish(oPly, fInt:format(nU))
       else asmlib.UndoFinish(oPly) end
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
-      asmlib.LogInstance("(Curve) Success", gtArgsLogs)
+      asmlib.LogInstance("("..oArg.wname..") Success", gtArgsLogs)
     end); return true
   elseif(workmode == 4 and self:IsFlipOver()) then
     if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
@@ -1400,11 +1338,11 @@ function TOOL:RightClick(stTrace)
     asmlib.LogInstance("Library fail",gtArgsLogs); return false end
   if(not stTrace) then
     asmlib.LogInstance("Trace missing",gtArgsLogs); return false end
-  local trEnt     = stTrace.Entity
   local ply       = self:GetOwner()
+  local trEnt     = stTrace.Entity
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
-  if(workmode == 3) then local bPnt, tC = ply:KeyDown(IN_USE)
+  if(workmode == 3 or workmode == 5) then local bPnt, tC = ply:KeyDown(IN_USE)
     if(ply:KeyDown(IN_SPEED)) then tC = self:CurveUpdate(stTrace, bPnt)
     else tC = self:CurveInsert(stTrace, bPnt) end; return (tC and true or false)
   elseif(workmode == 4 and not ply:KeyDown(IN_SPEED)) then
@@ -1458,13 +1396,13 @@ function TOOL:Reload(stTrace)
         asmlib.LogInstance("(World) Anchor clear",gtArgsLogs)
       elseif(workmode == 2) then self:IntersectClear(false)
         asmlib.LogInstance("(World) Relate clear",gtArgsLogs)
-      elseif(workmode == 3) then self:CurveClear(true)
+      elseif(workmode == 3 or workmode == 5) then self:CurveClear(true)
         asmlib.LogInstance("(World) Nodes cleared",gtArgsLogs)
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(World) Flip over cleared",gtArgsLogs)
       end
     else
-      if(workmode == 3) then self:CurveClear(false)
+      if(workmode == 3 or workmode == 5) then self:CurveClear(false)
         asmlib.LogInstance("(World) Node removed",gtArgsLogs)
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(World) Flip over cleared",gtArgsLogs)
@@ -1483,20 +1421,20 @@ function TOOL:Reload(stTrace)
         if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation set fail"),gtArgsLogs); return false end
         asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
-      elseif(workmode == 3) then self:CurveClear(true)
+      elseif(workmode == 3 or workmode == 5) then self:CurveClear(true)
         asmlib.LogInstance("(Prop) Nodes cleared",gtArgsLogs); return true
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(Prop) Flip over cleared",gtArgsLogs); return true
       end
     else
-      if(workmode == 3) then self:CurveClear(false)
+      if(workmode == 3 or workmode == 5) then self:CurveClear(false)
         asmlib.LogInstance("(Prop) Node removed",gtArgsLogs); return true
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(Prop) Flip over cleared",gtArgsLogs); return true
       end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-    if(asmlib.IsHere(trRec)) then trEnt:Remove()
+    if(asmlib.IsHere(trRec) and trEnt:GetCreator() == ply) then trEnt:Remove()
       asmlib.LogInstance("(Prop) Remove piece",gtArgsLogs); return true
     end
   end; return false
@@ -1541,12 +1479,19 @@ function TOOL:UpdateGhostCurve()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local bCrv = oPly:GetNWBool(gsToolPrefL.."engcurve", false)
     if(bCrv) then
+      local workmode  = self:GetWorkingMode()
       local curvefact = self:GetCurveFactor()
       local curvsmple = self:GetCurveSamples()
       asmlib.LogInstance("Calculate", gtArgsLogs)
       oPly:SetNWBool(gsToolPrefL.."engcurve", false)
-      asmlib.CalculateRomCurve(oPly, curvsmple, curvefact)
-      for iD = 1, (tCrv.CSize - 1) do asmlib.UpdateCurveSnap(oPly, iD, nD) end
+      if(workmode == 3) then
+        asmlib.CalculateRomCurve(oPly, curvsmple, curvefact)
+      elseif(workmode == 5) then
+        asmlib.CalculateBezierCurve(oPly, curvsmple)
+      end
+      for iD = 1, (tCrv.CSize - 1) do
+        asmlib.UpdateCurveSnap(oPly, iD, nD)
+      end
     end
     for iD = 1, tCrv.SSize do local tS = tCrv.Snap[iD]
       for iK = 1, tS.Size do iGho = (iGho + 1)
@@ -1600,7 +1545,7 @@ function TOOL:UpdateGhost(oPly)
   if(not stTrace) then return end
   if(not asmlib.HasGhosts()) then return end
   local workmode = self:GetWorkingMode()
-  if(workmode == 3) then self:UpdateGhostCurve() return end
+  if(workmode == 3 or workmode == 5) then self:UpdateGhostCurve() return end
   local atGho, trRec = asmlib.GetOpVar("ARRAY_GHOST")
   local trEnt, model = stTrace.Entity, self:GetModel()
   local pointid, pnextid = self:GetPointID()
@@ -1977,7 +1922,7 @@ function TOOL:DrawHUD()
   if(not (stTrace and stTrace.Hit)) then return end
   self:DrawProgress(hudMonitor, oPly)
   local workmode, model = self:GetWorkingMode(), self:GetModel()
-  if(workmode == 3) then
+  if(workmode == 3 or workmode == 5) then
     self:DrawCurveNode(hudMonitor, oPly, stTrace)
     if(not self:GetDeveloperMode()) then return end
     self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"}); return
@@ -2530,6 +2475,45 @@ if(CLIENT) then
           tTim[iD] = tableConcat(tS, sRev)
         end
         asmlib.SetAsmConvar(nil, "timermode", tableConcat(tTim, gsSymDir))
+      end
+      asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                           asmlib.GetAsmConvar("logfile","BUL"))
+    end
+    pItem:Dock(TOP); pItem:SetTall(30)
+    -- Setup factory reset variables button
+    pItem = asmlib.SetButton(CPanel, "factory_reset")
+    pItem.DoClick = function(pnSelf)
+      local oPly = LocalPlayer(); if(not (oPly and oPly:IsValid() and oPly:IsAdmin())) then
+        asmlib.LogInstance("Factory reset invalid: "..asmlib.GetReport(oPly), sLog) return end
+      if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
+        asmlib.SetAsmConvar(oPly, "*sbox_max"..gsLimitName,
+        asmlib.GetAsmConvar("*sbox_max"..gsLimitName, "DEF"))
+        for key, val in pairs(asmlib.GetOpVar("STORE_CONVARS")) do
+          asmlib.SetAsmConvar(oPly, "*"..key, val) end
+        asmlib.SetAsmConvar(oPly, "logsmax"  , asmlib.GetAsmConvar("logsmax"  , "DEF"))
+        asmlib.SetAsmConvar(oPly, "logfile"  , asmlib.GetAsmConvar("logfile"  , "DEF"))
+        asmlib.SetAsmConvar(oPly, "modedb"   , asmlib.GetAsmConvar("modedb"   , "DEF"))
+        asmlib.SetAsmConvar(oPly, "devmode"  , asmlib.GetAsmConvar("devmode"  , "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxtrmarg", asmlib.GetAsmConvar("maxtrmarg", "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxmenupr", asmlib.GetAsmConvar("maxmenupr", "DEF"))
+        asmlib.SetAsmConvar(oPly, "timermode", asmlib.GetAsmConvar("timermode", "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxmass"  , asmlib.GetAsmConvar("maxmass"  , "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxlinear", asmlib.GetAsmConvar("maxlinear", "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxforce" , asmlib.GetAsmConvar("maxforce" , "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxactrad", asmlib.GetAsmConvar("maxactrad", "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxstcnt" , asmlib.GetAsmConvar("maxstcnt" , "DEF"))
+        asmlib.SetAsmConvar(oPly, "enwiremod", asmlib.GetAsmConvar("enwiremod", "DEF"))
+        asmlib.SetAsmConvar(oPly, "enctxmenu", asmlib.GetAsmConvar("enctxmenu", "DEF"))
+        asmlib.SetAsmConvar(oPly, "enctxmall", asmlib.GetAsmConvar("enctxmall", "DEF"))
+        asmlib.SetAsmConvar(oPly, "endsvlock", asmlib.GetAsmConvar("endsvlock", "DEF"))
+        asmlib.SetAsmConvar(oPly, "curvefact", asmlib.GetAsmConvar("curvefact", "DEF"))
+        asmlib.SetAsmConvar(oPly, "curvsmple", asmlib.GetAsmConvar("curvsmple", "DEF"))
+        asmlib.SetAsmConvar(oPly, "spawnrate", asmlib.GetAsmConvar("spawnrate", "DEF"))
+        asmlib.SetAsmConvar(oPly, "bnderrmod", asmlib.GetAsmConvar("bnderrmod", "DEF"))
+        asmlib.SetAsmConvar(oPly, "maxfruse" , asmlib.GetAsmConvar("maxfruse" , "DEF"))
+        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                             asmlib.GetAsmConvar("logfile","BUL"))
+        asmlib.LogInstance("Factory reset complete", sLog)
       end
     end
     pItem:Dock(TOP); pItem:SetTall(30)

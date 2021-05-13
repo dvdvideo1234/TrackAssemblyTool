@@ -33,14 +33,15 @@ just to align the pieces together, so I thought `Here is a bright idea!` and the
 Also, another great achievement progress is in place, so 10x guys for
 [helping me, help you, help us all](https://www.youtube.com/watch?v=2TZyb0n2DAw) !
 
-#### What kind of features does this script has?
-  * General convar [factory reset](https://youtu.be/3Ws6Jh3JUew?t=2051) can be easily triggered by the server admins
+#### What kind of features does this script have?
+  * Convar factory reset can be easily triggered by the server admins
   * Convar tweaks is accessible via [dedicated in-game manipulation panel](https://youtu.be/3Ws6Jh3JUew?t=56)
   * Context menu for direct track entity [value export and manipulation][ref-value-exp]
   * Optional [flip-over mode called from spawning/snapping](https://youtu.be/3Ws6Jh3JUew?t=2146) for quickly flip the anchor across
   * Track segment [flip over mode for mirroring](https://youtu.be/3Ws6Jh3JUew?t=1358) already created [loops and curves](https://youtu.be/3Ws6Jh3JUew?t=1722)
   * Track segment [curve node interpolation](https://youtu.be/3Ws6Jh3JUew?t=200) for building custom track layouts
   * Track curve fitting alignment based on [ray intersection for precise piece layout][ref-vid-inters]
+  * Track [tangent turn interpolation][ref-work-turn] for renerating curves with variable radius
   * [Extendible database][ref-dbext] via [text file][ref-text-file] or a [lua script][ref-lua-script]
   * [Extendible database][ref-dbext] via [load list][ref-load-list] and [list prefixes][ref-list-pref]
     [type categories][ref-categ]
@@ -151,7 +152,7 @@ set being solid with fading door `CLOSED` function state:
 
 #### How to use the tool control options when building a track ?
 1. Pressing `ATTACK1` ( Def: `Left Mouse Button` )
-  * `CURVE`: Spawns server task to handle segmented curve interpolation on condition:
+  * `CURVE` and `TURN`: Spawns server task to handle segmented curve interpolation on condition:
     1. The holder piece must be valid database entry.
     2. Two or more vertices must be present on the curve stack.
     3. The holder piece must have more than one active points.
@@ -190,7 +191,7 @@ set being solid with fading door `CLOSED` function state:
     will flip over the anchor entity relative to the trace normal vector as
     `flip normal` and trace entity `OBB` center as `flip origin`.
 4. Pressing `ATTACK2` ( Def: `Right Mouse Button` )
-  * `CURVE`: Inserts a curve node on the stack.
+  * `CURVE` and `TURN`: Inserts a curve node on the stack.
   * `OVER` : Inserts the trace entity ID to the flip over stack.
   * When pointing to the world will open the `Frequent pieces by <PLAYER_NAME>` frame,
     from where you can select your routine pieces to use again in the track building process
@@ -200,13 +201,13 @@ set being solid with fading door `CLOSED` function state:
   * When `trackassembly_enpntmscr` is disabled, you have to press this,
     for changing the active track points using the old method of selection.
 6. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `SPEED` ( Def: `SHIFT` )
-  * `CURVE`: Updates the hit closest curve node on the stack.
+  * `CURVE` and `TURN`: Updates the hit closest curve node on the stack.
   * When pointing to a prop will select the trace model to use as a piece for building a track.
 7. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `DUCK` ( Def: `CTRL` )
   * When `trackassembly_enpntmscr` is disabled, you have to press this,
     for changing the next active point by using the old method of selection.
 8. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `SPEED` ( Def: `SHIFT` ) + `USE` ( Def: `E` )
-  * `CURVE`: Utilizes the trace entity active point as a curve node.
+  * `CURVE` and `TURN`: Utilizes the trace entity active point as a curve node.
 9. Pressing `RELOAD` ( Def: `R` )
   * When trace entity is a valid piece will just remove it.
   * When `trackassembly_devmode` is enabled, will update the log control options.
@@ -219,12 +220,12 @@ set being solid with fading door `CLOSED` function state:
     pieces which are used for various things. Works differently based on the mode selected.
     * `SNAP` : Clears the `anchor` entity which all new pieces will be automatically constrained to.
     * `CROSS`: Clears the `relation` ray defined for using active point intersection between two pieces.
-    * `CURVE`: Clears all nodes defined for using the curving algorithm. Otherwise clears the last point on the stack.
+    * `CURVE` and `TURN`: Clears all nodes defined for using the curving algorithm. Otherwise clears the last point on the stack.
     * `OVER` : Clears the stack variable holder for all the flipped over entity base IDs
   * When pressing it on the trace prop will set it as the tool's selected operational track
     * `SNAP` : Selects the trace entity for using it as an anchor.
     * `CROSS`: Selects the closest trace active point origin to use it as relation ray.
-    * `CURVE`: Clears all nodes defined for using the curving algorithm. Otherwise clears the last point on the stack.
+    * `CURVE` and `TURN`: Clears all nodes defined for using the curving algorithm. Otherwise clears the last point on the stack.
     * `OVER` : Clears the stack variable holder for all the flipped over entity base IDs
 
 #### Context menu pieces manipulation
@@ -479,3 +480,4 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-PA]: https://steamcommunity.com/sharedfiles/filedetails/?id=457478322
 [ref-add-ftr]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Additional-features
 [ref-wiki-ta]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki
+[ref-work-turn]: https://www.youtube.com/watch?v=_qcol4_-_ZQ

@@ -751,6 +751,16 @@ function InitBase(sName, sPurp)
   SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
   SetOpVar("PATTEM_WORKSHID", "^%d+$")
   if(CLIENT) then
+    SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
+    SetOpVar("TABLE_TOOLINF", {
+      {name = "workmode"} ,
+      {name = "info"      , icon = "gui/info"   },
+      {name = "left"      , icon = "gui/lmb.png"},
+      {name = "right"     , icon = "gui/rmb.png"},
+      {name = "right_use" , icon = "gui/rmb.png" , icon2 = "gui/e.png"},
+      {name = "reload"    , icon = "gui/r.png"  },
+      {name = "reload_use", icon = "gui/r.png"   , icon2 = "gui/e.png"}
+    })
     SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
     SetOpVar("TOOL_DEFMODE","gmod_tool")
     SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s].txt")
@@ -2320,7 +2330,7 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
   else LogInstance("Wrong mode name "..sRule); return false end
 end
 
-function Categorize(oTyp, fCat, iID)
+function Categorize(oTyp, fCat)
   local tCat = GetOpVar("TABLE_CATEGORIES")
   if(not IsHere(oTyp)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
@@ -5120,10 +5130,11 @@ end
 local function GetCatmullRomCurve(tV, nT, nA, tO)
   if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
-  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
-    LogInstance("Samples mismatch "..GetReport1(nT)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices needed"); return nil end
   if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
+  if(nA < 0 or nA > 1) then LogInstance("Factor invalid "..GetReport1(nA)); return nil end
+  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
+    LogInstance("Samples mismatch "..GetReport1(nT)); return nil end
   local vM, iC, cS, cE, tN = GetOpVar("CURVE_MARGIN"), 1, Vector(), Vector(), (tO or {})
   cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
   cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
@@ -5147,10 +5158,11 @@ end
 local function GetCatmullRomCurveDupe(tV, nT, nA, tO)
   if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
-  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
-    LogInstance("Curve samples mismatch "..GetReport(nT)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
   if(nA and not IsNumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
+  if(nA < 0 or nA > 1) then LogInstance("Factor invalid "..GetReport1(nA)); return nil end
+  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
+    LogInstance("Samples mismatch "..GetReport(nT)); return nil end
   local tN, tF, nN = {tV[1], ID = {{true, 1}}}, (tO or {}), 1
   local nM, vT = GetOpVar("EPSILON_ZERO"), Vector()
   for iD = 2, nV do
@@ -5178,7 +5190,7 @@ local function GetCatmullRomCurveDupe(tV, nT, nA, tO)
       for iK = 1, nT do tableInsert(tF, Vector(tV[1])) end
     end; tableInsert(tF, Vector(tV[1]))
   end
-  return tF, tN
+  return tF
 end
 
 --[[
@@ -5295,6 +5307,9 @@ end
  * oPly > Player to do the calculation for
  * tS   > The snap list for the current iteration
  * iD   > Snap origin information ID
+ * Returns the turn and lean curving factors
+ * nF   > Turn factor. The smaller the value turns more
+ * nU   > Lean factor. The smaller the value leans more
 ]]
 function GetTurningFactor(oPly, tS, iD)
   local tC = GetCacheCurve(oPly); if(not tC) then
@@ -5337,4 +5352,96 @@ function CalculateRomCurve(oPly, nSmp, nFac)
   tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
   tC.CSize = (tC.Size - 1) * nSmp + tC.Size -- Get stack depth
   return tC -- Return the updated curve information reference
+end
+
+--[[
+ * Recursive helper function for Bezier curve vertices
+ * https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+ * cT > Current sample direction multiplier
+ * tV > A table of position vector vertices
+ * Returns the calculated recursive control sample
+]]
+local function GetBezierCurveVertex(cT, tV)
+  local tD, tP, nD = {}, {}, (#tV-1)
+  for iD = 1, nD do
+    tD[iD] = Vector(tV[iD+1])
+    tD[iD]:Sub(tV[iD])
+    tD[iD]:Mul(cT)
+  end
+  for iD = 1, nD do
+    tP[iD] = Vector(tV[iD])
+    tP[iD]:Add(tD[iD])
+  end
+  if(nD > 1) then
+    return GetBezierCurveVertex(cT, tP) end
+  return tP[1]
+end
+
+--[[
+ * Bezier curve calculator
+ * https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+ * tV > Array of bezier control nodes
+ * nT > Amount of samples between both ends
+ * tO > When provided it is filled with the curve
+ * Returns the table array of the calculated curve
+]]
+function GetBezierCurve(tV, nT, tO)
+  if(not IsTable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
+  if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
+  if(not (tV[1] and tV[2])) then LogInstance("Two vertices needed"); return nil end
+  local nT, nV = (mathFloor(tonumber(nT) or 200) + 1), #tV; if(nT < 0) then
+    LogInstance("Samples mismatch "..GetReport1(nT)); return nil end
+  local iD, cT, dT, tB = 1, 0, (1 / nT), (tO or {})
+  tB[iD], cT, iD = Vector(tV[iD]), (cT + dT), (iD + 1)
+  while(cT < 1) do -- Recursively populate ann the node segments
+    tB[iD] = GetBezierCurveVertex(cT, tV) -- Recursive calculation
+    cT, iD = (cT + dT), (iD + 1) -- Prepare for next segment
+  end; tB[iD] = Vector(tV[nV]) -- Bezier must include both ends
+  return tB -- Return the calculated curve table array
+end
+
+--[[
+ * Fills up the the general curve space for the given player
+ * https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+ * oPly > Player to fill the calculation for
+ * nSmp > Amount of samples between each node
+]]
+function CalculateBezierCurve(oPly, nSmp)
+  local tC = GetCacheCurve(oPly)
+  if(not tC) then LogInstance("Curve missing"); return nil end
+  local nC = #tC.Node; if(nC <= 0) then
+    LogInstance("Nodes missing"); return nil end
+  local iSmp = mathFloor((nC - 1) * nSmp)
+  if(not tC) then LogInstance("Curve missing"); return nil end
+  tableEmpty(tC.Snap) -- The size of all snaps
+  tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
+  tableEmpty(tC.CNode) -- Reset the curve and snapping
+  tableEmpty(tC.CNorm); tC.CSize = 0 -- And normals
+  GetBezierCurve(tC.Node, iSmp, tC.CNode)
+  GetBezierCurve(tC.Norm, iSmp, tC.CNorm)
+  tC.Info.UCS[1]:Set(tC.CNode[1]) -- Put the first node in the UCS
+  tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
+  tC.CSize = iSmp + 2 -- Get stack depth total samples including ends
+  return tC -- Return the updated curve information reference
+end
+
+function GetToolInformation()
+  local cWM = GetContainer("WORK_MODE")
+  local nWM = (cWM and cWM:GetSize() or 0); if(nWM <= 0) then
+    LogInstance("Mismatch "..GetReport1(nWM)); return nil end
+  local tD, tO = GetOpVar("TABLE_TOOLINF"), {}
+  local tH, iO = GetOpVar("TABLE_IHEADER"), 0
+  local snAV = GetOpVar("MISS_NOAV")
+  for iD = 1, #tD do local vD = tD[iD]
+    for iW = 1, nWM do
+      iO = iO + 1; tO[iO] = tableCopy(tH)
+      for k, v in pairs(vD) do tO[iO][k] = v end
+      tO[iO].op   = iW -- Transfer madatory values
+      tO[iO].name = tO[iO].name.."."..tostring(iW)
+      if(vD.name == "workmode") then
+        local sW = tostring(cWM:Select(iW) or snAV):lower()
+        tO[iO].icon = ToIcon("workmode_"..sW)
+      end
+    end
+  end; return tO
 end

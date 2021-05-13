@@ -88,7 +88,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.655")
+asmlib.SetOpVar("TOOL_VERSION","8.656")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -230,6 +230,7 @@ local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
       conWorkMode:Push("CURVE") -- Catmull–Rom spline interpolation fitting
       conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
+      conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
 
 ------------ CALLBACKS ------------
 
@@ -453,32 +454,33 @@ if(CLIENT) then
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
-  asmlib.ToIcon("subfolder_item"   , "folder"         )
-  asmlib.ToIcon("pn_externdb_1"    , "database"       )
-  asmlib.ToIcon("pn_externdb_2"    , "folder_database")
-  asmlib.ToIcon("pn_externdb_3"    , "database_table" )
-  asmlib.ToIcon("pn_externdb_4"    , "database_link"  )
-  asmlib.ToIcon("pn_externdb_5"    , "time_go"        )
-  asmlib.ToIcon("pn_externdb_6"    , "compress"       )
-  asmlib.ToIcon("pn_externdb_7"    , "database_edit"  )
-  asmlib.ToIcon("pn_externdb_8"    , "database_delete")
-  asmlib.ToIcon("model"            , "brick"          )
-  asmlib.ToIcon("mass"             , "basket_put"     )
-  asmlib.ToIcon("bgskids"          , "layers"         )
-  asmlib.ToIcon("phyname"          , "wand"           )
-  asmlib.ToIcon("ignphysgn"        , "lightning_go"   )
-  asmlib.ToIcon("freeze"           , "lock"           )
-  asmlib.ToIcon("gravity"          , "ruby_put"       )
-  asmlib.ToIcon("weld"             , "wrench"         )
-  asmlib.ToIcon("nocollide"        , "shape_group"    )
-  asmlib.ToIcon("nocollidew"       , "world_go"       )
-  asmlib.ToIcon("dsvlist_extdb"    , "database_go"    )
-  asmlib.ToIcon("workmode_snap"    , "plugin"         ) -- General spawning and snapping mode
-  asmlib.ToIcon("workmode_cross"   , "chart_line"     ) -- Ray cross intersect interpolation
-  asmlib.ToIcon("workmode_curve"   , "vector"         ) -- Catmull–Rom curve line segment fitting
-  asmlib.ToIcon("workmode_over"    , "shape_move_back") -- Trace normal ray location piece flip-spawn
-  asmlib.ToIcon("property_type"    , "package_green"  )
-  asmlib.ToIcon("property_name"    , "note"           )
+  asmlib.ToIcon("subfolder_item"   , "folder"          )
+  asmlib.ToIcon("pn_externdb_1"    , "database"        )
+  asmlib.ToIcon("pn_externdb_2"    , "folder_database" )
+  asmlib.ToIcon("pn_externdb_3"    , "database_table"  )
+  asmlib.ToIcon("pn_externdb_4"    , "database_link"   )
+  asmlib.ToIcon("pn_externdb_5"    , "time_go"         )
+  asmlib.ToIcon("pn_externdb_6"    , "compress"        )
+  asmlib.ToIcon("pn_externdb_7"    , "database_edit"   )
+  asmlib.ToIcon("pn_externdb_8"    , "database_delete" )
+  asmlib.ToIcon("model"            , "brick"           )
+  asmlib.ToIcon("mass"             , "basket_put"      )
+  asmlib.ToIcon("bgskids"          , "layers"          )
+  asmlib.ToIcon("phyname"          , "wand"            )
+  asmlib.ToIcon("ignphysgn"        , "lightning_go"    )
+  asmlib.ToIcon("freeze"           , "lock"            )
+  asmlib.ToIcon("gravity"          , "ruby_put"        )
+  asmlib.ToIcon("weld"             , "wrench"          )
+  asmlib.ToIcon("nocollide"        , "shape_group"     )
+  asmlib.ToIcon("nocollidew"       , "world_go"        )
+  asmlib.ToIcon("dsvlist_extdb"    , "database_go"     )
+  asmlib.ToIcon("workmode_snap"    , "plugin"          ) -- General spawning and snapping mode
+  asmlib.ToIcon("workmode_cross"   , "chart_line"      ) -- Ray cross intersect interpolation
+  asmlib.ToIcon("workmode_curve"   , "vector"          ) -- Catmull–Rom curve line segment fitting
+  asmlib.ToIcon("workmode_over"    , "shape_move_back" ) -- Trace normal ray location piece flip-spawn
+  asmlib.ToIcon("workmode_turn"    , "arrow_turn_right") -- Produces smoother turns with Bezier curve
+  asmlib.ToIcon("property_type"    , "package_green"     )
+  asmlib.ToIcon("property_name"    , "note"              )
   asmlib.ToIcon("modedb_lua"       , "database_lightning")
   asmlib.ToIcon("modedb_sql"       , "database_link"     )
   asmlib.ToIcon("timermode_cqt"    , "time_go"           )
