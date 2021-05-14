@@ -157,6 +157,8 @@
   tSet["tool."..sTool..".enradmenu_con"    ] = "Enable radial menu"
   tSet["tool."..sTool..".sgradmenu"        ] = "Change this to make the radial menu more round. The higher the smoother"
   tSet["tool."..sTool..".sgradmenu_con"    ] = "Radial segments:"
+  tSet["tool."..sTool..".rtradmenu"        ] = "Change this to adjust the radial menu base angle and relocate its options"
+  tSet["tool."..sTool..".rtradmenu_con"    ] = "Radial rotation:"
   tSet["tool."..sTool..".enpntmscr"        ] = "When enabled turns on the switching active points via mouse scroll"
   tSet["tool."..sTool..".enpntmscr_con"    ] = "Enable point scroll"
   tSet["tool."..sTool..".exportdb"         ] = "When enabled turns on the database export as one large file"

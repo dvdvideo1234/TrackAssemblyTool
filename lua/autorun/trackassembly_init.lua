@@ -88,7 +88,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.656")
+asmlib.SetOpVar("TOOL_VERSION","8.657")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -126,12 +126,12 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 
 ------------ BORDERS ------------
 
-asmlib.SetBorder("non-neg", 0, mathHuge)
-asmlib.SetBorder("sbox_max"..gsLimitName , 0, 3000)
+asmlib.SetBorder("non-neg", 0)
+asmlib.SetBorder("sbox_max"..gsLimitName , 0)
 asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."crvleanlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."curvefact", 0, 1)
-asmlib.SetBorder(gsToolPrefL.."curvsmple", 0, 200)
+asmlib.SetBorder(gsToolPrefL.."curvsmple", 0)
 asmlib.SetBorder(gsToolPrefL.."devmode"  , 0, 1)
 asmlib.SetBorder(gsToolPrefL.."enctxmall", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."enctxmenu", 0, 1)
@@ -140,21 +140,22 @@ asmlib.SetBorder(gsToolPrefL.."enwiremod", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, 200)
 asmlib.SetBorder(gsToolPrefL.."angsnap"  , 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
-asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 200)
+asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 250)
 asmlib.SetBorder(gsToolPrefL.."logfile"  , 0, 1)
 asmlib.SetBorder(gsToolPrefL.."logsmax"  , 0, 100000)
 asmlib.SetBorder(gsToolPrefL.."maxactrad", 1, 200)
 asmlib.SetBorder(gsToolPrefL.."maxforce" , 0, 200000)
-asmlib.SetBorder(gsToolPrefL.."maxfruse" , 1, 100)
-asmlib.SetBorder(gsToolPrefL.."maxlinear", 0, 10000)
-asmlib.SetBorder(gsToolPrefL.."maxmass"  , 1, 100000)
+asmlib.SetBorder(gsToolPrefL.."maxfruse" , 1, 150)
+asmlib.SetBorder(gsToolPrefL.."maxlinear", 0)
+asmlib.SetBorder(gsToolPrefL.."maxmass"  , 1)
 asmlib.SetBorder(gsToolPrefL.."maxmenupr", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
-asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1, 400)
+asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1)
 asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
 asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
+asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
 
@@ -603,21 +604,24 @@ if(CLIENT) then
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Screen invalid",sLog); return nil end
+      local nMd = asmlib.GetOpVar("MAX_ROTATION")
+      local nDr, sM = asmlib.GetOpVar("DEG_RAD"), asmlib.GetOpVar("MISS_NOAV")
+      local nBr = (actTool:GetRadialAngle() * nDr)
       local nK, nN = actTool:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (mathMin(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(guiMouseX(), guiMouseY())
       local vCn = asmlib.NewXY(mathFloor(scrW/2), mathFloor(scrH/2))
-      local nDr, sM = asmlib.GetOpVar("DEG_RAD"), asmlib.GetOpVar("MISS_NOAV")
-      local nMx = (asmlib.GetOpVar("MAX_ROTATION") * nDr) -- Max angle [2pi]
-      local vTx, nD = asmlib.NewXY(), (nR / gnRatio)
+      local nMr, vTx, nD = (nMd * nDr), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
       local vA, vB = asmlib.NewXY(), asmlib.NewXY()
       local tP = {asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY()}
       local vF, vN = asmlib.NewXY(nR, 0), asmlib.NewXY(mathClamp(nR - nD, 0, nR), 0)
-      asmlib.NegY(asmlib.SubXY(vA, mXY, vCn)) -- Obtain selection wiper vector
-      local aW = asmlib.GetAngleXY(vA) -- Read wiper angle and normalize
-            aW = ((aW < 0) and (aW + nMx) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
-      local iW = mathFloor(((aW / nMx) * nN) + 1) -- Calculate fraction ID for working mode
-      local dA = (nMx / (nK * nN)) -- Two times smaller step to hangle centers as well
+      asmlib.RotateXY(vN, nBr); asmlib.RotateXY(vF, nBr) -- Near and far base rotation
+      asmlib.NegY(asmlib.SubXY(vA, mXY, vCn)) -- Origin [0;0] is located at top left
+      asmlib.RotateXY(vA, -nBr) -- Correctly read the wiper vector to identify working mode
+      local aW = asmlib.GetAngleXY(vA) -- Read wiper angle and normalize the value
+            aW = ((aW < 0) and (aW + nMr) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
+      local iW = mathFloor(((aW / nMr) * nN) + 1) -- Calculate fraction ID for working mode
+      local dA = (nMr / (nK * nN)) -- Two times smaller step to hangle centers as well
       asmlib.SetXY(vA, vF); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[4], vA)
       asmlib.SetXY(vA, vN); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[3], vA)
       local nT, nB = mathCeil((nK - 1) / 2) + 1, mathFloor((nK - 1) / 2) + 1

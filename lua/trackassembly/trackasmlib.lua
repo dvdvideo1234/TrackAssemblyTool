@@ -490,8 +490,8 @@ function BorderValue(nsVal, vKey)
     LogInstance("Value not comparable "..GetReport(nsVal)); return nsVal end
   local tB = GetOpVar("TABLE_BORDERS")[vKey]; if(not IsHere(tB)) then
     LogInstance("Missing "..GetReport(vKey)); return nsVal end
-  if(tB and tB[1] and nsVal < tB[1]) then return tB[1] end
-  if(tB and tB[2] and nsVal > tB[2]) then return tB[2] end
+  if(tB[1] and nsVal < tB[1]) then return tB[1] end
+  if(tB[2] and nsVal > tB[2]) then return tB[2] end
   return nsVal
 end
 
@@ -1915,30 +1915,38 @@ function SetButton(cPanel, sVar)
 end
 
 function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
-  local nMin = tonumber(vMin)
-  local nMax = tonumber(vMax)
-  local vDef = tonumber(vDev)
-  local sTool = GetOpVar("TOOLNAME_NL")
-  local tConv = GetOpVar("STORE_CONVARS")
-  local sKey, sNam, bExa = GetNameExp(sVar)
+  local nMin, nMax, nDev = tonumber(vMin), tonumber(vMax), tonumber(vDev)
+  local sTool, tConv = GetOpVar("TOOLNAME_NL"), GetOpVar("STORE_CONVARS")
+  local sKey, sNam, bExa, nDum = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   local iDig = mathFloor(mathMax(tonumber(vDig) or 0, 0))
-  if(not IsHere(vDef)) then vDef = tConv[sKey]
-    if(not IsHere(vDef)) then vDef = GetAsmConvar(sVar, "DEF")
-      if(not IsHere(vDef)) then
+  -- Read default value form the first available
+  if(not IsHere(nDev)) then nDev = tConv[sKey]
+    if(not IsHere(nDev)) then nDev = GetAsmConvar(sVar, "DEF")
+      if(not IsHere(nDev)) then
         LogInstance("(D) Miss "..GetReport1(sKey))
-      else LogInstance("(D) Cvar "..GetReport2(sKey, vDef)) end
-    else LogInstance("(D) List "..GetReport2(sKey, vDef)) end
-  else LogInstance("(D) Args "..GetReport2(sKey, vDef)) end
-  if(not (nMin and nMax)) then nMin, nMax = GetBorder(sKey)
-    if(not (nMin and nMax)) then -- Check for border in convar list
-      local nMin = GetAsmConvar(sVar, "MIN")
-      local nMax = GetAsmConvar(sVar, "MAX")
-      if(not (nMin and nMax)) then
+      else LogInstance("(D) Cvar "..GetReport2(sKey, nDev)) end
+    else LogInstance("(D) List "..GetReport2(sKey, nDev)) end
+  else LogInstance("(D) Args "..GetReport2(sKey, nDev)) end
+  -- Read minimum value form the first available
+  if(not IsHere(nMin)) then nMin, nDum = GetBorder(sKey)
+    if(not IsHere(nMin)) then nMin = GetAsmConvar(sVar, "MIN")
+      if(not IsHere(nMin)) then -- Mininum bound is not located
+        nMin = -mathAbs(2 * mathFloor(GetAsmConvar(sVar, "FLT")))
         LogInstance("(L) Miss "..GetReport1(sKey))
-      else LogInstance("(L) Cvar "..GetReport3(sKey, nMin, nMax)) end
-    else LogInstance("(L) Bord "..GetReport3(sKey, nMin, nMax)) end
-  else LogInstance("(L) Args "..GetReport3(sKey, nMin, nMax)) end
+      else LogInstance("(L) Cvar "..GetReport2(sKey, nMin)) end
+    else LogInstance("(L) List "..GetReport2(sKey, nMin)) end
+  else LogInstance("(L) Args "..GetReport2(sKey, nMin)) end
+  -- Read maximum value form the first available
+  if(not IsHere(nMax)) then nDum, nMax = GetBorder(sKey)
+    if(not IsHere(nMax)) then nMax = GetAsmConvar(sVar, "MAX")
+      if(not IsHere(nMax)) then -- Maximum bound is not located
+        nMax = mathAbs(2 * mathCeil(GetAsmConvar(sVar, "FLT")))
+        LogInstance("(H) Miss "..GetReport1(sKey))
+      else LogInstance("(H) Cvar "..GetReport2(sKey, nMax)) end
+    else LogInstance("(H) List "..GetReport2(sKey, nMax)) end
+  else LogInstance("(H) Args "..GetReport2(sKey, nMax)) end
+  -- Create the slider control using the min, max and default
   local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
   local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
   pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDef); return pItem
@@ -4834,11 +4842,10 @@ function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
     LogInstance("Mismatch "..GetReport(sName)); return nil end
   local sKey, cVal = GetNameExp(sName), (tonumber(vVal) or tostring(vVal))
   local sInf, nFlg, vMin, vMax = tostring(vInf or ""), mathFloor(tonumber(vFlg) or 0), 0, 0
-  if(not IsHere(tBord)) then vMin, vMax = GetBorder(sKey) else
-    -- Force a border on the convar and update the borders list
-    vMin = (tBord and tBord[1] or nil) -- Read the minimum and maximum
-    vMax = (tBord and tBord[2] or nil); SetBorder(sKey, vMin, vMax)
-  end; LogInstance("Create "..GetReport4(sKey, cVal, vMin, vMax))
+  if(IsHere(tBord)) then -- Read the minimum and maximum from convar border provided
+    vMin, vMax = tBord[1], tBord[2]; SetBorder(sKey, vMin, vMax) -- Update border
+  else vMin, vMax = GetBorder(sKey) end -- Border not provided read it from borders
+  LogInstance("Create "..GetReport4(sKey, cVal, vMin, vMax))
   return CreateConVar(sKey, cVal, nFlg, sInf, vMin, vMax)
 end
 

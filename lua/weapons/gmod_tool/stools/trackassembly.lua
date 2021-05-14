@@ -142,6 +142,7 @@ TOOL.ClientConVar = {
   [ "applinfst"  ] = 0,
   [ "enradmenu"  ] = 0,
   [ "sgradmenu"  ] = 1,
+  [ "rtradmenu"  ] = 18,
   [ "incsnpang"  ] = 5,
   [ "incsnplin"  ] = 5,
   [ "crvturnlm"  ] = 0.95,
@@ -227,6 +228,10 @@ end
 
 function TOOL:GetRadialSegm()
   return mathClamp((self:GetClientNumber("sgradmenu") or 0), 1, 16)
+end
+
+function TOOL:GetRadialAngle()
+  return (mathClamp(self:GetClientNumber("rtradmenu") or 0,-gnMaxRot,gnMaxRot))
 end
 
 function TOOL:ApplyLinearFirst()
@@ -2363,6 +2368,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "crvturnlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvleanlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "sgradmenu", 0)
+    asmlib.SetNumSlider(CPanel, "rtradmenu", iMaxDec)
     asmlib.SetCheckBox(CPanel, "enradmenu")
     asmlib.SetCheckBox(CPanel, "enpntmscr")
     asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
