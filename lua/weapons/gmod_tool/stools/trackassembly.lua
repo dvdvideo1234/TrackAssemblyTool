@@ -481,7 +481,7 @@ function TOOL:ClearAnchor(bMute)
       local sAnchor = svEnt:EntIndex()..gsSymRev..stringGetFileName(svEnt:GetModel())
       asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
     end
-  end; asmlib.LogInstance("("..tostring(bMute)..") Anchor cleared",gtArgsLogs); return true
+  end; asmlib.LogInstance("Cleared "..asmlib.GetReport1(bMute),gtArgsLogs); return true
 end
 
 function TOOL:SetAnchor(stTrace)
@@ -499,7 +499,7 @@ function TOOL:SetAnchor(stTrace)
   self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
   asmlib.SetAsmConvar(plPly,"anchor",sAnchor)
   asmlib.Notify(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
-  asmlib.LogInstance("("..sAnchor..")",gtArgsLogs); return true
+  asmlib.LogInstance("Set "..asmlib.GetReport1(sAnchor),gtArgsLogs); return true
 end
 
 function TOOL:GetAnchor()
@@ -1027,7 +1027,7 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
   if(workmode == 3 or workmode == 5) then
-    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
+    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
@@ -1119,7 +1119,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance("("..oArg.wname..") Success", gtArgsLogs)
     end); return true
   elseif(workmode == 4 and self:IsFlipOver()) then
-    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Surver busy !","ERROR"); return true end
+    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOver(true)
     local tC, nC = asmlib.GetConstraintOver(tE)
@@ -1242,7 +1242,7 @@ function TOOL:LeftClick(stTrace)
   end
 
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Surver busy !","ERROR"); return true end
+    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Server busy !","ERROR"); return true end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"), gtArgsLogs); return false end
     local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
     if(not hdOffs) then -- Make sure the next point is present so we have something to stack on

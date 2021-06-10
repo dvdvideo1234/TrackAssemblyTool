@@ -1,0 +1,10 @@
+# SynchronizeDSV(Joe_s_2ft_track_pack): 01/27/17 21:42:18 [SQL]
+# Data settings:	    MODEL							TYPE		NAME	LINEID	POINT	ORIGIN	ANGLE	CLASS
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/106.mdl	"Joe's 2ft track pack"	"#"	1	"NULL"	"0,  53,0"	"0, 90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/106.mdl	"Joe's 2ft track pack"	"#"	2	"NULL"	"0, -53,0"	"0,-90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/256.mdl	"Joe's 2ft track pack"	"#"	1	"NULL"	"0, 128,0"	"0, 90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/256.mdl	"Joe's 2ft track pack"	"#"	2	"NULL"	"0,-128,0"	"0,-90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/300.mdl	"Joe's 2ft track pack"	"#"	1	"NULL"	"0, 150,0"	"0, 90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/300.mdl	"Joe's 2ft track pack"	"#"	2	"NULL"	"0,-150,0"	"0,-90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/512.mdl	"Joe's 2ft track pack"	"#"	1	"NULL"	"0, 256,0"	"0, 90,0"	"NULL"
+TRACKASSEMBLY_PIECES	models/joe/2ft/straight/512.mdl	"Joe's 2ft track pack"	"#"	2	"NULL"	"0,-256,0"	"0,-90,0"	"NULL"

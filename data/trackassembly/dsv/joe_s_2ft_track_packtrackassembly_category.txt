@@ -1,0 +1,8 @@
+# ExportCategory:(3@Joe_s_2ft_track_pack) 21-06-10 10:48:03 [ LUA ]
+[===[Joe's 2ft track pack===function(m)
+	local r = m:gsub("models/joe/2ft/", "")
+      if(r:find("switch")) then c = "switch"
+      elseif(r:find("curve")) then c = "curve"
+      elseif(r:find("straight")) then c = "straight"
+      elseif(r:find("%dx")) then c = "straight"
+      end; c = (c and c:gsub("^%l", string.upper) or nil) return c end]===]
