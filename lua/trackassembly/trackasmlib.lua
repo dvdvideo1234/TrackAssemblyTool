@@ -529,19 +529,18 @@ function GetViewRadius(pPly, vPos, nMul)
   return nS * mathClamp(nM / vP:Length(), 0, 5000)
 end
 
--- Golden retriever. Retrieves file line as string
--- But seriously returns the sting line and EOF flag
-function GetStringFile(pFile,bNoTrim)
+--[[
+* Golden retriever. Retrieves file line as string
+* But seriously returns the sting line and EOF flag
+* pFile > The file to read the line of characters from
+* bCons > Keeps data consistency. Enable to ignore trimming
+]]
+function GetStringFile(pFile, bCons)
   if(not pFile) then LogInstance("No file"); return "", true end
-  local sCh, sLine = "X", "" -- Use a value to start cycle with
-  while(sCh) do sCh = pFile:Read(1); if(not sCh) then break end
-    if(sCh == "\n") then
-      if(bNoTrim) then return sLine, false end
-      return sLine:Trim(), false
-    else sLine = sLine..sCh end
-  end -- EOF has been reached. Return the last data
-  if(bNoTrim) then return sLine, true end
-  return sLine:Trim(), true
+  local sLine = pFile:ReadLine()  -- Read one line at once
+  local isEOF = pFile:EndOfFile() -- Check for EOF status
+  if(not bCons) then sLine = sLine:Trim() end
+  return sLine, isEOF
 end
 
 function ToIcon(vKey, vVal)
@@ -2180,13 +2179,12 @@ end
 function DecodePOA(sStr)
   if(not IsString(sStr)) then
     LogInstance("Argument mismatch "..GetReport(sStr)); return nil end
-  if(sStr:len() == 0) then return ReloadPOA() end; ReloadPOA()
+  local arPOA  = ReloadPOA(); if(sStr:len() == 0) then return arPOA end
   local symSep = GetOpVar("OPSYM_SEPARATOR")
-  local arPOA  = GetOpVar("ARRAY_DECODEPOA")
-  local atPOA  = symSep:Explode(sStr)   -- Read the components
-  for iD = 1, arPOA.Size do             -- Apply on all components
-    local nCom = tonumber(atPOA[iD])    -- Is the data really a number
-    if(not IsHere(nCom)) then nCom = 0  -- If not write zero and report it
+  local atPOA  = symSep:Explode(sStr)  -- Read the components
+  for iD = 1, arPOA.Size do            -- Apply on all components
+    local nCom = tonumber(atPOA[iD])   -- Is the data really a number
+    if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
       LogInstance("Mismatch <"..sStr..">") end; arPOA[iD] = nCom
   end; return arPOA -- Return the converted string to POA
 end

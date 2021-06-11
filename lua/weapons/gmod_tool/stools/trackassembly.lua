@@ -1382,19 +1382,21 @@ function TOOL:Reload(stTrace)
   local workmode = self:GetWorkingMode()
   local bfover   = self:IsFlipOver()
   if(stTrace.HitWorld) then
-    if(self:GetDeveloperMode()) then
-      asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
-    if(self:GetExportDB()) then
-      if(ply:KeyDown(IN_USE)) then
-        asmlib.SetAsmConvar(ply,"openextdb")
-        asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
-      else
-        asmlib.ExportDSV("PIECES")
-        asmlib.ExportDSV("ADDITIONS")
-        asmlib.ExportDSV("PHYSPROPERTIES")
-        asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
+    if(ply:IsAdmin()) then
+      if(self:GetDeveloperMode()) then
+        asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
+      if(self:GetExportDB()) then
+        if(ply:KeyDown(IN_USE)) then
+          asmlib.SetAsmConvar(ply,"openextdb")
+          asmlib.LogInstance("(World) Success open expdb",gtArgsLogs)
+        else
+          asmlib.ExportDSV("PIECES")
+          asmlib.ExportDSV("ADDITIONS")
+          asmlib.ExportDSV("PHYSPROPERTIES")
+          asmlib.LogInstance("(World) Exporting DB",gtArgsLogs)
+        end
+        asmlib.SetAsmConvar(ply, "exportdb", 0)
       end
-      asmlib.SetAsmConvar(ply, "exportdb", 0)
     end
     if(ply:KeyDown(IN_SPEED)) then
       if(workmode == 1) then self:ClearAnchor(false)
