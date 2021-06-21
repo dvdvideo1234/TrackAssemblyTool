@@ -105,6 +105,8 @@
   tSet["tool."..sTool..".ghostcnt_con"     ] = "Ghosts count:"
   tSet["tool."..sTool..".engunsnap"        ] = "Controls snapping when the piece is dropped by the player physics gun"
   tSet["tool."..sTool..".engunsnap_con"    ] = "Enable physics gun snap"
+  tSet["tool."..sTool..".upspanchor"       ] = "Enable to update the anchor on every spawn when not snapping"
+  tSet["tool."..sTool..".upspanchor_con"   ] = "Update anchor on spawn"
   tSet["tool."..sTool..".type"             ] = "Select the track type to use by expanding the folder"
   tSet["tool."..sTool..".type_con"         ] = "Track type:"
   tSet["tool."..sTool..".subfolder"        ] = "Select the track category to use by expanding the folder"

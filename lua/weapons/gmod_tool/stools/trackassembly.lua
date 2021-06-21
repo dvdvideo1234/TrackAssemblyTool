@@ -31,6 +31,7 @@ local mathSqrt                         = math and math.sqrt
 local mathClamp                        = math and math.Clamp
 local mathAtan2                        = math and math.atan2
 local mathRound                        = math and math.Round
+local gameGetWorld                     = game and game.GetWorld
 local fileExists                       = file and file.Exists
 local tableInsert                      = table and table.insert
 local tableRemove                      = table and table.remove
@@ -145,6 +146,7 @@ TOOL.ClientConVar = {
   [ "rtradmenu"  ] = 18,
   [ "incsnpang"  ] = 5,
   [ "incsnplin"  ] = 5,
+  [ "upspanchor" ] = 0,
   [ "crvturnlm"  ] = 0.95,
   [ "crvleanlm"  ] = 0.95,
   [ "flipoverid" ] = ""
@@ -315,6 +317,10 @@ function TOOL:GetGhostsCount()
   return mathClamp(self:GetClientNumber("ghostcnt"),0,asmlib.GetAsmConvar("maxstcnt", "INT"))
 end
 
+function TOOL:GetUpSpawnAnchor()
+  return ((self:GetClientNumber("upspanchor") or 0) ~= 0)
+end
+
 function TOOL:GetNoCollide()
   return ((self:GetClientNumber("nocollide") or 0) ~= 0)
 end
@@ -472,40 +478,55 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
 end
 
 function TOOL:ClearAnchor(bMute)
-  local svEnt, plPly = self:GetEnt(1), self:GetOwner()
-  if(CLIENT) then return end; self:ClearObjects()
-  asmlib.SetAsmConvar(plPly,"anchor",gsNoAnchor)
-  if(svEnt and svEnt:IsValid()) then
-    asmlib.UpdateColorPick(svEnt, "anchor", "an", false)
-    if(not bMute) then
-      local sAnchor = svEnt:EntIndex()..gsSymRev..stringGetFileName(svEnt:GetModel())
-      asmlib.Notify(plPly,"Anchor: Cleaned "..sAnchor.." !","CLEANUP")
-    end
-  end; asmlib.LogInstance("Cleared "..asmlib.GetReport1(bMute),gtArgsLogs); return true
+  local oPly = self:GetOwner()
+  local siAnc, svEnt = self:GetAnchor()
+  if(CLIENT) then return false end; self:ClearObjects()
+  asmlib.SetAsmConvar(oPly,"anchor",gsNoAnchor)
+  if(svEnt and svEnt:IsValid() and not svEnt:IsWorld()) then
+    asmlib.UpdateColorPick(svEnt, "anchor", "an", false) end
+  if(not bMute) then -- Notify the user when anchor is cleared
+    asmlib.Notify(oPly,"Anchor: Cleaned "..siAnc.." !","CLEANUP") end
+  asmlib.LogInstance("Cleared "..asmlib.GetReport1(bMute),gtArgsLogs); return true
 end
 
 function TOOL:SetAnchor(stTrace)
   self:ClearAnchor(true)
-  if(not stTrace) then asmlib.LogInstance("Trace invalid",gtArgsLogs); return false end
-  if(not stTrace.Hit) then asmlib.LogInstance("Trace not hit",gtArgsLogs); return false end
-  local trEnt = stTrace.Entity
-  if(not (trEnt and trEnt:IsValid())) then asmlib.LogInstance("Trace no entity",gtArgsLogs); return false end
-  local phEnt = trEnt:GetPhysicsObject()
-  if(not (phEnt and phEnt:IsValid())) then asmlib.LogInstance("Trace no physics",gtArgsLogs); return false end
-  local plPly = self:GetOwner()
-  if(not (plPly and plPly:IsValid())) then asmlib.LogInstance("Player invalid",gtArgsLogs); return false end
-  local sAnchor = trEnt:EntIndex()..gsSymRev..stringGetFileName(trEnt:GetModel())
-  asmlib.UpdateColorPick(trEnt, "anchor", "an", true)
-  self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
-  asmlib.SetAsmConvar(plPly,"anchor",sAnchor)
-  asmlib.Notify(plPly,"Anchor: Set "..sAnchor.." !","UNDO")
-  asmlib.LogInstance("Set "..asmlib.GetReport1(sAnchor),gtArgsLogs); return true
+  if(not stTrace) then
+    asmlib.LogInstance("Trace invalid",gtArgsLogs); return false end
+  if(not stTrace.Hit) then
+    asmlib.LogInstance("Trace not hit",gtArgsLogs); return false end
+  local oPly = self:GetOwner(); if(not (oPly and oPly:IsValid())) then
+    asmlib.LogInstance("Player invalid",gtArgsLogs); return false end
+  if(stTrace.HitWorld) then
+    local trEnt = gameGetWorld()
+    local phEnt = trEnt:GetPhysicsObject()
+    local sAnchor = "0"..gsSymRev.."worldspawn.mdl"
+    self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
+    asmlib.SetAsmConvar(oPly,"anchor",sAnchor)
+    asmlib.Notify(oPly,"Anchor: Set "..sAnchor.." !","UNDO")
+    asmlib.LogInstance("(WORLD) Set "..asmlib.GetReport1(sAnchor),gtArgsLogs)
+  else
+    local trEnt = stTrace.Entity; if(not (trEnt and trEnt:IsValid())) then
+      asmlib.LogInstance("Trace no entity",gtArgsLogs); return false end
+    local phEnt = trEnt:GetPhysicsObject(); if(not (phEnt and phEnt:IsValid())) then
+      asmlib.LogInstance("Trace no physics",gtArgsLogs); return false end
+    local sAnchor = trEnt:EntIndex()..gsSymRev..stringGetFileName(trEnt:GetModel())
+    asmlib.UpdateColorPick(trEnt, "anchor", "an", true)
+    self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
+    asmlib.SetAsmConvar(oPly,"anchor",sAnchor)
+    asmlib.Notify(oPly,"Anchor: Set "..sAnchor.." !","UNDO")
+    asmlib.LogInstance("(PROP) Set "..asmlib.GetReport1(sAnchor),gtArgsLogs)
+  end; return true
 end
 
 function TOOL:GetAnchor()
   local svEnt = self:GetEnt(1)
-  if(not (svEnt and svEnt:IsValid())) then svEnt = nil end
-  return (self:GetClientInfo("anchor") or gsNoAnchor), svEnt
+  local siAnc = (self:GetClientInfo("anchor") or gsNoAnchor)
+  if(svEnt) then
+    if(not svEnt:IsWorld() and
+       not svEnt:IsValid()) then svEnt = nil end
+  else svEnt = nil end
+  return siAnc, svEnt
 end
 
 function TOOL:GetWorkingMode()
@@ -545,7 +566,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
   local bFleLog = asmlib.IsFlag("en_logging_file")
   local sSpace  = (" "):rep(6 + tostring(iMaxlog):len())
   local workmode, workname = self:GetWorkingMode()
-  local aninfo , anEnt   = self:GetAnchor()
+  local siAnc  , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty   , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw , nextrol = self:GetAngOffsets()
@@ -583,7 +604,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]"..sDelim
         sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel and stringGetFileName(hdModel) or gsNoAV)..">"..sDelim
         sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmConvar("modedb" ,"STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(aninfo)..">"..sDelim
+        sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(siAnc)..">"..sDelim
         sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
         sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
         sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
@@ -598,6 +619,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
         sDu = sDu..sSpace.."  HD.NoCollideW:  <"..tostring(self:GetNocollideWorld())..">"..sDelim
+        sDu = sDu..sSpace.."  HD.UpSpAnchor:  <"..tostring(self:GetUpSpawnAnchor())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
         sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
@@ -932,6 +954,7 @@ function TOOL:CurveCheck()
 end
 
 function TOOL:NormalSpawn(stTrace, oPly)
+  local trEnt      = stTrace.Entity
   local mass       = self:GetMass()
   local model      = self:GetModel()
   local surfsnap   = self:GetSurfaceSnap()
@@ -948,8 +971,9 @@ function TOOL:NormalSpawn(stTrace, oPly)
   local weld       = self:GetWeld()
   local forcelim   = self:GetForceLimit()
   local elevpnt    = self:GetElevation()
+  local upspanchor = self:GetUpSpawnAnchor()
   local fnmodel    = stringGetFileName(model)
-  local aninfo , anEnt   = self:GetAnchor()
+  local siAnc  , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
@@ -966,6 +990,25 @@ function TOOL:NormalSpawn(stTrace, oPly)
       asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Cannot obtain spawn data"),gtArgsLogs); return false end
     vPos:Set(stSpawn.SPos); aAng:Set(stSpawn.SAng)
   end
+
+  -- Update the anchor entity automatically when enabled
+  if(upspanchor) then -- Read the auto-update flag
+    if(anEnt ~= trEnt) then -- When the anchor needs to be changed
+      if(not self:SetAnchor(stTrace)) then -- Update anchor with current trace
+        asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Anchor fail"),gtArgsLogs); return false
+      end; siAnc, anEnt = self:GetAnchor() -- Export anchor to locals
+    end -- This needs to be triggered only when the user is not meshing
+
+    if(anEnt) then -- Check if there is an anchor available
+      if(not anEnt:IsWorld()) then -- Check all other cases that are not world
+        if(not (anEnt and anEnt:IsValid()) and
+               (trEnt and trEnt:IsValid())) then anEnt = trEnt end
+      end -- When anchor is not the world and it is invalid use the trace
+    else -- When the anchor is missing we just use the trace entity
+      if(trEnt and trEnt:IsValid()) then anEnt = trEnt end -- Switch-a-roo
+    end -- If there is something wrong with the anchor entity use the trace
+  end -- When the flag is not enabled must not automatically update anchor
+
   local ePiece = asmlib.MakePiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
   if(ePiece) then
     if(spawncn) then -- Adjust the position when created correctly
@@ -1015,12 +1058,12 @@ function TOOL:LeftClick(stTrace)
   local bgskids    = self:GetBodyGroupSkin()
   local maxstatts  = self:GetStackAttempts()
   local ignphysgn  = self:GetIgnorePhysgun()
+  local applinfst  = self:ApplyLinearFirst()
   local bnderrmod  = self:GetBoundErrorMode()
   local appangfst  = self:ApplyAngularFirst()
-  local applinfst  = self:ApplyLinearFirst()
   local nocollidew = self:GetNocollideWorld()
   local fnmodel    = stringGetFileName(model)
-  local aninfo , anEnt   = self:GetAnchor()
+  local siAnc  , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local workmode, workname = self:GetWorkingMode()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -1031,7 +1074,7 @@ function TOOL:LeftClick(stTrace)
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtArgsLogs); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Arguments validation fail"), gtArgsLogs); return nil end
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Validation fail"), gtArgsLogs); return nil end
     local fInt = asmlib.GetOpVar("FORM_INTEGER")
     local curvefact, curvsmple = self:GetCurveFactor()  , self:GetCurveSamples()
     local crvturnlm, crvleanlm = self:GetCurvatureTurn(), self:GetCurvatureLean()
@@ -1095,7 +1138,7 @@ function TOOL:LeftClick(stTrace)
           else oArg.mundo = sItr -- We still have enough memory to preform the stacking
             if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Segment limit reached"), gtArgsLogs); return false
-            else asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": All stack attempts fail"), gtArgsLogs); return false end
+            else asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Stack attempts fail"), gtArgsLogs); return false end
           end
         end
       end
@@ -1328,7 +1371,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.UndoFinish(ply)
       asmlib.LogInstance("(Snap) Success",gtArgsLogs); return true
     end
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Crating piece fail"),gtArgsLogs); return false
+    asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Create piece fail"),gtArgsLogs); return false
   end
 end
 
@@ -1377,10 +1420,11 @@ function TOOL:Reload(stTrace)
     asmlib.LogInstance("Working on client",gtArgsLogs); return true end
   if(not stTrace) then
     asmlib.LogInstance("Invalid trace",gtArgsLogs); return false end
-  local ply      = self:GetOwner()
-  local trEnt    = stTrace.Entity
-  local workmode = self:GetWorkingMode()
-  local bfover   = self:IsFlipOver()
+  local ply        = self:GetOwner()
+  local trEnt      = stTrace.Entity
+  local workmode   = self:GetWorkingMode()
+  local bfover     = self:IsFlipOver()
+  local upspanchor = self:GetUpSpawnAnchor()
   if(stTrace.HitWorld) then
     if(ply:IsAdmin()) then
       if(self:GetDeveloperMode()) then
@@ -1399,8 +1443,14 @@ function TOOL:Reload(stTrace)
       end
     end
     if(ply:KeyDown(IN_SPEED)) then
-      if(workmode == 1) then self:ClearAnchor(false)
-        asmlib.LogInstance("(World) Anchor clear",gtArgsLogs)
+      if(workmode == 1) then
+        if(upspanchor) then
+          if(not self:SetAnchor(stTrace)) then
+            asmlib.LogInstance(self:GetStatus(stTrace,"(World) Anchor fail"),gtArgsLogs); return false
+          end; asmlib.LogInstance("(World) Anchor set",gtArgsLogs)
+        else self:ClearAnchor(false)
+          asmlib.LogInstance("(World) Anchor clear",gtArgsLogs)
+        end
       elseif(workmode == 2) then self:IntersectClear(false)
         asmlib.LogInstance("(World) Relate clear",gtArgsLogs)
       elseif(workmode == 3 or workmode == 5) then self:CurveClear(true)
@@ -1422,11 +1472,11 @@ function TOOL:Reload(stTrace)
     if(ply:KeyDown(IN_SPEED)) then
       if(workmode == 1) then -- General anchor
         if(not self:SetAnchor(stTrace)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor set fail"),gtArgsLogs); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor fail"),gtArgsLogs); return false end
         asmlib.LogInstance("(Prop) Anchor set",gtArgsLogs); return true
       elseif(workmode == 2) then -- Intersect relation
         if(not self:IntersectRelate(ply, trEnt, stTrace.HitPos)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation set fail"),gtArgsLogs); return false end
+          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation fail"),gtArgsLogs); return false end
         asmlib.LogInstance("(Prop) Relation set",gtArgsLogs); return true
       elseif(workmode == 3 or workmode == 5) then self:CurveClear(true)
         asmlib.LogInstance("(Prop) Nodes cleared",gtArgsLogs); return true
@@ -2045,8 +2095,8 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:SetTextStart(xyT.x, xyT.y)
   local oPly = LocalPlayer()
   local stTrace = asmlib.GetCacheTrace(oPly)
-  local anInfo, anEnt = self:GetAnchor()
-  local tInfo = gsSymRev:Explode(anInfo)
+  local siAnc, anEnt = self:GetAnchor()
+  local tInfo = gsSymRev:Explode(siAnc)
   if(not (stTrace and stTrace.Hit)) then
     scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
     scrTool:DrawTextRe("  ["..(tInfo[1] or gsNoID).."]","an"); return
@@ -2351,6 +2401,7 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetCheckBox(CPanel, "adviser")
   asmlib.SetCheckBox(CPanel, "pntasist")
   asmlib.SetCheckBox(CPanel, "engunsnap")
+  asmlib.SetCheckBox(CPanel, "upspanchor")
   asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
 end
 

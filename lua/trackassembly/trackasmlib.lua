@@ -800,22 +800,21 @@ end
 
 function UpdateColorPick(oEnt, sVar, sCol, bSet)
   if(IsOther(oEnt)) then return nil end
-  local sPrf = GetOpVar("TOOLNAME_PL")
   local cPal = GetContainer("COLORS_LIST")
+  local sPrf = GetOpVar("TOOLNAME_PL")..sVar
   if(IsHere(bSet)) then
     if(bSet) then
       oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select(sCol))
-      oEnt:SetNWBool(sPrf..sVar, true)
+      oEnt:SetNWBool(sPrf, true)
     else
       oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select("w"))
-      oEnt:SetNWBool(sPrf..sVar, false)
+      oEnt:SetNWBool(sPrf, false)
     end
   else
-    local bSet = oEnt:GetNWBool(sVar, false)
-    if(bSet) then
-      UpdateColorPick(oEnt, sVar, sCol, bSet) end
+    local bSet = oEnt:GetNWBool(sPrf, false)
+    UpdateColorPick(oEnt, sVar, sCol, bSet)
   end
 end
 
@@ -4651,7 +4650,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
     -- Weld on pieces between each other
     if(bWe) then -- Weld using force limit given here V
-      if(eBase and eBase:IsValid()) then
+      if(eBase and (eBase:IsValid() or eBase:IsWorld())) then
         if(constraintCanConstrain(eBase, 0)) then
           cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
           if(cnW and cnW:IsValid()) then
@@ -4663,7 +4662,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
     end
     -- NoCollide on pieces between each other made separately
     if(bNc) then
-      if(eBase and eBase:IsValid()) then
+      if(eBase and (eBase:IsValid() or eBase:IsWorld())) then
         if(constraintCanConstrain(eBase, 0)) then
           cnN = constraintNoCollide(ePiece, eBase, 0, 0)
           if(cnN and cnN:IsValid()) then
