@@ -1008,7 +1008,7 @@ function TOOL:NormalSpawn(stTrace, oPly)
       if(trEnt and trEnt:IsValid()) then anEnt = trEnt end -- Switch-a-roo
     end -- If there is something wrong with the anchor entity use the trace
   end -- When the flag is not enabled must not automatically update anchor
-
+  print("normal:", vPos, aAng)
   local ePiece = asmlib.MakePiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
   if(ePiece) then
     if(spawncn) then -- Adjust the position when created correctly
@@ -1068,6 +1068,9 @@ function TOOL:LeftClick(stTrace)
   local workmode, workname = self:GetWorkingMode()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+  print("trigger")
+
+  trEnt:SetNetworkedBool("trackassembly_debugen", true)
 
   if(workmode == 3 or workmode == 5) then
     if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
@@ -1252,6 +1255,7 @@ function TOOL:LeftClick(stTrace)
 
   local stSpawn = asmlib.GetEntitySpawn(ply,trEnt,stTrace.HitPos,model,pointid,
                            actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
+
   if(not stSpawn) then -- Not aiming into an active point update settings/properties
     if(ply:KeyDown(IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
@@ -1282,6 +1286,8 @@ function TOOL:LeftClick(stTrace)
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       asmlib.LogInstance("(Bodygroup/Skin) Success",gtArgsLogs)
     end; return true
+  else
+    print("1:",stSpawn.SPos,stSpawn.SAng)
   end
 
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
@@ -1358,6 +1364,7 @@ function TOOL:LeftClick(stTrace)
       if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
         asmlib.LogInstance("(Ray) Skip intersection sequence. Snapping",gtArgsLogs) end
     end
+    print("2:",stSpawn.SPos,stSpawn.SAng)
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
@@ -1637,6 +1644,9 @@ function TOOL:UpdateGhost(oPly)
             if(not stSpawn) then return end
           end
         else
+          if(trEnt and trEnt:GetNetworkedBool("trackassembly_debugen")) then
+            print("3:",stSpawn.SPos,stSpawn.SAng)
+          end
           ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
         end
       elseif(workmode == 4) then

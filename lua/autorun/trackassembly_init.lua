@@ -88,7 +88,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.661")
+asmlib.SetOpVar("TOOL_VERSION","8.662")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -1924,8 +1924,8 @@ else
   PIECES:Record({"models/props_phx/trains/tracks/track_pass.mdl", "#", "Cross Road", 2, "", "-370.036377,2e-006,11.214844", "0,180,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_8x.mdl", "#", "#", 1, "", " 829.878418, 3.8e-005,12.548828"})
   PIECES:Record({"models/props_phx/trains/tracks/track_8x.mdl", "#", "#", 2, "", "-370.036865,-2.5e-005,12.548828", "0,-180,0"})
-  PIECES:Record({"models/props_phx/trains/tracks/track_16x.mdl", "#", "#", 1, "", "2029.797363,0.000133,12.548828"})
-  PIECES:Record({"models/props_phx/trains/tracks/track_16x.mdl", "#", "#", 2, "", "-370.036865,-2e-0060,12.548828", "0,-180,0"})
+  PIECES:Record({"models/props_phx/trains/tracks/track_16x.mdl", "#", "#", 1, "", "2029.79824,0,12.548828"})
+  PIECES:Record({"models/props_phx/trains/tracks/track_16x.mdl", "#", "#", 2, "", "-370.03799,0,12.548828", "0,-180,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_x.mdl", "#", "Cross 45", 1, "", " 250.473389,  49.613159,11.214844"})
   PIECES:Record({"models/props_phx/trains/tracks/track_x.mdl", "#", "Cross 45", 2, "", "-349.483032,  49.613129,11.214844", "0,-180,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_x.mdl", "#", "Cross 45", 3, "", " 162.610229,-162.4935  ,11.214844", "0, -45,0"})

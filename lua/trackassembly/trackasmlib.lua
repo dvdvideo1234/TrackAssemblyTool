@@ -832,6 +832,25 @@ function ExpAngle(aBase, pP, pY, pR)
   return (tonumber(aBase[aP]) or 0), (tonumber(aBase[aY]) or 0), (tonumber(aBase[aR]) or 0)
 end
 
+function SnapAngle(aBase, nvDec)
+  if(not aBase) then LogInstance("Base invalid"); return nil end
+  local D = (tonumber(nvDec) or 0); if(D <= 0) then
+    LogInstance("Low mismatch "..GetReport(nvDec)); return nil end
+  if(D >= GetOpVar("MAX_ROTATION")) then
+    LogInstance("High mismatch "..GetReport(nvDec)); return nil end
+  -- Snap player viewing rotation angle for using walls and ceiling
+  aBase:SnapTo("pitch", D):SnapTo("yaw", D):SnapTo("roll", D)
+end
+
+function RoundAngle(aBase, nvDec)
+  if(not aBase) then LogInstance("Base invalid"); return nil end
+  local D = tonumber(nvDec or 0); if(not IsHere(D)) then
+    LogInstance("Round mismatch "..GetReport(nvDec)); return nil end
+  local P = (tonumber(aBase[caP]) or 0); aBase[caP] = mathRound(P,D)
+  local Y = (tonumber(aBase[caY]) or 0); aBase[caY] = mathRound(Y,D)
+  local R = (tonumber(aBase[caR]) or 0); aBase[caR] = mathRound(R,D)
+end
+
 function AddAngle(aBase, aUnit)
   if(not aBase) then LogInstance("Base invalid"); return nil end
   if(not aUnit) then LogInstance("Unit invalid"); return nil end
@@ -909,11 +928,11 @@ end
 
 function RoundVector(vBase,nvDec)
   if(not vBase) then LogInstance("Base invalid"); return nil end
-  local D = tonumber(nvDec); if(not IsHere(R)) then
+  local D = tonumber(nvDec or 0); if(not IsHere(D)) then
     LogInstance("Round mismatch "..GetReport(nvDec)); return nil end
-  local X = (tonumber(vBase[cvX]) or 0); X = mathRound(X,D); vBase[cvX] = X
-  local Y = (tonumber(vBase[cvY]) or 0); Y = mathRound(Y,D); vBase[cvY] = Y
-  local Z = (tonumber(vBase[cvZ]) or 0); Z = mathRound(Z,D); vBase[cvZ] = Z
+  local X = (tonumber(vBase[cvX]) or 0); vBase[cvX] = mathRound(X,D)
+  local Y = (tonumber(vBase[cvY]) or 0); vBase[cvY] = mathRound(Y,D)
+  local Z = (tonumber(vBase[cvZ]) or 0); vBase[cvZ] = mathRound(Z,D)
 end
 
 function AddVector(vBase, vUnit)
@@ -4030,10 +4049,7 @@ function GetNormalAngle(oPly, soTr, bSnp, nSnp)
       if(not (stTr and stTr.Hit)) then return aAng end
     end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
   else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
-  if(nAsn and (nAsn > 0) and (nAsn <= GetOpVar("MAX_ROTATION"))) then
-    -- Snap player viewing rotation angle for using walls and ceiling
-    aAng:SnapTo("pitch", nAsn):SnapTo("yaw", nAsn):SnapTo("roll", nAsn)
-  end; return aAng
+  SnapAngle(aAng, nAsn); return aAng
 end
 
 --[[
@@ -4091,7 +4107,7 @@ end
  * ucsAng(P,Y,R) = Offset angle
 ]]--
 function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
-                        ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
+                        ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData,trEnt)
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
     LogInstance("No record located "..GetReport(shdModel)); return nil end
   local hdPOA, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdPOA)) then
@@ -4123,6 +4139,11 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
   SetVector(stSpawn.HPnt, hdPOA.P)
   SetVector(stSpawn.HOrg, hdPOA.O)
   SetAngle (stSpawn.HAng, hdPOA.A)
+  if(trEnt and trEnt:GetNetworkedBool("trackassembly_debugen")) then
+    print("hold:", stSpawn.HPnt, stSpawn.HOrg, stSpawn.HAng)
+    print("orgn:", stSpawn.OPos, stSpawn.OAng)
+  end
+
   -- Apply origin basis to the trace matrix
   stSpawn.TMtx:Identity()
   stSpawn.TMtx:Translate(stSpawn.OPos)
@@ -4138,6 +4159,15 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
   -- Read the spawn origin position and angle
   stSpawn.SPos:Set(stSpawn.SMtx:GetTranslation())
   stSpawn.SAng:Set(stSpawn.SMtx:GetAngles())
+
+  if(trEnt and trEnt:GetNetworkedBool("trackassembly_debugen")) then
+    print("spawn:", stSpawn.SPos, stSpawn.SAng)
+
+    timerSimple(0.2, function()
+      trEnt:SetNWBool("trackassembly_debugen", false)
+    end)
+  end
+
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
@@ -4188,19 +4218,35 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   local stSpawn = GetCacheSpawn(oPly, stData) -- We have the next Piece Offset
         stSpawn.TRec, stSpawn.RLen = trRec, trRad
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID
-        stSpawn.TOrg:Set(trEnt:GetPos())
-        stSpawn.TAng:Set(trEnt:GetAngles())
+  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
+
+        trEnt:GetPos(); trEnt:GetAngles()
+        SetVector(stSpawn.TOrg, trPos)
+        SetAngle (stSpawn.TAng, trAng)
+        if(trEnt:GetNetworkedBool("trackassembly_debugen")) then
+          local test = trEnt:GetAngles()
+          print("TR-prim:", trPos, trAng)
+          print("TR-ents:", stSpawn.TOrg, stSpawn.TAng)
+          print("SP-hash:", test.p, test.y, test.r)
+          print("SP-intg:", test[1], test[2], test[3])
+        end
         SetVector(stSpawn.TPnt, trPOA.P)
         stSpawn.TPnt:Rotate(stSpawn.TAng)
         stSpawn.TPnt:Add(stSpawn.TOrg)
   -- Found the active point ID on trEnt. Initialize origins
   SetVector(stSpawn.BPos, trPOA.O) -- Read origin
   SetAngle (stSpawn.BAng, trPOA.A) -- Read angle
+  if(trEnt:GetNetworkedBool("trackassembly_debugen")) then
+    print("base-DB:", stSpawn.BPos, stSpawn.BAng)
+  end
   stSpawn.BPos:Rotate(stSpawn.TAng); stSpawn.BPos:Add(stSpawn.TOrg)
   stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
+  if(trEnt:GetNetworkedBool("trackassembly_debugen")) then
+    print("base-CA:", stSpawn.BPos, stSpawn.BAng)
+  end
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.BAng[caP] = 0; stSpawn.BAng[caR] = 0 end
-  return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
+  return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData,trEnt)
 end
 
 --[[
@@ -4568,6 +4614,10 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly,sMode)) then
     LogInstance("Misplaced "..GetReport2(pPly:Nick(), sModel)); return nil end
   ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+
+  print("TA-hash", aAng.p, aAng.y, aAng.r)
+  print("TA-intg", aAng[1], aAng[2], aAng[3])
+
   ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
