@@ -337,7 +337,9 @@ function GetStrip(vV, vQ)
   return sV:Trim()
 end
 
-function GetSnapInc(pB, nV, aV)
+function GetSnap(nV, aV)
+  local aV = tonumber(aV)
+  if(not aV) then return nV end
   local mV = mathAbs(aV)
   local cV = mathRound(nV / mV) * mV
   if(aV > 0 and cV > nV) then return cV end
@@ -345,6 +347,18 @@ function GetSnapInc(pB, nV, aV)
   if(aV < 0 and cV > nV) then return (cV - mV) end
   if(aV < 0 and cV < nV) then return cV end
   return (nV + aV)
+end
+
+function GetGrid(nV, aV)
+  local aV = tonumber(aV)
+  if(not aV) then return nV end
+  local nA = GetSnap(nV,  aV)
+  local nB = GetSnap(nV, -aV)
+  local vA = mathAbs(nV - nA)
+  local vB = mathAbs(nV - nB)
+  if(vA < vB) then return nA end
+  if(vA > vB) then return nB end
+  return nV
 end
 
 ------------------ LOGS ------------------------
@@ -651,6 +665,7 @@ function InitBase(sName, sPurp)
   SetOpVar("LOG_INIT",{"*Init", false, 0})
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_FREEZE",0.01)
+  SetOpVar("ANG_YSNAP",0)
   SetOpVar("MAX_ROTATION",360)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
@@ -820,14 +835,6 @@ end
 
 ------------- ANGLE ---------------
 
-function PrintAngle(aBase, sMsg)
-  local sMsg = tostring(sMsg or "ANGLE")
-  if(not aBase) then print("Angle invalid: "..sMsg); return nil end
-  print(sMsg, aBase)
-  print(sMsg, aBase.p, aBase.y, aBase.r)
-  print(sMsg, aBase[1], aBase[2], aBase[3])
-end
-
 function ToAngle(aBase, pP, pY, pR)
   if(not aBase) then LogInstance("Base invalid"); return nil end
   local aP, aY, aR = UseIndexes(pP, pY, pR, caP, caY, caR)
@@ -848,6 +855,15 @@ function SnapAngle(aBase, nvDec)
     LogInstance("High mismatch "..GetReport(nvDec)); return nil end
   -- Snap player viewing rotation angle for using walls and ceiling
   aBase:SnapTo("pitch", D):SnapTo("yaw", D):SnapTo("roll", D)
+end
+
+function GridAngle(aBase, nvDec)
+  if(not aBase) then LogInstance("Base invalid"); return nil end
+  local D = tonumber(nvDec or 0); if(not IsHere(D)) then
+    LogInstance("Round mismatch "..GetReport(nvDec)); return nil end
+  if(aBase[caP] == 0 and aBase[caR] == 0 and D ~= 0) then
+    aBase[caY] = GetGrid(aBase[caY], D)
+  end
 end
 
 function FixAngle(aBase, nvDec)
@@ -922,15 +938,6 @@ function SetAnglePYR(aBase, nP, nY, nR)
 end
 
 ------------- VECTOR ---------------
-
-function PrintVector(vBase, sMsg)
-  local sMsg = tostring(sMsg or "VECTOR")
-  if(not vBase) then LogInstance("Vector invalid: "..sMsg); return nil end
-  print(sMsg, vBase, vBase:Length())
-  print(sMsg, vBase)
-  print(sMsg, vBase.p, vBase.y, vBase.r)
-  print(sMsg, vBase[1], vBase[2], vBase[3])
-end
 
 function ToVector(vBase, pX, pY, pZ)
   if(not vBase) then LogInstance("Base invalid"); return nil end
@@ -1627,7 +1634,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end; return xyO -- Do not draw the rays when the size is zero
   end
-  function self:DrawPOA(oPly,ePOA,stPOA,nAct,bNoO)
+  function self:DrawPOA(oPly,ePOA,stPOA,nAct,bNoO,iIdx)
     if(not (ePOA and ePOA:IsValid())) then
       LogInstance("Entity invalid", tLogs); return nil end
     if(not IsPlayer(oPly)) then
@@ -1642,6 +1649,10 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     if(not bNoO) then
       local nR = GetViewRadius(oPly, vO)
       self:DrawCircle(Op, nR,"y","SURF")
+    end
+    if(iIdx) then local nO = Rv / 4
+      self:SetTextStart(Op.x + nO, Op.y - 24 - nO)
+      self:DrawText(tostring(iIdx),"g","SURF",{"Trebuchet24"})
     end
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
@@ -4147,38 +4158,29 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
     LogInstance("No record located "..GetReport(shdModel)); return nil end
   local hdPOA, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdPOA)) then
     LogInstance("Holder ID missing "..GetReport(ivhdPoID)); return nil end
-  local stSpawn = GetCacheSpawn(oPly, stData); stSpawn.HRec, stSpawn.HID = hdRec, ihdPoID
+  local nYawSnp = GetOpVar("ANG_YSNAP")
+  local stSpawn = GetCacheSpawn(oPly, stData)
+        stSpawn.HID  = ihdPoID
+        stSpawn.HRec = hdRec
   if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
   if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
-
-  PrintAngle(ucsAng, "1:uang")
-  PrintAngle(stSpawn.BAng, "1:bang")
-
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
   -- Initialize F, R, U Copy the UCS like that to support database POA
-  SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
-  SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
+  SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0),
+                             (tonumber(ucsAngY) or 0),
+                             (tonumber(ucsAngR) or 0))
+  SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0),
+                             (tonumber(ucsPosY) or 0),
+                             (tonumber(ucsPosZ) or 0))
   -- Integrate additional position offset into the origin position
-  PrintAngle(stSpawn.OAng, "1:origin")
-
   stSpawn.U:Set(stSpawn.OAng:Up()); stSpawn.U:Normalize()
   stSpawn.R:Set(stSpawn.OAng:Right()); stSpawn.R:Normalize()
   stSpawn.F:Set(stSpawn.OAng:Forward()); stSpawn.F:Normalize()
-  if(stSpawn.PNxt[cvX] ~= 0) then
-    stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F) end
-  if(stSpawn.PNxt[cvY] ~= 0) then
-    stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R) end
-  if(stSpawn.PNxt[cvZ] ~= 0) then
-    stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U) end
+  if(stSpawn.PNxt[cvX] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F) end
+  if(stSpawn.PNxt[cvY] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R) end
+  if(stSpawn.PNxt[cvZ] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U) end
   -- Integrate additional angle offset into the origin angle
-  if(trEnt and trEnt:GetNetworkedBool("trackassembly_debugen")) then
-    print("R", stSpawn.R, stSpawn.R:Length())
-    print("U", stSpawn.U, stSpawn.U:Length())
-    print("F", stSpawn.F, stSpawn.F:Length())
-  end
-
   if(stSpawn.ANxt[caP] ~= 0 or stSpawn.ANxt[caY] ~= 0 or stSpawn.ANxt[caR] ~= 0) then
-    print("=========================")
     stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
     stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
     stSpawn.F:Set(stSpawn.OAng:Forward()); stSpawn.F:Normalize()
@@ -4186,37 +4188,27 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
     stSpawn.R:Set(stSpawn.OAng:Right()); stSpawn.R:Normalize()
     stSpawn.U:Set(stSpawn.OAng:Up()); stSpawn.U:Normalize()
   end
-
-  PrintAngle(stSpawn.OAng, "2:origin")
-
+  GridAngle(stSpawn.OAng, nYawSnp)
   -- Read holder record
   SetVector(stSpawn.HPnt, hdPOA.P)
   SetVector(stSpawn.HOrg, hdPOA.O)
   SetAngle (stSpawn.HAng, hdPOA.A)
-
-  print("hold:", stSpawn.HPnt, stSpawn.HOrg, stSpawn.HAng)
-  print("orgn:", stSpawn.OPos, stSpawn.OAng)
-
   -- Apply origin basis to the trace matrix
   stSpawn.TMtx:Identity()
   stSpawn.TMtx:Translate(stSpawn.OPos)
   stSpawn.TMtx:Rotate(stSpawn.OAng)
-  print(tostring(stSpawn.TMtx))
   -- Apply origin basis to the holder matrix
   stSpawn.HMtx:Identity()
   stSpawn.HMtx:Translate(stSpawn.HOrg)
   stSpawn.HMtx:Rotate(stSpawn.HAng)
   stSpawn.HMtx:Rotate(GetOpVar("ANG_REV"))
-  print(tostring(stSpawn.HMtx))
   stSpawn.HMtx:Invert()
   -- Calculate the spawn matrix
   stSpawn.SMtx:Set(stSpawn.TMtx * stSpawn.HMtx)
   -- Read the spawn origin position and angle
   stSpawn.SPos:Set(stSpawn.SMtx:GetTranslation())
   stSpawn.SAng:Set(stSpawn.SMtx:GetAngles())
-
-  print("spawn:", stSpawn.SPos, stSpawn.SAng)
-
+  GridAngle(stSpawn.SAng, nYawSnp)
   -- Store the active point position of holder
   stSpawn.HPnt:Rotate(stSpawn.SAng)
   stSpawn.HPnt:Add(stSpawn.SPos)
@@ -4264,37 +4256,24 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   -- If the types are different and disabled
   if((not enIgnTyp) and (trRec.Type ~= hdRec.Type)) then
     LogInstance("Types different "..GetReport2(trRec.Type, hdRec.Type)); return nil end
+  local nYawSnp = GetOpVar("ANG_YSNAP")
   local stSpawn = GetCacheSpawn(oPly, stData) -- We have the next Piece Offset
         stSpawn.TRec, stSpawn.RLen = trRec, trRad
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID
-  local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
-
-        trEnt:GetPos(); trEnt:GetAngles()
-        SetVector(stSpawn.TOrg, trPos)
-        SetAngle (stSpawn.TAng, trAng)
-
-          local test = trEnt:GetAngles()
-          print("TR-prim:", trPos, trAng)
-          print("TR-ents:", stSpawn.TOrg, stSpawn.TAng)
-          print("SP-hash:", test.p, test.y, test.r)
-          print("SP-intg:", test[1], test[2], test[3])
-
+        stSpawn.TOrg:Set(trEnt:GetPos())
+        stSpawn.TAng:Set(trEnt:GetAngles())
+        GridAngle(stSpawn.TAng, nYawSnp)
         SetVector(stSpawn.TPnt, trPOA.P)
         stSpawn.TPnt:Rotate(stSpawn.TAng)
         stSpawn.TPnt:Add(stSpawn.TOrg)
   -- Found the active point ID on trEnt. Initialize origins
   SetVector(stSpawn.BPos, trPOA.O) -- Read origin
   SetAngle (stSpawn.BAng, trPOA.A) -- Read angle
-
-  print("base-DB:", stSpawn.BPos, stSpawn.BAng)
-
   stSpawn.BPos:Rotate(stSpawn.TAng); stSpawn.BPos:Add(stSpawn.TOrg)
   stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
-
-  print("base-CA:", stSpawn.BPos, stSpawn.BAng)
-
   -- Do the flatten flag right now Its important !
   if(enFlatten) then stSpawn.BAng[caP] = 0; stSpawn.BAng[caR] = 0 end
+  GridAngle(stSpawn.BAng, nYawSnp)
   return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
 end
 
@@ -4645,7 +4624,9 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(CLIENT) then LogInstance("Working on client"); return nil end
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     LogInstance("Player missing <"..tostring(pPly)..">"); return nil end
-  local sLimit, sClass = GetOpVar("CVAR_LIMITNAME"), GetOpVar("ENTITY_DEFCLASS")
+  local nYawSnp = GetOpVar("ANG_YSNAP")
+  local sLimit  = GetOpVar("CVAR_LIMITNAME")
+  local sClass  = GetOpVar("ENTITY_DEFCLASS")
   if(not pPly:CheckLimit(sLimit)) then -- Check internal limit
     LogInstance("Track limit reached"); return nil end
   if(not pPly:CheckLimit("props")) then -- Check the props limit
@@ -4655,20 +4636,15 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local ePiece = entsCreate(GetTerm(stPiece.Unit, sClass, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
+  local aAng = Angle(aAng or GetOpVar("ANG_ZERO")); GridAngle(aAng, nYawSnp)
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
-  ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
   if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly,sMode)) then
     LogInstance("Misplaced "..GetReport2(pPly:Nick(), sModel)); return nil end
-
-  print("TA-angl", aAng)
-  print("TA-hash", aAng.p, aAng.y, aAng.r)
-  print("TA-intg", aAng[1], aAng[2], aAng[3])
-  print("TA-aget", ePiece:GetAngles())
-
+  ePiece:SetAngles(aAng)
   ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()

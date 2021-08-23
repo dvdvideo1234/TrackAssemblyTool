@@ -354,7 +354,8 @@ function TOOL:GetActiveRadius()
 end
 
 function TOOL:GetAngSnap()
-  return mathClamp(self:GetClientNumber("angsnap"),0,gnMaxRot)
+  local snap = mathClamp(self:GetClientNumber("angsnap"),0,gnMaxRot)
+  asmlib.SetOpVar("ANG_YSNAP", snap); return snap
 end
 
 function TOOL:GetForceLimit()
@@ -979,10 +980,6 @@ function TOOL:NormalSpawn(stTrace, oPly)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   local vPos = Vector(stTrace.HitNormal); vPos:Mul(elevpnt); vPos:Add(stTrace.HitPos)
   local aAng = asmlib.GetNormalAngle(oPly,stTrace,surfsnap,angsnap)
-  print("1:from", aAng)
-  print("1:from", aAng.p, aAng.y, aAng.r)
-  print("1:from", aAng[1], aAng[2], aAng[3])
-
   if(spawncn) then  -- Spawn on mass center
     aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
     aAng:RotateAroundAxis(aAng:Right()  , nextpic)
@@ -992,17 +989,8 @@ function TOOL:NormalSpawn(stTrace, oPly)
                       pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then -- Make sure it persists to set it afterwards
       asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Cannot obtain spawn data"),gtLogs); return false end
-    vPos:Set(stSpawn.SPos); asmlib.SetAngle(aAng, stSpawn.SAng); asmlib.FixAngle(aAng, 64)
-
-    print("2:spn", stSpawn.SAng)
-    print("2:spn", stSpawn.SAng.p, stSpawn.SAng.y, stSpawn.SAng.r)
-    print("2:spn", stSpawn.SAng[1], stSpawn.SAng[2], stSpawn.SAng[3])
+    vPos:Set(stSpawn.SPos); asmlib.SetAngle(aAng, stSpawn.SAng)
   end
-
-  print("2:to", aAng)
-  print("2:to", aAng.p, aAng.y, aAng.r)
-  print("2:to", aAng[1], aAng[2], aAng[3])
-
   -- Update the anchor entity automatically when enabled
   if(upspanchor) then -- Read the auto-update flag
     if(anEnt ~= trEnt) then -- When the anchor needs to be changed
@@ -1020,13 +1008,11 @@ function TOOL:NormalSpawn(stTrace, oPly)
       if(trEnt and trEnt:IsValid()) then anEnt = trEnt end -- Switch-a-roo
     end -- If there is something wrong with the anchor entity use the trace
   end -- When the flag is not enabled must not automatically update anchor
-  print("normal:", vPos, aAng)
   local ePiece = asmlib.MakePiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
   if(ePiece) then
     if(spawncn) then -- Adjust the position when created correctly
       asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
     end
-
     if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Failed to apply physical settings",ePiece),gtLogs); return false end
     if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,nocollidew,forcelim)) then
@@ -1081,9 +1067,6 @@ function TOOL:LeftClick(stTrace)
   local workmode, workname = self:GetWorkingMode()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  print("trigger")
-
-  trEnt:SetNetworkedBool("trackassembly_debugen", true)
 
   if(workmode == 3 or workmode == 5) then
     if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
@@ -1299,8 +1282,6 @@ function TOOL:LeftClick(stTrace)
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       asmlib.LogInstance("(Bodygroup/Skin) Success",gtLogs)
     end; return true
-  else
-    print("1:",stSpawn.SPos,stSpawn.SAng)
   end
 
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
@@ -1377,7 +1358,6 @@ function TOOL:LeftClick(stTrace)
       if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
         asmlib.LogInstance("(Ray) Skip intersection sequence. Snapping",gtLogs) end
     end
-    print("2:",stSpawn.SPos,stSpawn.SAng)
     local ePiece = asmlib.MakePiece(ply,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
@@ -1657,9 +1637,6 @@ function TOOL:UpdateGhost(oPly)
             if(not stSpawn) then return end
           end
         else
-          if(trEnt and trEnt:GetNetworkedBool("trackassembly_debugen")) then
-            print("3:",stSpawn.SPos,stSpawn.SAng)
-          end
           ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
         end
       elseif(workmode == 4) then
@@ -1797,7 +1774,7 @@ function TOOL:DrawSnapAssist(oScreen, oPly, stTrace, nRad, bNoO)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtLogs); return end
-    oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, actrad / 5, bNoO)
+    oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, actrad / 5, bNoO, ID)
   end
 end
 
@@ -2367,44 +2344,44 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)
   asmlib.SetButton(CPanel, "resetvars")
   asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Tag="@90" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Tag="@180", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Tag="@90" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Tag="@180", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
      {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Tag="@90" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
      {Tag="@180", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
      {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnapInc(pBut,vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
      {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
      {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
      {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
