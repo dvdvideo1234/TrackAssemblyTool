@@ -170,6 +170,17 @@ module("trackasmlib")
 
 ---------------------------- PRIMITIVES ----------------------------
 
+function Stamp(time, func, ...)
+  local told = GetOpVar("TIME_STAMP")
+  local tnew = Time()
+  if((tnew - told) > time) then
+    local suc, err = pcall(func, ...)
+    if(not suc) then
+      ErrorNoHalt("Stamp error: "..err) end
+    SetOpVar("TIME_STAMP", tnew)
+  end
+end
+
 function GetInstPref()
   if    (CLIENT) then return "cl_"
   elseif(SERVER) then return "sv_" end
@@ -337,7 +348,9 @@ function GetStrip(vV, vQ)
   return sV:Trim()
 end
 
-function GetSnapInc(pB, nV, aV)
+function GetSnap(nV, aV)
+  local aV = tonumber(aV)
+  if(not aV) then return nV end
   local mV = mathAbs(aV)
   local cV = mathRound(nV / mV) * mV
   if(aV > 0 and cV > nV) then return cV end
@@ -345,6 +358,24 @@ function GetSnapInc(pB, nV, aV)
   if(aV < 0 and cV > nV) then return (cV - mV) end
   if(aV < 0 and cV < nV) then return cV end
   return (nV + aV)
+end
+
+function GetGrid(nV, aV)
+  local aV = tonumber(aV)
+  if(not aV) then return nV end
+  local nA = GetSnap(nV,  aV)
+  local nB = GetSnap(nV, -aV)
+  local vA = mathAbs(nV - nA)
+  local vB = mathAbs(nV - nB)
+  if(vA < vB and nV > 0) then
+    return mathCeil(nA)
+  elseif(vA < vB and nV < 0) then
+    return mathFloor(nA)
+  elseif(vA > vB and nV > 0) then
+    return mathFloor(nB)
+  elseif(vA > vB and nV < 0) then
+    return mathCeil(nB)
+  end; return nV
 end
 
 ------------------ LOGS ------------------------
@@ -649,6 +680,7 @@ function InitBase(sName, sPurp)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGLAST","")
   SetOpVar("LOG_INIT",{"*Init", false, 0})
+  SetOpVar("TIME_STAMP",Time())
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("MAX_ROTATION",360)
@@ -798,7 +830,7 @@ function ToColor(vBase, pX, pY, pZ, vA)
   return GetColor(vBase[iX], vBase[iY], vBase[iZ], vA)
 end
 
-function UpdateColorPick(oEnt, sVar, sCol, bSet)
+function UpdateColor(oEnt, sVar, sCol, bSet)
   if(IsOther(oEnt)) then return nil end
   local cPal = GetContainer("COLORS_LIST")
   local sPrf = GetOpVar("TOOLNAME_PL")..sVar
@@ -813,8 +845,11 @@ function UpdateColorPick(oEnt, sVar, sCol, bSet)
       oEnt:SetNWBool(sPrf, false)
     end
   else
-    local bSet = oEnt:GetNWBool(sPrf, false)
-    UpdateColorPick(oEnt, sVar, sCol, bSet)
+    local bNow = oEnt:GetNWBool(sPrf, false)
+    if(bNow) then
+      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetColor(cPal:Select(sCol))
+    end
   end
 end
 
@@ -832,34 +867,24 @@ function ExpAngle(aBase, pP, pY, pR)
   return (tonumber(aBase[aP]) or 0), (tonumber(aBase[aY]) or 0), (tonumber(aBase[aR]) or 0)
 end
 
-function AddAngle(aBase, aUnit)
+function SnapAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
-  if(not aUnit) then LogInstance("Unit invalid"); return nil end
-  aBase[caP] = (tonumber(aBase[caP]) or 0) + (tonumber(aUnit[caP]) or 0)
-  aBase[caY] = (tonumber(aBase[caY]) or 0) + (tonumber(aUnit[caY]) or 0)
-  aBase[caR] = (tonumber(aBase[caR]) or 0) + (tonumber(aUnit[caR]) or 0)
+  local D = (tonumber(nvDec) or 0); if(D <= 0) then
+    LogInstance("Low mismatch "..GetReport(nvDec)); return nil end
+  if(D >= GetOpVar("MAX_ROTATION")) then
+    LogInstance("High mismatch "..GetReport(nvDec)); return nil end
+  -- Snap player viewing rotation angle for using walls and ceiling
+  aBase:SnapTo("pitch", D):SnapTo("yaw", D):SnapTo("roll", D)
+  return aBase
 end
 
-function AddAnglePYR(aBase, nP, nY, nR)
+function GridAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
-  aBase[caP] = (tonumber(aBase[caP]) or 0) + (tonumber(nP) or 0)
-  aBase[caY] = (tonumber(aBase[caY]) or 0) + (tonumber(nY) or 0)
-  aBase[caR] = (tonumber(aBase[caR]) or 0) + (tonumber(nR) or 0)
-end
-
-function SubAngle(aBase, aUnit)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  if(not aUnit) then LogInstance("Unit invalid"); return nil end
-  aBase[caP] = (tonumber(aBase[caP]) or 0) - (tonumber(aUnit[caP]) or 0)
-  aBase[caY] = (tonumber(aBase[caY]) or 0) - (tonumber(aUnit[caY]) or 0)
-  aBase[caR] = (tonumber(aBase[caR]) or 0) - (tonumber(aUnit[caR]) or 0)
-end
-
-function SubAnglePYR(aBase, nP, nY, nR)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  aBase[caP] = (tonumber(aBase[caP]) or 0) - (tonumber(nP) or 0)
-  aBase[caY] = (tonumber(aBase[caY]) or 0) - (tonumber(nY) or 0)
-  aBase[caR] = (tonumber(aBase[caR]) or 0) - (tonumber(nR) or 0)
+  local D = tonumber(nvDec or 0); if(not IsHere(D)) then
+    LogInstance("Grid mismatch "..GetReport(nvDec)); return nil end
+  if(aBase[caP] == 0 and aBase[caR] == 0 and D > 0) then
+    aBase[caY] = GetGrid(aBase[caY], D)
+  end return aBase
 end
 
 function NegAngle(vBase, bP, bY, bR)
@@ -867,22 +892,7 @@ function NegAngle(vBase, bP, bY, bR)
   local P = (tonumber(vBase[caP]) or 0); P = (IsHere(bP) and (bP and -P or P) or -P)
   local Y = (tonumber(vBase[caY]) or 0); Y = (IsHere(bY) and (bY and -Y or Y) or -Y)
   local R = (tonumber(vBase[caR]) or 0); R = (IsHere(bR) and (bR and -R or R) or -R)
-  vBase[caP], vBase[caY], vBase[caR] = P, Y, R
-end
-
-function SetAngle(aBase, aUnit)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  if(not aUnit) then LogInstance("Unit invalid"); return nil end
-  aBase[caP] = (tonumber(aUnit[caP]) or 0)
-  aBase[caY] = (tonumber(aUnit[caY]) or 0)
-  aBase[caR] = (tonumber(aUnit[caR]) or 0)
-end
-
-function SetAnglePYR(aBase, nP, nY, nR)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  aBase[caP] = (tonumber(nP) or 0)
-  aBase[caY] = (tonumber(nY) or 0)
-  aBase[caR] = (tonumber(nR) or 0)
+  vBase[caP], vBase[caY], vBase[caR] = P, Y, R; return vBase
 end
 
 ------------- VECTOR ---------------
@@ -899,29 +909,13 @@ function ExpVector(vBase, pX, pY, pZ)
   return (tonumber(vBase[vX]) or 0), (tonumber(vBase[vY]) or 0), (tonumber(vBase[vZ]) or 0)
 end
 
-function GetLength(vBase)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local X = (tonumber(vBase[cvX]) or 0); X = X * X
-  local Y = (tonumber(vBase[cvY]) or 0); Y = Y * Y
-  local Z = (tonumber(vBase[cvZ]) or 0); Z = Z * Z
-  return mathSqrt(X + Y + Z)
-end
-
-function RoundVector(vBase,nvDec)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local D = tonumber(nvDec); if(not IsHere(R)) then
-    LogInstance("Round mismatch "..GetReport(nvDec)); return nil end
-  local X = (tonumber(vBase[cvX]) or 0); X = mathRound(X,D); vBase[cvX] = X
-  local Y = (tonumber(vBase[cvY]) or 0); Y = mathRound(Y,D); vBase[cvY] = Y
-  local Z = (tonumber(vBase[cvZ]) or 0); Z = mathRound(Z,D); vBase[cvZ] = Z
-end
-
 function AddVector(vBase, vUnit)
   if(not vBase) then LogInstance("Base invalid"); return nil end
   if(not vUnit) then LogInstance("Unit invalid"); return nil end
   vBase[cvX] = (tonumber(vBase[cvX]) or 0) + (tonumber(vUnit[cvX]) or 0)
   vBase[cvY] = (tonumber(vBase[cvY]) or 0) + (tonumber(vUnit[cvY]) or 0)
   vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) + (tonumber(vUnit[cvZ]) or 0)
+  return vBase
 end
 
 function AddVectorXYZ(vBase, nX, nY, nZ)
@@ -929,6 +923,7 @@ function AddVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvX] = (tonumber(vBase[cvX]) or 0) + (tonumber(nX) or 0)
   vBase[cvY] = (tonumber(vBase[cvY]) or 0) + (tonumber(nY) or 0)
   vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) + (tonumber(nZ) or 0)
+  return vBase
 end
 
 function SubVector(vBase, vUnit)
@@ -937,6 +932,7 @@ function SubVector(vBase, vUnit)
   vBase[cvX] = (tonumber(vBase[cvX]) or 0) - (tonumber(vUnit[cvX]) or 0)
   vBase[cvY] = (tonumber(vBase[cvY]) or 0) - (tonumber(vUnit[cvY]) or 0)
   vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(vUnit[cvZ]) or 0)
+  return vBase
 end
 
 function SubVectorXYZ(vBase, nX, nY, nZ)
@@ -944,6 +940,7 @@ function SubVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvX] = (tonumber(vBase[cvX]) or 0) - (tonumber(nX) or 0)
   vBase[cvY] = (tonumber(vBase[cvY]) or 0) - (tonumber(nY) or 0)
   vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(nZ) or 0)
+  return vBase
 end
 
 function NegVector(vBase, bX, bY, bZ)
@@ -951,29 +948,7 @@ function NegVector(vBase, bX, bY, bZ)
   local X = (tonumber(vBase[cvX]) or 0); X = (IsHere(bX) and (bX and -X or X) or -X)
   local Y = (tonumber(vBase[cvY]) or 0); Y = (IsHere(bY) and (bY and -Y or Y) or -Y)
   local Z = (tonumber(vBase[cvZ]) or 0); Z = (IsHere(bZ) and (bZ and -Z or Z) or -Z)
-  vBase[cvX], vBase[cvY], vBase[cvZ] = X, Y, Z
-end
-
-function SetVector(vBase, vUnit)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  if(not vUnit) then LogInstance("Unit invalid"); return nil end
-  vBase[cvX] = (tonumber(vUnit[cvX]) or 0)
-  vBase[cvY] = (tonumber(vUnit[cvY]) or 0)
-  vBase[cvZ] = (tonumber(vUnit[cvZ]) or 0)
-end
-
-function SetVectorXYZ(vBase, nX, nY, nZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  vBase[cvX] = (tonumber(nX or 0))
-  vBase[cvY] = (tonumber(nY or 0))
-  vBase[cvZ] = (tonumber(nZ or 0))
-end
-
-function MulVectorXYZ(vBase, nX, nY, nZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  vBase[cvX] = vBase[cvX] * (tonumber(nX or 0))
-  vBase[cvY] = vBase[cvY] * (tonumber(nY or 0))
-  vBase[cvZ] = vBase[cvZ] * (tonumber(nZ or 0))
+  vBase[cvX], vBase[cvY], vBase[cvZ] = X, Y, Z; return vBase
 end
 
 function BasisVector(vBase, aUnit)
@@ -982,7 +957,7 @@ function BasisVector(vBase, aUnit)
   local X = vBase:Dot(aUnit:Forward())
   local Y = vBase:Dot(aUnit:Right())
   local Z = vBase:Dot(aUnit:Up())
-  SetVectorXYZ(vBase,X,Y,Z)
+  vBase:SetUnpacked(X, Y, Z); return vBase
 end
 
 -------------- 2DVECTOR ----------------
@@ -1573,7 +1548,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end; return xyO -- Do not draw the rays when the size is zero
   end
-  function self:DrawPOA(oPly,ePOA,stPOA,nAct,bNoO)
+  function self:DrawPOA(oPly,ePOA,stPOA,nAct,bNoO,iIdx)
     if(not (ePOA and ePOA:IsValid())) then
       LogInstance("Entity invalid", tLogs); return nil end
     if(not IsPlayer(oPly)) then
@@ -1581,13 +1556,19 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     local nAct = BorderValue(tonumber(nAct) or 0, "non-neg")
     local eP, eA = ePOA:GetPos(), ePOA:GetAngles()
     local vO, vP = Vector(), Vector()
-    SetVector(vO,stPOA.O); vO:Rotate(eA); vO:Add(eP)
-    SetVector(vP,stPOA.P); vP:Rotate(eA); vP:Add(eP)
+    vO:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
+    vP:SetUnpacked(stPOA.P[cvX], stPOA.P[cvY], stPOA.P[cvZ])
+    vO:Rotate(eA); vO:Add(eP)
+    vP:Rotate(eA); vP:Add(eP)
     local Op, Pp = vO:ToScreen(), vP:ToScreen()
     local Rv = GetViewRadius(oPly, vP, nAct)
     if(not bNoO) then
       local nR = GetViewRadius(oPly, vO)
       self:DrawCircle(Op, nR,"y","SURF")
+    end
+    if(iIdx) then local nO = Rv / 5
+      self:SetTextStart(Op.x + nO, Op.y - 24 - nO)
+      self:DrawText(tostring(iIdx),"g","SURF",{"Trebuchet24"})
     end
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
@@ -2038,7 +2019,8 @@ function GetPointElevation(oEnt,ivPoID)
   if(not (hdPnt.O and hdPnt.A)) then
     LogInstance("POA missing "..GetReport(ivPoID).." for <"..sModel..">"); return nil end
   local aDiffBB, vDiffBB = Angle(), oEnt:OBBMins()
-  SetAngle(aDiffBB,hdPnt.A) ; aDiffBB:RotateAroundAxis(aDiffBB:Up(),180)
+  aDiffBB:SetUnpacked(hdPnt.A[caP], hdPnt.A[caY], hdPnt.A[caR])
+  aDiffBB:RotateAroundAxis(aDiffBB:Up(), 180)
   SubVector(vDiffBB,hdPnt.O); BasisVector(vDiffBB,aDiffBB)
   return mathAbs(vDiffBB[cvZ])
 end
@@ -4030,10 +4012,7 @@ function GetNormalAngle(oPly, soTr, bSnp, nSnp)
       if(not (stTr and stTr.Hit)) then return aAng end
     end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
   else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
-  if(nAsn and (nAsn > 0) and (nAsn <= GetOpVar("MAX_ROTATION"))) then
-    -- Snap player viewing rotation angle for using walls and ceiling
-    aAng:SnapTo("pitch", nAsn):SnapTo("yaw", nAsn):SnapTo("roll", nAsn)
-  end; return aAng
+  SnapAngle(aAng, nAsn); GridAngle(aAng, nAsn); return aAng
 end
 
 --[[
@@ -4054,7 +4033,8 @@ function GetEntityHitID(oEnt, vHit, bPnt)
   for ID = 1, oRec.Size do -- Ignore the point disabled flag
     local tPOA, tID = LocatePOA(oRec, ID); if(not IsHere(tPOA)) then
       LogInstance("Point missing "..GetReport1(ID)); return nil end
-    if(bPnt) then SetVector(oAnc, tPOA.P) else SetVector(oAnc, tPOA.O) end
+    if(bPnt) then oAnc:SetUnpacked(tPOA.P[cvX], tPOA.P[cvY], tPOA.P[cvZ])
+    else oAnc:SetUnpacked(tPOA.O[cvX], tPOA.O[cvY], tPOA.O[cvZ]) end
     oAnc:Rotate(eAng); oAnc:Add(ePos); oAnc:Sub(vHit)
     local tMin = oAnc:Length() -- Calculate vector absolute ( distance )
     if(oID and oMin and oPOA) then -- Check if current distance is minimum
@@ -4096,33 +4076,39 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
     LogInstance("No record located "..GetReport(shdModel)); return nil end
   local hdPOA, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdPOA)) then
     LogInstance("Holder ID missing "..GetReport(ivhdPoID)); return nil end
-  local stSpawn = GetCacheSpawn(oPly, stData); stSpawn.HRec, stSpawn.HID = hdRec, ihdPoID
-  if(ucsPos) then SetVector(stSpawn.BPos, ucsPos) end
-  if(ucsAng) then SetAngle (stSpawn.BAng, ucsAng) end
+  local stSpawn = GetCacheSpawn(oPly, stData)
+        stSpawn.HID  = ihdPoID
+        stSpawn.HRec = hdRec
+  if(ucsPos) then stSpawn.BPos:SetUnpacked(ucsPos[cvX], ucsPos[cvY], ucsPos[cvZ]) end
+  if(ucsAng) then stSpawn.BAng:SetUnpacked(ucsAng[caP], ucsAng[caY], ucsAng[caR]) end
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
   -- Initialize F, R, U Copy the UCS like that to support database POA
-  SetAnglePYR (stSpawn.ANxt, (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0))
-  SetVectorXYZ(stSpawn.PNxt, (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0))
+  stSpawn.ANxt:SetUnpacked(tonumber(ucsAngP) or 0,
+                           tonumber(ucsAngY) or 0,
+                           tonumber(ucsAngR) or 0)
+  stSpawn.PNxt:SetUnpacked(tonumber(ucsPosX) or 0,
+                           tonumber(ucsPosY) or 0,
+                           tonumber(ucsPosZ) or 0)
   -- Integrate additional position offset into the origin position
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F)
-  stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R)
-  stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U)
+  stSpawn.U:Set(stSpawn.OAng:Up()); stSpawn.U:Normalize()
+  stSpawn.R:Set(stSpawn.OAng:Right()); stSpawn.R:Normalize()
+  stSpawn.F:Set(stSpawn.OAng:Forward()); stSpawn.F:Normalize()
+  if(stSpawn.PNxt[cvX] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F) end
+  if(stSpawn.PNxt[cvY] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R) end
+  if(stSpawn.PNxt[cvZ] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U) end
   -- Integrate additional angle offset into the origin angle
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
-  stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
-  stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
+  if(stSpawn.ANxt[caP] ~= 0 or stSpawn.ANxt[caY] ~= 0 or stSpawn.ANxt[caR] ~= 0) then
+    stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
+    stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
+    stSpawn.F:Set(stSpawn.OAng:Forward()); stSpawn.F:Normalize()
+    stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
+    stSpawn.R:Set(stSpawn.OAng:Right()); stSpawn.R:Normalize()
+    stSpawn.U:Set(stSpawn.OAng:Up()); stSpawn.U:Normalize()
+  end
   -- Read holder record
-  SetVector(stSpawn.HPnt, hdPOA.P)
-  SetVector(stSpawn.HOrg, hdPOA.O)
-  SetAngle (stSpawn.HAng, hdPOA.A)
+  stSpawn.HPnt:SetUnpacked(hdPOA.P[cvX], hdPOA.P[cvY], hdPOA.P[cvZ])
+  stSpawn.HOrg:SetUnpacked(hdPOA.O[cvX], hdPOA.O[cvY], hdPOA.O[cvZ])
+  stSpawn.HAng:SetUnpacked(hdPOA.A[caP], hdPOA.A[caY], hdPOA.A[caR])
   -- Apply origin basis to the trace matrix
   stSpawn.TMtx:Identity()
   stSpawn.TMtx:Translate(stSpawn.OPos)
@@ -4190,12 +4176,12 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID
         stSpawn.TOrg:Set(trEnt:GetPos())
         stSpawn.TAng:Set(trEnt:GetAngles())
-        SetVector(stSpawn.TPnt, trPOA.P)
+        stSpawn.TPnt:SetUnpacked(trPOA.P[cvX], trPOA.P[cvY], trPOA.P[cvZ])
         stSpawn.TPnt:Rotate(stSpawn.TAng)
         stSpawn.TPnt:Add(stSpawn.TOrg)
   -- Found the active point ID on trEnt. Initialize origins
-  SetVector(stSpawn.BPos, trPOA.O) -- Read origin
-  SetAngle (stSpawn.BAng, trPOA.A) -- Read angle
+  stSpawn.BPos:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ]) -- Read origin
+  stSpawn.BAng:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR]) -- Read angle
   stSpawn.BPos:Rotate(stSpawn.TAng); stSpawn.BPos:Add(stSpawn.TOrg)
   stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
   -- Do the flatten flag right now Its important !
@@ -4219,8 +4205,10 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen)
   local trPOA = LocatePOA(trRec, ivPoID); if(not IsHere(trPOA)) then
     LogInstance("Point missing "..GetReport(ivPoID)); return nil end
   local trDt, trAng = GetOpVar("TRACE_DATA"), Angle(); SetOpVar("TRACE_FILTER",trEnt)
-  SetVector(trDt.start, trPOA.O); trDt.start:Rotate(trEnt:GetAngles()); trDt.start:Add(trEnt:GetPos())
-  SetAngle (trAng     , trPOA.A); trAng:Set(trEnt:LocalToWorldAngles(trAng))
+  trDt.start:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+  trDt.start:Rotate(trEnt:GetAngles()); trDt.start:Add(trEnt:GetPos())
+  trAng:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+  trAng:Set(trEnt:LocalToWorldAngles(trAng))
   trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
   return utilTraceLine(trDt), trDt
 end
@@ -4326,7 +4314,9 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
     stRay.Key = sKey
     stRay.Ply, stRay.Ent, stRay.ID  = oPly , oEnt , trID
     stRay.POA, stRay.Rec, stRay.Min = trPOA, trRec, trMin
-  end; SetAngle(stRay.Dir, trPOA.A); SetVector(stRay.Org, trPOA.O)
+  end
+  stRay.Dir:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+  stRay.Org:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
   return IntersectRayUpdate(stRay)
 end
 
@@ -4388,9 +4378,13 @@ function IntersectRayModel(sModel, nPntID, nNxtID)
     LogInstance("Start ID missing "..GetReport(nPntID)); return nil end
   local stPOA2 = LocatePOA(mRec, nNxtID); if(not stPOA2) then
     LogInstance("End ID missing "..GetReport(nNxtID)); return nil end
-  local aD1, aD2 = Angle(), Angle(); SetAngle(aD1, stPOA1.A); SetAngle(aD2, stPOA2.A)
-  local vO1, vD1 = Vector(), aD1:Forward(); SetVector(vO1, stPOA1.O); vD1:Mul(-1)
-  local vO2, vD2 = Vector(), aD2:Forward(); SetVector(vO2, stPOA2.O); vD2:Mul(-1)
+  local aD1, aD2 = Angle(), Angle()
+  aD1:SetUnpacked(stPOA1.A[caP], stPOA1.A[caY], stPOA1.A[caR])
+  aD2:SetUnpacked(stPOA2.A[caP], stPOA2.A[caY], stPOA2.A[caR])
+  local vO1, vD1 = Vector(), aD1:Forward()
+  vO1:SetUnpacked(stPOA1.O[cvX], stPOA1.O[cvY], stPOA1.O[cvZ]); vD1:Mul(-1)
+  local vO2, vD2 = Vector(), aD2:Forward()
+  vO2:SetUnpacked(stPOA2.O[cvX], stPOA2.O[cvY], stPOA2.O[cvZ]); vD2:Mul(-1)
   local f1, f2, x1, x2, xx = IntersectRay(vO1,vD1,vO2,vD2)
   if(not xx) then -- Attempts taking the mean vector when the rays are parallel for straight tracks
     f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
@@ -4421,7 +4415,7 @@ function AttachAdditions(ePiece)
         LogInstance("Position mismatch "..GetReport(ofPos)); return false end
       if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos) or ofPos:sub(1,1) == sD)) then
         local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
-        SetVectorXYZ(vpAdd, arPOA[1], arPOA[2], arPOA[3])
+        vpAdd:SetUnpacked(arPOA[1], arPOA[2], arPOA[3])
         vpAdd:Set(ePiece:LocalToWorld(vpAdd))
         eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
       else eAddit:SetPos(ePos); LogInstance("SetPos(PIECE:POS)") end
@@ -4429,7 +4423,7 @@ function AttachAdditions(ePiece)
         LogInstance("Angle mismatch "..GetReport(ofAng)); return false end
       if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng) or ofAng:sub(1,1) == sD)) then
         local apAdd, arPOA = Angle(), DecodePOA(ofAng)
-        SetAnglePYR(apAdd, arPOA[1], arPOA[2], arPOA[3])
+        apAdd:SetUnpacked(arPOA[1], arPOA[2], arPOA[3])
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
         eAddit:SetAngles(apAdd); LogInstance("SetAngles(DB)")
       else eAddit:SetAngles(eAng); LogInstance("SetAngles(PIECE:ANG)") end
@@ -4550,7 +4544,8 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(CLIENT) then LogInstance("Working on client"); return nil end
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     LogInstance("Player missing <"..tostring(pPly)..">"); return nil end
-  local sLimit, sClass = GetOpVar("CVAR_LIMITNAME"), GetOpVar("ENTITY_DEFCLASS")
+  local sLimit  = GetOpVar("CVAR_LIMITNAME")
+  local sClass  = GetOpVar("ENTITY_DEFCLASS")
   if(not pPly:CheckLimit(sLimit)) then -- Check internal limit
     LogInstance("Track limit reached"); return nil end
   if(not pPly:CheckLimit("props")) then -- Check the props limit
