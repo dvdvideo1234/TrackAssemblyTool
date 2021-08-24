@@ -354,8 +354,7 @@ function TOOL:GetActiveRadius()
 end
 
 function TOOL:GetAngSnap()
-  local snap = mathClamp(self:GetClientNumber("angsnap"),0,gnMaxRot)
-  asmlib.SetOpVar("ANG_YSNAP", snap); return snap
+  return mathClamp(self:GetClientNumber("angsnap"),0,gnMaxRot)
 end
 
 function TOOL:GetForceLimit()
@@ -419,7 +418,7 @@ function TOOL:IntersectClear(bMute)
     if(SERVER) then local ryEnt, sRel = stRay.Ent
       netStart(gsLibName.."SendIntersectClear"); netWriteEntity(oPly); netSend(oPly)
       if(ryEnt and ryEnt:IsValid()) then
-        asmlib.UpdateColorPick(ryEnt, "intersect", "ry", false)
+        asmlib.UpdateColor(ryEnt, "intersect", "ry", false)
         sRel = ryEnt:EntIndex()..gsSymRev..stringGetFileName(ryEnt:GetModel()) end
       if(not bMute) then sRel = (sRel and (": "..tostring(sRel)) or "")
         asmlib.LogInstance("Relation cleared <"..sRel..">",gtLogs)
@@ -439,7 +438,7 @@ function TOOL:IntersectRelate(oPly, oEnt, vHit)
     netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
     local sRel = oEnt:EntIndex()..gsSymRev..stringGetFileName(oEnt:GetModel())
     asmlib.Notify(oPly,"Intersect relation set: "..sRel.." !","UNDO")
-    asmlib.UpdateColorPick(oEnt, "intersect", "ry", true)
+    asmlib.UpdateColor(oEnt, "intersect", "ry", true)
   end return true
 end
 
@@ -484,7 +483,7 @@ function TOOL:ClearAnchor(bMute)
   if(CLIENT) then return false end; self:ClearObjects()
   asmlib.SetAsmConvar(oPly,"anchor",gsNoAnchor)
   if(svEnt and svEnt:IsValid() and not svEnt:IsWorld()) then
-    asmlib.UpdateColorPick(svEnt, "anchor", "an", false) end
+    asmlib.UpdateColor(svEnt, "anchor", "an", false) end
   if(not bMute) then -- Notify the user when anchor is cleared
     asmlib.Notify(oPly,"Anchor: Cleaned "..siAnc.." !","CLEANUP") end
   asmlib.LogInstance("Cleared "..asmlib.GetReport1(bMute),gtLogs); return true
@@ -512,7 +511,7 @@ function TOOL:SetAnchor(stTrace)
     local phEnt = trEnt:GetPhysicsObject(); if(not (phEnt and phEnt:IsValid())) then
       asmlib.LogInstance("Trace no physics",gtLogs); return false end
     local sAnchor = trEnt:EntIndex()..gsSymRev..stringGetFileName(trEnt:GetModel())
-    asmlib.UpdateColorPick(trEnt, "anchor", "an", true)
+    asmlib.UpdateColor(trEnt, "anchor", "an", true)
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(oPly,"anchor",sAnchor)
     asmlib.Notify(oPly,"Anchor: Set "..sAnchor.." !","UNDO")
@@ -668,9 +667,7 @@ function TOOL:GetFlipOver(bEnt, bMute)
       local eID = EntityID(tF[iD])
       local bID = (not asmlib.IsOther(eID))
       local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
-      if(bID and bMR) then tF[iD] = eID
-        asmlib.UpdateColorPick(eID, "flipover", "fo")
-      else tF[iD] = nil
+      if(bID and bMR) then tF[iD] = eID else tF[iD] = nil
         if(SERVER and not bMute) then
           local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
           asmlib.LogInstance("Flip over mismatch ID "..sR, gtLogs)
@@ -701,14 +698,13 @@ function TOOL:SetFlipOver(trEnt)
     for iD = 1, nF do nID = tF[iD]
       if(nID == iID) then bBr = true
         local eID = EntityID(nID)
-        if(not asmlib.IsOther(eID)) then
-          asmlib.UpdateColorPick(eID, "flipover", "fo", false)
-        end; tableRemove(tF, iD); break
+        asmlib.UpdateColor(eID, "flipover", "fo", false)
+        tableRemove(tF, iD); break
       end
     end
   end
   if(not bBr) then tableInsert(tF, tostring(iID))
-    asmlib.UpdateColorPick(trEnt, "flipover", "fo", true)
+    asmlib.UpdateColor(trEnt, "flipover", "fo", true)
   end
   asmlib.SetAsmConvar(oPly, "flipoverid", tableConcat(tF, sYm))
 end
@@ -717,8 +713,7 @@ function TOOL:ClearFlipOver(bMute)
   local ply = self:GetOwner()
   local tF, nF = self:GetFlipOver()
   for iD = 1, nF do local eID = EntityID(tF[iD])
-    if(not asmlib.IsOther(eID)) then
-      asmlib.UpdateColorPick(eID, "flipover", "fo", false) end
+    asmlib.UpdateColor(eID, "flipover", "fo", false)
   end; asmlib.SetAsmConvar(ply, "flipoverid", "")
   if(not bMute) then
     asmlib.LogInstance("Flip over cleared", gtLogs)
@@ -742,21 +737,21 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
       local pointid, pnextid = self:GetPointID()
       local vXX, vO1, vO2 = asmlib.IntersectRayModel(trMod, pointid, pnextid)
       if(vXX) then
-        asmlib.SetVector(wOrig, trPOA.O)
+        wOrig:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
         wOrig:Set(trEnt:LocalToWorld(wOrig))
         wOver:Set(trEnt:LocalToWorld(vXX))
         vO1:Set(trEnt:LocalToWorld(vO1))
         vO2:Set(trEnt:LocalToWorld(vO2))
-        asmlib.SetAngle (wAucs, trPOA.A)
+        wAucs:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
         return wOver, wNorm, wOrig, vO1, vO2
       end
     else
       if(trPOA) then
-        asmlib.SetVector(wOrig, trPOA.O)
+        wOrig:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
         wOrig:Set(trEnt:LocalToWorld(wOrig))
-        asmlib.SetAngle (wAucs, trPOA.A)
+        wAucs:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
         return wOver, wNorm, wOrig
@@ -830,8 +825,10 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   if(bPnt and eEnt and eEnt:IsValid()) then
     oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, vHit, true)
     if(oID and oMin and oPOA and oRec) then
-      asmlib.SetVector(vOrg, oPOA.O); vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
-      asmlib.SetAngle (aAng, oPOA.A); aAng:Set(eEnt:LocalToWorldAngles(aAng))
+      vOrg:SetUnpacked(oPOA.O[cvX], oPOA.O[cvY], oPOA.O[cvZ])
+      vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
+      aAng:SetUnpacked(oPOA.A[caP], oPOA.A[caY], oPOA.A[caR])
+      aAng:Set(eEnt:LocalToWorldAngles(aAng))
     end -- Use the track piece active end to create realative curve node
   else -- Offset the curve node when it is not driven by an active point
     vOrg:Add(vNrm * elevpnt) -- Apply model active point elevation
@@ -929,10 +926,12 @@ function TOOL:CurveCheck()
   end
   -- Read the active point and check piece shape
   local sO, sA = tC.Info.Pos[1], tC.Info.Ang[1]
-        asmlib.SetVector(sO, sPOA.O); asmlib.SetAngle(sA, sPOA.A)
+        sO:SetUnpacked(sPOA.O[cvX], sPOA.O[cvY], sPOA.O[cvZ])
+        sA:SetUnpacked(sPOA.A[caP], sPOA.A[caY], sPOA.A[caR])
   -- Read the next point to check the piece shape
   local eO, eA = tC.Info.Pos[2], tC.Info.Ang[2]
-        asmlib.SetVector(eO, ePOA.O); asmlib.SetAngle(eA, ePOA.A)
+        eO:SetUnpacked(ePOA.O[cvX], ePOA.O[cvY], ePOA.O[cvZ])
+        eA:SetUnpacked(ePOA.A[caP], ePOA.A[caY], ePOA.A[caR])
   -- Check is the distance has a valid length
   local nD = (eO - sO):Length(); if(nD <= 0) then
     LogInstance("Distance mismatch "..GetReport(nD)); return nil end
@@ -989,7 +988,7 @@ function TOOL:NormalSpawn(stTrace, oPly)
                       pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then -- Make sure it persists to set it afterwards
       asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Cannot obtain spawn data"),gtLogs); return false end
-    vPos:Set(stSpawn.SPos); asmlib.SetAngle(aAng, stSpawn.SAng)
+    vPos:Set(stSpawn.SPos); aAng:Set(stSpawn.SAng)
   end
   -- Update the anchor entity automatically when enabled
   if(upspanchor) then -- Read the auto-update flag
@@ -1314,7 +1313,8 @@ function TOOL:LeftClick(stTrace)
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtLogs); return false end
           if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtLogs); return false end
-          asmlib.SetVector(oArg.vtemp, hdOffs.P); oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.sppos)
+          oArg.vtemp:SetUnpacked(hdOffs.P[cvX], hdOffs.P[cvY], hdOffs.P[cvZ])
+          oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.sppos)
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
           asmlib.GetEntitySpawn(oPly, ePiece, oArg.vtemp, model, pointid,
@@ -1629,7 +1629,8 @@ function TOOL:UpdateGhost(oPly)
           if(not hdOffs) then return end -- Validated existent next point ID
           for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
             ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
-            asmlib.SetVector(vTemp,hdOffs.P); vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
+            vTemp:SetUnpacked(hdOffs.P[cvX], hdOffs.P[cvY], hdOffs.P[cvZ])
+            vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
             if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
             if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
             stSpawn = asmlib.GetEntitySpawn(oPly,ePiece,vTemp,model,pointid,
@@ -1749,12 +1750,15 @@ function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtLogs); return end
-    asmlib.SetVector(vTmp, stPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
+    vTmp:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
+    vTmp:Rotate(trAng); vTmp:Add(trPos)
     oScreen:DrawCircle(vTmp:ToScreen(), asmlib.GetViewRadius(oPly, vTmp), "y", "SEGM", {35})
     vTmp:Sub(trHit); if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
   end
-  asmlib.SetVector(vTmp,trPOA.O); vTmp:Rotate(trAng); vTmp:Add(trPos)
-  asmlib.SetAngle (aTmp,trPOA.A); aTmp:Set(trEnt:LocalToWorldAngles(aTmp))
+  vTmp:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+  vTmp:Rotate(trAng); vTmp:Add(trPos)
+  aTmp:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+  aTmp:Set(trEnt:LocalToWorldAngles(aTmp))
   local Hp, Op = trHit:ToScreen(), vTmp:ToScreen()
   local vF, vU = aTmp:Forward(), aTmp:Up()
   vF:Mul(nLn); vU:Mul(0.5 * nLn); vF:Add(vTmp); vU:Add(vTmp)
@@ -1862,7 +1866,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   end
   if(oPOA) then
     local trEnt = stTrace.Entity
-    asmlib.SetVector(vOrg, oPOA.P)
+    vOrg:SetUnpacked(oPOA.P[cvX], oPOA.P[cvY], oPOA.P[cvZ])
     vOrg:Rotate(trEnt:GetAngles())
     vOrg:Add(trEnt:GetPos())
     local xyO = vOrg:ToScreen()
@@ -1872,11 +1876,11 @@ end
 
 function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
   local pointid, pnextid = self:GetPointID()
-  local oRec  = stSpawn.HRec
+  local oRec, vN = stSpawn.HRec, Vector()
   local stPOA = asmlib.LocatePOA(oRec, pnextid)
   if(stPOA and oRec.Size > 1) then
-    local vN = Vector(); asmlib.SetVector(vN, stPOA.O)
-          vN:Rotate(stSpawn.SAng); vN:Add(stSpawn.SPos)
+    vN:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
+    vN:Rotate(stSpawn.SAng); vN:Add(stSpawn.SPos)
     local Np, Op = vN:ToScreen(), stSpawn.OPos:ToScreen()
     oScreen:DrawLine(Op, Np, "g")
     oScreen:DrawCircle(Np, asmlib.GetViewRadius(oPly, vN, 0.5), "g")
