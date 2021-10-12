@@ -1778,7 +1778,7 @@ function TOOL:DrawSnapAssist(oScreen, oPly, stTrace, nRad, bNoO)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtLogs); return end
-    oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, actrad / 5, bNoO, ID)
+    oScreen:DrawPOA(oPly, stTrace.Entity, stPOA, ID, actrad, bNoO)
   end
 end
 

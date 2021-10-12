@@ -771,7 +771,7 @@ function InitBase(sName, sPurp)
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
     mask   = MASK_SOLID,  -- Mask telling it what to hit
-    filter = function(oEnt) -- Only valid props which are not the main entity or world or TRACE_FILTER ( if set )
+    filter = function(oEnt) -- Only valid props which are not the main entity, world or TRACE_FILTER
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("CONSTRAINT_LIST", {"Weld", "AdvBallsocket", "NoCollide"})
@@ -1548,7 +1548,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       else LogInstance("Draw method <"..sMeth.."> invalid", tLogs); return nil end
     end; return xyO -- Do not draw the rays when the size is zero
   end
-  function self:DrawPOA(oPly,ePOA,stPOA,nAct,bNoO,iIdx)
+  function self:DrawPOA(oPly,ePOA,stPOA,iIdx,nAct,bNoO)
     if(not (ePOA and ePOA:IsValid())) then
       LogInstance("Entity invalid", tLogs); return nil end
     if(not IsPlayer(oPly)) then
@@ -1561,7 +1561,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     vO:Rotate(eA); vO:Add(eP)
     vP:Rotate(eA); vP:Add(eP)
     local Op, Pp = vO:ToScreen(), vP:ToScreen()
-    local Rv = GetViewRadius(oPly, vP, nAct)
+    local Rv = GetViewRadius(oPly, vP, nAct / 5)
     if(not bNoO) then
       local nR = GetViewRadius(oPly, vO)
       self:DrawCircle(Op, nR,"y","SURF")
@@ -2606,7 +2606,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   function self:Remove(vRet)
     local qtDef = self:GetDefinition()
     libQTable[qtDef.Nick] = nil
-    collectgarbage(); return vRet
+    return vRet
   end
   -- Generates a timer settings table and keeps the defaults
   function self:TimerSetup(vTim)
@@ -4204,12 +4204,13 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen)
   if(not trRec) then LogInstance("Trace not piece"); return nil end
   local trPOA = LocatePOA(trRec, ivPoID); if(not IsHere(trPOA)) then
     LogInstance("Point missing "..GetReport(ivPoID)); return nil end
-  local trDt, trAng = GetOpVar("TRACE_DATA"), Angle(); SetOpVar("TRACE_FILTER",trEnt)
+  local trDt, trAng = GetOpVar("TRACE_DATA"), Angle()
   trDt.start:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
   trDt.start:Rotate(trEnt:GetAngles()); trDt.start:Add(trEnt:GetPos())
   trAng:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
   trAng:Set(trEnt:LocalToWorldAngles(trAng))
-  trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen); trDt.endpos:Add(trDt.start)
+  trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen)
+  trDt.endpos:Add(trDt.start); SetOpVar("TRACE_FILTER", trEnt)
   return utilTraceLine(trDt), trDt
 end
 

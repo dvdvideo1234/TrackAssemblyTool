@@ -88,7 +88,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.662")
+asmlib.SetOpVar("TOOL_VERSION","8.663")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -839,7 +839,7 @@ if(CLIENT) then
           asmlib.LogInstance("Missing <"..defTab.Nick..">",sLog)
         end
         iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-      end; pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
+      end; pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
     end) -- Read client configuration
 
@@ -1055,7 +1055,7 @@ if(CLIENT) then
           asmlib.LogInstance("Update ListView fail"..asmlib.GetReport3(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
         end
       end
-      pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup(); collectgarbage()
+      pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
     end)
 
@@ -1101,60 +1101,69 @@ if(CLIENT) then
       local nextrol   = mathClamp(asmlib.GetAsmConvar("nextrol", "FLT"),-gnMaxRot,gnMaxRot)
       for trID = 1, trRec.Size, 1 do
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, trID, activrad)
-        local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
-        local rdS = asmlib.GetCacheRadius(oPly, oTr.HitPos, 1)
-        if(oTr and oTr.Hit) then actMonitor:GetColor()
-          local tgE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
-          if(tgE and tgE:IsValid()) then
-            actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
-            actMonitor:DrawLine  (xyS, xyH, "g", "SURF")
-            actMonitor:DrawCircle(xyH, asmlib.GetViewRadius(oPly, oTr.HitPos), "g")
-            actMonitor:DrawLine  (xyH, xyE, "y")
-            actSpawn = asmlib.GetEntitySpawn(oPly,tgE,oTr.HitPos,trRec.Slot,trID,activrad,
-                         spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
-            if(actSpawn) then -- When spawn data is availabe draw adviser
-              if(utilIsValidModel(trRec.Slot)) then -- The model has valid pre-cache
-                if(ghostcnt > 0) then -- The ghosting is enabled
-                  if(not (hasghost and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
-                    if(not asmlib.MakeGhosts(1, trRec.Slot)) then
-                      asmlib.LogInstance("Ghosting fail",sLog); return nil end
-                  end local eGho = atGhosts[1]; eGho:SetNoDraw(false)
-                  eGho:SetPos(actSpawn.SPos); eGho:SetAngles(actSpawn.SAng)
-                end -- When the ghosting is disabled saves memory
-                local xyO = actSpawn.OPos:ToScreen()
-                local xyB = actSpawn.BPos:ToScreen()
-                local xyS = actSpawn.SPos:ToScreen()
-                local xyP = actSpawn.TPnt:ToScreen()
-                actMonitor:DrawLine  (xyH, xyP, "g")
-                actMonitor:DrawCircle(xyP, asmlib.GetViewRadius(oPly, actSpawn.TPnt) / 2, "r")
-                actMonitor:DrawCircle(xyB, asmlib.GetViewRadius(oPly, actSpawn.BPos), "y")
-                actMonitor:DrawLine  (xyB, xyP, "r")
-                actMonitor:DrawLine  (xyB, xyO, "y")
-                -- Origin and spawn information
-                actMonitor:DrawLine  (xyO, xyS, "m")
-                actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, actSpawn.SPos), "c")
-                -- Origin and base coordinate systems
-                actMonitor:DrawUCS(oPly, actSpawn.OPos, actSpawn.OAng, "SURF", {sizeucs, rdS})
-                actMonitor:DrawUCS(oPly, actSpawn.BPos, actSpawn.BAng)
+        if(oTr) then
+          local xyS, xyE = oDt.start:ToScreen(), oDt.endpos:ToScreen()
+          local rdS = asmlib.GetCacheRadius(oPly, oTr.HitPos, 1)
+          if(oTr.Hit) then
+            local tgE, xyH = oTr.Entity, oTr.HitPos:ToScreen()
+            if(tgE and tgE:IsValid()) then
+              actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
+              actMonitor:DrawLine  (xyS, xyH, "g", "SURF")
+              actMonitor:DrawCircle(xyH, asmlib.GetViewRadius(oPly, oTr.HitPos), "g")
+              actMonitor:DrawLine  (xyH, xyE, "y")
+              actSpawn = asmlib.GetEntitySpawn(oPly,tgE,oTr.HitPos,trRec.Slot,trID,activrad,
+                           spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+              if(actSpawn) then -- When spawn data is availabe draw adviser
+                if(utilIsValidModel(trRec.Slot)) then -- The model has valid pre-cache
+                  if(ghostcnt > 0) then -- The ghosting is enabled
+                    if(not (hasghost and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
+                      if(not asmlib.MakeGhosts(1, trRec.Slot)) then
+                        asmlib.LogInstance("Ghosting fail",sLog); return nil end
+                    end local eGho = atGhosts[1]; eGho:SetNoDraw(false)
+                    eGho:SetPos(actSpawn.SPos); eGho:SetAngles(actSpawn.SAng)
+                  end -- When the ghosting is disabled saves memory
+                  local xyO = actSpawn.OPos:ToScreen()
+                  local xyB = actSpawn.BPos:ToScreen()
+                  local xyS = actSpawn.SPos:ToScreen()
+                  local xyP = actSpawn.TPnt:ToScreen()
+                  actMonitor:DrawLine  (xyH, xyP, "g")
+                  actMonitor:DrawCircle(xyP, asmlib.GetViewRadius(oPly, actSpawn.TPnt) / 2, "r")
+                  actMonitor:DrawCircle(xyB, asmlib.GetViewRadius(oPly, actSpawn.BPos), "y")
+                  actMonitor:DrawLine  (xyB, xyP, "r")
+                  actMonitor:DrawLine  (xyB, xyO, "y")
+                  -- Origin and spawn information
+                  actMonitor:DrawLine  (xyO, xyS, "m")
+                  actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, actSpawn.SPos), "c")
+                  -- Origin and base coordinate systems
+                  actMonitor:DrawUCS(oPly, actSpawn.OPos, actSpawn.OAng, "SURF", {sizeucs, rdS})
+                  actMonitor:DrawUCS(oPly, actSpawn.BPos, actSpawn.BAng)
+                end
+              else
+                local tgRec = asmlib.CacheQueryPiece(tgE:GetModel())
+                if(not asmlib.IsHere(tgRec)) then return nil end
+                for tgI = 1, tgRec.Size do
+                  local tgPOA = asmlib.LocatePOA(tgRec, tgI); if(not asmlib.IsHere(tgPOA)) then
+                    asmlib.LogInstance("ID #"..tostring(ID).." not located",sLog); return nil end
+                  actMonitor:DrawPOA(oPly, tgE, tgPOA, tgI, activrad)
+                end
               end
             else
-              local tgRec = asmlib.CacheQueryPiece(tgE:GetModel())
-              if(not asmlib.IsHere(tgRec)) then return nil end
-              for tgI = 1, tgRec.Size do
-                local tgPOA = asmlib.LocatePOA(tgRec, tgI); if(not asmlib.IsHere(tgPOA)) then
-                  asmlib.LogInstance("ID #"..tostring(ID).." not located",sLog); return nil end
-                actMonitor:DrawPOA(oPly,tgE,tgPOA,activrad,rdS)
-              end
+              actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
+              actMonitor:DrawLine  (xyS, xyH, "y", "SURF")
+              actMonitor:DrawCircle(xyH, asmlib.GetViewRadius(oPly, oTr.HitPos), "y")
+              actMonitor:DrawLine  (xyH, xyE, "r")
             end
           else
             actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
-            actMonitor:DrawLine  (xyS, xyH, "y", "SURF")
-            actMonitor:DrawCircle(xyH, asmlib.GetViewRadius(oPly, oTr.HitPos), "y")
-            actMonitor:DrawLine  (xyH, xyE, "r")
+            actMonitor:DrawLine  (xyS, xyE, "r", "SURF")
           end
         else
-          actMonitor:DrawCircle(xyS, asmlib.GetViewRadius(oPly, oDt.start), "y", "SURF")
-          actMonitor:DrawLine  (xyS, xyE, "r", "SURF")
+          local nRad = asmlib.GetCacheRadius(oPly, actTr.HitPos)
+          for ID = 1, trRec.Size do
+            local stPOA = asmlib.LocatePOA(trRec, ID); if(not stPOA) then
+              asmlib.LogInstance("Cannot locate #"..tostring(ID), sLog); return end
+            actMonitor:DrawPOA(oPly, trEnt, stPOA, ID, 0, false)
+          end
         end
       end
     end)
@@ -4304,6 +4313,45 @@ else
   PIECES:Record({"models/props_underground/railing_256b.mdl", "#", "#", 1, "", "-35,128,-6.125", "0,-90,0"})
   PIECES:Record({"models/props_underground/railing_512a.mdl", "#", "#", 1, "", "-35,256,-6.125", "0,-90,0"})
   PIECES:Record({"models/props_underground/railing_512b.mdl", "#", "#", 1, "", "-35,256,-6.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/walkway_destroyed_64a.mdl", "#", "#", 1, "", "0,0,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_underground/walkway_destroyed_128a.mdl", "#", "#", 1, "", "0,0,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_underground/walkway_gate_a.mdl", "#", "#", 1, "", "0, 4,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/walkway_gate_a.mdl", "#", "#", 2, "", "0,-4,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_underground/walkway_gate_b.mdl", "#", "#", 1, "", "0, 4,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/walkway_gate_b.mdl", "#", "#", 2, "", "0,-4,-2.125", "0,90,0"})
+  asmlib.Categorize("CAP Catwalks",[[function(m)
+    local g = m:gsub("models/boba_fett/catwalk_build/", "")
+    local p = g:match("%w+_"); return (p and p:sub(1,-2) or "other") end]])
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_short.mdl", "#", "#", 1, "", " 89.0125,0,-12.7"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_short.mdl", "#", "#", 2, "", "-89.0125,0,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_corner.mdl", "#", "#", 1, "", "-137.4472,37.11516,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_corner.mdl", "#", "#", 2, "", "37.11516,-137.4472,-12.7", "0,-90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_end.mdl", "#", "#", 1, "", "-137.24675,0,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_med.mdl", "#", "#", 1, "", " 172.23691,0,-12.7"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_med.mdl", "#", "#", 2, "", "-172.23691,0,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_long.mdl", "#", "#", 1, "", " 337.7742,0,-12.7"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_long.mdl", "#", "#", 2, "", "-337.7742,0,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_t.mdl", "#", "#", 1, "", "-137.44797,0,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_t.mdl", "#", "#", 2, "", "37.12806,-174.55254,-12.7", "0,-90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_t.mdl", "#", "#", 3, "", "37.12806,174.55254,-12.7", "0,90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x.mdl", "#", "#", 1, "", "174.55254,0,-12.7"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x.mdl", "#", "#", 2, "", "0,174.55254,-12.7", "0,90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x.mdl", "#", "#", 3, "", "-174.55254,0,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x.mdl", "#", "#", 4, "", "0,-174.55254,-12.7", "0,-90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x_big.mdl", "#", "#", 1, "", "234.58699,0,-12.7"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x_big.mdl", "#", "#", 2, "", "0.31703,234.26997,-12.7", "0,90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x_big.mdl", "#", "#", 3, "", "-233.95296,0,-12.7", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/catwalk_x_big.mdl", "#", "#", 4, "", "0.31701,-234.26991,-12.7", "0,-90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/landing_platform.mdl", "#", "#", 1, "", "-755.98682,-348.96243,42.80078", "0,-180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/landing_platform.mdl", "#", "#", 2, "", "-755.98682,349.68161,42.80078", "0,-180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/gate_platform.mdl", "#", "#", 1, "", "330,0,3.3"})
+  PIECES:Record({"models/boba_fett/catwalk_build/gate_platform.mdl", "#", "#", 2, "", "0,330,3.3", "0,90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/gate_platform.mdl", "#", "#", 3, "", "-330,0,3.3", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/gate_platform.mdl", "#", "#", 4, "", "0,-330,3.3", "0,-90,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/nanog_end.mdl", "#", "#", 1, "", "-286.09482,-0.0823,3.74512", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 1, "", "-304.15,0,3.755", "0,180,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 2, "", "236.8,-197,3.755", "0,-40,0"})
+  PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 3, "", "236.8,197,3.755", "0,40,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
