@@ -1,6 +1,5 @@
 QuickSort
 SetNumSlider
-GetEntityHitID
 ModelToName: Cut
 ModelToName: Sub
 ModelToName: App
@@ -9,7 +8,6 @@ LocatePOA: Missing ID
 TimerRestart: Called by
 DrawToolScreen: Invalid screen
 DrawHUD: Invalid screen
-GetHookInfo: Swep invalid
 GetEntitySpawn: Trace outside radius
 GetEntitySpawn: Active point missed
 GetEntitySpawn: Not hitting active point
@@ -30,8 +28,6 @@ DRAW_RADMENU: Release
 DRAW_RADMENU: Hook mismatch
 DRAW_RADMENU: Scroll release
 DRAW_RADMENU: Menu disabled
-DRAW_PHYSGUN: Extension disabled
-DRAW_RADMENU: %(gmod_tool%) Swep other
 DRAW_GHOSTS: Swep invalid
 DRAW_GHOSTS: Swep not tool
 DRAW_GHOSTS: %(gmod_tool%) Swep other
@@ -43,7 +39,9 @@ DRAW_PHYSGUN: Physgun not hold
 DRAW_PHYSGUN: Swep not physgun
 DRAW_PHYSGUN: Swep invalid
 DRAW_PHYSGUN: Extension disabled
+DRAW_PHYSGUN: Trace not piece
 DRAW_PHYSGUN: %(weapon_physgun%) Swep other
+DRAW_RADMENU: %(gmod_tool%) Swep other
 POINT_SELECT: Bind not pressed
 POINT_SELECT: Active key missing
 BIND_PRESS: Hook mismatch
@@ -57,3 +55,6 @@ UPDATE_CONTEXTVAL: Entity
 BorderValue: Missing
 GetBuilderNick: Key mismatch
 GetBuilderID: Builder object missing
+GetHookInfo: %(gmod_tool%) Swep other
+GetHookInfo: %(weapon_physgun%) Swep other
+GetEntityHitID: Trace skip
