@@ -339,8 +339,9 @@ Here they are, with available status, why I did not do some of them ( at the tim
 The ones that are **INCLUDED** in Garry's mod do not have links and are marked below. Others are
 actually not meant to be used with TA at all, but instead in **HAMMER** by mappers. Some are supported
 by their own **AUTHOR** ( this is always better and easier to add stuff in a list ) so you should check with
-them. In some rare cases, the author is to busy, not bothered or not interested anymore to maintain cetain
-track packs leading in **NO SUPPORT**, which is also OK and you need to value their time and effort:
+them. Another way of availability will be present only when the user **MOUNT**-s certain games that
+will include the content in question. In some rare cases, the author is to busy, not bothered or not interested
+anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also OK and you need to value their time and effort:
   * PHX Monorails **(INCLUDED)**
   * PHX Regular Tracks ( Piece `switcher_2` `[X]` misses collision meshes ) **(INCLUDED)**
   * [SligWolf's Rerailers](https://steamcommunity.com/sharedfiles/filedetails/?id=132843280) old and new(1,2,3)
@@ -379,6 +380,9 @@ track packs leading in **NO SUPPORT**, which is also OK and you need to value th
   * [Qwertyaaa's GSTP](https://steamcommunity.com/sharedfiles/filedetails/?id=2370393604) **(HAMMER)**
   * [Magnum's third track pack](https://github.com/MagnumMacKivler/trakpak3) **(HAMMER)**
   * [Modular Sewer System](https://steamcommunity.com/sharedfiles/filedetails/?id=2340192251)
+  * Portal 2 Walkway Underground (UG) **(MOUNT)** ( Requested by [mr.bones](https://steamcommunity.com/profiles/76561198348454446) )
+  * [CAP Walkway](https://steamcommunity.com/sharedfiles/filedetails/?id=180210973)
+  * Portal 2 High Walkway **(MOUNT)**
 
 #### Where are the trains/vehicles[,][ref-easter] are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD

@@ -89,7 +89,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.665")
+asmlib.SetOpVar("TOOL_VERSION","8.666")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -191,7 +191,7 @@ asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of sam
 asmlib.MakeAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
 asmlib.MakeAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
 asmlib.MakeAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
-asmlib.MakeAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval control for server adressed messages")
+asmlib.MakeAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval for server addressed messages")
 asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 
 ------------ CONFIGURE INTERNALS ------------
@@ -519,6 +519,7 @@ if(CLIENT) then
   asmlib.WorkshopID("SligWolf's Minihover"        , "147812851")
   asmlib.WorkshopID("Battleship's abandoned rails", "807162936")
   asmlib.WorkshopID("AlexCookie's 2ft track pack" , "740453553")
+  asmlib.WorkshopID("CAP Walkway"                 , "180210973")
   asmlib.WorkshopID("Joe's track pack"            , "1658816805")
   asmlib.WorkshopID("StevenTechno's Buildings 2.0", "1888013789")
   asmlib.WorkshopID("Modular Canals"              , "1336622735")
@@ -4253,7 +4254,7 @@ else
   PIECES:Record({"models/sewerpack/sewertunnelx.mdl", "#", "#", 2, "", "0,113.96,1", "0,90,0"})
   PIECES:Record({"models/sewerpack/sewertunnelx.mdl", "#", "#", 3, "", "0,-113.96,1", "0,-90,0"})
   PIECES:Record({"models/sewerpack/sewertunnelx.mdl", "#", "#", 4, "", "-113.96,0,1", "0,180,0"})
-  asmlib.Categorize("Portal catwalk",[[function(m)
+  asmlib.Categorize("Portal 2 Walkway UG",[[function(m)
     local g = m:gsub("models/props_underground/", "") return g:match("%w+") end]])
   asmlib.ModelToNameRule("SET",nil,{"%w+_",""},nil)
   PIECES:Record({"models/props_underground/walkway_32a.mdl", "#", "#", 1, "", "0, 16,-2.125", "0, 90,0"})
@@ -4338,7 +4339,7 @@ else
   PIECES:Record({"models/props_underground/walkway_gate_a.mdl", "#", "#", 2, "", "0,-4,-2.125", "0,90,0"})
   PIECES:Record({"models/props_underground/walkway_gate_b.mdl", "#", "#", 1, "", "0, 4,-2.125", "0,-90,0"})
   PIECES:Record({"models/props_underground/walkway_gate_b.mdl", "#", "#", 2, "", "0,-4,-2.125", "0,90,0"})
-  asmlib.Categorize("CAP Catwalks",[[function(m)
+  asmlib.Categorize("CAP Walkway",[[function(m)
     local g = m:gsub("models/boba_fett/catwalk_build/", "")
     local p = g:match("%w+_"); return (p and p:sub(1,-2) or "other") end]])
   asmlib.ModelToNameRule("SET",nil,{"^%w+_+",""},nil)
@@ -4372,7 +4373,7 @@ else
   PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 1, "", "-304.15,0,3.755", "0,180,0"})
   PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 2, "", "236.8,-197,3.755", "0,-40,0"})
   PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 3, "", "236.8,197,3.755", "0,40,0"})
-  asmlib.Categorize("Hanging Catwalks",[[function(m)
+  asmlib.Categorize("Portal 2 High Walkway",[[function(m)
     local g = m:gsub("^.*walkway",""):gsub("%.mdl$", "")
     if(g:find("%d")) then return "straight"
     elseif(g:find("%a+_*")) then local s = g:match("%a+_*")
