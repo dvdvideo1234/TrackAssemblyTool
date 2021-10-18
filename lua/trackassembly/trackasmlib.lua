@@ -73,6 +73,7 @@ local CompileFile                    = CompileFile
 local getmetatable                   = getmetatable
 local setmetatable                   = setmetatable
 local collectgarbage                 = collectgarbage
+local LocalToWorld                   = LocalToWorld
 local osClock                        = os and os.clock
 local osDate                         = os and os.date
 local bitBand                        = bit and bit.band
@@ -781,6 +782,7 @@ function InitBase(sName, sPurp)
   SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
   SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
   SetOpVar("PATTEM_WORKSHID", "^%d+$")
+  SetOpVar("HOVER_TRIGGER"  , {})
   if(CLIENT) then
     SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
     SetOpVar("TABLE_TOOLINF", {
@@ -802,7 +804,6 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_SKILLICON",{})
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
-    SetOpVar("HOVER_TRIGGER",{})
     SetOpVar("LOCALIFY_TABLE",{})
     SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("TABLE_CATEGORIES",{})
@@ -1567,7 +1568,9 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       self:DrawCircle(Op, nR,"y","SURF")
     end
     if(iIdx) then local nO = Rv / 5
-      self:SetTextStart(Op.x + nO, Op.y - 24 - nO)
+      if(stPOA.P[cvX] ~= 0 or stPOA.P[cvY] ~= 0 or stPOA.P[cvZ] ~= 0) then
+        self:SetTextStart(Pp.x + nO, Pp.y - 24 - nO)
+      else self:SetTextStart(Op.x + nO, Op.y - 24 - nO) end
       self:DrawText(tostring(iIdx),"g","SURF",{"Trebuchet24"})
     end
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
@@ -2029,7 +2032,9 @@ function GetBeautifyName(sName)
   local sDiv = GetOpVar("OPSYM_DIVIDER")
   local fCon = GetOpVar("MODELNAM_FUNC")
   local sNam = tostring(sName or ""):lower():Trim()
-  return ("_"..sNam):gsub(sDiv.."%w", fCon):sub(2,-1)
+  local sOut = sNam:gsub("_+","_"):gsub("_$", "")
+  if(sOut:sub(1,1) ~= "_") then sOut = "_"..sOut end
+  return sOut:gsub(sDiv.."%w", fCon):sub(2,-1)
 end
 
 function ModelToName(sModel, bNoSet)
@@ -4090,20 +4095,14 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
                            tonumber(ucsPosY) or 0,
                            tonumber(ucsPosZ) or 0)
   -- Integrate additional position offset into the origin position
-  stSpawn.U:Set(stSpawn.OAng:Up()); stSpawn.U:Normalize()
-  stSpawn.R:Set(stSpawn.OAng:Right()); stSpawn.R:Normalize()
-  stSpawn.F:Set(stSpawn.OAng:Forward()); stSpawn.F:Normalize()
-  if(stSpawn.PNxt[cvX] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvX] * stSpawn.F) end
-  if(stSpawn.PNxt[cvY] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvY] * stSpawn.R) end
-  if(stSpawn.PNxt[cvZ] ~= 0) then stSpawn.OPos:Add(stSpawn.PNxt[cvZ] * stSpawn.U) end
-  -- Integrate additional angle offset into the origin angle
-  if(stSpawn.ANxt[caP] ~= 0 or stSpawn.ANxt[caY] ~= 0 or stSpawn.ANxt[caR] ~= 0) then
-    stSpawn.OAng:RotateAroundAxis(stSpawn.R, stSpawn.ANxt[caP])
-    stSpawn.OAng:RotateAroundAxis(stSpawn.U,-stSpawn.ANxt[caY])
-    stSpawn.F:Set(stSpawn.OAng:Forward()); stSpawn.F:Normalize()
-    stSpawn.OAng:RotateAroundAxis(stSpawn.F, stSpawn.ANxt[caR])
-    stSpawn.R:Set(stSpawn.OAng:Right()); stSpawn.R:Normalize()
-    stSpawn.U:Set(stSpawn.OAng:Up()); stSpawn.U:Normalize()
+  if(stSpawn.ANxt[caP] ~= 0 or stSpawn.ANxt[caY] ~= 0 or stSpawn.ANxt[caR] ~= 0 or
+     stSpawn.PNxt[cvX] ~= 0 or stSpawn.PNxt[cvY] ~= 0 or stSpawn.PNxt[cvZ] ~= 0) then
+    NegAngle(stSpawn.ANxt, true, true, false)
+    local pos, ang = LocalToWorld(stSpawn.PNxt, stSpawn.ANxt, stSpawn.BPos, stSpawn.BAng)
+    stSpawn.OPos:Set(pos); stSpawn.OAng:Set(ang);
+    stSpawn.F:Set(stSpawn.OAng:Forward())
+    stSpawn.R:Set(stSpawn.OAng:Right())
+    stSpawn.U:Set(stSpawn.OAng:Up())
   end
   -- Read holder record
   stSpawn.HPnt:SetUnpacked(hdPOA.P[cvX], hdPOA.P[cvY], hdPOA.P[cvZ])

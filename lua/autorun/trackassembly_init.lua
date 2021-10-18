@@ -4,6 +4,7 @@ local pcall                         = pcall
 local Angle                         = Angle
 local Vector                        = Vector
 local IsValid                       = IsValid
+local SysTime                       = SysTime
 local tobool                        = tobool
 local tonumber                      = tonumber
 local tostring                      = tostring
@@ -88,7 +89,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.664")
+asmlib.SetOpVar("TOOL_VERSION","8.665")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -155,6 +156,7 @@ asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
 asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
+asmlib.SetBorder(gsToolPrefL.."dtmessage", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
@@ -189,6 +191,7 @@ asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of sam
 asmlib.MakeAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
 asmlib.MakeAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
 asmlib.MakeAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
+asmlib.MakeAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval control for server adressed messages")
 asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 
 ------------ CONFIGURE INTERNALS ------------
@@ -199,6 +202,7 @@ asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the ga
 asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
+asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
 
 ------------ GLOBAL VARIABLES ------------
 
@@ -249,6 +253,12 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       end})
       conCallBack:Push({"endsvlock", function(sVar, vOld, vNew)
         asmlib.IsFlag("en_dsv_datalock", tobool(vNew))
+      end})
+      conCallBack:Push({"dtmessage", function(sVar, vOld, vNew)
+        local sK = gsToolPrefL.."dtmessage"
+        local nD = (tonumber(vNew) or 0)
+              nD = asmlib.BorderValue(nD, sK)
+        asmlib.SetOpVar("MSDELTA_SEND", nD)
       end})
       conCallBack:Push({"timermode", function(sVar, vOld, vNew)
         local arTim = gsSymDir:Explode(vNew)
@@ -1379,20 +1389,29 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
         })
 
 if(SERVER) then
-  local function PopulateEntity(nLen)
-    local oEnt, sLog = netReadEntity(), "*POPULATE_ENTITY"
-    local sNoA = asmlib.GetOpVar("MISS_NOAV") -- Default drawn string
-    asmlib.LogInstance("Entity"..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), sLog)
-    for iD = 1, conContextMenu:GetSize() do
-      local tLine = conContextMenu:Select(iD) -- Grab the value from the container
-      local sKey, wDraw = tLine[1], tLine[5]  -- Extract the key and handler
-      if(type(wDraw) == "function") then      -- Check when the value is function
-        local bS, vE = pcall(wDraw, oEnt); vE = tostring(vE) -- Always being string
-        if(not bS) then oEnt:SetNWString(sKey, sNoA)
-          asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE, sLog); return end
-        asmlib.LogInstance("Handler"..asmlib.GetReport2(sKey,iD,vE), sLog)
-        oEnt:SetNWString(sKey, vE) -- Write networked value to the hover entity
+  local function PopulateEntity(nLen, oPly)
+    local dTim = asmlib.GetOpVar("MSDELTA_SEND")
+    local tHov = asmlib.GetOpVar("HOVER_TRIGGER")
+    local pTim, cTim = tHov[oPly], SysTime()
+    if(not pTim) then tHov[oPly], pTim = cTim, cTim end -- Allocate player
+    if(dTim == 0 or (dTim > 0 and cTim > (pTim + dTim))) then tHov[oPly] = cTim
+      local oEnt, sLog = netReadEntity(), "*POPULATE_ENTITY"
+      local sNoA = asmlib.GetOpVar("MISS_NOAV") -- Default drawn string
+      local sTyp, nIdx = oEnt:GetClass(),oEnt:EntIndex()
+      asmlib.LogInstance("Entity"..asmlib.GetReport2(sTyp, nIdx), sLog)
+      for iD = 1, conContextMenu:GetSize() do
+        local tLine = conContextMenu:Select(iD) -- Grab the value from the container
+        local sKey, wDraw = tLine[1], tLine[5]  -- Extract the key and handler
+        if(type(wDraw) == "function") then      -- Check when the value is function
+          local bS, vE = pcall(wDraw, oEnt); vE = tostring(vE) -- Always being string
+          if(not bS) then oEnt:SetNWString(sKey, sNoA)
+            asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE, sLog); return end
+          asmlib.LogInstance("Handler"..asmlib.GetReport2(sKey,iD,vE), sLog)
+          oEnt:SetNWString(sKey, vE) -- Write networked value to the hover entity
+        end
       end
+    else
+      asmlib.Notify(oPly,"Do not rush the context menu!","UNDO")
     end
   end
   utilAddNetworkString(gsOptionsCV)
@@ -4322,6 +4341,7 @@ else
   asmlib.Categorize("CAP Catwalks",[[function(m)
     local g = m:gsub("models/boba_fett/catwalk_build/", "")
     local p = g:match("%w+_"); return (p and p:sub(1,-2) or "other") end]])
+  asmlib.ModelToNameRule("SET",nil,{"^%w+_+",""},nil)
   PIECES:Record({"models/boba_fett/catwalk_build/catwalk_short.mdl", "#", "#", 1, "", " 89.0125,0,-12.7"})
   PIECES:Record({"models/boba_fett/catwalk_build/catwalk_short.mdl", "#", "#", 2, "", "-89.0125,0,-12.7", "0,180,0"})
   PIECES:Record({"models/boba_fett/catwalk_build/catwalk_corner.mdl", "#", "#", 1, "", "-137.4472,37.11516,-12.7", "0,180,0"})
@@ -4352,6 +4372,96 @@ else
   PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 1, "", "-304.15,0,3.755", "0,180,0"})
   PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 2, "", "236.8,-197,3.755", "0,-40,0"})
   PIECES:Record({"models/boba_fett/catwalk_build/nanog_mid.mdl", "#", "#", 3, "", "236.8,197,3.755", "0,40,0"})
+  asmlib.Categorize("Hanging Catwalks",[[function(m)
+    local g = m:gsub("^.*walkway",""):gsub("%.mdl$", "")
+    if(g:find("%d")) then return "straight"
+    elseif(g:find("%a+_*")) then local s = g:match("%a+_*")
+      if(s:len() <= 2) then return "turns" else return "special" end
+    else return nil end end]])
+  asmlib.ModelToNameRule("SET",nil,{"^.*walkway_*",""},nil)
+  PIECES:Record({"models/props_bts/hanging_walkway_16a.mdl", "#", "#", 1, "", "0, 8,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16a.mdl", "#", "#", 2, "", "0,-8,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16b.mdl", "#", "#", 1, "", "0, 8,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16b.mdl", "#", "#", 2, "", "0,-8,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16c.mdl", "#", "#", 1, "", "0, 8,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16c.mdl", "#", "#", 2, "", "0,-8,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16d.mdl", "#", "#", 1, "", "0, 8,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16d.mdl", "#", "#", 2, "", "0,-8,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16e.mdl", "#", "#", 1, "", "0, 8,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_16e.mdl", "#", "#", 2, "", "0,-8,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32a.mdl", "#", "#", 1, "", "0, 16,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32a.mdl", "#", "#", 2, "", "0,-16,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32b.mdl", "#", "#", 1, "", "0, 16,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32b.mdl", "#", "#", 2, "", "0,-16,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32c.mdl", "#", "#", 1, "", "0, 16,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32c.mdl", "#", "#", 2, "", "0,-16,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32d.mdl", "#", "#", 1, "", "0, 16,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32d.mdl", "#", "#", 2, "", "0,-16,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32e.mdl", "#", "#", 1, "", "0, 16,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_32e.mdl", "#", "#", 2, "", "0,-16,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64a.mdl", "#", "#", 1, "", "0, 32,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64a.mdl", "#", "#", 2, "", "0,-32,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64b.mdl", "#", "#", 1, "", "0, 32,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64b.mdl", "#", "#", 2, "", "0,-32,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64c.mdl", "#", "#", 1, "", "0, 32,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64c.mdl", "#", "#", 2, "", "0,-32,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64d.mdl", "#", "#", 1, "", "0, 32,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64d.mdl", "#", "#", 2, "", "0,-32,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64e.mdl", "#", "#", 1, "", "0, 32,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_64e.mdl", "#", "#", 2, "", "0,-32,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128a.mdl", "#", "#", 1, "", "0, 64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128a.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128b.mdl", "#", "#", 1, "", "0, 64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128b.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128c.mdl", "#", "#", 1, "", "0, 64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128c.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128d.mdl", "#", "#", 1, "", "0, 64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128d.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128e.mdl", "#", "#", 1, "", "0, 64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_128e.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256a.mdl", "#", "#", 1, "", "0, 128,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256a.mdl", "#", "#", 2, "", "0,-128,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256b.mdl", "#", "#", 1, "", "0, 128,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256b.mdl", "#", "#", 2, "", "0,-128,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256c.mdl", "#", "#", 1, "", "0, 128,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256c.mdl", "#", "#", 2, "", "0,-128,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256d.mdl", "#", "#", 1, "", "0, 128,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256d.mdl", "#", "#", 2, "", "0,-128,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256e.mdl", "#", "#", 1, "", "0, 128,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_256e.mdl", "#", "#", 2, "", "0,-128,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_angle_30.mdl", "#", "#", 1, "", "0,-44.01274,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_angle_30.mdl", "#", "#", 2, "", "40.52878,23.40695,-2.125", "0,30,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_corner.mdl", "#", "#", 1, "", "64,0,-2.125"})
+  PIECES:Record({"models/props_bts/hanging_walkway_corner.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_end_a.mdl", "#", "#", 1, "", "0,-16,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_end_b.mdl", "#", "#", 1, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_end_cap.mdl", "#", "#", 1, "", "0,0,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_gate_a.mdl", "#", "#", 1, " 36.5,0,20", "", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_gate_a.mdl", "#", "#", 2, "-36.5,0,20", "", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_gate_frame.mdl", "#", "#", 1, " 36.5,0,20", "", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_gate_frame.mdl", "#", "#", 2, "-36.5,0,20", "", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_gate_door.mdl", "#", "#", 1, "", "", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_gate_door.mdl", "#", "#", 2, "", "0,8,0", "0, 90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_l.mdl", "#", "#", 1, "", "64, 0,-2.125"})
+  PIECES:Record({"models/props_bts/hanging_walkway_l.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_l_norail.mdl", "#", "#", 1, "", "64, 0,-2.125"})
+  PIECES:Record({"models/props_bts/hanging_walkway_l_norail.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_t.mdl", "#", "#", 1, "", "64, 0,-2.125"})
+  PIECES:Record({"models/props_bts/hanging_walkway_t.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_t.mdl", "#", "#", 3, "", "0, 64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_t_norail.mdl", "#", "#", 1, "", "64, 0,-2.125"})
+  PIECES:Record({"models/props_bts/hanging_walkway_t_norail.mdl", "#", "#", 2, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_t_norail.mdl", "#", "#", 3, "", "0, 64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x.mdl", "#", "#", 1, "", "64,0,-2.125"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x.mdl", "#", "#", 2, "", "0,64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x.mdl", "#", "#", 3, "", "-64,0,-2.125", "0,180,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x.mdl", "#", "#", 4, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x_norail.mdl", "#", "#", 1, "", "64,0,-2.125"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x_norail.mdl", "#", "#", 2, "", "0,64,-2.125", "0,90,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x_norail.mdl", "#", "#", 3, "", "-64,0,-2.125", "0,180,0"})
+  PIECES:Record({"models/props_bts/hanging_walkway_x_norail.mdl", "#", "#", 4, "", "0,-64,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/walkway_destroyed_64a.mdl", "#", "#", 1, "", "0,0,-2.125", "0,-90,0"})
+  PIECES:Record({"models/props_bts/walkway_destroyed_128a.mdl", "#", "#", 1, "", "0,0,-2.125", "0,90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

@@ -2574,6 +2574,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "spawnrate", asmlib.GetAsmConvar("spawnrate", "DEF"))
         asmlib.SetAsmConvar(oPly, "bnderrmod", asmlib.GetAsmConvar("bnderrmod", "DEF"))
         asmlib.SetAsmConvar(oPly, "maxfruse" , asmlib.GetAsmConvar("maxfruse" , "DEF"))
+        asmlib.SetAsmConvar(oPly, "dtmessage", asmlib.GetAsmConvar("dtmessage", "DEF"))
         asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
                              asmlib.GetAsmConvar("logfile","BUL"))
         asmlib.LogInstance("Factory reset complete", sLog)
