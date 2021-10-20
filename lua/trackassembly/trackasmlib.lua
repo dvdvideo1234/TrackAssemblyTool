@@ -134,6 +134,8 @@ local debugTrace                     = debug and debug.Trace
 local renderDrawLine                 = render and render.DrawLine
 local renderDrawSphere               = render and render.DrawSphere
 local renderSetMaterial              = render and render.SetMaterial
+local renderSetBlend                 = render and render.SetBlend
+local renderGetBlend                 = render and render.GetBlend
 local stringGetFileName              = string and string.GetFileFromFilename
 local surfaceSetFont                 = surface and surface.SetFont
 local surfaceDrawPoly                = surface and surface.DrawPoly
@@ -4977,6 +4979,18 @@ function ClearGhosts(vSiz, bCol)
 end
 
 --[[
+ * Helper function to handle models that do not support
+ * color alpha channel have draw override. This is run
+ * for all the ghosted props to draw all of them correctly
+]]
+local function BlendGhost(self)
+  local num = renderGetBlend()
+  renderSetBlend(0.8)
+  self:DrawModel()
+  renderSetBlend(num)
+end
+
+--[[
  * Creates a single ghost entity for populating the stack
  * sModel > The model which the creation is requested for
  * vPos   > Position for the entity, otherwise zero is used
@@ -4988,6 +5002,7 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
     LogInstance("Ghost invalid "..sModel); return nil end
+  eGho.RenderOverride = BlendGhost
   eGho:SetModel(sModel)
   eGho:SetPos(vPos or GetOpVar("VEC_ZERO"))
   eGho:SetAngles(aAng or GetOpVar("ANG_ZERO"))
