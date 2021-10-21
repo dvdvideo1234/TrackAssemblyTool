@@ -131,6 +131,7 @@ TOOL.ClientConVar = {
   [ "forcelim"   ] = 0,
   [ "ignphysgn"  ] = 0,
   [ "ghostcnt"   ] = 1,
+  [ "ghostfade"  ] = 0.8,
   [ "stackcnt"   ] = 5,
   [ "maxstatts"  ] = 3,
   [ "nocollide"  ] = 1,
@@ -375,6 +376,10 @@ end
 
 function TOOL:GetStackAttempts()
   return (mathClamp(self:GetClientNumber("maxstatts"),0,10))
+end
+
+function TOOL:GetGhostFade()
+  return (mathClamp(self:GetClientNumber("ghostfade"),0,1))
 end
 
 function TOOL:GetPhysMeterial()
@@ -1596,7 +1601,8 @@ function TOOL:UpdateGhostSpawn(stTrace, oPly)
 end
 
 function TOOL:UpdateGhost(oPly)
-  if(not asmlib.FadeGhosts(true)) then return end
+  local ghostfade = self:GetGhostFade()
+  if(not asmlib.FadeGhosts(true, ghostfade)) then return end
   if(self:GetGhostsCount() <= 0) then return end
   local stTrace = asmlib.GetCacheTrace(oPly)
   if(not stTrace) then return end
@@ -2422,6 +2428,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "incsnplin", 0)
     asmlib.SetNumSlider(CPanel, "incsnpang", 0)
     asmlib.SetNumSlider(CPanel, "ghostcnt" , 0)
+    asmlib.SetNumSlider(CPanel, "ghostfade", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvturnlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvleanlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "sgradmenu", 0)
@@ -2456,6 +2463,8 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "maxactrad", iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxstcnt" , 0)
     asmlib.SetNumSlider(CPanel, "maxstatts", 0)
+    asmlib.SetNumSlider(CPanel, "maxfruse" , 0)
+    asmlib.SetNumSlider(CPanel, "dtmessage", iMaxDec)
     asmlib.SetCheckBox(CPanel, "enwiremod")
     asmlib.SetCheckBox(CPanel, "enctxmenu")
     asmlib.SetCheckBox(CPanel, "enctxmall")

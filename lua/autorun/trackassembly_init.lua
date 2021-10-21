@@ -89,7 +89,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.667")
+asmlib.SetOpVar("TOOL_VERSION","8.668")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -157,6 +157,7 @@ asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
 asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
 asmlib.SetBorder(gsToolPrefL.."dtmessage", 0, 10)
+asmlib.SetBorder(gsToolPrefL.."ghostfade", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
@@ -254,12 +255,6 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       conCallBack:Push({"endsvlock", function(sVar, vOld, vNew)
         asmlib.IsFlag("en_dsv_datalock", tobool(vNew))
       end})
-      conCallBack:Push({"dtmessage", function(sVar, vOld, vNew)
-        local sK = gsToolPrefL.."dtmessage"
-        local nD = (tonumber(vNew) or 0)
-              nD = asmlib.BorderValue(nD, sK)
-        asmlib.SetOpVar("MSDELTA_SEND", nD)
-      end})
       conCallBack:Push({"timermode", function(sVar, vOld, vNew)
         local arTim = gsSymDir:Explode(vNew)
         local mkTab, ID = asmlib.GetBuilderID(1), 1
@@ -268,6 +263,14 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
           asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
           ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
         end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vNew),gtInitLogs)
+      end})
+      conCallBack:Push({"dtmessage", function(sVar, vOld, vNew)
+        if(SERVER) then
+          local sK = gsToolPrefL.."dtmessage"
+          local nD = (tonumber(vNew) or 0)
+                nD = asmlib.BorderValue(nD, sK)
+          asmlib.SetOpVar("MSDELTA_SEND", nD)
+        end
       end})
 
 for iD = 1, conCallBack:GetSize() do
@@ -4308,16 +4311,16 @@ else
   PIECES:Record({"models/props_underground/walkway_x.mdl", "#", "#", 2, "", "0,64,-2.125", "0, 90,0"})
   PIECES:Record({"models/props_underground/walkway_x.mdl", "#", "#", 3, "", "-64,0,-2.125","0,180,0"})
   PIECES:Record({"models/props_underground/walkway_x.mdl", "#", "#", 4, "", "0,-64,-2.125","0,-90,0"})
-  PIECES:Record({"models/props_underground/stair_32.mdl", "#", "#", 1, "", "0, 56,13.875", "0, 90,0"})
-  PIECES:Record({"models/props_underground/stair_32.mdl", "#", "#", 2, "", "0,-56,-18.125", "0,-90,0"})
-  PIECES:Record({"models/props_underground/stair_64.mdl", "#", "#", 1, "", "0, 80,29.875", "0, 90,0"})
-  PIECES:Record({"models/props_underground/stair_64.mdl", "#", "#", 2, "", "0,-80,-34.125", "0,-90,0"})
-  PIECES:Record({"models/props_underground/stair_128.mdl", "#", "#", 1, "", "0, 128,61.875", "0, 90,0"})
-  PIECES:Record({"models/props_underground/stair_128.mdl", "#", "#", 2, "", "0,-128,-66.125", "0,-90,0"})
-  PIECES:Record({"models/props_underground/stair_256.mdl", "#", "#", 1, "", "0, 224,125.875", "0, 90,0"})
-  PIECES:Record({"models/props_underground/stair_256.mdl", "#", "#", 2, "", "0,-224,-130.125", "0,-90,0"})
-  PIECES:Record({"models/props_underground/stair_exit.mdl", "#", "#", 1, "", "0, 112,61.875", "0, 90,0"})
-  PIECES:Record({"models/props_underground/stair_exit.mdl", "#", "#", 2, "", "0,-112,-66.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/stair_32.mdl", "#", "#", 1, "", "0,-56,-18.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/stair_32.mdl", "#", "#", 2, "", "0, 56,13.875", "0, 90,0"})
+  PIECES:Record({"models/props_underground/stair_64.mdl", "#", "#", 1, "", "0,-80,-34.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/stair_64.mdl", "#", "#", 2, "", "0, 80,29.875", "0, 90,0"})
+  PIECES:Record({"models/props_underground/stair_128.mdl", "#", "#", 1, "", "0,-128,-66.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/stair_128.mdl", "#", "#", 2, "", "0, 128,61.875", "0, 90,0"})
+  PIECES:Record({"models/props_underground/stair_256.mdl", "#", "#", 1, "", "0,-224,-130.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/stair_256.mdl", "#", "#", 2, "", "0, 224,125.875", "0, 90,0"})
+  PIECES:Record({"models/props_underground/stair_exit.mdl", "#", "#", 1, "", "0,-112,-66.125", "0,-90,0"})
+  PIECES:Record({"models/props_underground/stair_exit.mdl", "#", "#", 2, "", "0, 112,61.875", "0, 90,0"})
   PIECES:Record({"models/props_underground/stair_landing_a.mdl", "#", "#", 1, "", "48,-42,-2.125", "0,-90,0"})
   PIECES:Record({"models/props_underground/stair_landing_a.mdl", "#", "#", 2, "", "-48,-42,-2.125", "0,-90,0"})
   PIECES:Record({"models/props_underground/stair_landing_b.mdl", "#", "#", 1, "", "48,-42,-2.125", "0,-90,0"})

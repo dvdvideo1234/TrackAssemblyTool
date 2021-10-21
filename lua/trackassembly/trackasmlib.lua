@@ -4941,16 +4941,19 @@ end
 --[[
  * Fades the ghosts stack and makes the elements invisible
  * bNoD > The state of the No-Draw flag
+ * nMrF > Fade margin in range [0-1]
  * Wait a minute, ghosts can't leave fingerprints!
 ]]
-function FadeGhosts(bNoD)
+function FadeGhosts(bNoD, nMrF)
   if(SERVER) then return true end
   if(not HasGhosts()) then return true end
+  local nMar = mathClamp((tonumber(nMrF) or 0), 0, 1)
   local tGho = GetOpVar("ARRAY_GHOST")
   local cPal = GetContainer("COLORS_LIST")
   local sMis, sMod = GetOpVar("MISS_NOMD"), tGho.Slot
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
+      if(nMrF) then eGho.marginRender = nMar end
       eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
       eGho:SetColor(cPal:Select("gh"))
       if(sMod and sMod ~= sMis and sMod ~= eGho:GetModel()) then
@@ -4984,8 +4987,9 @@ end
  * for all the ghosted props to draw all of them correctly
 ]]
 local function BlendGhost(self)
+  local mar = self.marginRender
   local num = renderGetBlend()
-  renderSetBlend(0.8)
+  renderSetBlend(mar)
   self:DrawModel()
   renderSetBlend(num)
 end
@@ -5002,6 +5006,7 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
     LogInstance("Ghost invalid "..sModel); return nil end
+  eGho.marginRender = 1
   eGho.RenderOverride = BlendGhost
   eGho:SetModel(sModel)
   eGho:SetPos(vPos or GetOpVar("VEC_ZERO"))
