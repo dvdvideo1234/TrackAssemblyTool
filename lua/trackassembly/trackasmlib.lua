@@ -559,8 +559,8 @@ end
 function GetViewRadius(pPly, vPos, nMul)
   local nM = 5000 * (GetOpVar("GOLDEN_RATIO") - 1)
   local nS = mathClamp(tonumber(nMul or 1), 0, 1000)
-  local vP = pPly:GetShootPos() vP:Sub(vPos)
-  return nS * mathClamp(nM / vP:Length(), 0, 5000)
+  local nD = pPly:GetPos():Distance(vPos)
+  return nS * mathClamp(nM / nD, 0, 5000)
 end
 
 --[[
@@ -2404,12 +2404,6 @@ function CacheClear(pPly, bNow)
   libPlayer[pPly] = nil; if(bNow) then collectgarbage() end; return true
 end
 
-function GetDistanceHit(pPly, vHit)
-  if(not IsPlayer(pPly)) then
-    LogInstance("Invalid "..GetReport(pPly)); return nil end
-  return (vHit - pPly:GetPos()):Length()
-end
-
 --[[
  * Used for scaling hit position circle
  * pPly > Player the radius is scaled for
@@ -2429,8 +2423,9 @@ function GetCacheRadius(pPly, vHit, nSca)
   local nMul = (tonumber(nSca) or 1) -- Disable scaling on missing or outside
         nMul = ((nMul <= 1 and nMul >= 0) and nMul or 1)
   local nMar, nLim = stData["MAR"], stData["LIM"]
-  local nDst = GetDistanceHit(pPly, vHit)
-  local nRad = ((nDst ~= 0) and mathClamp((nMar / nDst) * nMul, 1, nLim) or 0)
+  local nDst = vHit:Distance(pPly:GetPos())
+        nMul = mathClamp((nMar / nDst) * nMul, 1, nLim)
+  local nRad = ((nDst ~= 0) and nMul or 0)
   return nRad, nDst, nMar, nLim
 end
 
@@ -3027,17 +3022,14 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
   local oRec = CacheQueryPiece(sMod); if(not IsHere(oRec)) then
     LogInstance("Record invalid <"..sMod..">"); return nil end
   local stBox = oRec.Layout; if(not IsHere(stBox)) then
-    local vMin, vMax; oRec.Layout = {}; stBox = oRec.Layout
-    if    (CLIENT) then vMin, vMax = oEnt:GetRenderBounds()
-    elseif(SERVER) then vMin, vMax = oEnt:OBBMins(), oEnt:OBBMaxs()
-    else LogInstance("Wrong instance"); return nil end
-    stBox.Ang = Angle () -- Layout entity angle
-    stBox.Cen = Vector() -- Layout entity center
-    stBox.Cen:Set(vMax); stBox.Cen:Add(vMin); stBox.Cen:Mul(0.5)
+    oRec.Layout = {}; stBox = oRec.Layout -- Allocated chace layout
+    stBox.Cen, stBox.Ang = oEnt:OBBCenter(), Angle() -- Layout position and angle
     stBox.Eye = oEnt:LocalToWorld(stBox.Cen) -- Layout camera eye
-    stBox.Len = (((vMax - stBox.Cen):Length() + (vMin - stBox.Cen):Length()) / 2)
-    stBox.Cam = Vector(); stBox.Cam:Set(stBox.Eye)  -- Layout camera position
-    AddVectorXYZ(stBox.Cam,stBox.Len*(tonumber(nCamX) or 0),0,stBox.Len*(tonumber(nCamZ) or 0))
+    stBox.Len = oEnt:BoundingRadius() -- Use bounding radius as enity size
+    stBox.Cam = Vector(stBox.Eye) -- Layout camera position
+    local nX = stBox.Len * (tonumber(nCamX) or 0) -- Calculate camera X
+    local nZ = stBox.Len * (tonumber(nCamZ) or 0) -- Calculate camera Z
+    AddVectorXYZ(stBox.Cam, nX, 0, nZ) -- Apply calculated camera offsets
     LogInstance("<"..tostring(stBox.Cen).."><"..tostring(stBox.Len)..">")
   end; stBox.Ang[caY] = (tonumber(nRot) or 0) * Time(); return stBox
 end
@@ -4042,13 +4034,13 @@ function GetEntityHitID(oEnt, vHit, bPnt)
       LogInstance("Point missing "..GetReport1(ID)); return nil end
     if(bPnt) then oAnc:SetUnpacked(tPOA.P[cvX], tPOA.P[cvY], tPOA.P[cvZ])
     else oAnc:SetUnpacked(tPOA.O[cvX], tPOA.O[cvY], tPOA.O[cvZ]) end
-    oAnc:Rotate(eAng); oAnc:Add(ePos); oAnc:Sub(vHit)
-    local tMin = oAnc:Length() -- Calculate vector absolute ( distance )
+    oAnc:Rotate(eAng); oAnc:Add(ePos) -- Convert local to world space
+    local tMin = oAnc:DistToSqr(vHit) -- Calculate vector absolute ( distance )
     if(oID and oMin and oPOA) then -- Check if current distance is minimum
       if(oMin >= tMin) then oID, oMin, oPOA = tID, tMin, tPOA end
     else -- The shortest distance if the first one checked until others are looped
       oID, oMin, oPOA = tID, tMin, tPOA end
-  end; return oID, oMin, oPOA, oRec
+  end; return oID, mathSqrt(oMin), oPOA, oRec
 end
 
 function GetNearest(vHit, tVec)
@@ -4057,13 +4049,12 @@ function GetNearest(vHit, tVec)
   if(not IsTable(tVec)) then
     LogInstance("Vertices mismatch "..GetReport(tVec)); return nil end
   local vT, iD, mD, mL = Vector(), 1, nil, nil
-  while(tVec[iD]) do
-    vT:Set(vHit); vT:Sub(tVec[iD])
-    local nT = vT:Length() -- Get current length
+  while(tVec[iD]) do -- Get current length
+    local nT = vHit:DistToSqr(tVec[iD])
     if(mL and mD) then -- Length is allocated
       if(nT <= mL) then mD, mL = iD, nT end
     else mD, mL = iD, nT end; iD = (iD + 1)
-  end; return mD, mL
+  end; return mD, mathSqrt(mL)
 end
 
 --[[
@@ -4247,9 +4238,9 @@ end
  *   f2 --> Intersection fraction of the second ray
 ]]--
 local function IntersectRay(vO1, vD1, vO2, vD2)
-  local d1 = vD1:GetNormalized(); if(d1:Length() == 0) then
+  local d1 = vD1:GetNormalized(); if(d1:LengthSqr() == 0) then
     LogInstance("First ray undefined"); return nil end
-  local d2 = vD2:GetNormalized(); if(d2:Length() == 0) then
+  local d2 = vD2:GetNormalized(); if(d2:LengthSqr() == 0) then
     LogInstance("Second ray undefined"); return nil end
   local dx, oo = d1:Cross(d2), (vO2 - vO1)
   local dn = (dx:Length())^2; if(dn < GetOpVar("EPSILON_ZERO")) then
@@ -4262,11 +4253,11 @@ local function IntersectRay(vO1, vD1, vO2, vD2)
 end
 
 local function IntersectRayParallel(vO1, vD1, vO2, vD2)
-  local d1 = vD1:GetNormalized(); if(d1:Length() == 0) then
+  local d1 = vD1:GetNormalized(); if(d1:LengthSqr() == 0) then
     LogInstance("First ray undefined"); return nil end
-  local d2 = vD2:GetNormalized(); if(d2:Length() == 0) then
+  local d2 = vD2:GetNormalized(); if(d2:LengthSqr() == 0) then
     LogInstance("Second ray undefined"); return nil end
-  local len = (vO2 - vO1):Length()
+  local len = vO2:Distance(vO1)
   local f1, f2 = (len / 2), (len / 2)
   local x1, x2 = (vO1 + f1 * d1), (vO2 + f2 * d2)
   local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
@@ -5099,8 +5090,7 @@ end
  * Returns the value of the tangent
 ]]
 local function GetCatmullRomCurveTangent(cS, cE, nT, nA)
-  local vD = Vector(); vD:Set(cE); vD:Sub(cS)
-  local nL, nM = vD:Length(), GetOpVar("EPSILON_ZERO")
+  local nL, nM = cE:Distance(cS), GetOpVar("EPSILON_ZERO")
   return ((((nL == 0) and nM or nL) ^ (tonumber(nA) or 0.5)) + nT)
 end
 
@@ -5182,18 +5172,17 @@ local function GetCatmullRomCurveDupe(tV, nT, nA, tO)
   if(nA < 0 or nA > 1) then LogInstance("Factor invalid "..GetReport1(nA)); return nil end
   local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
     LogInstance("Samples mismatch "..GetReport(nT)); return nil end
-  local tN, tF, nN = {tV[1], ID = {{true, 1}}}, (tO or {}), 1
-  local nM, vT = GetOpVar("EPSILON_ZERO"), Vector()
+  local nM, nN = GetOpVar("EPSILON_ZERO"), 1
+  local tN, tF = {tV[1], ID = {{true, 1}}}, (tO or {})
   for iD = 2, nV do
-    vT:Set(tV[iD]); vT:Sub(tN[nN])
-    if(vT:Length() > nM) then
+    if(tV[iD]:DistToSqr(tN[nN]) > nM) then
       tableInsert(tN, tV[iD])
       tN.ID[iD], nN = {true, nN}, (nN + 1)
     else tN.ID[iD] = {false} end
   end
   if(nN > 1) then
     local tC = GetCatmullRomCurve(tN, nT, nA)
-    for iD = 1, nV-1 do local iC = iD + 1
+    for iD = 1, (nV - 1) do local iC = iD + 1
       tableInsert(tF, Vector(tV[iD]))
       if(not tN.ID[iC][1]) then
         for iK = 1, nT do tableInsert(tF, Vector(tV[iD])) end
@@ -5204,7 +5193,7 @@ local function GetCatmullRomCurveDupe(tV, nT, nA, tO)
       end
     end; tableInsert(tF, Vector(tV[nV]))
   else
-    for iD = 1, nV-1 do
+    for iD = 1, (nV - 1) do
       tableInsert(tF, Vector(tV[1]))
       for iK = 1, nT do tableInsert(tF, Vector(tV[1])) end
     end; tableInsert(tF, Vector(tV[1]))
@@ -5278,13 +5267,13 @@ local function UpdateCurveNormUCS(oPly, vvS, vnS, vvE, vnE, vO, nD)
     LogInstance("End mismatch "..GetReport(vO)); return nil end
   local tC = GetCacheCurve(oPly); if(not tC) then
     LogInstance("Curve missing"); return nil end
-  local nR, tU = (vvE - vvS):Length(), tC.Info.UCS
+  local nR, tU = vvE:Distance(vvS), tC.Info.UCS
   local vP, vN = tU[1], tU[2] -- Index origin UCS
   local xP, xM = IntersectLineSphere(vvS, vvE, vO, nD)
   local bOn = IsAmongLine(xP, vvS, vvE)
   local xXX = (bOn and xP or xM) -- The nearest point has more weight
-  local nF1 = (xXX - vvS):Length() -- Start point fracttion
-  local nF2 = (xXX - vvE):Length() -- End point fracttion
+  local nF1 = xXX:Distance(vvS) -- Start point fracttion
+  local nF2 = xXX:Distance(vvE) -- End point fracttion
   local vF1 = Vector(vnS); vF1:Mul(1 - (nF1 / nR))
   local vF2 = Vector(vnE); vF2:Mul(1 - (nF2 / nR))
   local xNN = Vector(vF1); xNN:Add(vF2); xNN:Normalize()
@@ -5292,7 +5281,7 @@ local function UpdateCurveNormUCS(oPly, vvS, vnS, vvE, vnE, vO, nD)
   local tS, tO = tC.Snap[tC.SSize], {Vector(vP), vF:AngleEx(vU)}
   tS.Size, tC.SKept = (tS.Size + 1), (tC.SKept + 1) -- Update snap and nodes
   tS[tS.Size] = tO; vP:Set(xXX); vN:Set(xNN) -- Update the new origin point
-  return tS, (vvE - vP):Length() -- Return remaining length
+  return tS, vvE:Distance(vP) -- Return remaining length
 end
 
 --[[
@@ -5311,7 +5300,7 @@ function UpdateCurveSnap(oPly, iD, nD)
   local vP0, vN0 = tC.Info.UCS[1], tC.Info.UCS[2]
   local vP1, vN1 = tC.CNode[iD + 0], tC.CNorm[iD + 0]
   local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
-  local nS, nE = (vP0 - vP1):Length(), (vP2 - vP0):Length()
+  local nS, nE = vP0:Distance(vP1), vP0:Distance(vP2)
   if(nS <= nD and nE >= nD) then
     tC.SSize = (tC.SSize + 1)  tC.Snap[tC.SSize] = {Size = 0, ID = tC.SSize};
     local tO, nL = UpdateCurveNormUCS(oPly, vP1, vN1, vP2, vN2, vP0, nD)

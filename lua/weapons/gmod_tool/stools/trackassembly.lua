@@ -131,7 +131,7 @@ TOOL.ClientConVar = {
   [ "forcelim"   ] = 0,
   [ "ignphysgn"  ] = 0,
   [ "ghostcnt"   ] = 1,
-  [ "ghostfade"  ] = 0.8,
+  [ "ghostblnd"  ] = 0.8,
   [ "stackcnt"   ] = 5,
   [ "maxstatts"  ] = 3,
   [ "nocollide"  ] = 1,
@@ -379,7 +379,7 @@ function TOOL:GetStackAttempts()
 end
 
 function TOOL:GetGhostFade()
-  return (mathClamp(self:GetClientNumber("ghostfade"),0,1))
+  return (mathClamp(self:GetClientNumber("ghostblnd"),0,1))
 end
 
 function TOOL:GetPhysMeterial()
@@ -938,10 +938,10 @@ function TOOL:CurveCheck()
         eO:SetUnpacked(ePOA.O[cvX], ePOA.O[cvY], ePOA.O[cvZ])
         eA:SetUnpacked(ePOA.A[caP], ePOA.A[caY], ePOA.A[caR])
   -- Check is the distance has a valid length
-  local nD = (eO - sO):Length(); if(nD <= 0) then
+  local nD = eO:DistToSqr(sO); if(nD <= 0) then
     LogInstance("Distance mismatch "..GetReport(nD)); return nil end
   -- Disable for non-straight track segments
-  if(sA:Forward():Cross(eA:Forward()):Length() >= nEps) then
+  if(sA:Forward():Cross(eA:Forward()):LengthSqr() >= nEps) then
     asmlib.Notify(ply,"Segment curved "..fnmodel.." !","ERROR")
     asmlib.LogInstance("Segment curved: "..fnmodel, gtLogs); return nil
   end
@@ -1601,8 +1601,8 @@ function TOOL:UpdateGhostSpawn(stTrace, oPly)
 end
 
 function TOOL:UpdateGhost(oPly)
-  local ghostfade = self:GetGhostFade()
-  if(not asmlib.FadeGhosts(true, ghostfade)) then return end
+  local ghostblnd = self:GetGhostFade()
+  if(not asmlib.FadeGhosts(true, ghostblnd)) then return end
   if(self:GetGhostsCount() <= 0) then return end
   local stTrace = asmlib.GetCacheTrace(oPly)
   if(not stTrace) then return end
@@ -1751,15 +1751,16 @@ function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return end
   local nRad, nLn = asmlib.GetCacheRadius(oPly, trHit), self:GetSizeUCS()
-  local vTmp, aTmp, trLen, trPOA = Vector(), Angle(), 0, nil
+  local vTmp, aTmp, trPOA, rM = Vector(), Angle()
   local trPos, trAng = trEnt:GetPos(), trEnt:GetAngles()
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtLogs); return end
     vTmp:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
     vTmp:Rotate(trAng); vTmp:Add(trPos)
-    oScreen:DrawCircle(vTmp:ToScreen(), asmlib.GetViewRadius(oPly, vTmp), "y", "SEGM", {35})
-    vTmp:Sub(trHit); if(not trPOA or (vTmp:Length() < trLen)) then trLen, trPOA = vTmp:Length(), stPOA end
+    local nR, nM = asmlib.GetViewRadius(oPly, vTmp), vTmp:DistToSqr(trHit)
+    oScreen:DrawCircle(vTmp:ToScreen(), nR, "y", "SEGM", {35})
+    if(not rM or (nM < rM)) then rM, trPOA = nM, stPOA end
   end
   vTmp:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
   vTmp:Rotate(trAng); vTmp:Add(trPos)
@@ -1826,7 +1827,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(not vOrg) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
-  local vT, nrB, nrS, mD, mL = Vector(), 3, 1.5
+  local nrB, nrS, mD, mL = 3, 1.5
   local xyO, xyH = vOrg:ToScreen(), vHit:ToScreen()
   local xyZ = (vOrg + nS * aAng:Up()):ToScreen()
   local xyX = (vOrg + nS * aAng:Forward()):ToScreen()
@@ -1838,7 +1839,8 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, nrB), "g")
   oScreen:DrawLine(xyO, xyZ, "b")
   if(tC.Size and tC.Size > 0) then
-    for iD = 1, tC.Size do local rN = (iD == 1 and nrB or nrS)
+    for iD = 1, tC.Size do
+      local rN = (iD == 1 and nrB or nrS)
       local vB, vD, vN = tC.Base[iD], tC.Node[iD], tC.Norm[iD]
       local nB = asmlib.GetViewRadius(oPly, vB, 2)
       local nD = asmlib.GetViewRadius(oPly, vD, rN)
@@ -1853,13 +1855,13 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
         local xyP = tC.Node[iD - 1]:ToScreen()
         oScreen:DrawLine(xyP, xyD, "g", sM)
       end
-      if(bRp) then vT:Set(vB); vT:Sub(vHit)
-        local nT = vT:Length() -- Get current length
+      if(bRp) then -- Get current length
+        local nT = vB:DistToSqr(vHit)
         if(mL and mD) then -- Length is allocated
           if(nT <= mL) then mD, mL = iD, nT end
         else mD, mL = iD, nT end
       end
-    end
+    end; mL = mathSqrt(mL)
   end
   if(tC.Size and tC.Size > 0) then
     if(bRp and mD) then
@@ -2428,7 +2430,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "incsnplin", 0)
     asmlib.SetNumSlider(CPanel, "incsnpang", 0)
     asmlib.SetNumSlider(CPanel, "ghostcnt" , 0)
-    asmlib.SetNumSlider(CPanel, "ghostfade", iMaxDec)
+    asmlib.SetNumSlider(CPanel, "ghostblnd", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvturnlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvleanlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "sgradmenu", 0)
