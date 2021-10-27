@@ -1455,21 +1455,21 @@ function TOOL:Reload(stTrace)
           end; asmlib.LogInstance("(World) Anchor set",gtLogs)
         else self:ClearAnchor(false)
           asmlib.LogInstance("(World) Anchor clear",gtLogs)
-        end
+        end; return true
       elseif(workmode == 2) then self:IntersectClear(false)
-        asmlib.LogInstance("(World) Relate clear",gtLogs)
+        asmlib.LogInstance("(World) Relate clear",gtLogs); return true
       elseif(workmode == 3 or workmode == 5) then self:CurveClear(true)
-        asmlib.LogInstance("(World) Nodes cleared",gtLogs)
+        asmlib.LogInstance("(World) Nodes cleared",gtLogs); return true
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-        asmlib.LogInstance("(World) Flip over cleared",gtLogs)
+        asmlib.LogInstance("(World) Flip over cleared",gtLogs); return true
       end
     else
       if(workmode == 3 or workmode == 5) then self:CurveClear(false)
-        asmlib.LogInstance("(World) Node removed",gtLogs)
+        asmlib.LogInstance("(World) Node removed",gtLogs); return true
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-        asmlib.LogInstance("(World) Flip over cleared",gtLogs)
+        asmlib.LogInstance("(World) Flip over cleared",gtLogs); return true
       end
-    end; asmlib.LogInstance("(World) Success",gtLogs); return true
+    end; asmlib.LogInstance("(World) Success",gtLogs)
   elseif(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
@@ -1498,7 +1498,7 @@ function TOOL:Reload(stTrace)
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(asmlib.IsHere(trRec) and trEnt:GetCreator() == ply) then trEnt:Remove()
       asmlib.LogInstance("(Prop) Remove piece",gtLogs); return true
-    end
+    end; asmlib.LogInstance("(Prop) Success",gtLogs)
   end; return false
 end
 
