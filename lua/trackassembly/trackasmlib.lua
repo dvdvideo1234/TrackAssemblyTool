@@ -584,7 +584,7 @@ function ToIcon(vKey, vVal)
   if(IsHere(vVal)) then tIcon[vKey] = tostring(vVal) end
   local sIcon = tIcon[vKey]; if(not IsHere(sIcon)) then
     LogInstance("Missing "..GetReport(vKey)); return nil end
-  return GetOpVar("FORM_SKILLICON"):format(tostring(sIcon))
+  return GetOpVar("FORM_ICONS"):format(tostring(sIcon))
 end
 
 function WorkshopID(sKey, sID)
@@ -801,7 +801,7 @@ function InitBase(sName, sPurp)
     SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s].txt")
     SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
     SetOpVar("FORM_DRWSPKY", "%+6s")
-    SetOpVar("FORM_SKILLICON","icon16/%s.png")
+    SetOpVar("FORM_ICONS","icon16/%s.png")
     SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%s")
     SetOpVar("TABLE_SKILLICON",{})
     SetOpVar("TABLE_WSIDADDON", {})
