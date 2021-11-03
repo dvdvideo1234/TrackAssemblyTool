@@ -939,7 +939,7 @@ function TOOL:CurveCheck()
         eA:SetUnpacked(ePOA.A[caP], ePOA.A[caY], ePOA.A[caR])
   -- Check is the distance has a valid length
   local nD = eO:DistToSqr(sO); if(nD <= 0) then
-    LogInstance("Distance mismatch "..GetReport(nD)); return nil end
+    LogInstance("Distance zero mismatch"); return nil end
   -- Disable for non-straight track segments
   if(sA:Forward():Cross(eA:Forward()):LengthSqr() >= nEps) then
     asmlib.Notify(ply,"Segment curved "..fnmodel.." !","ERROR")
@@ -955,7 +955,7 @@ function TOOL:CurveCheck()
     asmlib.Notify(ply,"Segment gradient "..fnmodel.." !","ERROR")
     asmlib.LogInstance("Segment gradient: "..fnmodel, gtLogs); return nil
   end
-  return tC, nD -- Returns the updated curve nodes table
+  return tC, mathSqrt(nD) -- Returns the updated curve nodes table
 end
 
 function TOOL:NormalSpawn(stTrace, oPly)
@@ -1861,7 +1861,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
           if(nT <= mL) then mD, mL = iD, nT end
         else mD, mL = iD, nT end
       end
-    end; mL = mathSqrt(mL)
+    end
   end
   if(tC.Size and tC.Size > 0) then
     if(bRp and mD) then

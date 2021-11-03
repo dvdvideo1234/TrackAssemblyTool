@@ -4245,10 +4245,11 @@ end
  *   f2 --> Intersection fraction of the second ray
 ]]--
 local function IntersectRay(vO1, vD1, vO2, vD2)
-  local d1 = vD1:GetNormalized(); if(d1:LengthSqr() == 0) then
+  if(vD1:LengthSqr() == 0) then
     LogInstance("First ray undefined"); return nil end
-  local d2 = vD2:GetNormalized(); if(d2:LengthSqr() == 0) then
+  if(vD2:LengthSqr() == 0) then
     LogInstance("Second ray undefined"); return nil end
+  local d1, d2 = vD1:GetNormalized(), vD2:GetNormalized()
   local dx, oo = d1:Cross(d2), (vO2 - vO1)
   local dn = (dx:Length())^2; if(dn < GetOpVar("EPSILON_ZERO")) then
     LogInstance("Rays parallel"); return nil end
@@ -4260,10 +4261,11 @@ local function IntersectRay(vO1, vD1, vO2, vD2)
 end
 
 local function IntersectRayParallel(vO1, vD1, vO2, vD2)
-  local d1 = vD1:GetNormalized(); if(d1:LengthSqr() == 0) then
+  if(vD1:LengthSqr() == 0) then
     LogInstance("First ray undefined"); return nil end
-  local d2 = vD2:GetNormalized(); if(d2:LengthSqr() == 0) then
+  if(vD2:LengthSqr() == 0) then
     LogInstance("Second ray undefined"); return nil end
+  local d1, d2 = vD1:GetNormalized(), vD2:GetNormalized()
   local len = vO2:Distance(vO1)
   local f1, f2 = (len / 2), (len / 2)
   local x1, x2 = (vO1 + f1 * d1), (vO2 + f2 * d2)
