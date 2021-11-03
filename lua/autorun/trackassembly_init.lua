@@ -89,7 +89,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.671")
+asmlib.SetOpVar("TOOL_VERSION","8.672")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -1393,12 +1393,16 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
         })
 
 if(SERVER) then
+  -- [1] : End time to send the client request
+  -- [2] : End time to draw the user notification
   local function PopulateEntity(nLen, oPly)
     local dTim = asmlib.GetOpVar("MSDELTA_SEND")
     local tHov = asmlib.GetOpVar("HOVER_TRIGGER")
-    local pTim, cTim = tHov[oPly], SysTime()
-    if(not pTim) then tHov[oPly], pTim = cTim, cTim end -- Allocate player
-    if(dTim == 0 or (dTim > 0 and cTim > (pTim + dTim))) then tHov[oPly] = cTim
+    local pTim, cTim, nDel = tHov[oPly], SysTime(), 15
+    if(not pTim) then pTim = {cTim, (nDel + cTim)}; tHov[oPly] = pTim end
+    if(dTim == 0 or (dTim > 0 and cTim > (pTim[1] + dTim))) then
+      if(cTim > pTim[2]) then pTim[2] = (cTim + nDel) end
+      pTim[1] = cTim -- Raise the flag to notify the flooding client
       local oEnt, sLog = netReadEntity(), "*POPULATE_ENTITY"
       local sNoA = asmlib.GetOpVar("MISS_NOAV") -- Default drawn string
       local sTyp, nIdx = oEnt:GetClass(),oEnt:EntIndex()
@@ -1409,13 +1413,18 @@ if(SERVER) then
         if(type(wDraw) == "function") then      -- Check when the value is function
           local bS, vE = pcall(wDraw, oEnt); vE = tostring(vE) -- Always being string
           if(not bS) then oEnt:SetNWString(sKey, sNoA)
-            asmlib.LogInstance("Request"..asmlib.GetReport2(sKey,iD).." fail: "..vE, sLog); return end
-          asmlib.LogInstance("Handler"..asmlib.GetReport2(sKey,iD,vE), sLog)
-          oEnt:SetNWString(sKey, vE) -- Write networked value to the hover entity
+            asmlib.LogInstance("Handler"..asmlib.GetReport2(sKey,iD).." fail: "..vE, sLog)
+          else
+            asmlib.LogInstance("Handler"..asmlib.GetReport3(sKey,iD,vE), sLog)
+            oEnt:SetNWString(sKey, vE) -- Write networked value to the hover entity
+          end
         end
       end
     else
-      asmlib.Notify(oPly,"Do not rush the context menu!","UNDO")
+      if(cTim > pTim[2]) then
+        asmlib.Notify(oPly,"Do not rush the context menu!","UNDO")
+        pTim[2] = (cTim + nDel) -- For given amont of seconds
+      end
     end
   end
   utilAddNetworkString(gsOptionsCV)
@@ -1976,7 +1985,7 @@ else
   PIECES:Record({"models/props_phx/trains/tracks/track_45_up.mdl", "#", "#", 2, "", "71.173,0,71.909", "-45,0,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch.mdl", "#", "Switch Right", 1, "", " 829.88009,0,11.218994"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch.mdl", "#", "Switch Right", 2, "", "-370.03738,0,11.218994", "0,180,0"})
-  PIECES:Record({"models/props_phx/trains/tracks/track_switch.mdl", "#", "Switch Right", 1, "", "-158.32591,338.09229,11.21899", "0,135,0"})
+  PIECES:Record({"models/props_phx/trains/tracks/track_switch.mdl", "#", "Switch Right", 3, "", "-158.32591,338.09229,11.21899", "0,135,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 1, "", " 829.88009,0,11.218994"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 2, "", "-370.03738,0,11.218994", "0,180,0"})
   PIECES:Record({"models/props_phx/trains/tracks/track_switch2.mdl", "#", "Switch Left [X]", 3, "", "-158.32668,-338.09521,11.21899", "0,-135,0"})

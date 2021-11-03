@@ -2401,7 +2401,14 @@ function CacheClear(pPly, bNow)
     LogInstance("Invalid "..GetReport(pPly)); return false end
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Clean"); return true end
-  libPlayer[pPly] = nil; if(bNow) then collectgarbage() end; return true
+  if(SERVER) then
+    local qT = asmlib.GetQueue("THINK")
+    if(qT) then qT:GetBusy()[pPly] = nil end
+  end
+  local cT = asmlib.GetOpVar("HOVER_TRIGGER")
+  if(cT and cT[pPly]) then cT[pPly] = nil end
+  libPlayer[pPly] = nil; if(bNow) then collectgarbage() end
+  return true
 end
 
 --[[
