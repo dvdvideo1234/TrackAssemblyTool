@@ -1833,9 +1833,8 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local xyX = (vOrg + nS * aAng:Forward()):ToScreen()
   oScreen:DrawLine(xyO, xyX, "r", "SURF")
   oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, nrS), "y", "SEGM", {35})
-  if(oPOA) then -- Check whenever active point is used for node
-    self:DrawSnapAssist(oScreen, oPly, stTrace, 10)
-  else oScreen:DrawLine(xyH, xyO, "y") end
+  if(oPOA) then self:DrawSnapAssist(oScreen, oPly, stTrace, 10) -- Draw assist
+  else oScreen:DrawLine(xyH, xyO, "y") end -- When active point is used for node
   oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, nrB), "g")
   oScreen:DrawLine(xyO, xyZ, "b")
   if(tC.Size and tC.Size > 0) then
@@ -1856,10 +1855,10 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
         oScreen:DrawLine(xyP, xyD, "g", sM)
       end
       if(bRp) then -- Get current length
-        local nT = vB:DistToSqr(vHit)
+        local nL = vB:DistToSqr(vHit)
         if(mL and mD) then -- Length is allocated
-          if(nT <= mL) then mD, mL = iD, nT end
-        else mD, mL = iD, nT end
+          if(nL <= mL) then mD, mL = iD, nL end
+        else mD, mL = iD, nL end
       end
     end
   end
@@ -1872,13 +1871,10 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       oScreen:DrawLine(xyN, xyO, "y")
     end
   end
-  if(oPOA) then
-    local trEnt = stTrace.Entity
+  if(oPOA) then local trEnt = stTrace.Entity
     vOrg:SetUnpacked(oPOA.P[cvX], oPOA.P[cvY], oPOA.P[cvZ])
-    vOrg:Rotate(trEnt:GetAngles())
-    vOrg:Add(trEnt:GetPos())
-    local xyO = vOrg:ToScreen()
-    oScreen:DrawLine(xyH, xyO, "g")
+    vOrg:Rotate(trEnt:GetAngles()); vOrg:Add(trEnt:GetPos())
+    oScreen:DrawLine(xyH, vOrg:ToScreen(), "g")
   end
 end
 
