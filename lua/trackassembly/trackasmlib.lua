@@ -4893,7 +4893,8 @@ end
  * vCode > The language code to allocate and return table for
 ]]
 local function GetLocalify(vCode)
-  local sCode = tostring(vCode or GetOpVar("MISS_NOAV"))
+  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
+  local sCode = tostring(vCode or auCod) -- No language code then english
   if(SERVER) then LogInstance("Server "..GetReport(vCode)); return nil end
   local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
   local sPath = GetOpVar("FORM_LANGPATH"):format(sCode..".lua")
@@ -4913,10 +4914,10 @@ end
  * vCode > The translation to switch all messages to
 ]]
 function InitLocalify(vCode)
-  local cuCod = tostring(vCode or GetOpVar("MISS_NOAV"))
+  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
+  local cuCod = tostring(vCode or auCod) -- No language code then english
   if(SERVER) then LogInstance("Server "..GetReport(vCode)); return nil end
   local thSet = GetOpVar("LOCALIFY_TABLE"); tableEmpty(thSet)
-  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
   local auSet = GetLocalify(auCod); if(not auSet) then
     LogInstance("Mismatch "..GetReport(auCod)); return nil end
   if(cuCod ~= auCod) then local cuSet = GetLocalify(cuCod)

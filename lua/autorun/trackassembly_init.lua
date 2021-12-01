@@ -89,7 +89,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.674")
+asmlib.SetOpVar("TOOL_VERSION","8.675")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -421,8 +421,7 @@ end
 if(CLIENT) then
 
   surfaceCreateFont("DebugSpawnTA",{
-    font = "Courier New",
-    size = 14,
+    font = "Courier New", size = 14,
     weight = 600
   })
 
@@ -430,7 +429,7 @@ if(CLIENT) then
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
   cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
     asmlib.InitLocalify(varLanguage:GetString())
-    local sLog, bS, vOut, fUser, fAdmn = "*UPDATE_CONTROL_PANEL"
+    local sLog, bS, vOut, fUser, fAdmn = "*UPDATE_CONTROL_PANEL("..vO.."/"..vN..")"
     local oTool = asmlib.GetOpVar("STORE_TOOLOBJ"); if(not asmlib.IsHere(oTool)) then
       asmlib.LogInstance("Tool object missing", sLog); return end
     -- Retrieve the control panel from the tool main tab
