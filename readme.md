@@ -362,12 +362,12 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * [Mr. Train's M-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=517442747)
   * [Bobsters's two gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=489114511)
   * [Mr. Train's G-Gauge rails](https://steamcommunity.com/sharedfiles/filedetails/?id=590574800)
-  * Ron's 56 gauge rails [**NO SUPPORT**][ref-discontinued]
+  * Ron's 56 gauge rails [**(NO SUPPORT)**][ref-discontinued]
   * [Ron's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=634000136) [**(AUTHOR)**][ref-maintained]
   * PHX Tubes **(INCLUDED)**
   * [Magnum's second track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=391016040) **(HAMMER)**
   * [Qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
-  * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) ( Mini hover tracks ) ( White rails )
+  * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) (Mini hover tracks)(White rails)
   * [Ron's Minitrain Props](https://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
   * [Battleship's abandoned rails](https://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
   * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) [**(AUTHOR)**][ref-maintained]
@@ -375,12 +375,12 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167)
   * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805)
   * [StevenTechno's Buildings pack 2.0](https://steamcommunity.com/sharedfiles/filedetails/?id=1888013789)
-  * [Modular canal props](https://steamcommunity.com/sharedfiles/filedetails/?id=1336622735) ( Interior only )
+  * [Modular canal props](https://steamcommunity.com/sharedfiles/filedetails/?id=1336622735) (Interior only)
   * [Anyone's Horrible Trackpack](https://steamcommunity.com/sharedfiles/filedetails/?id=2194528273) [**(AUTHOR)**][ref-maintained]
   * [Qwertyaaa's GSTP](https://steamcommunity.com/sharedfiles/filedetails/?id=2370393604) **(HAMMER)**
   * [Magnum's third track pack](https://github.com/MagnumMacKivler/trakpak3) **(HAMMER)**
   * [Modular Sewer System](https://steamcommunity.com/sharedfiles/filedetails/?id=2340192251)
-  * Portal 2 Walkway Underground (UG) **(MOUNT)** ( Requested by [mr.bones](https://steamcommunity.com/profiles/76561198348454446) )
+  * Portal 2 Walkway UG **(MOUNT)** (Requested by [mr.bones][ref-user-mbones])
   * [CAP Walkway](https://steamcommunity.com/sharedfiles/filedetails/?id=180210973)
   * Portal 2 High Walkway **(MOUNT)**
 
@@ -485,3 +485,4 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-add-ftr]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/Additional-features
 [ref-wiki-ta]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki
 [ref-work-turn]: https://www.youtube.com/watch?v=_qcol4_-_ZQ
+[ref-user-mbones]: https://steamcommunity.com/profiles/76561198348454446

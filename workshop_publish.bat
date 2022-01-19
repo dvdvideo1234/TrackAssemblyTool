@@ -46,18 +46,19 @@ for %%i in %gmadDirs% do (
   timeout 3
   xcopy !gmadRevPath!%%i !gmadRevPath!Workshop\!gmadName!\%%i /EXCLUDE:!gmadADTools!\workshop\key.txt /E /C /I /F /R /Y
 )
-copy !gmadADTools!\workshop\addon.json !gmadRevPath!Workshop\!gmadName!\addon.json
+call copy !gmadADTools!\workshop\addon.json !gmadRevPath!Workshop\!gmadName!\addon.json
 call !gmadBinPath!\gmad.exe create -folder "!gmadRevPath!Workshop\!gmadName!" -out "!gmadRevPath!Workshop\!gmadName!.gma"
 
 :: Obtain the latest commit hash from the repository
-!gmadPathGIT!\git.exe rev-parse HEAD>!gmadNameLOG!
-set /p gmadGitHEAD=<!gmadNameLOG!
+call !gmadPathGIT!\git.exe rev-parse HEAD>!gmadNameLOG!
+call set /p gmadGitHEAD=<!gmadNameLOG!
+call del !gmadRevPath!!gmadNameLOG!
 
 :: Obtain the log message from the latest revision
-echo !gmadTime!>!gmadNameLOG!
-echo.>>!gmadNameLOG!
-echo !gmadCommits!!gmadGitHEAD!>>!gmadNameLOG!
-echo. >> !gmadNameLOG!
+call echo !gmadTime!>!gmadNameLOG!
+call echo.>>!gmadNameLOG!
+call echo !gmadCommits!!gmadGitHEAD!>>!gmadNameLOG!
+call echo. >> !gmadNameLOG!
 
 !gmadPathGIT!\git.exe log -1 --pretty=%%B>>!gmadNameLOG!
 
