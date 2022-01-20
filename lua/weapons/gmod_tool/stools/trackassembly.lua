@@ -937,16 +937,18 @@ function TOOL:CurveCheck()
   local eO, eA = tC.Info.Pos[2], tC.Info.Ang[2]
         eO:SetUnpacked(ePOA.O[cvX], ePOA.O[cvY], ePOA.O[cvZ])
         eA:SetUnpacked(ePOA.A[caP], ePOA.A[caY], ePOA.A[caR])
-  -- Check is the distance has a valid length
-  local nD = eO:DistToSqr(sO); if(nD <= 0) then
-    LogInstance("Distance zero mismatch"); return nil end
+  -- Disable for active points with zero distance
+  local nD = eO:DistToSqr(sO); if(nD <= nEps) then
+    asmlib.Notify(ply,"Segment undersize "..fnmodel.." !","ERROR")
+    asmlib.LogInstance("Segment undersize: "..fnmodel, gtLogs); return nil
+  end
   -- Disable for non-straight track segments
   if(sA:Forward():Cross(eA:Forward()):LengthSqr() >= nEps) then
     asmlib.Notify(ply,"Segment curved "..fnmodel.." !","ERROR")
     asmlib.LogInstance("Segment curved: "..fnmodel, gtLogs); return nil
   end
   -- Disable for 180 curve track segments
-  if(sA:Forward():Dot(eA:Forward()) >= 0) then
+  if(sA:Forward():Dot(eA:Forward()) >= nEps) then
     asmlib.Notify(ply,"Segment overturn "..fnmodel.." !","ERROR")
     asmlib.LogInstance("Segment overturn: "..fnmodel, gtLogs); return nil
   end
