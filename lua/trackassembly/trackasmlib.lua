@@ -2402,10 +2402,10 @@ function CacheClear(pPly, bNow)
   local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
     LogInstance("Clean"); return true end
   if(SERVER) then
-    local qT = asmlib.GetQueue("THINK")
+    local qT = GetQueue("THINK")
     if(qT) then qT:GetBusy()[pPly] = nil end
   end
-  local cT = asmlib.GetOpVar("HOVER_TRIGGER")
+  local cT = GetOpVar("HOVER_TRIGGER")
   if(cT and cT[pPly]) then cT[pPly] = nil end
   libPlayer[pPly] = nil; if(bNow) then collectgarbage() end
   return true
@@ -3975,7 +3975,7 @@ function ExportTypeAR(sType)
           if(sID and sID:len() > 0) then
             fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
           else
-            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon, nil)\n")
+            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon)\n")
           end
         elseif(sLine:find(patPiece)) then isSkip = true
           ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)

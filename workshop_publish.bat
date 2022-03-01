@@ -46,6 +46,7 @@ for %%i in %gmadDirs% do (
   timeout 3
   xcopy !gmadRevPath!%%i !gmadRevPath!Workshop\!gmadName!\%%i /EXCLUDE:!gmadADTools!\workshop\key.txt /E /C /I /F /R /Y
 )
+
 call copy !gmadADTools!\workshop\addon.json !gmadRevPath!Workshop\!gmadName!\addon.json
 call !gmadBinPath!\gmad.exe create -folder "!gmadRevPath!Workshop\!gmadName!" -out "!gmadRevPath!Workshop\!gmadName!.gma"
 
