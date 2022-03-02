@@ -3,8 +3,8 @@
 local pcall                         = pcall
 local Angle                         = Angle
 local Vector                        = Vector
+local Time                          = CurTime
 local IsValid                       = IsValid
-local SysTime                       = SysTime
 local tobool                        = tobool
 local tonumber                      = tonumber
 local tostring                      = tostring
@@ -89,7 +89,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.678")
+asmlib.SetOpVar("TOOL_VERSION","8.679")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -1397,25 +1397,24 @@ if(SERVER) then
   local function PopulateEntity(nLen, oPly)
     local dTim = asmlib.GetOpVar("MSDELTA_SEND")
     local tHov = asmlib.GetOpVar("HOVER_TRIGGER")
-    local pTim, cTim, nDel = tHov[oPly], SysTime(), 15
+    local pTim, cTim, nDel = tHov[oPly], Time(), 15
     if(not pTim) then pTim = {cTim, (nDel + cTim)}; tHov[oPly] = pTim end
     if(dTim == 0 or (dTim > 0 and cTim > (pTim[1] + dTim))) then
       if(cTim > pTim[2]) then pTim[2] = (cTim + nDel) end
       pTim[1] = cTim -- Raise the flag to notify the flooding client
-      local oEnt, sLog = netReadEntity(), "*POPULATE_ENTITY"
-      local sNoA = asmlib.GetOpVar("MISS_NOAV") -- Default drawn string
-      local sTyp, nIdx = oEnt:GetClass(),oEnt:EntIndex()
-      asmlib.LogInstance("Entity"..asmlib.GetReport2(sTyp, nIdx), sLog)
-      for iD = 1, conContextMenu:GetSize() do
+      local oEnt, sLog = netReadEntity(), "*POPULATE_ENTITY" -- Logs identifier
+      local sNoA = asmlib.GetOpVar("MISS_NOAV") -- String to put when not present
+      asmlib.LogInstance("Populate:"..tostring(oEnt), sLog) -- Draw the entity log
+      for iD = 1, conContextMenu:GetSize() do   -- Loop the context menu entries
         local tLine = conContextMenu:Select(iD) -- Grab the value from the container
         local sKey, wDraw = tLine[1], tLine[5]  -- Extract the key and handler
         if(type(wDraw) == "function") then      -- Check when the value is function
-          local bS, vE = pcall(wDraw, oEnt); vE = tostring(vE) -- Always being string
+          local bS, vO = pcall(wDraw, oEnt); vO = tostring(vO) -- Always being string
           if(not bS) then oEnt:SetNWString(sKey, sNoA)
-            asmlib.LogInstance("Handler"..asmlib.GetReport2(sKey,iD).." fail: "..vE, sLog)
+            asmlib.LogInstance("Populate:"..asmlib.GetReport2(sKey,iD).." fail: "..vO, sLog)
           else
-            asmlib.LogInstance("Handler"..asmlib.GetReport3(sKey,iD,vE), sLog)
-            oEnt:SetNWString(sKey, vE) -- Write networked value to the hover entity
+            asmlib.LogInstance("Populate:"..asmlib.GetReport3(sKey,iD,vO), sLog)
+            oEnt:SetNWString(sKey, vO) -- Write networked value to the hover entity
           end
         end
       end
