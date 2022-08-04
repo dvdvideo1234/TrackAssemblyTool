@@ -2461,7 +2461,8 @@ function GetCacheCurve(pPly)
   if(not IsHere(stData)) then -- Allocate curve data
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
-    stData.Info  = {}
+    stData.Info  = {} -- This holds various vectors and angles and other data
+    stData.Info.Pne = {} -- Holds hashes whenever given node is an active point
     stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
     stData.Info.Ang = {Angle (), Angle ()} -- Start and end anngles of active points
     stData.Info.UCS = {Vector(), Vector()} -- Origin and normal vector for the iteration

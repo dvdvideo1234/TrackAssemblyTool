@@ -793,6 +793,7 @@ function TOOL:CurveClear(bAll, bMute)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableEmpty(tC.Node)
       tableEmpty(tC.Norm)
+      tableEmpty(tC.Info.Pne)
       tableEmpty(tC.Base); tC.Size = 0
       tableEmpty(tC.CNode)
       tableEmpty(tC.CNorm); tC.CSize = 0
@@ -805,6 +806,7 @@ function TOOL:CurveClear(bAll, bMute)
       end
       tableRemove(tC.Node)
       tableRemove(tC.Norm)
+      tableRemove(tC.Info.Pne)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
     end
@@ -849,7 +851,7 @@ end
 
 function TOOL:CurveInsert(stTrace, bPnt, bMute)
   local ply, model = self:GetOwner(), self:GetModel(), stTrace.Entity
-  local vOrg, aAng, vHit = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
+  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
@@ -857,6 +859,7 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
   tC.Node[tC.Size] = vOrg
   tC.Norm[tC.Size] = aAng:Up()
   tC.Base[tC.Size] = vHit
+  tC.Info.Pne[tC.Size] = (oPOA ~= nil)
   if(not bMute) then
     asmlib.Notify(ply, "Node inserted ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendCreateCurveNode")
@@ -870,7 +873,7 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
   return tC -- Returns the updated curve nodes table
 end
 
-function TOOL:CurveUpdate(stTrace, bPnt, bMute)
+function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
   local ply = self:GetOwner()
   local vOrg, aAng, vHit = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
@@ -880,10 +883,21 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     asmlib.Notify(ply,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtLogs); return nil
   end
+  local workmode, workname = self:GetWorkingMode()
   local mD, mL = asmlib.GetNearest(vHit, tC.Base)
   tC.Node[mD]:Set(vOrg)
   tC.Norm[mD]:Set(aAng:Up())
   tC.Base[mD]:Set(vHit)
+  -- Adjust node according to intersection
+  if(workmode == 3 or workmode == 5) then
+    if(bInt and mD > 1 and mD < tC.Size and tC.Size >= 3) then
+      local bS = tC.Info.Pne[mD - 1] -- Read previous
+      local bE = tC.Info.Pne[mD + 1] -- Read next flag
+      if(bS and bE) then -- Both are active ponts
+        print("Curve: Intersect active points")
+      end
+    end
+  end
   if(not bMute) then
     asmlib.Notify(ply, "Node ["..mD.."] updated !", "CLEANUP")
     netStart(gsLibName.."SendUpdateCurveNode")
@@ -1397,9 +1411,14 @@ function TOOL:RightClick(stTrace)
   local trEnt     = stTrace.Entity
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
-  if(workmode == 3 or workmode == 5) then local bPnt, tC = ply:KeyDown(IN_USE)
-    if(ply:KeyDown(IN_SPEED)) then tC = self:CurveUpdate(stTrace, bPnt)
-    else tC = self:CurveInsert(stTrace, bPnt) end; return (tC and true or false)
+  if(workmode == 3 or workmode == 5) then
+    local bInt = ply:KeyDown(IN_DUCK)
+    local bPnt, tC = ply:KeyDown(IN_USE)
+    if(ply:KeyDown(IN_SPEED)) then
+      tC = self:CurveUpdate(stTrace, bPnt, bInt)
+    else -- Inserting curve cannot be intersected
+      tC = self:CurveInsert(stTrace, bPnt)
+    end; return (tC and true or false)
   elseif(workmode == 4 and not ply:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
   end
