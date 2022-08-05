@@ -18,9 +18,10 @@ local guiOpenURL                       = gui and gui.OpenURL
 local netSend                          = net and net.Send
 local netStart                         = net and net.Start
 local netReceive                       = net and net.Receive
+local netWriteUInt                     = net and net.WriteUInt
+local netWriteBool                     = net and net.WriteBool
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
-local netWriteUInt                     = net and net.WriteUInt
 local vguiCreate                       = vgui and vgui.Create
 local utilIsValidModel                 = util and util.IsValidModel
 local stringUpper                      = string and string.upper
@@ -867,6 +868,7 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
       netWriteVector(tC.Node[tC.Size])
       netWriteVector(tC.Norm[tC.Size])
       netWriteVector(tC.Base[tC.Size])
+      netWriteBool(tC.Info.Pne[tC.Size])
     netSend(ply)
     ply:SetNWBool(gsToolPrefL.."engcurve", true)
   end
@@ -875,7 +877,7 @@ end
 
 function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
   local ply = self:GetOwner()
-  local vOrg, aAng, vHit = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
+  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
@@ -888,6 +890,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
   tC.Node[mD]:Set(vOrg)
   tC.Norm[mD]:Set(aAng:Up())
   tC.Base[mD]:Set(vHit)
+  tC.Info.Pne[mD] = (oPOA ~= nil)
   -- Adjust node according to intersection
   if(workmode == 3 or workmode == 5) then
     if(bInt and mD > 1 and mD < tC.Size and tC.Size >= 3) then
@@ -905,6 +908,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
       netWriteVector(tC.Node[mD])
       netWriteVector(tC.Norm[mD])
       netWriteVector(tC.Base[mD])
+      netWriteBool(tC.Info.Pne[tC.Size])
       netWriteUInt(mD, 16)
     netSend(ply)
     ply:SetNWBool(gsToolPrefL.."engcurve", true)
