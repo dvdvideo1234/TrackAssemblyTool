@@ -14,7 +14,6 @@ local osDate                        = os and os.date
 local netStart                      = net and net.Start
 local netSendToServer               = net and net.SendToServer
 local netReceive                    = net and net.Receive
-local netReadBool                   = net and net.ReadBool
 local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
 local netReadString                 = net and net.ReadString
@@ -536,20 +535,20 @@ if(CLIENT) then
   asmlib.SetAction("CREATE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*CREATE_CURVE_NODE"
       local vNode, vNorm = netReadVector(), netReadVector()
-      local vBase, bPone = netReadVector(), netReadBool()
+      local vBase, vDirs = netReadVector(), netReadVector()
       local tC = asmlib.GetCacheCurve(oPly) -- Read the curve data location
       tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm)
-      tableInsert(tC.Base, vBase); tableInsert(tC.Info.Pne, bPone)
+      tableInsert(tC.Base, vBase); tableInsert(tC.Dirs, vDirs)
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
     end)
 
   asmlib.SetAction("UPDATE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*UPDATE_CURVE_NODE"
       local vNode, vNorm = netReadVector(), netReadVector()
-      local vBase, bPone = netReadVector(), netReadBool()
+      local vBase, vDirs = netReadVector(), netReadVector()
       local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
       tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm)
-      tC.Base[iD]:Set(vBase); tC.Info.Pne[iD] = bPone
+      tC.Base[iD]:Set(vBase); tC.Dirs[iD] = vDirs
     end)
 
   asmlib.SetAction("DELETE_CURVE_NODE",
@@ -557,7 +556,7 @@ if(CLIENT) then
       local tC = asmlib.GetCacheCurve(oPly)
       tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
       tableRemove(tC.Node); tableRemove(tC.Norm)
-      tableRemove(tC.Base); tableRemove(tC.Info.Pne)
+      tableRemove(tC.Base); tableRemove(tC.Dirs)
     end)
 
   asmlib.SetAction("DELETE_ALL_CURVE_NODE",
@@ -565,7 +564,7 @@ if(CLIENT) then
       local tC = asmlib.GetCacheCurve(oPly)
       if(tC.Size and tC.Size > 0) then
         tableEmpty(tC.Node); tableEmpty(tC.Norm)
-        tableEmpty(tC.Base); tableEmpty(tC.Info.Pne)
+        tableEmpty(tC.Base); tableEmpty(tC.Dirs)
         tC.Size = 0 -- Register the index before wiping the data for drawing
       end
     end)

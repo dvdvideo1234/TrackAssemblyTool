@@ -19,7 +19,6 @@ local netSend                          = net and net.Send
 local netStart                         = net and net.Start
 local netReceive                       = net and net.Receive
 local netWriteUInt                     = net and net.WriteUInt
-local netWriteBool                     = net and net.WriteBool
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
 local vguiCreate                       = vgui and vgui.Create
@@ -794,7 +793,7 @@ function TOOL:CurveClear(bAll, bMute)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableEmpty(tC.Node)
       tableEmpty(tC.Norm)
-      tableEmpty(tC.Info.Pne)
+      tableEmpty(tC.Dirs)
       tableEmpty(tC.Base); tC.Size = 0
       tableEmpty(tC.CNode)
       tableEmpty(tC.CNorm); tC.CSize = 0
@@ -807,7 +806,7 @@ function TOOL:CurveClear(bAll, bMute)
       end
       tableRemove(tC.Node)
       tableRemove(tC.Norm)
-      tableRemove(tC.Info.Pne)
+      tableRemove(tC.Dirs)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
     end
@@ -825,42 +824,44 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   local surfsnap = self:GetSurfaceSnap()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  local oID, oMin, oPOA, oRec = nil, nil, nil, nil
-  local aAng, vHit, vOrg = Angle(), Vector(), Vector()
+  local tData = {Org = Vector(), Ang = Angle(), Orw = Vector(), Anw = Angle(), Hit = Vector()}
   local eEnt, vNrm = stTrace.Entity, stTrace.HitNormal
-  aAng:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
-  vHit:Set(stTrace.HitPos); vOrg:Add(vHit)
+  tData.Ang:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
+  tData.Hit:Set(stTrace.HitPos); tData.Org:Add(tData.Hit)
   if(bPnt and eEnt and eEnt:IsValid()) then
-    oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, vHit, true)
+    local oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, tData.Hit, true)
     if(oID and oMin and oPOA and oRec) then
-      vOrg:SetUnpacked(oPOA.O[cvX], oPOA.O[cvY], oPOA.O[cvZ])
-      vOrg:Rotate(eEnt:GetAngles()); vOrg:Add(eEnt:GetPos())
-      aAng:SetUnpacked(oPOA.A[caP], oPOA.A[caY], oPOA.A[caR])
-      aAng:Set(eEnt:LocalToWorldAngles(aAng))
+      tData.Org:SetUnpacked(oPOA.O[cvX], oPOA.O[cvY], oPOA.O[cvZ])
+      tData.Org:Rotate(eEnt:GetAngles()); tData.Org:Add(eEnt:GetPos())
+      tData.Ang:SetUnpacked(oPOA.A[caP], oPOA.A[caY], oPOA.A[caR])
+      tData.Ang:Set(eEnt:LocalToWorldAngles(tData.Ang))
+      tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
+      tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
+      tData.POA = oPOA; tData.Rec = oRec -- POA and cache record
     end -- Use the track piece active end to create realative curve node
   else -- Offset the curve node when it is not driven by an active point
-    vOrg:Add(vNrm * elevpnt) -- Apply model active point elevation
+    tData.Org:Add(vNrm * elevpnt) -- Apply model active point elevation
   end -- Apply the positioal and angular offsets to the return value
-  vOrg:Add(aAng:Up()      * nextz)
-  vOrg:Add(aAng:Right()   * nexty)
-  vOrg:Add(aAng:Forward() * nextx)
-  aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
-  aAng:RotateAroundAxis(aAng:Right()  , nextpic)
-  aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-  return vOrg, aAng, vHit, oPOA
+  tData.Org:Add(tData.Ang:Up()      * nextz)
+  tData.Org:Add(tData.Ang:Right()   * nexty)
+  tData.Org:Add(tData.Ang:Forward() * nextx)
+  tData.Ang:RotateAroundAxis(tData.Ang:Up()     ,-nextyaw)
+  tData.Ang:RotateAroundAxis(tData.Ang:Right()  , nextpic)
+  tData.Ang:RotateAroundAxis(tData.Ang:Forward(), nextrol)
+  return tData
 end
 
 function TOOL:CurveInsert(stTrace, bPnt, bMute)
   local ply, model = self:GetOwner(), self:GetModel(), stTrace.Entity
-  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
+  local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   tC.Size = (tC.Size + 1)
-  tC.Node[tC.Size] = vOrg
-  tC.Norm[tC.Size] = aAng:Up()
-  tC.Base[tC.Size] = vHit
-  tC.Info.Pne[tC.Size] = (oPOA ~= nil)
+  tC.Node[tC.Size] = tData.Org
+  tC.Norm[tC.Size] = tData.Ang:Up()
+  tC.Base[tC.Size] = tData.Hit
+  tC.Dirs[tC.Size] = tData.Anw:Forward()
   if(not bMute) then
     asmlib.Notify(ply, "Node inserted ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendCreateCurveNode")
@@ -868,7 +869,7 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
       netWriteVector(tC.Node[tC.Size])
       netWriteVector(tC.Norm[tC.Size])
       netWriteVector(tC.Base[tC.Size])
-      netWriteBool(tC.Info.Pne[tC.Size])
+      netWriteVector(tC.Dirs[tC.Size])
     netSend(ply)
     ply:SetNWBool(gsToolPrefL.."engcurve", true)
   end
@@ -877,7 +878,7 @@ end
 
 function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
   local ply = self:GetOwner()
-  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace, bPnt); if(not vOrg) then
+  local stData = self:GetCurveTransform(stTrace, bPnt); if(not stData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
@@ -886,16 +887,16 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
     asmlib.LogInstance("Nodes missing", gtLogs); return nil
   end
   local workmode, workname = self:GetWorkingMode()
-  local mD, mL = asmlib.GetNearest(vHit, tC.Base)
-  tC.Node[mD]:Set(vOrg)
-  tC.Norm[mD]:Set(aAng:Up())
-  tC.Base[mD]:Set(vHit)
-  tC.Info.Pne[mD] = (oPOA ~= nil)
+  local mD, mL = asmlib.GetNearest(stData.Hit, tC.Base)
+  tC.Node[mD]:Set(stData.Org)
+  tC.Norm[mD]:Set(stData.Ang:Up())
+  tC.Base[mD]:Set(stData.Hit)
+  tC.Dirs[mD]:Set(stData.Anw:Forward())
   -- Adjust node according to intersection
   if(workmode == 3 or workmode == 5) then
     if(bInt and mD > 1 and mD < tC.Size and tC.Size >= 3) then
-      local bS = tC.Info.Pne[mD - 1] -- Read previous
-      local bE = tC.Info.Pne[mD + 1] -- Read next flag
+      local bS = tC.Dirs[mD - 1] -- Read previous
+      local bE = tC.Dirs[mD + 1] -- Read next flag
       if(bS and bE) then -- Both are active ponts
         print("Curve: Intersect active points")
       end
@@ -908,7 +909,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
       netWriteVector(tC.Node[mD])
       netWriteVector(tC.Norm[mD])
       netWriteVector(tC.Base[mD])
-      netWriteBool(tC.Info.Pne[tC.Size])
+      netWriteVector(tC.Dirs[mD])
       netWriteUInt(mD, 16)
     netSend(ply)
     ply:SetNWBool(gsToolPrefL.."engcurve", true)
@@ -1848,19 +1849,19 @@ end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local bPnt, bRp = inputIsKeyDown(KEY_E), inputIsKeyDown(KEY_LSHIFT)
-  local vOrg, aAng, vHit, oPOA = self:GetCurveTransform(stTrace, bPnt)
-  if(not vOrg) then asmlib.LogInstance("Transform missing", gtLogs); return end
+  local tData = self:GetCurveTransform(stTrace, bPnt)
+  if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
   local nrB, nrS, mD, mL = 3, 1.5
-  local xyO, xyH = vOrg:ToScreen(), vHit:ToScreen()
-  local xyZ = (vOrg + nS * aAng:Up()):ToScreen()
-  local xyX = (vOrg + nS * aAng:Forward()):ToScreen()
+  local xyO, xyH = tData.Org:ToScreen(), tData.Hit:ToScreen()
+  local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
+  local xyX = (tData.Org + nS * tData.Ang:Forward()):ToScreen()
   oScreen:DrawLine(xyO, xyX, "r", "SURF")
-  oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, vHit, nrS), "y", "SEGM", {35})
-  if(oPOA) then self:DrawSnapAssist(oScreen, oPly, stTrace, 10) -- Draw assist
+  oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, tData.Hit, nrS), "y", "SEGM", {35})
+  if(tData.POA) then self:DrawSnapAssist(oScreen, oPly, stTrace, 10) -- Draw assist
   else oScreen:DrawLine(xyH, xyO, "y") end -- When active point is used for node
-  oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, vOrg, nrB), "g")
+  oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, tData.Org, nrB), "g")
   oScreen:DrawLine(xyO, xyZ, "b")
   if(tC.Size and tC.Size > 0) then
     for iD = 1, tC.Size do
@@ -1880,7 +1881,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
         oScreen:DrawLine(xyP, xyD, "g", sM)
       end
       if(bRp) then -- Get current length
-        local nL = vB:DistToSqr(vHit)
+        local nL = vB:DistToSqr(tData.Hit)
         if(mL and mD) then -- Length is allocated
           if(nL <= mL) then mD, mL = iD, nL end
         else mD, mL = iD, nL end
@@ -1896,10 +1897,10 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       oScreen:DrawLine(xyN, xyO, "y")
     end
   end
-  if(oPOA) then local trEnt = stTrace.Entity
-    vOrg:SetUnpacked(oPOA.P[cvX], oPOA.P[cvY], oPOA.P[cvZ])
-    vOrg:Rotate(trEnt:GetAngles()); vOrg:Add(trEnt:GetPos())
-    oScreen:DrawLine(xyH, vOrg:ToScreen(), "g")
+  if(tData.POA) then local trEnt = stTrace.Entity
+    tData.Org:SetUnpacked(tData.POA.P[cvX], tData.POA.P[cvY], tData.POA.P[cvZ])
+    tData.Org:Rotate(trEnt:GetAngles()); tData.Org:Add(trEnt:GetPos())
+    oScreen:DrawLine(xyH, tData.Org:ToScreen(), "g")
   end
 end
 
