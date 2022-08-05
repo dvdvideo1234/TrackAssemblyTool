@@ -781,6 +781,19 @@ function TOOL:SelectModel(sModel)
   asmlib.LogInstance("Success <"..sModel..">",gtLogs); return true
 end
 
+function TOOL:GetNodeIntersect(tC, iD, bI)
+  if(not bI) then return end
+  if(iD <= 1) then return end
+  if(iD >= tC.Size) then return end
+  if(tC.Size <= 3) then return end
+  local tS = tC.Rays[iD - 1] -- Read previous ray
+  if(not tS[3]) then return end -- Both are active ponts
+  local tE = tC.Rays[iD + 1] -- Read next ray
+  if(not tE[3]) then return end -- Both are active ponts
+  local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], tS[2], tE[1], tE[2])
+  return xx
+end
+
 function TOOL:CurveClear(bAll, bMute)
   local ply = self:GetOwner()
   local tC  = asmlib.GetCacheCurve(ply)
@@ -904,16 +917,12 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
   tC.Rays[mD][3] = (stData.POA ~= nil)
   -- Adjust node according to intersection
   if(workmode == 3 or workmode == 5) then
-    if(bInt and mD > 1 and mD < tC.Size and tC.Size >= 3) then
-      local tS = tC.Rays[mD - 1] -- Read previous ray
-      local tE = tC.Rays[mD + 1] -- Read next ray
-      if(tS[3] and tE[3]) then -- Both are active ponts
-        local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], tS[2], tE[1], tE[2])
-        tC.Node[mD]:Set(xx)
-        tC.Norm[mD]:Set(tC.Norm[mD - 1])
-        tC.Norm[mD]:Add(tC.Norm[mD + 1])
-        tC.Norm[mD]:Normalize()
-      end
+    local xx = self:GetNodeIntersect(tC, mD, bInt)
+    if(xx) then
+      tC.Node[mD]:Set(xx)
+      tC.Norm[mD]:Set(tC.Norm[mD - 1])
+      tC.Norm[mD]:Add(tC.Norm[mD + 1])
+      tC.Norm[mD]:Normalize()
     end
   end
   if(not bMute) then
@@ -1433,7 +1442,7 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(workmode == 3 or workmode == 5) then
-    local bInt = ply:KeyDown(IN_DUCK)
+    local bInt = ply:KeyDown(IN_ALT1)
     local bPnt, tC = ply:KeyDown(IN_USE)
     if(ply:KeyDown(IN_SPEED)) then
       tC = self:CurveUpdate(stTrace, bPnt, bInt)
@@ -1864,7 +1873,9 @@ function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2)
 end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
-  local bPnt, bRp = inputIsKeyDown(KEY_E), inputIsKeyDown(KEY_LSHIFT)
+  local bPnt = inputIsKeyDown(KEY_E)
+  local bInt = inputIsKeyDown(KEY_LALT)
+  local bRp  = inputIsKeyDown(KEY_LSHIFT)
   local tData = self:GetCurveTransform(stTrace, bPnt)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
@@ -1874,7 +1885,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
   local xyX = (tData.Org + nS * tData.Ang:Forward()):ToScreen()
   oScreen:DrawLine(xyO, xyX, "r", "SURF")
-  oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, tData.Hit, nrS), "y", "SEGM", {35})
+  oScreen:DrawCircle(xyH, asmlib.GetViewRadius(oPly, tData.Hit, nrS), "y", "SURF", {35})
   if(tData.POA) then self:DrawSnapAssist(oScreen, oPly, stTrace, 10) -- Draw assist
   else oScreen:DrawLine(xyH, xyO, "y") end -- When active point is used for node
   oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, tData.Org, nrB), "g")
@@ -1907,7 +1918,13 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(tC.Size and tC.Size > 0) then
     if(bRp and mD) then
       local xyN = tC.Node[mD]:ToScreen()
-      oScreen:DrawLine(xyN, xyO, "r")
+      oScreen:DrawLine(xyO, xyN, "r")
+      local xx = self:GetNodeIntersect(tC, mD, bInt)
+      if(xx) then
+        local xyX = xx:ToScreen()
+        oScreen:DrawLine(xyX, xyH, "r")
+        oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "b")
+      end
     else
       local xyN = tC.Node[tC.Size]:ToScreen()
       oScreen:DrawLine(xyN, xyO, "y")
