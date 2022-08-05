@@ -19,6 +19,8 @@ local netSend                          = net and net.Send
 local netStart                         = net and net.Start
 local netReceive                       = net and net.Receive
 local netWriteUInt                     = net and net.WriteUInt
+local netWriteBool                     = net and net.WriteBool
+local netWriteAngle                    = net and net.WriteAngle
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
 local vguiCreate                       = vgui and vgui.Create
@@ -793,7 +795,7 @@ function TOOL:CurveClear(bAll, bMute)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableEmpty(tC.Node)
       tableEmpty(tC.Norm)
-      tableEmpty(tC.Dirs)
+      tableEmpty(tC.Rays)
       tableEmpty(tC.Base); tC.Size = 0
       tableEmpty(tC.CNode)
       tableEmpty(tC.CNorm); tC.CSize = 0
@@ -806,7 +808,7 @@ function TOOL:CurveClear(bAll, bMute)
       end
       tableRemove(tC.Node)
       tableRemove(tC.Norm)
-      tableRemove(tC.Dirs)
+      tableRemove(tC.Rays)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
     end
@@ -824,8 +826,12 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   local surfsnap = self:GetSurfaceSnap()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  local tData = {Org = Vector(), Ang = Angle(), Orw = Vector(), Anw = Angle(), Hit = Vector()}
-  local eEnt, vNrm = stTrace.Entity, stTrace.HitNormal
+  local eEnt, vNrm, tData = stTrace.Entity, stTrace.HitNormal, {}
+  tData.Org = Vector() -- Curve node interpolation origin
+  tData.Ang = Angle()  -- Curve node interpolation angle
+  tData.Orw = Vector() -- Point POA origin converted to world
+  tData.Anw = Angle()  -- Point POA angle converted to world
+  tData.Hit = Vector() -- Usually the trace hit position
   tData.Ang:Set(asmlib.GetNormalAngle(ply, stTrace, surfsnap, angsnap))
   tData.Hit:Set(stTrace.HitPos); tData.Org:Add(tData.Hit)
   if(bPnt and eEnt and eEnt:IsValid()) then
@@ -861,7 +867,7 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
   tC.Node[tC.Size] = tData.Org
   tC.Norm[tC.Size] = tData.Ang:Up()
   tC.Base[tC.Size] = tData.Hit
-  tC.Dirs[tC.Size] = tData.Anw:Forward()
+  tC.Rays[tC.Size] = {tData.Orw, tData.Anw, (tData.POA ~= nil)}
   if(not bMute) then
     asmlib.Notify(ply, "Node inserted ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendCreateCurveNode")
@@ -869,7 +875,9 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
       netWriteVector(tC.Node[tC.Size])
       netWriteVector(tC.Norm[tC.Size])
       netWriteVector(tC.Base[tC.Size])
-      netWriteVector(tC.Dirs[tC.Size])
+      netWriteVector(tC.Rays[tC.Size][1])
+      netWriteAngle (tC.Rays[tC.Size][2])
+      netWriteBool  (tC.Rays[tC.Size][3])
     netSend(ply)
     ply:SetNWBool(gsToolPrefL.."engcurve", true)
   end
@@ -891,14 +899,20 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
   tC.Node[mD]:Set(stData.Org)
   tC.Norm[mD]:Set(stData.Ang:Up())
   tC.Base[mD]:Set(stData.Hit)
-  tC.Dirs[mD]:Set(stData.Anw:Forward())
+  tC.Rays[mD][1]:Set(stData.Orw)
+  tC.Rays[mD][2]:Set(stData.Anw)
+  tC.Rays[mD][3] = (stData.POA ~= nil)
   -- Adjust node according to intersection
   if(workmode == 3 or workmode == 5) then
     if(bInt and mD > 1 and mD < tC.Size and tC.Size >= 3) then
-      local bS = tC.Dirs[mD - 1] -- Read previous
-      local bE = tC.Dirs[mD + 1] -- Read next flag
-      if(bS and bE) then -- Both are active ponts
-        print("Curve: Intersect active points")
+      local tS = tC.Rays[mD - 1] -- Read previous ray
+      local tE = tC.Rays[mD + 1] -- Read next ray
+      if(tS[3] and tE[3]) then -- Both are active ponts
+        local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], tS[2], tE[1], tE[2])
+        tC.Node[mD]:Set(xx)
+        tC.Norm[mD]:Set(tC.Norm[mD - 1])
+        tC.Norm[mD]:Add(tC.Norm[mD + 1])
+        tC.Norm[mD]:Normalize()
       end
     end
   end
@@ -909,7 +923,9 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
       netWriteVector(tC.Node[mD])
       netWriteVector(tC.Norm[mD])
       netWriteVector(tC.Base[mD])
-      netWriteVector(tC.Dirs[mD])
+      netWriteVector(tC.Rays[mD][1])
+      netWriteAngle (tC.Rays[mD][2])
+      netWriteBool  (tC.Rays[mD][3])
       netWriteUInt(mD, 16)
     netSend(ply)
     ply:SetNWBool(gsToolPrefL.."engcurve", true)
