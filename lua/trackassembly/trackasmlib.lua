@@ -2461,7 +2461,8 @@ function GetCacheCurve(pPly)
   if(not IsHere(stData)) then -- Allocate curve data
     LogInstance("Allocate <"..pPly:Nick()..">")
     stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
-    stData.Info  = {}
+    stData.Info  = {} -- This holds various vectors and angles and other data
+    stData.Rays = {} -- Holds hashes whenever given node is an active point
     stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
     stData.Info.Ang = {Angle (), Angle ()} -- Start and end anngles of active points
     stData.Info.UCS = {Vector(), Vector()} -- Origin and normal vector for the iteration
@@ -4273,6 +4274,13 @@ local function IntersectRayParallel(vO1, vD1, vO2, vD2)
   return f1, f2, x1, x2, xx
 end
 
+function IntersectRayPair(vO1, vD1, vO2, vD2)
+  local f1, f2, x1, x2, xx = IntersectRay(vO1, vD1, vO2, vD2)
+  if(not xx) then -- Attempts taking the mean vector when the rays are parallel for straight tracks
+    f1, f2, x1, x2, xx = IntersectRayParallel(vO1, vD1, vO2, vD2)
+  end; return f1, f2, x1, x2, xx
+end
+
 local function IntersectRayUpdate(stRay)
   if(not IsHere(stRay)) then
     LogInstance("Ray invalid"); return nil end
@@ -4359,9 +4367,8 @@ function IntersectRayHash(oPly, sKey1, sKey2)
     LogInstance("No read <"..tostring(sKey2)..">"); return nil end
   local vO1, vD1 = stRay1.Orw, stRay1.Diw:Forward()
   local vO2, vD2 = stRay2.Orw, stRay2.Diw:Forward()
-  local f1, f2, x1, x2, xx = IntersectRay(vO1, vD1, vO2, vD2)
-  if(not xx) then -- Attempts taking the mean vector when the rays are parallel for straight tracks
-    f1, f2, x1, x2, xx = IntersectRayParallel(vO1, vD1, vO2, vD2) end
+  -- Attempts taking the mean vector when the rays are parallel for straight tracks
+  local f1, f2, x1, x2, xx = IntersectRayPair(vO1, vD1, vO2, vD2)
   return xx, x1, x2, stRay1, stRay2
 end
 
@@ -5380,7 +5387,7 @@ end
  * Returns the calculated recursive control sample
 ]]
 local function GetBezierCurveVertex(cT, tV)
-  local tD, tP, nD = {}, {}, (#tV-1)
+  local tD, tP, nD = {}, {}, (#tV - 1)
   for iD = 1, nD do
     tD[iD] = Vector(tV[iD+1])
     tD[iD]:Sub(tV[iD])
