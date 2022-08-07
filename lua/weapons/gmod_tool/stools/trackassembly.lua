@@ -781,17 +781,20 @@ function TOOL:SelectModel(sModel)
   asmlib.LogInstance("Success <"..sModel..">",gtLogs); return true
 end
 
-function TOOL:GetNodeIntersect(tC, iD, bI)
-  if(not bI) then return end
-  if(iD <= 1) then return end
-  if(iD >= tC.Size) then return end
-  if(tC.Size <= 3) then return end
-  local tS = tC.Rays[iD - 1] -- Read previous ray
-  if(not tS[3]) then return end -- Both are active ponts
-  local tE = tC.Rays[iD + 1] -- Read next ray
-  if(not tE[3]) then return end -- Both are active ponts
-  local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], tS[2], tE[1], tE[2])
-  return xx
+function TOOL:GetNodeIntersect(iD, bM)
+  local ply = self:GetOwner()
+  local tC  = asmlib.GetCacheCurve(ply)
+  if(iD <= 1) then -- Cannot chose first ID to intersect
+    if(not bM) then asmlib.Notify(ply,"Node intersect uses first !","ERROR") end; return end
+  if(iD >= tC.Size) then -- Cannot chose last ID to intersect
+    if(not bM) then asmlib.Notify(ply,"Node intersect uses final !","ERROR") end; return end
+  local tS = tC.Rays[iD - 1]; if(not tS[3]) then  -- Read previous ray
+    if(not bM) then asmlib.Notify(ply,"Node intersect wrong past !","ERROR") end; return end
+  local tE = tC.Rays[iD + 1]; if(not tE[3]) then -- Read next ray
+    if(not bM) then asmlib.Notify(ply,"Node intersect wrong next !","ERROR") end; return end
+  local sD, eD = tS[2]:Forward(), tE[2]:Forward()
+  local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], sD, tE[1], eD)
+  return xx -- Both are active ponts and return ray intersection
 end
 
 function TOOL:CurveClear(bAll, bMute)
@@ -877,10 +880,10 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   tC.Size = (tC.Size + 1)
-  tC.Node[tC.Size] = tData.Org
+  tC.Node[tC.Size] = Vector(tData.Org)
   tC.Norm[tC.Size] = tData.Ang:Up()
-  tC.Base[tC.Size] = tData.Hit
-  tC.Rays[tC.Size] = {tData.Orw, tData.Anw, (tData.POA ~= nil)}
+  tC.Base[tC.Size] = Vector(tData.Hit)
+  tC.Rays[tC.Size] = {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)}
   if(not bMute) then
     asmlib.Notify(ply, "Node inserted ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendCreateCurveNode")
@@ -897,9 +900,9 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
   return tC -- Returns the updated curve nodes table
 end
 
-function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
+function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   local ply = self:GetOwner()
-  local stData = self:GetCurveTransform(stTrace, bPnt); if(not stData) then
+  local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(ply); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
@@ -907,17 +910,16 @@ function TOOL:CurveUpdate(stTrace, bPnt, bInt, bMute)
     asmlib.Notify(ply,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtLogs); return nil
   end
-  local workmode, workname = self:GetWorkingMode()
-  local mD, mL = asmlib.GetNearest(stData.Hit, tC.Base)
-  tC.Node[mD]:Set(stData.Org)
-  tC.Norm[mD]:Set(stData.Ang:Up())
-  tC.Base[mD]:Set(stData.Hit)
-  tC.Rays[mD][1]:Set(stData.Orw)
-  tC.Rays[mD][2]:Set(stData.Anw)
-  tC.Rays[mD][3] = (stData.POA ~= nil)
+  local mD, mL = asmlib.GetNearest(tData.Hit, tC.Base)
+  tC.Node[mD]:Set(tData.Org)
+  tC.Norm[mD]:Set(tData.Ang:Up())
+  tC.Base[mD]:Set(tData.Hit)
+  tC.Rays[mD][1]:Set(tData.Org)
+  tC.Rays[mD][2]:Set(tData.Ang)
+  tC.Rays[mD][3] = (tData.POA ~= nil)
   -- Adjust node according to intersection
-  if(workmode == 3 or workmode == 5) then
-    local xx = self:GetNodeIntersect(tC, mD, bInt)
+  if(bPnt and not tData.POA) then
+    local xx = self:GetNodeIntersect(mD)
     if(xx) then
       tC.Node[mD]:Set(xx)
       tC.Norm[mD]:Set(tC.Norm[mD - 1])
@@ -1442,10 +1444,9 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(workmode == 3 or workmode == 5) then
-    local bInt = ply:KeyDown(IN_ALT1)
     local bPnt, tC = ply:KeyDown(IN_USE)
     if(ply:KeyDown(IN_SPEED)) then
-      tC = self:CurveUpdate(stTrace, bPnt, bInt)
+      tC = self:CurveUpdate(stTrace, bPnt)
     else -- Inserting curve cannot be intersected
       tC = self:CurveInsert(stTrace, bPnt)
     end; return (tC and true or false)
@@ -1874,7 +1875,6 @@ end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local bPnt = inputIsKeyDown(KEY_E)
-  local bInt = inputIsKeyDown(KEY_LALT)
   local bRp  = inputIsKeyDown(KEY_LSHIFT)
   local tData = self:GetCurveTransform(stTrace, bPnt)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
@@ -1919,11 +1919,13 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
     if(bRp and mD) then
       local xyN = tC.Node[mD]:ToScreen()
       oScreen:DrawLine(xyO, xyN, "r")
-      local xx = self:GetNodeIntersect(tC, mD, bInt)
-      if(xx) then
-        local xyX = xx:ToScreen()
-        oScreen:DrawLine(xyX, xyH, "r")
-        oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "b")
+      if(bPnt and not tData.POA) then
+        local xx = self:GetNodeIntersect(mD, true)
+        if(xx) then
+          local xyX = xx:ToScreen()
+          oScreen:DrawLine(xyX, xyH, "ry")
+          oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "b")
+        end
       end
     else
       local xyN = tC.Node[tC.Size]:ToScreen()
