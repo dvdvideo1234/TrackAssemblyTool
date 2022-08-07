@@ -813,7 +813,6 @@ function InitBase(sName, sPurp)
   end; LogInstance("Success"); return true
 end
 
-
 ------------- COLOR ---------------
 
 function FixColor(nC)

@@ -25,9 +25,11 @@ local myType = myAddon -- The type your addon resides in the tool with
 --[[
  * For actually produce an error you can replace the /print/
  * statement with one of following API calls:
- * http://wiki.garrysmod.com/page/Global/error
- * http://wiki.garrysmod.com/page/Global/Error
- * http://wiki.garrysmod.com/page/Global/ErrorNoHalt
+ * https://wiki.facepunch.com/gmod/Global.print
+ * https://wiki.facepunch.com/gmod/Global.error
+ * https://wiki.facepunch.com/gmod/Global.Error
+ * https://wiki.facepunch.com/gmod/Global.ErrorNoHalt
+ * https://wiki.facepunch.com/gmod/Global.ErrorNoHaltWithStack
 ]]
 local myError = ErrorNoHalt
 
