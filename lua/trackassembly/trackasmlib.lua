@@ -4068,12 +4068,13 @@ end
  * This function is the backbone of the tool snapping and spawning.
  * Anything related to dealing with the track assembly database
  * Calculates SPos, SAng based on the DB inserts and input parameters
- * ucsPos        = Base UCS position
- * ucsAng        = Base UCS angle
- * shdModel      = CLIENT Model
- * ivhdPoID      = CLIENT Point ID
- * ucsPos(X,Y,Z) = Offset position
- * ucsAng(P,Y,R) = Offset angle
+ * ucsPos        > Forced base UCS position when available
+ * ucsAng        > Forced base UCS angle when available
+ * shdModel      > Tool holder active model as string
+ * ivhdPoID      > Requested point ID recieved from client
+ * ucsPos(X,Y,Z) > Offset position additianl translation from user
+ * ucsAng(P,Y,R) > Offset angle additianl rotation from user
+ * stData        > When provided defines where to put the spawn data
 ]]--
 function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
                         ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
@@ -4132,13 +4133,14 @@ end
 --[[
  * This function is the backbone of the tool on entity snapping
  * Calculates SPos, SAng based on the DB inserts and input parameters
- * trEnt         = Trace.Entity
- * trHitPos      = Trace.HitPos
- * shdModel      = Spawn data will be obtained for this model
- * ivhdPoID      = Active point ID selected via Right click ...
- * nvActRadius   = Minimal radius to get an active point from the client
- * ucsPos(X,Y,Z) = Offset position
- * ucsAng(P,Y,R) = Offset angle
+ * trEnt         > Trace.Entity
+ * trHitPos      > Trace.HitPos
+ * shdModel      > Spawn data will be obtained for this model
+ * ivhdPoID      > Active point ID selected via Right click ...
+ * nvActRadius   > Minimal radius to get an active point from the client
+ * ucsPos(X,Y,Z) > Offset position additianl translation from user
+ * ucsAng(P,Y,R) > Offset angle additianl rotation from user
+ * stData        > When provided defines where to put the spawn data
 ]]--
 function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
                         nvActRadius,enFlatten,enIgnTyp,ucsPosX,
@@ -4236,22 +4238,26 @@ end
  * intersect distance to the orthogonal connecting line.
  * The true center is calculated by using the last two return values
  * Takes:
- *   vO1 --> Position origin of the first ray
- *   vD1 --> Direction of the first ray
- *   vO2 --> Position origin of the second ray
- *   vD2 --> Direction of the second ray
+ *   vO1 > Position origin of the first ray
+ *   vD1 > Direction of the first ray
+ *   vO2 > Position origin of the second ray
+ *   vD2 > Direction of the second ray
  * Returns:
- *   f1 --> Intersection fraction of the first ray
- *   f2 --> Intersection fraction of the second ray
+ *   f1  > Intersection fraction of the first ray
+ *   f2  > Intersection fraction of the second ray
+ *   x1  > Pillar intersection projection for first ray
+ *   x2  > Pillar intersection projection for second ray
+ *   xx  > Actual clacualted pillar intersectoion point
 ]]--
 local function IntersectRay(vO1, vD1, vO2, vD2)
   if(vD1:LengthSqr() == 0) then
     LogInstance("First ray undefined"); return nil end
   if(vD2:LengthSqr() == 0) then
     LogInstance("Second ray undefined"); return nil end
+  local ez = GetOpVar("EPSILON_ZERO")
   local d1, d2 = vD1:GetNormalized(), vD2:GetNormalized()
   local dx, oo = d1:Cross(d2), (vO2 - vO1)
-  local dn = (dx:Length())^2; if(dn < GetOpVar("EPSILON_ZERO")) then
+  local dn = (dx:Length())^2; if(dn < ez) then
     LogInstance("Rays parallel"); return nil end
   local f1 = DeterminantVector(oo, d2, dx) / dn
   local f2 = DeterminantVector(oo, d1, dx) / dn
@@ -4273,9 +4279,10 @@ local function IntersectRayParallel(vO1, vD1, vO2, vD2)
   return f1, f2, x1, x2, xx
 end
 
+-- Attempts taking the mean vector for intersecting straight tracks
 function IntersectRayPair(vO1, vD1, vO2, vD2)
   local f1, f2, x1, x2, xx = IntersectRay(vO1, vD1, vO2, vD2)
-  if(not xx) then -- Attempts taking the mean vector when the rays are parallel for straight tracks
+  if(not xx) then LogInstance("Try intersect parallel")
     f1, f2, x1, x2, xx = IntersectRayParallel(vO1, vD1, vO2, vD2)
   end; return f1, f2, x1, x2, xx
 end
