@@ -119,9 +119,9 @@ if(first() || dupefinished())
     PointID = 1
 
     # What segment type are we processing
-    # road     --> Roads ( PHX roads )
-    # monorail --> PHX monorail
-    # general  --> The two beam tracks segmentnts that we all love and joy
+    # road     > Roads ( PHX roads )
+    # monorail > PHX monorail
+    # general  > The two beam tracks segmentnts that we all love and joy
     TypeSegment = "road"
 
     # Set this to <>0 for direct Z local offset

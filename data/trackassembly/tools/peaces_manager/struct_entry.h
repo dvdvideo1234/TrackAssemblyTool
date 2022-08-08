@@ -165,7 +165,7 @@
         enOther = Other->getEntry(oItem);
         if(SSTACK_INV_POINTER != enOther)
         {
-          common::logSystem(fLog,"printMismatch: Found #%d <%s> --> <%s>",AdID,AdName,enOther->Data);
+          common::logSystem(fLog,"printMismatch: Found #%d <%s> # <%s>",AdID,AdName,enOther->Data);
           stErr = findEntryID(0,enOther->Data,&gItem);
           if(SSTACK_NOT_FOUND == stErr)
           {

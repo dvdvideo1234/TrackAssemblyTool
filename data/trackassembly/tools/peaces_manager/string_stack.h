@@ -116,7 +116,7 @@
         strOther = Other->getString(oItem);
         if(NULL != strOther)
         {
-          // fprintf(File,"Try: #%d <%s> --> <%s>\n",AdID,AdName,strOther->Data);
+          // fprintf(File,"Try: #%d <%s> # <%s>\n",AdID,AdName,strOther->Data);
           iStatus = findStringID(0,strOther->Data);
           if(SSTACK_NOT_FOUND == iStatus)
           {

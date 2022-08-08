@@ -2077,9 +2077,9 @@ end
  * Creates a basis instance for entity-related operations
  * The instance is invisible and cannot be hit by traces
  * By default spawns at origin and angle {0,0,0}
- * sModel --> The model to use for creating the entity
- * vPos   --> Custom position for the placeholder ( zero if none )
- * vAng   --> Custom angles for the placeholder ( zero if none )
+ * sModel > The model to use for creating the entity
+ * vPos   > Custom position for the placeholder ( zero if none )
+ * vAng   > Custom angles for the placeholder ( zero if none )
 ]]
 local function MakeEntityNone(sModel, vPos, vAng) local eNone
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
@@ -2098,8 +2098,8 @@ end
  * Locates an active point on the piece offset record.
  * This function is used to check the correct offset and return it.
  * It also returns the normalized active point ID if needed
- * oRec   --> Record structure of a track piece
- * ivPoID --> The POA offset ID to check and locate
+ * oRec   > Record structure of a track piece
+ * ivPoID > The POA offset ID to check and locate
 ]]--
 function LocatePOA(oRec, ivPoID)
   if(not oRec) then LogInstance("Missing record"); return nil end
@@ -3150,10 +3150,10 @@ end
 
 --[[
  * Exports panel indormation to dedicated DB file
- * stPanel --> The actual panel information to export
- * bExp    --> Export panel data into a DB file
- * makTab  --> Table maker object
- * sFunc   --> Export requestor ( CacheQueryPanel )
+ * stPanel > The actual panel information to export
+ * bExp    > Export panel data into a DB file
+ * makTab  > Table maker object
+ * sFunc   > Export requestor ( CacheQueryPanel )
 ]]
 local function ExportPanelDB(stPanel, bExp, makTab, sFunc)
   if(bExp) then
@@ -3178,7 +3178,7 @@ end
 
 --[[
  * Caches the data needed to populate the CPanel tree
- * bExp --> Export panel data into a DB file
+ * bExp > Export panel data into a DB file
 ]]
 function CacheQueryPanel(bExp)
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
@@ -4023,9 +4023,9 @@ end
 
 --[[
  * Selects a point ID on the entity based on the hit vector provided
- * oEnt --> Entity to search the point on
- * vHit --> World space hit vector to find the closest point to
- * bPnt --> Use the point local offset ( true ) else origin offset
+ * oEnt > Entity to search the point on
+ * vHit > World space hit vector to find the closest point to
+ * bPnt > Use the point local offset ( true ) else origin offset
 ]]--
 function GetEntityHitID(oEnt, vHit, bPnt)
   if(not (oEnt and oEnt:IsValid())) then
@@ -4192,9 +4192,9 @@ end
 
 --[[
  * This function performs a trace relative to the entity point chosen
- * trEnt  --> Entity chosen for the trace
- * ivPoID --> Point ID selected for its model
- * nLen   --> Length of the trace
+ * trEnt  > Entity chosen for the trace
+ * ivPoID > Point ID selected for its model
+ * nLen   > Length of the trace
 ]]--
 function GetTraceEntityPoint(trEnt, ivPoID, nLen)
   if(not (trEnt and trEnt:IsValid())) then
@@ -4227,7 +4227,9 @@ local function DeterminantVector(vR1, vR2, vR3)
   local a, b, c = vR1[cvX], vR1[cvY], vR1[cvZ]
   local d, e, f = vR2[cvX], vR2[cvY], vR2[cvZ]
   local g, h, i = vR3[cvX], vR3[cvY], vR3[cvZ]
-  return ((a*e*i)+(b*f*g)+(d*h*c)-(g*e*c)-(h*f*a)-(d*b*i))
+  local r = ((a*e*i) + (b*f*g) + (d*h*c))
+  local s = ((g*e*c) + (h*f*a) + (d*b*i))
+  return (r - s) -- Return 3x3 determinant
 end
 
 --[[
@@ -4261,7 +4263,8 @@ local function IntersectRay(vO1, vD1, vO2, vD2)
     LogInstance("Rays parallel"); return nil end
   local f1 = DeterminantVector(oo, d2, dx) / dn
   local f2 = DeterminantVector(oo, d1, dx) / dn
-  local x1, x2 = (vO1 + f1 * d1), (vO2 + f2 * d2)
+  local x1 = Vector(d1); x1:Mul(f1); x1:Add(vO1)
+  local x2 = Vector(d2); x2:Mul(f2); x2:Add(vO2)
   local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
   return f1, f2, x1, x2, xx
 end
@@ -4271,10 +4274,12 @@ local function IntersectRayParallel(vO1, vD1, vO2, vD2)
     LogInstance("First ray undefined"); return nil end
   if(vD2:LengthSqr() == 0) then
     LogInstance("Second ray undefined"); return nil end
-  local d1, d2 = vD1:GetNormalized(), vD2:GetNormalized()
-  local len = vO2:Distance(vO1)
-  local f1, f2 = (len / 2), (len / 2)
-  local x1, x2 = (vO1 + f1 * d1), (vO2 + f2 * d2)
+  local dn = vO2:Distance(vO1)
+  local d1 = vD1:GetNormalized()
+  local d2 = vD2:GetNormalized()
+  local f1, f2 = (dn / 2), (dn / 2)
+  local x1 = Vector(d1); x1:Mul(f1); x1:Add(vO1)
+  local x2 = Vector(d2); x2:Mul(f2); x2:Add(vO2)
   local xx = (x2 - x1); xx:Mul(0.5); xx:Add(x1)
   return f1, f2, x1, x2, xx
 end
@@ -4302,10 +4307,10 @@ end
  * This function creates/updates an active ray for a player.
  * Every player has own place in the cache.
  * The dedicated table can contain rays with different purpose
- * oPly  --> Player who wants to register a ray
- * oEnt  --> The trace entity to register the raw with
- * trHit --> The world position to search for point ID
- * sKey  --> String identifier. Used to distinguish rays form one another
+ * oPly  > Player who wants to register a ray
+ * oEnt  > The trace entity to register the raw with
+ * trHit > The world position to search for point ID
+ * sKey  > String identifier. Used to distinguish rays form one another
 ]]--
 function IntersectRayCreate(oPly, oEnt, vHit, sKey)
   if(not IsPlayer(oPly)) then
@@ -4363,17 +4368,17 @@ end
 --[[
  * This function intersects two already cashed rays
  * Used for generating
- * sKey1 --> First ray identifier
- * sKey2 --> Second ray identifier
+ * sKey1 > First ray identifier
+ * sKey2 > Second ray identifier
 ]]--
 function IntersectRayHash(oPly, sKey1, sKey2)
   local stRay1 = IntersectRayRead(oPly, sKey1); if(not stRay1) then
-    LogInstance("No read <"..tostring(sKey1)..">"); return nil end
+    LogInstance("Miss read <"..tostring(sKey1)..">"); return nil end
   local stRay2 = IntersectRayRead(oPly, sKey2); if(not stRay2) then
-    LogInstance("No read <"..tostring(sKey2)..">"); return nil end
+    LogInstance("Miss read <"..tostring(sKey2)..">"); return nil end
   local vO1, vD1 = stRay1.Orw, stRay1.Diw:Forward()
   local vO2, vD2 = stRay2.Orw, stRay2.Diw:Forward()
-  -- Attempts taking the mean vector when the rays are parallel for straight tracks
+  -- Attempt taking the mean vector for parallel ray straight tracks
   local f1, f2, x1, x2, xx = IntersectRayPair(vO1, vD1, vO2, vD2)
   return xx, x1, x2, stRay1, stRay2
 end
@@ -4382,9 +4387,9 @@ end
  * This function finds the intersection for the model itself
  * as a local vector so it can be placed precisely in the
  * intersection point when creating
- * sModel --> The model to calculate intersection point for
- * nPntID --> Start (chosen) point of the intersection
- * nNxtID --> End (next) point of the intersection
+ * sModel > The model to calculate intersection point for
+ * nPntID > Start (chosen) point of the intersection
+ * nNxtID > End (next) point of the intersection
 ]]--
 function IntersectRayModel(sModel, nPntID, nNxtID)
   local mRec = CacheQueryPiece(sModel); if(not mRec) then

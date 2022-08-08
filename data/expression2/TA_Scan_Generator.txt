@@ -78,9 +78,9 @@ if(first() || dupefinished())
     PieceMode = "LUA"
 
     # What segment type are we processing
-    # road     --> Roads, like the PHX roads or Stephentechno
-    # monorail --> Monorail track beams like PHX monorail
-    # general  --> The two beam tracks segmentnts that we all love and joy
+    # road     > Roads, like the PHX roads or Stephentechno
+    # monorail > Monorail track beams like PHX monorail
+    # general  > The two beam tracks segmentnts that we all love and joy
     TypeSegment = "general"
 
     # Piece type that you are using. It is mandatory
