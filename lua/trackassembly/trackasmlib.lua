@@ -1754,14 +1754,13 @@ local function PushSortValues(tTable,snCnt,nsValue,tData)
   local iCnt, iInd = mathFloor(tonumber(snCnt) or 0), 1
   if(not (tTable and IsTable(tTable) and (iCnt > 0))) then return 0 end
   if(not tTable[iInd]) then
-    tTable[iInd] = {Value = nsValue, Table = tData }; return iInd
+    tTable[iInd] = {Value = nsValue, Table = tData}; return iInd
   else
     while(tTable[iInd] and (tTable[iInd].Value < nsValue)) do iInd = iInd + 1 end
     if(iInd > iCnt) then return iInd end
     while(iInd < iCnt) do
-      tTable[iCnt] = tTable[iCnt - 1]
-      iCnt = iCnt - 1
-    end; tTable[iInd] = { Value = nsValue, Table = tData }; return iInd
+      tTable[iCnt] = tTable[iCnt - 1]; iCnt = iCnt - 1
+    end; tTable[iInd] = {Value = nsValue, Table = tData}; return iInd
   end
 end
 
@@ -2198,8 +2197,8 @@ function GetTransformOA(sModel,sKey)
   return mTOA.Pos, mTOA.Ang -- The function must return transform origin and angle
 end
 
-function RegisterPOA(stPiece, ivID, sP, sO, sA)
-  local sNull = GetOpVar("MISS_NOSQL"); if(not stPiece) then
+function RegisterPOA(stData, ivID, sP, sO, sA)
+  local sNull = GetOpVar("MISS_NOSQL"); if(not stData) then
     LogInstance("Cache record invalid"); return nil end
   local iID = tonumber(ivID); if(not IsHere(iID)) then
     LogInstance("Offset ID mismatch "..GetReport(ivID)); return nil end
@@ -2209,11 +2208,11 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
     LogInstance("Origin mismatch "..GetReport(sO)); return nil end
   local sA = (sA or sNull); if(not IsString(sA)) then
     LogInstance("Angle mismatch "..GetReport(sA)); return nil end
-  if(not stPiece.Offs) then if(iID > 1) then
-    LogInstance("Mismatch ID <"..tostring(iID)..">"..stPiece.Slot); return nil end
-    stPiece.Offs = {}
+  if(not stData.Offs) then if(iID > 1) then
+    LogInstance("Mismatch ID <"..tostring(iID)..">"..stData.Slot); return nil end
+    stData.Offs = {}
   end
-  local tOffs = stPiece.Offs; if(tOffs[iID]) then
+  local tOffs = stData.Offs; if(tOffs[iID]) then
     LogInstance("Exists ID #"..tostring(iID)); return nil
   else
     if((iID > 1) and (not tOffs[iID - 1])) then
@@ -2223,27 +2222,27 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
   ---------- Origin ----------
   if(sO:sub(1,1) == sD) then ReloadPOA() else
     if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO; sO = sO:sub(2,-1)
-      local vO, aA = GetTransformOA(stPiece.Slot, sO)
+      local vO, aA = GetTransformOA(stData.Slot, sO)
       if(IsHere(vO)) then ReloadPOA(vO[cvX], vO[cvY], vO[cvZ])
       else -- Decode the transform origin and angle when not applicable
         if(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
-          if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stPiece.Slot) end
+          if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stData.Slot) end
       end end -- Decode the transformation when is not null or empty string
     elseif(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
-      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stPiece.Slot) end
+      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stData.Slot) end
     end
   end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
   ---------- Angle ----------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
     if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA; sA = sA:sub(2,-1)
-      local vO, aA = GetTransformOA(stPiece.Slot, sA)
+      local vO, aA = GetTransformOA(stData.Slot, sA)
       if(IsHere(aA)) then ReloadPOA(aA[caP], aA[caY], aA[caR])
       else -- Decode the transform origin and angle when not applicable
         if(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
-          if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stPiece.Slot) end
+          if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stData.Slot) end
       end end -- Decode the transformation when is not null or empty string
     elseif(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
-      if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stPiece.Slot) end
+      if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stData.Slot) end
     end
   end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle mismatch"); return nil end
   ---------- Point ----------
@@ -2253,7 +2252,7 @@ function RegisterPOA(stPiece, ivID, sP, sO, sA)
     if(IsNull(sP) or IsBlank(sP)) then
       ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
     else -- When the point is empty use the origin otherwise decode the value
-      if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]"..stPiece.Slot) end
+      if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]"..stData.Slot) end
     end
   end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
   return tOffs
@@ -3059,17 +3058,17 @@ function CacheQueryPiece(sModel)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
-  local stPiece, sFunc = tCache[sModel], "CacheQueryPiece"
-  if(IsHere(stPiece) and IsHere(stPiece.Size)) then
-    if(stPiece.Size <= 0) then stPiece = nil else
-      stPiece = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
-    return stPiece
+  local stData, sFunc = tCache[sModel], "CacheQueryPiece"
+  if(IsHere(stData) and IsHere(stData.Size)) then
+    if(stData.Size <= 0) then stData = nil else
+      stData = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
+    return stData
   else
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
       local qModel = makTab:Match(sModel,1,true)
       LogInstance("Model >> Pool <"..stringGetFileName(sModel)..">")
-      tCache[sModel] = {}; stPiece = tCache[sModel]; stPiece.Size = 0
+      tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local Q = CacheStmt(qsKey:format(sFunc, ""), nil, qModel)
       if(not Q) then
         local sStmt = makTab:Select():Where({1,"%s"}):Order(4):Get()
@@ -3081,18 +3080,18 @@ function CacheQueryPiece(sModel)
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found <"..Q..">"); return nil end
-      local iCnt   = 1; stPiece.Slot, stPiece.Size = sModel, 0
-      stPiece.Type = qData[iCnt][makTab:GetColumnName(2)]
-      stPiece.Name = qData[iCnt][makTab:GetColumnName(3)]
-      stPiece.Unit = qData[iCnt][makTab:GetColumnName(8)]
+      local iCnt   = 1; stData.Slot, stData.Size = sModel, 0
+      stData.Type = qData[iCnt][makTab:GetColumnName(2)]
+      stData.Name = qData[iCnt][makTab:GetColumnName(3)]
+      stData.Unit = qData[iCnt][makTab:GetColumnName(8)]
       while(qData[iCnt]) do local qRec = qData[iCnt]
-        if(not IsHere(RegisterPOA(stPiece,iCnt,
+        if(not IsHere(RegisterPOA(stData,iCnt,
           qRec[makTab:GetColumnName(5)],
           qRec[makTab:GetColumnName(6)],
           qRec[makTab:GetColumnName(7)]))) then
           LogInstance("Cannot process offset #"..tostring(iCnt).." for <"..sModel..">"); return nil
-        end; stPiece.Size, iCnt = iCnt, (iCnt + 1)
-      end; stPiece = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stPiece
+        end; stData.Size, iCnt = iCnt, (iCnt + 1)
+      end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
     elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
@@ -3114,17 +3113,17 @@ function CacheQueryAdditions(sModel)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
   local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
-  local stAddit, sFunc = tCache[sModel], "CacheQueryAdditions"
-  if(IsHere(stAddit) and IsHere(stAddit.Size)) then
-    if(stAddit.Size <= 0) then stAddit = nil else
-      stAddit = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
-    return stAddit
+  local stData, sFunc = tCache[sModel], "CacheQueryAdditions"
+  if(IsHere(stData) and IsHere(stData.Size)) then
+    if(stData.Size <= 0) then stData = nil else
+      stData = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
+    return stData
   else
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
       local qModel = makTab:Match(sModel,1,true)
       LogInstance("Model >> Pool <"..stringGetFileName(sModel)..">")
-      tCache[sModel] = {}; stAddit = tCache[sModel]; stAddit.Size = 0
+      tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local Q = CacheStmt(qsKey:format(sFunc, ""), nil, qModel)
       if(not Q) then
         local sStmt = makTab:Select(2,3,4,5,6,7,8,9,10,11,12):Where({1,"%s"}):Order(4):Get()
@@ -3136,11 +3135,11 @@ function CacheQueryAdditions(sModel)
         LogInstance("SQL exec error <"..sqlLastError()..">"); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found <"..Q..">"); return nil end
-      local iCnt = 1; stAddit.Slot, stAddit.Size = sModel, 0
-      while(qData[iCnt]) do local qRec = qData[iCnt]; stAddit[iCnt] = {}
-        for col, val in pairs(qRec) do stAddit[iCnt][col] = val end
-        stAddit.Size, iCnt = iCnt, (iCnt + 1)
-      end; stAddit = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stAddit
+      local iCnt = 1; stData.Slot, stData.Size = sModel, 0
+      while(qData[iCnt]) do local qRec = qData[iCnt]; stData[iCnt] = {}
+        for col, val in pairs(qRec) do stData[iCnt][col] = val end
+        stData.Size, iCnt = iCnt, (iCnt + 1)
+      end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
     elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
@@ -4223,8 +4222,8 @@ end
 ]]--
 function ProjectRay(vO, vD, vP)
   local vR = Vector(vP); vR:Sub(vO)
-  local nD = vD:Dot(vR); vR:Set(vD); vR:Mul(nD)
-  return vR -- Return ray projection point
+  local nD = vR:Dot(vD); vR:Set(vD)
+  vR:Mul(nD); vR:Add(vO); return vR
 end
 
 --[[
@@ -4426,67 +4425,67 @@ end
 function AttachAdditions(ePiece)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid"); return false end
-  local eAng, ePos, eMod = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
-  local stAddit = CacheQueryAdditions(eMod); if(not IsHere(stAddit)) then
-    LogInstance("Model skip <"..eMod..">"); return true end
+  local eAng, ePos, sMoa = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
+  local stData = CacheQueryAdditions(sMoa); if(not IsHere(stData)) then
+    LogInstance("Model skip <"..sMoa..">"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
-  local sD = GetOpVar("OPSYM_DISABLE"); LogInstance("PIECE:MOD("..eMod..")")
-  while(stAddit[iCnt]) do -- While additions are present keep adding them
-    local arRec  = stAddit[iCnt]; LogInstance("ADDITION ["..iCnt.."]")
-    local eAddit = entsCreate(arRec[makTab:GetColumnName(3)])
+  local sD = GetOpVar("OPSYM_DISABLE"); LogInstance("PIECE:MOD("..sMoa..")")
+  while(stData[iCnt]) do -- While additions are present keep adding them
+    local arRec = stData[iCnt]; LogInstance("ADDITION ["..iCnt.."]")
+    local exItem = entsCreate(arRec[makTab:GetColumnName(3)])
     LogInstance("ents.Create("..arRec[makTab:GetColumnName(3)]..")")
-    if(eAddit and eAddit:IsValid()) then
+    if(exItem and exItem:IsValid()) then
       local adMod = tostring(arRec[makTab:GetColumnName(2)])
       if(not fileExists(adMod, "GAME")) then
         LogInstance("Missing attachment file "..adMod); return false end
       if(not utilIsValidModel(adMod)) then
         LogInstance("Invalid attachment model "..adMod); return false end
-      eAddit:SetModel(adMod) LogInstance("SetModel("..adMod..")")
+      exItem:SetModel(adMod) LogInstance("ENT:SetModel("..adMod..")")
       local ofPos = arRec[makTab:GetColumnName(5)]; if(not IsString(ofPos)) then
         LogInstance("Position mismatch "..GetReport(ofPos)); return false end
       if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos) or ofPos:sub(1,1) == sD)) then
         local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
         vpAdd:SetUnpacked(arPOA[1], arPOA[2], arPOA[3])
         vpAdd:Set(ePiece:LocalToWorld(vpAdd))
-        eAddit:SetPos(vpAdd); LogInstance("SetPos(DB)")
-      else eAddit:SetPos(ePos); LogInstance("SetPos(PIECE:POS)") end
+        exItem:SetPos(vpAdd); LogInstance("ENT:SetPos(DB)")
+      else exItem:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
       local ofAng = arRec[makTab:GetColumnName(6)]; if(not IsString(ofAng)) then
         LogInstance("Angle mismatch "..GetReport(ofAng)); return false end
       if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng) or ofAng:sub(1,1) == sD)) then
         local apAdd, arPOA = Angle(), DecodePOA(ofAng)
         apAdd:SetUnpacked(arPOA[1], arPOA[2], arPOA[3])
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
-        eAddit:SetAngles(apAdd); LogInstance("SetAngles(DB)")
-      else eAddit:SetAngles(eAng); LogInstance("SetAngles(PIECE:ANG)") end
+        exItem:SetAngles(apAdd); LogInstance("ENT:SetAngles(DB)")
+      else exItem:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
       local mvTyp = (tonumber(arRec[makTab:GetColumnName(7)]) or -1)
-      if(mvTyp >= 0) then eAddit:SetMoveType(mvTyp)
-        LogInstance("SetMoveType("..mvTyp..")") end
+      if(mvTyp >= 0) then exItem:SetMoveType(mvTyp)
+        LogInstance("ENT:SetMoveType("..mvTyp..")") end
       local phInt = (tonumber(arRec[makTab:GetColumnName(8)]) or -1)
-      if(phInt >= 0) then eAddit:PhysicsInit(phInt)
-        LogInstance("PhysicsInit("..phInt..")") end
+      if(phInt >= 0) then exItem:PhysicsInit(phInt)
+        LogInstance("ENT:PhysicsInit("..phInt..")") end
       local drSha = (tonumber(arRec[makTab:GetColumnName(9)]) or 0)
-      if(drSha ~= 0) then drSha = (drSha > 0); eAddit:DrawShadow(drSha)
-        LogInstance("DrawShadow("..tostring(drSha)..")") end
-      eAddit:SetParent(ePiece); LogInstance("SetParent(PIECE)")
-      eAddit:Spawn(); LogInstance("Spawn()")
-      phAddit = eAddit:GetPhysicsObject()
-      if(phAddit and phAddit:IsValid()) then
+      if(drSha ~= 0) then drSha = (drSha > 0); exItem:DrawShadow(drSha)
+        LogInstance("ENT:DrawShadow("..tostring(drSha)..")") end
+      exItem:SetParent(ePiece); LogInstance("ENT:SetParent(PIECE)")
+      exItem:Spawn(); LogInstance("ENT:Spawn()")
+      pyItem = exItem:GetPhysicsObject()
+      if(pyItem and pyItem:IsValid()) then
         local enMot = (tonumber(arRec[makTab:GetColumnName(10)]) or 0)
-        if(enMot ~= 0) then enMot = (enMot > 0); phAddit:EnableMotion(enMot)
-          LogInstance("EnableMotion("..tostring(enMot)..")") end
+        if(enMot ~= 0) then enMot = (enMot > 0); pyItem:EnableMotion(enMot)
+          LogInstance("ENT:EnableMotion("..tostring(enMot)..")") end
         local nbZee = (tonumber(arRec[makTab:GetColumnName(11)]) or 0)
-        if(nbZee > 0) then phAddit:Sleep(); LogInstance("Sleep()") end
+        if(nbZee > 0) then pyItem:Sleep(); LogInstance("ENT:Sleep()") end
       end
-      eAddit:Activate(); LogInstance("Activate()")
-      ePiece:DeleteOnRemove(eAddit); LogInstance("DeleteOnRemove()")
+      exItem:Activate(); LogInstance("ENT:Activate()")
+      ePiece:DeleteOnRemove(exItem); LogInstance("PIECE:DeleteOnRemove(ENT)")
       local nbSld = (tonumber(arRec[makTab:GetColumnName(12)]) or -1)
-      if(nbSld >= 0) then eAddit:SetSolid(nbSld)
-        LogInstance("SetSolid("..tostring(nbSld)..")") end
+      if(nbSld >= 0) then exItem:SetSolid(nbSld)
+        LogInstance("ENT:SetSolid("..tostring(nbSld)..")") end
     else
-      local mA = stAddit[iCnt][makTab:GetColumnName(2)]
-      local mC = stAddit[iCnt][makTab:GetColumnName(3)]
-      LogInstance("Entity invalid "..GetReport4(iCnt, eMod, mA, mC)); return false
+      local mA = stData[iCnt][makTab:GetColumnName(2)]
+      local mC = stData[iCnt][makTab:GetColumnName(3)]
+      LogInstance("Entity invalid "..GetReport4(iCnt, sMoa, mA, mC)); return false
     end; iCnt = iCnt + 1
   end; LogInstance("Success"); return true
 end
@@ -4582,9 +4581,9 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     LogInstance("Track limit reached"); return nil end
   if(not pPly:CheckLimit("props")) then -- Check the props limit
     LogInstance("Prop limit reached"); return nil end
-  local stPiece = CacheQueryPiece(sModel) if(not IsHere(stPiece)) then
+  local stData = CacheQueryPiece(sModel) if(not IsHere(stData)) then
     LogInstance("Record missing for <"..sModel..">"); return nil end
-  local ePiece = entsCreate(GetTerm(stPiece.Unit, sClass, sClass))
+  local ePiece = entsCreate(GetTerm(stData.Unit, sClass, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
