@@ -4216,6 +4216,18 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen)
 end
 
 --[[
+ * Projects a point over a defined ray
+ * vO > Ray origin location
+ * vD > Ray direction vector
+ * vP > Position vector to be projected
+]]--
+function ProjectRay(vO, vD, vP)
+  local vR = Vector(vP); vR:Sub(vO)
+  local nD = vD:Dot(vR); vR:Set(vD); vR:Mul(nD)
+  return vR -- Return ray projection point
+end
+
+--[[
  * This function calculates 3x3 determinant of the arguments below
  * Takes three row vectors as arguments:
  *   vR1 = {a b c}

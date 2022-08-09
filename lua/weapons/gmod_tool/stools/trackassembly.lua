@@ -781,20 +781,30 @@ function TOOL:SelectModel(sModel)
   asmlib.LogInstance("Success <"..sModel..">",gtLogs); return true
 end
 
-function TOOL:GetNodeIntersect(iD, bM)
+function TOOL:GetCurveNodeActive(iD, bM)
   local ply = self:GetOwner()
   local tC  = asmlib.GetCacheCurve(ply)
   if(iD <= 1) then -- Cannot chose first ID to intersect
-    if(not bM) then asmlib.Notify(ply,"Node intersect uses first !","ERROR") end; return end
+    if(not bM) then asmlib.Notify(ply,"Node point uses prev !","ERROR") end; return end
   if(iD >= tC.Size) then -- Cannot chose last ID to intersect
-    if(not bM) then asmlib.Notify(ply,"Node intersect uses final !","ERROR") end; return end
-  local tS = tC.Rays[iD - 1]; if(not tS[3]) then  -- Read previous ray
-    if(not bM) then asmlib.Notify(ply,"Node intersect wrong past !","ERROR") end; return end
-  local tE = tC.Rays[iD + 1]; if(not tE[3]) then -- Read next ray
-    if(not bM) then asmlib.Notify(ply,"Node intersect wrong next !","ERROR") end; return end
-  local sD, eD = tS[2]:Forward(), tE[2]:Forward()
-  local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], sD, tE[1], eD)
-  return xx -- Both are active ponts and return ray intersection
+    if(not bM) then asmlib.Notify(ply,"Node point uses next !","ERROR") end; return end
+  local iS, iE = (iD - 1), (iD + 1) -- Previous and next node indeces
+  local tS, tE = tC.Rays[iS], tC.Rays[iE] -- Previous and next node rays
+  if(tS and tE) then
+    local sD, eD = tS[2]:Forward(), tE[2]:Forward()
+    local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], sD, tE[1], eD)
+    return xx, true -- Both are active ponts and return ray intersection
+  else
+    if(tS) then -- Previous is an active point
+      if(not bM) then asmlib.Notify(ply,"Node projection prev !","HINT") end
+      return asmlib.ProjectRay(tS[1], tS[2]:Forward(), tC.Node[iD]), false
+    elseif(tE) then -- Next is an active point
+      if(not bM) then asmlib.Notify(ply,"Node projection next !","HINT") end
+      return asmlib.ProjectRay(tE[1], tE[2]:Forward(), tC.Node[iD]), false
+    else -- None of the previous and next nodes are active points
+      if(not bM) then asmlib.Notify(ply,"Node intersect wrong ray !","ERROR") end; return end
+    end
+  end
 end
 
 function TOOL:CurveClear(bAll, bMute)
@@ -919,7 +929,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   tC.Rays[mD][3] = (tData.POA ~= nil)
   -- Adjust node according to intersection
   if(bPnt and not tData.POA) then
-    local xx = self:GetNodeIntersect(mD)
+    local xx = self:GetCurveNodeActive(mD)
     if(xx) then
       tC.Node[mD]:Set(xx)
       tC.Norm[mD]:Set(tC.Norm[mD - 1])
@@ -1920,11 +1930,16 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       local xyN = tC.Node[mD]:ToScreen()
       oScreen:DrawLine(xyO, xyN, "r")
       if(bPnt and not tData.POA) then
-        local xx = self:GetNodeIntersect(mD, true)
+        local xx, sx = self:GetCurveNodeActive(mD, true)
         if(xx) then
           local xyX = xx:ToScreen()
-          oScreen:DrawLine(xyX, xyH, "ry")
-          oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "b")
+          if(sx) then
+            oScreen:DrawLine(xyX, xyH, "ry")
+            oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "b")
+          else
+            oScreen:DrawLine(xyX, xyH, "ry")
+            oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "g")
+          end
         end
       end
     else
