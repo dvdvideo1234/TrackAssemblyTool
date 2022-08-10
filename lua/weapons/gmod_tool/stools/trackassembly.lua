@@ -781,15 +781,28 @@ function TOOL:SelectModel(sModel)
   asmlib.LogInstance("Success <"..sModel..">",gtLogs); return true
 end
 
-function TOOL:GetCurveNodeActive(iD, vPnt, bM)
+--[[
+ * Uses heuristics to provide the best suitable location the
+ * curve note closest location can be updated with. Three cases:
+ * 1. Both neighbours are active points. Intersect their active rays
+ * 2. Only one node is an active point. Project on its active ray
+ * 3. None of the neighbours are active points. Project on simetral
+ * iD    > Curve node index to be updated
+ * vPnt  > The new location to update the node with
+ * bMute > Mute mode. Used to disable server status messages
+ * Returns multiple values:
+ * 1. Curve node calculated heuristics location vector
+ * 2. The amount of neighbour nodes that are active rays
+]]--
+function TOOL:GetCurveNodeActive(iD, vPnt, bMute)
   local ply = self:GetOwner()
   local tC  = asmlib.GetCacheCurve(ply)
   if(iD <= 1) then -- Cannot chose first ID to intersect
-    if(not bM) then asmlib.Notify(ply,"Node point uses prev !","ERROR") end
+    if(not bMute) then asmlib.Notify(ply,"Node point uses prev !","ERROR") end
     return nil -- The chosen node ID does not meet requirements
   end
   if(iD >= tC.Size) then -- Cannot chose last ID to intersect
-    if(not bM) then asmlib.Notify(ply,"Node point uses next !","ERROR") end
+    if(not bMute) then asmlib.Notify(ply,"Node point uses next !","ERROR") end
     return nil -- The chosen node ID does not meet requirements
   end
   local iS, iE = (iD - 1), (iD + 1) -- Previous and next node indeces
@@ -797,17 +810,22 @@ function TOOL:GetCurveNodeActive(iD, vPnt, bM)
   if(tS[3] and tE[3]) then
     local sD, eD = tS[2]:Forward(), tE[2]:Forward()
     local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], sD, tE[1], eD)
-    return xx, true -- Both are active ponts and return ray intersection
+    return xx, 2 -- Both are active ponts and return ray intersection
   else
     if(tS[3]) then -- Previous is an active point
-      if(not bM) then asmlib.Notify(ply,"Node projection prev !","HINT") end
-      return asmlib.ProjectRay(tS[1], tS[2]:Forward(), vPnt), false
+      if(not bMute) then asmlib.Notify(ply,"Node projection prev !","HINT") end
+      return asmlib.ProjectRay(tS[1], tS[2]:Forward(), vPnt), 1
     elseif(tE[3]) then -- Next is an active point
-      if(not bM) then asmlib.Notify(ply,"Node projection next !","HINT") end
-      return asmlib.ProjectRay(tE[1], tE[2]:Forward(), vPnt), false
+      if(not bMute) then asmlib.Notify(ply,"Node projection next !","HINT") end
+      return asmlib.ProjectRay(tE[1], tE[2]:Forward(), vPnt), 1
     else -- None of the previous and next nodes are active points
-      if(not bM) then asmlib.Notify(ply,"Node intersect wrong ray !","ERROR") end
-      return nil -- The chosen node ID does not meet requirements
+      if(not bMute) then asmlib.Notify(ply,"Node project simetral !","HINT") end
+      local vS, vE = tC.Node[iS], tC.Node[iE] -- Read start and finish nodes
+      local vD = Vector(vE); vD:Sub(vS) -- Direction from start to finish
+      local vM = Vector(vD); vM:Mul(0.5); vM:Add(vS) -- Simetral origin
+      local vX = asmlib.ProjectRay(vS, vD, vPnt) -- Projection point
+      local vV = Vector(vPnt); vV:Sub(vX) -- Simetral direction vector
+      return asmlib.ProjectRay(vM, vV, vPnt), 0
     end
   end
 end
@@ -1937,13 +1955,13 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       if(bPnt and not tData.POA) then
         local xx, sx = self:GetCurveNodeActive(mD, tData.Org, true)
         if(xx) then
-          local xyX = xx:ToScreen()
-          if(sx) then
-            oScreen:DrawLine(xyX, xyO, "ry")
-            oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "b")
-          else
-            oScreen:DrawLine(xyX, xyO, "ry")
+          local xyX = xx:ToScreen(); oScreen:DrawLine(xyX, xyO, "ry")
+          if(sx == 0) then
+            oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "r")
+          elseif(sx == 1) then
             oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "g")
+          elseif(sx == 2) then
+            oScreen:DrawCircle(xyX, asmlib.GetViewRadius(oPly, xx), "b")
           end
         end
       end

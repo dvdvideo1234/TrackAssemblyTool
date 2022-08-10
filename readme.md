@@ -209,9 +209,10 @@ set being solid with fading door `CLOSED` function state:
 8. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `SPEED` ( Def: `SHIFT` ) + `USE` ( Def: `E` )
   * `CURVE` and `TURN`: Updates selected curve node in condition:
     * When trace is a track piece, utilizes the trace entity active point as a curve node.
-    * Otherwise will utilize the intersection point from the previous and next nodes as the
-      curve node location. The middle normal vector is calculated using the previous and next
-      active points up vectors addition normalized.
+    * Otherwise will check various conditions and pick the most suitable curve node location vector:
+      1. When both neighbour (`start` **and** `final`) nodes are track active points will intersect their rays
+      2. When only one (`start` **or** `final`) node is an active point will project the hit node on its ray
+      3. When **none of the neighbors** are active points will project the hit node on their line simetral
 9. Pressing `RELOAD` ( Def: `R` )
   * When trace entity is a valid piece will just remove it.
   * When `trackassembly_devmode` is enabled, will update the log control options.
