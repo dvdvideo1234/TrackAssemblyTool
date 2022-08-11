@@ -4221,9 +4221,11 @@ end
  * vP > Position vector to be projected
 ]]--
 function ProjectRay(vO, vD, vP)
-  local vR = Vector(vP); vR:Sub(vO)
-  local nD = vR:Dot(vD); vR:Set(vD)
-  vR:Mul(nD); vR:Add(vO); return vR
+  local vN = vD:GetNormalized()
+  local vX = Vector(vP); vX:Sub(vO)
+  local nD = vX:Dot(vN); vX:Set(vN)
+  vX:Mul(nD); vX:Add(vO);
+  return nD, vN, vX
 end
 
 --[[
@@ -4945,10 +4947,10 @@ end
 function InitLocalify(vCode)
   local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
   local cuCod = tostring(vCode or auCod) -- No language code then english
-  if(SERVER) then LogInstance("Server "..GetReport(vCode)); return nil end
+  if(SERVER) then LogInstance("Server "..GetReport(vCode)); return end
   local thSet = GetOpVar("LOCALIFY_TABLE"); tableEmpty(thSet)
   local auSet = GetLocalify(auCod); if(not auSet) then
-    LogInstance("Mismatch "..GetReport(auCod)); return nil end
+    LogInstance("Mismatch "..GetReport(auCod)); return end
   if(cuCod ~= auCod) then local cuSet = GetLocalify(cuCod)
     if(cuSet) then -- When the language infornation is extracted apply on success
       for key, val in pairs(auSet) do auSet[key] = (cuSet[key] or auSet[key]) end

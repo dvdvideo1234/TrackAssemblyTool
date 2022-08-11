@@ -209,10 +209,10 @@ set being solid with fading door `CLOSED` function state:
 8. Pressing `ATTACK2` ( Def: `Right Mouse Button` ) + `SPEED` ( Def: `SHIFT` ) + `USE` ( Def: `E` )
   * `CURVE` and `TURN`: Updates selected curve node in condition:
     * When trace is a track piece, utilizes the trace entity active point as a curve node.
-    * Otherwise will check various conditions and pick the most suitable curve node location vector:
+    * Otherwise will check various conditions and pick the [most suitable curve node location vector][ref-node-intersect]:
       1. When both neighbour (`start` **and** `final`) nodes are track active points will intersect their rays
       2. When only one (`start` **or** `final`) node is an active point will project the hit node on its ray
-      3. When **none of the neighbors** are active points will project the hit node on their line simetral
+      3. When **none of the neighbors** are active points will project the hit node on their line bisector
 9. Pressing `RELOAD` ( Def: `R` )
   * When trace entity is a valid piece will just remove it.
   * When `trackassembly_devmode` is enabled, will update the log control options.
@@ -376,6 +376,7 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * [Ron's Minitrain Props](https://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
   * [Battleship's abandoned rails](https://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
   * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) [**(AUTHOR)**][ref-maintained]
+  * [Ron's Plarail Advance](https://steamcommunity.com/sharedfiles/filedetails/?id=1512053748) [**(AUTHOR)**][ref-maintained]
   * [AlexCookie's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
   * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167)
   * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805)
@@ -491,3 +492,4 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-wiki-ta]: https://github.com/dvdvideo1234/TrackAssemblyTool/wiki
 [ref-work-turn]: https://www.youtube.com/watch?v=_qcol4_-_ZQ
 [ref-user-mbones]: https://steamcommunity.com/profiles/76561198348454446
+[ref-node-intersect]: https://www.youtube.com/watch?v=2MCagAUCU_M

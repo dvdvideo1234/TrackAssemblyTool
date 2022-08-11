@@ -786,7 +786,7 @@ end
  * curve note closest location can be updated with. Three cases:
  * 1. Both neighbours are active points. Intersect their active rays
  * 2. Only one node is an active point. Project on its active ray
- * 3. None of the neighbours are active points. Project on simetral
+ * 3. None of the neighbours are active points. Project on line bisector
  * iD    > Curve node index to be updated
  * vPnt  > The new location to update the node with
  * bMute > Mute mode. Used to disable server status messages
@@ -814,18 +814,18 @@ function TOOL:GetCurveNodeActive(iD, vPnt, bMute)
   else
     if(tS[3]) then -- Previous is an active point
       if(not bMute) then asmlib.Notify(ply,"Node projection prev !","HINT") end
-      return asmlib.ProjectRay(tS[1], tS[2]:Forward(), vPnt), 1
+      local mr, nr, xr = asmlib.ProjectRay(tS[1], tS[2]:Forward(), vPnt); return xr, 1
     elseif(tE[3]) then -- Next is an active point
       if(not bMute) then asmlib.Notify(ply,"Node projection next !","HINT") end
-      return asmlib.ProjectRay(tE[1], tE[2]:Forward(), vPnt), 1
+      local mr, nr, xr = asmlib.ProjectRay(tE[1], tE[2]:Forward(), vPnt); return xr, 1
     else -- None of the previous and next nodes are active points
-      if(not bMute) then asmlib.Notify(ply,"Node project simetral !","HINT") end
+      if(not bMute) then asmlib.Notify(ply,"Node project bisector !","HINT") end
       local vS, vE = tC.Node[iS], tC.Node[iE] -- Read start and finish nodes
       local vD = Vector(vE); vD:Sub(vS) -- Direction from start to finish
-      local vM = Vector(vD); vM:Mul(0.5); vM:Add(vS) -- Simetral origin
-      local vX = asmlib.ProjectRay(vS, vD, vPnt) -- Projection point
-      local vV = Vector(vPnt); vV:Sub(vX) -- Simetral direction vector
-      return asmlib.ProjectRay(vM, vV, vPnt), 0
+      local vO = Vector(vD); vO:Mul(0.5); vO:Add(vS) -- Bisector origin
+      local mr, nr, xr = asmlib.ProjectRay(vS, vD, vPnt) -- Projection point
+            vD:Set(vPnt); vD:Sub(xr) -- Bisector direction vector
+      local ms, ns, xs = asmlib.ProjectRay(vO, vD, vPnt); return xs, 0
     end
   end
 end
