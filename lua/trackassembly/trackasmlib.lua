@@ -826,12 +826,6 @@ function GetColor(xR, xG, xB, xA)
   return Color(nR, nG, nB, nA)
 end
 
-function ToColor(vBase, pX, pY, pZ, vA)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local iX, iY, iZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
-  return GetColor(vBase[iX], vBase[iY], vBase[iZ], vA)
-end
-
 function UpdateColor(oEnt, sVar, sCol, bSet)
   if(IsOther(oEnt)) then return nil end
   local cPal = GetContainer("COLORS_LIST")
@@ -856,18 +850,6 @@ function UpdateColor(oEnt, sVar, sCol, bSet)
 end
 
 ------------- ANGLE ---------------
-
-function ToAngle(aBase, pP, pY, pR)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  local aP, aY, aR = UseIndexes(pP, pY, pR, caP, caY, caR)
-  return Angle((tonumber(aBase[aP]) or 0), (tonumber(aBase[aY]) or 0), (tonumber(aBase[aR]) or 0))
-end
-
-function ExpAngle(aBase, pP, pY, pR)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  local aP, aY, aR = UseIndexes(pP, pY, pR, caP, caY, caR)
-  return (tonumber(aBase[aP]) or 0), (tonumber(aBase[aY]) or 0), (tonumber(aBase[aR]) or 0)
-end
 
 function SnapAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
@@ -898,18 +880,6 @@ function NegAngle(vBase, bP, bY, bR)
 end
 
 ------------- VECTOR ---------------
-
-function ToVector(vBase, pX, pY, pZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local vX, vY, vZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
-  return Vector((tonumber(vBase[vX]) or 0), (tonumber(vBase[vY]) or 0), (tonumber(vBase[vZ]) or 0))
-end
-
-function ExpVector(vBase, pX, pY, pZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local vX, vY, vZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
-  return (tonumber(vBase[vX]) or 0), (tonumber(vBase[vY]) or 0), (tonumber(vBase[vZ]) or 0)
-end
 
 function AddVector(vBase, vUnit)
   if(not vBase) then LogInstance("Base invalid"); return nil end
@@ -943,14 +913,6 @@ function SubVectorXYZ(vBase, nX, nY, nZ)
   vBase[cvY] = (tonumber(vBase[cvY]) or 0) - (tonumber(nY) or 0)
   vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(nZ) or 0)
   return vBase
-end
-
-function NegVector(vBase, bX, bY, bZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local X = (tonumber(vBase[cvX]) or 0); X = (IsHere(bX) and (bX and -X or X) or -X)
-  local Y = (tonumber(vBase[cvY]) or 0); Y = (IsHere(bY) and (bY and -Y or Y) or -Y)
-  local Z = (tonumber(vBase[cvZ]) or 0); Z = (IsHere(bZ) and (bZ and -Z or Z) or -Z)
-  vBase[cvX], vBase[cvY], vBase[cvZ] = X, Y, Z; return vBase
 end
 
 function BasisVector(vBase, aUnit)
@@ -1948,7 +1910,7 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
     LogInstance("Entity Invalid"); return Vector(0,0,0) end
   oEnt:SetPos(vPos); oEnt:SetAngles(aAng)
   local vCen, vMin = oEnt:OBBCenter(), oEnt:OBBMins()
-  NegVector(vCen); vCen[cvZ] = 0 -- Adjust only X and Y
+  vCen:Negate(); vCen[cvZ] = 0 -- Adjust only X and Y
   AddVectorXYZ(vCen, nX, -nY, nZ-vMin[cvZ])
   vCen:Rotate(aAng); vCen:Add(vPos); oEnt:SetPos(vCen)
   return vCen -- Returns X-Y OBB centered model

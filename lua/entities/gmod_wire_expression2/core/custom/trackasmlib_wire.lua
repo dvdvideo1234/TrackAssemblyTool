@@ -88,30 +88,23 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
                                               number nActRadius, number enFlatten, number enIgnTyp,
                                               vector ucsOffPos , angle ucsOffAng)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local stSpawn = asmlib.GetEntitySpawn(self.player, this, asmlib.ToVector(trHitPos, wvX, wvY, wvZ),
-                                        hdModel, hdPoID, nActRadius,(enFlatten ~= 0), (enIgnTyp ~= 0),
-                                        ucsOffPos[wvX], ucsOffPos[wvY], ucsOffPos[wvZ],
-                                        ucsOffAng[waP], ucsOffAng[waY], ucsOffAng[waR])
+  local stSpawn = asmlib.GetEntitySpawn(self.player, this, trHitPos, hdModel, hdPoID,
+                                        nActRadius, (enFlatten ~= 0), (enIgnTyp ~= 0),
+                                        ucsOffPos[cvX], ucsOffPos[cvY], ucsOffPos[cvZ],
+                                        ucsOffAng[caP], ucsOffAng[caY], ucsOffAng[caR])
   if(not stSpawn) then return {} end
-  local sPos = {stSpawn.SPos[cvX], stSpawn.SPos[cvY], stSpawn.SPos[cvZ]}
-  local sAng = {stSpawn.SAng[caP], stSpawn.SAng[caY], stSpawn.SAng[caR]}
-  return {sPos, sAng}
+  return {Vector(stSpawn.SPos), Angle(stSpawn.SAng)}
 end
 
 __e2setcost(80)
 e2function array trackasmlibSnapNormal(vector ucsPos, angle  ucsAng   , string hdModel,
                                        number hdPoID, vector ucsOffPos, angle ucsOffAng)
   if(not enFlag) then return {} end
-  local stSpawn = asmlib.GetNormalSpawn(self.player,
-                                        asmlib.ToVector(ucsPos, wvX, wvY, wvZ),
-                                        asmlib.ToAngle(ucsAng, waP, waY, waR),
-                                        ucsAng,hdModel,hdPoID,
-                                        ucsOffPos[wvX],ucsOffPos[wvY],ucsOffPos[wvZ],
-                                        ucsOffAng[waP],ucsOffAng[waY],ucsOffAng[waR])
+  local stSpawn = asmlib.GetNormalSpawn(self.player, ucsPos, ucsAng, hdModel, hdPoID,
+                                        ucsOffPos[cvX], ucsOffPos[cvY], ucsOffPos[cvZ],
+                                        ucsOffAng[caP], ucsOffAng[caY], ucsOffAng[caR])
   if(not stSpawn) then return {} end
-  local sPos = {stSpawn.SPos[cvX], stSpawn.SPos[cvY], stSpawn.SPos[cvZ]}
-  local sAng = {stSpawn.SAng[caP], stSpawn.SAng[caY], stSpawn.SAng[caR]}
-  return {sPos, sAng}
+  return {Vector(stSpawn.SPos), Angle(stSpawn.SAng)}
 end
 
 --[[ **************************** PIECES **************************** ]]
@@ -280,15 +273,18 @@ local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, 
   if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = oEnt:GetPhysicsObject()
     if(not (oPhy and oPhy:IsValid())) then return nil end; nMs = oPhy:GetMass() end
   if(not sBsID) then local sDir = asmlib.GetOpVar("OPSYM_DIRECTORY")
-    if(oEnt and oEnt:IsValid()) then
-      sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt)
-    else sBsID = "0/0" end -- Use default bodygrup and skin
+    if(not (oEnt and oEnt:IsValid())) then sBsID = "0/0" else -- Use bodygrup and skin
+      sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt) end
   end -- Color handling. Apply color based on the conditions
-  if(asmlib.IsNumber(oCol)) then oCol = asmlib.GetColor(nR,nG,nB,nA)
-  elseif(asmlib.IsTable(oCol)) then oCol = asmlib.ToColor(oCol,wvX,wvY,wvZ,(oCol[4] or nA))
+  if(asmlib.IsNumber(oCol)) then -- Color specifier is a number
+    oCol = asmlib.GetColor(nR,nG,nB,nA) -- Trat last 4 arguments as numbers
+  elseif(asmlib.IsTable(oCol)) then -- Attempt to extract keys information from the table
+    oCol = asmlib.GetColor((oCol[1] or oCol["r"]), -- Numerical indices are with priority to hash
+                           (oCol[2] or oCol["g"]), -- Numerical indices are with priority to hash
+                           (oCol[3] or oCol["b"]), -- Numerical indices are with priority to hash
+                     nA or (oCol[4] or oCol["a"])) -- Use argument alpha with priority
   else oCol = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
-  return asmlib.MakePiece(oPly,stRec.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),
-    asmlib.ToAngle(aAng,waP,waY,waR),mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
+  return asmlib.MakePiece(oPly,stRec.Slot,vPos,aAng,mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
 end
 
 __e2setcost(50)

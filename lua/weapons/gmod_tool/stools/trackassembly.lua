@@ -464,7 +464,7 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
     else asmlib.Notify(ply, "Model intersection mismatch !", "ERROR")
       asmlib.LogInstance("Model ray mismatch",gtLogs); return nil end
   end
-  local aOrg, vx, vy, vz = stSpawn.OAng, asmlib.ExpVector(stSpawn.PNxt)
+  local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt:Unpack()
   if(self:ApplyAngularFirst()) then aOrg = stRay1.Diw end
   mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate entity local intersection to world
   stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx); -- Update spawn position with the ray intersection
