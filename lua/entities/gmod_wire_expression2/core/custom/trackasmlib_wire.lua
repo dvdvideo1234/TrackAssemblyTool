@@ -41,18 +41,18 @@ local gsCbcHash = "_wire" -- This keeps suffix realted to the file
 
 gsVarName = asmlib.GetAsmConvar("enwiremod", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  enFlag = ((tonumber(vNew) or 0) ~= 0) end, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+  enFlag = ((tonumber(vN) or 0) ~= 0) end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("bnderrmod", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  gsBErr = tostring(vNew) end, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+  gsBErr = tostring(vN) end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("maxmass", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = (tonumber(vNew) or 0) -- Zero is invalid mass
+cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+  local nM = (tonumber(vN) or 0) -- Zero is invalid mass
   gnMaxMass = ((nM > 0) and nM or 1) -- Apply mass clamp
 end, gsVarName..gsCbcHash)
 
