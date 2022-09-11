@@ -564,15 +564,18 @@ function GetViewRadius(pPly, vPos, nMul)
 end
 
 --[[
-* Golden retriever. Retrieves file line as string
-* But seriously returns the sting line and EOF flag
-* pFile > The file to read the line of characters from
-* bCons > Keeps data consistency. Enable to ignore trimming
+ * Golden retriever. Retrieves file line as string
+ * But seriously returns the sting line and EOF flag
+ * pFile > The file to read the line of characters from
+ * bCons > Keeps data consistency. Enable to skip trim
+ * Reurns line contents and reaching EOF flag
+ * sLine > The line being read from the file
+ * isEOF > Flag indicating pointer reached EOF
 ]]
 function GetStringFile(pFile, bCons)
   if(not pFile) then LogInstance("No file"); return "", true end
-  local sLine = pFile:ReadLine()  -- Read one line at once
-  local isEOF = pFile:EndOfFile() -- Check for EOF status
+  local sLine = (pFile:ReadLine() or "") -- Read one line at once
+  local isEOF = pFile:EndOfFile() -- Check for file EOF status
   if(not bCons) then sLine = sLine:Trim() end
   return sLine, isEOF
 end
