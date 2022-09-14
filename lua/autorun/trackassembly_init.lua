@@ -68,6 +68,7 @@ local surfaceScreenHeight           = surface and surface.ScreenHeight
 local gamemodeCall                  = gamemode and gamemode.Call
 local cvarsAddChangeCallback        = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback     = cvars and cvars.RemoveChangeCallback
+local languageGetPhrase             = language and language.GetPhrase
 local propertiesAdd                 = properties and properties.Add
 local propertiesGetHovered          = properties and properties.GetHovered
 local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
@@ -91,7 +92,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.690")
+asmlib.SetOpVar("TOOL_VERSION","8.692")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -430,7 +431,6 @@ if(CLIENT) then
   -- Listen for changes to the localify language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
   cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
-    asmlib.InitLocalify(varLanguage:GetString())
     local sLog, bS, vOut, fUser, fAdmn = "*UPDATE_CONTROL_PANEL("..vO.."/"..vN..")"
     local oTool = asmlib.GetOpVar("STORE_TOOLOBJ"); if(not asmlib.IsHere(oTool)) then
       asmlib.LogInstance("Tool object missing", sLog); return end
@@ -451,8 +451,6 @@ if(CLIENT) then
     -- Wipe the panel so it is clear of contents sliders buttons and stuff
     pCont:ClearControls(); pUser:ClearControls(); pAdmn:ClearControls()
     -- Panels are cleared and we change the language utilizing localify
-    asmlib.InitLocalify(vN) -- Populate the new translated phrases
-    -- Start the menu repopulation with the new phrases
     bS, vOut = pcall(fCont, pCont) if(not bS) then
       asmlib.LogInstance("Control fail: "..vOut, sLog); return
     else asmlib.LogInstance("Control: "..asmlib.GetReport(pCont.Name), sLog) end
@@ -478,6 +476,10 @@ if(CLIENT) then
   asmlib.ToIcon("pn_externdb_6"    , "compress"        )
   asmlib.ToIcon("pn_externdb_7"    , "database_edit"   )
   asmlib.ToIcon("pn_externdb_8"    , "database_delete" )
+  asmlib.ToIcon("pn_srchcol_lb1"   , "brick"           )
+  asmlib.ToIcon("pn_srchcol_lb2"   , "package"         )
+  asmlib.ToIcon("pn_srchcol_lb3"   , "tag_green"       )
+  asmlib.ToIcon("pn_srchcol_lb4"   , "arrow_refresh"   )
   asmlib.ToIcon("model"            , "brick"           )
   asmlib.ToIcon("mass"             , "basket_put"      )
   asmlib.ToIcon("bgskids"          , "layers"          )
@@ -505,7 +507,6 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_hint"   , "shape_square_go"   )
   asmlib.ToIcon("bnderrmod_generic", "shape_square_link" )
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
-
   -- Workshop matching crap
   asmlib.WorkshopID("SligWolf's Rerailers"        , "132843280")
   asmlib.WorkshopID("SligWolf's Minitrains"       , "149759773")
@@ -699,7 +700,7 @@ if(CLIENT) then
         asmlib.LogInstance("Frame invalid",sLog); return nil end
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
-      pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
+      pnFrame:SetTitle(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(false)
       pnFrame.OnClose = function(pnSelf)
@@ -730,7 +731,7 @@ if(CLIENT) then
       pnDSV:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
       pnDSV:Dock(FILL)
       local tInfo = pnSheet:AddSheet("DSV", pnDSV, asmlib.ToIcon("dsvlist_extdb"))
-      tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." DSV")
+      tInfo.Tab:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb").." DSV")
       local nW, nH = pnFrame:GetSize()
       xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
       xySiz.x = (nW - 6 * xyDsz.x)
@@ -746,10 +747,10 @@ if(CLIENT) then
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(xyPos.x,xyPos.y)
       pnListView:SetSize(xySiz.x,xySiz.y)
-      pnListView:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
-      pnListView:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
-      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wUse)
-      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wAct)
+      pnListView:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
+      pnListView:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wUse)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wAct)
       pnListView:AddColumn(""):SetFixedWidth(0) -- The hidden path to the population file
       if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
       local oDSV = fileOpen(sNam, "rb", "DATA"); if(not oDSV) then pnFrame:Close()
@@ -807,7 +808,7 @@ if(CLIENT) then
         pnTable:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
         pnTable:Dock(FILL)
         local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.ToIcon(defTab.Name))
-        tInfo.Tab:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
+        tInfo.Tab:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
         local tFile = fileFind(fDSV:format("*", defTab.Nick), "DATA")
         if(asmlib.IsTable(tFile) and tFile[1]) then
           local nF, nW, nH = #tFile, pnFrame:GetSize()
@@ -826,7 +827,7 @@ if(CLIENT) then
               pnManage:SetSize(xySiz.x, xySiz.y)
               pnManage:SetFont("Trebuchet24")
               pnManage:SetText(sPref)
-              pnManage:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
+              pnManage:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
               pnManage.DoRightClick = function(pnSelf)
                 local pnMenu = vguiCreate("DMenu")
                 if(not IsValid(pnMenu)) then pnFrame:Close()
@@ -848,7 +849,7 @@ if(CLIENT) then
                   end
                 }
                 while(tOptions[iO]) do local sO = tostring(iO)
-                  local sDescr = asmlib.GetPhrase("tool."..gsToolNameL..".pn_externdb_"..sO)
+                  local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_"..sO)
                   pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_"..sO))
                   iO = iO + 1 -- Loop trough the functions list and add to the menu
                 end; pnMenu:Open()
@@ -887,7 +888,7 @@ if(CLIENT) then
       xySiz.x = (scrW / gnRatio) -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
       xySiz.y = mathFloor(xySiz.x / (1 + gnRatio))
-      pnFrame:SetTitle(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_hd").." "..oPly:Nick().." {"..sVersion.."}")
+      pnFrame:SetTitle(languageGetPhrase("tool."..gsToolNameL..".pn_routine_hd").." "..oPly:Nick().." {"..sVersion.."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
       pnFrame:SetDeleteOnClose(false)
@@ -911,9 +912,9 @@ if(CLIENT) then
       pnButton:SetPos(xyPos.x, xyPos.y)
       pnButton:SetSize(xySiz.x, xySiz.y)
       pnButton:SetVisible(true)
-      pnButton:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
-      pnButton:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export_lb"))
-      pnButton:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_export"))
+      pnButton:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_export_lb"))
+      pnButton:SetText(languageGetPhrase("tool."..gsToolNameL..".pn_export_lb"))
+      pnButton:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_export"))
       ------------ ComboBox ------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
@@ -926,13 +927,14 @@ if(CLIENT) then
       pnComboBox:SetPos(xyPos.x,xyPos.y)
       pnComboBox:SetSize(xySiz.x,xySiz.y)
       pnComboBox:SetVisible(true)
-      pnComboBox:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
-      pnComboBox:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol"))
-      pnComboBox:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), makTab:GetColumnName(1))
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), makTab:GetColumnName(2))
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), makTab:GetColumnName(3))
-      pnComboBox:AddChoice(asmlib.GetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), makTab:GetColumnName(4))
+      pnComboBox:SetSortItems(false)
+      pnComboBox:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
+      pnComboBox:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol"))
+      pnComboBox:SetValue(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), makTab:GetColumnName(1), false, asmlib.ToIcon("pn_srchcol_lb1"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), makTab:GetColumnName(2), false, asmlib.ToIcon("pn_srchcol_lb2"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), makTab:GetColumnName(3), false, asmlib.ToIcon("pn_srchcol_lb3"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), makTab:GetColumnName(4), false, asmlib.ToIcon("pn_srchcol_lb4"))
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
         asmlib.LogInstance("Selected "..asmlib.GetReport3(nInd,sVal,anyData),sLog..".ComboBox")
         pnSelf:SetValue(sVal)
@@ -951,8 +953,8 @@ if(CLIENT) then
       pnModelPanel:SetPos(xyPos.x,xyPos.y)
       pnModelPanel:SetSize(xySiz.x,xySiz.y)
       pnModelPanel:SetVisible(true)
-      pnModelPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_display_lb"))
-      pnModelPanel:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_display"))
+      pnModelPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_display_lb"))
+      pnModelPanel:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_display"))
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
         local uiBox = asmlib.CacheBoxLayout(oEnt,40); if(not asmlib.IsHere(uiBox)) then
@@ -982,8 +984,8 @@ if(CLIENT) then
       pnTextEntry:SetPos(xyPos.x,xyPos.y)
       pnTextEntry:SetSize(xySiz.x,xySiz.y)
       pnTextEntry:SetVisible(true)
-      pnTextEntry:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern_lb"))
-      pnTextEntry:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_pattern"))
+      pnTextEntry:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_pattern_lb"))
+      pnTextEntry:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_pattern"))
       ------------ ListView ------------
       xyPos.x, xyPos.y = pnButton:GetPos()
       xyTmp.x, xyTmp.y = pnButton:GetSize()
@@ -1009,12 +1011,12 @@ if(CLIENT) then
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(xyPos.x,xyPos.y)
       pnListView:SetSize(xySiz.x,xySiz.y)
-      pnListView:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb"))
-      pnListView:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine"))
-      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb1")):SetFixedWidth(wUse) -- (1)
-      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb2")):SetFixedWidth(wAct) -- (2)
-      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
-      pnListView:AddColumn(asmlib.GetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
+      pnListView:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"))
+      pnListView:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_routine"))
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb1")):SetFixedWidth(wUse) -- (1)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb2")):SetFixedWidth(wAct) -- (2)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
@@ -1204,7 +1206,7 @@ if(CLIENT) then
           if(not asmlib.IsHere(tDat.Bar[sDir])) then tDat.Bar[sDir] = {} end; tDat.Bar[sDir][sSub] = fFoo
           asmlib.LogInstance("Store "..asmlib.GetReport3(sDir, sSub, fFoo), sLog)
           hookRemove(tDat.Hoo, sKey); hookAdd(tDat.Hoo, sKey, function()
-            spawnmenuAddToolMenuOption(lDir, lSub, sKey, asmlib.GetPhrase(tDat.Nam), "", "", fFoo) end)
+            spawnmenuAddToolMenuOption(lDir, lSub, sKey, languageGetPhrase(tDat.Nam), "", "", fFoo) end)
         else
           if(not asmlib.IsHere(tDat.Bar[sDir])) then
             asmlib.LogInstance("Miss folder "..asmlib.GetReport1(sDir), sLog); return end
@@ -1230,9 +1232,10 @@ local gsOptionsCM = gsToolPrefL.."context_menu"
 local gsOptionsCV = gsToolPrefL.."context_values"
 local gsOptionsLG = gsOptionsCM:gsub(gsToolPrefL, ""):upper()
 local gtOptionsCM = {} -- This stores the context menu configuration
-gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, asmlib.ToIcon(gsOptionsCM)
-gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
-
+if(CLIENT) then -- Client specific control values
+  gtOptionsCM.Order, gtOptionsCM.MenuIcon = 1600, asmlib.ToIcon(gsOptionsCM)
+  gtOptionsCM.MenuLabel = languageGetPhrase("tool."..gsToolNameL..".name")
+end
 -- [1]: Translation language key
 -- [2]: Flag to transmit the data to the server
 -- [3]: Tells what is to be done with the value
@@ -1471,7 +1474,6 @@ gtOptionsCM.Filter = function(self, ent, ply)
 end
 -- The routine which builds the context menu
 gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
-  gtOptionsCM.MenuLabel = asmlib.GetPhrase("tool."..gsToolNameL..".name")
   local oPly, pnSub = LocalPlayer(), opt:AddSubMenu(); if(not IsValid(pnSub)) then
     asmlib.LogInstance("Invalid context menu",gsOptionsLG); return end
   local fHash = (gsToolNameL.."%.(.*)$")
@@ -1479,7 +1481,7 @@ gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
     local tLine = conContextMenu:Select(iD)
     local sKey , fDraw = tLine[1], tLine[4]
     local wDraw, sIcon = tLine[5], sKey:match(fHash)
-    local sName = asmlib.GetPhrase(sKey.."_con"):Trim():Trim(":")
+    local sName = languageGetPhrase(sKey.."_con"):Trim():Trim(":")
     if(asmlib.IsFunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
         asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
