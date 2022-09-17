@@ -156,10 +156,11 @@ TOOL.ClientConVar = {
 }
 
 if(CLIENT) then
+  languageAdd("tool."..gsToolNameL..".category", "Construction")
+
   -- https://wiki.facepunch.com/gmod/Tool_Information_Display
   TOOL.Information = asmlib.GetToolInformation()
 
-  languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
