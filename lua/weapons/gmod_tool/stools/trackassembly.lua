@@ -156,13 +156,11 @@ TOOL.ClientConVar = {
 }
 
 if(CLIENT) then
-  -- Initialize tool translations and load the lua file dedicated to the language
-  asmlib.InitLocalify(varLanguage:GetString())
+  languageAdd("tool."..gsToolNameL..".category", "Construction")
 
   -- https://wiki.facepunch.com/gmod/Tool_Information_Display
   TOOL.Information = asmlib.GetToolInformation()
 
-  languageAdd("tool."..gsToolNameL..".category", "Construction")
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
@@ -2278,8 +2276,8 @@ function TOOL.BuildCPanel(CPanel)
   local nMaxLin = asmlib.GetAsmConvar("maxlinear","FLT")
   local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
   local sCall, pItem, sName, aData = "_cpan" -- pItem is the current panel created
-          CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".name"))
-  pItem = CPanel:Help   (asmlib.GetPhrase("tool."..gsToolNameL..".desc"))
+          CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
+  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc"))
 
   local pComboPresets = vguiCreate("ControlPresets", CPanel)
         pComboPresets:SetPreset(gsToolNameL)
@@ -2298,7 +2296,7 @@ function TOOL.BuildCPanel(CPanel)
     asmlib.LogInstance("Database tree empty",sLog); return end
   pTree:Dock(TOP) -- Initiallize to fill left and right bounds
   pTree:SetTall(400) -- Make it quite large
-  pTree:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".model"))
+  pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
   pTree:SetIndentSize(0) -- All track types are cloded
   pTree:UpdateColours(drmSkin) -- Apply current skin
   CPanel:AddItem(pTree) -- Register it to the panel
@@ -2311,7 +2309,7 @@ function TOOL.BuildCPanel(CPanel)
     if(fileExists(sMod, "GAME")) then
       if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
-              pRoot:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".type"))
+              pRoot:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.DoClick = function(pnSelf)
                 if(inputIsKeyDown(KEY_LSHIFT)) then
@@ -2376,9 +2374,9 @@ function TOOL.BuildCPanel(CPanel)
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local sName = asmlib.GetAsmConvar("workmode", "NAM")
   local aData = asmlib.GetAsmConvar("workmode", "INT")
-  local pComboToolMode = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".workmode_con"), sName)
+  local pComboToolMode = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".workmode_con"), sName)
         pComboToolMode:SetSortItems(false)
-        pComboToolMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".workmode"))
+        pComboToolMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".workmode"))
         pComboToolMode:UpdateColours(drmSkin)
         pComboToolMode:Dock(TOP) -- Setting tallness gets ingnored otherwise
         pComboToolMode:SetTall(22)
@@ -2386,23 +2384,23 @@ function TOOL.BuildCPanel(CPanel)
         for iD = 1, conWorkMode:GetSize() do
           local sW = tostring(conWorkMode:Select(iD) or gsNoAV):lower()
           local sI = asmlib.ToIcon("workmode_"..sW)
-          local sT = asmlib.GetPhrase("tool."..gsToolNameL..".workmode."..iD)
+          local sT = languageGetPhrase("tool."..gsToolNameL..".workmode."..iD)
           pComboToolMode:AddChoice(sT, iD, (iD == aData), sI)
         end
 
   local sName = asmlib.GetAsmConvar("physmater", "NAM")
-  local pComboPhysType = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_con"))
-        pComboPhysType:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phytype"))
-        pComboPhysType:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phytype_def"))
+  local pComboPhysType = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".phytype_con"))
+        pComboPhysType:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phytype"))
+        pComboPhysType:SetValue(languageGetPhrase("tool."..gsToolNameL..".phytype_def"))
         pComboPhysType.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysType:Dock(TOP) -- Setting tallness gets ingnored otherwise
         pComboPhysType:SetTall(22)
         pComboPhysType:UpdateColours(drmSkin)
 
-  local pComboPhysName = CPanel:ComboBox(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
-        pComboPhysName:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".phyname"))
+  local pComboPhysName = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
+        pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
         pComboPhysName:SetValue(asmlib.GetTerm(asmlib.GetAsmConvar("physmater","STR"),
-                                asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def")))
+                                languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysName:Dock(TOP) -- Setting tallness gets ingnored otherwise
         pComboPhysName:SetTall(22)
@@ -2419,7 +2417,7 @@ function TOOL.BuildCPanel(CPanel)
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local cqNames = asmlib.CacheQueryProperty(sVal)
     if(cqNames) then local iNam = 1; pComboPhysName:Clear()
-      pComboPhysName:SetValue(asmlib.GetPhrase("tool."..gsToolNameL..".phyname_def"))
+      pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
       while(cqNames[iNam]) do
         local sN, sI = cqNames[iNam], asmlib.ToIcon("property_name")
         pComboPhysName:AddChoice(sN, sN, false, sI); iNam = iNam + 1
@@ -2434,10 +2432,10 @@ function TOOL.BuildCPanel(CPanel)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
-  local pText = CPanel:TextEntry(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_con"), sName)
-        pText:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".bgskids"))
+  local pText = CPanel:TextEntry(languageGetPhrase("tool."..gsToolNameL..".bgskids_con"), sName)
+        pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
         pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),
-                      asmlib.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
+                      languageGetPhrase("tool."..gsToolNameL..".bgskids_def")))
         pText:SetEnabled(false); pText:SetTall(22)
 
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
@@ -2519,8 +2517,8 @@ if(CLIENT) then
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
     local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
-    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_user"))
-    CPanel:ControlHelp(asmlib.GetPhrase("tool."..gsToolNameL..".client_var"))
+    CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".utilities_user"))
+    CPanel:ControlHelp(languageGetPhrase("tool."..gsToolNameL..".client_var"))
     asmlib.SetNumSlider(CPanel, "sizeucs"  , iMaxDec)
     asmlib.SetNumSlider(CPanel, "incsnplin", 0)
     asmlib.SetNumSlider(CPanel, "incsnpang", 0)
@@ -2544,15 +2542,15 @@ if(CLIENT) then
     local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
-    CPanel:SetName(asmlib.GetPhrase("tool."..gsToolNameL..".utilities_admin"))
-    CPanel:ControlHelp(asmlib.GetPhrase("tool."..gsToolNameL..".nonrep_var"))
+    CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".utilities_admin"))
+    CPanel:ControlHelp(languageGetPhrase("tool."..gsToolNameL..".nonrep_var"))
     asmlib.SetCheckBox(CPanel, "logfile")
     asmlib.SetNumSlider(CPanel, "logsmax", 0)
     asmlib.SetCheckBox(CPanel, "devmode")
     asmlib.SetCheckBox(CPanel, "exportdb")
     asmlib.SetNumSlider(CPanel, "maxtrmarg", iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxmenupr", 0)
-    CPanel:ControlHelp(asmlib.GetPhrase("tool."..gsToolNameL..".relica_var"))
+    CPanel:ControlHelp(languageGetPhrase("tool."..gsToolNameL..".relica_var"))
     asmlib.SetNumSlider(CPanel, "spawnrate", 0)
     asmlib.SetNumSlider(CPanel, "maxmass"  , iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxlinear", iMaxDec)
@@ -2582,7 +2580,7 @@ if(CLIENT) then
     while(mkTab) do tPan[iD] = {}
       local vPan, pDef = tPan[iD], mkTab:GetDefinition()
       local tSet = sRev:Explode(tostring(tVar[iD] or ""))
-      local sMem = asmlib.GetPhrase("tool."..gsToolNameL..".timermode_mem")
+      local sMem = languageGetPhrase("tool."..gsToolNameL..".timermode_mem")
       local pMem = pItem:Add(sMem.." "..pDef.Nick)
             pMem:SetTooltip(sMem.." "..pDef.Nick)
       local pMode = vguiCreate("DComboBox", pItem); if(not IsValid(pMode)) then
@@ -2590,13 +2588,13 @@ if(CLIENT) then
       pMode:Dock(TOP); pMode:SetTall(25)
       pMode:UpdateColours(drmSkin)
       pMode:SetSortItems(false)
-      pMode:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_md"))
+      pMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_md"))
       pMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
       for iK = 1, #tMod do local sK = tMod[iK]
         local bSel = (tostring(tSet[1]) == sK)
         local sIco = asmlib.ToIcon("timermode_"..sK:lower())
         local sKey = ("tool."..gsToolNameL..".timermode_"..sK:lower())
-        pMode:AddChoice(asmlib.GetPhrase(sKey), sK, bSel, sIco)
+        pMode:AddChoice(languageGetPhrase(sKey), sK, bSel, sIco)
       end
       local pLife = vguiCreate("DNumSlider", pItem); if(not IsValid(pLife)) then
         asmlib.LogInstance("Record life invalid", sLog); return end
@@ -2606,19 +2604,19 @@ if(CLIENT) then
       pLife:SetValue(tonumber(tSet[2]) or 0)
       pLife:SetDefaultValue(tonumber(tSet[2]) or 0)
       pLife:SizeToContents()
-      pLife:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
-      pLife:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_lf"))
+      pLife:SetText(languageGetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
+      pLife:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_lf"))
       local pCler = vguiCreate("DCheckBoxLabel", pItem); if(not IsValid(pCler)) then
         asmlib.LogInstance("Force clear invalid", sLog); return end
       pCler:Dock(TOP); pCler:SetTall(25)
       pCler:SetValue((tonumber(tSet[3]) or 0) ~= 0)
-      pCler:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd"))
-      pCler:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
+      pCler:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_rd"))
+      pCler:SetText(languageGetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
       local pColl = vguiCreate("DCheckBoxLabel", pItem); if(not IsValid(pColl)) then
         asmlib.LogInstance("Collect invalid", sLog); return end
       pColl:SetValue((tonumber(tSet[4]) or 0) ~= 0)
-      pColl:SetTooltip(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct"))
-      pColl:SetText(asmlib.GetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
+      pColl:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_ct"))
+      pColl:SetText(languageGetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
       pColl:Dock(TOP); pColl:SetTall(25)
       iD = (iD + 1); mkTab = asmlib.GetBuilderID(iD)
       vPan["MODE"], vPan["LIFE"] = pMode, pLife

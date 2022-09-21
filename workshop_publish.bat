@@ -18,7 +18,7 @@ set gmadBinPath=F:\Games\Steam\steamapps\common\GarrysMod\bin
 set gmadADTools=%gmadRevPath%data\trackassembly\tools
 set "gmadTime=%date% %time%"
 set gmadID=287012681
-set gmadDirs=(lua)
+set gmadDirs=(lua resource)
 set gmadLogs=
 set gmadCRLF=^
 

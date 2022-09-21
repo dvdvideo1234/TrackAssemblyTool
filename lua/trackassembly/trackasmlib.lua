@@ -153,6 +153,7 @@ local surfaceScreenHeight            = surface and surface.ScreenHeight
 local surfaceDrawTexturedRect        = surface and surface.DrawTexturedRect
 local surfaceDrawTexturedRectRotated = surface and surface.DrawTexturedRectRotated
 local languageAdd                    = language and language.Add
+local languageGetPhrase              = language and language.GetPhrase
 local constructSetPhysProp           = construct and construct.SetPhysProp
 local constraintWeld                 = constraint and constraint.Weld
 local constraintGetTable             = constraint and constraint.GetTable
@@ -1672,7 +1673,7 @@ function SetDirectory(pnBase, pCurr, vName)
         sName = (IsBlank(sName) and "Other" or sName)
   local pNode = pnBase:AddNode(sName)
   pCurr[sName] = {}; pCurr[sName][keyOb] = pNode
-  pNode:SetTooltip(GetPhrase("tool."..sTool..".subfolder"))
+  pNode:SetTooltip(languageGetPhrase("tool."..sTool..".subfolder"))
   pNode.Icon:SetImage(ToIcon("subfolder_item"))
   pNode.DoClick = function(pnSelf)
     if(inputIsKeyDown(KEY_LSHIFT)) then
@@ -1694,7 +1695,7 @@ function SetDirectoryNode(pnBase, sName, sModel)
     ..GetReport2(sName, sModel)); return nil end
   local tSkin = pnBase:GetSkin()
   local sTool = GetOpVar("TOOLNAME_NL")
-  local sModC = GetPhrase("tool."..sTool..".model_con")
+  local sModC = languageGetPhrase("tool."..sTool..".model_con")
   pNode.DoRightClick = function()
     if(inputIsKeyDown(KEY_LSHIFT)) then
       SetClipboardText(sModel)
@@ -1778,8 +1779,8 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   pSlider:SizeToContentsY()
   pSlider:Dock(TOP)
   pSlider:SetTall(sY)
-  pSlider:SetText(GetPhrase(sBase.."_con"))
-  pSlider:SetTooltip(GetPhrase(sBase))
+  pSlider:SetText(languageGetPhrase(sBase.."_con"))
+  pSlider:SetTooltip(languageGetPhrase(sBase))
   pSlider:SetMin(nMin)
   pSlider:SetMax(nMax)
   pSlider:SetDefaultValue(tConv[sKey])
@@ -1832,7 +1833,7 @@ function SetComboBoxList(cPanel, sVar)
     local sKey, sNam, bExa = GetNameExp(sVar)
     local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
     local sName = GetAsmConvar(sVar, "NAM")
-    local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+    local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
     pItem = cPanel:ComboBox(sMenu, sName)
     pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(25)
     pItem:SetTooltip(sTtip); pItem:UpdateColours(tSkin)
@@ -1846,7 +1847,7 @@ function SetComboBoxList(cPanel, sVar)
     for iD = 1, #tSet do local sI = tSet[iD]
       local sIco = ToIcon(sNam.."_"..sI:lower())
       local sPrv = (sBase.."_"..sI:lower())
-      pItem:AddChoice(GetPhrase(sPrv), sI, false, sIco)
+      pItem:AddChoice(languageGetPhrase(sPrv), sI, false, sIco)
     end
   else LogInstance("Missing "..GetReport1(sNam)) end
 end
@@ -1856,7 +1857,7 @@ function SetButton(cPanel, sVar)
   local tConv = GetOpVar("STORE_CONVARS")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
-  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
   local pItem = cPanel:Button(sMenu, sKey)
         pItem:SetTooltip(sTtip); return pItem
 end
@@ -1894,7 +1895,7 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
     else LogInstance("(H) List "..GetReport2(sKey, nMax)) end
   else LogInstance("(H) Args "..GetReport2(sKey, nMax)) end
   -- Create the slider control using the min, max and default
-  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
   local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
   pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDef); return pItem
 end
@@ -1903,7 +1904,7 @@ function SetCheckBox(cPanel, sVar)
   local sTool = GetOpVar("TOOLNAME_NL")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
-  local sMenu, sTtip = GetPhrase(sBase.."_con"), GetPhrase(sBase)
+  local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
   local pItem = cPanel:CheckBox(sMenu, sKey)
   pItem:SetTooltip(sTtip); return pItem
 end
@@ -4867,60 +4868,6 @@ function SetAsmConvar(pPly, sName, snVal)
   local sKey = GetNameExp(sName); if(IsPlayer(pPly)) then -- Use the player when available
     return pPly:ConCommand(sFmt:format(sKey, "\""..tostring(snVal or "")).."\"\n")
   end; return RunConsoleCommand(sKey, tostring(snVal or ""))
-end
-
---[[
- * Returns translation hash dedicated to user menus
- * vKey > The translation hash to obtain forn the information table
- * When translation cannot be located ir is replaced by `MISS_NOTR`
-]]
-function GetPhrase(vKey)
-  local sDef = GetOpVar("MISS_NOTR")
-  if(SERVER) then LogInstance("Server "..GetReport(vKey)); return sDef end
-  local tSet = GetOpVar("LOCALIFY_TABLE"); if(not IsHere(tSet)) then
-    LogInstance("Mismatch "..GetReport(vKey)); return sDef end
-  local sKey = tostring(vKey); if(not IsHere(tSet[sKey])) then
-    LogInstance("Skipped "..GetReport1(sKey)); return sDef end
-  return (tSet[sKey] or sDef) -- Translation fail safe
-end
-
---[[
- * Returns or allocates translation hash definition table
- * vCode > The language code to allocate and return table for
-]]
-local function GetLocalify(vCode)
-  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
-  local sCode = tostring(vCode or auCod) -- No language code then english
-  if(SERVER) then LogInstance("Server "..GetReport(vCode)); return nil end
-  local sTool, sLimit = GetOpVar("TOOLNAME_NL"), GetOpVar("CVAR_LIMITNAME")
-  local sPath = GetOpVar("FORM_LANGPATH"):format(sCode..".lua")
-  if(not fileExists("lua/"..sPath, "GAME")) then -- Translation file path
-    LogInstance("Missing "..GetReport1(sCode)); return nil end
-  local fCode = CompileFile(sPath); if(not fCode) then -- Compile
-    LogInstance("Stage[0] "..GetReport2(sCode, sPath)); return nil end
-  local bFunc, fFunc = pcall(fCode); if(not bFunc) then -- Call the function factory
-    LogInstance("Stage[1] "..GetReport2(sCode, sPath)..": "..fFunc); return nil end
-  local bCode, tCode = pcall(fFunc, sTool, sLimit); if(not bCode) then -- Produce entry
-    LogInstance("Stage[2] "..GetReport2(sCode, sPath)..": "..tCode); return nil end
-  return tCode -- The successfully extracted translations table and returns the list
-end
-
---[[
- * Switches the system to new translation provided
- * vCode > The translation to switch all messages to
-]]
-function InitLocalify(vCode)
-  local auCod = GetOpVar("LOCALIFY_AUTO") -- Automatic translation code
-  local cuCod = tostring(vCode or auCod) -- No language code then english
-  if(SERVER) then LogInstance("Server "..GetReport(vCode)); return end
-  local thSet = GetOpVar("LOCALIFY_TABLE"); tableEmpty(thSet)
-  local auSet = GetLocalify(auCod); if(not auSet) then
-    LogInstance("Mismatch "..GetReport(auCod)); return end
-  if(cuCod ~= auCod) then local cuSet = GetLocalify(cuCod)
-    if(cuSet) then -- When the language infornation is extracted apply on success
-      for key, val in pairs(auSet) do auSet[key] = (cuSet[key] or auSet[key]) end
-    else LogInstance("Skipped "..GetReport(auCod)) end -- Apply auto code
-  end; for key, val in pairs(auSet) do thSet[key] = auSet[key]; languageAdd(key, val) end
 end
 
 --[[
