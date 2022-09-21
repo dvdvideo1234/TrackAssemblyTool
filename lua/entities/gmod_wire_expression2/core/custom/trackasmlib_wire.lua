@@ -41,18 +41,18 @@ local gsCbcHash = "_wire" -- This keeps suffix realted to the file
 
 gsVarName = asmlib.GetAsmConvar("enwiremod", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  enFlag = ((tonumber(vNew) or 0) ~= 0) end, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+  enFlag = ((tonumber(vN) or 0) ~= 0) end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("bnderrmod", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  gsBErr = tostring(vNew) end, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+  gsBErr = tostring(vN) end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("maxmass", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
-  local nM = (tonumber(vNew) or 0) -- Zero is invalid mass
+cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+  local nM = (tonumber(vN) or 0) -- Zero is invalid mass
   gnMaxMass = ((nM > 0) and nM or 1) -- Apply mass clamp
 end, gsVarName..gsCbcHash)
 
@@ -280,15 +280,18 @@ local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, 
   if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = oEnt:GetPhysicsObject()
     if(not (oPhy and oPhy:IsValid())) then return nil end; nMs = oPhy:GetMass() end
   if(not sBsID) then local sDir = asmlib.GetOpVar("OPSYM_DIRECTORY")
-    if(oEnt and oEnt:IsValid()) then
-      sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt)
-    else sBsID = "0/0" end -- Use default bodygrup and skin
+    if(not (oEnt and oEnt:IsValid())) then sBsID = "0/0" else -- Use bodygrup and skin
+      sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt) end
   end -- Color handling. Apply color based on the conditions
-  if(asmlib.IsNumber(oCol)) then oCol = asmlib.GetColor(nR,nG,nB,nA)
-  elseif(asmlib.IsTable(oCol)) then oCol = asmlib.ToColor(oCol,wvX,wvY,wvZ,(oCol[4] or nA))
+  if(asmlib.IsNumber(oCol)) then -- Color specifier is a number
+    oCol = asmlib.GetColor(nR,nG,nB,nA) -- Trat last 4 arguments as numbers
+  elseif(asmlib.IsTable(oCol)) then -- Attempt to extract keys information from the table
+    oCol = asmlib.GetColor((oCol[1] or oCol["r"]), -- Numerical indices are with priority to hash
+                           (oCol[2] or oCol["g"]), -- Numerical indices are with priority to hash
+                           (oCol[3] or oCol["b"]), -- Numerical indices are with priority to hash
+                     nA or (oCol[4] or oCol["a"])) -- Use argument alpha with priority
   else oCol = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
-  return asmlib.MakePiece(oPly,stRec.Slot,asmlib.ToVector(vPos,wvX,wvY,wvZ),
-    asmlib.ToAngle(aAng,waP,waY,waR),mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
+  return asmlib.MakePiece(oPly,stRec.Slot,vPos,aAng,mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
 end
 
 __e2setcost(50)

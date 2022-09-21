@@ -462,7 +462,7 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
     else asmlib.Notify(ply, "Model intersection mismatch !", "ERROR")
       asmlib.LogInstance("Model ray mismatch",gtLogs); return nil end
   end
-  local aOrg, vx, vy, vz = stSpawn.OAng, asmlib.ExpVector(stSpawn.PNxt)
+  local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt:Unpack()
   if(self:ApplyAngularFirst()) then aOrg = stRay1.Diw end
   mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate entity local intersection to world
   stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx); -- Update spawn position with the ray intersection
@@ -1752,14 +1752,14 @@ end
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
     asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtLogs); return end
-  local spawncn, elevpnt = self:GetSpawnCenter(), 0
   if(oEnt and oEnt:IsValid()) then
-    if(spawncn) then -- Distance for the piece spawned on the ground
-      local vobdbox = oEnt:OBBMins(); elevpnt = -vobdbox[cvZ]
-    else local pointid, pnextid = self:GetPointID()
-      elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0)
-    end; asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtLogs)
-  end; asmlib.SetAsmConvar(oPly, "elevpnt", elevpnt)
+    local pointid, pnextid = self:GetPointID()
+    local spawncn, elevpnt = self:GetSpawnCenter(), 0
+    if(not spawncn) then -- Distance for the piece spawned on the ground
+      elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0); end
+    asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtLogs)
+    asmlib.SetAsmConvar(oPly, "elevpnt", elevpnt)
+  end
 end
 
 function TOOL:Think()
