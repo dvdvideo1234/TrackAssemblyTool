@@ -88,30 +88,23 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
                                               number nActRadius, number enFlatten, number enIgnTyp,
                                               vector ucsOffPos , angle ucsOffAng)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  local stSpawn = asmlib.GetEntitySpawn(self.player, this, asmlib.ToVector(trHitPos, wvX, wvY, wvZ),
-                                        hdModel, hdPoID, nActRadius,(enFlatten ~= 0), (enIgnTyp ~= 0),
-                                        ucsOffPos[wvX], ucsOffPos[wvY], ucsOffPos[wvZ],
-                                        ucsOffAng[waP], ucsOffAng[waY], ucsOffAng[waR])
+  local stSpawn = asmlib.GetEntitySpawn(self.player, this, trHitPos, hdModel, hdPoID,
+                                        nActRadius, (enFlatten ~= 0), (enIgnTyp ~= 0),
+                                        ucsOffPos[cvX], ucsOffPos[cvY], ucsOffPos[cvZ],
+                                        ucsOffAng[caP], ucsOffAng[caY], ucsOffAng[caR])
   if(not stSpawn) then return {} end
-  local sPos = {stSpawn.SPos[cvX], stSpawn.SPos[cvY], stSpawn.SPos[cvZ]}
-  local sAng = {stSpawn.SAng[caP], stSpawn.SAng[caY], stSpawn.SAng[caR]}
-  return {sPos, sAng}
+  return {Vector(stSpawn.SPos), Angle(stSpawn.SAng)}
 end
 
 __e2setcost(80)
 e2function array trackasmlibSnapNormal(vector ucsPos, angle  ucsAng   , string hdModel,
                                        number hdPoID, vector ucsOffPos, angle ucsOffAng)
   if(not enFlag) then return {} end
-  local stSpawn = asmlib.GetNormalSpawn(self.player,
-                                        asmlib.ToVector(ucsPos, wvX, wvY, wvZ),
-                                        asmlib.ToAngle(ucsAng, waP, waY, waR),
-                                        ucsAng,hdModel,hdPoID,
-                                        ucsOffPos[wvX],ucsOffPos[wvY],ucsOffPos[wvZ],
-                                        ucsOffAng[waP],ucsOffAng[waY],ucsOffAng[waR])
+  local stSpawn = asmlib.GetNormalSpawn(self.player, ucsPos, ucsAng, hdModel, hdPoID,
+                                        ucsOffPos[cvX], ucsOffPos[cvY], ucsOffPos[cvZ],
+                                        ucsOffAng[caP], ucsOffAng[caY], ucsOffAng[caR])
   if(not stSpawn) then return {} end
-  local sPos = {stSpawn.SPos[cvX], stSpawn.SPos[cvY], stSpawn.SPos[cvZ]}
-  local sAng = {stSpawn.SAng[caP], stSpawn.SAng[caY], stSpawn.SAng[caR]}
-  return {sPos, sAng}
+  return {Vector(stSpawn.SPos), Angle(stSpawn.SAng)}
 end
 
 --[[ **************************** PIECES **************************** ]]

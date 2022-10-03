@@ -855,12 +855,6 @@ end
 
 ------------- ANGLE ---------------
 
-function ToAngle(aBase, pP, pY, pR)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  local aP, aY, aR = UseIndexes(pP, pY, pR, caP, caY, caR)
-  return Angle((tonumber(aBase[aP]) or 0), (tonumber(aBase[aY]) or 0), (tonumber(aBase[aR]) or 0))
-end
-
 function SnapAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
   local D = (tonumber(nvDec) or 0); if(D <= 0) then
@@ -890,12 +884,6 @@ function NegAngle(vBase, bP, bY, bR)
 end
 
 ------------- VECTOR ---------------
-
-function ToVector(vBase, pX, pY, pZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local vX, vY, vZ = UseIndexes(pX, pY, pZ, cvX, cvY, cvZ)
-  return Vector((tonumber(vBase[vX]) or 0), (tonumber(vBase[vY]) or 0), (tonumber(vBase[vZ]) or 0))
-end
 
 function AddVector(vBase, vUnit)
   if(not vBase) then LogInstance("Base invalid"); return nil end
