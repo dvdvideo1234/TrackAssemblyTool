@@ -11,7 +11,12 @@
 -- Local reference to the module.
 local asmlib = trackasmlib
 
--- Change this to your addon name.
+--[[
+ * This is your addon name. It is mandatory and it must be string.
+ * It is used by TA in order to classify the content you are creating
+ * It must NOT be an empty string nil or any other type regarding
+ * The value will be automatically pattern converted to a index prefix
+]]
 local myAddon = "Shinji85's Rails" -- Your addon name goes here
 
 --[[
