@@ -61,9 +61,6 @@ end
 
 -- There is something to error about stop the execution and report it
 if(not asmlib) then myThrowError("Failed loading the required module!"); return end
-if(not asmlib.IsHere(myAddon)) then myThrowError("Addon name is missing!"); return end
-if(not asmlib.IsString(myAddon)) then myThrowError("Addon name not string: "..tostring(myAddon).."!"); return end
-if(asmlib.IsBlank(myAddon)) then myThrowError("Addon name empty string. Cannot classify content!"); return end
 
 --[[
  * This logic statement is needed for reporting the error
