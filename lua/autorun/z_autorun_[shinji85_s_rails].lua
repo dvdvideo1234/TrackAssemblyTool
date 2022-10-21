@@ -52,11 +52,11 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
  * and throw the message to the log also. In this case you will not
  * have to change the function name in lots of places
  * when you need it to do something else.
+ * Generate an error in the console ( optional ) so we can notify the user
 --]]
 local function myThrowError(vMesg)
   local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Make sure the message is string
-  if(asmlib) then asmlib.LogInstance(sMesg) end -- Output the message into the logs for tracking
-  myError(sMesg) -- Generate an error in the console ( optional ) so we can notify the user
+  if(asmlib) then asmlib.LogInstance(sMesg) end; myError(sMesg) -- Output the message into the logs
 end
 
 -- There is something to error about stop the execution and report it
@@ -81,20 +81,63 @@ if(not asmlib) then myThrowError("Failed loading the required module!"); return 
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
  * sDelim > The delimiter used by the server/client ( default is a tab symbol )
 ]]--
-local function mySyncTable(tData, sName, sPref, bRepl)
-  if(not asmlib.IsEmpty(tData)) then
-    asmlib.LogInstance("SynchronizeDSV start <"..sPref..">")
-    if(not asmlib.SynchronizeDSV(sName, tData, bRepl, sPref)) then
-      myThrowError("Failed to synchronize: "..sName)
-    else -- You are saving me from all the work for manually generating these
-      asmlib.LogInstance("TranslateDSV start <"..sPref..">")
-      if(not asmlib.TranslateDSV(sName, sPref)) then
-        myThrowError("Failed to translate DSV: "..sName) end
-      asmlib.LogInstance("TranslateDSV done <"..sPref..">")
-    end -- Now we have Lua inserts and DSV
-  else
-    asmlib.LogInstance("SynchronizeDSV empty <"..sPref..">")
+local function mySyncTable(sName, tData, bRepl)
+  if(not asmlib.IsEmpty(tData)) then -- Somrting to be processed. Do stuff when the table is not empty
+    asmlib.LogInstance("SynchronizeDSV START <"..myPrefix..">") -- Signal start synchronization
+    if(not asmlib.SynchronizeDSV(sName, tData, bRepl, myPrefix)) then -- Attempt to synchronize
+      myThrowError("Failed to synchronize: "..sName) -- Raise error when fails to sync tracks data
+    else -- Successful. You are saving me from all the work for manually generating these
+      asmlib.LogInstance("TranslateDSV START <"..myPrefix..">") -- Signal start translation
+      if(not asmlib.TranslateDSV(sName, myPrefix)) then -- Attempt to translate the DSV to Lua source
+        myThrowError("Failed to translate DSV: "..sName) end -- Raise error when fails
+      asmlib.LogInstance("TranslateDSV OK <"..myPrefix..">") -- Translation is successful
+    end -- Now we have Lua inserts and DSV. Otherwise sent empty table and print status in logs
+  else asmlib.LogInstance("SynchronizeDSV EMPTY <"..myPrefix..">") end -- Nothing to be done
+end
+
+--[[
+ * Register the addon to the auto-load prefix list when the
+ * PIECES file is missing. The auto-load list is located in
+ * (/garrysmod/data/trackassembly/set/trackasmlib_dsv.txt)
+ * a.k.a the DATA folder of Garry's mod.
+ *
+ * @bSuccess = RegisterDSV(sProg, sPref, sDelim)
+ * sProg  > The program which registered the DSV
+ * sPref  > The external data prefix to be added ( default instance prefix )
+ * sDelim > The delimiter to be used for processing ( default tab )
+ * bSkip  > Skip addition for the DSV prefix if exists ( default `false` )
+]]--
+local function myRegisterDSV(bSkip)
+  asmlib.LogInstance("RegisterDSV START <"..myPrefix..">")
+  if(bSkip) then -- Your DSV must be registered only once when loading for the first time
+    asmlib.LogInstance("RegisterDSV SKIP <"..myPrefix..">")
+  else -- If the locking file is not located that means this is the first run of your script
+    if(not asmlib.RegisterDSV(myScript, myPrefix)) then -- Register the DSV prefix and check for error
+      myThrowError("Failed to register DSV") -- Throw the error if fails
+    end -- Third argument is the delimiter. The default tab is used
+    asmlib.LogInstance("RegisterDSV OK <"..myPrefix..">")
   end
+end
+
+--[[
+ * This logic statement is needed for reporting the error in the console if the
+ * process fails.
+ *
+ @ bSuccess = ExportCategory(nInd, tData, sPref)
+ * nInd   > The index equal indent format to be stored with ( generally = 3 )
+ * tData  > The category functional definition you want to use to divide your stuff with
+ * sPref  > An export file custom prefix. For synchronizing
+ *          it must be related to your addon ( default is instance prefix )
+]]--
+local function myExportCategory(tCatg)
+  asmlib.LogInstance("ExportCategory START <"..myPrefix..">")
+  if(CLIENT) then -- Category handling is client side only
+    if(not asmlib.IsEmpty(tCatg)) then
+      if(not asmlib.ExportCategory(3, tCatg, myPrefix)) then
+        myThrowError("Failed to synchronize category")
+      end; asmlib.LogInstance("ExportCategory OK <"..myPrefix..">")
+    else asmlib.LogInstance("ExportCategory SKIP <"..myPrefix..">") end
+  else asmlib.LogInstance("ExportCategory SERVER <"..myPrefix..">") end
 end
 
 -- Store a reference to disable symbol
@@ -125,27 +168,8 @@ asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..",
 -- Register the addon to the workshop ID list
 asmlib.WorkshopID(myAddon, "326640186")
 
---[[
- * Register the addon to the auto-load prefix list when the
- * PIECES file is missing. The auto-load list is located in
- * (/garrysmod/data/trackassembly/set/trackasmlib_dsv.txt)
- * a.k.a the DATA folder of Garry's mod.
- *
- * @bSuccess = RegisterDSV(sProg, sPref, sDelim)
- * sProg  > The program which registered the DSV
- * sPref  > The external data prefix to be added ( default instance prefix )
- * sDelim > The delimiter to be used for processing ( default tab )
- * bSkip  > Skip addition for the DSV prefix if exists ( default `false` )
-]]--
-asmlib.LogInstance("RegisterDSV start <"..myPrefix..">")
-if(myFlag) then -- Your DSV must be registered only once when loading for the first time
-  asmlib.LogInstance("RegisterDSV skip <"..myPrefix..">")
-else -- If the locking file is not located that means this is the first run of your script
-  if(not asmlib.RegisterDSV(myScript, myPrefix)) then -- Register the DSV prefix and check for error
-    myThrowError("Failed to register DSV") -- Throw the error if fails
-  end -- Third argument is the delimiter. The default tab is used
-  asmlib.LogInstance("RegisterDSV done <"..myPrefix..">")
-end
+-- Register the addon to the pluggable DSV list
+myRegisterDSV(myFlag)
 
 --[[
  * This is used if you want to make internal categories for your addon
@@ -171,24 +195,8 @@ local myCategory = {
   ]]}
 }
 
---[[
- * This logic statement is needed for reporting the error in the console if the
- * process fails.
- *
- @ bSuccess = ExportCategory(nInd, tData, sPref)
- * nInd   > The index equal indent format to be stored with ( generally = 3 )
- * tData  > The category functional definition you want to use to divide your stuff with
- * sPref  > An export file custom prefix. For synchronizing
- *          it must be related to your addon ( default is instance prefix )
-]]--
-asmlib.LogInstance("ExportCategory start <"..myPrefix..">")
-if(CLIENT) then -- Category handling is client side only
-  if(not asmlib.IsEmpty(myCategory)) then
-    if(not asmlib.ExportCategory(3, myCategory, myPrefix)) then
-      myThrowError("Failed to synchronize category")
-    end; asmlib.LogInstance("ExportCategory done <"..myPrefix..">")
-  else asmlib.LogInstance("ExportCategory skip <"..myPrefix..">") end
-else asmlib.LogInstance("ExportCategory server <"..myPrefix..">") end
+-- Register the addon category to the pluggable DSV list
+myExportCategory(myCategory)
 
 --[[
  * Create a table and populate it as shown below
@@ -332,7 +340,10 @@ local myPieces = {
     {myType, "X Junction", gsSymOff, gsMissDB, "-33.129,-123.63866,7.346", "0,-30,0", gsMissDB},
     {myType, "X Junction", gsSymOff, gsMissDB, "-461.42175,123.63649,7.346", "0,150,0", gsMissDB}
   }
-}; mySyncTable(myPieces, "PIECES", myPrefix, true)
+}
+
+-- Register the addon PIECES to the pluggable DSV list
+mySyncTable("PIECES", myPieces, true)
 
 --[[
  * Create a table and populate it as shown below
@@ -377,7 +388,10 @@ local myAdditions = {
     {"models/shinji85/train/rail_r_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, -1, 1, SOLID_VPHYSICS},
     {"models/shinji85/train/rail_r_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, -1, 0, -1, SOLID_NONE}
   }
-}; mySyncTable(myAdditions, "ADDITIONS", myPrefix, true)
+}
+
+-- Register the addon ADDITIONS to the pluggable DSV list
+mySyncTable("ADDITIONS", myAdditions, true)
 
 --[[
  * Create a table and populate it as shown below
@@ -395,6 +409,9 @@ local myAdditions = {
  *          For the example table definition below, the line ID in the database will be the same.
  * NAME   > This stores the name of the physical property. It must an actual physical property.
 ]]--
-local myPhysproperties = {}; mySyncTable(myPhysproperties, "PHYSPROPERTIES", myPrefix, true)
+local myPhysproperties = {}
+
+-- Register the addon PHYSPROPERTIES to the pluggable DSV list
+mySyncTable("PHYSPROPERTIES", myPhysproperties, true)
 
 asmlib.LogInstance("<<< "..myScript)
