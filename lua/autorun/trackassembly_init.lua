@@ -32,6 +32,7 @@ local guiMouseY                     = gui and gui.MouseY
 local guiOpenURL                    = gui and gui.OpenURL
 local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
 local entsGetByIndex                = ents and ents.GetByIndex
+local mathAtan2                     = math and math.atan2
 local mathAbs                       = math and math.abs
 local mathCeil                      = math and math.ceil
 local mathFloor                     = math and math.floor
@@ -640,7 +641,7 @@ if(CLIENT) then
       asmlib.RotateXY(vN, nBr); asmlib.RotateXY(vF, nBr) -- Near and far base rotation
       asmlib.NegY(asmlib.SubXY(vA, mXY, vCn)) -- Origin [0;0] is located at top left
       asmlib.RotateXY(vA, -nBr) -- Correctly read the wiper vector to identify working mode
-      local aW = asmlib.GetAngleXY(vA) -- Read wiper angle and normalize the value
+      local aW = mathAtan2(vA.y, vA.x) -- Read wiper angle and normalize the value
             aW = ((aW < 0) and (aW + nMr) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
       local iW = mathFloor(((aW / nMr) * nN) + 1) -- Calculate fraction ID for working mode
       local dA = (nMr / (nK * nN)) -- Two times smaller step to hangle centers as well

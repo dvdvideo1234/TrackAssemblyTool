@@ -1026,11 +1026,6 @@ function RotateXY(xyR, nR)
   xyR.y = (nX * nS + nY * nC); return xyR
 end
 
-function GetAngleXY(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  return mathAtan2(xyR.y, xyR.x)
-end
-
 ----------------- OOP ------------------
 
 -- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
@@ -1065,16 +1060,24 @@ function GetQueue(sKey)
       P = oP, -- Current task player ( mandatory )
       A = oA, -- Current task arguments ( mandatory )
       M = oM, -- Current task main routine ( mandatory )
-      S = oS, -- Current task start routine ( if any )
-      E = oE, -- Current task end routine ( if any )
-      D = tostring(oD), -- Current task start description ( if any )
-      N = oN  -- Current task sequential pointer ( if any )
+      S = oS, -- Current task start routine ( optional )
+      E = oE, -- Current task end routine ( optional )
+      D = tostring(oD), -- Current task start description ( optional )
+      N = oN  -- Current task sequential pointer ( optional )
     }
   end
   -- Checks whenever the queue is busy for that player
   function self:IsBusy(oPly)
     if(not IsHere(oPly)) then return true end
     local bB = mBusy[oPly]; return (bB and IsBool(bB))
+  end
+  -- Move the start busy task at the back
+  function self:Next()
+    if(mS == mE) then return self end
+    if(self:IsEmpty()) then return self end
+    if(not self:IsBusy(mS.P)) then return self end
+    mE.N = mS; mE = mS; mS = mE.N; mE.N = nil
+    return self -- Moves only busy tasks
   end
   -- Removes the finished task for the queue
   function self:Remove()
@@ -3427,7 +3430,7 @@ end
  * Import table data from DSV database created earlier
  * sTable > Definition KEY to import
  * bComm  > Calls TABLE:Record(arLine) when set to true
- * sPref  > Prefix used on importing ( if any )
+ * sPref  > Prefix used on importing ( optional )
  * sDelim > Delimiter separating the values
 ]]--
 function ImportDSV(sTable, bComm, sPref, sDelim)
