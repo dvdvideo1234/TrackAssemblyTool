@@ -52,7 +52,6 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
  * and throw the message to the log also. In this case you will not
  * have to change the function name in lots of places
  * when you need it to do something else.
- * Generate an error in the console ( optional ) so we can notify the user
 --]]
 local function myThrowError(vMesg)
   local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Make sure the message is string
