@@ -569,15 +569,16 @@ end
  * But seriously returns the sting line and EOF flag
  * pFile > The file to read the line of characters from
  * bCons > Keeps data consistency. Enable to skip trim
+ * sChar > Custom pattern to be used when trimming
  * Reurns line contents and reaching EOF flag
  * sLine > The line being read from the file
  * isEOF > Flag indicating pointer reached EOF
 ]]
-function GetStringFile(pFile, bCons)
+function GetStringFile(pFile, bCons, sChar)
   if(not pFile) then LogInstance("No file"); return "", true end
   local sLine = (pFile:ReadLine() or "") -- Read one line at once
   local isEOF = pFile:EndOfFile() -- Check for file EOF status
-  if(not bCons) then sLine = sLine:Trim() end
+  if(not bCons) then sLine = sLine:Trim(sChar) end
   return sLine, isEOF
 end
 
@@ -1026,11 +1027,6 @@ function RotateXY(xyR, nR)
   xyR.y = (nX * nS + nY * nC); return xyR
 end
 
-function GetAngleXY(xyR)
-  if(not xyR) then LogInstance("Base invalid"); return nil end
-  return mathAtan2(xyR.y, xyR.x)
-end
-
 ----------------- OOP ------------------
 
 -- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
@@ -1065,10 +1061,10 @@ function GetQueue(sKey)
       P = oP, -- Current task player ( mandatory )
       A = oA, -- Current task arguments ( mandatory )
       M = oM, -- Current task main routine ( mandatory )
-      S = oS, -- Current task start routine ( if any )
-      E = oE, -- Current task end routine ( if any )
-      D = tostring(oD), -- Current task start description ( if any )
-      N = oN  -- Current task sequential pointer ( if any )
+      S = oS, -- Current task start routine ( optional )
+      E = oE, -- Current task end routine ( optional )
+      D = tostring(oD), -- Current task start description ( optional )
+      N = oN  -- Current task sequential pointer ( optional )
     }
   end
   -- Checks whenever the queue is busy for that player
@@ -1076,17 +1072,22 @@ function GetQueue(sKey)
     if(not IsHere(oPly)) then return true end
     local bB = mBusy[oPly]; return (bB and IsBool(bB))
   end
-  -- Removes the finished task for the queue
-  function self:Remove()
+  -- Switch to the next tasks in the list
+  function self:Next()
     if(self:IsEmpty()) then return self end
-    if(self:IsBusy(mS.P)) then return self end
-    LogInstance("Start "..GetReport2(mS.D, mS.P:Nick()), mKey)
-    if(mS.E) then -- Post-processing. Return value is ignored
-      local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
-        LogInstance("Error "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
-      else LogInstance("Finish "..GetReport2(mS.D, mS.P:Nick()), mKey) end
-    end -- Wipe all the columns in the item and go to the next item
-    local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
+    if(self:IsBusy(mS.P)) then -- Task runnning
+      if(mS == mE) then return self end -- Only one element
+      mE.N = mS; mE = mS; mS = mE.N; mE.N = nil --Move entry
+      return self -- Moves only busy tasks with work remaining
+    else -- Task has been done. Run post processing and clear
+      if(mS.E) then -- Post-processing. Return value is ignored
+        local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
+          LogInstance("Error "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
+        else LogInstance("Finish "..GetReport2(mS.D, mS.P:Nick()), mKey) end
+      end -- Wipe all the columns in the item and go to the next item
+      LogInstance("Clear "..GetReport2(mS.D, mS.P:Nick()), mKey)
+      local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
+    end
   end
   -- Setups a task to be called in the queue
   function self:Attach(oPly, tArg, fFoo, aDsc)
@@ -1113,7 +1114,7 @@ function GetQueue(sKey)
     mE.E = fFoo; return self
   end
   -- Execute the current task at the queue beginning
-  function self:Execute()
+  function self:Work()
     if(self:IsEmpty()) then return self end
     if(mS.S) then -- Pre-processing. Return value is ignored
       local bOK, bErr = pcall(mS.S, mS.P, mS.A); if(not bOK) then
@@ -2710,15 +2711,16 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Column ID mismatch "..GetReport(ivID),tabDef.Nick); return nil end
     local defCol = qtDef[nvInd]; if(not IsHere(defCol)) then
       LogInstance("Invalid col #"..tostring(nvInd),tabDef.Nick); return nil end
-    local tipCol, sMoDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
-    if(tipCol == "TEXT") then snOut = tostring(snValue or "")
+    local sMoDB, snOut = GetOpVar("MODE_DATABASE")
+    local tyCol, opCol = tostring(defCol[2]), defCol[3]
+    if(tyCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsBlank(snOut)) then
         if    (sMoDB == "SQL") then snOut = sNull
         elseif(sMoDB == "LUA") then snOut = sNull
         else LogInstance("Wrong database empty mode <"..sMoDB..">",tabDef.Nick); return nil end
       end
-      if    (defCol[3] == "LOW") then snOut = snOut:lower()
-      elseif(defCol[3] == "CAP") then snOut = snOut:upper() end
+      if    (opCol == "LOW") then snOut = snOut:lower()
+      elseif(opCol == "CAP") then snOut = snOut:upper() end
       if(not bNoRev and sMoDB == "SQL" and defCol[4] == "QMK") then
         snOut = snOut:gsub("'","''") end
       if(bQuoted) then local sqChar
@@ -2730,15 +2732,15 @@ function CreateTable(sTable,defTab,bDelete,bReload)
           else LogInstance("Wrong database quote mode <"..sMoDB..">",tabDef.Nick); return nil end
         end; snOut = sqChar..snOut..sqChar
       end
-    elseif(tipCol == "REAL" or tipCol == "INTEGER") then
+    elseif(tyCol == "REAL" or tyCol == "INTEGER") then
       snOut = tonumber(snValue)
       if(IsHere(snOut)) then
-        if(tipCol == "INTEGER") then
-          if    (defCol[3] == "FLR") then snOut = mathFloor(snOut)
-          elseif(defCol[3] == "CEL") then snOut = mathCeil (snOut) end
+        if(tyCol == "INTEGER") then
+          if    (opCol == "FLR") then snOut = mathFloor(snOut)
+          elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
         end
-      else LogInstance("Failed converting "..GetReport(snValue).." to NUMBER col #"..nvInd,tabDef.Nick); return nil end
-    else LogInstance("Invalid col type <"..tipCol..">",tabDef.Nick); return nil
+      else LogInstance("Failed converting "..GetReport(snValue).." to NUMBER column #"..nvInd,tabDef.Nick); return nil end
+    else LogInstance("Invalid column type <"..tyCol..">",tabDef.Nick); return nil
     end; return snOut
   end
   -- Build drop statment
@@ -3427,7 +3429,7 @@ end
  * Import table data from DSV database created earlier
  * sTable > Definition KEY to import
  * bComm  > Calls TABLE:Record(arLine) when set to true
- * sPref  > Prefix used on importing ( if any )
+ * sPref  > Prefix used on importing ( optional )
  * sDelim > Delimiter separating the values
 ]]--
 function ImportDSV(sTable, bComm, sPref, sDelim)
@@ -3798,7 +3800,7 @@ local function ExportPiecesAR(fF,qData,sName,sInd,qList)
     end
   end
   if(IsTable(qData) and IsHere(qData[1])) then
-    fF:Write(sInd:rep(1).."local "..sName.." = {\n")
+    fF:Write("local "..sName.." = {\n")
     local pkID, sInd, fRow = 1, "  ", true
     local idxID = makTab:GetColumnID("LINEID")
     for iD = 1, #qData do local qRow = qData[iD]
@@ -3810,22 +3812,22 @@ local function ExportPiecesAR(fF,qData,sName,sInd,qList)
         if(vA == dbNull) then aRow[iA] = "gsMissDB" end
       end
       if(fRow) then fRow = false
-        fF:Write(sInd:rep(2).."["..aRow[pkID].."] = {\n")
+        fF:Write(sInd:rep(1).."["..aRow[pkID].."] = {\n")
         SetAdditionsAR(mMod, makAdd, qList)
       else
         if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
-          fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..aRow[pkID].."] = {\n")
+          fF:Write("\n"..sInd:rep(1).."},\n"..sInd:rep(1).."["..aRow[pkID].."] = {\n")
           SetAdditionsAR(mMod, makAdd, qList)
         end
       end
       mgrTab.ExportAR(aRow); tableRemove(aRow, 1)
-      fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+      fF:Write(sInd:rep(2).."{"..tableConcat(aRow, ", ").."},\n")
     end
     fF:Seek(fF:Tell() - 2)
-    fF:Write("\n"..sInd:rep(2).."}\n")
-    fF:Write(sInd:rep(1).."}\n")
+    fF:Write("\n"..sInd:rep(1).."}\n")
+    fF:Write("}\n")
   else
-    fF:Write(sInd:rep(1).."local "..sName.." = {}\n")
+    fF:Write("local "..sName.." = {}\n")
   end
 end
 
@@ -3921,26 +3923,28 @@ function ExportTypeAR(sType)
       local patAddon = GetOpVar("PATTEX_VARADDON")
       local keyBuild = GetOpVar("KEYQ_BUILDER"); qPieces[keyBuild] = makP
       local sLine, isEOF, isSkip, sInd, qAdditions = "", false, false, "  ", {}
-      while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)
+      while(not isEOF) do
+        sLine, isEOF = GetStringFile(fS, true)
+        sLine = sLine:gsub("%s*$", "")
         if(sLine:find(patAddon)) then isSkip = true
           fE:Write("local myAddon = \""..sType.."\"\n")
         elseif(sLine:find(patCateg)) then isSkip = true
           local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
           if(IsTable(tCat) and tCat.Txt) then
-            fE:Write(sInd:rep(1).."local myCategory = {\n")
-            fE:Write(sInd:rep(2).."[myType] = {Txt = [[\n")
-            fE:Write(sInd:rep(3)..tCat.Txt:gsub("\n","\n"..sInd:rep(3)).."\n")
-            fE:Write(sInd:rep(2).."]]}\n")
-            fE:Write(sInd:rep(1).."}\n")
+            fE:Write("local myCategory = {\n")
+            fE:Write(sInd:rep(1).."[myType] = {Txt = [[\n")
+            fE:Write(sInd:rep(2)..tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
+            fE:Write(sInd:rep(1).."]]}\n")
+            fE:Write("}\n")
           else
-            fE:Write(sInd:rep(1).."local myCategory = {}\n")
+            fE:Write("local myCategory = {}\n")
           end
         elseif(sLine:find(patWorks)) then isSkip = true
           local sID = WorkshopID(sType)
           if(sID and sID:len() > 0) then
-            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
+            fE:Write("asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
           else
-            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon)\n")
+            fE:Write("asmlib.WorkshopID(myAddon)\n")
           end
         elseif(sLine:find(patPiece)) then isSkip = true
           ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)
@@ -3953,7 +3957,8 @@ function ExportTypeAR(sType)
           if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
         end
       end
-      fE:Flush(); fE:Close(); fS:Close()
+      fE:Write("\n"); fE:Flush()
+      fE:Close(); fS:Close()
     end
   end
 end
