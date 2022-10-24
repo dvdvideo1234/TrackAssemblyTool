@@ -1072,25 +1072,22 @@ function GetQueue(sKey)
     if(not IsHere(oPly)) then return true end
     local bB = mBusy[oPly]; return (bB and IsBool(bB))
   end
-  -- Move the start busy task at the back
-  function self:Retain()
-    if(mS == mE) then return self end
+  -- Switch to the next tasks in the list
+  function self:Next()
     if(self:IsEmpty()) then return self end
-    if(not self:IsBusy(mS.P)) then return self end
-    mE.N = mS; mE = mS; mS = mE.N; mE.N = nil
-    return self -- Moves only busy tasks
-  end
-  -- Removes the finished task for the queue
-  function self:Remove()
-    if(self:IsEmpty()) then return self end
-    if(self:IsBusy(mS.P)) then return self end
-    LogInstance("Start "..GetReport2(mS.D, mS.P:Nick()), mKey)
-    if(mS.E) then -- Post-processing. Return value is ignored
-      local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
-        LogInstance("Error "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
-      else LogInstance("Finish "..GetReport2(mS.D, mS.P:Nick()), mKey) end
-    end -- Wipe all the columns in the item and go to the next item
-    local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
+    if(self:IsBusy(mS.P)) then -- Task runnning
+      if(mS == mE) then return self end -- Only one element
+      mE.N = mS; mE = mS; mS = mE.N; mE.N = nil --Move entry
+      return self -- Moves only busy tasks with work remaining
+    else -- Task has been done. Run post processing and clear
+      if(mS.E) then -- Post-processing. Return value is ignored
+        local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
+          LogInstance("Error "..GetReport2(mS.D, mS.P:Nick()).." "..bErr, mKey)
+        else LogInstance("Finish "..GetReport2(mS.D, mS.P:Nick()), mKey) end
+      end -- Wipe all the columns in the item and go to the next item
+      LogInstance("Clear "..GetReport2(mS.D, mS.P:Nick()), mKey)
+      local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
+    end
   end
   -- Setups a task to be called in the queue
   function self:Attach(oPly, tArg, fFoo, aDsc)
@@ -1117,7 +1114,7 @@ function GetQueue(sKey)
     mE.E = fFoo; return self
   end
   -- Execute the current task at the queue beginning
-  function self:Execute()
+  function self:Work()
     if(self:IsEmpty()) then return self end
     if(mS.S) then -- Pre-processing. Return value is ignored
       local bOK, bErr = pcall(mS.S, mS.P, mS.A); if(not bOK) then
