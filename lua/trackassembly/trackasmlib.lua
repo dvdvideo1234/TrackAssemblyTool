@@ -569,15 +569,16 @@ end
  * But seriously returns the sting line and EOF flag
  * pFile > The file to read the line of characters from
  * bCons > Keeps data consistency. Enable to skip trim
+ * sChar > Custom pattern to be used when trimming
  * Reurns line contents and reaching EOF flag
  * sLine > The line being read from the file
  * isEOF > Flag indicating pointer reached EOF
 ]]
-function GetStringFile(pFile, bCons)
+function GetStringFile(pFile, bCons, sChar)
   if(not pFile) then LogInstance("No file"); return "", true end
   local sLine = (pFile:ReadLine() or "") -- Read one line at once
   local isEOF = pFile:EndOfFile() -- Check for file EOF status
-  if(not bCons) then sLine = sLine:Trim() end
+  if(not bCons) then sLine = sLine:Trim(sChar) end
   return sLine, isEOF
 end
 
@@ -1072,7 +1073,7 @@ function GetQueue(sKey)
     local bB = mBusy[oPly]; return (bB and IsBool(bB))
   end
   -- Move the start busy task at the back
-  function self:Next()
+  function self:Retain()
     if(mS == mE) then return self end
     if(self:IsEmpty()) then return self end
     if(not self:IsBusy(mS.P)) then return self end
@@ -2713,15 +2714,16 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       LogInstance("Column ID mismatch "..GetReport(ivID),tabDef.Nick); return nil end
     local defCol = qtDef[nvInd]; if(not IsHere(defCol)) then
       LogInstance("Invalid col #"..tostring(nvInd),tabDef.Nick); return nil end
-    local tipCol, sMoDB, snOut = tostring(defCol[2]), GetOpVar("MODE_DATABASE")
-    if(tipCol == "TEXT") then snOut = tostring(snValue or "")
+    local sMoDB, snOut = GetOpVar("MODE_DATABASE")
+    local tyCol, opCol = tostring(defCol[2]), defCol[3]
+    if(tyCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsBlank(snOut)) then
         if    (sMoDB == "SQL") then snOut = sNull
         elseif(sMoDB == "LUA") then snOut = sNull
         else LogInstance("Wrong database empty mode <"..sMoDB..">",tabDef.Nick); return nil end
       end
-      if    (defCol[3] == "LOW") then snOut = snOut:lower()
-      elseif(defCol[3] == "CAP") then snOut = snOut:upper() end
+      if    (opCol == "LOW") then snOut = snOut:lower()
+      elseif(opCol == "CAP") then snOut = snOut:upper() end
       if(not bNoRev and sMoDB == "SQL" and defCol[4] == "QMK") then
         snOut = snOut:gsub("'","''") end
       if(bQuoted) then local sqChar
@@ -2733,15 +2735,15 @@ function CreateTable(sTable,defTab,bDelete,bReload)
           else LogInstance("Wrong database quote mode <"..sMoDB..">",tabDef.Nick); return nil end
         end; snOut = sqChar..snOut..sqChar
       end
-    elseif(tipCol == "REAL" or tipCol == "INTEGER") then
+    elseif(tyCol == "REAL" or tyCol == "INTEGER") then
       snOut = tonumber(snValue)
       if(IsHere(snOut)) then
-        if(tipCol == "INTEGER") then
-          if    (defCol[3] == "FLR") then snOut = mathFloor(snOut)
-          elseif(defCol[3] == "CEL") then snOut = mathCeil (snOut) end
+        if(tyCol == "INTEGER") then
+          if    (opCol == "FLR") then snOut = mathFloor(snOut)
+          elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
         end
-      else LogInstance("Failed converting "..GetReport(snValue).." to NUMBER col #"..nvInd,tabDef.Nick); return nil end
-    else LogInstance("Invalid col type <"..tipCol..">",tabDef.Nick); return nil
+      else LogInstance("Failed converting "..GetReport(snValue).." to NUMBER column #"..nvInd,tabDef.Nick); return nil end
+    else LogInstance("Invalid column type <"..tyCol..">",tabDef.Nick); return nil
     end; return snOut
   end
   -- Build drop statment
@@ -3801,7 +3803,7 @@ local function ExportPiecesAR(fF,qData,sName,sInd,qList)
     end
   end
   if(IsTable(qData) and IsHere(qData[1])) then
-    fF:Write(sInd:rep(1).."local "..sName.." = {\n")
+    fF:Write("local "..sName.." = {\n")
     local pkID, sInd, fRow = 1, "  ", true
     local idxID = makTab:GetColumnID("LINEID")
     for iD = 1, #qData do local qRow = qData[iD]
@@ -3813,22 +3815,22 @@ local function ExportPiecesAR(fF,qData,sName,sInd,qList)
         if(vA == dbNull) then aRow[iA] = "gsMissDB" end
       end
       if(fRow) then fRow = false
-        fF:Write(sInd:rep(2).."["..aRow[pkID].."] = {\n")
+        fF:Write(sInd:rep(1).."["..aRow[pkID].."] = {\n")
         SetAdditionsAR(mMod, makAdd, qList)
       else
         if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
-          fF:Write("\n"..sInd:rep(2).."},\n"..sInd:rep(2).."["..aRow[pkID].."] = {\n")
+          fF:Write("\n"..sInd:rep(1).."},\n"..sInd:rep(1).."["..aRow[pkID].."] = {\n")
           SetAdditionsAR(mMod, makAdd, qList)
         end
       end
       mgrTab.ExportAR(aRow); tableRemove(aRow, 1)
-      fF:Write(sInd:rep(3).."{"..tableConcat(aRow, ", ").."},\n")
+      fF:Write(sInd:rep(2).."{"..tableConcat(aRow, ", ").."},\n")
     end
     fF:Seek(fF:Tell() - 2)
-    fF:Write("\n"..sInd:rep(2).."}\n")
-    fF:Write(sInd:rep(1).."}\n")
+    fF:Write("\n"..sInd:rep(1).."}\n")
+    fF:Write("}\n")
   else
-    fF:Write(sInd:rep(1).."local "..sName.." = {}\n")
+    fF:Write("local "..sName.." = {}\n")
   end
 end
 
@@ -3924,26 +3926,28 @@ function ExportTypeAR(sType)
       local patAddon = GetOpVar("PATTEX_VARADDON")
       local keyBuild = GetOpVar("KEYQ_BUILDER"); qPieces[keyBuild] = makP
       local sLine, isEOF, isSkip, sInd, qAdditions = "", false, false, "  ", {}
-      while(not isEOF) do sLine, isEOF = GetStringFile(fS, true)
+      while(not isEOF) do
+        sLine, isEOF = GetStringFile(fS, true)
+        sLine = sLine:gsub("%s*$", "")
         if(sLine:find(patAddon)) then isSkip = true
           fE:Write("local myAddon = \""..sType.."\"\n")
         elseif(sLine:find(patCateg)) then isSkip = true
           local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
           if(IsTable(tCat) and tCat.Txt) then
-            fE:Write(sInd:rep(1).."local myCategory = {\n")
-            fE:Write(sInd:rep(2).."[myType] = {Txt = [[\n")
-            fE:Write(sInd:rep(3)..tCat.Txt:gsub("\n","\n"..sInd:rep(3)).."\n")
-            fE:Write(sInd:rep(2).."]]}\n")
-            fE:Write(sInd:rep(1).."}\n")
+            fE:Write("local myCategory = {\n")
+            fE:Write(sInd:rep(1).."[myType] = {Txt = [[\n")
+            fE:Write(sInd:rep(2)..tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
+            fE:Write(sInd:rep(1).."]]}\n")
+            fE:Write("}\n")
           else
-            fE:Write(sInd:rep(1).."local myCategory = {}\n")
+            fE:Write("local myCategory = {}\n")
           end
         elseif(sLine:find(patWorks)) then isSkip = true
           local sID = WorkshopID(sType)
           if(sID and sID:len() > 0) then
-            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
+            fE:Write("asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
           else
-            fE:Write(sInd:rep(1).."asmlib.WorkshopID(myAddon)\n")
+            fE:Write("asmlib.WorkshopID(myAddon)\n")
           end
         elseif(sLine:find(patPiece)) then isSkip = true
           ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)
@@ -3956,7 +3960,8 @@ function ExportTypeAR(sType)
           if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
         end
       end
-      fE:Flush(); fE:Close(); fS:Close()
+      fE:Write("\n"); fE:Flush()
+      fE:Close(); fS:Close()
     end
   end
 end

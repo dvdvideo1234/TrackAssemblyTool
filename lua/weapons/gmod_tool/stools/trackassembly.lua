@@ -194,7 +194,7 @@ if(CLIENT) then
 end
 
 if(SERVER) then local poThQueue = asmlib.GetQueue("THINK")
-  hookAdd("Think", gsToolPrefL.."think_task", function() poThQueue:Execute():Next():Remove() end)
+  hookAdd("Think", gsToolPrefL.."think_task", function() poThQueue:Execute():Retain():Remove() end)
   hookAdd("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
   hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
