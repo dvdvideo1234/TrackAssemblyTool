@@ -193,8 +193,9 @@ if(CLIENT) then
   asmlib.SetOpVar("STORE_CONVARS", TOOL:BuildConVarList())
 end
 
-if(SERVER) then local poThQueue = asmlib.GetQueue("THINK")
-  hookAdd("Think", gsToolPrefL.."think_task", function() poThQueue:Work():Next() end)
+if(SERVER) then
+  local poThQueue, varEn = asmlib.GetQueue("THINK"), asmlib.GetAsmConvar("enmultask", "OBJ")
+  hookAdd("Think", gsToolPrefL.."think_task", function() poThQueue:Work():Next(varEn:GetBool()) end)
   hookAdd("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
   hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
@@ -641,7 +642,8 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
         sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
         sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetAsmConvar("timermode","STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnableWire:  <"..tostring(asmlib.GetAsmConvar("enwiremod","BUL"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnableEWire: <"..tostring(asmlib.GetAsmConvar("enwiremod","BUL"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.EnableMTask: <"..tostring(asmlib.GetAsmConvar("enmultask","BUL"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetAsmConvar("devmode"  ,"BUL"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxMass:     <"..tostring(asmlib.GetAsmConvar("maxmass"  ,"INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxLinear:   <"..tostring(asmlib.GetAsmConvar("maxlinear","INT"))..">"..sDelim
@@ -2561,6 +2563,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "maxfruse" , 0)
     asmlib.SetNumSlider(CPanel, "dtmessage", iMaxDec)
     asmlib.SetCheckBox(CPanel, "enwiremod")
+    asmlib.SetCheckBox(CPanel, "enmultask")
     asmlib.SetCheckBox(CPanel, "enctxmenu")
     asmlib.SetCheckBox(CPanel, "enctxmall")
     asmlib.SetCheckBox(CPanel, "endsvlock")
@@ -2670,6 +2673,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "maxactrad", asmlib.GetAsmConvar("maxactrad", "DEF"))
         asmlib.SetAsmConvar(oPly, "maxstcnt" , asmlib.GetAsmConvar("maxstcnt" , "DEF"))
         asmlib.SetAsmConvar(oPly, "enwiremod", asmlib.GetAsmConvar("enwiremod", "DEF"))
+        asmlib.SetAsmConvar(oPly, "enmultask", asmlib.GetAsmConvar("enmultask", "DEF"))
         asmlib.SetAsmConvar(oPly, "enctxmenu", asmlib.GetAsmConvar("enctxmenu", "DEF"))
         asmlib.SetAsmConvar(oPly, "enctxmall", asmlib.GetAsmConvar("enctxmall", "DEF"))
         asmlib.SetAsmConvar(oPly, "endsvlock", asmlib.GetAsmConvar("endsvlock", "DEF"))

@@ -1073,11 +1073,12 @@ function GetQueue(sKey)
     local bB = mBusy[oPly]; return (bB and IsBool(bB))
   end
   -- Switch to the next tasks in the list
-  function self:Next()
-    if(self:IsEmpty()) then return self end
-    if(self:IsBusy(mS.P)) then -- Task runnning
-      if(mS == mE) then return self end -- Only one element
-      mE.N = mS; mE = mS; mS = mE.N; mE.N = nil --Move entry
+  function self:Next(bMen) -- Crack open a cold one with!
+    if(self:IsEmpty()) then return self end -- List empty
+    if(self:IsBusy(mS.P)) then -- Task runnning. We are busy
+      if(not bMen) then return self end -- Mulstitasking disabled
+      if(mS == mE) then return self end -- Only one list element
+      mE.N = mS; mE = mS; mS = mE.N; mE.N = nil -- Move entry
       return self -- Moves only busy tasks with work remaining
     else -- Task has been done. Run post processing and clear
       if(mS.E) then -- Post-processing. Return value is ignored
@@ -4856,13 +4857,13 @@ function GetAsmConvar(sName, sMode)
   if    (sMode == "INT") then return (tonumber(BorderValue(CVar:GetInt()   , sKey)) or 0)
   elseif(sMode == "FLT") then return (tonumber(BorderValue(CVar:GetFloat() , sKey)) or 0)
   elseif(sMode == "STR") then return (tostring(BorderValue(CVar:GetString(), sKey)) or "")
-  elseif(sMode == "BUL") then return (CVar:GetBool() or false)
-  elseif(sMode == "DEF") then return  CVar:GetDefault()
-  elseif(sMode == "INF") then return  CVar:GetHelpText()
-  elseif(sMode == "NAM") then return  CVar:GetName()
-  elseif(sMode == "MIN") then return  CVar:GetMin()
-  elseif(sMode == "MAX") then return  CVar:GetMax()
-  elseif(sMode == "OBJ") then return  CVar
+  elseif(sMode == "OBJ") then return CVar
+  elseif(sMode == "MIN") then return CVar:GetMin()
+  elseif(sMode == "MAX") then return CVar:GetMax()
+  elseif(sMode == "NAM") then return CVar:GetName()
+  elseif(sMode == "BUL") then return CVar:GetBool()
+  elseif(sMode == "DEF") then return CVar:GetDefault()
+  elseif(sMode == "INF") then return CVar:GetHelpText()
   end; LogInstance("("..sName..", "..sMode..") Missed mode"); return nil
 end
 
