@@ -194,8 +194,14 @@ if(CLIENT) then
 end
 
 if(SERVER) then
-  local poThQueue, varEn = asmlib.GetQueue("THINK"), asmlib.GetAsmConvar("enmultask", "OBJ")
-  hookAdd("Think", gsToolPrefL.."think_task", function() poThQueue:Work():Next(varEn:GetBool()) end)
+  local poQueue = asmlib.GetQueue("THINK")
+  local vsHash  = "_"..poQueue:GetKey():lower()
+  local varEn   = asmlib.GetAsmConvar("enmultask", "OBJ")
+  local gbMen, svName = varEn:GetBool(), varEn:GetName()
+  cvarsRemoveChangeCallback(svName, svName..vsHash)
+  cvarsAddChangeCallback(svName, function(sV, vO, vN)
+    gbMen = ((tonumber(vN) or 0) ~= 0) end, svName..vsHash)
+  hookAdd("Think", gsToolPrefL.."think_task", function() poQueue:Work():Next(gbMen) end)
   hookAdd("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
   hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
   duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
@@ -1119,7 +1125,7 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance("Trace missing",gtLogs); return false end
   if(not stTrace.Hit) then -- Do not do stuff when there is nothing hit
     asmlib.LogInstance("Trace not hit",gtLogs); return false end
-  local poThQueue  = asmlib.GetQueue("THINK")
+  local poQueue  = asmlib.GetQueue("THINK")
   local ply        = self:GetOwner()
   local trEnt      = stTrace.Entity
   local weld       = self:GetWeld()
@@ -1154,7 +1160,7 @@ function TOOL:LeftClick(stTrace)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
   if(workmode == 3 or workmode == 5) then
-    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
+    if(poQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtLogs); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
@@ -1168,7 +1174,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.CalculateBezierCurve(ply, curvsmple)
     end
     for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(ply, iD, nD) end
-    poThQueue:Attach(ply, {
+    poQueue:Attach(ply, {
       stard = 1,
       stark = 1,
       itrys = 0,
@@ -1229,11 +1235,11 @@ function TOOL:LeftClick(stTrace)
       oPly:SetNWFloat(gsToolPrefL.."progress", 100)
       asmlib.LogInstance("("..oArg.wname..") Success",gtLogs); return false
     end, workname)
-    poThQueue:OnActive(ply, function(oPly, oArg)
+    poQueue:OnActive(ply, function(oPly, oArg)
       oArg.eundo, oArg.mundo = {}, ""
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
     end)
-    poThQueue:OnFinish(ply, function(oPly, oArg)
+    poQueue:OnFinish(ply, function(oPly, oArg)
       local nU, sM = #oArg.eundo, gsUndoPrefN..fnmodel
       if(stackcnt > 0) then
         asmlib.UndoCrate(sM.." ( "..oArg.wname.." #"..stackcnt.." )")
@@ -1246,7 +1252,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.LogInstance("("..oArg.wname..") Success", gtLogs)
     end); return true
   elseif(workmode == 4 and self:IsFlipOver()) then
-    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
+    if(poQueue:IsBusy(ply)) then asmlib.Notify(ply,"Server busy !","ERROR"); return true end
     local wOver, wNorm = self:GetFlipOverOrigin(stTrace, ply:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOver(true)
     local tC, nC = asmlib.GetConstraintOver(tE)
@@ -1254,7 +1260,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.Notify(ply, "No tracks selected !", "ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtLogs); return false
     end
-    poThQueue:Attach(ply, {
+    poQueue:Attach(ply, {
       start = 1,
       itrys = 0,
       tents = tE,
@@ -1291,11 +1297,11 @@ function TOOL:LeftClick(stTrace)
       oPly:SetNWFloat(gsToolPrefL.."progress", 100)
       asmlib.LogInstance("(Over) Success",gtLogs); return false
     end)
-    poThQueue:OnActive(ply, function(oPly, oArg)
+    poQueue:OnActive(ply, function(oPly, oArg)
       oArg.eundo, oArg.mundo, oArg.munid  = {}, "", 0
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
     end)
-    poThQueue:OnFinish(ply, function(oPly, oArg)
+    poQueue:OnFinish(ply, function(oPly, oArg)
       local nU = #oArg.eundo
       asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(oArg.ients, fnmodel).." ( Over )")
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
@@ -1370,14 +1376,14 @@ function TOOL:LeftClick(stTrace)
   end
 
   if((workmode == 1) and (stackcnt > 0) and ply:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
-    if(poThQueue:IsBusy(ply)) then asmlib.Notify(ply, "Server busy !","ERROR"); return true end
+    if(poQueue:IsBusy(ply)) then asmlib.Notify(ply, "Server busy !","ERROR"); return true end
     if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"), gtLogs); return false end
     local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
     if(not hdOffs) then -- Make sure the next point is present so we have something to stack on
       asmlib.Notify(ply,"Missing next point ID !","ERROR")
       asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"), gtLogs); return false
     end -- Validated existent next point ID
-    poThQueue:Attach(ply, {
+    poQueue:Attach(ply, {
       start = 1,
       itrys = 0,
       spawn = {},
@@ -1426,10 +1432,10 @@ function TOOL:LeftClick(stTrace)
       end -- Update the progress and successfully tell the task we are not busy anymore
       oPly:SetNWFloat(gsToolPrefL.."progress", 100); return false
     end, workname)
-    poThQueue:OnActive(ply, function(oPly, oArg)
+    poQueue:OnActive(ply, function(oPly, oArg)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0); oArg.eundo = {}
     end)
-    poThQueue:OnFinish(ply, function(oPly, oArg)
+    poQueue:OnFinish(ply, function(oPly, oArg)
       local nU, sM = #oArg.eundo, gsUndoPrefN..fnmodel
       asmlib.UndoCrate(sM.." ( Stack #"..stackcnt.." )")
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end

@@ -1041,9 +1041,9 @@ function GetQueue(sKey)
   -- Returns the queue mamber key
   function self:GetKey() return mKey end
   -- Returns the last item in the queue
-  function self:GetStart() return mS end
+  function self:GetHead() return mS end
   -- Returns the first item in the queue
-  function self:GetEnd() return mE end
+  function self:GetTail() return mE end
   -- Yo sexy ladies want par with us
   function self:GetBusy() return mBusy end
   -- Checks when the queue is empty
