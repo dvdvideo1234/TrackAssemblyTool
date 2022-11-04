@@ -248,17 +248,25 @@ end
 __e2setcost(15)
 e2function array trackasmlibGetProperty(string sType)
   if(not enFlag) then return {} end
-  local stRec = asmlib.CacheQueryProperty(sType)
-  if(not stRec) then return {} end
-  return stRec
+  local stType = asmlib.CacheQueryProperty(sType)
+  if(not stType) then return {} end
+  return stType
 end
 
 __e2setcost(15)
 e2function array trackasmlibGetProperty()
   if(not enFlag) then return {} end
-  local stRec = asmlib.CacheQueryProperty()
-  if(not stRec) then return {} end
-  return stRec
+  local stType = asmlib.CacheQueryProperty()
+  if(not stType) then return {} end
+  return stType
+end
+
+__e2setcost(15)
+e2function number trackasmlibGetPropertyCount()
+  if(not enFlag) then return 0 end
+  local stType = asmlib.CacheQueryProperty()
+  if(not stType) then return 0 end
+  return (tonumber(stType.Size) or 0)
 end
 
 --[[ **************************** CREATOR **************************** ]]
