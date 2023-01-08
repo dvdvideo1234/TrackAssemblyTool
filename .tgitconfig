@@ -1,0 +1,4 @@
+[hook "precommit"]
+	cmdline = data\\trackassembly\\tools\\hooks\\pre-commit.bat E:\\tmp.txt
+	wait = true
+	show = true

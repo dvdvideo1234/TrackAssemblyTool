@@ -272,6 +272,28 @@ function IsPlayer(oPly)
   return true
 end
 
+function GetOwner(oEnt)
+  if(not (oEnt and oEnt:IsValid())) then return nil end
+  local ows, set
+  if(CPPI and oEnt.CPPIGetOwner) then
+    ows = oEnt:CPPIGetOwner()
+    ows = (IsPlayer(ows) and ows or nil); if(ows) then return ows end
+  end -- Use CPPI first when installed. If fails search down
+  ows = (IsPlayer(oEnt.player) and ows or nil); if(ows) then return ows end
+  ows = (IsPlayer(oEnt.Owner) and ows or nil); if(ows) then return ows end
+  ows = (IsPlayer(oEnt.owner) and ows or nil); if(ows) then return ows end
+  set = oEnt.OnDieFunctions
+  if(set) then -- Duplicatior die functions are registered
+    set = set.GetCountUpdate; if(set and set.Args) then ows = set.Args[1] end
+    ows = (IsPlayer(ows) and ows or nil); if(ows) then return ows end
+    set = set.undo1; if(set and set.Args) then ows = set.Args[1] end
+    ows = (IsPlayer(ows) and ows or nil); if(ows) then return ows end
+  end -- Extract owner from function arguments
+  if(oEnt.GetOwner) then ows = oEnt:GetOwner() -- Owner method
+    ows = (IsPlayer(ows) and ows or nil); if(ows) then return ows end
+  end; return nil -- No owner is found. Nothing is returned
+end
+
 function IsOther(oEnt)
   if(not IsHere(oEnt))   then return true end
   if(not IsEntity(oEnt)) then return true end

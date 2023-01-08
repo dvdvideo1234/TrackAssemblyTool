@@ -8,10 +8,10 @@ set hookOutFile=trackassembly_init.lua
 set hookBasPath=%~dp0
 
 :: The path to the Lua eceutable including
-set hookLuaPath=%1
+set "hookLuaPath=%LUA_HOME%\lua.exe"
 
 :: The path to the log file. Folder must exist!
-set hookLogFile=%2
+set hookLogFile=%1
 
 :: Where to read the revision file from
 set hookCpyPath=%hookBasPath%..\..\..\..\lua\autorun
