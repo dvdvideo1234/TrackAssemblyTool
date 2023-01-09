@@ -1,4 +1,4 @@
 [hook "precommit"]
-	cmdline = data\\trackassembly\\tools\\hooks\\pre-commit.bat E:\\tmp.txt
+	cmdline = C:\\Users\\ddobromirov\\Documents\\Lua-Projs\\VerControl\\TrackAssemblyTool_GIT\\data\\trackassembly\\tools\\hooks\\pre-commit.bat
 	wait = true
 	show = true
