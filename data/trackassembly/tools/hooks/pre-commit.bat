@@ -37,5 +37,5 @@ echo Cleanup pieces manager buid...>>%hookLogFile%
 rd /s /q %hookPimMath%\bin
 rd /s /q %hookPimMath%\obj
 del %hookPimMath%\peaces_manager.layout
-timeout 500
+
 exit 0
