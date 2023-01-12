@@ -11,9 +11,10 @@ setlocal EnableDelayedExpansion
 set gmadGitHEAD=
 set gmadRevPath=%~dp0
 set gmadNameLOG=gmad_log.txt
+set gmadNameGIT=gmad_git.txt
 set gmadName=TrackAssemblyTool
 set gmadCommits=https://github.com/dvdvideo1234/%gmadName%/commit/
-set "gmadPathGIT=%GIT_HOME%"
+set "gmadPathGIT=%GIT_HOME%\bin\git.exe"
 set gmadBinPath=%GMOD_HOME%\bin
 set "gmadADTools=%gmadRevPath%data\trackassembly\tools"
 set "gmadTime=%date% %time%"
@@ -28,13 +29,14 @@ echo Rinning in: %gmadRevPath%
 echo Npp Find --\h{1,}\n-- replace --\n-- in dos format before commit^^!
 echo Extracting repository source contents^^!
 IF EXIST !gmadNameLOG! del !gmadNameLOG!
+IF EXIST !gmadNameGIT! del !gmadNameGIT!
 IF EXIST Workshop rd /S /Q Workshop
 
 timeout 5
 
 md "%gmadRevPath%Workshop\!gmadName!" >> !gmadNameLOG!
 for %%i in %gmadDirs% do (
-  echo Extracting: %%i
+  echo Exporting addon content: %%i
   call xcopy "!gmadRevPath!%%i" "!gmadRevPath!Workshop\!gmadName!\%%i" /EXCLUDE:!gmadADTools!\workshop\key.txt /E /C /I /F /R /Y >> !gmadNameLOG!
 )
 
@@ -42,12 +44,14 @@ call copy "!gmadADTools!\workshop\addon.json" "!gmadRevPath!Workshop\!gmadName!\
 call "!gmadBinPath!\gmad.exe" create -folder "!gmadRevPath!Workshop\!gmadName!" -out "!gmadRevPath!Workshop\!gmadName!.gma" >> !gmadNameLOG!
 
 echo Obtain the latest repository commit log^^!
-call "!gmadPathGIT!\git.exe" rev-parse HEAD >> !gmadNameLOG!
-call echo !gmadTime! >> !gmadNameLOG!
-call echo. >> !gmadNameLOG!
-call echo !gmadCommits!!gmadGitHEAD! >> !gmadNameLOG!
-call echo. >> !gmadNameLOG!
-call "!gmadPathGIT!\git.exe" log -1 >> !gmadNameLOG!
+
+for /F "tokens=*" %%i in ('call "!gmadPathGIT!" rev-parse HEAD') do (set "gmadGitHEAD=%%i")
+
+call echo !gmadTime! >> !gmadNameGIT!
+call echo. >> !gmadNameGIT!
+call echo !gmadCommits!!gmadGitHEAD! >> !gmadNameGIT!
+call echo. >> !gmadNameGIT!
+call "!gmadPathGIT!" log -1 >> !gmadNameGIT!
 
 timeout 15
 
@@ -58,13 +62,14 @@ IF DEFINED gmadID (
 )
 
 echo !gmadName! Published^^!
-echo Give a chance to copy the logs^^!
-timeout 500
+
+call "%WINDIR%\System32\notepad.exe" "!gmadRevPath!!gmadNameGIT!"
 
 echo Cleaning up the working directory^^!
 
 rd /S /Q "!gmadRevPath!Workshop"
 del "!gmadRevPath!!gmadNameLOG!"
+del "!gmadRevPath!!gmadNameGIT!"
 
 timeout 2
 
