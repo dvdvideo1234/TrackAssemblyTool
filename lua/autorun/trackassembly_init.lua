@@ -93,7 +93,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.705")
+asmlib.SetOpVar("TOOL_VERSION","8.706")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -240,7 +240,7 @@ local conElements = asmlib.GetContainer("LIST_VGUI")
 local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
       conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
-      conWorkMode:Push("CURVE") -- Catmull–Rom spline interpolation fitting
+      conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
       conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
       conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
 
@@ -496,7 +496,7 @@ if(CLIENT) then
   asmlib.ToIcon("dsvlist_extdb"    , "database_go"     )
   asmlib.ToIcon("workmode_snap"    , "plugin"          ) -- General spawning and snapping mode
   asmlib.ToIcon("workmode_cross"   , "chart_line"      ) -- Ray cross intersect interpolation
-  asmlib.ToIcon("workmode_curve"   , "vector"          ) -- Catmull–Rom curve line segment fitting
+  asmlib.ToIcon("workmode_curve"   , "vector"          ) -- Catmull-Rom curve line segment fitting
   asmlib.ToIcon("workmode_over"    , "shape_move_back" ) -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("workmode_turn"    , "arrow_turn_right") -- Produces smoother turns with Bezier curve
   asmlib.ToIcon("property_type"    , "package_green"     )
