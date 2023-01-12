@@ -272,6 +272,29 @@ function IsPlayer(oPly)
   return true
 end
 
+function GetOwner(oEnt)
+  if(not (oEnt and oEnt:IsValid())) then return nil end
+  local set, ows = oEnt.OnDieFunctions
+  -- Use CPPI first when installed. If fails search down
+  ows = ((CPPI and oEnt.CPPIGetOwner) and oEnt:CPPIGetOwner() or nil)
+  if(IsPlayer(ows)) then return ows else ows = nil end
+  -- Try the direct entity methods. Extract owner from functios
+  ows = (oEnt.GetOwner and oEnt:GetOwner() or nil)
+  if(IsPlayer(ows)) then return ows else ows = nil end
+  ows = (oEnt.GetCreator and oEnt:GetCreator() or nil)
+  if(IsPlayer(ows)) then return ows else ows = nil end
+  -- Try then various entity internal key values
+  ows = oEnt.player; if(IsPlayer(ows)) then return ows else ows = nil end
+  ows = oEnt.Owner; if(IsPlayer(ows)) then return ows else ows = nil end
+  ows = oEnt.owner; if(IsPlayer(ows)) then return ows else ows = nil end
+  if(set) then -- Duplicatior die functions are registered
+    set = set.GetCountUpdate; ows = (set.Args and set.Args[1] or nil)
+    if(IsPlayer(ows)) then return ows else ows = nil end
+    set = set.undo1; ows = (set.Args and set.Args[1] or nil)
+    if(IsPlayer(ows)) then return ows else ows = nil end
+  end; return nil -- No owner is found. Nothing is returned
+end
+
 function IsOther(oEnt)
   if(not IsHere(oEnt))   then return true end
   if(not IsEntity(oEnt)) then return true end

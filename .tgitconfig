@@ -1,0 +1,5 @@
+[hook "precommit"]
+[hook "startcommit"]
+	cmdline = data\\trackassembly\\tools\\hooks\\pre-commit.bat
+	wait = true
+	show = true

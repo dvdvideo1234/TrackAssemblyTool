@@ -8,10 +8,10 @@ set hookOutFile=trackassembly_init.lua
 set hookBasPath=%~dp0
 
 :: The path to the Lua eceutable including
-set hookLuaPath=%1
+set "hookLuaPath=%LUA_HOME%\bin\lua.exe"
 
 :: The path to the log file. Folder must exist!
-set hookLogFile=%2
+set "hookLogFile=%TEMP%\commit_hook.log"
 
 :: Where to read the revision file from
 set hookCpyPath=%hookBasPath%..\..\..\..\lua\autorun
@@ -37,5 +37,5 @@ echo Cleanup pieces manager buid...>>%hookLogFile%
 rd /s /q %hookPimMath%\bin
 rd /s /q %hookPimMath%\obj
 del %hookPimMath%\peaces_manager.layout
-timeout 500
+
 exit 0

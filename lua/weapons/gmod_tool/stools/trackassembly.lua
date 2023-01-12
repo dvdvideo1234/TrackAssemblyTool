@@ -1587,8 +1587,8 @@ function TOOL:Reload(stTrace)
       end
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
-    if(asmlib.IsHere(trRec) and trEnt:GetCreator() == ply) then trEnt:Remove()
-      asmlib.LogInstance("(Prop) Remove piece",gtLogs); return true
+    if(asmlib.IsHere(trRec) and (asmlib.GetOwner(trEnt) == ply or ply:IsAdmin())) then
+      trEnt:Remove(); asmlib.LogInstance("(Prop) Remove piece",gtLogs); return true
     end; asmlib.LogInstance("(Prop) Success",gtLogs)
   end; return false
 end
