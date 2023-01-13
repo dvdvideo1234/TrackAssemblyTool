@@ -3,4 +3,6 @@
 .github
 .gitattributes
 .gitignore
+.workshop
+.tgitconfig
 data
