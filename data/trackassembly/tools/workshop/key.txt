@@ -2,7 +2,11 @@
 .svn
 .github
 .gitattributes
+.editorconfig
 .gitignore
 .workshop
 .tgitconfig
+contributing.md
+readme.md
 data
+license
