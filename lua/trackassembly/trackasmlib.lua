@@ -292,7 +292,7 @@ function GetOwner(oEnt)
     if(IsPlayer(ows)) then return ows else ows = nil end
     set = set.undo1; ows = (set.Args and set.Args[1] or nil)
     if(IsPlayer(ows)) then return ows else ows = nil end
-  end; return nil -- No owner is found. Nothing is returned
+  end; return ows -- No owner is found. Nothing is returned
 end
 
 function IsOther(oEnt)
