@@ -1893,14 +1893,6 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   local sKey, sNam, bExa, nDum = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   local iDig = mathFloor(mathMax(tonumber(vDig) or 0, 0))
-  -- Read default value form the first available
-  if(not IsHere(nDev)) then nDev = tConv[sKey]
-    if(not IsHere(nDev)) then nDev = GetAsmConvar(sVar, "DEF")
-      if(not IsHere(nDev)) then nDev = 0 -- Default
-        LogInstance("(D) Miss "..GetReport1(sKey))
-      else LogInstance("(D) Cvar "..GetReport2(sKey, nDev)) end
-    else LogInstance("(D) List "..GetReport2(sKey, nDev)) end
-  else LogInstance("(D) Args "..GetReport2(sKey, nDev)) end
   -- Read minimum value form the first available
   if(not IsHere(nMin)) then nMin, nDum = GetBorder(sKey)
     if(not IsHere(nMin)) then nMin = GetAsmConvar(sVar, "MIN")
@@ -1919,6 +1911,14 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
       else LogInstance("(H) Cvar "..GetReport2(sKey, nMax)) end
     else LogInstance("(H) List "..GetReport2(sKey, nMax)) end
   else LogInstance("(H) Args "..GetReport2(sKey, nMax)) end
+  -- Read default value form the first available
+  if(not IsHere(nDev)) then nDev = tConv[sKey]
+    if(not IsHere(nDev)) then nDev = GetAsmConvar(sVar, "DEF")
+      if(not IsHere(nDev)) then nDev = nMin + ((nMax - nMin) / 2)
+        LogInstance("(D) Miss "..GetReport1(sKey))
+      else LogInstance("(D) Cvar "..GetReport2(sKey, nDev)) end
+    else LogInstance("(D) List "..GetReport2(sKey, nDev)) end
+  else LogInstance("(D) Args "..GetReport2(sKey, nDev)) end
   -- Create the slider control using the min, max and default
   local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
   local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
