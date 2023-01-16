@@ -265,7 +265,7 @@ function TOOL:GetSpawnRate()
 end
 
 function TOOL:GetMass()
-  return mathClamp(self:GetClientNumber("mass"),1,asmlib.GetAsmConvar("maxmass","FLT"))
+  return mathClamp(self:GetClientNumber("mass"),0,asmlib.GetAsmConvar("maxmass","FLT"))
 end
 
 function TOOL:GetSizeUCS()
@@ -2452,7 +2452,7 @@ function TOOL.BuildCPanel(CPanel)
   cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
     pText:SetText(vNew); pText:SetValue(vNew) end, sName..sCall);
 
-  asmlib.SetNumSlider(CPanel, "mass"    , iMaxDec, 1, asmlib.GetAsmConvar("maxmass"  , "FLT"))
+  asmlib.SetNumSlider(CPanel, "mass"    , iMaxDec, 0, asmlib.GetAsmConvar("maxmass"  , "FLT"))
   asmlib.SetNumSlider(CPanel, "activrad", iMaxDec, 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
   asmlib.SetNumSlider(CPanel, "stackcnt", 0      , 0, asmlib.GetAsmConvar("maxstcnt" , "INT"))
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)

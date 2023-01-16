@@ -1896,7 +1896,7 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   -- Read default value form the first available
   if(not IsHere(nDev)) then nDev = tConv[sKey]
     if(not IsHere(nDev)) then nDev = GetAsmConvar(sVar, "DEF")
-      if(not IsHere(nDev)) then
+      if(not IsHere(nDev)) then nDev = 0 -- Default
         LogInstance("(D) Miss "..GetReport1(sKey))
       else LogInstance("(D) Cvar "..GetReport2(sKey, nDev)) end
     else LogInstance("(D) List "..GetReport2(sKey, nDev)) end
@@ -1922,7 +1922,7 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   -- Create the slider control using the min, max and default
   local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
   local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
-  pItem:SetTooltip(sTtip); pItem:SetDefaultValue(vDef); return pItem
+  pItem:SetTooltip(sTtip); pItem:SetDefaultValue(nDev); return pItem
 end
 
 function SetCheckBox(cPanel, sVar)
@@ -4603,7 +4603,8 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     LogInstance("Entity phys object invalid"); return nil end
   ePiece.owner, ePiece.Owner = pPly, pPly -- Some PPs actually use this value
   phPiece:EnableMotion(false) -- Spawn frozen by default to reduce lag
-  phPiece:SetMass(mathMax(1, (tonumber(nMass) or 1)))
+  local nMass = mathMax(0, (tonumber(nMass) or 0))
+  if(nMass > 0) then phPiece:SetMass(nMass) end
   local tBgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
   ePiece:SetSkin(mathClamp(tonumber(tBgSk[2]) or 0, 0, ePiece:SkinCount()-1))
   if(not AttachBodyGroups(ePiece, tBgSk[1])) then ePiece:Remove()
