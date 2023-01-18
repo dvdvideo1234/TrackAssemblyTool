@@ -834,8 +834,6 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_SKILLICON",{})
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
-    SetOpVar("LOCALIFY_TABLE",{})
-    SetOpVar("LOCALIFY_AUTO","en")
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
   end; LogInstance("Success"); return true
