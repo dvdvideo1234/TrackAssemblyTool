@@ -24,7 +24,6 @@ local netWriteString                = net and net.WriteString
 local netWriteEntity                = net and net.WriteEntity
 local netWriteUInt                  = net and net.WriteUInt
 local bitBor                        = bit and bit.bor
-local sqlQuery                      = sql and sql.Query
 local sqlBegin                      = sql and sql.Begin
 local sqlCommit                     = sql and sql.Commit
 local guiMouseX                     = gui and gui.MouseX
@@ -93,7 +92,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.708")
+asmlib.SetOpVar("TOOL_VERSION","8.709")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -213,9 +212,9 @@ asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
 
 ------------ GLOBAL VARIABLES ------------
 
-local gsMoDB      = asmlib.GetOpVar("MODE_DATABASE")
-local gaTimerSet  = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
-local conPalette  = asmlib.GetContainer("COLORS_LIST")
+local gsMoDB     = asmlib.GetOpVar("MODE_DATABASE")
+local gaTimerSet = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
+local conPalette = asmlib.GetContainer("COLORS_LIST")
       conPalette:Record("a" ,asmlib.GetColor(  0,   0,   0,   0)) -- Invisible
       conPalette:Record("r" ,asmlib.GetColor(255,   0,   0, 255)) -- Red
       conPalette:Record("g" ,asmlib.GetColor(  0, 255,   0, 255)) -- Green

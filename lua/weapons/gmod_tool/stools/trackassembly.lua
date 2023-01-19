@@ -73,6 +73,7 @@ local VEC_ZERO = asmlib.GetOpVar("VEC_ZERO")
 local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
 
 --- Global References
+local gtLogs      = {"TOOL"}
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
 local gsDataSet   = asmlib.GetOpVar("DIRPATH_SET")
@@ -94,7 +95,6 @@ local conPalette  = asmlib.GetContainer("COLORS_LIST")
 local conWorkMode = asmlib.GetContainer("WORK_MODE")
 local conElements = asmlib.GetContainer("LIST_VGUI")
 local varLanguage = GetConVar("gmod_language")
-local gtLogs  = {"TOOL"}
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   local sDSV = gsDataRoot..gsDataSet..gsLibName.."_dsv.txt"
@@ -221,7 +221,7 @@ function TOOL:GetBoundErrorMode()
 end
 
 function TOOL:GetEnPhysgunSnap()
-  return ((self:GetClientNumber("engunsnap") or 0) ~= 0)
+  return (self:GetClientNumber("engunsnap", 0) ~= 0)
 end
 
 function TOOL:GetCurveSamples()
@@ -229,23 +229,23 @@ function TOOL:GetCurveSamples()
 end
 
 function TOOL:ApplyAngularFirst()
-  return ((self:GetClientNumber("appangfst") or 0) ~= 0)
+  return (self:GetClientNumber("appangfst", 0) ~= 0)
 end
 
 function TOOL:GetRadialMenu()
-  return ((self:GetClientNumber("enradmenu") or 0) ~= 0)
+  return (self:GetClientNumber("enradmenu", 0) ~= 0)
 end
 
 function TOOL:GetRadialSegm()
-  return mathClamp((self:GetClientNumber("sgradmenu") or 0), 1, 16)
+  return mathClamp(self:GetClientNumber("sgradmenu", 1), 1, 16)
 end
 
 function TOOL:GetRadialAngle()
-  return (mathClamp(self:GetClientNumber("rtradmenu") or 0,-gnMaxRot,gnMaxRot))
+  return mathClamp(self:GetClientNumber("rtradmenu", 0), -gnMaxRot, gnMaxRot)
 end
 
 function TOOL:ApplyLinearFirst()
-  return ((self:GetClientNumber("applinfst") or 0) ~= 0)
+  return (self:GetClientNumber("applinfst", 0) ~= 0)
 end
 
 function TOOL:GetContextMenuAll()
@@ -257,7 +257,7 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetStackCount()
-  return mathClamp(self:GetClientNumber("stackcnt"),0,asmlib.GetAsmConvar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("stackcnt", 0), 0, asmlib.GetAsmConvar("maxstcnt", "INT"))
 end
 
 function TOOL:GetSpawnRate()
@@ -265,11 +265,11 @@ function TOOL:GetSpawnRate()
 end
 
 function TOOL:GetMass()
-  return mathClamp(self:GetClientNumber("mass"),0,asmlib.GetAsmConvar("maxmass","FLT"))
+  return mathClamp(self:GetClientNumber("mass", 0), 0, asmlib.GetAsmConvar("maxmass","FLT"))
 end
 
 function TOOL:GetSizeUCS()
-  return mathClamp(self:GetClientNumber("sizeucs"),0,asmlib.GetAsmConvar("maxlinear","FLT"))
+  return mathClamp(self:GetClientNumber("sizeucs", 0), 0, asmlib.GetAsmConvar("maxlinear","FLT"))
 end
 
 function TOOL:GetDeveloperMode()
@@ -278,39 +278,39 @@ end
 
 function TOOL:GetPosOffsets()
   local nMaxLin = asmlib.GetAsmConvar("maxlinear","FLT")
-  return (mathClamp(self:GetClientNumber("nextx") or 0,-nMaxLin,nMaxLin)),
-         (mathClamp(self:GetClientNumber("nexty") or 0,-nMaxLin,nMaxLin)),
-         (mathClamp(self:GetClientNumber("nextz") or 0,-nMaxLin,nMaxLin))
+  return mathClamp(self:GetClientNumber("nextx", 0), -nMaxLin, nMaxLin),
+         mathClamp(self:GetClientNumber("nexty", 0), -nMaxLin, nMaxLin),
+         mathClamp(self:GetClientNumber("nextz", 0), -nMaxLin, nMaxLin)
 end
 
 function TOOL:GetAngOffsets()
-  return (mathClamp(self:GetClientNumber("nextpic") or 0,-gnMaxRot,gnMaxRot)),
-         (mathClamp(self:GetClientNumber("nextyaw") or 0,-gnMaxRot,gnMaxRot)),
-         (mathClamp(self:GetClientNumber("nextrol") or 0,-gnMaxRot,gnMaxRot))
+  return mathClamp(self:GetClientNumber("nextpic", 0), -gnMaxRot, gnMaxRot),
+         mathClamp(self:GetClientNumber("nextyaw", 0), -gnMaxRot, gnMaxRot),
+         mathClamp(self:GetClientNumber("nextrol", 0), -gnMaxRot, gnMaxRot)
 end
 
 function TOOL:GetElevation()
-  return (self:GetClientNumber("elevpnt") or 0)
+  return self:GetClientNumber("elevpnt", 0)
 end
 
 function TOOL:GetCurvatureTurn()
-  return (self:GetClientNumber("crvturnlm") or 0)
+  return self:GetClientNumber("crvturnlm", 0)
 end
 
 function TOOL:GetCurvatureLean()
-  return (self:GetClientNumber("crvleanlm") or 0)
+  return self:GetClientNumber("crvleanlm", 0)
 end
 
 function TOOL:GetPointAssist()
-  return ((self:GetClientNumber("pntasist") or 0) ~= 0)
+  return (self:GetClientNumber("pntasist", 0) ~= 0)
 end
 
 function TOOL:GetFreeze()
-  return ((self:GetClientNumber("freeze") or 0) ~= 0)
+  return (self:GetClientNumber("freeze", 0) ~= 0)
 end
 
 function TOOL:GetIgnoreType()
-  return ((self:GetClientNumber("igntype") or 0) ~= 0)
+  return (self:GetClientNumber("igntype", 0) ~= 0)
 end
 
 function TOOL:GetBodyGroupSkin()
@@ -318,27 +318,27 @@ function TOOL:GetBodyGroupSkin()
 end
 
 function TOOL:GetGravity()
-  return ((self:GetClientNumber("gravity") or 0) ~= 0)
+  return (self:GetClientNumber("gravity", 0) ~= 0)
 end
 
 function TOOL:GetGhostsCount()
-  return mathClamp(self:GetClientNumber("ghostcnt"),0,asmlib.GetAsmConvar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, asmlib.GetAsmConvar("maxstcnt", "INT"))
 end
 
 function TOOL:GetUpSpawnAnchor()
-  return ((self:GetClientNumber("upspanchor") or 0) ~= 0)
+  return (self:GetClientNumber("upspanchor", 0) ~= 0)
 end
 
 function TOOL:GetNoCollide()
-  return ((self:GetClientNumber("nocollide") or 0) ~= 0)
+  return (self:GetClientNumber("nocollide", 0) ~= 0)
 end
 
 function TOOL:GetSpawnFlat()
-  return ((self:GetClientNumber("spnflat") or 0) ~= 0)
+  return (self:GetClientNumber("spnflat", 0) ~= 0)
 end
 
 function TOOL:GetExportDB()
-  return ((self:GetClientNumber("exportdb") or 0) ~= 0)
+  return (self:GetClientNumber("exportdb", 0) ~= 0)
 end
 
 function TOOL:GetLogLines()
@@ -350,43 +350,43 @@ function TOOL:GetLogFile()
 end
 
 function TOOL:GetAdviser()
-  return ((self:GetClientNumber("adviser") or 0) ~= 0)
+  return (self:GetClientNumber("adviser", 0) ~= 0)
 end
 
 function TOOL:GetPointID()
-  return (self:GetClientNumber("pointid") or 1), (self:GetClientNumber("pnextid") or 2)
+  return self:GetClientNumber("pointid", 1), self:GetClientNumber("pnextid", 2)
 end
 
 function TOOL:GetActiveRadius()
-  return mathClamp(self:GetClientNumber("activrad") or 0,0,asmlib.GetAsmConvar("maxactrad", "FLT"))
+  return mathClamp(self:GetClientNumber("activrad", 0), 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
 end
 
 function TOOL:GetAngSnap()
-  return mathClamp(self:GetClientNumber("angsnap"),0,gnMaxRot)
+  return mathClamp(self:GetClientNumber("angsnap", 0), 0, gnMaxRot)
 end
 
 function TOOL:GetForceLimit()
-  return mathClamp(self:GetClientNumber("forcelim"),0,asmlib.GetAsmConvar("maxforce" ,"FLT"))
+  return mathClamp(self:GetClientNumber("forcelim", 0), 0, asmlib.GetAsmConvar("maxforce" ,"FLT"))
 end
 
 function TOOL:GetWeld()
-  return ((self:GetClientNumber("weld") or 0) ~= 0)
+  return (self:GetClientNumber("weld", 0) ~= 0)
 end
 
 function TOOL:GetIgnorePhysgun()
-  return ((self:GetClientNumber("ignphysgn") or 0) ~= 0)
+  return (self:GetClientNumber("ignphysgn", 0) ~= 0)
 end
 
 function TOOL:GetSpawnCenter()
-  return ((self:GetClientNumber("spawncn") or 0) ~= 0)
+  return (self:GetClientNumber("spawncn", 0) ~= 0)
 end
 
 function TOOL:GetStackAttempts()
-  return (mathClamp(self:GetClientNumber("maxstatts"),0,10))
+  return (mathClamp(self:GetClientNumber("maxstatts", 0), 0, 10))
 end
 
 function TOOL:GetGhostFade()
-  return (mathClamp(self:GetClientNumber("ghostblnd"),0,1))
+  return (mathClamp(self:GetClientNumber("ghostblnd", 0), 0, 1))
 end
 
 function TOOL:GetPhysMeterial()
@@ -398,15 +398,15 @@ function TOOL:GetFlipOverID()
 end
 
 function TOOL:GetSurfaceSnap()
-  return ((self:GetClientNumber("surfsnap") or 0) ~= 0)
+  return (self:GetClientNumber("surfsnap", 0) ~= 0)
 end
 
 function TOOL:GetScrollMouse()
-  return ((self:GetClientNumber("enpntmscr") or 0) ~= 0)
+  return (self:GetClientNumber("enpntmscr", 0) ~= 0)
 end
 
 function TOOL:GetNocollideWorld()
-  return ((self:GetClientNumber("nocollidew") or 0) ~= 0)
+  return (self:GetClientNumber("nocollidew", 0) ~= 0)
 end
 
 function TOOL:SwitchPoint(vDir, bNxt)
@@ -2458,47 +2458,47 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)
   asmlib.SetButton(CPanel, "resetvars")
   asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@90" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
-     {Tag="@180", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
-     {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
+    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
+     {Tag="@90" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
+     {Tag="@180", Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
+     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@90" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
-     {Tag="@180", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
-     {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
+    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
+     {Tag="@90" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
+     {Tag="@180", Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
+     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@90" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
-     {Tag="@180", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
-     {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
+    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
+     {Tag="@90" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
+     {Tag="@180", Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
+     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
+    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
+     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
+    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
+     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="+/-" , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@M"  , Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
+    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
+     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
+     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
   asmlib.SetNumSlider(CPanel, "forcelim", iMaxDec, 0, asmlib.GetAsmConvar("maxforce" ,"FLT"))
   asmlib.SetCheckBox(CPanel, "weld")
   asmlib.SetCheckBox(CPanel, "nocollide")

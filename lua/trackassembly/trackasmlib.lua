@@ -272,29 +272,6 @@ function IsPlayer(oPly)
   return true
 end
 
-function GetOwner(oEnt)
-  if(not (oEnt and oEnt:IsValid())) then return nil end
-  local set, ows = oEnt.OnDieFunctions
-  -- Use CPPI first when installed. If fails search down
-  ows = ((CPPI and oEnt.CPPIGetOwner) and oEnt:CPPIGetOwner() or nil)
-  if(IsPlayer(ows)) then return ows else ows = nil end
-  -- Try the direct entity methods. Extract owner from functios
-  ows = (oEnt.GetOwner and oEnt:GetOwner() or nil)
-  if(IsPlayer(ows)) then return ows else ows = nil end
-  ows = (oEnt.GetCreator and oEnt:GetCreator() or nil)
-  if(IsPlayer(ows)) then return ows else ows = nil end
-  -- Try then various entity internal key values
-  ows = oEnt.player; if(IsPlayer(ows)) then return ows else ows = nil end
-  ows = oEnt.Owner; if(IsPlayer(ows)) then return ows else ows = nil end
-  ows = oEnt.owner; if(IsPlayer(ows)) then return ows else ows = nil end
-  if(set) then -- Duplicatior die functions are registered
-    set = set.GetCountUpdate; ows = (set.Args and set.Args[1] or nil)
-    if(IsPlayer(ows)) then return ows else ows = nil end
-    set = set.undo1; ows = (set.Args and set.Args[1] or nil)
-    if(IsPlayer(ows)) then return ows else ows = nil end
-  end; return ows -- No owner is found. Nothing is returned
-end
-
 function IsOther(oEnt)
   if(not IsHere(oEnt))   then return true end
   if(not IsEntity(oEnt)) then return true end
@@ -403,6 +380,29 @@ function GetGrid(nV, aV)
   elseif(vA > vB and nV < 0) then
     return mathCeil(nB)
   end; return nV
+end
+
+function GetOwner(oEnt)
+  if(not (oEnt and oEnt:IsValid())) then return nil end
+  local set, ows = oEnt.OnDieFunctions
+  -- Use CPPI first when installed. If fails search down
+  ows = ((CPPI and oEnt.CPPIGetOwner) and oEnt:CPPIGetOwner() or nil)
+  if(IsPlayer(ows)) then return ows else ows = nil end
+  -- Try the direct entity methods. Extract owner from functios
+  ows = (oEnt.GetOwner and oEnt:GetOwner() or nil)
+  if(IsPlayer(ows)) then return ows else ows = nil end
+  ows = (oEnt.GetCreator and oEnt:GetCreator() or nil)
+  if(IsPlayer(ows)) then return ows else ows = nil end
+  -- Try then various entity internal key values
+  ows = oEnt.player; if(IsPlayer(ows)) then return ows else ows = nil end
+  ows = oEnt.Owner; if(IsPlayer(ows)) then return ows else ows = nil end
+  ows = oEnt.owner; if(IsPlayer(ows)) then return ows else ows = nil end
+  if(set) then -- Duplicatior die functions are registered
+    set = set.GetCountUpdate; ows = (set.Args and set.Args[1] or nil)
+    if(IsPlayer(ows)) then return ows else ows = nil end
+    set = set.undo1; ows = (set.Args and set.Args[1] or nil)
+    if(IsPlayer(ows)) then return ows else ows = nil end
+  end; return ows -- No owner is found. Nothing is returned
 end
 
 ------------------ LOGS ------------------------
@@ -1779,68 +1779,6 @@ function GetFrequentModels(snCount)
   LogInstance("Array is empty or not available"); return nil
 end
 
-function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
-  local tSkin, sY, dY = cPanel:GetSkin(), 22, 2
-  local sTool = GetOpVar("TOOLNAME_NL")
-  local tConv = GetOpVar("STORE_CONVARS")
-  local iWpan = GetOpVar("WIDTH_CPANEL")
-  local sKey, sNam, bExa = GetNameExp(sVar)
-  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
-  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
-    LogInstance("Base invalid"); return nil end
-  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
-  pPanel:SetParent(cPanel)
-  pPanel:Dock(TOP)
-  pPanel:SetTall(dY)
-  cPanel:InvalidateLayout(true)
-  -- Setup slider parented to the base panel
-  local pSlider = vguiCreate("DNumSlider"); if(not IsValid(pSlider)) then
-    LogInstance("Slider invalid"); return nil end
-  pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for slider
-  pSlider:SetParent(pPanel)
-  pSlider:InvalidateLayout(true)
-  pSlider:SizeToContentsY()
-  pSlider:Dock(TOP)
-  pSlider:SetTall(sY)
-  pSlider:SetText(languageGetPhrase(sBase.."_con"))
-  pSlider:SetTooltip(languageGetPhrase(sBase))
-  pSlider:SetMin(nMin)
-  pSlider:SetMax(nMax)
-  pSlider:SetDefaultValue(tConv[sKey])
-  pSlider:SetDecimals(nDec)
-  pSlider:SetDark(true)
-  pSlider:SetConVar(sKey)
-  pSlider:SetVisible(true)
-  -- Setup the buttons from the array provided
-  if(IsTable(tBtn) and tBtn[1]) then
-    pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for buttons
-    local iButn, pX, pY = #tBtn, 0, (sY + 2 * dY)
-    local sX = mathFloor(iWpan / iButn)
-    for iD = 1, iButn do
-      local vBtn = tBtn[iD]
-      local sTxt = tostring(vBtn.Tag)
-      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
-        LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
-      if(vBtn.Tip) then pButton:SetTooltip(tostring(vBtn.Tip)) end
-      pButton:SetParent(pPanel)
-      pButton:SetText(sTxt)
-      pButton:SetPos(pX, pY); pX = pX + sX
-      pButton:SetSize(sX, sY)
-      pButton.DoClick = function()
-        local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
-          LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
-      end
-      pButton:SetVisible(true)
-      pButton:InvalidateLayout(true)
-    end
-  end
-  pPanel:SizeToChildren(true, false)
-  pPanel:SizeToContentsY()
-  pPanel:InvalidateChildren()
-  cPanel:AddPanel(pPanel)
-  return pPanel
-end
-
 function SetComboBoxClipboard(pnCombo)
   local iD = pnCombo:GetSelectedID()
   local vT = pnCombo:GetOptionText(iD)
@@ -1921,6 +1859,76 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
   local pItem = cPanel:NumSlider(sMenu, sKey, nMin, nMax, iDig)
   pItem:SetTooltip(sTtip); pItem:SetDefaultValue(nDev); return pItem
+end
+
+function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
+  local tSkin, sY, dY = cPanel:GetSkin(), 22, 2
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local tConv = GetOpVar("STORE_CONVARS")
+  local iWpan = GetOpVar("WIDTH_CPANEL")
+  local syDis = GetOpVar("OPSYM_DISABLE")
+  local syRev = GetOpVar("OPSYM_REVSIGN")
+  local sKey, sNam, bExa = GetNameExp(sVar)
+  local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
+  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
+    LogInstance("Base invalid"); return nil end
+  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
+  pPanel:SetParent(cPanel)
+  pPanel:Dock(TOP)
+  pPanel:SetTall(dY)
+  cPanel:InvalidateLayout(true)
+  -- Setup slider parented to the base panel
+  local pSlider = SetNumSlider(cPanel, sVar, nDec, nMin, nMax)
+  if(not IsValid(pSlider)) then LogInstance("Slider invalid"); return nil end
+  pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for slider
+  pSlider:SetParent(pPanel)
+  pSlider:InvalidateLayout(true)
+  pSlider:SizeToContentsY()
+  pSlider:Dock(TOP)
+  pSlider:SetTall(sY)
+  pSlider:SetText(languageGetPhrase(sBase.."_con"))
+  pSlider:SetTooltip(languageGetPhrase(sBase))
+  pSlider:SetMin(nMin)
+  pSlider:SetMax(nMax)
+  pSlider:SetDefaultValue(tConv[sKey])
+  pSlider:SetDecimals(nDec)
+  pSlider:SetDark(true)
+  pSlider:SetConVar(sKey)
+  pSlider:SetVisible(true)
+  -- Setup the buttons from the array provided
+  if(IsTable(tBtn) and tBtn[1]) then
+    pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for buttons
+    local iButn, pX, pY = #tBtn, 0, (sY + 2 * dY)
+    local sX = mathFloor(iWpan / iButn)
+    for iD = 1, iButn do
+      local vBtn = tBtn[iD]
+      local sTxt = tostring(vBtn.Tag)
+      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
+        LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
+      if(vBtn.Tip) then
+        if(vBtn.Tip == syRev) then
+          pButton:SetTooltip(languageGetPhrase(sBase.."_bas"..sTxt))
+        elseif(vBtn.Tip == syDis) then
+          pButton:SetTooltip(languageGetPhrase("tool."..sTool..".buttonas"..sTxt))
+        else pButton:SetTooltip(tostring(vBtn.Tip)) end
+      end
+      pButton:SetParent(pPanel)
+      pButton:SetText(sTxt)
+      pButton:SetPos(pX, pY); pX = pX + sX
+      pButton:SetSize(sX, sY)
+      pButton.DoClick = function()
+        local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
+          LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
+      end
+      pButton:SetVisible(true)
+      pButton:InvalidateLayout(true)
+    end
+  end
+  pPanel:SizeToChildren(true, false)
+  pPanel:SizeToContentsY()
+  pPanel:InvalidateChildren()
+  cPanel:AddPanel(pPanel)
+  return pPanel
 end
 
 function SetCheckBox(cPanel, sVar)
