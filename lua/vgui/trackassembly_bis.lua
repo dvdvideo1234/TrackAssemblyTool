@@ -62,7 +62,7 @@ function PANEL:SetSlider(sVar, sNam, sTyp)
   self.Slider:SetText(sNam)
   self.Slider:SetConVar(sVar)
   self.Slider:SizeToContents()
-  if(sTyp ~= nil) then self.Slider:SetTooltip() end
+  if(sTyp ~= nil) then self.Slider:SetTooltip(tostring(sTyp)) end
   return self
 end
 
