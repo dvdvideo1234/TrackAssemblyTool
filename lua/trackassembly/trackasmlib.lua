@@ -1861,7 +1861,7 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   pItem:SetTooltip(sTtip); pItem:SetDefaultValue(nDev); return pItem
 end
 
-function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
+function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   local tSkin, sY, dY = cPanel:GetSkin(), 22, 2
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
@@ -1870,65 +1870,34 @@ function SetButtonSlider(cPanel, sVar, sTyp, nMin, nMax, nDec, tBtn)
   local syRev = GetOpVar("OPSYM_REVSIGN")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
-  local pPanel = vguiCreate("DSizeToContents"); if(not IsValid(pPanel)) then
+  local pPanel = vguiCreate("trackassembly_BIS", cPanel); if(not IsValid(pPanel)) then
     LogInstance("Base invalid"); return nil end
-  if(pPanel.UpdateColours) then pPanel:UpdateColours(tSkin) end
-  pPanel:SetParent(cPanel)
-  pPanel:Dock(TOP)
-  pPanel:SetTall(dY)
-  cPanel:InvalidateLayout(true)
-  -- Setup slider parented to the base panel
-  local pSlider = SetNumSlider(cPanel, sVar, nDec, nMin, nMax)
-  if(not IsValid(pSlider)) then LogInstance("Slider invalid"); return nil end
-  pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for slider
-  pSlider:SetParent(pPanel)
-  pSlider:InvalidateLayout(true)
-  pSlider:SizeToContentsY()
-  pSlider:Dock(TOP)
-  pSlider:SetTall(sY)
-  pSlider:SetText(languageGetPhrase(sBase.."_con"))
-  pSlider:SetTooltip(languageGetPhrase(sBase))
-  pSlider:SetMin(nMin)
-  pSlider:SetMax(nMax)
-  pSlider:SetDefaultValue(tConv[sKey])
-  pSlider:SetDecimals(nDec)
-  pSlider:SetDark(true)
-  pSlider:SetConVar(sKey)
-  pSlider:SetVisible(true)
-  -- Setup the buttons from the array provided
-  if(IsTable(tBtn) and tBtn[1]) then
-    pPanel:SetTall(pPanel:GetTall() + sY + dY) -- Strech panel for buttons
-    local iButn, pX, pY = #tBtn, 0, (sY + 2 * dY)
-    local sX = mathFloor(iWpan / iButn)
-    for iD = 1, iButn do
-      local vBtn = tBtn[iD]
-      local sTxt = tostring(vBtn.Tag)
-      local pButton = vguiCreate("DButton"); if(not IsValid(pButton)) then
-        LogInstance("Button invalid "..GetReport3(sVar,sTxt,sTyp)); return nil end
-      if(vBtn.Tip) then
-        if(vBtn.Tip == syRev) then
-          pButton:SetTooltip(languageGetPhrase(sBase.."_bas"..sTxt))
-        elseif(vBtn.Tip == syDis) then
-          pButton:SetTooltip(languageGetPhrase("tool."..sTool..".buttonas"..sTxt))
-        else pButton:SetTooltip(tostring(vBtn.Tip)) end
-      end
-      pButton:SetParent(pPanel)
-      pButton:SetText(sTxt)
-      pButton:SetPos(pX, pY); pX = pX + sX
-      pButton:SetSize(sX, sY)
-      pButton.DoClick = function()
-        local pS, sE = pcall(vBtn.Act, pButton, sVar, GetAsmConvar(sVar,sTyp)); if(not pS) then
-          LogInstance("Button "..GetReport3(sVar,sTxt,sTyp).." Error: "..sE); return nil end
-      end
-      pButton:SetVisible(true)
-      pButton:InvalidateLayout(true)
+  pPanel:SetDelta(1, 1); pPanel:SetParent(cPanel)
+  pPanel:SetSlider(sKey, languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase))
+  pPanel:Configure(nMin, nMax, tConv[sKey], nDec)
+  for iD = 1, #tBtn do
+    local vBtn, sTip = tBtn[iD]
+    local sTxt = tostring(vBtn.N)
+    if(vBtn.T) then
+      if(vBtn.T == syRev) then
+        sTip = languageGetPhrase(sBase.."_bas"..sTxt)
+      elseif(vBtn.T == syDis) then
+        sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
+      else sTip = tostring(vBtn.T) end
     end
+    pPanel:SetButton(sTxt, sTip)
+    pPanel:SetAction(vBtn.L, vBtn.R)
   end
+  pPanel:SetPadding(nil, nil, 8)
+  pPanel:IsAutoResize(true)
+  pPanel.Slider:SetDark(true)
+  pPanel:Dock(TOP); pPanel:SetWide()
   pPanel:SizeToChildren(true, false)
   pPanel:SizeToContentsY()
   pPanel:InvalidateChildren()
-  cPanel:AddPanel(pPanel)
-  return pPanel
+  pPanel:UpdateColours(tSkin)
+  pPanel:ApplySchemeSettings()
+  cPanel:AddItem(pPanel)
 end
 
 function SetCheckBox(cPanel, sVar)

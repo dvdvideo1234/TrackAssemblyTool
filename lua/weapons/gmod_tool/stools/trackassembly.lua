@@ -2451,54 +2451,37 @@ function TOOL.BuildCPanel(CPanel)
   cvarsRemoveChangeCallback(sName, sName..sCall)
   cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
     pText:SetText(vNew); pText:SetValue(vNew) end, sName..sCall);
-
   asmlib.SetNumSlider(CPanel, "mass"    , iMaxDec, 0, asmlib.GetAsmConvar("maxmass"  , "FLT"))
   asmlib.SetNumSlider(CPanel, "activrad", iMaxDec, 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
   asmlib.SetNumSlider(CPanel, "stackcnt", 0      , 0, asmlib.GetAsmConvar("maxstcnt" , "INT"))
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)
   asmlib.SetButton(CPanel, "resetvars")
-  asmlib.SetButtonSlider(CPanel,"nextpic","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@90" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
-     {Tag="@180", Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
-     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextyaw","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@90" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
-     {Tag="@180", Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
-     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextrol","FLT",-gnMaxRot, gnMaxRot,iMaxDec,
-    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@90" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))* 90) end},
-     {Tag="@180", Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSign((vV < 0) and vV or (vV+1))*180) end},
-     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextx","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nexty","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
-  asmlib.SetButtonSlider(CPanel,"nextz","FLT",-nMaxLin, nMaxLin,iMaxDec,
-    {{Tag="+"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="-"   , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,asmlib.GetSnap(vV,-asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-     {Tag="+/-" , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam,-vV) end},
-     {Tag="@M"  , Tip = "#", Act=function(pBut, sNam, vV) SetClipboardText(vV) end},
-     {Tag="@0"  , Tip = "#", Act=function(pBut, sNam, vV) asmlib.SetAsmConvar(nil,sNam, 0) end}})
+  local tBAng = { -- Button interactove slider ( angle offsets )
+    {N="<>"   , T = "#", -- Left click to decrease, right to increase
+      L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnpang","FLT"))) end,
+      R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
+    {N="+/-" , T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
+    {N="@M"  , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end},
+    {N="@45" , T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))* 45) end},
+    {N="@90" , T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))* 90) end},
+    {N="@135", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*135) end},
+    {N="@180", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*180) end},
+    {N="@D"  , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end}
+  }
+  local tBpos = { -- Button interactove slider ( position offsets )
+    {N="<>"  , T = "#", -- Left click to decrease, right to increase
+      L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnplin","FLT"))) end,
+      R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
+    {N="+/-", T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
+    {N="@M" , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end},
+    {N="@D" , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end}
+  } -- Use the seme initialization table for multiple BIS
+  asmlib.SetButtonSlider(CPanel, "nextpic", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
+  asmlib.SetButtonSlider(CPanel, "nextyaw", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
+  asmlib.SetButtonSlider(CPanel, "nextrol", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
+  asmlib.SetButtonSlider(CPanel, "nextx"  , -nMaxLin , nMaxLin , iMaxDec, tBpos)
+  asmlib.SetButtonSlider(CPanel, "nexty"  , -nMaxLin , nMaxLin , iMaxDec, tBpos)
+  asmlib.SetButtonSlider(CPanel, "nextz"  , -nMaxLin , nMaxLin , iMaxDec, tBpos)
   asmlib.SetNumSlider(CPanel, "forcelim", iMaxDec, 0, asmlib.GetAsmConvar("maxforce" ,"FLT"))
   asmlib.SetCheckBox(CPanel, "weld")
   asmlib.SetCheckBox(CPanel, "nocollide")
