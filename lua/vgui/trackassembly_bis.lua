@@ -200,11 +200,11 @@ function PANEL:GetPadding()
   return self.PDX, self.PDY
 end
 
-function PANEL:SetDelta(nX, eY)
-  local iX = tonumber(eX)
-  local iY = tonumber(eY)
-  if(iX) then self.EDX = iX end
-  if(iY) then self.EDY = iY end
+function PANEL:SetDelta(nX, nY)
+  local nX = tonumber(nX)
+  local nY = tonumber(nY)
+  if(nX) then self.EDX = nX end
+  if(nY) then self.EDY = nY end
   return self:UpdateView()
 end
 
@@ -212,22 +212,14 @@ function PANEL:GetDelta()
   return self.EDX, self.EDY
 end
 
-function PANEL:GetScaleX(nP)
-  return (nP - 2 * self.PDX) / (self.SPX - 2 * self.PDX)
-end
-
-function PANEL:GetScaleY(nP)
-  return (nP - 2 * self.PDY) / (self.SPY - 2 * self.PDY)
-end
-
-function PANEL:SetTall(nS, nB, nP)
+function PANEL:SetTall(nP, nS, nB)
   local nP = tonumber(nP)
   local nS = tonumber(nS)
   local nB = tonumber(nB)
   if(nP) then -- Scale everything
     local nR = nP / self.SPY
     if(self:HasButtons()) then
-      local nR = self:GetScaleY()
+      local nR = (nP - 2 * self.PDY) / (self.SPY - 2 * self.PDY)
       self.SPY = nP
       self.SSY = nR * self.SSY
       self.SBY = nR * self.SBY
@@ -246,18 +238,18 @@ function PANEL:GetTall()
   return self.SPY, self.SSY, self.SBY
 end
 
-function PANEL:SetWide(nS, nB, nP)
+function PANEL:SetWide(nP, nS, nB)
   local nP = tonumber(nP)
   local nS = tonumber(nS)
   local nB = tonumber(nB)
   if(nP) then -- Scale everything
     local nR = nP / self.SPY
     if(self:HasButtons()) then
-      local nR = self:GetScaleX(nP)
-      self.SPX = nP
-      self.SSX = nR * self.SSX
-      self.SBX = nR * self.SBX
-      self.EDX = nR * self.EDX
+      local nC = self:GetCount()
+      local nR = (nP - 2 * self.PDX) / (self.SPX - 2 * self.PDX)
+      self.SPX = nP -- Use the new panel X
+      self.SSX = nR * self.SSX -- Scale slider
+      self.SBX = self.SSX - ((nC - 1) * self.EDX)
     else
       self.SPX = nP
       self.SSX = nP - 2 * self.PDX
@@ -280,7 +272,7 @@ function PANEL:Think()
       if(self.iAutoWidth ~= sX) then self.iAutoWidth = sX
         local slef, stop, srgh, sbot = self:GetDockMargin()
         local blef, btop, brgh, bbot = pBase:GetDockPadding()
-        self:SetWide(nil, nil, sX - slef - srgh - blef - brgh)
+        self:SetWide(sX - slef - srgh - blef - brgh)
       end
     end
   end

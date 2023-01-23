@@ -1862,7 +1862,7 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
 end
 
 function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
-  local tSkin, sY, dY = cPanel:GetSkin(), 22, 2
+  local tSkin = cPanel:GetSkin()
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
   local iWpan = GetOpVar("WIDTH_CPANEL")
@@ -1872,7 +1872,7 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   local pPanel = vguiCreate("trackassembly_BIS", cPanel); if(not IsValid(pPanel)) then
     LogInstance("Base invalid"); return nil end
-  pPanel:SetDelta(1, 1); pPanel:SetParent(cPanel)
+  pPanel:SetDelta(1, 8); pPanel:SetParent(cPanel)
   pPanel:SetSlider(sKey, languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase))
   pPanel:Configure(nMin, nMax, tConv[sKey], nDec)
   for iD = 1, #tBtn do
@@ -1888,15 +1888,16 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
     pPanel:SetButton(sTxt, sTip)
     pPanel:SetAction(vBtn.L, vBtn.R)
   end
-  pPanel:SetPadding(nil, nil, 8)
+  pPanel:SetPadding(0, 0)
   pPanel:IsAutoResize(true)
   pPanel.Slider:SetDark(true)
-  pPanel:Dock(TOP); pPanel:SetWide()
+  pPanel:Dock(TOP)
   pPanel:SizeToChildren(true, false)
   pPanel:SizeToContentsY()
   pPanel:InvalidateChildren()
   pPanel:UpdateColours(tSkin)
   pPanel:ApplySchemeSettings()
+  pPanel:SetWide(iWpan)
   cPanel:AddItem(pPanel)
   return pPanel
 end
