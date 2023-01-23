@@ -4,7 +4,7 @@ function PANEL:Init()
   -- Padding X and Y
   self.PDX, self.PDY = 0, 0
   -- Panel size X and Y
-  self.SPX, self.SPY = 260, 0
+  self.SPX, self.SPY = 0, 0
   -- Emement delta X and Y
   self.EDX, self.EDY = 2, 10
   -- Slider position and size
@@ -14,15 +14,20 @@ function PANEL:Init()
   self.PBX, self.PBY = 0, 0
   self.SBX, self.SBY = 0, 22
   -- Parent current width
-  self.iAutoWidth = 0
-  -- Autoresize in think hook
-  self.bAutoResz = true
+  self.ADX, self.BDX = 0, false
+  self.ADY, self.BDY = 0, false
 end
 
-function PANEL:IsAutoResize(bR)
-  if(bR ~= nil) then -- Update
-    self.bAutoResz = tobool(bR)
-  end; return self.bAutoResz
+function PANEL:IsAutoResize(bX, bY)
+  if(bX ~= nil) then self.BDX = tobool(bX) end
+  if(bY ~= nil) then self.BDY = tobool(bY) end
+  return self.BDX, self.BDY
+end
+
+function PANEL:AutoResize(nX, nY)
+  if(nX) then self.ADX = tonumber(nX) or 0 end
+  if(nY) then self.ADY = tonumber(nY) or 0 end
+  return self.ADX, self.ADY
 end
 
 function PANEL:HasButtons()
@@ -38,7 +43,7 @@ function PANEL:GetCount()
   if(not tBut) then return 0 end
   if(not tBut.Size) then return 0 end
   if(tBut.Size <= 0) then return 0 end
-  tBut.Size
+  return tBut.Size
 end
 
 -- https://github.com/Facepunch/garrysmod/blob/master/garrysmod/lua/vgui/dnumslider.lua
@@ -46,6 +51,7 @@ function PANEL:SetSlider(sVar, sNam, sTyp)
   self.Slider = vgui.Create("DNumSlider", self)
   self.Slider:SetParent(self)
   self.Slider:Dock(TOP)
+  self.Slider:SetDark(true)
   self.Slider:SetTall(self.SSY)
   self.Slider:SetText(sNam)
   self.Slider:SetConVar(sVar)
@@ -143,7 +149,7 @@ function PANEL:ClearButtons()
 end
 
 function PANEL:UpdateColours(tSkin)
-  if(self.Slider.UpdateColours) then
+  if(self.Slider and self.Slider.UpdateColours) then
     self.Slider:UpdateColours(tSkin)
   end; local tBut = self.Array
   if(not tBut) then return self end
@@ -155,8 +161,9 @@ function PANEL:UpdateColours(tSkin)
 end
 
 function PANEL:ApplySchemeSettings()
-  self.Slider:ApplySchemeSettings()
-  local tBut = self.Array
+  if(self.Slider and self.Slider.ApplySchemeSettings) then
+    self.Slider:ApplySchemeSettings()
+  end; local tBut = self.Array
   if(not tBut) then return self end
   if(not tBut.Size) then return self end
   if(tBut.Size <= 0) then return self end
@@ -193,7 +200,7 @@ function PANEL:SetPadding(nX, nY)
   local nY = tonumber(nY)
   if(nX) then self.PDX = nX end
   if(nY) then self.PDY = nY end
-  return self:UpdateView()
+  return self
 end
 
 function PANEL:GetPadding()
@@ -205,7 +212,7 @@ function PANEL:SetDelta(nX, nY)
   local nY = tonumber(nY)
   if(nX) then self.EDX = nX end
   if(nY) then self.EDY = nY end
-  return self:UpdateView()
+  return self
 end
 
 function PANEL:GetDelta()
@@ -217,9 +224,8 @@ function PANEL:SetTall(nP, nS, nB)
   local nS = tonumber(nS)
   local nB = tonumber(nB)
   if(nP) then -- Scale everything
-    local nR = nP / self.SPY
     if(self:HasButtons()) then
-      local nR = (nP - 2 * self.PDY) / (self.SPY - 2 * self.PDY)
+      local nR = nP / self.SPY
       self.SPY = nP
       self.SSY = nR * self.SSY
       self.SBY = nR * self.SBY
@@ -231,7 +237,7 @@ function PANEL:SetTall(nP, nS, nB)
   else -- Adjust elements only
     if(nS) then self.SSY = nS end
     if(nB) then self.SBY = nB end
-  end; return self:UpdateView()
+  end; return self
 end
 
 function PANEL:GetTall()
@@ -243,12 +249,10 @@ function PANEL:SetWide(nP, nS, nB)
   local nS = tonumber(nS)
   local nB = tonumber(nB)
   if(nP) then -- Scale everything
-    local nR = nP / self.SPY
     if(self:HasButtons()) then
       local nC = self:GetCount()
-      local nR = (nP - 2 * self.PDX) / (self.SPX - 2 * self.PDX)
       self.SPX = nP -- Use the new panel X
-      self.SSX = nR * self.SSX -- Scale slider
+      self.SSX = self.SPX - 2 * self.PDX -- Scale slider
       self.SBX = self.SSX - ((nC - 1) * self.EDX)
     else
       self.SPX = nP
@@ -257,7 +261,7 @@ function PANEL:SetWide(nP, nS, nB)
   else -- Adjust elements only
     if(nS) then self.SSX = nS end
     if(nB) then self.SBX = nB end
-  end; return self:UpdateView()
+  end; return self
 end
 
 function PANEL:GetWide()
@@ -265,15 +269,25 @@ function PANEL:GetWide()
 end
 
 function PANEL:Think()
-  if(self:IsAutoResize()) then
+  local rX, rY = self:IsAutoResize()
+  if(rX or rY) then
     local pBase = self:GetParent()
     if(IsValid(pBase)) then
-      local sX, sY = pBase:GetSize()
-      if(self.iAutoWidth ~= sX) then self.iAutoWidth = sX
+      local dX, dY = self:AutoResize()
+      local rU, sX, sY = false, pBase:GetSize()
+      if(rX and dX ~= sX) then
+        self:AutoResize(sX, nil); rU = true
         local slef, stop, srgh, sbot = self:GetDockMargin()
         local blef, btop, brgh, bbot = pBase:GetDockPadding()
         self:SetWide(sX - slef - srgh - blef - brgh)
       end
+      if(rY and dY ~= sY) then
+        self:AutoResize(nil, sY); rU = true
+        local slef, stop, srgh, sbot = self:GetDockMargin()
+        local blef, btop, brgh, bbot = pBase:GetDockPadding()
+        self:SetTall(sY - stop - sbot - btop - bbot)
+      end
+      if(rU) then self:UpdateView() end
     end
   end
 end
