@@ -1,14 +1,12 @@
 local PANEL = {}
 
 function PANEL:Init()
-  -- Padding buttons and slider
-  self.PDM = 0
   -- Padding X and Y
   self.PDX, self.PDY = 0, 0
   -- Panel size X and Y
   self.SPX, self.SPY = 260, 0
   -- Emement delta X and Y
-  self.EDX, self.EDY = 2, 2
+  self.EDX, self.EDY = 2, 10
   -- Slider position and size
   self.PSX, self.PSY = 0, 0
   self.SSX, self.SSY = 0, 22
@@ -27,30 +25,20 @@ function PANEL:IsAutoResize(bR)
   end; return self.bAutoResz
 end
 
-function PANEL:SetPadding(eX, eY, eM)
-  local iX = (tonumber(eX) or 2)
-  if(iX >= 0) then self.PDX = iX end
-  local iY = (tonumber(eY) or 2)
-  if(iY >= 0) then self.PDY = iY end
-  local iM = (tonumber(eM) or 2)
-  if(iM >= 0) then self.PDM = iM end
-  return self
+function PANEL:HasButtons()
+  local tBut = self.Array
+  if(not tBut) then return false end
+  if(not tBut.Size) then return false end
+  if(tBut.Size <= 0) then return false end
+  return true
 end
 
-function PANEL:GetPadding()
-  return self.PDX, self.PDY, self.PDM
-end
-
-function PANEL:SetDelta(eX, eY)
-  local iX = (tonumber(eX) or 2)
-  if(iX >= 0) then self.EDX = iX end
-  local iY = (tonumber(eY) or 2)
-  if(iY >= 0) then self.EDY = iY end
-  return self
-end
-
-function PANEL:GetDelta()
-  return self.EDX, self.EDY
+function PANEL:GetCount()
+  local tBut = self.Array
+  if(not tBut) then return 0 end
+  if(not tBut.Size) then return 0 end
+  if(tBut.Size <= 0) then return 0 end
+  tBut.Size
 end
 
 -- https://github.com/Facepunch/garrysmod/blob/master/garrysmod/lua/vgui/dnumslider.lua
@@ -76,43 +64,6 @@ function PANEL:Configure(nMin, nMax, nDef, iDig)
   if(iDig ~= nil) then self.Slider:SetDecimals(iDig) end
   if(nDef ~= nil) then self.Slider:SetDefaultValue(nDef) end
   self.Slider:UpdateNotches(); return self
-end
-
-function PANEL:SetTall(nP, nS, nB)
-  if(nP) then self.SPY = nP end
-  if(nS) then self.SSY = nS end
-  if(nB) then self.SBY = nB end
-  return self
-end
-
-function PANEL:GetTall()
-  return self.SPY, self.SSY, self.SBY
-end
-
-function PANEL:SetWide(vW)
-  local nW, tBut = tonumber(vW), self.Array
-  if(nW and nW >= 0) then self.SPX = nW end
-  self.SPY = self.SSY + 2 * self.PDY
-  self.SSX = self.SPX - 2 * self.PDX
-  self.PSX = self.PDX -- Slider position X
-  self.PSY = self.PDY -- Slider position Y
-  self.Slider:SetPos(self.PSX, self.PSY)
-  self.Slider:SetSize(self.SSX, self.SSY)
-  if(tBut and tBut.Size and tBut.Size > 0) then
-    self.PBX = self.PSX -- Store the current X for button position
-    self.PBY = self.PSY + self.SSY + self.PDM -- Button position Y
-    self.SPY = self.SSY + self.SBY + 2 * self.PDY + self.PDM
-    self.SBX = (self.SPX - (tBut.Size - 1) * self.EDX - 2 * self.PDX) / tBut.Size
-    for iD = 1, tBut.Size do
-      tBut[iD]:SetPos(self.PBX, self.PBY)
-      tBut[iD]:SetSize(self.SBX, self.SBY)
-      self.PBX = self.PBX + self.SBX + self.EDX
-    end
-  end; return self
-end
-
-function PANEL:GetWide()
-  return self.SPX, self.SSX, self.SBX
 end
 
 -- https://github.com/Facepunch/garrysmod/blob/master/garrysmod/lua/vgui/dbutton.lua
@@ -216,15 +167,121 @@ function PANEL:ApplySchemeSettings()
   end; return self
 end
 
+function PANEL:UpdateView()
+  local tBut = self.Array -- Buttons
+  self.SPY = self.SSY + 2 * self.PDY
+  self.SSX = self.SPX - 2 * self.PDX
+  self.PSX = self.PDX -- Slider position X
+  self.PSY = self.PDY -- Slider position Y
+  self.Slider:SetPos(self.PSX, self.PSY)
+  self.Slider:SetSize(self.SSX, self.SSY)
+  if(tBut and tBut.Size and tBut.Size > 0) then
+    self.PBX = self.PSX -- Store the current X for button position
+    self.PBY = self.PSY + self.SSY + self.EDY -- Button position Y
+    self.SPY = self.SSY + self.SBY + 2 * self.PDY + self.EDY
+    self.SBX = (self.SPX - (tBut.Size - 1) * self.EDX - 2 * self.PDX) / tBut.Size
+    for iD = 1, tBut.Size do
+      tBut[iD]:SetPos(self.PBX, self.PBY)
+      tBut[iD]:SetSize(self.SBX, self.SBY)
+      self.PBX = self.PBX + self.SBX + self.EDX
+    end
+  end; return self
+end
+
+function PANEL:SetPadding(nX, nY)
+  local nX = tonumber(nX)
+  local nY = tonumber(nY)
+  if(nX) then self.PDX = nX end
+  if(nY) then self.PDY = nY end
+  return self:UpdateView()
+end
+
+function PANEL:GetPadding()
+  return self.PDX, self.PDY
+end
+
+function PANEL:SetDelta(nX, eY)
+  local iX = tonumber(eX)
+  local iY = tonumber(eY)
+  if(iX) then self.EDX = iX end
+  if(iY) then self.EDY = iY end
+  return self:UpdateView()
+end
+
+function PANEL:GetDelta()
+  return self.EDX, self.EDY
+end
+
+function PANEL:GetScaleX(nP)
+  return (nP - 2 * self.PDX) / (self.SPX - 2 * self.PDX)
+end
+
+function PANEL:GetScaleY(nP)
+  return (nP - 2 * self.PDY) / (self.SPY - 2 * self.PDY)
+end
+
+function PANEL:SetTall(nS, nB, nP)
+  local nP = tonumber(nP)
+  local nS = tonumber(nS)
+  local nB = tonumber(nB)
+  if(nP) then -- Scale everything
+    local nR = nP / self.SPY
+    if(self:HasButtons()) then
+      local nR = self:GetScaleY()
+      self.SPY = nP
+      self.SSY = nR * self.SSY
+      self.SBY = nR * self.SBY
+      self.EDY = nR * self.EDY
+    else
+      self.SPY = nP
+      self.SSY = nP - 2 * self.PDY
+    end
+  else -- Adjust elements only
+    if(nS) then self.SSY = nS end
+    if(nB) then self.SBY = nB end
+  end; return self:UpdateView()
+end
+
+function PANEL:GetTall()
+  return self.SPY, self.SSY, self.SBY
+end
+
+function PANEL:SetWide(nS, nB, nP)
+  local nP = tonumber(nP)
+  local nS = tonumber(nS)
+  local nB = tonumber(nB)
+  if(nP) then -- Scale everything
+    local nR = nP / self.SPY
+    if(self:HasButtons()) then
+      local nR = self:GetScaleX(nP)
+      self.SPX = nP
+      self.SSX = nR * self.SSX
+      self.SBX = nR * self.SBX
+      self.EDX = nR * self.EDX
+    else
+      self.SPX = nP
+      self.SSX = nP - 2 * self.PDX
+    end
+  else -- Adjust elements only
+    if(nS) then self.SSX = nS end
+    if(nB) then self.SBX = nB end
+  end; return self:UpdateView()
+end
+
+function PANEL:GetWide()
+  return self.SPX, self.SSX, self.SBX
+end
+
 function PANEL:Think()
-  if(self.bAutoResz) then
+  if(self:IsAutoResize()) then
     local pBase = self:GetParent()
-    if(not IsValid(pBase)) then return end
-    local sX, sY = pBase:GetSize()
-    if(self.iAutoWidth ~= sX) then self.iAutoWidth = sX
-      local slef, stop, srgh, sbot = self:GetDockMargin()
-      local blef, btop, brgh, bbot = pBase:GetDockPadding()
-      self:SetWide(sX - slef - srgh - blef - brgh)
+    if(IsValid(pBase)) then
+      local sX, sY = pBase:GetSize()
+      if(self.iAutoWidth ~= sX) then self.iAutoWidth = sX
+        local slef, stop, srgh, sbot = self:GetDockMargin()
+        local blef, btop, brgh, bbot = pBase:GetDockPadding()
+        self:SetWide(nil, nil, sX - slef - srgh - blef - brgh)
+      end
     end
   end
 end
