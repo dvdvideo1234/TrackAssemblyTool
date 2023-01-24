@@ -1,5 +1,7 @@
 local PANEL = {}
 
+local gnRatio = 1.26
+
 function PANEL:Init()
   -- Padding X and Y
   self.PDX, self.PDY = 0, 0
@@ -225,11 +227,10 @@ function PANEL:SetTall(nP, nS, nB)
   local nB = tonumber(nB)
   if(nP) then -- Scale everything
     if(self:HasButtons()) then
-      local nR = nP / self.SPY
       self.SPY = nP
-      self.SSY = nR * self.SSY
-      self.SBY = nR * self.SBY
-      self.EDY = nR * self.EDY
+      self.SSY = (nP - 2 * self.PDY) / (2 + gnRatio)
+      self.SBY = self.SSY
+      self.EDY = self.SSY / gnRatio
     else
       self.SPY = nP
       self.SSY = nP - 2 * self.PDY
