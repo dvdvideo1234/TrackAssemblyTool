@@ -223,19 +223,18 @@ end
 
 function PANEL:SetTall(nP, nS, nB)
   local nP = tonumber(nP)
-  local nS = tonumber(nS)
-  local nB = tonumber(nB)
   if(nP) then -- Scale everything
     if(self:HasButtons()) then
       self.SPY = nP
-      self.SSY = (nP - 2 * self.PDY) / (2 + gnRatio)
+      self.SSY = (nP - 2 * self.PDY - self.EDY) / 2
       self.SBY = self.SSY
-      self.EDY = self.SSY / gnRatio
     else
       self.SPY = nP
       self.SSY = nP - 2 * self.PDY
     end
   else -- Adjust elements only
+    local nS = tonumber(nS)
+    local nB = tonumber(nB)
     if(nS) then self.SSY = nS end
     if(nB) then self.SBY = nB end
   end; return self
@@ -247,8 +246,6 @@ end
 
 function PANEL:SetWide(nP, nS, nB)
   local nP = tonumber(nP)
-  local nS = tonumber(nS)
-  local nB = tonumber(nB)
   if(nP) then -- Scale everything
     if(self:HasButtons()) then
       local nC = self:GetCount()
@@ -260,6 +257,8 @@ function PANEL:SetWide(nP, nS, nB)
       self.SSX = nP - 2 * self.PDX
     end
   else -- Adjust elements only
+    local nS = tonumber(nS)
+    local nB = tonumber(nB)
     if(nS) then self.SSX = nS end
     if(nB) then self.SBX = nB end
   end; return self
