@@ -1,7 +1,5 @@
 local PANEL = {}
 
-local gnRatio = 1.26
-
 function PANEL:Init()
   -- Padding X and Y
   self.PDX, self.PDY = 0, 0
