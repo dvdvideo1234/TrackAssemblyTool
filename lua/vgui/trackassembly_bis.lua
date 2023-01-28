@@ -18,7 +18,7 @@ function PANEL:Init()
   self.ADY, self.BDY = 0, false
 end
 
-local function SetInternXY(oP, vX, kX, vY, kY, fA)
+local function SetXY(oP, vX, kX, vY, kY, fA)
   local cX, cY = fA(vX), fA(vY)
   if(vX ~= nil) then oP[kX] = cX end
   if(vY ~= nil) then oP[kY] = cY end
@@ -26,20 +26,20 @@ local function SetInternXY(oP, vX, kX, vY, kY, fA)
 end
 
 function PANEL:IsAutoResize(bX, bY)
-  SetInternXY(self, bX, "BDX", bY, "BDY", tobool)
+  SetXY(self, bX, "BDX", bY, "BDY", tobool)
   return self.BDX, self.BDY
 end
 
 function PANEL:SetAutoResize(nX, nY)
-  return SetInternXY(self, nX, "ADX", nY, "ADY", tonumber)
+  return SetXY(self, nX, "ADX", nY, "ADY", tonumber)
 end
 
-function PANEL:GetAutoResize(nX, nY)
+function PANEL:GetAutoResize()
   return self.ADX, self.ADY
 end
 
 function PANEL:SetPadding(nX, nY)
-  return SetInternXY(self, nX, "PDX", nY, "PDY", tonumber)
+  return SetXY(self, nX, "PDX", nY, "PDY", tonumber)
 end
 
 function PANEL:GetPadding()
@@ -47,7 +47,7 @@ function PANEL:GetPadding()
 end
 
 function PANEL:SetDelta(nX, nY)
-  return SetInternXY(self, nX, "EDX", nY, "EDY", tonumber)
+  return SetXY(self, nX, "EDX", nY, "EDY", tonumber)
 end
 
 function PANEL:GetDelta()
@@ -95,7 +95,7 @@ function PANEL:SetTall(nP, nS, nB)
       self.SSY = nP - 2 * self.PDY
     end
   else -- Adjust elements only
-    SetInternXY(self, nS, "SSY", nB, "SBY", tonumber)
+    SetXY(self, nS, "SSY", nB, "SBY", tonumber)
   end; return self
 end
 
@@ -116,7 +116,7 @@ function PANEL:SetWide(nP, nS, nB)
       self.SSX = nP - 2 * self.PDX
     end
   else -- Adjust elements only
-    SetInternXY(self, nS, "SSX", nB, "SBX", tonumber)
+    SetXY(self, nS, "SSX", nB, "SBX", tonumber)
   end; return self
 end
 
@@ -202,10 +202,9 @@ function PANEL:ClearButtons()
 end
 
 function PANEL:UpdateColours(tSkin)
-  local pSer = self.Slider -- Slider reference
-  if(pSer and pSer.UpdateColours) then
-    pSer:UpdateColours(tSkin)
-  end; local tBut = self:GetButtons()
+  local pSer, tBut = self.Slider, self:GetButtons()
+  if(self.UpdateColours) then self:UpdateColours() end
+  if(pSer and pSer.UpdateColours) then pSer:UpdateColours(tSkin) end
   if(not tBut) then return self end
   for iD = 1, tBut.Size do local pBut = tBut[iD]
     if(pBut.UpdateColours) then pBut:UpdateColours(tSkin) end
@@ -213,10 +212,9 @@ function PANEL:UpdateColours(tSkin)
 end
 
 function PANEL:ApplySchemeSettings()
-  local pSer = self.Slider -- Slider reference
-  if(pSer and pSer.ApplySchemeSettings) then
-    pSer:ApplySchemeSettings()
-  end; local tBut = self:GetButtons()
+  local pSer, tBut = self.Slider, self:GetButtons()
+  if(self.ApplySchemeSettings) then self:ApplySchemeSettings() end
+  if(pSer and pSer.ApplySchemeSettings) then pSer:ApplySchemeSettings() end
   if(not tBut) then return self end
   for iD = 1, tBut.Size do local pBut = tBut[iD]
     if(pBut.ApplySchemeSettings) then pBut:ApplySchemeSettings() end
