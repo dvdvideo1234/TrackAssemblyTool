@@ -201,26 +201,6 @@ function PANEL:ClearButtons()
   return self
 end
 
-function PANEL:UpdateColours(tSkin)
-  local pSer, tBut = self.Slider, self:GetButtons()
-  if(self.UpdateColours) then self:UpdateColours() end
-  if(pSer and pSer.UpdateColours) then pSer:UpdateColours(tSkin) end
-  if(not tBut) then return self end
-  for iD = 1, tBut.Size do local pBut = tBut[iD]
-    if(pBut.UpdateColours) then pBut:UpdateColours(tSkin) end
-  end
-end
-
-function PANEL:ApplySchemeSettings()
-  local pSer, tBut = self.Slider, self:GetButtons()
-  if(self.ApplySchemeSettings) then self:ApplySchemeSettings() end
-  if(pSer and pSer.ApplySchemeSettings) then pSer:ApplySchemeSettings() end
-  if(not tBut) then return self end
-  for iD = 1, tBut.Size do local pBut = tBut[iD]
-    if(pBut.ApplySchemeSettings) then pBut:ApplySchemeSettings() end
-  end; return self
-end
-
 function PANEL:UpdateView()
   local pSer = self.Slider -- Retrieve slider reference
   local tBut = self:GetButtons() -- Validate buttons array
@@ -241,6 +221,24 @@ function PANEL:UpdateView()
       self.PBX = self.PBX + self.SBX + self.EDX
     end
   end; return self
+end
+
+local function Run(oP, sN)
+  local pSer, tBut = oP.Slider, oP:GetButtons()
+  if(oP[sN]) then oP[sN](oP) end
+  if(pSer and pSer[sN]) then pSer[sN](pSer) end
+  if(not tBut) then return oP end
+  for iD = 1, tBut.Size do local pBut = tBut[iD]
+    if(pBut[sN]) then pBut[sN](pBut) end
+  end; return oP
+end
+
+function PANEL:UpdateColours(tSkin)
+  return Run(self, "UpdateColours")
+end
+
+function PANEL:ApplySchemeSettings()
+  return Run(self, "ApplySchemeSettings")
 end
 
 function PANEL:Think()
