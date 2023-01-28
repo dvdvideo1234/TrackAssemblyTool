@@ -223,18 +223,18 @@ function PANEL:UpdateView()
   end; return self
 end
 
-local function Run(oP, sN)
+local function Run(oP, sN, ...)
   local pSer, tBut = oP.Slider, oP:GetButtons()
-  if(oP[sN]) then oP[sN](oP) end
-  if(pSer and pSer[sN]) then pSer[sN](pSer) end
+  if(oP[sN]) then oP[sN](oP, ...) end
+  if(pSer and pSer[sN]) then pSer[sN](pSer, ...) end
   if(not tBut) then return oP end
   for iD = 1, tBut.Size do local pBut = tBut[iD]
-    if(pBut[sN]) then pBut[sN](pBut) end
+    if(pBut[sN]) then pBut[sN](pBut, ...) end
   end; return oP
 end
 
 function PANEL:UpdateColours(tSkin)
-  return Run(self, "UpdateColours")
+  return Run(self, "UpdateColours", tSkin)
 end
 
 function PANEL:ApplySchemeSettings()
