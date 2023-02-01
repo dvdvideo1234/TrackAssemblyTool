@@ -225,7 +225,6 @@ end
 
 local function Run(oP, sN, ...)
   local pSer, tBut = oP.Slider, oP:GetButtons()
-  if(oP[sN]) then oP[sN](oP, ...) end
   if(pSer and pSer[sN]) then pSer[sN](pSer, ...) end
   if(not tBut) then return oP end
   for iD = 1, tBut.Size do local pBut = tBut[iD]
@@ -234,11 +233,15 @@ local function Run(oP, sN, ...)
 end
 
 function PANEL:UpdateColours(tSkin)
-  return Run(self, "UpdateColours", tSkin)
+  if(self.UpdateColours) then
+    self:UpdateColours(tSkin)
+  end; return Run(self, "UpdateColours", tSkin)
 end
 
-function PANEL:ApplySchemeSettings()
-  return Run(self, "ApplySchemeSettings")
+function PANEL:UpdateSettings()
+  if(self.ApplySchemeSettings) then
+    self:ApplySchemeSettings()
+  end; return Run(self, "ApplySchemeSettings")
 end
 
 function PANEL:Think()
