@@ -92,7 +92,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.714")
+asmlib.SetOpVar("TOOL_VERSION","8.715")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -445,7 +445,7 @@ if(CLIENT) then
       asmlib.LogInstance("User miss: "..vOut, sLog); return end; fUser = vOut
     local pUser = controlpanelGet(gsToolNameL.."_utilities_user"); if(not IsValid(pUser)) then
       asmlib.LogInstance("User invalid", sLog); return end
-    -- Retrieve the utilities user preferencies panel
+    -- Retrieve the utilities admin preferencies panel
     bS, vOut = asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin"); if(not bS) then
       asmlib.LogInstance("Admin miss: "..vOut, sLog); return end; fAdmn = vOut
     local pAdmn = controlpanelGet(gsToolNameL.."_utilities_admin"); if(not IsValid(pAdmn)) then
