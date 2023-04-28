@@ -92,7 +92,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.716")
+asmlib.SetOpVar("TOOL_VERSION","8.718")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -745,7 +745,7 @@ if(CLIENT) then
       xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
       xySiz.x = (nW - 6 * xyDsz.x)
       xySiz.y = ((nH - 6 * xyDsz.y) - 52)
-      local wAct = mathFloor(((gnRatio - 1) / 6) * xySiz.x)
+      local wAct = mathFloor(((gnRatio - 1) / 8) * xySiz.x)
       local wUse = mathFloor(xySiz.x - wAct)
       local pnListView = vguiCreate("DListView")
       if(not IsValid(pnListView)) then pnFrame:Close()
@@ -759,8 +759,8 @@ if(CLIENT) then
       pnListView:SetSize(xySiz.x, xySiz.y)
       pnListView:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
       pnListView:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wUse)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wAct)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wAct)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wUse)
       pnListView:AddColumn(""):SetFixedWidth(0) -- The hidden path to the population file
       -- Import button. when clicked loads file into the panel
       local pnImport = vguiCreate("Dbutton")
@@ -789,7 +789,7 @@ if(CLIENT) then
               sKey = sLine:sub(1, nS-1)
               sPrg = sLine:sub(nE+1,-1)
             else sKey, sPrg = sLine, sMis end
-            pnListView:AddLine(sKey, (bAct and "V" or "X"), sPrg):SetTooltip(sPrg)
+            pnListView:AddLine((bAct and "V" or "X"), sKey, sPrg):SetTooltip(sPrg)
           end
         end; oDSV:Close()
       end
@@ -814,10 +814,11 @@ if(CLIENT) then
             asmlib.LogInstance("DSV list missing",sLog..".ListView"); return nil end
           local tLine = pnListView:GetLines()
           for iK, pnCur in pairs(tLine) do
-            local sPrf = pnCur:GetColumnText(1)
-            local sCom = ((pnCur:GetColumnText(2) == "V") and "" or sOff)
+            local sAct = ((pnCur:GetColumnText(1) == "V") and "" or sOff)
+            local sPrf = pnCur:GetColumnText(2)
             local sPth = pnCur:GetColumnText(3)
-            oDSV:Write(sCom..sPrf..sDel..sPth.."\n")
+            if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
+            oDSV:Write(sAct..sPrf..sPth.."\n")
           end; oDSV:Flush(); oDSV:Close()
         end
       end
@@ -827,17 +828,18 @@ if(CLIENT) then
           if(not IsValid(pnMenu)) then pnFrame:Close()
             asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
           local iO, tOptions = 1, {
-            function() SetClipboardText(pnLine:GetColumnText(1)) end,
+            function() SetClipboardText(pnLine:GetColumnText(2)) end,
             function() SetClipboardText(pnLine:GetColumnText(3)) end,
             function()
-              local sPrf = pnLine:GetColumnText(1)
-              local sCom = pnLine:GetColumnText(2)
+              local sAct = pnLine:GetColumnText(1)
+              local sPrf = pnLine:GetColumnText(2)
               local sPth = pnLine:GetColumnText(3)
-              SetClipboardText(sPrf..sDel..sCom..sDel..sPth)
+              if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
+              SetClipboardText(sAct..sPrf..sPth)
             end,
             function()
-              sCom = pnLine:GetColumnText(2)
-              pnLine:SetColumnText(2, (sCom == "V" and "X" or "V"))
+              sAct = pnLine:GetColumnText(1)
+              pnLine:SetColumnText(1, ((sAct == "V") and "X" or "V"))
             end,
             function() end, -- Open text to change line
             function() end, -- Open text to create line
