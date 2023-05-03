@@ -2507,7 +2507,6 @@ if(CLIENT) then
   local function setupUserSettings(CPanel)
     local sLog = "*TOOL.UserSettings"
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
-    local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
     CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".utilities_user"))
     CPanel:ControlHelp(languageGetPhrase("tool."..gsToolNameL..".client_var"))
@@ -2531,7 +2530,6 @@ if(CLIENT) then
   local function setupAdminSettings(CPanel)
     local sLog = "*TOOL.AdminSettings"
     local drmSkin, pItem = CPanel:GetSkin()
-    local tPanTwk = asmlib.GetActionData("TWEAK_PANEL")
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
     CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".utilities_admin"))
