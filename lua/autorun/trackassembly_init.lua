@@ -92,7 +92,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.716")
+asmlib.SetOpVar("TOOL_VERSION","8.717")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -762,37 +762,48 @@ if(CLIENT) then
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wUse - wSrc)
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_3")):SetFixedWidth(wSrc)
       -- Rext entry to inport/export to list view
-      local pnText = vguiCreate("DTextEntry")
-      if(not IsValid(pnText)) then pnFrame:Close()
-        asmlib.LogInstance("Text entry invalid", sLog); return nil end
       xyPos.y = xyPos.y + xySiz.y + xyDsz.y
       xySiz.y = nB -- Genral Y-size of elements
-      pnText:SetPos(xyPos.x, xyPos.y)
-      pnText:SetSize(xySiz.x, xySiz.y)
-      pnText:SetEditable(true)
-      pnText:SetParent(pnDSV)
-      pnText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_ttt"))
-      pnText.OnEnter = function(pnSelf)
-        local sMis = asmlib.GetOpVar("MISS_NOAV")
-        local sSep = asmlib.GetOpVar("OPSYM_SEPARATOR")
-        local tDat = sSep:Explode(pnSelf:GetValue())
-        local nID, pnRow = pnListView:GetSelectedLine()
-        tDat[1] = ((tDat[1] ~= nil) and tostring(tDat[1]) or "X"):Trim():sub(1,1)
-        tDat[1] = ((tDat[1] == "V" or tDat[1] == "X") and tDat[1] or "X"):Trim()
-        tDat[2] = ((tDat[2] ~= nil) and tostring(tDat[2]) or ""):Trim()
-        tDat[3] = ((tDat[3] ~= nil) and tostring(tDat[3]) or sMis):Trim()
-        if(not asmlib.IsBlank(tDat[1]) and not asmlib.IsBlank(tDat[2])) then
-        if(nID and nID > 0 and pnRow and not pnSelf.m_NewDSV) then local iC = 1
-          while(pnRow.Columns[iC]) do pnRow:SetColumnText(iC, tDat[iC]); iC = iC + 1 end
-        else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3])
-        end; end; pnText:SetValue(""); pnText:SetText("")
+      local tpText = {Size = #pnListView.Columns}
+      for iC = 1, tpText.Size do
+        local pC = pnListView.Columns[iC]
+        local cW = math.min(pC:GetMinWidth(), pC:GetMaxWidth())
+        if(iC == 1 or iC == tpText.Size) then
+          xySiz.x = cW - (xyDsz.x / 2)
+        else xySiz.x = cW - xyDsz.x end; pC:SetWide(cW)
+        local pnText = vguiCreate("DTextEntry")
+        if(not IsValid(pnText)) then pnFrame:Close()
+          asmlib.LogInstance("Text entry active invalid", sLog); return nil end
+        pnText:SetParent(pnDSV)
+        pnText:SetEditable(true)
+        pnText:SetPos(xyPos.x, xyPos.y)
+        pnText:SetSize(xySiz.x, xySiz.y)
+        pnText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_ttt").." "
+                        ..languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_"..iC))
+        xyPos.x = xyPos.x + xySiz.x + xyDsz.x; tpText[iC] = pnText
+        pnText.OnEnter = function(pnSelf)
+          local nID, pnRow = pnListView:GetSelectedLine()
+          local tDat, sMis = {}, asmlib.GetOpVar("MISS_NOAV")
+          for iV = 1, tpText.Size do tDat[iV] = tpText[iV]:GetValue() end
+          tDat[1] = ((tDat[1] ~= nil) and tostring(tDat[1]) or "X"):Trim():sub(1,1)
+          tDat[1] = ((tDat[1] == "V" or tDat[1] == "X") and tDat[1] or "X"):Trim()
+          tDat[2] = ((tDat[2] ~= nil) and tostring(tDat[2]) or ""):Trim()
+          tDat[3] = ((tDat[3] ~= nil) and tostring(tDat[3]) or sMis):Trim()
+          tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3]):Trim()
+          if(not asmlib.IsBlank(tDat[1]) and not asmlib.IsBlank(tDat[2])) then
+          if(nID and nID > 0 and pnRow and not tpText[1].m_NewDSV) then local iU = 1
+            while(pnRow.Columns[iU]) do pnRow:SetColumnText(iU, tDat[iU]); iU = iU + 1 end
+          else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3])
+          end; end; for iV = 1, tpText.Size do tpText[iV]:SetValue(""); tpText[iV]:SetText("") end
+        end
       end
       -- Import button. when clicked loads file into the panel
       local pnImport = vguiCreate("DButton")
       if(not IsValid(pnImport)) then pnFrame:Close()
         asmlib.LogInstance("Import button invalid", sLog); return nil end
+      xyPos.x = pnListView:GetPos()
       xyPos.y = xyPos.y + xySiz.y + xyDsz.y
-      xySiz.x = ((xySiz.x - xyDsz.x) / 2)
+      xySiz.x = ((pnListView:GetWide() - xyDsz.x) / 2)
       pnImport:SetPos(xyPos.x, xyPos.y)
       pnImport:SetSize(xySiz.x, xySiz.y)
       pnImport:SetParent(pnDSV)
@@ -832,21 +843,17 @@ if(CLIENT) then
       pnExport:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bte_tp"))
       pnExport.DoRightClick = function() end
       pnExport.DoClick = function(pnSelf)
-        if(inputIsKeyDown(KEY_LSHIFT)) then
-          fileDelete(sNam); pnListView:Clear()
-        else
-          local oDSV = fileOpen(sNam, "wb", "DATA")
-          if(not oDSV) then pnFrame:Close()
-            asmlib.LogInstance("DSV list missing",sLog..".ListView"); return nil end
-          local tLine = pnListView:GetLines()
-          for iK, pnCur in pairs(tLine) do
-            local sAct = ((pnCur:GetColumnText(1) == "V") and "" or sOff)
-            local sPrf = pnCur:GetColumnText(2)
-            local sPth = pnCur:GetColumnText(3)
-            if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
-            oDSV:Write(sAct..sPrf..sPth.."\n")
-          end; oDSV:Flush(); oDSV:Close()
-        end
+        local oDSV = fileOpen(sNam, "wb", "DATA")
+        if(not oDSV) then pnFrame:Close()
+          asmlib.LogInstance("DSV list missing",sLog..".ListView"); return nil end
+        local tLine = pnListView:GetLines()
+        for iK, pnCur in pairs(tLine) do
+          local sAct = ((pnCur:GetColumnText(1) == "V") and "" or sOff)
+          local sPrf = pnCur:GetColumnText(2)
+          local sPth = pnCur:GetColumnText(3)
+          if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
+          oDSV:Write(sAct..sPrf..sPth.."\n")
+        end; oDSV:Flush(); oDSV:Close()
       end
       local function convRow(pnRow)
         local sSep = asmlib.GetOpVar("OPSYM_SEPARATOR")
@@ -855,6 +862,11 @@ if(CLIENT) then
         local sPth = pnRow:GetColumnText(3)
         if(not asmlib.IsBlank(sPth)) then sPth = sSep..sPth end
         return (sAct..sSep..sPrf..sPth)
+      end
+      local function excgRow(pnRow)
+        for iV = 1, tpText.Size do
+          tpText[iV]:SetValue(pnRow:GetColumnText(iV))
+        end
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
         if(inputIsMouseDown(MOUSE_RIGHT)) then
@@ -871,8 +883,8 @@ if(CLIENT) then
             end,
             function() SetClipboardText(convRow(pnLine)) end,
             function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V")) end,
-            function() pnText:SetValue(convRow(pnLine)); pnText.m_NewDSV = false end,
-            function() pnText:SetValue(convRow(pnLine)); pnText.m_NewDSV = true  end,
+            function() excgRow(pnLine); tpText[1].m_NewDSV = false end,
+            function() excgRow(pnLine); tpText[1].m_NewDSV = true  end,
             function() pnSelf:RemoveLine(nIndex) end
           }
           while(tOptions[iO]) do local sO = tostring(iO)
