@@ -92,7 +92,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.717")
+asmlib.SetOpVar("TOOL_VERSION","8.718")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -785,11 +785,16 @@ if(CLIENT) then
           local nID, pnRow = pnListView:GetSelectedLine()
           local tDat, sMis = {}, asmlib.GetOpVar("MISS_NOAV")
           for iV = 1, tpText.Size do tDat[iV] = tpText[iV]:GetValue() end
-          tDat[1] = ((tDat[1] ~= nil) and tostring(tDat[1]) or "X"):Trim():sub(1,1)
-          tDat[1] = ((tDat[1] == "V" or tDat[1] == "X") and tDat[1] or "X"):Trim()
-          tDat[2] = ((tDat[2] ~= nil) and tostring(tDat[2]) or ""):Trim()
-          tDat[3] = ((tDat[3] ~= nil) and tostring(tDat[3]) or sMis):Trim()
-          tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3]):Trim()
+          -- Active line. Contains X/V
+          tDat[1] = tostring(tDat[1] or "X")
+          tDat[1] = (tDat[1]:Trim():upper():sub(1,1))
+          tDat[1] = ((tDat[1] == "V") and "V" or "X")
+          -- Database unique prefix. Contains non-spaces
+          tDat[2] = tostring(tDat[2] or "")
+          tDat[2] = tDat[2]:Trim():gsub("[^%w]","_")
+          -- Additional information. It can be anything
+          tDat[3] = tostring(tDat[3] or ""):Trim()
+          tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3])
           if(not asmlib.IsBlank(tDat[1]) and not asmlib.IsBlank(tDat[2])) then
           if(nID and nID > 0 and pnRow and not tpText[1].m_NewDSV) then local iU = 1
             while(pnRow.Columns[iU]) do pnRow:SetColumnText(iU, tDat[iU]); iU = iU + 1 end
