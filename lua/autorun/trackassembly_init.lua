@@ -92,7 +92,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.718")
+asmlib.SetOpVar("TOOL_VERSION","8.719")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -861,17 +861,19 @@ if(CLIENT) then
         end; oDSV:Flush(); oDSV:Close()
       end
       local function convRow(pnRow)
-        local sSep = asmlib.GetOpVar("OPSYM_SEPARATOR")
-        local sAct = pnRow:GetColumnText(1)
-        local sPrf = pnRow:GetColumnText(2)
-        local sPth = pnRow:GetColumnText(3)
+        local sSep = asmlib.GetOpVar("OPSYM_VERTDIV")
+        local sAct = pnRow:GetColumnText(1) -- Active
+        local sPrf = pnRow:GetColumnText(2) -- PK
+        local sPth = pnRow:GetColumnText(3) -- Path
         if(not asmlib.IsBlank(sPth)) then sPth = sSep..sPth end
-        return (sAct..sSep..sPrf..sPth)
+        return (sAct..sSep..sPrf..sPth) -- Divided
       end
       local function excgRow(pnRow)
         for iV = 1, tpText.Size do
-          tpText[iV]:SetValue(pnRow:GetColumnText(iV))
-        end
+          local ptx = tpText[iV] -- Pick a panel
+          local str = pnRow:GetColumnText(iV)
+          ptx:SetValue(str); ptx:SetText(str)
+        end -- Exchange data with list view and text
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
         if(inputIsMouseDown(MOUSE_RIGHT)) then
