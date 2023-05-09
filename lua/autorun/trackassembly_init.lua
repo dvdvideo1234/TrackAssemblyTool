@@ -49,6 +49,7 @@ local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
 local fileExists                    = file and file.Exists
 local fileFind                      = file and file.Find
+local fileRead                      = file and file.Read
 local fileWrite                     = file and file.Write
 local fileDelete                    = file and file.Delete
 local fileTime                      = file and file.Time
@@ -92,7 +93,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.719")
+asmlib.SetOpVar("TOOL_VERSION","8.720")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -943,12 +944,24 @@ if(CLIENT) then
                   function() SetClipboardText(sFile) end,
                   function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end,
                   function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end,
-                  function() asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end,
+                  function()
+                    if(luapad) then
+                      asmlib.LogInstance("Edit "..asmlib.GetReport1(sFile), sLog..".Button")
+                      if(luapad.Frame) then luapad.Frame:SetVisible(true)
+                      else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
+                      luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
+                      if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref, "CATEGORY")
+                        if(fileExists(sCat,"DATA")) then
+                          luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
+                        end
+                      end
+                    end
+                  end,
                   function() fileDelete(sFile)
-                    asmlib.LogInstance("Deleted "..asmlib.GetReport1(sFile),sLog..".Button")
-                    if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref,"CATEGORY")
+                    asmlib.LogInstance("Delete "..asmlib.GetReport1(sFile), sLog..".Button")
+                    if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref, "CATEGORY")
                       if(fileExists(sCat,"DATA")) then fileDelete(sCat)
-                        asmlib.LogInstance("Deleted "..asmlib.GetReport1(sCat),sLog..".Button") end
+                        asmlib.LogInstance("Deleted "..asmlib.GetReport1(sCat), sLog..".Button") end
                     end; pnManage:Remove()
                   end
                 }
