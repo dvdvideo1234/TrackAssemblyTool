@@ -93,7 +93,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.720")
+asmlib.SetOpVar("TOOL_VERSION","8.721")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -955,6 +955,8 @@ if(CLIENT) then
                           luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
                         end
                       end
+                      luapad.Frame:SetVisible(true); luapad.Frame:Center()
+                      luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
                     end
                   end,
                   function() fileDelete(sFile)

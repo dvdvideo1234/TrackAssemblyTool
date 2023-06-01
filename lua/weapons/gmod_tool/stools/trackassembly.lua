@@ -1126,7 +1126,7 @@ function TOOL:LeftClick(stTrace)
     asmlib.LogInstance("Trace missing",gtLogs); return false end
   if(not stTrace.Hit) then -- Do not do stuff when there is nothing hit
     asmlib.LogInstance("Trace not hit",gtLogs); return false end
-  local poQueue  = asmlib.GetQueue("THINK")
+  local poQueue    = asmlib.GetQueue("THINK")
   local user       = self:GetOwner()
   local trEnt      = stTrace.Entity
   local weld       = self:GetWeld()
@@ -1518,7 +1518,7 @@ function TOOL:Reload(stTrace)
   if(not stTrace) then
     asmlib.LogInstance("Invalid trace",gtLogs); return false end
   local trEnt      = stTrace.Entity
-  local user        = self:GetOwner()
+  local user       = self:GetOwner()
   local workmode   = self:GetWorkingMode()
   local bfover     = self:IsFlipOver()
   local upspanchor = self:GetUpSpawnAnchor()
@@ -1599,7 +1599,7 @@ function TOOL:Holster()
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
-  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
+  local atGho  = asmlib.GetOpVar("ARRAY_GHOST")
   local tE, nE = self:GetFlipOver(true, true)
   if(tE and self:IsFlipOver()) then
     local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -1776,14 +1776,18 @@ function TOOL:Think()
   local model = self:GetModel()
   if(utilIsValidModel(model)) then
     local workmode = self:GetWorkingMode()
-    if(CLIENT) then -- Precache the model or it is invalid otherwise
-      local bOld = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
-      local bNew = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
-      if(not bOld and bNew and inputIsKeyDown(KEY_LALT)) then
-        local pnFrame = conElements:Pull() -- Retrieve a panel from the stack
-        if(IsValid(pnFrame)) then pnFrame:Close() end -- Call close on it !
-      end -- Shortcut for closing the routine pieces. A `close` call, get it :D
-    end
+    if(CLIENT) then
+      local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
+      local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
+      if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
+        local oD = conElements:Pull() -- Retrieve a panel from the stack
+        if(asmlib.IsTable(oD)) then oD = oD[1] -- Extract panel from table
+          if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
+        else -- The temporary reference is not table then close it
+          if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
+        end -- Shortcut for closing the routine pieces
+      end -- Front trigget for closing panels
+    end -- This is client closing the routine pieces
   end
 end
 
