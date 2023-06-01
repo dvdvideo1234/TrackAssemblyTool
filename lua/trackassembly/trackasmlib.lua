@@ -1869,7 +1869,7 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   local syRev = GetOpVar("OPSYM_REVSIGN")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
-  local pPanel = vguiCreate("trackassembly_BIS", cPanel); if(not IsValid(pPanel)) then
+  local pPanel = vguiCreate("DAsmInSliderButton", cPanel); if(not IsValid(pPanel)) then
     LogInstance("Base invalid"); return nil end
   pPanel:SetParent(cPanel)
   pPanel:SetSlider(sKey, languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase))
