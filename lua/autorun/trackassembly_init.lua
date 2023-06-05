@@ -93,7 +93,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.722")
+asmlib.SetOpVar("TOOL_VERSION","8.723")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -1143,7 +1143,7 @@ if(CLIENT) then
         local uiEnt = pnModelPanel:GetEntity(); if(not (uiEnt and uiEnt:IsValid())) then -- Makes sure the entity is validated first
           asmlib.LogInstance("Model entity invalid "..asmlib.GetReport(uiMod), sLog..".ListView"); return nil end
         uiEnt:SetModel(uiMod); uiEnt:SetModelName(uiMod) -- Apply the model on the model panel even for changed compiled model paths
-        local uiBox = asmlib.CacheBoxLayout(pnModelPanel:GetEntity(),0,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
+        local uiBox = asmlib.CacheBoxLayout(uiEnt,0,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("Box invalid for <"..uiMod..">",sLog..".ListView"); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmConvar("pointid","INT"), asmlib.GetAsmConvar("pnextid","INT")
