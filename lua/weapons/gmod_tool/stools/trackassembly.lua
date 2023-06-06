@@ -1,3 +1,5 @@
+print("TRACKASSEMBLY TOOL 1")
+
 ---------------- Localizing Libraries ---------------
 local type                             = type
 local pcall                            = pcall
@@ -2686,3 +2688,5 @@ if(CLIENT) then
 
   asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
 end
+
+print("TRACKASSEMBLY TOOL 2")

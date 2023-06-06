@@ -1,3 +1,5 @@
+print("TRACKASSEMBLY BASE 1")
+
 local cvX, cvY, cvZ -- Vector Component indexes
 local caP, caY, caR -- Angle Component indexes
 local wvX, wvY, wvZ -- Wire vector Component indexes
@@ -174,6 +176,10 @@ module("trackasmlib")
 
 ---------------------------- PRIMITIVES ----------------------------
 
+function OpVar()
+  return libOpVars
+end
+
 function Stamp(time, func, ...)
   local told = GetOpVar("TIME_STAMP")
   local tnew = Time()
@@ -197,6 +203,9 @@ end
 
 function SetOpVar(sName, vVal)
   libOpVars[sName] = vVal
+  if(sName:sub(1,1) == "V") then
+    print(">>", Time(), sName, vVal)
+  end
 end
 
 function IsInit()
@@ -715,8 +724,8 @@ function InitBase(sName, sPurp)
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("MAX_ROTATION",360)
-  SetOpVar("ANG_ZERO",Angle())
-  SetOpVar("VEC_ZERO",Vector())
+  SetOpVar("ANG_ZERO",Angle(0,0,0))
+  SetOpVar("VEC_ZERO",Vector(0,0,0))
   SetOpVar("ANG_REV",Angle(0,180,0))
   SetOpVar("VEC_FW",Vector(1,0,0))
   SetOpVar("VEC_RG",Vector(0,-1,1))
@@ -767,23 +776,22 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
-  SetOpVar("FORM_LANGPATH",GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
-  SetOpVar("TYPEMT_SCREEN",{})
-  SetOpVar("TYPEMT_QUEUE",{})
-  SetOpVar("TYPEMT_CONTAINER",{})
-  SetOpVar("TYPEMT_VECTOR",getmetatable(GetOpVar("VEC_ZERO")))
-  SetOpVar("TYPEMT_ANGLE" ,getmetatable(GetOpVar("ANG_ZERO")))
   SetOpVar("TABLE_QUEUE",{})
   SetOpVar("TABLE_FLAGS", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
+  SetOpVar("TYPEMT_SCREEN",{})
+  SetOpVar("TYPEMT_QUEUE",{})
+  SetOpVar("TYPEMT_CONTAINER",{})
+  SetOpVar("TYPEMT_VECTOR",getmetatable(GetOpVar("VEC_ZERO")))
+  SetOpVar("TYPEMT_ANGLE" ,getmetatable(GetOpVar("ANG_ZERO")))
   SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
   SetOpVar("ARRAY_MODETM",{"CQT", "OBJ"})
@@ -2990,7 +2998,7 @@ end
 
 --------------- TIMER MEMORY MANAGMENT ----------------------------
 
-function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
+function CacheBoxLayout(oEnt,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity invalid <"..tostring(oEnt)..">"); return nil end
   local sMod = oEnt:GetModel() -- Extract the entity model
@@ -3006,7 +3014,7 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
     local nZ = stBox.Len * (tonumber(nCamZ) or 0) -- Calculate camera Z
     AddVectorXYZ(stBox.Cam, nX, 0, nZ) -- Apply calculated camera offsets
     LogInstance("<"..tostring(stBox.Cen).."><"..tostring(stBox.Len)..">")
-  end; stBox.Ang[caY] = (tonumber(nRot) or 0) * Time(); return stBox
+  end; return stBox
 end
 
 --------------------------- PIECE QUERY -----------------------------
@@ -5413,3 +5421,5 @@ function GetToolInformation()
     end
   end; return tO
 end
+
+print("TRACKASSEMBLY BASE 2")

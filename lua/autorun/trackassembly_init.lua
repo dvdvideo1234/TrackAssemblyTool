@@ -1,5 +1,5 @@
 ------------ LOCALIZNG FUNCTIONS ------------
-
+print("TRACKASSEMBLY INIT 1")
 local pcall                         = pcall
 local Angle                         = Angle
 local Vector                        = Vector
@@ -38,6 +38,7 @@ local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
 local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
+local mathNormalizeAngle            = math and math.NormalizeAngle
 local mathHuge                      = math and math.huge
 local gameGetWorld                  = game and game.GetWorld
 local tableConcat                   = table and table.concat
@@ -93,7 +94,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.723")
+asmlib.SetOpVar("TOOL_VERSION","8.724")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -102,22 +103,17 @@ asmlib.SetIndexes("WA",1,2,3)
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
 local gtInitLogs  = asmlib.GetOpVar("LOG_INIT")
-local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
-local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
+local gvVecZero   = asmlib.GetOpVar("VEC_ZERO")
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
-local gsToolNameU = asmlib.GetOpVar("TOOLNAME_NU")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
-local gsLangForm  = asmlib.GetOpVar("FORM_LANGPATH")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gtCallBack  = asmlib.GetOpVar("TABLE_CALLBACK")
-local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
-local gtTransFile = fileFind(gsLangForm:format("*.lua"), "LUA")
+local gsNoAnchor  = asmlib.GetOpVar("MISS_NOID")..gsSymRev..asmlib.GetOpVar("MISS_NOMD")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
 
@@ -212,6 +208,9 @@ asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
 
 ------------ GLOBAL VARIABLES ------------
+
+asmlib.LogTable(asmlib.OpVar(), "OpVar")
+asmlib.LogInstance(asmlib.GetOpVar("VEC_ZERO"))
 
 local gsMoDB     = asmlib.GetOpVar("MODE_DATABASE")
 local gaTimerSet = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
@@ -346,10 +345,6 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
 
 if(SERVER) then
 
-  for iD = 1, #gtTransFile do
-    AddCSLuaFile(gsLangForm:format(gtTransFile[iD]))
-  end -- Add client side translation lua files
-
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
   utilAddNetworkString(gsLibName.."SendCreateCurveNode")
@@ -412,7 +407,7 @@ if(SERVER) then
         local stSpawn = asmlib.GetEntitySpawn(pPly,trTr.Entity,trTr.HitPos,trRec.Slot,trID,
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
-          if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or GetOpVar("VEC_ZERO"),pPly,bnderrmod)) then
+          if(not asmlib.SetPosBound(trEnt,stSpawn.SPos or gvVecZero, pPly, bnderrmod)) then
             asmlib.LogInstance("User "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds",sLog); return nil end
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
@@ -698,7 +693,8 @@ if(CLIENT) then
     end) -- Read client configuration
 
   asmlib.SetAction("OPEN_EXTERNDB", -- Must have the same parameters as the hook
-    function(oPly,oCom,oArgs) local sLog = "*OPEN_EXTERNDB"
+    function(oPly,oCom,oArgs)
+      local sLog = "*OPEN_EXTERNDB"
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
       local sVer = asmlib.GetOpVar("TOOL_VERSION")
@@ -995,14 +991,14 @@ if(CLIENT) then
       local pnFrame = vguiCreate("DFrame"); if(not IsValid(pnFrame)) then
         asmlib.LogInstance("Frame invalid",sLog); return nil end
       ------------ Screen resolution and configuration ------------
-      local scrW         = surfaceScreenWidth()
-      local scrH         = surfaceScreenHeight()
-      local sVersion     = asmlib.GetOpVar("TOOL_VERSION")
-      local xyZero       = {x =  0, y = 20} -- The start location of left-top
-      local xyDelta      = {x = 10, y = 10} -- Distance between panels
-      local xySiz        = {x =  0, y =  0} -- Current panel size
-      local xyPos        = {x =  0, y =  0} -- Current panel position
-      local xyTmp        = {x =  0, y =  0} -- Temporary coordinate
+      local scrW     = surfaceScreenWidth()
+      local scrH     = surfaceScreenHeight()
+      local sVersion = asmlib.GetOpVar("TOOL_VERSION")
+      local xyZero   = {x =  0, y = 20} -- The start location of left-top
+      local xyDelta  = {x = 10, y = 10} -- Distance between panels
+      local xySiz    = {x =  0, y =  0} -- Current panel size
+      local xyPos    = {x =  0, y =  0} -- Current panel position
+      local xyTmp    = {x =  0, y =  0} -- Temporary coordinate
       ------------ Frame ------------
       xySiz.x = (scrW / gnRatio) -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
@@ -1076,14 +1072,22 @@ if(CLIENT) then
       pnModelPanel:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_display"))
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
         if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
-        local uiBox = asmlib.CacheBoxLayout(oEnt,40); if(not asmlib.IsHere(uiBox)) then
+        local uiBox = asmlib.CacheBoxLayout(oEnt); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("Box invalid",sLog..".ModelPanel"); return nil end
-        local vPos, aAng = asmlib.GetOpVar("VEC_ZERO"), uiBox.Ang
-        local stSpawn = asmlib.GetNormalSpawn(oPly, vPos, aAng, oEnt:GetModel(), 1)
-              stSpawn.SPos:Set(uiBox.Cen)
-              stSpawn.SPos:Rotate(stSpawn.SAng)
-              stSpawn.SPos:Mul(-1)
-              stSpawn.SPos:Add(uiBox.Cen)
+        if(inputIsMouseDown(MOUSE_RIGHT) and pnSelf:IsHovered()) then
+          if(pnSelf.pcX and pnSelf.pcY) then
+            local nX, nY = guiMouseX(), guiMouseY()
+            local aP, aY, aR = uiBox.Ang:Unpack()
+            aP = mathNormalizeAngle(nY - pnSelf.pcY)
+            aR = mathNormalizeAngle(pnSelf.pcX - nX)
+            uiBox.Ang:SetUnpacked(aP, aY, aR)
+          else pnSelf.pcX, pnSelf.pcY = guiMouseX(), guiMouseY() end
+        else pnSelf.pcX, pnSelf.pcY = nil, nil end
+        local stSpawn = asmlib.GetNormalSpawn(oPly, gvVecZero, uiBox.Ang, oEnt:GetModel(), 1)
+        if(not stSpawn) then asmlib.LogInstance("Spawn data fail",sLog..".LayoutEntity"); return nil end
+        stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up(), mathNormalizeAngle(40 * Time()))
+        stSpawn.SPos:Set(uiBox.Cen); stSpawn.SPos:Rotate(stSpawn.SAng)
+        stSpawn.SPos:Mul(-1); stSpawn.SPos:Add(uiBox.Cen)
         oEnt:SetAngles(stSpawn.SAng)
         oEnt:SetPos(stSpawn.SPos)
       end
@@ -1143,7 +1147,7 @@ if(CLIENT) then
         local uiEnt = pnModelPanel:GetEntity(); if(not (uiEnt and uiEnt:IsValid())) then -- Makes sure the entity is validated first
           asmlib.LogInstance("Model entity invalid "..asmlib.GetReport(uiMod), sLog..".ListView"); return nil end
         uiEnt:SetModel(uiMod); uiEnt:SetModelName(uiMod) -- Apply the model on the model panel even for changed compiled model paths
-        local uiBox = asmlib.CacheBoxLayout(uiEnt,0,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
+        local uiBox = asmlib.CacheBoxLayout(uiEnt,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
           asmlib.LogInstance("Box invalid for <"..uiMod..">",sLog..".ListView"); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmConvar("pointid","INT"), asmlib.GetAsmConvar("pnextid","INT")
@@ -4726,3 +4730,5 @@ end
 
 asmlib.LogInstance("Version: "..asmlib.GetOpVar("TOOL_VERSION"), gtInitLogs)
 collectgarbage()
+
+print("TRACKASSEMBLY INIT 2")
