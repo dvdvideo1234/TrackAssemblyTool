@@ -1,16 +1,12 @@
 ------------ LOCALIZNG FUNCTIONS ------------
 print("TRACKASSEMBLY INIT 1")
 local pcall                         = pcall
-local Angle                         = Angle
-local Vector                        = Vector
 local Time                          = CurTime
 local IsValid                       = IsValid
 local tobool                        = tobool
 local tonumber                      = tonumber
 local tostring                      = tostring
-local CreateConVar                  = CreateConVar
 local SetClipboardText              = SetClipboardText
-local osDate                        = os and os.date
 local netStart                      = net and net.Start
 local netSendToServer               = net and net.SendToServer
 local netReceive                    = net and net.Receive
@@ -18,9 +14,7 @@ local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
 local netReadAngle                  = net and net.ReadAngle
 local netReadBool                   = net and net.ReadBool
-local netReadString                 = net and net.ReadString
 local netReadUInt                   = net and net.ReadUInt
-local netWriteString                = net and net.WriteString
 local netWriteEntity                = net and net.WriteEntity
 local netWriteUInt                  = net and net.WriteUInt
 local bitBor                        = bit and bit.bor
@@ -32,14 +26,11 @@ local guiOpenURL                    = gui and gui.OpenURL
 local guiEnableScreenClicker        = gui and gui.EnableScreenClicker
 local entsGetByIndex                = ents and ents.GetByIndex
 local mathAtan2                     = math and math.atan2
-local mathAbs                       = math and math.abs
 local mathCeil                      = math and math.ceil
 local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
-local mathRound                     = math and math.Round
 local mathMin                       = math and math.min
 local mathNormalizeAngle            = math and math.NormalizeAngle
-local mathHuge                      = math and math.huge
 local gameGetWorld                  = game and game.GetWorld
 local tableConcat                   = table and table.concat
 local tableRemove                   = table and table.remove
@@ -77,7 +68,6 @@ local propertiesCanBeTargeted       = properties and properties.CanBeTargeted
 local constraintFindConstraints     = constraint and constraint.FindConstraints
 local constraintFind                = constraint and constraint.Find
 local controlpanelGet               = controlpanel and controlpanel.Get
-local duplicatorStoreEntityModifier = duplicator and duplicator.StoreEntityModifier
 local spawnmenuAddToolMenuOption    = spawnmenu and spawnmenu.AddToolMenuOption
 
 ------------ INCLUDE LIBRARY ------------
@@ -94,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.724")
+asmlib.SetOpVar("TOOL_VERSION","8.725")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -210,7 +200,7 @@ asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
 ------------ GLOBAL VARIABLES ------------
 
 asmlib.LogTable(asmlib.OpVar(), "OpVar")
-asmlib.LogInstance(asmlib.GetOpVar("VEC_ZERO"))
+asmlib.LogInstance("VEC_ZERO: "..tostring(asmlib.GetOpVar("VEC_ZERO")))
 
 local gsMoDB     = asmlib.GetOpVar("MODE_DATABASE")
 local gaTimerSet = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
@@ -1083,13 +1073,26 @@ if(CLIENT) then
             uiBox.Ang:SetUnpacked(aP, aY, aR)
           else pnSelf.pcX, pnSelf.pcY = guiMouseX(), guiMouseY() end
         else pnSelf.pcX, pnSelf.pcY = nil, nil end
+        print("------------------------")
+        print("PASS1:", gvVecZero)
+        if(gvVecZero.x ~= gvVecZero.x or gvVecZero.y ~= gvVecZero.y or gvVecZero.z ~= gvVecZero.z) then
+          asmlib.LogInstance("Spawn origin NaN",sLog..".LayoutEntity"); return nil end
+        print("PASS2:", gvVecZero)
         local stSpawn = asmlib.GetNormalSpawn(oPly, gvVecZero, uiBox.Ang, oEnt:GetModel(), 1)
+        print("PASS3:", gvVecZero)
         if(not stSpawn) then asmlib.LogInstance("Spawn data fail",sLog..".LayoutEntity"); return nil end
+        print("PASS4:", gvVecZero)
         stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up(), mathNormalizeAngle(40 * Time()))
+        print("PASS5:", gvVecZero)
         stSpawn.SPos:Set(uiBox.Cen); stSpawn.SPos:Rotate(stSpawn.SAng)
+        print("PASS6:", gvVecZero)
         stSpawn.SPos:Mul(-1); stSpawn.SPos:Add(uiBox.Cen)
+        print("PASS7:", gvVecZero)
         oEnt:SetAngles(stSpawn.SAng)
+        print("PASS8:", gvVecZero)
         oEnt:SetPos(stSpawn.SPos)
+        print("PASS9:", gvVecZero)
+        print("------------------------")
       end
       ------------ TextEntry ------------
       xyPos.x, xyPos.y = pnComboBox:GetPos()
