@@ -203,9 +203,6 @@ end
 
 function SetOpVar(sName, vVal)
   libOpVars[sName] = vVal
-  if(sName:sub(1,1) == "V") then
-    print(">>", Time(), sName, vVal)
-  end
 end
 
 function IsInit()
@@ -724,8 +721,8 @@ function InitBase(sName, sPurp)
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_FREEZE",0.01)
   SetOpVar("MAX_ROTATION",360)
-  SetOpVar("ANG_ZERO",Angle(0,0,0))
-  SetOpVar("VEC_ZERO",Vector(0,0,0))
+  SetOpVar("ANG_ZERO",Angle())
+  SetOpVar("VEC_ZERO",Vector())
   SetOpVar("ANG_REV",Angle(0,180,0))
   SetOpVar("VEC_FW",Vector(1,0,0))
   SetOpVar("VEC_RG",Vector(0,-1,1))
@@ -2054,15 +2051,15 @@ end
  * By default spawns at origin and angle {0,0,0}
  * sModel > The model to use for creating the entity
  * vPos   > Custom position for the placeholder ( zero if none )
- * vAng   > Custom angles for the placeholder ( zero if none )
+ * aAng   > Custom angles for the placeholder ( zero if none )
 ]]
-local function MakeEntityNone(sModel, vPos, vAng) local eNone
+local function MakeEntityNone(sModel, vPos, aAng) local eNone
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
   if(not (eNone and eNone:IsValid())) then
     LogInstance("Entity invalid "..GetReport(sModel)); return nil end
-  eNone:SetPos(vPos or GetOpVar("VEC_ZERO"))
-  eNone:SetAngles(vAng or GetOpVar("ANG_ZERO"))
+  eNone:SetPos(Vector(vPos or GetOpVar("VEC_ZERO")))
+  eNone:SetAngles(Angle(aAng or GetOpVar("ANG_ZERO")))
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
@@ -4573,9 +4570,9 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
-  if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly,sMode)) then
+  if(not SetPosBound(ePiece,Vector(vPos or GetOpVar("VEC_ZERO")),pPly,sMode)) then
     LogInstance("Misplaced "..GetReport2(pPly:Nick(), sModel)); return nil end
-  ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+  ePiece:SetAngles(Angle(aAng or GetOpVar("ANG_ZERO")))
   ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
@@ -4685,7 +4682,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
     if(bNw) then local eWorld = gameGetWorld()
       if(eWorld and eWorld:IsWorld()) then
         if(constraintCanConstrain(eWorld, 0)) then
-          local nA, vO = 180, GetOpVar("VEC_ZERO")
+          local nA, vO = 180, Vector(GetOpVar("VEC_ZERO"))
           cnG = constraintAdvBallsocket(ePiece, eWorld,
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
@@ -4968,8 +4965,8 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   eGho.marginRender = 1
   eGho.RenderOverride = BlendGhost
   eGho:SetModel(sModel)
-  eGho:SetPos(vPos or GetOpVar("VEC_ZERO"))
-  eGho:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+  eGho:SetPos(Vector(vPos or GetOpVar("VEC_ZERO")))
+  eGho:SetAngles(Angle(aAng or GetOpVar("ANG_ZERO")))
   eGho:PhysicsDestroy()
   eGho:SetNoDraw(true)
   eGho:SetNotSolid(true)

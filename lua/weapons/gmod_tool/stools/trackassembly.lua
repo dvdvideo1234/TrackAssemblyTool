@@ -70,10 +70,6 @@ local cvX, cvY, cvZ = asmlib.GetIndexes("V")
 --- Angle Component indexes ---
 local caP, caY, caR = asmlib.GetIndexes("A")
 
---- ZERO Objects
-local VEC_ZERO = asmlib.GetOpVar("VEC_ZERO")
-local ANG_ZERO = asmlib.GetOpVar("ANG_ZERO")
-
 --- Global References
 local gtLogs      = {"TOOL"}
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")

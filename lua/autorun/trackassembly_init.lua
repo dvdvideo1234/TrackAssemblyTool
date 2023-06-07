@@ -84,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.725")
+asmlib.SetOpVar("TOOL_VERSION","8.726")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -106,6 +106,25 @@ local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsNoAnchor  = asmlib.GetOpVar("MISS_NOID")..gsSymRev..asmlib.GetOpVar("MISS_NOMD")
 local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
                     asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
+
+
+print("TRACKASSEMBLY INIT 1.1", gvVecZero)
+for k, v in pairs(asmlib.OpVar()) do
+  local c = SERVER and Color(156, 241, 255) or Color(255, 241, 122)
+  local i = SERVER and "SERVER" or "CLIENT"
+  MsgC(c, i..": ")
+  if(v ~= asmlib.GetOpVar(k)) then
+     MsgC(Color(255,0,0), "["..tostring(k).."] > ")
+     MsgC(Color(255,0,0), "["..tostring(v).."] # ")
+     MsgC(Color(255,0,0), "["..tostring(asmlib.GetOpVar(k)).."]")
+  else
+     MsgC(Color(0,255,0), "["..tostring(k).."] > ")
+     MsgC(Color(0,255,0), "["..tostring(v).."] # ")
+     MsgC(Color(0,255,0), "["..tostring(asmlib.GetOpVar(k)).."]")
+  end
+  Msg("\n")
+end
+print("TRACKASSEMBLY INIT 1.2")
 
 ------------ VARIABLE FLAGS ------------
 
@@ -198,9 +217,6 @@ asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
 
 ------------ GLOBAL VARIABLES ------------
-
-asmlib.LogTable(asmlib.OpVar(), "OpVar")
-asmlib.LogInstance("VEC_ZERO: "..tostring(asmlib.GetOpVar("VEC_ZERO")))
 
 local gsMoDB     = asmlib.GetOpVar("MODE_DATABASE")
 local gaTimerSet = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
@@ -970,8 +986,9 @@ if(CLIENT) then
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
     end) -- Read client configuration
 
+  print("TRACKASSEMBLY INIT 1.3", gvVecZero)
   asmlib.SetAction("OPEN_FRAME",
-    function(oPly,oCom,oArgs) local sLog = "*OPEN_FRAME"
+    function(oPly,oCom,oArgs) local sLog = "*OPEN_FRAME"; print("TRACKASSEMBLY INIT 1.4", gvVecZero)
       local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",sLog); return nil end
       local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
@@ -1061,37 +1078,53 @@ if(CLIENT) then
       pnModelPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_display_lb"))
       pnModelPanel:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_display"))
       pnModelPanel.LayoutEntity = function(pnSelf, oEnt)
-        if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
-        local uiBox = asmlib.CacheBoxLayout(oEnt); if(not asmlib.IsHere(uiBox)) then
-          asmlib.LogInstance("Box invalid",sLog..".ModelPanel"); return nil end
-        if(inputIsMouseDown(MOUSE_RIGHT) and pnSelf:IsHovered()) then
-          if(pnSelf.pcX and pnSelf.pcY) then
-            local nX, nY = guiMouseX(), guiMouseY()
-            local aP, aY, aR = uiBox.Ang:Unpack()
-            aP = mathNormalizeAngle(nY - pnSelf.pcY)
-            aR = mathNormalizeAngle(pnSelf.pcX - nX)
-            uiBox.Ang:SetUnpacked(aP, aY, aR)
-          else pnSelf.pcX, pnSelf.pcY = guiMouseX(), guiMouseY() end
-        else pnSelf.pcX, pnSelf.pcY = nil, nil end
+        -- local gvVecZero = Vector()
         print("------------------------")
         print("PASS1:", gvVecZero)
+        if(pnSelf.bAnimated) then pnSelf:RunAnimation() end
+        print("PASS2:", gvVecZero)
+        local uiBox = asmlib.CacheBoxLayout(oEnt); if(not asmlib.IsHere(uiBox)) then
+          asmlib.LogInstance("Box invalid",sLog..".ModelPanel"); return nil end
+        print("PASS3:", gvVecZero)
+        if(inputIsMouseDown(MOUSE_RIGHT) and pnSelf:IsHovered()) then
+          print("PASS4:", gvVecZero)
+          if(pnSelf.pcX and pnSelf.pcY) then
+            print("PASS5:", gvVecZero)
+            local nX, nY = guiMouseX(), guiMouseY()
+            print("PASS6:", gvVecZero)
+            local aP, aY, aR = uiBox.Ang:Unpack()
+            print("PASS7:", gvVecZero)
+            aP = mathNormalizeAngle(nY - pnSelf.pcY)
+            print("PASS8:", gvVecZero)
+            aR = mathNormalizeAngle(pnSelf.pcX - nX)
+            print("PASS9:", gvVecZero)
+            uiBox.Ang:SetUnpacked(aP, aY, aR)
+            print("PASS10:", gvVecZero)
+          else pnSelf.pcX, pnSelf.pcY = guiMouseX(), guiMouseY()
+            print("PASS11:", gvVecZero)
+          end
+        else pnSelf.pcX, pnSelf.pcY = nil, nil
+          print("PASS12:", gvVecZero)
+        end
+
+        print("PASS13:", gvVecZero)
         if(gvVecZero.x ~= gvVecZero.x or gvVecZero.y ~= gvVecZero.y or gvVecZero.z ~= gvVecZero.z) then
           asmlib.LogInstance("Spawn origin NaN",sLog..".LayoutEntity"); return nil end
-        print("PASS2:", gvVecZero)
+        print("PASS14:", gvVecZero)
         local stSpawn = asmlib.GetNormalSpawn(oPly, gvVecZero, uiBox.Ang, oEnt:GetModel(), 1)
-        print("PASS3:", gvVecZero)
+        print("PASS15:", gvVecZero)
         if(not stSpawn) then asmlib.LogInstance("Spawn data fail",sLog..".LayoutEntity"); return nil end
-        print("PASS4:", gvVecZero)
+        print("PASS16:", gvVecZero)
         stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up(), mathNormalizeAngle(40 * Time()))
-        print("PASS5:", gvVecZero)
+        print("PASS17:", gvVecZero)
         stSpawn.SPos:Set(uiBox.Cen); stSpawn.SPos:Rotate(stSpawn.SAng)
-        print("PASS6:", gvVecZero)
+        print("PASS18:", gvVecZero)
         stSpawn.SPos:Mul(-1); stSpawn.SPos:Add(uiBox.Cen)
-        print("PASS7:", gvVecZero)
+        print("PASS19:", gvVecZero)
         oEnt:SetAngles(stSpawn.SAng)
-        print("PASS8:", gvVecZero)
+        print("PASS20:", gvVecZero)
         oEnt:SetPos(stSpawn.SPos)
-        print("PASS9:", gvVecZero)
+        print("PASS21:", gvVecZero)
         print("------------------------")
       end
       ------------ TextEntry ------------
