@@ -40,7 +40,6 @@ if(first() || dupefinished())
     holoCreate(3), holoColor(3,vec(0,0,255)), holoScale(3,0.1*vec(1,1,1)) holoModel(3,"cube")
 }
 
-
 An = Scanner:angles()
 Fw = F:rotate(An)
 Up = U:rotate(An)
@@ -105,26 +104,3 @@ elseif(Stage == 3)
 {
     
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

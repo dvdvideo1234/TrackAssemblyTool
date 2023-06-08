@@ -43,5 +43,3 @@ if(first() || dupefinished())
         
     selfDestruct()
 }
-
-

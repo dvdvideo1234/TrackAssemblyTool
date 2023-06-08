@@ -8,7 +8,6 @@
 @trigger 
 @model models/props_phx/trains/monorail1.mdl
 
-
 if(first() || dupefinished())
 {
     runOnTick(1)
@@ -51,13 +50,11 @@ holoPos(4,Vec)
 holoAng(4,BR:toAngle())
 holoColor(4,vec(0,0,255))
 
-
 #Track:setAng(ang(0,0,0))
 TF = vec(1,1,0):rotate(Track:angles())
 TU = vec(0,0,1):rotate(Track:angles())
 TR = TF:cross(TU)
 #Base 
-
 
 BaF = BF:toAngle()
 BaR = BR:toAngle()
@@ -66,7 +63,6 @@ BaU = BU:toAngle()
 TrF = TF:toAngle()
 TrR = TR:toAngle()
 TrU = TU:toAngle()
-
 
 #Pitch
 Pitch  = -BaF:pitch()
@@ -77,12 +73,7 @@ Roll = BaR:pitch()
 UAngOff = ang(Pitch,Yaw,-Roll)
 #########################
 
-
-
-
 BaF:setYaw(-BaF:yaw())
-
-
 
 AngSet = angnorm(ang(0,0,0))
 
@@ -91,12 +82,4 @@ TF = vec(1,1,0):rotate(Track:angles())
 TU = vec(0,0,1):rotate(Track:angles())
 TR = TF:cross(TU)
 
-
 AngEx = vec(0,0,100):getAngleEx(vec(0,0,0))
-
-
-
-
-
-
-

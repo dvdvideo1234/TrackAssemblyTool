@@ -1,5 +1,3 @@
-print("TRACKASSEMBLY BASE 1")
-
 local cvX, cvY, cvZ -- Vector Component indexes
 local caP, caY, caR -- Angle Component indexes
 local wvX, wvY, wvZ -- Wire vector Component indexes
@@ -175,10 +173,6 @@ local libQTable = {} -- Used to allocate SQL table builder objects
 module("trackasmlib")
 
 ---------------------------- PRIMITIVES ----------------------------
-
-function OpVar()
-  return libOpVars
-end
 
 function Stamp(time, func, ...)
   local told = GetOpVar("TIME_STAMP")
@@ -2058,8 +2052,9 @@ local function MakeEntityNone(sModel, vPos, aAng) local eNone
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
   if(not (eNone and eNone:IsValid())) then
     LogInstance("Entity invalid "..GetReport(sModel)); return nil end
-  eNone:SetPos(Vector(vPos or GetOpVar("VEC_ZERO")))
-  eNone:SetAngles(Angle(aAng or GetOpVar("ANG_ZERO")))
+  local vPos = Vector(vPos or GetOpVar("VEC_ZERO"))
+  local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
+  eNone:SetPos(vPos); eNone:SetAngles(aAng)
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
@@ -4536,11 +4531,10 @@ end
 function SetPosBound(ePiece,vPos,oPly,sMode)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Entity invalid"); return false end
-  if(not IsHere(vPos)) then
-    LogInstance("Position missing"); return false end
   if(not IsPlayer(oPly)) then
     LogInstance("Player <"..tostring(oPly).."> invalid"); return false end
   local sMode = tostring(sMode or "LOG") -- Error mode is "LOG" by default
+  local vPos  = Vector(vPos or GetOpVar("VEC_ZERO"))
   if(sMode == "OFF") then ePiece:SetPos(vPos)
     LogInstance("("..sMode..") Skip"); return true end
   if(utilIsInWorld(vPos)) then ePiece:SetPos(vPos) else ePiece:Remove()
@@ -4555,24 +4549,25 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     LogInstance("Player missing <"..tostring(pPly)..">"); return nil end
   local sLimit  = GetOpVar("CVAR_LIMITNAME")
-  local sClass  = GetOpVar("ENTITY_DEFCLASS")
   if(not pPly:CheckLimit(sLimit)) then -- Check internal limit
     LogInstance("Track limit reached"); return nil end
   if(not pPly:CheckLimit("props")) then -- Check the props limit
     LogInstance("Prop limit reached"); return nil end
   local stData = CacheQueryPiece(sModel) if(not IsHere(stData)) then
     LogInstance("Record missing for <"..sModel..">"); return nil end
+  local sClass = GetOpVar("ENTITY_DEFCLASS")
   local ePiece = entsCreate(GetTerm(stData.Unit, sClass, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
+  local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
-  if(not SetPosBound(ePiece,Vector(vPos or GetOpVar("VEC_ZERO")),pPly,sMode)) then
+  if(not SetPosBound(ePiece,vPos,pPly,sMode)) then
     LogInstance("Misplaced "..GetReport2(pPly:Nick(), sModel)); return nil end
-  ePiece:SetAngles(Angle(aAng or GetOpVar("ANG_ZERO")))
+  ePiece:SetAngles(aAng)
   ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
@@ -4655,7 +4650,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
     LogInstance("Piece invalid "..GetReport(ePiece)); return false, cnW, cnN, cnG  end
   if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
     -- Weld on pieces between each other
-    if(bWe) then -- Weld using force limit given here V
+    if(bWe) then -- Weld using force limit given here
       if(eBase and (eBase:IsValid() or eBase:IsWorld())) then
         if(constraintCanConstrain(eBase, 0)) then
           cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
@@ -4667,7 +4662,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
       else LogInstance("Weld base invalid "..GetReport(eBase)) end
     end
     -- NoCollide on pieces between each other made separately
-    if(bNc) then
+    if(bNc) then -- NoCollide is separate from weld constraints
       if(eBase and (eBase:IsValid() or eBase:IsWorld())) then
         if(constraintCanConstrain(eBase, 0)) then
           cnN = constraintNoCollide(ePiece, eBase, 0, 0)
@@ -4962,11 +4957,13 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
     LogInstance("Ghost invalid "..sModel); return nil end
+  local vPos = Vector(vPos or GetOpVar("VEC_ZERO"))
+  local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
   eGho.marginRender = 1
   eGho.RenderOverride = BlendGhost
   eGho:SetModel(sModel)
-  eGho:SetPos(Vector(vPos or GetOpVar("VEC_ZERO")))
-  eGho:SetAngles(Angle(aAng or GetOpVar("ANG_ZERO")))
+  eGho:SetPos(vPos)
+  eGho:SetAngles(aAng)
   eGho:PhysicsDestroy()
   eGho:SetNoDraw(true)
   eGho:SetNotSolid(true)
@@ -4996,7 +4993,7 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
     if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
       if(eGho:GetModel() ~= sModel) then eGho:SetModel(sModel) end
     else -- Reconfigure the first `nCnt` ghosts
-      tGho[iD] = MakeEntityGhost(sModel, vPos, vAng); eGho = tGho[iD]
+      tGho[iD] = MakeEntityGhost(sModel); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then ClearGhosts(iD)
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
@@ -5418,5 +5415,3 @@ function GetToolInformation()
     end
   end; return tO
 end
-
-print("TRACKASSEMBLY BASE 2")
