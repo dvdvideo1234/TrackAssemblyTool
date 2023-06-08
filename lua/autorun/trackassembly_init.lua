@@ -1070,8 +1070,6 @@ if(CLIENT) then
             uiBox.Ang:SetUnpacked(aP, aY, aR)
           else pnSelf.pcX, pnSelf.pcY = guiMouseX(), guiMouseY() end
         else pnSelf.pcX, pnSelf.pcY = nil, nil end
-        if(gvVecZero.x ~= gvVecZero.x or gvVecZero.y ~= gvVecZero.y or gvVecZero.z ~= gvVecZero.z) then
-          asmlib.LogInstance("Spawn origin NaN",sLog..".LayoutEntity"); return nil end
         local stSpawn = asmlib.GetNormalSpawn(oPly, gvVecZero, uiBox.Ang, oEnt:GetModel(), 1)
         if(not stSpawn) then asmlib.LogInstance("Spawn data fail",sLog..".LayoutEntity"); return nil end
         stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up(), mathNormalizeAngle(40 * Time()))
