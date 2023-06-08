@@ -767,23 +767,22 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
   SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
-  SetOpVar("FORM_LANGPATH",GetOpVar("TOOLNAME_NL").."/lang/%s")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("QUERY_STORE", {})
-  SetOpVar("TYPEMT_SCREEN",{})
-  SetOpVar("TYPEMT_QUEUE",{})
-  SetOpVar("TYPEMT_CONTAINER",{})
-  SetOpVar("TYPEMT_VECTOR",getmetatable(GetOpVar("VEC_ZERO")))
-  SetOpVar("TYPEMT_ANGLE" ,getmetatable(GetOpVar("ANG_ZERO")))
   SetOpVar("TABLE_QUEUE",{})
   SetOpVar("TABLE_FLAGS", {})
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
+  SetOpVar("TYPEMT_SCREEN",{})
+  SetOpVar("TYPEMT_QUEUE",{})
+  SetOpVar("TYPEMT_CONTAINER",{})
+  SetOpVar("TYPEMT_VECTOR",getmetatable(GetOpVar("VEC_ZERO")))
+  SetOpVar("TYPEMT_ANGLE" ,getmetatable(GetOpVar("ANG_ZERO")))
   SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
   SetOpVar("ARRAY_MODETM",{"CQT", "OBJ"})
@@ -2046,15 +2045,16 @@ end
  * By default spawns at origin and angle {0,0,0}
  * sModel > The model to use for creating the entity
  * vPos   > Custom position for the placeholder ( zero if none )
- * vAng   > Custom angles for the placeholder ( zero if none )
+ * aAng   > Custom angles for the placeholder ( zero if none )
 ]]
-local function MakeEntityNone(sModel, vPos, vAng) local eNone
+local function MakeEntityNone(sModel, vPos, aAng) local eNone
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
   if(not (eNone and eNone:IsValid())) then
     LogInstance("Entity invalid "..GetReport(sModel)); return nil end
-  eNone:SetPos(vPos or GetOpVar("VEC_ZERO"))
-  eNone:SetAngles(vAng or GetOpVar("ANG_ZERO"))
+  local vPos = Vector(vPos or GetOpVar("VEC_ZERO"))
+  local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
+  eNone:SetPos(vPos); eNone:SetAngles(aAng)
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
@@ -2990,7 +2990,7 @@ end
 
 --------------- TIMER MEMORY MANAGMENT ----------------------------
 
-function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
+function CacheBoxLayout(oEnt,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity invalid <"..tostring(oEnt)..">"); return nil end
   local sMod = oEnt:GetModel() -- Extract the entity model
@@ -3006,7 +3006,7 @@ function CacheBoxLayout(oEnt,nRot,nCamX,nCamZ)
     local nZ = stBox.Len * (tonumber(nCamZ) or 0) -- Calculate camera Z
     AddVectorXYZ(stBox.Cam, nX, 0, nZ) -- Apply calculated camera offsets
     LogInstance("<"..tostring(stBox.Cen).."><"..tostring(stBox.Len)..">")
-  end; stBox.Ang[caY] = (tonumber(nRot) or 0) * Time(); return stBox
+  end; return stBox
 end
 
 --------------------------- PIECE QUERY -----------------------------
@@ -4531,11 +4531,10 @@ end
 function SetPosBound(ePiece,vPos,oPly,sMode)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Entity invalid"); return false end
-  if(not IsHere(vPos)) then
-    LogInstance("Position missing"); return false end
   if(not IsPlayer(oPly)) then
     LogInstance("Player <"..tostring(oPly).."> invalid"); return false end
   local sMode = tostring(sMode or "LOG") -- Error mode is "LOG" by default
+  local vPos  = Vector(vPos or GetOpVar("VEC_ZERO"))
   if(sMode == "OFF") then ePiece:SetPos(vPos)
     LogInstance("("..sMode..") Skip"); return true end
   if(utilIsInWorld(vPos)) then ePiece:SetPos(vPos) else ePiece:Remove()
@@ -4550,24 +4549,25 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     LogInstance("Player missing <"..tostring(pPly)..">"); return nil end
   local sLimit  = GetOpVar("CVAR_LIMITNAME")
-  local sClass  = GetOpVar("ENTITY_DEFCLASS")
   if(not pPly:CheckLimit(sLimit)) then -- Check internal limit
     LogInstance("Track limit reached"); return nil end
   if(not pPly:CheckLimit("props")) then -- Check the props limit
     LogInstance("Prop limit reached"); return nil end
   local stData = CacheQueryPiece(sModel) if(not IsHere(stData)) then
     LogInstance("Record missing for <"..sModel..">"); return nil end
+  local sClass = GetOpVar("ENTITY_DEFCLASS")
   local ePiece = entsCreate(GetTerm(stData.Unit, sClass, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
+  local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
-  if(not SetPosBound(ePiece,vPos or GetOpVar("VEC_ZERO"),pPly,sMode)) then
+  if(not SetPosBound(ePiece,vPos,pPly,sMode)) then
     LogInstance("Misplaced "..GetReport2(pPly:Nick(), sModel)); return nil end
-  ePiece:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+  ePiece:SetAngles(aAng)
   ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
@@ -4650,7 +4650,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
     LogInstance("Piece invalid "..GetReport(ePiece)); return false, cnW, cnN, cnG  end
   if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
     -- Weld on pieces between each other
-    if(bWe) then -- Weld using force limit given here V
+    if(bWe) then -- Weld using force limit given here
       if(eBase and (eBase:IsValid() or eBase:IsWorld())) then
         if(constraintCanConstrain(eBase, 0)) then
           cnW = constraintWeld(ePiece, eBase, 0, 0, nFm, false, false)
@@ -4662,7 +4662,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
       else LogInstance("Weld base invalid "..GetReport(eBase)) end
     end
     -- NoCollide on pieces between each other made separately
-    if(bNc) then
+    if(bNc) then -- NoCollide is separate from weld constraints
       if(eBase and (eBase:IsValid() or eBase:IsWorld())) then
         if(constraintCanConstrain(eBase, 0)) then
           cnN = constraintNoCollide(ePiece, eBase, 0, 0)
@@ -4677,7 +4677,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
     if(bNw) then local eWorld = gameGetWorld()
       if(eWorld and eWorld:IsWorld()) then
         if(constraintCanConstrain(eWorld, 0)) then
-          local nA, vO = 180, GetOpVar("VEC_ZERO")
+          local nA, vO = 180, Vector(GetOpVar("VEC_ZERO"))
           cnG = constraintAdvBallsocket(ePiece, eWorld,
             0, 0, vO, vO, nFm, 0, -nA, -nA, -nA, nA, nA, nA, 0, 0, 0, 1, 1)
           if(cnG and cnG:IsValid()) then ePiece:DeleteOnRemove(cnG)
@@ -4957,11 +4957,13 @@ local function MakeEntityGhost(sModel, vPos, aAng)
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
     LogInstance("Ghost invalid "..sModel); return nil end
+  local vPos = Vector(vPos or GetOpVar("VEC_ZERO"))
+  local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
   eGho.marginRender = 1
   eGho.RenderOverride = BlendGhost
   eGho:SetModel(sModel)
-  eGho:SetPos(vPos or GetOpVar("VEC_ZERO"))
-  eGho:SetAngles(aAng or GetOpVar("ANG_ZERO"))
+  eGho:SetPos(vPos)
+  eGho:SetAngles(aAng)
   eGho:PhysicsDestroy()
   eGho:SetNoDraw(true)
   eGho:SetNotSolid(true)
@@ -4991,7 +4993,7 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
     if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
       if(eGho:GetModel() ~= sModel) then eGho:SetModel(sModel) end
     else -- Reconfigure the first `nCnt` ghosts
-      tGho[iD] = MakeEntityGhost(sModel, vPos, vAng); eGho = tGho[iD]
+      tGho[iD] = MakeEntityGhost(sModel); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then ClearGhosts(iD)
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn

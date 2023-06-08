@@ -243,7 +243,6 @@ int main(int argc, char **argv)
     tiCnt++;
   }
 
-
   /// Printout the differences
   uLen = Matches.getCount();
   common::logSystem(L,"\nMatches count #%d",uLen);

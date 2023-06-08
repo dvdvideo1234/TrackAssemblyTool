@@ -81,5 +81,3 @@ if(first() || dupefinished())
     E2 = E:trackasmlibMakePiece(E:pos(), E:angles():rotateAroundAxis(E:forward(), 90), 666, "0/0", vec(50, 150, 250))
     E2 = E:trackasmlibMakePiece(E:pos(), E:angles():rotateAroundAxis(E:forward(), -90), 666, "0/0", vec(250, 150, 50))
 }
-
-

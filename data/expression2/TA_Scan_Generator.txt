@@ -217,9 +217,3 @@ else
 {
   if(ExpEn != 0){ Chip:setColor(255,0,0,255) }else{Chip:setColor(255,255,255,255) }
 }
-
-
-
-
-
-

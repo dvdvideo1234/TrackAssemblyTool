@@ -24,7 +24,6 @@ if(first() || dupefinished())
         print("Other OK <"+D+">")
     }else{ error("Other fail "+D) }
 
-
     if(trackasmlibGetType(M) == E:trackasmlibGetType())
     {
         print("Type OK <"+trackasmlibGetType(M)+">")
