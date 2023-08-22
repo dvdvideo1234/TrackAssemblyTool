@@ -1865,7 +1865,7 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   local sTool = GetOpVar("TOOLNAME_NL")
   local tConv = GetOpVar("STORE_CONVARS")
   local syDis = GetOpVar("OPSYM_DISABLE")
-  local syRev = GetOpVar("OPSYM_REVSIGN")
+  local syRev = GetOpVar("OPSYM_REVISION")
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   local pPanel = vguiCreate("DAsmInSliderButton", cPanel); if(not IsValid(pPanel)) then
@@ -1875,13 +1875,15 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   pPanel:Configure(nMin, nMax, tConv[sKey], nDec)
   for iD = 1, #tBtn do
     local vBtn, sTip = tBtn[iD]
-    local sTxt = tostring(vBtn.N)
+    local sTxt = tostring(vBtn.N):Trim()
     if(vBtn.T) then
       if(vBtn.T == syRev) then
         sTip = languageGetPhrase(sBase.."_bas"..sTxt)
       elseif(vBtn.T == syDis) then
         sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
-      else sTip = tostring(vBtn.T) end
+      else
+        sTip = tostring(vBtn.T):Trim()
+      end
     end
     pPanel:SetButton(sTxt, sTip)
     pPanel:SetAction(vBtn.L, vBtn.R)
