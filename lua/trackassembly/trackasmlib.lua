@@ -4932,9 +4932,9 @@ function ClearGhosts(vSiz, bCol)
   print(4, iSiz)
   for iD = 1, iSiz do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
-      print(5, "REM")
+      print(5, eGho)
       eGho:SetNoDraw(true); eGho:Remove()
-    end; eGho, tGho[iD] = nil, nil; print(5, "RES")
+    end; eGho, tGho[iD] = nil, nil
   end; tGho.Size, tGho.Slot = 0, GetOpVar("MISS_NOMD")
   if(bCol) then collectgarbage() end; return true
 end

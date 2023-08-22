@@ -1594,13 +1594,10 @@ function TOOL:Reload(stTrace)
 end
 
 function TOOL:Holster()
-  if(gameSinglePlayer()) then
-    local user = self:GetOwner()
-    netStart(gsLibName.."SendDeleteGhosts")
-    netSend(user)
-  else
-    asmlib.ClearGhosts()
-  end
+  if(CLIENT) then return end
+  local user = self:GetOwner()
+  netStart(gsLibName.."SendDeleteGhosts")
+  netSend(user)
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
