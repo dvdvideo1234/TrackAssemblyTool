@@ -4922,14 +4922,19 @@ end
  * Well gang, I guess that wraps up the mystery.
 ]]
 function ClearGhosts(vSiz, bCol)
+  print(1)
   if(SERVER) then return true end
+  print(2)
   local tGho = GetOpVar("ARRAY_GHOST")
+  print(3)
   if(not IsHere(tGho)) then return true end
   local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
+  print(4, iSiz)
   for iD = 1, iSiz do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
+      print(5, "REM")
       eGho:SetNoDraw(true); eGho:Remove()
-    end; eGho, tGho[iD] = nil, nil
+    end; eGho, tGho[iD] = nil, nil; print(5, "RES")
   end; tGho.Size, tGho.Slot = 0, GetOpVar("MISS_NOMD")
   if(bCol) then collectgarbage() end; return true
 end

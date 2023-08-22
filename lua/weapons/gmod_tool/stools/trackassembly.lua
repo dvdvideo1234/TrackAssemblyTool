@@ -34,6 +34,7 @@ local mathClamp                        = math and math.Clamp
 local mathAtan2                        = math and math.atan2
 local mathRound                        = math and math.Round
 local gameGetWorld                     = game and game.GetWorld
+local gameSinglePlayer                 = game and game.SinglePlayer
 local fileExists                       = file and file.Exists
 local tableInsert                      = table and table.insert
 local tableRemove                      = table and table.remove
@@ -159,6 +160,8 @@ if(CLIENT) then
 
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
+
+  netReceive(gsLibName.."SendDeleteGhosts"  , asmlib.GetActionCode("CLEAR_GHOSTS"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   netReceive(gsLibName.."SendCreateCurveNode", asmlib.GetActionCode("CREATE_CURVE_NODE"))
@@ -1591,7 +1594,13 @@ function TOOL:Reload(stTrace)
 end
 
 function TOOL:Holster()
-  asmlib.ClearGhosts()
+  if(gameSinglePlayer()) then
+    local user = self:GetOwner()
+    netStart(gsLibName.."SendDeleteGhosts")
+    netSend(user)
+  else
+    asmlib.ClearGhosts()
+  end
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)

@@ -84,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.725")
+asmlib.SetOpVar("TOOL_VERSION","8.726")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -332,6 +332,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
 
 if(SERVER) then
 
+  utilAddNetworkString(gsLibName.."SendDeleteGhosts")
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
   utilAddNetworkString(gsLibName.."SendCreateCurveNode")
@@ -523,6 +524,7 @@ if(CLIENT) then
   asmlib.WorkshopID("Anyone's Horrible Trackpack" , "2194528273")
   asmlib.WorkshopID("Modular Sewer"               , "2340192251")
 
+  asmlib.SetAction("CLEAR_GHOSTS" , function() asmlib.ClearGhosts(); print("NET") end)
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
 
