@@ -713,7 +713,7 @@ function InitBase(sName, sPurp)
   SetOpVar("LOG_INIT",{"*Init", false, 0})
   SetOpVar("TIME_STAMP",Time())
   SetOpVar("TIME_INIT",Time())
-  SetOpVar("DELAY_FREEZE",0.01)
+  SetOpVar("DELAY_ACTION",0.01)
   SetOpVar("MAX_ROTATION",360)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
@@ -4625,8 +4625,8 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
   -- Delay the freeze by a tiny amount because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
-  timerSimple(GetOpVar("DELAY_FREEZE"), function() -- If frozen motion is disabled
-    LogInstance("Freeze:["..tostring(bFr).."]", "*DELAY_FREEZE");  -- Make sure that the physics are valid
+  timerSimple(GetOpVar("DELAY_ACTION"), function() -- If frozen motion is disabled
+    LogInstance("Freeze:["..tostring(bFr).."]", "*DELAY_ACTION");  -- Make sure that the physics are valid
     if(pyPiece and pyPiece:IsValid()) then pyPiece:EnableMotion(not bFr) end end )
   constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,sToolPrefL.."dupe_phys_set",arSettings)
@@ -4926,10 +4926,17 @@ function ClearGhosts(vSiz, bCol)
   local tGho = GetOpVar("ARRAY_GHOST")
   if(not IsHere(tGho)) then return true end
   local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
+  local nDer = GetOpVar("DELAY_ACTION")
   for iD = 1, iSiz do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
-      eGho:SetNoDraw(true); eGho:Remove()
-    end; eGho, tGho[iD] = nil, nil
+      timerSimple(nDer, function()
+        if(eGho and eGho:IsValid()) then
+          eGho:SetNoDraw(true)
+          eGho:Remove()
+          tGho[iD] = nil
+        end
+      end)
+    end
   end; tGho.Size, tGho.Slot = 0, GetOpVar("MISS_NOMD")
   if(bCol) then collectgarbage() end; return true
 end

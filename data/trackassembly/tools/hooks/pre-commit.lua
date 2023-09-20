@@ -54,7 +54,7 @@ while(sI) do
     io.write("Version found at line ["..nL.."]\n")
     local vB, vE = sI:find(fNum)
     if(vB and vE) then
-      print(sI:sub(vB, vE))
+      io.write("Version: "..sI:sub(vB, vE))
       local nD = sI:sub(vB, vE):find(".", 1, true)
       if(nD) then
         local sW = trim(sI:sub(vB, vB + nD - 2))

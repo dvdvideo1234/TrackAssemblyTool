@@ -159,6 +159,8 @@ if(CLIENT) then
 
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
+
+  netReceive(gsLibName.."SendDeleteGhosts"  , asmlib.GetActionCode("CLEAR_GHOSTS"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   netReceive(gsLibName.."SendCreateCurveNode", asmlib.GetActionCode("CREATE_CURVE_NODE"))
@@ -1591,7 +1593,9 @@ function TOOL:Reload(stTrace)
 end
 
 function TOOL:Holster()
-  asmlib.ClearGhosts()
+  if(CLIENT) then return end
+  netStart(gsLibName.."SendDeleteGhosts")
+  netSend(self:GetOwner())
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
