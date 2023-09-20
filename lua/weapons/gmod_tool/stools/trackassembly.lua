@@ -34,7 +34,6 @@ local mathClamp                        = math and math.Clamp
 local mathAtan2                        = math and math.atan2
 local mathRound                        = math and math.Round
 local gameGetWorld                     = game and game.GetWorld
-local gameSinglePlayer                 = game and game.SinglePlayer
 local fileExists                       = file and file.Exists
 local tableInsert                      = table and table.insert
 local tableRemove                      = table and table.remove
