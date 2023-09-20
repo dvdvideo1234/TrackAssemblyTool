@@ -1595,9 +1595,8 @@ end
 
 function TOOL:Holster()
   if(CLIENT) then return end
-  local user = self:GetOwner()
   netStart(gsLibName.."SendDeleteGhosts")
-  netSend(user)
+  netSend(self:GetOwner())
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
