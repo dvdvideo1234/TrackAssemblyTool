@@ -4546,6 +4546,32 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
   end; LogInstance("("..sMode..") Success"); return true
 end
 
+--[[
+ * Checks whenever the spawned piece is inside the previos spawn margin
+]]
+function InSpawnMargin(oRec,vPos,aAng)
+  local nMarg = GetOpVar("SPAWN_MARGIN")
+  if(nMarg == 0) then return false end
+  if(vPos and aAng) then
+    if(oRec.Mpos and oRec.Mray) then
+      local nMpow = (nMarg ^ 2) -- Square root is expensive
+      local nBpos = oRec.Mpos:DistToSqr(vPos) -- Distance
+      if(nBpos <= nMpow) then -- Check the margin area
+        LogInstance("Spawn pos ["..nBpos.."]["..nMpow.."]")
+        if(nMarg < 0) then return true end -- Negative checks position
+        local nMray = (1 - (nMpow * GetOpVar("EPSILON_ZERO")))
+        local nBray = oRec.Mray:Dot(aAng:Forward())
+        if(nBray >= nMray) then -- Positive shecks position and direction
+          LogInstance("Spawn ray ["..nBray.."]["..nMray.."]"); return true
+        end -- Piece angles will not align when spawned
+      end -- Piece will be spawned outside of spawn margin
+      oRec.Mpos:Set(vPos); oRec.Mray:Set(aAng:Forward())
+    else -- Store the last location the piece was spawned
+      oRec.Mpos, oRec.Mray = Vector(vPos), aAng:Forward()
+    end; return false
+  else oRec.Mpos, oRec.Mray = nil, nil end; return false
+end
+
 function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(CLIENT) then LogInstance("Working on client"); return nil end
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
@@ -4557,11 +4583,13 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     LogInstance("Prop limit reached"); return nil end
   local stData = CacheQueryPiece(sModel) if(not IsHere(stData)) then
     LogInstance("Record missing for <"..sModel..">"); return nil end
+  local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
+  if(InSpawnMargin(stData, vPos, aAng)) then
+    LogInstance("Spawn margin stop <"..sModel..">"); return nil end
   local sClass = GetOpVar("ENTITY_DEFCLASS")
   local ePiece = entsCreate(GetTerm(stData.Unit, sClass, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
-  local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS)

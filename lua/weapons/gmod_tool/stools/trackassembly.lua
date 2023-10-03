@@ -657,6 +657,7 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..sSpace.."  HD.BoundErrMod: <"..tostring(asmlib.GetAsmConvar("bnderrmod","STR"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxFrequent: <"..tostring(asmlib.GetAsmConvar("maxfruse" ,"INT"))..">"..sDelim
         sDu = sDu..sSpace.."  HD.MaxTrMargin: <"..tostring(asmlib.GetAsmConvar("maxtrmarg","FLT"))..">"..sDelim
+        sDu = sDu..sSpace.."  HD.MaxSpMargin: <"..tostring(asmlib.GetAsmConvar("maxspmarg","FLT"))..">"..sDelim
   if(hdEnt and hdEnt:IsValid()) then hdEnt:Remove() end
   return sDu
 end
@@ -1587,7 +1588,8 @@ function TOOL:Reload(stTrace)
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(asmlib.IsHere(trRec) and (asmlib.GetOwner(trEnt) == user or user:IsAdmin())) then
-      trEnt:Remove(); asmlib.LogInstance("(Prop) Remove piece",gtLogs); return true
+      asmlib.InSpawnMargin(trRec); trEnt:Remove()
+      asmlib.LogInstance("(Prop) Remove piece",gtLogs); return true
     end; asmlib.LogInstance("(Prop) Success",gtLogs)
   end; return false
 end
@@ -2543,6 +2545,7 @@ if(CLIENT) then
     asmlib.SetCheckBox(CPanel, "devmode")
     asmlib.SetCheckBox(CPanel, "exportdb")
     asmlib.SetNumSlider(CPanel, "maxtrmarg", iMaxDec)
+    asmlib.SetNumSlider(CPanel, "maxspmarg", iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxmenupr", 0)
     CPanel:ControlHelp(languageGetPhrase("tool."..gsToolNameL..".relica_var"))
     asmlib.SetNumSlider(CPanel, "spawnrate", 0)
@@ -2657,6 +2660,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(user, "modedb"   , asmlib.GetAsmConvar("modedb"   , "DEF"))
         asmlib.SetAsmConvar(user, "devmode"  , asmlib.GetAsmConvar("devmode"  , "DEF"))
         asmlib.SetAsmConvar(user, "maxtrmarg", asmlib.GetAsmConvar("maxtrmarg", "DEF"))
+        asmlib.SetAsmConvar(user, "maxspmarg", asmlib.GetAsmConvar("maxspmarg", "DEF"))
         asmlib.SetAsmConvar(user, "maxmenupr", asmlib.GetAsmConvar("maxmenupr", "DEF"))
         asmlib.SetAsmConvar(user, "timermode", asmlib.GetAsmConvar("timermode", "DEF"))
         asmlib.SetAsmConvar(user, "maxmass"  , asmlib.GetAsmConvar("maxmass"  , "DEF"))

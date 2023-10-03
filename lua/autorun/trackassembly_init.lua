@@ -30,6 +30,7 @@ local mathCeil                      = math and math.ceil
 local mathFloor                     = math and math.floor
 local mathClamp                     = math and math.Clamp
 local mathMin                       = math and math.min
+local mathMax                       = math and math.max
 local mathNormalizeAngle            = math and math.NormalizeAngle
 local gameGetWorld                  = game and game.GetWorld
 local tableConcat                   = table and table.concat
@@ -84,7 +85,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.727")
+asmlib.SetOpVar("TOOL_VERSION","8.728")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -144,6 +145,7 @@ asmlib.SetBorder(gsToolPrefL.."maxmenupr", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1)
 asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."maxspmarg", -100, 100)
 asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
 asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
@@ -184,6 +186,7 @@ asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of sam
 asmlib.MakeAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
 asmlib.MakeAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
 asmlib.MakeAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
+asmlib.MakeAsmConvar("maxspmarg",  0    , nil, gnServerControled, "Maximum spawn distance new piece created margin")
 asmlib.MakeAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval for server addressed messages")
 asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 
@@ -195,6 +198,7 @@ asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the ga
 asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
+asmlib.SetOpVar("SPAWN_MARGIN" , asmlib.GetAsmConvar("maxspmarg", "FLT"))
 asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
 
 ------------ GLOBAL VARIABLES ------------
@@ -236,6 +240,10 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       conCallBack:Push({"maxtrmarg", function(sVar, vOld, vNew)
         local nM = (tonumber(vNew) or 0); nM = ((nM > 0) and nM or 0)
         asmlib.SetOpVar("TRACE_MARGIN", nM)
+      end})
+      conCallBack:Push({"maxspmarg", function(sVar, vOld, vNew)
+        local nM = (tonumber(vNew) or 0)
+        asmlib.SetOpVar("SPAWN_MARGIN", nM)
       end})
       conCallBack:Push({"logsmax", function(sVar, vOld, vNew)
         local nM = asmlib.BorderValue((tonumber(vNew) or 0), "non-neg")
