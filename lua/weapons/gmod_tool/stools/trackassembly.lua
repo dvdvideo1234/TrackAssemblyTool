@@ -54,7 +54,7 @@ local cvarsRemoveChangeCallback        = cvars and cvars.RemoveChangeCallback
 local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntityModifier
 
 ----------------- TOOL Global Parameters ----------------
---- Because Vec[1] is actually faster than Vec.X
+--- Because VEC[1] is actually faster than VEC.X
 --- Store a pointer to our module
 local asmlib = trackasmlib; if(not asmlib) then -- Module present
   ErrorNoHalt("TOOL: Track assembly tool module fail!\n"); return end
@@ -82,7 +82,7 @@ local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", stringUpper)..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
-local gsNoBS      = asmlib.GetOpVar("MISS_NOBS") -- No Bodygroup skin
+local gsNoBS      = asmlib.GetOpVar("MISS_NOBS") -- No Body-group skin
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
@@ -186,7 +186,7 @@ if(CLIENT) then
       asmlib.SetAsmConvar(oPly,"nextrol", 0)
     end)
 
-  -- Store referencies and stuff realted to the tool file
+  -- Store references and stuff related to the tool file
   asmlib.SetOpVar("STORE_TOOLOBJ", TOOL)
   asmlib.SetOpVar("STORE_CONVARS", TOOL:BuildConVarList())
 end
@@ -701,7 +701,7 @@ function TOOL:SetFlipOver(trEnt)
   if(not asmlib.IsHere(trRec)) then
     asmlib.Notify(user,"Flip over <"..trMod.."> not piece !","ERROR")
     asmlib.LogInstance("Flip over <"..trMod.."> not piece",gtLogs)
-    return nil -- Just disable overall flipping for the otther models
+    return nil -- Just disable overall flipping for the other models
   end
   local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
   local iID, bBr = trEnt:EntIndex(), false
@@ -790,15 +790,15 @@ end
 --[[
  * Uses heuristics to provide the best suitable location the
  * curve note closest location can be updated with. Three cases:
- * 1. Both neighbours are active points. Intersect their active rays
+ * 1. Both neighbors are active points. Intersect their active rays
  * 2. Only one node is an active point. Project on its active ray
- * 3. None of the neighbours are active points. Project on line bisector
+ * 3. None of the neighbors are active points. Project on line bisector
  * iD    > Curve node index to be updated
  * vPnt  > The new location to update the node with
  * bMute > Mute mode. Used to disable server status messages
  * Returns multiple values:
  * 1. Curve node calculated heuristics location vector
- * 2. The amount of neighbour nodes that are active rays
+ * 2. The amount of neighbor nodes that are active rays
 ]]--
 function TOOL:GetCurveNodeActive(iD, vPnt, bMute)
   local user = self:GetOwner()
@@ -811,12 +811,12 @@ function TOOL:GetCurveNodeActive(iD, vPnt, bMute)
     if(not bMute) then asmlib.Notify(user,"Node point uses next !","ERROR") end
     return nil -- The chosen node ID does not meet requirements
   end
-  local iS, iE = (iD - 1), (iD + 1) -- Previous and next node indeces
+  local iS, iE = (iD - 1), (iD + 1) -- Previous and next node indexes
   local tS, tE = tC.Rays[iS], tC.Rays[iE] -- Previous and next node rays
   if(tS[3] and tE[3]) then
     local sD, eD = tS[2]:Forward(), tE[2]:Forward()
     local f1, f2, x1, x2, xx = asmlib.IntersectRayPair(tS[1], sD, tE[1], eD)
-    return xx, 2 -- Both are active ponts and return ray intersection
+    return xx, 2 -- Both are active pints and return ray intersection
   else
     if(tS[3]) then -- Previous is an active point
       if(not bMute) then asmlib.Notify(user,"Node projection prev !","HINT") end
@@ -899,10 +899,10 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
       tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
       tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
       tData.POA = oPOA; tData.Rec = oRec -- POA and cache record
-    end -- Use the track piece active end to create realative curve node
+    end -- Use the track piece active end to create relative curve node
   else -- Offset the curve node when it is not driven by an active point
     tData.Org:Add(vNrm * elevpnt) -- Apply model active point elevation
-  end -- Apply the positioal and angular offsets to the return value
+  end -- Apply the positional and angular offsets to the return value
   tData.Org:Add(tData.Ang:Up()      * nextz)
   tData.Org:Add(tData.Ang:Right()   * nexty)
   tData.Org:Add(tData.Ang:Forward() * nextx)
@@ -1024,8 +1024,8 @@ function TOOL:CurveCheck()
         eA:SetUnpacked(ePOA.A[caP], ePOA.A[caY], ePOA.A[caR])
   -- Disable for active points with zero distance
   local nD = eO:DistToSqr(sO); if(nD <= nEps) then
-    asmlib.Notify(user,"Segment undersize "..fnmodel.." !","ERROR")
-    asmlib.LogInstance("Segment undersize: "..fnmodel, gtLogs); return nil
+    asmlib.Notify(user,"Segment tiny "..fnmodel.." !","ERROR")
+    asmlib.LogInstance("Segment tiny: "..fnmodel, gtLogs); return nil
   end
   -- Disable for non-straight track segments
   if(sA:Forward():Cross(eA:Forward()):LengthSqr() >= nEps) then
@@ -1117,7 +1117,7 @@ function TOOL:NormalSpawn(stTrace, oPly)
 end
 
 function TOOL:LeftClick(stTrace)
-  if(CLIENT) then -- Do not do stuff when CLIENT attempts somrthing
+  if(CLIENT) then -- Do not do stuff when CLIENT attempts something
     asmlib.LogInstance("Working on client",gtLogs); return true end
   if(not asmlib.IsInit()) then -- Do not do stuff when library is not initialized
     asmlib.LogInstance("Library error",gtLogs); return false end
@@ -1219,7 +1219,7 @@ function TOOL:LeftClick(stTrace)
             if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
               if(iK == tS.Size) then -- When current snap end is reached
                 oArg.stard, oArg.stark = (oArg.stard + 1), 1 -- Index the next snap
-              else -- When there is more stuff to snap continue snapping the cutrrent
+              else -- When there is more stuff to snap continue snapping the current
                 oArg.stark = (oArg.stark + 1) -- Move the snap cursor to the next snap
               end -- Write the logs that snap rate per tick has been reached
               asmlib.LogInstance("("..oArg.wname..") "..sItr..":  Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtLogs)
@@ -1307,7 +1307,7 @@ function TOOL:LeftClick(stTrace)
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
       asmlib.UndoFinish(oPly)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
-      -- Process the mirrored constraints. Replace entites and create constraints
+      -- Process the mirrored constraints. Replace entities and create constraints
       oArg.tcons, oArg.icons = asmlib.SetConstraintOver(oArg.tcons)
       for iD = 1, oArg.icons do
         local tB, tL = oArg.tcons[iD].Base, oArg.tcons[iD].Link
@@ -1411,7 +1411,7 @@ function TOOL:LeftClick(stTrace)
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
           asmlib.GetEntitySpawn(oPly, ePiece, oArg.vtemp, model, pointid,
             actrad, spnflat, igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
-          if(not oArg.spawn) then -- Someting happend spawn is not available and task must be removed
+          if(not oArg.spawn) then -- Something happend spawn is not available and task must be removed
             asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Cannot obtain spawn data"),gtLogs); return false
           end -- Spawn data is valid for the current iteration iNdex
@@ -1425,7 +1425,7 @@ function TOOL:LeftClick(stTrace)
             asmlib.LogInstance("(Stack) Next ["..oArg.start.."]",gtLogs);
             return true -- The server is still busy with the task
           end
-        else -- Someting happend piece cannot be created and task must be removed
+        else -- Something happened piece cannot be created and task must be removed
           asmlib.Notify(oPly,"Stack attempts extinct !", "ERROR")
           asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stack attempts extinct"),gtLogs); return false
         end -- We still have enough memory to preform the stacking
@@ -1788,7 +1788,7 @@ function TOOL:Think()
         else -- The temporary reference is not table then close it
           if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
         end -- Shortcut for closing the routine pieces
-      end -- Front trigget for closing panels
+      end -- Front trigger for closing panels
     end -- This is client closing the routine pieces
   end
 end
@@ -2309,10 +2309,10 @@ function TOOL.BuildCPanel(CPanel)
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local pTree    = vguiCreate("DTree", CPanel); if(not pTree) then
     asmlib.LogInstance("Database tree empty",sLog); return end
-  pTree:Dock(TOP) -- Initiallize to fill left and right bounds
+  pTree:Dock(TOP) -- Initialize to fill left and right bounds
   pTree:SetTall(400) -- Make it quite large
   pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
-  pTree:SetIndentSize(0) -- All track types are cloded
+  pTree:SetIndentSize(0) -- All track types are closed
   pTree:UpdateColours(drmSkin) -- Apply current skin
   CPanel:AddItem(pTree) -- Register it to the panel
   local iCnt, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
@@ -2364,7 +2364,7 @@ function TOOL.BuildCPanel(CPanel)
                   pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat)
                 end; iD = iD + 1 -- Create the last needed node regarding pItem
               end
-            end -- When the category has atleast one element
+            end -- When the category has at least one element
           else -- Store the creation information of the ones without category for later
             tableInsert(pCateg[sTyp], {sNam, sMod}); bNow = false
           end -- Is there is any category apply it. When available process it now
@@ -2375,7 +2375,7 @@ function TOOL.BuildCPanel(CPanel)
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport3(sTyp, sNam, sMod),sLog) end
     iCnt = iCnt + 1
   end
-  -- Attach the uncategorized items to the type root
+  -- Attach the hanging items to the type root
   for typ, val in pairs(pCateg) do
     for iD = 1, #val do
       local pan = pTypes[typ]
@@ -2408,7 +2408,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysType:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phytype"))
         pComboPhysType:SetValue(languageGetPhrase("tool."..gsToolNameL..".phytype_def"))
         pComboPhysType.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
-        pComboPhysType:Dock(TOP) -- Setting tallness gets ingnored otherwise
+        pComboPhysType:Dock(TOP) -- Setting tallness gets ignored otherwise
         pComboPhysType:SetTall(22)
         pComboPhysType:UpdateColours(drmSkin)
 
@@ -2417,7 +2417,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetValue(asmlib.GetTerm(asmlib.GetAsmConvar("physmater","STR"),
                                 languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
-        pComboPhysName:Dock(TOP) -- Setting tallness gets ingnored otherwise
+        pComboPhysName:Dock(TOP) -- Setting tallness gets ignored otherwise
         pComboPhysName:SetTall(22)
         pComboPhysName:UpdateColours(drmSkin)
 
@@ -2462,7 +2462,7 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetNumSlider(CPanel, "stackcnt", 0      , 0, asmlib.GetAsmConvar("maxstcnt" , "INT"))
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)
   asmlib.SetButton(CPanel, "resetvars")
-  local tBAng = { -- Button interactove slider ( angle offsets )
+  local tBAng = { -- Button interactive slider ( angle offsets )
     {N="<>"  , T = "#", -- Left click to decrease, right to increase
       L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnpang","FLT"))) end,
       R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
@@ -2474,14 +2474,14 @@ function TOOL.BuildCPanel(CPanel)
     {N="@135", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*135) end},
     {N="@180", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*180) end}
   }
-  local tBpos = { -- Button interactove slider ( position offsets )
+  local tBpos = { -- Button interactive slider ( position offsets )
     {N="<>" , T = "#", -- Left click to decrease, right to increase
       L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnplin","FLT"))) end,
       R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
     {N="+/-", T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
     {N="@M" , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end},
     {N="@D" , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end}
-  } -- Use the seme initialization table for multiple BIS
+  } -- Use the same initialization table for multiple BIS
   asmlib.SetButtonSlider(CPanel, "nextpic", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
   asmlib.SetButtonSlider(CPanel, "nextyaw", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
   asmlib.SetButtonSlider(CPanel, "nextrol", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
