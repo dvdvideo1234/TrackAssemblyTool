@@ -37,7 +37,7 @@ local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\
 --[[ **************************** CALLBACKS **************************** ]]
 
 local gsVarName -- This stores current variable name
-local gsCbcHash = "_wire" -- This keeps suffix realted to the file
+local gsCbcHash = "_wire" -- This keeps suffix related to the file
 
 gsVarName = asmlib.GetAsmConvar("enwiremod", "NAM")
 cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
@@ -281,11 +281,11 @@ local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, 
   if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = oEnt:GetPhysicsObject()
     if(not (oPhy and oPhy:IsValid())) then return nil end; nMs = oPhy:GetMass() end
   if(not sBsID) then local sDir = asmlib.GetOpVar("OPSYM_DIRECTORY")
-    if(not (oEnt and oEnt:IsValid())) then sBsID = "0/0" else -- Use bodygrup and skin
+    if(not (oEnt and oEnt:IsValid())) then sBsID = "0/0" else -- Use bodygroup and skin
       sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt) end
   end -- Color handling. Apply color based on the conditions
   if(asmlib.IsNumber(oCol)) then -- Color specifier is a number
-    oCol = asmlib.GetColor(nR,nG,nB,nA) -- Trat last 4 arguments as numbers
+    oCol = asmlib.GetColor(nR,nG,nB,nA) -- Try last 4 arguments as numbers
   elseif(asmlib.IsTable(oCol)) then -- Attempt to extract keys information from the table
     oCol = asmlib.GetColor((oCol[1] or oCol["r"]), -- Numerical indices are with priority to hash
                            (oCol[2] or oCol["g"]), -- Numerical indices are with priority to hash

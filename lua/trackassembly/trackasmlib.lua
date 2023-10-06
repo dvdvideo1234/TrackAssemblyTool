@@ -397,7 +397,7 @@ function GetOwner(oEnt)
   ows = oEnt.player; if(IsPlayer(ows)) then return ows else ows = nil end
   ows = oEnt.Owner; if(IsPlayer(ows)) then return ows else ows = nil end
   ows = oEnt.owner; if(IsPlayer(ows)) then return ows else ows = nil end
-  if(set) then -- Duplicatior die functions are registered
+  if(set) then -- Duplicator die functions are registered
     set = set.GetCountUpdate; ows = (set.Args and set.Args[1] or nil)
     if(IsPlayer(ows)) then return ows else ows = nil end
     set = set.undo1; ows = (set.Args and set.Args[1] or nil)
@@ -457,14 +457,14 @@ end
   vMsg > Message being displayed
   vSrc > Name of the sub-routine call (string) or parameter stack (table)
   bCon > Force output in console flag
-  iDbg > Debug table overrive depth
-  tDbg > Debug table overrive
+  iDbg > Debug table override depth
+  tDbg > Debug table override
 ]]
 function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local nMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
   if(nMax and (nMax <= 0)) then return end
   local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
-  if(vSrc and IsTable(vSrc)) then -- Recieve the stack as table
+  if(vSrc and IsTable(vSrc)) then -- Receive the stack as table
     vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
   iDbg = mathFloor(tonumber(iDbg) or 0); iDbg = ((iDbg > 0) and iDbg or nil)
   local tInfo = (iDbg and debugGetinfo(iDbg) or nil) -- Pass stack index
@@ -515,7 +515,7 @@ end
 
 function LogTable(tT, sS, vSrc, bCon, iDbg, tDbg)
   local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
-  if(vSrc and IsTable(vSrc)) then -- Recieve the stack as table
+  if(vSrc and IsTable(vSrc)) then -- Receive the stack as table
     vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
   local tP = {vSrc, bCon, iDbg, tDbg} -- Normalize parameters
   tP[1], tP[2] = tostring(vSrc or ""), tobool(bCon)
@@ -593,7 +593,7 @@ end
  * pFile > The file to read the line of characters from
  * bCons > Keeps data consistency. Enable to skip trim
  * sChar > Custom pattern to be used when trimming
- * Reurns line contents and reaching EOF flag
+ * Returns line contents and reaching EOF flag
  * sLine > The line being read from the file
  * isEOF > Flag indicating pointer reached EOF
 ]]
@@ -628,7 +628,7 @@ function WorkshopID(sKey, sID)
       end -- Report overwrite value is present in the list
     else -- The number does not meet the format
       LogInstance("("..sKey..") Mismatch "..GetReport2(sWS, sID))
-    end -- Rerurn the current value under the specified key
+    end -- Return the current value under the specified key
   end; return sWS
 end
 
@@ -1058,7 +1058,7 @@ function GetQueue(sKey)
       return mHash[mKey] end
   end
   local self, mBusy, mS, mE = {}, {}, nil, nil
-  -- Returns the queue mamber key
+  -- Returns the queue member key
   function self:GetKey() return mKey end
   -- Returns the last item in the queue
   function self:GetHead() return mS end
@@ -1167,7 +1167,7 @@ function GetContainer(sKey, sDef)
   local mData, mID, self = {}, {}, {}
   local mDef = sDef or GetOpVar("KEY_DEFAULT")
   local miTop, miAll, mhCnt = 0, 0, 0
-  -- Returns the container iser information
+  -- Returns the container name information
   function self:GetKey() return mKey end
   -- Returns the largest index in the array part
   function self:GetSize() return miTop end
@@ -1179,9 +1179,9 @@ function GetContainer(sKey, sDef)
   function self:GetData() return mData end
   -- Returns the container hash ID reference
   function self:GetHashID() return mID end
-  -- Calls a manual collet garbage
+  -- Calls a manual collect garbage
   function self:Collect() collectgarbage(); return self end
-  -- Checkes whenever there are wholes in the array part
+  -- Checks whenever there are wholes in the array part
   function self:IsRagged() return (miAll ~= miTop) end
   -- Reads the data from the container
   function self:Select(nsKey)
@@ -1912,7 +1912,8 @@ function SetCheckBox(cPanel, sVar)
   pItem:SetTooltip(sTtip); return pItem
 end
 
-function SetCenter(oEnt, vPos, aAng, nX, nY, nZ) -- Set the ENT's Angles first!
+-- Set the ENT's Angles first!
+function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity Invalid"); return Vector(0,0,0) end
   oEnt:SetPos(vPos); oEnt:SetAngles(aAng)
@@ -2186,7 +2187,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     LogInstance("Exists ID #"..tostring(iID)); return nil
   else
     if((iID > 1) and (not tOffs[iID - 1])) then
-      LogInstance("Desynchronized ID #"..tostring(iID)); return nil end
+      LogInstance("Scatter ID #"..tostring(iID)); return nil end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
   ---------- Origin ----------
@@ -2262,7 +2263,7 @@ end
 
 ------------- VARIABLE INTERFACES --------------
 --[[
- * Returns a string term whrever it is is missing or disabled
+ * Returns a string term whenever it is is missing or disabled
  * If these conditions are not met the function returns missing token
  * sBas > The string to check whenever it is disabled or missing
  * vDef > The default value to return when base is not string
@@ -2383,7 +2384,7 @@ end
  * Used for scaling hit position circle
  * pPly > Player the radius is scaled for
  * vHit > Hit position circle to be scaled
- * nSca > Radius multiplier scaler
+ * nSca > Radius multiplier value
 ]]
 function GetCacheRadius(pPly, vHit, nSca)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
@@ -2432,12 +2433,12 @@ function GetCacheCurve(pPly)
     stData.Info  = {} -- This holds various vectors and angles and other data
     stData.Rays = {} -- Holds hashes whenever given node is an active point
     stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
-    stData.Info.Ang = {Angle (), Angle ()} -- Start and end anngles of active points
+    stData.Info.Ang = {Angle (), Angle ()} -- Start and end angles of active points
     stData.Info.UCS = {Vector(), Vector()} -- Origin and normal vector for the iteration
     stData.Snap  = {} -- Contains array of position and angle snap information
-    stData.Node  = {} -- Contains array of node positions for the curve caculation
-    stData.Norm  = {} -- Contains array of normal vector for the curve caculation
-    stData.Base  = {} -- Contains array of hit positions for the curve caculation
+    stData.Node  = {} -- Contains array of node positions for the curve calculation
+    stData.Norm  = {} -- Contains array of normal vector for the curve calculation
+    stData.Base  = {} -- Contains array of hit positions for the curve calculation
     stData.CNode = {} -- The place where the curve nodes are stored
     stData.CNorm = {} -- The place where the curve normals are stored
     stData.Size  = 0  -- The amount of points for the primary node array
@@ -2618,7 +2619,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
       local nNow, tTim = Time(), qtCmd.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
-      oSpot[kKey].Used = nNow -- Make the first selected deletable to avoid phantom records
+      oSpot[kKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
       local smTM, tmLif, tmDie, tmCol = tTim[1], tTim[2], tTim[3], tTim[4]; if(tmLif <= 0) then
         LogInstance("Timer attachment ignored",tabDef.Nick); return oSpot[kKey] end
       LogInstance("["..smTM.."] ("..tmLif..") "..tostring(tmDie)..", "..tostring(tmCol),tabDef.Nick)
@@ -2694,7 +2695,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         LogInstance("Mismatch ctrl ["..iD.."]",tabDef.Nick); bStat = false end
       if(tCol[4] and not IsString(tCol[4])) then
         LogInstance("Mismatch conv ["..iD.."]",tabDef.Nick); bStat = false end
-    end; return bStat -- Succesfully validated the builder table
+    end; return bStat -- Successfully validated the builder table
   end
   -- Creates table column list as string
   function self:GetColumnList(sD)
@@ -2746,7 +2747,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     else LogInstance("Invalid column type <"..tyCol..">",tabDef.Nick); return nil
     end; return snOut
   end
-  -- Build drop statment
+  -- Build drop statement
   function self:Drop()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "Drop"
@@ -2755,7 +2756,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     if(not sStmt) then sStmt = CacheStmt(qsKey, "DROP TABLE %s;", qtDef.Name) end
     qtCmd[qtCmd.STMT] = sStmt; return self
   end
-  -- Build delete statment
+  -- Build delete statement
   function self:Delete()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "Delete"
@@ -2774,7 +2775,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCmd = self:GetCommand()
     qtCmd.Commit = "COMMIT;"; return self
   end
-  -- Build create/drop/delete statment table of statemenrts
+  -- Build create/drop/delete statement table of statemenrts
   function self:Create()
     local qtDef = self:GetDefinition()
     local qtCmd, iInd = self:GetCommand(), 1; qtCmd.STMT = "Create"
@@ -2999,10 +3000,10 @@ function CacheBoxLayout(oEnt,nCamX,nCamZ)
   local oRec = CacheQueryPiece(sMod); if(not IsHere(oRec)) then
     LogInstance("Record invalid <"..sMod..">"); return nil end
   local stBox = oRec.Layout; if(not IsHere(stBox)) then
-    oRec.Layout = {}; stBox = oRec.Layout -- Allocated chace layout
+    oRec.Layout = {}; stBox = oRec.Layout -- Allocated chance layout
     stBox.Cen, stBox.Ang = oEnt:OBBCenter(), Angle() -- Layout position and angle
     stBox.Eye = oEnt:LocalToWorld(stBox.Cen) -- Layout camera eye
-    stBox.Len = oEnt:BoundingRadius() -- Use bounding radius as enity size
+    stBox.Len = oEnt:BoundingRadius() -- Use bounding radius as entity size
     stBox.Cam = Vector(stBox.Eye) -- Layout camera position
     local nX = stBox.Len * (tonumber(nCamX) or 0) -- Calculate camera X
     local nZ = stBox.Len * (tonumber(nCamZ) or 0) -- Calculate camera Z
@@ -3119,7 +3120,7 @@ end
 ----------------------- PANEL QUERY -------------------------------
 
 --[[
- * Exports panel indormation to dedicated DB file
+ * Exports panel information to dedicated DB file
  * stPanel > The actual panel information to export
  * bExp    > Export panel data into a DB file
  * makTab  > Table maker object
@@ -3289,12 +3290,12 @@ function ExportPOA(stPOA,sOut)
         sO = (stPOA.O.Slot and stPOA.O.Slot or sO)
   local sA = (IsZeroPOA(stPOA.A, "A") and sE or StringPOA(stPOA.A, "A"))
         sA = (stPOA.A.Slot and stPOA.A.Slot or sA)
-  return sP, sO, sA -- Recieve three strings as POA exports
+  return sP, sO, sA -- Return three strings as POA exports
 end
 
 --[[
  * Save/Load the category generation
- * vEq    > Amount of intenal comment depth
+ * vEq    > Amount of internal comment depth
  * tData  > The local data table to be exported ( if given )
  * sPref  > Prefix used on exporting ( if not uses instance prefix )
 ]]--
@@ -3510,7 +3511,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           local fRec, vID, nID = fData[vK], tLine[iD+1]; nID = (tonumber(vID) or 0)
           if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
             I:Close(); LogInstance("("..fPref.."@"..sTable..") Read line ID #"..
-              tostring(vID).." desynchronized <"..tostring(vK)..">"); return false end
+              tostring(vID).." scatter <"..tostring(vK)..">"); return false end
           fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Regster the new line
           for iCnt = 3, nL do fRow[iCnt-2] = tLine[iCnt] end -- Transfer the extracted data
         else I:Close()
@@ -3532,14 +3533,14 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
       if(iCnt ~= nID) then -- Validate the line ID being in proper borders abd sequential
           LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ["
-            ..tostring(iCnt).."] ID desynchronized "..GetReport3(vID, nID, sID))
+            ..tostring(iCnt).."] ID scatter "..GetReport3(vID, nID, sID))
           return false end; tRow[iD-1] = nID
       for nCnt = 1, #tRow do -- Do a value matching without quotes
         local vM = makTab:Match(tRow[nCnt],nCnt+1,false,"",true,true); if(not IsHere(vM)) then
           LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync matching failed <"
             ..tostring(tRow[nCnt]).."> to <"..tostring(nCnt+1).." # "..defTab[nCnt+1][1]..">"); return false
         end; tRow[nCnt] = vM -- Store the matched value in the same place as the original
-      end -- Check whenerver triggers are available. Run them if present
+      end -- Check whenever triggers are available. Run them if present
       if(IsTable(defTab.Trigs)) then tableInsert(tRow, 1, vK) -- Apply trigger format
         local bS, sR = pcall(defTab.Trigs["Record"], tRow, sFunc); if(not bS) then
           LogInstance("("..fPref.."@"..sTable..") Trigger "..GetReport2(nID, vK).." error: "..sR); return false end
@@ -3734,9 +3735,9 @@ end
 
 --[[
  * This function adds the extracted addition for given model to a list
- * sModel > The model to be checked for addotions
- * makTab > Reference to addotions table builder
- * qList  > The list to insert the found addotions
+ * sModel > The model to be checked for additions
+ * makTab > Reference to additions table builder
+ * qList  > The list to insert the found additions
 ]]--
 local function SetAdditionsAR(sModel, makTab, qList)
   if(not IsHere(makTab)) then return end
@@ -3836,9 +3837,9 @@ end
 
 --[[
  * This function extracts some track type from the database and creates
- * desicated autorin control script files adding the given type argument
- * to the database by using external pluggable DSV prefix list
- * sType > Track type the autorun file is creaded for
+ * dedicated autorun control script files adding the given type argument
+ * to the database by using external plugable DSV prefix list
+ * sType > Track type the autorun file is created for
 ]]--
 function ExportTypeAR(sType)
   if(SERVER) then return nil end
@@ -4044,9 +4045,9 @@ end
  * ucsPos        > Forced base UCS position when available
  * ucsAng        > Forced base UCS angle when available
  * shdModel      > Tool holder active model as string
- * ivhdPoID      > Requested point ID recieved from client
- * ucsPos(X,Y,Z) > Offset position additianl translation from user
- * ucsAng(P,Y,R) > Offset angle additianl rotation from user
+ * ivhdPoID      > Requested point ID received from client
+ * ucsPos(X,Y,Z) > Offset position additional translation from user
+ * ucsAng(P,Y,R) > Offset angle additional rotation from user
  * stData        > When provided defines where to put the spawn data
 ]]--
 function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
@@ -4111,8 +4112,8 @@ end
  * shdModel      > Spawn data will be obtained for this model
  * ivhdPoID      > Active point ID selected via Right click ...
  * nvActRadius   > Minimal radius to get an active point from the client
- * ucsPos(X,Y,Z) > Offset position additianl translation from user
- * ucsAng(P,Y,R) > Offset angle additianl rotation from user
+ * ucsPos(X,Y,Z) > Offset position additional translation from user
+ * ucsAng(P,Y,R) > Offset angle additional rotation from user
  * stData        > When provided defines where to put the spawn data
 ]]--
 function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
@@ -4236,7 +4237,7 @@ end
  *   f2  > Intersection fraction of the second ray
  *   x1  > Pillar intersection projection for first ray
  *   x2  > Pillar intersection projection for second ray
- *   xx  > Actual clacualted pillar intersectoion point
+ *   xx  > Actual calculated pillar intersection point
 ]]--
 local function IntersectRay(vO1, vD1, vO2, vD2)
   if(vD1:LengthSqr() == 0) then
@@ -4547,7 +4548,7 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
 end
 
 --[[
- * Checks whenever the spawned piece is inside the previos spawn margin
+ * Checks whenever the spawned piece is inside the previous spawn margin
 ]]
 function InSpawnMargin(oRec,vPos,aAng)
   local nMarg = GetOpVar("SPAWN_MARGIN")
@@ -4561,7 +4562,7 @@ function InSpawnMargin(oRec,vPos,aAng)
         if(nMarg < 0) then return true end -- Negative checks position
         local nMray = (1 - (nMpow * GetOpVar("EPSILON_ZERO")))
         local nBray = oRec.Mray:Dot(aAng:Forward())
-        if(nBray >= nMray) then -- Positive shecks position and direction
+        if(nBray >= nMray) then -- Positive checks position and direction
           LogInstance("Spawn ray ["..nBray.."]["..nMray.."]"); return true
         end -- Piece angles will not align when spawned
       end -- Piece will be spawned outside of spawn margin
@@ -4662,13 +4663,13 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
 end
 
 --[[
- * Creates anchor constraints between the pice and the base prop
+ * Creates anchor constraints between the piece and the base prop
  * ePiece > The piece entity to be attached
- * eBase  > Base enity the piece is attached to
+ * eBase  > Base entity the piece is attached to
  * bWe    > Weld constraint flag ( Weld )
  * bNc    > NoCollide constraint flag ( NoCollide )
  * bNw    > NoCollideWorld constraint flag ( AdvBallsocket )
- * nFm    > Force limit of the contraint created. Defaults to never break
+ * nFm    > Force limit of the constraint created. Defaults to never break
 ]]
 function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   if(CLIENT) then LogInstance("Working on client"); return true end
@@ -4678,7 +4679,7 @@ function ApplyPhysicalAnchor(ePiece,eBase,bWe,bNc,bNw,nFm)
   local sPr, cnW, cnN, cnG = GetOpVar("TOOLNAME_PL") -- Create local references for constraints
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid "..GetReport(ePiece)); return false, cnW, cnN, cnG  end
-  if(constraintCanConstrain(ePiece, 0)) then -- Check piece for contrainability
+  if(constraintCanConstrain(ePiece, 0)) then -- Check piece for constraints
     -- Weld on pieces between each other
     if(bWe) then -- Weld using force limit given here
       if(eBase and (eBase:IsValid() or eBase:IsWorld())) then
@@ -4800,8 +4801,8 @@ end
 
 --[[
  * Registers constraint information for flip over mode
- * tC   > The genaral constrain information table
- * vK   > Key ( entity ID ) to store the flipped etity for
+ * tC   > The general constrain information table
+ * vK   > Key ( entity ID ) to store the flipped entity for
  * oEnt > The entity to be stored
 ]]
 function RegConstraintOver(tC, vK, oEnt)
@@ -5064,8 +5065,8 @@ end
 
 --[[
  * Creates a linear set of numbers with borders and given amount
- * nBeg > The numbert to start from ( BEGIN )
- * nEnd > The numbert to end with ( END )
+ * nBeg > The number to start from ( BEGIN )
+ * nEnd > The number to end with ( END )
  * nAmt > Amount of middle points to be generated
  * Returns table with the numbers
 ]]
@@ -5130,7 +5131,7 @@ end
 --[[
  * Calculates a full Catmull-Rom curve when there are no repeating points
  * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
- * tV > A table containg the curve control points ( KNOTS )
+ * tV > A table containing the curve control points ( KNOTS )
  * nT > Amount of points to be calculated between the control points
  * nA > Parametric constant curve factor [0 ; 1]
  * Returns a table containing the generated curve including the control points
@@ -5158,7 +5159,7 @@ end
 --[[
  * Calculates a full Catmull-Rom curve when there are repeating points present
  * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
- * tV > A table containg the curve control points ( KNOTS )
+ * tV > A table containing the curve control points ( KNOTS )
  * nT > Amount of points to be calculated between the control points
  * nA > Parametric constant curve factor [0 ; 1]
  * Returns a table containing the generated curve including the control points
@@ -5228,7 +5229,7 @@ end
  * vO > The point position vector
  * vS > Line start point vector
  * vE > Line end point vector
- * Returns bolean if the condition is present
+ * Returns boolean if the condition is present
 ]]
 local function IsAmongLine(vO, vS, vE)
   local nE = GetOpVar("EPSILON_ZERO")
@@ -5244,7 +5245,7 @@ end
 
 --[[
  * Populates one track location in the snapping stack
- * and prepares the coordiante location to be moved
+ * and prepares the coordinate location to be moved
  * iD  > The current snap ID being populated
  * vvS > Start location vector
  * vnS > Start normal vector
@@ -5271,12 +5272,12 @@ local function UpdateCurveNormUCS(oPly, vvS, vnS, vvE, vnE, vO, nD)
   local xP, xM = IntersectLineSphere(vvS, vvE, vO, nD)
   local bOn = IsAmongLine(xP, vvS, vvE)
   local xXX = (bOn and xP or xM) -- The nearest point has more weight
-  local nF1 = xXX:Distance(vvS) -- Start point fracttion
-  local nF2 = xXX:Distance(vvE) -- End point fracttion
+  local nF1 = xXX:Distance(vvS) -- Start point fraction
+  local nF2 = xXX:Distance(vvE) -- End point fraction
   local vF1 = Vector(vnS); vF1:Mul(1 - (nF1 / nR))
   local vF2 = Vector(vnE); vF2:Mul(1 - (nF2 / nR))
   local xNN = Vector(vF1); xNN:Add(vF2); xNN:Normalize()
-  local vF, vU = (xXX - vP), (vN + xNN) -- Spwan angle as FU
+  local vF, vU = (xXX - vP), (vN + xNN) -- Spawn angle as FU
   local tS, tO = tC.Snap[tC.SSize], {Vector(vP), vF:AngleEx(vU)}
   tS.Size, tC.SKept = (tS.Size + 1), (tC.SKept + 1) -- Update snap and nodes
   tS[tS.Size] = tO; vP:Set(xXX); vN:Set(xNN) -- Update the new origin point
@@ -5332,7 +5333,7 @@ function GetTurningFactor(oPly, tS, iD)
   local tP = tS[iD - 1]; if(not IsHere(tP)) then
     tP = tC.Snap[tS.ID - 1]; tP = (tP and tP[tP.Size] or nil)
   end -- When a previous entry is not located return nothing
-  if(not IsHere(tP)) then -- Previos entry being validated
+  if(not IsHere(tP)) then -- Previous entry being validated
     LogInstance("Prev mismatch "..GetReport(tP)); return nil end
   local nF = tV[2]:Forward():Dot(tP[2]:Forward())
   local nU = tV[2]:Up():Dot(tP[2]:Up())
@@ -5387,7 +5388,7 @@ end
 --[[
  * Bezier curve calculator
  * https://en.wikipedia.org/wiki/B%C3%A9zier_curve
- * tV > Array of bezier control nodes
+ * tV > Array of Bezier control nodes
  * nT > Amount of samples between both ends
  * tO > When provided it is filled with the curve
  * Returns the table array of the calculated curve
@@ -5400,7 +5401,7 @@ function GetBezierCurve(tV, nT, tO)
     LogInstance("Samples mismatch "..GetReport1(nT)); return nil end
   local iD, cT, dT, tB = 1, 0, (1 / nT), (tO or {})
   tB[iD], cT, iD = Vector(tV[iD]), (cT + dT), (iD + 1)
-  while(cT < 1) do -- Recursively populate ann the node segments
+  while(cT < 1) do -- Recursively populate all the node segments
     tB[iD] = GetBezierCurveVertex(cT, tV) -- Recursive calculation
     cT, iD = (cT + dT), (iD + 1) -- Prepare for next segment
   end; tB[iD] = Vector(tV[nV]) -- Bezier must include both ends
@@ -5443,7 +5444,7 @@ function GetToolInformation()
     for iW = 1, nWM do
       iO = iO + 1; tO[iO] = tableCopy(tH)
       for k, v in pairs(vD) do tO[iO][k] = v end
-      tO[iO].op   = iW -- Transfer madatory values
+      tO[iO].op   = iW -- Transfer mandatory values
       tO[iO].name = tO[iO].name.."."..tostring(iW)
       if(vD.name == "workmode") then
         local sW = tostring(cWM:Select(iW) or snAV):lower()

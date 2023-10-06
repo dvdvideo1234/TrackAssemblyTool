@@ -85,7 +85,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.729")
+asmlib.SetOpVar("TOOL_VERSION","8.730")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -422,22 +422,22 @@ if(CLIENT) then
     weight = 600
   })
 
-  -- Listen for changes to the localify language and reload the tool's menu to update the localizations
+  -- Listen for changes of the language and reload the tool's menu to update the localizations
   cvarsRemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
   cvarsAddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
     local sLog, bS, vOut, fUser, fAdmn = "*UPDATE_CONTROL_PANEL("..vO.."/"..vN..")"
     local oTool = asmlib.GetOpVar("STORE_TOOLOBJ"); if(not asmlib.IsHere(oTool)) then
       asmlib.LogInstance("Tool object missing", sLog); return end
     -- Retrieve the control panel from the tool main tab
-    local fCont = oTool.BuildCPanel -- Function is the tool populator
+    local fCont = oTool.BuildCPanel -- Function to populate the tool
     local pCont = controlpanelGet(gsToolNameL); if(not IsValid(pCont)) then
       asmlib.LogInstance("Control invalid", sLog); return end
-    -- Retrieve the utilities user preferencies panel
+    -- Retrieve the utilities user preferences panel
     bS, vOut = asmlib.DoAction("TWEAK_PANEL", "Utilities", "User"); if(not bS) then
       asmlib.LogInstance("User miss: "..vOut, sLog); return end; fUser = vOut
     local pUser = controlpanelGet(gsToolNameL.."_utilities_user"); if(not IsValid(pUser)) then
       asmlib.LogInstance("User invalid", sLog); return end
-    -- Retrieve the utilities admin preferencies panel
+    -- Retrieve the utilities admin preferences panel
     bS, vOut = asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin"); if(not bS) then
       asmlib.LogInstance("Admin miss: "..vOut, sLog); return end; fAdmn = vOut
     local pAdmn = controlpanelGet(gsToolNameL.."_utilities_admin"); if(not IsValid(pAdmn)) then
@@ -644,7 +644,7 @@ if(CLIENT) then
       local aW = mathAtan2(vA.y, vA.x) -- Read wiper angle and normalize the value
             aW = ((aW < 0) and (aW + nMr) or aW) -- Convert [0;+pi;-pi;0] to [0;2pi]
       local iW = mathFloor(((aW / nMr) * nN) + 1) -- Calculate fraction ID for working mode
-      local dA = (nMr / (nK * nN)) -- Two times smaller step to hangle centers as well
+      local dA = (nMr / (nK * nN)) -- Two times smaller step to handle centers as well
       asmlib.SetXY(vA, vF); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[4], vA)
       asmlib.SetXY(vA, vN); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[3], vA)
       local nT, nB = mathCeil((nK - 1) / 2) + 1, mathFloor((nK - 1) / 2) + 1
@@ -667,7 +667,7 @@ if(CLIENT) then
           else -- Even. Use the rod middle point of the two vertexes
             if(nB == iK) then asmlib.MidXY(vTx, vA, vB) end
           end -- Otherwise calculation is not triggered and does nothing
-        end -- One segment for woring mode selection is drawn
+        end -- One segment for working mode selection is drawn
         actMonitor:SetTextStart(vTx.x, vTx.y):DrawText(sW, "k", "SURF", {"Trebuchet24", true})
       end; asmlib.SetAsmConvar(oPly, "workmode", iW); return true
     end)
@@ -755,9 +755,9 @@ if(CLIENT) then
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wAct)
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wUse - wSrc)
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_3")):SetFixedWidth(wSrc)
-      -- Rext entry to inport/export to list view
+      -- Next entry to import/export to list view
       xyPos.y = xyPos.y + xySiz.y + xyDsz.y
-      xySiz.y = nB -- Genral Y-size of elements
+      xySiz.y = nB -- General Y-size of elements
       local tpText = {Size = #pnListView.Columns}
       for iC = 1, tpText.Size do
         local pC = pnListView.Columns[iC]
@@ -829,7 +829,7 @@ if(CLIENT) then
           end
         end; oDSV:Close()
       end; pnImport:DoClick()
-      -- Expot button. When clicked loads contents into the file
+      -- Export button. When clicked loads contents into the file
       local pnExport = vguiCreate("DButton")
       if(not IsValid(pnExport)) then pnFrame:Close()
         asmlib.LogInstance("Export button invalid", sLog); return nil end
@@ -1159,7 +1159,7 @@ if(CLIENT) then
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.LogInstance("Populate the list view failed",sLog); return nil end
-      -- The button dababase export by type uses the current active type in the ListView line
+      -- The button database export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
@@ -1551,7 +1551,7 @@ if(SERVER) then
     else
       if(cTim > pTim[2]) then
         asmlib.Notify(oPly,"Do not rush the context menu!","UNDO")
-        pTim[2] = (cTim + nDel) -- For given amont of seconds
+        pTim[2] = (cTim + nDel) -- For given amount of seconds
       end
     end
   end
@@ -1847,8 +1847,8 @@ if(CLIENT) then
   else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
 end
 
---[[ Track pieces parametrization legend
- * Utilizing a trasnform attacment is done by using "OPSYM_ENTPOSANG"
+--[[ Track pieces parameterization legend
+ * Utilizing a transform attachment is done by using "OPSYM_ENTPOSANG"
  * Disabling a component is preformed by using "OPSYM_DISABLE"
  * Active points data are strings of floats delimited by "OPSYM_SEPARATOR"
  * Disabling P     - The ID search point is treated as taking the origin

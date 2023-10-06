@@ -81,7 +81,7 @@ if(not asmlib) then myThrowError("Failed loading the required module!"); return 
  * sDelim > The delimiter used by the server/client ( default is a tab symbol )
 ]]--
 local function mySyncTable(sName, tData, bRepl)
-  if(not asmlib.IsEmpty(tData)) then -- Somrting to be processed. Do stuff when the table is not empty
+  if(not asmlib.IsEmpty(tData)) then -- Something to be processed. Do stuff when the table is not empty
     asmlib.LogInstance("SynchronizeDSV START <"..myPrefix..">") -- Signal start synchronization
     if(not asmlib.SynchronizeDSV(sName, tData, bRepl, myPrefix)) then -- Attempt to synchronize
       myThrowError("Failed to synchronize: "..sName) -- Raise error when fails to sync tracks data
@@ -167,7 +167,7 @@ asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..",
 -- Register the addon to the workshop ID list
 asmlib.WorkshopID(myAddon, "326640186")
 
--- Register the addon to the pluggable DSV list
+-- Register the addon to the plugable DSV list
 myRegisterDSV(myFlag)
 
 --[[
@@ -194,7 +194,7 @@ local myCategory = {
   ]]}
 }
 
--- Register the addon category to the pluggable DSV list
+-- Register the addon category to the plugable DSV list
 myExportCategory(myCategory)
 
 --[[
@@ -341,7 +341,7 @@ local myPieces = {
   }
 }
 
--- Register the addon PIECES to the pluggable DSV list
+-- Register the addon PIECES to the plugable DSV list
 mySyncTable("PIECES", myPieces, true)
 
 --[[
@@ -389,7 +389,7 @@ local myAdditions = {
   }
 }
 
--- Register the addon ADDITIONS to the pluggable DSV list
+-- Register the addon ADDITIONS to the plugable DSV list
 mySyncTable("ADDITIONS", myAdditions, true)
 
 --[[
@@ -410,7 +410,7 @@ mySyncTable("ADDITIONS", myAdditions, true)
 ]]--
 local myPhysproperties = {}
 
--- Register the addon PHYSPROPERTIES to the pluggable DSV list
+-- Register the addon PHYSPROPERTIES to the plugable DSV list
 mySyncTable("PHYSPROPERTIES", myPhysproperties, true)
 
 asmlib.LogInstance("<<< "..myScript)
