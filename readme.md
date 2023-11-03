@@ -2,11 +2,13 @@
 
 ---
 
-# Copyright 2015 [ME](http://steamcommunity.com/profiles/76561197988124141) !
+# Copyright 2015 [ME][ref-me] !
 
 ## IF YOU HAPPEN TO FIND REUPLOADS WITH DIFFERENT ORIGIN REPORT THEM TO ME IMMIDEATELY !!!
 
 ![TrackAssemblyTool][ref-screenshot]
+
+[![][ref-ws-down]][ref-workshop] [![][ref-ws-date]][ref-ws-updt]
 
 ## Description
 
@@ -23,8 +25,7 @@ created it. But since my lack of time for playing gmod has been drastically incr
 people asked me if I accept donations, here is [the link to my PayPal](https://www.paypal.me/DeyanVasilev).
 
 #### How can I install this?
-You can subscribe to it in the workshop [here](http://steamcommunity.com/sharedfiles/filedetails/?id=287012681)
-or download the latest stable release from [here](https://github.com/dvdvideo1234/TrackAssemblyTool/releases).
+You can subscribe to it in the workshop [here][ref-workshop] or download the latest stable release from [here][ref-release].
 After downloading the release extracting it in `../GarrysMod/garrysmod/addons` and you are practically done.
 
 #### Why did you consider making this thing ?
@@ -493,3 +494,9 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-work-turn]: https://www.youtube.com/watch?v=_qcol4_-_ZQ
 [ref-user-mbones]: https://steamcommunity.com/profiles/76561198348454446
 [ref-node-intersect]: https://www.youtube.com/watch?v=2MCagAUCU_M
+[ref-me]: http://steamcommunity.com/profiles/76561197988124141
+[ref-ws-down]: https://img.shields.io/steam/downloads/287012681
+[ref-workshop]: https://steamcommunity.com/sharedfiles/filedetails/?id=287012681
+[ref-ws-date]: https://img.shields.io/steam/update-date/287012681
+[ref-ws-updt]: https://steamcommunity.com/sharedfiles/filedetails/changelog/287012681
+[ref-release]: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
