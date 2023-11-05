@@ -2233,9 +2233,9 @@ function TOOL:DrawToolScreen(w, h)
   scrTool:DrawText("Holds Model: Valid","g")
   scrTool:DrawTextRe("  ["..gsModeDataB.."]","db")
   local trEnt    = stTrace.Entity
-  local workmode = self:GetWorkingMode()
   local actrad   = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
+  local workmode, workname = self:GetWorkingMode()
   local trMaxCN, trModel, trOID, trRLen
   if(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
@@ -2267,19 +2267,18 @@ function TOOL:DrawToolScreen(w, h)
                   .. " (" ..(pnextid    or gsNoID)
                   ..") [" ..(hdRec.Size or gsNoID).."]","g")
   scrTool:DrawText("MaxCL: "..actrad.." < ["..maxrad.."]","c")
-  scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
   local txW, txH = scrTool:GetTextStScreen()
   local txsX, txsY = scrTool:GetTextStLast()
-  local nRad = mathClamp(h - txH  - (txsY / 2),0,h) / 2
-  local cPos = mathClamp(h - nRad - (txsY / 3),0,h)
+  scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
+  scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
+  local nRad = mathClamp(h - txH  - txsY / 1.2,0,h) / 2
+  local cPos = mathClamp(h - nRad - txsY / 2.5,0,h)
   local xyPs = asmlib.NewXY(cPos, cPos)
-  local workmode, workname = self:GetWorkingMode()
   scrTool:DrawCircle(xyPs, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPs, nRad, "m")
   scrTool:DrawText("Date: "..asmlib.GetDate(),"w")
   scrTool:DrawText("Time: "..asmlib.GetTime())
   if(trRLen) then scrTool:DrawCircle(xyPs, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
-  scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
 end
 
 -- Enter `spawnmenu_reload` in the console to reload the panel

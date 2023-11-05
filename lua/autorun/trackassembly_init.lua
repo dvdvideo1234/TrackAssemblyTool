@@ -85,7 +85,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.731")
+asmlib.SetOpVar("TOOL_VERSION","8.732")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -136,7 +136,7 @@ asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 250)
 asmlib.SetBorder(gsToolPrefL.."logfile"  , 0, 1)
 asmlib.SetBorder(gsToolPrefL.."logsmax"  , 0, 100000)
-asmlib.SetBorder(gsToolPrefL.."maxactrad", 1, 200)
+asmlib.SetBorder(gsToolPrefL.."maxactrad", 1, 400)
 asmlib.SetBorder(gsToolPrefL.."maxforce" , 0, 200000)
 asmlib.SetBorder(gsToolPrefL.."maxfruse" , 1, 150)
 asmlib.SetBorder(gsToolPrefL.."maxlinear", 0)
@@ -390,7 +390,7 @@ if(SERVER) then
       local nextyaw    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextyaw" , 0),-gnMaxRot, gnMaxRot)
       local nextrol    = mathClamp(pPly:GetInfoNum(gsToolPrefL.."nextrol" , 0),-gnMaxRot, gnMaxRot)
       local forcelim   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."forcelim", 0),0,asmlib.GetAsmConvar("maxforce" , "FLT"))
-      local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),1,asmlib.GetAsmConvar("maxactrad", "FLT"))
+      local activrad   = mathClamp(pPly:GetInfoNum(gsToolPrefL.."activrad", 0),0,asmlib.GetAsmConvar("maxactrad", "FLT"))
       local trPos, trAng, trRad, trID, trTr = trEnt:GetPos(), trEnt:GetAngles(), activrad, 0
       for ID = 1, trRec.Size, 1 do -- Hits distance shorter than the active radius
         local oTr, oDt = asmlib.GetTraceEntityPoint(trEnt, ID, activrad)
