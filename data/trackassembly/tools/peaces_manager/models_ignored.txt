@@ -5158,6 +5158,8 @@ models/joe/jtp/straight/1024_45.mdl
 models/joe/jtp/straight/4096_64.mdl
 models/joe/jtp/straight/512_45.mdl
 models/joe/jtp/straight/96_225.mdl
+models/joe/jtp/switch/1536/45_y_left.mdl
+models/joe/jtp/switch/1536/45_y_right.mdl
 
 # Branchwood Valley
 models/animals/cow.mdl
@@ -5326,7 +5328,6 @@ models/props_d47_canals/interior_block_512x256.mdl
 models/props_d47_canals/interior_block_512x512.mdl
 
 # CAP Walkway
-
 models/boba_fett/props/brazier.mdl
 models/boba_fett/props/brazier2.mdl
 models/boba_fett/props/goauld_brazier.mdl
@@ -5654,3 +5655,9 @@ models/ron/plarail/trains/pa_s11/pa_s11_mid.mdl
 models/ron/plarail/trains/pa_s11/pa_s11_ps.mdl
 models/ron/plarail/weapons/v_acs01.mdl
 models/ron/plarail/weapons/w_acs01.mdl
+
+# Random Bridges
+models/props_canal/canal_bridge04.mdl
+models/props_canal/canal_bridge_railing01.mdl
+models/props_canal/canal_bridge_railing02.mdl
+models/props_canal/canal_bridge_railing_lamps.mdl

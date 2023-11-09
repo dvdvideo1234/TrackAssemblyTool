@@ -9,7 +9,7 @@
 
 interval(20)
 
-function number isOuter(Lft, Rgh, Percent, MaxRange)
+function number isOuter(Lft:number, Rgh:number, Percent:number, MaxRange:number)
 {
     Rez = 0
     T  = abs(Lft-Rgh)
@@ -22,7 +22,7 @@ function number isOuter(Lft, Rgh, Percent, MaxRange)
     return Rez
 }
 
-function array clampTrace(Pos:vector,Width,Fwd:vector,Rgh:vector,Len,Holo1,Holo2)
+function array clampTrace(Pos:vector,Width:number,Fwd:vector,Rgh:vector,Len:number,Holo1:number,Holo2:number)
 {
     AL = Pos - Width * Rgh
     AR = Pos + Width * Rgh
@@ -35,7 +35,7 @@ function array clampTrace(Pos:vector,Width,Fwd:vector,Rgh:vector,Len,Holo1,Holo2
     return array(ARR,ARL,ADRL,ADDW)
 }
 
-function void printPoint(Type:string, Name:string, Mode:string, Hash:string, Point:number, Org:vector, Ang:angle, OverZ)
+function void printPoint(Type:string, Name:string, Mode:string, Hash:string, Point:number, Org:vector, Ang:angle, OverZ:number)
 {
     # Change storage mode
     PID  = toString(floor(abs(Point)))
@@ -48,8 +48,8 @@ function void printPoint(Type:string, Name:string, Mode:string, Hash:string, Poi
         Org = Org:setZ(OverZ)
     }
 
-    StrAng = toString(Ang):replace("[",""):replace("]","")
-    StrOrg = toString(Org):replace("[",""):replace("]","")
+    StrOrg = toString(Org):replace("vec(",""):replace(")","")
+    StrAng = toString(Ang):replace("ang(",""):replace(")","")
 
     if(Ang:pitch() == 0 && Ang:yaw() == 0 && Ang:roll() == 0)
     {
@@ -99,7 +99,7 @@ function void printPoint(Type:string, Name:string, Mode:string, Hash:string, Poi
 if(first() || dupefinished())
 {
     # What model to search for vector offset
-    Prop = "models/sprops/cuboids/non_set/cube_18x18x18.mdl"
+    Prop = "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"
 
     # Piece type that you are using. It is mandatory
     # It is usually derived from the addon mame
@@ -116,7 +116,7 @@ if(first() || dupefinished())
     # Set this to <>0 to use point generation via iterative binary search
     # Set this to positive to make the algorithm trace forward
     # Set this to negative to make the algorithm trace backwards
-    PointID = 1
+    PointID = 0
 
     # What segment type are we processing
     # road     > Roads ( PHX roads )
@@ -126,7 +126,7 @@ if(first() || dupefinished())
 
     # Set this to <>0 for direct Z local offset
     # This us used to override the Z axis magntude
-    OverrideZ = 5.65723
+    OverrideZ = 0
 
     # What mode will the point be exportet as
     InsertTypeDB = "INS"
@@ -175,6 +175,9 @@ if(first() || dupefinished())
     TrackJumpBackMultiplier = clamp(TrackJumpBackMultiplier, 1.001, 1.999)
 
     # Initialization
+    MOrigin = vec()
+    MExtraSide = 0
+    MExtraDepth = 0
     Time = 0
     Chip = entity()
     CPos = Chip:pos()

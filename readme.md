@@ -25,8 +25,10 @@ created it. But since my lack of time for playing gmod has been drastically incr
 people asked me if I accept donations, here is [the link to my PayPal](https://www.paypal.me/DeyanVasilev).
 
 #### How can I install this?
-You can subscribe to it in the workshop [here][ref-workshop] or download the latest stable release from [here][ref-release].
-After downloading the release extracting it in `../GarrysMod/garrysmod/addons` and you are practically done.
+You can subscribe to it in the workshop [here][ref-workshop] or obtain a `*.zip`
+file [here][ref-zip-rel]. You can also either clone this entire repository in
+your `../GarrysMod/garrysmod/addons` folder and the tool will appear in the menu.
+However I no longer bother with making [releases][ref-release] as they are outdated.
 
 #### Why did you consider making this thing ?
 I was always annoyed when building a railroad track in-game, spending a lot of time
@@ -391,7 +393,7 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * Portal 2 Walkway UG **(MOUNT)** (Requested by [mr.bones][ref-user-mbones])
   * [CAP Walkway](https://steamcommunity.com/sharedfiles/filedetails/?id=180210973)
   * Portal 2 High Walkway **(MOUNT)**
-  * [RockMan's Fortification (comming soon)](https://steamcommunity.com/sharedfiles/filedetails/?id=3071058065) 
+  * [RockMan's Fortification](https://steamcommunity.com/sharedfiles/filedetails/?id=3071058065) 
 
 #### Where are the trains/vehicles[,][ref-easter] are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
@@ -502,3 +504,4 @@ avoiding any version mismatches and confusions. So please don't upload the scrip
 [ref-ws-date]: https://img.shields.io/steam/update-date/287012681
 [ref-ws-updt]: https://steamcommunity.com/sharedfiles/filedetails/changelog/287012681
 [ref-release]: https://github.com/dvdvideo1234/TrackAssemblyTool/releases
+[ref-zip-rel]: https://github.com/dvdvideo1234/TrackAssemblyTool/archive/master.zip
