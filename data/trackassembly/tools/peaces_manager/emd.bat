@@ -30,6 +30,7 @@ set emd_chew_dbase=%emd_chew_gmod%\garrysmod\data\trackassembly\exp\trackasmlib_
 set emd_chew_skip=%emd_chew_repo%\data\trackassembly\tools\peaces_manager\models_ignored.txt
 
 :: How many addons are to be processed
+set emd_chew_addfrm=1
 set emd_chew_addcnt=28
 
 :: GMA addons to be processed
@@ -39,7 +40,7 @@ set emd_chew_addlst[3]=807162936
 set emd_chew_addlst[4]=489114511
 set emd_chew_addlst[5]=180210973
 set emd_chew_addlst[6]=718239260
-set emd_chew_addlst[7]=XXX
+set emd_chew_addlst[7]=XXXXXXXXX
 set emd_chew_addlst[8]=1658816805
 set emd_chew_addlst[9]=290130567
 set emd_chew_addlst[10]=1336622735
@@ -57,10 +58,10 @@ set emd_chew_addlst[21]=147812851
 set emd_chew_addlst[22]=149759773
 set emd_chew_addlst[23]=173717507
 set emd_chew_addlst[24]=132843280
-set emd_chew_addlst[25]=147812851
-set emd_chew_addlst[26]=331192490
-set emd_chew_addlst[27]=1888013789
-set emd_chew_addlst[28]=1955876643
+set emd_chew_addlst[25]=331192490
+set emd_chew_addlst[26]=1888013789
+set emd_chew_addlst[27]=1955876643
+set emd_chew_addlst[28]=3071058065
 
 :: Folder list for extraction and the directories they will be extracted
 set emd_chew_adddir[1]=AlexCookie's 2ft track pack
@@ -83,35 +84,55 @@ set emd_chew_adddir[17]=Ron's G Scale Track pack
 set emd_chew_adddir[18]=Ron's Minitrain Props
 set emd_chew_adddir[19]=SProps
 set emd_chew_adddir[20]=Shinji85's Rails
-set emd_chew_adddir[21]=SligWolf's Minihover
+set emd_chew_adddir[21]=SligWolf's Minihover$SligWolf's White Rails
 set emd_chew_adddir[22]=SligWolf's Minitrains
 set emd_chew_adddir[23]=SligWolf's Railcar
 set emd_chew_adddir[24]=SligWolf's Rerailers
-set emd_chew_adddir[25]=SligWolf's White Rails
-set emd_chew_adddir[26]=StevenTechno's Buildings 1.0
-set emd_chew_adddir[27]=StevenTechno's Buildings 2.0
-set emd_chew_adddir[28]=Trackmania United Props
-
+set emd_chew_adddir[25]=StevenTechno's Buildings 1.0
+set emd_chew_adddir[26]=StevenTechno's Buildings 2.0
+set emd_chew_adddir[27]=Trackmania United Props
+set emd_chew_adddir[28]=RockMan's Fortification
 :: Show the current folder
 echo Running in: %emd_chew_pathb%
 
 :: Output file for models list
 set emd_chew_modls=models_list
 set emd_clog_lfile=system_log
+set emd_parm_manag=param_mang
 
 :: Refresh model report
-echo Refresh model report!
+echo Refresh model report.
 IF EXIST "%emd_chew_pathb%%emd_chew_modls%.txt" ( call del %emd_chew_pathb%%emd_chew_modls%.txt )
 IF EXIST "%emd_chew_pathb%%emd_clog_lfile%.txt" ( call del %emd_chew_pathb%%emd_clog_lfile%.txt )
 
 :: Refresh output files
-echo Refresh output files!
+echo Refresh output files.
 IF EXIST "%emd_chew_pathb%addon-db.txt" ( del %emd_chew_pathb%addon-db.txt )
-IF EXIST "%emd_chew_pathb%db-addon.txt" ( del %emd_chew_pathb%db-addon.txt )
+IF EXIST "%emd_chew_pathb%db-addon.txt" ( del %emd_chew_pathb%db-addon.txt )  
+
+IF EXIST "%emd_chew_pathb%%emd_parm_manag%.txt" (
+  :: Get all the model files in the current directory
+  echo Read model files in the current directory.
+  call dir /a-d /b /s *.mdl >> %emd_chew_pathb%%emd_chew_modls%.txt
+  :: Chewing the paths uses base path relative to the executable
+  echo Chewing the paths uses base path relative to the executable.
+  call %emd_chew_pathb%peaces_manager.exe %emd_chew_pathb% %emd_chew_dbase% %emd_chew_skip% %emd_clog_lfile%
+  :: Terminate the flow as everyting is considered being extracted
+  echo Terminate the flow as everyting is considered being extracted.
+  timeout 300
+  exit 0
+) ELSE (
+  :: Store the last parameters for the chewer call
+  echo Store the last parameters for the chewer call.
+  echo %emd_chew_pathb%>%emd_parm_manag%.txt
+  echo %emd_chew_dbase%>>%emd_parm_manag%.txt
+  echo %emd_chew_skip%>>%emd_parm_manag%.txt
+  echo %emd_clog_lfile%>>%emd_parm_manag%.txt
+)
 
 :: Extract the GMA addons in the matching folders
-echo Extract the GMA addons in the matching folders!
-for /L %%k in (1,1,%emd_chew_addcnt%) do (
+echo Extract the GMA addons in the matching folders.
+for /L %%k in (%emd_chew_addfrm%,1,%emd_chew_addcnt%) do (
   set /A emd_chew_match=0
   :: Try the addons folder
   IF !emd_chew_match! EQU 0 (
@@ -157,11 +178,11 @@ for /L %%k in (1,1,%emd_chew_addcnt%) do (
 )
 
 :: Get all the model files in the current directory
-echo Read model files in the current directory!
+echo Read model files in the current directory.
 call dir /a-d /b /s *.mdl >> %emd_chew_pathb%%emd_chew_modls%.txt
 
 :: Chewing the paths uses base path relative to the executable
-echo Chewing the paths uses base path relative to the executable!
+echo Chewing the paths uses base path relative to the executable.
 call %emd_chew_pathb%peaces_manager.exe %emd_chew_pathb% %emd_chew_dbase% %emd_chew_skip% %emd_clog_lfile%
 
 timeout 300
