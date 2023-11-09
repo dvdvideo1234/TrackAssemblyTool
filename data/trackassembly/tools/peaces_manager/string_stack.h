@@ -2,7 +2,7 @@
   #define __STRING_STACK_H_
 
   #define SSTACK_STRLN 500
-  #define SSTACK_DEPTH 10000
+  #define SSTACK_DEPTH 50000
   #define SSTACK_SUCCESS      0
   #define SSTACK_INVALID_ID  -1
   #define SSTACK_MALLOC_FAIL -2
@@ -116,7 +116,7 @@
         strOther = Other->getString(oItem);
         if(NULL != strOther)
         {
-          // fprintf(File,"Try: #%d <%s> # <%s>\n",AdID,AdName,strOther->Data);
+          // fprintf(File,"Try: #%d <%s> --> <%s>\n",AdID,AdName,strOther->Data);
           iStatus = findStringID(0,strOther->Data);
           if(SSTACK_NOT_FOUND == iStatus)
           {

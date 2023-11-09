@@ -1,11 +1,9 @@
 #ifndef __STRING_STACK_H_
   #define __STRING_STACK_H_
   // The maximum string length for a item
-  #define SSTACK_STRLN 300
-  // String creator name length
-  #define SSTACK_STRLN 300
+  #define SSTACK_STRLN 500
   // How deep is the stack
-  #define SSTACK_DEPTH 5000
+  #define SSTACK_DEPTH 50000
   // Type used for storing booleans
   // 0 -> Ignored by cross-add from the same creator
   #define SSTACK_TYPE_FLAGS unsigned char
@@ -165,7 +163,7 @@
         enOther = Other->getEntry(oItem);
         if(SSTACK_INV_POINTER != enOther)
         {
-          common::logSystem(fLog,"printMismatch: Found #%d <%s> # <%s>",AdID,AdName,enOther->Data);
+          common::logSystem(fLog,"printMismatch: Found #%d <%s> --> <%s>",AdID,AdName,enOther->Data);
           stErr = findEntryID(0,enOther->Data,&gItem);
           if(SSTACK_NOT_FOUND == stErr)
           {

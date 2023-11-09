@@ -31,12 +31,19 @@ int main(int argc, char **argv)
 {
   /* Only for test ! */
   /*
+    argc: <5>
+    argv[0]=<G:\Documents\CodeBlocks-Projs\peaces_manager\bin\peaces_manager.exe>
+    argv[1]=<G:\Documents\CodeBlocks-Projs\peaces_manager\bin\>
+    argv[2]=<D:\Games\Steam\steamapps\common\GarrysMod\garrysmod\data\trackassembly\exp\trackasmlib_db.txt>
+    argv[3]=<D:\Games\Steam\steamapps\common\GarrysMod\garrysmod\addons\TrackAssemblyTool_GIT\data\trackassembly\tools\peaces_manager\models_ignored.txt>
+    argv[4]=<system_log>
+
     int argc = 5;
     char argv[5][500];
-    strcpy(argv[0], "O:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\peaces_manager.exe");
-    strcpy(argv[1], "O:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\");
-    strcpy(argv[2], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\data\\trackassembly\\trackasmlib_db.txt");
-    strcpy(argv[3], "F:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\data\\peaces_manager\\models_ignored.txt");
+    strcpy(argv[0], "G:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\peaces_manager.exe");
+    strcpy(argv[1], "G:\\Documents\\CodeBlocks-Projs\\peaces_manager\\bin\\");
+    strcpy(argv[2], "D:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\data\\trackassembly\\exp\\trackasmlib_db.txt");
+    strcpy(argv[3], "D:\\Games\\Steam\\steamapps\\common\\GarrysMod\\garrysmod\\addons\\TrackAssemblyTool_GIT\\data\\trackassembly\\tools\\peaces_manager\\models_ignored.txt");
     strcpy(argv[4], "system_log");
   */
   stentry::cEntryStack  Ignored;

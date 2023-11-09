@@ -3128,19 +3128,24 @@ end
 ]]
 local function ExportPanelDB(stPanel, bExp, makTab, sFunc)
   if(bExp) then
+    local sMiss = GetOpVar("MISS_NOAV")
     local sExpo = GetOpVar("DIRPATH_EXP")
     local sMoDB = GetOpVar("MODE_DATABASE")
-    local symSep = GetOpVar("OPSYM_SEPARATOR")
+    local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
     local iCnt, sBase = 1, GetOpVar("DIRPATH_BAS")
     if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
     local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
-    local F = fileOpen(fName, "wb" ,"DATA"); if(not F) then
+    local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
       LogInstance("Open fail "..GetReport1(fName)); return stPanel end
     F:Write("# "..sFunc..":("..tostring(bExp)..") "..GetDateTime().." [ "..sMoDB.." ]\n")
     while(stPanel[iCnt]) do local vPanel = stPanel[iCnt]
       local sM = vPanel[makTab:GetColumnName(1)]
       local sT = vPanel[makTab:GetColumnName(2)]
       local sN = vPanel[makTab:GetColumnName(3)]
+      if(not cT or cT ~= sT) then -- Category has been changed
+        F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
+        F:Write("\n"); cT = sT -- Cashe category name
+      end -- Otherwise just wite down the piece active point
       F:Write("\""..sM.."\""..symSep.."\""..sT.."\""..symSep.."\""..sN.."\"")
       F:Write("\n"); iCnt = iCnt + 1
     end; F:Flush(); F:Close()
