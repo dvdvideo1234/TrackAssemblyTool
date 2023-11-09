@@ -85,7 +85,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.737")
+asmlib.SetOpVar("TOOL_VERSION","8.738")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -4608,7 +4608,7 @@ else
   PIECES:Record({"models/props_bts/walkway_destroyed_64a.mdl", "#", "#", 1, "", "0,0,-2.125", "0,-90,0"})
   PIECES:Record({"models/props_bts/walkway_destroyed_128a.mdl", "#", "#", 1, "", "0,0,-2.125", "0,90,0"})
   asmlib.Categorize("RockMan's Fortification",[[function(m)
-    local r = m:gsub(".+/", ""):gsub("%.mdl",""):gsub("_.*",""); return r end]])
+    local r = m:gsub(".+/", ""):gsub("_.*",""); return r end]])
   asmlib.ModelToNameRule("SET",nil,{".+_",""},nil)
   PIECES:Record({"models/fortification collection/trench_straight.mdl", "#", "#", 1, "", "177,0,0"})
   PIECES:Record({"models/fortification collection/trench_straight.mdl", "#", "#", 2, "", "-177,0,0", "0,180,0"})
