@@ -2466,20 +2466,22 @@ function TOOL.BuildCPanel(CPanel)
       L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnpang","FLT"))) end,
       R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
     {N="+/-" , T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
-    {N="@M"  , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end},
-    {N="@D"  , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end},
-    {N="@45" , T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))* 45) end},
-    {N="@90" , T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))* 90) end},
-    {N="@135", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*135) end},
-    {N="@180", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*180) end}
-  }
+    {N="@M"  , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end,
+                        R=function(pB, pS, nS) pS:SetValue(GetClipboardText(nS) end},
+    {N="@D"  , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end
+                        R=function(pB, pS, nS) SetClipboardText(pS:GetDefaultValue()) end},
+    {N="@45" , T = "#"}, {N="@90" , T = "#"}, {N="@135", T = "#"}, {N="@180", T = "#"}
+  } -- Use the same initialization table for multiple BIS
   local tBpos = { -- Button interactive slider ( position offsets )
-    {N="<>" , T = "#", -- Left click to decrease, right to increase
+    {N="<>"  , T = "#", -- Left click to decrease, right to increase
       L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnplin","FLT"))) end,
       R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-    {N="+/-", T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
-    {N="@M" , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end},
-    {N="@D" , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end}
+    {N="+/-" , T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
+    {N="@M"  , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end,
+                        R=function(pB, pS, nS) pS:SetValue(GetClipboardText(nS) end},
+    {N="@D"  , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end
+                        R=function(pB, pS, nS) SetClipboardText(pS:GetDefaultValue()) end},
+    {N="@25" , T = "#"}, {N="@50" , T = "#"}, {N="@75", T = "#"}, {N="@100", T = "#"}
   } -- Use the same initialization table for multiple BIS
   asmlib.SetButtonSlider(CPanel, "nextpic", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
   asmlib.SetButtonSlider(CPanel, "nextyaw", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
