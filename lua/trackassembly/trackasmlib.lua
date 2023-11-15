@@ -105,6 +105,7 @@ local mathSqrt                       = math and math.sqrt
 local mathFloor                      = math and math.floor
 local mathClamp                      = math and math.Clamp
 local mathAtan2                      = math and math.atan2
+local mathRemap                      = math and math.Remap
 local mathRound                      = math and math.Round
 local mathRandom                     = math and math.random
 local drawRoundedBox                 = draw and draw.RoundedBox
@@ -1874,28 +1875,57 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   pPanel:SetSlider(sKey, languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase))
   pPanel:Configure(nMin, nMax, tConv[sKey], nDec)
   for iD = 1, #tBtn do
-    local vBtn, sTip = tBtn[iD]
-    local sTxt = tostring(vBtn.N):Trim()
-    if(vBtn.T) then
-      if(vBtn.T == syRev) then
-        sTip = languageGetPhrase(sBase.."_bas"..sTxt)
-      elseif(vBtn.T == syDis) then
-        sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
-      else
-        sTip = tostring(vBtn.T):Trim()
-      end
+    local vBtn = tBtn[iD] -- Button info
+    local sTxt = tostring(vBtn.N or syDis):Trim()
+    local sTip = tostring(vBtn.T or syDis):Trim()
+    if(sTip == syRev) then
+      sTip = languageGetPhrase(sBase.."_bas"..sTxt)
+    elseif(sTip == syDis) then
+      sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
+    else
+      sTip = tostring(sTip):Trim()
     end
-    if(sTxt:sub(1,1) = syRev and tonumber(sTxt:sub(2,-1))) then
-      local nAmt = tonumber(sTxt:sub(2,-1))
+    if(sTxt:sub(1,1) == syRev) then
+      if(tonumber(sTxt:sub(2,-1))) then
+        local nAmt = tonumber(sTxt:sub(2,-1))
+        if(not vBtn.L) then
+          vBtn.L=function(pB, pS, nS)
+            pS:SetValue(GetSign((nS < 0) and nS or (nS+1))*nAmt) end
+        end
+        if(not vBtn.R) then
+          vBtn.R=function(pB, pS, nS)
+            pS:SetValue(-GetSign((nS < 0) and nS or (nS+1))*nAmt) end
+        end
+        sTip = languageGetPhrase("tool."..sTool..".buttonas"..syRev).." "..nAmt
+      elseif(sTxt:sub(2,-1) == "D") then
+        if(not vBtn.L) then
+          vBtn.L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end
+        end
+        if(not vBtn.R) then
+          vBtn.R=function(pB, pS, nS) SetClipboardText(pS:GetDefaultValue()) end
+        end
+      elseif(sTxt:sub(2,-1) == "M") then
+        if(not vBtn.L) then
+          vBtn.L=function(pB, pS, nS) SetClipboardText(nS) end
+        end
+        if(not vBtn.R) then
+          vBtn.R=function(pB, pS, nS) SetClipboardText(mathRemap(nS, pS:GetMin(), pS:GetMax(), 0, 1)) end
+        end
+      end
+    elseif(sTxt == "+/-") then
       if(not vBtn.L) then
-        vBtn.L=function(pB, pS, nS)
-          pS:SetValue(GetSign((nS < 0) and nS or (nS+1))*nAmt) end
+        vBtn.L=function(pB, pS, nS) pS:SetValue(-nS) end
       end
       if(not vBtn.R) then
-        vBtn.R=function(pB, pS, nS)
-          pS:SetValue(-GetSign((nS < 0) and nS or (nS+1))*nAmt) end
+        vBtn.R=function(pB, pS, nS) pS:SetValue(mathRemap(nS, pS:GetMin(), pS:GetMax(), pS:GetMax(), pS:GetMin())) end
       end
-      sTip = languageGetPhrase("tool."..sTool..".buttonas"..syRev).." "..nAmt
+    elseif(sTxt == "<>") then
+      if(not vBtn.L) then
+        vBtn.L=function(pB, pS, nS) pS:SetValue(GetSnap(nS,-GetAsmConvar("incsnpang","FLT"))) end
+      end
+      if(not vBtn.R) then
+        vBtn.R=function(pB, pS, nS) pS:SetValue(GetSnap(nS, GetAsmConvar("incsnpang","FLT"))) end
+      end
     end
     pPanel:SetButton(sTxt, sTip)
     pPanel:SetAction(vBtn.L, vBtn.R)
