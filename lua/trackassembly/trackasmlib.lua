@@ -398,7 +398,7 @@ function GetOwner(oEnt)
   ows = oEnt.player; if(IsPlayer(ows)) then return ows else ows = nil end
   ows = oEnt.Owner; if(IsPlayer(ows)) then return ows else ows = nil end
   ows = oEnt.owner; if(IsPlayer(ows)) then return ows else ows = nil end
-  if(set) then -- Duplicator die functions are registered
+  if(set) then -- Duplicator the functions are registered
     set = set.GetCountUpdate; ows = (set.Args and set.Args[1] or nil)
     if(IsPlayer(ows)) then return ows else ows = nil end
     set = set.undo1; ows = (set.Args and set.Args[1] or nil)
@@ -1804,7 +1804,7 @@ function SetComboBoxList(cPanel, sVar)
     end -- Copy the combo box content shown
     pItem.OnSelect = function(pnSelf, nInd, sVal, anyData)
       SetAsmConvar(nil, sVar, anyData)
-    end -- Apply the settinc to the specified variable
+    end -- Apply the setting to the specified variable
     for iD = 1, #tSet do local sI = tSet[iD]
       local sIco = ToIcon(sNam.."_"..sI:lower())
       local sPrv = (sBase.."_"..sI:lower())
@@ -1832,7 +1832,7 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   -- Read minimum value form the first available
   if(not IsHere(nMin)) then nMin, nDum = GetBorder(sKey)
     if(not IsHere(nMin)) then nMin = GetAsmConvar(sVar, "MIN")
-      if(not IsHere(nMin)) then -- Mininum bound is not located
+      if(not IsHere(nMin)) then -- Minimum bound is not located
         nMin = -mathAbs(2 * mathFloor(GetAsmConvar(sVar, "FLT")))
         LogInstance("(L) Miss "..GetReport1(sKey))
       else LogInstance("(L) Cvar "..GetReport2(sKey, nMin)) end
