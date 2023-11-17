@@ -1878,16 +1878,14 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
     local vBtn = tBtn[iD] -- Button info
     local sTxt = tostring(vBtn.N or syDis):Trim()
     local sTip = tostring(vBtn.T or syDis):Trim()
-    if(sTip == syRev) then
+    if(sTip:sub(1,1) == syRev) then
       sTip = languageGetPhrase(sBase.."_bas"..sTxt)
-    elseif(sTip == syDis) then
+    elseif(sTip:sub(1,1) == syDis) then
       sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
-    else
-      sTip = tostring(sTip):Trim()
     end
     if(sTxt:sub(1,1) == syRev) then
       if(tonumber(sTxt:sub(2,-1))) then
-        local nAmt = tonumber(sTxt:sub(2,-1))
+        local nAmt = (tonumber(sTxt:sub(2,-1)) or 0)
         if(not vBtn.L) then
           vBtn.L=function(pB, pS, nS)
             pS:SetValue(GetSign((nS < 0) and nS or (nS+1))*nAmt) end
