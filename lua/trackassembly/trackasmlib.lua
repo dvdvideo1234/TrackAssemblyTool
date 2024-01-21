@@ -835,6 +835,7 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("TABLE_CATEGORIES",{})
+    SetOpVar("CLIPBOARD_TEXT","")
     SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
   end; LogInstance("Success"); return true
 end
@@ -1884,8 +1885,9 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
       sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
     end
     if(sTxt:sub(1,1) == syRev) then
-      if(tonumber(sTxt:sub(2,-1))) then
-        local nAmt = (tonumber(sTxt:sub(2,-1)) or 0)
+      local sVam = sTxt:sub(2,-1)
+      if(tonumber(sVam)) then
+        local nAmt = (tonumber(sVam) or 0)
         if(not vBtn.L) then
           vBtn.L=function(pB, pS, nS)
             pS:SetValue(GetSign((nS < 0) and nS or (nS+1))*nAmt) end
@@ -1895,19 +1897,19 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
             pS:SetValue(-GetSign((nS < 0) and nS or (nS+1))*nAmt) end
         end
         sTip = languageGetPhrase("tool."..sTool..".buttonas"..syRev).." "..nAmt
-      elseif(sTxt:sub(2,-1) == "D") then
+      elseif(sVam == "D") then
         if(not vBtn.L) then
           vBtn.L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end
         end
         if(not vBtn.R) then
           vBtn.R=function(pB, pS, nS) SetClipboardText(pS:GetDefaultValue()) end
         end
-      elseif(sTxt:sub(2,-1) == "M") then
+      elseif(sVam == "M") then
         if(not vBtn.L) then
-          vBtn.L=function(pB, pS, nS) SetClipboardText(nS) end
+          vBtn.L=function(pB, pS, nS) pS:SetValue(tonumber(GtOpVar("CLIPBOARD_TEXT")) or 0) end
         end
         if(not vBtn.R) then
-          vBtn.R=function(pB, pS, nS) SetClipboardText(mathRemap(nS, pS:GetMin(), pS:GetMax(), 0, 1)) end
+          vBtn.R=function(pB, pS, nS) SetClipboardText(nS); SetOpVar("CLIPBOARD_TEXT", nS) end
         end
       end
     elseif(sTxt == "+/-") then
