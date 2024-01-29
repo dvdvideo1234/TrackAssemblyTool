@@ -1889,12 +1889,10 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
       if(tonumber(sVam)) then
         local nAmt = (tonumber(sVam) or 0)
         if(not vBtn.L) then
-          vBtn.L=function(pB, pS, nS)
-            pS:SetValue(GetSign((nS < 0) and nS or (nS+1))*nAmt) end
+          vBtn.L=function(pB, pS, nS) pS:SetValue(-nAmt) end
         end
         if(not vBtn.R) then
-          vBtn.R=function(pB, pS, nS)
-            pS:SetValue(-GetSign((nS < 0) and nS or (nS+1))*nAmt) end
+          vBtn.R=function(pB, pS, nS) pS:SetValue(nAmt) end
         end
         sTip = languageGetPhrase("tool."..sTool..".buttonas"..syRev).." "..nAmt
       elseif(sVam == "D") then
@@ -1906,7 +1904,7 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
         end
       elseif(sVam == "M") then
         if(not vBtn.L) then
-          vBtn.L=function(pB, pS, nS) pS:SetValue(tonumber(GtOpVar("CLIPBOARD_TEXT")) or 0) end
+          vBtn.L=function(pB, pS, nS) pS:SetValue(tonumber(GetOpVar("CLIPBOARD_TEXT")) or 0) end
         end
         if(not vBtn.R) then
           vBtn.R=function(pB, pS, nS) SetClipboardText(nS); SetOpVar("CLIPBOARD_TEXT", nS) end
