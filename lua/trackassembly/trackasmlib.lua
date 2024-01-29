@@ -105,6 +105,7 @@ local mathSqrt                       = math and math.sqrt
 local mathFloor                      = math and math.floor
 local mathClamp                      = math and math.Clamp
 local mathAtan2                      = math and math.atan2
+local mathRemap                      = math and math.Remap
 local mathRound                      = math and math.Round
 local mathRandom                     = math and math.random
 local drawRoundedBox                 = draw and draw.RoundedBox
@@ -397,7 +398,7 @@ function GetOwner(oEnt)
   ows = oEnt.player; if(IsPlayer(ows)) then return ows else ows = nil end
   ows = oEnt.Owner; if(IsPlayer(ows)) then return ows else ows = nil end
   ows = oEnt.owner; if(IsPlayer(ows)) then return ows else ows = nil end
-  if(set) then -- Duplicator die functions are registered
+  if(set) then -- Duplicator the functions are registered
     set = set.GetCountUpdate; ows = (set.Args and set.Args[1] or nil)
     if(IsPlayer(ows)) then return ows else ows = nil end
     set = set.undo1; ows = (set.Args and set.Args[1] or nil)
@@ -834,6 +835,7 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_WSIDADDON", {})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("TABLE_CATEGORIES",{})
+    SetOpVar("CLIPBOARD_TEXT","")
     SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
   end; LogInstance("Success"); return true
 end
@@ -1803,7 +1805,7 @@ function SetComboBoxList(cPanel, sVar)
     end -- Copy the combo box content shown
     pItem.OnSelect = function(pnSelf, nInd, sVal, anyData)
       SetAsmConvar(nil, sVar, anyData)
-    end -- Apply the settinc to the specified variable
+    end -- Apply the setting to the specified variable
     for iD = 1, #tSet do local sI = tSet[iD]
       local sIco = ToIcon(sNam.."_"..sI:lower())
       local sPrv = (sBase.."_"..sI:lower())
@@ -1831,7 +1833,7 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
   -- Read minimum value form the first available
   if(not IsHere(nMin)) then nMin, nDum = GetBorder(sKey)
     if(not IsHere(nMin)) then nMin = GetAsmConvar(sVar, "MIN")
-      if(not IsHere(nMin)) then -- Mininum bound is not located
+      if(not IsHere(nMin)) then -- Minimum bound is not located
         nMin = -mathAbs(2 * mathFloor(GetAsmConvar(sVar, "FLT")))
         LogInstance("(L) Miss "..GetReport1(sKey))
       else LogInstance("(L) Cvar "..GetReport2(sKey, nMin)) end
@@ -1874,15 +1876,53 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   pPanel:SetSlider(sKey, languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase))
   pPanel:Configure(nMin, nMax, tConv[sKey], nDec)
   for iD = 1, #tBtn do
-    local vBtn, sTip = tBtn[iD]
-    local sTxt = tostring(vBtn.N):Trim()
-    if(vBtn.T) then
-      if(vBtn.T == syRev) then
-        sTip = languageGetPhrase(sBase.."_bas"..sTxt)
-      elseif(vBtn.T == syDis) then
-        sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
-      else
-        sTip = tostring(vBtn.T):Trim()
+    local vBtn = tBtn[iD] -- Button info
+    local sTxt = tostring(vBtn.N or syDis):Trim()
+    local sTip = tostring(vBtn.T or syDis):Trim()
+    if(sTip:sub(1,1) == syRev) then
+      sTip = languageGetPhrase(sBase.."_bas"..sTxt)
+    elseif(sTip:sub(1,1) == syDis) then
+      sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
+    end
+    if(sTxt:sub(1,1) == syRev) then
+      local sVam = sTxt:sub(2,-1)
+      if(tonumber(sVam)) then
+        local nAmt = (tonumber(sVam) or 0)
+        if(not vBtn.L) then
+          vBtn.L=function(pB, pS, nS) pS:SetValue(-nAmt) end
+        end
+        if(not vBtn.R) then
+          vBtn.R=function(pB, pS, nS) pS:SetValue(nAmt) end
+        end
+        sTip = languageGetPhrase("tool."..sTool..".buttonas"..syRev).." "..nAmt
+      elseif(sVam == "D") then
+        if(not vBtn.L) then
+          vBtn.L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end
+        end
+        if(not vBtn.R) then
+          vBtn.R=function(pB, pS, nS) SetClipboardText(pS:GetDefaultValue()) end
+        end
+      elseif(sVam == "M") then
+        if(not vBtn.L) then
+          vBtn.L=function(pB, pS, nS) pS:SetValue(tonumber(GetOpVar("CLIPBOARD_TEXT")) or 0) end
+        end
+        if(not vBtn.R) then
+          vBtn.R=function(pB, pS, nS) SetClipboardText(nS); SetOpVar("CLIPBOARD_TEXT", nS) end
+        end
+      end
+    elseif(sTxt == "+/-") then
+      if(not vBtn.L) then
+        vBtn.L=function(pB, pS, nS) pS:SetValue(-nS) end
+      end
+      if(not vBtn.R) then
+        vBtn.R=function(pB, pS, nS) pS:SetValue(mathRemap(nS, pS:GetMin(), pS:GetMax(), pS:GetMax(), pS:GetMin())) end
+      end
+    elseif(sTxt == "<>") then
+      if(not vBtn.L) then
+        vBtn.L=function(pB, pS, nS) pS:SetValue(GetSnap(nS,-GetAsmConvar("incsnpang","FLT"))) end
+      end
+      if(not vBtn.R) then
+        vBtn.R=function(pB, pS, nS) pS:SetValue(GetSnap(nS, GetAsmConvar("incsnpang","FLT"))) end
       end
     end
     pPanel:SetButton(sTxt, sTip)

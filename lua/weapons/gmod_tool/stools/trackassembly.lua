@@ -2462,24 +2462,12 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)
   asmlib.SetButton(CPanel, "resetvars")
   local tBAng = { -- Button interactive slider ( angle offsets )
-    {N="<>"  , T = "#", -- Left click to decrease, right to increase
-      L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnpang","FLT"))) end,
-      R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnpang","FLT"))) end},
-    {N="+/-" , T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
-    {N="@M"  , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end},
-    {N="@D"  , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end},
-    {N="@45" , T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))* 45) end},
-    {N="@90" , T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))* 90) end},
-    {N="@135", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*135) end},
-    {N="@180", T = "#", L=function(pB, pS, nS) pS:SetValue(asmlib.GetSign((nS < 0) and nS or (nS+1))*180) end}
-  }
+    {N="<>" }, {N="+/-"}, {N="@M"  }, {N="@D"  },
+    {N="@45"}, {N="@90"}, {N="@135"}, {N="@180"}
+  } -- Use the same initialization table for multiple BIS
   local tBpos = { -- Button interactive slider ( position offsets )
-    {N="<>" , T = "#", -- Left click to decrease, right to increase
-      L=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS,-asmlib.GetAsmConvar("incsnplin","FLT"))) end,
-      R=function(pB, pS, nS) pS:SetValue(asmlib.GetSnap(nS, asmlib.GetAsmConvar("incsnplin","FLT"))) end},
-    {N="+/-", T = "#", L=function(pB, pS, nS) pS:SetValue(-nS) end},
-    {N="@M" , T = "#", L=function(pB, pS, nS) SetClipboardText(nS) end},
-    {N="@D" , T = "#", L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end}
+    {N="<>" }, {N="+/-"}, {N="@M"  }, {N="@D"  },
+    {N="@25"}, {N="@50"}, {N="@75" }, {N="@100"}
   } -- Use the same initialization table for multiple BIS
   asmlib.SetButtonSlider(CPanel, "nextpic", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
   asmlib.SetButtonSlider(CPanel, "nextyaw", -gnMaxRot, gnMaxRot, iMaxDec, tBAng)
