@@ -2437,8 +2437,8 @@ function TOOL.BuildCPanel(CPanel)
   end
 
   cvarsRemoveChangeCallback(sName, sName..sCall)
-  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
-    pComboPhysName:SetValue(vNew) end, sName..sCall);
+  cvarsAddChangeCallback(sName, function(sV, vO, vN)
+    pComboPhysName:SetValue(vN) end, sName..sCall);
   asmlib.LogTable(cqProperty, "Property", sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
@@ -2451,8 +2451,8 @@ function TOOL.BuildCPanel(CPanel)
 
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
   cvarsRemoveChangeCallback(sName, sName..sCall)
-  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
-    pText:SetText(vNew); pText:SetValue(vNew) end, sName..sCall);
+  cvarsAddChangeCallback(sName, function(sV, vO, vN)
+    pText:SetText(vN); pText:SetValue(vN) end, sName..sCall);
   asmlib.SetNumSlider(CPanel, "mass"    , iMaxDec, 0, asmlib.GetAsmConvar("maxmass"  , "FLT"))
   asmlib.SetNumSlider(CPanel, "activrad", iMaxDec, 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
   asmlib.SetNumSlider(CPanel, "stackcnt", 0      , 0, asmlib.GetAsmConvar("maxstcnt" , "INT"))
