@@ -556,15 +556,12 @@ function TOOL:GetGhostsDepth()
   local stackcnt = self:GetStackCount()
   if(workmode == 1) then -- Defined by the stack count otherwise 1
     return mathMin(ghostcnt, mathMax(stackcnt, 1))
-  elseif(workmode == 2) then -- Put second value 1 here
-    return mathMin(ghostcnt, 1) -- to be able to disable it
-  elseif(workmode == 3 or workmode == 5) then -- Track interpolation curving
-    local nC = mathMin(mathMax(stackcnt, 1), ghostcnt)
-    return (stackcnt > 0 and nC or ghostcnt)
-  elseif(workmode == 4) then -- Put second value 1 here
-    local tArr = self:GetFlipOver() -- to be used in no array
-    local nLen = (tArr and #tArr or 1) -- flip-over mode snapping
-    return mathMin(ghostcnt, nLen) -- Use ghosts count to disable it
+  elseif(workmode == 2) then -- Intersection. Force lower bound here
+    return mathMin(ghostcnt, 1) -- Force lower bound one otherwise ghosts
+  elseif(workmode == 3 or workmode == 5) then -- Track curving interpolation
+    return (stackcnt > 0 and mathMin(stackcnt, ghostcnt) or ghostcnt)
+  elseif(workmode == 4) then local tArr = self:GetFlipOver() -- Read flip array
+    return mathMin(ghostcnt, (tArr and #tArr or 1)) -- Disable via ghosts count
   end; return 0
 end
 
