@@ -85,7 +85,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.740")
+asmlib.SetOpVar("TOOL_VERSION","8.741")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -130,7 +130,7 @@ asmlib.SetBorder(gsToolPrefL.."enctxmenu", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."endsvlock", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."enwiremod", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."enmultask", 0, 1)
-asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0, 2500)
+asmlib.SetBorder(gsToolPrefL.."ghostcnt" , 0)
 asmlib.SetBorder(gsToolPrefL.."angsnap"  , 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 250)
