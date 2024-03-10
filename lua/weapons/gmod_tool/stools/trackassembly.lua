@@ -132,6 +132,7 @@ TOOL.ClientConVar = {
   [ "ghostblnd"  ] = 0.8,
   [ "stackcnt"   ] = 5,
   [ "maxstatts"  ] = 3,
+  [ "maxghcnt"   ] = 1000,
   [ "nocollide"  ] = 1,
   [ "nocollidew" ] = 0,
   [ "physmater"  ] = "metal",
@@ -320,7 +321,7 @@ function TOOL:GetGravity()
 end
 
 function TOOL:GetGhostsCount()
-  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, asmlib.GetAsmConvar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, asmlib.GetAsmConvar("maxghcnt", "INT"))
 end
 
 function TOOL:GetUpSpawnAnchor()
@@ -2538,6 +2539,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "maxforce" , iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxactrad", iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxstcnt" , 0)
+    asmlib.SetNumSlider(CPanel, "maxghcnt" , 0)
     asmlib.SetNumSlider(CPanel, "maxstatts", 0)
     asmlib.SetNumSlider(CPanel, "maxfruse" , 0)
     asmlib.SetNumSlider(CPanel, "dtmessage", iMaxDec)

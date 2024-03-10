@@ -85,7 +85,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.742")
+asmlib.SetOpVar("TOOL_VERSION","8.743")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -144,6 +144,7 @@ asmlib.SetBorder(gsToolPrefL.."maxmass"  , 1)
 asmlib.SetBorder(gsToolPrefL.."maxmenupr", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1)
+asmlib.SetBorder(gsToolPrefL.."maxghcnt" , 1)
 asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."maxspmarg", -100, 100)
 asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
