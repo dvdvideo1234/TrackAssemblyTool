@@ -2100,6 +2100,7 @@ local function MakeEntityNone(sModel, vPos, aAng) local eNone
   local vPos = Vector(vPos or GetOpVar("VEC_ZERO"))
   local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
   eNone:SetPos(vPos); eNone:SetAngles(aAng)
+  eNone.DoNotDuplicate = true -- Disable duping
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
