@@ -132,7 +132,6 @@ TOOL.ClientConVar = {
   [ "ghostblnd"  ] = 0.8,
   [ "stackcnt"   ] = 5,
   [ "maxstatts"  ] = 3,
-  [ "maxghcnt"   ] = 1000,
   [ "nocollide"  ] = 1,
   [ "nocollidew" ] = 0,
   [ "physmater"  ] = "metal",
@@ -2457,6 +2456,7 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetNumSlider(CPanel, "mass"    , iMaxDec, 0, asmlib.GetAsmConvar("maxmass"  , "FLT"))
   asmlib.SetNumSlider(CPanel, "activrad", iMaxDec, 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
   asmlib.SetNumSlider(CPanel, "stackcnt", 0      , 0, asmlib.GetAsmConvar("maxstcnt" , "INT"))
+  asmlib.SetNumSlider(CPanel, "ghostcnt", 0      , 0, asmlib.GetAsmConvar("maxghcnt" , "INT"))
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)
   asmlib.SetButton(CPanel, "resetvars")
   local tBAng = { -- Button interactive slider ( angle offsets )
@@ -2504,7 +2504,6 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "sizeucs"  , iMaxDec)
     asmlib.SetNumSlider(CPanel, "incsnplin", 0)
     asmlib.SetNumSlider(CPanel, "incsnpang", 0)
-    asmlib.SetNumSlider(CPanel, "ghostcnt" , 0)
     asmlib.SetNumSlider(CPanel, "ghostblnd", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvturnlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvleanlm", iMaxDec)

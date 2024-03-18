@@ -85,7 +85,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.743")
+asmlib.SetOpVar("TOOL_VERSION","8.744")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -177,6 +177,7 @@ asmlib.MakeAsmConvar("maxlinear", 5000  , nil, gnServerControled, "Maximum linea
 asmlib.MakeAsmConvar("maxforce" , 100000, nil, gnServerControled, "Maximum force limit when creating welds")
 asmlib.MakeAsmConvar("maxactrad", 200   , nil, gnServerControled, "Maximum active radius to search for a point ID")
 asmlib.MakeAsmConvar("maxstcnt" , 200   , nil, gnServerControled, "Maximum spawned pieces in stacking mode")
+asmlib.MakeAsmConvar("maxghcnt" , 1500  , nil, gnServerControled, "Maximum ghost pieces being spawned by client")
 asmlib.MakeAsmConvar("enwiremod", 1     , nil, gnServerControled, "Toggle the wire extension on/off server side")
 asmlib.MakeAsmConvar("enmultask", 1     , nil, gnServerControled, "Toggle the spawn multitasking on/off server side")
 asmlib.MakeAsmConvar("enctxmenu", 1     , nil, gnServerControled, "Toggle the context menu on/off in general")
