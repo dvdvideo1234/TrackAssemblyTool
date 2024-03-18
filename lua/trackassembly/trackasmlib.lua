@@ -74,6 +74,7 @@ local getmetatable                   = getmetatable
 local setmetatable                   = setmetatable
 local collectgarbage                 = collectgarbage
 local LocalToWorld                   = LocalToWorld
+local SafeRemoveEntityDelayed        = SafeRemoveEntityDelayed
 local osClock                        = os and os.clock
 local osDate                         = os and os.date
 local bitBand                        = bit and bit.band
@@ -715,6 +716,7 @@ function InitBase(sName, sPurp)
   SetOpVar("TIME_STAMP",Time())
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_ACTION",0.01)
+  SetOpVar("DELAY_REMOVE",0.5)
   SetOpVar("MAX_ROTATION",360)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
@@ -2098,6 +2100,7 @@ local function MakeEntityNone(sModel, vPos, aAng) local eNone
   local vPos = Vector(vPos or GetOpVar("VEC_ZERO"))
   local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
   eNone:SetPos(vPos); eNone:SetAngles(aAng)
+  eNone.DoNotDuplicate = true -- Disable duping
   eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
@@ -2186,11 +2189,13 @@ function DecodePOA(sStr)
   end; return arPOA -- Return the converted string to POA
 end
 
-function GetTransformOA(sModel,sKey)
+function GetTransformOA(sModel, sKey)
   if(not IsString(sModel)) then
-    LogInstance("Model mismatch "..GetReport(sKey)); return nil end
+    LogInstance("Model mismatch "..GetReport2(sModel, sKey)); return nil end
+  if(not fileExists(sModel, "GAME")) then
+    LogInstance("Model missing "..GetReport2(sModel, sKey)); return nil end
   if(not IsString(sKey)) then
-    LogInstance("Key mismatch "..GetReport(sKey)..sModel); return nil end
+    LogInstance("Key mismatch "..GetReport2(sModel, sKey)); return nil end
   local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
   if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
     if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
@@ -5000,17 +5005,9 @@ function ClearGhosts(vSiz, bCol)
   local tGho = GetOpVar("ARRAY_GHOST")
   if(not IsHere(tGho)) then return true end
   local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
-  local nDer = GetOpVar("DELAY_ACTION")
+  local nDer = GetOpVar("DELAY_REMOVE")
   for iD = 1, iSiz do local eGho = tGho[iD]
-    if(eGho and eGho:IsValid()) then
-      timerSimple(nDer, function()
-        if(eGho and eGho:IsValid()) then
-          eGho:SetNoDraw(true)
-          eGho:Remove()
-          tGho[iD] = nil
-        end
-      end)
-    end
+    SafeRemoveEntityDelayed(eGho, nDer)
   end; tGho.Size, tGho.Slot = 0, GetOpVar("MISS_NOMD")
   if(bCol) then collectgarbage() end; return true
 end
@@ -5081,11 +5078,10 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
   end -- Remove all others that must not be drawn to save memory
-  for iK = iD, tGho.Size do -- Executes only when (nCnt <= tGho.Size)
-    local eGho = tGho[iD] -- Read the current ghosted entity
-    if(eGho and eGho:IsValid()) then -- When valid remove it
-      eGho:SetNoDraw(true); eGho:Remove() -- Stop drawing and remove
-    end; eGho = nil; tGho[iD] = nil -- Make sure the item is NIL
+  local nDer = GetOpVar("DELAY_REMOVE")
+  for iR = iD, tGho.Size do -- Executes only when (nCnt <= tGho.Size)
+    local eGho = tGho[iR] -- Read the current ghosted entity
+    SafeRemoveEntityDelayed(eGho, nDer) -- Make sure the item is NIL
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
 

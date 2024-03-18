@@ -320,7 +320,7 @@ function TOOL:GetGravity()
 end
 
 function TOOL:GetGhostsCount()
-  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, asmlib.GetAsmConvar("maxstcnt", "INT"))
+  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, asmlib.GetAsmConvar("maxghcnt", "INT"))
 end
 
 function TOOL:GetUpSpawnAnchor()
@@ -556,15 +556,12 @@ function TOOL:GetGhostsDepth()
   local stackcnt = self:GetStackCount()
   if(workmode == 1) then -- Defined by the stack count otherwise 1
     return mathMin(ghostcnt, mathMax(stackcnt, 1))
-  elseif(workmode == 2) then -- Put second value 1 here
-    return mathMin(ghostcnt, 1) -- to be able to disable it
-  elseif(workmode == 3 or workmode == 5) then -- Track interpolation curving
-    local nC = mathMin(mathMax(stackcnt, 1), ghostcnt)
-    return (stackcnt > 0 and nC or ghostcnt)
-  elseif(workmode == 4) then -- Put second value 1 here
-    local tArr = self:GetFlipOver() -- to be used in no array
-    local nLen = (tArr and #tArr or 1) -- flip-over mode snapping
-    return mathMin(ghostcnt, nLen) -- Use ghosts count to disable it
+  elseif(workmode == 2) then -- Intersection. Force lower bound here
+    return mathMin(ghostcnt, 1) -- Force lower bound one otherwise ghosts
+  elseif(workmode == 3 or workmode == 5) then -- Track curving interpolation
+    return (stackcnt > 0 and mathMin(stackcnt, ghostcnt) or ghostcnt)
+  elseif(workmode == 4) then local tArr = self:GetFlipOver() -- Read flip array
+    return mathMin(ghostcnt, (tArr and #tArr or 1)) -- Disable via ghosts count
   end; return 0
 end
 
@@ -2440,8 +2437,8 @@ function TOOL.BuildCPanel(CPanel)
   end
 
   cvarsRemoveChangeCallback(sName, sName..sCall)
-  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
-    pComboPhysName:SetValue(vNew) end, sName..sCall);
+  cvarsAddChangeCallback(sName, function(sV, vO, vN)
+    pComboPhysName:SetValue(vN) end, sName..sCall);
   asmlib.LogTable(cqProperty, "Property", sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
@@ -2454,11 +2451,12 @@ function TOOL.BuildCPanel(CPanel)
 
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
   cvarsRemoveChangeCallback(sName, sName..sCall)
-  cvarsAddChangeCallback(sName, function(sVar, vOld, vNew)
-    pText:SetText(vNew); pText:SetValue(vNew) end, sName..sCall);
+  cvarsAddChangeCallback(sName, function(sV, vO, vN)
+    pText:SetText(vN); pText:SetValue(vN) end, sName..sCall);
   asmlib.SetNumSlider(CPanel, "mass"    , iMaxDec, 0, asmlib.GetAsmConvar("maxmass"  , "FLT"))
   asmlib.SetNumSlider(CPanel, "activrad", iMaxDec, 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
   asmlib.SetNumSlider(CPanel, "stackcnt", 0      , 0, asmlib.GetAsmConvar("maxstcnt" , "INT"))
+  asmlib.SetNumSlider(CPanel, "ghostcnt", 0      , 0, asmlib.GetAsmConvar("maxghcnt" , "INT"))
   asmlib.SetNumSlider(CPanel, "angsnap" , iMaxDec)
   asmlib.SetButton(CPanel, "resetvars")
   local tBAng = { -- Button interactive slider ( angle offsets )
@@ -2506,7 +2504,6 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "sizeucs"  , iMaxDec)
     asmlib.SetNumSlider(CPanel, "incsnplin", 0)
     asmlib.SetNumSlider(CPanel, "incsnpang", 0)
-    asmlib.SetNumSlider(CPanel, "ghostcnt" , 0)
     asmlib.SetNumSlider(CPanel, "ghostblnd", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvturnlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvleanlm", iMaxDec)
@@ -2541,6 +2538,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "maxforce" , iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxactrad", iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxstcnt" , 0)
+    asmlib.SetNumSlider(CPanel, "maxghcnt" , 0)
     asmlib.SetNumSlider(CPanel, "maxstatts", 0)
     asmlib.SetNumSlider(CPanel, "maxfruse" , 0)
     asmlib.SetNumSlider(CPanel, "dtmessage", iMaxDec)
