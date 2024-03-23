@@ -24,7 +24,6 @@ local netWriteAngle                    = net and net.WriteAngle
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
 local vguiCreate                       = vgui and vgui.Create
-local utilIsValidModel                 = util and util.IsValidModel
 local stringUpper                      = string and string.upper
 local mathAbs                          = math and math.abs
 local mathMin                          = math and math.min
@@ -1773,7 +1772,7 @@ end
 function TOOL:Think()
   if(not asmlib.IsInit()) then return end
   local model = self:GetModel()
-  if(utilIsValidModel(model)) then
+  if(asmlib.IsModel(model)) then
     local workmode = self:GetWorkingMode()
     if(CLIENT) then
       local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))

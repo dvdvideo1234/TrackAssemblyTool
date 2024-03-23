@@ -38,7 +38,6 @@ local tableRemove                   = table and table.remove
 local tableEmpty                    = table and table.Empty
 local tableInsert                   = table and table.insert
 local utilAddNetworkString          = util and util.AddNetworkString
-local utilIsValidModel              = util and util.IsValidModel
 local vguiCreate                    = vgui and vgui.Create
 local fileExists                    = file and file.Exists
 local fileFind                      = file and file.Find
@@ -85,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.741")
+asmlib.SetOpVar("TOOL_VERSION","8.742")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -683,7 +682,7 @@ if(CLIENT) then
       local model = actTool:GetModel()
       local ghcnt = actTool:GetGhostsDepth()
       local atGho = asmlib.GetOpVar("ARRAY_GHOST")
-      if(utilIsValidModel(model)) then
+      if(asmlib.IsModel(model)) then
         if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
           if(not asmlib.MakeGhosts(ghcnt, model)) then
             asmlib.LogInstance("Ghosting fail",sLog); return nil end
@@ -1259,7 +1258,7 @@ if(CLIENT) then
               actSpawn = asmlib.GetEntitySpawn(oPly,tgE,oTr.HitPos,trRec.Slot,trID,activrad,
                            spnflat,igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
               if(actSpawn) then -- When spawn data is availabe draw adviser
-                if(utilIsValidModel(trRec.Slot)) then -- The model has valid pre-cache
+                if(asmlib.IsModel(trRec.Slot)) then -- The model has valid pre-cache
                   if(ghostcnt > 0) then -- The ghosting is enabled
                     if(not (hasghost and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
                       if(not asmlib.MakeGhosts(1, trRec.Slot)) then
