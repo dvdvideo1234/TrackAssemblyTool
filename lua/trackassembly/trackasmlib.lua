@@ -295,33 +295,33 @@ libModel.Skip = {} -- Gerneral disabled models for spawning
 libModel.Skip[""] = true -- Empty string
 libModel.Skip["models/error.mdl"] = true
 libModel.File = {} -- When the file is available
-libModel.Slot = {} -- When the model is spawned
-function IsModel(sModel, bSpawn)
+libModel.Deep = {} -- When the model is spawned
+function IsModel(sModel, bDeep)
   if(not IsHere(sModel)) then
     LogInstance("Missing "..GetReport(sModel)); return false end
   if(not IsString(sModel)) then
     LogInstance("Mismatch "..GetReport(sModel)); return false end
   if(libModel.Skip[sModel]) then
     LogInstance("Skipped "..GetReport(sModel)); return false end
-  local bSlot = libModel.Slot[sModel] -- Read model validation status
-  if(bSpawn and IsHere(bSlot)) then return bSlot end -- Ganna spawn
-  local bFile = libModel.File[sModel] -- File current status
-  if(IsHere(bFile)) then -- File validation status is present
-    if(not bFile) then -- File is validated as invalid path
+  local vDeep = libModel.Deep[sModel] -- Read model validation status
+  if(SERVER and bDeep and IsHere(vDeep)) then return vDeep end -- Ganna spawn
+  local vFile = libModel.File[sModel] -- File current status
+  if(IsHere(vFile)) then -- File validation status is present
+    if(not vFile) then -- File is validated as invalid path
       LogInstance("Invalid file "..GetReport(sModel)); return false end
   else  -- File validation status update
     if(IsUselessModel(sModel)) then libModel.File[sModel] = false
       LogInstance("File useless "..GetReport(sModel)); return false end
     if(not fileExists(sModel, "GAME")) then libModel.File[sModel] = false
       LogInstance("File missing "..GetReport(sModel)); return false end
-    libModel.File[sModel] = true -- The model file has been validated
-    print("FILE", bSlot, libModel.File[sModel], sModel)
+    vFile = true; libModel.File[sModel] = vFile -- The file validated
+    LogInstance("File >> "..GetReport3(vDeep, vFile, sModel))
   end -- At this point file path is valid. Have to validate model
-  if(not bSpawn) then return true else -- File is validated for the model
-    utilPrecacheModel(sModel); bSlot = utilIsValidModel(sModel)
-    libModel.Slot[sModel] = bSlot;
-    print("CACHE", bSlot, libModel.File[sModel], sModel)
-    return bSlot -- Gonna spawn
+  if(CLIENT or not bDeep) then return true else -- File is validated
+    utilPrecacheModel(sModel) vDeep = utilIsValidModel(sModel)
+    libModel.Deep[sModel] = vDeep; -- Store deep validation
+    LogInstance("Deep >> "..GetReport3(vDeep, vFile, sModel))
+    return vDeep -- Gonna spawn
   end
 end
 
@@ -3115,7 +3115,7 @@ function CacheQueryPiece(sModel)
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
       local qModel = makTab:Match(sModel,1,true)
-      LogInstance("Model >> Pool <"..stringGetFileName(sModel)..">")
+      LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local Q = CacheStmt(qsKey:format(sFunc, ""), nil, qModel)
       if(not Q) then
