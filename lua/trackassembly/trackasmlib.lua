@@ -315,10 +315,13 @@ function IsModel(sModel, bSpawn)
     if(not fileExists(sModel, "GAME")) then libModel.File[sModel] = false
       LogInstance("File missing "..GetReport(sModel)); return false end
     libModel.File[sModel] = true -- The model file has been validated
+    print("FILE", bSlot, libModel.File[sModel], sModel)
   end -- At this point file path is valid. Have to validate model
   if(not bSpawn) then return true else -- File is validated for the model
     utilPrecacheModel(sModel); bSlot = utilIsValidModel(sModel)
-    libModel.Slot[sModel] = bSlot; return bSlot -- Gonna spawn
+    libModel.Slot[sModel] = bSlot;
+    print("CACHE", bSlot, libModel.File[sModel], sModel)
+    return bSlot -- Gonna spawn
   end
 end
 
@@ -2128,6 +2131,7 @@ end
  * aAng   > Custom angles for the placeholder ( zero if none )
 ]]
 function MakeEntityNone(sModel, vPos, aAng) local eNone
+  if(not IsModel(sModel)) then return nil end
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
   if(not (eNone and eNone:IsValid())) then
@@ -3093,12 +3097,6 @@ end
 --------------------------- PIECE QUERY -----------------------------
 
 function CacheQueryPiece(sModel)
-  if(not IsHere(sModel)) then
-    LogInstance("Model does not exist"); return nil end
-  if(not IsString(sModel)) then
-    LogInstance("Model mismatch "..GetReport(sModel)); return nil end
-  if(IsBlank(sModel)) then
-    LogInstance("Model empty string"); return nil end
   if(not IsModel(sModel)) then
     LogInstance("Model invalid <"..sModel..">"); return nil end
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
@@ -3148,12 +3146,6 @@ function CacheQueryPiece(sModel)
 end
 
 function CacheQueryAdditions(sModel)
-  if(not IsHere(sModel)) then
-    LogInstance("Model does not exist"); return nil end
-  if(not IsString(sModel)) then
-    LogInstance("Model mismatch "..GetReport(sModel)); return nil end
-  if(IsBlank(sModel)) then
-    LogInstance("Model empty string"); return nil end
   if(not IsModel(sModel)) then
     LogInstance("Model invalid "..GetReport(sModel)); return nil end
   local makTab = GetBuilderNick("ADDITIONS"); if(not IsHere(makTab)) then
@@ -5066,7 +5058,7 @@ end
  * It must have been our imagination.
 ]]
 function MakeEntityGhost(sModel, vPos, aAng)
-  if(not IsModel(sModel, true)) then return nil end
+  if(not IsModel(sModel)) then return nil end
   local cPal = GetContainer("COLORS_LIST")
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
