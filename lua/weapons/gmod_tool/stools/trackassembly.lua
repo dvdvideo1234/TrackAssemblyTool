@@ -1772,22 +1772,20 @@ end
 
 function TOOL:Think()
   if(not asmlib.IsInit()) then return end
+  local workmode = self:GetWorkingMode()
+  if(SERVER) then return end
   local model = self:GetModel()
-  if(asmlib.IsModel(model)) then
-    local workmode = self:GetWorkingMode()
-    if(CLIENT) then
-      local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
-      local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
-      if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
-        local oD = conElements:Pull() -- Retrieve a panel from the stack
-        if(asmlib.IsTable(oD)) then oD = oD[1] -- Extract panel from table
-          if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
-        else -- The temporary reference is not table then close it
-          if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
-        end -- Shortcut for closing the routine pieces
-      end -- Front trigger for closing panels
-    end -- This is client closing the routine pieces
-  end
+  if(not asmlib.IsModel(model)) then return end
+  local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
+  local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
+  if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
+    local oD = conElements:Pull() -- Retrieve a panel from the stack
+    if(asmlib.IsTable(oD)) then oD = oD[1] -- Extract panel from table
+      if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
+    else -- The temporary reference is not table then close it
+      if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
+    end -- Shortcut for closing the routine pieces
+  end -- Front trigger for closing panels
 end
 
 --[[
