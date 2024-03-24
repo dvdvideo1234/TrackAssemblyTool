@@ -291,33 +291,35 @@ function IsOther(oEnt)
 end
 
 -- Uses custom model check to remove the pre-caching overhead
-libModel.Skip = {}
-libModel.Skip[""] = true
+libModel.Skip = {} -- Gerneral disabled models for spawning
+libModel.Skip[""] = true -- Empty string
 libModel.Skip["models/error.mdl"] = true
-libModel.File = {}
-libModel.Slot = {}
-function IsModel(sModel)
+libModel.File = {} -- When the file is available
+libModel.Slot = {} -- When the model is spawned
+function IsModel(sModel, bSpawn)
   if(not IsHere(sModel)) then
     LogInstance("Missing "..GetReport(sModel)); return false end
   if(not IsString(sModel)) then
     LogInstance("Mismatch "..GetReport(sModel)); return false end
   if(libModel.Skip[sModel]) then
     LogInstance("Skipped "..GetReport(sModel)); return false end
-  local bSlot = libModel.Slot[sModel]
-  if(IsHere(bSlot)) then return bSlot end -- Model validation status
+  local bSlot = libModel.Slot[sModel] -- Read model validation status
+  if(bSpawn and IsHere(bSlot)) then return bSlot end -- Ganna spawn
   local bFile = libModel.File[sModel] -- File current status
   if(IsHere(bFile)) then -- File validation status is present
     if(not bFile) then -- File is validated as invalid path
       LogInstance("Invalid file "..GetReport(sModel)); return false end
   else  -- File validation status update
     if(IsUselessModel(sModel)) then libModel.File[sModel] = false
-      LogInstance("Model useless "..GetReport(sModel)); return false end
+      LogInstance("File useless "..GetReport(sModel)); return false end
     if(not fileExists(sModel, "GAME")) then libModel.File[sModel] = false
-      LogInstance("Model missing "..GetReport(sModel)); return false end
+      LogInstance("File missing "..GetReport(sModel)); return false end
     libModel.File[sModel] = true -- The model file has been validated
   end -- At this point file path is valid. Have to validate model
-  utilPrecacheModel(sModel); bSlot = utilIsValidModel(sModel)
-  libModel.Slot[sModel] = bSlot; return bSlot
+  if(not bSpawn) then return true else -- File is validated for the model
+    utilPrecacheModel(sModel); bSlot = utilIsValidModel(sModel)
+    libModel.Slot[sModel] = bSlot; return bSlot -- Gonna spawn
+  end
 end
 
 -- Reports the type and actual value
@@ -2223,10 +2225,8 @@ function DecodePOA(sStr)
 end
 
 function GetTransformOA(sModel, sKey)
-  if(not IsString(sModel)) then
+  if(not IsModel(sModel)) then
     LogInstance("Model mismatch "..GetReport2(sModel, sKey)); return nil end
-  if(not fileExists(sModel, "GAME")) then
-    LogInstance("Model missing "..GetReport2(sModel, sKey)); return nil end
   if(not IsString(sKey)) then
     LogInstance("Key mismatch "..GetReport2(sModel, sKey)); return nil end
   local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
@@ -4497,7 +4497,7 @@ function AttachAdditions(ePiece)
     LogInstance("ents.Create("..arRec[makTab:GetColumnName(3)]..")")
     if(exItem and exItem:IsValid()) then
       local adMod = tostring(arRec[makTab:GetColumnName(2)])
-      if(not IsModel(adMod)) then
+      if(not IsModel(adMod, true)) then
         LogInstance("Invalid attachment model "..adMod); return false end
       exItem:SetModel(adMod) LogInstance("ENT:SetModel("..adMod..")")
       local ofPos = arRec[makTab:GetColumnName(5)]; if(not IsString(ofPos)) then
@@ -4663,6 +4663,8 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     LogInstance("Track limit reached"); return nil end
   if(not pPly:CheckLimit("props")) then -- Check the props limit
     LogInstance("Prop limit reached"); return nil end
+  if(not IsModel(sModel, true)) then
+    LogInstance("Model invalid"); return nil end
   local stData = CacheQueryPiece(sModel) if(not IsHere(stData)) then
     LogInstance("Record missing for <"..sModel..">"); return nil end
   local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
@@ -5064,6 +5066,7 @@ end
  * It must have been our imagination.
 ]]
 function MakeEntityGhost(sModel, vPos, aAng)
+  if(not IsModel(sModel, true)) then return nil end
   local cPal = GetContainer("COLORS_LIST")
   local eGho = entsCreateClientProp(sModel)
   if(not (eGho and eGho:IsValid())) then eGho = nil
