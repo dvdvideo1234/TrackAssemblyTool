@@ -24,7 +24,6 @@ local netWriteAngle                    = net and net.WriteAngle
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
 local vguiCreate                       = vgui and vgui.Create
-local utilIsValidModel                 = util and util.IsValidModel
 local stringUpper                      = string and string.upper
 local mathAbs                          = math and math.abs
 local mathMin                          = math and math.min
@@ -34,7 +33,6 @@ local mathClamp                        = math and math.Clamp
 local mathAtan2                        = math and math.atan2
 local mathRound                        = math and math.Round
 local gameGetWorld                     = game and game.GetWorld
-local fileExists                       = file and file.Exists
 local tableInsert                      = table and table.insert
 local tableRemove                      = table and table.remove
 local tableEmpty                       = table and table.Empty
@@ -1711,6 +1709,7 @@ function TOOL:UpdateGhost(oPly)
   end
   if(trRec) then
     local ePiece    = atGho[1]
+    if(not (ePiece and ePiece:IsValid())) then return end
     local spnflat   = self:GetSpawnFlat()
     local igntype   = self:GetIgnoreType()
     local stackcnt  = self:GetStackCount()
@@ -1725,6 +1724,7 @@ function TOOL:UpdateGhost(oPly)
           local vTemp, hdOffs = Vector(), asmlib.LocatePOA(stSpawn.HRec, pnextid)
           if(not hdOffs) then return end -- Validated existent next point ID
           for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
+            if(not (ePiece and ePiece:IsValid())) then return end
             ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
             vTemp:SetUnpacked(hdOffs.P[cvX], hdOffs.P[cvY], hdOffs.P[cvZ])
             vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
@@ -1773,7 +1773,7 @@ end
 function TOOL:Think()
   if(not asmlib.IsInit()) then return end
   local model = self:GetModel()
-  if(utilIsValidModel(model)) then
+  if(asmlib.IsModel(model)) then
     local workmode = self:GetWorkingMode()
     if(CLIENT) then
       local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
@@ -2317,7 +2317,7 @@ function TOOL.BuildCPanel(CPanel)
     local sMod = vRec[makTab:GetColumnName(1)]
     local sTyp = vRec[makTab:GetColumnName(2)]
     local sNam = vRec[makTab:GetColumnName(3)]
-    if(fileExists(sMod, "GAME")) then
+    if(asmlib.IsModel(sMod)) then
       if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".type"))
