@@ -2251,7 +2251,7 @@ function LocatePOA(oRec, ivPoID)
     local sE = GetOpVar("OPSYM_ENTPOSANG") -- Extract transform from model
     for ID = 1, oRec.Size do tOA = oRec.Offs[ID] -- Index current offset
       local sO, sA = tOA.O.Slot, tOA.A.Slot -- Localize transform index slots
-      if(sO and sO:sub(1,1) = sE) then -- POA origin must extracted from the model
+      if(sO and sO:sub(1,1) == sE) then -- POA origin must extracted from the model
         local sO = sO:sub(2, -1) -- Read origin transform ID and try to index
         local vO, aA = GetTransformOA(oRec.Slot, sO) -- Read transform position/angle
         if(IsHere(vO)) then ReloadPOA(vO[cvX], vO[cvY], vO[cvZ]) -- Load origin into POA
@@ -2263,7 +2263,7 @@ function LocatePOA(oRec, ivPoID)
           LogInstance("Origin transfer "..GetReport(ID, oRec.Slot)) end
         LogInstance("Origin transform from model "..GetReport3(ID, sO, StringPOA(tOA.O, "V")))
       end -- Transform origin is decoded from the model and stored in the cache
-      if(sA and sA:sub(1,1) = sE) then -- POA angle must extracted from the model
+      if(sA and sA:sub(1,1) == sE) then -- POA angle must extracted from the model
         local sA = sA:sub(2, -1) -- Read angle transform ID and try to index
         local vO, aA = GetTransformOA(oRec.Slot, sA) -- Read transform position/angle
         if(IsHere(aA)) then ReloadPOA(aA[caP], aA[caY], aA[caR]) -- Load angle into POA
