@@ -1406,7 +1406,7 @@ function TOOL:LeftClick(stTrace)
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
           asmlib.GetEntitySpawn(oPly, ePiece, oArg.vtemp, model, pointid,
             actrad, spnflat, igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
-          if(not oArg.spawn) then -- Something happend spawn is not available and task must be removed
+          if(not oArg.spawn) then -- Something happened spawn is not available and task must be removed
             asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Cannot obtain spawn data"),gtLogs); return false
           end -- Spawn data is valid for the current iteration iNdex
@@ -2387,7 +2387,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboToolMode:SetSortItems(false)
         pComboToolMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".workmode"))
         pComboToolMode:UpdateColours(drmSkin)
-        pComboToolMode:Dock(TOP) -- Setting tallness gets ingnored otherwise
+        pComboToolMode:Dock(TOP) -- Setting tallness gets ignored otherwise
         pComboToolMode:SetTall(22)
         pComboToolMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         for iD = 1, conWorkMode:GetSize() do
