@@ -2146,23 +2146,6 @@ function MakeEntityNone(sModel, vPos, aAng) local eNone
   LogInstance("Create "..GetReport2(eNone:EntIndex(),sModel)); return eNone
 end
 
---[[
- * Locates an active point on the piece offset record.
- * This function is used to check the correct offset and return it.
- * It also returns the normalized active point ID if needed
- * oRec   > Record structure of a track piece
- * ivPoID > The POA offset ID to check and locate
-]]--
-function LocatePOA(oRec, ivPoID)
-  if(not oRec) then LogInstance("Missing record"); return nil end
-  if(not oRec.Offs) then LogInstance("Missing offsets for <"..tostring(oRec.Slot)..">"); return nil end
-  local iPoID = tonumber(ivPoID); if(iPoID) then iPoID = mathFloor(iPoID)
-    else LogInstance("ID mismatch "..GetReport(ivPoID)); return nil end
-  local stPOA = oRec.Offs[iPoID]; if(not IsHere(stPOA)) then
-    LogInstance("Missing ID #"..tostring(iPoID).." for <"..tostring(oRec.Slot)..">"); return nil end
-  return stPOA, iPoID
-end
-
 function ReloadPOA(nXP,nYY,nZR)
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
         arPOA[1] = (tonumber(nXP) or 0)
@@ -2211,7 +2194,7 @@ function TransferPOA(tData,sMode)
     LogInstance("Mode mismatch "..GetReport(sMode)); return nil end
   local arPOA = GetOpVar("ARRAY_DECODEPOA")
   local ctA, ctB, ctC = GetIndexes(sMode); if(not (ctA and ctB and ctC)) then
-    LogInstance("Missed offset mode <"..sMode..">"); return nil end
+    LogInstance("Missed offset mode "..GetReport(sMode)); return nil end
   tData[ctA], tData[ctB], tData[ctC] = arPOA[1], arPOA[2], arPOA[3]; return arPOA
 end
 
@@ -2224,7 +2207,7 @@ function DecodePOA(sStr)
   for iD = 1, arPOA.Size do            -- Apply on all components
     local nCom = tonumber(atPOA[iD])   -- Is the data really a number
     if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
-      LogInstance("Mismatch <"..sStr..">") end; arPOA[iD] = nCom
+      LogInstance("Mismatch "..GetReport(sStr)) end; arPOA[iD] = nCom
   end; return arPOA -- Return the converted string to POA
 end
 
@@ -2248,6 +2231,54 @@ function GetTransformOA(sModel, sKey)
     LogInstance("Attachment missing OA "..GetReport(mID)..sModel); return nil end
   LogInstance("Extract "..GetReport3(sKey, mTOA.Pos, mTOA.Ang))
   return mTOA.Pos, mTOA.Ang -- The function must return transform origin and angle
+end
+
+--[[
+ * Locates an active point on the piece offset record.
+ * This function is used to check the correct offset and return it.
+ * It also returns the normalized active point ID if needed
+ * Updates current record origin and angle when they use attachments
+ * oRec   > Record structure of a track piece
+ * ivPoID > The POA offset ID to check and locate
+ * Returns a cache record and the converted to number offset ID
+]]--
+function LocatePOA(oRec, ivPoID)
+  if(not oRec) then LogInstance("Missing record"); return nil end
+  if(not oRec.Offs) then LogInstance("Missing offsets for "..GetReport(oRec.Slot)); return nil end
+  local iPoID = tonumber(ivPoID); if(iPoID) then iPoID = mathFloor(iPoID)
+    else LogInstance("ID mismatch "..GetReport(ivPoID)); return nil end
+  local stPOA = oRec.Offs[iPoID]; if(not IsHere(stPOA)) then
+    LogInstance("Missing ID "..GetReport2(iPoID, oRec.Slot)); return nil end
+  if(oRec.Tran) then oRec.Tran = nil -- Transforming has started
+    local sE = GetOpVar("OPSYM_ENTPOSANG") -- Extract transform from model
+    for ID = 1, oRec.Size do tOA = oRec.Offs[ID] -- Index current offset
+      local sO, sA = tOA.O.Slot, tOA.A.Slot -- Localize transform index slots
+      if(sO and sO:sub(1,1) == sE) then -- POA origin must extracted from the model
+        local sO = sO:sub(2, -1) -- Read origin transform ID and try to index
+        local vO, aA = GetTransformOA(oRec.Slot, sO) -- Read transform position/angle
+        if(IsHere(vO)) then ReloadPOA(vO[cvX], vO[cvY], vO[cvZ]) -- Load origin into POA
+        else -- Try decoding the transform origin when not applicable
+          if(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
+            if(not DecodePOA(sO)) then LogInstance("Origin mismatch "..GetReport2(ID, oRec.Slot)) end
+        end end -- Decode the transformation when is not null or empty string
+        if(not IsHere(TransferPOA(tOA.O, "V"))) then
+          LogInstance("Origin transfer "..GetReport(ID, oRec.Slot)) end
+        LogInstance("Origin transform from model "..GetReport3(ID, sO, StringPOA(tOA.O, "V")))
+      end -- Transform origin is decoded from the model and stored in the cache
+      if(sA and sA:sub(1,1) == sE) then -- POA angle must extracted from the model
+        local sA = sA:sub(2, -1) -- Read angle transform ID and try to index
+        local vO, aA = GetTransformOA(oRec.Slot, sA) -- Read transform position/angle
+        if(IsHere(aA)) then ReloadPOA(aA[caP], aA[caY], aA[caR]) -- Load angle into POA
+        else -- Try decoding the transform angle when not applicable
+          if(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
+            if(not DecodePOA(sA)) then LogInstance("Angle mismatch "..GetReport2(ID, oRec.Slot)) end
+        end end -- Decode the transformation when is not null or empty string
+        if(not IsHere(TransferPOA(tOA.A, "A"))) then
+          LogInstance("Angle mismatch "..GetReport2(ID, oRec.Slot)) end
+        LogInstance("Angle transform from model "..GetReport3(ID, sA, StringPOA(tOA.A, "A")))
+      end -- Transform angle is decoded from the model and stored in the cache
+    end -- Loop and transform all the POA configuration at once. Game model slot will be taken
+  end; return stPOA, iPoID
 end
 
 function RegisterPOA(stData, ivID, sP, sO, sA)
@@ -2274,30 +2305,22 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
   ---------- Origin ----------
   if(sO:sub(1,1) == sD) then ReloadPOA() else
-    if(sO:sub(1,1) == sE) then tOffs.O.Slot = sO; sO = sO:sub(2,-1)
-      local vO, aA = GetTransformOA(stData.Slot, sO)
-      if(IsHere(vO)) then ReloadPOA(vO[cvX], vO[cvY], vO[cvZ])
-      else -- Decode the transform origin and angle when not applicable
-        if(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
-          if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stData.Slot) end
-      end end -- Decode the transformation when is not null or empty string
+    if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
+      stData.Tran = true; ReloadPOA(); tOffs.O.Slot = sO -- Store transform
+      LogInstance("Origin transform "..GetReport2(sO, stData.Slot))
     elseif(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
-      if(not DecodePOA(sO)) then LogInstance("Origin mismatch ["..iID.."]"..stData.Slot) end
+      if(not DecodePOA(sO)) then LogInstance("Origin mismatch "..GetReport2(iID, stData.Slot)) end
     end
-  end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin mismatch"); return nil end
+  end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin transfer fail"); return nil end
   ---------- Angle ----------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
-    if(sA:sub(1,1) == sE) then tOffs.A.Slot = sA; sA = sA:sub(2,-1)
-      local vO, aA = GetTransformOA(stData.Slot, sA)
-      if(IsHere(aA)) then ReloadPOA(aA[caP], aA[caY], aA[caR])
-      else -- Decode the transform origin and angle when not applicable
-        if(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
-          if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stData.Slot) end
-      end end -- Decode the transformation when is not null or empty string
+    if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
+      stData.Tran = true; ReloadPOA(); tOffs.A.Slot = sA -- Store transform
+      LogInstance("Angle transform "..GetReport2(sA, stData.Slot))
     elseif(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
-      if(not DecodePOA(sA)) then LogInstance("Angle mismatch ["..iID.."]"..stData.Slot) end
+      if(not DecodePOA(sA)) then LogInstance("Angle mismatch "..GetReport2(iID, stData.Slot)) end
     end
-  end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle mismatch"); return nil end
+  end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle transfer fail"); return nil end
   ---------- Point ----------
   if(sP:sub(1,1) == sD) then
     ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
@@ -2305,9 +2328,9 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     if(IsNull(sP) or IsBlank(sP)) then
       ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
     else -- When the point is empty use the origin otherwise decode the value
-      if(not DecodePOA(sP)) then LogInstance("Point mismatch ["..iID.."]"..stData.Slot) end
+      if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(iID, stData.Slot)) end
     end
-  end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point mismatch"); return nil end
+  end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point transfer fail"); return nil end
   return tOffs
 end
 
@@ -2647,7 +2670,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCol = qtDef[iD]; if(qtCol) then return qtCol[1] end
     LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
   end
-  -- Returns the colomn information by the given ID > 0
+  -- Returns the column information by the given ID > 0
   function self:GetColumnInfo(vD, vI)
     local iD = (tonumber(vD) or 0)
     local qtDef = self:GetDefinition()
@@ -2857,7 +2880,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCmd = self:GetCommand()
     qtCmd.Commit = "COMMIT;"; return self
   end
-  -- Build create/drop/delete statement table of statemenrts
+  -- Build create/drop/delete statement table of statements
   function self:Create()
     local qtDef = self:GetDefinition()
     local qtCmd, iInd = self:GetCommand(), 1; qtCmd.STMT = "Create"
@@ -3215,7 +3238,7 @@ function ExportPanelDB(stPanel, bExp, makTab, sFunc)
       if(not cT or cT ~= sT) then -- Category has been changed
         F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
         F:Write("\n"); cT = sT -- Cache category name
-      end -- Otherwise just wite down the piece active point
+      end -- Otherwise just write down the piece active point
       F:Write("\""..sM.."\""..symSep.."\""..sT.."\""..symSep.."\""..sN.."\"")
       F:Write("\n"); iCnt = iCnt + 1
     end; F:Flush(); F:Close()
@@ -3606,7 +3629,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       vID = tRow[iD-1]; nID, sID = tonumber(vID), tostring(vID)
       nID = (nID or (sID:sub(1,1) == symOff and iCnt or 0))
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
-      if(iCnt ~= nID) then -- Validate the line ID being in proper borders abd sequential
+      if(iCnt ~= nID) then -- Validate the line ID being in proper borders and sequential
           LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ["
             ..tostring(iCnt).."] ID scatter "..GetReport3(vID, nID, sID))
           return false end; tRow[iD-1] = nID
