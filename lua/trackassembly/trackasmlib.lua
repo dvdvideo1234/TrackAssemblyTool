@@ -2237,8 +2237,10 @@ end
  * Locates an active point on the piece offset record.
  * This function is used to check the correct offset and return it.
  * It also returns the normalized active point ID if needed
+ * Updates current record origin and angle when they use attachments
  * oRec   > Record structure of a track piece
  * ivPoID > The POA offset ID to check and locate
+ * Returns a cache record and the converted to number offset ID
 ]]--
 function LocatePOA(oRec, ivPoID)
   if(not oRec) then LogInstance("Missing record"); return nil end
@@ -2668,7 +2670,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCol = qtDef[iD]; if(qtCol) then return qtCol[1] end
     LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
   end
-  -- Returns the colomn information by the given ID > 0
+  -- Returns the column information by the given ID > 0
   function self:GetColumnInfo(vD, vI)
     local iD = (tonumber(vD) or 0)
     local qtDef = self:GetDefinition()
@@ -2878,7 +2880,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local qtCmd = self:GetCommand()
     qtCmd.Commit = "COMMIT;"; return self
   end
-  -- Build create/drop/delete statement table of statemenrts
+  -- Build create/drop/delete statement table of statements
   function self:Create()
     local qtDef = self:GetDefinition()
     local qtCmd, iInd = self:GetCommand(), 1; qtCmd.STMT = "Create"
@@ -3236,7 +3238,7 @@ function ExportPanelDB(stPanel, bExp, makTab, sFunc)
       if(not cT or cT ~= sT) then -- Category has been changed
         F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
         F:Write("\n"); cT = sT -- Cache category name
-      end -- Otherwise just wite down the piece active point
+      end -- Otherwise just write down the piece active point
       F:Write("\""..sM.."\""..symSep.."\""..sT.."\""..symSep.."\""..sN.."\"")
       F:Write("\n"); iCnt = iCnt + 1
     end; F:Flush(); F:Close()
@@ -3627,7 +3629,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       vID = tRow[iD-1]; nID, sID = tonumber(vID), tostring(vID)
       nID = (nID or (sID:sub(1,1) == symOff and iCnt or 0))
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
-      if(iCnt ~= nID) then -- Validate the line ID being in proper borders abd sequential
+      if(iCnt ~= nID) then -- Validate the line ID being in proper borders and sequential
           LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ["
             ..tostring(iCnt).."] ID scatter "..GetReport3(vID, nID, sID))
           return false end; tRow[iD-1] = nID
