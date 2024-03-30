@@ -2281,15 +2281,17 @@ function LocatePOA(oRec, ivPoID)
         LogInstance("Angle transform from model "..GetReport3(ID, sA, StringPOA(tOA.A, "A")))
       end -- Transform angle is decoded from the model and stored in the cache
       -------------------- Point --------------------
-      if(sP:sub(1,1) == sD) then -- Check whenever point is disabled
-        ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ]) -- Override with the origin
-      else -- When the point is disabled take the origin otherwise try to process it
-        if(IsNull(sP) or IsBlank(sP)) then -- In case of empty value or null use the origin
-          ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ])  -- Override with the origin
-        else -- When the point is empty use the origin otherwise decode the value
-          if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(ID, oRec.Slot)) end
-        end -- The point is already decoded and ready to be populated in the cache
-      end; if(not IsHere(TransferPOA(tOA.P, "V"))) then LogInstance("Point transfer fail"); return nil end
+      if(sP) then -- There is still comething to be processed after the registration
+        if(sP:sub(1,1) == sD) then -- Check whenever point is disabled
+          ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ]) -- Override with the origin
+        else -- When the point is disabled take the origin otherwise try to process it
+          if(IsNull(sP) or IsBlank(sP)) then -- In case of empty value or null use the origin
+            ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ])  -- Override with the origin
+          else -- When the point is empty use the origin otherwise decode the value
+            if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(ID, oRec.Slot)) end
+          end -- The point is already decoded and ready to be populated in the cache
+        end; if(not IsHere(TransferPOA(tOA.P, "V"))) then LogInstance("Point transfer fail"); return nil end
+      end -- Otherwise point is initialized on registration and we have nothing to do here
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
 end
@@ -2340,7 +2342,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   elseif(sP:sub(1,1) == sD) then -- Point is disabled
     ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
   else -- when the point is disabled take the origin
-    if(IsNull(sP) or IsBlank(sP)) then
+    if(IsNull(sP) or IsBlank(sP)) then -- Empty value
       ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
     else -- When the point is empty use the origin otherwise decode the value
       if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(iID, stData.Slot)) end
