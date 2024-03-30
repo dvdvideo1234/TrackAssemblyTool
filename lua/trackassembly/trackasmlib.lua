@@ -2234,12 +2234,12 @@ function GetTransformOA(sModel, sKey)
 end
 
 --[[
- * Locates an active point on the piece offset record.
+ * Locates an active point on the piece offset cache record.
  * This function is used to check the correct offset and return it.
  * It also returns the normalized active point ID if needed
  * Updates current record origin and angle when they use attachments
- * oRec   > Record structure of a track piece
- * ivPoID > The POA offset ID to check and locate
+ * oRec   > Record structure of a track piece persising in the cache
+ * ivPoID > The POA offset ID to be checked and located
  * Returns a cache record and the converted to number offset ID
 ]]--
 function LocatePOA(oRec, ivPoID)
@@ -2251,8 +2251,10 @@ function LocatePOA(oRec, ivPoID)
     LogInstance("Missing ID "..GetReport2(iPoID, oRec.Slot)); return nil end
   if(oRec.Tran) then oRec.Tran = nil -- Transforming has started
     local sE = GetOpVar("OPSYM_ENTPOSANG") -- Extract transform from model
-    for ID = 1, oRec.Size do tOA = oRec.Offs[ID] -- Index current offset
-      local sO, sA = tOA.O.Slot, tOA.A.Slot -- Localize transform index slots
+    local sD = GetOpVar("OPSYM_DISABLE") -- Use for searched hit point disabled
+    for ID = 1, oRec.Size do local tOA = oRec.Offs[ID] -- Index current offset
+      local sP, sO, sA = tOA.P.Slot, tOA.O.Slot, tOA.A.Slot -- Localize transform index
+      ---------- Origin ----------
       if(sO and sO:sub(1,1) == sE) then -- POA origin must extracted from the model
         local sO = sO:sub(2, -1) -- Read origin transform ID and try to index
         local vO, aA = GetTransformOA(oRec.Slot, sO) -- Read transform position/angle
@@ -2262,9 +2264,10 @@ function LocatePOA(oRec, ivPoID)
             if(not DecodePOA(sO)) then LogInstance("Origin mismatch "..GetReport2(ID, oRec.Slot)) end
         end end -- Decode the transformation when is not null or empty string
         if(not IsHere(TransferPOA(tOA.O, "V"))) then
-          LogInstance("Origin transfer "..GetReport(ID, oRec.Slot)) end
+          LogInstance("Origin transfer fail "..GetReport(ID, oRec.Slot)) end
         LogInstance("Origin transform from model "..GetReport3(ID, sO, StringPOA(tOA.O, "V")))
       end -- Transform origin is decoded from the model and stored in the cache
+      ---------- Angle ----------
       if(sA and sA:sub(1,1) == sE) then -- POA angle must extracted from the model
         local sA = sA:sub(2, -1) -- Read angle transform ID and try to index
         local vO, aA = GetTransformOA(oRec.Slot, sA) -- Read transform position/angle
@@ -2274,9 +2277,19 @@ function LocatePOA(oRec, ivPoID)
             if(not DecodePOA(sA)) then LogInstance("Angle mismatch "..GetReport2(ID, oRec.Slot)) end
         end end -- Decode the transformation when is not null or empty string
         if(not IsHere(TransferPOA(tOA.A, "A"))) then
-          LogInstance("Angle mismatch "..GetReport2(ID, oRec.Slot)) end
+          LogInstance("Angle mismatch fail "..GetReport2(ID, oRec.Slot)) end
         LogInstance("Angle transform from model "..GetReport3(ID, sA, StringPOA(tOA.A, "A")))
       end -- Transform angle is decoded from the model and stored in the cache
+      ---------- Point ----------
+      if(sP:sub(1,1) == sD) then -- Check whenever point is disabled
+        ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ]) -- Overwrite with the origin
+      else -- When the point is disabled take the origin otherwise try to process it
+        if(IsNull(sP) or IsBlank(sP)) then -- In case of empty value or null use the origin
+          ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ])  -- Overwrite with the origin
+        else -- When the point is empty use the origin otherwise decode the value
+          if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(ID, oRec.Slot)) end
+        end -- The point already decoded an it is ready to be populated in the cache
+      end; if(not IsHere(TransferPOA(tOA.P, "V"))) then LogInstance("Point transfer fail"); return nil end
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
 end
@@ -2322,7 +2335,9 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     end
   end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle transfer fail"); return nil end
   ---------- Point ----------
-  if(sP:sub(1,1) == sD) then
+  if(tOffs.O.Slot) then -- Origin transform point trigger
+    stData.Tran = true; ReloadPOA(); tOffs.P.Slot = sP
+  elseif(sP:sub(1,1) == sD) then -- Point is disabled
     ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
   else -- when the point is disabled take the origin
     if(IsNull(sP) or IsBlank(sP)) then
@@ -3383,7 +3398,8 @@ end
 
 function ExportPOA(stPOA,sOut)
   local sE = tostring(sOut or GetOpVar("MISS_NOSQL"))
-  local sP = (IsEqualPOA(stPOA.P, stPOA.O) and sE or StringPOA(stPOA.P, "V"))
+  local sP = (IsZeroPOA(stPOA.P, "V") and sE or StringPOA(stPOA.P, "V"))
+        sP = (stPOA.P.Slot and stPOA.P.Slot or sP)
   local sO = (IsZeroPOA(stPOA.O, "V") and sE or StringPOA(stPOA.O, "V"))
         sO = (stPOA.O.Slot and stPOA.O.Slot or sO)
   local sA = (IsZeroPOA(stPOA.A, "A") and sE or StringPOA(stPOA.A, "A"))
@@ -4646,26 +4662,32 @@ end
 --[[
  * Checks whenever the spawned piece is inside the previous spawn margin
 ]]
-function InSpawnMargin(oRec,vPos,aAng)
+function InSpawnMargin(oPly,oRec,vPos,aAng)
+  if(CLIENT) then return true end
   local nMarg = GetOpVar("SPAWN_MARGIN")
   if(nMarg == 0) then return false end
   if(vPos and aAng) then
     if(oRec.Mpos and oRec.Mray) then
-      local nMpow = (nMarg ^ 2) -- Square root is expensive
-      local nBpos = oRec.Mpos:DistToSqr(vPos) -- Distance
-      if(nBpos <= nMpow) then -- Check the margin area
-        LogInstance("Spawn pos ["..nBpos.."]["..nMpow.."]")
-        if(nMarg < 0) then return true end -- Negative checks position
-        local nMray = (1 - (nMpow * GetOpVar("EPSILON_ZERO")))
-        local nBray = oRec.Mray:Dot(aAng:Forward())
-        if(nBray >= nMray) then -- Positive checks position and direction
-          LogInstance("Spawn ray ["..nBray.."]["..nMray.."]"); return true
-        end -- Piece angles will not align when spawned
-      end -- Piece will be spawned outside of spawn margin
-      oRec.Mpos:Set(vPos); oRec.Mray:Set(aAng:Forward())
-    else -- Store the last location the piece was spawned
+      local cMarg = mathAbs(nMarg)
+      local nBpos = oRec.Mpos:Distance(vPos) -- Distance
+      if(nBpos <= cMarg) then -- Check the margin area
+        if(nMarg < 0) then -- When negative check position only
+          Notify(oPly,"Spawn pos ["..nBpos.."]["..nMarg.."]", "ERROR")
+          LogInstance("Spawn pos ["..nBpos.."]["..nMarg.."]"); return true
+        else -- Otherwise check the spawn direction ray for being the same
+          local nBray = oRec.Mray:Dot(aAng:Forward())
+          local nMray = (1 - (cMarg * GetOpVar("EPSILON_ZERO")))
+          if(nBray >= nMray) then -- Positive checks position and direction
+            Notify(oPly,"Spawn ray ["..nBpos.."]["..nMarg.."]["..nBray.."]["..nMray.."]", "ERROR")
+            LogInstance("Spawn ray ["..nBpos.."]["..nMarg.."]["..nBray.."]["..nMray.."]"); return true
+          end -- Piece angles will not align when spawned
+        end -- Negative checks position
+      end; oRec.Mpos:Set(vPos); oRec.Mray:Set(aAng:Forward())
+      return false  -- Piece will be spawned outside of spawn margin
+    else -- Otherwise create memory entry and sore the piece location
       oRec.Mpos, oRec.Mray = Vector(vPos), aAng:Forward()
-    end; return false
+      return false -- Store the last location the piece was spawned
+    end -- Otherwise wipe the current memoty when not provided
   else oRec.Mpos, oRec.Mray = nil, nil end; return false
 end
 
@@ -4683,7 +4705,7 @@ function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local stData = CacheQueryPiece(sModel) if(not IsHere(stData)) then
     LogInstance("Record missing for <"..sModel..">"); return nil end
   local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
-  if(InSpawnMargin(stData, vPos, aAng)) then
+  if(InSpawnMargin(pPly, stData, vPos, aAng)) then
     LogInstance("Spawn margin stop <"..sModel..">"); return nil end
   local sClass = GetOpVar("ENTITY_DEFCLASS")
   local ePiece = entsCreate(GetTerm(stData.Unit, sClass, sClass))
