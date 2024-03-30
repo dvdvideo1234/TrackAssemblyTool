@@ -2254,7 +2254,7 @@ function LocatePOA(oRec, ivPoID)
     local sD = GetOpVar("OPSYM_DISABLE") -- Use for searched hit point disabled
     for ID = 1, oRec.Size do local tOA = oRec.Offs[ID] -- Index current offset
       local sP, sO, sA = tOA.P.Slot, tOA.O.Slot, tOA.A.Slot -- Localize transform index
-      ---------- Origin ----------
+      -------------------- Origin --------------------
       if(sO and sO:sub(1,1) == sE) then -- POA origin must extracted from the model
         local sO = sO:sub(2, -1) -- Read origin transform ID and try to index
         local vO, aA = GetTransformOA(oRec.Slot, sO) -- Read transform position/angle
@@ -2267,7 +2267,7 @@ function LocatePOA(oRec, ivPoID)
           LogInstance("Origin transfer fail "..GetReport(ID, oRec.Slot)) end
         LogInstance("Origin transform from model "..GetReport3(ID, sO, StringPOA(tOA.O, "V")))
       end -- Transform origin is decoded from the model and stored in the cache
-      ---------- Angle ----------
+      -------------------- Angle --------------------
       if(sA and sA:sub(1,1) == sE) then -- POA angle must extracted from the model
         local sA = sA:sub(2, -1) -- Read angle transform ID and try to index
         local vO, aA = GetTransformOA(oRec.Slot, sA) -- Read transform position/angle
@@ -2280,7 +2280,7 @@ function LocatePOA(oRec, ivPoID)
           LogInstance("Angle mismatch fail "..GetReport2(ID, oRec.Slot)) end
         LogInstance("Angle transform from model "..GetReport3(ID, sA, StringPOA(tOA.A, "A")))
       end -- Transform angle is decoded from the model and stored in the cache
-      ---------- Point ----------
+      -------------------- Point --------------------
       if(sP:sub(1,1) == sD) then -- Check whenever point is disabled
         ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ]) -- Override with the origin
       else -- When the point is disabled take the origin otherwise try to process it
@@ -2316,7 +2316,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
       LogInstance("Scatter ID #"..tostring(iID)); return nil end
     tOffs[iID] = {}; tOffs[iID].P = {}; tOffs[iID].O = {}; tOffs[iID].A = {}; tOffs = tOffs[iID]
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
-  ---------- Origin ----------
+  -------------------- Origin --------------------
   if(sO:sub(1,1) == sD) then ReloadPOA() else
     if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
       stData.Tran = true; ReloadPOA(); tOffs.O.Slot = sO -- Store transform
@@ -2325,7 +2325,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
       if(not DecodePOA(sO)) then LogInstance("Origin mismatch "..GetReport2(iID, stData.Slot)) end
     end
   end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin transfer fail"); return nil end
-  ---------- Angle ----------
+  -------------------- Angle --------------------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
     if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
       stData.Tran = true; ReloadPOA(); tOffs.A.Slot = sA -- Store transform
@@ -2334,7 +2334,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
       if(not DecodePOA(sA)) then LogInstance("Angle mismatch "..GetReport2(iID, stData.Slot)) end
     end
   end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle transfer fail"); return nil end
-  ---------- Point ----------
+  -------------------- Point --------------------
   if(tOffs.O.Slot) then -- Origin transform point trigger
     stData.Tran = true; ReloadPOA(); tOffs.P.Slot = sP
   elseif(sP:sub(1,1) == sD) then -- Point is disabled
