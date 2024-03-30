@@ -84,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.741")
+asmlib.SetOpVar("TOOL_VERSION","8.749")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -945,11 +945,11 @@ if(CLIENT) then
                       if(luapad.Frame) then luapad.Frame:SetVisible(true)
                       else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
                       luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
-                      if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref, "CATEGORY")
-                        if(fileExists(sCat,"DATA")) then
+                      if(defTab.Nick == "PIECES") then -- Load the categoty provider for this DSV
+                        local sCat = fDSV:format(sPref, "CATEGORY"); if(fileExists(sCat,"DATA")) then
                           luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
-                        end
-                      end
+                        end -- This is done so we can distinguish between luapad and other panels
+                      end -- Luapad is designed not to be closed so we need to make it invisible
                       luapad.Frame:SetVisible(true); luapad.Frame:Center()
                       luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
                     end
@@ -957,7 +957,7 @@ if(CLIENT) then
                   function() fileDelete(sFile)
                     asmlib.LogInstance("Delete "..asmlib.GetReport1(sFile), sLog..".Button")
                     if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref, "CATEGORY")
-                      if(fileExists(sCat,"DATA")) then fileDelete(sCat)
+                      if(fileExists(sCat,"DATA")) then fileDelete(sCat) -- Delete category when present
                         asmlib.LogInstance("Deleted "..asmlib.GetReport1(sCat), sLog..".Button") end
                     end; pnManage:Remove()
                   end
@@ -965,7 +965,7 @@ if(CLIENT) then
                 while(tOptions[iO]) do local sO = tostring(iO)
                   local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bt"..sO)
                   pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_bt"..sO))
-                  iO = iO + 1 -- Loop trough the functions list and add to the menu
+                  iO = iO + 1 -- Loop trough the functions list and add them to the menu
                 end; pnMenu:Open()
               end
             else asmlib.LogInstance("File missing ["..tostring(iP).."]",sLog..".Button") end

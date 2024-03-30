@@ -1406,7 +1406,7 @@ function TOOL:LeftClick(stTrace)
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
           asmlib.GetEntitySpawn(oPly, ePiece, oArg.vtemp, model, pointid,
             actrad, spnflat, igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
-          if(not oArg.spawn) then -- Something happend spawn is not available and task must be removed
+          if(not oArg.spawn) then -- Something happened spawn is not available and task must be removed
             asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Cannot obtain spawn data"),gtLogs); return false
           end -- Spawn data is valid for the current iteration iNdex
@@ -1583,7 +1583,7 @@ function TOOL:Reload(stTrace)
     end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(asmlib.IsHere(trRec) and (asmlib.GetOwner(trEnt) == user or user:IsAdmin())) then
-      asmlib.InSpawnMargin(trRec); trEnt:Remove()
+      asmlib.InSpawnMargin(user, trRec); trEnt:Remove()
       asmlib.LogInstance("(Prop) Remove piece",gtLogs); return true
     end; asmlib.LogInstance("(Prop) Success",gtLogs)
   end; return false
@@ -1772,22 +1772,20 @@ end
 
 function TOOL:Think()
   if(not asmlib.IsInit()) then return end
+  local workmode = self:GetWorkingMode()
+  if(SERVER) then return end
   local model = self:GetModel()
-  if(asmlib.IsModel(model)) then
-    local workmode = self:GetWorkingMode()
-    if(CLIENT) then
-      local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
-      local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
-      if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
-        local oD = conElements:Pull() -- Retrieve a panel from the stack
-        if(asmlib.IsTable(oD)) then oD = oD[1] -- Extract panel from table
-          if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
-        else -- The temporary reference is not table then close it
-          if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
-        end -- Shortcut for closing the routine pieces
-      end -- Front trigger for closing panels
-    end -- This is client closing the routine pieces
-  end
+  if(not asmlib.IsModel(model)) then return end
+  local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
+  local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
+  if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
+    local oD = conElements:Pull() -- Retrieve a panel from the stack
+    if(asmlib.IsTable(oD)) then oD = oD[1] -- Extract panel from table
+      if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
+    else -- The temporary reference is not table then close it
+      if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
+    end -- Shortcut for closing the routine pieces
+  end -- Front trigger for closing panels
 end
 
 --[[
@@ -2389,7 +2387,7 @@ function TOOL.BuildCPanel(CPanel)
         pComboToolMode:SetSortItems(false)
         pComboToolMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".workmode"))
         pComboToolMode:UpdateColours(drmSkin)
-        pComboToolMode:Dock(TOP) -- Setting tallness gets ingnored otherwise
+        pComboToolMode:Dock(TOP) -- Setting tallness gets ignored otherwise
         pComboToolMode:SetTall(22)
         pComboToolMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         for iD = 1, conWorkMode:GetSize() do
