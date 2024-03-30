@@ -2238,7 +2238,7 @@ end
  * This function is used to check the correct offset and return it.
  * It also returns the normalized active point ID if needed
  * Updates current record origin and angle when they use attachments
- * oRec   > Record structure of a track piece persising in the cache
+ * oRec   > Record structure of a track piece stored in the cache
  * ivPoID > The POA offset ID to be checked and located
  * Returns a cache record and the converted to number offset ID
 ]]--
@@ -2282,13 +2282,13 @@ function LocatePOA(oRec, ivPoID)
       end -- Transform angle is decoded from the model and stored in the cache
       ---------- Point ----------
       if(sP:sub(1,1) == sD) then -- Check whenever point is disabled
-        ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ]) -- Overwrite with the origin
+        ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ]) -- Override with the origin
       else -- When the point is disabled take the origin otherwise try to process it
         if(IsNull(sP) or IsBlank(sP)) then -- In case of empty value or null use the origin
-          ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ])  -- Overwrite with the origin
+          ReloadPOA(tOA.O[cvX], tOA.O[cvY], tOA.O[cvZ])  -- Override with the origin
         else -- When the point is empty use the origin otherwise decode the value
           if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(ID, oRec.Slot)) end
-        end -- The point already decoded an it is ready to be populated in the cache
+        end -- The point is already decoded and ready to be populated in the cache
       end; if(not IsHere(TransferPOA(tOA.P, "V"))) then LogInstance("Point transfer fail"); return nil end
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
