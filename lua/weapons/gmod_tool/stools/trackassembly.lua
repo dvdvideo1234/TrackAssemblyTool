@@ -2488,7 +2488,7 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetCheckBox(CPanel, "pntasist")
   asmlib.SetCheckBox(CPanel, "engunsnap")
   asmlib.SetCheckBox(CPanel, "upspanchor")
-  asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
+  asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
 end
 
 if(CLIENT) then
@@ -2509,7 +2509,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "rtradmenu", iMaxDec)
     asmlib.SetCheckBox(CPanel, "enradmenu")
     asmlib.SetCheckBox(CPanel, "enpntmscr")
-    asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
+    asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
 
   asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
@@ -2668,7 +2668,7 @@ if(CLIENT) then
       end
     end
     pItem:Dock(TOP); pItem:SetTall(30)
-    asmlib.LogInstance(asmlib.GetReport(CPanel.Name), sLog)
+    asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
 
   asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
