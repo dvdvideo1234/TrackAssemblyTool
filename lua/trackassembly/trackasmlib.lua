@@ -2357,13 +2357,13 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   if(not IsHere(TransferPOA(tOffs.A, "A"))) then
     LogInstance("Angle nonassignable "..GetReport2(iID, stData.Slot)); return nil end
   -------------------- Point --------------------
-  if(sP:sub(1,1) == sD) then -- Point is disabled then use origin
+  if(tOffs.O.Slot or sP:sub(1,1) == sE) then -- Origin transform trigger
+    stData.Tran = true; ReloadPOA(); tOffs.P.Slot = sP  -- Store transform
+    LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
+  elseif(sP:sub(1,1) == sD) then -- Point is disabled then use origin
     ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
   elseif(IsNull(sP) or IsBlank(sP)) then -- Empty value  use origin
     ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
-  elseif(tOffs.O.Slot or sP:sub(1,1) == sE) then -- Origin transform trigger
-    stData.Tran = true; ReloadPOA(); tOffs.P.Slot = sP  -- Store transform
-    LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
   else -- When the point is empty use the origin otherwise decode the value
     if(not DecodePOA(sP)) then -- Try to decode the point when present
       LogInstance("Point mismatch "..GetReport2(iID, stData.Slot)) end
