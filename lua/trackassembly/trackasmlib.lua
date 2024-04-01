@@ -2213,7 +2213,7 @@ end
 
 --[[
  * Extracts an attachment as AngPos structure when provided with an ID
- * This function is used to populate POA structres on antity spawn
+ * This function is used to populate POA structures on entity spawn
  * sModel > The model which we must extract the attachments for
  * sID    > Attachment ID which is being used for the extraction
  * Returns the position and angle for the POA attachment for the ID
@@ -2271,7 +2271,7 @@ function LocatePOA(oRec, ivPoID)
             if(not DecodePOA(sK)) then LogInstance("Origin mismatch "..GetReport2(ID, oRec.Slot)) end
         end end -- Decode the transformation when is not null or empty string
         if(not IsHere(TransferPOA(tPOA.O, "V"))) then
-          LogInstance("Origin unassignable "..GetReport(ID, oRec.Slot)) end
+          LogInstance("Origin nonassignable "..GetReport(ID, oRec.Slot)) end
         LogInstance("Origin transform spawn "..GetReport3(ID, sO, StringPOA(tPOA.O, "V")))
       end -- Transform origin is decoded from the model and stored in the cache
       -------------------- Angle --------------------
@@ -2284,11 +2284,11 @@ function LocatePOA(oRec, ivPoID)
             if(not DecodePOA(sK)) then LogInstance("Angle mismatch "..GetReport2(ID, oRec.Slot)) end
         end end -- Decode the transformation when is not null or empty string
         if(not IsHere(TransferPOA(tPOA.A, "A"))) then
-          LogInstance("Angle unassignable "..GetReport2(ID, oRec.Slot)) end
+          LogInstance("Angle nonassignable "..GetReport2(ID, oRec.Slot)) end
         LogInstance("Angle transform spawn "..GetReport3(ID, sA, StringPOA(tPOA.A, "A")))
       end -- Transform angle is decoded from the model and stored in the cache
       -------------------- Point --------------------
-      if(sP) then -- There is still comething to be processed after the registration
+      if(sP) then -- There is still something to be processed after the registration
         if(sP:sub(1,1) == sD) then -- Check whenever point is disabled
           ReloadPOA(tPOA.O[cvX], tPOA.O[cvY], tPOA.O[cvZ]) -- Override with the origin
         elseif(IsNull(sP) or IsBlank(sP)) then -- In case of empty value or null use the origin
@@ -2305,7 +2305,7 @@ function LocatePOA(oRec, ivPoID)
           if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(ID, oRec.Slot)) end
         end -- Try decoding the transform point when not applicable
         if(not IsHere(TransferPOA(tPOA.P, "V"))) then  -- Transform point is decoded from the model
-          LogInstance("Point unassignable  "..GetReport2(ID, oRec.Slot)) end
+          LogInstance("Point nonassignable  "..GetReport2(ID, oRec.Slot)) end
         LogInstance("Point transform spawn "..GetReport3(ID, sP, StringPOA(tPOA.P, "V")))
       end -- Otherwise point is initialized on registration and we have nothing to do here
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
@@ -2341,8 +2341,10 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
       LogInstance("Origin transform "..GetReport3(iID, sO, stData.Slot))
     elseif(IsNull(sO) or IsBlank(sO)) then ReloadPOA() else
       if(not DecodePOA(sO)) then LogInstance("Origin mismatch "..GetReport2(iID, stData.Slot)) end
-    end
-  end; if(not IsHere(TransferPOA(tOffs.O, "V"))) then LogInstance("Origin transfer fail"); return nil end
+    end -- Try decoding the transform point when not applicable
+  end -- Assign current POA array to the origin by data transfer
+  if(not IsHere(TransferPOA(tOffs.O, "V"))) then
+    LogInstance("Origin nonassignable "..GetReport2(iID, stData.Slot)); return nil end
   -------------------- Angle --------------------
   if(sA:sub(1,1) == sD) then ReloadPOA() else
     if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
@@ -2350,21 +2352,24 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
       LogInstance("Angle transform "..GetReport3(iID, sA, stData.Slot))
     elseif(IsNull(sA) or IsBlank(sA)) then ReloadPOA() else
       if(not DecodePOA(sA)) then LogInstance("Angle mismatch "..GetReport2(iID, stData.Slot)) end
-    end
-  end; if(not IsHere(TransferPOA(tOffs.A, "A"))) then LogInstance("Angle transfer fail"); return nil end
+    end -- Try decoding the transform point when not applicable
+  end -- Assign current POA array to the angle by data transfer
+  if(not IsHere(TransferPOA(tOffs.A, "A"))) then
+    LogInstance("Angle nonassignable "..GetReport2(iID, stData.Slot)); return nil end
   -------------------- Point --------------------
-  if(tOffs.O.Slot or sP:sub(1,1) == sE) then -- Origin transform point trigger
-    stData.Tran = true; ReloadPOA(); tOffs.P.Slot = sP
-    LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
-  elseif(sP:sub(1,1) == sD) then -- Point is disabled
+  if(sP:sub(1,1) == sD) then -- Point is disabled then use origin
     ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
-  else -- when the point is disabled take the origin
-    if(IsNull(sP) or IsBlank(sP)) then -- Empty value
-      ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
-    else -- When the point is empty use the origin otherwise decode the value
-      if(not DecodePOA(sP)) then LogInstance("Point mismatch "..GetReport2(iID, stData.Slot)) end
-    end
-  end; if(not IsHere(TransferPOA(tOffs.P, "V"))) then LogInstance("Point transfer fail"); return nil end
+  elseif(IsNull(sP) or IsBlank(sP)) then -- Empty value  use origin
+    ReloadPOA(tOffs.O[cvX], tOffs.O[cvY], tOffs.O[cvZ])
+  elseif(tOffs.O.Slot or sP:sub(1,1) == sE) then -- Origin transform trigger
+    stData.Tran = true; ReloadPOA(); tOffs.P.Slot = sP  -- Store transform
+    LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
+  else -- When the point is empty use the origin otherwise decode the value
+    if(not DecodePOA(sP)) then -- Try to decode the point when present
+      LogInstance("Point mismatch "..GetReport2(iID, stData.Slot)) end
+  end -- Assign current POA array to the point by data transfer
+  if(not IsHere(TransferPOA(tOffs.P, "V"))) then
+    LogInstance("Point nonassignable "..GetReport2(iID, stData.Slot)); return nil end
   return tOffs
 end
 
