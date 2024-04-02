@@ -2148,10 +2148,9 @@ function MakeEntityNone(sModel, vPos, aAng) local eNone
 end
 
 function MakePOA()
-  local self = {0, 0, 0}
-  local iSize, Sors = 3, nil
-  local sqMis = GetOpVar("MISS_NOSQL")
-  local sySep = GetOpVar("OPSYM_SEPARATOR")
+  local self, mRaw = {0, 0, 0}
+  local mMis = GetOpVar("MISS_NOSQL")
+  local mSep = GetOpVar("OPSYM_SEPARATOR")
   function self:Set(nA, nB, nC)
     self[1] = (tonumber(nA) or 0)
     self[2] = (tonumber(nB) or 0)
@@ -2161,17 +2160,18 @@ function MakePOA()
   function self:Get()
     return unpack(self)
   end
-  function self:Source(sSrc)
-    if(IsHere(sSrc)) then Sors = sSrc end
-    return Sors -- Source data manager
+  function self:Raw(sRaw)
+    if(IsHere(sRaw)) then
+      mRaw = tostring(sRaw or "") end
+    return mRaw -- Source data manager
   end
   function self:IsSame(tPOA)
-    for iD = 1, iSize do
+    for iD = 1, 3 do
       if(tPOA[iD] ~= self[iD]) then return true end
     end; return false
   end
   function self:IsZero()
-    for iD = 1, iSize do
+    for iD = 1, 3 do
       if(self[iD] ~= 0) then return false end
     end; return true
   end
@@ -2179,21 +2179,21 @@ function MakePOA()
     local svA = tostring(self[1] or "")
     local svB = tostring(self[2] or "")
     local svC = tostring(self[3] or "")
-    return (svA..sySep..svB..sySep..svC):gsub("%s","")
+    return (svA..mSep..svB..mSep..svC):gsub("%s","")
   end
   function self:Decode(sStr)
     local sStr = tostring(sStr or "")    -- Default to string
-    local tPOA = sySep:Explode(sStr)     -- Read the components
-    for iD = 1, iSize do                 -- Apply on all components
+    local tPOA = mSep:Explode(sStr)      -- Read the components
+    for iD = 1, 3 do                     -- Apply on all components
       local nCom = tonumber(tPOA[iD])    -- Is the data really a number
       if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
         LogInstance("Mismatch "..GetReport(sStr)) end; self[iD] = nCom
     end; return self
   end
   function self:Export(sDes)
-    local sD = tostring(sDes or sqMis)
+    local sD = tostring(sDes or mMis)
     local sE = (self:IsZero() and sE or self:String())
-    return (self:Source() and self:Source() or sE)
+    return (self:Raw() and self:Raw() or sE)
   end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
@@ -2248,7 +2248,7 @@ function LocatePOA(oRec, ivPoID)
     local sE = GetOpVar("OPSYM_ENTPOSANG") -- Extract transform from model
     local sD = GetOpVar("OPSYM_DISABLE") -- Use for searched hit point disabled
     for ID = 1, oRec.Size do local tPOA = tOffs[ID] -- Index current offset
-      local sP, sO, sA = tPOA.P:Source(), tPOA.O:Source(), tPOA.A:Source()
+      local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
       -------------------- Origin --------------------
       if(sO and sO:sub(1,1) == sE) then -- POA origin must extracted from the model
         local sK = sO:sub(2, -1) -- Read origin transform ID and try to index
@@ -2324,7 +2324,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   -------------------- Origin --------------------
   if(sO:sub(1,1) == sD) then tOffs.O:Set() else
     if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
-      stData.Tran = true; tOffs.O:Set(); tOffs.O:Source(sO) -- Store transform
+      stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
       LogInstance("Origin transform "..GetReport3(iID, sO, stData.Slot))
     elseif(IsNull(sO) or IsBlank(sO)) then tOffs.O:Set() else
       if(not tOffs.O:Decode(sO)) then -- Try to decode the origin when present
@@ -2334,7 +2334,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   -------------------- Angle --------------------
   if(sA:sub(1,1) == sD) then tOffs.A:Set() else
     if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
-      stData.Tran = true; tOffs.A:Set(); tOffs.A:Source(sA) -- Store transform
+      stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
       LogInstance("Angle transform "..GetReport3(iID, sA, stData.Slot))
     elseif(IsNull(sA) or IsBlank(sA)) then tOffs.A:Set() else
       if(not tOffs.A:DecodePOA(sA)) then -- Try to decode the angle when present
@@ -2342,8 +2342,8 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     end -- Try decoding the transform point when not applicable
   end -- Assign current POA array to the angle by data transfer
   -------------------- Point --------------------
-  if(tOffs.O:Source() or sP:sub(1,1) == sE) then -- Origin transform trigger
-    stData.Tran = true; tOffs.P:Set(); tOffs.P:Source(sP) -- Store transform
+  if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
+    stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
     LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
   elseif(sP:sub(1,1) == sD) then -- Point is disabled then use origin
     tOffs.P:Set(tOffs.O:Get())   -- Populate point data from origin
