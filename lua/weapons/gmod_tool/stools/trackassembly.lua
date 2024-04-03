@@ -1719,10 +1719,8 @@ function TOOL:UpdateGhost(oPly)
           if(not hdOffs) then return end -- Validated existent next point ID
           for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
             if(not (ePiece and ePiece:IsValid())) then return end
-            ePiece:SetPos(stSpawn.SPos)
-            ePiece:SetAngles(stSpawn.SAng)
-            ePiece:SetNoDraw(false)
-            vTemp:SetUnpacked(hdOffs.P:Get())
+            ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng)
+            ePiece:SetNoDraw(false); vTemp:SetUnpacked(hdOffs.P:Get())
             vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
             if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
             if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
