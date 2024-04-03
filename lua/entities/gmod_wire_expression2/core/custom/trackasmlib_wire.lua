@@ -121,21 +121,27 @@ e2function number entity:trackasmlibIsPiece()
   if(stRec) then return anyTrue else return anyFalse end
 end
 
-local function getPieceOffset(sModel, nID)
-  local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(sModel),nID)
-  if(not stPOA) then return {} end; return {stPOA:Get()}
+local function getPieceOffset(sModel, nID, sKey)
+  if(not enFlag) then return nil end
+  if(not sKey) then return nil end
+  local oRec = asmlib.CacheQueryPiece(sModel)
+  if(not oRec) then return nil end
+  local tPOA = asmlib.LocatePOA(oRec, nID)
+  if(not tPOA) then return nil end
+  return tPOA[sKey] -- The component
 end
 
 __e2setcost(80)
-e2function array trackasmlibGetOffset(string sModel, number nID)
-  if(not enFlag) then return {} end
-  return getPieceOffset(sModel, nID)
+e2function array trackasmlibGetOffset(string sModel, number nID, string sPOA)
+  local oPOA = getPieceOffset(sModel, nID, sPOA)
+  return (oPOA and oPOA:Array() or {})
 end
 
 __e2setcost(80)
-e2function array entity:trackasmlibGetOffset(number nID)
-  if(not (this and this:IsValid() and enFlag)) then return {} end
-  return getPieceOffset(this:GetModel(), nID)
+e2function array entity:trackasmlibGetOffset(number nID, string sPOA)
+  if(not (this and this:IsValid())) then return {} end
+  local oPOA = getPieceOffset(this:GetModel(), nID, sPOA)
+  return (oPOA and oPOA:Array() or {})
 end
 
 __e2setcost(30)
@@ -263,7 +269,7 @@ end
 
 --[[ **************************** CREATOR **************************** ]]
 
-local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
+local function newPiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
   if(not enFlag) then return nil end
   if(not asmlib.IsPlayer(oPly)) then return nil end
   if(oEnt and not oEnt:IsValid()) then return nil end
@@ -284,62 +290,62 @@ local function makePiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, 
                            (oCol[3] or oCol["b"]), -- Numerical indices are with priority to hash
                      nA or (oCol[4] or oCol["a"])) -- Use argument alpha with priority
   else oCol = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
-  return asmlib.MakePiece(oPly,stRec.Slot,vPos,aAng,mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
+  return asmlib.NewPiece(oPly,stRec.Slot,vPos,aAng,mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
 end
 
 __e2setcost(50)
-e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
-  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
+e2function entity trackasmlibNewPiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
+  return newPiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
 end
 
 __e2setcost(50)
-e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
-  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
+e2function entity entity:trackasmlibNewPiece(vector vPos, angle aAng, number nMass, string sBgpID, number nR, number nG, number nB, number nA)
+  return newPiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
 end
 
 __e2setcost(50)
-e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
-  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
+e2function entity trackasmlibNewPiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
+  return newPiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
 end
 
 __e2setcost(50)
-e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
-  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
+e2function entity entity:trackasmlibNewPiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor, number nA)
+  return newPiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor, nil, nil, nA)
 end
 
 __e2setcost(50)
-e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
-  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor)
+e2function entity trackasmlibNewPiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
+  return newPiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID, vColor)
 end
 
 __e2setcost(50)
-e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
-  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor)
+e2function entity entity:trackasmlibNewPiece(vector vPos, angle aAng, number nMass, string sBgpID, vector vColor)
+  return newPiece(self.player, this, nil, vPos, aAng, nMass, sBgpID, vColor)
 end
 
 __e2setcost(50)
-e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID)
-  return makePiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID)
+e2function entity trackasmlibNewPiece(string sModel, vector vPos, angle aAng, number nMass, string sBgpID)
+  return newPiece(self.player, nil, sModel, vPos, aAng, nMass, sBgpID)
 end
 
 __e2setcost(50)
-e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass, string sBgpID)
-  return makePiece(self.player, this, nil, vPos, aAng, nMass, sBgpID)
+e2function entity entity:trackasmlibNewPiece(vector vPos, angle aAng, number nMass, string sBgpID)
+  return newPiece(self.player, this, nil, vPos, aAng, nMass, sBgpID)
 end
 
 __e2setcost(50)
-e2function entity trackasmlibMakePiece(string sModel, vector vPos, angle aAng, number nMass)
-  return makePiece(self.player, nil, sModel, vPos, aAng, nMass)
+e2function entity trackasmlibNewPiece(string sModel, vector vPos, angle aAng, number nMass)
+  return newPiece(self.player, nil, sModel, vPos, aAng, nMass)
 end
 
 __e2setcost(50)
-e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng, number nMass)
-  return makePiece(self.player, this, nil, vPos, aAng, nMass)
+e2function entity entity:trackasmlibNewPiece(vector vPos, angle aAng, number nMass)
+  return newPiece(self.player, this, nil, vPos, aAng, nMass)
 end
 
 __e2setcost(50)
-e2function entity entity:trackasmlibMakePiece(vector vPos, angle aAng)
-  return makePiece(self.player, this, nil, vPos, aAng)
+e2function entity entity:trackasmlibNewPiece(vector vPos, angle aAng)
+  return newPiece(self.player, this, nil, vPos, aAng)
 end
 
 __e2setcost(15)

@@ -1555,7 +1555,7 @@ function NewPOA()
   function self:Get()
     return unpack(self)
   end
-  function self:Table()
+  function self:Array()
     return {unpack(self)}
   end
   function self:Vector()
@@ -4634,7 +4634,7 @@ function InSpawnMargin(oPly,oRec,vPos,aAng)
   else oRec.Mpos, oRec.Mray = nil, nil end; return false
 end
 
-function MakePiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
+function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(CLIENT) then LogInstance("Working on client"); return nil end
   if(not IsPlayer(pPly)) then -- If not player we cannot register limit
     LogInstance("Player missing <"..tostring(pPly)..">"); return nil end
@@ -4929,7 +4929,7 @@ function SetConstraintOver(tC, nE)
   end; return tC, nC
 end
 
-function MakeAsmConvar(sName, vVal, tBord, vFlg, vInf)
+function NewAsmConvar(sName, vVal, tBord, vFlg, vInf)
   if(not IsString(sName)) then
     LogInstance("Mismatch "..GetReport(sName)); return nil end
   local sKey, cVal = GetNameExp(sName), (tonumber(vVal) or tostring(vVal))

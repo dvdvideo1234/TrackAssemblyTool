@@ -1088,7 +1088,7 @@ function TOOL:NormalSpawn(stTrace, oPly)
       if(trEnt and trEnt:IsValid()) then anEnt = trEnt end -- Switch-a-roo
     end -- If there is something wrong with the anchor entity use the trace
   end -- When the flag is not enabled must not automatically update anchor
-  local ePiece = asmlib.MakePiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+  local ePiece = asmlib.NewPiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
   if(ePiece) then
     if(spawncn) then -- Adjust the position when created correctly
       asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
@@ -1192,7 +1192,7 @@ function TOOL:LeftClick(stTrace)
             end
           end
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
-            ePiece = asmlib.MakePiece(oPly,model,oArg.spawn.SPos,oArg.spawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+            ePiece = asmlib.NewPiece(oPly,model,oArg.spawn.SPos,oArg.spawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(stackcnt > 0) then if(oArg.istck < stackcnt) then oArg.istck = (oArg.istck + 1) else ePiece:Remove(); ePiece = nil end end
           oArg.imake = (oArg.imake + (ePiece and 1 or 0)); sItr = fInt:format(oArg.imake)
           oPly:SetNWFloat(gsToolPrefL.."progress", (oArg.imake / tC.SKept) * 100)
@@ -1267,7 +1267,7 @@ function TOOL:LeftClick(stTrace)
           oArg.mundo, oArg.munid = eID:GetModel(), eID:EntIndex()
           local spPos, spAng = asmlib.GetTransformOBB(eID, oArg.wover, oArg.wnorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
-            ePiece = asmlib.MakePiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+            ePiece = asmlib.NewPiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(ePiece) then
             asmlib.RegConstraintOver(oArg.tcons, oArg.munid, ePiece)
             oArg.itrys, oArg.srate = 0, (oArg.srate - 1) -- When the routine item is still busy
@@ -1346,7 +1346,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",trEnt),gtLogs); return false end
       local spPos, spAng = asmlib.GetTransformOBB(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()),
                              stTrace.HitNormal, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
-      local ePiece = asmlib.MakePiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+      local ePiece = asmlib.NewPiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtLogs); return false end
@@ -1386,7 +1386,7 @@ function TOOL:LeftClick(stTrace)
         oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / stackcnt))
         local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
         while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
-          ePiece = asmlib.MakePiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+          ePiece = asmlib.NewPiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
         if(ePiece) then -- Set position is valid and store reference to the track piece
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"),gtLogs); return false end
@@ -1439,7 +1439,7 @@ function TOOL:LeftClick(stTrace)
       if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
         asmlib.LogInstance("(Ray) Skip intersection sequence. Snapping",gtLogs) end
     end
-    local ePiece = asmlib.MakePiece(user,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+    local ePiece = asmlib.NewPiece(user,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail"),gtLogs); return false end
