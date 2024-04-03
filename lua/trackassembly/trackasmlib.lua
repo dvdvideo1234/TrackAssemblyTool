@@ -1552,17 +1552,26 @@ function NewPOA()
   local self, mRaw = {0, 0, 0}
   local mMis = GetOpVar("MISS_NOSQL")
   local mSep = GetOpVar("OPSYM_SEPARATOR")
+  function self:Get()
+    return unpack(self)
+  end
+  function self:Table()
+    return {unpack(self)}
+  end
+  function self:Vector()
+    return Vector(unpack(self))
+  end
+  function self:Angle()
+    return Angle(unpack(self))
+  end
+  function self:String()
+    return tableConcat(self, mSep):gsub("%s","")
+  end
   function self:Set(nA, nB, nC)
     self[1] = (tonumber(nA) or 0)
     self[2] = (tonumber(nB) or 0)
     self[3] = (tonumber(nC) or 0)
     return self
-  end
-  function self:Get()
-    return unpack(self)
-  end
-  function self:String()
-    return tableConcat(self, mSep):gsub("%s","")
   end
   function self:Raw(sRaw)
     if(IsHere(sRaw)) then
@@ -1571,8 +1580,8 @@ function NewPOA()
   end
   function self:IsSame(tPOA)
     for iD = 1, 3 do
-      if(tPOA[iD] ~= self[iD]) then return true end
-    end; return false
+      if(tPOA[iD] ~= self[iD]) then return false end
+    end; return true
   end
   function self:IsZero()
     for iD = 1, 3 do
@@ -1580,9 +1589,10 @@ function NewPOA()
     end; return true
   end
   function self:Export(sDes)
-    local sD, sR = tostring(sDes or mMis), self:Raw()
-    local sE = (self:IsZero() and sE or self:String())
-    return (sR and sR or sE)
+    local sS = self:String()
+    local sD = tostring(sDes or mMis)
+    local sE = (self:IsZero() and sD or sS)
+    return (mRaw and mRaw or sE)
   end
   function self:Decode(sStr)
     local sStr = tostring(sStr or "")    -- Default to string
