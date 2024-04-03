@@ -23,10 +23,6 @@ local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 --[[ **************************** CONFIGURATION **************************** ]]
 
 local anyTrue, anyFalse = 1, 0
-local cvX, cvY, cvZ = asmlib.GetIndexes("V")
-local caP, caY, caR = asmlib.GetIndexes("A")
-local wvX, wvY, wvZ = asmlib.GetIndexes("WV")
-local waP, waY, waR = asmlib.GetIndexes("WA")
 local gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
 local gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
@@ -62,10 +58,10 @@ local function getDataFormat(sForm, oEnt, ucsEnt, sType, sName, nPnt, sP)
   if(not (oEnt and oEnt:IsValid() and enFlag)) then return "" end
   if(not (ucsEnt and ucsEnt:IsValid())) then return "" end
   local ucsPos, ucsAng, sM = ucsEnt:GetPos(), ucsEnt:GetAngles(), oEnt:GetModel()
-  local sO = ""; if(ucsPos[cvX] ~= 0 or ucsPos[cvY] ~= 0 or ucsPos[cvZ] ~= 0) then
-    sO = tostring(ucsPos[cvX])..","..tostring(ucsPos[cvY])..","..tostring(ucsPos[cvZ]) end
-  local sA = ""; if(ucsAng[caP] ~= 0 or ucsAng[caY] ~= 0 or ucsAng[caP] ~= 0) then
-    sA = tostring(ucsAng[caP])..","..tostring(ucsAng[caY])..","..tostring(ucsAng[caR]) end
+  local sO = ""; if(not ucsPos:IsZero()) then local nX, nY, nZ = ucsPos:Unpack()
+    sO = tostring(nX)..","..tostring(nY)..","..tostring(nZ) end
+  local sA = ""; if(not ucsAng:IsZero()) then local nP, nY, nR = ucsAng:Unpack()
+    sA = tostring(nP)..","..tostring(nY)..","..tostring(nR) end
   local sC = (oEnt:GetClass() ~= "prop_physics" and oEnt:GetClass() or "")
   local sN = asmlib.IsBlank(sName) and asmlib.ModelToName(sM) or sName
   return sForm:format(sM, sType, sN, tonumber(nPnt or 0), sP, sO, sA, sC)
@@ -88,10 +84,11 @@ e2function array entity:trackasmlibSnapEntity(vector trHitPos  , string hdModel 
                                               number nActRadius, number enFlatten, number enIgnTyp,
                                               vector ucsOffPos , angle ucsOffAng)
   if(not (this and this:IsValid() and enFlag)) then return {} end
+  local nX, nY, nZ = ucsOffPos:Unpack()
+  local nP, nY, nR = ucsOffAng:Unpack()
   local stSpawn = asmlib.GetEntitySpawn(self.player, this, trHitPos, hdModel, hdPoID,
                                         nActRadius, (enFlatten ~= 0), (enIgnTyp ~= 0),
-                                        ucsOffPos[cvX], ucsOffPos[cvY], ucsOffPos[cvZ],
-                                        ucsOffAng[caP], ucsOffAng[caY], ucsOffAng[caR])
+                                        nX, nY, nZ, nP, nY, nR)
   if(not stSpawn) then return {} end
   return {Vector(stSpawn.SPos), Angle(stSpawn.SAng)}
 end
@@ -100,9 +97,10 @@ __e2setcost(80)
 e2function array trackasmlibSnapNormal(vector ucsPos, angle  ucsAng   , string hdModel,
                                        number hdPoID, vector ucsOffPos, angle ucsOffAng)
   if(not enFlag) then return {} end
+  local nX, nY, nZ = ucsOffPos:Unpack()
+  local nP, nY, nR = ucsOffAng:Unpack()
   local stSpawn = asmlib.GetNormalSpawn(self.player, ucsPos, ucsAng, hdModel, hdPoID,
-                                        ucsOffPos[cvX], ucsOffPos[cvY], ucsOffPos[cvZ],
-                                        ucsOffAng[caP], ucsOffAng[caY], ucsOffAng[caR])
+                                        nX, nY, nZ, nP, nY, nR)
   if(not stSpawn) then return {} end
   return {Vector(stSpawn.SPos), Angle(stSpawn.SAng)}
 end
@@ -123,27 +121,21 @@ e2function number entity:trackasmlibIsPiece()
   if(stRec) then return anyTrue else return anyFalse end
 end
 
-local function getPieceOffset(sModel, nID, sPOA)
+local function getPieceOffset(sModel, nID)
   local stPOA = asmlib.LocatePOA(asmlib.CacheQueryPiece(sModel),nID)
-  if(not stPOA) then return {} end
-  local sPOA, arOut, C1, C2, C3 = tostring(sPOA):upper():sub(1,1), {0,0,0}
-  if    (sPOA == "P") then C1, C2, C3 = cvX, cvY, cvZ
-  elseif(sPOA == "O") then C1, C2, C3 = cvX, cvY, cvZ
-  elseif(sPOA == "A") then C1, C2, C3 = caP, caY, caR else return arOut end
-  arOut[1], arOut[2], arOut[3] = stPOA[sPOA][C1] , stPOA[sPOA][C2] , stPOA[sPOA][C3]
-  return arOut
+  if(not stPOA) then return {} end; return {stPOA:Get()}
 end
 
 __e2setcost(80)
-e2function array trackasmlibGetOffset(string sModel, number nID, string sPOA)
+e2function array trackasmlibGetOffset(string sModel, number nID)
   if(not enFlag) then return {} end
-  return getPieceOffset(sModel, nID, sPOA)
+  return getPieceOffset(sModel, nID)
 end
 
 __e2setcost(80)
-e2function array entity:trackasmlibGetOffset(number nID, string sPOA)
+e2function array entity:trackasmlibGetOffset(number nID)
   if(not (this and this:IsValid() and enFlag)) then return {} end
-  return getPieceOffset(this:GetModel(), nID, sPOA)
+  return getPieceOffset(this:GetModel(), nID)
 end
 
 __e2setcost(30)

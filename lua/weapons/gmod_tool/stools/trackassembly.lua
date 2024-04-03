@@ -60,12 +60,6 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 if(not asmlib.IsInit()) then -- Make sure the module is initialized
   ErrorNoHalt("TOOL: Track assembly tool not initialized!\n"); return end
 
---- Vector Component indexes ---
-local cvX, cvY, cvZ = asmlib.GetIndexes("V")
-
---- Angle Component indexes ---
-local caP, caY, caR = asmlib.GetIndexes("A")
-
 --- Global References
 local gtLogs      = {"TOOL"}
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")

@@ -1,10 +1,3 @@
-local cvX, cvY, cvZ -- Vector Component indexes
-local caP, caY, caR -- Angle Component indexes
-local wvX, wvY, wvZ -- Wire vector Component indexes
-local waP, waY, waR -- Wire angle Component indexes
-
----------------- Localizing instances ------------------
-
 local SERVER = SERVER
 local CLIENT = CLIENT
 
@@ -710,31 +703,6 @@ function SettingsLogs(sHash)
   else LogInstance("Missing <"..sKey.."@"..fName..">"); return false end
 end
 
-function GetIndexes(sType)
-  if(not IsString(sType)) then
-    LogInstance("Type mismatch "..GetReport(sType)); return nil end
-  if    (sType == "V")  then return cvX, cvY, cvZ
-  elseif(sType == "A")  then return caP, caY, caR
-  elseif(sType == "WA") then return wvX, wvY, wvZ
-  elseif(sType == "WV") then return waP, waY, waR
-  else LogInstance("Type <"..sType.."> not found"); return nil end
-end
-
-function SetIndexes(sType, ...)
-  if(not IsString(sType)) then
-    LogInstance("Type mismatch "..GetReport(sType)); return false end
-  if    (sType == "V")  then cvX, cvY, cvZ = ...
-  elseif(sType == "A")  then caP, caY, caR = ...
-  elseif(sType == "WA") then wvX, wvY, wvZ = ...
-  elseif(sType == "WV") then waP, waY, waR = ...
-  else LogInstance("Type <"..sType.."> not found"); return false end
-  LogInstance("Success"); return true
-end
-
-function UseIndexes(pB1, pB2, pB3, pD1, pD2, pD3)
-  return (pB1 or pD1), (pB2 or pD2), (pB3 or pD3)
-end
-
 function InitBase(sName, sPurp)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   if(not IsString(sName)) then
@@ -934,54 +902,20 @@ function GridAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
   local D = tonumber(nvDec or 0); if(not IsHere(D)) then
     LogInstance("Grid mismatch "..GetReport(nvDec)); return nil end
-  if(aBase[caP] == 0 and aBase[caR] == 0 and D > 0) then
-    aBase[caY] = GetGrid(aBase[caY], D)
-  end return aBase
+  local P, Y, R = aBase:Unpack()
+  if(P == 0 and P == 0 and D > 0) then Y = GetGrid(Y, D) end
+  aBase:SetUnpacked(P, Y, R) return aBase
 end
 
-function NegAngle(vBase, bP, bY, bR)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  local P = (tonumber(vBase[caP]) or 0); P = (IsHere(bP) and (bP and -P or P) or -P)
-  local Y = (tonumber(vBase[caY]) or 0); Y = (IsHere(bY) and (bY and -Y or Y) or -Y)
-  local R = (tonumber(vBase[caR]) or 0); R = (IsHere(bR) and (bR and -R or R) or -R)
-  vBase[caP], vBase[caY], vBase[caR] = P, Y, R; return vBase
+function NegAngle(aBase, bP, bY, bR)
+  if(not aBase) then LogInstance("Base invalid"); return nil end
+  local P, Y, R = aBase:Unpack()
+  P = (IsHere(bP) and (bP and -P or P) or -P)
+  Y = (IsHere(bY) and (bY and -Y or Y) or -Y)
+  R = (IsHere(bR) and (bR and -R or R) or -R)
+  aBase:SetUnpacked(P, Y, R); return aBase
 end
-
 ------------- VECTOR ---------------
-
-function AddVector(vBase, vUnit)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  if(not vUnit) then LogInstance("Unit invalid"); return nil end
-  vBase[cvX] = (tonumber(vBase[cvX]) or 0) + (tonumber(vUnit[cvX]) or 0)
-  vBase[cvY] = (tonumber(vBase[cvY]) or 0) + (tonumber(vUnit[cvY]) or 0)
-  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) + (tonumber(vUnit[cvZ]) or 0)
-  return vBase
-end
-
-function AddVectorXYZ(vBase, nX, nY, nZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  vBase[cvX] = (tonumber(vBase[cvX]) or 0) + (tonumber(nX) or 0)
-  vBase[cvY] = (tonumber(vBase[cvY]) or 0) + (tonumber(nY) or 0)
-  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) + (tonumber(nZ) or 0)
-  return vBase
-end
-
-function SubVector(vBase, vUnit)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  if(not vUnit) then LogInstance("Unit invalid"); return nil end
-  vBase[cvX] = (tonumber(vBase[cvX]) or 0) - (tonumber(vUnit[cvX]) or 0)
-  vBase[cvY] = (tonumber(vBase[cvY]) or 0) - (tonumber(vUnit[cvY]) or 0)
-  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(vUnit[cvZ]) or 0)
-  return vBase
-end
-
-function SubVectorXYZ(vBase, nX, nY, nZ)
-  if(not vBase) then LogInstance("Base invalid"); return nil end
-  vBase[cvX] = (tonumber(vBase[cvX]) or 0) - (tonumber(nX) or 0)
-  vBase[cvY] = (tonumber(vBase[cvY]) or 0) - (tonumber(nY) or 0)
-  vBase[cvZ] = (tonumber(vBase[cvZ]) or 0) - (tonumber(nZ) or 0)
-  return vBase
-end
 
 function BasisVector(vBase, aUnit)
   if(not vBase) then LogInstance("Base invalid"); return nil end
@@ -1614,6 +1548,54 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
   return self -- Register the screen under the key
 end
 
+function NewPOA()
+  local self, mRaw = {0, 0, 0}
+  local mMis = GetOpVar("MISS_NOSQL")
+  local mSep = GetOpVar("OPSYM_SEPARATOR")
+  function self:Set(nA, nB, nC)
+    self[1] = (tonumber(nA) or 0)
+    self[2] = (tonumber(nB) or 0)
+    self[3] = (tonumber(nC) or 0)
+    return self
+  end
+  function self:Get()
+    return unpack(self)
+  end
+  function self:String()
+    return tableConcat(self, mSep):gsub("%s","")
+  end
+  function self:Raw(sRaw)
+    if(IsHere(sRaw)) then
+      mRaw = tostring(sRaw or "") end
+    return mRaw -- Source data manager
+  end
+  function self:IsSame(tPOA)
+    for iD = 1, 3 do
+      if(tPOA[iD] ~= self[iD]) then return true end
+    end; return false
+  end
+  function self:IsZero()
+    for iD = 1, 3 do
+      if(self[iD] ~= 0) then return false end
+    end; return true
+  end
+  function self:Export(sDes)
+    local sD, sR = tostring(sDes or mMis), self:Raw()
+    local sE = (self:IsZero() and sE or self:String())
+    return (sR and sR or sE)
+  end
+  function self:Decode(sStr)
+    local sStr = tostring(sStr or "")    -- Default to string
+    local tPOA = mSep:Explode(sStr)      -- Read the components
+    for iD = 1, 3 do                     -- Apply on all components
+      local nCom = tonumber(tPOA[iD])    -- Is the data really a number
+      if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
+        LogInstance("Mismatch "..GetReport(sStr)) end; self[iD] = nCom
+    end; return self
+  end
+  setmetatable(self, GetOpVar("TYPEMT_POA")); return self
+end
+
 function SetAction(sKey, fAct, tDat)
   if(not (sKey and IsString(sKey))) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
@@ -1999,8 +1981,10 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
     LogInstance("Entity Invalid"); return Vector(0,0,0) end
   oEnt:SetPos(vPos); oEnt:SetAngles(aAng)
   local vCen, vMin = oEnt:OBBCenter(), oEnt:OBBMins()
-  vCen:Negate(); vCen[cvZ] = 0 -- Adjust only X and Y
-  AddVectorXYZ(vCen, nX, -nY, nZ-vMin[cvZ])
+        vCen:Negate() -- Adjust only X and Y
+  local nCX, nCY, nCZ = vCen:Unpack()
+        nCX, nCY, nCZ = (nCX + nX), (nCY - nY), (nZ - vMin.z)
+  vCen:SetUnpacked(nCX, nCY, nCZ)
   vCen:Rotate(aAng); vCen:Add(vPos); oEnt:SetPos(vCen)
   return vCen -- Returns X-Y OBB centered model
 end
@@ -2034,7 +2018,9 @@ function IsPhysTrace(Trace)
   local eEnt = Trace.Entity
   if(not eEnt) then return false end
   if(not eEnt:IsValid()) then return false end
-  if(not eEnt:GetPhysicsObject():IsValid()) then return false end
+  local ePhy = eEnt:GetPhysicsObject()
+  if(not ePhy) then return false end
+  if(not ePhy:IsValid()) then return false end
   return true
 end
 
@@ -2069,14 +2055,13 @@ function GetPointElevation(oEnt,ivPoID)
   local hdRec = CacheQueryPiece(sModel); if(not IsHere(hdRec)) then
     LogInstance("Record not found for <"..sModel..">"); return nil end
   local hdPnt, iPoID = LocatePOA(hdRec,ivPoID); if(not IsHere(hdPnt)) then
-    LogInstance("Point missing "..GetReport(ivPoID).." on <"..sModel..">"); return nil end
+    LogInstance("POA missing "..GetReport2(ivPoID, sModel)); return nil end
   if(not (hdPnt.O and hdPnt.A)) then
-    LogInstance("POA missing "..GetReport(ivPoID).." for <"..sModel..">"); return nil end
-  local aDiffBB, vDiffBB = Angle(), oEnt:OBBMins()
-  aDiffBB:SetUnpacked(hdPnt.A:Get())
-  aDiffBB:RotateAroundAxis(aDiffBB:Up(), 180)
-  SubVector(vDiffBB,hdPnt.O); BasisVector(vDiffBB,aDiffBB)
-  return mathAbs(vDiffBB[cvZ])
+    LogInstance("Transform missing "..GetReport2(ivPoID, sModel)); return nil end
+  local aOBB, vOBB = Angle(), oEnt:OBBMins()
+  aOBB:SetUnpacked(hdPnt.A:Get()); aOBB:RotateAroundAxis(aOBB:Up(), 180)
+  vOBB:SetUnpacked(hdPnt.O:Get()); BasisVector(vOBB,aOBB)
+  return mathAbs(vOBB.z)
 end
 
 function GetBeautifyName(sName)
@@ -2145,54 +2130,6 @@ function MakeEntityNone(sModel, vPos, aAng) local eNone
   eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
   LogInstance("Create "..GetReport2(eNone:EntIndex(),sModel)); return eNone
-end
-
-function MakePOA()
-  local self, mRaw = {0, 0, 0}
-  local mMis = GetOpVar("MISS_NOSQL")
-  local mSep = GetOpVar("OPSYM_SEPARATOR")
-  function self:Set(nA, nB, nC)
-    self[1] = (tonumber(nA) or 0)
-    self[2] = (tonumber(nB) or 0)
-    self[3] = (tonumber(nC) or 0)
-    return self
-  end
-  function self:Get()
-    return unpack(self)
-  end
-  function self:String()
-    return tableConcat(self, mSep):gsub("%s","")
-  end
-  function self:Raw(sRaw)
-    if(IsHere(sRaw)) then
-      mRaw = tostring(sRaw or "") end
-    return mRaw -- Source data manager
-  end
-  function self:IsSame(tPOA)
-    for iD = 1, 3 do
-      if(tPOA[iD] ~= self[iD]) then return true end
-    end; return false
-  end
-  function self:IsZero()
-    for iD = 1, 3 do
-      if(self[iD] ~= 0) then return false end
-    end; return true
-  end
-  function self:Export(sDes)
-    local sD, sR = tostring(sDes or mMis), self:Raw()
-    local sE = (self:IsZero() and sE or self:String())
-    return (sR and sR or sE)
-  end
-  function self:Decode(sStr)
-    local sStr = tostring(sStr or "")    -- Default to string
-    local tPOA = mSep:Explode(sStr)      -- Read the components
-    for iD = 1, 3 do                     -- Apply on all components
-      local nCom = tonumber(tPOA[iD])    -- Is the data really a number
-      if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
-        LogInstance("Mismatch "..GetReport(sStr)) end; self[iD] = nCom
-    end; return self
-  end
-  setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
 
 --[[
@@ -2316,7 +2253,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     if((iID > 1) and (not tOffs[iID - 1])) then
       LogInstance("Scatter ID #"..tostring(iID)); return nil end
     tOffs[iID] = {}; tOffs = tOffs[iID] -- Allocate a local offset index
-    tOffs.P = MakePOA(); tOffs.O = MakePOA(); tOffs.A = MakePOA()
+    tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
   -------------------- Origin --------------------
   if(sO:sub(1,1) == sD) then tOffs.O:Set() else
@@ -3131,8 +3068,10 @@ function CacheBoxLayout(oEnt,nCamX,nCamZ)
     stBox.Cam = Vector(stBox.Eye) -- Layout camera position
     local nX = stBox.Len * (tonumber(nCamX) or 0) -- Calculate camera X
     local nZ = stBox.Len * (tonumber(nCamZ) or 0) -- Calculate camera Z
-    AddVectorXYZ(stBox.Cam, nX, 0, nZ) -- Apply calculated camera offsets
-    LogInstance("<"..tostring(stBox.Cen).."><"..tostring(stBox.Len)..">")
+    local nCX, nCY, nCZ = stBox.Cam:Unpack()
+          nCX, nCZ = (nCX + nX), (nCZ + nZ) -- Apply calculated camera offsets
+    stBox.Cam:SetUnpacked(nCX, nCY, nCZ)
+    LogInstance("Elevate "..GetReport2(stBox.Cen, stBox.Len))
   end; return stBox
 end
 
@@ -4098,7 +4037,7 @@ function GetNormalAngle(oPly, soTr, bSnp, nSnp)
     if(not (stTr and stTr.Hit)) then stTr = GetCacheTrace(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
     end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
-  else aAng[caY] = oPly:GetAimVector():Angle()[caY] end
+  else aAng.y = oPly:GetAimVector():Angle().y end
   SnapAngle(aAng, nAsn); GridAngle(aAng, nAsn); return aAng
 end
 
@@ -4166,8 +4105,8 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
   local stSpawn = GetCacheSpawn(oPly, stData)
         stSpawn.HID  = ihdPoID
         stSpawn.HRec = hdRec
-  if(ucsPos) then stSpawn.BPos:SetUnpacked(ucsPos[cvX], ucsPos[cvY], ucsPos[cvZ]) end
-  if(ucsAng) then stSpawn.BAng:SetUnpacked(ucsAng[caP], ucsAng[caY], ucsAng[caR]) end
+  if(ucsPos) then stSpawn.BPos:Set(ucsPos) end
+  if(ucsAng) then stSpawn.BAng:Set(ucsAng) end
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
   -- Initialize F, R, U Copy the UCS like that to support database POA
   stSpawn.ANxt:SetUnpacked(tonumber(ucsAngP) or 0,
@@ -4177,11 +4116,10 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
                            tonumber(ucsPosY) or 0,
                            tonumber(ucsPosZ) or 0)
   -- Integrate additional position offset into the origin position
-  if(stSpawn.ANxt[caP] ~= 0 or stSpawn.ANxt[caY] ~= 0 or stSpawn.ANxt[caR] ~= 0 or
-     stSpawn.PNxt[cvX] ~= 0 or stSpawn.PNxt[cvY] ~= 0 or stSpawn.PNxt[cvZ] ~= 0) then
+  if(not (stSpawn.ANxt:IsZero() and stSpawn.PNxt:IsZero())) then
     NegAngle(stSpawn.ANxt, true, true, false)
-    local pos, ang = LocalToWorld(stSpawn.PNxt, stSpawn.ANxt, stSpawn.BPos, stSpawn.BAng)
-    stSpawn.OPos:Set(pos); stSpawn.OAng:Set(ang);
+    local vW, aW = LocalToWorld(stSpawn.PNxt, stSpawn.ANxt, stSpawn.BPos, stSpawn.BAng)
+    stSpawn.OPos:Set(vW); stSpawn.OAng:Set(aW);
     stSpawn.F:Set(stSpawn.OAng:Forward())
     stSpawn.R:Set(stSpawn.OAng:Right())
     stSpawn.U:Set(stSpawn.OAng:Up())
@@ -4267,7 +4205,10 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   stSpawn.BPos:Rotate(stSpawn.TAng); stSpawn.BPos:Add(stSpawn.TOrg)
   stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
   -- Do the flatten flag right now Its important !
-  if(enFlatten) then stSpawn.BAng[caP] = 0; stSpawn.BAng[caR] = 0 end
+  if(enFlatten) then -- Take care of the track flat placing
+    local nP, nY, nR = stSpawn.BAng:Unpack()
+    nP, nR = 0, 0; stSpawn.BAng:SetUnpacked(nP, nY, nR)
+  end -- Base position and angle are ready and calculated
   return GetNormalSpawn(oPly,nil,nil,shdModel,ihdPoID,ucsPosX,ucsPosY,ucsPosZ,ucsAngP,ucsAngY,ucsAngR,stData)
 end
 
@@ -4320,9 +4261,9 @@ end
  * Returns a number: The 3x3 determinant value
 ]]
 function DeterminantVector(vR1, vR2, vR3)
-  local a, b, c = vR1[cvX], vR1[cvY], vR1[cvZ]
-  local d, e, f = vR2[cvX], vR2[cvY], vR2[cvZ]
-  local g, h, i = vR3[cvX], vR3[cvY], vR3[cvZ]
+  local a, b, c = vR1:Unpack()
+  local d, e, f = vR2:Unpack()
+  local g, h, i = vR3:Unpack()
   local r = ((a*e*i) + (b*f*g) + (d*h*c))
   local s = ((g*e*c) + (h*f*a) + (d*b*i))
   return (r - s) -- Return 3x3 determinant
@@ -4514,7 +4455,7 @@ function AttachAdditions(ePiece)
     LogInstance("Model skip <"..sMoa..">"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
-  local sD, oPOA = GetOpVar("OPSYM_DISABLE"), MakePOA()
+  local sD, oPOA = GetOpVar("OPSYM_DISABLE"), NewPOA()
     LogInstance("PIECE:MODEL("..sMoa..")")
   while(stData[iCnt]) do -- While additions are present keep adding them
     local arRec = stData[iCnt]; LogInstance("ADDITION ["..iCnt.."]")
