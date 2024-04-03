@@ -1589,8 +1589,8 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     local nAct = BorderValue(tonumber(nAct) or 0, "non-neg")
     local eP, eA = ePOA:GetPos(), ePOA:GetAngles()
     local vO, vP = Vector(), Vector()
-    vO:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
-    vP:SetUnpacked(stPOA.P[cvX], stPOA.P[cvY], stPOA.P[cvZ])
+    vO:SetUnpacked(stPOA.O:Get())
+    vP:SetUnpacked(stPOA.P:Get())
     vO:Rotate(eA); vO:Add(eP)
     vP:Rotate(eA); vP:Add(eP)
     local Op, Pp = vO:ToScreen(), vP:ToScreen()
@@ -1600,7 +1600,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       self:DrawCircle(Op, nR,"y","SURF")
     end
     if(iIdx) then local nO = Rv / 5
-      if(stPOA.P[cvX] ~= 0 or stPOA.P[cvY] ~= 0 or stPOA.P[cvZ] ~= 0) then
+      if(not stPOA.P:IsZero()) then
         self:SetTextStart(Pp.x + nO, Pp.y - 24 - nO)
       else self:SetTextStart(Op.x + nO, Op.y - 24 - nO) end
       self:DrawText(tostring(iIdx),"g","SURF",{"Trebuchet24"})
@@ -2073,7 +2073,7 @@ function GetPointElevation(oEnt,ivPoID)
   if(not (hdPnt.O and hdPnt.A)) then
     LogInstance("POA missing "..GetReport(ivPoID).." for <"..sModel..">"); return nil end
   local aDiffBB, vDiffBB = Angle(), oEnt:OBBMins()
-  aDiffBB:SetUnpacked(hdPnt.A[caP], hdPnt.A[caY], hdPnt.A[caR])
+  aDiffBB:SetUnpacked(hdPnt.A:Get())
   aDiffBB:RotateAroundAxis(aDiffBB:Up(), 180)
   SubVector(vDiffBB,hdPnt.O); BasisVector(vDiffBB,aDiffBB)
   return mathAbs(vDiffBB[cvZ])
@@ -2160,6 +2160,9 @@ function MakePOA()
   function self:Get()
     return unpack(self)
   end
+  function self:String()
+    return tableConcat(self, mSep):gsub("%s","")
+  end
   function self:Raw(sRaw)
     if(IsHere(sRaw)) then
       mRaw = tostring(sRaw or "") end
@@ -2175,11 +2178,10 @@ function MakePOA()
       if(self[iD] ~= 0) then return false end
     end; return true
   end
-  function self:String()
-    local svA = tostring(self[1] or "")
-    local svB = tostring(self[2] or "")
-    local svC = tostring(self[3] or "")
-    return (svA..mSep..svB..mSep..svC):gsub("%s","")
+  function self:Export(sDes)
+    local sD, sR = tostring(sDes or mMis), self:Raw()
+    local sE = (self:IsZero() and sE or self:String())
+    return (sR and sR or sE)
   end
   function self:Decode(sStr)
     local sStr = tostring(sStr or "")    -- Default to string
@@ -2189,11 +2191,6 @@ function MakePOA()
       if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
         LogInstance("Mismatch "..GetReport(sStr)) end; self[iD] = nCom
     end; return self
-  end
-  function self:Export(sDes)
-    local sD = tostring(sDes or mMis)
-    local sE = (self:IsZero() and sE or self:String())
-    return (self:Raw() and self:Raw() or sE)
   end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
@@ -2337,7 +2334,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
       stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
       LogInstance("Angle transform "..GetReport3(iID, sA, stData.Slot))
     elseif(IsNull(sA) or IsBlank(sA)) then tOffs.A:Set() else
-      if(not tOffs.A:DecodePOA(sA)) then -- Try to decode the angle when present
+      if(not tOffs.A:Decode(sA)) then -- Try to decode the angle when present
         LogInstance("Angle mismatch "..GetReport2(iID, stData.Slot)) end
     end -- Try decoding the transform point when not applicable
   end -- Assign current POA array to the angle by data transfer
@@ -4123,8 +4120,8 @@ function GetEntityHitID(oEnt, vHit, bPnt)
   for ID = 1, oRec.Size do -- Ignore the point disabled flag
     local tPOA, tID = LocatePOA(oRec, ID); if(not IsHere(tPOA)) then
       LogInstance("Point missing "..GetReport1(ID)); return nil end
-    if(bPnt) then oAnc:SetUnpacked(tPOA.P[cvX], tPOA.P[cvY], tPOA.P[cvZ])
-    else oAnc:SetUnpacked(tPOA.O[cvX], tPOA.O[cvY], tPOA.O[cvZ]) end
+    if(bPnt) then oAnc:SetUnpacked(tPOA.P:Get())
+    else oAnc:SetUnpacked(tPOA.O:Get()) end
     oAnc:Rotate(eAng); oAnc:Add(ePos) -- Convert local to world space
     local tMin = oAnc:DistToSqr(vHit) -- Calculate vector absolute ( distance )
     if(oID and oMin and oPOA) then -- Check if current distance is minimum
@@ -4190,9 +4187,9 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
     stSpawn.U:Set(stSpawn.OAng:Up())
   end
   -- Read holder record
-  stSpawn.HPnt:SetUnpacked(hdPOA.P[cvX], hdPOA.P[cvY], hdPOA.P[cvZ])
-  stSpawn.HOrg:SetUnpacked(hdPOA.O[cvX], hdPOA.O[cvY], hdPOA.O[cvZ])
-  stSpawn.HAng:SetUnpacked(hdPOA.A[caP], hdPOA.A[caY], hdPOA.A[caR])
+  stSpawn.HPnt:SetUnpacked(hdPOA.P:Get())
+  stSpawn.HOrg:SetUnpacked(hdPOA.O:Get())
+  stSpawn.HAng:SetUnpacked(hdPOA.A:Get())
   -- Apply origin basis to the trace matrix
   stSpawn.TMtx:Identity()
   stSpawn.TMtx:Translate(stSpawn.OPos)
@@ -4261,12 +4258,12 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
         stSpawn.HID , stSpawn.TID  = ihdPoID, trID
         stSpawn.TOrg:Set(trEnt:GetPos())
         stSpawn.TAng:Set(trEnt:GetAngles())
-        stSpawn.TPnt:SetUnpacked(trPOA.P[cvX], trPOA.P[cvY], trPOA.P[cvZ])
+        stSpawn.TPnt:SetUnpacked(trPOA.P:Get())
         stSpawn.TPnt:Rotate(stSpawn.TAng)
         stSpawn.TPnt:Add(stSpawn.TOrg)
   -- Found the active point ID on trEnt. Initialize origins
-  stSpawn.BPos:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ]) -- Read origin
-  stSpawn.BAng:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR]) -- Read angle
+  stSpawn.BPos:SetUnpacked(trPOA.O:Get()) -- Read origin
+  stSpawn.BAng:SetUnpacked(trPOA.A:Get()) -- Read angle
   stSpawn.BPos:Rotate(stSpawn.TAng); stSpawn.BPos:Add(stSpawn.TOrg)
   stSpawn.BAng:Set(trEnt:LocalToWorldAngles(stSpawn.BAng))
   -- Do the flatten flag right now Its important !
@@ -4290,9 +4287,10 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen)
   local trPOA = LocatePOA(trRec, ivPoID); if(not IsHere(trPOA)) then
     LogInstance("Point missing "..GetReport(ivPoID)); return nil end
   local trDt, trAng = GetOpVar("TRACE_DATA"), Angle()
-  trDt.start:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
-  trDt.start:Rotate(trEnt:GetAngles()); trDt.start:Add(trEnt:GetPos())
-  trAng:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+  trDt.start:SetUnpacked(trPOA.O:Get())
+  trDt.start:Rotate(trEnt:GetAngles())
+  trDt.start:Add(trEnt:GetPos())
+  trAng:SetUnpacked(trPOA.A:Get())
   trAng:Set(trEnt:LocalToWorldAngles(trAng))
   trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen)
   trDt.endpos:Add(trDt.start); SetOpVar("TRACE_FILTER", trEnt)
@@ -4434,8 +4432,8 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
     stRay.Ply, stRay.Ent, stRay.ID  = oPly , oEnt , trID
     stRay.POA, stRay.Rec, stRay.Min = trPOA, trRec, trMin
   end
-  stRay.Dir:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
-  stRay.Org:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+  stRay.Dir:SetUnpacked(trPOA.A:Get())
+  stRay.Org:SetUnpacked(trPOA.O:Get())
   return IntersectRayUpdate(stRay)
 end
 
@@ -4497,14 +4495,13 @@ function IntersectRayModel(sModel, nPntID, nNxtID)
   local stPOA2 = LocatePOA(mRec, nNxtID); if(not stPOA2) then
     LogInstance("End ID missing "..GetReport(nNxtID)); return nil end
   local aD1, aD2 = Angle(), Angle()
-  aD1:SetUnpacked(stPOA1.A[caP], stPOA1.A[caY], stPOA1.A[caR])
-  aD2:SetUnpacked(stPOA2.A[caP], stPOA2.A[caY], stPOA2.A[caR])
+  aD1:SetUnpacked(stPOA1.A:Get()); aD2:SetUnpacked(stPOA2.A:Get())
   local vO1, vD1 = Vector(), aD1:Forward()
-  vO1:SetUnpacked(stPOA1.O[cvX], stPOA1.O[cvY], stPOA1.O[cvZ]); vD1:Mul(-1)
+  vO1:SetUnpacked(stPOA1.O:Get()); vD1:Mul(-1)
   local vO2, vD2 = Vector(), aD2:Forward()
-  vO2:SetUnpacked(stPOA2.O[cvX], stPOA2.O[cvY], stPOA2.O[cvZ]); vD2:Mul(-1)
+  vO2:SetUnpacked(stPOA2.O:Get()); vD2:Mul(-1)
   local f1, f2, x1, x2, xx = IntersectRay(vO1,vD1,vO2,vD2)
-  if(not xx) then -- Attempts taking the mean vector when the rays are parallel for straight tracks
+  if(not xx) then -- Mean vector when the rays are parallel for straight tracks
     f1, f2, x1, x2, xx = IntersectRayParallel(vO1,vD1,vO2,vD2) end
   return xx, vO1, vO2, aD1, aD2
 end
@@ -4517,7 +4514,8 @@ function AttachAdditions(ePiece)
     LogInstance("Model skip <"..sMoa..">"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
-  local sD = GetOpVar("OPSYM_DISABLE"); LogInstance("PIECE:MOD("..sMoa..")")
+  local sD, oPOA = GetOpVar("OPSYM_DISABLE"), MakePOA()
+    LogInstance("PIECE:MODEL("..sMoa..")")
   while(stData[iCnt]) do -- While additions are present keep adding them
     local arRec = stData[iCnt]; LogInstance("ADDITION ["..iCnt.."]")
     local exItem = entsCreate(arRec[makTab:GetColumnName(3)])
@@ -4530,18 +4528,14 @@ function AttachAdditions(ePiece)
       local ofPos = arRec[makTab:GetColumnName(5)]; if(not IsString(ofPos)) then
         LogInstance("Position mismatch "..GetReport(ofPos)); return false end
       if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos) or ofPos:sub(1,1) == sD)) then
-        local vpAdd, arPOA = Vector(), DecodePOA(ofPos)
-        if(not IsHere(arPOA)) then LogInstance("Origin mismatch "..GetReport2(iCnt, adMod)) end
-        vpAdd:SetUnpacked(arPOA[1], arPOA[2], arPOA[3])
+        vpAdd:SetUnpacked(oPOA:Decode(ofPos):Get())
         vpAdd:Set(ePiece:LocalToWorld(vpAdd))
         exItem:SetPos(vpAdd); LogInstance("ENT:SetPos(DB)")
       else exItem:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
       local ofAng = arRec[makTab:GetColumnName(6)]; if(not IsString(ofAng)) then
         LogInstance("Angle mismatch "..GetReport(ofAng)); return false end
       if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng) or ofAng:sub(1,1) == sD)) then
-        local apAdd, arPOA = Angle(), DecodePOA(ofAng)
-        if(not IsHere(arPOA)) then LogInstance("Angle mismatch "..GetReport2(iCnt, adMod)) end
-        apAdd:SetUnpacked(arPOA[1], arPOA[2], arPOA[3])
+        apAdd:SetUnpacked(oPOA:Decode(ofAng):Get())
         apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
         exItem:SetAngles(apAdd); LogInstance("ENT:SetAngles(DB)")
       else exItem:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end

@@ -745,21 +745,21 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
       local pointid, pnextid = self:GetPointID()
       local vXX, vO1, vO2 = asmlib.IntersectRayModel(trMod, pointid, pnextid)
       if(vXX) then
-        wOrig:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+        wOrig:SetUnpacked(trPOA.O:Get())
         wOrig:Set(trEnt:LocalToWorld(wOrig))
         wOver:Set(trEnt:LocalToWorld(vXX))
         vO1:Set(trEnt:LocalToWorld(vO1))
         vO2:Set(trEnt:LocalToWorld(vO2))
-        wAucs:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+        wAucs:SetUnpacked(trPOA.A:Get())
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
         return wOver, wNorm, wOrig, vO1, vO2
       end
     else
       if(trPOA) then
-        wOrig:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+        wOrig:SetUnpacked(trPOA.O:Get())
         wOrig:Set(trEnt:LocalToWorld(wOrig))
-        wAucs:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+        wAucs:SetUnpacked(trPOA.A:Get())
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
         return wOver, wNorm, wOrig
@@ -887,9 +887,9 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   if(bPnt and eEnt and eEnt:IsValid()) then
     local oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, tData.Hit, true)
     if(oID and oMin and oPOA and oRec) then
-      tData.Org:SetUnpacked(oPOA.O[cvX], oPOA.O[cvY], oPOA.O[cvZ])
+      tData.Org:SetUnpacked(oPOA.O:Get())
       tData.Org:Rotate(eEnt:GetAngles()); tData.Org:Add(eEnt:GetPos())
-      tData.Ang:SetUnpacked(oPOA.A[caP], oPOA.A[caY], oPOA.A[caR])
+      tData.Ang:SetUnpacked(oPOA.A:Get())
       tData.Ang:Set(eEnt:LocalToWorldAngles(tData.Ang))
       tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
       tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
@@ -1011,12 +1011,12 @@ function TOOL:CurveCheck()
   end
   -- Read the active point and check piece shape
   local sO, sA = tC.Info.Pos[1], tC.Info.Ang[1]
-        sO:SetUnpacked(sPOA.O[cvX], sPOA.O[cvY], sPOA.O[cvZ])
-        sA:SetUnpacked(sPOA.A[caP], sPOA.A[caY], sPOA.A[caR])
+        sO:SetUnpacked(sPOA.O:Get())
+        sA:SetUnpacked(sPOA.A:Get())
   -- Read the next point to check the piece shape
   local eO, eA = tC.Info.Pos[2], tC.Info.Ang[2]
-        eO:SetUnpacked(ePOA.O[cvX], ePOA.O[cvY], ePOA.O[cvZ])
-        eA:SetUnpacked(ePOA.A[caP], ePOA.A[caY], ePOA.A[caR])
+        eO:SetUnpacked(ePOA.O:Get())
+        eA:SetUnpacked(ePOA.A:Get())
   -- Disable for active points with zero distance
   local nD = eO:DistToSqr(sO); if(nD <= nEps) then
     asmlib.Notify(user,"Segment tiny "..fnmodel.." !","ERROR")
@@ -1400,7 +1400,7 @@ function TOOL:LeftClick(stTrace)
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtLogs); return false end
           if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtLogs); return false end
-          oArg.vtemp:SetUnpacked(hdOffs.P[cvX], hdOffs.P[cvY], hdOffs.P[cvZ])
+          oArg.vtemp:SetUnpacked(hdOffs.P:Get())
           oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.sppos)
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
@@ -1725,8 +1725,10 @@ function TOOL:UpdateGhost(oPly)
           if(not hdOffs) then return end -- Validated existent next point ID
           for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
             if(not (ePiece and ePiece:IsValid())) then return end
-            ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
-            vTemp:SetUnpacked(hdOffs.P[cvX], hdOffs.P[cvY], hdOffs.P[cvZ])
+            ePiece:SetPos(stSpawn.SPos)
+            ePiece:SetAngles(stSpawn.SAng)
+            ePiece:SetNoDraw(false)
+            vTemp:SetUnpacked(hdOffs.P:Get())
             vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
             if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
             if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
@@ -1849,15 +1851,15 @@ function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtLogs); return end
-    vTmp:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
+    vTmp:SetUnpacked(stPOA.O:Get())
     vTmp:Rotate(trAng); vTmp:Add(trPos)
     local nR, nM = asmlib.GetViewRadius(oPly, vTmp), vTmp:DistToSqr(trHit)
     oScreen:DrawCircle(vTmp:ToScreen(), nR, "y", "SEGM", {35})
     if(not rM or (nM < rM)) then rM, trPOA = nM, stPOA end
   end
-  vTmp:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+  vTmp:SetUnpacked(trPOA.O:Get())
   vTmp:Rotate(trAng); vTmp:Add(trPos)
-  aTmp:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+  aTmp:SetUnpacked(trPOA.A:Get())
   aTmp:Set(trEnt:LocalToWorldAngles(aTmp))
   local Hp, Op = trHit:ToScreen(), vTmp:ToScreen()
   local vF, vU = aTmp:Forward(), aTmp:Up()
@@ -1979,7 +1981,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
     end
   end
   if(tData.POA) then local trEnt = stTrace.Entity
-    tData.Org:SetUnpacked(tData.POA.P[cvX], tData.POA.P[cvY], tData.POA.P[cvZ])
+    tData.Org:SetUnpacked(tData.POA.P:Get())
     tData.Org:Rotate(trEnt:GetAngles()); tData.Org:Add(trEnt:GetPos())
     oScreen:DrawLine(xyH, tData.Org:ToScreen(), "g")
   end
@@ -1990,7 +1992,7 @@ function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
   local oRec, vN = stSpawn.HRec, Vector()
   local stPOA = asmlib.LocatePOA(oRec, pnextid)
   if(stPOA and oRec.Size > 1) then
-    vN:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
+    vN:SetUnpacked(stPOA.O:Get())
     vN:Rotate(stSpawn.SAng); vN:Add(stSpawn.SPos)
     local Np, Op = vN:ToScreen(), stSpawn.OPos:ToScreen()
     oScreen:DrawLine(Op, Np, "g")
