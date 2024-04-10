@@ -4305,7 +4305,7 @@ function IntersectRay(vO1, vD1, vO2, vD2)
   local ez = GetOpVar("EPSILON_ZERO")
   local d1, d2 = vD1:GetNormalized(), vD2:GetNormalized()
   local dx, oo = d1:Cross(d2), (vO2 - vO1)
-  local dn = (dx:Length())^2; if(dn < ez) then
+  local dn = dx:LengthSqr(); if(dn < ez) then
     LogInstance("Rays parallel"); return nil end
   local f1 = DeterminantVector(oo, d2, dx) / dn
   local f2 = DeterminantVector(oo, d1, dx) / dn
@@ -5290,8 +5290,8 @@ function IsAmongLine(vO, vS, vE)
   local oS = Vector(vO); oS:Sub(vS)
   local oE = Vector(vO); oE:Sub(vE)
   local oR = Vector(vE); oR:Sub(vE)
-  local nC = oS:Cross(oR):Length()
-  if(mathAbs(nC) > nE) then return false end
+  local nC = oS:Cross(oR):LengthSqr()
+  if(nC > nE) then return false end
   local dS, dE = oS:Dot(oR), oE:Dot(oR)
   if(dS * dE > 0) then return false end
   return true
