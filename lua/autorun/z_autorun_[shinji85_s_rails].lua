@@ -223,15 +223,15 @@ myExportCategory(myCategory)
  *          a given model key. Disabling this, makes it use the the index of the current line.
  *          Use that to swap the active points around by only moving the desired row up or down.
  *          For the example table definition below, the line ID in the database will be the same.
- * POINT  > This is the local position vector that TA searches and selects the related ORIGIN for.
+ * POINT  > This is the location vector that TA searches and selects the related ORIGIN for.
  *          An empty string is treated as taking the ORIGIN when assuming player traces can hit the origin
  *          Disabling via /#/ makes it take the ORIGIN. Used to disable a point but keep original data
- *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
+ *          You can also fill it with attachment event /!/ followed by your attachment name.
  * ORIGIN > This is the origin relative to which the next track piece position is calculated
- *          An empty string is treated as {0,0,0} local. Disabling via /#/ also makes it use {0,0,0} local
+ *          An empty string is treated as {0,0,0}. Disabling via /#/ also makes it use {0,0,0}
  *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
  * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
- *          An empty string is treated as {0,0,0} local. Disabling via /#/ also makes it use {0,0,0} local
+ *          An empty string is treated as {0,0,0}. Disabling via /#/ also makes it use {0,0,0}
  *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
  * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
  *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
