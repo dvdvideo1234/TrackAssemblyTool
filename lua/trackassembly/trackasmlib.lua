@@ -1556,13 +1556,13 @@ function NewPOA()
     return unpack(self)
   end
   function self:Array()
-    return {unpack(self)}
+    return {self:Get()}
   end
   function self:Vector()
-    return Vector(unpack(self))
+    return Vector(self:Get())
   end
   function self:Angle()
-    return Angle(unpack(self))
+    return Angle(self:Get())
   end
   function self:String()
     return tableConcat(self, mSep):gsub("%s","")
@@ -1578,14 +1578,14 @@ function NewPOA()
       mRaw = tostring(sRaw or "") end
     return mRaw -- Source data manager
   end
-  function self:IsSame(tPOA)
-    for iD = 1, 3 do
-      if(tPOA[iD] ~= self[iD]) then return false end
-    end; return true
-  end
   function self:IsZero()
     for iD = 1, 3 do
       if(self[iD] ~= 0) then return false end
+    end; return true
+  end
+  function self:IsSame(tPOA)
+    for iD = 1, 3 do
+      if(tPOA[iD] ~= self[iD]) then return false end
     end; return true
   end
   function self:Export(sDes)
@@ -1603,16 +1603,15 @@ function NewPOA()
         LogInstance("Mismatch "..GetReport(sStr)) end; self[iD] = nCom
     end; return self
   end
-  function self:Update(sStr, nA, nB, nC)
+  function self:Update(sStr, ...)
     local sStr = tostring(sStr or "")  -- Default to string
-    elseif(sStr:sub(1,1) == nDis) then -- Check when entry is disabled
-      self:Set(nA, nB, nC) -- Override with the default value provided
-    elseif(IsNull(sStr) or IsBlank(sStr)) then -- When empty or null use the default
-      self:Set(nA, nB, nC) -- Override with the default value provided
+    if(sStr:sub(1,1) == nDis) then -- Check when entry is disabled
+      self:Set(...) -- Override with the default value provided
+    elseif(IsNull(sStr) or IsBlank(sStr)) then -- Empty or null use the default
+      self:Set(...) -- Override with the default value provided
     else -- When the entry is empty use the default otherwise decode the value
-      if(not self:Decode(sStr)) then -- Try to decode the entry when present
-        LogInstance("Mismatch "..GetReport2(ID, oRec.Slot)) end
-    end -- Try decoding the transform entry when not applicable
+      self:Decode(sStr) -- Try to decode the entry when present
+    end; return self -- Try decoding the transform entry when not applicable
   end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
