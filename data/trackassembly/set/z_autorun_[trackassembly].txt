@@ -217,7 +217,7 @@ myExportCategory(myCategory)
  * {MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
  * MODEL  > This string contains the path to your /*.mdl/ file. It is mandatory and
  *          taken in pairs with LINEID, it forms the unique identifier of every record.
- *          When used in /DSV/ mode ( like seen below ) is is used as a hash index.
+ *          When used in /DSV/ mode ( like seen below ) it is used as a hash index.
  * TYPE   > This string is the name of the type your stuff will reside in the panel.
  *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable.
  *          If it is empty uses the string /TYPE/, so make sure you fill this.
@@ -228,17 +228,19 @@ myExportCategory(myCategory)
  *          a given model key. Disabling this, makes it use the the index of the current line.
  *          Use that to swap the active points around by only moving the desired row up or down.
  *          For the example table definition below, the line ID in the database will be the same.
- * POINT  > This is the local position vector that TA searches and selects the related
- *          ORIGIN for. An empty or disabled string is treated as taking the ORIGIN.
- *          Disabling this using the disable event makes it hidden when the active point is searched for
+ * POINT  > This is the local position vector that TA searches and selects the related ORIGIN for.
+ *          An empty string is treated as taking the ORIGIN when assuming player traces can hit the origin
+ *          Disabling via /#/ makes it take the ORIGIN. Used to disable a point but keep original data
+ *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
  * ORIGIN > This is the origin relative to which the next track piece position is calculated
- *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
+ *          An empty string is treated as {0,0,0} local. Disabling via /#/ also makes it use {0,0,0} local
  *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
  * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
- *          An empty string is treated as {0,0,0}. Disabling this also makes it use {0,0,0}
+ *          An empty string is treated as {0,0,0} local. Disabling via /#/ also makes it use {0,0,0} local
  *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
  * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
  *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
+ *          Disabling via /#/ makes it take the NULL value. In this case the model is spawned as a prop
 ]]--
 local myPieces = {
   ["models/props_phx/construct/metal_plate1x2.mdl"] = { -- Here goes the model of your pack

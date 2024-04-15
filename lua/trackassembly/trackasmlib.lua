@@ -1550,6 +1550,7 @@ end
 function NewPOA()
   local self, mRaw = {0, 0, 0}
   local mMis = GetOpVar("MISS_NOSQL")
+  local nDis = GetOpVar("OPSYM_DISABLE")
   local mSep = GetOpVar("OPSYM_SEPARATOR")
   function self:Get()
     return unpack(self)
@@ -1601,6 +1602,17 @@ function NewPOA()
       if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
         LogInstance("Mismatch "..GetReport(sStr)) end; self[iD] = nCom
     end; return self
+  end
+  function self:Update(sStr, nA, nB, nC)
+    local sStr = tostring(sStr or "")  -- Default to string
+    elseif(sStr:sub(1,1) == nDis) then -- Check when entry is disabled
+      self:Set(nA, nB, nC) -- Override with the default value provided
+    elseif(IsNull(sStr) or IsBlank(sStr)) then -- When empty or null use the default
+      self:Set(nA, nB, nC) -- Override with the default value provided
+    else -- When the entry is empty use the default otherwise decode the value
+      if(not self:Decode(sStr)) then -- Try to decode the entry when present
+        LogInstance("Mismatch "..GetReport2(ID, oRec.Slot)) end
+    end -- Try decoding the transform entry when not applicable
   end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
@@ -2193,27 +2205,31 @@ function LocatePOA(oRec, ivPoID)
     for ID = 1, oRec.Size do local tPOA = tOffs[ID] -- Index current offset
       local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
       -------------------- Origin --------------------
-      if(sO and sO:sub(1,1) == sE) then -- POA origin must extracted from the model
-        local sK = sO:sub(2, -1) -- Read origin transform ID and try to index
-        local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
-        if(IsHere(vO)) then tPOA.O:Set(vO:Unpack()) -- Load origin into POA
-        else -- Try decoding the transform origin when not applicable
-          if(IsNull(sK) or IsBlank(sK)) then tPOA.O:Set() else
-            if(not tPOA.O:Decode(sK)) then -- Try to decode the origin when present
-              LogInstance("Origin mismatch "..GetReport2(ID, oRec.Slot)) end
-        end end -- Decode the transformation when is not null or empty string
+      if(sO) then
+        if(sO:sub(1,1) == sE) then -- POA origin must extracted from the model
+          local sK = sO:sub(2, -1) -- Read origin transform ID and try to index
+          local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
+          if(IsHere(vO)) then tPOA.O:Set(vO:Unpack()) -- Load origin into POA
+          else -- Try decoding the transform origin when not applicable
+            tPOA.O:Update(sK)  -- Try to process the origin when present
+          end -- Decode the transformation when is not null or empty string
+        else -- When the origin is empty use zero otherwise process the value
+          tPOA.O:Update(sO) -- Try to process the origin when present
+        end -- Try decoding the transform origin when not applicable
         LogInstance("Origin transform spawn "..GetReport3(ID, sO, tPOA.O:String()))
       end -- Transform origin is decoded from the model and stored in the cache
       -------------------- Angle --------------------
-      if(sA and sA:sub(1,1) == sE) then -- POA angle must extracted from the model
-        local sK = sA:sub(2, -1) -- Read angle transform ID and try to index
-        local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
-        if(IsHere(aA)) then tPOA.A:Set(aA:Unpack()) -- Load angle into POA
-        else -- Try decoding the transform angle when not applicable
-          if(IsNull(sK) or IsBlank(sK)) then tPOA.A:Set() else
-            if(not tPOA.A:Decode(sK)) then -- Try to decode the angle when present
-              LogInstance("Angle mismatch "..GetReport2(ID, oRec.Slot)) end
-        end end -- Decode the transformation when is not null or empty string
+      if(sA) then -- There is still something to be processed after the registration
+        if(sA:sub(1,1) == sE) then -- POA angle must extracted from the model
+          local sK = sA:sub(2, -1) -- Read angle transform ID and try to index
+          local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
+          if(IsHere(aA)) then tPOA.A:Set(aA:Unpack()) -- Load angle into POA
+          else -- Try decoding the transform angle when not applicable
+            tPOA.A:Update(sK) -- Try to process the angle when present
+          end -- Decode the transformation when is not null or empty string
+        else -- When the angle is empty use zero otherwise process the value
+          tPOA.A:Update(aA) -- Try to process the angle when present
+        end -- Try decoding the transform angle when not applicable
         LogInstance("Angle transform spawn "..GetReport3(ID, sA, tPOA.A:String()))
       end -- Transform angle is decoded from the model and stored in the cache
       -------------------- Point --------------------
@@ -2223,17 +2239,10 @@ function LocatePOA(oRec, ivPoID)
           local vP = GetAttachmentByID(oRec.Slot, sK) -- Read transform point
           if(IsHere(vP)) then tPOA.P:Set(vP:Unpack()) -- Load point into POA
           else -- Try decoding the transform point when not applicable
-            if(IsNull(sK) or IsBlank(sK)) then tPOA.P:Set(tPOA.O:Get()) else
-              if(not tPOA.P:Decode(sK)) then -- Try to decode the point when present
-                LogInstance("Point mismatch "..GetReport2(ID, oRec.Slot)) end
-          end end -- Decode the transformation when is not null or empty string
-        elseif(sP:sub(1,1) == sD) then -- Check whenever point is disabled
-          tPOA.P:Set(tPOA.O:Get()) -- Override with the origin
-        elseif(IsNull(sP) or IsBlank(sP)) then -- In case of empty value or null use the origin
-          tPOA.P:Set(tPOA.O:Get())  -- Override with the origin
-        else -- When the point is empty use the origin otherwise decode the value
-          if(not tPOA.P:Decode(sP)) then -- Try to decode the point when present
-            LogInstance("Point mismatch "..GetReport2(ID, oRec.Slot)) end
+            tPOA.P:Update(sK, tPOA.O:Get()) -- Try to process the point when present
+          end -- Decode the transformation when is not null or empty string
+        else -- When the point is empty use zero otherwise process the value
+          tPOA.P:Update(sP, tPOA.O:Get()) -- Try to process the point when present
         end -- Try decoding the transform point when not applicable
         LogInstance("Point transform spawn "..GetReport3(ID, sP, tPOA.P:String()))
       end -- Otherwise point is initialized on registration and we have nothing to do here
@@ -2265,37 +2274,26 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
   end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
   -------------------- Origin --------------------
-  if(sO:sub(1,1) == sD) then tOffs.O:Set() else
-    if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
-      stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
-      LogInstance("Origin transform "..GetReport3(iID, sO, stData.Slot))
-    elseif(IsNull(sO) or IsBlank(sO)) then tOffs.O:Set() else
-      if(not tOffs.O:Decode(sO)) then -- Try to decode the origin when present
-        LogInstance("Origin mismatch "..GetReport2(iID, stData.Slot)) end
-    end -- Try decoding the transform point when not applicable
-  end -- Assign current POA array to the origin by data transfer
+  if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
+    stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
+    LogInstance("Origin transform "..GetReport3(iID, sO, stData.Slot))
+  else -- When the origin is empty use the zero otherwise decode the value
+    tOffs.O:Update(sO) -- Try to decode the origin when present
+  end -- Try decoding the transform point when not applicable
   -------------------- Angle --------------------
-  if(sA:sub(1,1) == sD) then tOffs.A:Set() else
-    if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
-      stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
-      LogInstance("Angle transform "..GetReport3(iID, sA, stData.Slot))
-    elseif(IsNull(sA) or IsBlank(sA)) then tOffs.A:Set() else
-      if(not tOffs.A:Decode(sA)) then -- Try to decode the angle when present
-        LogInstance("Angle mismatch "..GetReport2(iID, stData.Slot)) end
-    end -- Try decoding the transform point when not applicable
-  end -- Assign current POA array to the angle by data transfer
+  if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
+    stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
+    LogInstance("Angle transform "..GetReport3(iID, sA, stData.Slot))
+  else -- When the angle is empty use the zero otherwise decode the value
+    tOffs.A:Update(sA) -- Try to decode the angle when present
+  end -- Try decoding the transform point when not applicable
   -------------------- Point --------------------
   if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
     stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
     LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
-  elseif(sP:sub(1,1) == sD) then -- Point is disabled then use origin
-    tOffs.P:Set(tOffs.O:Get())   -- Populate point data from origin
-  elseif(IsNull(sP) or IsBlank(sP)) then -- Empty value  use origin
-    tOffs.P:Set(tOffs.O:Get())   -- Populate point data from origin
   else -- When the point is empty use the origin otherwise decode the value
-    if(not tOffs.Decode(sP)) then -- Try to decode the point when present
-      LogInstance("Point mismatch "..GetReport2(iID, stData.Slot)) end
-  end -- Assign current POA array to the point by data transfer
+    tOffs.P:Update(sP, tOffs.O:Get()) -- Try to decode the point when present
+  end -- Try decoding the transform point when not applicable
   return tOffs -- On success return the populated POA offset
 end
 
@@ -2340,11 +2338,12 @@ end
  * vDsb > The disable value to return when the base is disabled string
 ]]
 function GetTerm(sBas, vDef, vDsb)
-  local sMiss = GetOpVar("MISS_NOAV")
-  if(IsString(sBas)) then local sD = GetOpVar("OPSYM_DISABLE")
-    if(sBas:sub(1,1) == sD) then return tostring(vDsb or sMiss)
+  local sM = GetOpVar("MISS_NOAV")
+  local sD = GetOpVar("OPSYM_DISABLE")
+  if(IsString(sBas)) then
+    if(sBas:sub(1,1) == sD) then return tostring(vDsb or sM)
     elseif(not (IsNull(sBas) or IsBlank(sBas))) then return sBas end
-  end; if(IsString(vDef)) then return vDef end; return sMiss
+  end; if(IsString(vDef)) then return vDef end; return sM
 end
 
 function ModelToNameRule(sRule, gCut, gSub, gApp)
