@@ -1565,7 +1565,7 @@ function NewPOA()
     return Angle(self:Get())
   end
   function self:String()
-    return tableConcat(self, mSep):gsub("%s","")
+    return tableConcat(self, mSep)
   end
   function self:Set(nA, nB, nC)
     self[1] = (tonumber(nA) or 0)
