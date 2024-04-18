@@ -356,7 +356,7 @@ mySyncTable("PIECES", myPieces, true)
  *             It is mandatory and taken in pairs with LINEID, it forms the unique identifier of every record.
  *             When used in /DSV/ mode ( like seen below ) is is used as a hash index.
  * MODELADD  > This is the /*.mdl/ path of the addition entity. It is mandatory and cannot be disabled.
- * ENTCLASS  > This is the class of the addition entity. It is mandatory and cannot be disabled.
+ * ENTCLASS  > This is the class of the addition entity. When disabled or missing it defaults to a normal prop.
  * LINEID    > This is the ID of the point that can be selected for building. They must be
  *             sequential and mandatory. If provided, the ID must the same as the row index under
  *             a given model key. Disabling this, makes it use the the index of the current line.

@@ -283,41 +283,6 @@ function IsOther(oEnt)
   return false
 end
 
--- Uses custom model check to remove the pre-caching overhead
-libModel.Skip = {} -- Gerneral disabled models for spawning
-libModel.Skip[""] = true -- Empty string
-libModel.Skip["models/error.mdl"] = true
-libModel.File = {} -- When the file is available
-libModel.Deep = {} -- When the model is spawned
-function IsModel(sModel, bDeep)
-  if(not IsHere(sModel)) then
-    LogInstance("Missing "..GetReport(sModel)); return false end
-  if(not IsString(sModel)) then
-    LogInstance("Mismatch "..GetReport(sModel)); return false end
-  if(libModel.Skip[sModel]) then
-    LogInstance("Skipped "..GetReport(sModel)); return false end
-  local vDeep = libModel.Deep[sModel] -- Read model validation status
-  if(SERVER and bDeep and IsHere(vDeep)) then return vDeep end -- Ganna spawn
-  local vFile = libModel.File[sModel] -- File current status
-  if(IsHere(vFile)) then -- File validation status is present
-    if(not vFile) then -- File is validated as invalid path
-      LogInstance("Invalid file "..GetReport(sModel)); return false end
-  else  -- File validation status update
-    if(IsUselessModel(sModel)) then libModel.File[sModel] = false
-      LogInstance("File useless "..GetReport(sModel)); return false end
-    if(not fileExists(sModel, "GAME")) then libModel.File[sModel] = false
-      LogInstance("File missing "..GetReport(sModel)); return false end
-    vFile = true; libModel.File[sModel] = vFile -- The file validated
-    LogInstance("File >> "..GetReport3(vDeep, vFile, sModel))
-  end -- At this point file path is valid. Have to validate model
-  if(CLIENT or not bDeep) then return true else -- File is validated
-    utilPrecacheModel(sModel) vDeep = utilIsValidModel(sModel)
-    libModel.Deep[sModel] = vDeep; -- Store deep validation
-    LogInstance("Deep >> "..GetReport3(vDeep, vFile, sModel))
-    return vDeep -- Gonna spawn
-  end
-end
-
 -- Reports the type and actual value
 function GetReport(vA) local sR = GetOpVar("FORM_VREPORT2")
   return (sR and sR:format(type(vA), tostring(vA)) or "")
@@ -374,6 +339,41 @@ end
 -- Gets the date and time according to the specified format
 function GetDateTime(vDT, fDT)
   return GetDate(vDT, fDT).." "..GetTime(vDT, fDT)
+end
+
+-- Uses custom model check to remove the pre-caching overhead
+libModel.Skip = {} -- Gerneral disabled models for spawning
+libModel.Skip[""] = true -- Empty string
+libModel.Skip["models/error.mdl"] = true
+libModel.File = {} -- When the file is available
+libModel.Deep = {} -- When the model is spawned
+function IsModel(sModel, bDeep)
+  if(not IsHere(sModel)) then
+    LogInstance("Missing "..GetReport(sModel)); return false end
+  if(not IsString(sModel)) then
+    LogInstance("Mismatch "..GetReport(sModel)); return false end
+  if(libModel.Skip[sModel]) then
+    LogInstance("Skipped "..GetReport(sModel)); return false end
+  local vDeep = libModel.Deep[sModel] -- Read model validation status
+  if(SERVER and bDeep and IsHere(vDeep)) then return vDeep end -- Ganna spawn
+  local vFile = libModel.File[sModel] -- File current status
+  if(IsHere(vFile)) then -- File validation status is present
+    if(not vFile) then -- File is validated as invalid path
+      LogInstance("Invalid file "..GetReport(sModel)); return false end
+  else  -- File validation status update
+    if(IsUselessModel(sModel)) then libModel.File[sModel] = false
+      LogInstance("File useless "..GetReport(sModel)); return false end
+    if(not fileExists(sModel, "GAME")) then libModel.File[sModel] = false
+      LogInstance("File missing "..GetReport(sModel)); return false end
+    vFile = true; libModel.File[sModel] = vFile -- The file validated
+    LogInstance("File >> "..GetReport3(vDeep, vFile, sModel))
+  end -- At this point file path is valid. Have to validate model
+  if(CLIENT or not bDeep) then return true else -- File is validated
+    utilPrecacheModel(sModel) vDeep = utilIsValidModel(sModel)
+    libModel.Deep[sModel] = vDeep; -- Store deep validation
+    LogInstance("Deep >> "..GetReport3(vDeep, vFile, sModel))
+    return vDeep -- Gonna spawn
+  end
 end
 
 -- Strips a string from quotes
@@ -436,6 +436,13 @@ function GetOwner(oEnt)
     set = set.undo1; ows = (set.Args and set.Args[1] or nil)
     if(IsPlayer(ows)) then return ows else ows = nil end
   end; return ows -- No owner is found. Nothing is returned
+end
+
+function GetVacant(sStr)
+  local sD = GetOpVar("OPSYM_DISABLE")
+  local sS = tostring(sStr or "")  -- Default to string
+  local bE = (IsBlank(sS) or IsNull(sS) or sS:sub(1,1) == sD)
+  return bE, sS -- Scan whenever data to be decoded is present
 end
 
 ------------------ LOGS ------------------------
@@ -1550,7 +1557,6 @@ end
 function NewPOA()
   local self, mRaw = {0, 0, 0}
   local mMis = GetOpVar("MISS_NOSQL")
-  local nDis = GetOpVar("OPSYM_DISABLE")
   local mSep = GetOpVar("OPSYM_SEPARATOR")
   function self:Get()
     return unpack(self)
@@ -1594,24 +1600,18 @@ function NewPOA()
     local sE = (self:IsZero() and sD or sS)
     return (mRaw and mRaw or sE)
   end
-  function self:Decode(sStr)
-    local sStr = tostring(sStr or "")    -- Default to string
-    local tPOA = mSep:Explode(sStr)      -- Read the components
-    for iD = 1, 3 do                     -- Apply on all components
-      local nCom = tonumber(tPOA[iD])    -- Is the data really a number
-      if(not IsHere(nCom)) then nCom = 0 -- If not write zero and report it
-        LogInstance("Mismatch "..GetReport(sStr)) end; self[iD] = nCom
+  function self:Decode(sStr, ...)
+    local bV, sS = GetVacant(sStr) -- Default to string
+    if(bV) then -- Check when entry data is vacant
+      self:Set(...) -- Override with the default value provided
+    else -- Entry data is missing use default otherwise decode the value
+      local tPOA = mSep:Explode(sS)    -- Read the components
+      for iD = 1, 3 do                 -- Apply on all components
+        local nC = tonumber(tPOA[iD])  -- Is the data really a number
+        if(not IsHere(nC)) then nC = 0 -- If not write zero and report it
+          LogInstance("Mismatch "..GetReport2(iD, sS)) end; self[iD] = nC
+      end -- Try to decode the entry when present
     end; return self
-  end
-  function self:Update(sStr, ...)
-    local sStr = tostring(sStr or "")  -- Default to string
-    if(sStr:sub(1,1) == nDis) then -- Check when entry is disabled
-      self:Set(...) -- Override with the default value provided
-    elseif(IsNull(sStr) or IsBlank(sStr)) then -- Empty or null use the default
-      self:Set(...) -- Override with the default value provided
-    else -- When the entry is empty use the default otherwise decode the value
-      self:Decode(sStr) -- Try to decode the entry when present
-    end; return self -- Try decoding the transform entry when not applicable
   end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
@@ -2038,9 +2038,9 @@ function IsPhysTrace(Trace)
   local eEnt = Trace.Entity
   if(not eEnt) then return false end
   if(not eEnt:IsValid()) then return false end
-  local ePhy = eEnt:GetPhysicsObject()
-  if(not ePhy) then return false end
-  if(not ePhy:IsValid()) then return false end
+  local pEnt = eEnt:GetPhysicsObject()
+  if(not pEnt) then return false end
+  if(not pEnt:IsValid()) then return false end
   return true
 end
 
@@ -2210,10 +2210,10 @@ function LocatePOA(oRec, ivPoID)
           local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
           if(IsHere(vO)) then tPOA.O:Set(vO:Unpack()) -- Load origin into POA
           else -- Try decoding the transform origin when not applicable
-            tPOA.O:Update(sK)  -- Try to process the origin when present
+            tPOA.O:Decode(sK)  -- Try to process the origin when present
           end -- Decode the transformation when is not null or empty string
         else -- When the origin is empty use zero otherwise process the value
-          tPOA.O:Update(sO) -- Try to process the origin when present
+          tPOA.O:Decode(sO) -- Try to process the origin when present
         end -- Try decoding the transform origin when not applicable
         LogInstance("Origin transform spawn "..GetReport3(ID, sO, tPOA.O:String()))
       end -- Transform origin is decoded from the model and stored in the cache
@@ -2224,10 +2224,10 @@ function LocatePOA(oRec, ivPoID)
           local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
           if(IsHere(aA)) then tPOA.A:Set(aA:Unpack()) -- Load angle into POA
           else -- Try decoding the transform angle when not applicable
-            tPOA.A:Update(sK) -- Try to process the angle when present
+            tPOA.A:Decode(sK) -- Try to process the angle when present
           end -- Decode the transformation when is not null or empty string
         else -- When the angle is empty use zero otherwise process the value
-          tPOA.A:Update(aA) -- Try to process the angle when present
+          tPOA.A:Decode(aA) -- Try to process the angle when present
         end -- Try decoding the transform angle when not applicable
         LogInstance("Angle transform spawn "..GetReport3(ID, sA, tPOA.A:String()))
       end -- Transform angle is decoded from the model and stored in the cache
@@ -2238,10 +2238,10 @@ function LocatePOA(oRec, ivPoID)
           local vP = GetAttachmentByID(oRec.Slot, sK) -- Read transform point
           if(IsHere(vP)) then tPOA.P:Set(vP:Unpack()) -- Load point into POA
           else -- Try decoding the transform point when not applicable
-            tPOA.P:Update(sK, tPOA.O:Get()) -- Try to process the point when present
+            tPOA.P:Decode(sK, tPOA.O:Get()) -- Try to process the point when present
           end -- Decode the transformation when is not null or empty string
         else -- When the point is empty use zero otherwise process the value
-          tPOA.P:Update(sP, tPOA.O:Get()) -- Try to process the point when present
+          tPOA.P:Decode(sP, tPOA.O:Get()) -- Try to process the point when present
         end -- Try decoding the transform point when not applicable
         LogInstance("Point transform spawn "..GetReport3(ID, sP, tPOA.P:String()))
       end -- Otherwise point is initialized on registration and we have nothing to do here
@@ -2277,21 +2277,21 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
     LogInstance("Origin transform "..GetReport3(iID, sO, stData.Slot))
   else -- When the origin is empty use the zero otherwise decode the value
-    tOffs.O:Update(sO) -- Try to decode the origin when present
+    tOffs.O:Decode(sO) -- Try to decode the origin when present
   end -- Try decoding the transform point when not applicable
   -------------------- Angle --------------------
   if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
     LogInstance("Angle transform "..GetReport3(iID, sA, stData.Slot))
   else -- When the angle is empty use the zero otherwise decode the value
-    tOffs.A:Update(sA) -- Try to decode the angle when present
+    tOffs.A:Decode(sA) -- Try to decode the angle when present
   end -- Try decoding the transform point when not applicable
   -------------------- Point --------------------
   if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
     stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
     LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
   else -- When the point is empty use the origin otherwise decode the value
-    tOffs.P:Update(sP, tOffs.O:Get()) -- Try to decode the point when present
+    tOffs.P:Decode(sP, tOffs.O:Get()) -- Try to decode the point when present
   end -- Try decoding the transform point when not applicable
   return tOffs -- On success return the populated POA offset
 end
@@ -4457,64 +4457,65 @@ end
 function AttachAdditions(ePiece)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid"); return false end
-  local eAng, ePos, sMoa = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
-  local stData = CacheQueryAdditions(sMoa); if(not IsHere(stData)) then
-    LogInstance("Model skip <"..sMoa..">"); return true end
+  local eAng, ePos, sMoc = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
+  local stData = CacheQueryAdditions(sMoc); if(not IsHere(stData)) then
+    LogInstance("Model skip <"..sMoc..">"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
   local sD, oPOA = GetOpVar("OPSYM_DISABLE"), NewPOA()
-    LogInstance("PIECE:MODEL("..sMoa..")")
+    LogInstance("PIECE:MODEL("..sMoc..")")
   while(stData[iCnt]) do -- While additions are present keep adding them
-    local arRec = stData[iCnt]; LogInstance("ADDITION ["..iCnt.."]")
-    local exItem = entsCreate(arRec[makTab:GetColumnName(3)])
-    LogInstance("ents.Create("..arRec[makTab:GetColumnName(3)]..")")
-    if(exItem and exItem:IsValid()) then
-      local adMod = tostring(arRec[makTab:GetColumnName(2)])
-      if(not IsModel(adMod, true)) then
-        LogInstance("Invalid attachment model "..adMod); return false end
-      exItem:SetModel(adMod) LogInstance("ENT:SetModel("..adMod..")")
-      local ofPos = arRec[makTab:GetColumnName(5)]; if(not IsString(ofPos)) then
-        LogInstance("Position mismatch "..GetReport(ofPos)); return false end
-      if(ofPos and not (IsNull(ofPos) or IsBlank(ofPos) or ofPos:sub(1,1) == sD)) then
-        vpAdd:SetUnpacked(oPOA:Decode(ofPos):Get())
-        vpAdd:Set(ePiece:LocalToWorld(vpAdd))
-        exItem:SetPos(vpAdd); LogInstance("ENT:SetPos(DB)")
-      else exItem:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
-      local ofAng = arRec[makTab:GetColumnName(6)]; if(not IsString(ofAng)) then
-        LogInstance("Angle mismatch "..GetReport(ofAng)); return false end
-      if(ofAng and not (IsNull(ofAng) or IsBlank(ofAng) or ofAng:sub(1,1) == sD)) then
-        apAdd:SetUnpacked(oPOA:Decode(ofAng):Get())
-        apAdd:Set(ePiece:LocalToWorldAngles(apAdd))
-        exItem:SetAngles(apAdd); LogInstance("ENT:SetAngles(DB)")
-      else exItem:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
-      local mvTyp = (tonumber(arRec[makTab:GetColumnName(7)]) or -1)
-      if(mvTyp >= 0) then exItem:SetMoveType(mvTyp)
-        LogInstance("ENT:SetMoveType("..mvTyp..")") end
-      local phInt = (tonumber(arRec[makTab:GetColumnName(8)]) or -1)
-      if(phInt >= 0) then exItem:PhysicsInit(phInt)
-        LogInstance("ENT:PhysicsInit("..phInt..")") end
-      local drSha = (tonumber(arRec[makTab:GetColumnName(9)]) or 0)
-      if(drSha ~= 0) then drSha = (drSha > 0); exItem:DrawShadow(drSha)
-        LogInstance("ENT:DrawShadow("..tostring(drSha)..")") end
-      exItem:SetParent(ePiece); LogInstance("ENT:SetParent(PIECE)")
-      exItem:Spawn(); LogInstance("ENT:Spawn()")
-      pyItem = exItem:GetPhysicsObject()
-      if(pyItem and pyItem:IsValid()) then
-        local enMot = (tonumber(arRec[makTab:GetColumnName(10)]) or 0)
-        if(enMot ~= 0) then enMot = (enMot > 0); pyItem:EnableMotion(enMot)
-          LogInstance("ENT:EnableMotion("..tostring(enMot)..")") end
-        local nbZee = (tonumber(arRec[makTab:GetColumnName(11)]) or 0)
-        if(nbZee > 0) then pyItem:Sleep(); LogInstance("ENT:Sleep()") end
+    local arRec = stData[iCnt]; LogInstance("PIECE:ADDITION("..iCnt..")")
+    local bVac, sCas = GetVacant(arRec[makTab:GetColumnName(3)])
+    if(bVac) then sCas = GetOpVar("ENTITY_DEFCLASS") end
+    local eBonus = entsCreate(sCas); LogInstance("ents.Create("..sCas..")")
+    if(eBonus and eBonus:IsValid()) then
+      local sMoa = tostring(arRec[makTab:GetColumnName(2)])
+      if(not IsModel(sMoa, true)) then
+        LogInstance("Invalid attachment "..GetReport3(iCnt, sMoc, sMoa)); return false end
+      eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
+      local oPos = arRec[makTab:GetColumnName(5)]; if(not IsString(oPos)) then
+        LogInstance("Position mismatch "..GetReport3(iCnt, sMoc, oPos)); return false end
+      if(not GetVacant(oPos)) then -- Scan the extracted entry for data
+        vPos:SetUnpacked(oPOA:Decode(oPos):Get())
+        vPos:Set(ePiece:LocalToWorld(vPos))
+        eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
+      else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
+      local oAng = arRec[makTab:GetColumnName(6)]; if(not IsString(oAng)) then
+        LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, oAng)); return false end
+      if(not GetVacant(oAng)) then -- Scan the extracted entry for data
+        aAng:SetUnpacked(oPOA:Decode(oAng):Get())
+        aAng:Set(ePiece:LocalToWorldAngles(aAng))
+        eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
+      else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
+      local nMo = (tonumber(arRec[makTab:GetColumnName(7)]) or -1)
+      if(nMo >= 0) then eBonus:SetMoveType(nMo)
+        LogInstance("ENT:SetMoveType("..nMo..")") end
+      local nPh = (tonumber(arRec[makTab:GetColumnName(8)]) or -1)
+      if(nPh >= 0) then eBonus:PhysicsInit(nPh)
+        LogInstance("ENT:PhysicsInit("..nPh..")") end
+      local nSh = (tonumber(arRec[makTab:GetColumnName(9)]) or 0)
+      if(nSh ~= 0) then nSh = (nSh > 0); eBonus:DrawShadow(nSh)
+        LogInstance("ENT:DrawShadow("..tostring(nSh)..")") end
+      eBonus:SetParent(ePiece); LogInstance("ENT:SetParent(PIECE)")
+      eBonus:Spawn(); LogInstance("ENT:Spawn()")
+      pPonus = eBonus:GetPhysicsObject()
+      if(pPonus and pPonus:IsValid()) then
+        local bEm = (tonumber(arRec[makTab:GetColumnName(10)]) or 0)
+        if(bEm ~= 0) then bEm = (bEm > 0); pPonus:EnableMotion(bEm)
+          LogInstance("ENT:EnableMotion("..tostring(bEm)..")") end
+        local nZe = (tonumber(arRec[makTab:GetColumnName(11)]) or 0)
+        if(nZe > 0) then pPonus:Sleep(); LogInstance("ENT:Sleep()") end
       end
-      exItem:Activate(); LogInstance("ENT:Activate()")
-      ePiece:DeleteOnRemove(exItem); LogInstance("PIECE:DeleteOnRemove(ENT)")
-      local nbSld = (tonumber(arRec[makTab:GetColumnName(12)]) or -1)
-      if(nbSld >= 0) then exItem:SetSolid(nbSld)
-        LogInstance("ENT:SetSolid("..tostring(nbSld)..")") end
+      eBonus:Activate(); LogInstance("ENT:Activate()")
+      ePiece:DeleteOnRemove(eBonus); LogInstance("PIECE:DeleteOnRemove(ENT)")
+      local nSo = (tonumber(arRec[makTab:GetColumnName(12)]) or -1)
+      if(nSo >= 0) then eBonus:SetSolid(nSo)
+        LogInstance("ENT:SetSolid("..tostring(nSo)..")") end
     else
       local mA = stData[iCnt][makTab:GetColumnName(2)]
       local mC = stData[iCnt][makTab:GetColumnName(3)]
-      LogInstance("Entity invalid "..GetReport4(iCnt, sMoa, mA, mC)); return false
+      LogInstance("Entity invalid "..GetReport4(iCnt, sMoc, mA, mC)); return false
     end; iCnt = iCnt + 1
   end; LogInstance("Success"); return true
 end
@@ -4666,13 +4667,13 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:SetColor(clColor or GetColor(255,255,255,255))
   ePiece:DrawShadow(false)
   ePiece:PhysWake()
-  local phPiece = ePiece:GetPhysicsObject()
-  if(not (phPiece and phPiece:IsValid())) then ePiece:Remove()
+  local pPiece = ePiece:GetPhysicsObject()
+  if(not (pPiece and pPiece:IsValid())) then ePiece:Remove()
     LogInstance("Entity phys object invalid"); return nil end
   ePiece.owner, ePiece.Owner = pPly, pPly -- Some PPs actually use this value
-  phPiece:EnableMotion(false) -- Spawn frozen by default to reduce lag
+  pPiece:EnableMotion(false) -- Spawn frozen by default to reduce lag
   local nMass = mathMax(0, (tonumber(nMass) or 0))
-  if(nMass > 0) then phPiece:SetMass(nMass) end
+  if(nMass > 0) then pPiece:SetMass(nMass) end
   local tBgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
   ePiece:SetSkin(mathClamp(tonumber(tBgSk[2]) or 0, 0, ePiece:SkinCount()-1))
   if(not AttachBodyGroups(ePiece, tBgSk[1])) then ePiece:Remove()
@@ -4688,11 +4689,11 @@ function UnpackPhysicalSettings(ePiece)
   if(CLIENT) then LogInstance("Working on client"); return true end
   if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
     LogInstance("Piece entity invalid "..GetReport(ePiece)); return false end
-  local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
-  if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
+  local pPiece = ePiece:GetPhysicsObject()    -- Get the physics object
+  if(not (pPiece and pPiece:IsValid())) then -- Cannot manipulate invalid physics
     LogInstance("Piece physical object invalid "..GetReport(ePiece)); return false end
-  local bPi, bFr = ePiece.PhysgunDisabled, (not pyPiece:IsMotionEnabled())
-  local bGr, sPh = pyPiece:IsGravityEnabled(), pyPiece:GetMaterial()
+  local bPi, bFr = ePiece.PhysgunDisabled, (not pPiece:IsMotionEnabled())
+  local bGr, sPh = pPiece:IsGravityEnabled(), pPiece:GetMaterial()
   return true, bPi, bFr, bGr, sPh -- Returns status and settings
 end
 
@@ -4703,8 +4704,8 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   LogInstance(GetReport5(ePiece,bPi,bFr,bGr,sPh))
   if(not (ePiece and ePiece:IsValid())) then   -- Cannot manipulate invalid entities
     LogInstance("Piece entity invalid "..GetReport(ePiece)); return false end
-  local pyPiece = ePiece:GetPhysicsObject()    -- Get the physics object
-  if(not (pyPiece and pyPiece:IsValid())) then -- Cannot manipulate invalid physics
+  local pPiece = ePiece:GetPhysicsObject()    -- Get the physics object
+  if(not (pPiece and pPiece:IsValid())) then -- Cannot manipulate invalid physics
     LogInstance("Piece physical object invalid "..GetReport(ePiece)); return false end
   local sToolPrefL = GetOpVar("TOOLNAME_PL") -- Use the general tool prefix for networking
   local arSettings = {bPi,bFr,bGr,sPh}  -- Initialize dupe settings using this array
@@ -4716,8 +4717,8 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_ACTION"), function() -- If frozen motion is disabled
     LogInstance("Freeze:["..tostring(bFr).."]", "*DELAY_ACTION");  -- Make sure that the physics are valid
-    if(pyPiece and pyPiece:IsValid()) then pyPiece:EnableMotion(not bFr) end end )
-  constructSetPhysProp(nil,ePiece,0,pyPiece,{GravityToggle = bGr, Material = sPh})
+    if(pPiece and pPiece:IsValid()) then pPiece:EnableMotion(not bFr) end end )
+  constructSetPhysProp(nil,ePiece,0,pPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,sToolPrefL.."dupe_phys_set",arSettings)
   LogInstance("Success"); return true
 end
