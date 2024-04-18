@@ -84,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.764")
+asmlib.SetOpVar("TOOL_VERSION","8.765")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -152,40 +152,40 @@ asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 ------------ CONFIGURE LOGGING ------------
 
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written")
-asmlib.MakeAsmConvar("logfile", 0, nil, gnIndependentUsed, "File logging output flag control")
+asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written")
+asmlib.NewAsmConvar("logfile", 0, nil, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
 
-asmlib.MakeAsmConvar("modedb"   , "LUA", nil, gnIndependentUsed, "Database storage operating mode LUA or SQL")
-asmlib.MakeAsmConvar("devmode"  ,    0 , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
-asmlib.MakeAsmConvar("maxtrmarg", 0.02 , nil, gnIndependentUsed, "Maximum time to avoid performing new traces")
-asmlib.MakeAsmConvar("maxmenupr",    5 , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
-asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
+asmlib.NewAsmConvar("modedb"   , "LUA", nil, gnIndependentUsed, "Database storage operating mode LUA or SQL")
+asmlib.NewAsmConvar("devmode"  ,    0 , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.NewAsmConvar("maxtrmarg", 0.02 , nil, gnIndependentUsed, "Maximum time to avoid performing new traces")
+asmlib.NewAsmConvar("maxmenupr",    5 , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
+asmlib.NewAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
 ------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
 
-asmlib.MakeAsmConvar("maxmass"  , 50000 , nil, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmConvar("maxlinear", 5000  , nil, gnServerControled, "Maximum linear offset of the piece")
-asmlib.MakeAsmConvar("maxforce" , 100000, nil, gnServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmConvar("maxactrad", 200   , nil, gnServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmConvar("maxstcnt" , 200   , nil, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmConvar("maxghcnt" , 1500  , nil, gnServerControled, "Maximum ghost pieces being spawned by client")
-asmlib.MakeAsmConvar("enwiremod", 1     , nil, gnServerControled, "Toggle the wire extension on/off server side")
-asmlib.MakeAsmConvar("enmultask", 1     , nil, gnServerControled, "Toggle the spawn multitasking on/off server side")
-asmlib.MakeAsmConvar("enctxmenu", 1     , nil, gnServerControled, "Toggle the context menu on/off in general")
-asmlib.MakeAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the context menu on/off for all props")
-asmlib.MakeAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
-asmlib.MakeAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
-asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
-asmlib.MakeAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
-asmlib.MakeAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
-asmlib.MakeAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
-asmlib.MakeAsmConvar("maxspmarg",  0    , nil, gnServerControled, "Maximum spawn distance new piece created margin")
-asmlib.MakeAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval for server addressed messages")
-asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
+asmlib.NewAsmConvar("maxmass"  , 50000 , nil, gnServerControled, "Maximum mass that can be applied on a piece")
+asmlib.NewAsmConvar("maxlinear", 5000  , nil, gnServerControled, "Maximum linear offset of the piece")
+asmlib.NewAsmConvar("maxforce" , 100000, nil, gnServerControled, "Maximum force limit when creating welds")
+asmlib.NewAsmConvar("maxactrad", 200   , nil, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.NewAsmConvar("maxstcnt" , 200   , nil, gnServerControled, "Maximum spawned pieces in stacking mode")
+asmlib.NewAsmConvar("maxghcnt" , 1500  , nil, gnServerControled, "Maximum ghost pieces being spawned by client")
+asmlib.NewAsmConvar("enwiremod", 1     , nil, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.NewAsmConvar("enmultask", 1     , nil, gnServerControled, "Toggle the spawn multitasking on/off server side")
+asmlib.NewAsmConvar("enctxmenu", 1     , nil, gnServerControled, "Toggle the context menu on/off in general")
+asmlib.NewAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the context menu on/off for all props")
+asmlib.NewAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
+asmlib.NewAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
+asmlib.NewAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
+asmlib.NewAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
+asmlib.NewAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
+asmlib.NewAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
+asmlib.NewAsmConvar("maxspmarg",  0    , nil, gnServerControled, "Maximum spawn distance new piece created margin")
+asmlib.NewAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval for server addressed messages")
+asmlib.NewAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 
 ------------ CONFIGURE INTERNALS ------------
 
@@ -680,7 +680,7 @@ if(CLIENT) then
       local atGho = asmlib.GetOpVar("ARRAY_GHOST")
       if(asmlib.IsModel(model)) then
         if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
-          if(not asmlib.MakeGhosts(ghcnt, model)) then
+          if(not asmlib.NewGhosts(ghcnt, model)) then
             asmlib.LogInstance("Ghosting fail",sLog); return nil end
           actTool:ElevateGhost(atGho[1], oPly) -- Elevate the properly created ghost
         end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
@@ -1257,7 +1257,7 @@ if(CLIENT) then
                 if(asmlib.IsModel(trRec.Slot)) then -- The model has valid pre-cache
                   if(ghostcnt > 0) then -- The ghosting is enabled
                     if(not (hasghost and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
-                      if(not asmlib.MakeGhosts(1, trRec.Slot)) then
+                      if(not asmlib.NewGhosts(1, trRec.Slot)) then
                         asmlib.LogInstance("Ghosting fail",sLog); return nil end
                     end local eGho = atGhosts[1]; eGho:SetNoDraw(false)
                     eGho:SetPos(actSpawn.SPos); eGho:SetAngles(actSpawn.SAng)
@@ -1659,9 +1659,9 @@ asmlib.CreateTable("PIECES",{
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.GetTerm(arLine[2], noTY, asmlib.Categorize())
-      arLine[3] = asmlib.GetTerm(arLine[3], noMD, asmlib.ModelToName(arLine[1]))
-      arLine[8] = asmlib.GetTerm(arLine[8], noSQL, noSQL)
+      arLine[2] = asmlib.GetVacant(arLine[2], true, noTY, asmlib.Categorize())
+      arLine[3] = asmlib.GetVacant(arLine[3], true, noMD, asmlib.ModelToName(arLine[1]))
+      arLine[8] = asmlib.GetVacant(arLine[8], true, noSQL, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
         asmlib.LogInstance("Register trace "..asmlib.GetReport2(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
@@ -1786,7 +1786,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
-      arLine[1] = asmlib.GetTerm(arLine[1],noTY,asmlib.Categorize()); return true
+      arLine[1] = asmlib.GetVacant(arLine[1],true,noTY,asmlib.Categorize()); return true
     end
   },
   Cache = {

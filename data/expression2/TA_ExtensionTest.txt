@@ -77,7 +77,7 @@ if(first() || dupefinished())
         print("Skin OK<"+B+">")
     }else{ error("Skin fail "+B) }
     
-    E1 = E:trackasmlibMakePiece(E:pos(), E:angles():rotateAroundAxis(E:up(), 90))
-    E2 = E:trackasmlibMakePiece(E:pos(), E:angles():rotateAroundAxis(E:forward(), 90), 666, "0/0", vec(50, 150, 250))
-    E2 = E:trackasmlibMakePiece(E:pos(), E:angles():rotateAroundAxis(E:forward(), -90), 666, "0/0", vec(250, 150, 50))
+    E1 = E:trackasmlibNewPiece(E:pos(), E:angles():rotateAroundAxis(E:up(), 90))
+    E2 = E:trackasmlibNewPiece(E:pos(), E:angles():rotateAroundAxis(E:forward(), 90), 666, "0/0", vec(50, 150, 250))
+    E2 = E:trackasmlibNewPiece(E:pos(), E:angles():rotateAroundAxis(E:forward(), -90), 666, "0/0", vec(250, 150, 50))
 }

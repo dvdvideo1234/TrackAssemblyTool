@@ -2402,7 +2402,7 @@ function TOOL.BuildCPanel(CPanel)
 
   local pComboPhysName = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
         pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
-        pComboPhysName:SetValue(asmlib.GetTerm(asmlib.GetAsmConvar("physmater","STR"),
+        pComboPhysName:SetValue(asmlib.GetVacant(asmlib.GetAsmConvar("physmater","STR"), true,
                                 languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysName:Dock(TOP) -- Setting tallness gets ignored otherwise
@@ -2437,7 +2437,7 @@ function TOOL.BuildCPanel(CPanel)
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
   local pText = CPanel:TextEntry(languageGetPhrase("tool."..gsToolNameL..".bgskids_con"), sName)
         pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
-        pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),
+        pText:SetText(asmlib.GetVacant(asmlib.GetAsmConvar("bgskids", "STR"), true,
                       languageGetPhrase("tool."..gsToolNameL..".bgskids_def")))
         pText:SetEnabled(false); pText:SetTall(22)
 

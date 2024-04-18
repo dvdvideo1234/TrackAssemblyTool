@@ -438,13 +438,6 @@ function GetOwner(oEnt)
   end; return ows -- No owner is found. Nothing is returned
 end
 
-function GetVacant(sStr)
-  local sD = GetOpVar("OPSYM_DISABLE")
-  local sS = tostring(sStr or "")  -- Default to string
-  local bE = (IsBlank(sS) or IsNull(sS) or sS:sub(1,1) == sD)
-  return bE, sS -- Scan whenever data to be decoded is present
-end
-
 ------------------ LOGS ------------------------
 
 function GetLogID()
@@ -1824,10 +1817,11 @@ function GetFrequentModels(snCount)
 end
 
 function SetComboBoxClipboard(pnCombo)
+  local sV = pnCombo:GetValue()
   local iD = pnCombo:GetSelectedID()
-  local vT = pnCombo:GetOptionText(iD)
-  local sV = GetTerm(tostring(vT or ""), pnCombo:GetValue())
-  SetClipboardText(GetTerm(sV, gsNoAV))
+  local sT = pnCombo:GetOptionText(iD)
+  local sS = GetVacant(tostring(sT or ""), true, sS)
+  SetClipboardText(GetVacant(sS, true, gsNoAV))
 end
 
 function SetComboBoxList(cPanel, sVar)
@@ -2136,7 +2130,7 @@ end
  * vPos   > Custom position for the placeholder ( zero if none )
  * aAng   > Custom angles for the placeholder ( zero if none )
 ]]
-function MakeEntityNone(sModel, vPos, aAng) local eNone
+function NewEntityNone(sModel, vPos, aAng) local eNone
   if(not IsModel(sModel)) then return nil end
   if(SERVER) then eNone = entsCreate(GetOpVar("ENTITY_DEFCLASS"))
   elseif(CLIENT) then eNone = entsCreateClientProp(sModel) end
@@ -2169,7 +2163,7 @@ function GetAttachmentByID(sModel, sID)
     if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
       LogInstance("Update "..GetReport3(ePiece:EntIndex(), sID, sModel)) end
   else -- If there is no basis need to create one for attachment extraction
-    ePiece = MakeEntityNone(sModel); if(not (ePiece and ePiece:IsValid())) then
+    ePiece = NewEntityNone(sModel); if(not (ePiece and ePiece:IsValid())) then
       LogInstance("Basis creation error "..GetReport2(sID, sModel)); return nil end
     SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
   end -- Transfer the data from the transform attachment location
@@ -2329,20 +2323,24 @@ function Sort(tTable, tCols)
 end
 
 ------------- VARIABLE INTERFACES --------------
+
 --[[
- * Returns a string term whenever it is is missing or disabled
+ * Returns a string term whenever it is missing or disabled
  * If these conditions are not met the function returns missing token
  * sBas > The string to check whenever it is disabled or missing
  * vDef > The default value to return when base is not string
  * vDsb > The disable value to return when the base is disabled string
 ]]
-function GetTerm(sBas, vDef, vDsb)
-  local sM = GetOpVar("MISS_NOAV")
+function GetVacant(sBas, bTer, vDef, vDsb)
   local sD = GetOpVar("OPSYM_DISABLE")
-  if(IsString(sBas)) then
-    if(sBas:sub(1,1) == sD) then return tostring(vDsb or sM)
-    elseif(not (IsNull(sBas) or IsBlank(sBas))) then return sBas end
-  end; if(IsString(vDef)) then return vDef end; return sM
+  local sS = tostring(sBas or "") -- Default to string
+  local bD = (sS:sub(1,1) == sD)  -- Disabled string
+  local bE = (IsBlank(sS) or IsNull(sS) or bD)
+  if(not bTer) then return bE, sS end -- Data to be decoded
+  local sM = GetOpVar("MISS_NOAV") -- Not available
+  if(bD) then return tostring(vDsb or sM) end
+  if(bE) then return tostring(vDef or sM) end
+  return sS -- Return the base string
 end
 
 function ModelToNameRule(sRule, gCut, gSub, gApp)
@@ -2603,8 +2601,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   local self, tabDef, tabCmd = {}, defTab, {}
   local symDis, sMoDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
-    defCol[3] = GetTerm(tostring(defCol[3] or symDis), symDis)
-    defCol[4] = GetTerm(tostring(defCol[4] or symDis), symDis)
+    defCol[3] = GetVacant(tostring(defCol[3] or symDis), true, symDis)
+    defCol[4] = GetVacant(tostring(defCol[4] or symDis), true, symDis)
   end; tableInsert(libQTable, defTab.Nick)
   libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
   -- Read table definition
@@ -4649,7 +4647,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(InSpawnMargin(pPly, stData, vPos, aAng)) then
     LogInstance("Spawn margin stop <"..sModel..">"); return nil end
   local sClass = GetOpVar("ENTITY_DEFCLASS")
-  local ePiece = entsCreate(GetTerm(stData.Unit, sClass, sClass))
+  local ePiece = entsCreate(GetVacant(stData.Unit, true, sClass, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
@@ -5043,7 +5041,7 @@ end
  * aAng   > Angles for the entity, otherwise zero is used
  * It must have been our imagination.
 ]]
-function MakeEntityGhost(sModel, vPos, aAng)
+function NewEntityGhost(sModel, vPos, aAng)
   if(not IsModel(sModel)) then return nil end
   local cPal = GetContainer("COLORS_LIST")
   local eGho = entsCreateClientProp(sModel)
@@ -5075,7 +5073,7 @@ end
  * sModel > The model which the creation is requested for
  * Not until we walk around the ghost town and see what we can find.
 ]]
-function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
+function NewGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   if(SERVER) then return true end -- Ghosting is client side only
   local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
@@ -5085,7 +5083,7 @@ function MakeGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
     if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
       if(eGho:GetModel() ~= sModel) then eGho:SetModel(sModel) end
     else -- Reconfigure the first `nCnt` ghosts
-      tGho[iD] = MakeEntityGhost(sModel); eGho = tGho[iD]
+      tGho[iD] = NewEntityGhost(sModel); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then ClearGhosts(iD)
         LogInstance("Invalid ["..iD.."]"..sModel); return false end
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn

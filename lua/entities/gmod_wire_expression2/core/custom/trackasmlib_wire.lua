@@ -349,7 +349,7 @@ e2function entity entity:trackasmlibNewPiece(vector vPos, angle aAng)
 end
 
 __e2setcost(15)
-e2function entity entity:trackasmlibApplyPhysicalAnchor(entity eBase, number nWe, number nNc, number nNw, number nFm)
+e2function number entity:trackasmlibApplyPhysicalAnchor(entity eBase, number nWe, number nNc, number nNw, number nFm)
   if(not (this and this:IsValid() and enFlag)) then return anyFalse end
   if(not (eBase and eBase:IsValid())) then return anyFalse end
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return anyFalse end
@@ -357,7 +357,7 @@ e2function entity entity:trackasmlibApplyPhysicalAnchor(entity eBase, number nWe
 end
 
 __e2setcost(15)
-e2function entity entity:trackasmlibApplyPhysicalSettings(number nPi, number nFr, number nGr, string sPh)
+e2function number entity:trackasmlibApplyPhysicalSettings(number nPi, number nFr, number nGr, string sPh)
   if(not (this and this:IsValid() and enFlag)) then return anyFalse end
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return anyFalse end
   return asmlib.ApplyPhysicalSettings(this,(nPi~=0),(nFr~=0),(nGr~=0),sPh) and anyTrue or anyFalse
@@ -379,12 +379,12 @@ end
 
 __e2setcost(20)
 e2function string entity:trackasmlibGetBodyGroups()
-  if(not (this and this:IsValid() and enFlag)) then return 0 end
+  if(not (this and this:IsValid() and enFlag)) then return "" end
   return asmlib.GetPropBodyGroup(this)
 end
 
 __e2setcost(20)
 e2function string entity:trackasmlibGetSkin()
-  if(not (this and this:IsValid() and enFlag)) then return 0 end
+  if(not (this and this:IsValid() and enFlag)) then return "" end
   return asmlib.GetPropSkin(this)
 end
