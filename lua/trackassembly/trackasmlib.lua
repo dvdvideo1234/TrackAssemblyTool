@@ -2343,20 +2343,49 @@ function GetVacant(sBas, bTer, vDef, vDsb)
   return sS -- Return the base string
 end
 
+--[[
+ * Returns a string term whenever it is missing or disabled
+ * If these conditions are not met the function returns missing token
+ * sBas > The string to check whenever it is disabled or missing
+ * fEmp > Defines that the value is to be replaced by something else
+ * iCnt > Amount of argument to be used for check and replace
+]]
+function GetEmpty(sBas, fEmp, iCnt, ...)
+  local sS, fE = tostring(sBas or ""), fEmp -- Default to string
+  if(not fE) then fE = function(sS) -- Default empty definition
+    return (IsBlank(sS) or IsNull(sS) or (sS:sub(1,1) == sD))
+  end end -- Use default empty definition when one not provided
+  local bS, oS = pcall(fE, sS); if(not bS) then
+    LogInstance("Error ["..sS.."]: "..oS) end
+  local iC = mathFloor(tonumber(iCnt) or 0)
+  if(iC == 0) then return oS, sS else -- Empty check only
+    if(not oS) then return sS end -- Base is not empty
+    local sM, tV = GetOpVar("MISS_NOAV"), {...}
+    for iD = 1, iC do -- Check all arguments for a value
+      local sS = tostring(tV[iD] or "") -- Default to string
+      local bS, oS = pcall(fE, sS); if(not bS) then
+        LogInstance("Error ["..sS.."]: "..oS) end
+      if(not oS) then return sS end
+    end; return sM
+  end
+end
+
 function ModelToNameRule(sRule, gCut, gSub, gApp)
   if(not IsString(sRule)) then
     LogInstance("Rule mismatch "..GetReport(sRule)); return false end
-  if(sRule == "SET") then
-    if(gCut and gCut[1]) then SetOpVar("TABLE_GCUT_MODEL",gCut) else SetOpVar("TABLE_GCUT_MODEL",{}) end
-    if(gSub and gSub[1]) then SetOpVar("TABLE_GSUB_MODEL",gSub) else SetOpVar("TABLE_GSUB_MODEL",{}) end
-    if(gApp and gApp[1]) then SetOpVar("TABLE_GAPP_MODEL",gApp) else SetOpVar("TABLE_GAPP_MODEL",{}) end
-  elseif(sRule == "GET") then
-    return GetOpVar("TABLE_GCUT_MODEL"), GetOpVar("TABLE_GSUB_MODEL"), GetOpVar("TABLE_GAPP_MODEL")
-  elseif(sRule == "CLR") then
-    SetOpVar("TABLE_GCUT_MODEL",{}); SetOpVar("TABLE_GSUB_MODEL",{}); SetOpVar("TABLE_GAPP_MODEL",{})
-  elseif(sRule == "REM") then
-    SetOpVar("TABLE_GCUT_MODEL",nil); SetOpVar("TABLE_GSUB_MODEL",nil); SetOpVar("TABLE_GAPP_MODEL",nil)
-  else LogInstance("Wrong mode name "..sRule); return false end
+  if(sRule == "GET") then
+    return GetOpVar("TABLE_GCUT_MODEL"),
+           GetOpVar("TABLE_GSUB_MODEL"),
+           GetOpVar("TABLE_GAPP_MODEL")
+  elseif(sRule == "CLR" or sRule == "REM") then
+    SetOpVar("TABLE_GCUT_MODEL", ((sRule == "CLR") and {} or nil))
+    SetOpVar("TABLE_GSUB_MODEL", ((sRule == "CLR") and {} or nil))
+    SetOpVar("TABLE_GAPP_MODEL", ((sRule == "CLR") and {} or nil))
+  elseif(sRule == "SET") then
+    SetOpVar("TABLE_GCUT_MODEL", ((gCut and gCut[1]) and gCut or {}))
+    SetOpVar("TABLE_GSUB_MODEL", ((gSub and gSub[1]) and gSub or {}))
+    SetOpVar("TABLE_GAPP_MODEL", ((gApp and gApp[1]) and gApp or {}))
+  else LogInstance("Wrong mode: "..sRule); return false end
 end
 
 function Categorize(oTyp, fCat)
@@ -2777,10 +2806,10 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   -- Internal type matching
   function self:Match(snValue,ivID,bQuoted,sQuote,bNoRev,bNoNull)
     local qtDef, sNull = self:GetDefinition(), GetOpVar("MISS_NOSQL")
-    local nvInd = tonumber(ivID); if(not IsHere(nvInd)) then
+    local nvID = tonumber(ivID); if(not IsHere(nvID)) then
       LogInstance("Column ID mismatch "..GetReport(ivID),tabDef.Nick); return nil end
-    local defCol = qtDef[nvInd]; if(not IsHere(defCol)) then
-      LogInstance("Invalid col #"..tostring(nvInd),tabDef.Nick); return nil end
+    local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
+      LogInstance("Invalid col #"..tostring(nvID),tabDef.Nick); return nil end
     local sMoDB, snOut = GetOpVar("MODE_DATABASE")
     local tyCol, opCol = tostring(defCol[2]), defCol[3]
     if(tyCol == "TEXT") then snOut = tostring(snValue or "")
@@ -2809,7 +2838,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
           if    (opCol == "FLR") then snOut = mathFloor(snOut)
           elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
         end
-      else LogInstance("Failed converting "..GetReport(snValue).." to NUMBER column #"..nvInd,tabDef.Nick); return nil end
+      else LogInstance("Failed converting "..GetReport(snValue).." to NUMBER column #"..nvID,tabDef.Nick); return nil end
     else LogInstance("Invalid column type <"..tyCol..">",tabDef.Nick); return nil
     end; return snOut
   end
