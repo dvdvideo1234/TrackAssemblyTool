@@ -1594,7 +1594,7 @@ function NewPOA()
     return (mRaw and mRaw or sE)
   end
   function self:Decode(sStr, ...)
-    local bV, sS = GetVacant(sStr) -- Default to string
+    local bV, sS = GetEmpty(sStr) -- Default to string
     if(bV) then -- Check when entry data is vacant
       self:Set(...) -- Override with the default value provided
     else -- Entry data is missing use default otherwise decode the value
@@ -1820,8 +1820,8 @@ function SetComboBoxClipboard(pnCombo)
   local sV = pnCombo:GetValue()
   local iD = pnCombo:GetSelectedID()
   local sT = pnCombo:GetOptionText(iD)
-  local sS = GetVacant(tostring(sT or ""), true, sS)
-  SetClipboardText(GetVacant(sS, true, gsNoAV))
+  local sS = GetEmpty(sT, nil, 2, sV, gsNoAV)
+  SetClipboardText(sS)
 end
 
 function SetComboBoxList(cPanel, sVar)
@@ -2328,25 +2328,6 @@ end
  * Returns a string term whenever it is missing or disabled
  * If these conditions are not met the function returns missing token
  * sBas > The string to check whenever it is disabled or missing
- * vDef > The default value to return when base is not string
- * vDsb > The disable value to return when the base is disabled string
-]]
-function GetVacant(sBas, bTer, vDef, vDsb)
-  local sD = GetOpVar("OPSYM_DISABLE")
-  local sS = tostring(sBas or "") -- Default to string
-  local bD = (sS:sub(1,1) == sD)  -- Disabled string
-  local bE = (IsBlank(sS) or IsNull(sS) or bD)
-  if(not bTer) then return bE, sS end -- Data to be decoded
-  local sM = GetOpVar("MISS_NOAV") -- Not available
-  if(bD) then return tostring(vDsb or sM) end
-  if(bE) then return tostring(vDef or sM) end
-  return sS -- Return the base string
-end
-
---[[
- * Returns a string term whenever it is missing or disabled
- * If these conditions are not met the function returns missing token
- * sBas > The string to check whenever it is disabled or missing
  * fEmp > Defines that the value is to be replaced by something else
  * iCnt > Amount of argument to be used for check and replace
 ]]
@@ -2628,10 +2609,11 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     defRow[1], defRow[2] = sN, sT -- Convert settings to string and store back
   end
   local self, tabDef, tabCmd = {}, defTab, {}
-  local symDis, sMoDB = GetOpVar("OPSYM_DISABLE"), GetOpVar("MODE_DATABASE")
+  local sMoDB  = GetOpVar("MODE_DATABASE")
+  local symDis = GetOpVar("OPSYM_DISABLE")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
-    defCol[3] = GetVacant(tostring(defCol[3] or symDis), true, symDis)
-    defCol[4] = GetVacant(tostring(defCol[4] or symDis), true, symDis)
+    defCol[3] = GetEmpty(defCol[3], nil, 1, symDis)
+    defCol[4] = GetEmpty(defCol[4], nil, 1, symDis)
   end; tableInsert(libQTable, defTab.Nick)
   libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
   -- Read table definition
@@ -4489,13 +4471,12 @@ function AttachAdditions(ePiece)
     LogInstance("Model skip <"..sMoc..">"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
-  local sD, oPOA = GetOpVar("OPSYM_DISABLE"), NewPOA()
-    LogInstance("PIECE:MODEL("..sMoc..")")
+    LogInstance("PIECE:MODEL("..sMoc..")") -- Start adding attachments
   while(stData[iCnt]) do -- While additions are present keep adding them
     local arRec = stData[iCnt]; LogInstance("PIECE:ADDITION("..iCnt..")")
-    local bVac, sCas = GetVacant(arRec[makTab:GetColumnName(3)])
-    if(bVac) then sCas = GetOpVar("ENTITY_DEFCLASS") end
-    local eBonus = entsCreate(sCas); LogInstance("ents.Create("..sCas..")")
+    local dCass, oPOA = GetOpVar("ENTITY_DEFCLASS"), NewPOA()
+    local sCass = GetEmpty(arRec[makTab:GetColumnName(3)], nil, 1, dCass)
+    local eBonus = entsCreate(sCass); LogInstance("ents.Create("..sCass..")")
     if(eBonus and eBonus:IsValid()) then
       local sMoa = tostring(arRec[makTab:GetColumnName(2)])
       if(not IsModel(sMoa, true)) then
@@ -4503,14 +4484,14 @@ function AttachAdditions(ePiece)
       eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
       local oPos = arRec[makTab:GetColumnName(5)]; if(not IsString(oPos)) then
         LogInstance("Position mismatch "..GetReport3(iCnt, sMoc, oPos)); return false end
-      if(not GetVacant(oPos)) then -- Scan the extracted entry for data
+      if(not GetEmpty(oPos)) then -- Scan the extracted entry for data
         vPos:SetUnpacked(oPOA:Decode(oPos):Get())
         vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
       local oAng = arRec[makTab:GetColumnName(6)]; if(not IsString(oAng)) then
         LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, oAng)); return false end
-      if(not GetVacant(oAng)) then -- Scan the extracted entry for data
+      if(not GetEmpty(oAng)) then -- Scan the extracted entry for data
         aAng:SetUnpacked(oPOA:Decode(oAng):Get())
         aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
@@ -4676,7 +4657,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(InSpawnMargin(pPly, stData, vPos, aAng)) then
     LogInstance("Spawn margin stop <"..sModel..">"); return nil end
   local sClass = GetOpVar("ENTITY_DEFCLASS")
-  local ePiece = entsCreate(GetVacant(stData.Unit, true, sClass, sClass))
+  local ePiece = entsCreate(GetEmpty(stData.Unit, nil, 1, sClass))
   if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
     LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)

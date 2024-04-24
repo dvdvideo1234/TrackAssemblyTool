@@ -84,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.766")
+asmlib.SetOpVar("TOOL_VERSION","8.767")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1659,10 +1659,10 @@ asmlib.CreateTable("PIECES",{
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.GetVacant(arLine[2], true, noTY, asmlib.Categorize())
-      arLine[3] = asmlib.GetVacant(arLine[3], true, noMD, asmlib.ModelToName(arLine[1]))
-      arLine[8] = asmlib.GetVacant(arLine[8], true, noSQL, noSQL)
-      if(not (asmlib.IsNull(arLine[8]) or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
+      arLine[2] = asmlib.GetEmpty(arLine[2], nil, 2, asmlib.Categorize(), noTY)
+      arLine[3] = asmlib.GetEmpty(arLine[3], nil, 2, asmlib.ModelToName(arLine[1]), noMD)
+      arLine[8] = asmlib.GetEmpty(arLine[8], nil, 2, noSQL, noSQL)
+      if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
         asmlib.LogInstance("Register trace "..asmlib.GetReport2(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
       end; return true
@@ -1786,7 +1786,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
-      arLine[1] = asmlib.GetVacant(arLine[1],true,noTY,asmlib.Categorize()); return true
+      arLine[1] = asmlib.GetEmpty(arLine[1],nil,asmlib.Categorize(),noTY); return true
     end
   },
   Cache = {
