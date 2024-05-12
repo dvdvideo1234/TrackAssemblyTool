@@ -84,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.767")
+asmlib.SetOpVar("TOOL_VERSION","8.768")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1786,7 +1786,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
-      arLine[1] = asmlib.GetEmpty(arLine[1],nil,asmlib.Categorize(),noTY); return true
+      arLine[1] = asmlib.GetEmpty(arLine[1],nil,2,asmlib.Categorize(),noTY); return true
     end
   },
   Cache = {
