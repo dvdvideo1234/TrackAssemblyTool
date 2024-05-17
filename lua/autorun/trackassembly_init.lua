@@ -4,6 +4,8 @@ local pcall                         = pcall
 local Time                          = CurTime
 local IsValid                       = IsValid
 local tobool                        = tobool
+local istable                       = istable
+local isfunction                    = isfunction
 local tonumber                      = tonumber
 local tostring                      = tostring
 local SetClipboardText              = SetClipboardText
@@ -84,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.768")
+asmlib.SetOpVar("TOOL_VERSION","8.769")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -906,7 +908,7 @@ if(CLIENT) then
         local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.ToIcon(defTab.Name))
         tInfo.Tab:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
         local tFile = fileFind(fDSV:format("*", defTab.Nick), "DATA")
-        if(asmlib.IsTable(tFile) and tFile[1]) then
+        if(istable(tFile) and tFile[1]) then
           local nF, nW, nH = #tFile, pnFrame:GetSize()
           xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
           xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 52) / nF)
@@ -1318,7 +1320,7 @@ if(CLIENT) then
           asmlib.LogInstance("Fail subfolder "..asmlib.GetReport2(sSub, lSub), sLog); return end
         local sKey = tDat.Key:format(sDir, sSub)
         if(asmlib.IsHere(fFoo)) then
-          if(not asmlib.IsFunction(fFoo)) then
+          if(not isfunction(fFoo)) then
             asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return end
           if(not asmlib.IsHere(tDat.Bar[sDir])) then tDat.Bar[sDir] = {} end; tDat.Bar[sDir][sSub] = fFoo
           asmlib.LogInstance("Store "..asmlib.GetReport3(sDir, sSub, fFoo), sLog)
@@ -1329,7 +1331,7 @@ if(CLIENT) then
             asmlib.LogInstance("Miss folder "..asmlib.GetReport1(sDir), sLog); return end
           fFoo = tDat.Bar[sDir][sSub]; if(not asmlib.IsHere(fFoo)) then
             asmlib.LogInstance("Miss subfolder "..asmlib.GetReport2(sDir, sSub), sLog); return end
-          if(not asmlib.IsFunction(fFoo)) then
+          if(not isfunction(fFoo)) then
             asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return end
           asmlib.LogInstance("Cache "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return fFoo
         end
@@ -1599,11 +1601,11 @@ gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
     local sKey , fDraw = tLine[1], tLine[4]
     local wDraw, sIcon = tLine[5], sKey:match(fHash)
     local sName = languageGetPhrase(sKey.."_con"):Trim():Trim(":")
-    if(asmlib.IsFunction(fDraw)) then
+    if(isfunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
         asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
       sName = sName..": "..tostring(vE)          -- Attach client value ( CLIENT )
-    elseif(asmlib.IsFunction(wDraw)) then
+    elseif(isfunction(wDraw)) then
       sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
     end; local fEval = function() self:Evaluate(ent,iD,tr,sKey) end
     local pnOpt = pnSub:AddOption(sName, fEval); if(not IsValid(pnOpt)) then

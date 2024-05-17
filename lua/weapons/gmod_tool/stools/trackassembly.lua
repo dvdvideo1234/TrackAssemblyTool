@@ -10,6 +10,7 @@ local IsValid                          = IsValid
 local EntityID                         = Entity
 local tostring                         = tostring
 local tonumber                         = tonumber
+local istable                          = istable
 local GetConVar                        = GetConVar
 local LocalPlayer                      = LocalPlayer
 local SetClipboardText                 = SetClipboardText
@@ -1774,7 +1775,7 @@ function TOOL:Think()
   local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
   if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
     local oD = conElements:Pull() -- Retrieve a panel from the stack
-    if(asmlib.IsTable(oD)) then oD = oD[1] -- Extract panel from table
+    if(istable(oD)) then oD = oD[1] -- Extract panel from table
       if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
     else -- The temporary reference is not table then close it
       if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
@@ -2341,7 +2342,7 @@ function TOOL.BuildCPanel(CPanel)
             pCateg[sTyp] = {}; pCurr = pCateg[sTyp] end
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
           if(asmlib.IsHere(ptCat)) then
-            if(not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
+            if(not istable(ptCat)) then ptCat = {ptCat} end
             if(ptCat[1]) then local iD = 1
               while(ptCat[iD]) do local sCat = tostring(ptCat[iD]):lower():Trim()
                 if(asmlib.IsBlank(sCat)) then sCat = "other" end

@@ -16,6 +16,8 @@ local Angle     = Angle
 local Color     = Color
 local tonumber  = tonumber
 local tostring  = tostring
+local istable   = istable
+local isnumber  = isnumber
 local mathClamp = math and math.Clamp
 local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
 local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
@@ -282,9 +284,9 @@ local function newPiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, n
     if(not (oEnt and oEnt:IsValid())) then sBsID = "0/0" else -- Use bodygroup and skin
       sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt) end
   end -- Color handling. Apply color based on the conditions
-  if(asmlib.IsNumber(oCol)) then -- Color specifier is a number
+  if(isnumber(oCol)) then -- Color specifier is a number
     oCol = asmlib.GetColor(nR,nG,nB,nA) -- Try last 4 arguments as numbers
-  elseif(asmlib.IsTable(oCol)) then -- Attempt to extract keys information from the table
+  elseif(istable(oCol)) then -- Attempt to extract keys information from the table
     oCol = asmlib.GetColor((oCol[1] or oCol["r"]), -- Numerical indices are with priority to hash
                            (oCol[2] or oCol["g"]), -- Numerical indices are with priority to hash
                            (oCol[3] or oCol["b"]), -- Numerical indices are with priority to hash
