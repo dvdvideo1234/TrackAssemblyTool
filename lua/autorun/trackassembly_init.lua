@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.771")
+asmlib.SetOpVar("TOOL_VERSION","8.772")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -937,20 +937,19 @@ if(CLIENT) then
                   function() SetClipboardText(sFile) end,
                   function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end,
                   function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end,
-                  function()
-                    if(luapad) then
-                      asmlib.LogInstance("Edit "..asmlib.GetReport1(sFile), sLog..".Button")
-                      if(luapad.Frame) then luapad.Frame:SetVisible(true)
-                      else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
-                      luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
-                      if(defTab.Nick == "PIECES") then -- Load the categoty provider for this DSV
-                        local sCat = fDSV:format(sPref, "CATEGORY"); if(fileExists(sCat,"DATA")) then
-                          luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
-                        end -- This is done so we can distinguish between luapad and other panels
-                      end -- Luapad is designed not to be closed so we need to make it invisible
-                      luapad.Frame:SetVisible(true); luapad.Frame:Center()
-                      luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
-                    end
+                  function() -- Edit the database contents using the Luapad addon
+                    if(not luapad) then return end -- Luapad is not installed do nothing
+                    asmlib.LogInstance("Edit "..asmlib.GetReport1(sFile), sLog..".Button")
+                    if(luapad.Frame) then luapad.Frame:SetVisible(true)
+                    else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
+                    luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
+                    if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                      local sCat = fDSV:format(sPref, "CATEGORY"); if(fileExists(sCat,"DATA")) then
+                        luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
+                      end -- This is done so we can distinguish between luapad and other panels
+                    end -- Luapad is designed not to be closed so we need to make it invisible
+                    luapad.Frame:SetVisible(true); luapad.Frame:Center()
+                    luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
                   end,
                   function() fileDelete(sFile)
                     asmlib.LogInstance("Delete "..asmlib.GetReport1(sFile), sLog..".Button")
