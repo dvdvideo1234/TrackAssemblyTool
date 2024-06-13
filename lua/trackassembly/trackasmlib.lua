@@ -1888,7 +1888,7 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
     local sTip = tostring(vBtn.T or syDis):Trim()
     if(sTip:sub(1,1) == syRev) then
       sTip = languageGetPhrase(sBase.."_bas"..sTxt)
-    elseif(sTip:sub(1,1) == syDis) then
+    elseif(IsDisable(sTip)) then
       sTip = languageGetPhrase("tool."..sTool..".buttonas"..sTxt)
     end
     if(sTxt:sub(1,1) == syRev) then
@@ -2164,7 +2164,6 @@ function LocatePOA(oRec, ivPoID)
     LogInstance("Missing ID "..GetReport2(iPoID, oRec.Slot)); return nil end
   if(oRec.Tran) then oRec.Tran = nil -- Transforming has started
     local sE = GetOpVar("OPSYM_ENTPOSANG") -- Extract transform from model
-    local sD = GetOpVar("OPSYM_DISABLE") -- Use for searched hit point disabled
     for ID = 1, oRec.Size do local tPOA = tOffs[ID] -- Index current offset
       local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
       -------------------- Origin --------------------

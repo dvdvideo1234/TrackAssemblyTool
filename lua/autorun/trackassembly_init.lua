@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.770")
+asmlib.SetOpVar("TOOL_VERSION","8.771")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -715,7 +715,6 @@ if(CLIENT) then
         asmlib.LogInstance("Sheet invalid",sLog); return nil end
       pnSheet:SetParent(pnFrame)
       pnSheet:Dock(FILL)
-      local sOff = asmlib.GetOpVar("OPSYM_DISABLE")
       local sMis = asmlib.GetOpVar("MISS_NOAV")
       local sLib = asmlib.GetOpVar("NAME_LIBRARY")
       local sBas = asmlib.GetOpVar("DIRPATH_BAS")
@@ -818,7 +817,7 @@ if(CLIENT) then
         while(not bEOF) do
           sLine, bEOF = asmlib.GetStringFile(oDSV)
           if(not asmlib.IsBlank(sLine)) then local sKey, sPrg
-            if(sLine:sub(1,1) ~= sOff) then bAct = true else
+            if(not asmlib.IsDisable(sLine)) then bAct = true else
               bAct, sLine = false, sLine:sub(2,-1):Trim() end
             local nS, nE = sLine:find("%s+")
             if(nS and nE) then
@@ -846,6 +845,7 @@ if(CLIENT) then
         if(not oDSV) then pnFrame:Close()
           asmlib.LogInstance("DSV list missing",sLog..".ListView"); return nil end
         local tLine = pnListView:GetLines()
+        local sOff  = asmlib.GetOpVar("OPSYM_DISABLE")
         for iK, pnCur in pairs(tLine) do
           local sAct = ((pnCur:GetColumnText(1) == "V") and "" or sOff)
           local sPrf = pnCur:GetColumnText(2)
