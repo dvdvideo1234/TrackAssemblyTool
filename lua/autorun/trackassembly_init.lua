@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.769")
+asmlib.SetOpVar("TOOL_VERSION","8.770")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1698,6 +1698,7 @@ asmlib.CreateTable("PIECES",{
       local tSort = asmlib.Sort(tData,{"KEY"})
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+      local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
       for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
         local tData = tCache[stRec.Key]
         local sData, tOffs = defTab.Name, tData.Offs

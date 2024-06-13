@@ -209,6 +209,11 @@ function IsNull(vVal)
   return (vVal == GetOpVar("MISS_NOSQL"))
 end
 
+function IsDisable(vVal)
+  if(not isstring(vVal)) then return false end
+  return (vVal:sub(1,1) == GetOpVar("OPSYM_DISABLE"))
+end
+
 function IsEmpty(tVal)
   return (istable(tVal) and not next(tVal))
 end
@@ -745,6 +750,7 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
+  SetOpVar("EMPTYSTR_FUNC",function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_QUEUE",{})
   SetOpVar("TABLE_FLAGS", {})
@@ -2229,7 +2235,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
       LogInstance("Scatter ID #"..tostring(iID)); return nil end
     tOffs[iID] = {}; tOffs = tOffs[iID] -- Allocate a local offset index
     tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
-  end; local sE, sD = GetOpVar("OPSYM_ENTPOSANG"), GetOpVar("OPSYM_DISABLE")
+  end; local sE = GetOpVar("OPSYM_ENTPOSANG")
   -------------------- Origin --------------------
   if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
@@ -2297,22 +2303,20 @@ end
 ]]
 function GetEmpty(sBas, fEmp, iCnt, ...)
   local sS, fE = tostring(sBas or ""), fEmp -- Default to string
-  if(not fE) then fE = function(sS) -- Default empty definition
-    return (IsBlank(sS) or IsNull(sS) or (sS:sub(1,1) == sD))
-  end end -- Use default empty definition when one not provided
+  -- Use default empty definition when one not provided
+  if(not fE) then fE = GetOpVar("EMPTYSTR_FUNC") end
   local bS, oS = pcall(fE, sS); if(not bS) then
     LogInstance("Error ["..sS.."]: "..oS) end
   local iC = mathFloor(tonumber(iCnt) or 0)
-  if(iC == 0) then return oS, sS else -- Empty check only
-    if(not oS) then return sS end -- Base is not empty
-    local sM, tV = GetOpVar("MISS_NOAV"), {...}
-    for iD = 1, iC do -- Check all arguments for a value
-      local sS = tostring(tV[iD] or "") -- Default to string
-      local bS, oS = pcall(fE, sS); if(not bS) then
-        LogInstance("Error ["..sS.."]: "..oS) end
-      if(not oS) then return sS end
-    end; return sM
-  end
+  if(iC == 0) then return oS, sS end -- Empty check only
+  if(not oS) then return sS end -- Base is not empty
+  local sM, tV = GetOpVar("MISS_NOAV"), {...}
+  for iD = 1, iC do -- Check all arguments for a value
+    local sS = tostring(tV[iD] or "") -- Default to string
+    local bS, oS = pcall(fE, sS); if(not bS) then
+      LogInstance("Error ["..sS.."]: "..oS) end
+    if(not oS) then return sS end
+  end; return sM
 end
 
 function ModelToNameRule(sRule, gCut, gSub, gApp)
@@ -3367,7 +3371,7 @@ function ImportCategory(vEq, sPref)
   if(not F) then LogInstance("("..fName..") Open fail"); return false end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk = "["..sEq.."[", "]"..sEq.."]"
-  local tCat, symOff = GetOpVar("TABLE_CATEGORIES"), GetOpVar("OPSYM_DISABLE")
+  local tCat = GetOpVar("TABLE_CATEGORIES")
   local sPar, isPar, isEOF = "", false, false
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if(not IsBlank(sLine)) then
@@ -3382,7 +3386,7 @@ function ImportCategory(vEq, sPref)
         local key, txt = tBoo[1]:Trim(), tBoo[2]
         if(not IsBlank(key)) then
           if(txt:find("function")) then
-            if(key:sub(1,1) ~= symOff) then
+            if(not IsDisable(key)) then
               tCat[key] = {}; tCat[key].Txt = txt:Trim()
               tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
               local bS, vO = pcall(tCat[key].Cmp)
@@ -3425,9 +3429,9 @@ function ExportDSV(sTable, sPref, sDelim)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("("..fPref..")("..fName..") Open fail",sTable); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
-  local fsLog = GetOpVar("FORM_LOGSOURCE") -- read the log source format
+  local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
   local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
-  local sMoDB, symOff = GetOpVar("MODE_DATABASE"), GetOpVar("OPSYM_DISABLE")
+  local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   F:Write("#1 "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
@@ -3477,12 +3481,12 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
         fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
     LogInstance("("..fPref..")("..fName..") Open fail",sTable); return false end
-  local symOff, sDelim = GetOpVar("OPSYM_DISABLE"), tostring(sDelim or "\t"):sub(1,1)
+  local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.Begin)
     LogInstance("("..fPref..") Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
-    if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
+    if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       if(sLine:sub(1,nLen) == defTab.Name) then
         local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
         for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
@@ -3520,10 +3524,10 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
   local sFunc = "SynchronizeDSV"; fName = fName..fForm:format(fPref, defTab.Name)
-  local I, fData, symOff = fileOpen(fName, "rb", "DATA"), {}, GetOpVar("OPSYM_DISABLE")
+  local I, fData = fileOpen(fName, "rb", "DATA"), {}
   if(I) then local sLine, isEOF = "", false
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
-      if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
+      if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
         local tLine = sDelim:Explode(sLine)
         if(tLine[1] == defTab.Name) then local nL = #tLine
           for iCnt = 2, nL do local vV, iL = tLine[iCnt], (iCnt-1); vV = GetStrip(vV)
@@ -3556,7 +3560,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end local tRec = tData[vK] -- Create local reference to the record of the matched key
     for iCnt = 1, #tRec do local tRow, vID, nID, sID = tRec[iCnt] -- Read the processed row reference
       vID = tRow[iD-1]; nID, sID = tonumber(vID), tostring(vID)
-      nID = (nID or (sID:sub(1,1) == symOff and iCnt or 0))
+      nID = (nID or (IsDisable(sID) and iCnt or 0))
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
       if(iCnt ~= nID) then -- Validate the line ID being in proper borders and sequential
           LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ["
@@ -3626,10 +3630,10 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("("..fPref..")("..sNins..") Open fail",sTable); return false end
   I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   I:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
-  local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
+  local sLine, isEOF = "", false
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
   while(not isEOF) do sLine, isEOF = GetStringFile(D)
-    if((not IsBlank(sLine)) and (sLine:sub(1,1) ~= symOff)) then
+    if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       sLine = sLine:gsub(defTab.Name,""):Trim()
       local tBoo, sCat = sDelim:Explode(sLine), ""
       for nCnt = 1, #tBoo do
@@ -3669,13 +3673,12 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   if(bSkip) then
     if(fileExists(fName, "DATA")) then
-      local symOff = GetOpVar("OPSYM_DISABLE")
       local fPool, isEOF, isAct = {}, false, true
       local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""; if(not F) then
         LogInstance("Skip fail "..GetReport2(fPref, fName)); return false end
       while(not isEOF) do sLine, isEOF = GetStringFile(F)
         if(not IsBlank(sLine)) then
-          if(sLine:sub(1,1) == symOff) then
+          if(IsDisable(sLine)) then
             isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
           local tab = sDelim:Explode(sLine)
           local prf, src = tab[1]:Trim(), tab[2]:Trim()
@@ -3713,13 +3716,13 @@ function ProcessDSV(sDelim)
   local fName = (sBas..sSet..lbNam.."_dsv.txt")
   local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
     LogInstance("Open fail "..GetReport1(fName)); return false end
-  local sLine, isEOF, symOff = "", false, GetOpVar("OPSYM_DISABLE")
+  local sLine, isEOF = "", false
   local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
   local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
   local sDv = sBas..GetOpVar("DIRPATH_DSV")
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if(not IsBlank(sLine)) then
-      if(sLine:sub(1,1) ~= symOff) then
+      if(not IsDisable(sLine)) then
         local tInf = sDelim:Explode(sLine)
         local fPrf = GetStrip(tostring(tInf[1] or ""):Trim())
         local fSrc = GetStrip(tostring(tInf[2] or ""):Trim())
