@@ -750,7 +750,9 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
-  SetOpVar("EMPTYSTR_FUNC",function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
+  SetOpVar("EMPTYSTR_BLNU",function(x) return (IsBlank(x) or IsNull(x)) end)
+  SetOpVar("EMPTYSTR_BLDS",function(x) return (IsBlank(x) or IsDisable(x)) end)
+  SetOpVar("EMPTYSTR_ALLX",function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_QUEUE",{})
   SetOpVar("TABLE_FLAGS", {})
@@ -2303,7 +2305,7 @@ end
 function GetEmpty(sBas, fEmp, iCnt, ...)
   local sS, fE = tostring(sBas or ""), fEmp -- Default to string
   -- Use default empty definition when one not provided
-  if(not fE) then fE = GetOpVar("EMPTYSTR_FUNC") end
+  if(not fE) then fE = GetOpVar("EMPTYSTR_ALLX") end
   local bS, oS = pcall(fE, sS); if(not bS) then
     LogInstance("Error ["..sS.."]: "..oS) end
   local iC = mathFloor(tonumber(iCnt) or 0)
@@ -2578,9 +2580,10 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   local self, tabDef, tabCmd = {}, defTab, {}
   local sMoDB  = GetOpVar("MODE_DATABASE")
   local symDis = GetOpVar("OPSYM_DISABLE")
+  local emFva  = GetOpVar("EMPTYSTR_BLNU")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
-    defCol[3] = GetEmpty(defCol[3], nil, 1, symDis)
-    defCol[4] = GetEmpty(defCol[4], nil, 1, symDis)
+    defCol[3] = GetEmpty(defCol[3], emFva, 1, symDis)
+    defCol[4] = GetEmpty(defCol[4], emFva, 1, symDis)
   end; tableInsert(libQTable, defTab.Nick)
   libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
   -- Read table definition

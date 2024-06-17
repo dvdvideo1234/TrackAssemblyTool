@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.772")
+asmlib.SetOpVar("TOOL_VERSION","8.773")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1660,9 +1660,10 @@ asmlib.CreateTable("PIECES",{
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.GetEmpty(arLine[2], nil, 2, asmlib.Categorize(), noTY)
-      arLine[3] = asmlib.GetEmpty(arLine[3], nil, 2, asmlib.ModelToName(arLine[1]), noMD)
-      arLine[8] = asmlib.GetEmpty(arLine[8], nil, 2, noSQL, noSQL)
+      local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
+      arLine[2] = asmlib.GetEmpty(arLine[2], emFva, 2, asmlib.Categorize(), noTY)
+      arLine[3] = asmlib.GetEmpty(arLine[3], emFva, 2, asmlib.ModelToName(arLine[1]), noMD)
+      arLine[8] = asmlib.GetEmpty(arLine[8], emFva, 2, noSQL, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
         asmlib.LogInstance("Register trace "..asmlib.GetReport2(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
@@ -1697,7 +1698,9 @@ asmlib.CreateTable("PIECES",{
       local tSort = asmlib.Sort(tData,{"KEY"})
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+      local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
+      local dCass  = asmlib.GetOpVar("ENTITY_DEFCLASS")
       for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
         local tData = tCache[stRec.Key]
         local sData, tOffs = defTab.Name, tData.Offs
@@ -1705,9 +1708,12 @@ asmlib.CreateTable("PIECES",{
                 makTab:Match(tData.Type,2,true,"\"")..sDelim..
                 makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
-        for iInd = 1, #tOffs do local stPnt = tData.Offs[iInd]
-          local sP, sO, sA = asmlib.ExportPOA(stPnt, "")
-          local sC = (tData.Unit and tostring(tData.Unit or "") or "")
+        for iInd = 1, #tOffs do local stPnt = tData.Offs[iInd] -- Read current offset
+          local sO, sA = stPnt.O:Export(noSQL), stPnt.A:Export(noSQL)
+          -- TODO: Find better way to export points and consider raw data
+          local sP = (stPnt.O:Raw() and stPnt.P:Raw() or (stPnt.O:IsSame(stPnt.P)  ))    stPnt.P:Export(noSQL)
+          local sC = (tData.Unit and tostring(tData.Unit or noSQL) or noSQL)
+                sC = ((sC == dCass) and noSQL or sC)
           oFile:Write(sData..sDelim..makTab:Match(iInd,4,true,"\"")..sDelim..
             "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
@@ -1788,7 +1794,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
-      arLine[1] = asmlib.GetEmpty(arLine[1],nil,2,asmlib.Categorize(),noTY); return true
+      local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
+      arLine[1] = asmlib.GetEmpty(arLine[1],emFva,2,asmlib.Categorize(),noTY); return true
     end
   },
   Cache = {
