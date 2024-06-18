@@ -1559,11 +1559,15 @@ function NewPOA()
       if(tPOA[iD] ~= self[iD]) then return false end
     end; return true
   end
-  function self:Export(sDes)
-    local sS = self:String()
+  function self:Export(tCmp, sDes)
+    local sS, sE = self:String()
     local sD = tostring(sDes or mMis)
-    local sE = (self:IsZero() and sD or sS)
-    return (mRaw and mRaw or sE)
+    if(tCmp) then
+      sE = (self:IsSame(tCmp) and sD or sS)
+    else
+      sE = (self:IsZero() and sD or sS)
+    end
+    return (mRaw or sE)
   end
   function self:Decode(sStr, ...)
     local bV, sS = GetEmpty(sStr) -- Default to string
@@ -3875,126 +3879,129 @@ end
 ]]
 function ExportTypeAR(sType)
   if(SERVER) then return nil end
-  if(not IsBlank(sType)) then
-    local qPieces, qAdditions
-    local sFunc = "ExportTypeAR"
-    local sBase = GetOpVar("DIRPATH_BAS")
-    local noSQL = GetOpVar("MISS_NOSQL")
-    local sTool = GetOpVar("TOOLNAME_NL")
-    local sPref = sType:gsub("[^%w]","_")
-    local sMoDB = GetOpVar("MODE_DATABASE")
-    local sForm = GetOpVar("FORM_FILENAMEAR")
-    local sS = sBase..GetOpVar("DIRPATH_SET")
-          sS = sS..sForm:format(sTool)
-    local sN = sBase..GetOpVar("DIRPATH_EXP")
-          sN = sN..sForm:format(sPref)
-    local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
-      LogInstance("Generate fail "..GetReport(sN)); return end
-    local fS = fileOpen(sS, "rb", "DATA"); if(not fS) then fE:Flush(); fE:Close()
-      LogInstance("Source fail "..GetReport(sS)) return end
-    local makP  = GetBuilderNick("PIECES"); if(not makP) then
-      LogInstance("Missing table builder"); return end
-    local defP = makP:GetDefinition(); if(not defP) then
-      LogInstance("Missing table definition"); return end
-    if(sMoDB == "SQL") then
-      local qsKey = GetOpVar("FORM_KEYSTMT")
-      if(not IsHere(makP)) then
-        LogInstance("Missing table builder PIECES")
-        fE:Flush(); fE:Close(); fS:Close(); return
-      end
-      local qType = makP:Match(sType, 2, true)
-      local Q = CacheStmt(qsKey:format(sFunc, "PIECES"), nil, qType)
-      if(not Q) then
-        local sStmt = makP:Select():Where({2,"%s"}):Order(1,4):Get()
-        if(not IsHere(sStmt)) then LogInstance("Build statement failed")
-          fE:Flush(); fE:Close(); fS:Close(); return
-        end; Q = CacheStmt(qsKey:format(sFunc, "PIECES"), sStmt, qType)
-      end
-      qPieces = sqlQuery(Q)
-      if(not qPieces and isbool(qPieces)) then
-        LogInstance("SQL exec error "..GetReport1(sqlLastError()))
-        LogInstance("SQL exec query "..GetReport1(Q))
-        fE:Flush(); fE:Close(); fS:Close(); return
-      end
-    elseif(sMoDB == "LUA") then
-      local iCnt = 0; qPieces = {}
-      local tCache = libCache[defP.Name]
-      local pkModel = makP:GetColumnName(1)
-      local sLineID = makP:GetColumnName(4)
-      for mod, rec in pairs(tCache) do
-        if(rec.Type == sType) then local iID = 1
-          local rPOA = LocatePOA(rec, iID); if(not IsHere(rPOA)) then
-            LogInstance("Missing point ID "..GetReport2(iID, rec.Slot))
-            fE:Flush(); fE:Close(); fS:Close(); return
-          end
-          while(rPOA) do iCnt = (iCnt + 1)
-            qPieces[iCnt] = {} -- Allocate row memory
-            local qRow = qPieces[iCnt]
-            local sC = (rec.Unit and tostring(rec.Unit or noSQL) or noSQL)
-            qRow[makP:GetColumnName(1)] = rec.Slot
-            qRow[makP:GetColumnName(2)] = rec.Type
-            qRow[makP:GetColumnName(3)] = rec.Name
-            qRow[makP:GetColumnName(4)] = iID
-            qRow[makP:GetColumnName(5)] = rPOA.P:Export(noSQL)
-            qRow[makP:GetColumnName(6)] = rPOA.O:Export(noSQL)
-            qRow[makP:GetColumnName(7)] = rPOA.A:Export(noSQL)
-            qRow[makP:GetColumnName(8)] = sC
-            iID = (iID + 1); rPOA = LocatePOA(rec, iID)
-          end
-        end
-      end
-      local tSort = Sort(qPieces, {pkModel, sLineID}); if(not tSort) then
-        LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
-      for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
-    else
-      LogInstance("Wrong database mode "..GetReport1(sMoDB))
+  if(IsBlank(sType)) then return nil end
+  local qPieces, qAdditions
+  local sFunc = "ExportTypeAR"
+  local sBase = GetOpVar("DIRPATH_BAS")
+  local noSQL = GetOpVar("MISS_NOSQL")
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local sPref = sType:gsub("[^%w]","_")
+  local sMoDB = GetOpVar("MODE_DATABASE")
+  local sForm = GetOpVar("FORM_FILENAMEAR")
+  local sS = sBase..GetOpVar("DIRPATH_SET")
+        sS = sS..sForm:format(sTool)
+  local sN = sBase..GetOpVar("DIRPATH_EXP")
+        sN = sN..sForm:format(sPref)
+  local fE = fileOpen(sN, "wb", "DATA"); if(not fE) then
+    LogInstance("Generate fail "..GetReport(sN)); return end
+  local fS = fileOpen(sS, "rb", "DATA"); if(not fS) then fE:Flush(); fE:Close()
+    LogInstance("Source fail "..GetReport(sS)) return end
+  local makP  = GetBuilderNick("PIECES"); if(not makP) then
+    LogInstance("Missing table builder"); return end
+  local defP = makP:GetDefinition(); if(not defP) then
+    LogInstance("Missing table definition"); return end
+  if(sMoDB == "SQL") then
+    local qsKey = GetOpVar("FORM_KEYSTMT")
+    if(not IsHere(makP)) then
+      LogInstance("Missing table builder PIECES")
       fE:Flush(); fE:Close(); fS:Close(); return
     end
-    if(IsHere(qPieces) and IsHere(qPieces[1])) then
-      local patCateg = GetOpVar("PATTEX_CATEGORY")
-      local patWorks = GetOpVar("PATTEX_WORKSHID")
-      local patPiece = GetOpVar("PATTEX_TABLEDPS")
-      local patAddit = GetOpVar("PATTEX_TABLEDAD")
-      local patAddon = GetOpVar("PATTEX_VARADDON")
-      local keyBuild = GetOpVar("KEYQ_BUILDER"); qPieces[keyBuild] = makP
-      local sLine, isEOF, isSkip, sInd, qAdditions = "", false, false, "  ", {}
-      while(not isEOF) do
-        sLine, isEOF = GetStringFile(fS, true)
-        sLine = sLine:gsub("%s*$", "")
-        if(sLine:find(patAddon)) then isSkip = true
-          fE:Write("local myAddon = \""..sType.."\"\n")
-        elseif(sLine:find(patCateg)) then isSkip = true
-          local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
-          if(istable(tCat) and tCat.Txt) then
-            fE:Write("local myCategory = {\n")
-            fE:Write(sInd:rep(1).."[myType] = {Txt = [[\n")
-            fE:Write(sInd:rep(2)..tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
-            fE:Write(sInd:rep(1).."]]}\n")
-            fE:Write("}\n")
-          else
-            fE:Write("local myCategory = {}\n")
-          end
-        elseif(sLine:find(patWorks)) then isSkip = true
-          local sID = WorkshopID(sType)
-          if(sID and sID:len() > 0) then
-            fE:Write("asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
-          else
-            fE:Write("asmlib.WorkshopID(myAddon)\n")
-          end
-        elseif(sLine:find(patPiece)) then isSkip = true
-          ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)
-        elseif(sLine:find(patAddit)) then isSkip = true
-          ExportPiecesAR(fE, qAdditions, "myAdditions", sInd)
-        else
-          if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
+    local qType = makP:Match(sType, 2, true)
+    local Q = CacheStmt(qsKey:format(sFunc, "PIECES"), nil, qType)
+    if(not Q) then
+      local sStmt = makP:Select():Where({2,"%s"}):Order(1,4):Get()
+      if(not IsHere(sStmt)) then LogInstance("Build statement failed")
+        fE:Flush(); fE:Close(); fS:Close(); return
+      end; Q = CacheStmt(qsKey:format(sFunc, "PIECES"), sStmt, qType)
+    end
+    qPieces = sqlQuery(Q)
+    if(not qPieces and isbool(qPieces)) then
+      LogInstance("SQL exec error "..GetReport1(sqlLastError()))
+      LogInstance("SQL exec query "..GetReport1(Q))
+      fE:Flush(); fE:Close(); fS:Close(); return
+    end
+  elseif(sMoDB == "LUA") then
+    local iCnt = 0; qPieces = {}
+    local tCache = libCache[defP.Name]
+    local pkModel = makP:GetColumnName(1)
+    local sLineID = makP:GetColumnName(4)
+    local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+    for mod, rec in pairs(tCache) do
+      if(rec.Type == sType) then
+        local iID = 1 -- Start from the first point
+        local rPOA = rec.tOffs[iID]; if(not IsHere(rPOA)) then
+          LogInstance("Missing point ID "..GetReport2(iID, rec.Slot))
+          fE:Flush(); fE:Close(); fS:Close(); return
         end
-        if(not isSkip) then
-          if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
+        while(rPOA) do
+          iCnt = (iCnt + 1); qPieces[iCnt] = {} -- Allocate row memory
+          local qRow = qPieces[iCnt]
+          local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
+          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
+                sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+          qRow[makP:GetColumnName(1)] = rec.Slot
+          qRow[makP:GetColumnName(2)] = rec.Type
+          qRow[makP:GetColumnName(3)] = rec.Name
+          qRow[makP:GetColumnName(4)] = iID
+          qRow[makP:GetColumnName(5)] = sP
+          qRow[makP:GetColumnName(6)] = sO
+          qRow[makP:GetColumnName(7)] = sA
+          qRow[makP:GetColumnName(8)] = sC
+          iID = (iID + 1); rPOA = rec.tOffs[iID]
         end
       end
-      fE:Write("\n"); fE:Flush()
-      fE:Close(); fS:Close()
     end
+    local tSort = Sort(qPieces, {pkModel, sLineID}); if(not tSort) then
+      LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
+    for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
+  else
+    LogInstance("Wrong database mode "..GetReport1(sMoDB))
+    fE:Flush(); fE:Close(); fS:Close(); return
+  end
+  if(IsHere(qPieces) and IsHere(qPieces[1])) then
+    local patCateg = GetOpVar("PATTEX_CATEGORY")
+    local patWorks = GetOpVar("PATTEX_WORKSHID")
+    local patPiece = GetOpVar("PATTEX_TABLEDPS")
+    local patAddit = GetOpVar("PATTEX_TABLEDAD")
+    local patAddon = GetOpVar("PATTEX_VARADDON")
+    local keyBuild = GetOpVar("KEYQ_BUILDER"); qPieces[keyBuild] = makP
+    local sLine, isEOF, isSkip, sInd, qAdditions = "", false, false, "  ", {}
+    while(not isEOF) do
+      sLine, isEOF = GetStringFile(fS, true)
+      sLine = sLine:gsub("%s*$", "")
+      if(sLine:find(patAddon)) then isSkip = true
+        fE:Write("local myAddon = \""..sType.."\"\n")
+      elseif(sLine:find(patCateg)) then isSkip = true
+        local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
+        if(istable(tCat) and tCat.Txt) then
+          fE:Write("local myCategory = {\n")
+          fE:Write(sInd:rep(1).."[myType] = {Txt = [[\n")
+          fE:Write(sInd:rep(2)..tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
+          fE:Write(sInd:rep(1).."]]}\n")
+          fE:Write("}\n")
+        else
+          fE:Write("local myCategory = {}\n")
+        end
+      elseif(sLine:find(patWorks)) then isSkip = true
+        local sID = WorkshopID(sType)
+        if(sID and sID:len() > 0) then
+          fE:Write("asmlib.WorkshopID(myAddon, \""..sID.."\")\n")
+        else
+          fE:Write("asmlib.WorkshopID(myAddon)\n")
+        end
+      elseif(sLine:find(patPiece)) then isSkip = true
+        ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)
+      elseif(sLine:find(patAddit)) then isSkip = true
+        ExportPiecesAR(fE, qAdditions, "myAdditions", sInd)
+      else
+        if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
+      end
+      if(not isSkip) then
+        if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
+      end
+    end
+    fE:Write("\n"); fE:Flush()
+    fE:Close(); fS:Close()
   end
 end
 
@@ -4625,10 +4632,9 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
   if(InSpawnMargin(pPly, stData, vPos, aAng)) then
     LogInstance("Spawn margin stop <"..sModel..">"); return nil end
-  local sClass = GetOpVar("ENTITY_DEFCLASS")
-  local ePiece = entsCreate(GetEmpty(stData.Unit, nil, 1, sClass))
-  if(not (ePiece and ePiece:IsValid())) then -- Create the piece unit
-    LogInstance("Piece invalid <"..tostring(ePiece)..">"); return nil end
+  local sClass = GetEmpty(stData.Unit, nil, 1, GetOpVar("ENTITY_DEFCLASS"))
+  local ePiece = entsCreate(sClass); if(not (ePiece and ePiece:IsValid())) then
+    LogInstance("Piece invalid "..GetReport2(sClass, sModel)); return nil end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
   ePiece:SetSolid(SOLID_VPHYSICS)
   ePiece:SetMoveType(MOVETYPE_VPHYSICS)
@@ -4650,7 +4656,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece.owner, ePiece.Owner = pPly, pPly -- Some PPs actually use this value
   pPiece:EnableMotion(false) -- Spawn frozen by default to reduce lag
   local nMass = mathMax(0, (tonumber(nMass) or 0))
-  if(nMass > 0) then pPiece:SetMass(nMass) end
+  if(nMass > 0) then pPiece:SetMass(nMass) end -- Mass equal zero use model mass
   local tBgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
   ePiece:SetSkin(mathClamp(tonumber(tBgSk[2]) or 0, 0, ePiece:SkinCount()-1))
   if(not AttachBodyGroups(ePiece, tBgSk[1])) then ePiece:Remove()

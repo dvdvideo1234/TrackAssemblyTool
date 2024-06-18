@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.773")
+asmlib.SetOpVar("TOOL_VERSION","8.774")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1700,21 +1700,21 @@ asmlib.CreateTable("PIECES",{
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
-      local dCass  = asmlib.GetOpVar("ENTITY_DEFCLASS")
-      for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
+      local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+      for iR = 1, tSort.Size do
+        local stRec = tSort[iR]
         local tData = tCache[stRec.Key]
         local sData, tOffs = defTab.Name, tData.Offs
               sData = sData..sDelim..makTab:Match(stRec.Key,1,true,"\"")..sDelim..
                 makTab:Match(tData.Type,2,true,"\"")..sDelim..
                 makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
-        for iInd = 1, #tOffs do local stPnt = tData.Offs[iInd] -- Read current offset
-          local sO, sA = stPnt.O:Export(noSQL), stPnt.A:Export(noSQL)
-          -- TODO: Find better way to export points and consider raw data
-          local sP = (stPnt.O:Raw() and stPnt.P:Raw() or (stPnt.O:IsSame(stPnt.P)  ))    stPnt.P:Export(noSQL)
-          local sC = (tData.Unit and tostring(tData.Unit or noSQL) or noSQL)
-                sC = ((sC == dCass) and noSQL or sC)
-          oFile:Write(sData..sDelim..makTab:Match(iInd,4,true,"\"")..sDelim..
+        for iD = 1, #tOffs do
+          local stPnt = tData.Offs[iD] -- Read current offsets from the model
+          local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
+          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
+                sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim..
             "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
