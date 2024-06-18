@@ -472,7 +472,7 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local tInfo = (iDbg and debugGetinfo(iDbg) or nil) -- Pass stack index
         tInfo = (tInfo or (tDbg and tDbg or nil))    -- Override debug information
         tInfo = (tInfo or debugGetinfo(2))           -- Default value
-  local sDbg, sFunc = "", tostring(sFunc or (tInfo.name and tInfo.name or "Incognito"))
+  local sDbg, sFunc = "", tostring(tInfo.name or "Incognito")
   if(GetOpVar("LOG_DEBUGEN")) then
     local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
     sDbg = sDbg.." "..(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV)
@@ -688,7 +688,6 @@ function InitBase(sName, sPurp)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGLAST","")
   SetOpVar("LOG_INIT",{"*Init", false, 0})
-  SetOpVar("TIME_STAMP",Time())
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_ACTION",0.01)
   SetOpVar("DELAY_REMOVE",0.5)
