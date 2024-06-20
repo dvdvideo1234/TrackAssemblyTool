@@ -1795,7 +1795,7 @@ function SetComboBoxClipboard(pnCombo)
   local sV = pnCombo:GetValue()
   local iD = pnCombo:GetSelectedID()
   local sT = pnCombo:GetOptionText(iD)
-  local sS = GetEmpty(sT, nil, 2, sV, gsNoAV)
+  local sS = GetEmpty(sT, nil, sV, gsNoAV)
   SetClipboardText(sS)
 end
 
@@ -2311,15 +2311,14 @@ end
  * If these conditions are not met the function returns missing token
  * sBas > The string to check whenever it is disabled or missing
  * fEmp > Defines that the value is to be replaced by something else
- * iCnt > Amount of argument to be used for check and replace
 ]]
-function GetEmpty(sBas, fEmp, iCnt, ...)
+function GetEmpty(sBas, fEmp, ...)
   local sS, fE = tostring(sBas or ""), fEmp -- Default to string
   -- Use default empty definition when one not provided
   if(not fE) then fE = GetOpVar("EMPTYSTR_ALLX") end
   local bS, oS = pcall(fE, sS); if(not bS) then
     LogInstance("Error ["..sS.."]: "..oS) end
-  local iC = mathFloor(tonumber(iCnt) or 0)
+  local iC = select("#", ...) -- Arguments count
   if(iC == 0) then return oS, sS end -- Empty check only
   if(not oS) then return sS end -- Base is not empty
   local sM, tV = GetOpVar("MISS_NOAV"), {...}
@@ -2593,8 +2592,8 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   local symDis = GetOpVar("OPSYM_DISABLE")
   local emFva  = GetOpVar("EMPTYSTR_BLNU")
   for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
-    defCol[3] = GetEmpty(defCol[3], emFva, 1, symDis)
-    defCol[4] = GetEmpty(defCol[4], emFva, 1, symDis)
+    defCol[3] = GetEmpty(defCol[3], emFva, symDis)
+    defCol[4] = GetEmpty(defCol[4], emFva, symDis)
   end; tableInsert(libQTable, defTab.Nick)
   libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
   -- Read table definition
@@ -4458,7 +4457,7 @@ function AttachAdditions(ePiece)
   while(stData[iCnt]) do -- While additions are present keep adding them
     local arRec = stData[iCnt]; LogInstance("PIECE:ADDITION("..iCnt..")")
     local dCass, oPOA = GetOpVar("ENTITY_DEFCLASS"), NewPOA()
-    local sCass = GetEmpty(arRec[makTab:GetColumnName(3)], nil, 1, dCass)
+    local sCass = GetEmpty(arRec[makTab:GetColumnName(3)], nil, dCass)
     local eBonus = entsCreate(sCass); LogInstance("ents.Create("..sCass..")")
     if(eBonus and eBonus:IsValid()) then
       local sMoa = tostring(arRec[makTab:GetColumnName(2)])
@@ -4647,7 +4646,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local aAng = Angle(aAng or GetOpVar("ANG_ZERO"))
   if(InSpawnMargin(pPly, stData, vPos, aAng)) then
     LogInstance("Spawn margin stop <"..sModel..">"); return nil end
-  local sClass = GetEmpty(stData.Unit, nil, 1, GetOpVar("ENTITY_DEFCLASS"))
+  local sClass = GetEmpty(stData.Unit, nil, GetOpVar("ENTITY_DEFCLASS"))
   local ePiece = entsCreate(sClass); if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid "..GetReport2(sClass, sModel)); return nil end
   ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
