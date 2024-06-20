@@ -2124,24 +2124,32 @@ end
 --[[
  * Extracts an attachment as AngPos structure when provided with an ID
  * This function is used to populate POA structures on entity spawn
- * sModel > The model which we must extract the attachments for
+ * vSors  > The model source which we must extract the attachments for
  * sID    > Attachment ID which is being used for the extraction
  * Returns the position and angle for the POA attachment for the ID
 ]]
-function GetAttachmentByID(sModel, sID)
-  if(not IsModel(sModel)) then
-    LogInstance("Model mismatch "..GetReport2(sID, sModel)); return nil end
-  if(not isstring(sID)) then
-    LogInstance("Index mismatch "..GetReport2(sID, sModel)); return nil end
-  local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
-  if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
-    if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
-      LogInstance("Update "..GetReport3(ePiece:EntIndex(), sID, sModel)) end
-  else -- If there is no basis need to create one for attachment extraction
-    ePiece = NewEntityNone(sModel); if(not (ePiece and ePiece:IsValid())) then
-      LogInstance("Basis creation error "..GetReport2(sID, sModel)); return nil end
-    SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
-  end -- Transfer the data from the transform attachment location
+function GetAttachmentByID(vSors, sID)
+  local ePiece, sModel
+  if(isstring(vSors)) then -- Source is a model path
+    sModel = vSors; if(not IsModel(sModel)) then
+      LogInstance("Model mismatch "..GetReport2(sID, sModel)); return nil end
+    if(not isstring(sID)) then
+      LogInstance("Index mismatch "..GetReport2(sID, sModel)); return nil end
+    local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
+    if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
+      if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
+        LogInstance("Update "..GetReport3(ePiece:EntIndex(), sID, sModel)) end
+    else -- If there is no basis need to create one for attachment extraction
+      ePiece = NewEntityNone(sModel); if(not (ePiece and ePiece:IsValid())) then
+        LogInstance("Basis creation error "..GetReport2(sID, sModel)); return nil end
+      SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
+    end -- Transfer the data from the transform attachment location
+  else -- Assume the source is an entity already spawned use it instead
+    if(not (vSors and vSors:IsValid())) then
+      LogInstance("Entity invalid "..GetReport2(sID, vSors)); return nil end
+    ePiece, sModel = vSors, vSors:GetModel(); if(not isstring(sID)) then
+      LogInstance("Index mismatch "..GetReport2(sID, sModel)); return nil end
+  end
   local mID = ePiece:LookupAttachment(sID); if(not isnumber(mID)) then
     LogInstance("Attachment invalid ID "..GetReport2(sID, sModel)); return nil end
   local mTOA = ePiece:GetAttachment(mID); if(not IsHere(mTOA)) then
@@ -4446,7 +4454,7 @@ function AttachAdditions(ePiece)
     LogInstance("Model skip <"..sMoc..">"); return true end
   local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
-    LogInstance("PIECE:MODEL("..sMoc..")") -- Start adding attachments
+  local sEoa = GetOpVar("OPSYM_ENTPOSANG"); LogInstance("PIECE:MODEL("..sMoc..")")
   while(stData[iCnt]) do -- While additions are present keep adding them
     local arRec = stData[iCnt]; LogInstance("PIECE:ADDITION("..iCnt..")")
     local dCass, oPOA = GetOpVar("ENTITY_DEFCLASS"), NewPOA()
@@ -4457,17 +4465,25 @@ function AttachAdditions(ePiece)
       if(not IsModel(sMoa, true)) then
         LogInstance("Invalid attachment "..GetReport3(iCnt, sMoc, sMoa)); return false end
       eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
-      local oPos = arRec[makTab:GetColumnName(5)]; if(not isstring(oPos)) then
-        LogInstance("Position mismatch "..GetReport3(iCnt, sMoc, oPos)); return false end
-      if(not GetEmpty(oPos)) then -- Scan the extracted entry for data
-        vPos:SetUnpacked(oPOA:Decode(oPos):Get())
+      local sPos = arRec[makTab:GetColumnName(5)]; if(not isstring(sPos)) then
+        LogInstance("Position mismatch "..GetReport3(iCnt, sMoc, sPos)); return false end
+      if(not GetEmpty(sPos)) then -- Scan the extracted entry for data
+        if(sPos:sub(1,1) == sEoa) then -- Attachment is spawned anyway
+          local sK = sPos:sub(2, -1) -- Read origin transform ID and try to index
+          local vO, aA = GetAttachmentByID(eBonus, sK) -- Read transform position/angle
+          if(IsHere(vO)) then oPOA:Set(vO:Unpack()) else oPOA:Decode(sK) end
+        else oPOA:Decode(sPos) end; vPos:SetUnpacked(oPOA:Get())
         vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
-      local oAng = arRec[makTab:GetColumnName(6)]; if(not isstring(oAng)) then
-        LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, oAng)); return false end
-      if(not GetEmpty(oAng)) then -- Scan the extracted entry for data
-        aAng:SetUnpacked(oPOA:Decode(oAng):Get())
+      local sAng = arRec[makTab:GetColumnName(6)]; if(not isstring(sAng)) then
+        LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, sAng)); return false end
+      if(not GetEmpty(sAng)) then -- Scan the extracted entry for data
+        if(sAng:sub(1,1) == sEoa) then -- Attachment is spawned anyway
+          local sK = sAng:sub(2, -1) -- Read angle transform ID and try to index
+          local vO, aA = GetAttachmentByID(eBonus, sK) -- Read transform position/angle
+          if(IsHere(aA)) then oPOA:Set(aA:Unpack()) else oPOA:Decode(sK) end
+        else oPOA:Decode(sAng) end; aAng:SetUnpacked(oPOA:Get())
         aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
       else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end

@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.774")
+asmlib.SetOpVar("TOOL_VERSION","8.775")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1663,7 +1663,7 @@ asmlib.CreateTable("PIECES",{
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
       arLine[2] = asmlib.GetEmpty(arLine[2], emFva, 2, asmlib.Categorize(), noTY)
       arLine[3] = asmlib.GetEmpty(arLine[3], emFva, 2, asmlib.ModelToName(arLine[1]), noMD)
-      arLine[8] = asmlib.GetEmpty(arLine[8], emFva, 2, noSQL, noSQL)
+      arLine[8] = asmlib.GetEmpty(arLine[8], emFva, 1, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
         asmlib.LogInstance("Register trace "..asmlib.GetReport2(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
@@ -1710,7 +1710,7 @@ asmlib.CreateTable("PIECES",{
                 makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
         for iD = 1, #tOffs do
-          local stPnt = tData.Offs[iD] -- Read current offsets from the model
+          local stPnt = tOffs[iD] -- Read current offsets from the model
           local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
           local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
