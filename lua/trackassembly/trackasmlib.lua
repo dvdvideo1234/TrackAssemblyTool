@@ -751,7 +751,7 @@ function InitBase(sName, sPurp)
   SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("EMPTYSTR_BLNU",function(x) return (IsBlank(x) or IsNull(x)) end)
   SetOpVar("EMPTYSTR_BLDS",function(x) return (IsBlank(x) or IsDisable(x)) end)
-  SetOpVar("EMPTYSTR_ALLX",function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
+  SetOpVar("EMPTYSTR_BNDX",function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_QUEUE",{})
   SetOpVar("TABLE_FLAGS", {})
@@ -1534,8 +1534,9 @@ function NewPOA()
   function self:Angle()
     return Angle(self:Get())
   end
-  function self:String()
-    return tableConcat(self, mSep)
+  function self:String(sSep)
+    local sSep = tostring(sSep or mSep)
+    return tableConcat(self, sSep)
   end
   function self:Set(nA, nB, nC)
     self[1] = (tonumber(nA) or 0)
@@ -1548,15 +1549,14 @@ function NewPOA()
       mRaw = tostring(sRaw or "") end
     return mRaw -- Source data manager
   end
-  function self:IsZero()
-    for iD = 1, 3 do
-      if(self[iD] ~= 0) then return false end
-    end; return true
-  end
   function self:IsSame(tPOA)
     for iD = 1, 3 do
-      if(tPOA[iD] ~= self[iD]) then return false end
+      local nP = (tPOA and tPOA[iD] or 0)
+      if(nP ~= self[iD]) then return false end
     end; return true
+  end
+  function self:IsZero()
+    return self:IsSame()
   end
   function self:Export(tCmp, sDes)
     local sS, sE = self:String()
@@ -1568,7 +1568,7 @@ function NewPOA()
     end
     return (mRaw or sE)
   end
-  function self:Decode(sStr, ...)
+  function self:Import(sStr, ...)
     local bV, sS = GetEmpty(sStr) -- Default to string
     if(bV) then -- Check when entry data is vacant
       self:Set(...) -- Override with the default value provided
@@ -2186,10 +2186,10 @@ function LocatePOA(oRec, ivPoID)
           local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
           if(IsHere(vO)) then tPOA.O:Set(vO:Unpack()) -- Load origin into POA
           else -- Try decoding the transform origin when not applicable
-            tPOA.O:Decode(sK)  -- Try to process the origin when present
+            tPOA.O:Import(sK)  -- Try to process the origin when present
           end -- Decode the transformation when is not null or empty string
         else -- When the origin is empty use zero otherwise process the value
-          tPOA.O:Decode(sO) -- Try to process the origin when present
+          tPOA.O:Import(sO) -- Try to process the origin when present
         end -- Try decoding the transform origin when not applicable
         LogInstance("Origin transform spawn "..GetReport3(ID, sO, tPOA.O:String()))
       end -- Transform origin is decoded from the model and stored in the cache
@@ -2200,10 +2200,10 @@ function LocatePOA(oRec, ivPoID)
           local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
           if(IsHere(aA)) then tPOA.A:Set(aA:Unpack()) -- Load angle into POA
           else -- Try decoding the transform angle when not applicable
-            tPOA.A:Decode(sK) -- Try to process the angle when present
+            tPOA.A:Import(sK) -- Try to process the angle when present
           end -- Decode the transformation when is not null or empty string
         else -- When the angle is empty use zero otherwise process the value
-          tPOA.A:Decode(aA) -- Try to process the angle when present
+          tPOA.A:Import(aA) -- Try to process the angle when present
         end -- Try decoding the transform angle when not applicable
         LogInstance("Angle transform spawn "..GetReport3(ID, sA, tPOA.A:String()))
       end -- Transform angle is decoded from the model and stored in the cache
@@ -2214,10 +2214,10 @@ function LocatePOA(oRec, ivPoID)
           local vP = GetAttachmentByID(oRec.Slot, sK) -- Read transform point
           if(IsHere(vP)) then tPOA.P:Set(vP:Unpack()) -- Load point into POA
           else -- Try decoding the transform point when not applicable
-            tPOA.P:Decode(sK, tPOA.O:Get()) -- Try to process the point when present
+            tPOA.P:Import(sK, tPOA.O:Get()) -- Try to process the point when present
           end -- Decode the transformation when is not null or empty string
         else -- When the point is empty use zero otherwise process the value
-          tPOA.P:Decode(sP, tPOA.O:Get()) -- Try to process the point when present
+          tPOA.P:Import(sP, tPOA.O:Get()) -- Try to process the point when present
         end -- Try decoding the transform point when not applicable
         LogInstance("Point transform spawn "..GetReport3(ID, sP, tPOA.P:String()))
       end -- Otherwise point is initialized on registration and we have nothing to do here
@@ -2253,21 +2253,21 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
     LogInstance("Origin transform "..GetReport3(iID, sO, stData.Slot))
   else -- When the origin is empty use the zero otherwise decode the value
-    tOffs.O:Decode(sO) -- Try to decode the origin when present
+    tOffs.O:Import(sO) -- Try to decode the origin when present
   end -- Try decoding the transform point when not applicable
   -------------------- Angle --------------------
   if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
     LogInstance("Angle transform "..GetReport3(iID, sA, stData.Slot))
   else -- When the angle is empty use the zero otherwise decode the value
-    tOffs.A:Decode(sA) -- Try to decode the angle when present
+    tOffs.A:Import(sA) -- Try to decode the angle when present
   end -- Try decoding the transform point when not applicable
   -------------------- Point --------------------
   if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
     stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
     LogInstance("Point transform "..GetReport3(iID, sP, stData.Slot))
   else -- When the point is empty use the origin otherwise decode the value
-    tOffs.P:Decode(sP, tOffs.O:Get()) -- Try to decode the point when present
+    tOffs.P:Import(sP, tOffs.O:Get()) -- Try to decode the point when present
   end -- Try decoding the transform point when not applicable
   return tOffs -- On success return the populated POA offset
 end
@@ -2315,7 +2315,7 @@ end
 function GetEmpty(sBas, fEmp, ...)
   local sS, fE = tostring(sBas or ""), fEmp -- Default to string
   -- Use default empty definition when one not provided
-  if(not fE) then fE = GetOpVar("EMPTYSTR_ALLX") end
+  if(not fE) then fE = GetOpVar("EMPTYSTR_BNDX") end
   local bS, oS = pcall(fE, sS); if(not bS) then
     LogInstance("Error ["..sS.."]: "..oS) end
   local iC = select("#", ...) -- Arguments count
@@ -4470,8 +4470,8 @@ function AttachAdditions(ePiece)
         if(sPos:sub(1,1) == sEoa) then -- Attachment is spawned anyway
           local sK = sPos:sub(2, -1) -- Read origin transform ID and try to index
           local vO, aA = GetAttachmentByID(eBonus, sK) -- Read transform position/angle
-          if(IsHere(vO)) then oPOA:Set(vO:Unpack()) else oPOA:Decode(sK) end
-        else oPOA:Decode(sPos) end; vPos:SetUnpacked(oPOA:Get())
+          if(IsHere(vO)) then oPOA:Set(vO:Unpack()) else oPOA:Import(sK) end
+        else oPOA:Import(sPos) end; vPos:SetUnpacked(oPOA:Get())
         vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
@@ -4481,8 +4481,8 @@ function AttachAdditions(ePiece)
         if(sAng:sub(1,1) == sEoa) then -- Attachment is spawned anyway
           local sK = sAng:sub(2, -1) -- Read angle transform ID and try to index
           local vO, aA = GetAttachmentByID(eBonus, sK) -- Read transform position/angle
-          if(IsHere(aA)) then oPOA:Set(aA:Unpack()) else oPOA:Decode(sK) end
-        else oPOA:Decode(sAng) end; aAng:SetUnpacked(oPOA:Get())
+          if(IsHere(aA)) then oPOA:Set(aA:Unpack()) else oPOA:Import(sK) end
+        else oPOA:Import(sAng) end; aAng:SetUnpacked(oPOA:Get())
         aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
       else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
