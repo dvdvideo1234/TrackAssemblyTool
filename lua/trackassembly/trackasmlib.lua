@@ -1504,7 +1504,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       self:DrawCircle(Op, nR,"y","SURF")
     end
     if(iIdx) then local nO = Rv / 5
-      if(not stPOA.P:IsZero()) then
+      if(not stPOA.P:IsSame()) then
         self:SetTextStart(Pp.x + nO, Pp.y - 24 - nO)
       else self:SetTextStart(Op.x + nO, Op.y - 24 - nO) end
       self:DrawText(tostring(iIdx),"g","SURF",{"Trebuchet24"})
@@ -1522,6 +1522,7 @@ function NewPOA()
   local self, mRaw = {0, 0, 0}
   local mMis = GetOpVar("MISS_NOSQL")
   local mSep = GetOpVar("OPSYM_SEPARATOR")
+  local mEoa = GetOpVar("OPSYM_ENTPOSANG")
   function self:Get()
     return unpack(self)
   end
@@ -1549,14 +1550,20 @@ function NewPOA()
       mRaw = tostring(sRaw or "") end
     return mRaw -- Source data manager
   end
-  function self:IsSame(tPOA)
-    for iD = 1, 3 do
-      local nP = (tPOA and tPOA[iD] or 0)
-      if(nP ~= self[iD]) then return false end
+  function self:IsSame(nA, nB, nC)
+    if(istable(nA)) then
+      for iD = 1, 3 do
+        local nP = (tonumber(nA[iD]) or 0)
+        if(nP ~= self[iD]) then return false end
+      end -- Compare with a array of values
+    else -- Try to convert to number
+      local nA = (tonumber(nA) or 0)
+      if(nA ~= self[1]) then return false end
+      local nB = (tonumber(nB) or 0)
+      if(nB ~= self[2]) then return false end
+      local nC = (tonumber(nC) or 0)
+      if(nC ~= self[3]) then return false end
     end; return true
-  end
-  function self:IsZero()
-    return self:IsSame()
   end
   function self:Export(tCmp, sDes)
     local sS, sE = self:String()
@@ -1564,7 +1571,7 @@ function NewPOA()
     if(tCmp) then
       sE = (self:IsSame(tCmp) and sD or sS)
     else
-      sE = (self:IsZero() and sD or sS)
+      sE = (self:IsSame() and sD or sS)
     end
     return (mRaw or sE)
   end
@@ -1580,6 +1587,20 @@ function NewPOA()
           LogInstance("Mismatch "..GetReport2(iD, sS)) end; self[iD] = nC
       end -- Try to decode the entry when present
     end; return self
+  end
+  function self:Decode(sStr, vSors, sTyp, ...)
+    if(sStr:sub(1,1) == mEoa) then -- POA key must extracted from the model
+      local sTyp = tostring(sTyp or "") -- Default the type index to string
+      local sKey = sStr:sub(2, -1) -- Read key transform ID and try to index
+      local tTrn = GetAttachmentByID(vSors, sKey) -- Read transform key
+      local uTrn = tTrn[sTyp] -- Extract transform value for the type
+      if(IsHere(uTrn)) then self:Set(uTrn:Unpack()) -- Load key into POA
+      else -- Try decoding the transform key when not applicable
+        self:Import(sKey, ...) -- Try to process the key when present
+      end -- Decode the transformation when is not null or empty string
+    else -- When the key is empty use zero otherwise process the value
+      self:Import(sStr, ...) -- Try to process the key when present
+    end -- Try decoding the transform key when not applicable
   end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
@@ -2126,7 +2147,7 @@ end
  * This function is used to populate POA structures on entity spawn
  * vSors  > The model source which we must extract the attachments for
  * sID    > Attachment ID which is being used for the extraction
- * Returns the position and angle for the POA attachment for the ID
+ * Returns the position and angle transform table POA attachment
 ]]
 function GetAttachmentByID(vSors, sID)
   local ePiece, sModel
@@ -2155,7 +2176,7 @@ function GetAttachmentByID(vSors, sID)
   local mTOA = ePiece:GetAttachment(mID); if(not IsHere(mTOA)) then
     LogInstance("Attachment missing "..GetReport3(sID, mID, sModel)); return nil end
   LogInstance("Extract "..GetReport3(sID, mTOA.Pos, mTOA.Ang))
-  return mTOA.Pos, mTOA.Ang -- The function must return transform origin and angle
+  return mTOA -- The function must return transform table
 end
 
 --[[
@@ -2180,45 +2201,15 @@ function LocatePOA(oRec, ivPoID)
     for ID = 1, oRec.Size do local tPOA = tOffs[ID] -- Index current offset
       local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
       -------------------- Origin --------------------
-      if(sO) then
-        if(sO:sub(1,1) == sE) then -- POA origin must extracted from the model
-          local sK = sO:sub(2, -1) -- Read origin transform ID and try to index
-          local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
-          if(IsHere(vO)) then tPOA.O:Set(vO:Unpack()) -- Load origin into POA
-          else -- Try decoding the transform origin when not applicable
-            tPOA.O:Import(sK)  -- Try to process the origin when present
-          end -- Decode the transformation when is not null or empty string
-        else -- When the origin is empty use zero otherwise process the value
-          tPOA.O:Import(sO) -- Try to process the origin when present
-        end -- Try decoding the transform origin when not applicable
+      if(sO) then tPOA.O:Decode(sO, oRec.Slot, "Pos")
         LogInstance("Origin transform spawn "..GetReport3(ID, sO, tPOA.O:String()))
       end -- Transform origin is decoded from the model and stored in the cache
       -------------------- Angle --------------------
-      if(sA) then -- There is still something to be processed after the registration
-        if(sA:sub(1,1) == sE) then -- POA angle must extracted from the model
-          local sK = sA:sub(2, -1) -- Read angle transform ID and try to index
-          local vO, aA = GetAttachmentByID(oRec.Slot, sK) -- Read transform position/angle
-          if(IsHere(aA)) then tPOA.A:Set(aA:Unpack()) -- Load angle into POA
-          else -- Try decoding the transform angle when not applicable
-            tPOA.A:Import(sK) -- Try to process the angle when present
-          end -- Decode the transformation when is not null or empty string
-        else -- When the angle is empty use zero otherwise process the value
-          tPOA.A:Import(aA) -- Try to process the angle when present
-        end -- Try decoding the transform angle when not applicable
+      if(sA) then tPOA.A:Decode(sA, oRec.Slot, "Ang")
         LogInstance("Angle transform spawn "..GetReport3(ID, sA, tPOA.A:String()))
       end -- Transform angle is decoded from the model and stored in the cache
       -------------------- Point --------------------
-      if(sP) then -- There is still something to be processed after the registration
-        if(sP:sub(1,1) == sE) then -- POA point must extracted from the model
-          local sK = sP:sub(2, -1) -- Read point transform ID and try to index
-          local vP = GetAttachmentByID(oRec.Slot, sK) -- Read transform point
-          if(IsHere(vP)) then tPOA.P:Set(vP:Unpack()) -- Load point into POA
-          else -- Try decoding the transform point when not applicable
-            tPOA.P:Import(sK, tPOA.O:Get()) -- Try to process the point when present
-          end -- Decode the transformation when is not null or empty string
-        else -- When the point is empty use zero otherwise process the value
-          tPOA.P:Import(sP, tPOA.O:Get()) -- Try to process the point when present
-        end -- Try decoding the transform point when not applicable
+      if(sP) then tPOA.A:Decode(sP, oRec.Slot, "Pos", tPOA.O:Get())
         LogInstance("Point transform spawn "..GetReport3(ID, sP, tPOA.P:String()))
       end -- Otherwise point is initialized on registration and we have nothing to do here
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
@@ -4466,23 +4457,17 @@ function AttachAdditions(ePiece)
       eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
       local sPos = arRec[makTab:GetColumnName(5)]; if(not isstring(sPos)) then
         LogInstance("Position mismatch "..GetReport3(iCnt, sMoc, sPos)); return false end
-      if(not GetEmpty(sPos)) then -- Scan the extracted entry for data
-        if(sPos:sub(1,1) == sEoa) then -- Attachment is spawned anyway
-          local sK = sPos:sub(2, -1) -- Read origin transform ID and try to index
-          local vO, aA = GetAttachmentByID(eBonus, sK) -- Read transform position/angle
-          if(IsHere(vO)) then oPOA:Set(vO:Unpack()) else oPOA:Import(sK) end
-        else oPOA:Import(sPos) end; vPos:SetUnpacked(oPOA:Get())
+      if(not GetEmpty(sPos)) then
+        oPOA:Decode(sPos, eBonus, "Pos")
+        vPos:SetUnpacked(oPOA:Get())
         vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
       local sAng = arRec[makTab:GetColumnName(6)]; if(not isstring(sAng)) then
         LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, sAng)); return false end
-      if(not GetEmpty(sAng)) then -- Scan the extracted entry for data
-        if(sAng:sub(1,1) == sEoa) then -- Attachment is spawned anyway
-          local sK = sAng:sub(2, -1) -- Read angle transform ID and try to index
-          local vO, aA = GetAttachmentByID(eBonus, sK) -- Read transform position/angle
-          if(IsHere(aA)) then oPOA:Set(aA:Unpack()) else oPOA:Import(sK) end
-        else oPOA:Import(sAng) end; aAng:SetUnpacked(oPOA:Get())
+      if(not GetEmpty(sAng)) then
+        oPOA:Decode(sAng, eBonus, "Ang")
+        aAng:SetUnpacked(oPOA:Get())
         aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
       else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
