@@ -1539,30 +1539,35 @@ function NewPOA()
     local sSep = tostring(sSep or mSep)
     return tableConcat(self, sSep)
   end
-  function self:Set(nA, nB, nC)
-    self[1] = (tonumber(nA) or 0)
-    self[2] = (tonumber(nB) or 0)
-    self[3] = (tonumber(nC) or 0)
-    return self
+  function self:Set(vA, vB, vC)
+    if(istable(vA)) then
+      self[1] = (tonumber(vA[1]) or 0)
+      self[2] = (tonumber(vA[2]) or 0)
+      self[3] = (tonumber(vA[3]) or 0)
+    else
+      self[1] = (tonumber(vA) or 0)
+      self[2] = (tonumber(vB) or 0)
+      self[3] = (tonumber(vC) or 0)
+    end; return self
   end
   function self:Raw(sRaw)
     if(IsHere(sRaw)) then
       mRaw = tostring(sRaw or "") end
     return mRaw -- Source data manager
   end
-  function self:IsSame(nA, nB, nC)
-    if(istable(nA)) then
+  function self:IsSame(vA, vB, vC)
+    if(istable(vA)) then
       for iD = 1, 3 do
-        local nP = (tonumber(nA[iD]) or 0)
+        local nP = (tonumber(vA[iD]) or 0)
         if(nP ~= self[iD]) then return false end
       end -- Compare with a array of values
     else -- Try to convert to number
-      local nA = (tonumber(nA) or 0)
-      if(nA ~= self[1]) then return false end
-      local nB = (tonumber(nB) or 0)
-      if(nB ~= self[2]) then return false end
-      local nC = (tonumber(nC) or 0)
-      if(nC ~= self[3]) then return false end
+      local vA = (tonumber(vA) or 0)
+      if(vA ~= self[1]) then return false end
+      local vB = (tonumber(vB) or 0)
+      if(vB ~= self[2]) then return false end
+      local vC = (tonumber(vC) or 0)
+      if(vC ~= self[3]) then return false end
     end; return true
   end
   function self:Export(tCmp, sDes)
