@@ -1581,31 +1581,36 @@ function NewPOA()
     return (mRaw or sE)
   end
   function self:Import(sStr, ...)
-    local bV, sS = GetEmpty(sStr) -- Default to string
-    if(bV) then -- Check when entry data is vacant
+    local bE, sStr = GetEmpty(sStr) -- Default to string
+    if(bE) then -- Check when entry data is vacant
       self:Set(...) -- Override with the default value provided
     else -- Entry data is missing use default otherwise decode the value
-      local tPOA = mSep:Explode(sS)    -- Read the components
+      local tPOA = mSep:Explode(sStr)  -- Read the components
       for iD = 1, 3 do                 -- Apply on all components
         local nC = tonumber(tPOA[iD])  -- Is the data really a number
         if(not IsHere(nC)) then nC = 0 -- If not write zero and report it
-          LogInstance("Mismatch "..GetReport2(iD, sS)) end; self[iD] = nC
+          LogInstance("Mismatch "..GetReport2(iD, sStr)) end; self[iD] = nC
       end -- Try to decode the entry when present
     end; return self
   end
   function self:Decode(sStr, vSors, sTyp, ...)
-    if(sStr:sub(1,1) == mEoa) then -- POA key must extracted from the model
-      local sTyp = tostring(sTyp or "") -- Default the type index to string
-      local sKey = sStr:sub(2, -1) -- Read key transform ID and try to index
-      local tTrn = GetAttachmentByID(vSors, sKey) -- Read transform key
-      local uTrn = tTrn[sTyp] -- Extract transform value for the type
-      if(IsHere(uTrn)) then self:Set(uTrn:Unpack()) -- Load key into POA
-      else -- Try decoding the transform key when not applicable
-        self:Import(sKey, ...) -- Try to process the key when present
-      end -- Decode the transformation when is not null or empty string
-    else -- When the key is empty use zero otherwise process the value
-      self:Import(sStr, ...) -- Try to process the key when present
-    end -- Try decoding the transform key when not applicable
+    local bE, sStr = GetEmpty(sStr) -- Default to string
+    if(bE) -- Check when entry data is vacant
+      then self:Set(...) -- Override with the default value provided
+    else -- Entry data is missing use default otherwise decode the value
+      if(sStr:sub(1,1) == mEoa) then -- POA key must extracted from the model
+        local sTyp = tostring(sTyp or "") -- Default the type index to string
+        local sKey = sStr:sub(2, -1) -- Read key transform ID and try to index
+        local tTrn = GetAttachmentByID(vSors, sKey) -- Read transform key
+        local uTrn = tTrn[sTyp] -- Extract transform value for the type
+        if(IsHere(uTrn)) then self:Set(uTrn:Unpack()) -- Load key into POA
+        else -- Try decoding the transform key when not applicable
+          self:Import(sKey, ...) -- Try to process the key when present
+        end -- Decode the transformation when is not null or empty string
+      else -- When the key is empty use zero otherwise process the value
+        self:Import(sStr, ...) -- Try to process the key when present
+      end -- Try to decode the entry when present
+    end; return self
   end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
