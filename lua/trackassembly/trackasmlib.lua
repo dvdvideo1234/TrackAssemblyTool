@@ -255,16 +255,18 @@ end
 --[[
  * Reports the type and actual value for one argument
  * Reports vararg containing many values concatenated
+ * The return value must always return a string
+ * Vararg: (66)           > {number}|66|
+ * Vararg: (66,nil,"asd") > |66|nil|asd|
 ]]
 function GetReport(...)
   local sD = GetOpVar("OPSYM_VERTDIV")
-  local tV, sV = {...}, sD
-  local nV = select("#", ...)
-  if(nV == 0) then return sV end
+  local tV, sV = {...}, sD -- Use vertical divider
+  local nV = select("#", ...) -- Read report count
+  if(nV == 0) then return sV end -- Nothing to report
   if(nV == 1) then sV = "{"..type(tV[1]).."}"..sV end
-  for iV = 1, nV do
-    sV = sV..tostring(tV[iV])..sD
-  end; return sV
+  for iV = 1, nV do sV = sV..tostring(tV[iV])..sD end
+  return sV -- Concatenate vararg and return a string
 end
 
 -- Returns the sign of a number [-1,0,1]
