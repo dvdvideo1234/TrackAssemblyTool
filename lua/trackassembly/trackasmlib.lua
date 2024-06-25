@@ -290,7 +290,7 @@ function GetDateTime(vDT, fDT)
 end
 
 -- Uses custom model check to remove the pre-caching overhead
-libModel.Skip = {} -- Gerneral disabled models for spawning
+libModel.Skip = {} -- General disabled models for spawning
 libModel.Skip[""] = true -- Empty string
 libModel.Skip["models/error.mdl"] = true
 libModel.File = {} -- When the file is available
@@ -303,7 +303,7 @@ function IsModel(sModel, bDeep)
   if(libModel.Skip[sModel]) then
     LogInstance("Skipped "..GetReport(sModel)); return false end
   local vDeep = libModel.Deep[sModel] -- Read model validation status
-  if(SERVER and bDeep and IsHere(vDeep)) then return vDeep end -- Ganna spawn
+  if(SERVER and bDeep and IsHere(vDeep)) then return vDeep end -- Will spawn
   local vFile = libModel.File[sModel] -- File current status
   if(IsHere(vFile)) then -- File validation status is present
     if(not vFile) then -- File is validated as invalid path
@@ -316,9 +316,9 @@ function IsModel(sModel, bDeep)
     vFile = true; libModel.File[sModel] = vFile -- The file validated
     LogInstance("File >> "..GetReport(vDeep, vFile, sModel))
   end -- At this point file path is valid. Have to validate model
-  if(CLIENT or not bDeep) then return true else -- File is validated
-    utilPrecacheModel(sModel) vDeep = utilIsValidModel(sModel)
-    libModel.Deep[sModel] = vDeep; -- Store deep validation
+  if(CLIENT or not bDeep) then return vFile else -- File is validated
+    utilPrecacheModel(sModel); vDeep = utilIsValidModel(sModel)
+    libModel.Deep[sModel] = vDeep -- Store deep validation
     LogInstance("Deep >> "..GetReport(vDeep, vFile, sModel))
     return vDeep -- Gonna spawn
   end
