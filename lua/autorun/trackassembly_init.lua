@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.776")
+asmlib.SetOpVar("TOOL_VERSION","8.777")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -939,7 +939,7 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end,
                   function() -- Edit the database contents using the Luapad addon
                     if(not luapad) then return end -- Luapad is not installed do nothing
-                    asmlib.LogInstance("Edit "..asmlib.GetReport1(sFile), sLog..".Button")
+                    asmlib.LogInstance("Edit "..asmlib.GetReport(sFile), sLog..".Button")
                     if(luapad.Frame) then luapad.Frame:SetVisible(true)
                     else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
                     luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
@@ -952,10 +952,10 @@ if(CLIENT) then
                     luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
                   end,
                   function() fileDelete(sFile)
-                    asmlib.LogInstance("Delete "..asmlib.GetReport1(sFile), sLog..".Button")
+                    asmlib.LogInstance("Delete "..asmlib.GetReport(sFile), sLog..".Button")
                     if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref, "CATEGORY")
                       if(fileExists(sCat,"DATA")) then fileDelete(sCat) -- Delete category when present
-                        asmlib.LogInstance("Deleted "..asmlib.GetReport1(sCat), sLog..".Button") end
+                        asmlib.LogInstance("Deleted "..asmlib.GetReport(sCat), sLog..".Button") end
                     end; pnManage:Remove()
                   end
                 }
@@ -1327,7 +1327,7 @@ if(CLIENT) then
             spawnmenuAddToolMenuOption(lDir, lSub, sKey, languageGetPhrase(tDat.Nam), "", "", fFoo) end)
         else
           if(not asmlib.IsHere(tDat.Bar[sDir])) then
-            asmlib.LogInstance("Miss folder "..asmlib.GetReport1(sDir), sLog); return end
+            asmlib.LogInstance("Miss folder "..asmlib.GetReport(sDir), sLog); return end
           fFoo = tDat.Bar[sDir][sSub]; if(not asmlib.IsHere(fFoo)) then
             asmlib.LogInstance("Miss subfolder "..asmlib.GetReport2(sDir, sSub), sLog); return end
           if(not isfunction(fFoo)) then

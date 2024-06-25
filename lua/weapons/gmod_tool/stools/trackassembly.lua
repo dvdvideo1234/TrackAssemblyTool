@@ -489,7 +489,7 @@ function TOOL:ClearAnchor(bMute)
     asmlib.UpdateColor(svEnt, "anchor", "an", false) end
   if(not bMute) then -- Notify the user when anchor is cleared
     asmlib.Notify(user,"Anchor: Cleaned "..siAnc.." !","CLEANUP") end
-  asmlib.LogInstance("Cleared "..asmlib.GetReport1(bMute),gtLogs); return true
+  asmlib.LogInstance("Cleared "..asmlib.GetReport(bMute),gtLogs); return true
 end
 
 function TOOL:SetAnchor(stTrace)
@@ -507,7 +507,7 @@ function TOOL:SetAnchor(stTrace)
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(user,"anchor",sAnchor)
     asmlib.Notify(user,"Anchor: Set "..sAnchor.." !","UNDO")
-    asmlib.LogInstance("(WORLD) Set "..asmlib.GetReport1(sAnchor),gtLogs)
+    asmlib.LogInstance("(WORLD) Set "..asmlib.GetReport(sAnchor),gtLogs)
   else
     local trEnt = stTrace.Entity; if(not (trEnt and trEnt:IsValid())) then
       asmlib.LogInstance("Trace no entity",gtLogs); return false end
@@ -518,7 +518,7 @@ function TOOL:SetAnchor(stTrace)
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(user,"anchor",sAnchor)
     asmlib.Notify(user,"Anchor: Set "..sAnchor.." !","UNDO")
-    asmlib.LogInstance("(PROP) Set "..asmlib.GetReport1(sAnchor),gtLogs)
+    asmlib.LogInstance("(PROP) Set "..asmlib.GetReport(sAnchor),gtLogs)
   end; return true
 end
 
@@ -672,7 +672,7 @@ function TOOL:GetFlipOver(bEnt, bMute)
       local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
       if(bID and bMR) then tF[iD] = eID else tF[iD] = nil
         if(SERVER and not bMute) then
-          local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
+          local sR, sE = asmlib.GetReport(iD, eID, bID, bMR), tostring(tF[iD])
           asmlib.LogInstance("Flip over mismatch ID "..sR, gtLogs)
           asmlib.Notify(user, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
         end
@@ -1182,12 +1182,12 @@ function TOOL:LeftClick(stTrace)
             asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"),gtLogs); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
-              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
+              oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
               asmlib.Notify(oPly, oArg.wname.." excessive turn at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"), gtLogs); return false
             end
             if(nU and nU < crvleanlm) then
-              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
+              oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
               asmlib.Notify(oPly, oArg.wname.." excessive lean at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"), gtLogs); return false
             end
@@ -1212,7 +1212,7 @@ function TOOL:LeftClick(stTrace)
               else -- When there is more stuff to snap continue snapping the current
                 oArg.stark = (oArg.stark + 1) -- Move the snap cursor to the next snap
               end -- Write the logs that snap rate per tick has been reached
-              asmlib.LogInstance("("..oArg.wname..") "..sItr..":  Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtLogs)
+              asmlib.LogInstance("("..oArg.wname..") "..sItr..":  Next "..asmlib.GetReport(oArg.stard, oArg.stark), gtLogs)
               return true -- The server is still busy with the task
             end
           else oArg.mundo = sItr -- We still have enough memory to preform the stacking
@@ -1275,11 +1275,11 @@ function TOOL:LeftClick(stTrace)
             tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then -- Renew the spawn rate and prepare for next spawn
               oArg.start, oArg.srate = (iD + 1), spawnrate
-              asmlib.LogInstance("(Over) Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtLogs)
+              asmlib.LogInstance("(Over) Next "..asmlib.GetReport(oArg.stard, oArg.stark), gtLogs)
               return true -- The server is still busy with the task
             end
           else
-            asmlib.Notify(user, "Spawn data invalid "..asmlib.GetReport2(iD, oArg.mundo).." !", "ERROR")
+            asmlib.Notify(user, "Spawn data invalid "..asmlib.GetReport(iD, oArg.mundo).." !", "ERROR")
             asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Spawn data invalid",trEnt),gtLogs); return false
           end
         end
@@ -1293,7 +1293,7 @@ function TOOL:LeftClick(stTrace)
     end)
     poQueue:OnFinish(user, function(oPly, oArg)
       local nU = #oArg.eundo
-      asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(oArg.ients, fnmodel).." ( Over )")
+      asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport(oArg.ients, fnmodel).." ( Over )")
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
       asmlib.UndoFinish(oPly)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
@@ -2361,7 +2361,7 @@ function TOOL.BuildCPanel(CPanel)
       end -- Register the node associated with the track piece when is intended for later
       if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
-    else asmlib.LogInstance("Ignoring item "..asmlib.GetReport3(sTyp, sNam, sMod),sLog) end
+    else asmlib.LogInstance("Ignoring item "..asmlib.GetReport(sTyp, sNam, sMod),sLog) end
     iCnt = iCnt + 1
   end
   -- Attach the hanging items to the type root
@@ -2370,7 +2370,7 @@ function TOOL.BuildCPanel(CPanel)
       local pan = pTypes[typ]
       local nam, mod = unpack(val[iD])
       asmlib.SetDirectoryNode(pan, nam, mod)
-      asmlib.LogInstance("Rooting item "..asmlib.GetReport3(typ, nam, mod),sLog)
+      asmlib.LogInstance("Rooting item "..asmlib.GetReport(typ, nam, mod),sLog)
     end
   end -- Process all the items without category defined
   asmlib.LogInstance("Found items #"..tostring(iCnt - 1), sLog)
