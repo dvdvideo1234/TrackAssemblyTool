@@ -369,7 +369,7 @@ function GetOwner(oEnt)
   -- Use CPPI first when installed. If fails search down
   ows = ((CPPI and oEnt.CPPIGetOwner) and oEnt:CPPIGetOwner() or nil)
   if(IsPlayer(ows)) then return ows else ows = nil end
-  -- Try the direct entity methods. Extract owner from functios
+  -- Try the direct entity methods. Extract owner from functions
   ows = (oEnt.GetOwner and oEnt:GetOwner() or nil)
   if(IsPlayer(ows)) then return ows else ows = nil end
   ows = (oEnt.GetCreator and oEnt:GetCreator() or nil)
@@ -1491,7 +1491,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
   return self -- Register the screen under the key
 end
 
-function NewPOA()
+function NewPOA(vA, vB, vC)
   local self, mRaw = {0, 0, 0}
   local mMis = GetOpVar("MISS_NOSQL")
   local mSep = GetOpVar("OPSYM_SEPARATOR")
@@ -1508,9 +1508,9 @@ function NewPOA()
   function self:Angle()
     return Angle(self:Get())
   end
-  function self:String(sSep)
-    local sSep = tostring(sSep or mSep)
-    return tableConcat(self, sSep)
+  function self:String(sS)
+    local sS = (IsHere(sS) and tostring(sS) or mSep)
+    return tableConcat(self, sS) -- Custom separator
   end
   function self:Set(vA, vB, vC)
     if(istable(vA)) then
@@ -1523,9 +1523,9 @@ function NewPOA()
       self[3] = (tonumber(vC) or 0)
     end; return self
   end
-  function self:Raw(sRaw)
-    if(IsHere(sRaw)) then
-      mRaw = tostring(sRaw or "") end
+  function self:Raw(sR)
+    if(IsHere(sR)) then
+      mRaw = tostring(sR) end
     return mRaw -- Source data manager
   end
   function self:IsSame(vA, vB, vC)
@@ -1543,48 +1543,47 @@ function NewPOA()
       if(vC ~= self[3]) then return false end
     end; return true
   end
-  function self:Export(tCmp, sDes)
-    local sS, sE = self:String()
-    local sD = tostring(sDes or mMis)
-    if(tCmp) then
-      sE = (self:IsSame(tCmp) and sD or sS)
-    else
-      sE = (self:IsSame() and sD or sS)
-    end
-    return (mRaw or sE)
+  function self:Export(vA, vB, vC)
+    local sS, bE = self:String()
+    if(vA) then -- Must compare
+      bE = self:IsSame(vA, vB, vC)
+    else bE = self:IsSame() end
+    return (mRaw or (bE and mMis or sS))
   end
-  function self:Import(sStr, ...)
-    local bE, sStr = GetEmpty(sStr) -- Default to string
+  function self:Import(sB, sM, ...)
+    local bE, sB = GetEmpty(sB) -- Default to string
     if(bE) then -- Check when entry data is vacant
       self:Set(...) -- Override with the default value provided
     else -- Entry data is missing use default otherwise decode the value
-      local tPOA = mSep:Explode(sStr)  -- Read the components
+      local sM = (IsHere(sM) and tostring(sM) or GetOpVar("MISS_NOMD"))
+      local tPOA = mSep:Explode(sB)  -- Read the components
       for iD = 1, 3 do                 -- Apply on all components
         local nC = tonumber(tPOA[iD])  -- Is the data really a number
         if(not IsHere(nC)) then nC = 0 -- If not write zero and report it
-          LogInstance("Mismatch "..GetReport(iD, sStr)) end; self[iD] = nC
+          LogInstance("Mismatch "..GetReport(sM, sB, iD)) end; self[iD] = nC
       end -- Try to decode the entry when present
     end; return self
   end
-  function self:Decode(sStr, vSors, sTyp, ...)
-    local bE, sStr = GetEmpty(sStr) -- Default to string
+  function self:Decode(sB, vS, sT, ...)
+    local bE, sB = GetEmpty(sB) -- Default to string
     if(bE) -- Check when entry data is vacant
       then self:Set(...) -- Override with the default value provided
     else -- Entry data is missing use default otherwise decode the value
-      if(sStr:sub(1,1) == mEoa) then -- POA key must extracted from the model
-        local sTyp = tostring(sTyp or "") -- Default the type index to string
-        local sKey = sStr:sub(2, -1) -- Read key transform ID and try to index
-        local tTrn = GetAttachmentByID(vSors, sKey) -- Read transform key
-        local uTrn = tTrn[sTyp] -- Extract transform value for the type
-        if(IsHere(uTrn)) then self:Set(uTrn:Unpack()) -- Load key into POA
+      if(sB:sub(1,1) == mEoa) then -- POA key must extracted from the model
+        local sT = tostring(sT or "") -- Default the type index to string
+        local sK = sB:sub(2, -1) -- Read key transform ID and try to index
+        local tT, sM = GetAttachmentByID(vS, sK) -- Read transform key
+        local uT = tT[sT] -- Extract transform value for the type
+        if(IsHere(uT)) then self:Set(uT:Unpack()) -- Load key into POA
         else -- Try decoding the transform key when not applicable
-          self:Import(sKey, ...) -- Try to process the key when present
+          self:Import(sK, sM, ...) -- Try to process the key when present
+          LogInstance("Mismatch "..GetReport(sM, sK, sT)) -- Report mismatch
         end -- Decode the transformation when is not null or empty string
-      else -- When the key is empty use zero otherwise process the value
-        self:Import(sStr, ...) -- Try to process the key when present
+      else -- When the value is empty use zero otherwise process the value
+        self:Import(sB, sM, ...) -- Try to process the value when present
       end -- Try to decode the entry when present
     end; return self
-  end
+  end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
   setmetatable(self, GetOpVar("TYPEMT_POA")); return self
 end
 
@@ -2128,38 +2127,38 @@ end
 --[[
  * Extracts an attachment as AngPos structure when provided with an ID
  * This function is used to populate POA structures on entity spawn
- * vSors  > The model source which we must extract the attachments for
+ * vSrc   > The model source which we must extract the attachments for
  * sID    > Attachment ID which is being used for the extraction
  * Returns the position and angle transform table POA attachment
 ]]
-function GetAttachmentByID(vSors, sID)
-  local ePiece, sModel
-  if(isstring(vSors)) then -- Source is a model path
-    sModel = vSors; if(not IsModel(sModel)) then
-      LogInstance("Model mismatch "..GetReport(sID, sModel)); return nil end
+function GetAttachmentByID(vSrc, sID)
+  local sID, ePiece, sSrc = tostring(sID)
+  if(isstring(vSrc)) then -- Source is a model path
+    sSrc = vSrc; if(not IsModel(sSrc)) then
+      LogInstance("Model mismatch "..GetReport(sID, sSrc)); return nil end
     if(not isstring(sID)) then
-      LogInstance("Index mismatch "..GetReport(sID, sModel)); return nil end
+      LogInstance("Index mismatch "..GetReport(sID, sSrc)); return nil end
     local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
     if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
-      if(ePiece:GetModel() ~= sModel) then ePiece:SetModel(sModel)
-        LogInstance("Update "..GetReport(ePiece:EntIndex(), sID, sModel)) end
+      if(ePiece:GetModel() ~= sSrc) then ePiece:SetModel(sSrc)
+        LogInstance("Update "..GetReport(ePiece:EntIndex(), sID, sSrc)) end
     else -- If there is no basis need to create one for attachment extraction
-      ePiece = NewEntityNone(sModel); if(not (ePiece and ePiece:IsValid())) then
-        LogInstance("Basis creation error "..GetReport(sID, sModel)); return nil end
+      ePiece = NewEntityNone(sSrc); if(not (ePiece and ePiece:IsValid())) then
+        LogInstance("Basis creation error "..GetReport(sID, sSrc)); return nil end
       SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
     end -- Transfer the data from the transform attachment location
   else -- Assume the source is an entity already spawned use it instead
-    if(not (vSors and vSors:IsValid())) then
-      LogInstance("Entity invalid "..GetReport(sID, vSors)); return nil end
-    ePiece, sModel = vSors, vSors:GetModel(); if(not isstring(sID)) then
-      LogInstance("Index mismatch "..GetReport(sID, sModel)); return nil end
+    if(not (vSrc and vSrc:IsValid())) then
+      LogInstance("Entity invalid "..GetReport(sID, vSrc)); return nil end
+    ePiece, sSrc = vSrc, vSrc:GetModel(); if(not isstring(sID)) then
+      LogInstance("Index mismatch "..GetReport(sID, sSrc)); return nil end
   end
   local mID = ePiece:LookupAttachment(sID); if(not isnumber(mID)) then
-    LogInstance("Attachment invalid ID "..GetReport(sID, sModel)); return nil end
+    LogInstance("Attachment invalid ID "..GetReport(sID, sSrc)); return nil end
   local mTOA = ePiece:GetAttachment(mID); if(not IsHere(mTOA)) then
-    LogInstance("Attachment missing "..GetReport(sID, mID, sModel)); return nil end
+    LogInstance("Attachment missing "..GetReport(sID, mID, sSrc)); return nil end
   LogInstance("Extract "..GetReport(sID, mTOA.Pos, mTOA.Ang))
-  return mTOA -- The function must return transform table
+  return mTOA, sSrc -- The function must return transform table
 end
 
 --[[
@@ -2227,21 +2226,21 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
     LogInstance("Origin transform "..GetReport(iID, sO, stData.Slot))
   else -- When the origin is empty use the zero otherwise decode the value
-    tOffs.O:Import(sO) -- Try to decode the origin when present
+    tOffs.O:Import(sO, stData.Slot) -- Try to decode the origin when present
   end -- Try decoding the transform point when not applicable
   -------------------- Angle --------------------
   if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
     LogInstance("Angle transform "..GetReport(iID, sA, stData.Slot))
   else -- When the angle is empty use the zero otherwise decode the value
-    tOffs.A:Import(sA) -- Try to decode the angle when present
+    tOffs.A:Import(sA, stData.Slot) -- Try to decode the angle when present
   end -- Try decoding the transform point when not applicable
   -------------------- Point --------------------
   if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
     stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
     LogInstance("Point transform "..GetReport(iID, sP, stData.Slot))
   else -- When the point is empty use the origin otherwise decode the value
-    tOffs.P:Import(sP, tOffs.O:Get()) -- Try to decode the point when present
+    tOffs.P:Import(sP, stData.Slot, tOffs.O:Get()) -- Try to decode the point when present
   end -- Try decoding the transform point when not applicable
   return tOffs -- On success return the populated POA offset
 end
