@@ -2664,6 +2664,10 @@ if(CLIENT) then
         asmlib.LogInstance("Factory reset complete", sLog)
       end
     end
+    pItem.DoRightClick = function(pnSelf)
+      local fW = asmlib.GetOpVar("FORM_GITWIKI")
+      guiOpenURL(fW:format("Factory-reset"))
+    end
     pItem:Dock(TOP); pItem:SetTall(30)
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
