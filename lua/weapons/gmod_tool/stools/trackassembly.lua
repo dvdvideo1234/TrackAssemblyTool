@@ -2603,24 +2603,26 @@ if(CLIENT) then
     -- Setup memory configuration export button
     pItem = asmlib.SetButton(CPanel, "timermode_ap")
     pItem.DoClick = function(pnSelf)
+      local tTim, sRev = {}, asmlib.GetOpVar("OPSYM_REVISION")
+      for iD = 1, #tPan do local vP, tS = tPan[iD], {}
+        local pM, pL = vP["MODE"], vP["LIFE"]
+        local pC, bG = vP["CLER"], vP["COLL"]
+        tS[1] = tostring(pM:GetOptionData(pM:GetSelectedID()) or "")
+        tS[2] = tostring(tonumber(pL:GetValue() or 0))
+        tS[3] = tostring(pC:GetChecked() and 1 or 0)
+        tS[4] = tostring(bG:GetChecked() and 1 or 0)
+        tTim[iD] = tableConcat(tS, sRev)
+      end
+      asmlib.SetAsmConvar(nil, "timermode", tableConcat(tTim, gsSymDir))
+    end
+    pItem.DoRightClick = function(pnSelf)
       if(inputIsKeyDown(KEY_LSHIFT)) then
+        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                             asmlib.GetAsmConvar("logfile","BUL"))
+      else
         local fW = asmlib.GetOpVar("FORM_GITWIKI")
         guiOpenURL(fW:format("Memory-manager-configuration"))
-      else
-        local tTim, sRev = {}, asmlib.GetOpVar("OPSYM_REVISION")
-        for iD = 1, #tPan do local vP, tS = tPan[iD], {}
-          local pM, pL = vP["MODE"], vP["LIFE"]
-          local pC, bG = vP["CLER"], vP["COLL"]
-          tS[1] = tostring(pM:GetOptionData(pM:GetSelectedID()) or "")
-          tS[2] = tostring(tonumber(pL:GetValue() or 0))
-          tS[3] = tostring(pC:GetChecked() and 1 or 0)
-          tS[4] = tostring(bG:GetChecked() and 1 or 0)
-          tTim[iD] = tableConcat(tS, sRev)
-        end
-        asmlib.SetAsmConvar(nil, "timermode", tableConcat(tTim, gsSymDir))
       end
-      asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
-                           asmlib.GetAsmConvar("logfile","BUL"))
     end
     pItem:Dock(TOP); pItem:SetTall(30)
     -- Setup factory reset variables button
