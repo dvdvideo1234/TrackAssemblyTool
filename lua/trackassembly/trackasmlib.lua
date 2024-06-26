@@ -2128,34 +2128,35 @@ end
  * Extracts an attachment as AngPos structure when provided with an ID
  * This function is used to populate POA structures on entity spawn
  * vSrc   > The model source which we must extract the attachments for
- * sID    > Attachment ID which is being used for the extraction
+ * sID    > Attachment ID any/string being used for the extraction
  * Returns the position and angle transform table POA attachment
 ]]
 function GetAttachmentByID(vSrc, sID)
-  local sID, ePiece, sSrc = tostring(sID)
+  if(not IsHere(sID)) then -- No need to extract when no ID is provided
+    LogInstance("Index empty "..GetReport(sID, vSrc)); return nil end
+  local sID, eBase, sSrc = tostring(sID) if(IsBlank(sID)) then
+    LogInstance("Index missing "..GetReport(sID, vSrc)); return nil end
   if(isstring(vSrc)) then -- Source is a model path
     sSrc = vSrc; if(not IsModel(sSrc)) then
       LogInstance("Model mismatch "..GetReport(sID, sSrc)); return nil end
-    if(not isstring(sID)) then
-      LogInstance("Index mismatch "..GetReport(sID, sSrc)); return nil end
-    local ePiece = GetOpVar("ENTITY_TRANSFORMPOA")
-    if(ePiece and ePiece:IsValid()) then -- There is basis entity then update and extract
-      if(ePiece:GetModel() ~= sSrc) then ePiece:SetModel(sSrc)
-        LogInstance("Update "..GetReport(ePiece:EntIndex(), sID, sSrc)) end
+    local eBase = GetOpVar("ENTITY_TRANSFORMPOA")
+    if(eBase and eBase:IsValid()) then -- There is basis entity then update and extract
+      if(eBase:GetModel() ~= sSrc) then eBase:SetModel(sSrc)
+        LogInstance("Update "..GetReport(eBase:EntIndex(), sID, sSrc)) end
     else -- If there is no basis need to create one for attachment extraction
-      ePiece = NewEntityNone(sSrc); if(not (ePiece and ePiece:IsValid())) then
+      eBase = NewEntityNone(sSrc); if(not (eBase and eBase:IsValid())) then
         LogInstance("Basis creation error "..GetReport(sID, sSrc)); return nil end
-      SetOpVar("ENTITY_TRANSFORMPOA", ePiece) -- Register the entity transform basis
+      SetOpVar("ENTITY_TRANSFORMPOA", eBase) -- Register the entity transform basis
     end -- Transfer the data from the transform attachment location
   else -- Assume the source is an entity already spawned use it instead
     if(not (vSrc and vSrc:IsValid())) then
       LogInstance("Entity invalid "..GetReport(sID, vSrc)); return nil end
-    ePiece, sSrc = vSrc, vSrc:GetModel(); if(not isstring(sID)) then
+    eBase, sSrc = vSrc, vSrc:GetModel(); if(not isstring(sID)) then
       LogInstance("Index mismatch "..GetReport(sID, sSrc)); return nil end
-  end
-  local mID = ePiece:LookupAttachment(sID); if(not isnumber(mID)) then
+  end --
+  local mID = eBase:LookupAttachment(sID); if(not isnumber(mID)) then
     LogInstance("Attachment invalid ID "..GetReport(sID, sSrc)); return nil end
-  local mTOA = ePiece:GetAttachment(mID); if(not IsHere(mTOA)) then
+  local mTOA = eBase:GetAttachment(mID); if(not IsHere(mTOA)) then
     LogInstance("Attachment missing "..GetReport(sID, mID, sSrc)); return nil end
   LogInstance("Extract "..GetReport(sID, mTOA.Pos, mTOA.Ang))
   return mTOA, sSrc -- The function must return transform table
