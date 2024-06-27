@@ -131,6 +131,7 @@ local tableMaxn                      = table and table.maxn
 local tableGetKeys                   = table and table.GetKeys
 local tableInsert                    = table and table.insert
 local tableCopy                      = table and table.Copy
+local tableSort                      = table and table.sort
 local tableConcat                    = table and table.concat
 local tableRemove                    = table and table.remove
 local debugGetinfo                   = debug and debug.getinfo
@@ -721,10 +722,11 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
-  SetOpVar("MODELNAM_FUNC",function(x) return " "..x:sub(2,2):upper() end)
-  SetOpVar("EMPTYSTR_BLNU",function(x) return (IsBlank(x) or IsNull(x)) end)
-  SetOpVar("EMPTYSTR_BLDS",function(x) return (IsBlank(x) or IsDisable(x)) end)
-  SetOpVar("EMPTYSTR_BNDX",function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
+  SetOpVar("VCOMPARE_SORT", function(u, v) return (u.Val < v.Val) end)
+  SetOpVar("MODELNAM_FUNC", function(x) return " "..x:sub(2,2):upper() end)
+  SetOpVar("EMPTYSTR_BLNU", function(x) return (IsBlank(x) or IsNull(x)) end)
+  SetOpVar("EMPTYSTR_BLDS", function(x) return (IsBlank(x) or IsDisable(x)) end)
+  SetOpVar("EMPTYSTR_BNDX", function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
   SetOpVar("QUERY_STORE", {})
   SetOpVar("TABLE_QUEUE",{})
   SetOpVar("TABLE_FLAGS", {})
@@ -2246,23 +2248,9 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   return tOffs -- On success return the populated POA offset
 end
 
-function QuickSort(tD, iL, iH)
-  if(not (iL and iH and (iL > 0) and (iL < iH))) then
-    LogInstance("Data dimensions mismatch"); return nil end
-  local iM = mathRandom(iH-iL-1)+iL-1
-  tD[iL], tD[iM] = tD[iM], tD[iL]; iM = iL
-  local vM, iC = tD[iL].Val, (iL + 1)
-  while(iC <= iH)do
-    if(tD[iC].Val < vM) then iM = iM + 1
-      tD[iM], tD[iC] = tD[iC], tD[iM]
-    end; iC = iC + 1
-  end; tD[iL], tD[iM] = tD[iM], tD[iL]
-  QuickSort(tD,iL,iM-1)
-  QuickSort(tD,iM+1,iH)
-end
-
 function Sort(tTable, tCols)
   local tS, iS = {Size = 0}, 0
+  local fS = GetOpVar("VCOMPARE_SORT")
   local tC = tCols or {}; tC.Size = #tC
   for key, rec in pairs(tTable) do
     iS = (iS + 1); tS[iS] = {}
@@ -2275,7 +2263,7 @@ function Sort(tTable, tCols)
         end -- When no sort columns are provided sort by the keys instead
       else tS[iS].Val = key end -- When column list not specified use the key
     else tS[iS].Val = rec end -- When the element is not a table use the value
-  end; tS.Size = iS; QuickSort(tS,1,iS); return tS
+  end; tS.Size = iS; tableSort(tS, fS); return tS
 end
 
 ------------- VARIABLE INTERFACES --------------
