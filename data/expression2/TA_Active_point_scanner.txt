@@ -22,7 +22,7 @@ if(first() || dupefinished())
     # How fast it will scan the piece edge
     Delta = 0.1
     
-    # Local oriantation vectors
+    # Local orientation vectors
     F = vec(0,0,1)
     U = vec(1,0,0)
     C = vec(0,0,0)
@@ -31,8 +31,8 @@ if(first() || dupefinished())
     # Automatic stuff
     runOnTick(1)
     Stage = 0            # Must start from zero ( initialization stage ) 
-    PntCount = 0         # Howm many points are registered for avarage
-    StepDistant = 0      # The current distrance while scanning. Resets in every stage
+    PntCount = 0         # How many points are registered for average
+    StepDistant = 0      # The current distance while scanning. Resets in every stage
     Scanner = entity()
 
     holoCreate(1), holoColor(1,vec(255,0,0)), holoScale(1,0.1*vec(1,1,1)) holoModel(1,"cone")
