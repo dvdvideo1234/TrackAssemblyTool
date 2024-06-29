@@ -38,6 +38,7 @@ local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 
 local next                           = next
 local type                           = type
+local select                         = select
 local pcall                          = pcall
 local Angle                          = Angle
 local Color                          = Color
@@ -2227,21 +2228,21 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   -------------------- Origin --------------------
   if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
-    LogInstance("Origin transform "..GetReport(iID, sO, stData.Slot))
+    LogInstance("Origin transform init "..GetReport(iID, sO, stData.Slot))
   else -- When the origin is empty use the zero otherwise decode the value
     tOffs.O:Import(sO, stData.Slot) -- Try to decode the origin when present
   end -- Try decoding the transform point when not applicable
   -------------------- Angle --------------------
   if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
-    LogInstance("Angle transform "..GetReport(iID, sA, stData.Slot))
+    LogInstance("Angle transform init "..GetReport(iID, sA, stData.Slot))
   else -- When the angle is empty use the zero otherwise decode the value
     tOffs.A:Import(sA, stData.Slot) -- Try to decode the angle when present
   end -- Try decoding the transform point when not applicable
   -------------------- Point --------------------
   if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
     stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
-    LogInstance("Point transform "..GetReport(iID, sP, stData.Slot))
+    LogInstance("Point transform init "..GetReport(iID, sP, stData.Slot))
   else -- When the point is empty use the origin otherwise decode the value
     tOffs.P:Import(sP, stData.Slot, tOffs.O:Get()) -- Try to decode the point when present
   end -- Try decoding the transform point when not applicable

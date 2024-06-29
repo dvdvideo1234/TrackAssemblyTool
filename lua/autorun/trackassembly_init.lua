@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.781")
+asmlib.SetOpVar("TOOL_VERSION","8.782")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -259,7 +259,7 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
         local mkTab, ID = asmlib.GetBuilderID(1), 1
         while(mkTab) do local sTim = arTim[ID]
           local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
-          asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
+          asmlib.LogInstance("Timer apply "..asmlib.GetReport(defTab.Nick,sTim),gtInitLogs)
           ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
         end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vN),gtInitLogs)
       end})
@@ -295,7 +295,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
       local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
       local fky = asmlib.GetOpVar("FORM_DRWSPKY")
       for iR = 1, 4 do
-        local out = asmlib.GetReport2(iR,tableConcat(tab[iR], ","))
+        local out = asmlib.GetReport(iR,tableConcat(tab[iR], ","))
         scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
       end
     end,
@@ -1047,7 +1047,7 @@ if(CLIENT) then
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), makTab:GetColumnName(3), false, asmlib.ToIcon("pn_srchcol_lb3"))
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), makTab:GetColumnName(4), false, asmlib.ToIcon("pn_srchcol_lb4"))
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
-        asmlib.LogInstance("Selected "..asmlib.GetReport3(nInd,sVal,anyData),sLog..".ComboBox")
+        asmlib.LogInstance("Selected "..asmlib.GetReport(nInd,sVal,anyData),sLog..".ComboBox")
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel ------------
@@ -1193,7 +1193,7 @@ if(CLIENT) then
         local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
               sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
-          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport3(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
+          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
         end
       end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
@@ -1314,25 +1314,25 @@ if(CLIENT) then
         local fFoo, sLog = tArg[3], "*TWEAK_PANEL"
         local sDir, sSub = tostring(tArg[1]):lower(), tostring(tArg[2]):lower()
         local bS, lDir = pcall(tDat.Foo, sDir); if(not bS) then
-          asmlib.LogInstance("Fail folder "..asmlib.GetReport2(sDir, lDir), sLog); return end
+          asmlib.LogInstance("Fail folder "..asmlib.GetReport(sDir, lDir), sLog); return end
         local bS, lSub = pcall(tDat.Foo, sSub); if(not bS) then
-          asmlib.LogInstance("Fail subfolder "..asmlib.GetReport2(sSub, lSub), sLog); return end
+          asmlib.LogInstance("Fail subfolder "..asmlib.GetReport(sSub, lSub), sLog); return end
         local sKey = tDat.Key:format(sDir, sSub)
         if(asmlib.IsHere(fFoo)) then
           if(not isfunction(fFoo)) then
-            asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return end
+            asmlib.LogInstance("Miss function "..asmlib.GetReport(sDir, sSub, fFoo), sLog); return end
           if(not asmlib.IsHere(tDat.Bar[sDir])) then tDat.Bar[sDir] = {} end; tDat.Bar[sDir][sSub] = fFoo
-          asmlib.LogInstance("Store "..asmlib.GetReport3(sDir, sSub, fFoo), sLog)
+          asmlib.LogInstance("Store "..asmlib.GetReport(sDir, sSub, fFoo), sLog)
           hookRemove(tDat.Hoo, sKey); hookAdd(tDat.Hoo, sKey, function()
             spawnmenuAddToolMenuOption(lDir, lSub, sKey, languageGetPhrase(tDat.Nam), "", "", fFoo) end)
         else
           if(not asmlib.IsHere(tDat.Bar[sDir])) then
             asmlib.LogInstance("Miss folder "..asmlib.GetReport(sDir), sLog); return end
           fFoo = tDat.Bar[sDir][sSub]; if(not asmlib.IsHere(fFoo)) then
-            asmlib.LogInstance("Miss subfolder "..asmlib.GetReport2(sDir, sSub), sLog); return end
+            asmlib.LogInstance("Miss subfolder "..asmlib.GetReport(sDir, sSub), sLog); return end
           if(not isfunction(fFoo)) then
-            asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return end
-          asmlib.LogInstance("Cache "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return fFoo
+            asmlib.LogInstance("Miss function "..asmlib.GetReport(sDir, sSub, fFoo), sLog); return end
+          asmlib.LogInstance("Cache "..asmlib.GetReport(sDir, sSub, fFoo), sLog); return fFoo
         end
       end,
       {
@@ -1458,7 +1458,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
               if(bSuc and cnW and cnW:IsValid()) then
                 local sIde = ePiece:EntIndex()..gsSymDir..eBase:EntIndex()
-                asmlib.UndoCrate("TA Weld > "..asmlib.GetReport2(sIde,cnW:GetClass()))
+                asmlib.UndoCrate("TA Weld > "..asmlib.GetReport(sIde,cnW:GetClass()))
                 asmlib.UndoAddEntity(cnW); asmlib.UndoFinish(oPly); return true
               end; return false
             end
@@ -1487,7 +1487,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
               if(bSuc and cnN and cnN:IsValid()) then
                 local sIde = ePiece:EntIndex()..gsSymDir..eBase:EntIndex()
-                asmlib.UndoCrate("TA NoCollide > "..asmlib.GetReport2(sIde,cnN:GetClass()))
+                asmlib.UndoCrate("TA NoCollide > "..asmlib.GetReport(sIde,cnN:GetClass()))
                 asmlib.UndoAddEntity(cnN); asmlib.UndoFinish(oPly); return true
               end; return false
             end
@@ -1509,7 +1509,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
               if(bSuc and cnG and cnG:IsValid()) then
-                asmlib.UndoCrate("TA NoCollideWorld > "..asmlib.GetReport2(ePiece:EntIndex(),cnG:GetClass()))
+                asmlib.UndoCrate("TA NoCollideWorld > "..asmlib.GetReport(ePiece:EntIndex(),cnG:GetClass()))
                 asmlib.UndoAddEntity(cnG); asmlib.UndoFinish(oPly); return true
               end; return false
             end
@@ -1540,9 +1540,9 @@ if(SERVER) then
         if(type(wDraw) == "function") then      -- Check when the value is function
           local bS, vO = pcall(wDraw, oEnt); vO = tostring(vO) -- Always being string
           if(not bS) then oEnt:SetNWString(sKey, sNoA)
-            asmlib.LogInstance("Populate:"..asmlib.GetReport2(sKey,iD).." fail: "..vO, sLog)
+            asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey,iD).." fail: "..vO, sLog)
           else
-            asmlib.LogInstance("Populate:"..asmlib.GetReport3(sKey,iD,vO), sLog)
+            asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey,iD,vO), sLog)
             oEnt:SetNWString(sKey, vO) -- Write networked value to the hover entity
           end
         end
@@ -1574,7 +1574,7 @@ if(CLIENT) then
         if(not asmlib.IsHere(oRec)) then return nil end
       end -- If the menu is not enabled for all props ged-a-ud!
       netStart(gsOptionsCV); netWriteEntity(oEnt); netSendToServer() -- Love message
-      asmlib.LogInstance("Entity "..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), sLog)
+      asmlib.LogInstance("Entity "..asmlib.GetReport(oEnt:GetClass(),oEnt:EntIndex()), sLog)
     end) -- Read client configuration
 end
 
@@ -1602,13 +1602,13 @@ gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
     local sName = languageGetPhrase(sKey.."_con"):Trim():Trim(":")
     if(isfunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
-        asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
+        asmlib.LogInstance("Request "..asmlib.GetReport(sKey,iD).." fail: "..vE,gsOptionsLG); return end
       sName = sName..": "..tostring(vE)          -- Attach client value ( CLIENT )
     elseif(isfunction(wDraw)) then
       sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
     end; local fEval = function() self:Evaluate(ent,iD,tr,sKey) end
     local pnOpt = pnSub:AddOption(sName, fEval); if(not IsValid(pnOpt)) then
-      asmlib.LogInstance("Invalid "..asmlib.GetReport2(sKey,iD),gsOptionsLG); return end
+      asmlib.LogInstance("Invalid "..asmlib.GetReport(sKey,iD),gsOptionsLG); return end
     if(not asmlib.IsBlank(sIcon)) then pnOpt:SetIcon(asmlib.ToIcon(sIcon)) end
   end
 end
@@ -1628,8 +1628,8 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
     local oPly = LocalPlayer()
     local oTr  = oPly:GetEyeTrace()
     local bS, vE = pcall(fHandle,ent,oPly,oTr,key); if(not bS) then
-      asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
-    if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
+      asmlib.LogInstance("Request "..asmlib.GetReport(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+    if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport(sKey,idx),gsOptionsLG); return end
   end
 end
 -- What to happen on the server with our entity
@@ -1643,8 +1643,8 @@ gtOptionsCM.Receive = function(self, len, ply)
   if(not propertiesCanBeTargeted(ent, ply)) then return end
   local sKey, fHandle = tLine[1], tLine[3] -- Menu function handler
   local bS, vE = pcall(fHandle, ent, ply, oTr, sKey); if(not bS) then
-    asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
-  if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
+    asmlib.LogInstance("Request "..asmlib.GetReport(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+  if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport(sKey,idx),gsOptionsLG); return end
 end
 -- Register the track assembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)
@@ -1665,7 +1665,7 @@ asmlib.CreateTable("PIECES",{
       arLine[3] = asmlib.GetEmpty(arLine[3], emFva, asmlib.ModelToName(arLine[1]), noMD)
       arLine[8] = asmlib.GetEmpty(arLine[8], emFva, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
-        asmlib.LogInstance("Register trace "..asmlib.GetReport2(arLine[8],arLine[1]),vSrc)
+        asmlib.LogInstance("Register trace "..asmlib.GetReport(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
       end; return true
     end
@@ -1681,7 +1681,7 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(4,arLine[4],snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
         if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
@@ -1750,12 +1750,12 @@ asmlib.CreateTable("ADDITIONS",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nCnt, iID = 2, makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(4,arLine[4],snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
       stData[iID] = {} -- LineID has to be set properly
       while(nCnt <= defTab.Size) do sCol = makTab:GetColumnName(nCnt)
         stData[iID][sCol] = makTab:Match(arLine[nCnt],nCnt)
         if(not asmlib.IsHere(stData[iID][sCol])) then -- Check data conversion output
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport3(nCnt,arLine[nCnt],snPK),vSrc); return false
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(nCnt,arLine[nCnt],snPK),vSrc); return false
         end; nCnt = (nCnt + 1)
       end; stData.Size = iID; return true
     end,
@@ -1766,7 +1766,7 @@ asmlib.CreateTable("ADDITIONS",{
         for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
           for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
-              asmlib.LogInstance("Cannot match "..asmlib.GetReport3()); return false
+              asmlib.LogInstance("Cannot match "..asmlib.GetReport()); return false
             end; oFile:Write(sDelim..tostring(vM or ""))
           end; oFile:Write("\n") -- Data is already inserted, there will be no crash
         end
@@ -1808,7 +1808,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       local tNames = tCache[skName]; if(not tNames) then
         tCache[skName] = {}; tNames = tCache[skName] end
       local iNameID = makTab:Match(arLine[2],2); if(not asmlib.IsHere(iNameID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(2,arLine[2],snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(2,arLine[2],snPK),vSrc); return false end
       if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
         tTypes.Size = (tTypes.Size + 1)
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
