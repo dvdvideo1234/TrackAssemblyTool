@@ -2201,7 +2201,7 @@ function LocatePOA(oRec, ivPoID)
       if(sP) then tPOA.P:Decode(sP, oRec.Slot, "Pos", tPOA.O:Get())
         LogInstance("Point spawn "..GetReport(ID, sP))
       end -- Otherwise point is initialized on registration and we have nothing to do here
-      LogInstance("Index POA "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
+      LogInstance("Index "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
 end
