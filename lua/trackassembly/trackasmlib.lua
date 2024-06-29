@@ -1576,14 +1576,20 @@ function NewPOA(vA, vB, vC)
         local sT = tostring(sT or "") -- Default the type index to string
         local sK = sB:sub(2, -1) -- Read key transform ID and try to index
         local tT, sM = GetAttachmentByID(vS, sK) -- Read transform key
-        local uT = tT[sT] -- Extract transform value for the type
-        if(IsHere(uT)) then self:Set(uT:Unpack()) -- Load key into POA
+        if(IsHere(tT)) then -- Attachment is found. Try to process it
+          local uT = tT[sT] -- Extract transform value for the type
+          if(IsHere(uT)) then self:Set(uT:Unpack()) -- Load key into POA
+          else -- Try decoding the transform key when not applicable
+            self:Import(sK, sM, ...) -- Try to process the key when present
+            LogInstance("Mismatch "..GetReport(sM, sK, sT)) -- Report mismatch
+          end -- Decode the transformation when is not null or empty string
         else -- Try decoding the transform key when not applicable
           self:Import(sK, sM, ...) -- Try to process the key when present
-          LogInstance("Mismatch "..GetReport(sM, sK, sT)) -- Report mismatch
+          LogInstance("Missing "..GetReport(sM, sK, sT)) -- Report mismatch
         end -- Decode the transformation when is not null or empty string
       else -- When the value is empty use zero otherwise process the value
         self:Import(sB, sM, ...) -- Try to process the value when present
+        LogInstance("Missing "..GetReport(sB, sM)) -- No Attachment call
       end -- Try to decode the entry when present
     end; return self
   end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
@@ -2141,26 +2147,26 @@ function GetAttachmentByID(vSrc, sID)
     LogInstance("Index missing "..GetReport(sID, vSrc)); return nil end
   if(isstring(vSrc)) then -- Source is a model path
     sSrc = vSrc; if(not IsModel(sSrc)) then
-      LogInstance("Model mismatch "..GetReport(sID, sSrc)); return nil end
-    local eBase = GetOpVar("ENTITY_TRANSFORMPOA")
-    if(eBase and eBase:IsValid()) then -- There is basis entity then update and extract
+      LogInstance("Model mismatch "..GetReport(sID, sSrc)); return nil, sSrc end
+    eBase = GetOpVar("ENTITY_TRANSFORMPOA") -- Use transform entity
+    if(eBase and eBase:IsValid()) then -- Valid basis entity then
       if(eBase:GetModel() ~= sSrc) then eBase:SetModel(sSrc)
         LogInstance("Update "..GetReport(eBase:EntIndex(), sID, sSrc)) end
     else -- If there is no basis need to create one for attachment extraction
       eBase = NewEntityNone(sSrc); if(not (eBase and eBase:IsValid())) then
-        LogInstance("Basis creation error "..GetReport(sID, sSrc)); return nil end
+        LogInstance("Basis creation error "..GetReport(sID, sSrc)); return nil, sSrc end
       SetOpVar("ENTITY_TRANSFORMPOA", eBase) -- Register the entity transform basis
     end -- Transfer the data from the transform attachment location
   else -- Assume the source is an entity already spawned use it instead
     if(not (vSrc and vSrc:IsValid())) then
-      LogInstance("Entity invalid "..GetReport(sID, vSrc)); return nil end
+      LogInstance("Entity invalid "..GetReport(sID, vSrc)); return nil, sSrc end
     eBase, sSrc = vSrc, vSrc:GetModel(); if(not isstring(sID)) then
-      LogInstance("Index mismatch "..GetReport(sID, sSrc)); return nil end
-  end --
+      LogInstance("Index mismatch "..GetReport(sID, sSrc)); return nil, sSrc end
+  end
   local mID = eBase:LookupAttachment(sID); if(not isnumber(mID)) then
-    LogInstance("Attachment invalid ID "..GetReport(sID, sSrc)); return nil end
+    LogInstance("Attachment invalid ID "..GetReport(sID, sSrc)); return nil, sSrc end
   local mTOA = eBase:GetAttachment(mID); if(not IsHere(mTOA)) then
-    LogInstance("Attachment missing "..GetReport(sID, mID, sSrc)); return nil end
+    LogInstance("Attachment missing "..GetReport(sID, mID, sSrc)); return nil, sSrc end
   LogInstance("Extract "..GetReport(sID, mTOA.Pos, mTOA.Ang))
   return mTOA, sSrc -- The function must return transform table
 end
@@ -2186,18 +2192,16 @@ function LocatePOA(oRec, ivPoID)
     local sE = GetOpVar("OPSYM_ENTPOSANG") -- Extract transform from model
     for ID = 1, oRec.Size do local tPOA = tOffs[ID] -- Index current offset
       local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
-      -------------------- Origin --------------------
       if(sO) then tPOA.O:Decode(sO, oRec.Slot, "Pos")
-        LogInstance("Origin transform spawn "..GetReport(ID, sO, tPOA.O:String()))
+        LogInstance("Origin spawn "..GetReport(ID, sO))
       end -- Transform origin is decoded from the model and stored in the cache
-      -------------------- Angle --------------------
       if(sA) then tPOA.A:Decode(sA, oRec.Slot, "Ang")
-        LogInstance("Angle transform spawn "..GetReport(ID, sA, tPOA.A:String()))
+        LogInstance("Angle spawn "..GetReport(ID, sA))
       end -- Transform angle is decoded from the model and stored in the cache
-      -------------------- Point --------------------
-      if(sP) then tPOA.A:Decode(sP, oRec.Slot, "Pos", tPOA.O:Get())
-        LogInstance("Point transform spawn "..GetReport(ID, sP, tPOA.P:String()))
+      if(sP) then tPOA.P:Decode(sP, oRec.Slot, "Pos", tPOA.O:Get())
+        LogInstance("Point spawn "..GetReport(ID, sP))
       end -- Otherwise point is initialized on registration and we have nothing to do here
+      LogInstance("Index POA "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
 end
@@ -2225,24 +2229,21 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     tOffs[iID] = {}; tOffs = tOffs[iID] -- Allocate a local offset index
     tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
   end; local sE = GetOpVar("OPSYM_ENTPOSANG")
-  -------------------- Origin --------------------
   if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
-    LogInstance("Origin transform init "..GetReport(iID, sO, stData.Slot))
+    LogInstance("Origin init "..GetReport(iID, sO, stData.Slot))
   else -- When the origin is empty use the zero otherwise decode the value
     tOffs.O:Import(sO, stData.Slot) -- Try to decode the origin when present
   end -- Try decoding the transform point when not applicable
-  -------------------- Angle --------------------
   if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
     stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
-    LogInstance("Angle transform init "..GetReport(iID, sA, stData.Slot))
+    LogInstance("Angle init "..GetReport(iID, sA, stData.Slot))
   else -- When the angle is empty use the zero otherwise decode the value
     tOffs.A:Import(sA, stData.Slot) -- Try to decode the angle when present
   end -- Try decoding the transform point when not applicable
-  -------------------- Point --------------------
   if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
     stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
-    LogInstance("Point transform init "..GetReport(iID, sP, stData.Slot))
+    LogInstance("Point init "..GetReport(iID, sP, stData.Slot))
   else -- When the point is empty use the origin otherwise decode the value
     tOffs.P:Import(sP, stData.Slot, tOffs.O:Get()) -- Try to decode the point when present
   end -- Try decoding the transform point when not applicable
@@ -3080,7 +3081,7 @@ function CacheQueryPiece(sModel)
           LogInstance("Cannot process offset #"..tostring(iCnt).." for <"..sModel..">"); return nil
         end; stData.Size, iCnt = iCnt, (iCnt + 1)
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
-    elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+    elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
 end
@@ -3122,7 +3123,7 @@ function CacheQueryAdditions(sModel)
         for col, val in pairs(qRec) do stData[iCnt][col] = val end
         stData.Size, iCnt = iCnt, (iCnt + 1)
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
-    elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+    elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
     else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
   end
 end
@@ -3260,7 +3261,7 @@ function CacheQueryProperty(sType)
           stName.Size, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("Save >> "..GetReport(sType, keyName))
         stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
-      elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+      elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
       else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
     end
   else
@@ -3291,7 +3292,7 @@ function CacheQueryProperty(sType)
           stType.Size, iCnt = iCnt, (iCnt + 1)
         end; LogInstance("Save >> "..GetReport(keyType))
         stType = makTab:TimerAttach(sFunc, defTab.Name, keyType); return stType
-      elseif(sMoDB == "LUA") then LogInstance("Record not located"); return nil
+      elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
       else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
     end
   end
