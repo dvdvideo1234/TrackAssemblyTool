@@ -1788,7 +1788,7 @@ asmlib.CreateTable("ADDITIONS",{
 
 asmlib.CreateTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
-  Index = {{1},{2},{1,2},{1,4}},
+  Index = {{1},{2},{1,2}},
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
