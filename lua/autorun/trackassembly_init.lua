@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.785")
+asmlib.SetOpVar("TOOL_VERSION","8.786")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1161,31 +1161,29 @@ if(CLIENT) then
       -- The button database export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
-        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then local sType
-            local iD, pnLine = pnListView:GetSelectedLine()
-            if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
-            else local model = asmlib.GetAsmConvar("model", "STR")
-              local oRec = asmlib.CacheQueryPiece(model)
-              if(asmlib.IsHere(oRec)) then sType = oRec.Type
-              else LogInstance("Not piece <"..model..">") end
-            end
-            asmlib.ExportTypeAR(sType)
-            asmlib.LogInstance("Export type "..asmlib.GetReport(sType), sLog..".Button")
-          else
-            asmlib.ExportCategory(3)
-            asmlib.ExportDSV("PIECES")
-            asmlib.ExportDSV("ADDITIONS")
-            asmlib.ExportDSV("PHYSPROPERTIES")
-            asmlib.LogInstance("Export instance", sLog..".Button")
+        if(not asmlib.GetAsmConvar("exportdb", "BUL")) then return end
+        if(inputIsKeyDown(KEY_LSHIFT)) then local sType
+          local iD, pnLine = pnListView:GetSelectedLine()
+          if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
+          else local model = asmlib.GetAsmConvar("model", "STR")
+            local oRec = asmlib.CacheQueryPiece(model)
+            if(asmlib.IsHere(oRec)) then sType = oRec.Type
+            else LogInstance("Not piece <"..model..">") end
           end
-          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+          asmlib.ExportTypeAR(sType)
+          asmlib.LogInstance("Export type "..asmlib.GetReport(sType), sLog..".Button")
         else
-          if(inputIsKeyDown(KEY_LSHIFT)) then
-            local fW = asmlib.GetOpVar("FORM_GITWIKI")
-            guiOpenURL(fW:format("Additional-features"))
-          end
+          asmlib.ExportCategory(3)
+          asmlib.ExportDSV("PIECES")
+          asmlib.ExportDSV("ADDITIONS")
+          asmlib.ExportDSV("PHYSPROPERTIES")
+          asmlib.LogInstance("Export instance", sLog..".Button")
         end
+        asmlib.SetAsmConvar(oPly, "exportdb", 0)
+      end
+      pnButton.DoRightClick = function(pnSelf)
+        local fW = asmlib.GetOpVar("FORM_GITWIKI")
+        guiOpenURL(fW:format("Additional-features"))
       end
       -- Leave the TextEntry here so it can access and update the local ListView reference
       pnTextEntry.OnEnter = function(pnSelf)
@@ -1707,7 +1705,7 @@ asmlib.CreateTable("PIECES",{
         local sData, tOffs = defTab.Name, tData.Offs
               sData = sData..sDelim..makTab:Match(stRec.Key,1,true,"\"")..sDelim..
                 makTab:Match(tData.Type,2,true,"\"")..sDelim..
-                makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
+                makTab:Match(tData.Name,3,true,"\"")
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
         for iD = 1, #tOffs do
           local stPnt = tOffs[iD] -- Read current offsets from the model

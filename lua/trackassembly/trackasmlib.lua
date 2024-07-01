@@ -262,7 +262,8 @@ end
  * Vararg: (66,nil,"asd") > |66|nil|asd|
 ]]
 function GetReport(...)
-  local sD = GetOpVar("OPSYM_VERTDIV")
+  local sD = (GetOpVar("OPSYM_VERTDIV") or "|")
+        sD = tostring(sD):sub(1, 1) -- First symbol
   local tV, sV = {...}, sD -- Use vertical divider
   local nV = select("#", ...) -- Read report count
   if(nV == 0) then return sV end -- Nothing to report
@@ -3895,19 +3896,19 @@ function ExportTypeAR(sType)
     local tCache = libCache[defP.Name]
     local pkModel = makP:GetColumnName(1)
     local sLineID = makP:GetColumnName(4)
-    local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+    local sClass = GetOpVar("ENTITY_DEFCLASS")
     for mod, rec in pairs(tCache) do
       if(rec.Type == sType) then
-        local iID = 1 -- Start from the first point
-        local rPOA = rec.tOffs[iID]; if(not IsHere(rPOA)) then
+        local iID, tOffs = 1, rec.Offs -- Start from the first point
+        local rPOA = tOffs[iID]; if(not IsHere(rPOA)) then
           LogInstance("Missing point ID "..GetReport(iID, rec.Slot))
           fE:Flush(); fE:Close(); fS:Close(); return
         end
         while(rPOA) do
           iCnt = (iCnt + 1); qPieces[iCnt] = {} -- Allocate row memory
           local qRow = qPieces[iCnt]
-          local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
-          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
+          local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
+          local sC = (IsHere(rec.Unit) and tostring(rec.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
           qRow[makP:GetColumnName(1)] = rec.Slot
           qRow[makP:GetColumnName(2)] = rec.Type
@@ -3917,7 +3918,7 @@ function ExportTypeAR(sType)
           qRow[makP:GetColumnName(6)] = sO
           qRow[makP:GetColumnName(7)] = sA
           qRow[makP:GetColumnName(8)] = sC
-          iID = (iID + 1); rPOA = rec.tOffs[iID]
+          iID = (iID + 1); rPOA = tOffs[iID]
         end
       end
     end
