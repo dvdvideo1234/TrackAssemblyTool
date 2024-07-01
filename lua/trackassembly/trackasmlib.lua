@@ -2824,7 +2824,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       while(vI[iCnt]) do local vF = tonumber(vI[iCnt]); if(not vF) then
           LogInstance("Mismatch value ["..tostring(vI[iCnt]).."] NaN for ID ["..tostring(iInd).."]["..tostring(iCnt).."]",tabDef.Nick); return nil end
         if(not qtDef[vF]) then
-          LogInstance("Mismatch. The col ID #"..tostring(vF).." missing, max is #"..Table.Size,tabDef.Nick); return nil end
+          LogInstance("Mismatch. The col ID #"..tostring(vF).." missing, max is #"..tabDef.Size,tabDef.Nick); return nil end
         cU, cC = (cU.."_" ..(qtDef[vF][1]):upper()), (cC..(qtDef[vF][1]):upper()); vI[iCnt] = vF
         iCnt = iCnt + 1; if(vI[iCnt]) then cC = cC ..", " end
       end
