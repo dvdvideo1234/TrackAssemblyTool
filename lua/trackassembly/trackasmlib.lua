@@ -1287,7 +1287,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     local keyCl = (keyCl or Colors.Key); if(not IsHere(keyCl)) then
       LogInstance("Indexing skipped", tLogs); return self end
     if(not isstring(sMeth)) then
-      LogInstance("Method invalid "..GetReport(method), tLogs); return self end
+      LogInstance("Method invalid "..GetReport(sMeth), tLogs); return self end
     local rgbCl = Colors.List:Select(keyCl)
     if(not IsHere(rgbCl)) then rgbCl = Colors.Default end
     if(tostring(Colors.Key) ~= tostring(keyCl)) then -- Update the color only on change
