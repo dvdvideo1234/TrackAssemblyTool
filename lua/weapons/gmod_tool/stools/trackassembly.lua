@@ -10,6 +10,7 @@ local IsValid                          = IsValid
 local EntityID                         = Entity
 local tostring                         = tostring
 local tonumber                         = tonumber
+local istable                          = istable
 local GetConVar                        = GetConVar
 local LocalPlayer                      = LocalPlayer
 local SetClipboardText                 = SetClipboardText
@@ -59,12 +60,6 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 
 if(not asmlib.IsInit()) then -- Make sure the module is initialized
   ErrorNoHalt("TOOL: Track assembly tool not initialized!\n"); return end
-
---- Vector Component indexes ---
-local cvX, cvY, cvZ = asmlib.GetIndexes("V")
-
---- Angle Component indexes ---
-local caP, caY, caR = asmlib.GetIndexes("A")
 
 --- Global References
 local gtLogs      = {"TOOL"}
@@ -494,7 +489,7 @@ function TOOL:ClearAnchor(bMute)
     asmlib.UpdateColor(svEnt, "anchor", "an", false) end
   if(not bMute) then -- Notify the user when anchor is cleared
     asmlib.Notify(user,"Anchor: Cleaned "..siAnc.." !","CLEANUP") end
-  asmlib.LogInstance("Cleared "..asmlib.GetReport1(bMute),gtLogs); return true
+  asmlib.LogInstance("Cleared "..asmlib.GetReport(bMute),gtLogs); return true
 end
 
 function TOOL:SetAnchor(stTrace)
@@ -512,7 +507,7 @@ function TOOL:SetAnchor(stTrace)
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(user,"anchor",sAnchor)
     asmlib.Notify(user,"Anchor: Set "..sAnchor.." !","UNDO")
-    asmlib.LogInstance("(WORLD) Set "..asmlib.GetReport1(sAnchor),gtLogs)
+    asmlib.LogInstance("(WORLD) Set "..asmlib.GetReport(sAnchor),gtLogs)
   else
     local trEnt = stTrace.Entity; if(not (trEnt and trEnt:IsValid())) then
       asmlib.LogInstance("Trace no entity",gtLogs); return false end
@@ -523,7 +518,7 @@ function TOOL:SetAnchor(stTrace)
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(user,"anchor",sAnchor)
     asmlib.Notify(user,"Anchor: Set "..sAnchor.." !","UNDO")
-    asmlib.LogInstance("(PROP) Set "..asmlib.GetReport1(sAnchor),gtLogs)
+    asmlib.LogInstance("(PROP) Set "..asmlib.GetReport(sAnchor),gtLogs)
   end; return true
 end
 
@@ -677,7 +672,7 @@ function TOOL:GetFlipOver(bEnt, bMute)
       local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
       if(bID and bMR) then tF[iD] = eID else tF[iD] = nil
         if(SERVER and not bMute) then
-          local sR, sE = asmlib.GetReport4(iD, eID, bID, bMR), tostring(tF[iD])
+          local sR, sE = asmlib.GetReport(iD, eID, bID, bMR), tostring(tF[iD])
           asmlib.LogInstance("Flip over mismatch ID "..sR, gtLogs)
           asmlib.Notify(user, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
         end
@@ -745,21 +740,21 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
       local pointid, pnextid = self:GetPointID()
       local vXX, vO1, vO2 = asmlib.IntersectRayModel(trMod, pointid, pnextid)
       if(vXX) then
-        wOrig:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+        wOrig:SetUnpacked(trPOA.O:Get())
         wOrig:Set(trEnt:LocalToWorld(wOrig))
         wOver:Set(trEnt:LocalToWorld(vXX))
         vO1:Set(trEnt:LocalToWorld(vO1))
         vO2:Set(trEnt:LocalToWorld(vO2))
-        wAucs:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+        wAucs:SetUnpacked(trPOA.A:Get())
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
         return wOver, wNorm, wOrig, vO1, vO2
       end
     else
       if(trPOA) then
-        wOrig:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+        wOrig:SetUnpacked(trPOA.O:Get())
         wOrig:Set(trEnt:LocalToWorld(wOrig))
-        wAucs:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+        wAucs:SetUnpacked(trPOA.A:Get())
         wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
         wNorm:Set(wAucs:Up())
         return wOver, wNorm, wOrig
@@ -887,9 +882,9 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   if(bPnt and eEnt and eEnt:IsValid()) then
     local oID, oMin, oPOA, oRec = asmlib.GetEntityHitID(eEnt, tData.Hit, true)
     if(oID and oMin and oPOA and oRec) then
-      tData.Org:SetUnpacked(oPOA.O[cvX], oPOA.O[cvY], oPOA.O[cvZ])
+      tData.Org:SetUnpacked(oPOA.O:Get())
       tData.Org:Rotate(eEnt:GetAngles()); tData.Org:Add(eEnt:GetPos())
-      tData.Ang:SetUnpacked(oPOA.A[caP], oPOA.A[caY], oPOA.A[caR])
+      tData.Ang:SetUnpacked(oPOA.A:Get())
       tData.Ang:Set(eEnt:LocalToWorldAngles(tData.Ang))
       tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
       tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
@@ -1011,12 +1006,12 @@ function TOOL:CurveCheck()
   end
   -- Read the active point and check piece shape
   local sO, sA = tC.Info.Pos[1], tC.Info.Ang[1]
-        sO:SetUnpacked(sPOA.O[cvX], sPOA.O[cvY], sPOA.O[cvZ])
-        sA:SetUnpacked(sPOA.A[caP], sPOA.A[caY], sPOA.A[caR])
+        sO:SetUnpacked(sPOA.O:Get())
+        sA:SetUnpacked(sPOA.A:Get())
   -- Read the next point to check the piece shape
   local eO, eA = tC.Info.Pos[2], tC.Info.Ang[2]
-        eO:SetUnpacked(ePOA.O[cvX], ePOA.O[cvY], ePOA.O[cvZ])
-        eA:SetUnpacked(ePOA.A[caP], ePOA.A[caY], ePOA.A[caR])
+        eO:SetUnpacked(ePOA.O:Get())
+        eA:SetUnpacked(ePOA.A:Get())
   -- Disable for active points with zero distance
   local nD = eO:DistToSqr(sO); if(nD <= nEps) then
     asmlib.Notify(user,"Segment tiny "..fnmodel.." !","ERROR")
@@ -1094,7 +1089,7 @@ function TOOL:NormalSpawn(stTrace, oPly)
       if(trEnt and trEnt:IsValid()) then anEnt = trEnt end -- Switch-a-roo
     end -- If there is something wrong with the anchor entity use the trace
   end -- When the flag is not enabled must not automatically update anchor
-  local ePiece = asmlib.MakePiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+  local ePiece = asmlib.NewPiece(oPly,model,vPos,aAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
   if(ePiece) then
     if(spawncn) then -- Adjust the position when created correctly
       asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
@@ -1187,18 +1182,18 @@ function TOOL:LeftClick(stTrace)
             asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"),gtLogs); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
-              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
+              oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
               asmlib.Notify(oPly, oArg.wname.." excessive turn at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"), gtLogs); return false
             end
             if(nU and nU < crvleanlm) then
-              oArg.mundo = asmlib.GetReport3(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
+              oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
               asmlib.Notify(oPly, oArg.wname.." excessive lean at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"), gtLogs); return false
             end
           end
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
-            ePiece = asmlib.MakePiece(oPly,model,oArg.spawn.SPos,oArg.spawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+            ePiece = asmlib.NewPiece(oPly,model,oArg.spawn.SPos,oArg.spawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(stackcnt > 0) then if(oArg.istck < stackcnt) then oArg.istck = (oArg.istck + 1) else ePiece:Remove(); ePiece = nil end end
           oArg.imake = (oArg.imake + (ePiece and 1 or 0)); sItr = fInt:format(oArg.imake)
           oPly:SetNWFloat(gsToolPrefL.."progress", (oArg.imake / tC.SKept) * 100)
@@ -1217,7 +1212,7 @@ function TOOL:LeftClick(stTrace)
               else -- When there is more stuff to snap continue snapping the current
                 oArg.stark = (oArg.stark + 1) -- Move the snap cursor to the next snap
               end -- Write the logs that snap rate per tick has been reached
-              asmlib.LogInstance("("..oArg.wname..") "..sItr..":  Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtLogs)
+              asmlib.LogInstance("("..oArg.wname..") "..sItr..":  Next "..asmlib.GetReport(oArg.stard, oArg.stark), gtLogs)
               return true -- The server is still busy with the task
             end
           else oArg.mundo = sItr -- We still have enough memory to preform the stacking
@@ -1273,18 +1268,18 @@ function TOOL:LeftClick(stTrace)
           oArg.mundo, oArg.munid = eID:GetModel(), eID:EntIndex()
           local spPos, spAng = asmlib.GetTransformOBB(eID, oArg.wover, oArg.wnorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
-            ePiece = asmlib.MakePiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+            ePiece = asmlib.NewPiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(ePiece) then
             asmlib.RegConstraintOver(oArg.tcons, oArg.munid, ePiece)
             oArg.itrys, oArg.srate = 0, (oArg.srate - 1) -- When the routine item is still busy
             tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then -- Renew the spawn rate and prepare for next spawn
               oArg.start, oArg.srate = (iD + 1), spawnrate
-              asmlib.LogInstance("(Over) Next "..asmlib.GetReport2(oArg.stard, oArg.stark), gtLogs)
+              asmlib.LogInstance("(Over) Next "..asmlib.GetReport(oArg.stard, oArg.stark), gtLogs)
               return true -- The server is still busy with the task
             end
           else
-            asmlib.Notify(user, "Spawn data invalid "..asmlib.GetReport2(iD, oArg.mundo).." !", "ERROR")
+            asmlib.Notify(user, "Spawn data invalid "..asmlib.GetReport(iD, oArg.mundo).." !", "ERROR")
             asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Spawn data invalid",trEnt),gtLogs); return false
           end
         end
@@ -1298,7 +1293,7 @@ function TOOL:LeftClick(stTrace)
     end)
     poQueue:OnFinish(user, function(oPly, oArg)
       local nU = #oArg.eundo
-      asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport2(oArg.ients, fnmodel).." ( Over )")
+      asmlib.UndoCrate(gsUndoPrefN..asmlib.GetReport(oArg.ients, fnmodel).." ( Over )")
       for iD = 1, nU do asmlib.UndoAddEntity(oArg.eundo[iD]) end
       asmlib.UndoFinish(oPly)
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
@@ -1352,7 +1347,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",trEnt),gtLogs); return false end
       local spPos, spAng = asmlib.GetTransformOBB(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()),
                              stTrace.HitNormal, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
-      local ePiece = asmlib.MakePiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+      local ePiece = asmlib.NewPiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtLogs); return false end
@@ -1392,7 +1387,7 @@ function TOOL:LeftClick(stTrace)
         oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / stackcnt))
         local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
         while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
-          ePiece = asmlib.MakePiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
+          ePiece = asmlib.NewPiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
         if(ePiece) then -- Set position is valid and store reference to the track piece
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"),gtLogs); return false end
@@ -1400,7 +1395,7 @@ function TOOL:LeftClick(stTrace)
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtLogs); return false end
           if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
             asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtLogs); return false end
-          oArg.vtemp:SetUnpacked(hdOffs.P[cvX], hdOffs.P[cvY], hdOffs.P[cvZ])
+          oArg.vtemp:SetUnpacked(hdOffs.P:Get())
           oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.sppos)
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
           if(applinfst) then nextx  , nexty  , nextz  , applinfst = 0, 0, 0, false end
@@ -1445,7 +1440,7 @@ function TOOL:LeftClick(stTrace)
       if(not self:IntersectSnap(trEnt, stTrace.HitPos, stSpawn)) then
         asmlib.LogInstance("(Ray) Skip intersection sequence. Snapping",gtLogs) end
     end
-    local ePiece = asmlib.MakePiece(user,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
+    local ePiece = asmlib.NewPiece(user,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail"),gtLogs); return false end
@@ -1725,8 +1720,8 @@ function TOOL:UpdateGhost(oPly)
           if(not hdOffs) then return end -- Validated existent next point ID
           for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
             if(not (ePiece and ePiece:IsValid())) then return end
-            ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng); ePiece:SetNoDraw(false)
-            vTemp:SetUnpacked(hdOffs.P[cvX], hdOffs.P[cvY], hdOffs.P[cvZ])
+            ePiece:SetPos(stSpawn.SPos); ePiece:SetAngles(stSpawn.SAng)
+            ePiece:SetNoDraw(false); vTemp:SetUnpacked(hdOffs.P:Get())
             vTemp:Rotate(stSpawn.SAng); vTemp:Add(ePiece:GetPos())
             if(appangfst) then nextpic,nextyaw,nextrol, appangfst = 0,0,0,false end
             if(applinfst) then nextx  ,nexty  ,nextz  , applinfst = 0,0,0,false end
@@ -1780,7 +1775,7 @@ function TOOL:Think()
   local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
   if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
     local oD = conElements:Pull() -- Retrieve a panel from the stack
-    if(asmlib.IsTable(oD)) then oD = oD[1] -- Extract panel from table
+    if(istable(oD)) then oD = oD[1] -- Extract panel from table
       if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
     else -- The temporary reference is not table then close it
       if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
@@ -1849,15 +1844,15 @@ function TOOL:DrawRelateAssist(oScreen, oPly, stTrace)
   for ID = 1, trRec.Size do
     local stPOA = asmlib.LocatePOA(trRec,ID); if(not stPOA) then
       asmlib.LogInstance("Cannot locate #"..tostring(ID),gtLogs); return end
-    vTmp:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
+    vTmp:SetUnpacked(stPOA.O:Get())
     vTmp:Rotate(trAng); vTmp:Add(trPos)
     local nR, nM = asmlib.GetViewRadius(oPly, vTmp), vTmp:DistToSqr(trHit)
     oScreen:DrawCircle(vTmp:ToScreen(), nR, "y", "SEGM", {35})
     if(not rM or (nM < rM)) then rM, trPOA = nM, stPOA end
   end
-  vTmp:SetUnpacked(trPOA.O[cvX], trPOA.O[cvY], trPOA.O[cvZ])
+  vTmp:SetUnpacked(trPOA.O:Get())
   vTmp:Rotate(trAng); vTmp:Add(trPos)
-  aTmp:SetUnpacked(trPOA.A[caP], trPOA.A[caY], trPOA.A[caR])
+  aTmp:SetUnpacked(trPOA.A:Get())
   aTmp:Set(trEnt:LocalToWorldAngles(aTmp))
   local Hp, Op = trHit:ToScreen(), vTmp:ToScreen()
   local vF, vU = aTmp:Forward(), aTmp:Up()
@@ -1979,7 +1974,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
     end
   end
   if(tData.POA) then local trEnt = stTrace.Entity
-    tData.Org:SetUnpacked(tData.POA.P[cvX], tData.POA.P[cvY], tData.POA.P[cvZ])
+    tData.Org:SetUnpacked(tData.POA.P:Get())
     tData.Org:Rotate(trEnt:GetAngles()); tData.Org:Add(trEnt:GetPos())
     oScreen:DrawLine(xyH, tData.Org:ToScreen(), "g")
   end
@@ -1990,7 +1985,7 @@ function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
   local oRec, vN = stSpawn.HRec, Vector()
   local stPOA = asmlib.LocatePOA(oRec, pnextid)
   if(stPOA and oRec.Size > 1) then
-    vN:SetUnpacked(stPOA.O[cvX], stPOA.O[cvY], stPOA.O[cvZ])
+    vN:SetUnpacked(stPOA.O:Get())
     vN:Rotate(stSpawn.SAng); vN:Add(stSpawn.SPos)
     local Np, Op = vN:ToScreen(), stSpawn.OPos:ToScreen()
     oScreen:DrawLine(Op, Np, "g")
@@ -2347,7 +2342,7 @@ function TOOL.BuildCPanel(CPanel)
             pCateg[sTyp] = {}; pCurr = pCateg[sTyp] end
           if(asmlib.IsBlank(ptCat)) then ptCat = nil end
           if(asmlib.IsHere(ptCat)) then
-            if(not asmlib.IsTable(ptCat)) then ptCat = {ptCat} end
+            if(not istable(ptCat)) then ptCat = {ptCat} end
             if(ptCat[1]) then local iD = 1
               while(ptCat[iD]) do local sCat = tostring(ptCat[iD]):lower():Trim()
                 if(asmlib.IsBlank(sCat)) then sCat = "other" end
@@ -2366,7 +2361,7 @@ function TOOL.BuildCPanel(CPanel)
       end -- Register the node associated with the track piece when is intended for later
       if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
-    else asmlib.LogInstance("Ignoring item "..asmlib.GetReport3(sTyp, sNam, sMod),sLog) end
+    else asmlib.LogInstance("Ignoring item "..asmlib.GetReport(sTyp, sNam, sMod),sLog) end
     iCnt = iCnt + 1
   end
   -- Attach the hanging items to the type root
@@ -2375,7 +2370,7 @@ function TOOL.BuildCPanel(CPanel)
       local pan = pTypes[typ]
       local nam, mod = unpack(val[iD])
       asmlib.SetDirectoryNode(pan, nam, mod)
-      asmlib.LogInstance("Rooting item "..asmlib.GetReport3(typ, nam, mod),sLog)
+      asmlib.LogInstance("Rooting item "..asmlib.GetReport(typ, nam, mod),sLog)
     end
   end -- Process all the items without category defined
   asmlib.LogInstance("Found items #"..tostring(iCnt - 1), sLog)
@@ -2408,7 +2403,7 @@ function TOOL.BuildCPanel(CPanel)
 
   local pComboPhysName = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
         pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
-        pComboPhysName:SetValue(asmlib.GetTerm(asmlib.GetAsmConvar("physmater","STR"),
+        pComboPhysName:SetValue(asmlib.GetEmpty(asmlib.GetAsmConvar("physmater","STR"), nil,
                                 languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysName:Dock(TOP) -- Setting tallness gets ignored otherwise
@@ -2443,7 +2438,7 @@ function TOOL.BuildCPanel(CPanel)
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
   local pText = CPanel:TextEntry(languageGetPhrase("tool."..gsToolNameL..".bgskids_con"), sName)
         pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
-        pText:SetText(asmlib.GetTerm(asmlib.GetAsmConvar("bgskids", "STR"),
+        pText:SetText(asmlib.GetEmpty(asmlib.GetAsmConvar("bgskids", "STR"), nil,
                       languageGetPhrase("tool."..gsToolNameL..".bgskids_def")))
         pText:SetEnabled(false); pText:SetTall(22)
 
@@ -2608,24 +2603,26 @@ if(CLIENT) then
     -- Setup memory configuration export button
     pItem = asmlib.SetButton(CPanel, "timermode_ap")
     pItem.DoClick = function(pnSelf)
+      local tTim, sRev = {}, asmlib.GetOpVar("OPSYM_REVISION")
+      for iD = 1, #tPan do local vP, tS = tPan[iD], {}
+        local pM, pL = vP["MODE"], vP["LIFE"]
+        local pC, bG = vP["CLER"], vP["COLL"]
+        tS[1] = tostring(pM:GetOptionData(pM:GetSelectedID()) or "")
+        tS[2] = tostring(tonumber(pL:GetValue() or 0))
+        tS[3] = tostring(pC:GetChecked() and 1 or 0)
+        tS[4] = tostring(bG:GetChecked() and 1 or 0)
+        tTim[iD] = tableConcat(tS, sRev)
+      end
+      asmlib.SetAsmConvar(nil, "timermode", tableConcat(tTim, gsSymDir))
+    end
+    pItem.DoRightClick = function(pnSelf)
       if(inputIsKeyDown(KEY_LSHIFT)) then
+        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                             asmlib.GetAsmConvar("logfile","BUL"))
+      else
         local fW = asmlib.GetOpVar("FORM_GITWIKI")
         guiOpenURL(fW:format("Memory-manager-configuration"))
-      else
-        local tTim, sRev = {}, asmlib.GetOpVar("OPSYM_REVISION")
-        for iD = 1, #tPan do local vP, tS = tPan[iD], {}
-          local pM, pL = vP["MODE"], vP["LIFE"]
-          local pC, bG = vP["CLER"], vP["COLL"]
-          tS[1] = tostring(pM:GetOptionData(pM:GetSelectedID()) or "")
-          tS[2] = tostring(tonumber(pL:GetValue() or 0))
-          tS[3] = tostring(pC:GetChecked() and 1 or 0)
-          tS[4] = tostring(bG:GetChecked() and 1 or 0)
-          tTim[iD] = tableConcat(tS, sRev)
-        end
-        asmlib.SetAsmConvar(nil, "timermode", tableConcat(tTim, gsSymDir))
       end
-      asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
-                           asmlib.GetAsmConvar("logfile","BUL"))
     end
     pItem:Dock(TOP); pItem:SetTall(30)
     -- Setup factory reset variables button
@@ -2666,6 +2663,10 @@ if(CLIENT) then
                              asmlib.GetAsmConvar("logfile","BUL"))
         asmlib.LogInstance("Factory reset complete", sLog)
       end
+    end
+    pItem.DoRightClick = function(pnSelf)
+      local fW = asmlib.GetOpVar("FORM_GITWIKI")
+      guiOpenURL(fW:format("Factory-reset"))
     end
     pItem:Dock(TOP); pItem:SetTall(30)
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)

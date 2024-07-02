@@ -4,6 +4,8 @@ local pcall                         = pcall
 local Time                          = CurTime
 local IsValid                       = IsValid
 local tobool                        = tobool
+local istable                       = istable
+local isfunction                    = isfunction
 local tonumber                      = tonumber
 local tostring                      = tostring
 local SetClipboardText              = SetClipboardText
@@ -84,11 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.749")
-asmlib.SetIndexes("V" ,1,2,3)
-asmlib.SetIndexes("A" ,1,2,3)
-asmlib.SetIndexes("WV",1,2,3)
-asmlib.SetIndexes("WA",1,2,3)
+asmlib.SetOpVar("TOOL_VERSION","8.792")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -156,40 +154,40 @@ asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 ------------ CONFIGURE LOGGING ------------
 
 asmlib.SetOpVar("LOG_DEBUGEN",false)
-asmlib.MakeAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written")
-asmlib.MakeAsmConvar("logfile", 0, nil, gnIndependentUsed, "File logging output flag control")
+asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written")
+asmlib.NewAsmConvar("logfile", 0, nil, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
 
-asmlib.MakeAsmConvar("modedb"   , "LUA", nil, gnIndependentUsed, "Database storage operating mode LUA or SQL")
-asmlib.MakeAsmConvar("devmode"  ,    0 , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
-asmlib.MakeAsmConvar("maxtrmarg", 0.02 , nil, gnIndependentUsed, "Maximum time to avoid performing new traces")
-asmlib.MakeAsmConvar("maxmenupr",    5 , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
-asmlib.MakeAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
+asmlib.NewAsmConvar("modedb"   , "LUA", nil, gnIndependentUsed, "Database storage operating mode LUA or SQL")
+asmlib.NewAsmConvar("devmode"  ,    0 , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.NewAsmConvar("maxtrmarg", 0.02 , nil, gnIndependentUsed, "Maximum time to avoid performing new traces")
+asmlib.NewAsmConvar("maxmenupr",    5 , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
+asmlib.NewAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
 ------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
 
-asmlib.MakeAsmConvar("maxmass"  , 50000 , nil, gnServerControled, "Maximum mass that can be applied on a piece")
-asmlib.MakeAsmConvar("maxlinear", 5000  , nil, gnServerControled, "Maximum linear offset of the piece")
-asmlib.MakeAsmConvar("maxforce" , 100000, nil, gnServerControled, "Maximum force limit when creating welds")
-asmlib.MakeAsmConvar("maxactrad", 200   , nil, gnServerControled, "Maximum active radius to search for a point ID")
-asmlib.MakeAsmConvar("maxstcnt" , 200   , nil, gnServerControled, "Maximum spawned pieces in stacking mode")
-asmlib.MakeAsmConvar("maxghcnt" , 1500  , nil, gnServerControled, "Maximum ghost pieces being spawned by client")
-asmlib.MakeAsmConvar("enwiremod", 1     , nil, gnServerControled, "Toggle the wire extension on/off server side")
-asmlib.MakeAsmConvar("enmultask", 1     , nil, gnServerControled, "Toggle the spawn multitasking on/off server side")
-asmlib.MakeAsmConvar("enctxmenu", 1     , nil, gnServerControled, "Toggle the context menu on/off in general")
-asmlib.MakeAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the context menu on/off for all props")
-asmlib.MakeAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
-asmlib.MakeAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
-asmlib.MakeAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
-asmlib.MakeAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
-asmlib.MakeAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
-asmlib.MakeAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
-asmlib.MakeAsmConvar("maxspmarg",  0    , nil, gnServerControled, "Maximum spawn distance new piece created margin")
-asmlib.MakeAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval for server addressed messages")
-asmlib.MakeAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
+asmlib.NewAsmConvar("maxmass"  , 50000 , nil, gnServerControled, "Maximum mass that can be applied on a piece")
+asmlib.NewAsmConvar("maxlinear", 5000  , nil, gnServerControled, "Maximum linear offset of the piece")
+asmlib.NewAsmConvar("maxforce" , 100000, nil, gnServerControled, "Maximum force limit when creating welds")
+asmlib.NewAsmConvar("maxactrad", 200   , nil, gnServerControled, "Maximum active radius to search for a point ID")
+asmlib.NewAsmConvar("maxstcnt" , 200   , nil, gnServerControled, "Maximum spawned pieces in stacking mode")
+asmlib.NewAsmConvar("maxghcnt" , 1500  , nil, gnServerControled, "Maximum ghost pieces being spawned by client")
+asmlib.NewAsmConvar("enwiremod", 1     , nil, gnServerControled, "Toggle the wire extension on/off server side")
+asmlib.NewAsmConvar("enmultask", 1     , nil, gnServerControled, "Toggle the spawn multitasking on/off server side")
+asmlib.NewAsmConvar("enctxmenu", 1     , nil, gnServerControled, "Toggle the context menu on/off in general")
+asmlib.NewAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the context menu on/off for all props")
+asmlib.NewAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
+asmlib.NewAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
+asmlib.NewAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
+asmlib.NewAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
+asmlib.NewAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
+asmlib.NewAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
+asmlib.NewAsmConvar("maxspmarg",  0    , nil, gnServerControled, "Maximum spawn distance new piece created margin")
+asmlib.NewAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval for server addressed messages")
+asmlib.NewAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 
 ------------ CONFIGURE INTERNALS ------------
 
@@ -261,7 +259,7 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
         local mkTab, ID = asmlib.GetBuilderID(1), 1
         while(mkTab) do local sTim = arTim[ID]
           local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
-          asmlib.LogInstance("Timer apply "..asmlib.GetReport2(defTab.Nick,sTim),gtInitLogs)
+          asmlib.LogInstance("Timer apply "..asmlib.GetReport(defTab.Nick,sTim),gtInitLogs)
           ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
         end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vN),gtInitLogs)
       end})
@@ -297,7 +295,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
       local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
       local fky = asmlib.GetOpVar("FORM_DRWSPKY")
       for iR = 1, 4 do
-        local out = asmlib.GetReport2(iR,tableConcat(tab[iR], ","))
+        local out = asmlib.GetReport(iR,tableConcat(tab[iR], ","))
         scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
       end
     end,
@@ -684,7 +682,7 @@ if(CLIENT) then
       local atGho = asmlib.GetOpVar("ARRAY_GHOST")
       if(asmlib.IsModel(model)) then
         if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
-          if(not asmlib.MakeGhosts(ghcnt, model)) then
+          if(not asmlib.NewGhosts(ghcnt, model)) then
             asmlib.LogInstance("Ghosting fail",sLog); return nil end
           actTool:ElevateGhost(atGho[1], oPly) -- Elevate the properly created ghost
         end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
@@ -717,7 +715,6 @@ if(CLIENT) then
         asmlib.LogInstance("Sheet invalid",sLog); return nil end
       pnSheet:SetParent(pnFrame)
       pnSheet:Dock(FILL)
-      local sOff = asmlib.GetOpVar("OPSYM_DISABLE")
       local sMis = asmlib.GetOpVar("MISS_NOAV")
       local sLib = asmlib.GetOpVar("NAME_LIBRARY")
       local sBas = asmlib.GetOpVar("DIRPATH_BAS")
@@ -820,7 +817,7 @@ if(CLIENT) then
         while(not bEOF) do
           sLine, bEOF = asmlib.GetStringFile(oDSV)
           if(not asmlib.IsBlank(sLine)) then local sKey, sPrg
-            if(sLine:sub(1,1) ~= sOff) then bAct = true else
+            if(not asmlib.IsDisable(sLine)) then bAct = true else
               bAct, sLine = false, sLine:sub(2,-1):Trim() end
             local nS, nE = sLine:find("%s+")
             if(nS and nE) then
@@ -848,6 +845,7 @@ if(CLIENT) then
         if(not oDSV) then pnFrame:Close()
           asmlib.LogInstance("DSV list missing",sLog..".ListView"); return nil end
         local tLine = pnListView:GetLines()
+        local sOff  = asmlib.GetOpVar("OPSYM_DISABLE")
         for iK, pnCur in pairs(tLine) do
           local sAct = ((pnCur:GetColumnText(1) == "V") and "" or sOff)
           local sPrf = pnCur:GetColumnText(2)
@@ -910,7 +908,7 @@ if(CLIENT) then
         local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.ToIcon(defTab.Name))
         tInfo.Tab:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
         local tFile = fileFind(fDSV:format("*", defTab.Nick), "DATA")
-        if(asmlib.IsTable(tFile) and tFile[1]) then
+        if(istable(tFile) and tFile[1]) then
           local nF, nW, nH = #tFile, pnFrame:GetSize()
           xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
           xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 52) / nF)
@@ -939,26 +937,25 @@ if(CLIENT) then
                   function() SetClipboardText(sFile) end,
                   function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end,
                   function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end,
-                  function()
-                    if(luapad) then
-                      asmlib.LogInstance("Edit "..asmlib.GetReport1(sFile), sLog..".Button")
-                      if(luapad.Frame) then luapad.Frame:SetVisible(true)
-                      else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
-                      luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
-                      if(defTab.Nick == "PIECES") then -- Load the categoty provider for this DSV
-                        local sCat = fDSV:format(sPref, "CATEGORY"); if(fileExists(sCat,"DATA")) then
-                          luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
-                        end -- This is done so we can distinguish between luapad and other panels
-                      end -- Luapad is designed not to be closed so we need to make it invisible
-                      luapad.Frame:SetVisible(true); luapad.Frame:Center()
-                      luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
-                    end
+                  function() -- Edit the database contents using the Luapad addon
+                    if(not luapad) then return end -- Luapad is not installed do nothing
+                    asmlib.LogInstance("Edit "..asmlib.GetReport(sFile), sLog..".Button")
+                    if(luapad.Frame) then luapad.Frame:SetVisible(true)
+                    else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
+                    luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
+                    if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                      local sCat = fDSV:format(sPref, "CATEGORY"); if(fileExists(sCat,"DATA")) then
+                        luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
+                      end -- This is done so we can distinguish between luapad and other panels
+                    end -- Luapad is designed not to be closed so we need to make it invisible
+                    luapad.Frame:SetVisible(true); luapad.Frame:Center()
+                    luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
                   end,
                   function() fileDelete(sFile)
-                    asmlib.LogInstance("Delete "..asmlib.GetReport1(sFile), sLog..".Button")
+                    asmlib.LogInstance("Delete "..asmlib.GetReport(sFile), sLog..".Button")
                     if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref, "CATEGORY")
                       if(fileExists(sCat,"DATA")) then fileDelete(sCat) -- Delete category when present
-                        asmlib.LogInstance("Deleted "..asmlib.GetReport1(sCat), sLog..".Button") end
+                        asmlib.LogInstance("Deleted "..asmlib.GetReport(sCat), sLog..".Button") end
                     end; pnManage:Remove()
                   end
                 }
@@ -1050,7 +1047,7 @@ if(CLIENT) then
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), makTab:GetColumnName(3), false, asmlib.ToIcon("pn_srchcol_lb3"))
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), makTab:GetColumnName(4), false, asmlib.ToIcon("pn_srchcol_lb4"))
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
-        asmlib.LogInstance("Selected "..asmlib.GetReport3(nInd,sVal,anyData),sLog..".ComboBox")
+        asmlib.LogInstance("Selected "..asmlib.GetReport(nInd,sVal,anyData),sLog..".ComboBox")
         pnSelf:SetValue(sVal)
       end
       ------------ ModelPanel ------------
@@ -1164,31 +1161,29 @@ if(CLIENT) then
       -- The button database export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
-        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then local sType
-            local iD, pnLine = pnListView:GetSelectedLine()
-            if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
-            else local model = asmlib.GetAsmConvar("model", "STR")
-              local oRec = asmlib.CacheQueryPiece(model)
-              if(asmlib.IsHere(oRec)) then sType = oRec.Type
-              else LogInstance("Not piece <"..model..">") end
-            end
-            asmlib.ExportTypeAR(sType)
-            asmlib.LogInstance("Export type "..asmlib.GetReport(sType), sLog..".Button")
-          else
-            asmlib.ExportCategory(3)
-            asmlib.ExportDSV("PIECES")
-            asmlib.ExportDSV("ADDITIONS")
-            asmlib.ExportDSV("PHYSPROPERTIES")
-            asmlib.LogInstance("Export instance", sLog..".Button")
+        if(not asmlib.GetAsmConvar("exportdb", "BUL")) then return end
+        if(inputIsKeyDown(KEY_LSHIFT)) then local sType
+          local iD, pnLine = pnListView:GetSelectedLine()
+          if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
+          else local model = asmlib.GetAsmConvar("model", "STR")
+            local oRec = asmlib.CacheQueryPiece(model)
+            if(asmlib.IsHere(oRec)) then sType = oRec.Type
+            else LogInstance("Not piece <"..model..">") end
           end
-          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+          asmlib.ExportTypeAR(sType)
+          asmlib.LogInstance("Export type "..asmlib.GetReport(sType), sLog..".Button")
         else
-          if(inputIsKeyDown(KEY_LSHIFT)) then
-            local fW = asmlib.GetOpVar("FORM_GITWIKI")
-            guiOpenURL(fW:format("Additional-features"))
-          end
+          asmlib.ExportCategory(3)
+          asmlib.ExportDSV("PIECES")
+          asmlib.ExportDSV("ADDITIONS")
+          asmlib.ExportDSV("PHYSPROPERTIES")
+          asmlib.LogInstance("Export instance", sLog..".Button")
         end
+        asmlib.SetAsmConvar(oPly, "exportdb", 0)
+      end
+      pnButton.DoRightClick = function(pnSelf)
+        local fW = asmlib.GetOpVar("FORM_GITWIKI")
+        guiOpenURL(fW:format("Additional-features"))
       end
       -- Leave the TextEntry here so it can access and update the local ListView reference
       pnTextEntry.OnEnter = function(pnSelf)
@@ -1196,7 +1191,7 @@ if(CLIENT) then
         local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
               sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
         if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
-          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport3(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
+          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
         end
       end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
@@ -1261,7 +1256,7 @@ if(CLIENT) then
                 if(asmlib.IsModel(trRec.Slot)) then -- The model has valid pre-cache
                   if(ghostcnt > 0) then -- The ghosting is enabled
                     if(not (hasghost and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
-                      if(not asmlib.MakeGhosts(1, trRec.Slot)) then
+                      if(not asmlib.NewGhosts(1, trRec.Slot)) then
                         asmlib.LogInstance("Ghosting fail",sLog); return nil end
                     end local eGho = atGhosts[1]; eGho:SetNoDraw(false)
                     eGho:SetPos(actSpawn.SPos); eGho:SetAngles(actSpawn.SAng)
@@ -1317,25 +1312,25 @@ if(CLIENT) then
         local fFoo, sLog = tArg[3], "*TWEAK_PANEL"
         local sDir, sSub = tostring(tArg[1]):lower(), tostring(tArg[2]):lower()
         local bS, lDir = pcall(tDat.Foo, sDir); if(not bS) then
-          asmlib.LogInstance("Fail folder "..asmlib.GetReport2(sDir, lDir), sLog); return end
+          asmlib.LogInstance("Fail folder "..asmlib.GetReport(sDir, lDir), sLog); return end
         local bS, lSub = pcall(tDat.Foo, sSub); if(not bS) then
-          asmlib.LogInstance("Fail subfolder "..asmlib.GetReport2(sSub, lSub), sLog); return end
+          asmlib.LogInstance("Fail subfolder "..asmlib.GetReport(sSub, lSub), sLog); return end
         local sKey = tDat.Key:format(sDir, sSub)
         if(asmlib.IsHere(fFoo)) then
-          if(not asmlib.IsFunction(fFoo)) then
-            asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return end
+          if(not isfunction(fFoo)) then
+            asmlib.LogInstance("Miss function "..asmlib.GetReport(sDir, sSub, fFoo), sLog); return end
           if(not asmlib.IsHere(tDat.Bar[sDir])) then tDat.Bar[sDir] = {} end; tDat.Bar[sDir][sSub] = fFoo
-          asmlib.LogInstance("Store "..asmlib.GetReport3(sDir, sSub, fFoo), sLog)
+          asmlib.LogInstance("Store "..asmlib.GetReport(sDir, sSub, fFoo), sLog)
           hookRemove(tDat.Hoo, sKey); hookAdd(tDat.Hoo, sKey, function()
             spawnmenuAddToolMenuOption(lDir, lSub, sKey, languageGetPhrase(tDat.Nam), "", "", fFoo) end)
         else
           if(not asmlib.IsHere(tDat.Bar[sDir])) then
-            asmlib.LogInstance("Miss folder "..asmlib.GetReport1(sDir), sLog); return end
+            asmlib.LogInstance("Miss folder "..asmlib.GetReport(sDir), sLog); return end
           fFoo = tDat.Bar[sDir][sSub]; if(not asmlib.IsHere(fFoo)) then
-            asmlib.LogInstance("Miss subfolder "..asmlib.GetReport2(sDir, sSub), sLog); return end
-          if(not asmlib.IsFunction(fFoo)) then
-            asmlib.LogInstance("Miss function "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return end
-          asmlib.LogInstance("Cache "..asmlib.GetReport3(sDir, sSub, fFoo), sLog); return fFoo
+            asmlib.LogInstance("Miss subfolder "..asmlib.GetReport(sDir, sSub), sLog); return end
+          if(not isfunction(fFoo)) then
+            asmlib.LogInstance("Miss function "..asmlib.GetReport(sDir, sSub, fFoo), sLog); return end
+          asmlib.LogInstance("Cache "..asmlib.GetReport(sDir, sSub, fFoo), sLog); return fFoo
         end
       end,
       {
@@ -1461,7 +1456,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
               if(bSuc and cnW and cnW:IsValid()) then
                 local sIde = ePiece:EntIndex()..gsSymDir..eBase:EntIndex()
-                asmlib.UndoCrate("TA Weld > "..asmlib.GetReport2(sIde,cnW:GetClass()))
+                asmlib.UndoCrate("TA Weld > "..asmlib.GetReport(sIde,cnW:GetClass()))
                 asmlib.UndoAddEntity(cnW); asmlib.UndoFinish(oPly); return true
               end; return false
             end
@@ -1490,7 +1485,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
               if(bSuc and cnN and cnN:IsValid()) then
                 local sIde = ePiece:EntIndex()..gsSymDir..eBase:EntIndex()
-                asmlib.UndoCrate("TA NoCollide > "..asmlib.GetReport2(sIde,cnN:GetClass()))
+                asmlib.UndoCrate("TA NoCollide > "..asmlib.GetReport(sIde,cnN:GetClass()))
                 asmlib.UndoAddEntity(cnN); asmlib.UndoFinish(oPly); return true
               end; return false
             end
@@ -1512,7 +1507,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
               if(bSuc and cnG and cnG:IsValid()) then
-                asmlib.UndoCrate("TA NoCollideWorld > "..asmlib.GetReport2(ePiece:EntIndex(),cnG:GetClass()))
+                asmlib.UndoCrate("TA NoCollideWorld > "..asmlib.GetReport(ePiece:EntIndex(),cnG:GetClass()))
                 asmlib.UndoAddEntity(cnG); asmlib.UndoFinish(oPly); return true
               end; return false
             end
@@ -1543,9 +1538,9 @@ if(SERVER) then
         if(type(wDraw) == "function") then      -- Check when the value is function
           local bS, vO = pcall(wDraw, oEnt); vO = tostring(vO) -- Always being string
           if(not bS) then oEnt:SetNWString(sKey, sNoA)
-            asmlib.LogInstance("Populate:"..asmlib.GetReport2(sKey,iD).." fail: "..vO, sLog)
+            asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey,iD).." fail: "..vO, sLog)
           else
-            asmlib.LogInstance("Populate:"..asmlib.GetReport3(sKey,iD,vO), sLog)
+            asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey,iD,vO), sLog)
             oEnt:SetNWString(sKey, vO) -- Write networked value to the hover entity
           end
         end
@@ -1577,7 +1572,7 @@ if(CLIENT) then
         if(not asmlib.IsHere(oRec)) then return nil end
       end -- If the menu is not enabled for all props ged-a-ud!
       netStart(gsOptionsCV); netWriteEntity(oEnt); netSendToServer() -- Love message
-      asmlib.LogInstance("Entity "..asmlib.GetReport2(oEnt:GetClass(),oEnt:EntIndex()), sLog)
+      asmlib.LogInstance("Entity "..asmlib.GetReport(oEnt:GetClass(),oEnt:EntIndex()), sLog)
     end) -- Read client configuration
 end
 
@@ -1603,15 +1598,15 @@ gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
     local sKey , fDraw = tLine[1], tLine[4]
     local wDraw, sIcon = tLine[5], sKey:match(fHash)
     local sName = languageGetPhrase(sKey.."_con"):Trim():Trim(":")
-    if(asmlib.IsFunction(fDraw)) then
+    if(isfunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
-        asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,iD).." fail: "..vE,gsOptionsLG); return end
+        asmlib.LogInstance("Request "..asmlib.GetReport(sKey,iD).." fail: "..vE,gsOptionsLG); return end
       sName = sName..": "..tostring(vE)          -- Attach client value ( CLIENT )
-    elseif(asmlib.IsFunction(wDraw)) then
+    elseif(isfunction(wDraw)) then
       sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
     end; local fEval = function() self:Evaluate(ent,iD,tr,sKey) end
     local pnOpt = pnSub:AddOption(sName, fEval); if(not IsValid(pnOpt)) then
-      asmlib.LogInstance("Invalid "..asmlib.GetReport2(sKey,iD),gsOptionsLG); return end
+      asmlib.LogInstance("Invalid "..asmlib.GetReport(sKey,iD),gsOptionsLG); return end
     if(not asmlib.IsBlank(sIcon)) then pnOpt:SetIcon(asmlib.ToIcon(sIcon)) end
   end
 end
@@ -1631,8 +1626,8 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
     local oPly = LocalPlayer()
     local oTr  = oPly:GetEyeTrace()
     local bS, vE = pcall(fHandle,ent,oPly,oTr,key); if(not bS) then
-      asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
-    if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
+      asmlib.LogInstance("Request "..asmlib.GetReport(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+    if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport(sKey,idx),gsOptionsLG); return end
   end
 end
 -- What to happen on the server with our entity
@@ -1646,8 +1641,8 @@ gtOptionsCM.Receive = function(self, len, ply)
   if(not propertiesCanBeTargeted(ent, ply)) then return end
   local sKey, fHandle = tLine[1], tLine[3] -- Menu function handler
   local bS, vE = pcall(fHandle, ent, ply, oTr, sKey); if(not bS) then
-    asmlib.LogInstance("Request "..asmlib.GetReport2(sKey,idx).." fail: "..vE,gsOptionsLG); return end
-  if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport2(sKey,idx),gsOptionsLG); return end
+    asmlib.LogInstance("Request "..asmlib.GetReport(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+  if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport(sKey,idx),gsOptionsLG); return end
 end
 -- Register the track assembly setup options in the context menu
 propertiesAdd(gsOptionsCM, gtOptionsCM)
@@ -1663,11 +1658,12 @@ asmlib.CreateTable("PIECES",{
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      arLine[2] = asmlib.GetTerm(arLine[2], noTY, asmlib.Categorize())
-      arLine[3] = asmlib.GetTerm(arLine[3], noMD, asmlib.ModelToName(arLine[1]))
-      arLine[8] = asmlib.GetTerm(arLine[8], noSQL, noSQL)
-      if(not (asmlib.IsNull(arLine[8]) or trCls[arLine[8]] or asmlib.IsBlank(arLine[8]))) then
-        asmlib.LogInstance("Register trace "..asmlib.GetReport2(arLine[8],arLine[1]),vSrc)
+      local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
+      arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.Categorize(), noTY)
+      arLine[3] = asmlib.GetEmpty(arLine[3], emFva, asmlib.ModelToName(arLine[1]), noMD)
+      arLine[8] = asmlib.GetEmpty(arLine[8], emFva, noSQL)
+      if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
+        asmlib.LogInstance("Register trace "..asmlib.GetReport(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
       end; return true
     end
@@ -1683,14 +1679,12 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(4,arLine[4],snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
-        if(not asmlib.IsHere(stPOA)) then
-        asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
-          tostring(snPK),vSrc); return false end
+      if(not asmlib.IsHere(stPOA)) then
+        asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
       if(nOffsID > stData.Size) then stData.Size = nOffsID else
-        asmlib.LogInstance("Offset #"..tostring(nOffsID)..
-          " sequential mismatch",vSrc); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID),vSrc); return false end
       return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
@@ -1700,17 +1694,23 @@ asmlib.CreateTable("PIECES",{
       local tSort = asmlib.Sort(tData,{"KEY"})
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
-      for iIdx = 1, tSort.Size do local stRec = tSort[iIdx]
+      local noSQL = asmlib.GetOpVar("MISS_NOSQL")
+      local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
+      local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+      for iR = 1, tSort.Size do
+        local stRec = tSort[iR]
         local tData = tCache[stRec.Key]
         local sData, tOffs = defTab.Name, tData.Offs
               sData = sData..sDelim..makTab:Match(stRec.Key,1,true,"\"")..sDelim..
                 makTab:Match(tData.Type,2,true,"\"")..sDelim..
-                makTab:Match(((asmlib.ModelToName(stRec.Key) == tData.Name) and symOff or tData.Name),3,true,"\"")
+                makTab:Match(tData.Name,3,true,"\"")
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
-        for iInd = 1, #tOffs do local stPnt = tData.Offs[iInd]
-          local sP, sO, sA = asmlib.ExportPOA(stPnt, "")
-          local sC = (tData.Unit and tostring(tData.Unit or "") or "")
-          oFile:Write(sData..sDelim..makTab:Match(iInd,4,true,"\"")..sDelim..
+        for iD = 1, #tOffs do
+          local stPnt = tOffs[iD] -- Read current offsets from the model
+          local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
+          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
+                sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim..
             "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
@@ -1746,12 +1746,12 @@ asmlib.CreateTable("ADDITIONS",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nCnt, iID = 2, makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(4,arLine[4],snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
       stData[iID] = {} -- LineID has to be set properly
       while(nCnt <= defTab.Size) do sCol = makTab:GetColumnName(nCnt)
         stData[iID][sCol] = makTab:Match(arLine[nCnt],nCnt)
         if(not asmlib.IsHere(stData[iID][sCol])) then -- Check data conversion output
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport3(nCnt,arLine[nCnt],snPK),vSrc); return false
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(nCnt,arLine[nCnt],snPK),vSrc); return false
         end; nCnt = (nCnt + 1)
       end; stData.Size = iID; return true
     end,
@@ -1762,7 +1762,7 @@ asmlib.CreateTable("ADDITIONS",{
         for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
           for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
-              asmlib.LogInstance("Cannot match "..asmlib.GetReport3()); return false
+              asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
             end; oFile:Write(sDelim..tostring(vM or ""))
           end; oFile:Write("\n") -- Data is already inserted, there will be no crash
         end
@@ -1790,7 +1790,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
-      arLine[1] = asmlib.GetTerm(arLine[1],noTY,asmlib.Categorize()); return true
+      local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
+      arLine[1] = asmlib.GetEmpty(arLine[1], emFva, asmlib.Categorize(), noTY); return true
     end
   },
   Cache = {
@@ -1803,7 +1804,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
       local tNames = tCache[skName]; if(not tNames) then
         tCache[skName] = {}; tNames = tCache[skName] end
       local iNameID = makTab:Match(arLine[2],2); if(not asmlib.IsHere(iNameID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport3(2,arLine[2],snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(2,arLine[2],snPK),vSrc); return false end
       if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
         tTypes.Size = (tTypes.Size + 1)
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
@@ -1820,7 +1821,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
       for iInd = 1, tTypes.Size do local sType = tTypes[iInd]
         local tType = tNames[sType]; if(not tType) then F:Flush(); F:Close()
-          asmlib.LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",vSrc); return false end
+          asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iInd, sType),vSrc); return false end
         for iCnt = 1, tType.Size do local vType = tType[iCnt]
           oFile:Write(defTab.Name..sDelim..makTab:Match(sType,1,true,"\"")..
                                    sDelim..makTab:Match(iCnt ,2,true,"\"")..

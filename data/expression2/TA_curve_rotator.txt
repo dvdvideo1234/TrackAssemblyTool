@@ -20,11 +20,11 @@ if(first() || dupefinished())
     O = vec(0, -147, 1.007)
     # Point location as local vector
     P = vec(0,-8.5,1.25098)
-    # How much amgle to apply
+    # How much angle to apply
     D = 45
  
   
-    ########## Formula for the local arm vector roatated ##########
+    ########## Formula for the local arm vector rotated ##########
     V = (P - O):rotate(EA)
     
     ########## Automatic part ! ##########

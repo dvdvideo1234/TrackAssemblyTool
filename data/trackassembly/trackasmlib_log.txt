@@ -2,28 +2,28 @@
     2 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] SettingsLogs: Success <SKIP@trackassembly/set/trackasmlib_slskip.txt>
     3 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] SettingsLogs: Missing <ONLY@trackassembly/set/trackasmlib_slonly.txt>
     4 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_modedb|
-    5 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_modedb}|LUA|nil|nil|
-    6 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_devmode}|0|0|1|
-    7 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxtrmarg}|0.02|0|1|
-    8 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxmenupr}|5|0|10|
+    5 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_modedb}|LUA|nil|nil|
+    6 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_devmode}|0|0|1|
+    7 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxtrmarg}|0.02|0|1|
+    8 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxmenupr}|5|0|10|
     9 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_timermode|
-   10 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_timermode}|CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1|nil|nil|
-   11 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxmass}|50000|1|100000|
-   12 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxlinear}|5000|0|10000|
-   13 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxforce}|100000|0|200000|
-   14 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxactrad}|200|1|200|
-   15 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxstcnt}|200|1|400|
-   16 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enwiremod}|1|0|1|
-   17 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enctxmenu}|1|0|1|
-   18 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enctxmall}|0|0|1|
-   19 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_endsvlock}|0|0|1|
-   20 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_curvefact}|0.5|0|1|
-   21 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_curvsmple}|50|0|200|
-   22 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_spawnrate}|1|1|10|
+   10 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_timermode}|CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1|nil|nil|
+   11 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxmass}|50000|1|100000|
+   12 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxlinear}|5000|0|10000|
+   13 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxforce}|100000|0|200000|
+   14 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxactrad}|200|1|200|
+   15 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxstcnt}|200|1|400|
+   16 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enwiremod}|1|0|1|
+   17 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enctxmenu}|1|0|1|
+   18 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enctxmall}|0|0|1|
+   19 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_endsvlock}|0|0|1|
+   20 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_curvefact}|0.5|0|1|
+   21 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_curvsmple}|50|0|200|
+   22 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_spawnrate}|1|1|10|
    23 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_bnderrmod|
-   24 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_bnderrmod}|LOG|nil|nil|
-   25 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxfruse}|50|1|100|
-   26 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {sbox_maxasmtracks}|1500|0|3000|
+   24 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_bnderrmod}|LOG|nil|nil|
+   25 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxfruse}|50|1|100|
+   26 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {sbox_maxasmtracks}|1500|0|3000|
    27 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|COLORS_LIST|
    28 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|LIST_VGUI|
    29 [21-03-12 17:30:09] SERVER > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|WORK_MODE|
@@ -150,28 +150,28 @@
     2 [21-03-12 17:34:22] SERVER > TRACKASSEMBLY [N/A] SettingsLogs: Success <SKIP@trackassembly/set/trackasmlib_slskip.txt>
     3 [21-03-12 17:34:22] SERVER > TRACKASSEMBLY [N/A] SettingsLogs: Missing <ONLY@trackassembly/set/trackasmlib_slonly.txt>
     4 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_modedb|
-    5 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_modedb}|LUA|nil|nil|
-    6 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_devmode}|0|0|1|
-    7 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxtrmarg}|0.02|0|1|
-    8 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxmenupr}|5|0|10|
+    5 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_modedb}|LUA|nil|nil|
+    6 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_devmode}|0|0|1|
+    7 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxtrmarg}|0.02|0|1|
+    8 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxmenupr}|5|0|10|
     9 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_timermode|
-   10 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_timermode}|CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1|nil|nil|
-   11 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxmass}|50000|1|100000|
-   12 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxlinear}|5000|0|10000|
-   13 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxforce}|100000|0|200000|
-   14 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxactrad}|200|1|200|
-   15 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxstcnt}|200|1|400|
-   16 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enwiremod}|1|0|1|
-   17 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enctxmenu}|1|0|1|
-   18 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enctxmall}|0|0|1|
-   19 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_endsvlock}|0|0|1|
-   20 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_curvefact}|0.5|0|1|
-   21 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_curvsmple}|50|0|200|
-   22 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_spawnrate}|1|1|10|
+   10 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_timermode}|CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1|nil|nil|
+   11 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxmass}|50000|1|100000|
+   12 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxlinear}|5000|0|10000|
+   13 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxforce}|100000|0|200000|
+   14 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxactrad}|200|1|200|
+   15 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxstcnt}|200|1|400|
+   16 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enwiremod}|1|0|1|
+   17 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enctxmenu}|1|0|1|
+   18 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enctxmall}|0|0|1|
+   19 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_endsvlock}|0|0|1|
+   20 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_curvefact}|0.5|0|1|
+   21 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_curvsmple}|50|0|200|
+   22 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_spawnrate}|1|1|10|
    23 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_bnderrmod|
-   24 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_bnderrmod}|LOG|nil|nil|
-   25 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxfruse}|50|1|100|
-   26 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {sbox_maxasmtracks}|1500|0|3000|
+   24 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_bnderrmod}|LOG|nil|nil|
+   25 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxfruse}|50|1|100|
+   26 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [N/A] NewAsmConvar: Create {sbox_maxasmtracks}|1500|0|3000|
    27 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|COLORS_LIST|
    28 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|LIST_VGUI|
    29 [21-03-12 17:34:23] SERVER > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|WORK_MODE|
@@ -316,23 +316,23 @@
     2 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] SettingsLogs: Success <SKIP@trackassembly/set/trackasmlib_slskip.txt>
     3 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] SettingsLogs: Missing <ONLY@trackassembly/set/trackasmlib_slonly.txt>
     4 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_modedb|
-    5 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_modedb}|LUA|nil|nil|
-    6 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_devmode}|0|0|1|
-    7 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxtrmarg}|0.02|0|1|
-    8 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxmenupr}|5|0|10|
+    5 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_modedb}|LUA|nil|nil|
+    6 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_devmode}|0|0|1|
+    7 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxtrmarg}|0.02|0|1|
+    8 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxmenupr}|5|0|10|
     9 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] GetBorder: Entry missing {string}|trackassembly_timermode|
-   10 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_timermode}|CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1|nil|nil|
-   11 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxmass}|50000|1|100000|
-   12 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxlinear}|5000|0|10000|
-   13 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxforce}|100000|0|200000|
-   14 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxactrad}|200|1|200|
-   15 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_maxstcnt}|200|1|400|
-   16 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enwiremod}|1|0|1|
-   17 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enctxmenu}|1|0|1|
-   18 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_enctxmall}|0|0|1|
-   19 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_endsvlock}|0|0|1|
-   20 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_curvefact}|0.5|0|1|
-   21 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] MakeAsmConvar: Create {trackassembly_curvsmple}|50|0|200|
+   10 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_timermode}|CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1|nil|nil|
+   11 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxmass}|50000|1|100000|
+   12 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxlinear}|5000|0|10000|
+   13 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxforce}|100000|0|200000|
+   14 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxactrad}|200|1|200|
+   15 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_maxstcnt}|200|1|400|
+   16 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enwiremod}|1|0|1|
+   17 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enctxmenu}|1|0|1|
+   18 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_enctxmall}|0|0|1|
+   19 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_endsvlock}|0|0|1|
+   20 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_curvefact}|0.5|0|1|
+   21 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [N/A] NewAsmConvar: Create {trackassembly_curvsmple}|50|0|200|
    22 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|COLORS_LIST|
    23 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|LIST_VGUI|
    24 [21-03-12 17:36:09] CLIENT > TRACKASSEMBLY [LUA] GetContainer: Registered {string}|WORK_MODE|
