@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.789")
+asmlib.SetOpVar("TOOL_VERSION","8.790")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1681,12 +1681,10 @@ asmlib.CreateTable("PIECES",{
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
-        if(not asmlib.IsHere(stPOA)) then
-        asmlib.LogInstance("Cannot process offset #"..tostring(nOffsID).." for "..
-          tostring(snPK),vSrc); return false end
+      if(not asmlib.IsHere(stPOA)) then
+        asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
       if(nOffsID > stData.Size) then stData.Size = nOffsID else
-        asmlib.LogInstance("Offset #"..tostring(nOffsID)..
-          " sequential mismatch",vSrc); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID),vSrc); return false end
       return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
@@ -1764,7 +1762,7 @@ asmlib.CreateTable("ADDITIONS",{
         for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
           for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
-              asmlib.LogInstance("Cannot match "..asmlib.GetReport()); return false
+              asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
             end; oFile:Write(sDelim..tostring(vM or ""))
           end; oFile:Write("\n") -- Data is already inserted, there will be no crash
         end
@@ -1823,7 +1821,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
       for iInd = 1, tTypes.Size do local sType = tTypes[iInd]
         local tType = tNames[sType]; if(not tType) then F:Flush(); F:Close()
-          asmlib.LogInstance("("..fPref..") Missing index #"..iInd.." on type <"..sType..">",vSrc); return false end
+          asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iInd, sType),vSrc); return false end
         for iCnt = 1, tType.Size do local vType = tType[iCnt]
           oFile:Write(defTab.Name..sDelim..makTab:Match(sType,1,true,"\"")..
                                    sDelim..makTab:Match(iCnt ,2,true,"\"")..
