@@ -657,13 +657,13 @@ end
 function InitBase(sName, sPurp)
   SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
   if(not isstring(sName)) then
-    LogInstance("Name <"..tostring(sName).."> not string", true); return false end
+    LogInstance("Name not string "..GetReport(sName), true); return false end
   if(not isstring(sPurp)) then
-    LogInstance("Purpose <"..tostring(sPurp).."> not string", true); return false end
+    LogInstance("Purpose not string "..GetReport(sPurp), true); return false end
   if(IsBlank(sName) or tonumber(sName:sub(1,1))) then
-    LogInstance("Name invalid <"..sName..">", true); return false end
+    LogInstance("Name invalid "..GetReport(sName), true); return false end
   if(IsBlank(sPurp) or tonumber(sPurp:sub(1,1))) then
-    LogInstance("Purpose invalid <"..sPurp..">", true); return false end
+    LogInstance("Purpose invalid "..GetReport(sPurp), true); return false end
   SetOpVar("LOG_SKIP",{})
   SetOpVar("LOG_ONLY",{})
   SetOpVar("LOG_MAXLOGS",0)
@@ -2744,7 +2744,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       if(not bNoNull and IsBlank(snOut)) then
         if    (sMoDB == "SQL") then snOut = sNull
         elseif(sMoDB == "LUA") then snOut = sNull
-        else LogInstance("Wrong database empty mode <"..sMoDB..">",tabDef.Nick); return nil end
+        else LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol),tabDef.Nick); return nil end
       end
       if    (opCol == "LOW") then snOut = snOut:lower()
       elseif(opCol == "CAP") then snOut = snOut:upper() end
@@ -2756,7 +2756,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         else
           if    (sMoDB == "SQL") then sqChar = "'"
           elseif(sMoDB == "LUA") then sqChar = "\""
-          else LogInstance("Wrong database quote mode <"..sMoDB..">",tabDef.Nick); return nil end
+          else LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol),tabDef.Nick); return nil end
         end; snOut = sqChar..snOut..sqChar
       end
     elseif(tyCol == "REAL" or tyCol == "INTEGER") then
@@ -2947,7 +2947,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       local bS, sR = pcall(qtDef.Cache[sFunc], self, tCache, snPK, arLine, ssLog:format("Cache"))
       if(not bS) then LogInstance("Cache manager fail "..sR,tabDef.Nick); return false end
       if(not sR) then LogInstance("Cache routine fail",tabDef.Nick); return false end
-    else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return false end
+    else LogInstance("Unsupported mode "..GetReport(sMoDB,1,qtDef[1][2]),tabDef.Nick); return false end
     return true -- The dynamic cache population was successful
   end
   -- When database mode is SQL create a table in sqlite
@@ -3011,7 +3011,7 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     if(IsHere(tCache)) then -- Empty the table when its cache is located
       tableEmpty(tCache); LogInstance("Table create empty",tabDef.Nick)
     else libCache[tabDef.Nick] = {}; LogInstance("Table create allocate",tabDef.Nick); end
-  else LogInstance("Wrong database mode <"..sMoDB..">",tabDef.Nick); return self:Remove(false) end
+  else LogInstance("Unsupported mode "..GetReport(sMoDB,sTable),tabDef.Nick); return self:Remove(false) end
 end
 
 --------------- TIMER MEMORY MANAGMENT ----------------------------
@@ -3084,7 +3084,7 @@ function CacheQueryPiece(sModel)
         end; stData.Size, iCnt = iCnt, (iCnt + 1)
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
     elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
-    else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
+    else LogInstance("Unsupported mode "..GetReport(sMoDB,defTab.Nick)); return nil end
   end
 end
 
@@ -3096,7 +3096,7 @@ function CacheQueryAdditions(sModel)
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
-    LogInstance("Cache missing for <"..defTab.Name..">"); return nil end
+    LogInstance("Cache missing for "..GetReport(defTab.Name, sModel)); return nil end
   local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
   local stData, sFunc = tCache[sModel], "CacheQueryAdditions"
   if(IsHere(stData) and IsHere(stData.Size)) then
@@ -3126,7 +3126,7 @@ function CacheQueryAdditions(sModel)
         stData.Size, iCnt = iCnt, (iCnt + 1)
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
     elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
-    else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
+    else LogInstance("Unsupported mode "..GetReport(sMoDB, sModel)); return nil end
   end
 end
 
@@ -3264,7 +3264,7 @@ function CacheQueryProperty(sType)
         end; LogInstance("Save >> "..GetReport(sType, keyName))
         stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
-      else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
+      else LogInstance("Unsupported mode "..GetReport(sMoDB, keyName)); return nil end
     end
   else
     local keyType = GetOpVar("HASH_PROPERTY_TYPES")
@@ -3295,7 +3295,7 @@ function CacheQueryProperty(sType)
         end; LogInstance("Save >> "..GetReport(keyType))
         stType = makTab:TimerAttach(sFunc, defTab.Name, keyType); return stType
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
-      else LogInstance("Wrong database mode <"..sMoDB..">"); return nil end
+      else LogInstance("Unsupported mode "..GetReport(sMoDB, keyType)); return nil end
     end
   end
 end
@@ -3433,7 +3433,7 @@ function ExportDSV(sTable, sPref, sDelim)
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
     if(not bS) then LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
     if(not sR) then LogInstance("("..fPref..") Cache routine fail",sTable); return false end
-  else LogInstance("("..fPref..") Wrong database mode <"..sMoDB..">",sTable); return false end
+  else LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
   -- The dynamic cache population was successful then send a message
   F:Flush(); F:Close(); LogInstance("("..fPref..") Success",sTable); return true
 end
@@ -3781,7 +3781,7 @@ function SetAdditionsAR(sModel, makTab, qList)
         LogInstance("Sort cache mismatch"); return end; tableEmpty(qData)
     for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
   else
-    LogInstance("Wrong database mode <"..sMoDB..">")
+    LogInstance("Unsupported mode "..GetReport(sMoDB, sModel))
     fE:Flush(); fE:Close(); fS:Close(); return
   end; local iE = #qList
   if(not IsHere(qData) or IsEmpty(qData)) then return end
