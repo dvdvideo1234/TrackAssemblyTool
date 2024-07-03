@@ -2282,7 +2282,7 @@ function GetEmpty(sBas, fEmp, ...)
   -- Use default empty definition when one not provided
   if(not fE) then fE = GetOpVar("EMPTYSTR_BNDX") end
   local bS, oS = pcall(fE, sS); if(not bS) then
-    LogInstance("Error ["..sS.."]: "..oS) end
+    LogInstance("Error "..GetReport(sS, oS)) end
   local iC = select("#", ...) -- Arguments count
   if(iC == 0) then return oS, sS end -- Empty check only
   if(not oS) then return sS end -- Base is not empty
@@ -2290,7 +2290,7 @@ function GetEmpty(sBas, fEmp, ...)
   for iD = 1, iC do -- Check all arguments for a value
     local sS = tostring(tV[iD] or "") -- Default to string
     local bS, oS = pcall(fE, sS); if(not bS) then
-      LogInstance("Error ["..sS.."]: "..oS) end
+      LogInstance("Error "..GetReport(iD, sS, oS)) end
     if(not oS) then return sS end
   end; return sM
 end
@@ -2510,7 +2510,7 @@ function CacheStmt(sHash,sStmt,...)
   if(IsHere(sStmt)) then -- If the key is located return the query
     tStore[sHash] = tostring(sStmt); LogTable(tStore,"STMT") end
   local sBase = tStore[sHash]; if(not IsHere(sBase)) then
-    LogInstance("Missing statement ["..sHash.."]"); return nil end
+    LogInstance("Missing statement "..GetReport(sHash, sStmt)); return nil end
   return sBase:format(...)
 end
 
@@ -2709,15 +2709,15 @@ function CreateTable(sTable,defTab,bDelete,bReload)
     local nS, nE = defTab.Name:find(defTab.Nick); if(not (nS and nE and nS > 1 and nE == defTab.Name:len())) then
       LogInstance("Mismatch "..GetReport(defTab.Name, defTab.Nick), tabDef.Nick); bStat = false end
     for iD = 1, qtDef.Size do local tCol = qtDef[iD] if(not istable(tCol)) then
-        LogInstance("Mismatch type ["..iD.."]",tabDef.Nick); bStat = false end
-      if(not isstring(tCol[1])) then
-        LogInstance("Mismatch name ["..iD.."]",tabDef.Nick); bStat = false end
-      if(not isstring(tCol[2])) then
-        LogInstance("Mismatch type ["..iD.."]",tabDef.Nick); bStat = false end
-      if(tCol[3] and not isstring(tCol[3])) then
-        LogInstance("Mismatch ctrl ["..iD.."]",tabDef.Nick); bStat = false end
-      if(tCol[4] and not isstring(tCol[4])) then
-        LogInstance("Mismatch conv ["..iD.."]",tabDef.Nick); bStat = false end
+        LogInstance("Mismatch type "..GetReport(iD),tabDef.Nick); bStat = false end
+      if(not isstring(tCol[1])) then -- Check table column name
+        LogInstance("Mismatch name "..GetReport(iD, tCol[1]), tabDef.Nick); bStat = false end
+      if(not isstring(tCol[2])) then -- Check table column type
+        LogInstance("Mismatch type "..GetReport(iD, tCol[2]), tabDef.Nick); bStat = false end
+      if(tCol[3] and not isstring(tCol[3])) then -- Check trigger control
+        LogInstance("Mismatch ctrl "..GetReport(iD, tCol[3]), tabDef.Nick); bStat = false end
+      if(tCol[4] and not isstring(tCol[4])) then -- Check quote conversion
+        LogInstance("Mismatch conv "..GetReport(iD, tCol[4]),tabDef.Nick); bStat = false end
     end; return bStat -- Successfully validated the builder table
   end
   -- Creates table column list as string
@@ -3539,9 +3539,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       nID = (nID or (IsDisable(sID) and iCnt or 0))
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
       if(iCnt ~= nID) then -- Validate the line ID being in proper borders and sequential
-          LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ["
-            ..tostring(iCnt).."] ID scatter "..GetReport(vID, nID, sID))
-          return false end; tRow[iD-1] = nID
+        LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ID scatter "
+          ..GetReport(iCnt, vID, nID, sID)); return false end; tRow[iD-1] = nID
       for nCnt = 1, #tRow do -- Do a value matching without quotes
         local vM = makTab:Match(tRow[nCnt],nCnt+1,false,"",true,true); if(not IsHere(vM)) then
           LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync matching failed "
@@ -4546,8 +4545,8 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
     LogInstance("("..sMode..") Skip"); return true end
   if(utilIsInWorld(vPos)) then ePiece:SetPos(vPos) else ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
-      Notify(oPly,"Position out of map bounds!",sMode) end
-    LogInstance("("..sMode..") Position ["..tostring(vPos).."] out of map bounds"); return false
+      Notify(oPly,"Position out of map bounds!", sMode) end
+    LogInstance("("..sMode..") Position out of map bounds "..GetReport(oPly, vPos)); return false
   end; LogInstance("("..sMode..") Success"); return true
 end
 
@@ -4564,14 +4563,14 @@ function InSpawnMargin(oPly,oRec,vPos,aAng)
       local nBpos = oRec.Mpos:Distance(vPos) -- Distance
       if(nBpos <= cMarg) then -- Check the margin area
         if(nMarg < 0) then -- When negative check position only
-          Notify(oPly,"Spawn pos ["..nBpos.."]["..nMarg.."]", "ERROR")
-          LogInstance("Spawn pos ["..nBpos.."]["..nMarg.."]"); return true
+          local sM = ("Spawn pos ["..nBpos.."]["..nMarg.."]")
+          Notify(oPly, sM, "ERROR"); LogInstance(sM); return true
         else -- Otherwise check the spawn direction ray for being the same
           local nBray = oRec.Mray:Dot(aAng:Forward())
           local nMray = (1 - (cMarg * GetOpVar("EPSILON_ZERO")))
           if(nBray >= nMray) then -- Positive checks position and direction
-            Notify(oPly,"Spawn ray ["..nBpos.."]["..nMarg.."]["..nBray.."]["..nMray.."]", "ERROR")
-            LogInstance("Spawn ray ["..nBpos.."]["..nMarg.."]["..nBray.."]["..nMray.."]"); return true
+            local sM = ("Spawn ray ["..nBpos.."]["..nMarg.."]["..nBray.."]["..nMray.."]")
+            Notify(oPly, sM, "ERROR"); LogInstance(sM); return true
           end -- Piece angles will not align when spawned
         end -- Negative checks position
       end; oRec.Mpos:Set(vPos); oRec.Mray:Set(aAng:Forward())
@@ -4666,7 +4665,7 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   -- Delay the freeze by a tiny amount because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_ACTION"), function() -- If frozen motion is disabled
-    LogInstance("Freeze:["..tostring(bFr).."]", "*DELAY_ACTION");  -- Make sure that the physics are valid
+    LogInstance("Freeze "..GetReport(ePiece,bPi,bFr,bGr,sPh), "*DELAY_ACTION");  -- Make sure that the physics are valid
     if(pPiece and pPiece:IsValid()) then pPiece:EnableMotion(not bFr) end end )
   constructSetPhysProp(nil,ePiece,0,pPiece,{GravityToggle = bGr, Material = sPh})
   duplicatorStoreEntityModifier(ePiece,sToolPrefL.."dupe_phys_set",arSettings)
@@ -5037,7 +5036,7 @@ function NewGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
     else -- Reconfigure the first `nCnt` ghosts
       tGho[iD] = NewEntityGhost(sModel); eGho = tGho[iD]
       if(not (eGho and eGho:IsValid())) then ClearGhosts(iD)
-        LogInstance("Invalid ["..iD.."]"..sModel); return false end
+        LogInstance("Invalid "..GetReport(iD, sModel)); return false end
     end; iD = iD + 1 -- Fade all the ghosts and refresh these that must be drawn
   end -- Remove all others that must not be drawn to save memory
   local nDer = GetOpVar("DELAY_REMOVE")
