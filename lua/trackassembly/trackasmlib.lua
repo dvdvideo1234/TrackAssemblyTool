@@ -995,11 +995,11 @@ function GetQueue(sKey)
     return (not (IsHere(mS) and IsHere(mE)))
   end
   function self:GetStruct(oP, oA, oM, oD, oN, oS, oE)
-    if(not (oP and oP:IsValid())) then -- There is no valid player for task
+    if(not (oP and oP:IsValid() and oP:IsPlayer())) then -- There is no valid player
       LogInstance("Player invalid "..GetReport(oD, oP), mKey); return nil end
-    if(not istable(oA)) then -- There is no valid player for task
+    if(not istable(oA)) then -- There is no valid routine arguments for the task
       LogInstance("Arguments invalid "..GetReport(oD, oA), mKey); return nil end
-    if(not isfunction(oM)) then -- There is no valid player for task
+    if(not isfunction(oM)) then -- There is no valid routine function for the task
       LogInstance("Routine invalid "..GetReport(oD, oM), mKey); return nil end
     return {  -- Create task main routine structures
       P = oP, -- Current task player ( mandatory )
@@ -1015,24 +1015,6 @@ function GetQueue(sKey)
   function self:IsBusy(oPly)
     if(not IsHere(oPly)) then return true end
     local bB = mBusy[oPly]; return (bB and isbool(bB))
-  end
-  -- Switch to the next tasks in the list
-  function self:Next(bMen) -- Crack open a cold one with!
-    if(self:IsEmpty()) then return self end -- List empty
-    if(self:IsBusy(mS.P)) then -- Task runnning. We are busy
-      if(not bMen) then return self end -- Mulstitasking disabled
-      if(mS == mE) then return self end -- Only one list element
-      mE.N = mS; mE = mS; mS = mE.N; mE.N = nil -- Move entry
-      return self -- Moves only busy tasks with work remaining
-    else -- Task has been done. Run post processing and clear
-      if(mS.E) then -- Post-processing. Return value is ignored
-        local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
-          LogInstance("Error "..GetReport(mS.D, mS.P:Nick()).." "..bErr, mKey)
-        else LogInstance("Finish "..GetReport(mS.D, mS.P:Nick()), mKey) end
-      end -- Wipe all the columns in the item and go to the next item
-      LogInstance("Clear "..GetReport(mS.D, mS.P:Nick()), mKey)
-      local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
-    end
   end
   -- Setups a task to be called in the queue
   function self:Attach(oPly, tArg, fFoo, aDsc)
@@ -1077,6 +1059,25 @@ function GetQueue(sKey)
         LogInstance("Done "..GetReport(mS.D, mS.P:Nick(), bBsy), mKey)
       end -- Update the player busy status according to the execution
     end; mBusy[mS.P] = bBsy; return self
+  end
+  -- Switch to the next tasks in the list
+  function self:Next(bMen) -- Crack open a cold one with!
+    if(self:IsEmpty()) then return self end -- List empty
+    if(self:IsBusy(mS.P)) then -- Task running. We are busy
+      if(not bMen) then return self end -- Multitasking disabled
+      if(mS == mE) then return self end -- Only one list element
+      mE.N = mS; mE = mS; mS = mE.N; mE.N = nil -- Move entry
+      return self -- Moves only busy tasks with work remaining
+    else -- Task has been done. Run post processing and clear
+      if(mS.E) then -- Post-processing. Return value is ignored
+        local bOK, bErr = pcall(mS.E, mS.P, mS.A); if(not bOK) then
+          LogInstance("Error "..GetReport(mS.D, mS.P:Nick()).." "..bErr, mKey)
+        else LogInstance("Finish "..GetReport(mS.D, mS.P:Nick()), mKey) end
+        mS.E = nil -- Remove the post-processing function for memory leaks
+      end -- Wipe all the columns in the item and go to the next item
+      LogInstance("Clear "..GetReport(mS.D, mS.P:Nick()), mKey)
+      local tD = mS.N; tableEmpty(mS); mS = tD; return self -- Wipe entry
+    end
   end
   if(IsHere(sKey)) then
     if(mHash) then mHash[sKey] = self end
