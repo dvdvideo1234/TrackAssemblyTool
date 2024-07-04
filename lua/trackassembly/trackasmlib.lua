@@ -423,7 +423,7 @@ end
   sKey > SKIP / ONLY
   Return: setting exist, message found
 ]]
-function IsLogFound(sMsg, sKey)
+function IsLogHere(sMsg, sKey)
   local sMsg = tostring(sMsg or "")
   local sKey = tostring(sKey or "")
   if(IsBlank(sKey)) then return nil end
@@ -466,8 +466,8 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local sInst = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
   local sLast, sData = GetOpVar("LOG_LOGLAST"), (sSrc..sFunc..": "..tostring(vMsg))
-  bF, bL = IsLogFound(sData, "SKIP"); if(bF and bL) then return end
-  bF, bL = IsLogFound(sData, "ONLY"); if(bF and not bL) then return end
+  bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
+  bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
   if(sLast == sData) then return end; SetOpVar("LOG_LOGLAST",sData)
   Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sData, bCon)
 end
