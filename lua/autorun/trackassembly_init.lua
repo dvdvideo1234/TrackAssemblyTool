@@ -84,7 +84,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.750")
+asmlib.SetOpVar("TOOL_VERSION","8.751")
 asmlib.SetIndexes("V" ,1,2,3)
 asmlib.SetIndexes("A" ,1,2,3)
 asmlib.SetIndexes("WV",1,2,3)
@@ -682,17 +682,10 @@ if(CLIENT) then
       local sKey = (gsToolPrefL.."ghost")
       if(not oPly:GetNWBool(sKey)) then
         asmlib.ClearGhosts(); return nil end
-
-
-      print("DG1", oPly, oPly:GetNWBool(sKey), acSw, acTo)
-
       local model = acTo:GetModel()
       if(not asmlib.IsModel(model)) then return end
       local ghcnt = acTo:GetGhostsDepth()
       local atGho = asmlib.GetOpVar("ARRAY_GHOST")
-
-      print("DG2", oPly, acSw, acSw:GetClass(), acTo, acTo:GetMode())
-
       if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
         if(not asmlib.MakeGhosts(ghcnt, model)) then
           asmlib.LogInstance("Ghosting fail",sLog); return nil end
