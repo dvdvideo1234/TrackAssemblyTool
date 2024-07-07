@@ -5185,21 +5185,21 @@ end
 
 function GetHookInfo(sW)
   if(SERVER) then return nil end
-  local sMod = GetOpVar("TOOL_DEFMODE")
-  local sWep = tostring(sW or sMod)
+  local sDe = GetOpVar("TOOL_DEFMODE")
+  local sWe = tostring(sW or sDe)
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player invalid"); return nil end
-  local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
+  local acSw = oPly:GetActiveWeapon(); if(not IsValid(acSw)) then
     LogInstance("Swep invalid"); return nil end
-  if(actSwep:GetClass() ~= sWep) then
-    LogInstance("("..sWep..") Swep other"); return nil end
-  if(sWep ~= sMod) then return oPly, actSwep end
-  if(actSwep:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
+  if(acSw:GetClass() ~= sWe) then
+    LogInstance("Swep other "..GetReport(sWe)); return nil end
+  if(sWe ~= sDe) then return oPly, acSw end
+  if(acSw:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
     LogInstance("Tool different"); return nil end
   -- Here player is holding the track assembly tool
-  local actTool = actSwep:GetToolObject(); if(not actTool) then
+  local acTo = acSw:GetToolObject(); if(not acTo) then
     LogInstance("Tool invalid"); return nil end
-  return oPly, actSwep, actTool
+  return oPly, acSw, acTo
 end
 
 --[[

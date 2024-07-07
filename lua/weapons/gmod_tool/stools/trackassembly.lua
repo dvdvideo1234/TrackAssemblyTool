@@ -1591,8 +1591,20 @@ end
 
 function TOOL:Holster()
   if(CLIENT) then return end
+  local user = self:GetOwner()
+  if(not asmlib.IsPlayer(user)) then return end
+  local sKey = (gsToolPrefL.."ghost")
+  user:SetNWBool(sKey, false)
   netStart(gsLibName.."SendDeleteGhosts")
-  netSend(self:GetOwner())
+  netSend(user)
+end
+
+function TOOL:Deploy()
+  if(CLIENT) then return end
+  local user = self:GetOwner()
+  if(not asmlib.IsPlayer(user)) then return end
+  local sKey = (gsToolPrefL.."ghost")
+  user:SetNWBool(sKey, true)
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
