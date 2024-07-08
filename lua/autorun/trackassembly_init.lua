@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.796")
+asmlib.SetOpVar("TOOL_VERSION","8.797")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -592,21 +592,21 @@ if(CLIENT) then
 
   asmlib.SetAction("BIND_PRESS", -- Must have the same parameters as the hook
     function(oPly,sBind,bPress) local sLog = "*BIND_PRESS"
-      local oPly, actSwep, actTool = asmlib.GetHookInfo()
+      local oPly, acSw, acTo = asmlib.GetHookInfo()
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",sLog); return nil end
       if(((sBind == "invnext") or (sBind == "invprev")) and bPress) then
         -- Switch functionality of the mouse wheel only for TA
         if(not inputIsKeyDown(KEY_LALT)) then
           asmlib.LogInstance("Active key missing",sLog); return nil end
-        if(not actTool:GetScrollMouse()) then
+        if(not acTo:GetScrollMouse()) then
           asmlib.LogInstance("(SCROLL) Scrolling disabled",sLog); return nil end
         local nDir = ((sBind == "invnext") and -1) or ((sBind == "invprev") and 1) or 0
-        actTool:SwitchPoint(nDir,inputIsKeyDown(KEY_LSHIFT))
+        acTo:SwitchPoint(nDir,inputIsKeyDown(KEY_LSHIFT))
         asmlib.LogInstance("("..sBind..") Processed",sLog); return true
       elseif((sBind == "+zoom") and bPress) then -- Work mode radial menu selection
         if(inputIsMouseDown(MOUSE_MIDDLE)) then -- Reserve the mouse middle for radial menu
-          if(not actTool:GetRadialMenu()) then -- Zoom is bind on the middle mouse button
+          if(not acTo:GetRadialMenu()) then -- Zoom is bind on the middle mouse button
             asmlib.LogInstance("("..sBind..") Menu disabled",sLog); return nil end
           asmlib.LogInstance("("..sBind..") Processed",sLog); return true
         end; return nil -- Need to disable the zoom when bind on the mouse middle
@@ -616,10 +616,10 @@ if(CLIENT) then
 
   asmlib.SetAction("DRAW_RADMENU", -- Must have the same parameters as the hook
     function() local sLog = "*DRAW_RADMENU"
-      local oPly, actSwep, actTool = asmlib.GetHookInfo()
+      local oPly, acSw, acTo = asmlib.GetHookInfo()
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",sLog) return nil end
-      if(not actTool:GetRadialMenu()) then
+      if(not acTo:GetRadialMenu()) then
         asmlib.LogInstance("Menu disabled",sLog); return nil end
       if(inputIsMouseDown(MOUSE_MIDDLE)) then guiEnableScreenClicker(true) else
         guiEnableScreenClicker(false); asmlib.LogInstance("Release",sLog); return nil
@@ -629,8 +629,8 @@ if(CLIENT) then
       if(not actMonitor) then asmlib.LogInstance("Screen invalid",sLog); return nil end
       local nMd = asmlib.GetOpVar("MAX_ROTATION")
       local nDr, sM = asmlib.GetOpVar("DEG_RAD"), asmlib.GetOpVar("MISS_NOAV")
-      local nBr = (actTool:GetRadialAngle() * nDr)
-      local nK, nN = actTool:GetRadialSegm(), conWorkMode:GetSize()
+      local nBr = (acTo:GetRadialAngle() * nDr)
+      local nK, nN = acTo:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (mathMin(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(guiMouseX(), guiMouseY())
       local vCn = asmlib.NewXY(mathFloor(scrW/2), mathFloor(scrH/2))
@@ -674,19 +674,20 @@ if(CLIENT) then
 
   asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
     function() local sLog = "*DRAW_GHOSTS"
-      local oPly, actSwep, actTool = asmlib.GetHookInfo()
+      local oPly, acSw, acTo = asmlib.GetHookInfo()
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",sLog); return nil end
-      local model = actTool:GetModel()
-      local ghcnt = actTool:GetGhostsDepth()
+      local model = acTo:GetModel()
+      if(not asmlib.IsModel(model)) then return nil end
+      local ghcnt = acTo:GetGhostsDepth()
       local atGho = asmlib.GetOpVar("ARRAY_GHOST")
-      if(asmlib.IsModel(model)) then
-        if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
-          if(not asmlib.NewGhosts(ghcnt, model)) then
-            asmlib.LogInstance("Ghosting fail",sLog); return nil end
-          actTool:ElevateGhost(atGho[1], oPly) -- Elevate the properly created ghost
-        end; actTool:UpdateGhost(oPly) -- Update ghosts stack for the local player
-      end
+      if(not oPly:GetNWBool(gsToolPrefL.."enghost", false)) then
+        asmlib.ClearGhosts(); return nil end
+      if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
+        if(not asmlib.NewGhosts(ghcnt, model)) then
+          asmlib.LogInstance("Ghosting fail",sLog); return nil end
+        acTo:ElevateGhost(atGho[1], oPly) -- Elevate the properly created ghost
+      end; acTo:UpdateGhost(oPly) -- Update ghosts stack for the local player
     end) -- Read client configuration
 
   asmlib.SetAction("OPEN_EXTERNDB", -- Must have the same parameters as the hook
@@ -1205,7 +1206,7 @@ if(CLIENT) then
         asmlib.LogInstance("Extension disabled",sLog); return nil end
       if(not asmlib.GetAsmConvar("adviser", "BUL")) then
         asmlib.LogInstance("Adviser disabled",sLog); return nil end
-      local oPly, actSwep = asmlib.GetHookInfo("weapon_physgun")
+      local oPly, acSw = asmlib.GetHookInfo("weapon_physgun")
       if(not oPly) then asmlib.LogInstance("Hook mismatch",sLog); return nil end
       local hasghost = asmlib.HasGhosts(); asmlib.FadeGhosts(true)
       if(not inputIsMouseDown(MOUSE_LEFT)) then

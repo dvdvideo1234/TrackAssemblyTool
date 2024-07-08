@@ -3020,9 +3020,9 @@ end
 function CacheBoxLayout(oEnt,nCamX,nCamZ)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity invalid "..GetReport(oEnt)); return nil end
-  local sMod = oEnt:GetModel() -- Extract the entity model
-  local oRec = CacheQueryPiece(sMod); if(not IsHere(oRec)) then
-    LogInstance("Record invalid "..GetReport(sMod)); return nil end
+  local sMo  = oEnt:GetModel() -- Extract the entity model
+  local oRec = CacheQueryPiece(sMo); if(not IsHere(oRec)) then
+    LogInstance("Record invalid "..GetReport(sMo)); return nil end
   local stBox = oRec.Layout; if(not IsHere(stBox)) then
     oRec.Layout = {}; stBox = oRec.Layout -- Allocated chance layout
     stBox.Cen, stBox.Ang = oEnt:OBBCenter(), Angle() -- Layout position and angle
@@ -4943,13 +4943,13 @@ function FadeGhosts(bNoD, nMrF)
   local nMar = mathClamp((tonumber(nMrF) or 0), 0, 1)
   local tGho = GetOpVar("ARRAY_GHOST")
   local cPal = GetContainer("COLORS_LIST")
-  local sMis, sMod = GetOpVar("MISS_NOMD"), tGho.Slot
+  local sMis, sMo = GetOpVar("MISS_NOMD"), tGho.Slot
   for iD = 1, tGho.Size do local eGho = tGho[iD]
     if(eGho and eGho:IsValid()) then
       if(nMrF) then eGho.marginRender = nMar end
       eGho:SetNoDraw(bNoD); eGho:DrawShadow(false)
       eGho:SetColor(cPal:Select("gh"))
-      if(sMod and sMod ~= sMis and sMod ~= eGho:GetModel()) then
+      if(sMo and sMo ~= sMis and sMo ~= eGho:GetModel()) then
         eGho:SetModel(tGho.Slot) end
     end
   end; return true
@@ -4977,13 +4977,14 @@ end
  * Helper function to handle models that do not support
  * color alpha channel have draw override. This is run
  * for all the ghosted props to draw all of them correctly
+ * There is a very logical explanation for all this.
 ]]
 function BlendGhost(self)
   local mar = self.marginRender
-  local num = renderGetBlend()
+  local cur = renderGetBlend()
   renderSetBlend(mar)
   self:DrawModel()
-  renderSetBlend(num)
+  renderSetBlend(cur)
 end
 
 --[[
@@ -5002,6 +5003,7 @@ function NewEntityGhost(sModel, vPos, aAng)
   local vPos = Vector(vPos or GetOpVar("VEC_ZERO"))
   local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
   eGho.marginRender = 1
+  eGho.DoNotDuplicate = true -- Disable duping
   eGho.RenderOverride = BlendGhost
   eGho:SetModel(sModel)
   eGho:SetPos(vPos)
@@ -5047,23 +5049,28 @@ function NewGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   end; tGho.Size, tGho.Slot = nCnt, sModel; return true
 end
 
+--[[
+ * Retrieves hook information player and swep
+ * sW > Swep class when different than the current tool is needed
+ * Returns player the swep object and the tool object when available
+]]
 function GetHookInfo(sW)
   if(SERVER) then return nil end
-  local sMod = GetOpVar("TOOL_DEFMODE")
-  local sWep = tostring(sW or sMod)
+  local sDe = GetOpVar("TOOL_DEFMODE")
+  local sWe = tostring(sW or sDe)
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player invalid"); return nil end
-  local actSwep = oPly:GetActiveWeapon(); if(not IsValid(actSwep)) then
+  local acSw = oPly:GetActiveWeapon(); if(not IsValid(acSw)) then
     LogInstance("Swep invalid"); return nil end
-  if(actSwep:GetClass() ~= sWep) then
-    LogInstance("("..sWep..") Swep other"); return nil end
-  if(sWep ~= sMod) then return oPly, actSwep end
-  if(actSwep:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
+  if(acSw:GetClass() ~= sWe) then
+    LogInstance("Swep other "..GetReport(sWe)); return nil end
+  if(sWe ~= sMo) then return oPly, acSw end
+  if(acSw:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
     LogInstance("Tool different"); return nil end
   -- Here player is holding the track assembly tool
-  local actTool = actSwep:GetToolObject(); if(not actTool) then
+  local acTo = acSw:GetToolObject(); if(not acTo) then
     LogInstance("Tool invalid"); return nil end
-  return oPly, actSwep, actTool
+  return oPly, acSw, acTo
 end
 
 --[[
