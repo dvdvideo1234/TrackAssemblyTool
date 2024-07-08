@@ -1584,6 +1584,17 @@ function TOOL:Reload(stTrace)
   end; return false
 end
 
+function TOOL:ReleaseGhostEntity()
+  if(CLIENT) then
+    asmlib.ClearGhosts()
+  else
+    local user = self:GetOwner()
+    if(not asmlib.IsPlayer(user)) then return end
+    netStart(gsLibName.."SendDeleteGhosts")
+    netSend(user)
+  end
+end
+
 function TOOL:Holster()
   if(CLIENT) then return end
   local user = self:GetOwner()
