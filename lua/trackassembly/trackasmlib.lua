@@ -2635,7 +2635,9 @@ function CreateTable(sTable,defTab,bDelete,bReload)
   end
   -- Attaches timer to a record related in the table cache
   function self:TimerAttach(vMsg, ...)
-    local sMoDB, oSpot, kKey, tKey = GetOpVar("MODE_DATABASE"), self:GetNavigate(...)
+    local sDiv  = GetOpVar("OPSYM_DIVIDER")
+    local oSpot, kKey, tKey = self:GetNavigate(...)
+    local sMoDB, iCnt = GetOpVar("MODE_DATABASE"), select("#", ...)
     if(not (IsHere(oSpot) and IsHere(kKey))) then
       LogInstance("Navigation failed",tabDef.Nick); return nil end
     LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
@@ -2645,35 +2647,46 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       oSpot[kKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
       local smTM, tmLif, tmDie, tmCol = tTim[1], tTim[2], tTim[3], tTim[4]; if(tmLif <= 0) then
         LogInstance("Timer attachment ignored",tabDef.Nick); return oSpot[kKey] end
-      LogInstance("Stats "..GetReport(smTM, tmLif, tmDie, tmCol), tabDef.Nick)
+      LogInstance("Stats "..GetReport(iCnt, smTM, tmLif, tmDie, tmCol), tabDef.Nick)
       if(smTM == "CQT") then
-        for k, v in pairs(oSpot) do
-          local vDif = (nNow - v.Used)
-          if(IsHere(v.Used) and (vDif > tmLif)) then
-            LogInstance("Dead "..GetReport(vDif, tmLif), tabDef.Nick)
-            if(tmDie) then oSpot[k] = nil; LogInstance("Killed "..GetReport(k),tabDef.Nick) end
-          end
+        if(iCnt > 1) then -- Record in the placeholder must be cleared
+          for key, rec in pairs(oSpot) do -- Check other items that qualify
+            local vDif = (nNow - rec.Used) -- Calculate time difference
+            if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
+              LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
+              if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key),tabDef.Nick) end
+            end -- Clear one item that qualifies for deletion and time frame is present
+          end -- Clear all the items that qualified for deletion
+        else -- The whole cache placeholder must be deleted. Identifier is at base pointer
+          local key, rec = kKey, oSpot[kKey] -- Index placeholder
+          local vDif = (nNow - rec.Used) -- Calculate time difference
+          if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
+            LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
+            if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key),tabDef.Nick) end
+          end -- Clear the placeholder that qualifies for deletion and time frame is present
         end
         if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
         LogInstance("Finish "..GetReport(kKey, nNow), tabDef.Nick); return oSpot[kKey]
       elseif(smTM == "OBJ") then
-        local tmID = GetOpVar("OPSYM_DIVIDER"):Implode(tKey)
+        local tmID = tableConcat(tKey, sDiv)
         LogInstance("Timer ID "..GetReport(tmID), tabDef.Nick)
         if(timerExists(tmID)) then LogInstance("Timer exists",tabDef.Nick); return oSpot[kKey] end
         timerCreate(tmID, tmLif, 1, function()
-          LogInstance("Dead "..GetReport(tmID, tmLif), tabDef.Nick)
-          if(tmDie) then oSpot[kKey] = nil; LogInstance("Killed "..GetReport(kKey),tabDef.Nick) end
+          LogInstance("Qualify "..GetReport(tmID, tmLif), tabDef.Nick)
+          if(tmDie) then oSpot[kKey] = nil; LogInstance("Clear "..GetReport(kKey),tabDef.Nick) end
           timerStop(tmID); timerRemove(tmID)
           if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
         end); timerStart(tmID); return oSpot[kKey]
-      else LogInstance("Mode mismatch "..GetReport(smTM),tabDef.Nick); return oSpot[kKey] end
+      else LogInstance("Unsupported mode "..GetReport(smTM),tabDef.Nick); return oSpot[kKey] end
     elseif(sMoDB == "LUA") then
       LogInstance("Memory manager impractical",tabDef.Nick); return oSpot[kKey]
-    else LogInstance("Wrong database mode",tabDef.Nick); return nil end
+    else LogInstance("Unsupported mode "..GetReport(sMoDB),tabDef.Nick); return nil end
   end
   -- Restarts timer to a record related in the table cache
   function self:TimerRestart(vMsg, ...)
-    local sMoDB, oSpot, kKey, tKey = GetOpVar("MODE_DATABASE"), self:GetNavigate(...)
+    local sDiv  = GetOpVar("OPSYM_DIVIDER")
+    local sMoDB = GetOpVar("MODE_DATABASE")
+    local oSpot, kKey, tKey = self:GetNavigate(...)
     if(not (IsHere(oSpot) and IsHere(kKey))) then
       LogInstance("Navigation failed",tabDef.Nick); return nil end
     LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
@@ -2685,12 +2698,12 @@ function CreateTable(sTable,defTab,bDelete,bReload)
         LogInstance("Timer life ignored",tabDef.Nick); return oSpot[kKey] end
       if(smTM == "CQT") then smTM = "CQT" -- Cache query timer does nothing
       elseif(smTM == "OBJ") then -- Just for something to do here for mode CQT
-        local kID = GetOpVar("OPSYM_DIVIDER"):Implode(tKeys); if(not timerExists(kID)) then
-          LogInstance("Timer missing "..GetReport(kID),tabDef.Nick); return nil end
-        timerStart(kID)
+        local tmID = tableConcat(tKey, sDiv); if(not timerExists(tmID)) then
+          LogInstance("Timer missing "..GetReport(tmID),tabDef.Nick); return nil end
+        timerStart(tmID)
       else LogInstance("Mode mismatch "..GetReport(smTM),tabDef.Nick); return nil end
     elseif(sMoDB == "LUA") then oSpot[kKey].Used = Time()
-    else LogInstance("Wrong database mode",tabDef.Nick); return nil end
+    else LogInstance("Unsupported mode "..GetReport(sMoDB),tabDef.Nick); return nil end
     return oSpot[kKey]
   end
   -- Object internal data validation
@@ -3214,7 +3227,7 @@ function CacheQueryPanel(bExp)
         vPanel[makTab:GetColumnName(2)] = vSort.Rec.Type
         vPanel[makTab:GetColumnName(3)] = vSort.Rec.Name; stPanel.Size = iCnt
       end; return ExportPanelDB(stPanel, bExp, makTab, sFunc)
-    else LogInstance("Wrong database mode "..GetReport(sMoDB)); return nil end
+    else LogInstance("Unsupported mode "..GetReport(sMoDB)); return nil end
   end
 end
 
@@ -3512,7 +3525,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           for iCnt = 2, nL do local vV, iL = tLine[iCnt], (iCnt-1); vV = GetStrip(vV)
             vM = makTab:Match(vV,iL,false,"",true,true)
             if(not IsHere(vV)) then LogInstance("("..fPref.."@"..sTable
-              ..") Read matching failed "..GetReport(vV, iL defTab[iL][1])); return false end
+              ..") Read matching failed "..GetReport(vV, iL, defTab[iL][1])); return false end
             tLine[iCnt] = vM -- Register the matched value
           end -- Allocate table memory for the matched key
           local vK = tLine[2]; if(not fData[vK]) then fData[vK] = {Size = 0} end
@@ -3920,7 +3933,7 @@ function ExportTypeAR(sType)
       LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
     for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
   else
-    LogInstance("Wrong database mode "..GetReport(sMoDB))
+    LogInstance("Unsupported mode "..GetReport(sMoDB))
     fE:Flush(); fE:Close(); fS:Close(); return
   end
   if(IsHere(qPieces) and IsHere(qPieces[1])) then
@@ -5064,7 +5077,7 @@ function GetHookInfo(sW)
     LogInstance("Swep invalid"); return nil end
   if(acSw:GetClass() ~= sWe) then
     LogInstance("Swep other "..GetReport(sWe)); return nil end
-  if(sWe ~= sMo) then return oPly, acSw end
+  if(sWe ~= sDe) then return oPly, acSw end
   if(acSw:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
     LogInstance("Tool different"); return nil end
   -- Here player is holding the track assembly tool

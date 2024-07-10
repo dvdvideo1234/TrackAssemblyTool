@@ -668,48 +668,54 @@ function TOOL:GetFlipOver(bEnt, bMute)
     tF[iD] = (tonumber(tF[iD]) or 0)
     if(bEnt) then
       local eID = EntityID(tF[iD])
-      local bID = (not asmlib.IsOther(eID))
-      local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
-      if(bID and bMR) then tF[iD] = eID else tF[iD] = nil
-        if(SERVER and not bMute) then
-          local sR, sE = asmlib.GetReport(iD, eID, bID, bMR), tostring(tF[iD])
-          asmlib.LogInstance("Flip over mismatch ID "..sR, gtLogs)
-          asmlib.Notify(user, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
+      if(eID and eID:IsValid()) then
+        local bID = (not asmlib.IsOther(eID))
+        local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
+        if(bID and bMR) then tF[iD] = eID else tF[iD] = nil
+          if(SERVER and not bMute) then
+            local sR, sE = asmlib.GetReport(iD, eID, bID, bMR), tostring(tF[iD])
+            asmlib.LogInstance("Flip over mismatch ID "..sR, gtLogs)
+            asmlib.Notify(user, "Flip over mismatch ID ["..sE.."] !", "GENERIC")
+          end
         end
       end
     end
-  end
-  -- Convert to number as other methods use the number data
+  end -- Convert to number as other methods use the number data
   return tF, nF -- Return the table and elements count
 end
 
-function TOOL:SetFlipOver(trEnt)
+function TOOL:SetFlipOver(trEnt, bBrs)
   if(CLIENT) then return nil end
   if(asmlib.IsOther(trEnt)) then return nil end
-  local trMod, user = trEnt:GetModel(), self:GetOwner()
-  local trRec = asmlib.CacheQueryPiece(trMod)
+  local user  = self:GetOwner()
+  local trCss = trEnt:GetClass()
+  local trMoc = trEnt:GetModel()
+  if(not asmlib.IsHere(trMoc)) then return nil end
+  local trRec = asmlib.CacheQueryPiece(trMoc)
   if(not asmlib.IsHere(trRec)) then
-    asmlib.Notify(user,"Flip over <"..trMod.."> not piece !","ERROR")
-    asmlib.LogInstance("Flip over <"..trMod.."> not piece",gtLogs)
+    asmlib.Notify(user,"Flip over not piece "..asmlib.GetReport(trCss,trMoc).." !","ERROR")
+    asmlib.LogInstance("Flip over not piece "..asmlib.GetReport(trCss,trMoc),gtLogs)
     return nil -- Just disable overall flipping for the other models
   end
-  local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
-  local iID, bBr = trEnt:EntIndex(), false
-  local tF, nF = self:GetFlipOver()
-  if(nF <= 0) then tF = {} -- Create table
-  else -- Remove entity from the convar
-    for iD = 1, nF do nID = tF[iD]
-      if(nID == iID) then bBr = true
-        local eID = EntityID(nID)
-        asmlib.UpdateColor(eID, "flipover", "fo", false)
-        tableRemove(tF, iD); break
+  if(bBrs) then return trEnt else
+    local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
+    local iID, bBr = trEnt:EntIndex(), false
+    local tF, nF = self:GetFlipOver()
+    if(nF <= 0) then tF = {} -- Create table
+    else -- Remove entity from the convar
+      for iD = 1, nF do nID = tF[iD]
+        if(nID == iID) then bBr = true
+          local eID = EntityID(nID)
+          asmlib.UpdateColor(eID, "flipover", "fo", false)
+          tableRemove(tF, iD); break
+        end
       end
     end
+    if(not bBr) then tableInsert(tF, tostring(iID))
+      asmlib.UpdateColor(trEnt, "flipover", "fo", true)
+    end
+    asmlib.SetAsmConvar(user, "flipoverid", tableConcat(tF, sYm))
   end
-  if(not bBr) then tableInsert(tF, tostring(iID))
-    asmlib.UpdateColor(trEnt, "flipover", "fo", true)
-  end
-  asmlib.SetAsmConvar(user, "flipoverid", tableConcat(tF, sYm))
 end
 
 function TOOL:ClearFlipOver(bMute)
@@ -1596,19 +1602,7 @@ function TOOL:ReleaseGhostEntity()
 end
 
 function TOOL:Holster()
-  if(CLIENT) then return end
-  local user = self:GetOwner()
-  if(not asmlib.IsPlayer(user)) then return end
-  user:SetNWBool(gsToolPrefL.."enghost", false)
-  netStart(gsLibName.."SendDeleteGhosts")
-  netSend(user)
-end
-
-function TOOL:Deploy()
-  if(CLIENT) then return end
-  local user = self:GetOwner()
-  if(not asmlib.IsPlayer(user)) then return end
-  user:SetNWBool(gsToolPrefL.."enghost", true)
+  self:ReleaseGhostEntity()
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
@@ -2634,7 +2628,9 @@ if(CLIENT) then
         tS[4] = tostring(bG:GetChecked() and 1 or 0)
         tTim[iD] = tableConcat(tS, sRev)
       end
-      asmlib.SetAsmConvar(nil, "timermode", tableConcat(tTim, gsSymDir))
+      local sTim = tableConcat(tTim, gsSymDir)
+      asmlib.LogInstance("Memory manager "..asmlib.GetReport(sTim))
+      asmlib.SetAsmConvar(nil, "timermode", sTim)
     end
     pItem.DoRightClick = function(pnSelf)
       if(inputIsKeyDown(KEY_LSHIFT)) then

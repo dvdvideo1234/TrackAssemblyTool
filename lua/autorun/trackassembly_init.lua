@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.798")
+asmlib.SetOpVar("TOOL_VERSION","8.800")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -595,6 +595,8 @@ if(CLIENT) then
       local oPly, acSw, acTo = asmlib.GetHookInfo()
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",sLog); return nil end
+      if(not acTo) then -- Make sure we have a tool
+        asmlib.LogInstance("Tool missing",sLog); return nil end
       if(((sBind == "invnext") or (sBind == "invprev")) and bPress) then
         -- Switch functionality of the mouse wheel only for TA
         if(not inputIsKeyDown(KEY_LALT)) then
@@ -619,6 +621,8 @@ if(CLIENT) then
       local oPly, acSw, acTo = asmlib.GetHookInfo()
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",sLog) return nil end
+      if(not acTo) then -- Make sure we have a tool
+        asmlib.LogInstance("Tool missing",sLog); return nil end
       if(not acTo:GetRadialMenu()) then
         asmlib.LogInstance("Menu disabled",sLog); return nil end
       if(inputIsMouseDown(MOUSE_MIDDLE)) then guiEnableScreenClicker(true) else
@@ -677,12 +681,12 @@ if(CLIENT) then
       local oPly, acSw, acTo = asmlib.GetHookInfo()
       if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Hook mismatch",sLog); return nil end
+      if(not acTo) then -- Make sure we have a tool
+        asmlib.LogInstance("Tool missing",sLog); return nil end
       local model = acTo:GetModel()
       if(not asmlib.IsModel(model)) then return nil end
       local ghcnt = acTo:GetGhostsDepth()
       local atGho = asmlib.GetOpVar("ARRAY_GHOST")
-      if(not oPly:GetNWBool(gsToolPrefL.."enghost", false)) then
-        asmlib.ClearGhosts(); return nil end
       if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
         if(not asmlib.NewGhosts(ghcnt, model)) then
           asmlib.LogInstance("Ghosting fail",sLog); return nil end
