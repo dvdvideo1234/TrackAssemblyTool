@@ -1,0 +1,8 @@
+#1 ExportDSV:(cl_@ADDITIONS) 24-07-10 18:14:09 [ LUA ]
+#2 ADDITIONS:(MODELBASE	MODELADD	ENTCLASS	LINEID	POSOFF	ANGOFF	MOVETYPE	PHYSINIT	DRSHADOW	PHMOTION	PHYSLEEP	SETSOLID)
+TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_l_switch.mdl	"models/shinji85/train/sw_lever.mdl"	"buttonswitch"	1	"-100,-125,0"	"0,180,0"	-1	-1	-1	0	-1	-1
+TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_l_switch.mdl	"models/shinji85/train/rail_l_switcher1.mdl"	"prop_dynamic"	2	"NULL"	"NULL"	6	6	-1	-1	1	6
+TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_l_switch.mdl	"models/shinji85/train/rail_l_switcher2.mdl"	"prop_dynamic"	3	"NULL"	"NULL"	6	6	-1	0	-1	0
+TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_r_switch.mdl	"models/shinji85/train/sw_lever.mdl"	"buttonswitch"	1	"-100,125,0"	"NULL"	-1	-1	-1	0	-1	-1
+TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_r_switch.mdl	"models/shinji85/train/rail_r_switcher1.mdl"	"prop_dynamic"	2	"NULL"	"NULL"	6	6	-1	-1	1	6
+TRACKASSEMBLY_ADDITIONS	models/shinji85/train/rail_r_switch.mdl	"models/shinji85/train/rail_r_switcher2.mdl"	"prop_dynamic"	3	"NULL"	"NULL"	6	6	-1	0	-1	0
