@@ -2061,9 +2061,9 @@ function GetPointElevation(oEnt,ivPoID)
     LogInstance("POA missing "..GetReport(ivPoID, sModel)); return nil end
   if(not (hdPnt.O and hdPnt.A)) then
     LogInstance("Transform missing "..GetReport(ivPoID, sModel)); return nil end
-  local aOBB, vOBB = Angle(), oEnt:OBBMins()
-  aOBB:SetUnpacked(hdPnt.A:Get()); aOBB:RotateAroundAxis(aOBB:Up(), 180)
-  vOBB:SetUnpacked(hdPnt.O:Get()); BasisVector(vOBB,aOBB)
+  local aA, vV, vOBB = Angle(), Vector(), oEnt:OBBMins()
+  aA:SetUnpacked(hdPnt.A:Get()); aA:RotateAroundAxis(aA:Up(), 180)
+  vV:SetUnpacked(hdPnt.O:Get()); vOBB:Sub(vV); BasisVector(vOBB, aA)
   return mathAbs(vOBB.z)
 end
 
@@ -2651,19 +2651,31 @@ function CreateTable(sTable,defTab,bDelete,bReload)
       if(smTM == "CQT") then
         if(iCnt > 1) then -- Record in the placeholder must be cleared
           for key, rec in pairs(oSpot) do -- Check other items that qualify
+            if(not rec.Used) then -- Used time is updated correctly. Report it
+              LogInstance("Navigation error "..GetReport(iCnt, unpack(tKey)),tabDef.Nick)
+              LogInstance("Navigation key "..GetReport(kKey, key),tabDef.Nick)
+              LogTable(rec, "Navigation", tabDef.Nick)
+            else -- Used time is updated correctly. Try to do some work
+              local vDif = (nNow - rec.Used) -- Calculate time difference
+              if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
+                LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
+                if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key),tabDef.Nick) end
+              end -- Clear one item that qualifies for deletion and time frame is present
+            end
+          end -- Clear all the items that qualified for deletion
+        else -- The whole cache placeholder must be deleted. Identifier is at base pointer
+          local key, rec = kKey, oSpot[kKey] -- Index placeholder
+          if(not rec.Used) then -- Used time is updated correctly. Report it
+            LogInstance("Navigation error "..GetReport(iCnt, unpack(tKey)),tabDef.Nick)
+            LogInstance("Navigation key "..GetReport(kKey, key),tabDef.Nick)
+            LogTable(rec, "Navigation", tabDef.Nick)
+          else -- Used time is updated correctly. Try to do some work
             local vDif = (nNow - rec.Used) -- Calculate time difference
             if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
               LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
               if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key),tabDef.Nick) end
-            end -- Clear one item that qualifies for deletion and time frame is present
-          end -- Clear all the items that qualified for deletion
-        else -- The whole cache placeholder must be deleted. Identifier is at base pointer
-          local key, rec = kKey, oSpot[kKey] -- Index placeholder
-          local vDif = (nNow - rec.Used) -- Calculate time difference
-          if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
-            LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
-            if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key),tabDef.Nick) end
-          end -- Clear the placeholder that qualifies for deletion and time frame is present
+            end -- Clear the placeholder that qualifies for deletion and time frame is present
+          end
         end
         if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
         LogInstance("Finish "..GetReport(kKey, nNow), tabDef.Nick); return oSpot[kKey]
@@ -3737,15 +3749,16 @@ function ProcessDSV(sDelim)
               LogInstance("Failed "..GetReport(prf, "CATEGORY")) end
           else LogInstance("Missing "..GetReport(prf, "CATEGORY")) end
         else LogInstance("Generic "..GetReport(prf, "CATEGORY")) end
-      end local iD, makTab = 1, GetBuilderID(1)
-      while(makTab) do local defTab = makTab:GetDefinition()
+      end
+      for iD = 1, #libQTable do
+        local makTab = GetBuilderID(iD)
+        local defTab = makTab:GetDefinition()
         if(not fileExists(sDv..fForm:format(irf, sNt..defTab.Nick), "DATA")) then
           if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
               LogInstance("Failed "..GetReport(prf, defTab.Nick)) end
           else LogInstance("Missing "..GetReport(prf, defTab.Nick)) end
         else LogInstance("Generic "..GetReport(prf, defTab.Nick)) end
-        iD = (iD + 1); makTab = GetBuilderID(iD)
       end
     end
   end; LogInstance("Success"); return true
@@ -4007,7 +4020,11 @@ function GetNormalAngle(oPly, soTr, bSnp, nSnp)
     if(not (stTr and stTr.Hit)) then stTr = GetCacheTrace(oPly)
       if(not (stTr and stTr.Hit)) then return aAng end
     end; aAng:Set(GetSurfaceAngle(oPly, stTr.HitNormal))
-  else aAng.y = oPly:GetAimVector():Angle().y end
+  else -- Modify only the roll of the base angle
+    local aP, aY, aR = aAng:Unpack() -- Base angle
+    local pP, pY, pR = oPly:GetAimVector():Angle():Unpack()
+    aAng:SetUnpacked(aP, pY, aR) -- Apply the player yaw
+  end
   SnapAngle(aAng, nAsn); GridAngle(aAng, nAsn); return aAng
 end
 

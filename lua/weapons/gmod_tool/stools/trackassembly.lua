@@ -1770,14 +1770,13 @@ end
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
     asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtLogs); return end
-  if(oEnt and oEnt:IsValid()) then
-    local pointid, pnextid = self:GetPointID()
-    local spawncn, elevpnt = self:GetSpawnCenter(), 0
-    if(not spawncn) then -- Distance for the piece spawned on the ground
-      elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0); end
-    asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtLogs)
-    asmlib.SetAsmConvar(oPly, "elevpnt", elevpnt)
-  end
+  if(not (oEnt and oEnt:IsValid())) then return end
+  local pointid, pnextid = self:GetPointID()
+  local spawncn, elevpnt = self:GetSpawnCenter(), 0
+  if(not spawncn) then -- Distance for the piece spawned on the ground
+    elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0); end
+  asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtLogs)
+  asmlib.SetAsmConvar(oPly, "elevpnt", elevpnt)
 end
 
 function TOOL:Think()
