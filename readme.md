@@ -352,10 +352,10 @@ will include the content in question. In some rare cases, the author is to busy,
 anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also OK and you need to value their time and effort:
   * PHX Monorails **(INCLUDED)**
   * PHX Regular Tracks ( Piece `switcher_2` `[X]` misses collision meshes ) **(INCLUDED)**
-  * [SligWolf's Rerailers](https://steamcommunity.com/sharedfiles/filedetails/?id=132843280) old and new(1,2,3)
+  * [SligWolf's Rerailers](https://steamcommunity.com/sharedfiles/filedetails/?id=132843280) old and new(1,2,3) [**(AUTHOR)**][ref-maintained]
   * [SProps](https://steamcommunity.com/sharedfiles/filedetails/?id=173482196)
   * PHX XQM Coaster tracks **(INCLUDED)**
-  * [SligWolf's Mini train tracks and switches](https://steamcommunity.com/sharedfiles/filedetails/?id=149759773)
+  * [SligWolf's Mini train tracks and switches](https://steamcommunity.com/sharedfiles/filedetails/?id=149759773) [**(AUTHOR)**][ref-maintained]
   * PHX Road Pieces ( including ramps big and small ) **(INCLUDED)**
   * PHX Monorail Iron Beams **(INCLUDED)**
   * PHX XQM BallRails **(INCLUDED)**
@@ -363,7 +363,7 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * [Metrostroi rails](https://steamcommunity.com/sharedfiles/filedetails/?id=261801217) **(HAMMER)**
   * [Shinji85's BodybroupRail pieces](https://steamcommunity.com/sharedfiles/filedetails/?id=326640186)
   * [gm_trainset map props](https://steamcommunity.com/sharedfiles/filedetails/?id=248213731) **(HAMMER)**
-  * [SligWolf's Railcar](https://steamcommunity.com/sharedfiles/filedetails/?id=173717507)
+  * [SligWolf's Railcar](https://steamcommunity.com/sharedfiles/filedetails/?id=173717507) [**(AUTHOR)**][ref-maintained]
   * [Bridges pack](https://steamcommunity.com/sharedfiles/filedetails/?id=343061215)
   * [gm_sunsetgulch map props](https://steamcommunity.com/sharedfiles/filedetails/?id=311697867) **(HAMMER)**
   * [StevenTechno's Buildings pack](https://steamcommunity.com/sharedfiles/filedetails/?id=331192490)
@@ -375,13 +375,13 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * PHX Tubes **(INCLUDED)**
   * [Magnum's second track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=391016040) **(HAMMER)**
   * [Qwertyaaa's G Scale Track Pack](https://steamcommunity.com/sharedfiles/filedetails/?id=718239260)
-  * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) (Mini hover tracks)(White rails)
+  * [SligWolf's ModelPack](https://steamcommunity.com/sharedfiles/filedetails/?id=147812851) (Mini hover tracks)(White rails) [**(AUTHOR)**][ref-maintained]
   * [Ron's Minitrain Props](https://steamcommunity.com/sharedfiles/filedetails/?id=728833183)
   * [Battleship's abandoned rails](https://steamcommunity.com/sharedfiles/filedetails/?id=807162936)
   * [Ron's G-Scale track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=865735701) [**(AUTHOR)**][ref-maintained]
   * [Ron's Plarail Advance](https://steamcommunity.com/sharedfiles/filedetails/?id=1512053748) [**(AUTHOR)**][ref-maintained]
   * [AlexCookie's 2ft track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=740453553)
-  * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167)
+  * [SligWolf's Tiny hover racer](https://steamcommunity.com/sharedfiles/filedetails/?id=1375275167) [**(AUTHOR)**][ref-maintained]
   * [Joe's track pack](https://steamcommunity.com/sharedfiles/filedetails/?id=1658816805)
   * [StevenTechno's Buildings pack 2.0](https://steamcommunity.com/sharedfiles/filedetails/?id=1888013789)
   * [Modular canal props](https://steamcommunity.com/sharedfiles/filedetails/?id=1336622735) (Interior only)
