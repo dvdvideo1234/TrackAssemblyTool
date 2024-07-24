@@ -352,7 +352,7 @@ will include the content in question. In some rare cases, the author is to busy,
 anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also OK and you need to value their time and effort:
   * PHX Monorails **(INCLUDED)**
   * PHX Regular Tracks ( Piece `switcher_2` `[X]` misses collision meshes ) **(INCLUDED)**
-  * [SligWolf's Rerailers](https://steamcommunity.com/sharedfiles/filedetails/?id=132843280) old and new(1,2,3) [**(AUTHOR)**][ref-maintained]
+  * [SligWolf's Rerailer](https://steamcommunity.com/sharedfiles/filedetails/?id=132843280)
   * [SProps](https://steamcommunity.com/sharedfiles/filedetails/?id=173482196)
   * PHX XQM Coaster tracks **(INCLUDED)**
   * [SligWolf's Mini train tracks and switches](https://steamcommunity.com/sharedfiles/filedetails/?id=149759773) [**(AUTHOR)**][ref-maintained]
@@ -363,7 +363,7 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * [Metrostroi rails](https://steamcommunity.com/sharedfiles/filedetails/?id=261801217) **(HAMMER)**
   * [Shinji85's BodybroupRail pieces](https://steamcommunity.com/sharedfiles/filedetails/?id=326640186)
   * [gm_trainset map props](https://steamcommunity.com/sharedfiles/filedetails/?id=248213731) **(HAMMER)**
-  * [SligWolf's Railcar](https://steamcommunity.com/sharedfiles/filedetails/?id=173717507) [**(AUTHOR)**][ref-maintained]
+  * [SligWolf's Bodygroup Car](https://steamcommunity.com/sharedfiles/filedetails/?id=173717507)
   * [Bridges pack](https://steamcommunity.com/sharedfiles/filedetails/?id=343061215)
   * [gm_sunsetgulch map props](https://steamcommunity.com/sharedfiles/filedetails/?id=311697867) **(HAMMER)**
   * [StevenTechno's Buildings pack](https://steamcommunity.com/sharedfiles/filedetails/?id=331192490)
