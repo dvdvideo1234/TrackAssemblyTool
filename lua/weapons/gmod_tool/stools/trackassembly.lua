@@ -376,7 +376,7 @@ function TOOL:GetStackAttempts()
   return (mathClamp(self:GetClientNumber("maxstatts", 0), 0, 10))
 end
 
-function TOOL:GetGhostFade()
+function TOOL:GetGhostBlend()
   return (mathClamp(self:GetClientNumber("ghostblnd", 0), 0, 1))
 end
 
@@ -1700,7 +1700,7 @@ function TOOL:UpdateGhostSpawn(stTrace, oPly)
 end
 
 function TOOL:UpdateGhost(oPly)
-  local ghostblnd = self:GetGhostFade()
+  local ghostblnd = self:GetGhostBlend()
   if(not asmlib.FadeGhosts(true, ghostblnd)) then return end
   if(self:GetGhostsCount() <= 0) then return end
   local stTrace = asmlib.GetCacheTrace(oPly)
