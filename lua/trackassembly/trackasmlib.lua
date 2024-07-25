@@ -310,21 +310,21 @@ function IsModel(sModel, bDeep)
   local vFile = libModel.File[sModel] -- File current status
   if(IsHere(vFile)) then -- File validation status is present
     if(not vFile) then -- File is validated as invalid path
-      LogInstance("Invalid file "..GetReport(sModel)); return false end
-  else  -- File validation status update
-    if(IsUselessModel(sModel)) then libModel.File[sModel] = false
-      LogInstance("File useless "..GetReport(sModel)); return false end
-    if(not fileExists(sModel, "GAME")) then libModel.File[sModel] = false
-      LogInstance("File missing "..GetReport(sModel)); return false end
+      LogInstance("Invalid file "..GetReport(sModel)); return vFile end
+  else  -- File validation status update. Status is missing. Calculate.
+    vFile = false; libModel.File[sModel] = vFile -- Assume being invalid
+    if(IsUselessModel(sModel)) then --Check model being Aqua from Konosuba
+      LogInstance("File useless "..GetReport(sModel)); return vFile end
+    if(not fileExists(sModel, "GAME")) then -- Check model being a unicorn
+      LogInstance("File missing "..GetReport(sModel)); return vFile end
     vFile = true; libModel.File[sModel] = vFile -- The file validated
     LogInstance("File >> "..GetReport(vDeep, vFile, sModel))
   end -- At this point file path is valid. Have to validate model
-  if(CLIENT or not bDeep) then return vFile else -- File is validated
-    utilPrecacheModel(sModel); vDeep = utilIsValidModel(sModel)
-    libModel.Deep[sModel] = vDeep -- Store deep validation
-    LogInstance("Deep >> "..GetReport(vDeep, vFile, sModel))
-    return vDeep -- Gonna spawn
-  end
+  if(CLIENT or not bDeep) then return vFile end -- File is validated
+  utilPrecacheModel(sModel); vDeep = utilIsValidModel(sModel)
+  libModel.Deep[sModel] = vDeep -- Store deep validation
+  LogInstance("Deep >> "..GetReport(vDeep, vFile, sModel))
+  return vDeep -- Gonna spawn on the server. Must validate.
 end
 
 -- Strips a string from quotes
