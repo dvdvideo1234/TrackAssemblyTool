@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.754")
+asmlib.SetOpVar("TOOL_VERSION","8.755")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -684,7 +684,8 @@ if(CLIENT) then
       if(not acTo) then -- Make sure we have a tool
         asmlib.LogInstance("Tool missing",sLog); return nil end
       local model = acTo:GetModel()
-      if(not asmlib.IsModel(model)) then return nil end
+      if(not asmlib.IsModel(model)) then asmlib.ClearGhosts()
+        asmlib.LogInstance("Invalid model",sLog); return nil end
       local ghcnt = acTo:GetGhostsDepth()
       local atGho = asmlib.GetOpVar("ARRAY_GHOST")
       if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
@@ -4351,15 +4352,15 @@ else
   PIECES:Record({"models/sligwolf/bgcar/swrctraffic_lights.mdl", "#", "Start Lights", 2, "", "0, 152.554, 0"})
   PIECES:Record({"models/sligwolf/bgcar/swrctraffic_lights.mdl", "#", "Start Lights", 3, "", "0, 0, 0.042"})
   asmlib.Categorize("SligWolf's Rerailer")
-  PIECES:Record({"models/sligwolf/rerailer/sw_rerailer_1.mdl", "#", "Short Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
-  PIECES:Record({"models/sligwolf/rerailer/sw_rerailer_2.mdl", "#", "Middle Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
-  PIECES:Record({"models/sligwolf/rerailer/sw_rerailer_3.mdl", "#", "Long Single", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
-  PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 1, "-221.409, 0, 3.031", "219.412, 0, -5.411"})
-  PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Short Double", 2, "-1103.05, 0, 0.009", "-1543.871, 0, -5.411", "0,-180,0"})
-  PIECES:Record({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Middle Double", 1, "-265.554, 0, 3.031", "219.412, 0, -5.407"})
-  PIECES:Record({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Middle Double", 2, "-1882.106, 0, 3.031", "-2367.072, 0, -5.412", "0,-180,0"})
-  PIECES:Record({"models/sligwolf/rerailer/rerailer_3.mdl", "#", "Long Double", 1, "-258.249, -0.01, -0.002", "219.415, 0, -5.409"})
-  PIECES:Record({"models/sligwolf/rerailer/rerailer_3.mdl", "#", "Long Double", 2, "-3124.199, -0.01, 2.997", "-3601.869, -0.377, -5.416", "0,-180,0"})
+  PIECES:Record({"models/sligwolf/rerailer/sw_rerailer_1.mdl", "#", "Single Short", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
+  PIECES:Record({"models/sligwolf/rerailer/sw_rerailer_2.mdl", "#", "Single Middle", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
+  PIECES:Record({"models/sligwolf/rerailer/sw_rerailer_3.mdl", "#", "Single Long", 1, "-190.553,0,25.193", "211.414,0.015,-5.395"})
+  PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Double Short", 1, "-221.409, 0, 3.031", "219.412, 0, -5.411"})
+  PIECES:Record({"models/sligwolf/rerailer/rerailer_1.mdl", "#", "Double Short", 2, "-1103.05, 0, 0.009", "-1543.871, 0, -5.411", "0,-180,0"})
+  PIECES:Record({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Double Middle", 1, "-265.554, 0, 3.031", "219.412, 0, -5.407"})
+  PIECES:Record({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Double Middle", 2, "-1882.106, 0, 3.031", "-2367.072, 0, -5.412", "0,-180,0"})
+  PIECES:Record({"models/sligwolf/rerailer/rerailer_3.mdl", "#", "Double Long", 1, "-258.249, -0.01, -0.002", "219.415, 0, -5.409"})
+  PIECES:Record({"models/sligwolf/rerailer/rerailer_3.mdl", "#", "Double Long", 2, "-3124.199, -0.01, 2.997", "-3601.869, -0.377, -5.416", "0,-180,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
