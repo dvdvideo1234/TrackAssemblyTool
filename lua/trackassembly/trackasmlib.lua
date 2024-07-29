@@ -4957,6 +4957,7 @@ end
 function HasGhosts()
   if(SERVER) then return false end
   local tGho = GetOpVar("ARRAY_GHOST")
+  if(not IsHere(tGho)) then return false end
   local eGho, nSiz = tGho[1], tGho.Size
   return (eGho and eGho:IsValid() and nSiz and nSiz > 0)
 end
@@ -4972,6 +4973,7 @@ function FadeGhosts(bNoD, nMrF)
   if(not HasGhosts()) then return true end
   local nMar = mathClamp((tonumber(nMrF) or 0), 0, 1)
   local tGho = GetOpVar("ARRAY_GHOST")
+  if(not IsHere(tGho)) then return true end
   local cPal = GetContainer("COLORS_LIST")
   local sMis, sMo = GetOpVar("MISS_NOMD"), tGho.Slot
   for iD = 1, tGho.Size do local eGho = tGho[iD]
@@ -4995,6 +4997,7 @@ function ClearGhosts(vSiz, bCol)
   if(SERVER) then return true end
   local tGho = GetOpVar("ARRAY_GHOST")
   if(not IsHere(tGho)) then return true end
+  if(tGho.Size == 0) then return true end
   local iSiz = mathCeil(tonumber(vSiz) or tGho.Size)
   local nDer = GetOpVar("DELAY_REMOVE")
   for iD = 1, iSiz do local eGho = tGho[iD]
@@ -5059,7 +5062,8 @@ end
 ]]
 function NewGhosts(nCnt, sModel) -- Only he's not a shadow, he's a green ghost!
   if(SERVER) then return true end -- Ghosting is client side only
-  local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts
+  local tGho = GetOpVar("ARRAY_GHOST") -- Read ghosts stack array
+  if(not IsHere(tGho)) then return true end -- Not available then nothing to do
   if(nCnt == 0 and tGho.Size == 0) then return true end -- Skip processing
   if(nCnt == 0 and tGho.Size ~= 0) then return ClearGhosts() end -- Disabled ghosting
   local iD = 1; FadeGhosts(true) -- Fade the current ghost stack
