@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.755")
+asmlib.SetOpVar("TOOL_VERSION","8.756")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -531,6 +531,7 @@ if(CLIENT) then
   asmlib.WorkshopID("Anyone's Horrible Trackpack" , "2194528273")
   asmlib.WorkshopID("Modular Sewer"               , "2340192251")
   asmlib.WorkshopID("RockMan's Fortification"     , "3071058065")
+  asmlib.WorkshopID("SligWolf's Suspension Train" , "3297918081")
 
   asmlib.SetAction("CLEAR_GHOSTS" , function() asmlib.ClearGhosts() end)
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)

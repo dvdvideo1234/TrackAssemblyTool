@@ -394,6 +394,7 @@ anymore to maintain cetain track packs leading in **NO SUPPORT**, which is also 
   * [CAP Walkway](https://steamcommunity.com/sharedfiles/filedetails/?id=180210973)
   * Portal 2 High Walkway **(MOUNT)**
   * [RockMan's Fortification](https://steamcommunity.com/sharedfiles/filedetails/?id=3071058065) 
+  * [SligWolf's Suspension train](https://steamcommunity.com/sharedfiles/filedetails/?id=3297918081) [**(AUTHOR)**][ref-maintained]
 
 #### Where are the trains/vehicles[,][ref-easter] are there any of these?
 Dude seriously, make them yourself, what's the point of playing Gmod then ... xD
