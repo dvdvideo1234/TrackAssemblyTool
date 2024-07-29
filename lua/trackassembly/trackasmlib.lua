@@ -1711,18 +1711,11 @@ function GetDirectory(pCurr, vName)
 end
 
 function SetExpandNode(pnBase)
+  local bEx = pnBase:GetExpanded()
   if(inputIsKeyDown(KEY_LSHIFT)) then
-    if(pnBase:GetExpanded()) then
-      pnBase:ExpandRecurse(false)
-    else
-      pnBase:ExpandRecurse(true)
-    end
+    pnBase:ExpandRecurse(not bEx)
   else
-    if(pnBase:GetExpanded()) then
-      pnBase:SetExpanded(false)
-    else
-      pnBase:SetExpanded(true)
-    end
+    pnBase:SetExpanded(not bEx)
   end
 end
 
