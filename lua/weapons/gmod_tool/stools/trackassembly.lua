@@ -2329,11 +2329,8 @@ function TOOL.BuildCPanel(CPanel)
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
-              pRoot.DoClick = function(pnSelf)
-                if(inputIsKeyDown(KEY_LSHIFT)) then
-                  pnSelf:ExpandRecurse(true)
-                else pnSelf:SetExpanded(true) end
-              end
+              pRoot.DoClick = function() asmlib.SetExpandNode(pRoot) end
+              pRoot.Expander.DoClick = function() asmlib.SetExpandNode(pRoot) end
               pRoot.DoRightClick = function()
                 local sID = asmlib.WorkshopID(sTyp)
                 if(sID and sID:len() > 0 and inputIsKeyDown(KEY_LSHIFT)) then

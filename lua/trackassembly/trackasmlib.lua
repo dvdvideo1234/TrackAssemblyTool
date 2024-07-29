@@ -1710,6 +1710,22 @@ function GetDirectory(pCurr, vName)
   return pItem, pItem[keyOb]
 end
 
+function SetExpandNode(pnBase)
+  if(inputIsKeyDown(KEY_LSHIFT)) then
+    if(pnBase:GetExpanded()) then
+      pnBase:ExpandRecurse(false)
+    else
+      pnBase:ExpandRecurse(true)
+    end
+  else
+    if(pnBase:GetExpanded()) then
+      pnBase:SetExpanded(false)
+    else
+      pnBase:SetExpanded(true)
+    end
+  end
+end
+
 function SetDirectory(pnBase, pCurr, vName)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
@@ -1724,11 +1740,8 @@ function SetDirectory(pnBase, pCurr, vName)
   pCurr[sName] = {}; pCurr[sName][keyOb] = pNode
   pNode:SetTooltip(languageGetPhrase("tool."..sTool..".subfolder"))
   pNode.Icon:SetImage(ToIcon("subfolder_item"))
-  pNode.DoClick = function(pnSelf)
-    if(inputIsKeyDown(KEY_LSHIFT)) then
-      pNode:ExpandRecurse(true)
-    else pnSelf:SetExpanded(true) end
-  end
+  pNode.DoClick = function() SetExpandNode(pNode) end
+  pNode.Expander.DoClick = function() SetExpandNode(pNode) end
   pNode.DoRightClick = function()
     SetClipboardText(pNode:GetText())
   end
