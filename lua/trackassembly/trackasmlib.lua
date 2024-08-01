@@ -3178,16 +3178,17 @@ end
 function ExportPanelDB(stPanel, bExp, makTab, sFunc)
   if(bExp) then
     local sMiss = GetOpVar("MISS_NOAV")
+    local sBase = GetOpVar("DIRPATH_BAS")
     local sExpo = GetOpVar("DIRPATH_EXP")
     local sMoDB = GetOpVar("MODE_DATABASE")
     local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
-    local iCnt, sBase = 1, GetOpVar("DIRPATH_BAS")
     if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
     local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
     local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
       LogInstance("Open fail "..GetReport(fName)); return stPanel end
     F:Write("# "..sFunc..":("..tostring(bExp)..") "..GetDateTime().." [ "..sMoDB.." ]\n")
-    while(stPanel[iCnt]) do local vPanel = stPanel[iCnt]
+    for iCnt = 1, stPanel.Size do
+      local vPanel = stPanel[iCnt]
       local sM = vPanel[makTab:GetColumnName(1)]
       local sT = vPanel[makTab:GetColumnName(2)]
       local sN = vPanel[makTab:GetColumnName(3)]
@@ -3195,8 +3196,9 @@ function ExportPanelDB(stPanel, bExp, makTab, sFunc)
         F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
         F:Write("\n"); cT = sT -- Cache category name
       end -- Otherwise just write down the piece active point
-      F:Write("\""..sM.."\""..symSep.."\""..sT.."\""..symSep.."\""..sN.."\"")
-      F:Write("\n"); iCnt = iCnt + 1
+      F:Write("\""..sM.."\""..symSep)
+      F:Write("\""..sT.."\""..symSep)
+      F:Write("\""..sN.."\""); F:Write("\n")
     end; F:Flush(); F:Close()
   end; return stPanel
 end
@@ -4465,10 +4467,10 @@ function AttachAdditions(ePiece)
   local eAng, ePos, sMoc = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
   local stData = CacheQueryAdditions(sMoc); if(not IsHere(stData)) then
     LogInstance("Model skip "..GetReport(sMoc)); return true end
-  local makTab, iCnt = GetBuilderNick("ADDITIONS"), 1; if(not IsHere(makTab)) then
+  local makTab = GetBuilderNick("ADDITIONS"); if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
   local sEoa = GetOpVar("OPSYM_ENTPOSANG"); LogInstance("PIECE:MODEL("..sMoc..")")
-  while(stData[iCnt]) do -- While additions are present keep adding them
+  for iCnt = 1, stData.Size do -- While additions are present keep adding them
     local arRec = stData[iCnt]; LogInstance("PIECE:ADDITION("..iCnt..")")
     local dCass, oPOA = GetOpVar("ENTITY_DEFCLASS"), NewPOA()
     local sCass = GetEmpty(arRec[makTab:GetColumnName(3)], nil, dCass)
@@ -4522,7 +4524,7 @@ function AttachAdditions(ePiece)
       local mA = stData[iCnt][makTab:GetColumnName(2)]
       local mC = stData[iCnt][makTab:GetColumnName(3)]
       LogInstance("Entity invalid "..GetReport(iCnt, sMoc, mA, mC)); return false
-    end; iCnt = iCnt + 1
+    end
   end; LogInstance("Success"); return true
 end
 
