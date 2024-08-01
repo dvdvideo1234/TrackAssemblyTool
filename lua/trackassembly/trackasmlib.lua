@@ -3964,8 +3964,11 @@ function ExportTypeAR(sType)
         end
       end
     end
-    local tSort = Sort(qPieces, {pkModel, sLineID}); if(not tSort) then
-      LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
+    local tSort = Sort(qPieces, {pkModel, sLineID})
+    if(not tSort) then
+      LogInstance("Sort cache mismatch")
+      fE:Flush(); fE:Close(); fS:Close(); return
+    end; tableEmpty(qPieces)
     for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
   else
     LogInstance("Unsupported mode "..GetReport(sMoDB))
