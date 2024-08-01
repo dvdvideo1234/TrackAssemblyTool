@@ -2343,10 +2343,10 @@ function TOOL.BuildCPanel(CPanel)
       if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
       -- Register the category if definition functional is given
       if(catTypes[sTyp]) then -- There is a category definition
-        local bSuc, vCat, sNam = pcall(catTypes[sTyp].Cmp, sMod)
+        local bSuc, vCat, vNam = pcall(catTypes[sTyp].Cmp, sMod)
         if(bSuc) then -- When the call is successful in protected mode
-          if(sNam and not asmlib.IsBlank(sNam)) then
-            sNam = asmlib.GetBeautifyName(sNam)
+          if(vNam and not asmlib.IsBlank(vNam)) then
+            sNam = asmlib.GetBeautifyName(vNam)
           end -- Custom name override when the addon requests
           local pCur = pCateg[sTyp]
           if(not asmlib.IsHere(pCur)) then
