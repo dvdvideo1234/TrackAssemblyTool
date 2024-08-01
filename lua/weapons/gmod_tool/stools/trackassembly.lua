@@ -2304,13 +2304,11 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets)
 
-  local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
+  local qPanel = asmlib.CacheQueryPanel(devmode); if(not qPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return end
-  local defTable = makTab:GetDefinition()
-  local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
-  local pTree    = vguiCreate("DTree", CPanel); if(not pTree) then
+  local pTree  = vguiCreate("DTree", CPanel); if(not pTree) then
     asmlib.LogInstance("Database tree empty",sLog); return end
   pTree:Dock(TOP) -- Initialize to fill left and right bounds
   pTree:SetTall(400) -- Make it quite large
@@ -2318,9 +2316,11 @@ function TOOL.BuildCPanel(CPanel)
   pTree:SetIndentSize(0) -- All track types are closed
   pTree:UpdateColours(drmSkin) -- Apply current skin
   CPanel:AddItem(pTree) -- Register it to the panel
-  local iCnt, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
-  while(cqPanel[iCnt]) do
-    local vRec, bNow = cqPanel[iCnt], true
+  local defTable = makTab:GetDefinition()
+  local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
+  local iC, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
+  for iC = 1, qPanel.Size do
+    local vRec, bNow = qPanel[iC], true
     local sMod = vRec[makTab:GetColumnName(1)]
     local sTyp = vRec[makTab:GetColumnName(2)]
     local sNam = vRec[makTab:GetColumnName(3)]
@@ -2343,37 +2343,38 @@ function TOOL.BuildCPanel(CPanel)
       if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
       -- Register the category if definition functional is given
       if(catTypes[sTyp]) then -- There is a category definition
-        local bSuc, ptCat, psNam = pcall(catTypes[sTyp].Cmp, sMod)
+        local bSuc, vCat, sNam = pcall(catTypes[sTyp].Cmp, sMod)
         if(bSuc) then -- When the call is successful in protected mode
-          if(psNam and not asmlib.IsBlank(psNam)) then
-            sNam = asmlib.GetBeautifyName(psNam)
+          if(sNam and not asmlib.IsBlank(sNam)) then
+            sNam = asmlib.GetBeautifyName(sNam)
           end -- Custom name override when the addon requests
-          local pCurr = pCateg[sTyp]
-          if(not asmlib.IsHere(pCurr)) then
-            pCateg[sTyp] = {}; pCurr = pCateg[sTyp] end
-          if(asmlib.IsBlank(ptCat)) then ptCat = nil end
-          if(asmlib.IsHere(ptCat)) then
-            if(not istable(ptCat)) then ptCat = {ptCat} end
-            if(ptCat[1]) then local iD = 1
-              while(ptCat[iD]) do local sCat = tostring(ptCat[iD]):lower():Trim()
-                if(asmlib.IsBlank(sCat)) then sCat = "other" end
-                sCat = asmlib.GetBeautifyName(sCat) -- Beautify the category
-                if(pCurr[sCat]) then -- Jump next if already created
-                  pCurr, pItem = asmlib.GetDirectory(pCurr, sCat)
-                else
-                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat)
-                end; iD = iD + 1 -- Create the last needed node regarding pItem
-              end
+          local pCur = pCateg[sTyp]
+          if(not asmlib.IsHere(pCur)) then
+            pCateg[sTyp] = {}; pCur = pCateg[sTyp] end
+          if(asmlib.IsBlank(vCat)) then vCat = nil end
+          if(asmlib.IsHere(vCat)) then
+            if(not istable(vCat)) then vCat = {vCat} end
+            for iD = 1, #vCat do -- Create category tree path
+              local sCat = tostring(vCat[iD] or ""):lower():Trim()
+              if(asmlib.IsBlank(sCat)) then sCat = "other" end
+              sCat = asmlib.GetBeautifyName(sCat) -- Beautify the category
+              if(pCur[sCat]) then -- Jump next if already created
+                pCur, pItem = asmlib.GetDirectory(pCur, sCat)
+              else -- Create a new sub-category for the incoming content
+                pCur, pItem = asmlib.SetDirectory(pItem, pCur, sCat)
+              end -- Create the last needed node regarding pItem
             end -- When the category has at least one element
           else -- Store the creation information of the ones without category for later
             tableInsert(pCateg[sTyp], {sNam, sMod}); bNow = false
           end -- Is there is any category apply it. When available process it now
-        end
-      end -- Register the node associated with the track piece when is intended for later
+        else -- When there is an error in the category execution report it
+          asmlib.LogInstance("Category "..asmlib.GetReport(sTyp, sMod).." execution error: "..vCat,sLog)
+        end -- Category factory has been executed and sub-folders are created
+      end -- Category definition has been processed and nothing more to be done
+      -- Register the node associated with the track piece when is intended for later
       if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport(sTyp, sNam, sMod),sLog) end
-    iCnt = iCnt + 1
   end
   -- Attach the hanging items to the type root
   for typ, val in pairs(pCateg) do
@@ -2384,7 +2385,7 @@ function TOOL.BuildCPanel(CPanel)
       asmlib.LogInstance("Rooting item "..asmlib.GetReport(typ, nam, mod),sLog)
     end
   end -- Process all the items without category defined
-  asmlib.LogInstance("Found items #"..tostring(iCnt - 1), sLog)
+  asmlib.LogInstance("Found items #"..qPanel.Size, sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local sName = asmlib.GetAsmConvar("workmode", "NAM")
