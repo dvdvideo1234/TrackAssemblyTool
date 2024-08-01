@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.763")
+asmlib.SetOpVar("TOOL_VERSION","8.764")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1717,8 +1717,9 @@ asmlib.CreateTable("PIECES",{
           local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
           local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim..
-            "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
+          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim)
+          oFile:Write("\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim)
+          oFile:Write("\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
     end,
@@ -1752,14 +1753,12 @@ asmlib.CreateTable("ADDITIONS",{
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
-      local nCnt, iID = 2, makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
+      local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
       stData[iID] = {} -- LineID has to be set properly
-      while(nCnt <= defTab.Size) do sCol = makTab:GetColumnName(nCnt)
-        stData[iID][sCol] = makTab:Match(arLine[nCnt],nCnt)
-        if(not asmlib.IsHere(stData[iID][sCol])) then -- Check data conversion output
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport(nCnt,arLine[nCnt],snPK),vSrc); return false
-        end; nCnt = (nCnt + 1)
+      for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt) -- Check data conversion output
+        stData[iID][sC] = makTab:Match(arLine[iCnt],iCnt); if(not asmlib.IsHere(stData[iID][sC])) then
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),vSrc); return false end
       end; stData.Size = iID; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
@@ -1817,7 +1816,7 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
         tNames[snPK].Size, tNames[snPK].Slot = 0, snPK
       end -- Data matching crashes only on numbers
-      tNames[snPK].Size = iNameID
+      tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
