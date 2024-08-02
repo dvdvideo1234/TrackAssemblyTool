@@ -2877,7 +2877,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
     local qtCmd = self:GetCommand(); qtCmd.STMT = "INDEX"
     local tStmt = qtCmd[qtCmd.STMT]
     if(not tStmt) then tStmt = {}; qtCmd[qtCmd.STMT] = tStmt end
-    local tV = {}; tableEmpty(tStmt)
+    local tV = {}; tableEmpty(tStmt); tStmt.Size = nA
     for iCnt = 1, nA do local vA = tA[iCnt]; tableEmpty(tV)
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
@@ -2920,8 +2920,10 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Current missing "..GetReport(nA,...), tabDef.Nick); return self end
     local sStmt = qtCmd[qtCmd.STMT]; if(not InHere(sStmt)) then
       LogInstance("Statement missing "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self end
-    if(not sStmt) then
-      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self end
+    if(not sStmt and isbool(sStmt)) then
+      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
+    if(not isstring(sStmt)) then
+      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
     local qtDef = self:GetDefinition()
     local tA = {...}; sStmt = sStmt:Trim("%s"):Trim(";")
     for iCnt = 1, nA do
@@ -2944,8 +2946,10 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Current missing "..GetReport(nA,...), tabDef.Nick); return self end
     local sStmt = qtCmd[qtCmd.STMT]; if(not IsHere(sStmt)) then
       LogInstance("Statement missing "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self end
-    if(not sStmt) then
-      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self end
+    if(not sStmt and isbool(sStmt)) then
+      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
+    if(not isstring(sStmt)) then
+      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
     local sDir, tA = "", {...}
     local qtDef = self:GetDefinition()
     sStmt = sStmt:Trim("%s"):Trim(";").." ORDER BY "
@@ -2985,8 +2989,11 @@ function NewTable(sTable,defTab,bDelete,bReload)
   function self:Values(...)
     local qtCmd, nA = self:GetCommand(), select("#", ...)
     local qtDef = self:GetDefinition()
-    local sStmt = qtCmd[qtCmd.STMT]; if(not isstring(sStmt)) then
-      LogInstance("Previous missing "..GetReport(nA,qtCmd.STMT),tabDef.Nick); return self:Deny() end
+    local sStmt = qtCmd[qtCmd.STMT];
+    if(not sStmt and isbool(sStmt)) then
+      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
+    if(not isstring(sStmt)) then
+      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
     sStmt = sStmt:Trim("%s"):Trim(";").." VALUES ( "
     for iCnt = 1, nA do sStmt = sStmt..tostring(nA[iCnt])..", " end
     qtCmd[qtCmd.STMT] = sStmt:sub(1, -3).." );"; return self
@@ -3037,15 +3044,15 @@ function NewTable(sTable,defTab,bDelete,bReload)
   if(sMoDB == "SQL") then local vO
     vO = self:Create():Get(); if(not IsHere(vO)) then
       LogInstance("Build create failed"); return self:Remove(false) end
-    vO = self:Index(); if(not IsHere(vO)) then
+    vO = self:Index():Get(); if(not IsHere(vO)) then
       LogInstance("Build index failed"); return self:Remove(false) end
-    vO = self:Drop(); if(not IsHere(vO)) then
+    vO = self:Drop():Get(); if(not IsHere(vO)) then
       LogInstance("Build drop failed"); return self:Remove(false) end
-    vO = self:Delete(); if(not IsHere(vO)) then
+    vO = self:Delete():Get(); if(not IsHere(vO)) then
       LogInstance("Build delete failed"); return self:Remove(false) end
-    vO = self:Begin(); if(not IsHere(vO)) then
+    vO = self:Begin():Get(); if(not IsHere(vO)) then
       LogInstance("Build begin failed"); return self:Remove(false) end
-    vO = self:Commit(); if(not IsHere(vO)) then
+    vO = self:Commit():Get(); if(not IsHere(vO)) then
       LogInstance("Build commit failed"); return self:Remove(false) end
     vO = self:TimerSetup(); if(not IsHere(vO)) then
       LogInstance("Build timer failed"); return self:Remove(false) end
@@ -3069,9 +3076,11 @@ function NewTable(sTable,defTab,bDelete,bReload)
         return self:Remove(false) -- Remove table when SQL error is present
       end -- Check when SQL query has passed and the table is not yet created
       if(sqlTableExists(defTab.Name)) then
-        for k, v in pairs(tQ.INDEX) do local qRez = sqlQuery(v)
+        for iQ = 1, #tQ.INDEX do
+          local qInx = tQ.INDEX[iQ]
+          local qRez = sqlQuery(qInx)
           if(not qRez and isbool(qRez)) then -- Check when the index query has passed
-            LogInstance("Table create index fail "..GetReport(k, sqlLastError(), v), tabDef.Nick)
+            LogInstance("Table create index fail "..GetReport(sqlLastError(), iQ, qInx), tabDef.Nick)
             return self:Remove(false) -- Clear table when index is not created
           end
           LogInstance("Table create index: "..v,tabDef.Nick)
