@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.768")
+asmlib.SetOpVar("TOOL_VERSION","8.769")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -796,8 +796,8 @@ if(CLIENT) then
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3])
           if(not asmlib.IsBlank(tDat[1]) and not asmlib.IsBlank(tDat[2])) then
-          if(nID and nID > 0 and pnRow and not tpText[1].m_NewDSV) then local iU = 1
-            while(pnRow.Columns[iU]) do pnRow:SetColumnText(iU, tDat[iU]); iU = iU + 1 end
+          if(nID and nID > 0 and pnRow and not tpText[1].m_NewDSV) then
+            for iU = 1, tpText.Size do pnRow:SetColumnText(iU, tDat[iU]) end
           else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3])
           end; end; for iV = 1, tpText.Size do tpText[iV]:SetValue(""); tpText[iV]:SetText("") end
         end
@@ -882,23 +882,17 @@ if(CLIENT) then
           if(not IsValid(pnMenu)) then pnFrame:Close()
             asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
           local mX, mY = inputGetCursorPos()
-          local iO, tOptions = 1, {
-            function()
-              local cC, cX, cY = 0, pnSelf:ScreenToLocal(mX, mY)
-              while(cX > 0) do cC = (cC + 1); cX = (cX - pnSelf:ColumnWidth(cC))
-              end; local nID, pnRow = pnSelf:GetSelectedLine()
-              if(nID and nID > 0 and pnRow) then SetClipboardText(pnRow:GetColumnText(cC)) end
-            end,
+          local tOptions = {
+            function() asmlib.SetListViewClipboard(pnSelf) end,
             function() SetClipboardText(convRow(pnLine)) end,
             function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V")) end,
             function() excgRow(pnLine); tpText[1].m_NewDSV = false end,
             function() excgRow(pnLine); tpText[1].m_NewDSV = true  end,
             function() pnSelf:RemoveLine(nIndex) end
-          }
-          while(tOptions[iO]) do local sO = tostring(iO)
+          }; tOptions.Size = #tOptions
+          for iO = 1, tOptions.Size do local sO = tostring(iO)
             local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_cm"..sO)
             pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_cm"..sO))
-            iO = iO + 1 -- Loop trough the functions list and add to the menu
           end; pnMenu:Open()
         end -- Process only the right mouse button
       end -- Populate the tables for every database
@@ -937,7 +931,7 @@ if(CLIENT) then
                 local pnMenu = vguiCreate("DMenu")
                 if(not IsValid(pnMenu)) then pnFrame:Close()
                   asmlib.LogInstance("Menu invalid",sLog..".Button"); return nil end
-                local iO, tOptions = 1, {
+                local tOptions = {
                   function() SetClipboardText(pnSelf:GetText()) end,
                   function() SetClipboardText(sDsv) end,
                   function() SetClipboardText(defTab.Nick) end,
@@ -965,11 +959,10 @@ if(CLIENT) then
                         asmlib.LogInstance("Deleted "..asmlib.GetReport(sCat), sLog..".Button") end
                     end; pnManage:Remove()
                   end
-                }
-                while(tOptions[iO]) do local sO = tostring(iO)
+                }; tOptions.Size = #tOptions
+                for iO = 1, tOptions.Size do local sO = tostring(iO)
                   local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bt"..sO)
                   pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_bt"..sO))
-                  iO = iO + 1 -- Loop trough the functions list and add them to the menu
                 end; pnMenu:Open()
               end
             else asmlib.LogInstance("File missing ["..tostring(iP).."]",sLog..".Button") end
@@ -1159,9 +1152,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        local cC, cX, cY = 0, inputGetCursorPos(); cX, cY = pnSelf:ScreenToLocal(cX, cY)
-        while(cX > 0) do cC = (cC + 1); cX = (cX - pnSelf:ColumnWidth(cC)) end
-        SetClipboardText(pnLine:GetColumnText(cC))
+        asmlib.SetListViewClipboard(pnSelf)
       end
       if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
         asmlib.LogInstance("Populate the list view failed",sLog); return nil end

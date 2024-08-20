@@ -1771,22 +1771,8 @@ function SetDirectoryNode(pnBase, sName, sModel)
   return pNode
 end
 
-function PushSortValues(tTable,snCnt,nsValue,tData)
-  local iCnt, iInd = mathFloor(tonumber(snCnt) or 0), 1
-  if(not (tTable and istable(tTable) and (iCnt > 0))) then return 0 end
-  if(not tTable[iInd]) then
-    tTable[iInd] = {Value = nsValue, Table = tData}; return iInd
-  else
-    while(tTable[iInd] and (tTable[iInd].Value < nsValue)) do iInd = iInd + 1 end
-    if(iInd > iCnt) then return iInd end
-    while(iInd < iCnt) do
-      tTable[iCnt] = tTable[iCnt - 1]; iCnt = iCnt - 1
-    end; tTable[iInd] = {Value = nsValue, Table = tData}; return iInd
-  end
-end
-
-function GetFrequentModels(snCount)
-  local snCount = (tonumber(snCount) or 0); if(snCount < 1) then
+function GetFrequentModels(iCnt)
+  local iCnt = (tonumber(iCnt) or 0); if(iCnt < 1) then
     LogInstance("Count not applicable"); return nil end
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
@@ -1795,20 +1781,45 @@ function GetFrequentModels(snCount)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Missing table cache space"); return nil end
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
-  local iInd, tmNow = 1, Time(); tableEmpty(frUsed)
+  local iInd, tmNow = 1, Time(); tableEmpty(frUsed); frUsed.Size = 0
+  local cM, cT, = makTab:GetColumnName(1), makTab:GetColumnName(2)
+  local cN, cS, = makTab:GetColumnName(3), makTab:GetColumnName(4)
   for mod, rec in pairs(tCache) do
     if(IsHere(rec.Used) and IsHere(rec.Size) and rec.Size > 0) then
-      iInd = PushSortValues(frUsed,snCount,tmNow-rec.Used,{
-               [makTab:GetColumnName(1)] = mod,
-               [makTab:GetColumnName(2)] = rec.Type,
-               [makTab:GetColumnName(3)] = rec.Name,
-               [makTab:GetColumnName(4)] = rec.Size
-             })
-      if(iInd < 1) then LogInstance("Array index out of border"); return nil end
-    end
-  end
-  if(IsHere(frUsed) and IsHere(frUsed[1])) then return frUsed, snCount end
+      local rmComp = (tmNow - rec.Used)
+      local stData = {[cM] = mod     , [cT] = rec.Type,
+                      [cN] = rec.Name, [cS] = rec.Size}
+      if(frUsed.Size == 0) then frUsed.Size = 1
+        tableInsert(frUsed, {Value = rmComp, Table = stData})
+      else local bTop = true -- Registered records are more than one
+        if(frUsed.Size >= iCnt) then break end -- Reached count
+        for iD = 1, frUsed.Size do -- Still something to add
+          if(frUsed[iD].Value >= rmComp) then -- Check placement
+            frUsed.Size, bTop = (frUsed.Size + 1), false -- Increment
+            tableInsert(frUsed, iD, {Value = rmComp, Table = stData})
+            break -- Exist the inner check loop and add the record
+          end -- Snapshot is inserted and registered
+        end -- We have to add the item at the end of the array
+        if(bTop) then tableInsert(frUsed, {Value = rmComp, Table = stData}) end
+      end -- By default top addition is enabled. When found this is skipped
+    end -- Make a report for every record that is valid in the cache
+  end -- If there is at least one record added return the array reference
+  if(IsHere(frUsed) and IsHere(frUsed[1])) then return frUsed, iCnt end
   LogInstance("Array is empty or not available"); return nil
+end
+
+function SetListViewClipboard(pnListView, nX, nY)
+  local mX, mY = inputGetCursorPos()
+  local nX, nY = (tonumber(nX) or mX), (tonumber(nY) or mY)
+  local cC, cX, cY = 0, pnListView:ScreenToLocal(nX, nY)
+  while(cX > 0) do
+    cC = (cC + 1)
+    cX = (cX - pnListView:ColumnWidth(cC))
+  end
+  local nID, pnRow = pnListView:GetSelectedLine()
+  if(nID and nID > 0 and pnRow) then
+    SetClipboardText(pnRow:GetColumnText(cC))
+  end
 end
 
 function SetComboBoxClipboard(pnCombo)
@@ -3355,10 +3366,9 @@ function CacheQueryProperty(sType)
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
           LogInstance("No data found "..GetReport(Q)); return nil end
-        stName.Slot, stName.Size = sType, #qData
-        for iCnt = 1, stName.Size do -- Store types count as rows count
-          stName[iCnt] = qData[iCnt][makTab:GetColumnName(3)]
-        end; LogInstance("Save >> "..GetReport(sType, keyName))
+        local cName = makTab:GetColumnName(3); stName.Slot, stName.Size = sType, #qData
+        for iCnt = 1, stName.Size do stName[iCnt] = qData[iCnt][cName] end
+        LogInstance("Save >> "..GetReport(sType, keyName))
         stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
       else LogInstance("Unsupported mode "..GetReport(sMoDB, keyName)); return nil end
@@ -3386,10 +3396,9 @@ function CacheQueryProperty(sType)
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
           LogInstance("No data found "..GetReport(Q)); return nil end
-        stType.Size = #qData -- Store types count as rows count
-        for iCnt = 1, stType.Size do
-          stType[iCnt] = qData[iCnt][makTab:GetColumnName(1)]
-        end; LogInstance("Save >> "..GetReport(keyType))
+        local cName = makTab:GetColumnName(1); stType.Size = #qData
+        for iCnt = 1, stType.Size do stType[iCnt] = qData[iCnt][cName] end
+        LogInstance("Save >> "..GetReport(keyType))
         stType = makTab:TimerAttach(sFunc, defTab.Name, keyType); return stType
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
       else LogInstance("Unsupported mode "..GetReport(sMoDB, keyType)); return nil end

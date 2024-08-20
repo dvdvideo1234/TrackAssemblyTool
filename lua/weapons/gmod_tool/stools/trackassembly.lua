@@ -2318,7 +2318,7 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddItem(pTree) -- Register it to the panel
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
-  local iC, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
+  local iC, pTypes, pCateg, pNode = 1, 1, {}, {}
   for iC = 1, qPanel.Size do
     local vRec, bNow = qPanel[iC], true
     local sMod = vRec[makTab:GetColumnName(1)]
@@ -2425,18 +2425,18 @@ function TOOL.BuildCPanel(CPanel)
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
     asmlib.LogInstance("Property population empty",sLog); return end
 
-  while(cqProperty[iTyp]) do
+  for iTyp = 1, cqProperty.Size do
     local sT, sI = cqProperty[iTyp], asmlib.ToIcon("property_type")
-    pComboPhysType:AddChoice(sT, sT, false, sI); iTyp = iTyp + 1
+    pComboPhysType:AddChoice(sT, sT, false, sI)
   end
 
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local cqNames = asmlib.CacheQueryProperty(sVal)
-    if(cqNames) then local iNam = 1; pComboPhysName:Clear()
+    if(cqNames) then pComboPhysName:Clear()
       pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
-      while(cqNames[iNam]) do
+      for iNam = 1, cqNames.Size do
         local sN, sI = cqNames[iNam], asmlib.ToIcon("property_name")
-        pComboPhysName:AddChoice(sN, sN, false, sI); iNam = iNam + 1
+        pComboPhysName:AddChoice(sN, sN, false, sI)
       end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
