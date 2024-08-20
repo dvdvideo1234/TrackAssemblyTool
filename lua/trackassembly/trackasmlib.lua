@@ -4028,9 +4028,9 @@ function ExportTypeAR(sType)
           LogInstance("Missing point ID "..GetReport(iID, rec.Slot))
           fE:Flush(); fE:Close(); fS:Close(); return
         end
-        while(rPOA) do
+        for iID = 1, rec.Size do
           iCnt = (iCnt + 1); qPieces[iCnt] = {} -- Allocate row memory
-          local qRow = qPieces[iCnt]
+          local qRow = qPieces[iCnt]; rPOA = tOffs[iID]
           local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
           local sC = (IsHere(rec.Unit) and tostring(rec.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
@@ -4042,7 +4042,6 @@ function ExportTypeAR(sType)
           qRow[makP:GetColumnName(6)] = sO
           qRow[makP:GetColumnName(7)] = sA
           qRow[makP:GetColumnName(8)] = sC
-          iID = (iID + 1); rPOA = tOffs[iID]
         end
       end
     end
