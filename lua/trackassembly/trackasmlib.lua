@@ -2772,13 +2772,12 @@ function NewTable(sTable,defTab,bDelete,bReload)
   -- Creates table column list as string
   function self:GetColumnList(sD)
     if(not IsHere(sD)) then return "" end
-    local qtDef, sRes, iCnt = self:GetDefinition(), "", 1
     local sD = tostring(sD or "\t"):sub(1,1); if(IsBlank(sD)) then
       LogInstance("Missing delimiter",tabDef.Nick); return "" end
-    while(iCnt <= qtDef.Size) do
-      sRes, iCnt = (sRes..qtDef[iCnt][1]), (iCnt + 1)
-      if(qtDef[iCnt]) then sRes = sRes..sD end
-    end; return sRes
+    local qtDef, sRes, iCnt = self:GetDefinition(), sD, 1
+    for iCnt = 1, qtDef.Size do
+      sRes = (sRes..tostring(qtDef[iCnt][1] or "")..sD)
+    end; return sRes:sub(2, -2)
   end
   -- Internal type matching
   function self:Match(snValue,ivID,bQuoted,sQuote,bNoRev,bNoNull)
@@ -3255,20 +3254,21 @@ function ExportPanelDB(stPanel, bExp, makTab, sFunc)
     local sBase = GetOpVar("DIRPATH_BAS")
     local sExpo = GetOpVar("DIRPATH_EXP")
     local sMoDB = GetOpVar("MODE_DATABASE")
-    local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
+    local symSep, rT = GetOpVar("OPSYM_SEPARATOR")
     if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
     local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
     local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
       LogInstance("Open fail "..GetReport(fName)); return stPanel end
     F:Write("# "..sFunc..":("..tostring(bExp)..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+    local cM = makTab:GetColumnName(1)
+    local cT = makTab:GetColumnName(2)
+    local cN = makTab:GetColumnName(3)
     for iCnt = 1, stPanel.Size do
       local vPanel = stPanel[iCnt]
-      local sM = vPanel[makTab:GetColumnName(1)]
-      local sT = vPanel[makTab:GetColumnName(2)]
-      local sN = vPanel[makTab:GetColumnName(3)]
-      if(not cT or cT ~= sT) then -- Category has been changed
+      local sM, sT, sN = vPanel[cM], vPanel[cT], vPanel[cN]
+      if(not rT or rT ~= sT) then -- Category has been changed
         F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
-        F:Write("\n"); cT = sT -- Cache category name
+        F:Write("\n"); rT = sT -- Cache category name
       end -- Otherwise just write down the piece active point
       F:Write("\""..sM.."\""..symSep)
       F:Write("\""..sT.."\""..symSep)
@@ -3318,11 +3318,14 @@ function CacheQueryPanel(bExp)
       local tCache = libCache[defTab.Name] -- Sort directly by the model
       local tSort  = Sort(tCache,{"Type","Slot"}); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end
+      local cM = makTab:GetColumnName(1)
+      local cT = makTab:GetColumnName(2)
+      local cN = makTab:GetColumnName(3)
       for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
         local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
-        vPanel[makTab:GetColumnName(1)] = vSort.Key
-        vPanel[makTab:GetColumnName(2)] = vSort.Rec.Type
-        vPanel[makTab:GetColumnName(3)] = vSort.Rec.Name
+        vPanel[cM] = vSort.Key
+        vPanel[cT] = vSort.Rec.Type
+        vPanel[cN] = vSort.Rec.Name
       end; stPanel.Size = tSort.Size -- Store the amount sort rows
       return ExportPanelDB(stPanel, bExp, makTab, sFunc)
     else LogInstance("Unsupported mode "..GetReport(sMoDB)); return nil end
@@ -3892,7 +3895,7 @@ function SetAdditionsAR(sModel, makTab, qList)
         for iD = 1, rec.Size do iCnt = (iCnt + 1)
           qData[iCnt] = {[pkModel] = mod}
           for iC = 2, defTab.Size do
-            local sN = makTab:GetColumnName(iC)
+            local sN = defTab[iC][1]
             qData[iCnt][sN] = rec[iD][sN]
           end
         end
