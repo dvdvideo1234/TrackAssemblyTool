@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.769")
+asmlib.SetOpVar("TOOL_VERSION","8.770")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1678,12 +1678,12 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
+      if(nOffsID ~= (stData.Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID,snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
       if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
-      if(nOffsID > stData.Size) then stData.Size = nOffsID else
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID),vSrc); return false end
-      return true
+      stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local tData, defTab = {}, makTab:GetDefinition()
@@ -1746,11 +1746,13 @@ asmlib.CreateTable("ADDITIONS",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
+      if(iID ~= (stData.Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK),vSrc); return false end
       stData[iID] = {} -- LineID has to be set properly
       for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt) -- Check data conversion output
         stData[iID][sC] = makTab:Match(arLine[iCnt],iCnt); if(not asmlib.IsHere(stData[iID][sC])) then
           asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),vSrc); return false end
-      end; stData.Size = iID; return true
+      end; stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
@@ -1807,6 +1809,8 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
         tNames[snPK].Size, tNames[snPK].Slot = 0, snPK
       end -- Data matching crashes only on numbers
+      if(iNameID ~= (tNames[snPK].Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iNameID,snPK),vSrc); return false end
       tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,

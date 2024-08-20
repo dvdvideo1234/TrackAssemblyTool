@@ -3176,15 +3176,17 @@ function CacheQueryPiece(sModel)
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found "..GetReport(Q)); return nil end
       stData.Slot, stData.Size = sModel, #qData
-      stData.Type = qData[iCnt][makTab:GetColumnName(2)]
-      stData.Name = qData[iCnt][makTab:GetColumnName(3)]
-      stData.Unit = qData[iCnt][makTab:GetColumnName(8)]
+      stData.Type = qData[1][makTab:GetColumnName(2)]
+      stData.Name = qData[1][makTab:GetColumnName(3)]
+      stData.Unit = qData[1][makTab:GetColumnName(8)]
+      local cI = makTab:GetColumnName(4)
+      local cP = makTab:GetColumnName(5)
+      local cO = makTab:GetColumnName(6)
+      local cA = makTab:GetColumnName(7)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]
-        if(not IsHere(RegisterPOA(stData,iCnt,
-          qRec[makTab:GetColumnName(5)],
-          qRec[makTab:GetColumnName(6)],
-          qRec[makTab:GetColumnName(7)]))) then
+        local qRec = qData[iCnt]; if(iCnt ~= qRec[cI]) then
+          asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
+        if(not IsHere(RegisterPOA(stData,iCnt, qRec[cP], qRec[cO], qRec[cA]))) then
           LogInstance("Cannot process offset "..GetReport(iCnt, sModel)); return nil
         end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
@@ -3227,9 +3229,11 @@ function CacheQueryAdditions(sModel)
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found "..GetReport(Q)); return nil end
       stData.Slot, stData.Size = sModel, #qData
+      local cI = makTab:GetColumnName(4)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; stData[iCnt] = {}
-        for col, val in pairs(qRec) do stData[iCnt][col] = val end
+        local qRec = qData[iCnt]; if(iCnt ~= qRec[cI]) then
+          asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
+        stData[iCnt] = {}; for col, val in pairs(qRec) do stData[iCnt][col] = val end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
     elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
     else LogInstance("Unsupported mode "..GetReport(sMoDB, sModel)); return nil end
@@ -3366,8 +3370,13 @@ function CacheQueryProperty(sType)
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
           LogInstance("No data found "..GetReport(Q)); return nil end
-        local cName = makTab:GetColumnName(3); stName.Slot, stName.Size = sType, #qData
-        for iCnt = 1, stName.Size do stName[iCnt] = qData[iCnt][cName] end
+        local cI, cN = makTab:GetColumnName(2), makTab:GetColumnName(3)
+        stName.Slot, stName.Size = sType, #qData
+        for iCnt = 1, stName.Size do
+          local qRec = qData[iCnt]; if(iCnt ~= qRec[cI]) then
+            asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sType)); return nil end
+          stName[iCnt] = qRec[cN] -- Properties are stored as arrays of strings
+        end
         LogInstance("Save >> "..GetReport(sType, keyName))
         stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
