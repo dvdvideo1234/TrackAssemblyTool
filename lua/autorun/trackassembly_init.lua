@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.773")
+asmlib.SetOpVar("TOOL_VERSION","8.774")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1689,7 +1689,7 @@ asmlib.CreateTable("PIECES",{
       local tData, defTab = {}, makTab:GetDefinition()
       for mod, rec in pairs(tCache) do
         tData[mod] = {KEY = (rec.Type..rec.Name..mod)} end
-      local tSort = asmlib.Sort(tData,{"KEY"})
+      local tSort = asmlib.Sort(tData, "KEY")
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")

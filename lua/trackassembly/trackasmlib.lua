@@ -1696,7 +1696,7 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
       end
     end
   end; pnListView:SetVisible(true)
-  LogInstance("Crated "..GetReport(iCnt-1)); return true
+  LogInstance("Updated "..GetReport(frUsed.Size)); return true
 end
 
 function GetDirectory(pCurr, vName)
@@ -2269,21 +2269,21 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   return tOffs -- On success return the populated POA offset
 end
 
-function Sort(tTable, tCols)
+function Sort(tTable, ...)
   local tS, iS = {Size = 0}, 0
   local fS = GetOpVar("VCOMPARE_SORT")
-  local tC = tCols or {}; tC.Size = #tC
-  for key, rec in pairs(tTable) do
-    iS = (iS + 1); tS[iS] = {}
-    tS[iS].Key, tS[iS].Rec = key, rec
-    if(istable(rec)) then tS[iS].Val = "" -- Allocate sorting value
+  local tC = {...}; tC.Size = select("#", ...)
+  for key, rec in pairs(tTable) do -- Scan the entire table
+    iS = (iS + 1); tS[iS] = {} -- Allocate key/record and store
+    local rS = tS[iS]; rS.Key, rS.Rec = key, rec -- Local reference
+    if(istable(rec)) then rS.Val = "" -- Allocate sorting value
       if(tC.Size > 0) then -- When there are sorting column names provided
-        for iI = 1, tC.Size do local sC = tC[iI]; if(not IsHere(rec[sC])) then
+        for iC = 1, tC.Size do local sC = tC[iC]; if(not IsHere(rec[sC])) then
           LogInstance("Key missing "..GetReport(sC)); return nil end
-            tS[iS].Val = tS[iS].Val..tostring(rec[sC]) -- Concatenate sort value
+            rS.Val = rS.Val..tostring(rec[sC]) -- Concatenate sort value
         end -- When no sort columns are provided sort by the keys instead
-      else tS[iS].Val = key end -- When column list not specified use the key
-    else tS[iS].Val = rec end -- When the element is not a table use the value
+      else rS.Val = key end -- When column list not specified use the key
+    else rS.Val = rec end -- When the element is not a table use the value
   end; tS.Size = iS; tableSort(tS, fS); return tS
 end
 
@@ -3178,12 +3178,10 @@ function CacheQueryPiece(sModel)
       stData.Type = qData[1][makTab:GetColumnName(2)]
       stData.Name = qData[1][makTab:GetColumnName(3)]
       stData.Unit = qData[1][makTab:GetColumnName(8)]
-      local coLnID = makTab:GetColumnName(4)
-      local coP = makTab:GetColumnName(5)
-      local coO = makTab:GetColumnName(6)
-      local coA = makTab:GetColumnName(7)
+      local coID, coP = makTab:GetColumnName(4), makTab:GetColumnName(5)
+      local coO , coA = makTab:GetColumnName(6), makTab:GetColumnName(7)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; if(iCnt ~= qRec[coLnID]) then
+        local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
           asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
         if(not IsHere(RegisterPOA(stData,iCnt, qRec[coP], qRec[coO], qRec[coA]))) then
           LogInstance("Cannot process offset "..GetReport(iCnt, sModel)); return nil
@@ -3228,9 +3226,9 @@ function CacheQueryAdditions(sModel)
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found "..GetReport(Q)); return nil end
       stData.Slot, stData.Size = sModel, #qData
-      local coLnID = makTab:GetColumnName(4)
+      local coID = makTab:GetColumnName(4)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; if(iCnt ~= qRec[coLnID]) then
+        local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
           asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
         stData[iCnt] = {}; for col, val in pairs(qRec) do stData[iCnt][col] = val end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
@@ -3316,7 +3314,7 @@ function CacheQueryPanel(bExp)
       return ExportPanelDB(stPanel, bExp, makTab, sFunc)
     elseif(sMoDB == "LUA") then
       local tCache = libCache[defTab.Name] -- Sort directly by the model
-      local tSort  = Sort(tCache,{"Type","Slot"}); if(not tSort) then
+      local tSort  = Sort(tCache, "Type", "Slot"); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end
       local coMo = makTab:GetColumnName(1)
       local coTy = makTab:GetColumnName(2)
@@ -3373,10 +3371,10 @@ function CacheQueryProperty(sType)
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
           LogInstance("No data found "..GetReport(Q)); return nil end
-        local coLnID, coNm = makTab:GetColumnName(2), makTab:GetColumnName(3)
+        local coID, coNm = makTab:GetColumnName(2), makTab:GetColumnName(3)
         stName.Slot, stName.Size = sType, #qData
         for iCnt = 1, stName.Size do
-          local qRec = qData[iCnt]; if(iCnt ~= qRec[coLnID]) then
+          local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
             asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sType)); return nil end
           stName[iCnt] = qRec[coNm] -- Properties are stored as arrays of strings
         end
@@ -3901,7 +3899,7 @@ function SetAdditionsAR(sModel, makTab, qList)
         end
       end
     end
-    local tSort = Sort(qData, {coMo, coLn}); if(not tSort) then
+    local tSort = Sort(qData, coMo, coLn); if(not tSort) then
         LogInstance("Sort cache mismatch"); return end; tableEmpty(qData)
     for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
   else
@@ -4020,14 +4018,10 @@ function ExportTypeAR(sType)
   elseif(sMoDB == "LUA") then
     local iCnt = 0; qPieces = {}
     local tCache = libCache[defP.Name]
-    local coMo = makP:GetColumnName(1)
-    local coTy = makP:GetColumnName(2)
-    local coNm = makP:GetColumnName(3)
-    local coLn = makP:GetColumnName(4)
-    local coP  = makP:GetColumnName(5)
-    local coO  = makP:GetColumnName(6)
-    local coA  = makP:GetColumnName(7)
-    local coC  = makP:GetColumnName(8)
+    local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
+    local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
+    local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
+    local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
     local sClass = GetOpVar("ENTITY_DEFCLASS")
     for mod, rec in pairs(tCache) do
       if(rec.Type == sType) then
@@ -4051,7 +4045,7 @@ function ExportTypeAR(sType)
         end
       end
     end
-    local tSort = Sort(qPieces, {coMo, coLn})
+    local tSort = Sort(qPieces, coMo, coLn)
     if(not tSort) then
       LogInstance("Sort cache mismatch")
       fE:Flush(); fE:Close(); fS:Close(); return
