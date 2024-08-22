@@ -1682,19 +1682,19 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
       LogInstance("Invalid ListView"); return false end
     pnListView:SetVisible(false); pnListView:Clear()
   else LogInstance("Missing ListView"); return false end
-  local sCol, iCnt = tostring(sCol or ""), 1
-  local sPat, sDat = tostring(sPat or ""), nil
-  while(frUsed[iCnt]) do
+  local sCol = tostring(sCol or "")
+  local sPat = tostring(sPat or "")
+  for iCnt = 1, frUsed.Size do
     if(IsBlank(sPat)) then
       if(not AddLineListView(pnListView,frUsed,iCnt)) then
         LogInstance("Failed to add line on "..GetReport(iCnt)); return false end
     else
-      sDat = tostring(frUsed[iCnt].Table[sCol] or "")
+      local sDat = tostring(frUsed[iCnt].Table[sCol] or "")
       if(sDat:find(sPat)) then
         if(not AddLineListView(pnListView,frUsed,iCnt)) then
           LogInstance("Failed to add line "..GetReport(iCnt, sDat, sPat, sCol)); return false end
       end
-    end; iCnt = iCnt + 1
+    end
   end; pnListView:SetVisible(true)
   LogInstance("Crated "..GetReport(iCnt-1)); return true
 end
@@ -1782,13 +1782,13 @@ function GetFrequentModels(iCnt)
     LogInstance("Missing table cache space"); return nil end
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
   local iInd, tmNow = 1, Time(); tableEmpty(frUsed); frUsed.Size = 0
-  local cM, cT, = makTab:GetColumnName(1), makTab:GetColumnName(2)
-  local cN, cS, = makTab:GetColumnName(3), makTab:GetColumnName(4)
+  local coMo, coTy, = makTab:GetColumnName(1), makTab:GetColumnName(2)
+  local coNm, coSz, = makTab:GetColumnName(3), makTab:GetColumnName(4)
   for mod, rec in pairs(tCache) do
     if(IsHere(rec.Used) and IsHere(rec.Size) and rec.Size > 0) then
       local rmComp = (tmNow - rec.Used)
-      local stData = {[cM] = mod     , [cT] = rec.Type,
-                      [cN] = rec.Name, [cS] = rec.Size}
+      local stData = {[coMo] = mod     , [coTy] = rec.Type,
+                      [coNm] = rec.Name, [coSz] = rec.Size}
       if(frUsed.Size == 0) then frUsed.Size = 1
         tableInsert(frUsed, {Value = rmComp, Table = stData})
       else local bTop = true -- Registered records are more than one
@@ -3178,14 +3178,14 @@ function CacheQueryPiece(sModel)
       stData.Type = qData[1][makTab:GetColumnName(2)]
       stData.Name = qData[1][makTab:GetColumnName(3)]
       stData.Unit = qData[1][makTab:GetColumnName(8)]
-      local cI = makTab:GetColumnName(4)
-      local cP = makTab:GetColumnName(5)
-      local cO = makTab:GetColumnName(6)
-      local cA = makTab:GetColumnName(7)
+      local coLnID = makTab:GetColumnName(4)
+      local coP = makTab:GetColumnName(5)
+      local coO = makTab:GetColumnName(6)
+      local coA = makTab:GetColumnName(7)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; if(iCnt ~= qRec[cI]) then
+        local qRec = qData[iCnt]; if(iCnt ~= qRec[coLnID]) then
           asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
-        if(not IsHere(RegisterPOA(stData,iCnt, qRec[cP], qRec[cO], qRec[cA]))) then
+        if(not IsHere(RegisterPOA(stData,iCnt, qRec[coP], qRec[coO], qRec[coA]))) then
           LogInstance("Cannot process offset "..GetReport(iCnt, sModel)); return nil
         end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
@@ -3228,9 +3228,9 @@ function CacheQueryAdditions(sModel)
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found "..GetReport(Q)); return nil end
       stData.Slot, stData.Size = sModel, #qData
-      local cI = makTab:GetColumnName(4)
+      local coLnID = makTab:GetColumnName(4)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; if(iCnt ~= qRec[cI]) then
+        local qRec = qData[iCnt]; if(iCnt ~= qRec[coLnID]) then
           asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
         stData[iCnt] = {}; for col, val in pairs(qRec) do stData[iCnt][col] = val end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
@@ -3254,21 +3254,21 @@ function ExportPanelDB(stPanel, bExp, makTab, sFunc)
     local sBase = GetOpVar("DIRPATH_BAS")
     local sExpo = GetOpVar("DIRPATH_EXP")
     local sMoDB = GetOpVar("MODE_DATABASE")
-    local symSep, rT = GetOpVar("OPSYM_SEPARATOR")
+    local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
     if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
     local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
     local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
       LogInstance("Open fail "..GetReport(fName)); return stPanel end
     F:Write("# "..sFunc..":("..tostring(bExp)..") "..GetDateTime().." [ "..sMoDB.." ]\n")
-    local cM = makTab:GetColumnName(1)
-    local cT = makTab:GetColumnName(2)
-    local cN = makTab:GetColumnName(3)
+    local coMo = makTab:GetColumnName(1)
+    local coTy = makTab:GetColumnName(2)
+    local coNm = makTab:GetColumnName(3)
     for iCnt = 1, stPanel.Size do
       local vPanel = stPanel[iCnt]
-      local sM, sT, sN = vPanel[cM], vPanel[cT], vPanel[cN]
-      if(not rT or rT ~= sT) then -- Category has been changed
+      local sM, sT, sN = vPanel[coMo], vPanel[coTy], vPanel[coNm]
+      if(not cT or cT ~= sT) then -- Category has been changed
         F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
-        F:Write("\n"); rT = sT -- Cache category name
+        F:Write("\n"); cT = sT -- Cache category name
       end -- Otherwise just write down the piece active point
       F:Write("\""..sM.."\""..symSep)
       F:Write("\""..sT.."\""..symSep)
@@ -3318,14 +3318,14 @@ function CacheQueryPanel(bExp)
       local tCache = libCache[defTab.Name] -- Sort directly by the model
       local tSort  = Sort(tCache,{"Type","Slot"}); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end
-      local cM = makTab:GetColumnName(1)
-      local cT = makTab:GetColumnName(2)
-      local cN = makTab:GetColumnName(3)
+      local coMo = makTab:GetColumnName(1)
+      local coTy = makTab:GetColumnName(2)
+      local coNm = makTab:GetColumnName(3)
       for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
         local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
-        vPanel[cM] = vSort.Key
-        vPanel[cT] = vSort.Rec.Type
-        vPanel[cN] = vSort.Rec.Name
+        vPanel[coMo] = vSort.Key
+        vPanel[coTy] = vSort.Rec.Type
+        vPanel[coNm] = vSort.Rec.Name
       end; stPanel.Size = tSort.Size -- Store the amount sort rows
       return ExportPanelDB(stPanel, bExp, makTab, sFunc)
     else LogInstance("Unsupported mode "..GetReport(sMoDB)); return nil end
@@ -3373,12 +3373,12 @@ function CacheQueryProperty(sType)
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
           LogInstance("No data found "..GetReport(Q)); return nil end
-        local cI, cN = makTab:GetColumnName(2), makTab:GetColumnName(3)
+        local coLnID, coNm = makTab:GetColumnName(2), makTab:GetColumnName(3)
         stName.Slot, stName.Size = sType, #qData
         for iCnt = 1, stName.Size do
-          local qRec = qData[iCnt]; if(iCnt ~= qRec[cI]) then
+          local qRec = qData[iCnt]; if(iCnt ~= qRec[coLnID]) then
             asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sType)); return nil end
-          stName[iCnt] = qRec[cN] -- Properties are stored as arrays of strings
+          stName[iCnt] = qRec[coNm] -- Properties are stored as arrays of strings
         end
         LogInstance("Save >> "..GetReport(sType, keyName))
         stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
@@ -3408,8 +3408,8 @@ function CacheQueryProperty(sType)
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
           LogInstance("No data found "..GetReport(Q)); return nil end
-        local cName = makTab:GetColumnName(1); stType.Size = #qData
-        for iCnt = 1, stType.Size do stType[iCnt] = qData[iCnt][cName] end
+        local coNm = makTab:GetColumnName(1); stType.Size = #qData
+        for iCnt = 1, stType.Size do stType[iCnt] = qData[iCnt][coNm] end
         LogInstance("Save >> "..GetReport(keyType))
         stType = makTab:TimerAttach(sFunc, defTab.Name, keyType); return stType
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
@@ -3888,12 +3888,12 @@ function SetAdditionsAR(sModel, makTab, qList)
   elseif(sMoDB == "LUA") then
     local iCnt = 0; qData = {}
     local tCache = libCache[defTab.Name]
-    local pkModel = makTab:GetColumnName(1)
-    local sLineID = makTab:GetColumnName(4)
+    local coMo = makTab:GetColumnName(1)
+    local coLn = makTab:GetColumnName(4)
     for mod, rec in pairs(tCache) do
       if(mod == sModel) then
         for iD = 1, rec.Size do iCnt = (iCnt + 1)
-          qData[iCnt] = {[pkModel] = mod}
+          qData[iCnt] = {[coMo] = mod}
           for iC = 2, defTab.Size do
             local sN = defTab[iC][1]
             qData[iCnt][sN] = rec[iD][sN]
@@ -3901,7 +3901,7 @@ function SetAdditionsAR(sModel, makTab, qList)
         end
       end
     end
-    local tSort = Sort(qData, {pkModel, sLineID}); if(not tSort) then
+    local tSort = Sort(qData, {coMo, coLn}); if(not tSort) then
         LogInstance("Sort cache mismatch"); return end; tableEmpty(qData)
     for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
   else
@@ -3933,8 +3933,10 @@ function ExportPiecesAR(fF,qData,sName,sInd,qList)
     fF:Write("local "..sName.." = {\n")
     local pkID, sInd, fRow = 1, "  ", true
     local idxID = makTab:GetColumnID("LINEID")
-    for iD = 1, #qData do local qRow = qData[iD]
-      local mMod = qRow[makTab:GetColumnName(1)]
+    local coMo = makTab:GetColumnName(1)
+    for iD = 1, #qData do
+      local qRow = qData[iD]
+      local mMod = qRow[coMo]
       local aRow = makTab:GetArrayRow(qRow)
       for iA = 1, #aRow do local vA = aRow[iA]
         aRow[iA] = makTab:Match(vA,iA,true,"\"",true,true); if(not IsHere(aRow[iA])) then
@@ -4018,8 +4020,14 @@ function ExportTypeAR(sType)
   elseif(sMoDB == "LUA") then
     local iCnt = 0; qPieces = {}
     local tCache = libCache[defP.Name]
-    local pkModel = makP:GetColumnName(1)
-    local sLineID = makP:GetColumnName(4)
+    local coMo = makP:GetColumnName(1)
+    local coTy = makP:GetColumnName(2)
+    local coNm = makP:GetColumnName(3)
+    local coLn = makP:GetColumnName(4)
+    local coP  = makP:GetColumnName(5)
+    local coO  = makP:GetColumnName(6)
+    local coA  = makP:GetColumnName(7)
+    local coC  = makP:GetColumnName(8)
     local sClass = GetOpVar("ENTITY_DEFCLASS")
     for mod, rec in pairs(tCache) do
       if(rec.Type == sType) then
@@ -4034,18 +4042,16 @@ function ExportTypeAR(sType)
           local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
           local sC = (IsHere(rec.Unit) and tostring(rec.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-          qRow[makP:GetColumnName(1)] = rec.Slot
-          qRow[makP:GetColumnName(2)] = rec.Type
-          qRow[makP:GetColumnName(3)] = rec.Name
-          qRow[makP:GetColumnName(4)] = iID
-          qRow[makP:GetColumnName(5)] = sP
-          qRow[makP:GetColumnName(6)] = sO
-          qRow[makP:GetColumnName(7)] = sA
-          qRow[makP:GetColumnName(8)] = sC
+          qRow[coMo] = rec.Slot
+          qRow[coTy] = rec.Type
+          qRow[coNm] = rec.Name
+          qRow[coLn] = iID
+          qRow[coP ] = sP; qRow[coO ] = sO
+          qRow[coA ] = sA; qRow[coC ] = sC
         end
       end
     end
-    local tSort = Sort(qPieces, {pkModel, sLineID})
+    local tSort = Sort(qPieces, {coMo, coLn})
     if(not tSort) then
       LogInstance("Sort cache mismatch")
       fE:Flush(); fE:Close(); fS:Close(); return
@@ -4549,17 +4555,23 @@ function AttachAdditions(ePiece)
   local makTab = GetBuilderNick("ADDITIONS"); if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
   local sEoa = GetOpVar("OPSYM_ENTPOSANG"); LogInstance("PIECE:MODEL("..sMoc..")")
+  local coMB, coMA = makTab:GetColumnName(1), makTab:GetColumnName(2)
+  local coEN, coLI = makTab:GetColumnName(3), makTab:GetColumnName(4)
+  local coPO, coAN = makTab:GetColumnName(5), makTab:GetColumnName(6)
+  local coMO, coPI = makTab:GetColumnName(7), makTab:GetColumnName(8)
+  local coDR, coPM = makTab:GetColumnName(9), makTab:GetColumnName(10)
+  local coPS, coSE = makTab:GetColumnName(11), makTab:GetColumnName(12)
   for iCnt = 1, stData.Size do -- While additions are present keep adding them
     local arRec = stData[iCnt]; LogInstance("PIECE:ADDITION("..iCnt..")")
     local dCass, oPOA = GetOpVar("ENTITY_DEFCLASS"), NewPOA()
-    local sCass = GetEmpty(arRec[makTab:GetColumnName(3)], nil, dCass)
+    local sCass = GetEmpty(arRec[coEN], nil, dCass)
     local eBonus = entsCreate(sCass); LogInstance("ents.Create("..sCass..")")
     if(eBonus and eBonus:IsValid()) then
-      local sMoa = tostring(arRec[makTab:GetColumnName(2)])
+      local sMoa = tostring(arRec[coMA])
       if(not IsModel(sMoa, true)) then
         LogInstance("Invalid attachment "..GetReport(iCnt, sMoc, sMoa)); return false end
       eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
-      local sPos = arRec[makTab:GetColumnName(5)]; if(not isstring(sPos)) then
+      local sPos = arRec[coPO]; if(not isstring(sPos)) then
         LogInstance("Position mismatch "..GetReport(iCnt, sMoc, sPos)); return false end
       if(not GetEmpty(sPos)) then
         oPOA:Decode(sPos, eBonus, "Pos")
@@ -4567,7 +4579,7 @@ function AttachAdditions(ePiece)
         vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
-      local sAng = arRec[makTab:GetColumnName(6)]; if(not isstring(sAng)) then
+      local sAng = arRec[coAN]; if(not isstring(sAng)) then
         LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, sAng)); return false end
       if(not GetEmpty(sAng)) then
         oPOA:Decode(sAng, eBonus, "Ang")
@@ -4575,33 +4587,33 @@ function AttachAdditions(ePiece)
         aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
       else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
-      local nMo = (tonumber(arRec[makTab:GetColumnName(7)]) or -1)
+      local nMo = (tonumber(arRec[coMO]) or -1)
       if(nMo >= 0) then eBonus:SetMoveType(nMo)
         LogInstance("ENT:SetMoveType("..nMo..")") end
-      local nPh = (tonumber(arRec[makTab:GetColumnName(8)]) or -1)
+      local nPh = (tonumber(arRec[coPI]) or -1)
       if(nPh >= 0) then eBonus:PhysicsInit(nPh)
         LogInstance("ENT:PhysicsInit("..nPh..")") end
-      local nSh = (tonumber(arRec[makTab:GetColumnName(9)]) or 0)
+      local nSh = (tonumber(arRec[coDR]) or 0)
       if(nSh ~= 0) then nSh = (nSh > 0); eBonus:DrawShadow(nSh)
         LogInstance("ENT:DrawShadow("..tostring(nSh)..")") end
       eBonus:SetParent(ePiece); LogInstance("ENT:SetParent(PIECE)")
       eBonus:Spawn(); LogInstance("ENT:Spawn()")
       pPonus = eBonus:GetPhysicsObject()
       if(pPonus and pPonus:IsValid()) then
-        local bEm = (tonumber(arRec[makTab:GetColumnName(10)]) or 0)
+        local bEm = (tonumber(arRec[coPM]) or 0)
         if(bEm ~= 0) then bEm = (bEm > 0); pPonus:EnableMotion(bEm)
           LogInstance("ENT:EnableMotion("..tostring(bEm)..")") end
-        local nZe = (tonumber(arRec[makTab:GetColumnName(11)]) or 0)
+        local nZe = (tonumber(arRec[coPS]) or 0)
         if(nZe > 0) then pPonus:Sleep(); LogInstance("ENT:Sleep()") end
       end
       eBonus:Activate(); LogInstance("ENT:Activate()")
       ePiece:DeleteOnRemove(eBonus); LogInstance("PIECE:DeleteOnRemove(ENT)")
-      local nSo = (tonumber(arRec[makTab:GetColumnName(12)]) or -1)
+      local nSo = (tonumber(arRec[coSE]) or -1)
       if(nSo >= 0) then eBonus:SetSolid(nSo)
         LogInstance("ENT:SetSolid("..tostring(nSo)..")") end
     else
-      local mA = stData[iCnt][makTab:GetColumnName(2)]
-      local mC = stData[iCnt][makTab:GetColumnName(3)]
+      local mA = stData[iCnt][coMA]
+      local mC = stData[iCnt][coEN]
       LogInstance("Entity invalid "..GetReport(iCnt, sMoc, mA, mC)); return false
     end
   end; LogInstance("Success"); return true

@@ -2319,11 +2319,12 @@ function TOOL.BuildCPanel(CPanel)
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
   local iC, pTypes, pCateg, pNode = 1, 1, {}, {}
+  local coMo = makP:GetColumnName(1)
+  local coTy = makP:GetColumnName(2)
+  local coNm = makP:GetColumnName(3)
   for iC = 1, qPanel.Size do
     local vRec, bNow = qPanel[iC], true
-    local sMod = vRec[makTab:GetColumnName(1)]
-    local sTyp = vRec[makTab:GetColumnName(2)]
-    local sNam = vRec[makTab:GetColumnName(3)]
+    local sMod, sTyp, sNam = vRec[coMo], vRec[coTy], vRec[coNm]
     if(asmlib.IsModel(sMod)) then
       if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
