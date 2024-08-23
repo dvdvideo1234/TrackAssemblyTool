@@ -2521,17 +2521,6 @@ end
 
 -------------------------- BUILDSQL ------------------------------
 
-function CacheStmt(sHash,sStmt,...)
-  if(not IsHere(sHash)) then LogInstance("Missing hash"); return nil end
-  local sHash, tStore = tostring(sHash), GetOpVar("QUERY_STORE")
-  if(not IsHere(tStore)) then LogInstance("Missing storage"); return nil end
-  if(IsHere(sStmt)) then -- If the key is located return the query
-    tStore[sHash] = tostring(sStmt); LogTable(tStore,"STMT") end
-  local sBase = tStore[sHash]; if(not IsHere(sBase)) then
-    LogInstance("Missing statement "..GetReport(sHash, sStmt)); return nil end
-  return sBase:format(...)
-end
-
 function GetBuilderNick(sTable)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return nil end
@@ -2593,10 +2582,26 @@ function NewTable(sTable,defTab,bDelete,bReload)
     if(not qtCmd.STMT) then return self end
     qtCmd[qtCmd.STMT] = false; return self
   end
-  -- Alias for reading the last created SQL statement
-  function self:Get(vK)
+  -- Store built query in command list
+  function self:Store(vK, sQ)
     local qtCmd = self:GetCommand()
-    local iK = (vK or qtCmd.STMT); return qtCmd[iK]
+    if(not IsHere(vK)) then return self end
+    local mQ, tQ = qtCmd.STMT, GetOpVar("QUERY_STORE")
+    local sQ = (sQ or (mQ and qtCmd[mQ]) or nil)
+    LogInstance("Store "..GetReport(vK, sQ), tabDef.Nick)
+    tQ[vK] = sQ; return self
+  end
+  -- Alias for reading the last created SQL statement
+  function self:Get(vK, ...)
+    local qtCmd = self:GetCommand()
+    local iK = (vK or qtCmd.STMT)
+    if(vK) then
+      local tQ = GetOpVar("QUERY_STORE")
+      local sQ = tQ[vK] -- Store entry
+      if(not IsHere(sQ)) then return sQ end
+      if(not sQ) then return sQ end
+      return sQ:format(...)
+    end; return qtCmd[iK]
   end
   -- Returns ID of the found column valid > 0
   function self:GetColumnID(sN)
@@ -2823,46 +2828,48 @@ function NewTable(sTable,defTab,bDelete,bReload)
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "DROP"
     local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "")
-    local sStmt = CacheStmt(qsKey, nil, qtDef.Name)
-    if(not sStmt) then sStmt = CacheStmt(qsKey, qtCmd.STMT.." TABLE %s;", qtDef.Name) end
-    qtCmd[qtCmd.STMT] = sStmt; return self
+    local sStmt = self:Get(qsKey, qtDef.Name)
+    if(not IsHere(sStmt)) then
+      sStmt = qtCmd.STMT.." TABLE %s;"
+      sStmt = self:Store(qsKey, sStmt):Get(qsKey, qtDef.Name)
+    end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Build SQL delete statement
   function self:Delete()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "DELETE"
     local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "")
-    local sStmt = CacheStmt(qsKey, nil, qtDef.Name)
-    if(not sStmt) then sStmt = CacheStmt(qsKey, qtCmd.STMT.." FROM %s;", qtDef.Name) end
-    qtCmd[qtCmd.STMT] = sStmt; return self
+    local sStmt = self:Get(qsKey, qtDef.Name)
+    if(not sStmt) then
+      sStmt = qtCmd.STMT.." FROM %s;"
+      sStmt = self:Store(qsKey, sStmt):Get(qsKey, qtDef.Name)
+    end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- https://wiki.garrysmod.com/page/sql/Begin
   -- Build SQL begin statement
   function self:Begin()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "BEGIN"
     local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "")
-    local sStmt = CacheStmt(qsKey)
-    if(not sStmt) then sStmt = CacheStmt(qsKey, qtCmd.STMT..";") end
-    qtCmd[qtCmd.STMT] = sStmt; return self
+    local sStmt = self:Get(qsKey)
+    if(not sStmt) then
+      sStmt = qtCmd.STMT..";"
+      sStmt = self:Store(qsKey, sStmt):Get(qsKey)
+    end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- https://wiki.garrysmod.com/page/sql/Commit
   -- Build SQL commit statement
   function self:Commit()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "COMMIT"
     local qsKey = GetOpVar("FORM_KEYSTMT"):format(qtCmd.STMT, "")
-    local sStmt = CacheStmt(qsKey)
-    if(not sStmt) then sStmt = CacheStmt(qsKey, qtCmd.STMT..";") end
-    qtCmd[qtCmd.STMT] = sStmt; return self
+    local sStmt = self:Get(qsKey)
+    if(not sStmt) then
+      sStmt = qtCmd.STMT..";"
+      sStmt = self:Store(qsKey, sStmt):Get(qsKey)
+    end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Build create/drop/delete statement table of statements
   -- Build SQL create table statement
-  function self:Create(...)
-    local nA, tA = select("#", ...);
-    local qtDef = self:GetDefinition()
-    if(nA > 0) then tA = {...} else
-      tA = qtDef.Create; nI = #tA
-      LogInstance("Definition index", tabDef.Nick)
-    end
+  function self:Create()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "CREATE"
     local sStmt = qtCmd.STMT.." TABLE "..qtDef.Name.." ( "
@@ -2873,35 +2880,36 @@ function NewTable(sTable,defTab,bDelete,bReload)
         LogInstance("Column name mismatch "..GetReport(nA,iCnt),tabDef.Nick); return self:Deny() end
       local sT = tostring(tC[2] or ""); if(IsBlank(sT)) then
         LogInstance("Column type mismatch "..GetReport(nA,iCnt),tabDef.Nick); return self:Deny() end
-      sStmt = sStmt..sC:upper():Trim().." "..sC:upper():Trim()..", "
-    end; qtCmd[qtCmd.STMT] = sStmt:sub(1, -3).." );"; return self
+      sStmt = sStmt..sC.." "..sT..(iCnt ~= qtDef.Size and ", " or " );")
+    end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Build SQL table indexes statement
   function self:Index(...)
-    local nA, tA = select("#", ...);
+    local nA, tA = select("#", ...)
     local qtDef = self:GetDefinition()
     if(nA > 0) then tA = {...} else
       tA = qtDef.Index; nA = #tA
-      LogInstance("Definition index", tabDef.Nick)
+      LogInstance("Definition source", tabDef.Nick)
     end
     local qtCmd = self:GetCommand(); qtCmd.STMT = "INDEX"
     local tStmt = qtCmd[qtCmd.STMT]
     if(not tStmt) then tStmt = {}; qtCmd[qtCmd.STMT] = tStmt end
-    local tV = {}; tableEmpty(tStmt); tStmt.Size = nA
-    for iCnt = 1, nA do local vA = tA[iCnt]; tableEmpty(tV)
+    tableEmpty(tStmt); tStmt.Size = nA
+    for iCnt = 1, nA do local vA = tA[iCnt]
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
-      for iInd = 1, #vA do
-        local iA = mathFloor(tonumber(vA[iInd]) or 0); if(iA == 0) then
+      tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or " ")..qtCmd.STMT..(vA.Ne and " IF NOT EXISTS " or " ")
+                             .."IND_"..qtDef.Name.. "_"..tostring(iCnt).." ON "..qtDef.Name.." ( "
+      local sV, nV = "", #vA
+      for iInd = 1, nV do
+        local iV = mathFloor(tonumber(vA[iInd]) or 0); if(iV == 0) then
           LogInstance("Index mismatch "..GetReport(nA,iCnt,iInd),tabDef.Nick); return self:Deny() end
-        local tC = qtDef[iA]; if(not tC) then
-          LogInstance("Column missing "..GetReport(nA,iCnt,iInd,iA), tabDef.Nick); return self:Deny() end
+        local tC = qtDef[iV]; if(not tC) then
+          LogInstance("Column missing "..GetReport(nA,iCnt,iInd,iV), tabDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-          LogInstance("Column mismatch "..GetReport(nA,iCnt,iInd,iA),tabDef.Nick); return self:Deny() end
-        tV[iInd] = sC
-      end
-      tStmt[iCnt] = "CREATE INDEX IND_"..qtDef.Nick.. "_" ..tableConcat(tV, "_" )
-                               .." ON "..qtDef.Name.." ( "..tableConcat(tV, ", ").." );"
+          LogInstance("Column mismatch "..GetReport(nA,iCnt,iInd,iV),tabDef.Nick); return self:Deny() end
+        sV = sV..sC..(iInd ~= nV and ", " or " );")
+      end; tStmt[iCnt] = tStmt[iCnt]..sV
     end return self
   end
   -- Builds an SQL select statement
@@ -2917,8 +2925,8 @@ function NewTable(sTable,defTab,bDelete,bReload)
           LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
-        sStmt = sStmt..sC..", "
-      end; sStmt = sStmt:sub(1, -3)
+        sStmt = sStmt..sC..(iCnt ~= nA and ", " or "")
+      end
     else sStmt = sStmt.."*" end
     qtCmd[qtCmd.STMT] = sStmt .." FROM "..qtDef.Name..";"; return self
   end
@@ -2960,19 +2968,18 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
-    local sDir, tA = "", {...}
-    local qtDef = self:GetDefinition()
+    local qtDef, sDir, tA = self:GetDefinition(), "", {...}
     sStmt = sStmt:Trim("%s"):Trim(";").." ORDER BY "
     for iCnt = 1, nA do
       local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
         LogInstance("Column undefined "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
       sDir = ((vA > 0) and " ASC" or " DESC"); vA = mathAbs(vA)
       local tC = qtDef[vA]; if(not tC) then
-         LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
+        LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
         LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
-      sStmt = (sStmt..sC..sDir..", ")
-    end; qtCmd[qtCmd.STMT] = sStmt:sub(1, -3)..";"; return self
+      sStmt = sStmt..sC..sDir..(iCnt ~= nA and ", " or ";")
+    end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Build SQL insert statement
   function self:Insert(...)
@@ -2984,16 +2991,16 @@ function NewTable(sTable,defTab,bDelete,bReload)
         local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
           LogInstance("Column undefined "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
         local tC = qtDef[vA]; if(not tC) then
-           LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
+          LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
-        sStmt = sStmt..sC..", "
+        sStmt = sStmt..sC..(iCnt ~= nA and ", " or " )")
       end
-    else -- When called with no arguments is the same as picking all columns
-      for iCnt = 1, qtDef.Size do
-        sStmt = sStmt..qtDef[iCnt][1]..", "
+    else nA = qtDef.Size -- When called with no arguments is the same as picking all columns
+      for iCnt = 1, nA do
+        sStmt = sStmt..qtDef[iCnt][1]..(iCnt ~= nA and ", " or " )")
       end
-    end; qtCmd[qtCmd.STMT] = sStmt:sub(1, -3).." ) "; return self
+    end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Add values clause to the current statement
   function self:Values(...)
@@ -3005,8 +3012,8 @@ function NewTable(sTable,defTab,bDelete,bReload)
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
     sStmt = sStmt:Trim("%s"):Trim(";").." VALUES ( "
-    for iCnt = 1, nA do sStmt = sStmt..tostring(nA[iCnt])..", " end
-    qtCmd[qtCmd.STMT] = sStmt:sub(1, -3).." );"; return self
+    for iCnt = 1, nA do sStmt = sStmt..tostring(nA[iCnt])..(iCnt ~= nA and ", " or " );") end
+    qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
@@ -3027,19 +3034,15 @@ function NewTable(sTable,defTab,bDelete,bReload)
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
       for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
       local qIndx = qsKey:format(sFunc, qtDef.Nick)
-      local Q = CacheStmt(qIndx, nil, unpack(arLine))
-      if(not Q) then local sStmt = self:Insert():Values(unpack(qtDef.Query[sFunc])):Get()
-        if(not IsHere(sStmt)) then LogInstance("Build statement failed "..GetReport(qIndx,arLine[1]),tabDef.Nick); return nil end
-        Q = CacheStmt(qIndx, sStmt, unpack(arLine))
-      end -- The query is built based on table definition
-      if(not IsHere(Q)) then
-        LogInstance("Internal cache error",tabDef.Nick); return false end
+      local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then
+        Q = self:Insert():Values(unpack(qtDef.Query[sFunc])):Store(qIndx):Get(qIndx, unpack(arLine)) end
+      if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,arLine[1]),tabDef.Nick); return false end
       local qRez = sqlQuery(Q); if(not qRez and isbool(qRez)) then
          LogInstance("Execution error "..GetReport(sqlLastError(), Q),tabDef.Nick); return false end
       return true -- The dynamic statement insertion was successful
     elseif(sMoDB == "LUA") then local snPK = self:Match(arLine[1],1)
       if(not IsHere(snPK)) then -- If primary key becomes a number
-        LogInstance("Primary key mismatch "..GetReport(arLine[1], qtDef[1][1], snPK), tabDef.Nick); return nil end
+        LogInstance("Primary key mismatch "..GetReport(arLine[1], qtDef[1][1], snPK), tabDef.Nick); return false end
       local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
         LogInstance("Cache missing",tabDef.Nick); return false end
       if(not istable(qtDef.Cache)) then
@@ -3086,7 +3089,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
         return self:Remove(false) -- Remove table when SQL error is present
       end -- Check when SQL query has passed and the table is not yet created
       if(sqlTableExists(defTab.Name)) then
-        for iQ = 1, #tQ.INDEX do
+        for iQ = 1, tQ.INDEX.Size do
           local qInx = tQ.INDEX[iQ]
           local qRez = sqlQuery(qInx)
           if(not qRez and isbool(qRez)) then -- Check when the index query has passed
@@ -3102,9 +3105,9 @@ function NewTable(sTable,defTab,bDelete,bReload)
     end
     -- When the table is present delete all records
     if(bDelete) then
-      if(sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.Delete)
+      if(sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.DELETE)
         if(not qRez and isbool(qRez)) then -- Remove table when SQL error is present
-          LogInstance("Table delete fail "..GetReport(sqlLastError(), tQ.Delete), tabDef.Nick)
+          LogInstance("Table delete fail "..GetReport(sqlLastError(), tQ.DELETE), tabDef.Nick)
           return self:Remove(false) -- Remove table when SQL error is present
         else LogInstance("Table delete success",tabDef.Nick) end
       else LogInstance("Table delete skipped",tabDef.Nick) end
@@ -3163,13 +3166,10 @@ function CacheQueryPiece(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = CacheStmt(qIndx, nil, qModel)
-      if(not Q) then
-        local sStmt = makTab:Select():Where({1,"%s"}):Order(4):Get()
-        if(not IsHere(sStmt)) then
-          LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
-        Q = CacheStmt(qIndx, sStmt, qModel)
-      end
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
+        Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
+      if(not Q) then -- Query creation has failed so no need to build again
+        LogInstance("Build statement failed "..GetReport(qIndx, qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3214,13 +3214,10 @@ function CacheQueryAdditions(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = CacheStmt(qIndx, nil, qModel)
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
+        Q = makTab:Select(2,3,4,5,6,7,8,9,10,11,12):Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
       if(not Q) then
-        local sStmt = makTab:Select(2,3,4,5,6,7,8,9,10,11,12):Where({1,"%s"}):Order(4):Get()
-        if(not IsHere(sStmt)) then
-          LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
-        Q = CacheStmt(qIndx, sStmt, qModel)
-      end
+        LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3297,13 +3294,10 @@ function CacheQueryPanel(bExp)
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
       local qIndx = qsKey:format(sFunc,"")
-      local Q = CacheStmt(qIndx, nil, 1)
+      local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
+        Q = makTab:Select(1,2,3):Where({4,"%d"}):Order(2,1):Store(qIndx):Get(qIndx, 1) end
       if(not Q) then
-        local sStmt = makTab:Select(1,2,3):Where({4,"%d"}):Order(2,1):Get()
-        if(not IsHere(sStmt)) then
-          LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
-        Q = CacheStmt(qIndx, sStmt, 1)
-      end
+        LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError())); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3360,13 +3354,10 @@ function CacheQueryProperty(sType)
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
         local qType = makTab:Match(sType,1,true)
         local qIndx = qsKey:format(sFunc,keyName)
-        local Q = CacheStmt(qIndx, nil, qType)
+        local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then
+          Q = makTab:Select(3):Where({1,"%s"}):Order(2):Store(qIndx):Get(qIndx, qType) end
         if(not Q) then
-          local sStmt = makTab:Select(3):Where({1,"%s"}):Order(2):Get()
-          if(not IsHere(sStmt)) then
-            LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
-          Q = CacheStmt(qIndx, sStmt, qType)
-        end
+          LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
         local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3395,13 +3386,10 @@ function CacheQueryProperty(sType)
       if(sMoDB == "SQL") then
         tCache[keyType] = {}; stType = tCache[keyType]; stType.Size = 0
         local qIndx = qsKey:format(sFunc,keyType)
-        local Q = CacheStmt(qIndx, nil, 1)
+        local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
+          Q = makTab:Select(1):Where({2,"%d"}):Order(1):Store(qIndx):Get(qIndx, 1) end
         if(not Q) then
-          local sStmt = makTab:Select(1):Where({2,"%d"}):Order(1):Get()
-          if(not IsHere(sStmt)) then
-            LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
-          Q = CacheStmt(qIndx, sStmt, 1)
-        end
+          LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
         local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3869,15 +3857,11 @@ function SetAdditionsAR(sModel, makTab, qList)
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qModel = makTab:Match(tostring(sModel or ""), 1, true)
     local qIndx = qsKey:format(sFunc, "ADDITIONS")
-    local Q = CacheStmt(qIndx, nil, qModel)
-    if(not Q) then
-      local sStmt = makTab:Select():Where({1,"%s"}):Order(4):Get()
-      if(not IsHere(sStmt)) then
-        LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return
-      end; Q = CacheStmt(qIndx, sStmt, qModel)
-    end -- Check whenever we have some data present. Quit when not found
-    qData = sqlQuery(Q)
-    if(not qData and isbool(qData)) then
+    local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
+      Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
+    if(not IsHere(sStmt)) then
+      LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return
+    qData = sqlQuery(Q); if(not qData and isbool(qData)) then
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return end
     if(not IsHere(qData) or IsEmpty(qData)) then
       LogInstance("No data found "..GetReport(Q))
@@ -3986,7 +3970,7 @@ function ExportTypeAR(sType)
     LogInstance("Generate fail "..GetReport(sN)); return end
   local fS = fileOpen(sS, "rb", "DATA"); if(not fS) then fE:Flush(); fE:Close()
     LogInstance("Source fail "..GetReport(sS)) return end
-  local makP  = GetBuilderNick("PIECES"); if(not makP) then
+  local makP = GetBuilderNick("PIECES"); if(not makP) then
     LogInstance("Missing table builder"); return end
   local defP = makP:GetDefinition(); if(not defP) then
     LogInstance("Missing table definition"); return end
@@ -3998,16 +3982,13 @@ function ExportTypeAR(sType)
     end
     local qType = makP:Match(sType, 2, true)
     local qIndx = qsKey:format(sFunc, "PIECES")
-    local Q = CacheStmt(qIndx, nil, qType)
+    local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then
+      Q = makP:Select():Where({2,"%s"}):Order(1,4):Store(qIndx):Get(qIndx, qType) end
     if(not Q) then
-      local sStmt = makP:Select():Where({2,"%s"}):Order(1,4):Get()
-      if(not IsHere(sStmt)) then
-        LogInstance("Build statement failed "..GetReport(qIndx,qType))
-        fE:Flush(); fE:Close(); fS:Close(); return
-      end; Q = CacheStmt(qIndx, sStmt, qType)
-    end -- Check whenever we have some data present. Quit when not found
-    qPieces = sqlQuery(Q);
-    if(not qPieces and isbool(qPieces)) then
+      LogInstance("Build statement failed "..GetReport(qIndx,qType))
+      fE:Flush(); fE:Close(); fS:Close(); return
+    end
+    qPieces = sqlQuery(Q); if(not qPieces and isbool(qPieces)) then
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q))
       fE:Flush(); fE:Close(); fS:Close(); return
     end
