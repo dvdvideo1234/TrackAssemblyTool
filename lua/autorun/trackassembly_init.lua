@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.775")
+asmlib.SetOpVar("TOOL_VERSION","8.776")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1647,7 +1647,7 @@ propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 ------------ INITIALIZE DB------------
 
-asmlib.CreateTable("PIECES",{
+asmlib.NewTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1},{4},{1,4}},
   Trigs = {
@@ -1730,7 +1730,7 @@ asmlib.CreateTable("PIECES",{
   [8] = {"CLASS" , "TEXT"   ,  nil ,  nil }
 },true,true)
 
-asmlib.CreateTable("ADDITIONS",{
+asmlib.NewTable("ADDITIONS",{
   Timer = gaTimerSet[2],
   Index = {{1},{4},{1,4}},
   Query = {
@@ -1783,7 +1783,7 @@ asmlib.CreateTable("ADDITIONS",{
   [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
 },true,true)
 
-asmlib.CreateTable("PHYSPROPERTIES",{
+asmlib.NewTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
   Index = {{1},{2},{1,2}},
   Trigs = {

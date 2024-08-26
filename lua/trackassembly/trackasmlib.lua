@@ -1782,8 +1782,8 @@ function GetFrequentModels(iCnt)
     LogInstance("Missing table cache space"); return nil end
   local frUsed = GetOpVar("TABLE_FREQUENT_MODELS")
   local iInd, tmNow = 1, Time(); tableEmpty(frUsed); frUsed.Size = 0
-  local coMo, coTy, = makTab:GetColumnName(1), makTab:GetColumnName(2)
-  local coNm, coSz, = makTab:GetColumnName(3), makTab:GetColumnName(4)
+  local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
+  local coNm, coSz = makTab:GetColumnName(3), makTab:GetColumnName(4)
   for mod, rec in pairs(tCache) do
     if(IsHere(rec.Used) and IsHere(rec.Size) and rec.Size > 0) then
       local rmComp = (tmNow - rec.Used)
@@ -2593,15 +2593,17 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- Alias for reading the last created SQL statement
   function self:Get(vK, ...)
-    local qtCmd = self:GetCommand()
-    local iK = (vK or qtCmd.STMT)
     if(vK) then
       local tQ = GetOpVar("QUERY_STORE")
       local sQ = tQ[vK] -- Store entry
       if(not IsHere(sQ)) then return sQ end
       if(not sQ) then return sQ end
       return sQ:format(...)
-    end; return qtCmd[iK]
+    else
+      local qtCmd = self:GetCommand()
+      local iK = (vK or qtCmd.STMT)
+      return qtCmd[iK]
+    end
   end
   -- Returns ID of the found column valid > 0
   function self:GetColumnID(sN)
@@ -2936,7 +2938,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Arguments missing", tabDef.Nick); return self end
     local qtCmd = self:GetCommand(); if(not qtCmd.STMT) then
       LogInstance("Current missing "..GetReport(nA,...), tabDef.Nick); return self end
-    local sStmt = qtCmd[qtCmd.STMT]; if(not InHere(sStmt)) then
+    local sStmt = qtCmd[qtCmd.STMT]; if(not IsHere(sStmt)) then
       LogInstance("Statement missing "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self end
     if(not sStmt and isbool(sStmt)) then
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
@@ -3004,15 +3006,16 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- Add values clause to the current statement
   function self:Values(...)
-    local qtCmd, nA = self:GetCommand(), select("#", ...)
+    local qtCmd = self:GetCommand()
     local qtDef = self:GetDefinition()
-    local sStmt = qtCmd[qtCmd.STMT];
+    local sStmt = qtCmd[qtCmd.STMT]
+    local tA, nA = {...}, select("#", ...)
     if(not sStmt and isbool(sStmt)) then
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
     sStmt = sStmt:Trim("%s"):Trim(";").." VALUES ( "
-    for iCnt = 1, nA do sStmt = sStmt..tostring(nA[iCnt])..(iCnt ~= nA and ", " or " );") end
+    for iCnt = 1, nA do sStmt = sStmt..tostring(tA[iCnt])..(iCnt ~= nA and ", " or " );") end
     qtCmd[qtCmd.STMT] = sStmt; return self
   end
   -- Uses the given array to create a record in the table
@@ -3860,7 +3863,7 @@ function SetAdditionsAR(sModel, makTab, qList)
     local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
       Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
     if(not IsHere(sStmt)) then
-      LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return
+      LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return end
     qData = sqlQuery(Q); if(not qData and isbool(qData)) then
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return end
     if(not IsHere(qData) or IsEmpty(qData)) then
