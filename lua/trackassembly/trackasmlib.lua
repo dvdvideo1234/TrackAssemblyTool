@@ -3217,7 +3217,7 @@ function CacheQueryAdditions(sModel)
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
       local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
-        Q = makTab:Select(2,3,4,5,6,7,8,9,10,11,12):Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
+        Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
       if(not Q) then
         LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -3225,9 +3225,9 @@ function CacheQueryAdditions(sModel)
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found "..GetReport(Q)); return nil end
       stData.Slot, stData.Size = sModel, #qData
-      local coID = makTab:GetColumnName(4)
+      local coMo, coID = makTab:GetColumnName(1), makTab:GetColumnName(4)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
+        local qRec = qData[iCnt]; qRec[coMo] = nil; if(iCnt ~= qRec[coID]) then
           asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
         stData[iCnt] = {}; for col, val in pairs(qRec) do stData[iCnt][col] = val end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
