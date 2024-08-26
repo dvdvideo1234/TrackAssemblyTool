@@ -2588,7 +2588,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
     if(not IsHere(vK)) then return self end
     local mQ, tQ = qtCmd.STMT, GetOpVar("QUERY_STORE")
     local sQ = (sQ or (mQ and qtCmd[mQ]) or nil)
-    LogInstance("Store "..GetReport(vK, sQ), tabDef.Nick)
+    LogInstance("Entry "..GetReport(vK, sQ), tabDef.Nick)
     tQ[vK] = sQ; return self
   end
   -- Alias for reading the last created SQL statement
@@ -2793,13 +2793,13 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Column ID mismatch "..GetReport(ivID),tabDef.Nick); return nil end
     local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
       LogInstance("Invalid column "..GetReport(nvID),tabDef.Nick); return nil end
-    local sMoDB, snOut = GetOpVar("MODE_DATABASE")
-    local tyCol, opCol = tostring(defCol[2]), defCol[3]
+    local tyCol, opCol, snOut = tostring(defCol[2]), defCol[3]
+    local sMoDB = GetOpVar("MODE_DATABASE"); if(sMoDB ~= "SQL" and sMoDB == "LUA") then
+      LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol,opCol),tabDef.Nick); return nil end
     if(tyCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsBlank(snOut)) then
         if    (sMoDB == "SQL") then snOut = sNull
-        elseif(sMoDB == "LUA") then snOut = sNull
-        else LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol),tabDef.Nick); return nil end
+        elseif(sMoDB == "LUA") then snOut = sNull end
       end
       if    (opCol == "LOW") then snOut = snOut:lower()
       elseif(opCol == "CAP") then snOut = snOut:upper() end
@@ -2810,8 +2810,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
           sqChar = tostring(sQuote or ""):sub(1,1)
         else
           if    (sMoDB == "SQL") then sqChar = "'"
-          elseif(sMoDB == "LUA") then sqChar = "\""
-          else LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol),tabDef.Nick); return nil end
+          elseif(sMoDB == "LUA") then sqChar = "\"" end
         end; snOut = sqChar..snOut..sqChar
       end
     elseif(tyCol == "REAL" or tyCol == "INTEGER") then
@@ -2900,7 +2899,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
     for iCnt = 1, nA do local vA = tA[iCnt]
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
-      tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or " ")..qtCmd.STMT..(vA.Ne and " IF NOT EXISTS " or " ")
+      tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or "")..qtCmd.STMT..(vA.Ne and " IF NOT EXISTS " or " ")
                              .."IND_"..qtDef.Name.. "_"..tostring(iCnt).." ON "..qtDef.Name.." ( "
       local sV, nV = "", #vA
       for iInd = 1, nV do
@@ -2949,7 +2948,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
     for iCnt = 1, nA do
       local vA, sW = tA[iCnt], ((iCnt == 1) and " WHERE " or " AND "); if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt), tabDef.Nick); return self:Deny() end
-      local wC, wV = vA[1], vA[2]; if(wC and wV) then
+      local wC, wV = vA[1], vA[2]; if(not (wC and wV)) then
         LogInstance("Parameters missing "..GetReport(nA,iCnt,wC,wV), tabDef.Nick); return self:Deny() end
       local tC = qtDef[wC]; if(not tC) then
          LogInstance("Column missing "..GetReport(nA,iCnt,wC,wV), tabDef.Nick); return self:Deny() end
