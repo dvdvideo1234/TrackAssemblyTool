@@ -2584,10 +2584,10 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- Store built query in command list
   function self:Store(vK, sQ)
-    local qtCmd = self:GetCommand()
     if(not IsHere(vK)) then return self end
+    local qtCmd = self:GetCommand() -- Current query
     local mQ, tQ = qtCmd.STMT, GetOpVar("QUERY_STORE")
-    local sQ = (sQ or (mQ and qtCmd[mQ]) or nil)
+    local sQ = (sQ or (mQ and qtCmd[mQ] or nil))
     LogInstance("Entry "..GetReport(vK, sQ), tabDef.Nick)
     tQ[vK] = sQ; return self
   end
