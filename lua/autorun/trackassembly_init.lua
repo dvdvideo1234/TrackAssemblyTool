@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.780")
+asmlib.SetOpVar("TOOL_VERSION","8.781")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1649,7 +1649,7 @@ propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 asmlib.NewTable("PIECES",{
   Timer = gaTimerSet[1],
-  Index = {{1},{4},{1,4}},
+  Index = {{1},{4},{1,4,Un=true}},
   Trigs = {
     Record = function(arLine, vSrc)
       local noMD  = asmlib.GetOpVar("MISS_NOMD")
@@ -1732,7 +1732,7 @@ asmlib.NewTable("PIECES",{
 
 asmlib.NewTable("ADDITIONS",{
   Timer = gaTimerSet[2],
-  Index = {{1},{4},{1,4}},
+  Index = {{1},{4},{1,4,Un=true}},
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
     ExportDSV = {1,4}
@@ -1785,7 +1785,7 @@ asmlib.NewTable("ADDITIONS",{
 
 asmlib.NewTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
-  Index = {{1},{2},{1,2}},
+  Index = {{1},{2},{1,2,Un=true}},
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
