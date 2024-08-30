@@ -2643,13 +2643,20 @@ function NewTable(sTable,defTab,bDelete,bReload)
   -- Generates a timer settings table and keeps the defaults
   function self:TimerSetup(vTim)
     local qtCmd, qtDef = self:GetCommand(), self:GetDefinition()
-    local sTm = tostring((vTim and vTim or qtDef.Timer) or "")
-    local tTm = GetOpVar("OPSYM_REVISION"):Explode(sTm)
-    tTm[1] =   tostring(tTm[1]  or "CQT")   -- Timer mode
-    tTm[2] =  (tonumber(tTm[2]) or 0)       -- Record life
-    tTm[3] = ((tonumber(tTm[3]) or 0) ~= 0) -- Kill command
-    tTm[4] = ((tonumber(tTm[4]) or 0) ~= 0) -- Collect garbage call
-    qtCmd.Timer = tTm; return self
+    local vTm, tTm = (vTim and vTim or qtDef.Timer), qtCmd.Timer
+    if(not tTm) then qtCmd.Timer = {}; tTm = qtCmd.Timer end
+    if(isstring(vTm)) then -- String or table passed
+      local cTm = GetOpVar("OPSYM_REVISION"):Explode(vTm)
+      tTm[1] =   tostring(cTm[1]  or "CQT")   -- Timer mode
+      tTm[2] =  (tonumber(cTm[2]) or 0)       -- Record life
+      tTm[3] = ((tonumber(cTm[3]) or 0) ~= 0) -- Kill command
+      tTm[4] = ((tonumber(cTm[4]) or 0) ~= 0) -- Collect garbage call
+    elseif(istable(vTm)) then -- Transfer table data from definition
+      tTm[1] =   tostring(vTm[1] or vTm["Mo"]  or "CQT")   -- Timer mode
+      tTm[2] =  (tonumber(vTm[2] or vTm["Li"]) or 0)       -- Record life
+      tTm[3] = ((tonumber(vTm[3] or vTm["Rm"]) or 0) ~= 0) -- Kill command
+      tTm[4] = ((tonumber(vTm[4] or vTm["Co"]) or 0) ~= 0) -- Collect garbage call
+    end; return self
   end
   -- Navigates the reference in the cache
   function self:GetNavigate(...)
@@ -2896,13 +2903,13 @@ function NewTable(sTable,defTab,bDelete,bReload)
     local qtCmd = self:GetCommand(); qtCmd.STMT = "INDEX"
     local tStmt = qtCmd[qtCmd.STMT]
     if(not tStmt) then tStmt = {}; qtCmd[qtCmd.STMT] = tStmt end
-    tableEmpty(tStmt); tStmt.Size = nA
+    local sDiv = GetOpVar("OPSYM_DIVIDER"); tableEmpty(tStmt); tStmt.Size = nA
     for iCnt = 1, nA do local vA = tA[iCnt]
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
       local sV, nV, bNe = "", #vA, (vA.Ne or not IsHere(vA.Ne))
       tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or "")..qtCmd.STMT..(bNe and " IF NOT EXISTS " or " ")
-                             .."IND_"..qtDef.Name.. "_"..tableConcat(vA).." ON "..qtDef.Name.." ( "
+                             .."IND_"..qtDef.Name..sDiv..tableConcat(vA,sDiv).." ON "..qtDef.Name.." ( "
       for iInd = 1, nV do
         local iV = mathFloor(tonumber(vA[iInd]) or 0); if(iV == 0) then
           LogInstance("Index mismatch "..GetReport(nA,iCnt,iInd),tabDef.Nick); return self:Deny() end
