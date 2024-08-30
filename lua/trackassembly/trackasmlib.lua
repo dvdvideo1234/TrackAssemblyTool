@@ -2781,10 +2781,12 @@ function NewTable(sTable,defTab,bDelete,bReload)
     if(not IsHere(sD)) then return "" end
     local sD = tostring(sD or "\t"):sub(1,1); if(IsBlank(sD)) then
       LogInstance("Missing delimiter",tabDef.Nick); return "" end
-    local qtDef, sRes, iCnt = self:GetDefinition(), sD, 1
+    local qtDef, sRes = self:GetDefinition(), sD
     for iCnt = 1, qtDef.Size do
-      sRes = (sRes..tostring(qtDef[iCnt][1] or "")..sD)
-    end; return sRes:sub(2, -2)
+      local sCon = ((iCnt ~= qtDef.Size) and sD or "")
+      local sVac = tostring(qtDef[iCnt][1] or "")
+      sRes = (sRes..sVac..sCon)
+    end; return sRes
   end
   -- Internal type matching
   function self:Match(snValue,ivID,bQuoted,sQuote,bNoRev,bNoNull)
@@ -2794,7 +2796,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
     local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
       LogInstance("Invalid column "..GetReport(nvID),tabDef.Nick); return nil end
     local tyCol, opCol, snOut = tostring(defCol[2]), defCol[3]
-    local sMoDB = GetOpVar("MODE_DATABASE"); if(sMoDB ~= "SQL" and sMoDB == "LUA") then
+    local sMoDB = GetOpVar("MODE_DATABASE"); if(sMoDB ~= "SQL" and sMoDB ~= "LUA") then
       LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol,opCol),tabDef.Nick); return nil end
     if(tyCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsBlank(snOut)) then
@@ -2814,13 +2816,12 @@ function NewTable(sTable,defTab,bDelete,bReload)
         end; snOut = sqChar..snOut..sqChar
       end
     elseif(tyCol == "REAL" or tyCol == "INTEGER") then
-      snOut = tonumber(snValue)
-      if(IsHere(snOut)) then
-        if(tyCol == "INTEGER") then
-          if    (opCol == "FLR") then snOut = mathFloor(snOut)
-          elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
-        end
-      else LogInstance("Failed converting number"..GetReport(snValue, nvID),tabDef.Nick); return nil end
+      snOut = tonumber(snValue); if(not IsHere(snOut)) then
+        LogInstance("Failed converting number"..GetReport(snValue, nvID),tabDef.Nick); return nil end
+      if(tyCol == "INTEGER") then
+        if    (opCol == "FLR") then snOut = mathFloor(snOut)
+        elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
+      end
     else LogInstance("Invalid column type "..GetReport(tyCol),tabDef.Nick); return nil
     end; return snOut
   end
@@ -2873,7 +2874,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
   function self:Create()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "CREATE"
-    local sStmt = qtCmd.STMT.." TABLE "..qtDef.Name.." ( "
+    local sStmt = qtCmd.STMT.." TABLE IF NOT EXISTS "..qtDef.Name.." ( "
     for iCnt = 1, qtDef.Size do
       local tC = qtDef[iCnt]; if(not tC) then
         LogInstance("Column missing "..GetReport(nA,iCnt), tabDef.Nick); return self:Deny() end
@@ -2899,9 +2900,9 @@ function NewTable(sTable,defTab,bDelete,bReload)
     for iCnt = 1, nA do local vA = tA[iCnt]
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
-      tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or "")..qtCmd.STMT..(vA.Ne and " IF NOT EXISTS " or " ")
-                             .."IND_"..qtDef.Name.. "_"..tostring(iCnt).." ON "..qtDef.Name.." ( "
-      local sV, nV = "", #vA
+      local sV, nV, bNe = "", #vA, (vA.Ne or not IsHere(vA.Ne))
+      tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or "")..qtCmd.STMT..(bNe and " IF NOT EXISTS " or " ")
+                             .."IND_"..qtDef.Name.. "_"..tableConcat(vA).." ON "..qtDef.Name.." ( "
       for iInd = 1, nV do
         local iV = mathFloor(tonumber(vA[iInd]) or 0); if(iV == 0) then
           LogInstance("Index mismatch "..GetReport(nA,iCnt,iInd),tabDef.Nick); return self:Deny() end
@@ -3075,8 +3076,8 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Build command failed"); return self:Remove(false) end
     -- When enabled forces a table drop
     if(bReload) then
-      if(sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.DROP)
-        if(not qRez and isbool(qRez)) then -- Remove table when SQL error is present
+      if(sqlTableExists(defTab.Name)) then -- Remove table when SQL error is present
+        local qRez = sqlQuery(tQ.DROP); if(not qRez and isbool(qRez)) then
           LogInstance("Table drop fail "..GetReport(sqlLastError(), tQ.DROP), tabDef.Nick)
           return self:Remove(false) -- Remove table when SQL error is present
         else LogInstance("Table drop success",tabDef.Nick) end
@@ -3085,19 +3086,17 @@ function NewTable(sTable,defTab,bDelete,bReload)
     -- Create the table using the given name and properties
     if(sqlTableExists(defTab.Name)) then
       LogInstance("Table create skipped",tabDef.Nick)
-    else local qRez = sqlQuery(tQ.CREATE)
-      if(not qRez and isbool(qRez)) then -- Remove table when SQL error is present
+    else -- Remove table when SQL error is present
+      local qRez = sqlQuery(tQ.CREATE); if(not qRez and isbool(qRez)) then
         LogInstance("Table create fail "..GetReport(sqlLastError(), tQ.CREATE), tabDef.Nick)
         return self:Remove(false) -- Remove table when SQL error is present
       end -- Check when SQL query has passed and the table is not yet created
       if(sqlTableExists(defTab.Name)) then
-        for iQ = 1, tQ.INDEX.Size do
-          local qInx = tQ.INDEX[iQ]
-          local qRez = sqlQuery(qInx)
-          if(not qRez and isbool(qRez)) then -- Check when the index query has passed
+        for iQ = 1, tQ.INDEX.Size do local qInx = tQ.INDEX[iQ]
+          local qRez = sqlQuery(qInx); if(not qRez and isbool(qRez)) then
             LogInstance("Table create index fail "..GetReport(sqlLastError(), iQ, qInx), tabDef.Nick)
             return self:Remove(false) -- Clear table when index is not created
-          end
+          end -- Check when the index query has passed
           LogInstance("Table create index: "..v,tabDef.Nick)
         end
       else
