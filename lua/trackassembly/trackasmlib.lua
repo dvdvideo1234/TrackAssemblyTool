@@ -49,8 +49,9 @@ local isbool                         = isbool
 local istable                        = istable
 local isnumber                       = isnumber
 local isstring                       = isstring
-local isstring                       = isstring
 local isvector                       = isvector
+local isangle                        = isangle
+local ismatrix                       = ismatrix
 local isfunction                     = isfunction
 local Vector                         = Vector
 local Matrix                         = Matrix
@@ -2656,6 +2657,17 @@ function NewTable(sTable,defTab,bDelete,bReload)
       tTm[2] =  (tonumber(vTm[2] or vTm["Li"]) or 0)       -- Record life
       tTm[3] = ((tonumber(vTm[3] or vTm["Rm"]) or 0) ~= 0) -- Kill command
       tTm[4] = ((tonumber(vTm[4] or vTm["Co"]) or 0) ~= 0) -- Collect garbage call
+    elseif(isfunction(vTm)) then -- Transfer table data from definition
+      local bS, vO = pcall(vTm); if(not bS) then
+        LogInstance("Generator "..vO,tabDef.Nick); return self end
+      return self:TimerSetup(vO) -- Force function return value
+    elseif(isvector(vTm) or isangle(vTm) or ismatrix(vTm)) then
+      local cA, cB, cC = vTm:Unpack()
+      tTm[2] =  (cA or 0)       -- Record life
+      tTm[3] = ((cB or 0) ~= 0) -- Kill command
+      tTm[4] = ((cC or 0) ~= 0) -- Collect garbage call
+    else -- Transfer table data from definition
+      tTm[2] = (tonumber(vTm) or 0) -- Record life
     end; return self
   end
   -- Navigates the reference in the cache
