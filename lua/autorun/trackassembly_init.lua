@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.762")
+asmlib.SetOpVar("TOOL_VERSION","8.763")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -521,10 +521,13 @@ if(CLIENT) then
   asmlib.WorkshopID("Ron's Minitrain Props"       , "728833183")
   asmlib.WorkshopID("SligWolf's Modelpack"        , "147812851")
   asmlib.WorkshopID("Battleship's abandoned rails", "807162936")
+  asmlib.WorkshopID("Ron's 2ft track pack"        , "634000136")
+  asmlib.WorkshopID("Ron's G Scale Track pack"    , "865735701")
   asmlib.WorkshopID("AlexCookie's 2ft track pack" , "740453553")
   asmlib.WorkshopID("CAP Walkway"                 , "180210973")
   asmlib.WorkshopID("SligWolf's Tiny Hover Racer" , "1375275167")
   asmlib.WorkshopID("Joe's track pack"            , "1658816805")
+  asmlib.WorkshopID("Plarail"                     , "1512053748")
   asmlib.WorkshopID("StevenTechno's Buildings 2.0", "1888013789")
   asmlib.WorkshopID("Modular Canals"              , "1336622735")
   asmlib.WorkshopID("Trackmania United Props"     , "1955876643")
@@ -532,6 +535,7 @@ if(CLIENT) then
   asmlib.WorkshopID("Modular Sewer"               , "2340192251")
   asmlib.WorkshopID("RockMan's Fortification"     , "3071058065")
   asmlib.WorkshopID("SligWolf's Suspension Train" , "3297918081")
+  asmlib.WorkshopID("Modular City Street"         , "3314861708")
 
   asmlib.SetAction("CLEAR_GHOSTS" , function() asmlib.ClearGhosts() end)
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
@@ -4395,10 +4399,46 @@ else
   PIECES:Record({"models/propper/dingles_modular_streets/street2048x512.mdl", "#", "#", 2, "", "0, 1024,0", "0,90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street2048x768.mdl", "#", "#", 1, "", "0,-1024,0", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street2048x768.mdl", "#", "#", 2, "", "0, 1024,0", "0,90,0"})
---[[
-models/propper/dingles_modular_streets/street128x512_crosswalk.mdl
-models/propper/dingles_modular_streets/street128x768_crosswalk.mdl
-]]
+  PIECES:Record({"models/propper/dingles_modular_streets/street512_endcap_fancy1.mdl", "#", "#", 1, "", "0,-128,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512_endcap_fancy2.mdl", "#", "#", 1, "", "0,-128,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512_endcap_simple1.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512_endcap_simple2.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768_endcap_fancy1.mdl", "#", "#", 1, "", "0,-192,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768_endcap_fancy2.mdl", "#", "#", 1, "", "0,-192,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768_endcap_simple1.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768_endcap_simple2.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector1.mdl", "#", "#", 1, "", "0,-384,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector1.mdl", "#", "#", 2, "", "0, 384,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 1, "", "0,-384,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 2, "", "0, 384,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector1.mdl", "#", "#", 1, "", "0,-256,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector1.mdl", "#", "#", 2, "", "384, 0, 0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector1.mdl", "#", "#", 3, "", "0, 256,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector2.mdl", "#", "#", 1, "", "0, 256,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector2.mdl", "#", "#", 2, "", "-384,0,0", "0,180,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector2.mdl", "#", "#", 3, "", "0,-256,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector2.mdl", "#", "#", 4, "", "384,0,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_tjunction512x512.mdl", "#", "#", 1, "", "0,-256,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_tjunction512x512.mdl", "#", "#", 2, "", "256, 0, 0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_tjunction512x512.mdl", "#", "#", 3, "", "-256, 0, 0", "0,180,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_tjunction768x768.mdl", "#", "#", 1, "", "0,-384,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_tjunction768x768.mdl", "#", "#", 2, "", "384, 0, 0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_tjunction768x768.mdl", "#", "#", 3, "", "-384,0,0", "0,180,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_turn512x512.mdl", "#", "#", 1, "", "0,-256,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_turn512x512.mdl", "#", "#", 2, "", "256, 0, 0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_turn768x768.mdl", "#", "#", 1, "", "0,-384,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_turn768x768.mdl", "#", "#", 2, "", "384, 0, 0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection512x512.mdl", "#", "#", 1, "", "0, 256,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection512x512.mdl", "#", "#", 2, "", "-256,0,0", "0,180,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection512x512.mdl", "#", "#", 3, "", "0,-256,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection512x512.mdl", "#", "#", 4, "", "256,0,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection768x768.mdl", "#", "#", 1, "", "0, 384,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection768x768.mdl", "#", "#", 2, "", "-384,0,0", "0,180,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection768x768.mdl", "#", "#", 3, "", "0,-384,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street_4wayintersection768x768.mdl", "#", "#", 4, "", "384,0,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768_fork.mdl", "#", "#", 1, "", "0,-655,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768_fork.mdl", "#", "#", 2, "", " 994,655,-0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768_fork.mdl", "#", "#", 3, "", "-994,655,0", "0,90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
