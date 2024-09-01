@@ -31,7 +31,7 @@ set emd_chew_skip=%emd_chew_repo%\data\trackassembly\tools\peaces_manager\models
 
 :: How many addons are to be processed
 set emd_chew_addfrm=1
-set emd_chew_addcnt=28
+set emd_chew_addcnt=29
 
 :: GMA addons to be processed
 set emd_chew_addlst[1]=740453553
@@ -62,6 +62,7 @@ set emd_chew_addlst[25]=331192490
 set emd_chew_addlst[26]=1888013789
 set emd_chew_addlst[27]=1955876643
 set emd_chew_addlst[28]=3071058065
+set emd_chew_addlst[29]=3314861708
 
 :: Folder list for extraction and the directories they will be extracted
 set emd_chew_adddir[1]=AlexCookie's 2ft track pack
@@ -92,6 +93,8 @@ set emd_chew_adddir[25]=StevenTechno's Buildings 1.0
 set emd_chew_adddir[26]=StevenTechno's Buildings 2.0
 set emd_chew_adddir[27]=Trackmania United Props
 set emd_chew_adddir[28]=RockMan's Fortification
+set emd_chew_adddir[29]=Modular City Street
+
 :: Show the current folder
 echo Running in: %emd_chew_pathb%
 
