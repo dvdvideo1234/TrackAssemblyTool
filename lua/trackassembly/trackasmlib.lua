@@ -49,7 +49,6 @@ local isbool                         = isbool
 local istable                        = istable
 local isnumber                       = isnumber
 local isstring                       = isstring
-local isstring                       = isstring
 local isvector                       = isvector
 local isfunction                     = isfunction
 local Vector                         = Vector

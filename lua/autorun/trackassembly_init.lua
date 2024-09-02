@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.763")
+asmlib.SetOpVar("TOOL_VERSION","8.764")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -4439,6 +4439,38 @@ else
   PIECES:Record({"models/propper/dingles_modular_streets/street768_fork.mdl", "#", "#", 1, "", "0,-655,0", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street768_fork.mdl", "#", "#", 2, "", " 994,655,-0", "0,90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street768_fork.mdl", "#", "#", 3, "", "-994,655,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated64high.mdl", "#", "#", 1, "", "0,256,24", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated64high.mdl", "#", "#", 2, "", "0,-256,-24", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated128high.mdl", "#", "#", 1, "", "0,256,56", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated128high.mdl", "#", "#", 2, "", "0,-256,-56", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated192high.mdl", "#", "#", 1, "", "0,256,88", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated192high.mdl", "#", "#", 2, "", "0,-256,-88", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated256high.mdl", "#", "#", 1, "", "0,256,120", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_elevated256high.mdl", "#", "#", 2, "", "0,-256,-120", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated64high.mdl", "#", "#", 1, "", "0,256,24", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated64high.mdl", "#", "#", 2, "", "0,-256,-24", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated128high.mdl", "#", "#", 1, "", "0,256,56", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated128high.mdl", "#", "#", 2, "", "0,-256,-56", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated192high.mdl", "#", "#", 1, "", "0,256,88", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated192high.mdl", "#", "#", 2, "", "0,-256,-88", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated256high.mdl", "#", "#", 1, "", "0,256,120", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x768_elevated256high.mdl", "#", "#", 2, "", "0,-256,-120", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated64high.mdl", "#", "#", 1, "", "0,512,24", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated64high.mdl", "#", "#", 2, "", "0,-512,-24", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated128high.mdl", "#", "#", 1, "", "0,512,56", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated128high.mdl", "#", "#", 2, "", "0,-512,-56", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated192high.mdl", "#", "#", 1, "", "0,512,88", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated192high.mdl", "#", "#", 2, "", "0,-512,-88", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated256high.mdl", "#", "#", 1, "", "0,512,120", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x512_elevated256high.mdl", "#", "#", 2, "", "0,-512,-120", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated64high.mdl", "#", "#", 1, "", "0,512,24", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated64high.mdl", "#", "#", 2, "", "0,-512,-24", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated128high.mdl", "#", "#", 1, "", "0,512,56", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated128high.mdl", "#", "#", 2, "", "0,-512,-56", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated192high.mdl", "#", "#", 1, "", "0,512,88", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated192high.mdl", "#", "#", 2, "", "0,-512,-88", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated256high.mdl", "#", "#", 1, "", "0,512,120", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street1024x768_elevated256high.mdl", "#", "#", 2, "", "0,-512,-120", "0,-90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
