@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.764")
+asmlib.SetOpVar("TOOL_VERSION","8.765")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -4366,7 +4366,9 @@ else
   PIECES:Record({"models/sligwolf/rerailer/rerailer_2.mdl", "#", "Double Middle", 2, "-1882.106, 0, 3.031", "-2367.072, 0, -5.412", "0,-180,0"})
   PIECES:Record({"models/sligwolf/rerailer/rerailer_3.mdl", "#", "Double Long", 1, "-258.249, -0.01, -0.002", "219.415, 0, -5.409"})
   PIECES:Record({"models/sligwolf/rerailer/rerailer_3.mdl", "#", "Double Long", 2, "-3124.199, -0.01, 2.997", "-3601.869, -0.377, -5.416", "0,-180,0"})
-  asmlib.Categorize("Modular City Street")
+  asmlib.Categorize("Modular City Street", {"models/propper/dingles_modular_streets/",
+    {{"highway", true}, {"street" , true}, {"endcap"}, {"turn"},
+     {"ramp"}, {"connector"}, {"tjunction"}, {"intersection"}, {"elevated"}}})
   PIECES:Record({"models/propper/dingles_modular_streets/street64x512.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street64x512.mdl", "#", "#", 2, "", "0, 64,0", "0,90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street64x768.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
