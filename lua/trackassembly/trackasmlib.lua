@@ -2358,10 +2358,8 @@ function Categorize(oTyp, fCat, ...)
         if(aP and aN) then tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..aP.."\", \""..aN.."\")\n" end end
       tTyp.Txt = tTyp.Txt..[[local t, x = {n = 0}, m:find("/", 1, true)
         while(x and x > 0) do
-          t.n = t.n + 1
-          t[t.n] = m:sub(1, x-1)
-          m = m:sub(x+1, -1)
-          x = m:find("/", 1, true)
+          t.n = t.n + 1; t[t.n] = m:sub(1, x-1)
+          m = m:sub(x+1, -1); x = m:find("/", 1, true)
         end; m = m:gsub("%.mdl$","")
         if(n == 0) then return t, m end; local a = math.abs(n)
         if(a > t.n) then return t, m end; local s = #t-a
