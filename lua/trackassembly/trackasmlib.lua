@@ -2332,21 +2332,29 @@ function Categorize(oTyp, fCat, ...)
     local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
     if(isstring(fCat)) then
       tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
-    elseif(istable(fCat)) then
+    elseif(istable(fCat)) then local tArg = {...}
+      local sTr = GetOpVar("OPSYM_REVISION") -- Trigger
+      local sSe = GetOpVar("OPSYM_DIRECTORY") -- Separator
       tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
       tTyp.Txt = [[function(m)
         local o = {}
-        function setBranch(v, p, b)
+        function setBranch(v, p, b, q)
           if(v:find(p)) then
             local e = v:gsub("%W*"..p.."%W*", "_")
             if(b and o.M) then return e end
-            if(b and not o.M) then o.M = p end
-            table.insert(o, p); return e
+            if(b and not o.M) then o.M = true end
+            table.insert(o, (q or p)); return e
           end; return v
         end]]
-      tTyp.Txt = tTyp.Txt.."\nlocal r = m:gsub(\""..fCat[1].."\",\"\"):gsub(\"%.mdl$\",\"\");"
-      for iD = 1, #fCat[2] do local v = fCat[2][iD]
-        tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(v[1]).."\", "..(v[2] and "true" or "false")..")"
+      tTyp.Txt = tTyp.Txt.."\nlocal r = m:gsub(\""..tostring(tArg[1] or "").."\",\"\"):gsub(\"%.mdl$\",\"\");"
+      for iD = 1, #fCat do
+        local tV = sSe:Explode(fCat[iD])
+        local sR = tostring(tV[2] and ("\""..tostring(tV[2]).."\"") or nil)
+        if(tV[1]:sub(1,1) == sTr) then tV[1] = tV[1]:sub(2,-1)
+          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", true, "..sR..")"
+        else
+          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", false, "..sR..")"
+        end
       end
       tTyp.Txt = tTyp.Txt.."\no.M = nil; return o, r:gsub(\"^_+\", \"\"):gsub(\"_+$\", \"\"):gsub(\"_+\", \"_\") end"
     elseif(isnumber(fCat)) then local tArg = {...}
