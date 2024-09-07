@@ -49,7 +49,6 @@ local isbool                         = isbool
 local istable                        = istable
 local isnumber                       = isnumber
 local isstring                       = isstring
-local isstring                       = isstring
 local isvector                       = isvector
 local isfunction                     = isfunction
 local Vector                         = Vector
@@ -2320,7 +2319,7 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
   else LogInstance("Wrong mode: "..sRule); return false end
 end
 
-function Categorize(oTyp, fCat)
+function Categorize(oTyp, fCat, ...)
   local tCat = GetOpVar("TABLE_CATEGORIES")
   if(not IsHere(oTyp)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
@@ -2331,14 +2330,56 @@ function Categorize(oTyp, fCat)
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
     local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
-    if(isstring(fCat)) then tCat[sTyp] = {}
-      tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
-      tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
-      local bS, vO = pcall(tCat[sTyp].Cmp); if(not bS) then
-        LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
-      tCat[sTyp].Cmp = vO; tTyp = tCat[sTyp]
-      return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-    else LogInstance("Skip "..GetReport(fCat), ssLog) end
+    if(isstring(fCat)) then
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
+    elseif(istable(fCat)) then local tArg = {...}
+      local sTr = GetOpVar("OPSYM_REVISION") -- Trigger
+      local sSe = GetOpVar("OPSYM_DIRECTORY") -- Separator
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+      tTyp.Txt = [[function(m)
+        local o = {}
+        function setBranch(v, p, b, q)
+          if(v:find(p)) then
+            local e = v:gsub("%W*"..p.."%W*", "_")
+            if(b and o.M) then return e end
+            if(b and not o.M) then o.M = true end
+            table.insert(o, (q or p)); return e
+          end; return v
+        end]]
+      tTyp.Txt = tTyp.Txt.."\nlocal r = m:gsub(\""..tostring(tArg[1] or "").."\",\"\"):gsub(\"%.mdl$\",\"\");"
+      for iD = 1, #fCat do
+        local tV = sSe:Explode(fCat[iD])
+        local sR = tostring(tV[2] and ("\""..tostring(tV[2]).."\"") or nil)
+        if(tV[1]:sub(1,1) == sTr) then tV[1] = tV[1]:sub(2,-1)
+          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", true, "..sR..")"
+        else
+          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", false, "..sR..")"
+        end
+      end
+      tTyp.Txt = tTyp.Txt.."\no.M = nil; return o, r:gsub(\"^_+\", \"\"):gsub(\"_+$\", \"\"):gsub(\"_+\", \"_\") end"
+    elseif(isnumber(fCat)) then local tArg = {...}
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+      tTyp.Txt = "function(m)"
+      tTyp.Txt = tTyp.Txt.."\nlocal n = math.floor(tonumber("..fCat..") or 0)"
+      tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..tostring(tArg[1] or "").."\", \"\")\n"
+      for i = 2, #tArg do local aP, aN = tArg[i], tArg[i+1]
+        if(aP and aN) then tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..aP.."\", \""..aN.."\")\n" end end
+      tTyp.Txt = tTyp.Txt..[[local t, x = {n = 0}, m:find("/", 1, true)
+        while(x and x > 0) do
+          t.n = t.n + 1; t[t.n] = m:sub(1, x-1)
+          m = m:sub(x+1, -1); x = m:find("/", 1, true)
+        end; m = m:gsub("%.mdl$","")
+        if(n == 0) then return t, m end; local a = math.abs(n)
+        if(a > t.n) then return t, m end; local s = #t-a
+        if(n < 0) then for i = 1, a do t[i] = t[i+s] end end
+        while(s > 0) do table.remove(t); s = s - 1 end
+        return t, m
+      end]]
+    else LogInstance("Skip "..GetReport(fCat), ssLog); return nil end
+    tTyp.Cmp = CompileString("return ("..tTyp.Txt..")", sTyp)
+    local bS, vO = pcall(tTyp.Cmp); if(not bS) then
+      LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
+    tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
   end
 end
 
