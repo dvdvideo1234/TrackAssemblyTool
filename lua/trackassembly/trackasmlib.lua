@@ -4602,7 +4602,7 @@ function AttachBodyGroups(ePiece,sBgID)
   while(tBG[iCnt] and IDs[iCnt]) do local vBG = tBG[iCnt]
     local maxID = (ePiece:GetBodygroupCount(vBG.id) - 1)
     local curID = mathClamp(mathFloor(tonumber(IDs[iCnt]) or 0), 0, maxID)
-    LogInstance("SetBodygroup "..GetReport(iCnt, maxID, vBG.id, curID))
+    LogInstance("SetBodygroup "..GetReport(iCnt, vBG.id, maxID, curID))
     ePiece:SetBodygroup(vBG.id, curID); iCnt = iCnt + 1
   end; LogInstance("Success "..GetReport(sBgID)); return true
 end
