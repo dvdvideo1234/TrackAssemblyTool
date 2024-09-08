@@ -1590,7 +1590,7 @@ function NewPOA(vA, vB, vC)
         end -- Decode the transformation when is not null or empty string
       else -- When the value is empty use zero otherwise process the value
         self:Import(sB, sM, ...) -- Try to process the value when present
-        LogInstance("Missing "..GetReport(sB, sM)) -- No Attachment call
+        LogInstance("Regular "..GetReport(sB, sM)) -- No Attachment call
       end -- Try to decode the entry when present
     end; return self
   end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
@@ -4496,24 +4496,19 @@ function AttachAdditions(ePiece)
     local sCass = GetEmpty(arRec[makTab:GetColumnName(3)], nil, dCass)
     local eBonus = entsCreate(sCass); LogInstance("ents.Create("..sCass..")")
     if(eBonus and eBonus:IsValid()) then
-      local sMoa = tostring(arRec[makTab:GetColumnName(2)])
-      if(not IsModel(sMoa, true)) then
+      local sMoa = tostring(arRec[makTab:GetColumnName(2)]); if(not IsModel(sMoa, true)) then
         LogInstance("Invalid attachment "..GetReport(iCnt, sMoc, sMoa)); return false end
       eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
       local sPos = arRec[makTab:GetColumnName(5)]; if(not isstring(sPos)) then
         LogInstance("Position mismatch "..GetReport(iCnt, sMoc, sPos)); return false end
-      if(not GetEmpty(sPos)) then
-        oPOA:Decode(sPos, eBonus, "Pos")
-        vPos:SetUnpacked(oPOA:Get())
-        vPos:Set(ePiece:LocalToWorld(vPos))
+      if(not GetEmpty(sPos)) then oPOA:Decode(sPos, eBonus, "Pos")
+        local vPos = oPOA:Vector(); vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
       local sAng = arRec[makTab:GetColumnName(6)]; if(not isstring(sAng)) then
         LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, sAng)); return false end
-      if(not GetEmpty(sAng)) then
-        oPOA:Decode(sAng, eBonus, "Ang")
-        aAng:SetUnpacked(oPOA:Get())
-        aAng:Set(ePiece:LocalToWorldAngles(aAng))
+      if(not GetEmpty(sAng)) then oPOA:Decode(sAng, eBonus, "Ang")
+        local aAng = oPOA:Angle(); aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
       else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
       local nMo = (tonumber(arRec[makTab:GetColumnName(7)]) or -1)
