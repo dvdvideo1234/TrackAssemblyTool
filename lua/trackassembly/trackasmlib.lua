@@ -1592,7 +1592,7 @@ function NewPOA(vA, vB, vC)
         end -- Decode the transformation when is not null or empty string
       else -- When the value is empty use zero otherwise process the value
         self:Import(sB, sM, ...) -- Try to process the value when present
-        LogInstance("Missing "..GetReport(sB, sM)) -- No Attachment call
+        LogInstance("Regular "..GetReport(sB, sM)) -- No Attachment call
       end -- Try to decode the entry when present
     end; return self
   end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
@@ -2332,7 +2332,7 @@ function ModelToNameRule(sRule, gCut, gSub, gApp)
   else LogInstance("Wrong mode: "..sRule); return false end
 end
 
-function Categorize(oTyp, fCat)
+function Categorize(oTyp, fCat, ...)
   local tCat = GetOpVar("TABLE_CATEGORIES")
   if(not IsHere(oTyp)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
@@ -2343,14 +2343,56 @@ function Categorize(oTyp, fCat)
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
     local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
-    if(isstring(fCat)) then tCat[sTyp] = {}
-      tCat[sTyp].Txt = fCat; tTyp = (tCat and tCat[sTyp] or nil)
-      tCat[sTyp].Cmp = CompileString("return ("..fCat..")", sTyp)
-      local bS, vO = pcall(tCat[sTyp].Cmp); if(not bS) then
-        LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
-      tCat[sTyp].Cmp = vO; tTyp = tCat[sTyp]
-      return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-    else LogInstance("Skip "..GetReport(fCat), ssLog) end
+    if(isstring(fCat)) then
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
+    elseif(istable(fCat)) then local tArg = {...}
+      local sTr = GetOpVar("OPSYM_REVISION") -- Trigger
+      local sSe = GetOpVar("OPSYM_DIRECTORY") -- Separator
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+      tTyp.Txt = [[function(m)
+        local o = {}
+        function setBranch(v, p, b, q)
+          if(v:find(p)) then
+            local e = v:gsub("%W*"..p.."%W*", "_")
+            if(b and o.M) then return e end
+            if(b and not o.M) then o.M = true end
+            table.insert(o, (q or p)); return e
+          end; return v
+        end]]
+      tTyp.Txt = tTyp.Txt.."\nlocal r = m:gsub(\""..tostring(tArg[1] or "").."\",\"\"):gsub(\"%.mdl$\",\"\");"
+      for iD = 1, #fCat do
+        local tV = sSe:Explode(fCat[iD])
+        local sR = tostring(tV[2] and ("\""..tostring(tV[2]).."\"") or nil)
+        if(tV[1]:sub(1,1) == sTr) then tV[1] = tV[1]:sub(2,-1)
+          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", true, "..sR..")"
+        else
+          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", false, "..sR..")"
+        end
+      end
+      tTyp.Txt = tTyp.Txt.."\no.M = nil; return o, r:gsub(\"^_+\", \"\"):gsub(\"_+$\", \"\"):gsub(\"_+\", \"_\") end"
+    elseif(isnumber(fCat)) then local tArg = {...}
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+      tTyp.Txt = "function(m)"
+      tTyp.Txt = tTyp.Txt.."\nlocal n = math.floor(tonumber("..fCat..") or 0)"
+      tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..tostring(tArg[1] or "").."\", \"\")\n"
+      for i = 2, #tArg do local aP, aN = tArg[i], tArg[i+1]
+        if(aP and aN) then tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..aP.."\", \""..aN.."\")\n" end end
+      tTyp.Txt = tTyp.Txt..[[local t, x = {n = 0}, m:find("/", 1, true)
+        while(x and x > 0) do
+          t.n = t.n + 1; t[t.n] = m:sub(1, x-1)
+          m = m:sub(x+1, -1); x = m:find("/", 1, true)
+        end; m = m:gsub("%.mdl$","")
+        if(n == 0) then return t, m end; local a = math.abs(n)
+        if(a > t.n) then return t, m end; local s = #t-a
+        if(n < 0) then for i = 1, a do t[i] = t[i+s] end end
+        while(s > 0) do table.remove(t); s = s - 1 end
+        return t, m
+      end]]
+    else LogInstance("Skip "..GetReport(fCat), ssLog); return nil end
+    tTyp.Cmp = CompileString("return ("..tTyp.Txt..")", sTyp)
+    local bS, vO = pcall(tTyp.Cmp); if(not bS) then
+      LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
+    tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
   end
 end
 
@@ -4562,24 +4604,19 @@ function AttachAdditions(ePiece)
     local sCass = GetEmpty(arRec[coEN], nil, dCass)
     local eBonus = entsCreate(sCass); LogInstance("ents.Create("..sCass..")")
     if(eBonus and eBonus:IsValid()) then
-      local sMoa = tostring(arRec[coMA])
-      if(not IsModel(sMoa, true)) then
+      local sMoa = tostring(arRec[coMA]); if(not IsModel(sMoa, true)) then
         LogInstance("Invalid attachment "..GetReport(iCnt, sMoc, sMoa)); return false end
       eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
       local sPos = arRec[coPO]; if(not isstring(sPos)) then
         LogInstance("Position mismatch "..GetReport(iCnt, sMoc, sPos)); return false end
-      if(not GetEmpty(sPos)) then
-        oPOA:Decode(sPos, eBonus, "Pos")
-        vPos:SetUnpacked(oPOA:Get())
-        vPos:Set(ePiece:LocalToWorld(vPos))
+      if(not GetEmpty(sPos)) then oPOA:Decode(sPos, eBonus, "Pos")
+        local vPos = oPOA:Vector(); vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
       local sAng = arRec[coAN]; if(not isstring(sAng)) then
         LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, sAng)); return false end
-      if(not GetEmpty(sAng)) then
-        oPOA:Decode(sAng, eBonus, "Ang")
-        aAng:SetUnpacked(oPOA:Get())
-        aAng:Set(ePiece:LocalToWorldAngles(aAng))
+      if(not GetEmpty(sAng)) then oPOA:Decode(sAng, eBonus, "Ang")
+        local aAng = oPOA:Angle(); aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
       else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
       local nMo = (tonumber(arRec[coMO]) or -1)
@@ -4607,8 +4644,7 @@ function AttachAdditions(ePiece)
       if(nSo >= 0) then eBonus:SetSolid(nSo)
         LogInstance("ENT:SetSolid("..tostring(nSo)..")") end
     else
-      local mA = stData[iCnt][coMA]
-      local mC = stData[iCnt][coEN]
+      local mA, mC = arRec[coMA], arRec[coEN]
       LogInstance("Entity invalid "..GetReport(iCnt, sMoc, mA, mC)); return false
     end
   end; LogInstance("Success"); return true
@@ -4673,7 +4709,7 @@ function AttachBodyGroups(ePiece,sBgID)
   while(tBG[iCnt] and IDs[iCnt]) do local vBG = tBG[iCnt]
     local maxID = (ePiece:GetBodygroupCount(vBG.id) - 1)
     local curID = mathClamp(mathFloor(tonumber(IDs[iCnt]) or 0), 0, maxID)
-    LogInstance("SetBodygroup "..GetReport(iCnt, maxID, vBG.id, curID))
+    LogInstance("SetBodygroup "..GetReport(iCnt, vBG.id, maxID, curID))
     ePiece:SetBodygroup(vBG.id, curID); iCnt = iCnt + 1
   end; LogInstance("Success "..GetReport(sBgID)); return true
 end

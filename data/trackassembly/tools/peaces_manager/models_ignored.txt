@@ -5661,3 +5661,7 @@ models/props_canal/canal_bridge04.mdl
 models/props_canal/canal_bridge_railing01.mdl
 models/props_canal/canal_bridge_railing02.mdl
 models/props_canal/canal_bridge_railing_lamps.mdl
+
+# Modular City Street
+models/propper/dingles_modular_streets/street_propper_reference_texture_block.mdl
+models/propper/dingles_modular_streets/street_propper_reference_texture_block2.mdl
