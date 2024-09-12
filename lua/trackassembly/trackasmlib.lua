@@ -3061,7 +3061,11 @@ function NewTable(sTable,defTab,bDelete,bReload)
       end
     else nA = qtDef.Size -- When called with no arguments is the same as picking all columns
       for iCnt = 1, nA do
-        sStmt = sStmt..qtDef[iCnt][1]..(iCnt ~= nA and ", " or " )")
+        local tC = qtDef[iCnt]; if(not tC) then
+          LogInstance("Column missing "..GetReport(nA,iCnt), tabDef.Nick); return self:Deny() end
+        local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
+          LogInstance("Column mismatch "..GetReport(nA,iCnt),tabDef.Nick); return self:Deny() end
+        sStmt = sStmt..sC..(iCnt ~= nA and ", " or " )")
       end
     end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
