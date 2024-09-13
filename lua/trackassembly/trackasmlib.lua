@@ -511,15 +511,19 @@ end
 --[[
  * When requested wraps the first value according to
  * the interval described by the other two values
- * Inp: -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9 10
- * Out:  3  1  2  3  1  2 3 1 2 3 1 2 3 1 2 3  1
- * This is an example call for the input between 1 and 3
+ * Inp (V): -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9 10
+ * Out (R):  3  1  2  3  1  2 3 1 2 3 1 2 3 1 2 3  1
+ * This is an example call for the input between L=1 and H=3
+ * nV - Current value being wrapped
+ * nL - Wrapper low value
+ * nH - Wrapper high value
+ * Returns the wrapped value mapped to the interval provided
 ]]
-function GetWrap(nVal,nMin,nMax) local nVal = nVal
-  while(nVal < nMin or nVal > nMax) do
-    nVal = ((nVal < nMin) and (nMax - (nMin - nVal) + 1) or nVal)
-    nVal = ((nVal > nMax) and (nMin + (nVal - nMax) - 1) or nVal)
-  end; return nVal -- Returns the N-stepped value
+function GetWrap(nV, nL, nH)
+  if(nV == 0) then return nH end
+  if(nV >= nL and nV <= nH) then return nV end
+  local nC = nV % nH
+  return (nC == 0) and nH or nC
 end
 
 --[[
@@ -2061,10 +2065,11 @@ end
 function SwitchID(vID,vDir,oRec)
   local stPOA, ID = LocatePOA(oRec,vID); if(not IsHere(stPOA)) then
     LogInstance("ID missing "..GetReport(vID)); return 1 end
-  local nDir = (tonumber(vDir) or 0); nDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
-  if(nDir == 0) then LogInstance("Direction mismatch"); return ID end
-  ID = GetWrap(ID + nDir,1,oRec.Size) -- Move around the snap location selected
-  stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
+  local nDir = mathFloor(tonumber(vDir) or 0)
+  local iDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
+  if(iDir == 0) then LogInstance("Direction mismatch"); return ID end
+  local ID = GetWrap(ID + iDir, 1, oRec.Size) -- Move around the snap
+  local stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
     LogInstance("Offset missing "..GetReport(ID)); return 1 end
   return ID
 end
