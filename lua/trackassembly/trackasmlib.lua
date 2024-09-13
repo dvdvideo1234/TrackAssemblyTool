@@ -3005,8 +3005,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
-    local qtDef = self:GetDefinition()
-    local tA = {...}; sStmt = sStmt:Trim("%s"):Trim(";")
+    local tA, qtDef = {...}, self:GetDefinition(); sStmt = sStmt:Trim("%s"):Trim(";")
     for iCnt = 1, nA do
       local vA, sW = tA[iCnt], ((iCnt == 1) and " WHERE " or " AND "); if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt), tabDef.Nick); return self:Deny() end
@@ -3031,12 +3030,11 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
-    local qtDef, sDir, tA = self:GetDefinition(), "", {...}
-    sStmt = sStmt:Trim("%s"):Trim(";").." ORDER BY "
+    local qtDef, tA = self:GetDefinition(), {...}; sStmt = sStmt:Trim("%s"):Trim(";").." ORDER BY "
     for iCnt = 1, nA do
       local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
         LogInstance("Column undefined "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
-      sDir = ((vA > 0) and " ASC" or " DESC"); vA = mathAbs(vA)
+      local sDir = ((vA > 0) and " ASC" or " DESC"); vA = mathAbs(vA)
       local tC = qtDef[vA]; if(not tC) then
         LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
@@ -3049,7 +3047,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
     local qtCmd, nA = self:GetCommand(), select("#", ...)
     local qtDef = self:GetDefinition(); qtCmd.STMT = "INSERT"
     local sStmt = qtCmd.STMT.." INTO "..qtDef.Name.." ( "
-    if(nA > 0) then tA = {...}
+    if(nA > 0) then local tA = {...}
       for iCnt = 1, nA do -- Assume the user wants to build custom insert
         local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
           LogInstance("Column undefined "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
@@ -3071,10 +3069,8 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- Add values clause to the current statement
   function self:Values(...)
-    local qtCmd = self:GetCommand()
-    local qtDef = self:GetDefinition()
-    local sStmt = qtCmd[qtCmd.STMT]
-    local tA, nA = {...}, select("#", ...)
+    local qtCmd, qtDef = self:GetCommand(), self:GetDefinition()
+    local tA, nA, sStmt = {...}, select("#", ...), qtCmd[qtCmd.STMT]
     if(not sStmt and isbool(sStmt)) then
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
