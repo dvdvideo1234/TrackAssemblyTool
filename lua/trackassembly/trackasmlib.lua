@@ -3993,7 +3993,7 @@ function ExportTypeAR(sType)
       end
     end
     local tSort = PrioritySort(qPieces, {pkModel, sLineID}); if(not tSort) then
-      LogInstance("PrioritySort cache mismatch"); return end; tableEmpty(qPieces)
+      LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
     for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
   else
     LogInstance("Unsupported mode "..GetReport(sMoDB))
