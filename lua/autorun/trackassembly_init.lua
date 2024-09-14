@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.764")
+asmlib.SetOpVar("TOOL_VERSION","8.765")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -4408,14 +4408,20 @@ else
   PIECES:Record({"models/propper/dingles_modular_streets/street768_endcap_fancy2.mdl", "#", "#", 1, "", "0,-192,0", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street768_endcap_simple1.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street768_endcap_simple2.mdl", "#", "#", 1, "", "0,-64,0", "0,-90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector1.mdl", "#", "#", 1, "", "0,-256,0", "0,-90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector1.mdl", "#", "#", 2, "", "0, 256,0", "0,90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector2.mdl", "#", "#", 1, "", "0,-256,0", "0,-90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector2.mdl", "#", "#", 2, "", "0, 256,0", "0,90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector1.mdl", "#", "#", 1, "", "0,-384,0", "0,-90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector1.mdl", "#", "#", 2, "", "0, 384,0", "0,90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 1, "", "0,-384,0", "0,-90,0"})
-  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 2, "", "0, 384,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector1.mdl", "#", "#", 1, "", "0, 256,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector1.mdl", "#", "#", 2, "", "0,-256,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector1.mdl", "#", "#", 3, "", "256,0,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector2.mdl", "#", "#", 1, "", "0, 256,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector2.mdl", "#", "#", 2, "", "-256,0,0", "0,180,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector2.mdl", "#", "#", 3, "", "0,-256,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street512x512_concrete_to_stone_connector2.mdl", "#", "#", 4, "", "256,0,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector1.mdl", "#", "#", 1, "", "0, 384,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector1.mdl", "#", "#", 2, "", "0,-384,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector1.mdl", "#", "#", 3, "", "384,0,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 1, "", "0, 384,0", "0,90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 2, "", "-384,0,0", "0,180,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 3, "", "0,-384,0", "0,-90,0"})
+  PIECES:Record({"models/propper/dingles_modular_streets/street768x768_concrete_to_stone_connector2.mdl", "#", "#", 4, "", "384,0,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector1.mdl", "#", "#", 1, "", "0,-256,0", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector1.mdl", "#", "#", 2, "", "384, 0, 0"})
   PIECES:Record({"models/propper/dingles_modular_streets/street_512_to_768_connector1.mdl", "#", "#", 3, "", "0, 256,0", "0,90,0"})
