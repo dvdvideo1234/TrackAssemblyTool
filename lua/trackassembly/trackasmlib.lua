@@ -723,7 +723,8 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
-  SetOpVar("VCOMPARE_SORT", function(u, v) return (u.Val < v.Val) end)
+  SetOpVar("VCOMPARE_SKEY", function(u, v) return (u.Key < v.Key) end)
+  SetOpVar("VCOMPARE_SREC", function(u, v) return (u.Rec < v.Rec) end)
   SetOpVar("MODELNAM_FUNC", function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("EMPTYSTR_BLNU", function(x) return (IsBlank(x) or IsNull(x)) end)
   SetOpVar("EMPTYSTR_BLDS", function(x) return (IsBlank(x) or IsDisable(x)) end)
@@ -2257,22 +2258,24 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   return tOffs -- On success return the populated POA offset
 end
 
-function Sort(tTable, tCols)
+function PrioritySort(tSrc, tPrn, ...)
   local tS, iS = {Size = 0}, 0
-  local fS = GetOpVar("VCOMPARE_SORT")
-  local tC = tCols or {}; tC.Size = #tC
-  for key, rec in pairs(tTable) do
+  local tC = (istable(tPrn) and tPrn or {tPrn, ...}); tC.Size = #tC
+  for key, rec in pairs(tSrc) do -- Index the whole table
     iS = (iS + 1); tS[iS] = {}
     tS[iS].Key, tS[iS].Rec = key, rec
-    if(istable(rec)) then tS[iS].Val = "" -- Allocate sorting value
-      if(tC.Size > 0) then -- When there are sorting column names provided
-        for iI = 1, tC.Size do local sC = tC[iI]; if(not IsHere(rec[sC])) then
-          LogInstance("Key missing "..GetReport(sC)); return nil end
-            tS[iS].Val = tS[iS].Val..tostring(rec[sC]) -- Concatenate sort value
-        end -- When no sort columns are provided sort by the keys instead
-      else tS[iS].Val = key end -- When column list not specified use the key
-    else tS[iS].Val = rec end -- When the element is not a table use the value
-  end; tS.Size = iS; tableSort(tS, fS); return tS
+  end; tS.Size = iS
+  if(istable(tS[1].Rec)) then
+    if(tC.Size > 0) then
+      tableSort(tS, function(u, v)
+        for iD = 1, tC.Size do
+          local iR = tC[iD]
+          if(u[iR] < v[iR]) then return true end
+          if(u[iR] > v[iR]) then return false end
+        end; return false
+      end)
+    else tableSort(tS, GetOpVar("VCOMPARE_SKEY")) end
+  else tableSort(tS, GetOpVar("VCOMPARE_SREC")) end; return tS
 end
 
 ------------- VARIABLE INTERFACES --------------
@@ -3278,7 +3281,7 @@ function CacheQueryPanel(bExp)
       return ExportPanelDB(stPanel, bExp, makTab, sFunc)
     elseif(sMoDB == "LUA") then
       local tCache = libCache[defTab.Name] -- Sort directly by the model
-      local tSort  = Sort(tCache,{"Type","Slot"}); if(not tSort) then
+      local tSort  = PrioritySort(tCache,{"Type","Slot"}); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end; stPanel.Size = 0
       for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
         local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
@@ -3633,7 +3636,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         fData[vK] = tRec; fData[vK].Size = #tRec end
     end
   end
-  local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
+  local tSort = PrioritySort(tableGetKeys(fData)); if(not tSort) then
     LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref.."@"..sTable..")("..fName..") Open fail"); return false end
@@ -3850,7 +3853,7 @@ function SetAdditionsAR(sModel, makTab, qList)
         end
       end
     end
-    local tSort = Sort(qData, {pkModel, sLineID}); if(not tSort) then
+    local tSort = PrioritySort(qData, {pkModel, sLineID}); if(not tSort) then
         LogInstance("Sort cache mismatch"); return end; tableEmpty(qData)
     for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
   else
@@ -3989,8 +3992,8 @@ function ExportTypeAR(sType)
         end
       end
     end
-    local tSort = Sort(qPieces, {pkModel, sLineID}); if(not tSort) then
-      LogInstance("Sort cache mismatch"); return end; tableEmpty(qPieces)
+    local tSort = PrioritySort(qPieces, {pkModel, sLineID}); if(not tSort) then
+      LogInstance("PrioritySort cache mismatch"); return end; tableEmpty(qPieces)
     for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
   else
     LogInstance("Unsupported mode "..GetReport(sMoDB))
