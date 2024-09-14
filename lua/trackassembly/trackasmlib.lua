@@ -2259,8 +2259,8 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
 end
 
 function PrioritySort(tSrc, tPrn, ...)
-  local tS, iS = {Size = 0}, 0
-  local tC = (istable(tPrn) and tPrn or {tPrn, ...}); tC.Size = #tC
+  local tC = (istable(tPrn) and tPrn or {tPrn, ...})
+  local tS, iS = {Size = 0}, 0; tC.Size = #tC
   for key, rec in pairs(tSrc) do -- Index the whole table
     iS = (iS + 1); tS[iS] = {}
     tS[iS].Key, tS[iS].Rec = key, rec
@@ -3642,7 +3642,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref.."@"..sTable..")("..fName..") Open fail"); return false end
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
-  for iKey = 1, tSort.Size do local key = tSort[iKey].Val
+  for iKey = 1, tSort.Size do local key = tSort[iKey].Rec
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
       O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
     local fRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
