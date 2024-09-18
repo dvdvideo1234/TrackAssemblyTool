@@ -728,7 +728,14 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
-  SetOpVar("VCOMPARE_SORT", function(u, v) return (u.Val < v.Val) end)
+  SetOpVar("VCOMPARE_SDAT", function(u, v, c)
+    for iD = 1, c.Size do local iR = c[iD]
+      local uR, vR = u.Rec, v.Rec
+      if(uR[iR] < vR[iR]) then return true end
+      if(uR[iR] > vR[iR]) then return false end
+    end; return false; end
+  SetOpVar("VCOMPARE_SKEY", function(u, v) return (u.Key < v.Key) end)
+  SetOpVar("VCOMPARE_SREC", function(u, v) return (u.Rec < v.Rec) end)
   SetOpVar("MODELNAM_FUNC", function(x) return " "..x:sub(2,2):upper() end)
   SetOpVar("EMPTYSTR_BLNU", function(x) return (IsBlank(x) or IsNull(x)) end)
   SetOpVar("EMPTYSTR_BLDS", function(x) return (IsBlank(x) or IsDisable(x)) end)
@@ -2274,22 +2281,19 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   return tOffs -- On success return the populated POA offset
 end
 
-function Sort(tTable, ...)
-  local tS, iS = {Size = 0}, 0
-  local fS = GetOpVar("VCOMPARE_SORT")
-  local tC = {...}; tC.Size = select("#", ...)
-  for key, rec in pairs(tTable) do -- Scan the entire table
-    iS = (iS + 1); tS[iS] = {} -- Allocate key/record and store
-    local rS = tS[iS]; rS.Key, rS.Rec = key, rec -- Local reference
-    if(istable(rec)) then rS.Val = "" -- Allocate sorting value
-      if(tC.Size > 0) then -- When there are sorting column names provided
-        for iC = 1, tC.Size do local sC = tC[iC]; if(not IsHere(rec[sC])) then
-          LogInstance("Key missing "..GetReport(sC)); return nil end
-            rS.Val = rS.Val..tostring(rec[sC]) -- Concatenate sort value
-        end -- When no sort columns are provided sort by the keys instead
-      else rS.Val = key end -- When column list not specified use the key
-    else rS.Val = rec end -- When the element is not a table use the value
-  end; tS.Size = iS; tableSort(tS, fS); return tS
+function PrioritySort(tSrc, vPrn, ...)
+  local tC = (istable(vPrn) and vPrn or {vPrn, ...})
+  local tS = {Size = 0}; tC.Size = #tC
+  for key, rec in pairs(tSrc) do -- Scan the entire table
+    tS.Size = tS.Size + 1 -- Allocate key/record and store
+    tableInsert(tS, {Key = key, Rec = rec}) -- New table
+  end -- The table keys are converted to integers
+  if(istable(tS[1].Rec)) then -- Data is table
+    if(tC.Size > 0) then -- Sorting column names provided
+      local fC = GetOpVar("VCOMPARE_SDAT")
+      tableSort(tS, function(u, v) return fC(u, v, tC) end)
+    else tableSort(tS, GetOpVar("VCOMPARE_SKEY")) end
+  else tableSort(tS, GetOpVar("VCOMPARE_SREC")) end; return tS
 end
 
 ------------- VARIABLE INTERFACES --------------
@@ -3374,7 +3378,7 @@ function CacheQueryPanel(bExp)
       return ExportPanelDB(stPanel, bExp, makTab, sFunc)
     elseif(sMoDB == "LUA") then
       local tCache = libCache[defTab.Name] -- Sort directly by the model
-      local tSort  = Sort(tCache, "Type", "Slot"); if(not tSort) then
+      local tSort  = PrioritySort(tCache, "Type", "Slot"); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end
       local coMo = makTab:GetColumnName(1)
       local coTy = makTab:GetColumnName(2)
@@ -3730,13 +3734,13 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         fData[vK] = tRec; fData[vK].Size = #tRec end
     end
   end
-  local tSort = Sort(tableGetKeys(fData)); if(not tSort) then
+  local tSort = PrioritySort(fData); if(not tSort) then
     LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref.."@"..sTable..")("..fName..") Open fail"); return false end
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
-  for iKey = 1, tSort.Size do local key = tSort[iKey].Val
+  for iKey = 1, tSort.Size do local key = tSort[iKey].Rec
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
       O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
     local fRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
@@ -3949,7 +3953,7 @@ function SetAdditionsAR(sModel, makTab, qList)
         end
       end
     end
-    local tSort = Sort(qData, coMo, coLn); if(not tSort) then
+    local tSort = PrioritySort(qData, coMo, coLn); if(not tSort) then
         LogInstance("Sort cache mismatch"); return end; tableEmpty(qData)
     for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
   else
@@ -4092,7 +4096,7 @@ function ExportTypeAR(sType)
         end
       end
     end
-    local tSort = Sort(qPieces, coMo, coLn)
+    local tSort = PrioritySort(qPieces, coMo, coLn)
     if(not tSort) then
       LogInstance("Sort cache mismatch")
       fE:Flush(); fE:Close(); fS:Close(); return
