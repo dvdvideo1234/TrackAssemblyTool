@@ -515,15 +515,14 @@ end
  * Out (R):  3  1  2  3  1  2 3 1 2 3 1 2 3 1 2 3  1
  * This is an example call for the input between L=1 and H=3
  * nV - Current value being wrapped
- * nL - Wrapper low value
- * nH - Wrapper high value
+ * nS - Wrapper size/count value
  * Returns the wrapped value mapped to the interval provided
 ]]
-function GetWrap(nV, nL, nH)
-  if(nV == 0) then return nH end
-  if(nV >= nL and nV <= nH) then return nV end
-  local nC = nV % nH
-  return (nC == 0) and nH or nC
+function GetWrap(nV, nS)
+  if(nV == 0) then return nS end
+  if(nV >= 1 and nV <= nS) then return nV end
+  local nC = nV % nS -- Get the reminder
+  return (nC == 0) and nS or nC
 end
 
 --[[
@@ -2068,7 +2067,7 @@ function SwitchID(vID,vDir,oRec)
   local nDir = mathFloor(tonumber(vDir) or 0)
   local iDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
   if(iDir == 0) then LogInstance("Direction mismatch"); return ID end
-  local ID = GetWrap(ID + iDir, 1, oRec.Size) -- Move around the snap
+  local ID = GetWrap(ID + iDir, oRec.Size) -- Move around the snap
   local stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
     LogInstance("Offset missing "..GetReport(ID)); return 1 end
   return ID
