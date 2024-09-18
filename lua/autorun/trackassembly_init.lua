@@ -1692,7 +1692,7 @@ asmlib.NewTable("PIECES",{
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tSort = asmlib.PrioritySort(tCache)
+      local tSort = asmlib.PrioritySort(tCache, "Type", "Slot")
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
@@ -1752,17 +1752,25 @@ asmlib.NewTable("ADDITIONS",{
       if(iID ~= (stData.Size + 1)) then
         asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK),vSrc); return false end
       stData[iID] = {} -- LineID has to be set properly
-      for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt) -- Check data conversion output
+      for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt); if(not sC) then
+        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iCnt,snPK),vSrc); return false end
         stData[iID][sC] = makTab:Match(arLine[iCnt],iCnt); if(not asmlib.IsHere(stData[iID][sC])) then
           asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),vSrc); return false end
       end; stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      for mod, rec in pairs(tCache) do
-        local sData = defTab.Name..sDelim..mod
-        for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
-          for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
+      local tData = asmlib.PrioritySort(tCache)
+      for iRow = 1, tData.Size do
+        local tRow = tData[iRow]
+        local sKey, tRec = tRow.Key, tRow.Rec
+        local sData = defTab.Name..sDelim..sKey
+        for iRec = 1, #tRec do local tData = tRec[iRec]; oFile:Write(sData)
+          for iID = 2, defTab.Size do
+            local sC = makTab:GetColumnName(iID); if(not sC) then
+              asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end
+            local vData = tData[sC]; if(not sC) then
+              asmlib.LogInstance("Cannot extract "..asmlib.GetReport(iID,sKey),vSrc); return false end
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
               asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
             end; oFile:Write(sDelim..tostring(vM or ""))
