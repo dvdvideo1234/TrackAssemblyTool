@@ -508,22 +508,6 @@ function LogTable(tT, sS, vSrc, bCon, iDbg, tDbg)
 end
 
 ------------- VALUE ---------------
---[[
- * When requested wraps the first value according to
- * the interval described by the other two values
- * Inp (V): -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9 10
- * Out (R):  3  1  2  3  1  2 3 1 2 3 1 2 3 1 2 3  1
- * This is an example call for the input between L=1 and H=3
- * nV - Current value being wrapped
- * nS - Wrapper size/count value
- * Returns the wrapped value mapped to the interval provided
-]]
-function GetWrap(nV, nS)
-  if(nV == 0) then return nS end
-  if(nV >= 1 and nV <= nS) then return nV end
-  local nC = nV % nS -- Get the reminder
-  return (nC == 0) and nS or nC
-end
 
 --[[
  * Applies border if exists to the input value
@@ -2074,7 +2058,8 @@ function SwitchID(vID,vDir,oRec)
   local nDir = mathFloor(tonumber(vDir) or 0)
   local iDir = (((nDir > 0) and 1) or ((nDir < 0) and -1) or 0)
   if(iDir == 0) then LogInstance("Direction mismatch"); return ID end
-  local ID = GetWrap(ID + iDir, oRec.Size) -- Move around the snap
+  local nC = (ID + iDir) % oRec.Size -- Reminder of ID increment
+  local ID = (nC == 0) and oRec.Size or nC -- Zero default to size
   local stPOA = LocatePOA(oRec,ID); if(not IsHere(stPOA)) then
     LogInstance("Offset missing "..GetReport(ID)); return 1 end
   return ID
