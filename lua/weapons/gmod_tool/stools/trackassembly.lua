@@ -2318,10 +2318,10 @@ function TOOL.BuildCPanel(CPanel)
   CPanel:AddItem(pTree) -- Register it to the panel
   local defTable = makTab:GetDefinition()
   local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
-  local iC, pTypes, pCateg, pNode = 1, 1, {}, {}
-  local coMo = makP:GetColumnName(1)
-  local coTy = makP:GetColumnName(2)
-  local coNm = makP:GetColumnName(3)
+  local pTypes, pCateg, pNode = {}, {}
+  local coMo = makTab:GetColumnName(1)
+  local coTy = makTab:GetColumnName(2)
+  local coNm = makTab:GetColumnName(3)
   for iC = 1, qPanel.Size do
     local vRec, bNow = qPanel[iC], true
     local sMod, sTyp, sNam = vRec[coMo], vRec[coTy], vRec[coNm]
@@ -2426,8 +2426,8 @@ function TOOL.BuildCPanel(CPanel)
   local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
     asmlib.LogInstance("Property population empty",sLog); return end
 
-  for iTyp = 1, cqProperty.Size do
-    local sT, sI = cqProperty[iTyp], asmlib.ToIcon("property_type")
+  for iP = 1, cqProperty.Size do
+    local sT, sI = cqProperty[iP], asmlib.ToIcon("property_type")
     pComboPhysType:AddChoice(sT, sT, false, sI)
   end
 
