@@ -224,10 +224,10 @@ local function getAdditionsLine(sModel, nID)
   local defTab = makTab:GetDefinition(); if(not defTab) then
     asmlib.LogInstance("No table definition"); return {} end
   local stRec = asmlib.CacheQueryAdditions(sModel); if(not stRec) then return {} end
-  if(not stRec[nID]) then return {} end; stRec = stRec[nID]
-  local iRow, arData = 2, {} -- The model is missed by the main SELECT
-  while(defTab[iRow]) do  -- Ordered by ID. Get the line per model
-    arData[iRow-1] = stRec[defTab[iRow][1]]; iRow = (iRow + 1)
+  if(not stRec[nID]) then return {} end -- There is no line with such number
+  local arData = {}; stRec = stRec[nID] -- The model is missed by the main SELECT
+  for iRow = 2, defTab.Size do  -- Ordered by ID. Get the line per model
+    arData[iRow-1] = stRec[defTab[iRow][1]]
   end; return arData
 end
 
