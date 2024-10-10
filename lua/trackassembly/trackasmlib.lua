@@ -712,12 +712,25 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
+  SetOpVar("VCOMPARE_SPAN", function(u, v)
+    if(u.T ~= v.T) then return u.T < v.T end
+    local uC = (u.C or {})
+    local vC = (v.C or {})
+    local uM, vM = #uC, #vC
+    for i = 1, math.max(uM, vM) do
+      local uS = tostring(uC[i] or "")
+      local vS = tostring(vC[i] or "")
+      if(uS ~= vS) then return uS < vS end
+    end
+    if(u.N ~= v.N) then return u.N < v.N end
+    if(u.M ~= v.M) then return u.M < v.M end
+    return false end)
   SetOpVar("VCOMPARE_SDAT", function(u, v, c)
     for iD = 1, c.Size do local iR = c[iD]
       local uR, vR = u.Rec, v.Rec
       if(uR[iR] < vR[iR]) then return true end
       if(uR[iR] > vR[iR]) then return false end
-    end; return false; end
+    end; return false; end)
   SetOpVar("VCOMPARE_SKEY", function(u, v) return (u.Key < v.Key) end)
   SetOpVar("VCOMPARE_SREC", function(u, v) return (u.Rec < v.Rec) end)
   SetOpVar("MODELNAM_FUNC", function(x) return " "..x:sub(2,2):upper() end)
@@ -3237,7 +3250,7 @@ function CacheQueryPiece(sModel)
       local coO , coA = makTab:GetColumnName(6), makTab:GetColumnName(7)
       for iCnt = 1, stData.Size do
         local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
-          asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
+          LogInstance("Sequential mismatch "..GetReport(iCnt,sModel)); return nil end
         if(not IsHere(RegisterPOA(stData,iCnt, qRec[coP], qRec[coO], qRec[coA]))) then
           LogInstance("Cannot process offset "..GetReport(iCnt, sModel)); return nil
         end
@@ -3281,7 +3294,7 @@ function CacheQueryAdditions(sModel)
       local coMo, coID = makTab:GetColumnName(1), makTab:GetColumnName(4)
       for iCnt = 1, stData.Size do
         local qRec = qData[iCnt]; qRec[coMo] = nil; if(iCnt ~= qRec[coID]) then
-          asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sModel)); return nil end
+          LogInstance("Sequential mismatch "..GetReport(iCnt,sModel)); return nil end
         stData[iCnt] = {}; for col, val in pairs(qRec) do stData[iCnt][col] = val end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
     elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
@@ -3328,6 +3341,37 @@ function ExportPanelDB(stPanel, bExp, makTab, sFunc)
 end
 
 --[[
+ * Updates panel category to dedicated hash
+ * stPanel > The actual panel information to export
+]]
+function UpdatePanelCategory(stPanel)
+  local tCat = GetOpVar("TABLE_CATEGORIES")
+  for iCnt = 1, stPanel.Size do local vRec = stPanel[iCnt]
+    -- Register the category if definition functional is given
+    if(tCat[vRec.T]) then -- There is a category definition
+      local bS, vC, vN = pcall(tCat[vRec.T].Cmp, sMod)
+      if(bS) then -- When the call is successful in protected mode
+        if(vN and not IsBlank(vN)) then
+          vRec.N = GetBeautifyName(vN)
+        end -- Custom name override when the addon requests
+        if(IsBlank(vC)) then vC = nil end
+        if(IsHere(vC)) then
+          if(not istable(vC)) then vC = {tostring(vC or "")} end
+          vRec.C = vC -- Make output category to point to local one
+          for iD = 1, #vC do -- Create category tree path
+            local vC[iD] = tostring(vC[iD] or ""):lower():Trim()
+            if(IsBlank(vC[iD])) then vC[iD] = "other" end
+            vC[iD] = GetBeautifyName(vC[iD]) -- Beautify the category
+          end -- When the category has at least one element
+        end -- Is there is any category apply it. When available process it now
+      else -- When there is an error in the category execution report it
+        LogInstance("Category "..GetReport(vRec.T, vRec.M).." execution error: "..vC,sLog)
+      end -- Category factory has been executed and sub-folders are created
+    end -- Category definition has been processed and nothing more to be done
+  end; tableSort(stPanel, GetOpVar("VCOMPARE_SPAN")); return stPanel
+end
+
+--[[
  * Caches the data needed to populate the CPanel tree
  * bExp > Export panel data into a DB file
 ]]
@@ -3343,10 +3387,13 @@ function CacheQueryPanel(bExp)
   if(IsHere(stPanel) and IsHere(stPanel.Size)) then LogInstance("Retrieve")
     if(stPanel.Size <= 0) then stPanel = nil else
       stPanel = makTab:TimerRestart(sFunc, keyPan) end
-    return ExportPanelDB(stPanel, bExp, makTab, sFunc)
+    return stPanel
   else
-    libCache[keyPan] = {}; stPanel = libCache[keyPan]
+    local coMo = makTab:GetColumnName(1)
+    local coTy = makTab:GetColumnName(2)
+    local coNm = makTab:GetColumnName(3)
     local sMoDB = GetOpVar("MODE_DATABASE")
+    libCache[keyPan] = {}; stPanel = libCache[keyPan]
     if(sMoDB == "SQL") then
       local qIndx = qsKey:format(sFunc,"")
       local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
@@ -3358,23 +3405,22 @@ function CacheQueryPanel(bExp)
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found "..GetReport(Q)); return nil end
       stPanel.Size = #qData -- Store the amount of SQL rows
-      for iCnt = 1, stPanel.Size do stPanel[iCnt] = qData[iCnt] end
+      for iCnt = 1, stPanel.Size do local qRow = qData[iCnt]
+        stPanel[iCnt] = {M = qRow[coMo], T = qRow[coTy], N = qRow[coNm]}
+      end
       stPanel = makTab:TimerAttach(sFunc, keyPan)
-      return ExportPanelDB(stPanel, bExp, makTab, sFunc)
+      return UpdatePanelCategory(ExportPanelDB(stPanel, bExp, makTab, sFunc))
     elseif(sMoDB == "LUA") then
       local tCache = libCache[defTab.Name] -- Sort directly by the model
       local tSort  = PrioritySort(tCache, "Type", "Slot"); if(not tSort) then
         LogInstance("Cannot sort cache data"); return nil end
-      local coMo = makTab:GetColumnName(1)
-      local coTy = makTab:GetColumnName(2)
-      local coNm = makTab:GetColumnName(3)
       for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
         local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
-        vPanel[coMo] = vSort.Key
-        vPanel[coTy] = vSort.Rec.Type
-        vPanel[coNm] = vSort.Rec.Name
+        vPanel.M = vSort.Key
+        vPanel.T = vSort.Rec.Type
+        vPanel.N = vSort.Rec.Name
       end; stPanel.Size = tSort.Size -- Store the amount sort rows
-      return ExportPanelDB(stPanel, bExp, makTab, sFunc)
+      return UpdatePanelCategory(ExportPanelDB(stPanel, bExp, makTab, sFunc))
     else LogInstance("Unsupported mode "..GetReport(sMoDB)); return nil end
   end
 end
@@ -3421,7 +3467,7 @@ function CacheQueryProperty(sType)
         stName.Slot, stName.Size = sType, #qData
         for iCnt = 1, stName.Size do
           local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
-            asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iCnt,sType)); return nil end
+            LogInstance("Sequential mismatch "..GetReport(iCnt,sType)); return nil end
           stName[iCnt] = qRec[coNm] -- Properties are stored as arrays of strings
         end
         LogInstance("Save >> "..GetReport(sType, keyName))
