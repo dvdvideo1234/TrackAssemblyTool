@@ -717,7 +717,7 @@ function InitBase(sName, sPurp)
     local uC = (u.C or {})
     local vC = (v.C or {})
     local uM, vM = #uC, #vC
-    for i = 1, math.max(uM, vM) do
+    for i = 1, mathMax(uM, vM) do
       local uS = tostring(uC[i] or "")
       local vS = tostring(vC[i] or "")
       if(uS ~= vS) then return uS < vS end
@@ -3305,67 +3305,63 @@ end
 ----------------------- PANEL QUERY -------------------------------
 
 --[[
- * Exports panel information to dedicated DB file
- * stPanel > The actual panel information to export
- * bExp    > Export panel data into a DB file
- * makTab  > Table maker object
+ * Export tool panel contents as a sync file
+ * stPanel > The actual tool panel information handled
  * sFunc   > Export requestor ( CacheQueryPanel )
+ * bExp    > Control flag. Export when enabled
 ]]
-function ExportPanelDB(stPanel, bExp, makTab, sFunc)
-  if(bExp) then
-    local sMiss = GetOpVar("MISS_NOAV")
-    local sBase = GetOpVar("DIRPATH_BAS")
-    local sExpo = GetOpVar("DIRPATH_EXP")
-    local sMoDB = GetOpVar("MODE_DATABASE")
-    local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
-    if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
-    local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
-    local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
-      LogInstance("Open fail "..GetReport(fName)); return stPanel end
-    F:Write("# "..sFunc..":("..tostring(bExp)..") "..GetDateTime().." [ "..sMoDB.." ]\n")
-    local coMo = makTab:GetColumnName(1)
-    local coTy = makTab:GetColumnName(2)
-    local coNm = makTab:GetColumnName(3)
-    for iCnt = 1, stPanel.Size do
-      local vPanel = stPanel[iCnt]
-      local sM, sT, sN = vPanel[coMo], vPanel[coTy], vPanel[coNm]
-      if(not cT or cT ~= sT) then -- Category has been changed
-        F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
-        F:Write("\n"); cT = sT -- Cache category name
-      end -- Otherwise just write down the piece active point
-      F:Write("\""..sM.."\""..symSep)
-      F:Write("\""..sT.."\""..symSep)
-      F:Write("\""..sN.."\""); F:Write("\n")
-    end; F:Flush(); F:Close()
-  end; return stPanel
+local function DumpCategory(stPanel, sFunc, bExp)
+  if(SERVER) then return stPanel end
+  if(not bExp) then return stPanel end
+  local sFunc  = tostring(sFunc or "")
+  local sMiss = GetOpVar("MISS_NOAV")
+  local sBase = GetOpVar("DIRPATH_BAS")
+  local sExpo = GetOpVar("DIRPATH_EXP")
+  local sMoDB = GetOpVar("MODE_DATABASE")
+  local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
+  if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
+  local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
+  local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
+    LogInstance("Open fail "..GetReport(fName)); return stPanel end
+  F:Write("# "..sFunc..":("..stPanel.Size..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+  for iCnt = 1, stPanel.Size do
+    local vRec = stPanel[iCnt]
+    local sM, sT, sN = vRec.M, vRec.T, vRec.N
+    if(not cT or cT ~= sT) then -- Category has been changed
+      F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
+      F:Write("\n"); cT = sT -- Cache category name
+    end -- Otherwise just write down the piece active point
+    F:Write("\""..sM.."\""..symSep)
+    F:Write("\""..sT.."\""..symSep)
+    F:Write("\""..sN.."\""); F:Write("\n")
+  end; F:Flush(); F:Close(); return stPanel
 end
 
 --[[
  * Updates panel category to dedicated hash
- * stPanel > The actual panel information to export
+ * stPanel > The actual panel information to populate
 ]]
-function UpdatePanelCategory(stPanel)
+local function SortCategory(stPanel)
   local tCat = GetOpVar("TABLE_CATEGORIES")
   for iCnt = 1, stPanel.Size do local vRec = stPanel[iCnt]
     -- Register the category if definition functional is given
     if(tCat[vRec.T]) then -- There is a category definition
-      local bS, vC, vN = pcall(tCat[vRec.T].Cmp, sMod)
+      local bS, vC, vN = pcall(tCat[vRec.T].Cmp, vRec.M)
       if(bS) then -- When the call is successful in protected mode
-        if(vN and not IsBlank(vN)) then
-          vRec.N = GetBeautifyName(vN)
-        end -- Custom name override when the addon requests
+        if(vN and not IsBlank(vN)) then vRec.N = GetBeautifyName(vN) end
+        -- Custom name override when the addon requests
         if(IsBlank(vC)) then vC = nil end
         if(IsHere(vC)) then
           if(not istable(vC)) then vC = {tostring(vC or "")} end
-          vRec.C = vC -- Make output category to point to local one
-          for iD = 1, #vC do -- Create category tree path
-            local vC[iD] = tostring(vC[iD] or ""):lower():Trim()
+          vRec.C = vC; vC.Size = #vC -- Make output category to point to local one
+          for iD = 1, vC.Size do -- Create category tree path
+            vC[iD] = tostring(vC[iD] or ""):lower():Trim()
             if(IsBlank(vC[iD])) then vC[iD] = "other" end
             vC[iD] = GetBeautifyName(vC[iD]) -- Beautify the category
           end -- When the category has at least one element
         end -- Is there is any category apply it. When available process it now
       else -- When there is an error in the category execution report it
-        LogInstance("Category "..GetReport(vRec.T, vRec.M).." execution error: "..vC,sLog)
+        LogInstance("Process "..GetReport(vRec.T, vRec.M).." [[["..tCat[vRec.T].Txt.."]]] execution error: "..vC,sLog)
       end -- Category factory has been executed and sub-folders are created
     end -- Category definition has been processed and nothing more to be done
   end; tableSort(stPanel, GetOpVar("VCOMPARE_SPAN")); return stPanel
@@ -3408,19 +3404,19 @@ function CacheQueryPanel(bExp)
       for iCnt = 1, stPanel.Size do local qRow = qData[iCnt]
         stPanel[iCnt] = {M = qRow[coMo], T = qRow[coTy], N = qRow[coNm]}
       end
-      stPanel = makTab:TimerAttach(sFunc, keyPan)
-      return UpdatePanelCategory(ExportPanelDB(stPanel, bExp, makTab, sFunc))
+      SortCategory(stPanel)
+      DumpCategory(stPanel, sFunc, bExp)
+      return makTab:TimerAttach(sFunc, keyPan)
     elseif(sMoDB == "LUA") then
-      local tCache = libCache[defTab.Name] -- Sort directly by the model
-      local tSort  = PrioritySort(tCache, "Type", "Slot"); if(not tSort) then
-        LogInstance("Cannot sort cache data"); return nil end
-      for iCnt = 1, tSort.Size do stPanel[iCnt] = {}
-        local vSort, vPanel = tSort[iCnt], stPanel[iCnt]
-        vPanel.M = vSort.Key
-        vPanel.T = vSort.Rec.Type
-        vPanel.N = vSort.Rec.Name
-      end; stPanel.Size = tSort.Size -- Store the amount sort rows
-      return UpdatePanelCategory(ExportPanelDB(stPanel, bExp, makTab, sFunc))
+      local tCache, stPanel = libCache[defTab.Name], {Size = 0}
+      for mod, rec in pairs(tCache) do
+        local iCnt = stPanel.Size; iCnt = iCnt + 1
+        stPanel[iCnt] = {M = rec.Slot, T = rec.Type, N = rec.Name}
+        stPanel.Size = iCnt -- Store the amount of rows
+      end
+      SortCategory(stPanel)
+      DumpCategory(stPanel, sFunc, bExp)
+      return stPanel
     else LogInstance("Unsupported mode "..GetReport(sMoDB)); return nil end
   end
 end
