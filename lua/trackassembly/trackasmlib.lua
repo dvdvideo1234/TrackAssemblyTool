@@ -630,16 +630,18 @@ function SettingsLogs(sHash)
   local sKey = tostring(sHash or ""):upper():Trim()
   if(not (sKey == "SKIP" or sKey == "ONLY")) then
     LogInstance("Invalid "..GetReport(sKey)); return false end
-  local sBas, sSet = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_SET")
   local tLogs, lbNam = GetOpVar("LOG_"..sKey), GetOpVar("NAME_LIBRARY")
-  if(not tLogs) then LogInstance("Skip "..GetReport(sKey)); return false end
+  if(not tLogs) then LogInstance("Missing "..GetReport(sKey)); return false end
+  local sBas, sSet = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_SET")
   local fName = (sBas..sSet..lbNam.."_sl"..sKey:lower()..".txt")
+  if(not fileExists(fName)) then
+    LogInstance("Discard "..GetReport(sKey, fName)); return false end
   local S = fileOpen(fName, "rb", "DATA"); tableEmpty(tLogs)
-  if(S) then local sLine, isEOF = "", false
-    while(not isEOF) do sLine, isEOF = GetStringFile(S)
-      if(not IsBlank(sLine)) then tableInsert(tLogs, sLine) end
-    end; S:Close(); LogInstance("Success "..GetReport(sKey, fName)); return false
-  else LogInstance("Missing "..GetReport(sKey, fName)); return false end
+  if(not S) then LogInstance("Failure "..GetReport(sKey, fName)); return false end
+  local sLine, isEOF = "", false
+  while(not isEOF) do sLine, isEOF = GetStringFile(S)
+    if(not IsBlank(sLine)) then tableInsert(tLogs, sLine) end
+  end; S:Close(); LogInstance("Success "..GetReport(sKey, fName)); return false
 end
 
 function InitBase(sName, sPurp)

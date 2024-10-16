@@ -2363,8 +2363,7 @@ function TOOL.BuildCPanel(CPanel)
     local iRox = pNode[iR]
     local vRec = qPanel[iRox]
     local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
-    local pRoot = pTypes[sTyp]
-    asmlib.SetDirectoryNode(pRoot, sNam, sMod)
+    asmlib.SetDirectoryNode(pTypes[sTyp], sNam, sMod)
     asmlib.LogInstance("Rooting item "..asmlib.GetReport(sTyp, sNam, sMod), sLog)
   end -- Process all the items without category defined
   asmlib.LogInstance("Found items #"..qPanel.Size, sLog)
