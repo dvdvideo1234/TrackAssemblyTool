@@ -641,7 +641,7 @@ function SettingsLogs(sHash)
   local sLine, isEOF = "", false
   while(not isEOF) do sLine, isEOF = GetStringFile(S)
     if(not IsBlank(sLine)) then tableInsert(tLogs, sLine) end
-  end; S:Close(); LogInstance("Success "..GetReport(sKey, fName)); return false
+  end; S:Close(); LogInstance("Success "..GetReport(sKey, fName)); return true
 end
 
 function InitBase(sName, sPurp)
@@ -2303,6 +2303,7 @@ end
  * If these conditions are not met the function returns missing token
  * sBas > The string to check whenever it is disabled or missing
  * fEmp > Defines that the value is to be replaced by something else
+ * ...  > When missing acts like empty check otherwise picks a value
 ]]
 function GetEmpty(sBas, fEmp, ...)
   local sS, fE = tostring(sBas or ""), fEmp -- Default to string

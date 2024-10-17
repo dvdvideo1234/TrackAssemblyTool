@@ -2317,12 +2317,12 @@ function TOOL.BuildCPanel(CPanel)
   pTree:UpdateColours(drmSkin) -- Apply current skin
   CPanel:AddItem(pTree) -- Register it to the panel
   local defTable = makTab:GetDefinition()
-  local pTypes, pCateg, pNode = {}, {}, {Size = 0}
+  local tType, tCats, tRoot = {}, {}, {Size = 0}
   for iC = 1, qPanel.Size do
     local vRec, bNow = qPanel[iC], true
     local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
     if(asmlib.IsModel(sMod)) then
-      if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
+      if(not (asmlib.IsBlank(sTyp) or tType[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
@@ -2335,12 +2335,12 @@ function TOOL.BuildCPanel(CPanel)
                 else SetClipboardText(pRoot:GetText()) end
               end
               pRoot:UpdateColours(drmSkin)
-        pTypes[sTyp] = pRoot
+        tType[sTyp] = pRoot
       end -- Reset the primary tree node pointer
-      if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
+      if(tType[sTyp]) then pItem = tType[sTyp] else pItem = pTree end
       -- Register the node associated with the track piece when is intended for later
-      local pCur = pCateg[sTyp]; if(not asmlib.IsHere(pCur)) then
-        pCateg[sTyp] = {}; pCur = pCateg[sTyp] end -- Create category tree path
+      local pCur = tCats[sTyp]; if(not asmlib.IsHere(pCur)) then
+        tCats[sTyp] = {}; pCur = tCats[sTyp] end -- Create category tree path
       if(vRec.C) then -- When category for the track type is available
         for iD = 1, vRec.C.Size do -- Generate the path to the track piece
           local sCat = vRec.C[iD] -- Read the category name
@@ -2350,20 +2350,20 @@ function TOOL.BuildCPanel(CPanel)
             pCur, pItem = asmlib.SetDirectory(pItem, pCur, sCat)
           end -- Create the last needed node regarding pItem
         end -- When the category has at least one element
-      else
-        pNode.Size = pNode.Size + 1
-        tableInsert(pNode, iC); bNow = false
-      end
+      else -- Panel cannot categorize the entry add it to the list
+        tRoot.Size = tRoot.Size + 1 -- Increment count to avoid calling #
+        tableInsert(tRoot, iC); bNow = false -- Attach row ID to rooted items
+      end -- When needs to be processed now just attach it to the tree
       if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport(sTyp, sNam, sMod),sLog) end
   end
   -- Attach the hanging items to the type root
-  for iR = 1, pNode.Size do
-    local iRox = pNode[iR]
+  for iR = 1, tRoot.Size do
+    local iRox = tRoot[iR]
     local vRec = qPanel[iRox]
     local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
-    asmlib.SetDirectoryNode(pTypes[sTyp], sNam, sMod)
+    asmlib.SetDirectoryNode(tType[sTyp], sNam, sMod)
     asmlib.LogInstance("Rooting item "..asmlib.GetReport(sTyp, sNam, sMod), sLog)
   end -- Process all the items without category defined
   asmlib.LogInstance("Found items #"..qPanel.Size, sLog)
@@ -2403,20 +2403,20 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetTall(22)
         pComboPhysName:UpdateColours(drmSkin)
 
-  local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
+  local qProperty = asmlib.CacheQueryProperty(); if(not qProperty) then
     asmlib.LogInstance("Property population empty",sLog); return end
 
-  for iP = 1, cqProperty.Size do
-    local sT, sI = cqProperty[iP], asmlib.ToIcon("property_type")
+  for iP = 1, qProperty.Size do
+    local sT, sI = qProperty[iP], asmlib.ToIcon("property_type")
     pComboPhysType:AddChoice(sT, sT, false, sI)
   end
 
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
-    local cqNames = asmlib.CacheQueryProperty(sVal)
-    if(cqNames) then pComboPhysName:Clear()
+    local qNames = asmlib.CacheQueryProperty(sVal)
+    if(qNames) then pComboPhysName:Clear()
       pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
-      for iNam = 1, cqNames.Size do
-        local sN, sI = cqNames[iNam], asmlib.ToIcon("property_name")
+      for iNam = 1, qNames.Size do
+        local sN, sI = qNames[iNam], asmlib.ToIcon("property_name")
         pComboPhysName:AddChoice(sN, sN, false, sI)
       end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
@@ -2425,7 +2425,7 @@ function TOOL.BuildCPanel(CPanel)
   cvarsRemoveChangeCallback(sName, sName..sCall)
   cvarsAddChangeCallback(sName, function(sV, vO, vN)
     pComboPhysName:SetValue(vN) end, sName..sCall);
-  asmlib.LogTable(cqProperty, "Property", sLog)
+  asmlib.LogTable(qProperty, "Property", sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
