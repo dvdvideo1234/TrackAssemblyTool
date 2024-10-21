@@ -634,7 +634,7 @@ function SettingsLogs(sHash)
   if(not tLogs) then LogInstance("Missing "..GetReport(sKey)); return false end
   local sBas, sSet = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_SET")
   local fName = (sBas..sSet..lbNam.."_sl"..sKey:lower()..".txt")
-  if(not fileExists(fName)) then
+  if(not fileExists(fName, "DATA")) then
     LogInstance("Discard "..GetReport(sKey, fName)); return false end
   local S = fileOpen(fName, "rb", "DATA"); tableEmpty(tLogs)
   if(not S) then LogInstance("Failure "..GetReport(sKey, fName)); return false end
@@ -722,7 +722,11 @@ function InitBase(sName, sPurp)
     for i = 1, mathMax(uM, vM) do
       local uS = tostring(uC[i] or "")
       local vS = tostring(vC[i] or "")
-      if(uS ~= vS) then return uS < vS end
+      if(uS ~= vS) then
+        if(uS == "") then return false end
+        if(vS == "") then return true end
+        return uS < vS
+      end
     end
     if(u.N ~= v.N) then return u.N < v.N end
     if(u.M ~= v.M) then return u.M < v.M end
@@ -3151,7 +3155,7 @@ function NewTable(sTable,defTab,bDelete,bReload)
             LogInstance("Table create index fail "..GetReport(sqlLastError(), iQ, qInx), tabDef.Nick)
             return self:Remove(false) -- Clear table when index is not created
           end -- Check when the index query has passed
-          LogInstance("Table create index: "..v,tabDef.Nick)
+          LogInstance("Table create index: "..qInx,tabDef.Nick)
         end
       else
         LogInstance("Table create check fail "..GetReport(sqlLastError(), tQ.CREATE), tabDef.Nick)
@@ -3649,7 +3653,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
     LogInstance("("..fPref..")("..fName..") Open fail",sTable); return false end
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
-  if(sMoDB == "SQL") then sqlQuery(cmdTab.Begin)
+  if(sMoDB == "SQL") then sqlQuery(cmdTab.BEGIN)
     LogInstance("("..fPref..") Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
@@ -3660,7 +3664,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
       end
     end
   end; F:Close()
-  if(sMoDB == "SQL") then sqlQuery(cmdTab.Commit)
+  if(sMoDB == "SQL") then sqlQuery(cmdTab.COMMIT)
     LogInstance("("..fPref..") Commit",sTable)
   end; LogInstance("("..fPref..") Success",sTable); return true
 end
