@@ -802,7 +802,6 @@ function InitBase(sName, sPurp)
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("CLIPBOARD_TEXT","")
-    SetOpVar("TREE_KEYPANEL","#$@KEY&*PAN*&OBJ@$#")
   end; LogInstance("Success"); return true
 end
 
@@ -1709,17 +1708,6 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   LogInstance("Updated "..GetReport(frUsed.Size)); return true
 end
 
-function GetDirectory(pCurr, vName)
-  if(not pCurr) then
-    LogInstance("Location invalid"); return nil end
-  local keyOb = GetOpVar("TREE_KEYPANEL")
-  local sName = tostring(vName or "")
-        sName = IsBlank(sName) and "Other" or sName
-  local pItem = pCurr[sName]; if(not IsHere(pItem)) then
-    LogInstance("Name missing "..GetReport(sName)); return nil end
-  return pItem, pItem[keyOb]
-end
-
 function SetExpandNode(pnBase)
   local bEx = pnBase:GetExpanded()
   if(inputIsKeyDown(KEY_LSHIFT)) then
@@ -1729,18 +1717,14 @@ function SetExpandNode(pnBase)
   end
 end
 
-function SetDirectory(pnBase, pCurr, vName)
+function SetDirectory(pnBase, vName)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
-  if(not pCurr) then
-    LogInstance("Location invalid"); return nil end
   local tSkin = pnBase:GetSkin()
   local sTool = GetOpVar("TOOLNAME_NL")
-  local keyOb = GetOpVar("TREE_KEYPANEL")
   local sName = tostring(vName or "")
         sName = (IsBlank(sName) and "Other" or sName)
   local pNode = pnBase:AddNode(sName)
-  pCurr[sName] = {}; pCurr[sName][keyOb] = pNode
   pNode:SetTooltip(languageGetPhrase("tool."..sTool..".subfolder"))
   pNode.Icon:SetImage(ToIcon("subfolder_item"))
   pNode.DoClick = function() SetExpandNode(pNode) end
@@ -1749,7 +1733,7 @@ function SetDirectory(pnBase, pCurr, vName)
     SetClipboardText(pNode:GetText())
   end
   pNode:UpdateColours(tSkin)
-  return pCurr[sName], pNode
+  return pNode
 end
 
 function SetDirectoryNode(pnBase, sName, sModel)
