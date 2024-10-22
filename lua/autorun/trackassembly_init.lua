@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.774")
+asmlib.SetOpVar("TOOL_VERSION","8.776")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -232,6 +232,30 @@ local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
       conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
       conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
+
+local conTreeRghClick = asmlib.GetContainer("TREE_VGUI") -- True for folders, false for content, nil for both
+      conTreeRghClick:Push({"tree_itmenu_cpmod", false, function(pnBase) SetClipboardText(pnBase.Content) end})
+      conTreeRghClick:Push({"tree_itmenu_cpnam", nil , function(pnBase) SetClipboardText(pnBase:GetText()) end})
+      conTreeRghClick:Push({"tree_itmenu_cppth", nil ,
+          function(pnBase)
+            local pT, sP = asmlib.GetNodeTypeRoot(pnBase)
+            SetClipboardText(sP)
+          end
+        })
+      conTreeRghClick:Push({"tree_itmenu_cpwid", nil,
+          function(pnBase)
+            local pT, sP = asmlib.GetNodeTypeRoot(pnBase)
+            SetClipboardText(asmlib.WorkshopID(pT:GetText()))
+          end
+        })
+      conTreeRghClick:Push({"tree_itmenu_expnd", true, asmlib.SetNodeExpand})
+      conTreeRghClick:Push({"tree_itmenu_opwid", nil  ,
+          function(pnBase)
+            local pT, sP = asmlib.GetNodeTypeRoot(pnBase)
+            local sID = asmlib.WorkshopID(pT:GetText())
+            guiOpenURL(asmlib.GetOpVar("FORM_URLADDON"):format(sID))
+          end
+        })
 
 ------------ CALLBACKS ------------
 
@@ -455,11 +479,17 @@ if(CLIENT) then
     else asmlib.LogInstance("Admin: "..asmlib.GetReport(pAdmn.Name), sLog) end
   end, gsToolPrefL.."lang")
 
-  -- http://www.famfamfam.com/lab/icons/silk/preview.php
+  -- https://wiki.facepunch.com/gmod/Silkicons
   asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
+  asmlib.ToIcon("tree_itmenu_expnd", "arrow_inout"     )
+  asmlib.ToIcon("tree_itmenu_cpnam", "script_go"       )
+  asmlib.ToIcon("tree_itmenu_cppth", "map_go"          )
+  asmlib.ToIcon("tree_itmenu_cpmod", "brick_go"        )
+  asmlib.ToIcon("tree_itmenu_cpwid", "key_go"          )
+  asmlib.ToIcon("tree_itmenu_opwid", "door_open"       )
   asmlib.ToIcon("subfolder_item"   , "folder"          )
   asmlib.ToIcon("pn_externdb_bt1"  , "database"        )
   asmlib.ToIcon("pn_externdb_bt2"  , "folder_database" )

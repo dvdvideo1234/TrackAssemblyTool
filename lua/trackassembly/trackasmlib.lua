@@ -66,6 +66,7 @@ local EntityID                       = Entity
 local tonumber                       = tonumber
 local tostring                       = tostring
 local GetConVar                      = GetConVar
+local DermaMenu                      = DermaMenu
 local LocalPlayer                    = LocalPlayer
 local CreateConVar                   = CreateConVar
 local RunConsoleCommand              = RunConsoleCommand
@@ -1712,7 +1713,51 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   LogInstance("Updated "..GetReport(frUsed.Size)); return true
 end
 
-function SetExpandNode(pnBase)
+function GetNodeTypeRoot(pnBase)
+  if(not IsValid(pnBase)) then
+    LogInstance("Base panel invalid"); return nil end
+  local pC, sP, pT = pnBase, "", nil
+  while(not pC:IsRootNode()) do
+    sP = " > "..pC:GetText()..sP
+    pT = pC; pC = pC:GetParentNode()
+  end; return pT, sP:sub(4, -1)
+end
+
+function OpenNodeMenu(pnBase)
+  if(not IsValid(pnBase)) then
+    LogInstance("Base panel invalid"); return nil end
+  local pMenu = DermaMenu(false, pnBase)
+  if(not IsValid(pMenu)) then
+    LogInstance("Base menu invalid"); return nil end
+  local cMenu = GetContainer("TREE_VGUI")
+  local sT = GetOpVar("TOOLNAME_NL")
+  local pT = GetNodeTypeRoot(pnBase)
+  local sID = WorkshopID(pT:GetText())
+  for iD = 1, cMenu:GetSize() do
+    local val = cMenu:Select(iD)
+    local nam, roo, fnc = val[1], val[2], val[3]
+    if(roo == nil or -- Available for both folder and node
+      (roo == false and pnBase.Content) or -- Node only
+      (roo == true and not pnBase.Content)) -- Folder only
+    then -- True for folders, false for content, nil for both
+      if(sID ~= nil or (sID == nil and nam:sub(-3, -1) ~= "wid")) then
+        local key = "tool."..sT.."."..nam
+        local pO = pMenu:AddOption(languageGetPhrase(key),
+          function()
+            local bS, vO = pcall(fnc, pnBase); if(not bS) then
+              LogInstance("Execute error: "..GetReport(iD, nam, vO)); return nil end
+          end)
+        if(not IsValid(pO)) then
+          LogInstance("Option invalid "..GetReport(iD, nam)); return nil end
+        pO:SetIcon(ToIcon(nam))
+      end
+    end
+  end; pMenu:Open()
+end
+
+function SetNodeExpand(pnBase)
+  if(not IsValid(pnBase)) then
+    LogInstance("Base panel invalid"); return nil end
   local bEx = pnBase:GetExpanded()
   if(inputIsKeyDown(KEY_LSHIFT)) then
     pnBase:ExpandRecurse(not bEx)
@@ -1721,7 +1766,7 @@ function SetExpandNode(pnBase)
   end
 end
 
-function SetDirectory(pnBase, vName)
+function SetNodeDirectory(pnBase, vName)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
   local tSkin = pnBase:GetSkin()
@@ -1731,16 +1776,14 @@ function SetDirectory(pnBase, vName)
   local pNode = pnBase:AddNode(sName)
   pNode:SetTooltip(languageGetPhrase("tool."..sTool..".subfolder"))
   pNode.Icon:SetImage(ToIcon("subfolder_item"))
-  pNode.DoClick = function() SetExpandNode(pNode) end
-  pNode.Expander.DoClick = function() SetExpandNode(pNode) end
-  pNode.DoRightClick = function()
-    SetClipboardText(pNode:GetText())
-  end
+  pNode.DoClick = function() SetNodeExpand(pNode) end
+  pNode.Expander.DoClick = function() SetNodeExpand(pNode) end
+  pNode.DoRightClick = function() OpenNodeMenu(pNode) end
   pNode:UpdateColours(tSkin)
   return pNode
 end
 
-function SetDirectoryNode(pnBase, sName, sModel)
+function SetNodeElement(pnBase, sName, sModel)
   if(not IsValid(pnBase)) then LogInstance("Base invalid "
     ..GetReport(sName, sModel)); return nil end
   local pNode = pnBase:AddNode(sName)
@@ -1749,11 +1792,8 @@ function SetDirectoryNode(pnBase, sName, sModel)
   local tSkin = pnBase:GetSkin()
   local sTool = GetOpVar("TOOLNAME_NL")
   local sModC = languageGetPhrase("tool."..sTool..".model_con")
-  pNode.DoRightClick = function()
-    if(inputIsKeyDown(KEY_LSHIFT)) then
-      SetClipboardText(sModel)
-    else SetClipboardText(sName) end
-  end
+  pNode.DoRightClick = function() OpenNodeMenu(pNode) end
+  pNode.Content = sModel
   pNode:SetTooltip(sModC.." "..sModel)
   pNode.Icon:SetImage(ToIcon("model"))
   pNode.DoClick = function(pnSelf)
@@ -3240,7 +3280,7 @@ function CacheQueryPiece(sModel)
       local coID, coP = makTab:GetColumnName(4), makTab:GetColumnName(5)
       local coO , coA = makTab:GetColumnName(6), makTab:GetColumnName(7)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
+        local qRec = qData[iCnt]; if(iCnt ~= tonumber(qRec[coID])) then
           LogInstance("Sequential mismatch "..GetReport(iCnt,sModel)); return nil end
         if(not IsHere(RegisterPOA(stData,iCnt, qRec[coP], qRec[coO], qRec[coA]))) then
           LogInstance("Cannot process offset "..GetReport(iCnt, sModel)); return nil
@@ -3284,7 +3324,7 @@ function CacheQueryAdditions(sModel)
       stData.Slot, stData.Size = sModel, #qData
       local coMo, coID = makTab:GetColumnName(1), makTab:GetColumnName(4)
       for iCnt = 1, stData.Size do
-        local qRec = qData[iCnt]; qRec[coMo] = nil; if(iCnt ~= qRec[coID]) then
+        local qRec = qData[iCnt]; qRec[coMo] = nil; if(iCnt ~= tonumber(qRec[coID])) then
           LogInstance("Sequential mismatch "..GetReport(iCnt,sModel)); return nil end
         stData[iCnt] = {}; for col, val in pairs(qRec) do stData[iCnt][col] = val end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
@@ -3453,7 +3493,7 @@ function CacheQueryProperty(sType)
         local coID, coNm = makTab:GetColumnName(2), makTab:GetColumnName(3)
         stName.Slot, stName.Size = sType, #qData
         for iCnt = 1, stName.Size do
-          local qRec = qData[iCnt]; if(iCnt ~= qRec[coID]) then
+          local qRec = qData[iCnt]; if(iCnt ~= tonumber(qRec[coID])) then
             LogInstance("Sequential mismatch "..GetReport(iCnt,sType)); return nil end
           stName[iCnt] = qRec[coNm] -- Properties are stored as arrays of strings
         end
