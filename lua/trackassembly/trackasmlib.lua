@@ -1783,7 +1783,7 @@ function SetNodeDirectory(pnBase, vName)
   return pNode
 end
 
-function SetNodeElement(pnBase, sName, sModel)
+function SetNodeContent(pnBase, sName, sModel)
   if(not IsValid(pnBase)) then LogInstance("Base invalid "
     ..GetReport(sName, sModel)); return nil end
   local pNode = pnBase:AddNode(sName)

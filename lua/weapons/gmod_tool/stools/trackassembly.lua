@@ -2353,7 +2353,7 @@ function TOOL.BuildCPanel(CPanel)
         tRoot.Size = tRoot.Size + 1 -- Increment count to avoid calling #
         tableInsert(tRoot, iC); bNow = false -- Attach row ID to rooted items
       end -- When needs to be processed now just attach it to the tree
-      if(bNow) then asmlib.SetNodeElement(pItem, sNam, sMod) end
+      if(bNow) then asmlib.SetNodeContent(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport(sTyp, sNam, sMod),sLog) end
   end
@@ -2362,7 +2362,7 @@ function TOOL.BuildCPanel(CPanel)
     local iRox = tRoot[iR]
     local vRec = qPanel[iRox]
     local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
-    asmlib.SetNodeElement(tType[sTyp].Base, sNam, sMod)
+    asmlib.SetNodeContent(tType[sTyp].Base, sNam, sMod)
     asmlib.LogInstance("Rooting item "..asmlib.GetReport(sTyp, sNam, sMod), sLog)
   end -- Process all the items without category defined
   asmlib.LogInstance("Found items #"..qPanel.Size, sLog)
