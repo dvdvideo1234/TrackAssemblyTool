@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.777")
+asmlib.SetOpVar("TOOL_VERSION","8.778")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -238,7 +238,7 @@ local conTreeRghClick = asmlib.GetContainer("TREE_VGUI") -- True for folders, fa
       conTreeRghClick:Push({"tree_itmenu_cpnam", nil , function(pnBase) SetClipboardText(pnBase:GetText()) end})
       conTreeRghClick:Push({"tree_itmenu_cppth", nil ,
           function(pnBase)
-            local pT, sP = asmlib.GetNodeTypeRoot(pnBase)
+            local pT, sP = asmlib.GetNodeTypeRoot(pnBase, 1)
             SetClipboardText(sP)
           end
         })

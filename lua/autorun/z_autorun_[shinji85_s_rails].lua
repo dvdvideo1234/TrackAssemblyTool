@@ -19,6 +19,9 @@ local asmlib = trackasmlib
 ]]
 local myAddon = "Shinji85's Rails" -- Your addon name goes here
 
+-- Log messages identifier. Leave DSV here or change it if you like
+local mySource = "DSV"
+
 --[[
  * Change this if you want to use different in-game type
  * You can also use multiple types myType1, myType2,
@@ -36,7 +39,7 @@ local myType = myAddon -- The type your addon resides in the tool with
  * https://wiki.facepunch.com/gmod/Global.ErrorNoHalt
  * https://wiki.facepunch.com/gmod/Global.ErrorNoHaltWithStack
 ]]
-local myError = ErrorNoHalt
+local Error = ErrorNoHaltWithStack
 
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix
@@ -45,7 +48,8 @@ local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix
 -- Do not touch this also, it is used for debugging
 local myScript = tostring(debug.getinfo(1).source or "N/A")
       myScript = "@"..myScript:gsub("^%W+", ""):gsub("\\","/")
-
+      mySource = tostring(mySource or ""):gsub("^%W+", "")
+      mySource = (asmlib.IsBlank(mySource) and "DSV" or mySource)
 --[[
  * This function defines what happens when there is an error present
  * Usually you can tell Gmod that you want it to generate an error
@@ -53,13 +57,13 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
  * have to change the function name in lots of places
  * when you need it to do something else.
 --]]
-local function myThrowError(vMesg)
+local function ThrowError(vMesg)
   local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Make sure the message is string
-  if(asmlib) then asmlib.LogInstance(sMesg) end; myError(sMesg) -- Output the message into the logs
+  if(asmlib) then asmlib.LogInstance(sMesg, mySource) end; Error(sMesg.."\n") -- Output the message into the logs
 end
 
 -- There is something to error about stop the execution and report it
-if(not asmlib) then myThrowError("Failed loading the required module!"); return end
+if(not asmlib) then ThrowError("Failed loading the required module!"); return end
 
 --[[
  * This logic statement is needed for reporting the error
@@ -80,18 +84,19 @@ if(not asmlib) then myThrowError("Failed loading the required module!"); return 
  * sPref  > An export file custom prefix. For synchronizing it must be related to your addon
  * sDelim > The delimiter used by the server/client ( default is a tab symbol )
 ]]--
-local function mySyncTable(sName, tData, bRepl)
+local function SyncTable(sName, tData, bRepl)
+  local sRep = asmlib.GetReport(myPrefix, sName) -- Generate report if error is present
   if(not asmlib.IsEmpty(tData)) then -- Something to be processed. Do stuff when the table is not empty
-    asmlib.LogInstance("SynchronizeDSV START <"..myPrefix..">") -- Signal start synchronization
+    asmlib.LogInstance("Synchronization START "..sRep, mySource) -- Signal start synchronization
     if(not asmlib.SynchronizeDSV(sName, tData, bRepl, myPrefix)) then -- Attempt to synchronize
-      myThrowError("Failed to synchronize: "..sName) -- Raise error when fails to sync tracks data
+      ThrowError("Failed to synchronize content") -- Raise error when fails to sync tracks data
     else -- Successful. You are saving me from all the work for manually generating these
-      asmlib.LogInstance("TranslateDSV START <"..myPrefix..">") -- Signal start translation
+      asmlib.LogInstance("Translation START "..sRep, mySource) -- Signal start translation
       if(not asmlib.TranslateDSV(sName, myPrefix)) then -- Attempt to translate the DSV to Lua source
-        myThrowError("Failed to translate DSV: "..sName) end -- Raise error when fails
-      asmlib.LogInstance("TranslateDSV OK <"..myPrefix..">") -- Translation is successful
+        ThrowError("Failed to translate content") end -- Raise error when fails
+      asmlib.LogInstance("Translation OK "..sRep, mySource) -- Translation is successful
     end -- Now we have Lua inserts and DSV. Otherwise sent empty table and print status in logs
-  else asmlib.LogInstance("SynchronizeDSV EMPTY <"..myPrefix..">") end -- Nothing to be done
+  else asmlib.LogInstance("Synchronization EMPTY "..sRep, mySource) end -- Nothing to be done
 end
 
 --[[
@@ -106,15 +111,16 @@ end
  * sDelim > The delimiter to be used for processing ( default tab )
  * bSkip  > Skip addition for the DSV prefix if exists ( default `false` )
 ]]--
-local function myRegisterDSV(bSkip)
-  asmlib.LogInstance("RegisterDSV START <"..myPrefix..">")
+local function RegisterDSV(bSkip)
+  local sRep = asmlib.GetReport(myPrefix, bSkip) -- Generate report if error is present
+  asmlib.LogInstance("Registration START "..sRep, mySource)
   if(bSkip) then -- Your DSV must be registered only once when loading for the first time
-    asmlib.LogInstance("RegisterDSV SKIP <"..myPrefix..">")
+    asmlib.LogInstance("Registration SKIP "..sRep, mySource)
   else -- If the locking file is not located that means this is the first run of your script
     if(not asmlib.RegisterDSV(myScript, myPrefix)) then -- Register the DSV prefix and check for error
-      myThrowError("Failed to register DSV") -- Throw the error if fails
+      ThrowError("Failed to register content") -- Throw the error if fails
     end -- Third argument is the delimiter. The default tab is used
-    asmlib.LogInstance("RegisterDSV OK <"..myPrefix..">")
+    asmlib.LogInstance("Registration OK "..sRep, mySource)
   end
 end
 
@@ -128,15 +134,16 @@ end
  * sPref  > An export file custom prefix. For synchronizing
  *          it must be related to your addon ( default is instance prefix )
 ]]--
-local function myExportCategory(tCatg)
-  asmlib.LogInstance("ExportCategory START <"..myPrefix..">")
+local function ExportCategory(tCatg)
+  local sRep = asmlib.GetReport(myPrefix, bSkip) -- Generate report if error is present
+  asmlib.LogInstance("Category export START "..sRep, mySource)
   if(CLIENT) then -- Category handling is client side only
     if(not asmlib.IsEmpty(tCatg)) then
       if(not asmlib.ExportCategory(3, tCatg, myPrefix)) then
-        myThrowError("Failed to synchronize category")
-      end; asmlib.LogInstance("ExportCategory OK <"..myPrefix..">")
-    else asmlib.LogInstance("ExportCategory SKIP <"..myPrefix..">") end
-  else asmlib.LogInstance("ExportCategory SERVER <"..myPrefix..">") end
+        ThrowError("Failed to synchronize category")
+      end; asmlib.LogInstance("Category export OK "..sRep, mySource)
+    else asmlib.LogInstance("Category export SKIP "..sRep, mySource) end
+  else asmlib.LogInstance("Category export SERVER "..sRep, mySource) end
 end
 
 -- Store a reference to disable symbol
@@ -162,13 +169,14 @@ local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
 local myFlag = file.Exists(myDsv, "DATA")
 
 -- Tell TA what custom script we just called don't touch it
-asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}")
+asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}", mySource)
 
 -- Register the addon to the workshop ID list
 asmlib.WorkshopID(myAddon, "326640186")
 
 -- Register the addon to the plugable DSV list
-myRegisterDSV(myFlag)
+local bS, vO = pcall(RegisterDSV, myFlag)
+if(not bS) then ThrowError("Retistration error: "..vO) end
 
 --[[
  * This is used if you want to make internal categories for your addon
@@ -195,7 +203,8 @@ local myCategory = {
 }
 
 -- Register the addon category to the plugable DSV list
-myExportCategory(myCategory)
+local bS, vO = pcall(ExportCategory, myCategory)
+if(not bS) then ThrowError("Category error: "..vO) end
 
 --[[
  * Create a table and populate it as shown below
@@ -344,7 +353,8 @@ local myPieces = {
 }
 
 -- Register the addon PIECES to the plugable DSV list
-mySyncTable("PIECES", myPieces, true)
+local bS, vO = pcall(SyncTable, "PIECES", myPieces, true)
+if(not bS) then ThrowError("PIECES error: "..vO) end
 
 --[[
  * Create a table and populate it as shown below
@@ -392,7 +402,8 @@ local myAdditions = {
 }
 
 -- Register the addon ADDITIONS to the plugable DSV list
-mySyncTable("ADDITIONS", myAdditions, true)
+local bS, vO = pcall(SyncTable, "ADDITIONS", myAdditions, true)
+if(not bS) then ThrowError("ADDITIONS error: "..vO) end
 
 --[[
  * Create a table and populate it as shown below
@@ -413,6 +424,7 @@ mySyncTable("ADDITIONS", myAdditions, true)
 local myPhysproperties = {}
 
 -- Register the addon PHYSPROPERTIES to the plugable DSV list
-mySyncTable("PHYSPROPERTIES", myPhysproperties, true)
+local bS, vO = pcall(SyncTable, "PHYSPROPERTIES", myPhysproperties, true)
+if(not bS) then ThrowError("PHYSPROPERTIES error: "..vO) end
 
-asmlib.LogInstance("<<< "..myScript)
+asmlib.LogInstance("<<< "..myScript, mySource)

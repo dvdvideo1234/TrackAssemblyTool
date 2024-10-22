@@ -807,6 +807,7 @@ function InitBase(sName, sPurp)
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("CLIPBOARD_TEXT","")
+    SetOpVar("FMNODE_PATH","%s>%s")
   end; LogInstance("Success"); return true
 end
 
@@ -1713,14 +1714,18 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
   LogInstance("Updated "..GetReport(frUsed.Size)); return true
 end
 
-function GetNodeTypeRoot(pnBase)
+function GetNodeTypeRoot(pnBase, iRep, sSym)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
   local pC, sP, pT = pnBase, "", nil
+  local sFmp = GetOpVar("FMNODE_PATH")
+  local sSym = tostring(sSym or " "):sub(1,1)
+  local sRep = sSym:rep(tonumber(iRep) or 0)
+  local sD = sFmp:format(sRep, sRep)
   while(not pC:IsRootNode()) do
-    sP = " > "..pC:GetText()..sP
+    sP = sD..pC:GetText()..sP
     pT = pC; pC = pC:GetParentNode()
-  end; return pT, sP:sub(4, -1)
+  end; return pT, sP:sub(sD:len()+1, -1)
 end
 
 function OpenNodeMenu(pnBase)
@@ -1767,17 +1772,22 @@ function SetNodeExpand(pnBase)
 end
 
 function SetNodeDirectory(pnBase, vName)
-  if(not IsValid(pnBase)) then
-    LogInstance("Base panel invalid"); return nil end
-  local tSkin = pnBase:GetSkin()
-  local sTool = GetOpVar("TOOLNAME_NL")
+  if(not IsValid(pnBase)) then LogInstance("Base invalid "
+    ..GetReport(pnBase, sName)); return nil end
   local sName = tostring(vName or "")
         sName = (IsBlank(sName) and "Other" or sName)
   local pNode = pnBase:AddNode(sName)
-  pNode:SetTooltip(languageGetPhrase("tool."..sTool..".subfolder"))
+  if(not IsValid(pNode)) then LogInstance("Node invalid "
+    ..GetReport(pnBase:GetText(), sName)); return nil end
+  local tSkin = pnBase:GetSkin()
+  local sTool = GetOpVar("TOOLNAME_NL")
+  local pRoot, sPath = GetNodeTypeRoot(pNode, 1)
+  local sCatC = languageGetPhrase("tool."..sTool..".subfolder_con")
+  pNode:SetTooltip(sCatC.." "..sPath)
   pNode.Icon:SetImage(ToIcon("subfolder_item"))
   pNode.DoClick = function() SetNodeExpand(pNode) end
   pNode.Expander.DoClick = function() SetNodeExpand(pNode) end
+  pNode.Expander:SetTooltip(languageGetPhrase("tool."..sTool..".subfolder"))
   pNode.DoRightClick = function() OpenNodeMenu(pNode) end
   pNode:UpdateColours(tSkin)
   return pNode
@@ -1785,10 +1795,10 @@ end
 
 function SetNodeContent(pnBase, sName, sModel)
   if(not IsValid(pnBase)) then LogInstance("Base invalid "
-    ..GetReport(sName, sModel)); return nil end
+    ..GetReport(pnBase, sName, sModel)); return nil end
   local pNode = pnBase:AddNode(sName)
   if(not IsValid(pNode)) then LogInstance("Node invalid "
-    ..GetReport(sName, sModel)); return nil end
+    ..GetReport(pnBase:GetText(), sName, sModel)); return nil end
   local tSkin = pnBase:GetSkin()
   local sTool = GetOpVar("TOOLNAME_NL")
   local sModC = languageGetPhrase("tool."..sTool..".model_con")
@@ -2312,6 +2322,7 @@ end
 function PrioritySort(tSrc, vPrn, ...)
   local tC = (istable(vPrn) and vPrn or {vPrn, ...})
   local tS = {Size = 0}; tC.Size = #tC
+  if(IsEmpty(tSrc)) then return tS end
   for key, rec in pairs(tSrc) do -- Scan the entire table
     tS.Size = tS.Size + 1 -- Allocate key/record and store
     tableInsert(tS, {Key = key, Rec = rec}) -- New table
@@ -3798,7 +3809,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("("..fPref.."@"..sTable..")("..fName..") Open fail"); return false end
   O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
-  for iKey = 1, tSort.Size do local key = tSort[iKey].Rec
+  for iKey = 1, tSort.Size do local key = tSort[iKey].Key
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
       O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
     local fRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
@@ -5301,20 +5312,21 @@ end
 ]]
 function GetHookInfo(sW)
   if(SERVER) then return nil end
+  local sTo = GetOpVar("TOOLNAME_NL")
   local sDe = GetOpVar("TOOL_DEFMODE")
   local sWe = tostring(sW or sDe)
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player invalid"); return nil end
   local acSw = oPly:GetActiveWeapon(); if(not IsValid(acSw)) then
     LogInstance("Swep invalid"); return nil end
-  if(acSw:GetClass() ~= sWe) then
-    LogInstance("Swep other "..GetReport(sWe)); return nil end
+  local uWe = acSw:GetClass(); if(uWe ~= sWe) then
+    LogInstance("Swep other "..GetReport(sWe, uWe)); return nil end
   if(sWe ~= sDe) then return oPly, acSw end
-  if(acSw:GetMode() ~= GetOpVar("TOOLNAME_NL")) then
-    LogInstance("Tool different"); return nil end
+  local uTo = acSw:GetMode(); if(uTo ~= sTo) then
+    LogInstance("Mode different "..GetReport(sTo, uTo)); return nil end
   -- Here player is holding the track assembly tool
   local acTo = acSw:GetToolObject(); if(not acTo) then
-    LogInstance("Tool invalid"); return nil end
+    LogInstance("Tool invalid "..GetReport(uWe, uTo)); return nil end
   return oPly, acSw, acTo
 end
 
