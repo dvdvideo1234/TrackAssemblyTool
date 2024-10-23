@@ -82,6 +82,7 @@ local SafeRemoveEntityDelayed        = SafeRemoveEntityDelayed
 local osClock                        = os and os.clock
 local osDate                         = os and os.date
 local bitBand                        = bit and bit.band
+local guiOpenURL                     = gui and gui.OpenURL
 local sqlQuery                       = sql and sql.Query
 local sqlLastError                   = sql and sql.LastError
 local sqlTableExists                 = sql and sql.TableExists
@@ -123,6 +124,7 @@ local undoAddEntity                  = undo and undo.AddEntity
 local undoSetPlayer                  = undo and undo.SetPlayer
 local undoSetCustomUndoText          = undo and undo.SetCustomUndoText
 local inputIsKeyDown                 = input and input.IsKeyDown
+local inputGetCursorPos              = input and input.GetCursorPos
 local timerStop                      = timer and timer.Stop
 local timerStart                     = timer and timer.Start
 local timerSimple                    = timer and timer.Simple
@@ -733,10 +735,11 @@ function InitBase(sName, sPurp)
     if(u.M ~= v.M) then return u.M < v.M end
     return false end)
   SetOpVar("VCOMPARE_SDAT", function(u, v, c)
-    for iD = 1, c.Size do local iR = c[iD]
+    for iD = 1, c.Size do
+      local iR = c[iD]
       local uR, vR = u.Rec, v.Rec
-      if(uR[iR] < vR[iR]) then return true end
-      if(uR[iR] > vR[iR]) then return false end
+      local uV, vV = uR[iR], vR[iR]
+      if(uV ~= vV) then return uV < vV end
     end; return false; end)
   SetOpVar("VCOMPARE_SKEY", function(u, v) return (u.Key < v.Key) end)
   SetOpVar("VCOMPARE_SREC", function(u, v) return (u.Rec < v.Rec) end)
@@ -1661,15 +1664,15 @@ function AddLineListView(pnListView,frUsed,ivNdex)
     LogInstance("Missing data"); return false end
   local iNdex = tonumber(ivNdex); if(not IsHere(iNdex)) then
     LogInstance("Index mismatch "..GetReport(ivNdex)); return false end
-  local tValue = frUsed[iNdex]; if(not IsHere(tValue)) then
+  local tInfo = frUsed[iNdex]; if(not IsHere(tInfo)) then
     LogInstance("Missing data on index "..GetReport(iNdex)); return false end
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
-  local sModel = tValue.Table[makTab:GetColumnName(1)]
-  local sType  = tValue.Table[makTab:GetColumnName(2)]
-  local sName  = tValue.Table[makTab:GetColumnName(3)]
-  local nAct   = tValue.Table[makTab:GetColumnName(4)]
-  local nUsed  = mathRound(tValue.Value,3)
+  local sModel = tInfo.Data[makTab:GetColumnName(1)]
+  local sType  = tInfo.Data[makTab:GetColumnName(2)]
+  local sName  = tInfo.Data[makTab:GetColumnName(3)]
+  local nAct   = tInfo.Data[makTab:GetColumnName(4)]
+  local nUsed  = mathRound(tInfo.Time,3)
   local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
         pnLine:SetTooltip(sModel)
   return true
@@ -1704,7 +1707,7 @@ function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
       if(not AddLineListView(pnListView,frUsed,iCnt)) then
         LogInstance("Failed to add line on "..GetReport(iCnt)); return false end
     else
-      local sDat = tostring(frUsed[iCnt].Table[sCol] or "")
+      local sDat = tostring(frUsed[iCnt].Data[sCol] or "")
       if(sDat:find(sPat)) then
         if(not AddLineListView(pnListView,frUsed,iCnt)) then
           LogInstance("Failed to add line "..GetReport(iCnt, sDat, sPat, sCol)); return false end
@@ -1734,30 +1737,38 @@ function OpenNodeMenu(pnBase)
   local pMenu = DermaMenu(false, pnBase)
   if(not IsValid(pMenu)) then
     LogInstance("Base menu invalid"); return nil end
-  local cMenu = GetContainer("TREE_VGUI")
-  local sT = GetOpVar("TOOLNAME_NL")
-  local pT = GetNodeTypeRoot(pnBase)
+  local pT, sP = GetNodeTypeRoot(pnBase, 1)
+  if(not IsValid(pT)) then
+    LogInstance("Base root invalid"); return nil end
+  local sM, sI = GetOpVar("TOOLNAME_NL"), "treemenu_"
+  local sT = "tool."..sM.."."..sI
   local sID = WorkshopID(pT:GetText())
-  for iD = 1, cMenu:GetSize() do
-    local val = cMenu:Select(iD)
-    local nam, roo, fnc = val[1], val[2], val[3]
-    if(roo == nil or -- Available for both folder and node
-      (roo == false and pnBase.Content) or -- Node only
-      (roo == true and not pnBase.Content)) -- Folder only
-    then -- True for folders, false for content, nil for both
-      if(sID ~= nil or (sID == nil and nam:sub(-3, -1) ~= "wid")) then
-        local key = "tool."..sT.."."..nam
-        local pO = pMenu:AddOption(languageGetPhrase(key),
-          function()
-            local bS, vO = pcall(fnc, pnBase); if(not bS) then
-              LogInstance("Execute error: "..GetReport(iD, nam, vO)); return nil end
-          end)
-        if(not IsValid(pO)) then
-          LogInstance("Option invalid "..GetReport(iD, nam)); return nil end
-        pO:SetIcon(ToIcon(nam))
-      end
-    end
-  end; pMenu:Open()
+  -- Copy node information
+  local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cpy"))
+  if(not IsValid(pIn)) then
+    LogInstance("Base copy invalid"); return nil end
+  pOp:SetIcon(ToIcon(sI.."cpy"))
+  if(pnBase.Content) then
+    pIn:AddOption(languageGetPhrase(sT.."cpy_mod"), function() SetClipboardText(pnBase.Content) end):SetIcon(ToIcon(sI.."cpy_mod"))
+  end
+  pIn:AddOption(languageGetPhrase(sT.."cpy_typ"), function() SetClipboardText(pT:GetText()) end):SetIcon(ToIcon(sI.."cpy_typ"))
+  pIn:AddOption(languageGetPhrase(sT.."cpy_nam"), function() SetClipboardText(pnBase:GetText()) end):SetIcon(ToIcon(sI.."cpy_nam"))
+  pIn:AddOption(languageGetPhrase(sT.."cpy_pth"), function() SetClipboardText(sP) end):SetIcon(ToIcon(sI.."cpy_pth"))
+  -- Handle workshop
+  if(sID) then
+    local sUR = GetOpVar("FORM_URLADDON")
+    local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
+    if(not IsValid(pIn)) then
+      LogInstance("Base WS invalid"); return nil end
+    pOp:SetIcon(ToIcon(sI.."ws"))
+    pIn:AddOption(languageGetPhrase(sT.."ws_cid"), function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."ws_cid"))
+    pIn:AddOption(languageGetPhrase(sT.."ws_opp"), function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."ws_opp"))
+  end
+  -- Panel handling
+  if(not pnBase.Content) then
+    pMenu:AddOption(languageGetPhrase(sT.."expand"), function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."expand"))
+  end
+  pMenu:Open()
 end
 
 function SetNodeExpand(pnBase)
@@ -1832,26 +1843,18 @@ function GetFrequentModels(iCnt)
   local iInd, tmNow = 1, Time(); tableEmpty(frUsed); frUsed.Size = 0
   local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
   local coNm, coSz = makTab:GetColumnName(3), makTab:GetColumnName(4)
-  for mod, rec in pairs(tCache) do
-    if(IsHere(rec.Used) and IsHere(rec.Size) and rec.Size > 0) then
-      local rmComp = (tmNow - rec.Used)
-      local stData = {[coMo] = mod     , [coTy] = rec.Type,
-                      [coNm] = rec.Name, [coSz] = rec.Size}
-      if(frUsed.Size == 0) then frUsed.Size = 1
-        tableInsert(frUsed, {Value = rmComp, Table = stData})
-      else local bTop = true -- Registered records are more than one
-        if(frUsed.Size >= iCnt) then break end -- Reached count
-        for iD = 1, frUsed.Size do -- Still something to add
-          if(frUsed[iD].Value >= rmComp) then -- Check placement
-            frUsed.Size, bTop = (frUsed.Size + 1), false -- Increment
-            tableInsert(frUsed, iD, {Value = rmComp, Table = stData})
-            break -- Exist the inner check loop and add the record
-          end -- Snapshot is inserted and registered
-        end -- We have to add the item at the end of the array
-        if(bTop) then tableInsert(frUsed, {Value = rmComp, Table = stData}) end
-      end -- By default top addition is enabled. When found this is skipped
-    end -- Make a report for every record that is valid in the cache
-  end -- If there is at least one record added return the array reference
+  local tSort = PrioritySort(tCache, "Used")
+  for iD = 1, iCnt do
+    local iR = tSort.Size-iD+1
+    local oRec = tSort[iR]
+    if(oRec) then oRec = oRec.Rec
+      local rmComp = (tmNow - oRec.Used)
+      local stData = {[coMo] = oRec.Slot, [coTy] = oRec.Type,
+                      [coNm] = oRec.Name, [coSz] = oRec.Size}
+      frUsed.Size = (frUsed.Size + 1) -- Increment size
+      tableInsert(frUsed, {Time = rmComp, Data = stData})
+    end
+  end
   if(IsHere(frUsed) and IsHere(frUsed[1])) then return frUsed, iCnt end
   LogInstance("Array is empty or not available"); return nil
 end
@@ -3494,7 +3497,7 @@ function CacheQueryProperty(sType)
         local qType = makTab:Match(sType,1,true)
         local qIndx = qsKey:format(sFunc,keyName)
         local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then
-          Q = makTab:Select(3):Where({1,"%s"}):Order(2):Store(qIndx):Get(qIndx, qType) end
+          Q = makTab:Select(2, 3):Where({1,"%s"}):Order(2):Store(qIndx):Get(qIndx, qType) end
         if(not Q) then
           LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
         local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
