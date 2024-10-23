@@ -9,7 +9,8 @@
 ]]--
 
 -- Local reference to the module.
-local asmlib = trackasmlib
+local asmlib = trackasmlib; if(not asmlib) then -- Module present
+  ErrorNoHaltWithStack("TOOL: Track assembly tool module fail!\n"); return end
 
 --[[
  * This is your addon name. It is mandatory and it must be string.
@@ -30,17 +31,6 @@ local mySource = "DSV"
 ]]--
 local myType = myAddon -- The type your addon resides in the tool with
 
---[[
- * For actually produce an error you can replace the /print/
- * statement with one of following API calls:
- * https://wiki.facepunch.com/gmod/Global.print
- * https://wiki.facepunch.com/gmod/Global.error
- * https://wiki.facepunch.com/gmod/Global.Error
- * https://wiki.facepunch.com/gmod/Global.ErrorNoHalt
- * https://wiki.facepunch.com/gmod/Global.ErrorNoHaltWithStack
-]]
-local Error = ErrorNoHaltWithStack
-
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix
 
@@ -58,8 +48,9 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
  * when you need it to do something else.
 --]]
 local function ThrowError(vMesg)
-  local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Make sure the message is string
-  if(asmlib) then asmlib.LogInstance(sMesg, mySource) end; Error(sMesg.."\n") -- Output the message into the logs
+  local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Convert to string
+  if(asmlib) then asmlib.LogInstance(sMesg, mySource) end -- Update the tool logs
+  ErrorNoHaltWithStack(sMesg.."\n") -- Produce an error without breaking the stack
 end
 
 -- There is something to error about stop the execution and report it
