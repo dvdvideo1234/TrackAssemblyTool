@@ -1843,7 +1843,8 @@ function GetFrequentModels(iCnt)
   local iInd, tmNow = 1, Time(); tableEmpty(frUsed); frUsed.Size = 0
   local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
   local coNm, coSz = makTab:GetColumnName(3), makTab:GetColumnName(4)
-  local tSort = PrioritySort(tCache, "Used")
+  local tSort = PrioritySort(tCache, "Used"); if(not tSort) then
+    LogInstance("Sorting table cache failed"); return nil end
   for iD = 1, iCnt do
     local iR = tSort.Size-iD+1
     local oRec = tSort[iR]
@@ -1853,7 +1854,7 @@ function GetFrequentModels(iCnt)
                       [coNm] = oRec.Name, [coSz] = oRec.Size}
       frUsed.Size = (frUsed.Size + 1) -- Increment size
       tableInsert(frUsed, {Time = rmComp, Data = stData})
-    end
+    else break end -- Nothing else left to process
   end
   if(IsHere(frUsed) and IsHere(frUsed[1])) then return frUsed, iCnt end
   LogInstance("Array is empty or not available"); return nil
