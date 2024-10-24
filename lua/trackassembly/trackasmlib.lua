@@ -1655,29 +1655,6 @@ function DoAction(sKey, ...)
   return pcall(tAct.Act, tAct.Dat, ...)
 end
 
-function AddLineListView(pnListView,frUsed,ivNdex)
-  if(not IsHere(pnListView)) then
-    LogInstance("Missing panel"); return false end
-  if(not IsValid(pnListView)) then
-    LogInstance("Invalid panel"); return false end
-  if(not IsHere(frUsed)) then
-    LogInstance("Missing data"); return false end
-  local iNdex = tonumber(ivNdex); if(not IsHere(iNdex)) then
-    LogInstance("Index mismatch "..GetReport(ivNdex)); return false end
-  local tInfo = frUsed[iNdex]; if(not IsHere(tInfo)) then
-    LogInstance("Missing data on index "..GetReport(iNdex)); return false end
-  local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
-    LogInstance("Missing table builder"); return nil end
-  local sModel = tInfo.Data[makTab:GetColumnName(1)]
-  local sType  = tInfo.Data[makTab:GetColumnName(2)]
-  local sName  = tInfo.Data[makTab:GetColumnName(3)]
-  local nAct   = tInfo.Data[makTab:GetColumnName(4)]
-  local nUsed  = mathRound(tInfo.Time,3)
-  local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
-        pnLine:SetTooltip(sModel)
-  return true
-end
-
 --[[
  * Updates a VGUI pnListView with a search preformed in the already generated
  * frequently used pieces "frUsed" for the pattern "sPat" given by the user
@@ -1686,35 +1663,42 @@ end
  * On fail a parameter is not valid or missing and returns non-success
  * pnListView  > The panel which must be updated
  * frUsed      > The list of the frequently used tracks
- * nCount      > The amount of pieces to check
  * sCol        > The name of the column it preforms search by
  * sPat        > Search pattern to preform the search with
 ]]
-function UpdateListView(pnListView,frUsed,nCount,sCol,sPat)
+function UpdateListView(pnListView,frUsed,sCol,sPat)
   if(not (IsHere(frUsed) and IsHere(frUsed[1]))) then
     LogInstance("Missing data"); return false end
-  local nCount = (tonumber(nCount) or 0); if(nCount <= 0) then
-    LogInstance("Count not applicable"); return false end
-  if(IsHere(pnListView)) then
-    if(not IsValid(pnListView)) then
-      LogInstance("Invalid ListView"); return false end
-    pnListView:SetVisible(false); pnListView:Clear()
-  else LogInstance("Missing ListView"); return false end
-  local sCol = tostring(sCol or "")
-  local sPat = tostring(sPat or "")
+  if(not IsHere(pnListView)) then
+    LogInstance("Missing ListView"); return false end
+  if(not IsValid(pnListView)) then
+    LogInstance("Invalid ListView"); return false end
+  local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
+    LogInstance("Missing table builder"); return nil end
+  pnListView:SetVisible(false); pnListView:Clear()
+  local sMo, sTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
+  local sNm, sAc = makTab:GetColumnName(3), makTab:GetColumnName(4)
+  local sCo, sPa = tostring(sCol or ""), tostring(sPat or "")
   for iCnt = 1, frUsed.Size do
-    if(IsBlank(sPat)) then
-      if(not AddLineListView(pnListView,frUsed,iCnt)) then
-        LogInstance("Failed to add line on "..GetReport(iCnt)); return false end
+    local tInfo = frUsed[iCnt]; if(not IsHere(tInfo)) then
+      LogInstance("Missing data on index "..GetReport(iCnt)); return false end
+    local nUsed  = mathRound(tInfo.Time,3)
+    local sModel, sType = tInfo.Data[sMo], tInfo.Data[sTy]
+    local sName , nAct  = tInfo.Data[sNm], tInfo.Data[sAc]
+    if(IsBlank(sPa)) then
+      local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
+      if(not IsValid(pnLine)) then LogInstance("Line invalid "..GetReport(iCnt)); return false end
+      pnLine:SetTooltip(sModel)
     else
-      local sDat = tostring(frUsed[iCnt].Data[sCol] or "")
-      if(sDat:find(sPat)) then
-        if(not AddLineListView(pnListView,frUsed,iCnt)) then
-          LogInstance("Failed to add line "..GetReport(iCnt, sDat, sPat, sCol)); return false end
+      local sDa = tostring(frUsed[iCnt].Data[sCo] or "")
+      if(sDa:find(sPa)) then
+        local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
+        if(not IsValid(pnLine)) then LogInstance("Line invalid "..GetReport(iCnt, sDa, sPa, sCo); return false end
+        pnLine:SetTooltip(sModel)
       end
     end
   end; pnListView:SetVisible(true)
-  LogInstance("Updated "..GetReport(frUsed.Size)); return true
+  LogInstance("Processed "..GetReport(frUsed.Size)); return true
 end
 
 function GetNodeTypeRoot(pnBase, iRep, sSym)
@@ -1830,7 +1814,7 @@ function SetNodeContent(pnBase, sName, sModel)
   return pNode
 end
 
-function GetFrequentModels(iCnt)
+function GetFrequentPieces(iCnt)
   local iCnt = (tonumber(iCnt) or 0); if(iCnt < 1) then
     LogInstance("Count not applicable"); return nil end
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
@@ -1845,9 +1829,8 @@ function GetFrequentModels(iCnt)
   local coNm, coSz = makTab:GetColumnName(3), makTab:GetColumnName(4)
   local tSort = Arrange(tCache, "Used"); if(not tSort) then
     LogInstance("Sorting table cache failed"); return nil end
-  for iD = 1, iCnt do -- For every record that has been picked
-    local iR = tSort.Size-iD+1 -- Greater the time more recent
-    local oRec = tSort[iR] -- Index arranged record ID
+  for iD = tSort.Size, 1, -1 do -- For every record that is picked
+    local oRec = tSort[iD] -- Index arranged record ID
     if(oRec) then oRec = oRec.Rec -- Jump over to the record
       if(not oRec.Post) then -- Initialized. Not yet picked
         local nT = (tmNow - oRec.Used) -- Time to display
@@ -1858,7 +1841,7 @@ function GetFrequentModels(iCnt)
       end -- Time and panel data has been stored and passed
     else break end -- Nothing else left to process
   end -- Return only when at least one record is found
-  if(frUsed.Size > 0) then return frUsed, iCnt end
+  if(frUsed.Size > 0) then return frUsed end
   LogInstance("Array is empty or not available"); return nil
 end
 

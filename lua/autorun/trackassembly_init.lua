@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.781")
+asmlib.SetOpVar("TOOL_VERSION","8.782")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -992,7 +992,7 @@ if(CLIENT) then
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs) local sLog = "*OPEN_FRAME"
-      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
+      local frUsed = asmlib.GetFrequentPieces(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",sLog); return nil end
       local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
         asmlib.LogInstance("Missing builder for table PIECES",sLog); return nil end
@@ -1168,7 +1168,7 @@ if(CLIENT) then
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
         asmlib.SetListViewClipboard(pnSelf)
       end
-      if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
+      if(not asmlib.UpdateListView(pnListView,frUsed)) then
         asmlib.LogInstance("Populate the list view failed",sLog); return nil end
       -- The button database export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf)
@@ -1202,7 +1202,7 @@ if(CLIENT) then
         local sPat = tostring(pnSelf:GetValue() or "")
         local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
               sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
-        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
+        if(not asmlib.UpdateListView(pnListView,frUsed,sCol,sPat)) then
           asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
         end
       end
