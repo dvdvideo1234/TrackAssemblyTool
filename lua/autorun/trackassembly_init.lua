@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.780")
+asmlib.SetOpVar("TOOL_VERSION","8.781")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1701,7 +1701,7 @@ asmlib.NewTable("PIECES",{
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tSort = asmlib.PrioritySort(tCache, "Type", "Slot")
+      local tSort = asmlib.Arrange(tCache, "Type", "Slot")
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
@@ -1769,7 +1769,7 @@ asmlib.NewTable("ADDITIONS",{
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tData = asmlib.PrioritySort(tCache)
+      local tData = asmlib.Arrange(tCache)
       for iRow = 1, tData.Size do
         local tRow = tData[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec

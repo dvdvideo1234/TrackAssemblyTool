@@ -1843,20 +1843,22 @@ function GetFrequentModels(iCnt)
   local iInd, tmNow = 1, Time(); tableEmpty(frUsed); frUsed.Size = 0
   local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
   local coNm, coSz = makTab:GetColumnName(3), makTab:GetColumnName(4)
-  local tSort = PrioritySort(tCache, "Used"); if(not tSort) then
+  local tSort = Arrange(tCache, "Used"); if(not tSort) then
     LogInstance("Sorting table cache failed"); return nil end
-  for iD = 1, iCnt do
-    local iR = tSort.Size-iD+1
-    local oRec = tSort[iR]
-    if(oRec) then oRec = oRec.Rec
-      local rmComp = (tmNow - oRec.Used)
-      local stData = {[coMo] = oRec.Slot, [coTy] = oRec.Type,
-                      [coNm] = oRec.Name, [coSz] = oRec.Size}
-      frUsed.Size = (frUsed.Size + 1) -- Increment size
-      tableInsert(frUsed, {Time = rmComp, Data = stData})
+  for iD = 1, iCnt do -- For every record that has been picked
+    local iR = tSort.Size-iD+1 -- Greater the time more recent
+    local oRec = tSort[iR] -- Index arranged record ID
+    if(oRec) then oRec = oRec.Rec -- Jump over to the record
+      if(not oRec.Post) then -- Initialized. Not yet picked
+        local nT = (tmNow - oRec.Used) -- Time to display
+        local tD = {[coMo] = oRec.Slot, [coTy] = oRec.Type,
+                    [coNm] = oRec.Name, [coSz] = oRec.Size}
+        frUsed.Size = (frUsed.Size + 1) -- Increment size
+        tableInsert(frUsed, {Time = nT, Data = tD})
+      end -- Time and panel data has been stored and passed
     else break end -- Nothing else left to process
-  end
-  if(IsHere(frUsed) and IsHere(frUsed[1])) then return frUsed, iCnt end
+  end -- Return only when at least one record is found
+  if(frUsed.Size > 0) then return frUsed, iCnt end
   LogInstance("Array is empty or not available"); return nil
 end
 
@@ -2261,8 +2263,7 @@ function LocatePOA(oRec, ivPoID)
     else LogInstance("ID mismatch "..GetReport(ivPoID)); return nil end
   local stPOA = tOffs[iPoID]; if(not IsHere(stPOA)) then
     LogInstance("Missing ID "..GetReport(iPoID, oRec.Slot)); return nil end
-  if(oRec.Tran) then oRec.Tran = nil -- Transforming has started
-    local sE = GetOpVar("OPSYM_ENTPOSANG") -- Extract transform from model
+  if(oRec.Post) then oRec.Post = nil -- Transforming has started
     for ID = 1, oRec.Size do local tPOA = tOffs[ID] -- Index current offset
       local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
       if(sO) then tPOA.O:Decode(sO, oRec.Slot, "Pos")
@@ -2290,40 +2291,35 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     LogInstance("Origin mismatch "..GetReport(sO)); return nil end
   local sA = (sA or sNull); if(not isstring(sA)) then
     LogInstance("Angle mismatch "..GetReport(sA)); return nil end
-  if(not stData.Offs) then if(iID > 1) then
+  if(not stData.Offs) then if(iID ~= 1) then
     LogInstance("Mismatch ID "..GetReport(iID, stData.Slot)); return nil end
-    stData.Offs = {}
+    stData.Offs = {}; stData.Post = true
   end
   local tOffs = stData.Offs; if(tOffs[iID]) then
-    LogInstance("Exists ID "..GetReport(iID)); return nil
+    LogInstance("Exists ID "..GetReport(iID)); return tOffs
   else
     if((iID > 1) and (not tOffs[iID - 1])) then
       LogInstance("Scatter ID "..GetReport(iID)); return nil end
     tOffs[iID] = {}; tOffs = tOffs[iID] -- Allocate a local offset index
     tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
-  end; local sE = GetOpVar("OPSYM_ENTPOSANG")
-  if(sO:sub(1,1) == sE) then -- To be decoded on spawn via locating
-    stData.Tran = true; tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
-    LogInstance("Origin init "..GetReport(iID, sO, stData.Slot))
-  else -- When the origin is empty use the zero otherwise decode the value
-    tOffs.O:Import(sO, stData.Slot) -- Try to decode the origin when present
+  end
+  LogInstance("Default "..GetReport(sNull, stData.Slot)
+  if(not tOffs.O:Raw()) then -- To be decoded on spawn via locating
+    tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
+    LogInstance("Origin init "..GetReport(iID, sO))
   end -- Try decoding the transform point when not applicable
-  if(sA:sub(1,1) == sE) then -- To be decoded on spawn via locating
-    stData.Tran = true; tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
-    LogInstance("Angle init "..GetReport(iID, sA, stData.Slot))
-  else -- When the angle is empty use the zero otherwise decode the value
-    tOffs.A:Import(sA, stData.Slot) -- Try to decode the angle when present
+  if(not tOffs.A:Raw()) then -- To be decoded on spawn via locating
+    tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
+    LogInstance("Angle init "..GetReport(iID, sA))
   end -- Try decoding the transform point when not applicable
-  if(tOffs.O:Raw() or sP:sub(1,1) == sE) then -- Origin transform trigger
-    stData.Tran = true; tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
-    LogInstance("Point init "..GetReport(iID, sP, stData.Slot))
-  else -- When the point is empty use the origin otherwise decode the value
-    tOffs.P:Import(sP, stData.Slot, tOffs.O:Get()) -- Try to decode the point when present
+  if(not tOffs.P:Raw()) then -- Origin transform trigger
+    tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
+    LogInstance("Point init "..GetReport(iID, sP))
   end -- Try decoding the transform point when not applicable
   return tOffs -- On success return the populated POA offset
 end
 
-function PrioritySort(tSrc, vPrn, ...)
+function Arrange(tSrc, vPrn, ...)
   local tC = (istable(vPrn) and vPrn or {vPrn, ...})
   local tS = {Size = 0}; tC.Size = #tC
   if(IsEmpty(tSrc)) then return tS end
@@ -3807,7 +3803,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         fData[vK] = tRec; fData[vK].Size = #tRec end
     end
   end
-  local tSort = PrioritySort(fData); if(not tSort) then
+  local tSort = Arrange(fData); if(not tSort) then
     LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("("..fPref.."@"..sTable..")("..fName..") Open fail"); return false end
@@ -4026,7 +4022,7 @@ function SetAdditionsAR(sModel, makTab, qList)
         end
       end
     end
-    local tSort = PrioritySort(qData, coMo, coLn); if(not tSort) then
+    local tSort = Arrange(qData, coMo, coLn); if(not tSort) then
         LogInstance("Sort cache mismatch"); return end; tableEmpty(qData)
     for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
   else
@@ -4169,7 +4165,7 @@ function ExportTypeAR(sType)
         end
       end
     end
-    local tSort = PrioritySort(qPieces, coMo, coLn)
+    local tSort = Arrange(qPieces, coMo, coLn)
     if(not tSort) then
       LogInstance("Sort cache mismatch")
       fE:Flush(); fE:Close(); fS:Close(); return
