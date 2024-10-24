@@ -2304,13 +2304,11 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets)
 
-  local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
+  local qPanel = asmlib.CacheQueryPanel(devmode); if(not qPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return end
-  local defTable = makTab:GetDefinition()
-  local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
-  local pTree    = vguiCreate("DTree", CPanel); if(not pTree) then
+  local pTree  = vguiCreate("DTree", CPanel); if(not pTree) then
     asmlib.LogInstance("Database tree empty",sLog); return end
   pTree:Dock(TOP) -- Initialize to fill left and right bounds
   pTree:SetTall(400) -- Make it quite large
@@ -2318,73 +2316,56 @@ function TOOL.BuildCPanel(CPanel)
   pTree:SetIndentSize(0) -- All track types are closed
   pTree:UpdateColours(drmSkin) -- Apply current skin
   CPanel:AddItem(pTree) -- Register it to the panel
-  local iCnt, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
-  while(cqPanel[iCnt]) do
-    local vRec, bNow = cqPanel[iCnt], true
-    local sMod = vRec[makTab:GetColumnName(1)]
-    local sTyp = vRec[makTab:GetColumnName(2)]
-    local sNam = vRec[makTab:GetColumnName(3)]
+  local defTable = makTab:GetDefinition()
+  local tType, tRoot = {}, {Size = 0}
+  for iC = 1, qPanel.Size do
+    local vRec, bNow = qPanel[iC], true
+    local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
     if(asmlib.IsModel(sMod)) then
-      if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
+      if(not (asmlib.IsBlank(sTyp) or tType[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
-              pRoot.DoClick = function() asmlib.SetExpandNode(pRoot) end
-              pRoot.Expander.DoClick = function() asmlib.SetExpandNode(pRoot) end
-              pRoot.DoRightClick = function()
-                local sID = asmlib.WorkshopID(sTyp)
-                if(sID and sID:len() > 0 and inputIsKeyDown(KEY_LSHIFT)) then
-                  guiOpenURL(asmlib.GetOpVar("FORM_URLADDON"):format(sID))
-                else SetClipboardText(pRoot:GetText()) end
-              end
+              pRoot.DoClick = function() asmlib.SetNodeExpand(pRoot) end
+              pRoot.Expander.DoClick = function() asmlib.SetNodeExpand(pRoot) end
+              pRoot.DoRightClick = function() asmlib.OpenNodeMenu(pRoot) end
               pRoot:UpdateColours(drmSkin)
-        pTypes[sTyp] = pRoot
+        tType[sTyp] = {Base = pRoot, Node = {}}
       end -- Reset the primary tree node pointer
-      if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
-      -- Register the category if definition functional is given
-      if(catTypes[sTyp]) then -- There is a category definition
-        local bSuc, ptCat, psNam = pcall(catTypes[sTyp].Cmp, sMod)
-        if(bSuc) then -- When the call is successful in protected mode
-          if(psNam and not asmlib.IsBlank(psNam)) then
-            sNam = asmlib.GetBeautifyName(psNam)
-          end -- Custom name override when the addon requests
-          local pCurr = pCateg[sTyp]
-          if(not asmlib.IsHere(pCurr)) then
-            pCateg[sTyp] = {}; pCurr = pCateg[sTyp] end
-          if(asmlib.IsBlank(ptCat)) then ptCat = nil end
-          if(asmlib.IsHere(ptCat)) then
-            if(not istable(ptCat)) then ptCat = {ptCat} end
-            if(ptCat[1]) then local iD = 1
-              while(ptCat[iD]) do local sCat = tostring(ptCat[iD]):lower():Trim()
-                if(asmlib.IsBlank(sCat)) then sCat = "other" end
-                sCat = asmlib.GetBeautifyName(sCat) -- Beautify the category
-                if(pCurr[sCat]) then -- Jump next if already created
-                  pCurr, pItem = asmlib.GetDirectory(pCurr, sCat)
-                else
-                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat)
-                end; iD = iD + 1 -- Create the last needed node regarding pItem
-              end
-            end -- When the category has at least one element
-          else -- Store the creation information of the ones without category for later
-            tableInsert(pCateg[sTyp], {sNam, sMod}); bNow = false
-          end -- Is there is any category apply it. When available process it now
-        end
-      end -- Register the node associated with the track piece when is intended for later
-      if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
+      if(tType[sTyp]) then pItem = tType[sTyp].Base else pItem = pTree end
+      -- Register the node associated with the track piece when is intended for later
+      if(vRec.C and vRec.C.Size > 0) then -- When category for the track type is available
+        local tNode = tType[sTyp].Node -- Index the contend for the track type
+        for iD = 1, vRec.C.Size do -- Generate the path to the track piece
+          local sCat = vRec.C[iD] -- Read the category name
+          local tCat = tNode[sCat] -- Index the internal sub-category
+          if(tCat) then -- Jump next if already created
+            pItem = tCat.Base -- Assume that the category is allocated
+            tNode = tCat.Node -- Jump to the next set of base nodes
+          else -- Create a new sub-category for the incoming content
+            tNode[sCat] = {}; tCat = tNode[sCat] -- Create node info
+            pItem = asmlib.SetNodeDirectory(pItem, sCat) -- Create category
+            tCat.Base = pItem; tCat.Node = {} -- Allocate node info
+            tNode = tCat.Node -- Jump to the allocated set of base nodes
+          end -- Create the last needed node regarding pItem
+        end -- When the category has at least one element
+      else -- Panel cannot categorize the entry add it to the list
+        tRoot.Size = tRoot.Size + 1 -- Increment count to avoid calling #
+        tableInsert(tRoot, iC); bNow = false -- Attach row ID to rooted items
+      end -- When needs to be processed now just attach it to the tree
+      if(bNow) then asmlib.SetNodeContent(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport(sTyp, sNam, sMod),sLog) end
-    iCnt = iCnt + 1
   end
   -- Attach the hanging items to the type root
-  for typ, val in pairs(pCateg) do
-    for iD = 1, #val do
-      local pan = pTypes[typ]
-      local nam, mod = unpack(val[iD])
-      asmlib.SetDirectoryNode(pan, nam, mod)
-      asmlib.LogInstance("Rooting item "..asmlib.GetReport(typ, nam, mod),sLog)
-    end
+  for iR = 1, tRoot.Size do
+    local iRox = tRoot[iR]
+    local vRec = qPanel[iRox]
+    local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
+    asmlib.SetNodeContent(tType[sTyp].Base, sNam, sMod)
+    asmlib.LogInstance("Rooting item "..asmlib.GetReport(sTyp, sNam, sMod), sLog)
   end -- Process all the items without category defined
-  asmlib.LogInstance("Found items #"..tostring(iCnt - 1), sLog)
+  asmlib.LogInstance("Found items #"..qPanel.Size, sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local sName = asmlib.GetAsmConvar("workmode", "NAM")
@@ -2421,21 +2402,21 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetTall(22)
         pComboPhysName:UpdateColours(drmSkin)
 
-  local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
+  local qProperty = asmlib.CacheQueryProperty(); if(not qProperty) then
     asmlib.LogInstance("Property population empty",sLog); return end
 
-  while(cqProperty[iTyp]) do
-    local sT, sI = cqProperty[iTyp], asmlib.ToIcon("property_type")
-    pComboPhysType:AddChoice(sT, sT, false, sI); iTyp = iTyp + 1
+  for iP = 1, qProperty.Size do
+    local sT, sI = qProperty[iP], asmlib.ToIcon("property_type")
+    pComboPhysType:AddChoice(sT, sT, false, sI)
   end
 
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
-    local cqNames = asmlib.CacheQueryProperty(sVal)
-    if(cqNames) then local iNam = 1; pComboPhysName:Clear()
+    local qNames = asmlib.CacheQueryProperty(sVal)
+    if(qNames) then pComboPhysName:Clear()
       pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
-      while(cqNames[iNam]) do
-        local sN, sI = cqNames[iNam], asmlib.ToIcon("property_name")
-        pComboPhysName:AddChoice(sN, sN, false, sI); iNam = iNam + 1
+      for iNam = 1, qNames.Size do
+        local sN, sI = qNames[iNam], asmlib.ToIcon("property_name")
+        pComboPhysName:AddChoice(sN, sN, false, sI)
       end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
@@ -2443,7 +2424,7 @@ function TOOL.BuildCPanel(CPanel)
   cvarsRemoveChangeCallback(sName, sName..sCall)
   cvarsAddChangeCallback(sName, function(sV, vO, vN)
     pComboPhysName:SetValue(vN) end, sName..sCall);
-  asmlib.LogTable(cqProperty, "Property", sLog)
+  asmlib.LogTable(qProperty, "Property", sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")

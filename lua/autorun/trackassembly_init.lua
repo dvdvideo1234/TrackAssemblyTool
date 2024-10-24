@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.765")
+asmlib.SetOpVar("TOOL_VERSION","8.782")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -455,11 +455,20 @@ if(CLIENT) then
     else asmlib.LogInstance("Admin: "..asmlib.GetReport(pAdmn.Name), sLog) end
   end, gsToolPrefL.."lang")
 
-  -- http://www.famfamfam.com/lab/icons/silk/preview.php
+  -- https://wiki.facepunch.com/gmod/Silkicons
   asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
+  asmlib.ToIcon("treemenu_cpy"    , "page_copy"        )
+  asmlib.ToIcon("treemenu_cpy_mod", "brick_go"         )
+  asmlib.ToIcon("treemenu_cpy_typ", "database_go"      )
+  asmlib.ToIcon("treemenu_cpy_nam", "script_go"        )
+  asmlib.ToIcon("treemenu_cpy_pth", "map_go"           )
+  asmlib.ToIcon("treemenu_ws"     , "cart"             )
+  asmlib.ToIcon("treemenu_ws_cid" , "key_go"           )
+  asmlib.ToIcon("treemenu_ws_opp" , "world"            )
+  asmlib.ToIcon("treemenu_expand" , "zoom"             )
   asmlib.ToIcon("subfolder_item"   , "folder"          )
   asmlib.ToIcon("pn_externdb_bt1"  , "database"        )
   asmlib.ToIcon("pn_externdb_bt2"  , "folder_database" )
@@ -506,6 +515,7 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_hint"   , "shape_square_go"   )
   asmlib.ToIcon("bnderrmod_generic", "shape_square_link" )
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
+
   -- Workshop matching crap
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
@@ -800,8 +810,8 @@ if(CLIENT) then
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3])
           if(not asmlib.IsBlank(tDat[1]) and not asmlib.IsBlank(tDat[2])) then
-          if(nID and nID > 0 and pnRow and not tpText[1].m_NewDSV) then local iU = 1
-            while(pnRow.Columns[iU]) do pnRow:SetColumnText(iU, tDat[iU]); iU = iU + 1 end
+          if(nID and nID > 0 and pnRow and not tpText[1].m_NewDSV) then
+            for iU = 1, tpText.Size do pnRow:SetColumnText(iU, tDat[iU]) end
           else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3])
           end; end; for iV = 1, tpText.Size do tpText[iV]:SetValue(""); tpText[iV]:SetText("") end
         end
@@ -886,23 +896,17 @@ if(CLIENT) then
           if(not IsValid(pnMenu)) then pnFrame:Close()
             asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
           local mX, mY = inputGetCursorPos()
-          local iO, tOptions = 1, {
-            function()
-              local cC, cX, cY = 0, pnSelf:ScreenToLocal(mX, mY)
-              while(cX > 0) do cC = (cC + 1); cX = (cX - pnSelf:ColumnWidth(cC))
-              end; local nID, pnRow = pnSelf:GetSelectedLine()
-              if(nID and nID > 0 and pnRow) then SetClipboardText(pnRow:GetColumnText(cC)) end
-            end,
+          local tOptions = {
+            function() asmlib.SetListViewClipboard(pnSelf) end,
             function() SetClipboardText(convRow(pnLine)) end,
             function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V")) end,
             function() excgRow(pnLine); tpText[1].m_NewDSV = false end,
             function() excgRow(pnLine); tpText[1].m_NewDSV = true  end,
             function() pnSelf:RemoveLine(nIndex) end
-          }
-          while(tOptions[iO]) do local sO = tostring(iO)
+          }; tOptions.Size = #tOptions
+          for iO = 1, tOptions.Size do local sO = tostring(iO)
             local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_cm"..sO)
             pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_cm"..sO))
-            iO = iO + 1 -- Loop trough the functions list and add to the menu
           end; pnMenu:Open()
         end -- Process only the right mouse button
       end -- Populate the tables for every database
@@ -941,7 +945,7 @@ if(CLIENT) then
                 local pnMenu = vguiCreate("DMenu")
                 if(not IsValid(pnMenu)) then pnFrame:Close()
                   asmlib.LogInstance("Menu invalid",sLog..".Button"); return nil end
-                local iO, tOptions = 1, {
+                local tOptions = {
                   function() SetClipboardText(pnSelf:GetText()) end,
                   function() SetClipboardText(sDsv) end,
                   function() SetClipboardText(defTab.Nick) end,
@@ -969,11 +973,10 @@ if(CLIENT) then
                         asmlib.LogInstance("Deleted "..asmlib.GetReport(sCat), sLog..".Button") end
                     end; pnManage:Remove()
                   end
-                }
-                while(tOptions[iO]) do local sO = tostring(iO)
+                }; tOptions.Size = #tOptions
+                for iO = 1, tOptions.Size do local sO = tostring(iO)
                   local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bt"..sO)
                   pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_bt"..sO))
-                  iO = iO + 1 -- Loop trough the functions list and add them to the menu
                 end; pnMenu:Open()
               end
             else asmlib.LogInstance("File missing ["..tostring(iP).."]",sLog..".Button") end
@@ -989,7 +992,7 @@ if(CLIENT) then
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs) local sLog = "*OPEN_FRAME"
-      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
+      local frUsed = asmlib.GetFrequentPieces(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",sLog); return nil end
       local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
         asmlib.LogInstance("Missing builder for table PIECES",sLog); return nil end
@@ -1163,11 +1166,9 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        local cC, cX, cY = 0, inputGetCursorPos(); cX, cY = pnSelf:ScreenToLocal(cX, cY)
-        while(cX > 0) do cC = (cC + 1); cX = (cX - pnSelf:ColumnWidth(cC)) end
-        SetClipboardText(pnLine:GetColumnText(cC))
+        asmlib.SetListViewClipboard(pnSelf)
       end
-      if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
+      if(not asmlib.UpdateListView(pnListView,frUsed)) then
         asmlib.LogInstance("Populate the list view failed",sLog); return nil end
       -- The button database export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf)
@@ -1201,7 +1202,7 @@ if(CLIENT) then
         local sPat = tostring(pnSelf:GetValue() or "")
         local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
               sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
-        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
+        if(not asmlib.UpdateListView(pnListView,frUsed,sCol,sPat)) then
           asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
         end
       end
@@ -1660,9 +1661,9 @@ propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 ------------ INITIALIZE DB------------
 
-asmlib.CreateTable("PIECES",{
+asmlib.NewTable("PIECES",{
   Timer = gaTimerSet[1],
-  Index = {{1},{4},{1,4}},
+  Index = {{1,4,Un=true}, {4}},
   Trigs = {
     Record = function(arLine, vSrc)
       local noMD  = asmlib.GetOpVar("MISS_NOMD")
@@ -1691,18 +1692,16 @@ asmlib.CreateTable("PIECES",{
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
+      if(nOffsID ~= (stData.Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID,snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
       if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
-      if(nOffsID > stData.Size) then stData.Size = nOffsID else
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID),vSrc); return false end
-      return true
+      stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
-      local tData, defTab = {}, makTab:GetDefinition()
-      for mod, rec in pairs(tCache) do
-        tData[mod] = {KEY = (rec.Type..rec.Name..mod)} end
-      local tSort = asmlib.Sort(tData,{"KEY"})
+      local defTab = makTab:GetDefinition()
+      local tSort = asmlib.Arrange(tCache, "Type", "Slot")
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
@@ -1721,8 +1720,9 @@ asmlib.CreateTable("PIECES",{
           local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
           local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim..
-            "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
+          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim)
+          oFile:Write("\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim)
+          oFile:Write("\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
     end,
@@ -1742,9 +1742,9 @@ asmlib.CreateTable("PIECES",{
   [8] = {"CLASS" , "TEXT"   ,  nil ,  nil }
 },true,true)
 
-asmlib.CreateTable("ADDITIONS",{
+asmlib.NewTable("ADDITIONS",{
   Timer = gaTimerSet[2],
-  Index = {{1},{4},{1,4}},
+  Index = {{1,4,Un=true}, {4}},
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
     ExportDSV = {1,4}
@@ -1756,22 +1756,30 @@ asmlib.CreateTable("ADDITIONS",{
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
-      local nCnt, iID = 2, makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
+      local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
+      if(iID ~= (stData.Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK),vSrc); return false end
       stData[iID] = {} -- LineID has to be set properly
-      while(nCnt <= defTab.Size) do sCol = makTab:GetColumnName(nCnt)
-        stData[iID][sCol] = makTab:Match(arLine[nCnt],nCnt)
-        if(not asmlib.IsHere(stData[iID][sCol])) then -- Check data conversion output
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport(nCnt,arLine[nCnt],snPK),vSrc); return false
-        end; nCnt = (nCnt + 1)
-      end; stData.Size = iID; return true
+      for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt); if(not sC) then
+        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iCnt,snPK),vSrc); return false end
+        stData[iID][sC] = makTab:Match(arLine[iCnt],iCnt); if(not asmlib.IsHere(stData[iID][sC])) then
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),vSrc); return false end
+      end; stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      for mod, rec in pairs(tCache) do
-        local sData = defTab.Name..sDelim..mod
-        for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
-          for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
+      local tData = asmlib.Arrange(tCache)
+      for iRow = 1, tData.Size do
+        local tRow = tData[iRow]
+        local sKey, tRec = tRow.Key, tRow.Rec
+        local sData = defTab.Name..sDelim..sKey
+        for iRec = 1, #tRec do local tData = tRec[iRec]; oFile:Write(sData)
+          for iID = 2, defTab.Size do
+            local sC = makTab:GetColumnName(iID); if(not sC) then
+              asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end
+            local vData = tData[sC]; if(not sC) then
+              asmlib.LogInstance("Cannot extract "..asmlib.GetReport(iID,sKey),vSrc); return false end
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
               asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
             end; oFile:Write(sDelim..tostring(vM or ""))
@@ -1795,9 +1803,9 @@ asmlib.CreateTable("ADDITIONS",{
   [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
 },true,true)
 
-asmlib.CreateTable("PHYSPROPERTIES",{
+asmlib.NewTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
-  Index = {{1},{2},{1,2}},
+  Index = {{1,2,Un=true}, {2}},
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
@@ -1821,7 +1829,9 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
         tNames[snPK].Size, tNames[snPK].Slot = 0, snPK
       end -- Data matching crashes only on numbers
-      tNames[snPK].Size = iNameID
+      if(iNameID ~= (tNames[snPK].Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iNameID,snPK),vSrc); return false end
+      tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
