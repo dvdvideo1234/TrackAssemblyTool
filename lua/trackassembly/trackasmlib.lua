@@ -1849,10 +1849,8 @@ function SetListViewClipboard(pnListView, nX, nY)
   local mX, mY = inputGetCursorPos()
   local nX, nY = (tonumber(nX) or mX), (tonumber(nY) or mY)
   local cC, cX, cY = 0, pnListView:ScreenToLocal(nX, nY)
-  while(cX > 0) do
-    cC = (cC + 1)
-    cX = (cX - pnListView:ColumnWidth(cC))
-  end
+  while(cX > 0) do cC = (cC + 1)
+    cX = (cX - pnListView:ColumnWidth(cC)) end
   local nID, pnRow = pnListView:GetSelectedLine()
   if(nID and nID > 0 and pnRow) then
     SetClipboardText(pnRow:GetColumnText(cC))
