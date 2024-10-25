@@ -1693,7 +1693,7 @@ function UpdateListView(pnListView,frUsed,sCol,sPat)
       local sDa = tostring(frUsed[iCnt].Data[sCo] or "")
       if(sDa:find(sPa)) then
         local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
-        if(not IsValid(pnLine)) then LogInstance("Line invalid "..GetReport(iCnt, sDa, sPa, sCo); return false end
+        if(not IsValid(pnLine)) then LogInstance("Line invalid "..GetReport(iCnt, sDa, sPa, sCo)); return false end
         pnLine:SetTooltip(sModel)
       end
     end
@@ -2284,7 +2284,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     tOffs[iID] = {}; tOffs = tOffs[iID] -- Allocate a local offset index
     tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
   end
-  LogInstance("Default "..GetReport(sNull, stData.Slot)
+  LogInstance("Default "..GetReport(sNull, stData.Slot))
   if(not tOffs.O:Raw()) then -- To be decoded on spawn via locating
     tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
     LogInstance("Origin init "..GetReport(iID, sO))
