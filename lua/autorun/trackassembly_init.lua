@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.785")
+asmlib.SetOpVar("TOOL_VERSION","8.786")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -469,6 +469,7 @@ if(CLIENT) then
   asmlib.ToIcon("treemenu_ws_cid"  , "key_go"            )
   asmlib.ToIcon("treemenu_ws_opp"  , "world"             )
   asmlib.ToIcon("treemenu_expand"  , "zoom"              )
+  asmlib.ToIcon("treemenu_export"  , "script_code"       )
   asmlib.ToIcon("subfolder_item"   , "folder"            )
   asmlib.ToIcon("pn_externdb_cmcp" , "page_copy"         )
   asmlib.ToIcon("pn_externdb_cmcp1", "database_go"       )
@@ -1168,7 +1169,7 @@ if(CLIENT) then
             if(asmlib.IsHere(oRec)) then sType = oRec.Type
             else LogInstance("Piece invalid "..asmlib.GetReport(iD, sM)) end
           end
-          asmlib.ExportTypeAR(sType)
+          asmlib.ExportTypeRun(sType)
           asmlib.LogInstance("Export type "..asmlib.GetReport(sType), sLog..".Button")
         else
           asmlib.ExportCategory(3)

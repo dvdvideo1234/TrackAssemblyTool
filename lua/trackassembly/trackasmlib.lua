@@ -1623,11 +1623,9 @@ function SetAction(sKey, fAct, tDat)
     LogInstance("Action mismatch "..GetReport(fAct)); return nil end
   if(not libAction[sKey]) then libAction[sKey] = {} end
   local tAct = libAction[sKey]; tAct.Act, tAct.Dat = fAct, {}
-  if(istable(tDat)) then
-    for key, val in pairs(tDat) do
-      tAct.Dat[key] = tDat[key]
-    end
-  else tAct.Dat = {tDat} end
+  if(istable(tDat)) then -- Must support vectors and angles
+    for key, val in pairs(tDat) do tAct.Dat[key] = tDat[key] end
+  else tAct.Dat = {tDat} end -- Shared data must always be table
   tAct.Dat.Slot = sKey; return true
 end
 
@@ -1727,10 +1725,16 @@ function OpenNodeMenu(pnBase)
   local sM, sI = GetOpVar("TOOLNAME_NL"), "treemenu_"
   local sT = "tool."..sM.."."..sI
   local sID = WorkshopID(pT:GetText())
+  local bEx = asmlib.GetAsmConvar("exportdb", "BUL")
   -- Copy node information
   local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cpy"))
   if(not IsValid(pIn)) then
     LogInstance("Base copy invalid"); return nil end
+  -- Panel handling
+  if(not pnBase.Content) then
+    pMenu:AddOption(languageGetPhrase(sT.."expand"), function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."expand"))
+  end
+  -- Copy various strings
   pOp:SetIcon(ToIcon(sI.."cpy"))
   if(pnBase.Content) then
     pIn:AddOption(languageGetPhrase(sT.."cpy_mod"), function() SetClipboardText(pnBase.Content) end):SetIcon(ToIcon(sI.."cpy_mod"))
@@ -1748,9 +1752,14 @@ function OpenNodeMenu(pnBase)
     pIn:AddOption(languageGetPhrase(sT.."ws_cid"), function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."ws_cid"))
     pIn:AddOption(languageGetPhrase(sT.."ws_opp"), function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."ws_opp"))
   end
-  -- Panel handling
-  if(not pnBase.Content) then
-    pMenu:AddOption(languageGetPhrase(sT.."expand"), function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."expand"))
+  -- Export database contents on autorun
+  if(bEx and pnBase == pT) then
+    pMenu:AddOption(languageGetPhrase(sT.."export"), function()
+      local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+      LogInstance("Player invalid"); return nil end
+      LogInstance("Export "..asmlib.GetReport(oPly:Nick(), pT:GetText()))
+      ExportTypeRun(pT:GetText()); asmlib.SetAsmConvar(oPly, "exportdb", 0)
+    end):SetIcon(ToIcon(sI.."export"))
   end
   pMenu:Open()
 end
@@ -4071,11 +4080,13 @@ end
  * to the database by using external plugable DSV prefix list
  * sType > Track type the autorun file is created for
 ]]
-function ExportTypeAR(sType)
-  if(SERVER) then return nil end
-  if(IsBlank(sType)) then return nil end
+function ExportTypeRun(sType)
+  if(SERVER) then
+    LogInstance("Working on server"); return end
+  if(IsBlank(sType)) then
+    LogInstance("Track type blank"); return end
   local qPieces, qAdditions
-  local sFunc = "ExportTypeAR"
+  local sFunc = "ExportTypeRun"
   local sBase = GetOpVar("DIRPATH_BAS")
   local noSQL = GetOpVar("MISS_NOSQL")
   local sTool = GetOpVar("TOOLNAME_NL")
