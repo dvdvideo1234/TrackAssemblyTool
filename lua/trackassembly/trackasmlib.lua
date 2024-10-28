@@ -1854,16 +1854,26 @@ function GetFrequentPieces(iCnt)
   LogInstance("Array is empty or not available"); return nil
 end
 
-function SetListViewClipboard(pnListView, nX, nY)
-  local mX, mY = inputGetCursorPos()
+function SetListViewRowClipboard(pnListView)
+  local nID, pnRow = pnListView:GetSelectedLine()
+  if(not (nID and nID > 0 and pnRow)) then return "" end
+  local sD = (GetOpVar("OPSYM_VERTDIV") or "|")
+        sD = tostring(sD):sub(1, 1) -- First symbol
+  local iSize, sP = #pnListView.Columns, sD
+  for iD = 1, iSize do
+    sP = sP..pnRow:GetColumnText(iD)..sD
+  end; SetClipboardText(sP)
+end
+
+function SetListViewBoxClipboard(pnListView, nX, nY)
+  local nID, pnRow = pnListView:GetSelectedLine()
+  if(not (nID and nID > 0 and pnRow)) then return "" end
+  local cC, mX, mY = 0, inputGetCursorPos()
   local nX, nY = (tonumber(nX) or mX), (tonumber(nY) or mY)
-  local cC, cX, cY = 0, pnListView:ScreenToLocal(nX, nY)
+  local cX, cY = pnListView:ScreenToLocal(nX, nY)
   while(cX > 0) do cC = (cC + 1)
     cX = (cX - pnListView:ColumnWidth(cC)) end
-  local nID, pnRow = pnListView:GetSelectedLine()
-  if(nID and nID > 0 and pnRow) then
-    SetClipboardText(pnRow:GetColumnText(cC))
-  end
+  SetClipboardText(pnRow:GetColumnText(cC))
 end
 
 function SetComboBoxClipboard(pnCombo)

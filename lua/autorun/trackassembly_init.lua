@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.788")
+asmlib.SetOpVar("TOOL_VERSION","8.789")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -470,7 +470,14 @@ if(CLIENT) then
   asmlib.ToIcon("treemenu_ws_opp"  , "world"             )
   asmlib.ToIcon("treemenu_expand"  , "zoom"              )
   asmlib.ToIcon("treemenu_export"  , "script_code"       )
-  asmlib.ToIcon("subfolder_item"   , "folder"            )
+  asmlib.ToIcon("subfolder_item"   , "folder_brick"      )
+  asmlib.ToIcon("pn_routine_cmcp"  , "page_copy"         )
+  asmlib.ToIcon("pn_routine_cmcpmd", "brick"             )
+  asmlib.ToIcon("pn_routine_cmcpbv", "brick_go"          )
+  asmlib.ToIcon("pn_routine_cmcprw", "brick_link"        )
+  asmlib.ToIcon("pn_routine_cmws"  , "cart"              )
+  asmlib.ToIcon("pn_routine_cmwsid", "key_go"            )
+  asmlib.ToIcon("pn_routine_cmwsop", "world"             )
   asmlib.ToIcon("pn_externdb_cmcp" , "page_copy"         )
   asmlib.ToIcon("pn_externdb_cmcp1", "database_go"       )
   asmlib.ToIcon("pn_externdb_cmcp2", "database_lightning")
@@ -750,11 +757,10 @@ if(CLIENT) then
       xySiz.y = (nH - nT - 2*xyDsz.y) - 2*xyDsz.y - 2*nB
       local wAct = mathFloor(((gnRatio - 1) / 10) * xySiz.x)
       local wUse, wSrc = mathFloor(xySiz.x - wAct), (xySiz.x * nAut)
-      local pnListView = pnFrame:Add("DListView")
+      local pnListView = vguiCreate("DListView")
       if(not IsValid(pnListView)) then pnFrame:Close()
         asmlib.LogInstance("List view invalid",sLog); return nil end
       pnListView:SetParent(pnFrame)
-      pnListView:Dock(TOP)
       pnListView:SetVisible(true)
       pnListView:SetSortable(false)
       pnListView:SetMultiSelect(false)
@@ -785,9 +791,6 @@ if(CLIENT) then
                         ..languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_"..iC))
         xyPos.x = xyPos.x + xySiz.x + xyDsz.x; tpText[iC] = pnText
         pnText.OnEnter = function(pnSelf)
-          local nID, pnRow = pnListView:GetSelectedLine()
-          if(not IsValid(pnRow)) then pnFrame:Close()
-            asmlib.LogInstance("Line invalid", sLog..".TextEntry"); return nil end
           local tDat, sMis = {}, asmlib.GetOpVar("MISS_NOAV")
           for iV = 1, tpText.Size do tDat[iV] = tpText[iV]:GetValue() end
           -- Active line. Contains X/V
@@ -800,11 +803,15 @@ if(CLIENT) then
           -- Additional information. It can be anything
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3])
-          if(not asmlib.IsBlank(tDat[1]) and not asmlib.IsBlank(tDat[2])) then
-          if(nID and nID > 0 and pnRow and not tpText.New) then
-            for iU = 1, tpText.Size do pnRow:SetColumnText(iU, tDat[iU]) end
-          else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3])
-          end; end; for iV = 1, tpText.Size do tpText[iV]:SetValue(""); tpText[iV]:SetText("") end
+          if(asmlib.IsBlank(tDat[1])) then return end
+          if(asmlib.IsBlank(tDat[2])) then return end
+          local iD, pnRow = pnListView:GetSelectedLine()
+          if(asmlib.IsHere(iD) and IsValid(pnRow)) then
+            if(iD and iD > 0 and pnRow and tpText.Chg) then tpText.Chg = nil
+              for iU = 1, tpText.Size do pnRow:SetColumnText(iU, tDat[iU]) end
+            else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3]) end
+          else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3]) end
+          for iV = 1, tpText.Size do tpText[iV]:SetValue(""); tpText[iV]:SetText("") end
         end
       end
       -- Import button. when clicked loads file into the panel
@@ -865,14 +872,6 @@ if(CLIENT) then
           oDSV:Write(sAct..sPrf..sPth.."\n")
         end; oDSV:Flush(); oDSV:Close()
       end
-      local function convRow(pnRow)
-        local sSep = asmlib.GetOpVar("OPSYM_VERTDIV")
-        local sAct = pnRow:GetColumnText(1) -- Active
-        local sPrf = pnRow:GetColumnText(2) -- PK
-        local sPth = pnRow:GetColumnText(3) -- Path
-        if(not asmlib.IsBlank(sPth)) then sPth = sSep..sPth end
-        return (sAct..sSep..sPrf..sPth) -- Divided
-      end
       local function excgRow(pnRow)
         for iV = 1, tpText.Size do
           local ptx = tpText[iV] -- Pick a panel
@@ -881,100 +880,96 @@ if(CLIENT) then
         end -- Exchange data with list view and text
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        if(inputIsMouseDown(MOUSE_RIGHT)) then
-          local pnMenu = vguiCreate("DMenu")
-          if(not IsValid(pnMenu)) then pnFrame:Close()
-            asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
-          local sI = "pn_externdb_cm"
-          local sP = pnLine:GetColumnText(2)
-          local mX, mY = inputGetCursorPos()
-          local sT = ("tool."..gsToolNameL.."."..sI)
-          -- Enable and disable DSV
-          pnMenu:AddOption(languageGetPhrase(sT.."tg"),
-            function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V"))
-          end):SetImage(asmlib.ToIcon(sI.."tg"))
-          -- Copy to clipboard various values and things
-          local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
-          if(not IsValid(pIn)) then pnFrame:Close()
-            asmlib.LogInstance("Copy menu invalid",sLog..".ListView"); return nil end
-          if(not IsValid(pOp)) then pnFrame:Close()
-            asmlib.LogInstance("Copy opts invalid",sLog..".ListView"); return nil end
-          pOp:SetIcon(asmlib.ToIcon(sI.."cp"))
-          pIn:AddOption(languageGetPhrase(sT.."cp1"),
-            function() asmlib.SetListViewClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cp1"))
-          pIn:AddOption(languageGetPhrase(sT.."cp2"),
-            function() SetClipboardText(convRow(pnLine)) end):SetImage(asmlib.ToIcon(sI.."cp2"))
-          pIn:AddOption(languageGetPhrase(sT.."cp3"),
-            function() SetClipboardText(sDsv) end):SetImage(asmlib.ToIcon(sI.."cp3"))
-          -- Panel data line manipulation for import/export
-          local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."li"))
-          if(not IsValid(pIn)) then pnFrame:Close()
-            asmlib.LogInstance("Internals menu invalid",sLog..".ListView"); return nil end
-          if(not IsValid(pOp)) then pnFrame:Close()
-            asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
-          pOp:SetIcon(asmlib.ToIcon(sI.."li"))
-          pIn:AddOption(languageGetPhrase(sT.."li1"),
-            function() excgRow(pnLine); tpText.New = false end):SetImage(asmlib.ToIcon(sI.."li1"))
-          pIn:AddOption(languageGetPhrase(sT.."li2"),
-            function() excgRow(pnLine); tpText.New = true  end):SetImage(asmlib.ToIcon(sI.."li2"))
-          pIn:AddOption(languageGetPhrase(sT.."li3"),
-            function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."li3"))
-          -- Manipulate content local settings related to the line
-          local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."st"))
-          if(not IsValid(pIn)) then pnFrame:Close()
-            asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return nil end
-          if(not IsValid(pOp)) then pnFrame:Close()
-            asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return nil end
-          pOp:SetIcon(asmlib.ToIcon(sI.."st")); pOp:SetTooltip(languageGetPhrase(sI.."stt"))
-          -- Populate the sub-menu with all table nicknames
-          local iD, makTab = 1, asmlib.GetBuilderID(1)
-          while(makTab) do
-            local defTab = makTab:GetDefinition()
-            local sFile = fDSV:format(sP, defTab.Nick)
-            local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
-            if(not IsValid(pTb)) then pnFrame:Close()
-              asmlib.LogInstance("Manage menu invalid"..GetReport(iD, defTab.Nick),sLog..".ListView"); return nil end
-            if(not IsValid(pOb)) then pnFrame:Close()
-              asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return nil end
-            pOb:SetIcon(asmlib.ToIcon(sI.."si"))
-            pTb:AddOption(languageGetPhrase(sT.."st1"),
-              function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."st1"))
-            pTb:AddOption(languageGetPhrase(sT.."st2"),
-              function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."st2"))
-            pTb:AddOption(languageGetPhrase(sT.."st3"),
-              function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."st3"))
-            pTb:AddOption(languageGetPhrase(sT.."st4"),
-              function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."st4"))
-            pTb:AddOption(languageGetPhrase(sT.."st5"),
-              function() -- Edit the database contents using the Luapad addon
-                if(not luapad) then return end -- Luapad is not installed do nothing
-                asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
-                if(luapad.Frame) then luapad.Frame:SetVisible(true)
-                else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
-                luapad.AddTab("["..defTab.Nick.."]"..defTab.Nick, fileRead(sFile, "DATA"), sDsv);
-                if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                  local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
-                    luapad.AddTab("[CATEGORY]"..defTab.Nick, fileRead(sCats, "DATA"), sDsv);
-                  end -- This is done so we can distinguish between luapad and other panels
-                end -- Luapad is designed not to be closed so we need to make it invisible
-                luapad.Frame:SetVisible(true); luapad.Frame:Center()
-                luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
-              end):SetImage(asmlib.ToIcon(sI.."st5"))
-            pTb:AddOption(languageGetPhrase(sT.."st6"),
-              function() fileDelete(sFile)
-                asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
-                if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY")
-                  if(fileExists(sCats,"DATA")) then fileDelete(sCats) -- Delete category when present
-                    asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
-                end
-              end):SetImage(asmlib.ToIcon(sI.."st6"))
-            iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-          end
-          pnMenu:Open()
-        end -- Process only the right mouse button
+        local pnMenu = vguiCreate("DMenu")
+        if(not IsValid(pnMenu)) then pnFrame:Close()
+          asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
+        local sI = "pn_externdb_cm"
+        local sP = pnLine:GetColumnText(2)
+        local mX, mY = inputGetCursorPos()
+        local sT = ("tool."..gsToolNameL.."."..sI)
+        -- Enable and disable DSV
+        pnMenu:AddOption(languageGetPhrase(sT.."tg"),
+          function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V"))
+        end):SetImage(asmlib.ToIcon(sI.."tg"))
+        -- Copy to clipboard various values and things
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Copy menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Copy opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."cp"))
+        pIn:AddOption(languageGetPhrase(sT.."cp1"),
+          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cp1"))
+        pIn:AddOption(languageGetPhrase(sT.."cp2"),
+          function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cp2"))
+        pIn:AddOption(languageGetPhrase(sT.."cp3"),
+          function() SetClipboardText(sDsv) end):SetImage(asmlib.ToIcon(sI.."cp3"))
+        -- Panel data line manipulation for import/export
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."li"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Internals menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."li"))
+        pIn:AddOption(languageGetPhrase(sT.."li1"),
+          function() excgRow(pnLine); tpText.Chg = true end):SetImage(asmlib.ToIcon(sI.."li1"))
+        pIn:AddOption(languageGetPhrase(sT.."li2"),
+          function() excgRow(pnLine); tpText.Chg = nil  end):SetImage(asmlib.ToIcon(sI.."li2"))
+        pIn:AddOption(languageGetPhrase(sT.."li3"),
+          function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."li3"))
+        -- Manipulate content local settings related to the line
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."st"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."st")); pOp:SetTooltip(languageGetPhrase(sI.."stt"))
+        -- Populate the sub-menu with all table nicknames
+        local iD, makTab = 1, asmlib.GetBuilderID(1)
+        while(makTab) do
+          local defTab = makTab:GetDefinition()
+          local sFile = fDSV:format(sP, defTab.Nick)
+          local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
+          if(not IsValid(pTb)) then pnFrame:Close()
+            asmlib.LogInstance("Manage menu invalid"..GetReport(iD, defTab.Nick),sLog..".ListView"); return nil end
+          if(not IsValid(pOb)) then pnFrame:Close()
+            asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return nil end
+          pOb:SetIcon(asmlib.ToIcon(sI.."si"))
+          pTb:AddOption(languageGetPhrase(sT.."st1"),
+            function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."st1"))
+          pTb:AddOption(languageGetPhrase(sT.."st2"),
+            function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."st2"))
+          pTb:AddOption(languageGetPhrase(sT.."st3"),
+            function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."st3"))
+          pTb:AddOption(languageGetPhrase(sT.."st4"),
+            function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."st4"))
+          pTb:AddOption(languageGetPhrase(sT.."st5"),
+            function() -- Edit the database contents using the Luapad addon
+              if(not luapad) then return end -- Luapad is not installed do nothing
+              asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+              if(luapad.Frame) then luapad.Frame:SetVisible(true)
+              else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
+              luapad.AddTab("["..defTab.Nick.."]"..defTab.Nick, fileRead(sFile, "DATA"), sDsv);
+              if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
+                  luapad.AddTab("[CATEGORY]"..defTab.Nick, fileRead(sCats, "DATA"), sDsv);
+                end -- This is done so we can distinguish between luapad and other panels
+              end -- Luapad is designed not to be closed so we need to make it invisible
+              luapad.Frame:SetVisible(true); luapad.Frame:Center()
+              luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
+            end):SetImage(asmlib.ToIcon(sI.."st5"))
+          pTb:AddOption(languageGetPhrase(sT.."st6"),
+            function() fileDelete(sFile)
+              asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
+              if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY")
+                if(fileExists(sCats,"DATA")) then fileDelete(sCats) -- Delete category when present
+                  asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
+              end
+            end):SetImage(asmlib.ToIcon(sI.."st6"))
+          iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
+        end
+        pnMenu:Open()
       end -- Populate the tables for every database
-      pnFrame:InvalidateChildren()
-      pnFrame:ApplySchemeSettings()
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
     end) -- Read client configuration
@@ -1155,7 +1150,36 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        asmlib.SetListViewClipboard(pnSelf)
+        local sI = "pn_routine_cm"
+        local sT = "tool.trackassembly."..sI
+        local mX, mY = inputGetCursorPos()
+        local sID = asmlib.WorkshopID(pnLine:GetColumnText(3))
+        local pMenu = vguiCreate("DMenu")
+        if(not IsValid(pMenu)) then pnFrame:Close()
+          asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
+        -- Copy to clipboard various values and things
+        local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Copy menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Copy opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."cp"))
+        pIn:AddOption(languageGetPhrase(sT.."cpmd"),
+          function() SetClipboardText(pnLine:GetColumnText(5)) end):SetImage(asmlib.ToIcon(sI.."cpmd"))
+        pIn:AddOption(languageGetPhrase(sT.."cpbv"),
+          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbv"))
+        pIn:AddOption(languageGetPhrase(sT.."cprw"),
+          function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
+        if(sID) then
+          local sUR = asmlib.GetOpVar("FORM_URLADDON")
+          local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
+          if(not IsValid(pIn)) then
+            LogInstance("Base WS invalid"); return nil end
+          pOp:SetIcon(asmlib.ToIcon(sI.."ws"))
+          pIn:AddOption(languageGetPhrase(sT.."wsid"), function() SetClipboardText(sID) end):SetIcon(asmlib.ToIcon(sI.."wsid"))
+          pIn:AddOption(languageGetPhrase(sT.."wsop"), function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
+        end
+        pMenu:Open()
       end
       if(not asmlib.UpdateListView(pnListView,frUsed)) then
         asmlib.LogInstance("Populate the list view failed",sLog); return nil end
