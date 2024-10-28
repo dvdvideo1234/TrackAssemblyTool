@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.786")
+asmlib.SetOpVar("TOOL_VERSION","8.788")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -973,6 +973,8 @@ if(CLIENT) then
           pnMenu:Open()
         end -- Process only the right mouse button
       end -- Populate the tables for every database
+      pnFrame:InvalidateChildren()
+      pnFrame:ApplySchemeSettings()
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
     end) -- Read client configuration

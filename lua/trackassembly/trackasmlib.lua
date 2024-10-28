@@ -1730,10 +1730,6 @@ function OpenNodeMenu(pnBase)
   local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cpy"))
   if(not IsValid(pIn)) then
     LogInstance("Base copy invalid"); return nil end
-  -- Panel handling
-  if(not pnBase.Content) then
-    pMenu:AddOption(languageGetPhrase(sT.."expand"), function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."expand"))
-  end
   -- Copy various strings
   pOp:SetIcon(ToIcon(sI.."cpy"))
   if(pnBase.Content) then
@@ -1751,6 +1747,10 @@ function OpenNodeMenu(pnBase)
     pOp:SetIcon(ToIcon(sI.."ws"))
     pIn:AddOption(languageGetPhrase(sT.."ws_cid"), function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."ws_cid"))
     pIn:AddOption(languageGetPhrase(sT.."ws_opp"), function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."ws_opp"))
+  end
+  -- Panel handling
+  if(not pnBase.Content) then
+    pMenu:AddOption(languageGetPhrase(sT.."expand"), function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."expand"))
   end
   -- Export database contents on autorun
   if(bEx and pnBase == pT) then
