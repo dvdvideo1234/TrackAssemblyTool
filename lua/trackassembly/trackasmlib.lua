@@ -1725,7 +1725,7 @@ function OpenNodeMenu(pnBase)
   local sM, sI = GetOpVar("TOOLNAME_NL"), "treemenu_"
   local sT = "tool."..sM.."."..sI
   local sID = WorkshopID(pT:GetText())
-  local bEx = asmlib.GetAsmConvar("exportdb", "BUL")
+  local bEx = GetAsmConvar("exportdb", "BUL")
   -- Copy node information
   local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cpy"))
   if(not IsValid(pIn)) then
@@ -1757,8 +1757,8 @@ function OpenNodeMenu(pnBase)
     pMenu:AddOption(languageGetPhrase(sT.."export"), function()
       local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
       LogInstance("Player invalid"); return nil end
-      LogInstance("Export "..asmlib.GetReport(oPly:Nick(), pT:GetText()))
-      ExportTypeRun(pT:GetText()); asmlib.SetAsmConvar(oPly, "exportdb", 0)
+      LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
+      ExportTypeRun(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
     end):SetIcon(ToIcon(sI.."export"))
   end
   pMenu:Open()
@@ -3987,18 +3987,18 @@ end
  * makTab > Reference to additions table builder
  * qList  > The list to insert the found additions
 ]]
-function SetAdditionsAR(sModel, makTab, qList)
+function SetAdditionsRun(sModel, makTab, qList)
   if(not IsHere(makTab)) then return end
   local defTab = makTab:GetDefinition()
   if(not IsHere(defTab)) then LogInstance("Table definition missing") end
-  local sMoDB, sFunc, qData = GetOpVar("MODE_DATABASE"), "SetAdditionsAR"
+  local sMoDB, sFunc, qData = GetOpVar("MODE_DATABASE"), "SetAdditionsRun"
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qModel = makTab:Match(tostring(sModel or ""), 1, true)
     local qIndx = qsKey:format(sFunc, "ADDITIONS")
     local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
       Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
-    if(not IsHere(sStmt)) then
+    if(not IsHere(Q)) then
       LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return end
     qData = sqlQuery(Q); if(not qData and isbool(qData)) then
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return end
@@ -4032,7 +4032,7 @@ function SetAdditionsAR(sModel, makTab, qList)
   for iD = 1, #qData do qList[iE + iD] = qData[iD] end
 end
 
-function ExportPiecesAR(fF,qData,sName,sInd,qList)
+function ExportPiecesRun(fF,qData,sName,sInd,qList)
   local dbNull = GetOpVar("MISS_NOSQL")
   local keyBld, makAdd = GetOpVar("KEYQ_BUILDER")
   local makTab = qData[keyBld]; if(not IsHere(makTab)) then
@@ -4066,11 +4066,11 @@ function ExportPiecesAR(fF,qData,sName,sInd,qList)
       end
       if(fRow) then fRow = false
         fF:Write(sInd:rep(1).."["..aRow[pkID].."] = {\n")
-        SetAdditionsAR(mMod, makAdd, qList)
+        SetAdditionsRun(mMod, makAdd, qList)
       else
         if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
           fF:Write("\n"..sInd:rep(1).."},\n"..sInd:rep(1).."["..aRow[pkID].."] = {\n")
-          SetAdditionsAR(mMod, makAdd, qList)
+          SetAdditionsRun(mMod, makAdd, qList)
         end
       end
       mgrTab.ExportAR(aRow); tableRemove(aRow, 1)
@@ -4133,9 +4133,9 @@ function ExportTypeRun(sType)
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q))
       fE:Flush(); fE:Close(); fS:Close(); return
     end
-    if(not IsHere(qData) or IsEmpty(qData)) then
+    if(not IsHere(qPieces) or IsEmpty(qPieces)) then
       LogInstance("No data found "..GetReport(Q))
-      if(not IsHere(qData)) then qPieces = {} end
+      if(not IsHere(qPieces)) then qPieces = {} end
     end
   elseif(sMoDB == "LUA") then
     local iCnt = 0; qPieces = {}
@@ -4209,9 +4209,9 @@ function ExportTypeRun(sType)
           fE:Write("asmlib.WorkshopID(myAddon)\n")
         end
       elseif(sLine:find(patPiece)) then isSkip = true
-        ExportPiecesAR(fE, qPieces, "myPieces", sInd, qAdditions)
+        ExportPiecesRun(fE, qPieces, "myPieces", sInd, qAdditions)
       elseif(sLine:find(patAddit)) then isSkip = true
-        ExportPiecesAR(fE, qAdditions, "myAdditions", sInd)
+        ExportPiecesRun(fE, qAdditions, "myAdditions", sInd)
       else
         if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
       end

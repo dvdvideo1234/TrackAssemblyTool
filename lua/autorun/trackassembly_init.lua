@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.789")
+asmlib.SetOpVar("TOOL_VERSION","8.790")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -487,6 +487,11 @@ if(CLIENT) then
   asmlib.ToIcon("pn_externdb_cmli1", "database_edit"     )
   asmlib.ToIcon("pn_externdb_cmli2", "database_add"      )
   asmlib.ToIcon("pn_externdb_cmli3", "database_delete"   )
+  asmlib.ToIcon("pn_externdb_cmmv" , "joystick"          )
+  asmlib.ToIcon("pn_externdb_cmmv1", "arrow_up"          )
+  asmlib.ToIcon("pn_externdb_cmmv2", "arrow_down"        )
+  asmlib.ToIcon("pn_externdb_cmmv3", "arrow_redo"        )
+  asmlib.ToIcon("pn_externdb_cmmv4", "arrow_undo"        )
   asmlib.ToIcon("pn_externdb_cmst" , "database_gear"     )
   asmlib.ToIcon("pn_externdb_cmsi" , "database_key"      )
   asmlib.ToIcon("pn_externdb_cmst1", "folder_find"       )
@@ -775,6 +780,28 @@ if(CLIENT) then
       xyPos.y = xyPos.y + xySiz.y + xyDsz.y
       xySiz.y = nB -- General Y-size of elements
       local tpText = {Size = #pnListView.Columns}
+      function tpText:Scan(pnRow, bChng)
+        if(not IsValid(pnRow)) then return end
+        local bChng = (bChng and asmlib.IsHere(bChng))
+        for iV = 1, self.Size do
+          local ptx = self[iV] -- Pick a panel
+          local str = pnRow:GetColumnText(iV)
+          ptx:SetValue(str); ptx:SetText(str)
+        end -- Exchange data with list view and text. Setup change line flag
+        if(bChng) then self.Chng = true else self.Chng = nil end
+      end
+      function tpText:Swap(pnSor, pnDes)
+        if(not IsValid(pnSor)) then return end
+        if(not IsValid(pnDes)) then return end
+        local bChng = (bChng and asmlib.IsHere(bChng))
+        for iV = 1, self.Size do
+          local str = pnDes:GetColumnText(iV)
+          pnDes:SetColumnText(iV, pnSor:GetColumnText(iV))
+          pnSor:SetColumnText(iV, str)
+          pnListView:ClearSelection()
+          pnListView:SelectItem(pnDes)
+        end -- Exchange data with list view and text. Setup change line flag
+      end
       for iC = 1, tpText.Size do
         local pC = pnListView.Columns[iC]
         local cW = math.min(pC:GetMinWidth(), pC:GetMaxWidth())
@@ -872,13 +899,6 @@ if(CLIENT) then
           oDSV:Write(sAct..sPrf..sPth.."\n")
         end; oDSV:Flush(); oDSV:Close()
       end
-      local function excgRow(pnRow)
-        for iV = 1, tpText.Size do
-          local ptx = tpText[iV] -- Pick a panel
-          local str = pnRow:GetColumnText(iV)
-          ptx:SetValue(str); ptx:SetText(str)
-        end -- Exchange data with list view and text
-      end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
         local pnMenu = vguiCreate("DMenu")
         if(not IsValid(pnMenu)) then pnFrame:Close()
@@ -912,11 +932,38 @@ if(CLIENT) then
           asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
         pOp:SetIcon(asmlib.ToIcon(sI.."li"))
         pIn:AddOption(languageGetPhrase(sT.."li1"),
-          function() excgRow(pnLine); tpText.Chg = true end):SetImage(asmlib.ToIcon(sI.."li1"))
+          function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."li1"))
         pIn:AddOption(languageGetPhrase(sT.."li2"),
-          function() excgRow(pnLine); tpText.Chg = nil  end):SetImage(asmlib.ToIcon(sI.."li2"))
+          function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."li2"))
         pIn:AddOption(languageGetPhrase(sT.."li3"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."li3"))
+        -- Move current line around
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."mv"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Internals menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."mv"))
+        pIn:AddOption(languageGetPhrase(sT.."mv1"),
+          function()
+            if(nIndex <= 1) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(nIndex - 1))
+          end):SetImage(asmlib.ToIcon(sI.."mv1"))
+        pIn:AddOption(languageGetPhrase(sT.."mv2"),
+          function() local nT = #pnSelf:GetLines()
+            if(nIndex >= nT) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(nIndex + 1))
+          end):SetImage(asmlib.ToIcon(sI.."mv2"))
+        pIn:AddOption(languageGetPhrase(sT.."mv3"),
+          function()
+            if(nIndex <= 1) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(1))
+          end):SetImage(asmlib.ToIcon(sI.."mv3"))
+        pIn:AddOption(languageGetPhrase(sT.."mv4"),
+          function() local nT = #pnSelf:GetLines()
+            if(nIndex >= nT) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(nT))
+          end):SetImage(asmlib.ToIcon(sI.."mv4"))
         -- Manipulate content local settings related to the line
         local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."st"))
         if(not IsValid(pIn)) then pnFrame:Close()
