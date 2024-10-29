@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.790")
+asmlib.SetOpVar("TOOL_VERSION","8.791")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -469,7 +469,9 @@ if(CLIENT) then
   asmlib.ToIcon("treemenu_ws_cid"  , "key_go"            )
   asmlib.ToIcon("treemenu_ws_opp"  , "world"             )
   asmlib.ToIcon("treemenu_expand"  , "zoom"              )
-  asmlib.ToIcon("treemenu_export"  , "script_code"       )
+  asmlib.ToIcon("treemenu_exp"     , "transmit_go"       )
+  asmlib.ToIcon("treemenu_exp_dsv" , "database_table"    )
+  asmlib.ToIcon("treemenu_exp_run" , "script_code"       )
   asmlib.ToIcon("subfolder_item"   , "folder_brick"      )
   asmlib.ToIcon("pn_routine_cmcp"  , "page_copy"         )
   asmlib.ToIcon("pn_routine_cmcpmd", "brick"             )
@@ -1790,7 +1792,8 @@ asmlib.NewTable("PIECES",{
   },
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%s","%s"},
-    ExportDSV = {2,3,1,4}
+    ExportDSV = {2,3,1,4},
+    ExportTypeDSV = {2,3,1,4}
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -1807,7 +1810,8 @@ asmlib.NewTable("ADDITIONS",{
   Index = {{1,4,Un=true}, {4}},
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
-    ExportDSV = {1,4}
+    ExportDSV = {1,4},
+    ExportTypeDSV = {1,4}
   },
   Cache = {
     Record = function(makTab, tCache, snPK, arLine, vSrc)

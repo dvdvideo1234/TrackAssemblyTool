@@ -1728,7 +1728,7 @@ function OpenNodeMenu(pnBase)
   local bEx = GetAsmConvar("exportdb", "BUL")
   -- Copy node information
   local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cpy"))
-  if(not IsValid(pIn)) then
+  if(not (IsValid(pIn) and IsValid(pOp))) then
     LogInstance("Base copy invalid"); return nil end
   -- Copy various strings
   pOp:SetIcon(ToIcon(sI.."cpy"))
@@ -1742,7 +1742,7 @@ function OpenNodeMenu(pnBase)
   if(sID) then
     local sUR = GetOpVar("FORM_URLADDON")
     local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
-    if(not IsValid(pIn)) then
+    if(not (IsValid(pIn) and IsValid(pOp))) then
       LogInstance("Base WS invalid"); return nil end
     pOp:SetIcon(ToIcon(sI.."ws"))
     pIn:AddOption(languageGetPhrase(sT.."ws_cid"), function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."ws_cid"))
@@ -1754,12 +1754,24 @@ function OpenNodeMenu(pnBase)
   end
   -- Export database contents on autorun
   if(bEx and pnBase == pT) then
-    pMenu:AddOption(languageGetPhrase(sT.."export"), function()
-      local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
-      LogInstance("Player invalid"); return nil end
-      LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
-      ExportTypeRun(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
-    end):SetIcon(ToIcon(sI.."export"))
+    local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."exp"))
+    if(not (IsValid(pIn) and IsValid(pOp))) then
+      LogInstance("Base export invalid"); return nil end
+    pOp:SetIcon(ToIcon(sI.."exp"))
+    pIn:AddOption(languageGetPhrase(sT.."exp_dsv"),
+      function() SetClipboardText(sID)
+        local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+        LogInstance("Player invalid"); return nil end
+        LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
+        ExportTypeRun(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
+      end):SetIcon(ToIcon(sI.."exp_dsv"))
+    pIn:AddOption(languageGetPhrase(sT.."exp_run"),
+      function()
+        local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+        LogInstance("Player invalid"); return nil end
+        LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
+        ExportTypeDSV(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
+      end):SetIcon(ToIcon(sI.."exp_run"))
   end
   pMenu:Open()
 end
@@ -3674,9 +3686,9 @@ function ExportDSV(sTable, sPref, sDelim)
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Cache missing",sTable); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
-    if(not bS) then LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
-    if(not sR) then LogInstance("("..fPref..") Cache routine fail",sTable); return false end
-  else LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
+    if(not bS) then F:Flush(); F:Close(); LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
+    if(not sR) then F:Flush(); F:Close(); LogInstance("("..fPref..") Cache routine fail",sTable); return false end
+  else F:Flush(); F:Close(); LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
   -- The dynamic cache population was successful then send a message
   F:Flush(); F:Close(); LogInstance("("..fPref..") Success",sTable); return true
 end
@@ -4222,6 +4234,115 @@ function ExportTypeRun(sType)
     fE:Write("\n"); fE:Flush()
     fE:Close(); fS:Close()
   end
+end
+
+--[[
+ * This function extracts some track type from the database and creates
+ * dedicated DSV files adding the given type argument
+ * to the database by using external plugable DSV prefix list
+ * sType > Track type the DSV files are created for
+]]
+function ExportTypeDSV(sType, sPref, sDelim)
+  if(not isstring(sType)) then
+    LogInstance("Type mismatch "..GetReport(sType)); return false end
+  local fPref = tostring(sPref or GetInstPref())
+  local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
+    LogInstance("("..fPref..") Missing pieces builder"); return false end
+  local defP = makP:GetDefinition(); if(not IsHere(defP)) then
+    LogInstance("("..fPref..") Missing pieces definition"); return nil end
+  local makA = GetBuilderNick("ADDITIONS"); if(not IsHere(makA)) then
+    LogInstance("("..fPref..") Missing additions builder"); return false end
+  local defA = makA:GetDefinition(); if(not IsHere(defA)) then
+    LogInstance("("..fPref..") Missing additions definition"); return nil end
+  local fDir = GetOpVar("DIRPATH_BAS")
+  if(not fileExists(fDir,"DATA")) then fileCreateDir(fDir) end
+  local fDir = fDir..GetOpVar("DIRPATH_EXP")
+  if(not fileExists(fDir,"DATA")) then fileCreateDir(fDir) end
+  local fForm = GetOpVar("FORM_PREFIXDSV")
+  local fName = fDir..fForm:format(fPref, defP.Name)
+  local P = fileOpen(fName, "wb", "DATA"); if(not P) then
+    LogInstance("("..fPref..")("..fName..") Open fail"); return false end
+  local fName = fDir..fForm:format(fPref, defA.Name)
+  local A = fileOpen(fName, "wb", "DATA"); if(not A) then
+    LogInstance("("..fPref..")("..fName..") Open fail"); return false end
+  local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportTypeDSV"
+  local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
+  local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
+  local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
+  P:Write("#1 "..sFunc..":("..fPref.."@"..defP.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+  P:Write("#2 "..defP.Nick..":("..makP:GetColumnList(sDelim)..")\n")
+  A:Write("#1 "..sFunc..":("..fPref.."@"..defA.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+  A:Write("#2 "..defA.Nick..":("..makA:GetColumnList(sDelim)..")\n")
+  if(sMoDB == "SQL") then
+    local qsKey = GetOpVar("FORM_KEYSTMT")
+    local qType = makP:Match(sType, 2, true)
+    local qInxP = qsKey:format(sFunc, defP.Nick)
+    local qInxA = qsKey:format(sFunc, defA.Nick)
+    local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then
+      Q =  makP:Select():Where({2,"%s"}):Order(unpack(defP.Query[sFunc])):Store(qInxP):Get(qInxP, qType) end
+    if(not IsHere(Q)) then
+      LogInstance("("..fPref..") Build statement failed",defP.Nick)
+      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+    end
+    P:Write("#3 Query:<"..Q..">\n")
+    local qP = sqlQuery(Q); if(not qP and isbool(qP)) then
+      LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defP.Nick);
+      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+    end
+    if(not IsHere(qP) or IsEmpty(qP)) then
+      LogInstance("("..fPref..") No data found "..GetReport(Q), defP.Nick);
+      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+    end
+    local rwP, rwA, rwM = "", "", ""
+    local coMo = makTab:GetColumnName(1)
+    local coLI = makTab:GetColumnName(4)
+    for iP = 1, #qP do
+      local qRec = qP[iP]; rwP = defP.Name
+      for iC = 1, defP.Size do
+        local sC = defP[iC][1], ""
+        local vC = qRec[sC]
+        local mC = makP:Match(vC,iC,true,"\"",true)
+        rwP, rwM = (rwP..sDelim..vC), (sC == coMo and mC or rwM)
+        if(sC == coLI and (tonumber(vC) or 0) == 1) then
+          local Q = makA:Get(qInxA, rwM); if(not IsHere(Q)) then
+            Q = makA:Select():Where({1,"%s"}):Order(unpack(defP.Query[sFunc])):Get(qInxA, rwM) end
+          if(not IsHere(Q)) then
+            LogInstance("("..fPref..") Build statement failed",defA.Nick)
+            P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+          end
+          if(iP == 1) then A:Write("#3 Query:<"..Q..">\n") end
+          local qA = sqlQuery(Q); if(not qA and isbool(qA)) then
+            LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defA.Nick);
+            P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+          end
+          if(not IsHere(qA) or IsEmpty(qA)) then
+            LogInstance("("..fPref..") No data found "..GetReport(Q), defA.Nick);
+            P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+          end
+        end
+      end; P:Write(rwP.."\n"); rwP = ""
+    end -- Matching will not crash as it is matched during insertion
+  elseif(sMoDB == "LUA") then
+    local tCache = libCache[defP.Name]
+    if(not IsHere(tCache)) then
+      LogInstance("("..fPref..") Cache missing",defP.Nick)
+      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+    end
+    local bS, sR = pcall(defP.Cache[sFunc], P, makP, A, makA, tCache, fPref, sDelim, ssLog:format("Cache"))
+    if(not bS) then
+      LogInstance("("..fPref..") Cache manager fail for "..sR,defP.Nick)
+      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+    end
+    if(not sR) then
+      LogInstance("("..fPref..") Cache routine fail",defP.Nick)
+      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+    end
+  else
+    LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),defP.Nick)
+    P:Flush(); P:Close(); A:Flush(); A:Close(); return false
+  end
+  -- The dynamic cache population was successful then send a message
+  P:Flush(); P:Close(); A:Flush(); A:Close(); LogInstance("("..fPref..") Success"); return true
 end
 
 ----------------------------- SNAPPING ------------------------------
