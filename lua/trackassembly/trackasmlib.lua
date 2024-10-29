@@ -3668,7 +3668,9 @@ function ExportDSV(sTable, sPref, sDelim)
   F:Write("#1 "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
-    local Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Get()
+    local qIndx = qsKey:format(sFunc,"")
+    local Q = makTab:Get(qIndx); if(not IsHere(Q)) then
+      Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Build statement failed",sTable); return false end
     F:Write("#3 Query:<"..Q..">\n")
@@ -3686,8 +3688,10 @@ function ExportDSV(sTable, sPref, sDelim)
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("("..fPref..") Cache missing",sTable); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
-    if(not bS) then F:Flush(); F:Close(); LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
-    if(not sR) then F:Flush(); F:Close(); LogInstance("("..fPref..") Cache routine fail",sTable); return false end
+    if(not bS) then F:Flush(); F:Close()
+      LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
+    if(not sR) then F:Flush(); F:Close()
+      LogInstance("("..fPref..") Cache routine fail",sTable); return false end
   else F:Flush(); F:Close(); LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
   -- The dynamic cache population was successful then send a message
   F:Flush(); F:Close(); LogInstance("("..fPref..") Success",sTable); return true
@@ -4242,10 +4246,10 @@ end
  * to the database by using external plugable DSV prefix list
  * sType > Track type the DSV files are created for
 ]]
-function ExportTypeDSV(sType, sPref, sDelim)
+function ExportTypeDSV(sType, sDelim)
   if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return false end
-  local fPref = tostring(sPref or GetInstPref())
+  local fPref = sType:gsub("[^%w]","_"):lower()
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
     LogInstance("("..fPref..") Missing pieces builder"); return false end
   local defP = makP:GetDefinition(); if(not IsHere(defP)) then
@@ -4280,19 +4284,13 @@ function ExportTypeDSV(sType, sPref, sDelim)
     local qInxA = qsKey:format(sFunc, defA.Nick)
     local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then
       Q =  makP:Select():Where({2,"%s"}):Order(unpack(defP.Query[sFunc])):Store(qInxP):Get(qInxP, qType) end
-    if(not IsHere(Q)) then
-      LogInstance("("..fPref..") Build statement failed",defP.Nick)
-      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-    end
+    if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      LogInstance("("..fPref..") Build statement failed",defP.Nick); return false end
     P:Write("#3 Query:<"..Q..">\n")
-    local qP = sqlQuery(Q); if(not qP and isbool(qP)) then
-      LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defP.Nick);
-      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-    end
-    if(not IsHere(qP) or IsEmpty(qP)) then
-      LogInstance("("..fPref..") No data found "..GetReport(Q), defP.Nick);
-      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-    end
+    local qP = sqlQuery(Q); if(not qP and isbool(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defP.Nick); return false end
+    if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      LogInstance("("..fPref..") No data found "..GetReport(Q), defP.Nick); return false end
     local rwP, rwA, rwM = "", "", ""
     local coMo = makTab:GetColumnName(1)
     local coLI = makTab:GetColumnName(4)
@@ -4305,43 +4303,29 @@ function ExportTypeDSV(sType, sPref, sDelim)
         rwP, rwM = (rwP..sDelim..vC), (sC == coMo and mC or rwM)
         if(sC == coLI and (tonumber(vC) or 0) == 1) then
           local Q = makA:Get(qInxA, rwM); if(not IsHere(Q)) then
-            Q = makA:Select():Where({1,"%s"}):Order(unpack(defP.Query[sFunc])):Get(qInxA, rwM) end
-          if(not IsHere(Q)) then
-            LogInstance("("..fPref..") Build statement failed",defA.Nick)
-            P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-          end
+            Q = makA:Select():Where({1,"%s"}):Order(unpack(defP.Query[sFunc])):Store(qInxA):Get(qInxA, rwM) end
+          if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+            LogInstance("("..fPref..") Build statement failed",defA.Nick); return false end
           if(iP == 1) then A:Write("#3 Query:<"..Q..">\n") end
-          local qA = sqlQuery(Q); if(not qA and isbool(qA)) then
-            LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defA.Nick);
-            P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-          end
-          if(not IsHere(qA) or IsEmpty(qA)) then
-            LogInstance("("..fPref..") No data found "..GetReport(Q), defA.Nick);
-            P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-          end
+          local qA = sqlQuery(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+            LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defA.Nick); return false end
+          if(not IsHere(qA) or IsEmpty(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+            LogInstance("("..fPref..") No data found "..GetReport(Q), defA.Nick); return false end
         end
       end; P:Write(rwP.."\n"); rwP = ""
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
-    local tCache = libCache[defP.Name]
-    if(not IsHere(tCache)) then
-      LogInstance("("..fPref..") Cache missing",defP.Nick)
-      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-    end
-    local bS, sR = pcall(defP.Cache[sFunc], P, makP, A, makA, tCache, fPref, sDelim, ssLog:format("Cache"))
-    if(not bS) then
-      LogInstance("("..fPref..") Cache manager fail for "..sR,defP.Nick)
-      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-    end
-    if(not sR) then
-      LogInstance("("..fPref..") Cache routine fail",defP.Nick)
-      P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-    end
-  else
-    LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),defP.Nick)
-    P:Flush(); P:Close(); A:Flush(); A:Close(); return false
-  end
-  -- The dynamic cache population was successful then send a message
+    local PCache, ACache = libCache[defP.Name], libCache[defA.Name]
+    if(not IsHere(PCache)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      LogInstance("("..fPref..") Cache missing",defP.Nick) ; return false end
+    local bS, sR = pcall(defP.Cache[sFunc], P, makP, PCache, A, makA, ACache, fPref, sDelim, ssLog:format("Cache"))
+    if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      LogInstance("("..fPref..") Cache manager fail for "..sR,defP.Nick) ; return false end
+    if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      LogInstance("("..fPref..") Cache routine fail",defP.Nick) ; return false end
+  else P:Flush(); P:Close(); A:Flush(); A:Close()
+    LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),defP.Nick); return false
+  end -- The dynamic cache population was successful then send a message
   P:Flush(); P:Close(); A:Flush(); A:Close(); LogInstance("("..fPref..") Success"); return true
 end
 
