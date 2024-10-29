@@ -165,7 +165,7 @@ asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..",
 -- Register the addon to the workshop ID list
 asmlib.WorkshopID(myAddon, "287012681")
 
--- Register the addon to the pluggable DSV list
+-- Register the addon to the plugable DSV list
 local bS, vO = pcall(RegisterDSV, myFlag)
 if(not bS) then ThrowError("Retistration error: "..vO) end
 
@@ -197,7 +197,7 @@ local myCategory = {
   ]]}
 }
 
--- Register the addon category to the pluggable DSV list
+-- Register the addon category to the plugable DSV list
 local bS, vO = pcall(ExportCategory, myCategory)
 if(not bS) then ThrowError("Category error: "..vO) end
 
@@ -252,7 +252,7 @@ local myPieces = {
   }
 }
 
--- Register the addon PIECES to the pluggable DSV list
+-- Register the addon PIECES to the plugable DSV list
 local bS, vO = pcall(SyncTable, "PIECES", myPieces, true)
 if(not bS) then ThrowError("PIECES error: "..vO) end
 

@@ -1759,18 +1759,18 @@ function OpenNodeMenu(pnBase)
       LogInstance("Base export invalid"); return nil end
     pOp:SetIcon(ToIcon(sI.."exp"))
     pIn:AddOption(languageGetPhrase(sT.."exp_dsv"),
-      function() SetClipboardText(sID)
+      function()
         local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
         LogInstance("Player invalid"); return nil end
         LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
-        ExportTypeRun(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
+        ExportTypeDSV(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
       end):SetIcon(ToIcon(sI.."exp_dsv"))
     pIn:AddOption(languageGetPhrase(sT.."exp_run"),
       function()
         local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
         LogInstance("Player invalid"); return nil end
         LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
-        ExportTypeDSV(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
+        ExportTypeRun(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
       end):SetIcon(ToIcon(sI.."exp_run"))
   end
   pMenu:Open()
@@ -2786,16 +2786,16 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- Attaches timer to a record related in the table cache
   function self:TimerAttach(vMsg, ...)
-    local sDiv  = GetOpVar("OPSYM_DIVIDER")
     local oSpot, kKey, tKey = self:GetNavigate(...)
+    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
     local sMoDB, iCnt = GetOpVar("MODE_DATABASE"), select("#", ...)
     if(not (IsHere(oSpot) and IsHere(kKey))) then
       LogInstance("Navigation failed",tabDef.Nick); return nil end
     LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
+    oSpot[kKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
-      local nNow, tTim = Time(), qtCmd.Timer; if(not IsHere(tTim)) then
+      local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
-      oSpot[kKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
       local smTM, tmLif, tmDie, tmCol = tTim[1], tTim[2], tTim[3], tTim[4]; if(tmLif <= 0) then
         LogInstance("Timer attachment ignored",tabDef.Nick); return oSpot[kKey] end
       LogInstance("Stats "..GetReport(iCnt, smTM, tmLif, tmDie, tmCol), tabDef.Nick)
@@ -2842,21 +2842,21 @@ function NewTable(sTable,defTab,bDelete,bReload)
         end); timerStart(tmID); return oSpot[kKey]
       else LogInstance("Unsupported mode "..GetReport(smTM),tabDef.Nick); return oSpot[kKey] end
     elseif(sMoDB == "LUA") then
-      LogInstance("Memory manager impractical",tabDef.Nick); return oSpot[kKey]
+      LogInstance("Memory manager skip",tabDef.Nick); return oSpot[kKey]
     else LogInstance("Unsupported mode "..GetReport(sMoDB),tabDef.Nick); return nil end
   end
   -- Restarts timer to a record related in the table cache
   function self:TimerRestart(vMsg, ...)
-    local sDiv  = GetOpVar("OPSYM_DIVIDER")
     local sMoDB = GetOpVar("MODE_DATABASE")
     local oSpot, kKey, tKey = self:GetNavigate(...)
+    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
     if(not (IsHere(oSpot) and IsHere(kKey))) then
       LogInstance("Navigation failed",tabDef.Nick); return nil end
     LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
+    oSpot[kKey].Used = nNow -- Mark the current caching time stamp
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand()
       local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
         LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
-      oSpot[kKey].Used = Time() -- Mark the current caching time stamp
       local smTM, tmLif = tTim[1], tTim[2]; if(tmLif <= 0) then
         LogInstance("Timer life ignored",tabDef.Nick); return oSpot[kKey] end
       if(smTM == "CQT") then smTM = "CQT" -- Cache query timer does nothing
@@ -2865,7 +2865,8 @@ function NewTable(sTable,defTab,bDelete,bReload)
           LogInstance("Timer missing "..GetReport(tmID),tabDef.Nick); return nil end
         timerStart(tmID)
       else LogInstance("Mode mismatch "..GetReport(smTM),tabDef.Nick); return nil end
-    elseif(sMoDB == "LUA") then oSpot[kKey].Used = Time()
+    elseif(sMoDB == "LUA") then
+      LogInstance("Memory manager skip",tabDef.Nick); return oSpot[kKey]
     else LogInstance("Unsupported mode "..GetReport(sMoDB),tabDef.Nick); return nil end
     return oSpot[kKey]
   end
@@ -3950,7 +3951,7 @@ function ProcessDSV(sDelim)
   local fName = (sBas..sSet..lbNam.."_dsv.txt")
   local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(fName)); return false end
-  local sLine, isEOF = "", false
+  local sLine, isEOF, sIns = "", false, GetInstPref()
   local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
   local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
   local sDv = sBas..GetOpVar("DIRPATH_DSV")
@@ -3961,23 +3962,26 @@ function ProcessDSV(sDelim)
         local fPrf = GetStrip(tostring(tInf[1] or ""):Trim())
         local fSrc = GetStrip(tostring(tInf[2] or ""):Trim())
         if(not IsBlank(fPrf)) then -- Is there something
-          if(not tProc[fPrf]) then
-            tProc[fPrf] = {Cnt = 1, [1] = fSrc}
-          else local tStore = tProc[fPrf] -- Prefix is processed already
-            tStore.Cnt = tStore.Cnt + 1 -- Store the count of the repeated prefixes
-            tStore[tStore.Cnt] = fSrc
+          local tStore = tProc[fPrf]
+          if(not tStore) then
+            tProc[fPrf] = {Size = 1}
+            tStore = tProc[fPrf]
+            tableInsert(tStore, fSrc)
+          else -- Prefix is processed already
+            tStore.Size = tStore.Size + 1 -- Store the count of the repeated prefixes
+            tableInsert(tStore, fSrc)
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
       else LogInstance("Skipped "..GetReport(sLine)) end
     end
   end; F:Close()
   for prf, tab in pairs(tProc) do
-    if(tab.Cnt > 1) then
-      LogInstance("Prefix clones "..GetReport(prf, tab.Cnt, fName))
-      for iD = 1, tab.Cnt do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
-    else local irf = GetInstPref()
+    if(tab.Size > 1) then
+      LogInstance("Prefix clones "..GetReport(prf, tab.Size, fName))
+      for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
+    else
       if(CLIENT) then
-        if(not fileExists(sDv..fForm:format(irf, sNt.."CATEGORY"), "DATA")) then
+        if(not fileExists(sDv..fForm:format(sIns, sNt.."CATEGORY"), "DATA")) then
           if(fileExists(sDv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
             if(not ImportCategory(3, prf)) then
               LogInstance("Failed "..GetReport(prf, "CATEGORY")) end
@@ -3987,7 +3991,7 @@ function ProcessDSV(sDelim)
       for iD = 1, #libQTable do
         local makTab = GetBuilderID(iD)
         local defTab = makTab:GetDefinition()
-        if(not fileExists(sDv..fForm:format(irf, sNt..defTab.Nick), "DATA")) then
+        if(not fileExists(sDv..fForm:format(sIns, sNt..defTab.Nick), "DATA")) then
           if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
               LogInstance("Failed "..GetReport(prf, defTab.Nick)) end

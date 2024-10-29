@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.793")
+asmlib.SetOpVar("TOOL_VERSION","8.794")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -469,7 +469,7 @@ if(CLIENT) then
   asmlib.ToIcon("treemenu_ws_cid"  , "key_go"            )
   asmlib.ToIcon("treemenu_ws_opp"  , "world"             )
   asmlib.ToIcon("treemenu_expand"  , "zoom"              )
-  asmlib.ToIcon("treemenu_exp"     , "transmit_go"       )
+  asmlib.ToIcon("treemenu_exp"     , "transmit"          )
   asmlib.ToIcon("treemenu_exp_dsv" , "database_table"    )
   asmlib.ToIcon("treemenu_exp_run" , "script_code"       )
   asmlib.ToIcon("subfolder_item"   , "folder_brick"      )
@@ -836,7 +836,7 @@ if(CLIENT) then
           if(asmlib.IsBlank(tDat[2])) then return end
           local iD, pnRow = pnListView:GetSelectedLine()
           if(asmlib.IsHere(iD) and IsValid(pnRow)) then
-            if(iD and iD > 0 and pnRow and tpText.Chg) then tpText.Chg = nil
+            if(iD and iD > 0 and pnRow and tpText.Chng) then tpText.Chng = nil
               for iU = 1, tpText.Size do pnRow:SetColumnText(iU, tDat[iU]) end
             else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3]) end
           else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3]) end
@@ -1756,6 +1756,7 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
+      if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
@@ -1822,13 +1823,12 @@ asmlib.NewTable("PIECES",{
             if(iD == 1) then
               local tA = ACache[stRec.Key]
               if(tA and tA.Size and tA.Size > 0) then
-                local sRow = defA.Name..sDelim..makA:Match(stRec.Key,1,true,"\"")
-                for iA = 1, tA.Size do for iC = 2, defA.Size do
+                local sH = defA.Name..sDelim..makA:Match(stRec.Key,1,true,"\"")
+                for iA = 1, tA.Size do fA:Write(sH) for iC = 2, defA.Size do
                   local sC = defA[iC][1]
-                  local mA = makA:Match(tA[iA][sC],iC,true,"\""); if(not mA) then
-                    asmlib.LogInstance("Cannot match "..asmlib.GetReport(iA, sC, iC, tA[iA][iC]), vSrc); return false end
-                  fA:Write(sRow); fA:Write(sDelim..mA)
-                end end
+                  local vC = tA[iA][sC]
+                  fA:Write(sDelim..makA:Match(vC,iC,true,"\""))
+                end fA:Write("\n") end
               end
             end
           end
