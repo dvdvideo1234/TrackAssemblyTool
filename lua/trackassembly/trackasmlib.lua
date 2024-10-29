@@ -3668,6 +3668,7 @@ function ExportDSV(sTable, sPref, sDelim)
   F:Write("#1 "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
+    local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc,"")
     local Q = makTab:Get(qIndx); if(not IsHere(Q)) then
       Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Store(qIndx):Get(qIndx) end
