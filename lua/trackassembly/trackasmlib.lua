@@ -2391,61 +2391,64 @@ function Categorize(oTyp, fCat, ...)
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local tTyp = (tCat and tCat[sTyp] or nil)
     return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-  end; ModelToNameRule("CLR"); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
-  if(CLIENT) then local tTyp -- Categories for the panel
-    local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
-    local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-    local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
-    if(isstring(fCat)) then
-      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
-    elseif(istable(fCat)) then local tArg = {...}
-      local sTr = GetOpVar("OPSYM_REVISION") -- Trigger
-      local sSe = GetOpVar("OPSYM_DIRECTORY") -- Separator
-      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
-      tTyp.Txt = [[function(m)
-        local o = {}
-        function setBranch(v, p, b, q)
-          if(v:find(p)) then
-            local e = v:gsub("%W*"..p.."%W*", "_")
-            if(b and o.M) then return e end
-            if(b and not o.M) then o.M = true end
-            table.insert(o, (q or p)); return e
-          end; return v
-        end]]
-      tTyp.Txt = tTyp.Txt.."\nlocal r = m:gsub(\""..tostring(tArg[1] or "").."\",\"\"):gsub(\"%.mdl$\",\"\");"
-      for iD = 1, #fCat do
-        local tV = sSe:Explode(fCat[iD])
-        local sR = tostring(tV[2] and ("\""..tostring(tV[2]).."\"") or nil)
-        if(tV[1]:sub(1,1) == sTr) then tV[1] = tV[1]:sub(2,-1)
-          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", true, "..sR..")"
-        else
-          tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", false, "..sR..")"
+  else
+    ModelToNameRule("CLR"); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
+    if(CLIENT) then local tTyp -- Categories for the panel
+      local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
+      local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
+      local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
+      LogInstance("Name "..GetReport(oTyp, sTyp, type(fCat)), ssLog)
+      if(isstring(fCat)) then
+        tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
+      elseif(istable(fCat)) then local tArg = {...}
+        local sTr = GetOpVar("OPSYM_REVISION") -- Trigger
+        local sSe = GetOpVar("OPSYM_DIRECTORY") -- Separator
+        tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+        tTyp.Txt = [[function(m)
+          local o = {}
+          function setBranch(v, p, b, q)
+            if(v:find(p)) then
+              local e = v:gsub("%W*"..p.."%W*", "_")
+              if(b and o.M) then return e end
+              if(b and not o.M) then o.M = true end
+              table.insert(o, (q or p)); return e
+            end; return v
+          end]]
+        tTyp.Txt = tTyp.Txt.."\nlocal r = m:gsub(\""..tostring(tArg[1] or "").."\",\"\"):gsub(\"%.mdl$\",\"\");"
+        for iD = 1, #fCat do
+          local tV = sSe:Explode(fCat[iD])
+          local sR = tostring(tV[2] and ("\""..tostring(tV[2]).."\"") or nil)
+          if(tV[1]:sub(1,1) == sTr) then tV[1] = tV[1]:sub(2,-1)
+            tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", true, "..sR..")"
+          else
+            tTyp.Txt = tTyp.Txt.."\nr = setBranch(r, \""..tostring(tV[1]).."\", false, "..sR..")"
+          end
         end
-      end
-      tTyp.Txt = tTyp.Txt.."\no.M = nil; return o, r:gsub(\"^_+\", \"\"):gsub(\"_+$\", \"\"):gsub(\"_+\", \"_\") end"
-    elseif(isnumber(fCat)) then local tArg = {...}
-      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
-      tTyp.Txt = "function(m)"
-      tTyp.Txt = tTyp.Txt.."\nlocal n = math.floor(tonumber("..fCat..") or 0)"
-      tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..tostring(tArg[1] or "").."\", \"\")\n"
-      for i = 2, #tArg do local aP, aN = tArg[i], tArg[i+1]
-        if(aP and aN) then tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..aP.."\", \""..aN.."\")\n" end end
-      tTyp.Txt = tTyp.Txt..[[local t, x = {n = 0}, m:find("/", 1, true)
-        while(x and x > 0) do
-          t.n = t.n + 1; t[t.n] = m:sub(1, x-1)
-          m = m:sub(x+1, -1); x = m:find("/", 1, true)
-        end; m = m:gsub("%.mdl$","")
-        if(n == 0) then return t, m end; local a = math.abs(n)
-        if(a > t.n) then return t, m end; local s = #t-a
-        if(n < 0) then for i = 1, a do t[i] = t[i+s] end end
-        while(s > 0) do table.remove(t); s = s - 1 end
-        return t, m
-      end]]
-    else LogInstance("Skip "..GetReport(fCat), ssLog); return nil end
-    tTyp.Cmp = CompileString("return ("..tTyp.Txt..")", sTyp)
-    local bS, vO = pcall(tTyp.Cmp); if(not bS) then
-      LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
-    tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
+        tTyp.Txt = tTyp.Txt.."\no.M = nil; return o, r:gsub(\"^_+\", \"\"):gsub(\"_+$\", \"\"):gsub(\"_+\", \"_\") end"
+      elseif(isnumber(fCat)) then local tArg = {...}
+        tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+        tTyp.Txt = "function(m)"
+        tTyp.Txt = tTyp.Txt.."\nlocal n = math.floor(tonumber("..fCat..") or 0)"
+        tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..tostring(tArg[1] or "").."\", \"\")\n"
+        for i = 2, #tArg do local aP, aN = tArg[i], tArg[i+1]
+          if(aP and aN) then tTyp.Txt = tTyp.Txt.."\nlocal m = m:gsub(\""..aP.."\", \""..aN.."\")\n" end end
+        tTyp.Txt = tTyp.Txt..[[local t, x = {n = 0}, m:find("/", 1, true)
+          while(x and x > 0) do
+            t.n = t.n + 1; t[t.n] = m:sub(1, x-1)
+            m = m:sub(x+1, -1); x = m:find("/", 1, true)
+          end; m = m:gsub("%.mdl$","")
+          if(n == 0) then return t, m end; local a = math.abs(n)
+          if(a > t.n) then return t, m end; local s = #t-a
+          if(n < 0) then for i = 1, a do t[i] = t[i+s] end end
+          while(s > 0) do table.remove(t); s = s - 1 end
+          return t, m
+        end]]
+      else LogInstance("Skip "..GetReport(fCat), ssLog); return nil end
+      tTyp.Cmp = CompileString("return ("..tTyp.Txt..")", sTyp)
+      local bS, vO = pcall(tTyp.Cmp); if(not bS) then
+        LogInstance("Failed "..GetReport(fCat)..": "..vO, ssLog); return nil end
+      tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
+    end
   end
 end
 
@@ -3582,11 +3585,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
   F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   for cat, rec in pairs(tCat) do
-    if(isstring(rec.Txt)) then
-      local exp = "["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]"
-      if(not rec.Txt:find("\n")) then F:Flush(); F:Close()
-        LogInstance("("..fPref.."):("..fPref..") Category one-liner "..GetReport(cat)); return false end
-      F:Write(exp.."\n")
+    if(isstring(rec.Txt)) then F:Write("["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]".."\n")
     else F:Flush(); F:Close(); LogInstance("("..fPref..") Category code mismatch "..GetReport(cat, rec.Txt)); return false end
   end; F:Flush(); F:Close(); LogInstance("("..fPref..") Success"); return true
 end
@@ -3603,7 +3602,7 @@ function ImportCategory(vEq, sPref, bExp)
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
   local fPref = tostring(sPref or GetInstPref())
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
-  local fName = GetOpVar("DIRPATH_BAS") --Switch the import source
+  local fName = GetOpVar("DIRPATH_BAS") --Switch the import source folder
         fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
         fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "rb", "DATA")
@@ -3647,8 +3646,9 @@ end
  * sTable > The table you want to export
  * sPref  > The external data prefix to be used
  * sDelim > What delimiter is the server using ( default tab )
+ * bExp   > Forces the input from the export folder.( defaults to DSV )
 ]]
-function ExportDSV(sTable, sPref, sDelim)
+function ExportDSV(sTable, sPref, sDelim, bExp)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
@@ -3661,7 +3661,7 @@ function ExportDSV(sTable, sPref, sDelim)
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("("..fPref..") User disabled"); return true end
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..GetOpVar("DIRPATH_DSV")
+  fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   local fForm = GetOpVar("FORM_PREFIXDSV")
   fName = fName..fForm:format(fPref, defTab.Name)
@@ -3710,8 +3710,9 @@ end
  * bComm  > Calls TABLE:Record(arLine) when set to true
  * sPref  > Prefix used on importing ( optional )
  * sDelim > Delimiter separating the values
+ * bExp   > Forces the input from the export folder.( defaults to DSV )
 ]]
-function ImportDSV(sTable, bComm, sPref, sDelim)
+function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
   local fPref = tostring(sPref or GetInstPref()); if(not isstring(sTable)) then
     LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
@@ -3720,7 +3721,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim)
     LogInstance("("..fPref..") Missing table definition",sTable); return false end
   local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
     LogInstance("("..fPref..") Missing table command",sTable); return false end
-  local fName = (GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV"))
+  local fName = GetOpVar("DIRPATH_BAS") --Switch the import source folder
+        fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
         fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then

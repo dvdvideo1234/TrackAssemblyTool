@@ -2,6 +2,7 @@ QuickSort
 SetNumSlider
 ModelToName: Cut
 ModelToName: Sub
+BIND_PRESS:
 ModelToName: App
 DefaultType: Avoided
 LocatePOA: Missing ID
@@ -28,6 +29,7 @@ DRAW_RADMENU: Release
 DRAW_RADMENU: Hook mismatch
 DRAW_RADMENU: Scroll release
 DRAW_RADMENU: Menu disabled
+DRAW_RADMENU: %(gmod_tool%) Swep other
 DRAW_GHOSTS: Swep invalid
 DRAW_GHOSTS: Swep not tool
 DRAW_GHOSTS: %(gmod_tool%) Swep other
@@ -41,7 +43,6 @@ DRAW_PHYSGUN: Swep invalid
 DRAW_PHYSGUN: Extension disabled
 DRAW_PHYSGUN: Trace not piece
 DRAW_PHYSGUN: %(weapon_physgun%) Swep other
-DRAW_RADMENU: %(gmod_tool%) Swep other
 POINT_SELECT: Bind not pressed
 POINT_SELECT: Active key missing
 BIND_PRESS: Hook mismatch
@@ -52,9 +53,12 @@ BIND_PRESS: Bind not pressed
 BIND_PRESS: %(gmod_tool%) Swep other
 POPULATE_ENTITY: Handler
 UPDATE_CONTEXTVAL: Entity
+TimerRestart: Memory manager skip
 BorderValue: Missing
 GetBuilderNick: Key mismatch
 GetBuilderID: Builder object missing
-GetHookInfo: %(gmod_tool%) Swep other
-GetHookInfo: %(weapon_physgun%) Swep other
+GetHookInfo: Swep invalid
+GetHookInfo: Swep other
+GetHookInfo: Mode different
+GetHookInfo: Tool invalid
 GetEntityHitID: Trace skip

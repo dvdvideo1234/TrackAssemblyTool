@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.798")
+asmlib.SetOpVar("TOOL_VERSION","8.799")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -728,7 +728,8 @@ if(CLIENT) then
     end) -- Read client configuration
 
   asmlib.SetAction("OPEN_EXTERNDB", -- Must have the same parameters as the hook
-    function(oPly,oCom,oArgs)
+    function()
+      local oPly = LocalPlayer()
       local sLog = "*OPEN_EXTERNDB"
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
@@ -1236,21 +1237,14 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(not asmlib.GetAsmConvar("exportdb", "BUL")) then return end
-        if(inputIsKeyDown(KEY_LSHIFT)) then local sType
-          local iD, pnLine = pnListView:GetSelectedLine()
-          if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
-          else local sM = asmlib.GetAsmConvar("model", "STR")
-            local oRec = asmlib.CacheQueryPiece(sM)
-            if(asmlib.IsHere(oRec)) then sType = oRec.Type
-            else LogInstance("Piece invalid "..asmlib.GetReport(iD, sM)) end
-          end
-          asmlib.ExportTypeRun(sType)
-          asmlib.LogInstance("Export type "..asmlib.GetReport(sType), sLog..".Button")
+        if(inputIsKeyDown(KEY_LSHIFT)) then
+          asmlib.DoAction("OPEN_EXTERNDB")
+          asmlib.LogInstance("Open manager", sLog..".Button")
         else
-          asmlib.ExportCategory(3)
-          asmlib.ExportDSV("PIECES")
-          asmlib.ExportDSV("ADDITIONS")
-          asmlib.ExportDSV("PHYSPROPERTIES")
+          asmlib.ExportCategory(3, nil, nil, true)
+          asmlib.ExportDSV("PIECES", nil, nil, true)
+          asmlib.ExportDSV("ADDITIONS", nil, nil, true)
+          asmlib.ExportDSV("PHYSPROPERTIES", nil, nil, true)
           asmlib.LogInstance("Export instance", sLog..".Button")
         end
         asmlib.SetAsmConvar(oPly, "exportdb", 0)

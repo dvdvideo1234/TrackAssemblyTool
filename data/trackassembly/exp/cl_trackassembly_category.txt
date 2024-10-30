@@ -1,0 +1,203 @@
+# ExportCategory:(3@cl_) 24-10-30 22:25:29 [ LUA ]
+[===[SligWolf's Modelpack===function(m) local s, c; s = _G.SligWolf_Addons; c = s and s.CallFunctionOnAddon("modelpack", "TrackAssamblerCategory", m); return c; end]===]
+[===[Portal 2 Walkway UG===function(m)
+    local g = m:gsub("models/props_underground/", "") return g:match("%w+") end]===]
+[===[Battleship's abandoned rails===function(m)
+    local g = m:gsub("models/craptrax/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    if(r:find("straight")) then r = "straight"
+    elseif(r:find("curve")) then r = "curve"
+    elseif(r:find("switch")) then r = "switch" end
+    local t = n:match(r.."_")
+    if(t) then n = n:gsub(t,"") end; return r, n; end]===]
+[===[Ron's 2ft track pack===function(m)
+local function conv(x) return " "..x:sub(2,2):upper() end
+local r = m:gsub("models/ron/2ft/","")
+local s, o, n = r:find("/")
+local g = s and r:sub(1,s-1) or "other"
+if(g == "luajunctions") then
+o = {g}; local e
+n = m:gsub("models/ron/2ft/luajunctions/","")
+n = n:gsub("/junction.mdl",""):gsub("junctions/","junction_")
+e = n:find("/"); n = e and n:sub(1,e-1) or n
+elseif(g == "straight") then
+n, o = r:sub(s+1,-1):gsub("straight_",""):gsub("%.mdl",""), {g}
+elseif(g == "embankment") then
+local e = r:sub(s+1,-1):gsub("embankment_","")
+local s = e:find("%A")
+n, o = e:gsub("%.mdl",""), {g,((s > 1) and (e:sub(1,s-1)) or nil)}
+elseif(g == "ramps") then
+n, o = r:sub(s+1,-1):gsub("ramp_",""):gsub("%.mdl",""), {g}
+elseif(g == "tram") then
+n, o = r:sub(s+1,-1):gsub("tram_",""):gsub("%.mdl",""), {g}
+elseif(g == "turntable") then
+n, o = r:sub(s+1,-1):gsub("turntable_",""):gsub("%.mdl",""), {g}
+elseif(g == "viaduct") then
+n, o = r:sub(s+1,-1):gsub("viaduct_",""):gsub("%.mdl",""), {g}
+elseif(g == "road_crossings") then
+n, o = r:sub(s+1,-1):gsub("road_",""):gsub("%.mdl",""), {g}
+elseif(g == "curves") then
+n, o = r:sub(s+1,-1):gsub("curve_",""):gsub("%.mdl",""), {g}
+else o = {g} end; n = n and ("_"..n):gsub("_%w",conv):sub(2,-1)
+for i = 1, #o do o[i] = ("_"..o[i]):gsub("_%w", conv):sub(2,-1) end; return o, n end]===]
+[===[SligWolf's Mini Trains===function(m) local s, c; s = _G.SligWolf_Addons; c = s and s.CallFunctionOnAddon("minitrains", "TrackAssamblerCategory", m); return c; end]===]
+[===[Magnum's Rails===function(m)
+      local g = m:gsub("models/magtrains1ga/",""):gsub("/","_")
+      local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+      local t, n = g:match(".-_"), g:gsub("%.mdl","")
+      if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; if(r:find("switchbase")) then r = "switch" end; return r, n end]===]
+[===[Ron's G Scale Track pack===function(m)
+local function conv(x) return " "..x:sub(2,2):upper() end
+local r = m:gsub("models/ron/gscale/",""):gsub("_","/")
+local s = r:find("/"); r = (s and r:sub(1,s-1):gsub("^%l", string.upper) or nil);
+return r and {r} or nil end]===]
+[===[AlexCookie's 2ft track pack===function(m)
+    local g = m:gsub("models/alexcookie/2ft/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = n:match(r.."_"); if(t) then n = n:gsub(t,"") end; return r, n; end]===]
+[===[Ron's Minitrain Props===function(m)
+    local g = m:gsub("models/ron/minitrains/","")
+    local r = g:match(".-/"):sub(1, -2)
+    if(r == "elevations") then
+      local s = g:gsub(r.."/", ""):gsub("/.+$", "")
+      local n = g:match("[\\/]([^/\\]+)$"):gsub("%.mdl","")
+      local p = n:match(".-_")
+      if(p) then p = p:sub(1, -2)
+        if(r:find(p)) then n = n:gsub(p, ""):sub(2,-1) end
+      end; return {r, s}, n; end; return r; end]===]
+[===[SligWolf's Suspension Train===function(m) local s, c; s = _G.SligWolf_Addons; c = s and s.CallFunctionOnAddon("wpsuspensiontrain", "TrackAssamblerCategory", m); return c; end]===]
+[===[StevenTechno's Buildings 2.0===function(m)
+    local g = m:gsub("models/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = r:find("/")
+    if(t) then r, g = r:sub(1, t-1), r:sub(t+1, -1)
+      if(r:find("road")) then r = "roads"
+      elseif(r:find("building")) then r = "buildings" end
+      return {r, g}, n end; return r, n; end]===]
+[===[Shinji85's Rails===function(m) local c
+local r = m:gsub("models/shinji85/train/rail_", "")
+if(r:find("cross")) then c = "crossing"
+elseif(r:find("switch")) then c = "switch"
+elseif(r:find("curve")) then c = "curve"
+elseif(r:find("bumper")) then c = "bumper"
+elseif(r:find("junction")) then c = "junction"
+elseif(r:find("%dx")) then c = "straight" end; return c end]===]
+[===[StevenTechno's Buildings 1.0===function(m)
+    local r = m:gsub("models/buildingspack/",""):gsub("%W.+$","")
+    if  (r:find("emptylots")) then r = "empty_lots"
+    elseif(r:find("roadsdw")) then r = r:gsub("roadsdw","double_")
+    elseif(r:find("roadsw" )) then r = r:gsub("roadsw" ,"single_") end; return r; end]===]
+[===[PHX Tubes Miscellaneous===function(m)
+      local g = m:gsub("models/props_phx/construct/",""):gsub("/","_")
+      local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+      local t, n = g:match(".-_"), g:gsub("%.mdl","")
+      if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; return r, n; end]===]
+[===[XQM Ball Rails===function(m)
+    local g = m:gsub("models/xqm/rails/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local t, n = g:match(".-_"), g:gsub("%.mdl","")
+    if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
+      if(r:find(t)) then n = n:gsub(t.."_", "")
+    end; end; return r, n; end]===]
+[===[PHX Tubes Plastic===function(m)
+    local g = m:gsub("models/hunter/",""):gsub("/","_")
+    local r = g:match(".-_"):sub(1, -2); return r end]===]
+[===[SProps===function(m)
+    local r = m:gsub("models/sprops/trans/train/",""):gsub("track_",""):sub(1,1)
+    if(r == "s") then return "straight" elseif(r == "t") then return "turn"
+    elseif(r == "h") then return "ramp" else return nil end end]===]
+[===[Modular City Street===function(m)
+          local o = {}
+          function setBranch(v, p, b, q)
+            if(v:find(p)) then
+              local e = v:gsub("%W*"..p.."%W*", "_")
+              if(b and o.M) then return e end
+              if(b and not o.M) then o.M = true end
+              table.insert(o, (q or p)); return e
+            end; return v
+          end
+local r = m:gsub("models/propper/dingles_modular_streets/",""):gsub("%.mdl$","");
+r = setBranch(r, "highway", true, nil)
+r = setBranch(r, "street", true, nil)
+r = setBranch(r, "endcap", false, nil)
+r = setBranch(r, "turn", false, nil)
+r = setBranch(r, "ramp", false, nil)
+r = setBranch(r, "connector", false, nil)
+r = setBranch(r, "tjunction", false, nil)
+r = setBranch(r, "intersection", false, nil)
+r = setBranch(r, "elevated", false, nil)
+o.M = nil; return o, r:gsub("^_+", ""):gsub("_+$", ""):gsub("_+", "_") end]===]
+[===[Anyone's Horrible Trackpack===function(m) local c
+local r = m:gsub("anytracks/", "")
+if(r:find("straight")) then c = "straight"
+elseif(r:find("curve")) then c = "curve"
+elseif(r:find("%dx")) then c = "straight"
+end; c = (c and c:gsub("^%l", string.upper) or nil) return c end]===]
+[===[RockMan's Fortification===function(m)
+    local r = m:gsub(".+/", ""):gsub("_.*",""); return r end]===]
+[===[XQM Coaster===function(m)
+    local g = m:gsub("models/xqm/coastertrack/",""):gsub("%.mdl","")
+    local r = g:match(".-_"):sub(1,-2)
+    local n = g:gsub(r.."_", ""); return r, n; end]===]
+[===[Portal 2 High Walkway===function(m)
+    local g = m:gsub("^.*walkway",""):gsub("%.mdl$", "")
+    if(g:find("%d")) then return "straight"
+    elseif(g:find("%a+_*")) then local s = g:match("%a+_*")
+      if(s:len() <= 2) then return "turns" else return "special" end
+    else return nil end end]===]
+[===[Transrapid===function(m)
+      local g = m:gsub("models/ron/maglev/",""):gsub("/","_")
+            g = g:gsub("[\\/]([^\\/]+)$",""):gsub("%.mdl","")
+      local r = g:match(".-_"):sub(1, -2)
+      if(r == "track") then g = g:gsub(r.."_", "")
+        r = g:match(".-_"):sub(1, -2) else return nil end
+      local t, n = g:match(".-_"), g:gsub(r.."_", "")
+      if(t) then t = t:sub(1, -2); g = g:gsub(t.."_", "")
+        if(r:find(t)) then n = n:gsub(t.."_", "") end
+      end; return r, n; end]===]
+[===[Joe's track pack===function(m)
+    local g = m:gsub("models/joe/jtp/","")
+    local r = g:match(".+/"):sub(1, -2)
+    local n = g:match("[\\/]([^\\/]+)$"):gsub("%.mdl","")
+    local t = r:find("/")
+    if(t) then return {r:sub(1, t-1), r:sub(t+1, -1)}, n end; return r, n; end]===]
+[===[Mr.Train's G-Gauge===function(m)
+    local r = m:gsub("models/props/g_gauge/track/g_gauge_track_","")
+    local n = r:gsub("%.mdl",""); r = r:gsub("%W.+$","")
+    n = n:gsub(r.."_", ""); if(r == "s") then r = "curves" end; return r, n end]===]
+[===[Modular Canals===function(m)
+    local n = m:gsub("models/props_d47_canals/interior_","")
+    local r = n:match("%a+"); n = n:gsub("%.mdl",""); return r, n; end]===]
+[===[SligWolf's Tiny Hover Racer===function(m) local s, c; s = _G.SligWolf_Addons; c = s and s.CallFunctionOnAddon("tinyhoverracer", "TrackAssamblerCategory", m); return c; end]===]
+[===[Trackmania United Props===function(m)
+    local g = m:gsub("models/nokillnando/trackmania/ground/", "")
+    local r = g:match(".+/"):sub(1,-2); return r; end]===]
+[===[Bobster's two feet rails===function(m) local o = {}
+    local n = m:gsub("models/bobsters_trains/rails/2ft/","")
+    local r = n:match("^%a+"); n = n:gsub("%.mdl","")
+    for w in n:gmatch("%a+") do
+      if(r:find(w)) then n = n:gsub(w.."%W+", "") end
+    end table.insert(o, r); local f = n:match("^%a+")
+    if(f) then table.insert(o, f); n = n:gsub(f.."%W+", "") end; return o, n; end]===]
+[===[Mr.Train's M-Gauge===function(m)
+    local r = m:gsub("models/props/m_gauge/track/m_gauge_","")
+    local n = r:gsub("%.mdl", ""); r = r:gsub("%W.+$","")
+    if(tonumber(r:sub(1,1))) then r = "straight" else n = n:gsub(r.."_", "") end; return r, n; end]===]
+[===[G Scale Track Pack===function(m)
+      local g = m:gsub("models/gscale/","")
+      local r = g:match(".-/"):sub(1, -2)
+      if    (r == "j") then r = "j switcher"
+      elseif(r == "s") then r = "s switcher"
+      elseif(r == "c0512") then r = "curve 512"
+      elseif(r == "ibeam") then r = "iron beam"
+      elseif(r == "ramp313") then r = "ramp 313" end; return r; end]===]
+[===[CAP Walkway===function(m)
+    local g = m:gsub("models/boba_fett/catwalk_build/", "")
+    local p = g:match("%w+_"); return (p and p:sub(1,-2) or "other") end]===]

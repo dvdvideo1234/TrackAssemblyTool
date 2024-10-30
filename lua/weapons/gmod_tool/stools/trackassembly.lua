@@ -1521,18 +1521,6 @@ function TOOL:Reload(stTrace)
     if(user:IsAdmin()) then
       if(self:GetDeveloperMode()) then
         asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
-      if(self:GetExportDB()) then
-        if(user:KeyDown(IN_USE)) then
-          asmlib.SetAsmConvar(user,"openextdb")
-          asmlib.LogInstance("(World) Success open expdb",gtLogs)
-        else
-          asmlib.ExportDSV("PIECES")
-          asmlib.ExportDSV("ADDITIONS")
-          asmlib.ExportDSV("PHYSPROPERTIES")
-          asmlib.LogInstance("(World) Exporting DB",gtLogs)
-        end
-        asmlib.SetAsmConvar(user, "exportdb", 0)
-      end
     end
     if(user:KeyDown(IN_SPEED)) then
       if(workmode == 1) then
