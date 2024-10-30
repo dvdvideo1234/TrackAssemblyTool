@@ -2780,10 +2780,12 @@ function NewTable(sTable,defTab,bDelete,bReload)
   -- Attaches timer to a record related in the table cache
   function self:TimerAttach(vMsg, ...)
     local oSpot, kKey, tKey = self:GetNavigate(...)
+    if(not (IsHere(oSpot) and IsHere(kKey))) then
+      LogInstance("Navigation miss "..GetReport(unpack(tKey)),tabDef.Nick)
+      LogTable(oSpot, "Navigation", tabDef.Nick); return nil
+    end -- Navigated to the last table node and returned the value key
     local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
     local sMoDB, iCnt = GetOpVar("MODE_DATABASE"), select("#", ...)
-    if(not (IsHere(oSpot) and IsHere(kKey))) then
-      LogInstance("Navigation failed",tabDef.Nick); return nil end
     LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
     oSpot[kKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
@@ -2840,11 +2842,13 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- Restarts timer to a record related in the table cache
   function self:TimerRestart(vMsg, ...)
-    local sMoDB = GetOpVar("MODE_DATABASE")
     local oSpot, kKey, tKey = self:GetNavigate(...)
-    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
     if(not (IsHere(oSpot) and IsHere(kKey))) then
-      LogInstance("Navigation failed",tabDef.Nick); return nil end
+      LogInstance("Navigation miss "..GetReport(unpack(tKey)),tabDef.Nick)
+      LogTable(oSpot, "Navigation", tabDef.Nick); return nil
+    end -- Navigated to the last table node and returned the value key
+    local sMoDB = GetOpVar("MODE_DATABASE")
+    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
     LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
     oSpot[kKey].Used = nNow -- Mark the current caching time stamp
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand()
