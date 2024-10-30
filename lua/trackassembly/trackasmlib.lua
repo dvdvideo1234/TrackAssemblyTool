@@ -2234,21 +2234,28 @@ function GetAttachmentByID(vSrc, sID)
     LogInstance("Index missing "..GetReport(sID, vSrc)); return nil end
   if(isstring(vSrc)) then -- Source is a model path
     sSrc = vSrc; if(not IsModel(sSrc)) then
-      LogInstance("Model mismatch "..GetReport(sID, sSrc)); return nil, sSrc end
+      LogInstance("Model mismatch [S] "..GetReport(sID, sSrc)); return nil, sSrc end
     eBase = GetOpVar("ENTITY_TRANSFORMPOA") -- Use transform entity
     if(eBase and eBase:IsValid()) then -- Valid basis entity then
       if(eBase:GetModel() ~= sSrc) then eBase:SetModel(sSrc)
-        LogInstance("Update "..GetReport(eBase:EntIndex(), sID, sSrc)) end
+        LogInstance("Update [S] "..GetReport(eBase:EntIndex(), sID, sSrc)) end
     else -- If there is no basis need to create one for attachment extraction
       eBase = NewEntityNone(sSrc); if(not (eBase and eBase:IsValid())) then
-        LogInstance("Basis creation error "..GetReport(sID, sSrc)); return nil, sSrc end
+        LogInstance("Basis creation error [S] "..GetReport(sID, sSrc)); return nil, sSrc end
       SetOpVar("ENTITY_TRANSFORMPOA", eBase) -- Register the entity transform basis
     end -- Transfer the data from the transform attachment location
+  elseif(isnumber(vSrc)) then
+    local iSrc = mathFloor(vSrc); if(iSrc <= 0) then
+      LogInstance("Index invalid [N] "..GetReport(sID, vSrc, iSrc)); return nil, sSrc end
+    local eSrc = EntityID(iSrc); if(not (eSrc and eSrc:IsValid())) then
+      LogInstance("Entity invalid [N] "..GetReport(sID, eSrc)); return nil, sSrc end
+    eBase, sSrc = eSrc, eSrc:GetModel(); if(not isstring(sID)) then
+      LogInstance("Index mismatch [N] "..GetReport(sID, sSrc)); return nil, sSrc end
   else -- Assume the source is an entity already spawned use it instead
     if(not (vSrc and vSrc:IsValid())) then
-      LogInstance("Entity invalid "..GetReport(sID, vSrc)); return nil, sSrc end
+      LogInstance("Entity invalid [E] "..GetReport(sID, vSrc)); return nil, sSrc end
     eBase, sSrc = vSrc, vSrc:GetModel(); if(not isstring(sID)) then
-      LogInstance("Index mismatch "..GetReport(sID, sSrc)); return nil, sSrc end
+      LogInstance("Index mismatch [E] "..GetReport(sID, sSrc)); return nil, sSrc end
   end
   local mID = eBase:LookupAttachment(sID); if(not isnumber(mID)) then
     LogInstance("Attachment invalid ID "..GetReport(sID, sSrc)); return nil, sSrc end
@@ -2276,18 +2283,13 @@ function LocatePOA(oRec, ivPoID)
   local stPOA = tOffs[iPoID]; if(not IsHere(stPOA)) then
     LogInstance("Missing ID "..GetReport(iPoID, oRec.Slot)); return nil end
   if(oRec.Post) then oRec.Post = nil -- Transforming has started
-    for ID = 1, oRec.Size do local tPOA = tOffs[ID] -- Index current offset
+    for ID = 1, oRec.Size do
+      local tPOA, sM = tOffs[ID], oRec.Slot
       local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
-      if(sO) then tPOA.O:Decode(sO, oRec.Slot, "Pos")
-        LogInstance("Origin spawn "..GetReport(ID, sO))
-      end -- Transform origin is decoded from the model and stored in the cache
-      if(sA) then tPOA.A:Decode(sA, oRec.Slot, "Ang")
-        LogInstance("Angle spawn "..GetReport(ID, sA))
-      end -- Transform angle is decoded from the model and stored in the cache
-      if(sP) then tPOA.P:Decode(sP, oRec.Slot, "Pos", tPOA.O:Get())
-        LogInstance("Point spawn "..GetReport(ID, sP))
-      end -- Otherwise point is initialized on registration and we have nothing to do here
-      LogInstance("Index "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
+      if(sO) then tPOA.O:Decode(sO, sM, "Pos") end
+      if(sA) then tPOA.A:Decode(sA, sM, "Ang") end
+      if(sP) then tPOA.P:Decode(sP, sM, "Pos", tPOA.O:Get()) end
+      LogInstance("Spawn "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
 end
@@ -2303,6 +2305,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     LogInstance("Origin mismatch "..GetReport(sO)); return nil end
   local sA = (sA or sNull); if(not isstring(sA)) then
     LogInstance("Angle mismatch "..GetReport(sA)); return nil end
+  LogInstance("Store "..GetReport(sNull, iID, sP, sO, sA, stData.Slot))
   if(not stData.Offs) then if(iID ~= 1) then
     LogInstance("Mismatch ID "..GetReport(iID, stData.Slot)); return nil end
     stData.Offs = {}; stData.Post = true
@@ -2315,19 +2318,9 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     tOffs[iID] = {}; tOffs = tOffs[iID] -- Allocate a local offset index
     tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
   end
-  LogInstance("Default "..GetReport(sNull, stData.Slot))
-  if(not tOffs.O:Raw()) then -- To be decoded on spawn via locating
-    tOffs.O:Set(); tOffs.O:Raw(sO) -- Store transform
-    LogInstance("Origin init "..GetReport(iID, sO))
-  end -- Try decoding the transform point when not applicable
-  if(not tOffs.A:Raw()) then -- To be decoded on spawn via locating
-    tOffs.A:Set(); tOffs.A:Raw(sA) -- Store transform
-    LogInstance("Angle init "..GetReport(iID, sA))
-  end -- Try decoding the transform point when not applicable
-  if(not tOffs.P:Raw()) then -- Origin transform trigger
-    tOffs.P:Set(); tOffs.P:Raw(sP) -- Store transform
-    LogInstance("Point init "..GetReport(iID, sP))
-  end -- Try decoding the transform point when not applicable
+  if(not tOffs.O:Raw()) then tOffs.O:Set(); tOffs.O:Raw(sO) end
+  if(not tOffs.A:Raw()) then tOffs.A:Set(); tOffs.A:Raw(sA) end
+  if(not tOffs.P:Raw()) then tOffs.P:Set(); tOffs.P:Raw(sP) end
   return tOffs -- On success return the populated POA offset
 end
 

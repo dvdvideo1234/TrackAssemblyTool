@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.795")
+asmlib.SetOpVar("TOOL_VERSION","8.796")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1740,6 +1740,9 @@ asmlib.NewTable("PIECES",{
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
       arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.Categorize(), noTY)
       arLine[3] = asmlib.GetEmpty(arLine[3], emFva, asmlib.ModelToName(arLine[1]), noMD)
+      arLine[5] = asmlib.GetEmpty(arLine[5], asmlib.IsBlank, noSQL)
+      arLine[6] = asmlib.GetEmpty(arLine[6], asmlib.IsBlank, noSQL)
+      arLine[7] = asmlib.GetEmpty(arLine[7], asmlib.IsBlank, noSQL)
       arLine[8] = asmlib.GetEmpty(arLine[8], emFva, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
         asmlib.LogInstance("Register trace "..asmlib.GetReport(arLine[8],arLine[1]),vSrc)
