@@ -3763,8 +3763,10 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
   local sFunc = "SynchronizeDSV"; fName = fName..fForm:format(fPref, defTab.Name)
-  local I, fData = fileOpen(fName, "rb", "DATA"), {}
-  if(I) then local sLine, isEOF = "", false
+  local bI, fData = fileExists(fName, "DATA"), {}
+  if(bI) then
+    local sLine, isEOF = "", false
+    local I = fileOpen(fName, "rb", "DATA")
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
       if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
         local tLine = sDelim:Explode(sLine)
