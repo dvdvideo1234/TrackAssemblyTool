@@ -3562,9 +3562,10 @@ end
  * Save/Load the category generation
  * vEq    > Amount of internal comment depth
  * tData  > The local data table to be exported ( if given )
- * sPref  > Prefix used on exporting ( if not uses instance prefix )
+ * sPref  > Prefix used on exporting ( if none uses instance prefix )
+ * bExp   > Forces the output in the export folder.( defaults to DSV )
 ]]
-function ExportCategory(vEq, tData, sPref)
+function ExportCategory(vEq, tData, sPref, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
@@ -3574,7 +3575,7 @@ function ExportCategory(vEq, tData, sPref)
     LogInstance("("..fPref..") User disabled"); return true end
   local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..GetOpVar("DIRPATH_DSV")
+  fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
   fName = fName..fForm:format(fPref, sTool.."CATEGORY")
@@ -3593,13 +3594,20 @@ function ExportCategory(vEq, tData, sPref)
   end; F:Flush(); F:Close(); LogInstance("("..fPref..") Success"); return true
 end
 
-function ImportCategory(vEq, sPref)
+--[[
+ * Save/Load the category generation
+ * vEq    > Amount of internal comment depth
+ * sPref  > Prefix used on importing ( if none uses instance prefix )
+ * bExp   > Forces the input from the export folder.( defaults to DSV )
+]]
+function ImportCategory(vEq, sPref, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
   local fPref = tostring(sPref or GetInstPref())
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
-  local fName = GetOpVar("DIRPATH_BAS")..GetOpVar("DIRPATH_DSV")
+  local fName = GetOpVar("DIRPATH_BAS") --Switch the import source
+        fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
         fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "rb", "DATA")
   if(not F) then LogInstance("("..fName..") Open fail"); return false end
