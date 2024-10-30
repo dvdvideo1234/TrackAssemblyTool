@@ -3910,25 +3910,25 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   if(bSkip) then
     if(fileExists(fName, "DATA")) then
-      local fPool, isEOF, isAct = {}, false, true
+      local fPool, isEOF = {}, false
       local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""; if(not F) then
         LogInstance("Skip fail "..GetReport(fPref, fName)); return false end
-      while(not isEOF) do sLine, isEOF = GetStringFile(F)
-        if(not IsBlank(sLine)) then
-          if(IsDisable(sLine)) then
-            isAct, sLine = false, sLine:sub(2,-1) else isAct = true end
+      while(not isEOF) do
+        sLine, isEOF = GetStringFile(F)
+        if(not IsBlank(sLine)) then local isAct = true
+          if(IsDisable(sLine)) then isAct, sLine = false, sLine:sub(2,-1) end
           local tab = sDelim:Explode(sLine)
-          local prf, src = tab[1]:Trim(), tab[2]:Trim()
+          local prf = tostring(tab[1]):Trim()
+          local src = tostring(tab[2] or sMiss):Trim()
           local inf = fPool[prf]; if(not inf) then
             fPool[prf] = {Size = 0}; inf = fPool[prf] end
-          inf.Size = inf.Size + 1; inf[inf.Size] = {src, isAct}
+          tableInsert(inf, {isAct and "V" or "X", src}); inf.Size = inf.Size + 1
         end
       end; F:Close()
       if(fPool[fPref]) then local inf = fPool[fPref]
-        for ID = 1, inf.Size do local tab = inf[ID]
-          local sta = (tab[2] and "On " or "Off")
-          LogInstance(GetReport(fPref, sta, tab[1])) end
-        LogInstance("Skip "..GetReport(fPref, sProg)); return true
+        for iP = 1, inf.Size do local tab = inf[iP]
+          LogInstance("Status "..GetReport(tab[1], fPref, tab[2]))
+        end; LogInstance("Skip "..GetReport(fPref, sProg)); return true
       end
     else LogInstance("Skip miss "..GetReport(fPref, fName)) end
   end
