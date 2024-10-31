@@ -786,6 +786,8 @@ function InitBase(sName, sPurp)
   SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
   SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
   SetOpVar("PATTEM_WORKSHID", "^%d+$")
+  SetOpVar("PATTEM_EXCATHED", {"@", "(%d@%s)", "^#%s*ExportCategory.*%(.+%)", "%(%d+@.+%)"})
+  SetOpVar("PATTEM_EXDSVHED", {"@", "(%s@%s)"})
   SetOpVar("HOVER_TRIGGER"  , {})
   if(CLIENT) then
     SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
@@ -3573,6 +3575,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
     LogInstance("("..fPref..") Prefix empty"); return false end
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("("..fPref..") User disabled"); return true end
+  local sHew = GetOpVar("PATTEM_EXCATHED")[2]:format(nEq, fPref)
   local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
@@ -3580,33 +3583,44 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
   fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "wb", "DATA")
-  if(not F) then LogInstance("("..fPref..")("..fName..") Open fail"); return false end
+  if(not F) then LogInstance(sHew.."("..fName..") Open fail"); return false end
   local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
-  F:Write("# "..sFunc..":("..tostring(nEq).."@"..fPref..") "..GetDateTime().." [ "..sMoDB.." ]\n")
-  for cat, rec in pairs(tCat) do
-    if(isstring(rec.Txt)) then F:Write("["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]".."\n")
-    else F:Flush(); F:Close(); LogInstance("("..fPref..") Category code mismatch "..GetReport(cat, rec.Txt)); return false end
-  end; F:Flush(); F:Close(); LogInstance("("..fPref..") Success"); return true
+  local tSort = Arrange(tCat); if(not tSort) then
+    LogInstance(sHew.." Sorting keys fail"); return false end
+  F:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
+  for iS = 1, tSort.Size do local rec, cat = tSort[iS], nil; rec, cat = rec.Rec, rec.Key
+  if(isstring(rec.Txt)) then F:Write("["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]".."\n")
+    else F:Flush(); F:Close(); LogInstance(sHew.." Category code mismatch "..GetReport(cat, rec.Txt)); return false end
+  end; F:Flush(); F:Close(); LogInstance(sHew.." Success"); return true
 end
 
 --[[
  * Save/Load the category generation
- * vEq    > Amount of internal comment depth
+ * vEq    > Amount of internal comment depth ( when empty uses header )
  * sPref  > Prefix used on importing ( if none uses instance prefix )
  * bExp   > Forces the input from the export folder.( defaults to DSV )
 ]]
 function ImportCategory(vEq, sPref, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
-  local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
-    LogInstance("Wrong equality "..GetReport(vEq)); return false end
-  local fPref = tostring(sPref or GetInstPref())
+  local nEq = mathFloor(tonumber(vEq) or 0); if(nEq < 0) then
+    LogInstance("Wrong marker length "..GetReport(nEq,vEq)); return false end
+  local fPref, tHew = tostring(sPref or GetInstPref()), GetOpVar("PATTEM_EXCATHED")
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
-  local fName = GetOpVar("DIRPATH_BAS") --Switch the import source folder
+  local fName, sHew = GetOpVar("DIRPATH_BAS"), tHew[2]:format(nEq, fPref)
         fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
         fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "rb", "DATA")
-  if(not F) then LogInstance("("..fName..") Open fail"); return false end
+  if(not F) then LogInstance(sHew.."("..fName..") Open fail"); return false end
+  if(nEq == 0) then local iF = F:Tell() -- Store the initial file pointer
+    local sLine, isEOF = GetStringFile(F) -- Read the file header
+    local sPar = sLine:match(tHew[3]); if(not sPar) then
+      LogInstance(sHew.."Intern length mismatch"); return false end
+    local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
+    nEq = mathFloor(tonumber(tPar[1]) or 0); if(nEq <= 0) then
+    LogInstance(sHew.."Intern length error "..GetReport(nEq,vEq)); return false end
+    LogInstance(sHew.."Intern length "..GetReport(nEq,vEq)); F:Seek(iF)
+  end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk = "["..sEq.."[", "]"..sEq.."]"
   local tCat = GetOpVar("TABLE_CATEGORIES")
@@ -3614,29 +3628,29 @@ function ImportCategory(vEq, sPref, bExp)
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if(not IsBlank(sLine)) then
       local sFr, sBk = sLine:sub(1,nLen), sLine:sub(-nLen,-1)
-      if(sFr == cFr and sBk == cBk) then
+      if(sFr == cFr and sBk == cBk) then -- Check for line markers
         sLine, isPar, sPar = sLine:sub(nLen+1,-1), true, "" end
-      if(sFr == cFr and not isPar) then
-        sPar, isPar = sLine:sub(nLen+1,-1).."\n", true
-      elseif(sBk == cBk and isPar) then
-        sPar, isPar = sPar..sLine:sub(1,-nLen-1), false
-        local tBoo = sEq:Explode(sPar)
+      if(sFr == cFr and not isPar) then -- Starts here and ends elsewhere
+        sPar, isPar = sLine:sub(nLen+1,-1).."\n", true -- Skip the marker
+      elseif(sBk == cBk and isPar) then -- Currently processed ends here
+        sPar, isPar = sPar..sLine:sub(1,-nLen-1), false -- Skip the marker
+        local tBoo = sEq:Explode(sPar) -- Explode the pair on the delimiter
         local key, txt = tBoo[1]:Trim(), tBoo[2]
-        if(not IsBlank(key)) then
+        if(not IsBlank(key)) then -- Process the key when not blank
           if(txt:find("function")) then
             if(not IsDisable(key)) then
               tCat[key] = {}; tCat[key].Txt = txt:Trim()
               tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
               local bS, vO = pcall(tCat[key].Cmp)
               if(bS) then tCat[key].Cmp = vO else tCat[key].Cmp = nil
-                LogInstance("Compilation fail "..GetReport(key, vO))
+                LogInstance(sHew.."Compilation fail "..GetReport(key, vO))
               end
-            else LogInstance("Key skipped "..GetReport(key)) end
-          else LogInstance("Function missing "..GetReport(key)) end
-        else LogInstance("Name missing "..GetReport(txt)) end
+            else LogInstance(sHew.."Key skipped "..GetReport(key)) end
+          else LogInstance(sHew.."Function missing "..GetReport(key)) end
+        else LogInstance(sHew.."Name missing "..GetReport(txt)) end
       else sPar = sPar..sLine.."\n" end
     end
-  end; F:Close(); LogInstance("Success"); return true
+  end; F:Close(); LogInstance(sHew.."Success"); return true
 end
 
 --[[
