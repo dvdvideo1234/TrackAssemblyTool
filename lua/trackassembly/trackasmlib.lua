@@ -786,7 +786,7 @@ function InitBase(sName, sPurp)
   SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
   SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
   SetOpVar("PATTEM_WORKSHID", "^%d+$")
-  SetOpVar("PATTEM_EXCATHED", {"@", "(%d@%s)", "^#%s*ExportCategory.*%(.+%)", "%(%d+@.+%)"})
+  SetOpVar("PATTEM_EXCATHED", {"@", "(%s@%d)", "^#.*ExportCategory.*%(.+%)", "%(.+@.+%)"})
   SetOpVar("PATTEM_EXDSVHED", {"@", "(%s@%s)"})
   SetOpVar("HOVER_TRIGGER"  , {})
   if(CLIENT) then
@@ -2584,7 +2584,7 @@ function GetCacheCurve(pPly)
     stData.CSize = 0  -- The amount of points for the calculated nodes array
     stData.SSize = 0  -- The amount of points for the snaps node array
     stData.SKept = 0  -- The amount of total snap points the snaps node array
-  end;
+  end
   if(not stData.Size ) then stData.Size  = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
   if(not stData.SSize) then stData.SSize = 0 end
@@ -3569,13 +3569,15 @@ end
 ]]
 function ExportCategory(vEq, tData, sPref, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
+  local tHew = GetOpVar("PATTEM_EXCATHED")
+  local fPref = tostring(sPref or GetInstPref())
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
+  local sHew = tHew[2]:format(fPref, nEq)
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
-    LogInstance("("..fPref..") Prefix empty"); return false end
+    LogInstance(sHew.."Prefix empty"); return false end
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..fPref..") User disabled"); return true end
-  local sHew = GetOpVar("PATTEM_EXCATHED")[2]:format(nEq, fPref)
+    LogInstance(sHew.." User disabled"); return true end
   local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
@@ -3583,7 +3585,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
   fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "wb", "DATA")
-  if(not F) then LogInstance(sHew.."("..fName..") Open fail"); return false end
+  if(not F) then LogInstance(sHew.." Open fail: "..fName); return false end
   local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
   local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
   local tSort = Arrange(tCat); if(not tSort) then
@@ -3597,29 +3599,30 @@ end
 
 --[[
  * Save/Load the category generation
- * vEq    > Amount of internal comment depth ( when empty uses header )
+ * vEq    > Amount of internal comment depth ( when invalid uses header )
  * sPref  > Prefix used on importing ( if none uses instance prefix )
  * bExp   > Forces the input from the export folder.( defaults to DSV )
 ]]
 function ImportCategory(vEq, sPref, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
-  local nEq = mathFloor(tonumber(vEq) or 0); if(nEq < 0) then
-    LogInstance("Wrong marker length "..GetReport(nEq,vEq)); return false end
-  local fPref, tHew = tostring(sPref or GetInstPref()), GetOpVar("PATTEM_EXCATHED")
+  local tHew = GetOpVar("PATTEM_EXCATHED")
+  local fPref = tostring(sPref or GetInstPref())
+  local nEq = mathMax(mathFloor(tonumber(vEq) or 0), 0)
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
-  local fName, sHew = GetOpVar("DIRPATH_BAS"), tHew[2]:format(nEq, fPref)
+  local fName, sHew = GetOpVar("DIRPATH_BAS"), tHew[2]:format(fPref, nEq)
         fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
         fName = fName..fForm:format(fPref, sTool.."CATEGORY")
   local F = fileOpen(fName, "rb", "DATA")
-  if(not F) then LogInstance(sHew.."("..fName..") Open fail"); return false end
+  if(not F) then LogInstance(sHew.." Open fail: "..fName); return false end
   if(nEq == 0) then local iF = F:Tell() -- Store the initial file pointer
     local sLine, isEOF = GetStringFile(F) -- Read the file header
     local sPar = sLine:match(tHew[3]); if(not sPar) then
-      LogInstance(sHew.."Intern length mismatch"); return false end
+      LogInstance(sHew.."Intern header missing"); return false end
     local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
-    nEq = mathFloor(tonumber(tPar[1]) or 0); if(nEq <= 0) then
-    LogInstance(sHew.."Intern length error "..GetReport(nEq,vEq)); return false end
-    LogInstance(sHew.."Intern length "..GetReport(nEq,vEq)); F:Seek(iF)
+    nEq = mathMax(mathFloor(tonumber(tPar[2]) or 0), 0); if(nEq <= 0) then
+      LogInstance(sHew.."Marker length error "..GetReport(nEq,vEq)); return false end
+    sHew = tHew[2]:format(fPref, nEq); F:Seek(iF)
+    LogInstance(sHew.."Intern success "..GetReport(nEq,vEq))
   end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk = "["..sEq.."[", "]"..sEq.."]"
@@ -3665,22 +3668,24 @@ end
 function ExportDSV(sTable, sPref, sDelim, bExp)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref..") Missing table builder",sTable); return false end
-  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("("..fPref..") Missing table definition",sTable); return nil end
-  local fName, fPref = GetOpVar("DIRPATH_BAS"), tostring(sPref or GetInstPref())
-  if(IsBlank(fPref)) then
-    LogInstance("("..fPref..") Prefix empty"); return false end
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+    LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
+  local tHew = GetOpVar("PATTEM_EXDSVHED")
+  local sHew = tHew[2]:format(fPref, sTable)
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..fPref..") User disabled"); return true end
+    LogInstance(sHew.." User disabled",sTable); return true end
+  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
+    LogInstance(sHew.." Missing table builder",sTable); return false end
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance(sHew.." Missing table definition",sTable); return nil end
+  local fName = GetOpVar("DIRPATH_BAS")
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   local fForm = GetOpVar("FORM_PREFIXDSV")
   fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
-    LogInstance("("..fPref..")("..fName..") Open fail",sTable); return false end
+    LogInstance(sHew.." Open fail: "..fName,sTable); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
   local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
@@ -3693,12 +3698,12 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     local Q = makTab:Get(qIndx); if(not IsHere(Q)) then
       Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") Build statement failed",sTable); return false end
+      LogInstance(sHew.." Build statement failed",sTable); return false end
     F:Write("#3 Query:<"..Q..">\n")
     local qData = sqlQuery(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), sTable); return nil end
+      LogInstance(sHew.." SQL exec error "..GetReport(sqlLastError(), Q), sTable); return nil end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") No data found "..GetReport(Q), sTable); return false end
+      LogInstance(sHew.." No data found "..GetReport(Q), sTable); return false end
     local sData, sTab = "", defTab.Name
     for iCnt = 1, #qData do local qRec = qData[iCnt]; sData = sTab
       for iInd = 1, defTab.Size do local sHash = defTab[iInd][1]
@@ -3707,15 +3712,15 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") Cache missing",sTable); return false end
+      LogInstance(sHew.." Cache missing",sTable); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
     if(not bS) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") Cache manager fail for "..sR,sTable); return false end
+      LogInstance(sHew.." Cache manager fail for "..sR,sTable); return false end
     if(not sR) then F:Flush(); F:Close()
-      LogInstance("("..fPref..") Cache routine fail",sTable); return false end
-  else F:Flush(); F:Close(); LogInstance("("..fPref..") Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
+      LogInstance(sHew.." Cache routine fail",sTable); return false end
+  else F:Flush(); F:Close(); LogInstance(sHew.." Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
   -- The dynamic cache population was successful then send a message
-  F:Flush(); F:Close(); LogInstance("("..fPref..") Success",sTable); return true
+  F:Flush(); F:Close(); LogInstance(sHew.." Success",sTable); return true
 end
 
 --[[
@@ -3727,24 +3732,28 @@ end
  * bExp   > Forces the input from the export folder.( defaults to DSV )
 ]]
 function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
-  local fPref = tostring(sPref or GetInstPref()); if(not isstring(sTable)) then
-    LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
+  if(not isstring(sTable)) then
+    LogInstance("Table mismatch "..GetReport(sTable)); return false end
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+    LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
+  local tHew = GetOpVar("PATTEM_EXDSVHED")
+  local sHew = tHew[2]:format(fPref, sTable)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref..") Missing table builder",sTable); return nil end
+    LogInstance(sHew.." Missing table builder",sTable); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("("..fPref..") Missing table definition",sTable); return false end
+    LogInstance(sHew.." Missing table definition",sTable); return false end
   local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-    LogInstance("("..fPref..") Missing table command",sTable); return false end
+    LogInstance(sHew.." Missing table command",sTable); return false end
   local fName = GetOpVar("DIRPATH_BAS") --Switch the import source folder
         fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fForm, sMoDB = GetOpVar("FORM_PREFIXDSV"), GetOpVar("MODE_DATABASE")
         fName = fName..fForm:format(fPref, defTab.Name)
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
-    LogInstance("("..fPref..")("..fName..") Open fail",sTable); return false end
+    LogInstance(sHew.." Open fail: "..fName,sTable); return false end
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sLine, isEOF, nLen = "", false, defTab.Name:len()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.BEGIN)
-    LogInstance("("..fPref..") Begin",sTable) end
+    LogInstance(sHew.." Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       if(sLine:sub(1,nLen) == defTab.Name) then
@@ -3755,8 +3764,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
     end
   end; F:Close()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.COMMIT)
-    LogInstance("("..fPref..") Commit",sTable)
-  end; LogInstance("("..fPref..") Success",sTable); return true
+    LogInstance(sHew.." Commit",sTable)
+  end; LogInstance(sHew.." Success",sTable); return true
 end
 
 --[[
@@ -3769,14 +3778,16 @@ end
  * sDelim > What delimiter is the server using
 ]]
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
-  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
-    LogInstance("("..fPref..") Prefix empty"); return false end
   if(not isstring(sTable)) then
-    LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
+    LogInstance("Table mismatch "..GetReport(sTable)); return false end
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+    LogInstance("Prefix mismatch "..GetReport(fPref,sPref),sTable); return false end
+  local tHew = GetOpVar("PATTEM_EXDSVHED")
+  local sHew = tHew[2]:format(fPref, sTable)
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..fPref..") User disabled"); return true end
+    LogInstance(sHew.." User disabled",sTable); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref.."@"..sTable..") Missing table builder"); return false end
+    LogInstance(sHew.." Missing table builder",sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
   local fName, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
   if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
@@ -3794,28 +3805,27 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         if(tLine[1] == defTab.Name) then local nL = #tLine
           for iCnt = 2, nL do local vV, iL = tLine[iCnt], (iCnt-1); vV = GetStrip(vV)
             vM = makTab:Match(vV,iL,false,"",true,true)
-            if(not IsHere(vV)) then LogInstance("("..fPref.."@"..sTable
-              ..") Read matching failed "..GetReport(vV, iL, defTab[iL][1])); return false end
+            if(not IsHere(vV)) then LogInstance(sHew.." Read matching failed "
+              ..GetReport(vV, iL, defTab[iL][1]),sTable); return false end
             tLine[iCnt] = vM -- Register the matched value
           end -- Allocate table memory for the matched key
           local vK = tLine[2]; if(not fData[vK]) then fData[vK] = {Size = 0} end
           -- Where the line ID must be read from. Validate the value
           local fRec, vID, nID = fData[vK], tLine[iD+1]; nID = (tonumber(vID) or 0)
           if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
-            I:Close(); LogInstance("("..fPref.."@"..sTable..") Scatter line ID "..GetReport(vID, vK)); return false end
+            I:Close(); LogInstance(sHew.." Scatter line ID "..GetReport(vID, vK),sTable); return false end
           fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Register the new line
           for iCnt = 3, nL do fRow[iCnt-2] = tLine[iCnt] end -- Transfer the extracted data
         else I:Close()
-          LogInstance("("..fPref.."@"..sTable..") Read table name mismatch"); return false end
+          LogInstance(sHew.." Read table name mismatch",sTable); return false end
       end
     end; I:Close()
-  else LogInstance("("..fPref.."@"..sTable..") Creating file "..GetReport(fName)) end
+  else LogInstance(sHew.." Creating file "..GetReport(fName),sTable) end
   for key, rec in pairs(tData) do -- Check the given table and match the key
-    local vK = makTab:Match(key,1,false,"",true,true);
-    if(not IsHere(vK)) then LogInstance("("..fPref.."@"..sTable.."@"
-      ..tostring(key)..") Sync matching PK failed"); return false end
+    local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
+      LogInstance(sHew.." Sync matching PK failed "..GetReport(key),sTable); return false end
     local sKey, sVK = tostring(key), tostring(vK); if(sKey ~= sVK) then
-      LogInstance("("..fPref.."@"..sTable..") Sync key mismatch "..GetReport(sKey, sVK));
+      LogInstance(sHew.." Sync key mismatch "..GetReport(sKey, sVK),sTable)
       tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
     end local tRec = tData[vK] -- Create local reference to the record of the matched key
     for iCnt = 1, #tRec do local tRow, vID, nID, sID = tRec[iCnt] -- Read the processed row reference
@@ -3823,19 +3833,19 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       nID = (nID or (IsDisable(sID) and iCnt or 0))
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
       if(iCnt ~= nID) then -- Validate the line ID being in proper borders and sequential
-        LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync point ID scatter "
-          ..GetReport(iCnt, vID, nID, sID)); return false end; tRow[iD-1] = nID
+        LogInstance(sHew.." Sync point ID scatter "
+          ..GetReport(iCnt, vID, nID, sID, sKey),sTable); return false end; tRow[iD-1] = nID
       for nCnt = 1, #tRow do -- Do a value matching without quotes
         local vM = makTab:Match(tRow[nCnt],nCnt+1,false,"",true,true); if(not IsHere(vM)) then
-          LogInstance("("..fPref.."@"..sTable.."@"..sKey..") Sync matching failed "
-            ..GetReport(tRow[nCnt], (nCnt+1), defTab[nCnt+1][1])); return false
+          LogInstance(sHew.." Sync matching failed "
+            ..GetReport(tRow[nCnt], (nCnt+1), defTab[nCnt+1][1], sKey),sTable); return false
         end; tRow[nCnt] = vM -- Store the matched value in the same place as the original
       end -- Check whenever triggers are available. Run them if present
       if(istable(defTab.Trigs)) then tableInsert(tRow, 1, vK) -- Apply trigger format
         local bS, sR = pcall(defTab.Trigs["Record"], tRow, sFunc); if(not bS) then
-          LogInstance("("..fPref.."@"..sTable..") Trigger "..GetReport(nID, vK).." error: "..sR); return false end
+          LogInstance(sHew.." Trigger "..GetReport(nID, vK).." error: "..sR,sTable); return false end
         if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
-          LogInstance("("..fPref.."@"..sTable..") Trigger "..GetReport(nID, vK).." routine fail"); return false end
+          LogInstance(sHew.." Trigger "..GetReport(nID, vK).." routine fail",sTable); return false end
         tableRemove(tRow, 1) -- Remove the fictive duplicated primary key from the row data first column
       end
     end -- Register the read line to the output file
@@ -3845,36 +3855,39 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end
   end
   local tSort = Arrange(fData); if(not tSort) then
-    LogInstance("("..fPref.."@"..sTable..") Sorting failed"); return false end
+    LogInstance(sHew.." Sorting failed",sTable); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
-    LogInstance("("..fPref.."@"..sTable..")("..fName..") Open fail"); return false end
-  O:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+    LogInstance(sHew.." Open fail: "..fName,sTable); return false end
+  O:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
   O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Key
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
-      O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching PK failed"); return false end
+      O:Flush(); O:Close(); LogInstance(sHew.." Write matching PK failed "
+        ..GetReport(key),sTable); return false end
     local fRec, sCash, sData = fData[key], defTab.Name..sDelim..vK, ""
     for iCnt = 1, fRec.Size do local fRow = fRec[iCnt]
       for nCnt = 1, #fRow do
         local vM = makTab:Match(fRow[nCnt],nCnt+1,true,"\"",true); if(not IsHere(vM)) then
-          O:Flush(); O:Close(); LogInstance("("..fPref.."@"..sTable.."@"..tostring(key)..") Write matching failed "
-            ..GetReport(fRow[nCnt], (nCnt+1), defTab[nCnt+1][1])); return false
+          O:Flush(); O:Close(); LogInstance(sHew.." Write matching failed "
+            ..GetReport(fRow[nCnt], (nCnt+1), defTab[nCnt+1][1], key),sTable); return false
         end; sData = sData..sDelim..tostring(vM)
       end; O:Write(sCash..sData.."\n"); sData = ""
     end
   end O:Flush(); O:Close()
-  LogInstance("("..fPref.."@"..sTable..") Success"); return true
+  LogInstance(sHew.." Success",sTable); return true
 end
 
 function TranslateDSV(sTable, sPref, sDelim)
-  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
-    LogInstance("("..fPref..") Prefix empty"); return false end
   if(not isstring(sTable)) then
-    LogInstance("("..fPref..") Table mismatch "..GetReport(sTable)); return false end
+    LogInstance("Table mismatch "..GetReport(sTable)); return false end
+  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+    LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
+  local tHew = GetOpVar("PATTEM_EXDSVHED")
+  local sHew = tHew[2]:format(fPref, sTable)
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..fPref..") User disabled"); return true end
+    LogInstance(sHew.." User disabled",sTable); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("("..fPref..") Missing table builder",sTable); return false end
+    LogInstance(sHew.." Missing table builder",sTable); return false end
   local defTab, sFunc = makTab:GetDefinition(), "TranslateDSV"
   local sNdsv, sNins = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_BAS")
   if(not fileExists(sNins,"DATA")) then fileCreateDir(sNins) end
@@ -3884,10 +3897,10 @@ function TranslateDSV(sTable, sPref, sDelim)
   sNdsv, sNins = sNdsv..fForm:format(fPref, defTab.Name), sNins..fForm:format(fPref, defTab.Name)
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local D = fileOpen(sNdsv, "rb", "DATA"); if(not D) then
-    LogInstance("("..fPref..")("..sNdsv..") Open fail",sTable); return false end
+    LogInstance(sHew.." Open fail: "..sNdsv,sTable); return false end
   local I = fileOpen(sNins, "wb", "DATA"); if(not I) then
-    LogInstance("("..fPref..")("..sNins..") Open fail",sTable); return false end
-  I:Write("# "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+    LogInstance(sHew.." Open fail: "..sNins,sTable); return false end
+  I:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
   I:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   local sLine, isEOF = "", false
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
@@ -3898,13 +3911,13 @@ function TranslateDSV(sTable, sPref, sDelim)
       for nCnt = 1, #tBoo do
         local vMatch = makTab:Match(GetStrip(tBoo[nCnt]),nCnt,true,"\"",true)
         if(not IsHere(vMatch)) then D:Close(); I:Flush(); I:Close()
-          LogInstance("("..fPref..") Given matching failed "
+          LogInstance(sHew.." Given matching failed "
             ..GetReport(tBoo[nCnt], nCnt, defTab[nCnt][1]), sTable); return false end
         sCat = sCat..", "..tostring(vMatch)
       end; I:Write(sFr..sCat:sub(3,-1)..sBk)
     end
   end; D:Close(); I:Flush(); I:Close()
-  LogInstance("("..fPref..") Success",sTable); return true
+  LogInstance(sHew.." Success",sTable); return true
 end
 
 --[[
@@ -3916,12 +3929,14 @@ end
  * bSkip  > Skip addition for the DSV prefix if exists
 ]]
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
+  local sProg = tostring(sProg or ""); if(IsBlank(sProg)) then
+    LogInstance("Program empty "..GetReport(sProg, sPref)); return false end
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
-    LogInstance("("..fPref..") Prefix empty"); return false end
-  if(IsFlag("en_dsv_datalock")) then
-    LogInstance("("..fPref..") User disabled"); return true end
+    LogInstance("Prefix empty "..GetReport(sProg, sPref)); return false end
   if(CLIENT and gameSinglePlayer()) then
-    LogInstance("("..fPref..") Single client"); return true end
+    LogInstance("Single client "..GetReport(sProg, sPref)); return true end
+  if(IsFlag("en_dsv_datalock")) then
+    LogInstance("User disabled "..GetReport(sProg, sPref)); return true end
   local sBas = GetOpVar("DIRPATH_BAS")
   if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
   local sBas = sBas..GetOpVar("DIRPATH_SET")
@@ -3933,7 +3948,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     if(fileExists(fName, "DATA")) then
       local fPool, isEOF = {}, false
       local F, sLine = fileOpen(fName, "rb" ,"DATA"), ""; if(not F) then
-        LogInstance("Skip fail "..GetReport(fPref, fName)); return false end
+        LogInstance("Skip fail: "..GetReport(sProg, fPref, fName)); return false end
       while(not isEOF) do
         sLine, isEOF = GetStringFile(F)
         if(not IsBlank(sLine)) then local isAct = true
@@ -3948,15 +3963,15 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
       end; F:Close()
       if(fPool[fPref]) then local inf = fPool[fPref]
         for iP = 1, inf.Size do local tab = inf[iP]
-          LogInstance("Status "..GetReport(tab[1], fPref, tab[2]))
-        end; LogInstance("Skip "..GetReport(fPref, sProg)); return true
+          LogInstance("Status "..GetReport(sProg, fPref, tab[1], tab[2]))
+        end; LogInstance("Skip "..GetReport(sProg, fPref)); return true
       end
-    else LogInstance("Skip miss "..GetReport(fPref, fName)) end
+    else LogInstance("Skip miss "..GetReport(sProg, fPref, fName)) end
   end
   local F = fileOpen(fName, "ab" ,"DATA"); if(not F) then
-    LogInstance("Update fail "..GetReport(fPref, fName)); return false end
+    LogInstance("Update fail "..GetReport(sProg, fPref, fName)); return false end
   F:Write(fPref..sDelim..tostring(sProg or sMiss).."\n"); F:Flush(); F:Close()
-  LogInstance("Register "..GetReport(fPref)); return true
+  LogInstance("Register "..GetReport(sProg, fPref)); return true
 end
 
 --[[
@@ -3973,7 +3988,7 @@ function ProcessDSV(sDelim)
   local lbNam = GetOpVar("NAME_LIBRARY")
   local fName = (sBas..sSet..lbNam.."_dsv.txt")
   local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
-    LogInstance("Open fail "..GetReport(fName)); return false end
+    LogInstance("Open fail: "..GetReport(fName)); return false end
   local sLine, isEOF, sIns = "", false, GetInstPref()
   local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
   local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
@@ -4455,7 +4470,7 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
         stSpawn.HRec = hdRec
   if(ucsPos) then stSpawn.BPos:Set(ucsPos) end
   if(ucsAng) then stSpawn.BAng:Set(ucsAng) end
-  stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng);
+  stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng)
   -- Initialize F, R, U Copy the UCS like that to support database POA
   stSpawn.ANxt:SetUnpacked(tonumber(ucsAngP) or 0,
                            tonumber(ucsAngY) or 0,
@@ -4467,7 +4482,7 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
   if(not (stSpawn.ANxt:IsZero() and stSpawn.PNxt:IsZero())) then
     NegAngle(stSpawn.ANxt, true, true, false)
     local vW, aW = LocalToWorld(stSpawn.PNxt, stSpawn.ANxt, stSpawn.BPos, stSpawn.BAng)
-    stSpawn.OPos:Set(vW); stSpawn.OAng:Set(aW);
+    stSpawn.OPos:Set(vW); stSpawn.OAng:Set(aW)
     stSpawn.F:Set(stSpawn.OAng:Forward())
     stSpawn.R:Set(stSpawn.OAng:Right())
     stSpawn.U:Set(stSpawn.OAng:Up())
@@ -4596,7 +4611,7 @@ function ProjectRay(vO, vD, vP)
   local vN = vD:GetNormalized()
   local vX = Vector(vP); vX:Sub(vO)
   local nD = vX:Dot(vN); vX:Set(vN)
-  vX:Mul(nD); vX:Add(vO);
+  vX:Mul(nD); vX:Add(vO)
   return nD, vN, vX
 end
 
@@ -5704,7 +5719,7 @@ function UpdateCurveSnap(oPly, iD, nD)
   local vP2, vN2 = tC.CNode[iD + 1], tC.CNorm[iD + 1]
   local nS, nE = vP0:Distance(vP1), vP0:Distance(vP2)
   if(nS <= nD and nE >= nD) then
-    tC.SSize = (tC.SSize + 1)  tC.Snap[tC.SSize] = {Size = 0, ID = tC.SSize};
+    tC.SSize = (tC.SSize + 1)  tC.Snap[tC.SSize] = {Size = 0, ID = tC.SSize}
     local tO, nL = UpdateCurveNormUCS(oPly, vP1, vN1, vP2, vN2, vP0, nD)
     while(nL > nD) do -- First segment track is snapped but end is not reached
       tO, nL = UpdateCurveNormUCS(oPly, vP0, vN0, vP2, vN2, vP0, nD) end
