@@ -1247,11 +1247,10 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          local sGen = asmlib.GetOpVar("DBEXP_PREFGEN")
-          asmlib.ExportCategory(3, nil, sGen, true)
-          asmlib.ExportDSV("PIECES", sGen, nil, true)
-          asmlib.ExportDSV("ADDITIONS", sGen, nil, true)
-          asmlib.ExportDSV("PHYSPROPERTIES", sGen, nil, true)
+          asmlib.ExportCategory(3, nil, gsGenerDSV, true)
+          asmlib.ExportDSV("PIECES", gsGenerDSV, nil, true)
+          asmlib.ExportDSV("ADDITIONS", gsGenerDSV, nil, true)
+          asmlib.ExportDSV("PHYSPROPERTIES", gsGenerDSV, nil, true)
           asmlib.LogInstance("Export instance", sLog..".Button")
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
         else

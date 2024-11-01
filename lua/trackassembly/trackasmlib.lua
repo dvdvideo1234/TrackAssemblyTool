@@ -705,7 +705,6 @@ function InitBase(sName, sPurp)
   SetOpVar("MISS_NOTP","TYPE")   -- No track type
   SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
-  SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_PROGRESS", "%5.2f%%")
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_INTEGER", "[%d]")
@@ -718,7 +717,7 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
-  SetOpVar("DBEXP_PREFGEN","generic_")
+  SetOpVar("DBEXP_PREFGEN", GetOpVar("NAME_LIBRARY").."_")
   SetOpVar("VCOMPARE_SPAN", function(u, v)
     if(u.T ~= v.T) then return u.T < v.T end
     local uC = (u.C or {})
