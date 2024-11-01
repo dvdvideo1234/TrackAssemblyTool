@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.800")
+asmlib.SetOpVar("TOOL_VERSION","8.801")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -100,11 +100,11 @@ local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
-local gsGenerDSV  = asmlib.GetOpVar("DBEXP_PREFGEN")
+local gsGenerPrf  = asmlib.GetOpVar("DBEXP_PREFGEN")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsDirDSV    = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
 local gsNoAnchor  = asmlib.GetOpVar("MISS_NOID")..gsSymRev..asmlib.GetOpVar("MISS_NOMD")
-local gsGrossDSV  = gsDirDSV..gsGenerDSV..gsToolPrefU
+local gsGrossDSV  = gsDirDSV..gsGenerPrf..gsToolPrefU
 
 ------------ VARIABLE FLAGS ------------
 
@@ -863,9 +863,9 @@ if(CLIENT) then
         if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
         local fD = fileOpen(sNam, "rb", "DATA"); if(not fD) then pnFrame:Close()
           asmlib.LogInstance("File error", sLog..".Import"); return nil end
-        local tGen = fileFind(gsDirDSV, gsGenerDSV..gsToolPrefU.."*.txt")
+        local tGen = fileFind(gsDirDSV, gsGenerPrf..gsToolPrefU.."*.txt")
         if(tGen and #tGen > 0) then
-          pnListView:AddLine("V", gsGenerDSV, gsGrossDSV.."*.txt"):SetTooltip(gsDirDSV) end
+          pnListView:AddLine("V", gsGenerPrf, gsGrossDSV.."*.txt"):SetTooltip(gsDirDSV) end
         local sLine, bEOF, bAct = "", false, true
         while(not bEOF) do
           sLine, bEOF = asmlib.GetStringFile(fD)
@@ -902,7 +902,7 @@ if(CLIENT) then
           local sAct = ((pCur:GetColumnText(1) == "V") and "" or sOff)
           local sPrf, sPth = pCur:GetColumnText(2), pCur:GetColumnText(3)
           if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
-          if(sPrf ~= gsGenerDSV) then fD:Write(sAct..sPrf..sPth.."\n") end
+          if(sPrf ~= gsGenerPrf) then fD:Write(sAct..sPrf..sPth.."\n") end
         end; fD:Flush(); fD:Close()
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
@@ -1247,10 +1247,10 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          asmlib.ExportCategory(3, nil, gsGenerDSV, true)
-          asmlib.ExportDSV("PIECES", gsGenerDSV, nil, true)
-          asmlib.ExportDSV("ADDITIONS", gsGenerDSV, nil, true)
-          asmlib.ExportDSV("PHYSPROPERTIES", gsGenerDSV, nil, true)
+          asmlib.ExportCategory(3, nil, gsGenerPrf, true)
+          asmlib.ExportDSV("PIECES", gsGenerPrf, nil, true)
+          asmlib.ExportDSV("ADDITIONS", gsGenerPrf, nil, true)
+          asmlib.ExportDSV("PHYSPROPERTIES", gsGenerPrf, nil, true)
           asmlib.LogInstance("Export instance", sLog..".Button")
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
         else
@@ -1985,7 +1985,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
 if(CLIENT) then
   if(fileExists(gsGrossDSV.."CATEGORY.txt", "DATA")) then
     asmlib.LogInstance("DB CATEGORY from DSV",gtInitLogs)
-    asmlib.ImportCategory(3, gsGenerDSV)
+    asmlib.ImportCategory(3, gsGenerPrf)
   else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
 end
 
@@ -2004,7 +2004,7 @@ end
 ]]--
 if(fileExists(gsGrossDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
-  asmlib.ImportDSV("PIECES", true, gsGenerDSV)
+  asmlib.ImportDSV("PIECES", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
@@ -4687,7 +4687,7 @@ end
 
 if(fileExists(gsGrossDSV.."PHYSPROPERTIES.txt", "DATA")) then
   asmlib.LogInstance("DB PHYSPROPERTIES from DSV",gtInitLogs)
-  asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerDSV)
+  asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerPrf)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
@@ -4796,7 +4796,7 @@ end
 
 if(fileExists(gsGrossDSV.."ADDITIONS.txt", "DATA")) then
   asmlib.LogInstance("DB ADDITIONS from DSV",gtInitLogs)
-  asmlib.ImportDSV("ADDITIONS", true, gsGenerDSV)
+  asmlib.ImportDSV("ADDITIONS", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)
