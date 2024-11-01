@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.799")
+asmlib.SetOpVar("TOOL_VERSION","8.800")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -100,10 +100,11 @@ local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
+local gsGenerDSV  = asmlib.GetOpVar("DBEXP_PREFGEN")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
+local gsDirDSV    = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
 local gsNoAnchor  = asmlib.GetOpVar("MISS_NOID")..gsSymRev..asmlib.GetOpVar("MISS_NOMD")
-local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
-                    asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
+local gsGrossDSV  = gsDirDSV..gsGenerDSV..gsToolPrefU
 
 ------------ VARIABLE FLAGS ------------
 
@@ -858,13 +859,16 @@ if(CLIENT) then
       pnImport:SetText(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bti"))
       pnImport:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bti_tp"))
       pnImport.DoRightClick = function() end
-      pnImport.DoClick = function(pnSelf)
+      pnImport.DoClick = function(pnSelf) pnListView:Clear()
         if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
-        local oDSV = fileOpen(sNam, "rb", "DATA"); if(not oDSV) then pnFrame:Close()
+        local fD = fileOpen(sNam, "rb", "DATA"); if(not fD) then pnFrame:Close()
           asmlib.LogInstance("File error", sLog..".Import"); return nil end
-        local sLine, bEOF, bAct = "", false, true; pnListView:Clear()
+        local tGen = fileFind(gsDirDSV, gsGenerDSV..gsToolPrefU.."*.txt")
+        if(tGen and #tGen > 0) then
+          pnListView:AddLine("V", gsGenerDSV, gsGrossDSV.."*.txt"):SetTooltip(gsDirDSV) end
+        local sLine, bEOF, bAct = "", false, true
         while(not bEOF) do
-          sLine, bEOF = asmlib.GetStringFile(oDSV)
+          sLine, bEOF = asmlib.GetStringFile(fD)
           if(not asmlib.IsBlank(sLine)) then local sKey, sPrg
             if(not asmlib.IsDisable(sLine)) then bAct = true else
               bAct, sLine = false, sLine:sub(2,-1):Trim() end
@@ -875,7 +879,7 @@ if(CLIENT) then
             else sKey, sPrg = sLine, sMis end
             pnListView:AddLine((bAct and "V" or "X"), sKey, sPrg):SetTooltip(sPrg)
           end
-        end; oDSV:Close()
+        end; fD:Close()
       end; pnImport:DoClick()
       -- Export button. When clicked loads contents into the file
       local pnExport = vguiCreate("DButton")
@@ -890,17 +894,16 @@ if(CLIENT) then
       pnExport:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bte_tp"))
       pnExport.DoRightClick = function() end
       pnExport.DoClick = function(pnSelf)
-        local oDSV = fileOpen(sNam, "wb", "DATA"); if(not oDSV) then pnFrame:Close()
+        local fD = fileOpen(sNam, "wb", "DATA"); if(not fD) then pnFrame:Close()
           asmlib.LogInstance("File error",sLog..".Export"); return nil end
         local tLine = pnListView:GetLines()
         local sOff  = asmlib.GetOpVar("OPSYM_DISABLE")
-        for iK, pnCur in pairs(tLine) do
-          local sAct = ((pnCur:GetColumnText(1) == "V") and "" or sOff)
-          local sPrf = pnCur:GetColumnText(2)
-          local sPth = pnCur:GetColumnText(3)
+        for iL = 1, #tLine do local pCur = tLine[iL]
+          local sAct = ((pCur:GetColumnText(1) == "V") and "" or sOff)
+          local sPrf, sPth = pCur:GetColumnText(2), pCur:GetColumnText(3)
           if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
-          oDSV:Write(sAct..sPrf..sPth.."\n")
-        end; oDSV:Flush(); oDSV:Close()
+          if(sPrf ~= gsGenerDSV) then fD:Write(sAct..sPrf..sPth.."\n") end
+        end; fD:Flush(); fD:Close()
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
         local pnMenu = vguiCreate("DMenu")
@@ -1243,22 +1246,28 @@ if(CLIENT) then
       -- The button database export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
-        if(not asmlib.GetAsmConvar("exportdb", "BUL")) then return end
-        if(inputIsKeyDown(KEY_LSHIFT)) then
-          asmlib.DoAction("OPEN_EXTERNDB")
-          asmlib.LogInstance("Open manager", sLog..".Button")
-        else
-          asmlib.ExportCategory(3, nil, nil, true)
-          asmlib.ExportDSV("PIECES", nil, nil, true)
-          asmlib.ExportDSV("ADDITIONS", nil, nil, true)
-          asmlib.ExportDSV("PHYSPROPERTIES", nil, nil, true)
+        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
+          local sGen = asmlib.GetOpVar("DBEXP_PREFGEN")
+          asmlib.ExportCategory(3, nil, sGen, true)
+          asmlib.ExportDSV("PIECES", sGen, nil, true)
+          asmlib.ExportDSV("ADDITIONS", sGen, nil, true)
+          asmlib.ExportDSV("PHYSPROPERTIES", sGen, nil, true)
           asmlib.LogInstance("Export instance", sLog..".Button")
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+        else
+          local fW = asmlib.GetOpVar("FORM_GITWIKI")
+          guiOpenURL(fW:format("Additional-features"))
         end
-        asmlib.SetAsmConvar(oPly, "exportdb", 0)
       end
       pnButton.DoRightClick = function(pnSelf)
-        local fW = asmlib.GetOpVar("FORM_GITWIKI")
-        guiOpenURL(fW:format("Additional-features"))
+        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
+          asmlib.DoAction("OPEN_EXTERNDB")
+          asmlib.LogInstance("Open manager", sLog..".Button")
+          smlib.SetAsmConvar(oPly, "exportdb", 0)
+        else
+          local fW = asmlib.GetOpVar("FORM_GITWIKI")
+          guiOpenURL(fW:format("Additional-features"))
+        end
       end
       -- Leave the TextEntry here so it can access and update the local ListView reference
       pnTextEntry.OnEnter = function(pnSelf)
@@ -1975,9 +1984,9 @@ asmlib.NewTable("PHYSPROPERTIES",{
 
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
-  if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
+  if(fileExists(gsGrossDSV.."CATEGORY.txt", "DATA")) then
     asmlib.LogInstance("DB CATEGORY from DSV",gtInitLogs)
-    asmlib.ImportCategory(3)
+    asmlib.ImportCategory(3, gsGenerDSV)
   else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
 end
 
@@ -1994,9 +2003,9 @@ end
  * First  argument of Categorize() is used to provide default track type for TABLE:Record()
  * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
-if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
+if(fileExists(gsGrossDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
-  asmlib.ImportDSV("PIECES", true)
+  asmlib.ImportDSV("PIECES", true, gsGenerDSV)
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
@@ -4677,9 +4686,9 @@ else
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
+if(fileExists(gsGrossDSV.."PHYSPROPERTIES.txt", "DATA")) then
   asmlib.LogInstance("DB PHYSPROPERTIES from DSV",gtInitLogs)
-  asmlib.ImportDSV("PHYSPROPERTIES", true)
+  asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerDSV)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
@@ -4786,9 +4795,9 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
+if(fileExists(gsGrossDSV.."ADDITIONS.txt", "DATA")) then
   asmlib.LogInstance("DB ADDITIONS from DSV",gtInitLogs)
-  asmlib.ImportDSV("ADDITIONS", true)
+  asmlib.ImportDSV("ADDITIONS", true, gsGenerDSV)
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)

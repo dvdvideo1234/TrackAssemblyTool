@@ -705,6 +705,7 @@ function InitBase(sName, sPurp)
   SetOpVar("MISS_NOTP","TYPE")   -- No track type
   SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
   SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
+  SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
   SetOpVar("FORM_PROGRESS", "%5.2f%%")
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_INTEGER", "[%d]")
@@ -717,6 +718,7 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
   SetOpVar("MODELNAM_FILE","%.mdl")
+  SetOpVar("DBEXP_PREFGEN","generic_")
   SetOpVar("VCOMPARE_SPAN", function(u, v)
     if(u.T ~= v.T) then return u.T < v.T end
     local uC = (u.C or {})
@@ -800,7 +802,6 @@ function InitBase(sName, sPurp)
       {name = "reload"    , icon = "gui/r.png"  },
       {name = "reload_use", icon = "gui/r.png"   , icon2 = "gui/e.png"}
     })
-    SetOpVar("MISS_NOTR","Oops, missing ?") -- No translation found
     SetOpVar("TOOL_DEFMODE","gmod_tool")
     SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s].txt")
     SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
@@ -3989,7 +3990,7 @@ function ProcessDSV(sDelim)
   local fName = (sBas..sSet..lbNam.."_dsv.txt")
   local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
     LogInstance("Open fail: "..GetReport(fName)); return false end
-  local sLine, isEOF, sIns = "", false, GetInstPref()
+  local sLine, isEOF, sGen = "", false, GetOpVar("DBEXP_PREFGEN")
   local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
   local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
   local sDv = sBas..GetOpVar("DIRPATH_DSV")
@@ -4019,7 +4020,7 @@ function ProcessDSV(sDelim)
       for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
     else
       if(CLIENT) then
-        if(not fileExists(sDv..fForm:format(sIns, sNt.."CATEGORY"), "DATA")) then
+        if(not fileExists(sDv..fForm:format(sGen, sNt.."CATEGORY"), "DATA")) then
           if(fileExists(sDv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
             if(not ImportCategory(3, prf)) then
               LogInstance("Failed "..GetReport(prf, "CATEGORY")) end
@@ -4029,7 +4030,7 @@ function ProcessDSV(sDelim)
       for iD = 1, #libQTable do
         local makTab = GetBuilderID(iD)
         local defTab = makTab:GetDefinition()
-        if(not fileExists(sDv..fForm:format(sIns, sNt..defTab.Nick), "DATA")) then
+        if(not fileExists(sDv..fForm:format(sGen, sNt..defTab.Nick), "DATA")) then
           if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
               LogInstance("Failed "..GetReport(prf, defTab.Nick)) end
