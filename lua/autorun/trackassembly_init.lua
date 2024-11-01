@@ -727,8 +727,8 @@ if(CLIENT) then
       end; acTo:UpdateGhost(oPly) -- Update ghosts stack for the local player
     end) -- Read client configuration
 
-  asmlib.SetAction("OPEN_EXTERNDB", -- Must have the same parameters as the hook
-    function()
+  asmlib.SetAction("OPEN_EXTERNDB",
+    function() -- Must have the same parameters as the hook
       local oPly = LocalPlayer()
       local sLog = "*OPEN_EXTERNDB"
       local scrW = surfaceScreenWidth()
@@ -967,55 +967,62 @@ if(CLIENT) then
             if(nIndex >= nT) then return end
             tpText:Swap(pnLine, pnSelf:GetLine(nT))
           end):SetImage(asmlib.ToIcon(sI.."mv4"))
-        -- Manipulate content local settings related to the line
-        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."st"))
-        if(not IsValid(pIn)) then pnFrame:Close()
-          asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return nil end
-        if(not IsValid(pOp)) then pnFrame:Close()
-          asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return nil end
-        pOp:SetIcon(asmlib.ToIcon(sI.."st")); pOp:SetTooltip(languageGetPhrase(sI.."stt"))
         -- Populate the sub-menu with all table nicknames
-        local iD, makTab = 1, asmlib.GetBuilderID(1)
+        local iD, pIn, pOp = 1, nil, nil
+        local makTab = asmlib.GetBuilderID(iD)
         while(makTab) do
           local defTab = makTab:GetDefinition()
           local sFile = fDSV:format(sP, defTab.Nick)
-          local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
-          if(not IsValid(pTb)) then pnFrame:Close()
-            asmlib.LogInstance("Manage menu invalid"..GetReport(iD, defTab.Nick),sLog..".ListView"); return nil end
-          if(not IsValid(pOb)) then pnFrame:Close()
-            asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return nil end
-          pOb:SetIcon(asmlib.ToIcon(sI.."si"))
-          pTb:AddOption(languageGetPhrase(sT.."st1"),
-            function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."st1"))
-          pTb:AddOption(languageGetPhrase(sT.."st2"),
-            function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."st2"))
-          pTb:AddOption(languageGetPhrase(sT.."st3"),
-            function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."st3"))
-          pTb:AddOption(languageGetPhrase(sT.."st4"),
-            function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."st4"))
-          pTb:AddOption(languageGetPhrase(sT.."st5"),
-            function() -- Edit the database contents using the Luapad addon
-              if(not luapad) then return end -- Luapad is not installed do nothing
-              asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
-              if(luapad.Frame) then luapad.Frame:SetVisible(true)
-              else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
-              luapad.AddTab("["..defTab.Nick.."]"..defTab.Nick, fileRead(sFile, "DATA"), sDsv);
-              if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
-                  luapad.AddTab("[CATEGORY]"..defTab.Nick, fileRead(sCats, "DATA"), sDsv);
-                end -- This is done so we can distinguish between luapad and other panels
-              end -- Luapad is designed not to be closed so we need to make it invisible
-              luapad.Frame:SetVisible(true); luapad.Frame:Center()
-              luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
-            end):SetImage(asmlib.ToIcon(sI.."st5"))
-          pTb:AddOption(languageGetPhrase(sT.."st6"),
-            function() fileDelete(sFile)
-              asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
-              if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY")
-                if(fileExists(sCats,"DATA")) then fileDelete(sCats) -- Delete category when present
-                  asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
-              end
-            end):SetImage(asmlib.ToIcon(sI.."st6"))
+          if(fileExists(sFile, "DATA")) then
+            if(not (pIn and pOp)) then
+              -- Manipulate content local settings related to the line
+              pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."st"))
+              if(not IsValid(pIn)) then pnFrame:Close()
+                asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return nil end
+              if(not IsValid(pOp)) then pnFrame:Close()
+                asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return nil end
+              pOp:SetIcon(asmlib.ToIcon(sI.."st")); pOp:SetTooltip(languageGetPhrase(sI.."stt"))
+            end -- When there is at least one DSV table present make table sub-menu
+            if(pIn and pOp) then -- When the sub-menu pointer is available add tables
+              local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
+              if(not IsValid(pTb)) then pnFrame:Close()
+                asmlib.LogInstance("Manage menu invalid"..GetReport(iD, defTab.Nick),sLog..".ListView"); return nil end
+              if(not IsValid(pOb)) then pnFrame:Close()
+                asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return nil end
+              pOb:SetIcon(asmlib.ToIcon(sI.."si"))
+              pTb:AddOption(languageGetPhrase(sT.."st1"),
+                function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."st1"))
+              pTb:AddOption(languageGetPhrase(sT.."st2"),
+                function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."st2"))
+              pTb:AddOption(languageGetPhrase(sT.."st3"),
+                function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."st3"))
+              pTb:AddOption(languageGetPhrase(sT.."st4"),
+                function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."st4"))
+              pTb:AddOption(languageGetPhrase(sT.."st5"),
+                function() -- Edit the database contents using the Luapad addon
+                  if(not luapad) then return end -- Luapad is not installed do nothing
+                  asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+                  if(luapad.Frame) then luapad.Frame:SetVisible(true)
+                  else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
+                  luapad.AddTab("["..defTab.Nick.."]"..defTab.Nick, fileRead(sFile, "DATA"), sDsv);
+                  if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                    local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
+                      luapad.AddTab("[CATEGORY]"..defTab.Nick, fileRead(sCats, "DATA"), sDsv);
+                    end -- This is done so we can distinguish between luapad and other panels
+                  end -- Luapad is designed not to be closed so we need to make it invisible
+                  luapad.Frame:SetVisible(true); luapad.Frame:Center()
+                  luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
+                end):SetImage(asmlib.ToIcon(sI.."st5"))
+              pTb:AddOption(languageGetPhrase(sT.."st6"),
+                function() fileDelete(sFile)
+                  asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
+                  if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY")
+                    if(fileExists(sCats,"DATA")) then fileDelete(sCats) -- Delete category when present
+                      asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
+                  end
+                end):SetImage(asmlib.ToIcon(sI.."st6"))
+            end
+          end
           iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
         end
         pnMenu:Open()
