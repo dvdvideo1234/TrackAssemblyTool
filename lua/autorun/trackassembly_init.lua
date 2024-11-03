@@ -863,9 +863,11 @@ if(CLIENT) then
         if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
         local fD = fileOpen(sNam, "rb", "DATA"); if(not fD) then pnFrame:Close()
           asmlib.LogInstance("File error", sLog..".Import"); return nil end
-        local tGen = fileFind(gsDirDSV, gsGenerPrf..gsToolPrefU.."*.txt")
-        if(tGen and #tGen > 0) then
-          pnListView:AddLine("V", gsGenerPrf, gsGrossDSV.."*.txt"):SetTooltip(gsDirDSV) end
+        local sGen = (gsDirDSV..gsGenerPrf..gsToolPrefU.."*.txt")
+        local tGen = fileFind(sGen, "DATA"); if(tGen and #tGen > 0) then
+          pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(gsDirDSV)
+        else local iG = (tGen and #tGen or 0)
+          asmlib.LogInstance("Generic database: "..asmlib.GetReport(iG, sGen), sLog..".Import") end
         local sLine, bEOF, bAct = "", false, true
         while(not bEOF) do
           sLine, bEOF = asmlib.GetStringFile(fD)
@@ -1251,7 +1253,7 @@ if(CLIENT) then
           asmlib.ExportDSV("PIECES", gsGenerPrf, nil, true)
           asmlib.ExportDSV("ADDITIONS", gsGenerPrf, nil, true)
           asmlib.ExportDSV("PHYSPROPERTIES", gsGenerPrf, nil, true)
-          asmlib.LogInstance("Export instance", sLog..".Button")
+          asmlib.LogInstance("Export data", sLog..".Button")
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
         else
           local fW = asmlib.GetOpVar("FORM_GITWIKI")
@@ -1260,9 +1262,10 @@ if(CLIENT) then
       end
       pnButton.DoRightClick = function(pnSelf)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          asmlib.DoAction("OPEN_EXTERNDB")
+          local bS, vOut = asmlib.DoAction("OPEN_EXTERNDB"); if(not bS) then
+            asmlib.LogInstance("Open manager:"..vOut, sLog..".Button"); return nil end
           asmlib.LogInstance("Open manager", sLog..".Button")
-          smlib.SetAsmConvar(oPly, "exportdb", 0)
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
         else
           local fW = asmlib.GetOpVar("FORM_GITWIKI")
           guiOpenURL(fW:format("Additional-features"))
@@ -1274,7 +1277,7 @@ if(CLIENT) then
         local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
               sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
         if(not asmlib.UpdateListView(pnListView,frUsed,sCol,sPat)) then
-          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
+          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat), sLog..".TextEntry"); return nil
         end
       end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
@@ -1984,7 +1987,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
   if(fileExists(gsGrossDSV.."CATEGORY.txt", "DATA")) then
-    asmlib.LogInstance("DB CATEGORY from DSV",gtInitLogs)
+    asmlib.LogInstance("DB CATEGORY from GENERIC",gtInitLogs)
     asmlib.ImportCategory(3, gsGenerPrf)
   else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
 end
@@ -2003,7 +2006,7 @@ end
  * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
 if(fileExists(gsGrossDSV.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
+  asmlib.LogInstance("DB PIECES from GENERIC",gtInitLogs)
   asmlib.ImportDSV("PIECES", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sqlBegin() end
@@ -4686,7 +4689,7 @@ else
 end
 
 if(fileExists(gsGrossDSV.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance("DB PHYSPROPERTIES from DSV",gtInitLogs)
+  asmlib.LogInstance("DB PHYSPROPERTIES from GENERIC",gtInitLogs)
   asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerPrf)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   if(gsMoDB == "SQL") then sqlBegin() end
@@ -4795,7 +4798,7 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
 end
 
 if(fileExists(gsGrossDSV.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance("DB ADDITIONS from DSV",gtInitLogs)
+  asmlib.LogInstance("DB ADDITIONS from GENERIC",gtInitLogs)
   asmlib.ImportDSV("ADDITIONS", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sqlBegin() end

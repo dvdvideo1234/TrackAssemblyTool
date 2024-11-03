@@ -56,6 +56,28 @@ end
 -- There is something to error about stop the execution and report it
 if(not asmlib) then ThrowError("Failed loading the required module!"); return end
 
+-- Store a reference to disable symbol
+local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
+local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
+local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
+local gsFormPF = asmlib.GetOpVar("FORM_PREFIXFDB")
+
+-- This is the path to your DSV
+local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
+              asmlib.GetOpVar("DIRPATH_DSV")..
+              gsFormPF:format(myPrefix, gsToolPF.."PIECES")
+
+--[[
+ * This flag is used when the track pieces list needs to be processed.
+ * It generally represents the locking file persistence flag. It is
+ * bound to finding a "PIECES" DSV external database for the prefix
+ * of your addon. You can use it for boolean value deciding whenever
+ * or not to run certain events. For example you can stop exporting
+ * your local database every time Gmod loads, but then the user will
+ * skip the available updates of your addon until he/she deletes the DSVs.
+]]--
+local myFlag = file.Exists(myDsv, "DATA")
+
 --[[
  * This logic statement is needed for reporting the error
  * in the console if the process fails.
@@ -136,28 +158,6 @@ local function ExportCategory(tCatg)
     else asmlib.LogInstance("Category export SKIP "..sRep, mySource) end
   else asmlib.LogInstance("Category export SERVER "..sRep, mySource) end
 end
-
--- Store a reference to disable symbol
-local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
-local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
-local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
-local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
-
--- This is the path to your DSV
-local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
-              asmlib.GetOpVar("DIRPATH_DSV")..
-              gsFormPF:format(myPrefix, gsToolPF.."PIECES")
-
---[[
- * This flag is used when the track pieces list needs to be processed.
- * It generally represents the locking file persistence flag. It is
- * bound to finding a "PIECES" DSV external database for the prefix
- * of your addon. You can use it for boolean value deciding whenever
- * or not to run certain events. For example you can stop exporting
- * your local database every time Gmod loads, but then the user will
- * skip the available updates of your addon until he/she deletes the DSVs.
-]]--
-local myFlag = file.Exists(myDsv, "DATA")
 
 -- Tell TA what custom script we just called don't touch it
 asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}", mySource)

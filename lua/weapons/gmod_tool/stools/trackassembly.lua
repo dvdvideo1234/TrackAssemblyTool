@@ -2487,7 +2487,8 @@ if(CLIENT) then
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
 
-  asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
+  local bS, vOut = asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
+  if(not bS) then asmlib.LogInstance("User create: "..vOut, sLog) end
 
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupAdminSettings(CPanel)
@@ -2654,5 +2655,6 @@ if(CLIENT) then
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
 
-  asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
+  local bS, vOut = asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
+  if(not bS) then asmlib.LogInstance("Admin create: "..vOut, sLog) end
 end

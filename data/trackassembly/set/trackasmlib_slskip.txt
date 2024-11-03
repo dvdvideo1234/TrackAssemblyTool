@@ -3,6 +3,7 @@ SetNumSlider
 ModelToName: Cut
 ModelToName: Sub
 BIND_PRESS:
+RegisterPOA: Store
 ModelToName: App
 DefaultType: Avoided
 LocatePOA: Missing ID
