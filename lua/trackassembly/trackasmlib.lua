@@ -736,11 +736,9 @@ function InitBase(sName, sPurp)
     local vC = (v.C or {})
     local uM, vM = #uC, #vC
     for i = 1, mathMax(uM, vM) do
-      local uS = tostring(uC[i] or "")
-      local vS = tostring(vC[i] or "")
-      if(uS ~= vS) then
-        if(uS == "") then return false end
-        if(vS == "") then return true end
+      if(uS ~= vS) then -- No category must fall behind
+        if(vS == nil or vS == "") then return true end
+        if(uS == nil or uS == "") then return false end
         return uS < vS
       end
     end
@@ -752,7 +750,11 @@ function InitBase(sName, sPurp)
       local iR = c[iD]
       local uR, vR = u.Rec, v.Rec
       local uV, vV = uR[iR], vR[iR]
-      if(uV ~= vV) then return uV < vV end
+      if(uV ~= vV) then -- Nil is considered less
+        if(uV == nil or uV == "") then return true end
+        if(vV == nil or vV == "") then return false end
+        return uV < vV
+      end
     end; return false; end)
   SetOpVar("VCOMPARE_SKEY", function(u, v) return (u.Key < v.Key) end)
   SetOpVar("VCOMPARE_SREC", function(u, v) return (u.Rec < v.Rec) end)
