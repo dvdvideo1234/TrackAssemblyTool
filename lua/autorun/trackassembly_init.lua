@@ -1784,7 +1784,7 @@ asmlib.NewTable("PIECES",{
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tSort = asmlib.Arrange(tCache, "Type", "Slot")
+      local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot")
       if(not tSort) then oFile:Flush(); oFile:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
@@ -1890,16 +1890,17 @@ asmlib.NewTable("ADDITIONS",{
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tData = asmlib.Arrange(tCache)
-      for iRow = 1, tData.Size do
-        local tRow = tData[iRow]
+      local tSort = asmlib.Arrange(tCache, "Slot")
+      for iRow = 1, tSort.Size do
+        local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
         local sData = defTab.Name..sDelim..sKey
-        for iRec = 1, #tRec do local tData = tRec[iRec]; oFile:Write(sData)
+        for iRec = 1, #tRec do
+          local vRec = tRec[iRec]; oFile:Write(sData)
           for iID = 2, defTab.Size do
             local sC = makTab:GetColumnName(iID); if(not sC) then
               asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end
-            local vData = tData[sC]; if(not sC) then
+            local vData = vRec[sC]; if(not sC) then
               asmlib.LogInstance("Cannot extract "..asmlib.GetReport(iID,sKey),vSrc); return false end
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
               asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
