@@ -1671,16 +1671,16 @@ end
 
 --[[
  * Updates a VGUI pnListView with a search preformed in the already generated
- * frequently used pieces "frUsed" for the pattern "sPat" given by the user
+ * frequently used pieces "frUsed" for the pattern "sPa" given by the user
  * and a column name selected `sCol`.
  * On success populates `pnListView` with the search preformed
  * On fail a parameter is not valid or missing and returns non-success
  * pnListView  > The panel which must be updated
  * frUsed      > The list of the frequently used tracks
- * sCol        > The name of the column it preforms search by
- * sPat        > Search pattern to preform the search with
+ * nID         > The index of the column it preforms search by
+ * sPa         > Search pattern to preform the search with
 ]]
-function UpdateListView(pnListView,frUsed,sCol,sPat)
+function UpdateListView(pnListView,frUsed,nID,sPa)
   if(not (IsHere(frUsed) and IsHere(frUsed[1]))) then
     LogInstance("Missing data"); return false end
   if(not IsHere(pnListView)) then
@@ -1690,24 +1690,21 @@ function UpdateListView(pnListView,frUsed,sCol,sPat)
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   pnListView:SetVisible(false); pnListView:Clear()
-  local sMo, sTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
-  local sNm, sAc = makTab:GetColumnName(3), makTab:GetColumnName(4)
-  local sCo, sPa = tostring(sCol or ""), tostring(sPat or "")
+  local nID, sPa = (tonumber(nID) or 0), tostring(sPa or "")
   for iCnt = 1, frUsed.Size do
     local tInfo = frUsed[iCnt]; if(not IsHere(tInfo)) then
       LogInstance("Missing data on index "..GetReport(iCnt)); return false end
-    local nUsed  = mathRound(tInfo.Time,3)
-    local sModel, sType = tInfo.Data[sMo], tInfo.Data[sTy]
-    local sName , nAct  = tInfo.Data[sNm], tInfo.Data[sAc]
+    local nUsed  = mathRound(tInfo.Time, 3)
+    local sModel, sType, sName, nAct = unpack(tInfo.Data)
     if(IsBlank(sPa)) then
-      local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
-      if(not IsValid(pnLine)) then LogInstance("Line invalid "..GetReport(iCnt)); return false end
+      local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel); if(not IsValid(pnLine)) then
+        LogInstance("Line invalid "..GetReport(iCnt)); return false end
       pnLine:SetTooltip(sModel)
     else
-      local sDa = tostring(frUsed[iCnt].Data[sCo] or "")
+      local sDa = tostring(frUsed[iCnt].Data[nID] or "")
       if(sDa:find(sPa)) then
-        local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel)
-        if(not IsValid(pnLine)) then LogInstance("Line invalid "..GetReport(iCnt, sDa, sPa, sCo)); return false end
+        local pnLine = pnListView:AddLine(nUsed,nAct,sType,sName,sModel); if(not IsValid(pnLine)) then
+          LogInstance("Line invalid "..GetReport(iCnt,sDa,sPa,nID)); return false end
         pnLine:SetTooltip(sModel)
       end
     end
@@ -1861,8 +1858,6 @@ function GetFrequentPieces(iCnt)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Missing table cache space"); return nil end
   local tmNow, frUsed = Time(), GetOpVar("TABLE_FREQUENT_MODELS")
-  local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
-  local coNm, coSz = makTab:GetColumnName(3), makTab:GetColumnName(4)
   local tSort = Arrange(tCache, "Used"); if(not tSort) then
     LogInstance("Sorting table cache failed"); return nil end
   tableEmpty(frUsed); frUsed.Size = 0; frUsed.Need = iCnt
@@ -1871,8 +1866,7 @@ function GetFrequentPieces(iCnt)
     if(oRec) then oRec = oRec.Rec -- Jump over to the record
       if(not oRec.Post) then -- Initialized. Not yet picked
         local nT = (tmNow - oRec.Used) -- Time to display
-        local tD = {[coMo] = oRec.Slot, [coTy] = oRec.Type,
-                    [coNm] = oRec.Name, [coSz] = oRec.Size}
+        local tD = {oRec.Slot, oRec.Type, oRec.Name, oRec.Size}
         frUsed.Size = (frUsed.Size + 1) -- Increment size
         tableInsert(frUsed, {Time = nT, Data = tD})
       end -- Time and panel data has been stored and passed
@@ -4116,7 +4110,7 @@ function SetAdditionsRun(sModel, makTab, qList)
   for iD = 1, #qData do qList[iE + iD] = qData[iD] end
 end
 
-function ExportPiecesRun(fF,qData,sName,sInd,qList)
+function ExportContentsRun(fF,qData,sName,sInd,qList)
   local dbNull = GetOpVar("MISS_NOSQL")
   local keyBld, makAdd = GetOpVar("KEYQ_BUILDER")
   local makTab = qData[keyBld]; if(not IsHere(makTab)) then
@@ -4125,7 +4119,7 @@ function ExportPiecesRun(fF,qData,sName,sInd,qList)
     LogInstance("Missing table definition"); return end
   local mgrTab = defTab.Cache; if(not IsHere(mgrTab)) then
     LogInstance("Cache manager missing"); return end
-  if(not IsHere(mgrTab.ExportAR)) then
+  local sFunc = "ExportContentsRun"; if(not IsHere(mgrTab[sFunc])) then
     LogInstance("Missing data handler"); return end
   if(IsHere(qList) and istable(qList)) then
     if(IsHere(qList[keyBld])) then makAdd = qList[keyBld] else
@@ -4137,7 +4131,7 @@ function ExportPiecesRun(fF,qData,sName,sInd,qList)
   if(istable(qData) and IsHere(qData[1])) then
     fF:Write("local "..sName.." = {\n")
     local pkID, sInd, fRow = 1, "  ", true
-    local idxID = makTab:GetColumnID("LINEID")
+    local ixID = makTab:GetColumnID("LINEID")
     local coMo = makTab:GetColumnName(1)
     for iD = 1, #qData do
       local qRow = qData[iD]
@@ -4152,13 +4146,15 @@ function ExportPiecesRun(fF,qData,sName,sInd,qList)
         fF:Write(sInd:rep(1).."["..aRow[pkID].."] = {\n")
         SetAdditionsRun(mMod, makAdd, qList)
       else
-        if(aRow[idxID] == 1) then fF:Seek(fF:Tell() - 2)
+        if(aRow[ixID] == 1) then fF:Seek(fF:Tell() - 2)
           fF:Write("\n"..sInd:rep(1).."},\n"..sInd:rep(1).."["..aRow[pkID].."] = {\n")
           SetAdditionsRun(mMod, makAdd, qList)
         end
       end
-      mgrTab.ExportAR(aRow); tableRemove(aRow, 1)
-      fF:Write(sInd:rep(2).."{"..tableConcat(aRow, ", ").."},\n")
+      local bS, sR = pcall(mgrTab[sFunc], aRow);
+      if(not bS) then LogInstance("Routine error "..GetReport(iD,mMod)..": "..sR); return end
+      if(not sR) then LogInstance("Internal error "..GetReport(iD,mMod)); return end
+      tableRemove(aRow, 1); fF:Write(sInd:rep(2).."{"..tableConcat(aRow, ", ").."},\n")
     end
     fF:Seek(fF:Tell() - 2)
     fF:Write("\n"..sInd:rep(1).."}\n")
@@ -4208,7 +4204,7 @@ function ExportTypeRun(sType)
     local qType = makP:Match(sType, 2, true)
     local qIndx = qsKey:format(sFunc, "PIECES")
     local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then
-      Q = makP:Select():Where({2,"%s"}):Order(1,4):Store(qIndx):Get(qIndx, qType) end
+      Q = makP:Select():Where({2,"%s"}):Order(defP.Query[sFunc]):Store(qIndx):Get(qIndx, qType) end
     if(not Q) then
       LogInstance("Build statement failed "..GetReport(qIndx,qType))
       fE:Flush(); fE:Close(); fS:Close(); return
@@ -4222,41 +4218,16 @@ function ExportTypeRun(sType)
       if(not IsHere(qPieces)) then qPieces = {} end
     end
   elseif(sMoDB == "LUA") then
-    local iCnt = 0; qPieces = {}
     local tCache = libCache[defP.Name]
-    local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
-    local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
-    local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
-    local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
-    local sClass = GetOpVar("ENTITY_DEFCLASS")
-    for mod, rec in pairs(tCache) do
-      if(rec.Type == sType) then
-        local iID, tOffs = 1, rec.Offs -- Start from the first point
-        local rPOA = tOffs[iID]; if(not IsHere(rPOA)) then
-          LogInstance("Missing point ID "..GetReport(iID, rec.Slot))
-          fE:Flush(); fE:Close(); fS:Close(); return
-        end
-        for iID = 1, rec.Size do
-          iCnt = (iCnt + 1); qPieces[iCnt] = {} -- Allocate row memory
-          local qRow = qPieces[iCnt]; rPOA = tOffs[iID]
-          local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
-          local sC = (IsHere(rec.Unit) and tostring(rec.Unit) or noSQL)
-                sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-          qRow[coMo] = rec.Slot
-          qRow[coTy] = rec.Type
-          qRow[coNm] = rec.Name
-          qRow[coLn] = iID
-          qRow[coP ] = sP; qRow[coO ] = sO
-          qRow[coA ] = sA; qRow[coC ] = sC
-        end
-      end
-    end
-    local tSort = Arrange(qPieces, coMo, coLn)
-    if(not tSort) then
-      LogInstance("Sort cache mismatch")
-      fE:Flush(); fE:Close(); fS:Close(); return
-    end; tableEmpty(qPieces)
-    for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
+    if(not IsHere(tCache)) then fE:Flush(); fE:Close(); fS:Close()
+      LogInstance("Cache missing",defP.Nick) ; return false end
+    local fsLog = GetOpVar("FORM_LOGSOURCE"); qPieces = {}
+    local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
+    local bS, sR = pcall(fE, fS, makP, tCache, qPieces, ssLog:format("Cache"))
+    if(not bS) then fE:Flush(); fE:Close(); fS:Close()
+      LogInstance("Cache manager fail for "..sR,defP.Nick) ; return end
+    if(not sR) then fE:Flush(); fE:Close(); fS:Close()
+      LogInstance("Cache routine fail",defP.Nick) ; return end
   else
     LogInstance("Unsupported mode "..GetReport(sMoDB))
     fE:Flush(); fE:Close(); fS:Close(); return
@@ -4293,9 +4264,9 @@ function ExportTypeRun(sType)
           fE:Write("asmlib.WorkshopID(myAddon)\n")
         end
       elseif(sLine:find(patPiece)) then isSkip = true
-        ExportPiecesRun(fE, qPieces, "myPieces", sInd, qAdditions)
+        ExportContentsRun(fE, qPieces, "myPieces", sInd, qAdditions)
       elseif(sLine:find(patAddit)) then isSkip = true
-        ExportPiecesRun(fE, qAdditions, "myAdditions", sInd)
+        ExportContentsRun(fE, qAdditions, "myAdditions", sInd)
       else
         if(isSkip and IsBlank(sLine:Trim())) then isSkip = false end
       end
@@ -4343,8 +4314,8 @@ function ExportTypeDSV(sType, sDelim)
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   P:Write("#1 "..sFunc..":("..fPref.."@"..defP.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   P:Write("#2 "..defP.Nick..":("..makP:GetColumnList(sDelim)..")\n")
-  A:Write("#1 "..sFunc..":("..fPref.."@"..defA.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
-  A:Write("#2 "..defA.Nick..":("..makA:GetColumnList(sDelim)..")\n")
+  A:Write("#3 "..sFunc..":("..fPref.."@"..defA.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+  A:Write("#4 "..defA.Nick..":("..makA:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qType = makP:Match(sType, 2, true)

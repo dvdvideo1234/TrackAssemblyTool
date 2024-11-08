@@ -1102,10 +1102,10 @@ if(CLIENT) then
       pnComboBox:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
       pnComboBox:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol"))
       pnComboBox:SetValue(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), makTab:GetColumnName(1), false, asmlib.ToIcon("pn_srchcol_lb1"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), makTab:GetColumnName(2), false, asmlib.ToIcon("pn_srchcol_lb2"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), makTab:GetColumnName(3), false, asmlib.ToIcon("pn_srchcol_lb3"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), makTab:GetColumnName(4), false, asmlib.ToIcon("pn_srchcol_lb4"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), 1, false, asmlib.ToIcon("pn_srchcol_lb1"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), 2, false, asmlib.ToIcon("pn_srchcol_lb2"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), 3, false, asmlib.ToIcon("pn_srchcol_lb3"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), 4, false, asmlib.ToIcon("pn_srchcol_lb4"))
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
         asmlib.LogInstance("Selected "..asmlib.GetReport(nInd,sVal,anyData),sLog..".ComboBox")
         pnSelf:SetValue(sVal)
@@ -1273,11 +1273,11 @@ if(CLIENT) then
       end
       -- Leave the TextEntry here so it can access and update the local ListView reference
       pnTextEntry.OnEnter = function(pnSelf)
-        local sPat = tostring(pnSelf:GetValue() or "")
-        local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
-              sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
-        if(not asmlib.UpdateListView(pnListView,frUsed,sCol,sPat)) then
-          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat), sLog..".TextEntry"); return nil
+        local sPa = tostring(pnSelf:GetValue() or "")
+        local sAbr, nID = pnComboBox:GetSelected() -- Returns two values
+              sAbr, nID = tostring(sAbr or ""), (tonumber(nID) or 0)
+        if(not asmlib.UpdateListView(pnListView, frUsed, nID, sPa)) then
+          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,nID,sPa), sLog..".TextEntry"); return nil
         end
       end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
@@ -1741,7 +1741,8 @@ asmlib.NewTable("PIECES",{
   Query = {
     Record = {"%s","%s","%s","%d","%s","%s","%s","%s"},
     ExportDSV = {2,3,1,4},
-    ExportTypeDSV = {3,1,4}
+    ExportTypeDSV = {3,1,4},
+    ExportTypeRun = {3,1,4}
   },
   Trigs = {
     Record = function(arLine, vSrc)
@@ -1811,7 +1812,7 @@ asmlib.NewTable("PIECES",{
     end,
     ExportTypeDSV = function(fP, makP, PCache, fA, makA, ACache, fPref, sDelim, vSrc)
       local tSort = asmlib.Arrange(PCache, "Name", "Slot")
-      if(not tSort) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      if(not tSort) then fP:Flush(); fP:Close(); fA:Flush(); fA:Close()
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
@@ -1850,7 +1851,43 @@ asmlib.NewTable("PIECES",{
         end
       end; return true
     end,
-    ExportAR = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff" end
+    ExportTypeRun = function(fE, fS, makP, PCache, qPieces, vSrc)
+      local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
+      local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
+      local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
+      local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
+      local sClass, iCnt = asmlib.GetOpVar("ENTITY_DEFCLASS"), 0
+      for mod, rec in pairs(PCache) do
+        if(rec.Type == sType) then
+          local iID, tOffs = 1, rec.Offs -- Start from the first point
+          local rPOA = tOffs[iID]; if(not asmlib.IsHere(rPOA)) then
+            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot),vSrc)
+            fE:Flush(); fE:Close(); fS:Close(); return false
+          end
+          for iID = 1, rec.Size do
+            iCnt = (iCnt + 1); qPieces[iCnt] = {} -- Allocate row memory
+            local qRow = qPieces[iCnt]; rPOA = tOffs[iID]
+            local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
+            local sC = (asmlib.IsHere(rec.Unit) and tostring(rec.Unit) or noSQL)
+                  sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+            qRow[coMo] = rec.Slot
+            qRow[coTy] = rec.Type
+            qRow[coNm] = rec.Name
+            qRow[coLn] = iID
+            qRow[coP ] = sP; qRow[coO ] = sO
+            qRow[coA ] = sA; qRow[coC ] = sC
+          end
+        end
+      end -- Must be the same format as returned from SQL
+      local tSort = asmlib.Arrange(qPieces, coNm, coMo, coLn)
+      if(not tSort) then
+        LogInstance("Sort cache mismatch",vSrc)
+        fE:Flush(); fE:Close(); fS:Close(); return false
+      end; tableEmpty(qPieces)
+      for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
+      return true
+    end,
+    ExportContentsRun = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff" end
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -1909,7 +1946,7 @@ asmlib.NewTable("ADDITIONS",{
         end
       end; return true
     end,
-    ExportAR = function(aRow) aRow[4] = "gsSymOff" end
+    ExportContentsRun = function(aRow) aRow[4] = "gsSymOff" end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -1976,7 +2013,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         end
       end; return true
     end,
-    ExportAR = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff" end
+    ExportContentsRun = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff" end
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
