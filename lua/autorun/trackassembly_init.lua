@@ -481,6 +481,9 @@ if(CLIENT) then
   asmlib.ToIcon("pn_routine_cmws"  , "cart"              )
   asmlib.ToIcon("pn_routine_cmwsid", "key_go"            )
   asmlib.ToIcon("pn_routine_cmwsop", "world"             )
+  asmlib.ToIcon("pn_routine_cmex"  , "transmit"          )
+  asmlib.ToIcon("pn_routine_cmexdv", "database_table"    )
+  asmlib.ToIcon("pn_routine_cmexru", "script_code"       )
   asmlib.ToIcon("pn_externdb_cmcp" , "page_copy"         )
   asmlib.ToIcon("pn_externdb_cmcp1", "database_go"       )
   asmlib.ToIcon("pn_externdb_cmcp2", "database_lightning")
@@ -1215,7 +1218,9 @@ if(CLIENT) then
         local sI = "pn_routine_cm"
         local sT = "tool.trackassembly."..sI
         local mX, mY = inputGetCursorPos()
-        local sID = asmlib.WorkshopID(pnLine:GetColumnText(3))
+        local sTyp = pnLine:GetColumnText(3)
+        local bEx = asmlib.GetAsmConvar("exportdb", "BUL")
+        local sID = asmlib.WorkshopID(sTyp)
         local pMenu = vguiCreate("DMenu")
         if(not IsValid(pMenu)) then pnFrame:Close()
           asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
@@ -1232,6 +1237,7 @@ if(CLIENT) then
           function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbv"))
         pIn:AddOption(languageGetPhrase(sT.."cprw"),
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
+        -- Handle workshop specific options
         if(sID) then
           local sUR = asmlib.GetOpVar("FORM_URLADDON")
           local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
@@ -1240,6 +1246,27 @@ if(CLIENT) then
           pOp:SetIcon(asmlib.ToIcon(sI.."ws"))
           pIn:AddOption(languageGetPhrase(sT.."wsid"), function() SetClipboardText(sID) end):SetIcon(asmlib.ToIcon(sI.."wsid"))
           pIn:AddOption(languageGetPhrase(sT.."wsop"), function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
+        end
+        -- Export database contents
+        if(bEx) then
+          local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ex"))
+          if(not (IsValid(pIn) and IsValid(pOp))) then
+            asmlib.LogInstance("Base export invalid"); return nil end
+          pOp:SetIcon(asmlib.ToIcon(sI.."ex"))
+          pIn:AddOption(languageGetPhrase(sT.."exdv"),
+            function()
+              local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+              asmlib.LogInstance("Player invalid"); return nil end
+              asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
+              asmlib.ExportTypeDSV(sTyp); asmlib.SetAsmConvar(oPly, "exportdb", 0)
+            end):SetIcon(asmlib.ToIcon(sI.."exdv"))
+          pIn:AddOption(languageGetPhrase(sT.."exru"),
+            function()
+              local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+              asmlib.LogInstance("Player invalid"); return nil end
+              asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
+              asmlib.ExportTypeRun(sTyp); asmlib.SetAsmConvar(oPly, "exportdb", 0)
+            end):SetIcon(asmlib.ToIcon(sI.."exru"))
         end
         pMenu:Open()
       end
