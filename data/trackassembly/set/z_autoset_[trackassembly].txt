@@ -59,7 +59,7 @@ if(asmlib) then
   local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
   local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
   local gsModeDB = asmlib.GetOpVar("MODE_DATABASE")
-  local gsFormPF = asmlib.GetOpVar("FORM_PREFIXFDB")
+  local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
 
   -- This is the path to your DSV
   local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..

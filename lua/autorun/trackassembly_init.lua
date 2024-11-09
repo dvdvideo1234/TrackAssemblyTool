@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.801")
+asmlib.SetOpVar("TOOL_VERSION","8.802")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1255,14 +1255,14 @@ if(CLIENT) then
           pOp:SetIcon(asmlib.ToIcon(sI.."ex"))
           pIn:AddOption(languageGetPhrase(sT.."exdv"),
             function()
-              local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
               asmlib.LogInstance("Player invalid"); return nil end
               asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
               asmlib.ExportTypeDSV(sTyp); asmlib.SetAsmConvar(oPly, "exportdb", 0)
             end):SetIcon(asmlib.ToIcon(sI.."exdv"))
           pIn:AddOption(languageGetPhrase(sT.."exru"),
             function()
-              local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
               asmlib.LogInstance("Player invalid"); return nil end
               asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
               asmlib.ExportTypeRun(sTyp); asmlib.SetAsmConvar(oPly, "exportdb", 0)
@@ -1276,10 +1276,11 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          asmlib.ExportCategory(3, nil, gsGenerPrf, true)
-          asmlib.ExportDSV("PIECES", gsGenerPrf, nil, true)
-          asmlib.ExportDSV("ADDITIONS", gsGenerPrf, nil, true)
-          asmlib.ExportDSV("PHYSPROPERTIES", gsGenerPrf, nil, true)
+          local fPref = "["..gsMoDB:lower().."-dsv]"..gsGenerPrf
+          asmlib.ExportCategory(3, nil, fPref, true)
+          asmlib.ExportDSV("PIECES", fPref, nil, true)
+          asmlib.ExportDSV("ADDITIONS", fPref, nil, true)
+          asmlib.ExportDSV("PHYSPROPERTIES", fPref, nil, true)
           asmlib.LogInstance("Export data", sLog..".Button")
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
         else
@@ -1878,7 +1879,7 @@ asmlib.NewTable("PIECES",{
         end
       end; return true
     end,
-    ExportTypeRun = function(fE, fS, makP, PCache, qPieces, vSrc)
+    ExportTypeRun = function(fE, fS, sType, makP, PCache, qPieces, vSrc)
       local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
       local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
       local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
@@ -1912,9 +1913,10 @@ asmlib.NewTable("PIECES",{
         fE:Flush(); fE:Close(); fS:Close(); return false
       end; tableEmpty(qPieces)
       for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
+      asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType),vSrc)
       return true
     end,
-    ExportContentsRun = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff" end
+    ExportContentsRun = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff"; return true end
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -1973,7 +1975,7 @@ asmlib.NewTable("ADDITIONS",{
         end
       end; return true
     end,
-    ExportContentsRun = function(aRow) aRow[4] = "gsSymOff" end
+    ExportContentsRun = function(aRow) aRow[4] = "gsSymOff"; return true end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -2040,7 +2042,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         end
       end; return true
     end,
-    ExportContentsRun = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff" end
+    ExportContentsRun = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff"; return true end
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },

@@ -40,27 +40,12 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
       myScript = "@"..myScript:gsub("^%W+", ""):gsub("\\","/")
       mySource = tostring(mySource or ""):gsub("^%W+", "")
       mySource = (asmlib.IsBlank(mySource) and "DSV" or mySource)
---[[
- * This function defines what happens when there is an error present
- * Usually you can tell Gmod that you want it to generate an error
- * and throw the message to the log also. In this case you will not
- * have to change the function name in lots of places
- * when you need it to do something else.
---]]
-local function ThrowError(vMesg)
-  local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Convert to string
-  if(asmlib) then asmlib.LogInstance(sMesg, mySource) end -- Update the tool logs
-  ErrorNoHaltWithStack(sMesg.."\n") -- Produce an error without breaking the stack
-end
-
--- There is something to error about stop the execution and report it
-if(not asmlib) then ThrowError("Failed loading the required module!"); return end
 
 -- Store a reference to disable symbol
 local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
 local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
 local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
-local gsFormPF = asmlib.GetOpVar("FORM_PREFIXFDB")
+local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
 
 -- This is the path to your DSV
 local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
@@ -77,6 +62,19 @@ local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
  * skip the available updates of your addon until he/she deletes the DSVs.
 ]]--
 local myFlag = file.Exists(myDsv, "DATA")
+
+--[[
+ * This function defines what happens when there is an error present
+ * Usually you can tell Gmod that you want it to generate an error
+ * and throw the message to the log also. In this case you will not
+ * have to change the function name in lots of places
+ * when you need it to do something else.
+--]]
+local function ThrowError(vMesg)
+  local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Convert to string
+  if(asmlib) then asmlib.LogInstance(sMesg, mySource) end -- Update the tool logs
+  ErrorNoHaltWithStack(sMesg.."\n") -- Produce an error without breaking the stack
+end
 
 --[[
  * This logic statement is needed for reporting the error
