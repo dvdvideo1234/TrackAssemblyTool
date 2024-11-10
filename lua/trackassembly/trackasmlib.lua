@@ -682,9 +682,10 @@ function InitBase(sName, sPurp)
   SetOpVar("ANG_ZERO",Angle())
   SetOpVar("VEC_ZERO",Vector())
   SetOpVar("ANG_REV",Angle(0,180,0))
-  SetOpVar("VEC_FW",Vector(1,0,0))
-  SetOpVar("VEC_RG",Vector(0,-1,1))
-  SetOpVar("VEC_UP",Vector(0,0,1))
+  SetOpVar("VEC_FW",Vector(1, 0, 0))
+  SetOpVar("VEC_RG",Vector(0,-1, 1))
+  SetOpVar("VEC_UP",Vector(0, 0, 1))
+  SetOpVar("VEC_DW",Vector(0, 0,-1))
   SetOpVar("OPSYM_DISABLE","#")
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_VERTDIV","|")
@@ -4341,25 +4342,38 @@ function ExportTypeDSV(sType, sDelim)
     if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") No data found "..GetReport(Q), defP.Nick); return false end
     local rwP, rwA, rwM = "", "", ""
-    local coMo = makTab:GetColumnName(1)
-    local coLI = makTab:GetColumnName(4)
+    local coMo = makP:GetColumnName(1)
+    local coLI = makP:GetColumnName(4)
     for iP = 1, #qP do
-      local qRec = qP[iP]; rwP = defP.Name
-      for iC = 1, defP.Size do
-        local sC = defP[iC][1], ""
-        local vC = qRec[sC]
-        local mC = makP:Match(vC,iC,true,"\"",true)
-        rwP, rwM = (rwP..sDelim..vC), (sC == coMo and mC or rwM)
-        if(sC == coLI and (tonumber(vC) or 0) == 1) then
-          local Q = makA:Get(qInxA, rwM); if(not IsHere(Q)) then
-            Q = makA:Select():Where({1,"%s"}):Order(unpack(defP.Query[sFunc])):Store(qInxA):Get(qInxA, rwM) end
+      local qRP = qP[iP]; rwP = defP.Name
+      for iCP = 1, defP.Size do
+        local cP = defP[iCP][1]
+        local vP = qRP[cP]
+        local mP = makP:Match(vP,iCP,true,"\"",true)
+        rwP, rwM = (rwP..sDelim..mP), (cP == coMo and vP or rwM)
+        if(cP == coLI and (tonumber(vP) or 0) == 1) then
+          local qrMo = makP:Match(rwM, 1, true)
+          local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then
+            Q = makA:Select():Where({1,"%s"}):Order(unpack(defA.Query[sFunc])):Store(qInxA):Get(qInxA, qrMo) end
           if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
             LogInstance("("..fPref..") Build statement failed",defA.Nick); return false end
           if(iP == 1) then A:Write("#3 Query:<"..Q..">\n") end
           local qA = sqlQuery(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
             LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defA.Nick); return false end
-          if(not IsHere(qA) or IsEmpty(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-            LogInstance("("..fPref..") No data found "..GetReport(Q), defA.Nick); return false end
+          if(not IsHere(qA) or IsEmpty(qA)) then
+            LogInstance("("..fPref..") No data found "..GetReport(Q), defA.Nick)
+          else
+            for iA = 1, #qA do
+              local qRA = qA[iA]; rwA = defA.Name
+              for iCA = 1, defA.Size do
+                local cA = defA[iCA][1]
+                local vA = qRA[cA]
+                local mA = makA:Match(vA,iCA,true,"\"",true)
+                rwA = (rwA..sDelim..mA)
+              end
+              A:Write(rwA.."\n"); rwA = ""
+            end
+          end
         end
       end; P:Write(rwP.."\n"); rwP = ""
     end -- Matching will not crash as it is matched during insertion
@@ -4587,7 +4601,7 @@ end
  * ivPoID > Point ID selected for its model
  * nLen   > Length of the trace
 ]]
-function GetTraceEntityPoint(trEnt, ivPoID, nLen)
+function GetTraceEntityPoint(trEnt, ivPoID, nLen, vDir)
   if(not (trEnt and trEnt:IsValid())) then
     LogInstance("Trace entity invalid"); return nil end
   local nLen = (tonumber(nLen) or 0); if(nLen <= 0) then
@@ -4602,7 +4616,7 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen)
   trDt.start:Add(trEnt:GetPos())
   trAng:SetUnpacked(trPOA.A:Get())
   trAng:Set(trEnt:LocalToWorldAngles(trAng))
-  trDt.endpos:Set(trAng:Forward()); trDt.endpos:Mul(nLen)
+  trDt.endpos:Set(vDir or trAng:Forward()); trDt.endpos:Mul(nLen)
   trDt.endpos:Add(trDt.start); SetOpVar("TRACE_FILTER", trEnt)
   return utilTraceLine(trDt), trDt
 end

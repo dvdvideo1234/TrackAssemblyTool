@@ -871,7 +871,7 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
     asmlib.LogInstance("Trace missing", gtLogs); return nil end
   if(not stTrace.Hit) then
     asmlib.LogInstance("Trace not hit", gtLogs); return nil end
-  local user     = self:GetOwner()
+  local user, nT = self:GetOwner(), 0
   local angsnap  = self:GetAngSnap()
   local elevpnt  = self:GetElevation()
   local surfsnap = self:GetSurfaceSnap()
@@ -895,11 +895,16 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
       tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
       tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
       tData.POA = oPOA; tData.Rec = oRec -- POA and cache record
+      local trDt = asmlib.GetTraceEntityPoint(eEnt, oID, 30000, asmlib.GetOpVar("VEC_DW"))
+      if(trDt and trDt.Hit) then
+        nT = (tData.Orw.z - trDt.HitPos.z)
+        asmlib.SetAsmConvar(user, "nextz", nT)
+      end
     end -- Use the track piece active end to create relative curve node
   else -- Offset the curve node when it is not driven by an active point
     tData.Org:Add(vNrm * elevpnt) -- Apply model active point elevation
   end -- Apply the positional and angular offsets to the return value
-  tData.Org:Add(tData.Ang:Up()      * nextz)
+  tData.Org:Add(tData.Ang:Up()      * (nextz - nT))
   tData.Org:Add(tData.Ang:Right()   * nexty)
   tData.Org:Add(tData.Ang:Forward() * nextx)
   tData.Ang:RotateAroundAxis(tData.Ang:Up()     ,-nextyaw)
