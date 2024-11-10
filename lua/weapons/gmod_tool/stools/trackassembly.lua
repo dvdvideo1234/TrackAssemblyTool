@@ -897,7 +897,7 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
       tData.POA = oPOA; tData.Rec = oRec -- POA and cache record
       local trDt = asmlib.GetTraceEntityPoint(eEnt, oID, 30000, asmlib.GetOpVar("VEC_DW"))
       if(trDt and trDt.Hit) then
-        nT = (tData.Orw.z - trDt.HitPos.z)
+        nT = ((tData.Orw.z - trDt.HitPos.z) - elevpnt)
         asmlib.SetAsmConvar(user, "nextz", nT)
       end
     end -- Use the track piece active end to create relative curve node

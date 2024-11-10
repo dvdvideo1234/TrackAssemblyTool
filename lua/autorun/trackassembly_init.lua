@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.802")
+asmlib.SetOpVar("TOOL_VERSION","8.803")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1960,7 +1960,7 @@ asmlib.NewTable("ADDITIONS",{
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
-        local sData = defTab.Name..sDelim..sKey
+        local sData = defTab.Name..sDelim..makTab:Match(sKey,1,true,"\"")
         for iRec = 1, #tRec do
           local vRec = tRec[iRec]; oFile:Write(sData)
           for iID = 2, defTab.Size do
@@ -2009,7 +2009,6 @@ asmlib.NewTable("PHYSPROPERTIES",{
     Record = function(makTab, tCache, snPK, arLine, vSrc)
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
-      local defTab = makTab:GetDefinition()
       local tTypes = tCache[skType]; if(not tTypes) then
         tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
       local tNames = tCache[skName]; if(not tNames) then
@@ -2026,19 +2025,23 @@ asmlib.NewTable("PHYSPROPERTIES",{
       tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
+    ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
-      local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
-      if(not (tTypes or tNames)) then F:Flush(); F:Close()
+      local pT = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
+      local pN = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
+      local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
+      if(not (tTypes or tNames)) then oF:Flush(); oF:Close()
         asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
-      for iInd = 1, tTypes.Size do local sType = tTypes[iInd]
-        local tType = tNames[sType]; if(not tType) then F:Flush(); F:Close()
-          asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iInd, sType),vSrc); return false end
-        for iCnt = 1, tType.Size do local vType = tType[iCnt]
-          oFile:Write(defTab.Name..sDelim..makTab:Match(sType,1,true,"\"")..
-                                   sDelim..makTab:Match(iCnt ,2,true,"\"")..
-                                   sDelim..makTab:Match(vType,3,true,"\"").."\n")
+      for iD = 1, tTypes.Size do tableInsert(tT, tTypes[iD]) end
+      local tS = asmlib.Arrange(tT); if(not tS) then oF:Flush(); oF:Close()
+        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+      for iS = 1, tS.Size do local sT = tS[iS].Rec
+        local tProp = tNames[sT]; if(not tProp) then oF:Flush(); oF:Close()
+          asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iS, sT),vSrc); return false end
+        for iP = 1, tProp.Size do local sP = tProp[iP]
+          oF:Write(defTab.Name..sDelim..makTab:Match(sT,1,true,"\"")..
+                                sDelim..makTab:Match(iP,2,true,"\"")..
+                                sDelim..makTab:Match(sP,3,true,"\"").."\n")
         end
       end; return true
     end,

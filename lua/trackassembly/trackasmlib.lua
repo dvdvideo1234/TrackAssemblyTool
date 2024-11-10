@@ -871,19 +871,16 @@ end
 
 function SnapAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
-  local D = (tonumber(nvDec) or 0); if(D <= 0) then
-    LogInstance("Low mismatch "..GetReport(nvDec)); return nil end
-  if(D >= GetOpVar("MAX_ROTATION")) then
-    LogInstance("High mismatch "..GetReport(nvDec)); return nil end
-  -- Snap player viewing rotation angle for using walls and ceiling
+  local R = GetOpVar("MAX_ROTATION")
+  local D = (tonumber(nvDec) or 0)
+  if(D <= 0 or D >= R) then return aBase end
   aBase:SnapTo("pitch", D):SnapTo("yaw", D):SnapTo("roll", D)
   return aBase
 end
 
 function GridAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
-  local D = tonumber(nvDec or 0); if(not IsHere(D)) then
-    LogInstance("Grid mismatch "..GetReport(nvDec)); return nil end
+  local D = tonumber(nvDec or 0); if(D == 0) then return aBase end
   local P, Y, R = aBase:Unpack()
   if(P == 0 and P == 0 and D > 0) then Y = GetGrid(Y, D) end
   aBase:SetUnpacked(P, Y, R) return aBase
@@ -2958,6 +2955,23 @@ function NewTable(sTable,defTab,bDelete,bReload)
     else LogInstance("Invalid column type "..GetReport(tyCol),tabDef.Nick); return nil
     end; return snOut
   end
+  function self:GetConcat(tLine, sDelim, fFoo)
+    local qtDef, sLine = self:GetDefinition(), ""; if(not istable(tLine)) then
+      LogInstance("Source not table "..GetReport(tLine, sDelim), tabDef.Nick); return nil end
+    local sDelim = tostring(sDelim or "\t"):sub(1,1)
+    for iCnt = 1, qtDef.Size do
+      local tC = qtDef[iCnt]; if(not tC) then
+        LogInstance("Column missing "..GetReport(iCnt, qtDef.Size), tabDef.Nick); return nil end
+      local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
+        LogInstance("Column name mismatch "..GetReport(iCnt, qtDef.Size),tabDef.Nick); return nil end
+      local vC, sD = tLine[sC], (iCnt == 1 and "" or sDelim) -- Extract the value
+      if(fFoo) then -- Call the conversion handler function when provided
+        local bS, sR = pcall(fFoo, iCnt, sC, vC); if(not bS) then
+          LogInstance("Value convert error "..GetReport(iCnt, qtDef.Size, vC)..": "..sR,tabDef.Nick); return nil end
+        vC = sR -- The value is converted and updaed successfully
+      end; sLine = sLine..sD..tostring(vC or "")
+    end; return sLine
+  end
   -- Build SQL drop statement
   function self:Drop()
     local qtDef = self:GetDefinition()
@@ -3010,11 +3024,11 @@ function NewTable(sTable,defTab,bDelete,bReload)
     local sStmt = qtCmd.STMT.." TABLE IF NOT EXISTS "..qtDef.Name.." ( "
     for iCnt = 1, qtDef.Size do
       local tC = qtDef[iCnt]; if(not tC) then
-        LogInstance("Column missing "..GetReport(nA,iCnt), tabDef.Nick); return self:Deny() end
+        LogInstance("Column missing "..GetReport(iCnt,qtDef.Size), tabDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column name mismatch "..GetReport(nA,iCnt),tabDef.Nick); return self:Deny() end
+        LogInstance("Column name mismatch "..GetReport(iCnt,qtDef.Size),tabDef.Nick); return self:Deny() end
       local sT = tostring(tC[2] or ""); if(IsBlank(sT)) then
-        LogInstance("Column type mismatch "..GetReport(nA,iCnt),tabDef.Nick); return self:Deny() end
+        LogInstance("Column type mismatch "..GetReport(iCnt,qtDef.Size),tabDef.Nick); return self:Deny() end
       sStmt = sStmt..sC.." "..sT..(iCnt ~= qtDef.Size and ", " or " );")
     end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
@@ -3287,7 +3301,7 @@ function CacheQueryPiece(sModel)
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for "..GetReport(defTab.Name)); return nil end
-  local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
+  local sModel = makTab:Match(sModel,1,false,"",true,true)
   local stData, sFunc = tCache[sModel], "CacheQueryPiece"
   if(IsHere(stData) and IsHere(stData.Size)) then
     if(stData.Size <= 0) then stData = nil else
@@ -3296,6 +3310,7 @@ function CacheQueryPiece(sModel)
   else
     local sMoDB = GetOpVar("MODE_DATABASE")
     if(sMoDB == "SQL") then
+      local qsKey = GetOpVar("FORM_KEYSTMT")
       local qModel = makTab:Match(sModel,1,true)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
@@ -3321,7 +3336,7 @@ function CacheQueryPiece(sModel)
           LogInstance("Cannot process offset "..GetReport(iCnt, sModel)); return nil
         end
       end; stData = makTab:TimerAttach(sFunc, defTab.Name, sModel); return stData
-    elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil
+    elseif(sMoDB == "LUA") then LogInstance("Record missing: "..sModel); return nil
     else LogInstance("Unsupported mode "..GetReport(sMoDB,defTab.Nick)); return nil end
   end
 end
@@ -3707,7 +3722,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
-    local qIndx = qsKey:format(sFunc,"")
+    local qIndx = qsKey:format(sFunc, sTable)
     local Q = makTab:Get(qIndx); if(not IsHere(Q)) then
       Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
@@ -3717,11 +3732,9 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
       LogInstance(sHew.." SQL exec error "..GetReport(sqlLastError(), Q), sTable); return nil end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance(sHew.." No data found "..GetReport(Q), sTable); return false end
-    local sData, sTab = "", defTab.Name
-    for iCnt = 1, #qData do local qRec = qData[iCnt]; sData = sTab
-      for iInd = 1, defTab.Size do local sHash = defTab[iInd][1]
-        sData = sData..sDelim..makTab:Match(qRec[sHash],iInd,true,"\"",true)
-      end; F:Write(sData.."\n"); sData = ""
+    for iCnt = 1, #qData do
+      F:Write(defTab.Name..sDelim..makTab:GetConcat(qData[iCnt], sDelim,
+        function(iCT, sCT, vCT) return makTab:Match(vCT,iCT,true,"\"",true) end).."\n")
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
@@ -4082,10 +4095,6 @@ function SetAdditionsRun(sModel, makTab, qList)
       LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return false end
     qData = sqlQuery(Q); if(not qData and isbool(qData)) then
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return false end
-    if(not IsHere(qData) or IsEmpty(qData)) then
-      LogInstance("No data found "..GetReport(Q))
-      if(not IsHere(qData)) then qData = {} end
-    end
   elseif(sMoDB == "LUA") then
     local iCnt = 0; qData = {}
     local tCache = libCache[defTab.Name]
@@ -4209,7 +4218,7 @@ function ExportTypeRun(sType)
     local qType = makP:Match(sType, 2, true)
     local qIndx = qsKey:format(sFunc, "PIECES")
     local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then
-      Q = makP:Select():Where({2,"%s"}):Order(defP.Query[sFunc]):Store(qIndx):Get(qIndx, qType) end
+      Q = makP:Select():Where({2,"%s"}):Order(unpack(defP.Query[sFunc])):Store(qIndx):Get(qIndx, qType) end
     if(not Q) then
       LogInstance("Build statement failed "..GetReport(qIndx,qType),defP.Nick)
       fE:Flush(); fE:Close(); fS:Close(); return
@@ -4328,6 +4337,7 @@ function ExportTypeDSV(sType, sDelim)
   A:Write("#1 "..sFunc..":("..fPref.."@"..defA.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   A:Write("#2 "..defA.Nick..":("..makA:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
+    local qsNov = GetOpVar("MISS_NOAV")
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qType = makP:Match(sType, 2, true)
     local qInxP = qsKey:format(sFunc, defP.Nick)
@@ -4341,41 +4351,29 @@ function ExportTypeDSV(sType, sDelim)
       LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defP.Nick); return false end
     if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") No data found "..GetReport(Q), defP.Nick); return false end
-    local rwP, rwA, rwM = "", "", ""
-    local coMo = makP:GetColumnName(1)
-    local coLI = makP:GetColumnName(4)
+    local coMo, coLI, rwM = makP:GetColumnName(1), makP:GetColumnName(4), ""
     for iP = 1, #qP do
-      local qRP = qP[iP]; rwP = defP.Name
-      for iCP = 1, defP.Size do
-        local cP = defP[iCP][1]
-        local vP = qRP[cP]
-        local mP = makP:Match(vP,iCP,true,"\"",true)
-        rwP, rwM = (rwP..sDelim..mP), (cP == coMo and vP or rwM)
-        if(cP == coLI and (tonumber(vP) or 0) == 1) then
-          local qrMo = makP:Match(rwM, 1, true)
-          local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then
-            Q = makA:Select():Where({1,"%s"}):Order(unpack(defA.Query[sFunc])):Store(qInxA):Get(qInxA, qrMo) end
-          if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-            LogInstance("("..fPref..") Build statement failed",defA.Nick); return false end
-          if(iP == 1) then A:Write("#3 Query:<"..Q..">\n") end
-          local qA = sqlQuery(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-            LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defA.Nick); return false end
-          if(not IsHere(qA) or IsEmpty(qA)) then
-            LogInstance("("..fPref..") No data found "..GetReport(Q), defA.Nick)
-          else
-            for iA = 1, #qA do
-              local qRA = qA[iA]; rwA = defA.Name
-              for iCA = 1, defA.Size do
-                local cA = defA[iCA][1]
-                local vA = qRA[cA]
-                local mA = makA:Match(vA,iCA,true,"\"",true)
-                rwA = (rwA..sDelim..mA)
+      P:Write(defP.Name..sDelim..makP:GetConcat(qP[iP], sDelim,
+        function(iCP, sCP, vCP)
+          rwM = (sCP == coMo and vCP or rwM)
+          if(sCP == coLI and (tonumber(vCP) or 0) == 1) then
+            local qrMo = makP:Match(rwM, 1, true)
+            local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then
+              Q = makA:Select():Where({1,"%s"}):Order(unpack(defA.Query[sFunc])):Store(qInxA):Get(qInxA, qrMo) end
+            if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+              LogInstance("("..fPref..") Build statement failed",defA.Nick); return qsNov end
+            if(iP == 1) then A:Write("#3 Query:<"..Q..">\n") end
+            local qA = sqlQuery(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+              LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defA.Nick); return qsNov end
+            if(not IsHere(qA) or IsEmpty(qA)) then
+              LogInstance("("..fPref..") No data found "..GetReport(Q), defA.Nick)
+            else
+              for iA = 1, #qA do
+                A:Write(defA.Name..sDelim..makA:GetConcat(qA[iA], sDelim,
+                  function(iCA, sCA, vCA) return makA:Match(vCA,iCA,true,"\"",true) end).."\n")
               end
-              A:Write(rwA.."\n"); rwA = ""
             end
-          end
-        end
-      end; P:Write(rwP.."\n"); rwP = ""
+          end; return makP:Match(vCP,iCP,true,"\"",true) end).."\n")
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
     local PCache, ACache = libCache[defP.Name], libCache[defA.Name]
