@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.804")
+asmlib.SetOpVar("TOOL_VERSION","8.805")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -768,9 +768,9 @@ if(CLIENT) then
       pnListView:SetSize(xySiz.x, xySiz.y)
       pnListView:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
       pnListView:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wAct)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wUse - wSrc)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_3")):SetFixedWidth(wSrc)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_act")):SetFixedWidth(wAct)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_prf")):SetFixedWidth(wUse - wSrc)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_inf")):SetFixedWidth(wSrc)
       -- Next entry to import/export to list view
       xyPos.y = xyPos.y + xySiz.y + xyDsz.y
       xySiz.y = nB -- General Y-size of elements
