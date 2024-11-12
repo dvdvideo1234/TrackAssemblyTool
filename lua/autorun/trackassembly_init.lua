@@ -86,7 +86,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.803")
+asmlib.SetOpVar("TOOL_VERSION","8.804")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -461,51 +461,39 @@ if(CLIENT) then
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
-  asmlib.ToIcon("treemenu_cpy"     , "page_copy"         )
-  asmlib.ToIcon("treemenu_cpy_mod" , "brick_go"          )
-  asmlib.ToIcon("treemenu_cpy_typ" , "database_go"       )
-  asmlib.ToIcon("treemenu_cpy_nam" , "script_go"         )
-  asmlib.ToIcon("treemenu_cpy_pth" , "map_go"            )
-  asmlib.ToIcon("treemenu_ws"      , "cart"              )
-  asmlib.ToIcon("treemenu_ws_cid"  , "key_go"            )
-  asmlib.ToIcon("treemenu_ws_opp"  , "world"             )
-  asmlib.ToIcon("treemenu_expand"  , "zoom"              )
-  asmlib.ToIcon("treemenu_exp"     , "transmit"          )
-  asmlib.ToIcon("treemenu_exp_dsv" , "database_table"    )
-  asmlib.ToIcon("treemenu_exp_run" , "script_code"       )
-  asmlib.ToIcon("subfolder_item"   , "folder_brick"      )
-  asmlib.ToIcon("pn_routine_cmcp"  , "page_copy"         )
-  asmlib.ToIcon("pn_routine_cmcpmd", "brick"             )
-  asmlib.ToIcon("pn_routine_cmcpbv", "brick_go"          )
-  asmlib.ToIcon("pn_routine_cmcprw", "brick_link"        )
-  asmlib.ToIcon("pn_routine_cmws"  , "cart"              )
-  asmlib.ToIcon("pn_routine_cmwsid", "key_go"            )
-  asmlib.ToIcon("pn_routine_cmwsop", "world"             )
-  asmlib.ToIcon("pn_routine_cmex"  , "transmit"          )
-  asmlib.ToIcon("pn_routine_cmexdv", "database_table"    )
-  asmlib.ToIcon("pn_routine_cmexru", "script_code"       )
-  asmlib.ToIcon("pn_externdb_cmcp" , "page_copy"         )
-  asmlib.ToIcon("pn_externdb_cmcp1", "database_go"       )
-  asmlib.ToIcon("pn_externdb_cmcp2", "database_lightning")
-  asmlib.ToIcon("pn_externdb_cmcp3", "folder_database"   )
-  asmlib.ToIcon("pn_externdb_cmtg" , "database_connect"  )
-  asmlib.ToIcon("pn_externdb_cmli" , "database"          )
-  asmlib.ToIcon("pn_externdb_cmli1", "database_edit"     )
-  asmlib.ToIcon("pn_externdb_cmli2", "database_add"      )
-  asmlib.ToIcon("pn_externdb_cmli3", "database_delete"   )
-  asmlib.ToIcon("pn_externdb_cmmv" , "joystick"          )
-  asmlib.ToIcon("pn_externdb_cmmv1", "arrow_up"          )
-  asmlib.ToIcon("pn_externdb_cmmv2", "arrow_down"        )
-  asmlib.ToIcon("pn_externdb_cmmv3", "arrow_redo"        )
-  asmlib.ToIcon("pn_externdb_cmmv4", "arrow_undo"        )
-  asmlib.ToIcon("pn_externdb_cmst" , "database_gear"     )
-  asmlib.ToIcon("pn_externdb_cmsi" , "database_key"      )
-  asmlib.ToIcon("pn_externdb_cmst1", "folder_find"       )
-  asmlib.ToIcon("pn_externdb_cmst2", "map_go"            )
-  asmlib.ToIcon("pn_externdb_cmst3", "time_go"           )
-  asmlib.ToIcon("pn_externdb_cmst4", "compress"          )
-  asmlib.ToIcon("pn_externdb_cmst5", "table_edit"        )
-  asmlib.ToIcon("pn_externdb_cmst6", "table_delete"      )
+  asmlib.ToIcon("subfolder_item"        , "folder_brick"      )
+  asmlib.ToIcon("pn_contextm_cp"        , "page_copy"         )
+  asmlib.ToIcon("pn_contextm_cpbx"      , "application_go"    )
+  asmlib.ToIcon("pn_contextm_cprw"      , "report_go"         )
+  asmlib.ToIcon("pn_contextm_cpty"      , "database_go"       )
+  asmlib.ToIcon("pn_contextm_cpnm"      , "script_go"         )
+  asmlib.ToIcon("pn_contextm_cpth"      , "map_go"            )
+  asmlib.ToIcon("pn_contextm_cpmd"      , "brick_go"          )
+  asmlib.ToIcon("pn_contextm_li"        , "database"          )
+  asmlib.ToIcon("pn_contextm_licg"      , "database_edit"     )
+  asmlib.ToIcon("pn_contextm_licr"      , "database_add"      )
+  asmlib.ToIcon("pn_contextm_lirm"      , "database_delete"   )
+  asmlib.ToIcon("pn_contextm_ws"        , "cart"              )
+  asmlib.ToIcon("pn_contextm_wsid"      , "key_go"            )
+  asmlib.ToIcon("pn_contextm_wsop"      , "world"             )
+  asmlib.ToIcon("pn_contextm_ex"        , "transmit"          )
+  asmlib.ToIcon("pn_contextm_exdv"      , "database_table"    )
+  asmlib.ToIcon("pn_contextm_exru"      , "script_code"       )
+  asmlib.ToIcon("pn_contextm_mv"        , "joystick"          )
+  asmlib.ToIcon("pn_contextm_mvup"      , "arrow_up"          )
+  asmlib.ToIcon("pn_contextm_mvdn"      , "arrow_down"        )
+  asmlib.ToIcon("pn_contextm_mvtp"      , "arrow_redo"        )
+  asmlib.ToIcon("pn_contextm_mvbt"      , "arrow_undo"        )
+  asmlib.ToIcon("pn_contextm_st"        , "database_gear"     )
+  asmlib.ToIcon("pn_contextm_si"        , "database_key"      )
+  asmlib.ToIcon("pn_contextm_stnk"      , "folder_find"       )
+  asmlib.ToIcon("pn_contextm_stpt"      , "map_go"            )
+  asmlib.ToIcon("pn_contextm_sttm"      , "time_go"           )
+  asmlib.ToIcon("pn_contextm_stsz"      , "compress"          )
+  asmlib.ToIcon("pn_contextm_sted"      , "table_edit"        )
+  asmlib.ToIcon("pn_contextm_stdl"      , "table_delete"      )
+  asmlib.ToIcon("pn_contextm_tg"        , "database_connect"  )
+  asmlib.ToIcon("pn_contextm_ep"        , "zoom"              )
   asmlib.ToIcon("pn_srchcol_lb1"   , "brick"             )
   asmlib.ToIcon("pn_srchcol_lb2"   , "package"           )
   asmlib.ToIcon("pn_srchcol_lb3"   , "tag_green"         )
@@ -914,10 +902,8 @@ if(CLIENT) then
         local pnMenu = vguiCreate("DMenu")
         if(not IsValid(pnMenu)) then pnFrame:Close()
           asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
-        local sI = "pn_externdb_cm"
-        local sP = pnLine:GetColumnText(2)
-        local mX, mY = inputGetCursorPos()
-        local sT = ("tool."..gsToolNameL.."."..sI)
+        local sI, mX, mY = "pn_contextm_", inputGetCursorPos()
+        local sP, sT = pnLine:GetColumnText(2), ("tool."..gsToolNameL.."."..sI)
         -- Enable and disable DSV
         pnMenu:AddOption(languageGetPhrase(sT.."tg"),
           function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V"))
@@ -929,12 +915,12 @@ if(CLIENT) then
         if(not IsValid(pOp)) then pnFrame:Close()
           asmlib.LogInstance("Copy opts invalid",sLog..".ListView"); return nil end
         pOp:SetIcon(asmlib.ToIcon(sI.."cp"))
-        pIn:AddOption(languageGetPhrase(sT.."cp1"),
-          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cp1"))
-        pIn:AddOption(languageGetPhrase(sT.."cp2"),
-          function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cp2"))
-        pIn:AddOption(languageGetPhrase(sT.."cp3"),
-          function() SetClipboardText(sDsv) end):SetImage(asmlib.ToIcon(sI.."cp3"))
+        pIn:AddOption(languageGetPhrase(sT.."cpbx"),
+          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbx"))
+        pIn:AddOption(languageGetPhrase(sT.."cprw"),
+          function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
+        pIn:AddOption(languageGetPhrase(sT.."cpth"),
+          function() SetClipboardText(sDsv) end):SetImage(asmlib.ToIcon(sI.."cpth"))
         -- Panel data line manipulation for import/export
         local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."li"))
         if(not IsValid(pIn)) then pnFrame:Close()
@@ -942,12 +928,12 @@ if(CLIENT) then
         if(not IsValid(pOp)) then pnFrame:Close()
           asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
         pOp:SetIcon(asmlib.ToIcon(sI.."li"))
-        pIn:AddOption(languageGetPhrase(sT.."li1"),
-          function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."li1"))
-        pIn:AddOption(languageGetPhrase(sT.."li2"),
-          function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."li2"))
-        pIn:AddOption(languageGetPhrase(sT.."li3"),
-          function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."li3"))
+        pIn:AddOption(languageGetPhrase(sT.."licg"),
+          function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."licg"))
+        pIn:AddOption(languageGetPhrase(sT.."licr"),
+          function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."licr"))
+        pIn:AddOption(languageGetPhrase(sT.."lirm"),
+          function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
         -- Move current line around
         local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."mv"))
         if(not IsValid(pIn)) then pnFrame:Close()
@@ -955,26 +941,26 @@ if(CLIENT) then
         if(not IsValid(pOp)) then pnFrame:Close()
           asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
         pOp:SetIcon(asmlib.ToIcon(sI.."mv"))
-        pIn:AddOption(languageGetPhrase(sT.."mv1"),
+        pIn:AddOption(languageGetPhrase(sT.."mvup"),
           function()
             if(nIndex <= 1) then return end
             tpText:Swap(pnLine, pnSelf:GetLine(nIndex - 1))
-          end):SetImage(asmlib.ToIcon(sI.."mv1"))
-        pIn:AddOption(languageGetPhrase(sT.."mv2"),
+          end):SetImage(asmlib.ToIcon(sI.."mvup"))
+        pIn:AddOption(languageGetPhrase(sT.."mvdn"),
           function() local nT = #pnSelf:GetLines()
             if(nIndex >= nT) then return end
             tpText:Swap(pnLine, pnSelf:GetLine(nIndex + 1))
-          end):SetImage(asmlib.ToIcon(sI.."mv2"))
-        pIn:AddOption(languageGetPhrase(sT.."mv3"),
+          end):SetImage(asmlib.ToIcon(sI.."mvdn"))
+        pIn:AddOption(languageGetPhrase(sT.."mvtp"),
           function()
             if(nIndex <= 1) then return end
             tpText:Swap(pnLine, pnSelf:GetLine(1))
-          end):SetImage(asmlib.ToIcon(sI.."mv3"))
-        pIn:AddOption(languageGetPhrase(sT.."mv4"),
+          end):SetImage(asmlib.ToIcon(sI.."mvtp"))
+        pIn:AddOption(languageGetPhrase(sT.."mvbt"),
           function() local nT = #pnSelf:GetLines()
             if(nIndex >= nT) then return end
             tpText:Swap(pnLine, pnSelf:GetLine(nT))
-          end):SetImage(asmlib.ToIcon(sI.."mv4"))
+          end):SetImage(asmlib.ToIcon(sI.."mvbt"))
         -- Populate the sub-menu with all table nicknames
         local iD, pIn, pOp = 1, nil, nil
         local makTab = asmlib.GetBuilderID(iD)
@@ -989,7 +975,7 @@ if(CLIENT) then
                 asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return nil end
               if(not IsValid(pOp)) then pnFrame:Close()
                 asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return nil end
-              pOp:SetIcon(asmlib.ToIcon(sI.."st")); pOp:SetTooltip(languageGetPhrase(sI.."stt"))
+              pOp:SetIcon(asmlib.ToIcon(sI.."st"))
             end -- When there is at least one DSV table present make table sub-menu
             if(pIn and pOp) then -- When the sub-menu pointer is available add tables
               local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
@@ -998,15 +984,15 @@ if(CLIENT) then
               if(not IsValid(pOb)) then pnFrame:Close()
                 asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return nil end
               pOb:SetIcon(asmlib.ToIcon(sI.."si"))
-              pTb:AddOption(languageGetPhrase(sT.."st1"),
-                function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."st1"))
-              pTb:AddOption(languageGetPhrase(sT.."st2"),
-                function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."st2"))
-              pTb:AddOption(languageGetPhrase(sT.."st3"),
-                function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."st3"))
-              pTb:AddOption(languageGetPhrase(sT.."st4"),
-                function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."st4"))
-              pTb:AddOption(languageGetPhrase(sT.."st5"),
+              pTb:AddOption(languageGetPhrase(sT.."stnk"),
+                function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."stnk"))
+              pTb:AddOption(languageGetPhrase(sT.."stpt"),
+                function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."stpt"))
+              pTb:AddOption(languageGetPhrase(sT.."sttm"),
+                function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."sttm"))
+              pTb:AddOption(languageGetPhrase(sT.."stsz"),
+                function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
+              pTb:AddOption(languageGetPhrase(sT.."sted"),
                 function() -- Edit the database contents using the Luapad addon
                   if(not luapad) then return end -- Luapad is not installed do nothing
                   asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
@@ -1020,15 +1006,15 @@ if(CLIENT) then
                   end -- Luapad is designed not to be closed so we need to make it invisible
                   luapad.Frame:SetVisible(true); luapad.Frame:Center()
                   luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
-                end):SetImage(asmlib.ToIcon(sI.."st5"))
-              pTb:AddOption(languageGetPhrase(sT.."st6"),
+                end):SetImage(asmlib.ToIcon(sI.."sted"))
+              pTb:AddOption(languageGetPhrase(sT.."stdl"),
                 function() fileDelete(sFile)
                   asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
                   if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY")
                     if(fileExists(sCats,"DATA")) then fileDelete(sCats) -- Delete category when present
                       asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
                   end
-                end):SetImage(asmlib.ToIcon(sI.."st6"))
+                end):SetImage(asmlib.ToIcon(sI.."stdl"))
             end
           end
           iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
@@ -1215,10 +1201,8 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        local sI = "pn_routine_cm"
-        local sT = "tool.trackassembly."..sI
-        local mX, mY = inputGetCursorPos()
-        local sTyp = pnLine:GetColumnText(3)
+        local sI, mX, mY = "pn_contextm_", inputGetCursorPos()
+        local sT, sTyp = "tool.trackassembly."..sI, pnLine:GetColumnText(3)
         local bEx = asmlib.GetAsmConvar("exportdb", "BUL")
         local sID = asmlib.WorkshopID(sTyp)
         local pMenu = vguiCreate("DMenu")
@@ -1233,8 +1217,8 @@ if(CLIENT) then
         pOp:SetIcon(asmlib.ToIcon(sI.."cp"))
         pIn:AddOption(languageGetPhrase(sT.."cpmd"),
           function() SetClipboardText(pnLine:GetColumnText(5)) end):SetImage(asmlib.ToIcon(sI.."cpmd"))
-        pIn:AddOption(languageGetPhrase(sT.."cpbv"),
-          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbv"))
+        pIn:AddOption(languageGetPhrase(sT.."cpbx"),
+          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbx"))
         pIn:AddOption(languageGetPhrase(sT.."cprw"),
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
         -- Handle workshop specific options
@@ -1244,8 +1228,10 @@ if(CLIENT) then
           if(not IsValid(pIn)) then
             LogInstance("Base WS invalid"); return nil end
           pOp:SetIcon(asmlib.ToIcon(sI.."ws"))
-          pIn:AddOption(languageGetPhrase(sT.."wsid"), function() SetClipboardText(sID) end):SetIcon(asmlib.ToIcon(sI.."wsid"))
-          pIn:AddOption(languageGetPhrase(sT.."wsop"), function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
+          pIn:AddOption(languageGetPhrase(sT.."wsid"),
+            function() SetClipboardText(sID) end):SetIcon(asmlib.ToIcon(sI.."wsid"))
+          pIn:AddOption(languageGetPhrase(sT.."wsop"),
+            function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
         end
         -- Export database contents
         if(bEx) then
@@ -1255,17 +1241,19 @@ if(CLIENT) then
           pOp:SetIcon(asmlib.ToIcon(sI.."ex"))
           pIn:AddOption(languageGetPhrase(sT.."exdv"),
             function()
+              asmlib.SetAsmConvar(oPly, "exportdb", 0)
               local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
               asmlib.LogInstance("Player invalid"); return nil end
               asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
-              asmlib.ExportTypeDSV(sTyp); asmlib.SetAsmConvar(oPly, "exportdb", 0)
+              asmlib.ExportTypeDSV(sTyp)
             end):SetIcon(asmlib.ToIcon(sI.."exdv"))
           pIn:AddOption(languageGetPhrase(sT.."exru"),
             function()
+              asmlib.SetAsmConvar(oPly, "exportdb", 0)
               local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
               asmlib.LogInstance("Player invalid"); return nil end
               asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
-              asmlib.ExportTypeRun(sTyp); asmlib.SetAsmConvar(oPly, "exportdb", 0)
+              asmlib.ExportTypeRun(sTyp)
             end):SetIcon(asmlib.ToIcon(sI.."exru"))
         end
         pMenu:Open()

@@ -1733,22 +1733,26 @@ function OpenNodeMenu(pnBase)
   local pT, sP = GetNodeTypeRoot(pnBase, 1)
   if(not IsValid(pT)) then
     LogInstance("Base root invalid"); return nil end
-  local sM, sI = GetOpVar("TOOLNAME_NL"), "treemenu_"
+  local sM, sI = GetOpVar("TOOLNAME_NL"), "pn_contextm_"
   local sT = "tool."..sM.."."..sI
   local sID = WorkshopID(pT:GetText())
   local bEx = GetAsmConvar("exportdb", "BUL")
   -- Copy node information
-  local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cpy"))
+  local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
   if(not (IsValid(pIn) and IsValid(pOp))) then
     LogInstance("Base copy invalid"); return nil end
   -- Copy various strings
-  pOp:SetIcon(ToIcon(sI.."cpy"))
+  pOp:SetIcon(ToIcon(sI.."cp"))
   if(pnBase.Content) then
-    pIn:AddOption(languageGetPhrase(sT.."cpy_mod"), function() SetClipboardText(pnBase.Content) end):SetIcon(ToIcon(sI.."cpy_mod"))
+    pIn:AddOption(languageGetPhrase(sT.."cpmd"),
+      function() SetClipboardText(pnBase.Content) end):SetIcon(ToIcon(sI.."cpmd"))
   end
-  pIn:AddOption(languageGetPhrase(sT.."cpy_typ"), function() SetClipboardText(pT:GetText()) end):SetIcon(ToIcon(sI.."cpy_typ"))
-  pIn:AddOption(languageGetPhrase(sT.."cpy_nam"), function() SetClipboardText(pnBase:GetText()) end):SetIcon(ToIcon(sI.."cpy_nam"))
-  pIn:AddOption(languageGetPhrase(sT.."cpy_pth"), function() SetClipboardText(sP) end):SetIcon(ToIcon(sI.."cpy_pth"))
+  pIn:AddOption(languageGetPhrase(sT.."cpty"),
+    function() SetClipboardText(pT:GetText()) end):SetIcon(ToIcon(sI.."cpty"))
+  pIn:AddOption(languageGetPhrase(sT.."cpnm"),
+    function() SetClipboardText(pnBase:GetText()) end):SetIcon(ToIcon(sI.."cpnm"))
+  pIn:AddOption(languageGetPhrase(sT.."cpth"),
+    function() SetClipboardText(sP) end):SetIcon(ToIcon(sI.."cpth"))
   -- Handle workshop
   if(sID) then
     local sUR = GetOpVar("FORM_URLADDON")
@@ -1756,33 +1760,38 @@ function OpenNodeMenu(pnBase)
     if(not (IsValid(pIn) and IsValid(pOp))) then
       LogInstance("Base WS invalid"); return nil end
     pOp:SetIcon(ToIcon(sI.."ws"))
-    pIn:AddOption(languageGetPhrase(sT.."ws_cid"), function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."ws_cid"))
-    pIn:AddOption(languageGetPhrase(sT.."ws_opp"), function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."ws_opp"))
+    pIn:AddOption(languageGetPhrase(sT.."wsid"),
+      function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."wsid"))
+    pIn:AddOption(languageGetPhrase(sT.."wsop"),
+      function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."wsop"))
   end
   -- Panel handling
   if(not pnBase.Content) then
-    pMenu:AddOption(languageGetPhrase(sT.."expand"), function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."expand"))
+    pMenu:AddOption(languageGetPhrase(sT.."ep"),
+      function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."ep"))
   end
   -- Export database contents on autorun
   if(bEx and pnBase == pT) then
-    local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."exp"))
+    local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ex"))
     if(not (IsValid(pIn) and IsValid(pOp))) then
       LogInstance("Base export invalid"); return nil end
-    pOp:SetIcon(ToIcon(sI.."exp"))
-    pIn:AddOption(languageGetPhrase(sT.."exp_dsv"),
+    pOp:SetIcon(ToIcon(sI.."ex"))
+    pIn:AddOption(languageGetPhrase(sT.."exdv"),
       function()
+        SetAsmConvar(oPly, "exportdb", 0)
         local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
         LogInstance("Player invalid"); return nil end
         LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
-        ExportTypeDSV(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
-      end):SetIcon(ToIcon(sI.."exp_dsv"))
-    pIn:AddOption(languageGetPhrase(sT.."exp_run"),
+        ExportTypeDSV(pT:GetText())
+      end):SetIcon(ToIcon(sI.."exdv"))
+    pIn:AddOption(languageGetPhrase(sT.."exru"),
       function()
+        SetAsmConvar(oPly, "exportdb", 0)
         local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
         LogInstance("Player invalid"); return nil end
         LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
-        ExportTypeRun(pT:GetText()); SetAsmConvar(oPly, "exportdb", 0)
-      end):SetIcon(ToIcon(sI.."exp_run"))
+        ExportTypeRun(pT:GetText())
+      end):SetIcon(ToIcon(sI.."exru"))
   end
   pMenu:Open()
 end
