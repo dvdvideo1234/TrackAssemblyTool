@@ -996,12 +996,11 @@ if(CLIENT) then
                 function() -- Edit the database contents using the Luapad addon
                   if(not luapad) then return end -- Luapad is not installed do nothing
                   asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
-                  if(luapad.Frame) then luapad.Frame:SetVisible(true)
-                  else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
-                  luapad.AddTab("["..defTab.Nick.."]"..defTab.Nick, fileRead(sFile, "DATA"), sDsv);
+                  if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
+                  luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), sDsv);
                   if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
                     local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
-                      luapad.AddTab("[CATEGORY]"..defTab.Nick, fileRead(sCats, "DATA"), sDsv);
+                      luapad.AddTab("["..sP.."][CATEGORY]", fileRead(sCats, "DATA"), sDsv);
                     end -- This is done so we can distinguish between luapad and other panels
                   end -- Luapad is designed not to be closed so we need to make it invisible
                   luapad.Frame:SetVisible(true); luapad.Frame:Center()
@@ -1092,7 +1091,7 @@ if(CLIENT) then
       pnComboBox:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol"))
       pnComboBox:SetValue(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_mod"), 1, false, asmlib.ToIcon("pn_routine_mod"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_typ"), 2, false, asmlib.ToIcon("pn_srchcol_lb2"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_typ"), 2, false, asmlib.ToIcon("pn_routine_typ"))
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_nam"), 3, false, asmlib.ToIcon("pn_routine_nam"))
       pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_end"), 4, false, asmlib.ToIcon("pn_routine_end"))
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)

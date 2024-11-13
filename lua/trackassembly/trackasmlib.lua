@@ -733,10 +733,9 @@ function InitBase(sName, sPurp)
   SetOpVar("DBEXP_PREFGEN", "[generic]_")
   SetOpVar("VCOMPARE_SPAN", function(u, v)
     if(u.T ~= v.T) then return u.T < v.T end
-    local uC = (u.C or {})
-    local vC = (v.C or {})
-    local uM, vM = #uC, #vC
-    for i = 1, mathMax(uM, vM) do
+    local uC, vC = (u.C or {}), (v.C or {})
+    for i = 1, mathMax(#uC, #vC) do
+      local uS, vS = uC[i], vC[i]
       if(uS ~= vS) then -- No category must fall behind
         if(vS == nil or vS == "") then return true end
         if(uS == nil or uS == "") then return false end
@@ -773,8 +772,6 @@ function InitBase(sName, sPurp)
   SetOpVar("TYPEMT_QUEUE",{})
   SetOpVar("TYPEMT_SCREEN",{})
   SetOpVar("TYPEMT_CONTAINER",{})
-  SetOpVar("TYPEMT_VECTOR",getmetatable(GetOpVar("VEC_ZERO")))
-  SetOpVar("TYPEMT_ANGLE" ,getmetatable(GetOpVar("ANG_ZERO")))
   SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
   SetOpVar("ARRAY_MODETM",{"CQT", "OBJ"})
