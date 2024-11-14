@@ -24,6 +24,7 @@ local netWriteBool                     = net and net.WriteBool
 local netWriteAngle                    = net and net.WriteAngle
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
+local netWriteNormal                   = net and net.WriteNormal
 local vguiCreate                       = vgui and vgui.Create
 local stringUpper                      = string and string.upper
 local mathAbs                          = math and math.abs
@@ -914,11 +915,23 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
 end
 
 function TOOL:CurveInsert(stTrace, bPnt, bMute)
+  local spnflat, iN, vN = self:GetSpawnFlat(), 0
   local user, model = self:GetOwner(), self:GetModel()
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  if(not spnflat and tC.Size and tC.Size >= 2) then
+    local nS, iC = asmlib.GetOpVar("FULL_SLOPEDG"), tC.Size
+    local tO, tR, tN = tC.Node, tC.Rays, tC.Norm
+    local vA, vB = tO[iC], tO[iC - 1]
+    local vD = Vector(tData.Org); vD:Sub(vA); vD:Normalize()
+    local vF = Vector(vA); vF:Sub(vB); vF:Normalize()
+    local aN = vF:AngleEx(tR[iC][2]:Up())
+    local nP = 0.5 * nS * vD:Dot(aN:Right())
+    aN:RotateAroundAxis(vF, nP)
+    vN = aN:Up(); tN[iC]:Set(vN); iN = iC
+  end
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
   tableInsert(tC.Node, Vector(tData.Org))
   tableInsert(tC.Norm, tData.Ang:Up())
@@ -929,11 +942,13 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
     netStart(gsLibName.."SendCreateCurveNode")
       netWriteEntity(user)
       netWriteVector(tC.Node[tC.Size])
-      netWriteVector(tC.Norm[tC.Size])
+      netWriteNormal(tC.Norm[tC.Size])
       netWriteVector(tC.Base[tC.Size])
       netWriteVector(tC.Rays[tC.Size][1])
       netWriteAngle (tC.Rays[tC.Size][2])
       netWriteBool  (tC.Rays[tC.Size][3])
+      netWriteUInt  (iN, 16)
+      if(iN > 0) then netWriteNormal(vN) end
     netSend(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end
@@ -1187,8 +1202,7 @@ function TOOL:LeftClick(stTrace)
     }, function(oPly, oArg)
       for iD = oArg.stard, tC.SSize do tS = tC.Snap[iD]
         for iK = oArg.stark, tS.Size do local tV, ePiece = tS[iK], nil
-          oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid,
-                         nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
+          oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid, 0, 0, 0, 0, 0, 0, oArg.spawn)
           if(not oArg.spawn) then -- Make sure it persists to set it afterwards
             asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"),gtLogs); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
@@ -1629,8 +1643,6 @@ function TOOL:UpdateGhostCurve()
     local stackcnt = self:GetStackCount()
     local pointid, pnextid = self:GetPointID()
     local tGho, iGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
-    local nextx, nexty, nextz = self:GetPosOffsets()
-    local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local bCrv = user:GetNWBool(gsToolPrefL.."engcurve", false)
     if(bCrv) then
       local workmode  = self:GetWorkingMode()
@@ -1650,8 +1662,7 @@ function TOOL:UpdateGhostCurve()
     for iD = 1, tCrv.SSize do local tS = tCrv.Snap[iD]
       for iK = 1, tS.Size do iGho = (iGho + 1)
         local tV, eGho = tS[iK], tGho[iGho]
-        local stSpawn = asmlib.GetNormalSpawn(user, tV[1], tV[2], model, pointid,
-                                  nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+        local stSpawn = asmlib.GetNormalSpawn(user, tV[1], tV[2], model, pointid, 0, 0, 0, 0, 0, 0)
         if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
           if(stackcnt > 0) then if(iGho > stackcnt) then eGho:SetNoDraw(true) else
             if(stSpawn) then eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end end

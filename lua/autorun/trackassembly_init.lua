@@ -14,6 +14,7 @@ local netSendToServer               = net and net.SendToServer
 local netReceive                    = net and net.Receive
 local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
+local netReadNormal                 = net and net.ReadNormal
 local netReadAngle                  = net and net.ReadAngle
 local netReadBool                   = net and net.ReadBool
 local netReadUInt                   = net and net.ReadUInt
@@ -562,9 +563,10 @@ if(CLIENT) then
 
   asmlib.SetAction("CREATE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*CREATE_CURVE_NODE"
-      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local vNode, vNorm, vBase = netReadVector(), netReadNormal(), netReadVector()
       local vOrgw, aAngw, bRayw = netReadVector(), netReadAngle() , netReadBool()
-      local tC = asmlib.GetCacheCurve(oPly) -- Read the curve data location
+      local iNorm, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly) -- Read the curve
+      if(iNorm > 0 and tC.Size and tC.Size >= 2) then tC.Norm[iNorm]:Set(netReadNormal()) end
       tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm)
       tableInsert(tC.Base, vBase); tableInsert(tC.Rays, {vOrgw, aAngw, bRayw})
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing

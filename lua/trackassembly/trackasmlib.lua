@@ -699,6 +699,7 @@ function InitBase(sName, sPurp)
   SetOpVar("CURVE_MARGIN", 15)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
+  SetOpVar("FULL_SLOPEDG", 45)
   SetOpVar("DATE_FORMAT","%y-%m-%d")
   SetOpVar("TIME_FORMAT","%H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
@@ -2290,6 +2291,7 @@ end
 ]]
 function LocatePOA(oRec, ivPoID)
   if(not oRec) then LogInstance("Missing record"); return nil end
+  local sMo = oRec.Slot
   local tOffs = oRec.Offs; if(not tOffs) then
     LogInstance("Missing offsets for "..GetReport(oRec.Slot)); return nil end
   local iPoID = tonumber(ivPoID); if(iPoID) then iPoID = mathFloor(iPoID)
@@ -2298,8 +2300,9 @@ function LocatePOA(oRec, ivPoID)
     LogInstance("Missing ID "..GetReport(iPoID, oRec.Slot)); return nil end
   if(oRec.Post) then oRec.Post = nil -- Transforming has started
     for ID = 1, oRec.Size do
-      local tPOA, sM = tOffs[ID], oRec.Slot
-      local sP, sO, sA = tPOA.P:Raw(), tPOA.O:Raw(), tPOA.A:Raw()
+      local tPOA = tOffs[ID]
+      local oP, oO, oA = tPOA.P, tPOA.O, tPOA.A
+      local sP, sO, sA = oP:Raw(), oO:Raw(), oA:Raw()
       if(sO) then tPOA.O:Decode(sO, sM, "Pos") end
       if(sA) then tPOA.A:Decode(sA, sM, "Ang") end
       if(sP) then tPOA.P:Decode(sP, sM, "Pos", tPOA.O:Get()) end
@@ -2309,33 +2312,31 @@ function LocatePOA(oRec, ivPoID)
 end
 
 function RegisterPOA(stData, ivID, sP, sO, sA)
-  local sNull = GetOpVar("MISS_NOSQL"); if(not stData) then
+  local sNu = GetOpVar("MISS_NOSQL"); if(not stData) then
     LogInstance("Cache record invalid"); return nil end
   local iID = tonumber(ivID); if(not IsHere(iID)) then
     LogInstance("Offset ID mismatch "..GetReport(ivID)); return nil end
-  local sP = (sP or sNull); if(not isstring(sP)) then
+  local sP = (sP or sNu); if(not isstring(sP)) then
     LogInstance("Point mismatch "..GetReport(sP)); return nil end
-  local sO = (sO or sNull); if(not isstring(sO)) then
+  local sO = (sO or sNu); if(not isstring(sO)) then
     LogInstance("Origin mismatch "..GetReport(sO)); return nil end
-  local sA = (sA or sNull); if(not isstring(sA)) then
+  local sA = (sA or sNu); if(not isstring(sA)) then
     LogInstance("Angle mismatch "..GetReport(sA)); return nil end
-  LogInstance("Store "..GetReport(sNull, iID, sP, sO, sA, stData.Slot))
+  LogInstance("Store "..GetReport(sNu, iID, sP, sO, sA, stData.Slot))
   if(not stData.Offs) then if(iID ~= 1) then
     LogInstance("Mismatch ID "..GetReport(iID, stData.Slot)); return nil end
-    stData.Offs = {}; stData.Post = true
+    stData.Offs = {}; stData.Post = true -- Mark post-process on spawn
   end
   local tOffs = stData.Offs; if(tOffs[iID]) then
     LogInstance("Exists ID "..GetReport(iID)); return tOffs
-  else
+  else -- The offset ID does not exists so create one
     if((iID > 1) and (not tOffs[iID - 1])) then
       LogInstance("Scatter ID "..GetReport(iID)); return nil end
     tOffs[iID] = {}; tOffs = tOffs[iID] -- Allocate a local offset index
-    tOffs.P = NewPOA(); tOffs.O = NewPOA(); tOffs.A = NewPOA()
-  end
-  if(not tOffs.O:Raw()) then tOffs.O:Set(); tOffs.O:Raw(sO) end
-  if(not tOffs.A:Raw()) then tOffs.A:Set(); tOffs.A:Raw(sA) end
-  if(not tOffs.P:Raw()) then tOffs.P:Set(); tOffs.P:Raw(sP) end
-  return tOffs -- On success return the populated POA offset
+    tOffs.P = NewPOA(); tOffs.P:Set(); tOffs.P:Raw(sP)
+    tOffs.O = NewPOA(); tOffs.O:Set(); tOffs.O:Raw(sO)
+    tOffs.A = NewPOA(); tOffs.A:Set(); tOffs.A:Raw(sA)
+  end; return tOffs -- On success return the populated POA offset
 end
 
 function Arrange(tSrc, vPrn, ...)
