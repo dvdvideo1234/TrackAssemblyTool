@@ -922,6 +922,13 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   return tData
 end
 
+--[[
+ * Used to apply super-elevation on the previous node
+ * according to the location of the next node placed
+ * Must be run BEFORE inserting the new node placed
+ * tC    > Curve data stricture with the normal modified
+ * tData > Reference to the node being inserted
+]]
 function TOOL:ApplySuperElevation(tC, tData)
   if(not tData) then -- The node being managed
     asmlib.LogInstance("Data missing", gtLogs); return 0 end
