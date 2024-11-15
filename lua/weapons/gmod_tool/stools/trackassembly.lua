@@ -998,11 +998,25 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     asmlib.Notify(user,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtLogs); return nil
   end
-  --[[ TODO:
-   Update P/Y/R offsets and use then to store the curve normal
-   Update X,Y,X offsets and use them to store the curve origin
-  ]]
   local mD, mL = asmlib.GetNearest(tData.Hit, tC.Base)
+  local nextx, nexty, nextz = self:GetPosOffsets()
+  if(nextx == 0 and nexty == 0 and nextz == 0) then
+    local vN, vB = tC.Node[mD], tC.Base[mD]
+    local vO = Vector(); vO:Set(vN); vO:Sub(vB)
+    nextx, nexty, nextz = vO:Unpack()
+    asmlib.SetAsmConvar(oPly,"nextx", nextx)
+    asmlib.SetAsmConvar(oPly,"nexty", nexty)
+    asmlib.SetAsmConvar(oPly,"nextz", nextz)
+  end
+  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+  if(nextpic == 0 and nextyaw == 0 and nextrol == 0) then
+    local aO = C.Norm[mD]:Angle()
+          aO:RotateAroundAxis(aO:Right(), 90)
+    nextpic, nextyaw, nextrol = aO:Unpack()
+    asmlib.SetAsmConvar(oPly,"nextpic", nextpic)
+    asmlib.SetAsmConvar(oPly,"nextyaw", nextyaw)
+    asmlib.SetAsmConvar(oPly,"nextrol", nextrol)
+  end
   tC.Node[mD]:Set(tData.Org)
   tC.Norm[mD]:Set(tData.Ang:Up())
   tC.Base[mD]:Set(tData.Hit)
