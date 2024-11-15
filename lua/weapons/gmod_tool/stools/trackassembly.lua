@@ -929,7 +929,7 @@ function TOOL:ApplySuperElevation(tC, tData)
     asmlib.LogInstance("Curve missing", gtLogs); return 0 end
   local spnflat = self:GetSpawnFlat()
   local crvsuprev = self:GetSuperElevation()
-  if(not (spnflat and crvsuprev > 0) then
+  if(not (crvsuprev > 0 and not spnflat) then
     asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
   if(not (tC.Size and tC.Size >= 2)) then
     asmlib.LogInstance("Two vertices needed", gtLogs); return 0 end
@@ -951,7 +951,7 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
-  self:ApplySuperElevation(tC, tData)
+  local iN, vN = self:ApplySuperElevation(tC, tData)
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
   tableInsert(tC.Node, Vector(tData.Org))
   tableInsert(tC.Norm, tData.Ang:Up())
