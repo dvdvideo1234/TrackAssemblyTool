@@ -142,6 +142,7 @@ TOOL.ClientConVar = {
   [ "upspanchor" ] = 0,
   [ "crvturnlm"  ] = 0.95,
   [ "crvleanlm"  ] = 0.95,
+  [ "crvsuprev"  ] = 0.45,
   [ "flipoverid" ] = ""
 }
 
@@ -203,6 +204,10 @@ TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..
 TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
 TOOL.Command    = nil -- Command on click (nil for default)
 TOOL.ConfigName = nil -- Configure file name (nil for default)
+
+function TOOL:GetSuperElevation()
+  return mathClamp(self:GetClientNumber("crvsuprev", 0), 0, 1)
+end
 
 function TOOL:GetCurveFactor()
   return asmlib.GetAsmConvar("curvefact", "FLT")
@@ -787,15 +792,15 @@ end
 --[[
  * Uses heuristics to provide the best suitable location the
  * curve note closest location can be updated with. Three cases:
- * 1. Both neighbors are active points. Intersect their active rays
- * 2. Only one node is an active point. Project on its active ray
- * 3. None of the neighbors are active points. Project on line bisector
  * iD    > Curve node index to be updated
  * vPnt  > The new location to update the node with
  * bMute > Mute mode. Used to disable server status messages
  * Returns multiple values:
- * 1. Curve node calculated heuristics location vector
- * 2. The amount of neighbor nodes that are active rays
+ * V > Curve node calculated heuristics location vector
+ * N > The amount of neighbor nodes that are active rays
+ *     (2) Both neighbors are active points. Intersect their active rays
+ *     (1) Only one node is an active point. Project on its active ray
+ *     (0) None of the neighbors are active points. Project on line bisector
 ]]--
 function TOOL:GetCurveNodeActive(iD, vPnt, bMute)
   local user = self:GetOwner()
@@ -863,6 +868,9 @@ function TOOL:CurveClear(bAll, bMute)
       tableRemove(tC.Rays)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
+      if(tC.Size and tC.Size > 0) then
+        tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
+      end
     end
   end; return tC -- Returns the updated curve nodes table
 end
@@ -914,24 +922,36 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   return tData
 end
 
+function TOOL:ApplySuperElevation(tC, tData)
+  if(not tData) then -- The node being managed
+    asmlib.LogInstance("Data missing", gtLogs); return 0 end
+  if(not tC) then -- The curve containing all nodes
+    asmlib.LogInstance("Curve missing", gtLogs); return 0 end
+  local spnflat = self:GetSpawnFlat()
+  local crvsuprev = self:GetSuperElevation()
+  if(not (spnflat and crvsuprev > 0) then
+    asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
+  if(not (tC.Size and tC.Size >= 2)) then
+    asmlib.LogInstance("Two vertices needed", gtLogs); return 0 end
+  local nS, iN = asmlib.GetOpVar("FULL_SLOPEDG"), tC.Size
+  local tO, tR, tN = tC.Node, tC.Rays, tC.Norm
+  local vL, vP = tO[iN], tO[iN - 1]
+  local vD = Vector(tData.Org); vD:Sub(vL); vD:Normalize()
+  local vF = Vector(vL); vF:Sub(vP); vF:Normalize()
+  local aN = vF:AngleEx(tR[iN][2]:Up())
+  local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
+  aN:RotateAroundAxis(vF, nP)
+  local vN = aN:Up(); tN[iN]:Set(vN)
+  return iN, vN
+end
+
 function TOOL:CurveInsert(stTrace, bPnt, bMute)
-  local spnflat, iN, vN = self:GetSpawnFlat(), 0
   local user, model = self:GetOwner(), self:GetModel()
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
-  if(not spnflat and tC.Size and tC.Size >= 2) then
-    local nS, iC = asmlib.GetOpVar("FULL_SLOPEDG"), tC.Size
-    local tO, tR, tN = tC.Node, tC.Rays, tC.Norm
-    local vA, vB = tO[iC], tO[iC - 1]
-    local vD = Vector(tData.Org); vD:Sub(vA); vD:Normalize()
-    local vF = Vector(vA); vF:Sub(vB); vF:Normalize()
-    local aN = vF:AngleEx(tR[iC][2]:Up())
-    local nP = 0.5 * nS * vD:Dot(aN:Right())
-    aN:RotateAroundAxis(vF, nP)
-    vN = aN:Up(); tN[iC]:Set(vN); iN = iC
-  end
+  self:ApplySuperElevation(tC, tData)
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
   tableInsert(tC.Node, Vector(tData.Org))
   tableInsert(tC.Norm, tData.Ang:Up())
@@ -987,7 +1007,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     netStart(gsLibName.."SendUpdateCurveNode")
       netWriteEntity(user)
       netWriteVector(tC.Node[mD])
-      netWriteVector(tC.Norm[mD])
+      netWriteNormal(tC.Norm[mD])
       netWriteVector(tC.Base[mD])
       netWriteVector(tC.Rays[mD][1])
       netWriteAngle (tC.Rays[mD][2])
@@ -2496,6 +2516,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "ghostblnd", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvturnlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvleanlm", iMaxDec)
+    asmlib.SetNumSlider(CPanel, "crvsuprev", iMaxDec)
     asmlib.SetNumSlider(CPanel, "sgradmenu", 0)
     asmlib.SetNumSlider(CPanel, "rtradmenu", iMaxDec)
     asmlib.SetCheckBox(CPanel, "enradmenu")
@@ -2654,6 +2675,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(user, "endsvlock", asmlib.GetAsmConvar("endsvlock", "DEF"))
         asmlib.SetAsmConvar(user, "curvefact", asmlib.GetAsmConvar("curvefact", "DEF"))
         asmlib.SetAsmConvar(user, "curvsmple", asmlib.GetAsmConvar("curvsmple", "DEF"))
+        asmlib.SetAsmConvar(user, "crvsuprev", asmlib.GetAsmConvar("crvsuprev", "DEF"))
         asmlib.SetAsmConvar(user, "spawnrate", asmlib.GetAsmConvar("spawnrate", "DEF"))
         asmlib.SetAsmConvar(user, "bnderrmod", asmlib.GetAsmConvar("bnderrmod", "DEF"))
         asmlib.SetAsmConvar(user, "maxfruse" , asmlib.GetAsmConvar("maxfruse" , "DEF"))

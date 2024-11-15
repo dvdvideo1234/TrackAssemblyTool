@@ -151,6 +151,7 @@ asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
 asmlib.SetBorder(gsToolPrefL.."dtmessage", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."ghostblnd", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."crvsuprev", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
@@ -574,7 +575,7 @@ if(CLIENT) then
 
   asmlib.SetAction("UPDATE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*UPDATE_CURVE_NODE"
-      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local vNode, vNorm, vBase = netReadVector(), netReadNormal(), netReadVector()
       local vOrgw, aAngw, bRayw = netReadVector(), netReadAngle() , netReadBool()
       local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
       tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm)
@@ -584,9 +585,14 @@ if(CLIENT) then
   asmlib.SetAction("DELETE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*DELETE_CURVE_NODE"
       local tC = asmlib.GetCacheCurve(oPly)
-      tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
-      tableRemove(tC.Node); tableRemove(tC.Norm)
-      tableRemove(tC.Base); tableRemove(tC.Rays)
+      if(tC.Size and tC.Size > 0) then
+        tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
+        tableRemove(tC.Node); tableRemove(tC.Norm)
+        tableRemove(tC.Base); tableRemove(tC.Rays)
+        if(tC.Size and tC.Size > 0) then
+          tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
+        end
+      end
     end)
 
   asmlib.SetAction("DELETE_ALL_CURVE_NODE",
