@@ -875,6 +875,12 @@ function TOOL:CurveClear(bAll, bMute)
   end; return tC -- Returns the updated curve nodes table
 end
 
+--[[
+ * Generates curve transform data structure
+ * It is used to create data for the curve nodes
+ * stTrace > Trace structure being used for generation
+ * bPnt    > Whenever the generation is from active point
+]]
 function TOOL:GetCurveTransform(stTrace, bPnt)
   if(not stTrace) then
     asmlib.LogInstance("Trace missing", gtLogs); return nil end
@@ -992,6 +998,10 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     asmlib.Notify(user,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtLogs); return nil
   end
+  --[[ TODO:
+   Update P/Y/R offsets and use then to store the curve normal
+   Update X,Y,X offsets and use them to store the curve origin
+  ]]
   local mD, mL = asmlib.GetNearest(tData.Hit, tC.Base)
   tC.Node[mD]:Set(tData.Org)
   tC.Norm[mD]:Set(tData.Ang:Up())

@@ -567,7 +567,7 @@ if(CLIENT) then
       local vNode, vNorm, vBase = netReadVector(), netReadNormal(), netReadVector()
       local vOrgw, aAngw, bRayw = netReadVector(), netReadAngle() , netReadBool()
       local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly) -- Read the curve
-      if(iD > 0 and tC.Norm[iD] and tC.Size and tC.Size => 2) then
+      if(iD > 0 and tC.Norm[iD] and tC.Size and tC.Size >= 2) then
         tC.Norm[iD]:Set(netReadNormal()) end -- Update the previews curve normal
       tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm)
       tableInsert(tC.Base, vBase); tableInsert(tC.Rays, {vOrgw, aAngw, bRayw})
