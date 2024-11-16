@@ -942,7 +942,7 @@ function TOOL:ApplySuperElevation(tC, tData)
     asmlib.LogInstance("Curve missing", gtLogs); return 0 end
   local spnflat = self:GetSpawnFlat()
   local crvsuprev = self:GetSuperElevation()
-  if(not (crvsuprev > 0 and not spnflat) then
+  if(not (crvsuprev > 0 and not spnflat)) then
     asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
   if(not (tC.Size and tC.Size >= 2)) then
     asmlib.LogInstance("Two vertices needed", gtLogs); return 0 end
@@ -998,33 +998,40 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     asmlib.Notify(user,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtLogs); return nil
   end
+  local nrA = self:GetActiveRadius()
   local mD, mL = asmlib.GetNearest(tData.Hit, tC.Base)
-  local nextx, nexty, nextz = self:GetPosOffsets()
-  if(nextx == 0 and nexty == 0 and nextz == 0) then
-    local vN, vB = tC.Node[mD], tC.Base[mD]
-    local vO = Vector(); vO:Set(vN); vO:Sub(vB)
-    nextx, nexty, nextz = vO:Unpack()
-    asmlib.SetAsmConvar(oPly,"nextx", nextx)
-    asmlib.SetAsmConvar(oPly,"nexty", nexty)
-    asmlib.SetAsmConvar(oPly,"nextz", nextz)
+  local bTr = (mD and mD > 0 and mL < nrA^2)
+  if(bTr) then
+    if(not bPnt) then
+      local elevpnt  = self:GetElevation()
+      local vB, tR = tC.Base[mD], tC.Rays[mD]
+      local vN, vD = tC.Norm[mD], tC.Node[mD]
+      local vO = Vector(); vO:Set(vD); vO:Sub(vB)
+      local nextx, nexty, nextz = vO:Unpack()
+      asmlib.SetAsmConvar(oPly,"nextx", 0)
+      asmlib.SetAsmConvar(oPly,"nexty", 0)
+      asmlib.SetAsmConvar(oPly,"nextz", (nextz - elevpnt))
+      local aO = tR[2]:Forward():AngleEx(vN)  --tC.Norm[mD]:Angle()
+            aO:RotateAroundAxis(tR[2]:Up(), 180)
+      local nextpic, nextyaw, nextrol = aO:Unpack()
+      asmlib.SetAsmConvar(oPly,"nextpic", nextpic)
+      asmlib.SetAsmConvar(oPly,"nextyaw", 0)
+      asmlib.SetAsmConvar(oPly,"nextrol", nextrol)
+      return tC
+    end
   end
-  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  if(nextpic == 0 and nextyaw == 0 and nextrol == 0) then
-    local aO = C.Norm[mD]:Angle()
-          aO:RotateAroundAxis(aO:Right(), 90)
-    nextpic, nextyaw, nextrol = aO:Unpack()
-    asmlib.SetAsmConvar(oPly,"nextpic", nextpic)
-    asmlib.SetAsmConvar(oPly,"nextyaw", nextyaw)
-    asmlib.SetAsmConvar(oPly,"nextrol", nextrol)
+  if(not bTr) then
+    tC.Node[mD]:Set(tData.Org)
   end
-  tC.Node[mD]:Set(tData.Org)
   tC.Norm[mD]:Set(tData.Ang:Up())
-  tC.Base[mD]:Set(tData.Hit)
+  if(not bTr) then
+    tC.Base[mD]:Set(tData.Hit)
+  end
   tC.Rays[mD][1]:Set(tData.Org)
   tC.Rays[mD][2]:Set(tData.Ang)
   tC.Rays[mD][3] = (tData.POA ~= nil)
   -- Adjust node according to intersection
-  if(bPnt and not tData.POA) then
+  if(bPnt and not tData.POA and not bTr) then
     local xx = self:GetCurveNodeActive(mD, tData.Org)
     if(xx) then
       tC.Node[mD]:Set(xx)
@@ -1259,12 +1266,12 @@ function TOOL:LeftClick(stTrace)
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
-              asmlib.Notify(oPly, oArg.wname.." excessive turn at "..oArg.mundo.." !", "ERROR")
+              asmlib.Notify(oPly, oArg.wname..": excessive turn at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"), gtLogs); return false
             end
             if(nU and nU < crvleanlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
-              asmlib.Notify(oPly, oArg.wname.." excessive lean at "..oArg.mundo.." !", "ERROR")
+              asmlib.Notify(oPly, oArg.wname..": excessive lean at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"), gtLogs); return false
             end
           end
@@ -1985,7 +1992,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
-  local nrB, nrS, mD, mL = 3, 1.5
+  local nrB, nrS, nrA, mD, mL = 3, 1.5, self:GetActiveRadius()
   local xyO, xyH = tData.Org:ToScreen(), tData.Hit:ToScreen()
   local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
   local xyX = (tData.Org + nS * tData.Ang:Forward()):ToScreen()
@@ -1998,14 +2005,17 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(tC.Size and tC.Size > 0) then
     for iD = 1, tC.Size do
       local rN = (iD == 1 and nrB or nrS)
-      local vB, vD, vN = tC.Base[iD], tC.Node[iD], tC.Norm[iD]
+      local vB, tR = tC.Base[iD], tC.Rays[iD]
+      local vD, vN = tC.Node[iD], tC.Norm[iD]
       local nB = asmlib.GetViewRadius(oPly, vB, 2)
       local nD = asmlib.GetViewRadius(oPly, vD, rN)
       local xyB, xyD = vB:ToScreen(), vD:ToScreen()
       local xyN = (vD + nS * vN):ToScreen()
+      local xyF = (vD + nS * tR[2]:Forward()):ToScreen()
       oScreen:DrawLine(xyB, xyD, "y")
       oScreen:DrawCircle(xyB, nB)
       oScreen:DrawCircle(xyD, nD)
+      oScreen:DrawLine(xyF, xyD, "r")
       oScreen:DrawLine(xyN, xyD, "b")
       oScreen:DrawCircle(xyD, nD / 2, "r")
       if(tC.Node[iD - 1]) then
@@ -2024,7 +2034,18 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
     if(bRp and mD) then
       local xyN = tC.Node[mD]:ToScreen()
       oScreen:DrawLine(xyO, xyN, "r")
-      if(bPnt and not tData.POA) then
+      if(mL < nrA^2) then
+        local nP, vR = 10, oPly:GetRight()
+        if(bPnt) then
+          local vU = oPly:GetUp(); vU:Mul(-nP); vU:Add(tData.Org)
+          oScreen:DrawLine(xyO, (vU + nP * vR):ToScreen(), "m")
+          oScreen:DrawLine(xyO, (vU - nP * vR):ToScreen(), "m")
+        else
+          local vU = oPly:GetUp(); vU:Mul(nP); vU:Add(tData.Org)
+          oScreen:DrawLine(xyO, (vU + nP * vR):ToScreen(), "m")
+          oScreen:DrawLine(xyO, (vU - nP * vR):ToScreen(), "m")
+        end
+      elseif(bPnt and not tData.POA) then
         local xx, sx = self:GetCurveNodeActive(mD, tData.Org, true)
         if(xx) then
           local xyX = xx:ToScreen(); oScreen:DrawLine(xyX, xyO, "ry")

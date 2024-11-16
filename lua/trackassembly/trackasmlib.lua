@@ -4469,7 +4469,7 @@ function GetNearest(vHit, tVec)
     if(mL and mD) then -- Length is allocated
       if(nT <= mL) then mD, mL = iD, nT end
     else mD, mL = iD, nT end; iD = (iD + 1)
-  end; return mD, mathSqrt(mL)
+  end; return mD, mL
 end
 
 --[[
