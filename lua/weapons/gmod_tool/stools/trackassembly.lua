@@ -910,9 +910,9 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
       tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
       tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
       tData.POA = oPOA; tData.Rec = oRec -- POA and cache record
-      local trDt = asmlib.GetTraceEntityPoint(eEnt, oID, 30000, asmlib.GetOpVar("VEC_DW"))
-      if(trDt and trDt.Hit) then
-        nT = ((tData.Orw.z - trDt.HitPos.z) - elevpnt)
+      local trRz, trDt = asmlib.GetTraceEntityPoint(eEnt, oID, 30000, asmlib.GetOpVar("VEC_DW"))
+      if(trRz and trRz.Hit) then
+        nT = (trDt.length * trRz.Fraction - elevpnt)
         asmlib.SetAsmConvar(user, "nextz", nT)
       end
     end -- Use the track piece active end to create relative curve node
@@ -935,7 +935,7 @@ end
  * tC    > Curve data stricture with the normal modified
  * tData > Reference to the node being inserted
 ]]
-function TOOL:ApplySuperElevation(tC, tData)
+function TOOL:ApplySuperElevation(tC, tData, iD)
   if(not tData) then -- The node being managed
     asmlib.LogInstance("Data missing", gtLogs); return 0 end
   if(not tC) then -- The curve containing all nodes
@@ -944,18 +944,33 @@ function TOOL:ApplySuperElevation(tC, tData)
   local crvsuprev = self:GetSuperElevation()
   if(not (crvsuprev > 0 and not spnflat)) then
     asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
-  if(not (tC.Size and tC.Size >= 2)) then
-    asmlib.LogInstance("Two vertices needed", gtLogs); return 0 end
-  local nS, iN = asmlib.GetOpVar("FULL_SLOPEDG"), tC.Size
-  local tO, tR, tN = tC.Node, tC.Rays, tC.Norm
-  local vL, vP = tO[iN], tO[iN - 1]
-  local vD = Vector(tData.Org); vD:Sub(vL); vD:Normalize()
-  local vF = Vector(vL); vF:Sub(vP); vF:Normalize()
-  local aN = vF:AngleEx(tR[iN][2]:Up())
-  local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
-  aN:RotateAroundAxis(vF, nP)
-  local vN = aN:Up(); tN[iN]:Set(vN)
-  return iN, vN
+  local iN, nS = tonumber(iD), asmlib.GetOpVar("FULL_SLOPEDG")
+  if(iN) then
+    local tR = tC.Rays
+    local tO, tN = tC.Node, tC.Norm
+    local vL, vP = tO[iN+1], tO[iN-1]
+    if(not (vL and vP)) then return 0 end
+    local vD = Vector(vL); vD:Sub(tData.Org); vD:Normalize()
+    local vF = Vector(vL); vF:Sub(vP); vF:Normalize()
+    local aN = vF:AngleEx(tR[iN][2]:Up())
+    local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
+    aN:RotateAroundAxis(vF, nP)
+    local vN = aN:Up(); tN[iN]:Set(vN)
+    return iN, vN
+  else
+    if(not (tC.Size and tC.Size >= 2)) then
+      asmlib.LogInstance("Two vertices needed", gtLogs); return 0 end
+    local tR, iN = tC.Rays, tC.Size
+    local tO, tN = tC.Node, tC.Norm
+    local vL, vP = tO[iN], tO[iN - 1]
+    local vD = Vector(tData.Org); vD:Sub(vL); vD:Normalize()
+    local vF = Vector(tData.Org); vF:Sub(vP); vF:Normalize()
+    local aN = vF:AngleEx(tR[iN][2]:Up())
+    local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
+    aN:RotateAroundAxis(vF, nP)
+    local vN = aN:Up(); tN[iN]:Set(vN)
+    return iN, vN
+  end
 end
 
 function TOOL:CurveInsert(stTrace, bPnt, bMute)
@@ -1003,30 +1018,28 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   local bTr = (mD and mD > 0 and mL < nrA^2)
   if(bTr) then
     if(not bPnt) then
+      local tN, vF = tC.Node, nil
       local elevpnt  = self:GetElevation()
       local vB, tR = tC.Base[mD], tC.Rays[mD]
       local vN, vD = tC.Norm[mD], tC.Node[mD]
       local vO = Vector(); vO:Set(vD); vO:Sub(vB)
       local nextx, nexty, nextz = vO:Unpack()
-      asmlib.SetAsmConvar(oPly,"nextx", 0)
-      asmlib.SetAsmConvar(oPly,"nexty", 0)
-      asmlib.SetAsmConvar(oPly,"nextz", (nextz - elevpnt))
-      local aO = tR[2]:Forward():AngleEx(vN)  --tC.Norm[mD]:Angle()
-            aO:RotateAroundAxis(tR[2]:Up(), 180)
+      asmlib.SetAsmConvar(oPly,"nextx", nextx)
+      asmlib.SetAsmConvar(oPly,"nexty", nextx)
+      asmlib.SetAsmConvar(oPly,"nextz", nextz - elevpnt)
+      if(not (tN[mD-1] and tN[mD+1])) then vF = tR[2]:Forward() else
+        vF = Vector(tN[mD+1]); vF:Sub(tN[mD-1]); vF:Normalize() end
+      local aO = vF:AngleEx(vN)
       local nextpic, nextyaw, nextrol = aO:Unpack()
       asmlib.SetAsmConvar(oPly,"nextpic", nextpic)
-      asmlib.SetAsmConvar(oPly,"nextyaw", 0)
+      asmlib.SetAsmConvar(oPly,"nextyaw", nextyaw)
       asmlib.SetAsmConvar(oPly,"nextrol", nextrol)
       return tC
     end
   end
-  if(not bTr) then
-    tC.Node[mD]:Set(tData.Org)
-  end
+  tC.Node[mD]:Set(tData.Org)
   tC.Norm[mD]:Set(tData.Ang:Up())
-  if(not bTr) then
-    tC.Base[mD]:Set(tData.Hit)
-  end
+  tC.Base[mD]:Set(tData.Hit)
   tC.Rays[mD][1]:Set(tData.Org)
   tC.Rays[mD][2]:Set(tData.Ang)
   tC.Rays[mD][3] = (tData.POA ~= nil)
@@ -1039,6 +1052,10 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
       tC.Norm[mD]:Add(tC.Norm[mD + 1])
       tC.Norm[mD]:Normalize()
     end
+  end
+  if(not bTr) then -- Try to apply the new super-elevation
+    local iN, vN = self:ApplySuperElevation(tC, tData, mD)
+    if(iN > 0) then tC.Norm[iN]:Set(vN) end
   end
   if(not bMute) then
     asmlib.Notify(user, "Node ["..mD.."] updated !", "CLEANUP")
@@ -1992,7 +2009,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
-  local nrB, nrS, nrA, mD, mL = 3, 1.5, self:GetActiveRadius()
+  local nrB, nrS, nrA, mD, mL = 1.5, 1.5, self:GetActiveRadius()
   local xyO, xyH = tData.Org:ToScreen(), tData.Hit:ToScreen()
   local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
   local xyX = (tData.Org + nS * tData.Ang:Forward()):ToScreen()

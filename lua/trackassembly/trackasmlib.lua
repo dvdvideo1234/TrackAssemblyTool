@@ -787,6 +787,7 @@ function InitBase(sName, sPurp)
   SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
   SetOpVar("TRACE_CLASS", {[GetOpVar("ENTITY_DEFCLASS")]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
+    length = 0, -- Will store the trace length when needed
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
     mask   = MASK_SOLID,  -- Mask telling it what to hit
@@ -4616,13 +4617,16 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen, vDir)
   local trPOA = LocatePOA(trRec, ivPoID); if(not IsHere(trPOA)) then
     LogInstance("Point missing "..GetReport(ivPoID)); return nil end
   local trDt, trAng = GetOpVar("TRACE_DATA"), Angle()
+  trDt.length = nLen
   trDt.start:SetUnpacked(trPOA.O:Get())
   trDt.start:Rotate(trEnt:GetAngles())
   trDt.start:Add(trEnt:GetPos())
   trAng:SetUnpacked(trPOA.A:Get())
   trAng:Set(trEnt:LocalToWorldAngles(trAng))
-  trDt.endpos:Set(vDir or trAng:Forward()); trDt.endpos:Mul(nLen)
-  trDt.endpos:Add(trDt.start); SetOpVar("TRACE_FILTER", trEnt)
+  trDt.endpos:Set(vDir or trAng:Forward())
+  trDt.endpos:Mul(trDt.length)
+  trDt.endpos:Add(trDt.start)
+  SetOpVar("TRACE_FILTER", trEnt)
   return utilTraceLine(trDt), trDt
 end
 

@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.806")
+asmlib.SetOpVar("TOOL_VERSION","8.807")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -557,6 +557,7 @@ if(CLIENT) then
   asmlib.WorkshopID("RockMan's Fortification"     , "3071058065")
   asmlib.WorkshopID("SligWolf's Suspension Train" , "3297918081")
   asmlib.WorkshopID("Modular City Street"         , "3314861708")
+  asmlib.WorkshopID("Scene Builder"               , "2233731395")
 
   asmlib.SetAction("CLEAR_GHOSTS" , function() asmlib.ClearGhosts() end)
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
@@ -4751,6 +4752,26 @@ else
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn.mdl", "#", "#", 2, "", "-512,-1024,120", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn_tall.mdl", "#", "#", 1, "", "1024,512,248"})
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn_tall.mdl", "#", "#", 2, "", "-512,-1024,248", "0,-90,0"})
+  asmlib.Categorize("Scene Builder")
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_med.mdl", "#", "#", 1, "", "0, 23,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_med.mdl", "#", "#", 2, "", "0,-23,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_small.mdl", "#", "#", 1, "", "0, 11,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_small.mdl", "#", "#", 2, "", "0,-11,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_corner.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_corner.mdl", "#", "#", 2, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_3way.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_3way.mdl", "#", "#", 2, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_3way.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 2, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 4, "", "-47,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door1.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door1.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door2.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door2.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
