@@ -3394,39 +3394,6 @@ end
 ----------------------- PANEL QUERY -------------------------------
 
 --[[
- * Export tool panel contents as a sync file
- * stPanel > The actual tool panel information handled
- * sFunc   > Export requestor ( CacheQueryPanel )
- * bExp    > Control flag. Export when enabled
-]]
-local function DumpCategory(stPanel, sFunc, bExp)
-  if(SERVER) then return stPanel end
-  if(not bExp) then return stPanel end
-  local sFunc  = tostring(sFunc or "")
-  local sMiss = GetOpVar("MISS_NOAV")
-  local sBase = GetOpVar("DIRPATH_BAS")
-  local sExpo = GetOpVar("DIRPATH_EXP")
-  local sMoDB = GetOpVar("MODE_DATABASE")
-  local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
-  if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
-  local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
-  local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
-    LogInstance("Open fail "..GetReport(fName)); return stPanel end
-  F:Write("# "..sFunc..":("..stPanel.Size..") "..GetDateTime().." [ "..sMoDB.." ]\n")
-  for iCnt = 1, stPanel.Size do
-    local vRec = stPanel[iCnt]
-    local sM, sT, sN = vRec.M, vRec.T, vRec.N
-    if(not cT or cT ~= sT) then -- Category has been changed
-      F:Write("# Categorize [ "..sMoDB.." ]("..sT.."): "..tostring(WorkshopID(sT) or sMiss))
-      F:Write("\n"); cT = sT -- Cache category name
-    end -- Otherwise just write down the piece active point
-    F:Write("\""..sM.."\""..symSep)
-    F:Write("\""..sT.."\""..symSep)
-    F:Write("\""..sN.."\""); F:Write("\n")
-  end; F:Flush(); F:Close(); return stPanel
-end
-
---[[
  * Updates panel category to dedicated hash
  * stPanel > The actual panel information to populate
 ]]
@@ -3458,27 +3425,26 @@ end
 
 --[[
  * Caches the data needed to populate the CPanel tree
- * bExp > Export panel data into a DB file
 ]]
-function CacheQueryPanel(bExp)
+function CacheQueryInventory()
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
   if(not IsHere(libCache[defTab.Name])) then
     LogInstance("Missing cache allocated "..GetReport(defTab.Name)); return nil end
-  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), "CacheQueryPanel"
-  local stPanel, qsKey = libCache[keyPan], GetOpVar("FORM_KEYSTMT")
-  if(IsHere(stPanel) and IsHere(stPanel.Size)) then LogInstance("Retrieve")
-    if(stPanel.Size <= 0) then stPanel = nil else
-      stPanel = makTab:TimerRestart(sFunc, keyPan) end
-    return stPanel
+  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), "CacheQueryInventory"
+  local stPan, qsKey = libCache[keyPan], GetOpVar("FORM_KEYSTMT")
+  if(IsHere(stPan) and IsHere(stPan.Size)) then LogInstance("Retrieve")
+    if(stPan.Size <= 0) then stPan = nil else
+      stPan = makTab:TimerRestart(sFunc, keyPan) end
+    return stPan
   else
     local coMo = makTab:GetColumnName(1)
     local coTy = makTab:GetColumnName(2)
     local coNm = makTab:GetColumnName(3)
     local sMoDB = GetOpVar("MODE_DATABASE")
-    libCache[keyPan] = {}; stPanel = libCache[keyPan]
+    libCache[keyPan] = {}; stPan = libCache[keyPan]
     if(sMoDB == "SQL") then
       local qIndx = qsKey:format(sFunc,"")
       local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
@@ -3489,23 +3455,18 @@ function CacheQueryPanel(bExp)
         LogInstance("SQL exec error "..GetReport(sqlLastError())); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
         LogInstance("No data found "..GetReport(Q)); return nil end
-      stPanel.Size = #qData -- Store the amount of SQL rows
-      for iCnt = 1, stPanel.Size do local qRow = qData[iCnt]
-        stPanel[iCnt] = {M = qRow[coMo], T = qRow[coTy], N = qRow[coNm]}
-      end
-      SortCategory(stPanel)
-      DumpCategory(stPanel, sFunc, bExp)
+      stPan.Size = #qData -- Store the amount of SQL rows
+      for iCnt = 1, stPan.Size do local qRow = qData[iCnt]
+        stPan[iCnt] = {M = qRow[coMo], T = qRow[coTy], N = qRow[coNm]}
+      end; SortCategory(stPan)
       return makTab:TimerAttach(sFunc, keyPan)
     elseif(sMoDB == "LUA") then
-      local tCache, stPanel = libCache[defTab.Name], {Size = 0}
+      local tCache, stPan = libCache[defTab.Name], {Size = 0}
       for mod, rec in pairs(tCache) do
-        local iCnt = stPanel.Size; iCnt = iCnt + 1
-        stPanel[iCnt] = {M = rec.Slot, T = rec.Type, N = rec.Name}
-        stPanel.Size = iCnt -- Store the amount of rows
-      end
-      SortCategory(stPanel)
-      DumpCategory(stPanel, sFunc, bExp)
-      return stPanel
+        local iCnt = stPan.Size; iCnt = iCnt + 1
+        stPan[iCnt] = {M = rec.Slot, T = rec.Type, N = rec.Name}
+        stPan.Size = iCnt -- Store the amount of rows
+      end; SortCategory(stPan); return stPan
     else LogInstance("Unsupported mode "..GetReport(sMoDB)); return nil end
   end
 end
@@ -3591,6 +3552,38 @@ function CacheQueryProperty(sType)
 end
 
 ---------------------- EXPORT --------------------------------
+
+--[[
+ * Export tool inventory contents as a sync file
+]]
+function ExportInventory()
+  if(SERVER) then LogInstance("Working on server"); return true end
+  local stPan = asmlib.CacheQueryInventory(); if(not stPan) then
+    asmlib.LogInstance("Items missing"); return false end
+  local sFunc = "ExportInventory"
+  local sMiss = GetOpVar("MISS_NOAV")
+  local sBase = GetOpVar("DIRPATH_BAS")
+  local sExpo = GetOpVar("DIRPATH_EXP")
+  local sMoDB = GetOpVar("MODE_DATABASE")
+  local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
+  if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
+  local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
+  local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
+    LogInstance("Open fail "..GetReport(fName)); return false end
+  F:Write("# "..sFunc..":("..stPan.Size..") "..GetDateTime().." [ "..sMoDB.." ]\n")
+  for iCnt = 1, stPan.Size do
+    local vRec = stPan[iCnt]
+    local sM, sT, sN = vRec.M, vRec.T, vRec.N
+    if(not cT or cT ~= sT) then -- Category has been changed
+      local sW = tostring(WorkshopID(sT) or sMiss)
+      F:Write("# Categorize("..sT.."): "..sW)
+      F:Write("\n"); cT = sT -- Cache category name
+    end -- Otherwise just write down the piece active point
+    F:Write("\""..sM.."\""..symSep)
+    F:Write("\""..sT.."\""..symSep)
+    F:Write("\""..sN.."\""); F:Write("\n")
+  end; F:Flush(); F:Close(); return true
+end
 
 --[[
  * Save/Load the category generation

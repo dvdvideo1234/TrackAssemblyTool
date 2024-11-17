@@ -2383,7 +2383,6 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetAsmConvar(nil, "flipoverid") -- Reset flip-over mode on pickup
   CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
   local drmSkin, sLog = CPanel:GetSkin(), "*TOOL.BuildCPanel"
-  local devmode = asmlib.GetAsmConvar("devmode", "BUL")
   local nMaxLin = asmlib.GetAsmConvar("maxlinear","FLT")
   local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
   local sCall, pItem, sName, aData = "_cpan" -- pItem is the current panel created
@@ -2397,7 +2396,7 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets)
 
-  local qPanel = asmlib.CacheQueryPanel(devmode); if(not qPanel) then
+  local qPanel = asmlib.CacheQueryInventory(); if(not qPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return end

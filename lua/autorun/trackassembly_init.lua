@@ -1273,13 +1273,18 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          local fPref = "["..gsMoDB:lower().."-dsv]"..gsGenerPrf
-          asmlib.ExportCategory(3, nil, fPref, true)
-          asmlib.ExportDSV("PIECES", fPref, nil, true)
-          asmlib.ExportDSV("ADDITIONS", fPref, nil, true)
-          asmlib.ExportDSV("PHYSPROPERTIES", fPref, nil, true)
-          asmlib.LogInstance("Export data", sLog..".Button")
-          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+          if(inputIsKeyDown(KEY_LSHIFT)) then
+            if(not asmlib.ExportInventory()) then
+              asmlib.LogInstance("Export invalid", sLog..".Button"); return nil end
+          else
+            local fPref = "["..gsMoDB:lower().."-dsv]"..gsGenerPrf
+            asmlib.ExportCategory(3, nil, fPref, true)
+            asmlib.ExportDSV("PIECES", fPref, nil, true)
+            asmlib.ExportDSV("ADDITIONS", fPref, nil, true)
+            asmlib.ExportDSV("PHYSPROPERTIES", fPref, nil, true)
+            asmlib.LogInstance("Export data", sLog..".Button")
+            asmlib.SetAsmConvar(oPly, "exportdb", 0)
+          end
         else
           local fW = asmlib.GetOpVar("FORM_GITWIKI")
           guiOpenURL(fW:format("Additional-features"))
