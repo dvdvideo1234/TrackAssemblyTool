@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.807")
+asmlib.SetOpVar("TOOL_VERSION","8.808")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -4752,7 +4752,9 @@ else
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn.mdl", "#", "#", 2, "", "-512,-1024,120", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn_tall.mdl", "#", "#", 1, "", "1024,512,248"})
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn_tall.mdl", "#", "#", 2, "", "-512,-1024,248", "0,-90,0"})
-  asmlib.Categorize("Scene Builder")
+  asmlib.Categorize("Scene Builder", [[function(m)
+    local g = m:gsub("models/scene_building/","")
+    local r = g:gsub("/.+$",""); return r end]])
   PIECES:Record({"models/scene_building/sewer_system/arch_small_hall.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
   PIECES:Record({"models/scene_building/sewer_system/arch_small_hall.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_med.mdl", "#", "#", 1, "", "0, 23,0", "0,90,0"})
