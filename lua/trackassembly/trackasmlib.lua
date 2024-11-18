@@ -3558,8 +3558,8 @@ end
 ]]
 function ExportInventory()
   if(SERVER) then LogInstance("Working on server"); return true end
-  local stPan = asmlib.CacheQueryInventory(); if(not stPan) then
-    asmlib.LogInstance("Items missing"); return false end
+  local stPan = CacheQueryInventory(); if(not stPan) then
+    LogInstance("Items missing"); return false end
   local sFunc = "ExportInventory"
   local sMiss = GetOpVar("MISS_NOAV")
   local sBase = GetOpVar("DIRPATH_BAS")

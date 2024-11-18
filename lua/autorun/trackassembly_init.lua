@@ -1273,7 +1273,8 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          if(inputIsKeyDown(KEY_LSHIFT)) then
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+          if(inputIsKeyDown(KEY_LSHIFT) and asmlib.GetAsmConvar("devmode" ,"BUL")) then
             if(not asmlib.ExportInventory()) then
               asmlib.LogInstance("Export invalid", sLog..".Button"); return nil end
           else
@@ -1283,7 +1284,6 @@ if(CLIENT) then
             asmlib.ExportDSV("ADDITIONS", fPref, nil, true)
             asmlib.ExportDSV("PHYSPROPERTIES", fPref, nil, true)
             asmlib.LogInstance("Export data", sLog..".Button")
-            asmlib.SetAsmConvar(oPly, "exportdb", 0)
           end
         else
           local fW = asmlib.GetOpVar("FORM_GITWIKI")
@@ -1292,10 +1292,10 @@ if(CLIENT) then
       end
       pnButton.DoRightClick = function(pnSelf)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
           local bS, vOut = asmlib.DoAction("OPEN_EXTERNDB"); if(not bS) then
             asmlib.LogInstance("Open manager:"..vOut, sLog..".Button"); return nil end
           asmlib.LogInstance("Open manager", sLog..".Button")
-          asmlib.SetAsmConvar(oPly, "exportdb", 0)
         else
           local fW = asmlib.GetOpVar("FORM_GITWIKI")
           guiOpenURL(fW:format("Additional-features"))
@@ -4779,6 +4779,38 @@ else
   PIECES:Record({"models/scene_building/sewer_system/arch_small_door1.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/arch_small_door2.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
   PIECES:Record({"models/scene_building/sewer_system/arch_small_door2.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_door.mdl", "#", "#", 1, "", "0, 6,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_door.mdl", "#", "#", 2, "", "0,-6,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall.mdl", "#", "#", 1, "", "0, 45,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall.mdl", "#", "#", 2, "", "0,-45,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky.mdl", "#", "#", 1, "", "0, 44,-10", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky.mdl", "#", "#", 2, "", "0,-44,-10", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky_dip.mdl", "#", "#", 1, "", "0, 44,4", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky_dip.mdl", "#", "#", 2, "", "0,-44,4", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/comp_roundroom.mdl", "#", "#", 1, "", "-20,128,-26", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/comp_roundroom.mdl", "#", "#", 2, "", "-94,-28, 14", "0,-180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 1, "", "0, 15,0", "0, 90,0", ""})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 2, "", "0,-15,0", "0,-90,0", ""})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 1, "", "145,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 2, "", "0,-175,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 3, "", "-145,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 4, "", "0,175,-20", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2sec.mdl", "#", "#", 1, "", "171,28,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2sec.mdl", "#", "#", 2, "", "-28,-171,0","0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 1, "", "0,-172,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 2, "", "-200,28,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 3, "", "200,28,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 1, "", "8.2,-121,-4", "0,-90,0", ""})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 2, "", "-49.604,18.618,-4", "0,135,0", ""})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 1, "", "-145,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 2, "", "0,175,-20", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 3, "", "0,-175,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent.mdl", "#", "#", 1, "", "0, 59,-16", "0, 90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent.mdl", "#", "#", 2, "", "0,-59,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent_gate.mdl", "#", "#", 1, "", "0, 59,-16", "0, 90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent_gate.mdl", "#", "#", 2, "", "0,-59,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 1, "", "0, 115,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 2, "", "0,-115,0", "0,-90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
