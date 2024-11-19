@@ -2396,7 +2396,7 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets)
 
-  local qPanel = asmlib.CacheQueryInventory(); if(not qPanel) then
+  local qPanel = asmlib.CacheQueryTree(); if(not qPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return end

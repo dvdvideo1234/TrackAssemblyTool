@@ -258,18 +258,6 @@ function IsOther(oEnt)
   return false
 end
 
-function IsGenericDB(sSors)
-  local sSors = tostring(sSors or "")
-  local sName = GetOpVar("TOOLNAME_PU")
-  local fGenc = GetOpVar("DBEXP_PREFGEN")
-  local fDSV = GetOpVar("DIRPATH_BAS")
-  if(not fileExists(fDSV,"DATA")) then fileCreateDir(fDSV) end
-  local fDSV = fDSV..GetOpVar("DIRPATH_DSV")
-  if(not fileExists(fDSV,"DATA")) then fileCreateDir(fDSV) end
-  local fForm = GetOpVar("FORM_PREFIXDSV")
-  return fileExists(fDSV..fForm:format(fGenc, sName..sSors), "DATA")
-end
-
 --[[
  * Reports the type and actual value for one argument
  * Reports vararg containing many values concatenated
@@ -632,10 +620,9 @@ end
 ----------------- INITAIALIZATION -----------------
 
 function SetLogControl(nLines, bFile)
-  local bFou, sBas = IsFlag("en_logging_file", bFile), GetOpVar("DIRPATH_BAS")
+  local bFou = IsFlag("en_logging_file", bFile)
   local nMax = (tonumber(nLines) or 0); nMax = mathFloor((nMax > 0) and nMax or 0)
   local sMax, sFou = tostring(GetOpVar("LOG_MAXLOGS")), tostring(bFou)
-  if(sBas and not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
   SetOpVar("LOG_CURLOGS", 0); SetOpVar("LOG_MAXLOGS", nMax)
   SetOpVar("LOG_FORMLID", "%"..(tostring(nMax)):len().."d")
   LogInstance("("..sMax..","..sFou..")")
@@ -647,8 +634,7 @@ function SettingsLogs(sHash)
     LogInstance("Invalid "..GetReport(sKey)); return false end
   local tLogs, lbNam = GetOpVar("LOG_"..sKey), GetOpVar("NAME_LIBRARY")
   if(not tLogs) then LogInstance("Missing "..GetReport(sKey)); return false end
-  local sBas, sSet = GetOpVar("DIRPATH_BAS"), GetOpVar("DIRPATH_SET")
-  local fName = (sBas..sSet..lbNam.."_sl"..sKey:lower()..".txt")
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), lbNam.."_sl"..sKey:lower())
   if(not fileExists(fName, "DATA")) then
     LogInstance("Discard "..GetReport(sKey, fName)); return false end
   local S = fileOpen(fName, "rb", "DATA"); tableEmpty(tLogs)
@@ -3323,10 +3309,9 @@ function CacheQueryPiece(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
-        Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
-      if(not Q) then -- Query creation has failed so no need to build again
-        LogInstance("Build statement failed "..GetReport(qIndx, qModel)); return nil end
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+        Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
+      if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3371,10 +3356,9 @@ function CacheQueryAdditions(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
-        Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
-      if(not Q) then
-        LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc)
+        Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
+      if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3426,14 +3410,14 @@ end
 --[[
  * Caches the data needed to populate the CPanel tree
 ]]
-function CacheQueryInventory()
+function CacheQueryTree()
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition"); return nil end
   if(not IsHere(libCache[defTab.Name])) then
     LogInstance("Missing cache allocated "..GetReport(defTab.Name)); return nil end
-  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), "CacheQueryInventory"
+  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), "CacheQueryTree"
   local stPan, qsKey = libCache[keyPan], GetOpVar("FORM_KEYSTMT")
   if(IsHere(stPan) and IsHere(stPan.Size)) then LogInstance("Retrieve")
     if(stPan.Size <= 0) then stPan = nil else
@@ -3447,10 +3431,9 @@ function CacheQueryInventory()
     libCache[keyPan] = {}; stPan = libCache[keyPan]
     if(sMoDB == "SQL") then
       local qIndx = qsKey:format(sFunc,"")
-      local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
-        Q = makTab:Select(1,2,3):Where({4,"%d"}):Order(2,1):Store(qIndx):Get(qIndx, 1) end
-      if(not Q) then
-        LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
+      local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+        Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
+      if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError())); return nil end
       if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3501,10 +3484,9 @@ function CacheQueryProperty(sType)
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
         local qType = makTab:Match(sType,1,true)
         local qIndx = qsKey:format(sFunc,keyName)
-        local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then
-          Q = makTab:Select(2, 3):Where({1,"%s"}):Order(2):Store(qIndx):Get(qIndx, qType) end
-        if(not Q) then
-          LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
+        local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc].N
+          Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
+        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
         local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3533,10 +3515,9 @@ function CacheQueryProperty(sType)
       if(sMoDB == "SQL") then
         tCache[keyType] = {}; stType = tCache[keyType]; stType.Size = 0
         local qIndx = qsKey:format(sFunc,keyType)
-        local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
-          Q = makTab:Select(1):Where({2,"%d"}):Order(1):Store(qIndx):Get(qIndx, 1) end
-        if(not Q) then
-          LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
+        local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc].T
+          Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
+        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
         local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
           LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return nil end
         if(not IsHere(qData) or IsEmpty(qData)) then
@@ -3554,25 +3535,84 @@ end
 ---------------------- EXPORT --------------------------------
 
 --[[
- * Export tool inventory contents as a sync file
+ * Creates the directories needed and concatenates the
+ * file path to be ready for opening the file object
 ]]
-function ExportInventory()
+function GetLibraryPath(sT, sN)
+  local fName = GetOpVar("DIRPATH_BAS")
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+    fName = fName..tostring(sT or "") -- Target folder in `trackassembly/`
+  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  if(not sN) then return fName end -- Create the folders only
+  return fName..tostring(sN or "")..".txt" -- Concatenate file name
+end
+
+--[[
+ * Checks whenever a generic database is present
+ * When present uses it instead of importing DSV
+ * sSors > The source file name being checked
+]]
+function IsGenericDB(sSors)
+  local sSors = tostring(sSors or "")
+  local sName = GetOpVar("TOOLNAME_PU")
+  local fGenc = GetOpVar("DBEXP_PREFGEN")
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_DSV"),
+    GetOpVar("FORM_PREFIXDSV"):format(fGenc, sName..sSors))
+  return fileExists(fName, "DATA")
+end
+
+--[[
+ * Export database inventory contents as a sync file
+ * The result of this function is used to sync contents
+ * between addons and show what is missing or discontinued
+]]
+function ExportSyncDB()
   if(SERVER) then LogInstance("Working on server"); return true end
-  local stPan = CacheQueryInventory(); if(not stPan) then
-    LogInstance("Items missing"); return false end
-  local sFunc = "ExportInventory"
   local sMiss = GetOpVar("MISS_NOAV")
-  local sBase = GetOpVar("DIRPATH_BAS")
-  local sExpo = GetOpVar("DIRPATH_EXP")
   local sMoDB = GetOpVar("MODE_DATABASE")
   local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
-  if(not fileExists(sBase, "DATA")) then fileCreateDir(sBase) end
-  local fName = (sBase..sExpo..GetOpVar("NAME_LIBRARY").."_db.txt")
-  local F = fileOpen(fName, "wb" ,"DATA"), sMiss; if(not F) then
+  local sFunc, stPan = "ExportSyncDB", {Size = 0}
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"),
+                               GetOpVar("NAME_LIBRARY").."_db")
+  local F = fileOpen(fName, "wb" ,"DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(fName)); return false end
-  F:Write("# "..sFunc..":("..stPan.Size..") "..GetDateTime().." [ "..sMoDB.." ]\n")
-  for iCnt = 1, stPan.Size do
-    local vRec = stPan[iCnt]
+  F:Write("# "..sFunc..": "..GetDateTime().." [ "..sMoDB.." ]\n")
+  if(sMoDB == "SQL") then
+    local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
+      LogInstance("Missing table builder"); F:Flush(); F:Close(); return false end
+    local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+      LogInstance("Missing table definition"); F:Flush(); F:Close(); return false end
+    local qsKey = GetOpVar("FORM_KEYSTMT")
+    local qIndx = qsKey:format(sFunc, "")
+    local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+      Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
+    if(not IsHere(Q)) then LogInstance("Build statement failed"); F:Flush(); F:Close(); return false end
+    local qData = sqlQuery(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
+      LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return false end
+    if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
+      LogInstance("No data found "..GetReport(Q)); return false end
+    local coMo = makTab:GetColumnName(1); stPan.Size = #qData
+    local coTy = makTab:GetColumnName(2)
+    local coNm = makTab:GetColumnName(3)
+    F:Write("# Query("..stPan.Size.."):<"..Q..">\n")
+    for iR = 1, stPan.Size do local vRec = qData[iR]
+      stPan[iR] = {M = vRec[coMo], T = vRec[coTy], N = vRec[coNm]} end
+  elseif(sMoDB == "LUA") then
+    local fsLog = GetOpVar("FORM_LOGSOURCE")
+    local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"Cache")
+    local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
+      LogInstance("Cache missing"); F:Flush(); F:Close(); return false end
+    local bS, sR = pcall(defTab.Cache[sFunc], tCache, stPan, ssLog)
+    if(not bS) then F:Flush(); F:Close()
+      LogInstance("Cache manager error: "..sR); return false end
+    if(not sR) then F:Flush(); F:Close()
+      LogInstance("Cache routine fail"); return false end
+  else
+    LogInstance("Unsupported mode "..GetReport(sMoDB, fName))
+    F:Flush(); F:Close(); return false
+  end
+  for iR = 1, stPan.Size do
+    local vRec = stPan[iR]
     local sM, sT, sN = vRec.M, vRec.T, vRec.N
     if(not cT or cT ~= sT) then -- Category has been changed
       local sW = tostring(WorkshopID(sT) or sMiss)
@@ -3605,12 +3645,10 @@ function ExportCategory(vEq, tData, sPref, bExp)
     LogInstance(sHew.." User disabled"); return true end
   if(IsGenericDB("CATEGORY")) then
     LogInstance(sHew.." Generic database",sTable); return true end
-  local fName, sFunc = GetOpVar("DIRPATH_BAS"), "ExportCategory"
-  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
   local fForm, sTool = GetOpVar("FORM_PREFIXDSV"), GetOpVar("TOOLNAME_PU")
-  fName = fName..fForm:format(fPref, sTool.."CATEGORY")
+  local fName, sFunc = GetLibraryPath(
+    (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV")),
+     fForm:format(fPref, sTool.."CATEGORY")), "ExportCategory"
   local F = fileOpen(fName, "wb", "DATA")
   if(not F) then LogInstance(sHew.." Open fail: "..fName); return false end
   local sEq, nLen, sMoDB = ("="):rep(nEq), (nEq+2), GetOpVar("MODE_DATABASE")
@@ -3707,25 +3745,20 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     LogInstance(sHew.." Missing table builder",sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance(sHew.." Missing table definition",sTable); return nil end
-  local fName = GetOpVar("DIRPATH_BAS")
-  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  fName = fName..(bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
-  local fForm = GetOpVar("FORM_PREFIXDSV")
-  fName = fName..fForm:format(fPref, defTab.Name)
+  local fName = GetLibraryPath(
+    (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV")),
+    GetOpVar("FORM_PREFIXDSV"):format(fPref, defTab.Name))
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance(sHew.." Open fail: "..fName,sTable); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportDSV"
-  local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
-  local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"%s")
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   F:Write("#1 "..sFunc..":("..fPref.."@"..sTable..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, sTable)
-    local Q = makTab:Get(qIndx); if(not IsHere(Q)) then
-      Q = makTab:Select():Order(unpack(defTab.Query[sFunc])):Store(qIndx):Get(qIndx) end
+    local Q = makTab:Get(qIndx); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+      Q = makTab:Select():Order(unpack(tQ.O)):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance(sHew.." Build statement failed",sTable); return false end
     F:Write("#3 Query:<"..Q..">\n")
@@ -3738,11 +3771,13 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
         function(iCT, sCT, vCT) return makTab:Match(vCT,iCT,true,"\"",true) end).."\n")
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
+    local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
+    local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"Cache")
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance(sHew.." Cache missing",sTable); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog:format("Cache"))
+    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog)
     if(not bS) then F:Flush(); F:Close()
-      LogInstance(sHew.." Cache manager fail for "..sR,sTable); return false end
+      LogInstance(sHew.." Cache manager error: "..sR,sTable); return false end
     if(not sR) then F:Flush(); F:Close()
       LogInstance(sHew.." Cache routine fail",sTable); return false end
   else F:Flush(); F:Close(); LogInstance(sHew.." Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
@@ -3818,12 +3853,9 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance(sHew.." Missing table builder",sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
-  local fDSV, sDelim = GetOpVar("DIRPATH_BAS"), tostring(sDelim or "\t"):sub(1,1)
-  if(not fileExists(fDSV,"DATA")) then fileCreateDir(fDSV) end
-  local fDSV = fDSV..GetOpVar("DIRPATH_DSV")
-  if(not fileExists(fDSV,"DATA")) then fileCreateDir(fDSV) end
-  local fForm, fData = GetOpVar("FORM_PREFIXDSV"), {}
-  local fName = fDSV..fForm:format(fPref, defTab.Name)
+  local sDelim, fData = tostring(sDelim or "\t"):sub(1,1), {}
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_DSV"),
+    GetOpVar("FORM_PREFIXDSV"):format(fPref, defTab.Name))
   if(fileExists(fName, "DATA")) then
     local sLine, isEOF = "", false
     local I = fileOpen(fName, "rb", "DATA"); if(not I) then
@@ -3920,15 +3952,10 @@ function TranslateDSV(sTable, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance(sHew.." Missing table builder",sTable); return false end
   local defTab, sFunc = makTab:GetDefinition(), "TranslateDSV"
-  local fBAS = GetOpVar("DIRPATH_BAS")
-  if(not fileExists(fBAS,"DATA")) then fileCreateDir(fBAS) end
-  local fDSV = fBAS..GetOpVar("DIRPATH_DSV")
-  if(not fileExists(fDSV,"DATA")) then fileCreateDir(fDSV) end
-  local fEXP = fBAS..GetOpVar("DIRPATH_EXP")
-  if(not fileExists(fEXP,"DATA")) then fileCreateDir(fDSV) end
-  local fForm = GetOpVar("FORM_PREFIXDSV")
-  local sEXP = fEXP..fForm:format("[tr]"..fPref, defTab.Name)
-  local sDSV = fDSV..fForm:format(fPref, defTab.Name)
+  local sDSV = GetLibraryPath(GetOpVar("DIRPATH_DSV"),
+    GetOpVar("FORM_PREFIXDSV"):format(fPref, defTab.Name))
+  local sDSV = GetLibraryPath(GetOpVar("DIRPATH_EXP"),
+    GetOpVar("FORM_PREFIXDSV"):format("[tr]"..fPref, defTab.Name))
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local D = fileOpen(sDSV, "rb", "DATA"); if(not D) then
     LogInstance(sHew.." Open fail: "..sDSV,sTable); return false end
@@ -3971,13 +3998,8 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     LogInstance("Single client "..GetReport(sProg, sPref)); return true end
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sProg, sPref)); return true end
-  local sBas = GetOpVar("DIRPATH_BAS")
-  if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
-  local sBas = sBas..GetOpVar("DIRPATH_SET")
-  if(not fileExists(sBas,"DATA")) then fileCreateDir(sBas) end
-  local lbNam, sMiss = GetOpVar("NAME_LIBRARY"), GetOpVar("MISS_NOAV")
-  local fName = (sBas..lbNam.."_dsv.txt")
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sDelim, sMiss = tostring(sDelim or "\t"):sub(1,1), GetOpVar("MISS_NOAV")
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), GetOpVar("NAME_LIBRARY").."_dsv"))
   if(bSkip) then
     if(fileExists(fName, "DATA")) then
       local fPool, isEOF = {}, false
@@ -4017,16 +4039,14 @@ end
  * sDelim > The delimiter to be used while processing the DSV list
 ]]
 function ProcessDSV(sDelim)
-  local sBas = GetOpVar("DIRPATH_BAS")
-  local sSet = GetOpVar("DIRPATH_SET")
   local lbNam = GetOpVar("NAME_LIBRARY")
-  local fName = (sBas..sSet..lbNam.."_dsv.txt")
+  local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), lbNam.."_dsv")
+  local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
+  local sDsv = GetLibraryPath(GetOpVar("DIRPATH_DSV"))
   local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
     LogInstance("Open fail: "..GetReport(fName)); return false end
   local sLine, isEOF, sGen = "", false, GetOpVar("DBEXP_PREFGEN")
-  local sNt, fForm = GetOpVar("TOOLNAME_PU"), GetOpVar("FORM_PREFIXDSV")
-  local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
-  local sDv = sBas..GetOpVar("DIRPATH_DSV")
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if(not IsBlank(sLine)) then
       if(not IsDisable(sLine)) then
@@ -4053,8 +4073,8 @@ function ProcessDSV(sDelim)
       for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
     else
       if(CLIENT) then
-        if(not fileExists(sDv..fForm:format(sGen, sNt.."CATEGORY"), "DATA")) then
-          if(fileExists(sDv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
+        if(not fileExists(sDsv..fForm:format(sGen, sNt.."CATEGORY"), "DATA")) then
+          if(fileExists(sDsv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
             if(not ImportCategory(3, prf)) then
               LogInstance("Failed "..GetReport(prf, "CATEGORY")) end
           else LogInstance("Missing "..GetReport(prf, "CATEGORY")) end
@@ -4063,8 +4083,8 @@ function ProcessDSV(sDelim)
       for iD = 1, #libQTable do
         local makTab = GetBuilderID(iD)
         local defTab = makTab:GetDefinition()
-        if(not fileExists(sDv..fForm:format(sGen, sNt..defTab.Nick), "DATA")) then
-          if(fileExists(sDv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
+        if(not fileExists(sDsv..fForm:format(sGen, sNt..defTab.Nick), "DATA")) then
+          if(fileExists(sDsv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
               LogInstance("Failed "..GetReport(prf, defTab.Nick)) end
           else LogInstance("Missing "..GetReport(prf, defTab.Nick)) end
@@ -4090,10 +4110,9 @@ function SetAdditionsRun(sModel, makTab, qList)
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qModel = makTab:Match(tostring(sModel or ""), 1, true)
     local qIndx = qsKey:format(sFunc, "ADDITIONS")
-    local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then
-      Q = makTab:Select():Where({1,"%s"}):Order(4):Store(qIndx):Get(qIndx, qModel) end
-    if(not IsHere(Q)) then
-      LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return false end
+    local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+      Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
+    if(not IsHere(Q)) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return false end
     qData = sqlQuery(Q); if(not qData and isbool(qData)) then
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return false end
   elseif(sMoDB == "LUA") then
@@ -4218,8 +4237,8 @@ function ExportTypeRun(sType)
     end
     local qType = makP:Match(sType, 2, true)
     local qIndx = qsKey:format(sFunc, "PIECES")
-    local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then
-      Q = makP:Select():Where({2,"%s"}):Order(unpack(defP.Query[sFunc])):Store(qIndx):Get(qIndx, qType) end
+    local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = defP.Query[sFunc]
+      Q = makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
     if(not Q) then
       LogInstance("Build statement failed "..GetReport(qIndx,qType),defP.Nick)
       fE:Flush(); fE:Close(); fS:Close(); return
@@ -4240,7 +4259,7 @@ function ExportTypeRun(sType)
     local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
     local bS, sR = pcall(defP.Cache[sFunc], fE, fS, sType, makP, tCache, qPieces, ssLog:format("Cache"))
     if(not bS) then fE:Flush(); fE:Close(); fS:Close()
-      LogInstance("Cache manager fail for "..sR,defP.Nick) ; return end
+      LogInstance("Cache manager error: "..sR,defP.Nick) ; return end
     if(not sR) then fE:Flush(); fE:Close(); fS:Close()
       LogInstance("Cache routine fail",defP.Nick) ; return end
   else
@@ -4318,17 +4337,14 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("("..fPref..") Missing additions builder"); return false end
   local defA = makA:GetDefinition(); if(not IsHere(defA)) then
     LogInstance("("..fPref..") Missing additions definition"); return nil end
-  local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
-  local fDir = GetOpVar("DIRPATH_BAS")
-  if(not fileExists(fDir,"DATA")) then fileCreateDir(fDir) end
-  local fDir = fDir..GetOpVar("DIRPATH_EXP")
-  if(not fileExists(fDir,"DATA")) then fileCreateDir(fDir) end
-  local fForm, fMon = GetOpVar("FORM_PREFIXDSV"), "["..sMoDB:lower().."-dsv]"
-  local fName = fDir..fForm:format(fMon..fPref, defP.Name)
-  local P = fileOpen(fName, "wb", "DATA"); if(not P) then
+  local sMoDB, fMon = GetOpVar("MODE_DATABASE"), "["..sMoDB:lower().."-dsv]"
+  local pNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"),
+    GetOpVar("FORM_PREFIXDSV"):format(fMon..fPref, defP.Name))
+  local aNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"),
+    GetOpVar("FORM_PREFIXDSV"):format(fMon..fPref, defA.Name))
+  local P = fileOpen(pNam, "wb", "DATA"); if(not P) then
     LogInstance("("..fPref..")("..fName..") Open fail"); return false end
-  local fName = fDir..fForm:format(fMon..fPref, defA.Name)
-  local A = fileOpen(fName, "wb", "DATA"); if(not A) then
+  local A = fileOpen(aNam, "wb", "DATA"); if(not A) then
     LogInstance("("..fPref..")("..fName..") Open fail"); return false end
   local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportTypeDSV"
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
@@ -4343,8 +4359,8 @@ function ExportTypeDSV(sType, sDelim)
     local qType = makP:Match(sType, 2, true)
     local qInxP = qsKey:format(sFunc, defP.Nick)
     local qInxA = qsKey:format(sFunc, defA.Nick)
-    local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then
-      Q =  makP:Select():Where({2,"%s"}):Order(unpack(defP.Query[sFunc])):Store(qInxP):Get(qInxP, qType) end
+    local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then local tQ = defP.Query[sFunc]
+      Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qType) end
     if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") Build statement failed",defP.Nick); return false end
     P:Write("#3 Query:<"..Q..">\n")
@@ -4359,8 +4375,8 @@ function ExportTypeDSV(sType, sDelim)
           rwM = (sCP == coMo and vCP or rwM)
           if(sCP == coLI and (tonumber(vCP) or 0) == 1) then
             local qrMo = makP:Match(rwM, 1, true)
-            local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then
-              Q = makA:Select():Where({1,"%s"}):Order(unpack(defA.Query[sFunc])):Store(qInxA):Get(qInxA, qrMo) end
+            local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then local tQ = defA.Query[sFunc]
+              Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tW.O)):Store(qInxA):Get(qInxA, qrMo) end
             if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
               LogInstance("("..fPref..") Build statement failed",defA.Nick); return qsNov end
             if(iP == 1) then A:Write("#3 Query:<"..Q..">\n") end
@@ -4382,7 +4398,7 @@ function ExportTypeDSV(sType, sDelim)
       LogInstance("("..fPref..") Cache missing",defP.Nick) ; return false end
     local bS, sR = pcall(defP.Cache[sFunc], P, makP, PCache, A, makA, ACache, fPref, sDelim, ssLog:format("Cache"))
     if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("("..fPref..") Cache manager fail for "..sR,defP.Nick) ; return false end
+      LogInstance("("..fPref..") Cache manager error: "..sR,defP.Nick) ; return false end
     if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") Cache routine fail",defP.Nick) ; return false end
   else P:Flush(); P:Close(); A:Flush(); A:Close()

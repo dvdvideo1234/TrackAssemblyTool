@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.808")
+asmlib.SetOpVar("TOOL_VERSION","8.809")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1275,7 +1275,7 @@ if(CLIENT) then
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
           if(inputIsKeyDown(KEY_LSHIFT) and asmlib.GetAsmConvar("devmode" ,"BUL")) then
-            if(not asmlib.ExportInventory()) then
+            if(not asmlib.ExportSyncDB()) then
               asmlib.LogInstance("Export invalid", sLog..".Button"); return nil end
           else
             local fPref = "["..gsMoDB:lower().."-dsv]"..gsGenerPrf
@@ -1769,10 +1769,13 @@ asmlib.NewTable("PIECES",{
   Timer = gaTimerSet[1],
   Index = {{1,4,Un=true},{1},{2},{4}},
   Query = {
-    Record = {"%s","%s","%s","%d","%s","%s","%s","%s"},
-    ExportDSV = {2,3,1,4},
-    ExportTypeDSV = {3,1,4},
-    ExportTypeRun = {3,1,4}
+    ExportDSV       = {O = {2,3,1,4}},
+    CacheQueryPiece = {W = {{1,"%s"}}, O = {4}},
+    ExportTypeDSV   = {W = {{2,"%s"}}, O = {3,1,4}},
+    ExportTypeRun   = {W = {{2,"%s"}}, O = {3,1,4}},
+    Record          = {"%s","%s","%s","%d","%s","%s","%s","%s"},
+    CacheQueryTree  = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}},
+    ExportSyncDB    = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}}
   },
   Trigs = {
     Record = function(arLine, vSrc)
@@ -1813,6 +1816,14 @@ asmlib.NewTable("PIECES",{
         asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
       stData.Size = stData.Size + 1; return true
     end,
+    ExportSyncDB = function(tCache, stPan, vSrc)
+      local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
+        asmlib.LogInstance("Cannot sort cache data",vSrc); return false end
+      stPan.Size = tSort.Size
+      for iR = 1, tSort.Size do local vRec = tSort[iR]
+        stPan[iR] = {M = vRec.Slot, T = vRec.Type, N = vRec.Name}
+      end; return true
+    end
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot")
@@ -1934,9 +1945,11 @@ asmlib.NewTable("ADDITIONS",{
   Timer = gaTimerSet[2],
   Index = {{1,4,Un=true},{1},{4}},
   Query = {
-    Record = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
-    ExportDSV = {1,4},
-    ExportTypeDSV = {1,4}
+    ExportDSV           = {O = {1,4}},
+    SetAdditionsRun     = {W = {{1,"%s"}}, O = {4}},
+    CacheQueryAdditions = {W = {{1,"%s"}}, O = {4}},
+    ExportTypeDSV       = {W = {{1,"%s"}}, O = {1,4}},
+    Record              = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}
   },
   Cache = {
     Record = function(makTab, tCache, snPK, arLine, vSrc)
@@ -1997,8 +2010,12 @@ asmlib.NewTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
   Index = {{1,2,Un=true},{1},{2}},
   Query = {
-    Record = {"%s","%d","%s"},
-    ExportDSV = {1,2}
+    Record    = {"%s","%d","%s"},
+    ExportDSV = {O = {1,2}},
+    CacheQueryProperty = {
+      N = {S = {2, 3}, W = {{1,"%s"}}, O = {2}},
+      T = {S = {1}   , W = {{2,"%s"}}, O = {1}},
+    }
   },
   Trigs = {
     Record = function(arLine, vSrc)
