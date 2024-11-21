@@ -2901,15 +2901,19 @@ function NewTable(sTable,defTab,bDelete,bReload)
     end; return bStat -- Successfully validated the builder table
   end
   -- Creates table column list as string
-  function self:GetColumnList(sD)
-    if(not IsHere(sD)) then return "" end
+  function self:GetColumnList(sD, ...)
     local sD = tostring(sD or "\t"):sub(1,1); if(IsBlank(sD)) then
       LogInstance("Missing delimiter",tabDef.Nick); return "" end
-    local qtDef, sRes = self:GetDefinition(), sD
-    for iCnt = 1, qtDef.Size do
-      local sCon = ((iCnt ~= qtDef.Size) and sD or "")
-      local sVac = tostring(qtDef[iCnt][1] or "")
-      sRes = (sRes..sVac..sCon)
+    local nA, tA = select("#", ...), nil
+    local qtDef, sRes = self:GetDefinition(), ""
+    if(nA > 0) then tA = {...} else tA, nA = {}, qtDef.Size
+      for iD = 1, nA do tableInsert(tA, iD) end end
+    for iD = 1, nA do local iC = tA[iD]
+      local tC = qtDef[iC]; if(not tC) then
+        LogInstance("Column missing "..GetReport(iD,iC,nA), tabDef.Nick); return nil end
+      local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
+        LogInstance("Column name mismatch "..GetReport(iD,iC,nA),tabDef.Nick); return nil end
+      local sCon = ((iD ~= nA) and sD or ""); sRes = (sRes..sC..sCon)
     end; return sRes
   end
   -- Internal type matching
@@ -2949,20 +2953,22 @@ function NewTable(sTable,defTab,bDelete,bReload)
     else LogInstance("Invalid column type "..GetReport(tyCol),tabDef.Nick); return nil
     end; return snOut
   end
-  function self:GetConcat(tLine, sDelim, fFoo)
+  function self:GetConcat(tLine, sDelim, fFoo, ...)
     local qtDef, sLine = self:GetDefinition(), ""; if(not istable(tLine)) then
       LogInstance("Source not table "..GetReport(tLine, sDelim), tabDef.Nick); return nil end
-    local sDelim = tostring(sDelim or "\t"):sub(1,1)
-    for iCnt = 1, qtDef.Size do
-      local tC = qtDef[iCnt]; if(not tC) then
-        LogInstance("Column missing "..GetReport(iCnt, qtDef.Size), tabDef.Nick); return nil end
+    local sDelim, nA, tA = tostring(sDelim or "\t"):sub(1,1), select("#", ...), nil
+    if(nA > 0) then tA = {...} else tA, nA = {}, qtDef.Size
+      for iD = 1, nA do tableInsert(tA, iD) end end
+    for iD = 1, nA do local iC = tA[iD]
+      local tC = qtDef[iC]; if(not tC) then
+        LogInstance("Column missing "..GetReport(iD,iC,nA), tabDef.Nick); return nil end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column name mismatch "..GetReport(iCnt, qtDef.Size),tabDef.Nick); return nil end
-      local vC, sD = tLine[sC], (iCnt == 1 and "" or sDelim) -- Extract the value
+        LogInstance("Column name mismatch "..GetReport(iD,iC,nA),tabDef.Nick); return nil end
+      local vC, sD = tLine[sC], (iD == 1 and "" or sDelim) -- Extract the value
       if(fFoo) then -- Call the conversion handler function when provided
-        local bS, sR = pcall(fFoo, iCnt, sC, vC); if(not bS) then
-          LogInstance("Value convert error "..GetReport(iCnt, qtDef.Size, vC)..": "..sR,tabDef.Nick); return nil end
-        vC = sR -- The value is converted and updaed successfully
+        local bS, sR = pcall(fFoo, iC, sC, vC, iD, nA); if(not bS) then
+          LogInstance("Value convert error "..GetReport(iD,iC,vC,nA)..": "..sR,tabDef.Nick); return nil end
+        vC = sR -- The value is converted and updated successfully
       end; sLine = sLine..sD..tostring(vC or "")
     end; return sLine
   end
@@ -3356,7 +3362,7 @@ function CacheQueryAdditions(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc)
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
         Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -3566,22 +3572,23 @@ end
  * The result of this function is used to sync contents
  * between addons and show what is missing or discontinued
 ]]
-function ExportSyncDB()
+function ExportSyncDB(sDelim)
   if(SERVER) then LogInstance("Working on server"); return true end
-  local sMiss = GetOpVar("MISS_NOAV")
   local sMoDB = GetOpVar("MODE_DATABASE")
-  local symSep, cT = GetOpVar("OPSYM_SEPARATOR")
-  local sFunc, stPan = "ExportSyncDB", {Size = 0}
+  local symSep = GetOpVar("OPSYM_SEPARATOR")
+  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sMiss, sFunc = GetOpVar("MISS_NOAV"), "ExportSyncDB"
   local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"),
                                GetOpVar("NAME_LIBRARY").."_db")
+  local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
+    LogInstance("Missing table builder"); return false end
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("Missing table definition"); return false end
   local F = fileOpen(fName, "wb" ,"DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(fName)); return false end
   F:Write("# "..sFunc..": "..GetDateTime().." [ "..sMoDB.." ]\n")
+  F:Write("# "..defTab.Name..":("..makTab:GetColumnList(nil,1,2,3)..")\n")
   if(sMoDB == "SQL") then
-    local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
-      LogInstance("Missing table builder"); F:Flush(); F:Close(); return false end
-    local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance("Missing table definition"); F:Flush(); F:Close(); return false end
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, "")
     local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
@@ -3591,18 +3598,21 @@ function ExportSyncDB()
       LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return false end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(Q)); return false end
-    local coMo = makTab:GetColumnName(1); stPan.Size = #qData
-    local coTy = makTab:GetColumnName(2)
-    local coNm = makTab:GetColumnName(3)
-    F:Write("# Query("..stPan.Size.."):<"..Q..">\n")
-    for iR = 1, stPan.Size do local vRec = qData[iR]
-      stPan[iR] = {M = vRec[coMo], T = vRec[coTy], N = vRec[coNm]} end
+    stPan.Size = #qData; F:Write("# Query("..stPan.Size.."):<"..Q..">\n")
+   local coTy, cT = makTab:GetColumnName(2), nil
+    for iD = 1, #qData do local vRow = qData[iD]
+      if(not cT or cT ~= vRow[coTy]) then cT = vRow[coTy]
+        local sW = tostring(WorkshopID(cT) or sMiss)
+        F:Write("# Categorize("..cT.."): "..sW.."\n")
+      end; F:Write(makTab:GetConcat(vRow, sDelim,
+      function(iCT, sCT, vCT) return makTab:Match(vCT,iCT,true,"\"",true) end).."\n")
+    end
   elseif(sMoDB == "LUA") then
     local fsLog = GetOpVar("FORM_LOGSOURCE")
     local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"Cache")
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing"); F:Flush(); F:Close(); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], tCache, stPan, ssLog)
+    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, sDelim, ssLog)
     if(not bS) then F:Flush(); F:Close()
       LogInstance("Cache manager error: "..sR); return false end
     if(not sR) then F:Flush(); F:Close()
@@ -3610,19 +3620,7 @@ function ExportSyncDB()
   else
     LogInstance("Unsupported mode "..GetReport(sMoDB, fName))
     F:Flush(); F:Close(); return false
-  end
-  for iR = 1, stPan.Size do
-    local vRec = stPan[iR]
-    local sM, sT, sN = vRec.M, vRec.T, vRec.N
-    if(not cT or cT ~= sT) then -- Category has been changed
-      local sW = tostring(WorkshopID(sT) or sMiss)
-      F:Write("# Categorize("..sT.."): "..sW)
-      F:Write("\n"); cT = sT -- Cache category name
-    end -- Otherwise just write down the piece active point
-    F:Write("\""..sM.."\""..symSep)
-    F:Write("\""..sT.."\""..symSep)
-    F:Write("\""..sN.."\""); F:Write("\n")
-  end; F:Flush(); F:Close(); return true
+  end; F:Flush(); F:Close(); LogInstance("Success"); return true
 end
 
 --[[
@@ -3999,7 +3997,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sProg, sPref)); return true end
   local sDelim, sMiss = tostring(sDelim or "\t"):sub(1,1), GetOpVar("MISS_NOAV")
-  local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), GetOpVar("NAME_LIBRARY").."_dsv"))
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), GetOpVar("NAME_LIBRARY").."_dsv")
   if(bSkip) then
     if(fileExists(fName, "DATA")) then
       local fPool, isEOF = {}, false
@@ -4313,10 +4311,9 @@ function ExportTypeRun(sType)
       if(not isSkip) then
         if(isEOF) then fE:Write(sLine) else fE:Write(sLine.."\n") end
       end
-    end
-    fE:Write("\n"); fE:Flush()
-    fE:Close(); fS:Close()
+    end; fE:Write("\n")
   else LogInstance("Export content missing "..GetReport(sMoDB),defP.Nick) end
+  fE:Flush(); fE:Close(); fS:Close()
 end
 
 --[[

@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.809")
+asmlib.SetOpVar("TOOL_VERSION","8.810")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1816,18 +1816,23 @@ asmlib.NewTable("PIECES",{
         asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
       stData.Size = stData.Size + 1; return true
     end,
-    ExportSyncDB = function(tCache, stPan, vSrc)
-      local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("Cannot sort cache data",vSrc); return false end
-      stPan.Size = tSort.Size
-      for iR = 1, tSort.Size do local vRec = tSort[iR]
-        stPan[iR] = {M = vRec.Slot, T = vRec.Type, N = vRec.Name}
+    ExportSyncDB = function(oFile, makTab, tCache, sDelim, vSrc)
+      local tSort, cT = asmlib.Arrange(tCache, "Type", "Name", "Slot"), nil
+      if(not tSort) then asmlib.LogInstance("Cannot sort cache data",vSrc); return false end
+      for iS = 1, tSort.Size do local stRec = tSort[iS]
+        local sKey, vRec = stRec.Key, stRec.Rec
+        if(not cT or cT ~= vRec.Type) then cT = vRec.Type
+          local sW = tostring(WorkshopID(cT) or sMiss)
+          oFile:Write("# Categorize("..cT.."): "..sW.."\n")
+        end
+        oFile:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
+        oFile:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
+        oFile:Write(makTab:Match(vRec.Name,3,true,"\"")); oFile:Write("\n")
       end; return true
     end
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot")
-      if(not tSort) then oFile:Flush(); oFile:Close()
+      local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
@@ -1852,8 +1857,7 @@ asmlib.NewTable("PIECES",{
       end; return true
     end,
     ExportTypeDSV = function(fP, makP, PCache, fA, makA, ACache, fPref, sDelim, vSrc)
-      local tSort = asmlib.Arrange(PCache, "Name", "Slot")
-      if(not tSort) then fP:Flush(); fP:Close(); fA:Flush(); fA:Close()
+      local tSort = asmlib.Arrange(PCache, "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
@@ -1902,9 +1906,7 @@ asmlib.NewTable("PIECES",{
         if(rec.Type == sType) then
           local iID, tOffs = 1, rec.Offs -- Start from the first point
           local rPOA = tOffs[iID]; if(not asmlib.IsHere(rPOA)) then
-            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot),vSrc)
-            fE:Flush(); fE:Close(); fS:Close(); return false
-          end
+            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot),vSrc) return false end
           for iID = 1, rec.Size do
             iCnt = (iCnt + 1); qPieces[iCnt] = {} -- Allocate row memory
             local qRow = qPieces[iCnt]; rPOA = tOffs[iID]
@@ -1920,10 +1922,8 @@ asmlib.NewTable("PIECES",{
           end
         end
       end -- Must be the same format as returned from SQL
-      local tSort = asmlib.Arrange(qPieces, coNm, coMo, coLn)
-      if(not tSort) then
-        LogInstance("Sort cache mismatch",vSrc)
-        fE:Flush(); fE:Close(); fS:Close(); return false
+      local tSort = asmlib.Arrange(qPieces, coNm, coMo, coLn); if(not tSort) then
+        LogInstance("Sort cache mismatch",vSrc); return false
       end; tableEmpty(qPieces)
       for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
       asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType),vSrc)
@@ -2049,13 +2049,13 @@ asmlib.NewTable("PHYSPROPERTIES",{
       local pT = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
       local pN = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
-      if(not (tTypes or tNames)) then oF:Flush(); oF:Close()
+      if(not (tTypes or tNames)) then
         asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
       for iD = 1, tTypes.Size do tableInsert(tT, tTypes[iD]) end
-      local tS = asmlib.Arrange(tT); if(not tS) then oF:Flush(); oF:Close()
+      local tS = asmlib.Arrange(tT); if(not tS) then
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       for iS = 1, tS.Size do local sT = tS[iS].Rec
-        local tProp = tNames[sT]; if(not tProp) then oF:Flush(); oF:Close()
+        local tProp = tNames[sT]; if(not tProp) then
           asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iS, sT),vSrc); return false end
         for iP = 1, tProp.Size do local sP = tProp[iP]
           oF:Write(defTab.Name..sDelim..makTab:Match(sT,1,true,"\"")..
