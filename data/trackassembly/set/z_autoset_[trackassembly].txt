@@ -56,15 +56,13 @@ end
 if(asmlib) then
   -- Store a reference to disable symbol
   local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
+  local gsDirDSV = asmlib.GetOpVar("DIRPATH_DSV")
   local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
   local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
   local gsModeDB = asmlib.GetOpVar("MODE_DATABASE")
-  local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
 
   -- This is the path to your DSV
-  local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
-                asmlib.GetOpVar("DIRPATH_DSV")..
-                gsFormPF:format(myPrefix, gsToolPF.."PIECES")
+  local myDsv = asmlib.GetLibraryPath(gsDirDSV, myPrefix, gsToolPF.."PIECES")
 
   -- Evaluated to TRUE when the global database is exported
   local myFlag = file.Exists(myDsv, "DATA")

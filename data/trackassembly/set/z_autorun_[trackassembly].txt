@@ -43,14 +43,12 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
 
 -- Store a reference to disable symbol
 local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
+local gsDirDSV = asmlib.GetOpVar("DIRPATH_DSV")
 local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
 local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
-local gsFormPF = asmlib.GetOpVar("FORM_PREFIXDSV")
 
 -- This is the path to your DSV
-local myDsv = asmlib.GetOpVar("DIRPATH_BAS")..
-              asmlib.GetOpVar("DIRPATH_DSV")..
-              gsFormPF:format(myPrefix, gsToolPF.."PIECES")
+local myDsv = asmlib.GetLibraryPath(gsDirDSV, myPrefix, gsToolPF.."PIECES")
 
 --[[
  * This flag is used when the track pieces list needs to be processed.
