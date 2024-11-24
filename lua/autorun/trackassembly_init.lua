@@ -1829,7 +1829,7 @@ asmlib.NewTable("PIECES",{
         oFile:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
         oFile:Write(makTab:Match(vRec.Name,3,true,"\"")); oFile:Write("\n")
       end; return true
-    end
+    end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
