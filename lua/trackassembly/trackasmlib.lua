@@ -3575,7 +3575,7 @@ function ExportSyncDB(sDelim)
   if(SERVER) then LogInstance("Working on server"); return true end
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sMiss, symSep = GetOpVar("MISS_NOAV"), GetOpVar("OPSYM_SEPARATOR")
-  local tHew, sMoDB = GetOpVar("PATTEM_EXCATHED"), GetOpVar("MODE_DATABASE")
+  local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
   local sHew, sFunc = tHew[2]:format(sMiss, symSep), "ExportSyncDB"
   local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"), GetOpVar("NAME_LIBRARY"), "_db")
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
@@ -4028,10 +4028,10 @@ end
  * sDelim > The delimiter to be used while processing the DSV list
 ]]
 function ProcessDSV(sDelim)
-  local lbNam, sNt = GetOpVar("NAME_LIBRARY"), GetOpVar("TOOLNAME_PU")
+  local lbNam, sPU = GetOpVar("NAME_LIBRARY"), GetOpVar("TOOLNAME_PU")
   local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), lbNam, "_dsv")
-  local sDelim, tProc = tostring(sDelim or "\t"):sub(1,1), {}
-  local sDsv = GetLibraryPath(GetOpVar("DIRPATH_DSV"))
+  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sDsv, tProc = GetOpVar("DIRPATH_DSV"), {}
   local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
     LogInstance("Open fail: "..GetReport(fName)); return false end
   local sLine, isEOF, sGen = "", false, GetOpVar("DBEXP_PREFGEN")
@@ -4060,9 +4060,9 @@ function ProcessDSV(sDelim)
       LogInstance("Prefix clones "..GetReport(prf, tab.Size, fName))
       for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
     else
-      if(CLIENT) then
-        if(not fileExists(sDsv..fForm:format(sGen, sNt.."CATEGORY"), "DATA")) then
-          if(fileExists(sDsv..fForm:format(prf, sNt.."CATEGORY"), "DATA")) then
+      if(CLIENT) then local srNam = (sPU.."CATEGORY")
+        if(not fileExists(GetLibraryPath(sDsv, sGen, srNam), "DATA")) then
+          if(fileExists(GetLibraryPath(sDsv, prf, srNam), "DATA")) then
             if(not ImportCategory(3, prf)) then
               LogInstance("Failed "..GetReport(prf, "CATEGORY")) end
           else LogInstance("Missing "..GetReport(prf, "CATEGORY")) end
@@ -4071,8 +4071,9 @@ function ProcessDSV(sDelim)
       for iD = 1, #libQTable do
         local makTab = GetBuilderID(iD)
         local defTab = makTab:GetDefinition()
-        if(not fileExists(sDsv..fForm:format(sGen, sNt..defTab.Nick), "DATA")) then
-          if(fileExists(sDsv..fForm:format(prf, sNt..defTab.Nick), "DATA")) then
+        local srNam  = (sPU..defTab.Nick)
+        if(not fileExists(GetLibraryPath(sDsv, sGen, srNam), "DATA")) then
+          if(fileExists(GetLibraryPath(sDsv, prf, srNam), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
               LogInstance("Failed "..GetReport(prf, defTab.Nick)) end
           else LogInstance("Missing "..GetReport(prf, defTab.Nick)) end
@@ -4324,16 +4325,14 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("("..fPref..") Missing additions builder"); return false end
   local defA = makA:GetDefinition(); if(not IsHere(defA)) then
     LogInstance("("..fPref..") Missing additions definition"); return nil end
-  local sMoDB, fMon = GetOpVar("MODE_DATABASE"), "["..sMoDB:lower().."-dsv]"
+  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), "ExportTypeDSV"
+  local sDelim, fMon = tostring(sDelim or "\t"):sub(1,1), "["..sMoDB:lower().."-dsv]"
   local pNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defP.Name)
   local aNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defA.Name)
   local P = fileOpen(pNam, "wb", "DATA"); if(not P) then
     LogInstance("("..fPref..")("..fName..") Open fail"); return false end
   local A = fileOpen(aNam, "wb", "DATA"); if(not A) then
     LogInstance("("..fPref..")("..fName..") Open fail"); return false end
-  local sDelim, sFunc = tostring(sDelim or "\t"):sub(1,1), "ExportTypeDSV"
-  local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
-  local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
   P:Write("#1 "..sFunc..":("..fPref.."@"..defP.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
   P:Write("#2 "..defP.Nick..":("..makP:GetColumnList(sDelim)..")\n")
   A:Write("#1 "..sFunc..":("..fPref.."@"..defA.Nick..") "..GetDateTime().." [ "..sMoDB.." ]\n")
@@ -4378,6 +4377,8 @@ function ExportTypeDSV(sType, sDelim)
           end; return makP:Match(vCP,iCP,true,"\"",true) end).."\n")
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
+    local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
+    local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
     local PCache, ACache = libCache[defP.Name], libCache[defA.Name]
     if(not IsHere(PCache)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") Cache missing",defP.Nick) ; return false end

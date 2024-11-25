@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.810")
+asmlib.SetOpVar("TOOL_VERSION","8.811")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1822,7 +1822,7 @@ asmlib.NewTable("PIECES",{
       for iS = 1, tSort.Size do local stRec = tSort[iS]
         local sKey, vRec = stRec.Key, stRec.Rec
         if(not cT or cT ~= vRec.Type) then cT = vRec.Type
-          local sW = tostring(WorkshopID(cT) or sMiss)
+          local sW = tostring(asmlib.WorkshopID(cT) or sMiss)
           oFile:Write("# Categorize("..cT.."): "..sW.."\n")
         end
         oFile:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
