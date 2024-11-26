@@ -3803,17 +3803,17 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
     LogInstance(sHew.." Open fail: "..fName,sTable); return false end
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
-  local sLine, isEOF, nLen = "", false, defTab.Name:len()
+  local sDelim, sLine, isEOF = tostring(sDelim or "\t"):sub(1,1), "", false
   if(sMoDB == "SQL") then sqlQuery(cmdTab.BEGIN)
     LogInstance(sHew.." Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
-      if(sLine:sub(1,nLen) == defTab.Name) then
-        local tData = sDelim:Explode(sLine:sub(nLen+2,-1))
-        for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
-        if(bComm) then makTab:Record(tData) end
-      end
+      local tData = sDelim:Explode(sLine); if((#tData-1) ~= defTab.Size) then
+        LogInstance(sHew.." Internal length mismatch "..GetReport(sLine),sTable); return false end
+      local sSors = tableRemove(tData, 1); if(sSors ~= defTab.Name) then
+        LogInstance(sHew.." Internal table mismatch "..GetReport(sLine),sTable); return false end
+      for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
+      if(bComm) then makTab:Record(tData) end
     end
   end; F:Close()
   if(sMoDB == "SQL") then sqlQuery(cmdTab.COMMIT)
