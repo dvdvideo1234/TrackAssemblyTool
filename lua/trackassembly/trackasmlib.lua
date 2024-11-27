@@ -787,7 +787,7 @@ function InitBase(sName, sPurp)
   SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
   SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
   SetOpVar("PATTEM_WORKSHID", "^%d+$")
-  SetOpVar("PATTEM_EXCATHED", {"@", "(%s@%d)"   , "^#.*ExportCategory.*%(.+%)", "%(.+@.+%)"})
+  SetOpVar("PATTEM_EXCATHED", {"@", "(%s@%d)"   , "^#.*ExportCategory.*%(.+%)", "%(.+%)"})
   SetOpVar("PATTEM_EXDSVHED", {"@", "(%s@%s@%s)", "^#.*DSV.*%(.+%)"           , "%(.+%)"})
   SetOpVar("HOVER_TRIGGER"  , {})
   if(CLIENT) then
@@ -3167,7 +3167,8 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
-    local qtDef, sMoDB, sFunc = self:GetDefinition(), GetOpVar("MODE_DATABASE"), "Record"
+    local qtDef = self:GetDefinition()
+    local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
     if(not arLine) then LogInstance("Missing data table",tabDef.Nick); return false end
     if(not arLine[1]) then LogInstance("Missing PK",tabDef.Nick)
       for key, val in pairs(arLine) do
@@ -3177,7 +3178,8 @@ function NewTable(sTable,defTab,bDelete,bReload)
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
     local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
     -- Call the trigger when provided
-    if(istable(qtDef.Trigs)) then local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
+    if(istable(qtDef.Trigs)) then
+      local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
       if(not bS) then LogInstance("Trigger manager "..sR,tabDef.Nick); return false end
       if(not sR) then LogInstance("Trigger routine fail",tabDef.Nick); return false end
     end -- Populate the data after the trigger does its thing
@@ -3302,7 +3304,7 @@ function CacheQueryPiece(sModel)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for "..GetReport(defTab.Name)); return nil end
   local sModel = makTab:Match(sModel,1,false,"",true,true)
-  local stData, sFunc = tCache[sModel], "CacheQueryPiece"
+  local stData, sFunc = tCache[sModel], debugGetinfo(1).name
   if(IsHere(stData) and IsHere(stData.Size)) then
     if(stData.Size <= 0) then stData = nil else
       stData = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
@@ -3350,7 +3352,7 @@ function CacheQueryAdditions(sModel)
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Cache missing for "..GetReport(defTab.Name, sModel)); return nil end
   local sModel, qsKey = makTab:Match(sModel,1,false,"",true,true), GetOpVar("FORM_KEYSTMT")
-  local stData, sFunc = tCache[sModel], "CacheQueryAdditions"
+  local stData, sFunc = tCache[sModel], debugGetinfo(1).name
   if(IsHere(stData) and IsHere(stData.Size)) then
     if(stData.Size <= 0) then stData = nil else
       stData = makTab:TimerRestart(sFunc, defTab.Name, sModel) end
@@ -3423,7 +3425,7 @@ function CacheQueryTree()
     LogInstance("Missing table definition"); return nil end
   if(not IsHere(libCache[defTab.Name])) then
     LogInstance("Missing cache allocated "..GetReport(defTab.Name)); return nil end
-  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), "CacheQueryTree"
+  local keyPan , sFunc = GetOpVar("HASH_USER_PANEL"), debugGetinfo(1).name
   local stPan, qsKey = libCache[keyPan], GetOpVar("FORM_KEYSTMT")
   if(IsHere(stPan) and IsHere(stPan.Size)) then LogInstance("Retrieve")
     if(stPan.Size <= 0) then stPan = nil else
@@ -3472,7 +3474,7 @@ function CacheQueryProperty(sType)
     LogInstance("Missing table definition"); return nil end
   local tCache = libCache[defTab.Name]; if(not tCache) then
     LogInstance("Cache missing for "..GetReport(defTab.Name)); return nil end
-  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), "CacheQueryProperty"
+  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   local qsKey = GetOpVar("FORM_KEYSTMT")
   if(isstring(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
@@ -3576,7 +3578,7 @@ function ExportSyncDB(sDelim)
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sMiss, sTable = GetOpVar("MISS_NOAV"), "PIECES"
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(sMiss, sTable, sDelim), "ExportSyncDB"
+  local sHew, sFunc = tHew[2]:format(sMiss, sTable, sDelim), debugGetinfo(1).name
   local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"), GetOpVar("NAME_LIBRARY"), "_db")
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance(sHew.." Missing table builder"); return false end
@@ -3634,7 +3636,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXCATHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(fPref, nEq), "ExportCategory"
+  local sHew, sFunc = tHew[2]:format(fPref, nEq), debugGetinfo(1).name
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
     LogInstance(sHew.." Prefix empty"); return false end
   if(IsFlag("en_dsv_datalock")) then
@@ -3732,7 +3734,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), "ExportDSV"
+  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance(sHew.." User disabled",sTable); return true end
   if(IsGenericDB(sTable)) then
@@ -3834,7 +3836,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
   if(sMoDB == "SQL") then sqlQuery(cmdTab.BEGIN); LogInstance(sHew.." Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
-      local tData = sDelim:Explode(sLine); if((#tData-1) ~= defTab.Size) then
+      local tData = sDelim:Explode(sLine); if((#tData-1) > defTab.Size) then
         LogInstance(sHew.." Internal length mismatch "..GetReport(sLine),sTable); return false end
       local sSors = tableRemove(tData, 1); if(sSors ~= defTab.Name) then
         LogInstance(sHew.." Internal table mismatch "..GetReport(sLine),sTable); return false end
@@ -3862,7 +3864,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(fPref,sPref),sTable); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), "SynchronizeDSV"
+  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance(sHew.." User disabled",sTable); return true end
   if(IsGenericDB(sTable)) then
@@ -3960,7 +3962,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), "TranslateDSV"
+  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance(sHew.." User disabled",sTable); return true end
   if(IsGenericDB(sTable)) then
@@ -4119,7 +4121,7 @@ function SetAdditionsRun(sModel, makTab, qList)
     LogInstance("Table builder missing "..GetReport(qModel)); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Table definition missing "); return false end
-  local sMoDB, sFunc, qData = GetOpVar("MODE_DATABASE"), "SetAdditionsRun"
+  local sMoDB, sFunc, qData = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qModel = makTab:Match(tostring(sModel or ""), 1, true)
@@ -4164,7 +4166,7 @@ function ExportContentsRun(fF,qData,sName,sInd,qList)
     LogInstance("Missing table definition"); return false end
   local mgrTab = defTab.Cache; if(not IsHere(mgrTab)) then
     LogInstance("Cache manager missing"); return false end
-  local sFunc = "ExportContentsRun"; if(not IsHere(mgrTab[sFunc])) then
+  local sFunc = debugGetinfo(1).name; if(not IsHere(mgrTab[sFunc])) then
     LogInstance("Missing data handler"); return false end
   if(IsHere(qList) and istable(qList)) then
     if(IsHere(qList[keyBld])) then makAdd = qList[keyBld] else
@@ -4223,7 +4225,7 @@ function ExportTypeRun(sType)
   if(IsBlank(sType)) then
     LogInstance("Track type blank"); return end
   local qPieces, qAdditions
-  local sFunc = "ExportTypeRun"
+  local sFunc = debugGetinfo(1).name
   local sBase = GetOpVar("DIRPATH_BAS")
   local noSQL = GetOpVar("MISS_NOSQL")
   local sTool = GetOpVar("TOOLNAME_NL")
@@ -4351,7 +4353,7 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("("..fPref..") Missing additions builder"); return false end
   local defA = makA:GetDefinition(); if(not IsHere(defA)) then
     LogInstance("("..fPref..") Missing additions definition"); return nil end
-  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), "ExportTypeDSV"
+  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   local sDelim, fMon = tostring(sDelim or "\t"):sub(1,1), "["..sMoDB:lower().."-dsv]"
   local pNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defP.Name)
   local aNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defA.Name)
