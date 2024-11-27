@@ -3745,8 +3745,8 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance(sHew.." Open fail: "..fName,sTable); return false end
-  F:Write("#1 "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  F:Write("#2 "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
+  F:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
+  F:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, sTable)
@@ -3754,7 +3754,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
       Q = makTab:Select():Order(unpack(tQ.O)):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance(sHew.." Build statement failed",sTable); return false end
-    F:Write("#3 Query:<"..Q..">\n")
+    F:Write("# Query:<"..Q..">\n")
     local qData = sqlQuery(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
       LogInstance(sHew.." SQL exec error "..GetReport(sqlLastError(), Q), sTable); return nil end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
@@ -3787,23 +3787,29 @@ end
  * bExp   > Forces the input from the export folder.( defaults to DSV )
 ]]
 function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
-  if(not isstring(sTable)) then
+  local sTable = tostring(sTable or ""); if(IsBlank(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local sDelim, sLine, isEOF = tostring(sDelim or "\t"):sub(1,1), "", false
-  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
-    LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
-  local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
-  local sHew = tHew[2]:format(fPref, sTable, sDelim)
-  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance(sHew.." Missing table builder",sTable); return nil end
-  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance(sHew.." Missing table definition",sTable); return false end
-  local cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-    LogInstance(sHew.." Missing table command",sTable); return false end
-  local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  local fName = GetLibraryPath(sSors, fPref, defTab.Name)
-  local F = fileOpen(fName, "rb", "DATA"); if(not F) then
-    LogInstance(sHew.." Open fail: "..fName,sTable); return false end
+  local bFile, sLine, isEOF, F = fileExists(sTable), "", false
+  local sMoDB, makTab, defTab, cmdTab, sHew = GetOpVar("MODE_DATABASE")
+  if(bFile) then
+    LogInstance("Reading configuration: "..sTable)
+  else
+    sDelim = tostring(sDelim or "\t"):sub(1,1)
+    local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+      LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
+    local tHew = GetOpVar("PATTEM_EXDSVHED")
+    sHew = tHew[2]:format(fPref, sTable, sDelim)
+    makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
+      LogInstance(sHew.." Missing table builder",sTable); return nil end
+    defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+      LogInstance(sHew.." Missing table definition",sTable); return false end
+    cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
+      LogInstance(sHew.." Missing table command",sTable); return false end
+    local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
+    local fName = GetLibraryPath(sSors, fPref, defTab.Name)
+    F = fileOpen(fName, "rb", "DATA"); if(not F) then
+      LogInstance(sHew.." Open fail: "..fName,sTable); return false end
+  end
   if(sMoDB == "SQL") then sqlQuery(cmdTab.BEGIN); LogInstance(sHew.." Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
@@ -4332,10 +4338,10 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("("..fPref..")("..fName..") Open fail"); return false end
   local A = fileOpen(aNam, "wb", "DATA"); if(not A) then
     LogInstance("("..fPref..")("..fName..") Open fail"); return false end
-  P:Write("#1 "..sFunc..":"..tHew[2]:format(fPref,defP.Nick,sDelim).." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  P:Write("#2 "..defP.Nick..":("..makP:GetColumnList(sDelim)..")\n")
-  A:Write("#1 "..sFunc..":"..tHew[2]:format(fPref,defA.Nick,sDelim).." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  A:Write("#2 "..defA.Nick..":("..makA:GetColumnList(sDelim)..")\n")
+  P:Write("# "..sFunc..":"..tHew[2]:format(fPref,defP.Nick,sDelim).." "..GetDateTime().." [ "..sMoDB.." ]\n")
+  P:Write("# "..defP.Nick..":("..makP:GetColumnList(sDelim)..")\n")
+  A:Write("# "..sFunc..":"..tHew[2]:format(fPref,defA.Nick,sDelim).." "..GetDateTime().." [ "..sMoDB.." ]\n")
+  A:Write("# "..defA.Nick..":("..makA:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
     local qsNov = GetOpVar("MISS_NOAV")
     local qsKey = GetOpVar("FORM_KEYSTMT")
@@ -4346,7 +4352,7 @@ function ExportTypeDSV(sType, sDelim)
       Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qType) end
     if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") Build statement failed",defP.Nick); return false end
-    P:Write("#3 Query:<"..Q..">\n")
+    P:Write("# Query:<"..Q..">\n")
     local qP = sqlQuery(Q); if(not qP and isbool(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defP.Nick); return false end
     if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
@@ -4362,7 +4368,7 @@ function ExportTypeDSV(sType, sDelim)
               Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tW.O)):Store(qInxA):Get(qInxA, qrMo) end
             if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
               LogInstance("("..fPref..") Build statement failed",defA.Nick); return qsNov end
-            if(iP == 1) then A:Write("#3 Query:<"..Q..">\n") end
+            if(iP == 1) then A:Write("# Query:<"..Q..">\n") end
             local qA = sqlQuery(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
               LogInstance("("..fPref..") SQL exec error "..GetReport(sqlLastError(), Q), defA.Nick); return qsNov end
             if(not IsHere(qA) or IsEmpty(qA)) then
