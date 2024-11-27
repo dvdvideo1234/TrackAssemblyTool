@@ -787,8 +787,8 @@ function InitBase(sName, sPurp)
   SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
   SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
   SetOpVar("PATTEM_WORKSHID", "^%d+$")
-  SetOpVar("PATTEM_EXCATHED", {"@", "(%s@%d)", "^#.*ExportCategory.*%(.+%)", "%(.+@.+%)"})
-  SetOpVar("PATTEM_EXDSVHED", {"@", "(%s@%s@%s)"})
+  SetOpVar("PATTEM_EXCATHED", {"@", "(%s@%d)"   , "^#.*ExportCategory.*%(.+%)", "%(.+@.+%)"})
+  SetOpVar("PATTEM_EXDSVHED", {"@", "(%s@%s@%s)", "^#.*DSV.*%(.+%)"           , "%(.+%)"})
   SetOpVar("HOVER_TRIGGER"  , {})
   if(CLIENT) then
     SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
@@ -3636,7 +3636,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local tHew, sMoDB = GetOpVar("PATTEM_EXCATHED"), GetOpVar("MODE_DATABASE")
   local sHew, sFunc = tHew[2]:format(fPref, nEq), "ExportCategory"
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
-    LogInstance(sHew.."Prefix empty"); return false end
+    LogInstance(sHew.." Prefix empty"); return false end
   if(IsFlag("en_dsv_datalock")) then
     LogInstance(sHew.." User disabled"); return true end
   if(IsGenericDB("CATEGORY")) then
@@ -3677,12 +3677,12 @@ function ImportCategory(vEq, sPref, bExp)
   if(nEq == 0) then local iF = F:Tell() -- Store the initial file pointer
     local sLine, isEOF = GetStringFile(F) -- Read the file header
     local sPar = sLine:match(tHew[3]); if(not sPar) then
-      LogInstance(sHew.."Intern header missing"); return false end
+      LogInstance(sHew.." Intern header missing"); return false end
     local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
     nEq = mathMax(mathFloor(tonumber(tPar[2]) or 0), 0); if(nEq <= 0) then
-      LogInstance(sHew.."Marker length error "..GetReport(nEq,vEq)); return false end
+      LogInstance(sHew.." Marker length error "..GetReport(nEq,vEq)); return false end
     sHew = tHew[2]:format(fPref, nEq); F:Seek(iF)
-    LogInstance(sHew.."Intern success "..GetReport(nEq,vEq))
+    LogInstance(sHew.." Intern success "..GetReport(sPar))
   end
   local sEq, sLine, nLen = ("="):rep(nEq), "", (nEq+2)
   local cFr, cBk = "["..sEq.."[", "]"..sEq.."]"
@@ -3706,14 +3706,14 @@ function ImportCategory(vEq, sPref, bExp)
               tCat[key].Cmp = CompileString("return ("..tCat[key].Txt..")",key)
               local bS, vO = pcall(tCat[key].Cmp)
               if(bS) then tCat[key].Cmp = vO else tCat[key].Cmp = nil
-                LogInstance(sHew.."Compilation fail "..GetReport(key, vO))
+                LogInstance(sHew.." Compilation fail "..GetReport(key, vO))
               end
-            else LogInstance(sHew.."Key skipped "..GetReport(key)) end
-          else LogInstance(sHew.."Function missing "..GetReport(key)) end
-        else LogInstance(sHew.."Name missing "..GetReport(txt)) end
+            else LogInstance(sHew.." Key skipped "..GetReport(key)) end
+          else LogInstance(sHew.." Function missing "..GetReport(key)) end
+        else LogInstance(sHew.." Name missing "..GetReport(txt)) end
       else sPar = sPar..sLine.."\n" end
     end
-  end; F:Close(); LogInstance(sHew.."Success"); return true
+  end; F:Close(); LogInstance(sHew.." Success"); return true
 end
 
 --[[
@@ -3790,14 +3790,35 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
   local sTable = tostring(sTable or ""); if(IsBlank(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local bFile, sLine, isEOF, F = fileExists(sTable), "", false
-  local sMoDB, makTab, defTab, cmdTab, sHew = GetOpVar("MODE_DATABASE")
+  local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
+  local sMoDB, makTab, defTab, cmdTab = GetOpVar("MODE_DATABASE")
   if(bFile) then
-    LogInstance("Reading configuration: "..sTable)
+    local tHew, fName = GetOpVar("PATTEM_EXDSVHED"), sTable
+    LogInstance("Reading configuration: "..fName)
+    F = fileOpen(fName, "rb", "DATA"); if(not F) then
+      LogInstance("Open fail: "..fName); return false end
+    local iF = F:Tell() -- Store the initial file pointer
+    local sLine, isEOF = GetStringFile(F) -- Read the file header
+    local sPar = sLine:match(tHew[3]); if(not sPar) then
+      LogInstance("Intern header missing"); return false end
+    local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
+    fPref, sTable = tPar[1]:Trim(), tPar[2]:Trim()
+    sDelim = tostring(tPar[3] or "\t"):sub(1,1)
+    sHew = tHew[2]:format(fPref, sTable, sDelim)
+    F:Seek(iF); sLine, isEOF = "", false
+    makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
+      LogInstance(sHew.." Missing table builder",sTable); return nil end
+    defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+      LogInstance(sHew.." Missing table definition",sTable); return false end
+    cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
+      LogInstance(sHew.." Missing table command",sTable); return false end
+    F = fileOpen(fName, "rb", "DATA"); if(not F) then
+      LogInstance(sHew.." Open fail: "..fName,sTable); return false end
+    LogInstance(sHew.." Intern success "..GetReport(sPar))
   else
     sDelim = tostring(sDelim or "\t"):sub(1,1)
     local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
       LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
-    local tHew = GetOpVar("PATTEM_EXDSVHED")
     sHew = tHew[2]:format(fPref, sTable, sDelim)
     makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
       LogInstance(sHew.." Missing table builder",sTable); return nil end
