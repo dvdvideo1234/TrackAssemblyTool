@@ -376,7 +376,7 @@ __e2setcost(20)
 e2function number entity:trackasmlibAttachBodyGroups(string sBgpID)
   if(not (this and this:IsValid() and enFlag)) then return 0 end
   local stRec = asmlib.CacheQueryPiece(this:GetModel()); if(not stRec) then return 0 end
-  return asmlib.AttachBodyGroups(this, sBgpID) and anyTrue or anyFalse
+  return asmlib.ApplyBodyGroups(this, sBgpID) and anyTrue or anyFalse
 end
 
 __e2setcost(20)

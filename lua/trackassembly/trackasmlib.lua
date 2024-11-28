@@ -4865,35 +4865,35 @@ end
 function AttachAdditions(ePiece)
   if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid"); return false end
-  local eAng, ePos, sMoc = ePiece:GetAngles(), ePiece:GetPos(), ePiece:GetModel()
+  local sMoc, dCass = ePiece:GetModel(), GetOpVar("ENTITY_DEFCLASS")
   local stData = CacheQueryAdditions(sMoc); if(not IsHere(stData)) then
-    LogInstance("Model skip "..GetReport(sMoc)); return true end
+    LogInstance("Skip attaching "..GetReport(sMoc)); return true end
   local makTab = GetBuilderNick("ADDITIONS"); if(not IsHere(makTab)) then
     LogInstance("Missing table definition"); return nil end
-  local sEoa = GetOpVar("OPSYM_ENTPOSANG"); LogInstance("PIECE:MODEL("..sMoc..")")
-  local coMB, coMA = makTab:GetColumnName(1), makTab:GetColumnName(2)
+  local ePos, eAng = ePiece:GetPos(), ePiece:GetAngles()
+  local coMA, oPOA = makTab:GetColumnName(2), NewPOA()
   local coEN, coLI = makTab:GetColumnName(3), makTab:GetColumnName(4)
   local coPO, coAN = makTab:GetColumnName(5), makTab:GetColumnName(6)
   local coMO, coPI = makTab:GetColumnName(7), makTab:GetColumnName(8)
   local coDR, coPM = makTab:GetColumnName(9), makTab:GetColumnName(10)
   local coPS, coSE = makTab:GetColumnName(11), makTab:GetColumnName(12)
-  for iCnt = 1, stData.Size do -- While additions are present keep adding them
-    local arRec = stData[iCnt]; LogInstance("PIECE:ADDITION("..iCnt..")")
-    local dCass, oPOA = GetOpVar("ENTITY_DEFCLASS"), NewPOA()
+  LogInstance("PIECE:MODEL("..sMoc..")") -- Start processing for the base model
+  for iA = 1, stData.Size do -- While additions are present keep adding them
+    local arRec = stData[iA]; LogInstance("PIECE:ADDITION("..iA..")")
     local sCass = GetEmpty(arRec[coEN], nil, dCass)
     local eBonus = entsCreate(sCass); LogInstance("ents.Create("..sCass..")")
     if(eBonus and eBonus:IsValid()) then
       local sMoa = tostring(arRec[coMA]); if(not IsModel(sMoa, true)) then
-        LogInstance("Invalid attachment "..GetReport(iCnt, sMoc, sMoa)); return false end
+        LogInstance("Invalid attachment "..GetReport(iA, sMoc, sMoa)); return false end
       eBonus:SetModel(sMoa) LogInstance("ENT:SetModel("..sMoa..")")
       local sPos = arRec[coPO]; if(not isstring(sPos)) then
-        LogInstance("Position mismatch "..GetReport(iCnt, sMoc, sPos)); return false end
+        LogInstance("Position mismatch "..GetReport(iA, sMoc, sPos)); return false end
       if(not GetEmpty(sPos)) then oPOA:Decode(sPos, eBonus, "Pos")
         local vPos = oPOA:Vector(); vPos:Set(ePiece:LocalToWorld(vPos))
         eBonus:SetPos(vPos); LogInstance("ENT:SetPos(DB)")
       else eBonus:SetPos(ePos); LogInstance("ENT:SetPos(PIECE:POS)") end
       local sAng = arRec[coAN]; if(not isstring(sAng)) then
-        LogInstance("Angle mismatch "..GetReport(iCnt, sMoc, sAng)); return false end
+        LogInstance("Angle mismatch "..GetReport(iA, sMoc, sAng)); return false end
       if(not GetEmpty(sAng)) then oPOA:Decode(sAng, eBonus, "Ang")
         local aAng = oPOA:Angle(); aAng:Set(ePiece:LocalToWorldAngles(aAng))
         eBonus:SetAngles(aAng); LogInstance("ENT:SetAngles(DB)")
@@ -4924,7 +4924,7 @@ function AttachAdditions(ePiece)
         LogInstance("ENT:SetSolid("..tostring(nSo)..")") end
     else
       local mA, mC = arRec[coMA], arRec[coEN]
-      LogInstance("Entity invalid "..GetReport(iCnt, sMoc, mA, mC)); return false
+      LogInstance("Entity invalid "..GetReport(iA, sMoc, mA, mC)); return false
     end
   end; LogInstance("Success"); return true
 end
@@ -4944,14 +4944,18 @@ function GetEntityOrTrace(oEnt)
   LogInstance("Success "..tostring(trEnt)); return trEnt
 end
 
+--[[
+ * Reads a skin code from a given entity
+ * oEnt > The entity to read to code from
+]]
 function GetPropSkin(oEnt)
-  local skEnt = GetEntityOrTrace(oEnt); if(not IsHere(skEnt)) then
+  local oEnt = GetEntityOrTrace(oEnt); if(not IsHere(oEnt)) then
     LogInstance("Failed to gather entity"); return "" end
-  if(IsOther(skEnt)) then
+  if(IsOther(oEnt)) then
     LogInstance("Entity other type"); return "" end
-  local Skin = tonumber(skEnt:GetSkin()); if(not IsHere(Skin)) then
+  local nRes = tonumber(oEnt:GetSkin()); if(not IsHere(nRes)) then
     LogInstance("Skin number mismatch"); return "" end
-  LogInstance("Success "..tostring(skEn)); return tostring(Skin)
+  LogInstance("Success "..tostring(skEn)); return tostring(mathFloor(nRes))
 end
 
 --[[
@@ -4959,38 +4963,38 @@ end
  * oEnt > The entity to read to code from
 ]]
 function GetPropBodyGroup(oEnt)
-  local bgEnt = GetEntityOrTrace(oEnt); if(not IsHere(bgEnt)) then
+  local oEnt = GetEntityOrTrace(oEnt); if(not IsHere(oEnt)) then
     LogInstance("Failed to gather entity"); return "" end
-  if(IsOther(bgEnt)) then
+  if(IsOther(oEnt)) then
     LogInstance("Entity other type"); return "" end
-  local tBG = bgEnt:GetBodyGroups(); if(not (tBG and tBG[1])) then
+  local tBG = oEnt:GetBodyGroups(); if(not (tBG and tBG[1])) then
     LogInstance("Bodygroup table empty"); return "" end
-  local sRez, iCnt, symSep = "", 1, GetOpVar("OPSYM_SEPARATOR")
-  while(tBG[iCnt]) do local iD = tBG[iCnt].id -- Read ID
-    local sD = bgEnt:GetBodygroup(iD) -- Read value by ID
-    sRez = sRez..symSep..tostring(sD or 0) -- Attach
-    LogInstance("GetBodygroup "..GetReport(iCnt, iD, sD))
-    iCnt = iCnt + 1 -- Prepare to take the next value
-  end; sRez = sRez:sub(2, -1) -- Remove last separator
-  LogInstance("Success "..GetReport(sRez)); return sRez
+  local sRes, iB, sySep = "", 1, GetOpVar("OPSYM_SEPARATOR")
+  while(tBG[iB]) do local iD = tBG[iB].id -- Read ID
+    local sD = oEnt:GetBodygroup(iD) -- Read value by ID
+    sRes = sRes..sySep..tostring(sD or 0) -- Attach
+    LogInstance("GetBodygroup "..GetReport(iB, iD, sD))
+    iB = iB + 1 -- Prepare to take the next value
+  end; sRes = sRes:sub(2, -1) -- Remove last separator
+  LogInstance("Success "..GetReport(sRes)); return sRes
 end
 
 --[[
- * Attach bodygroup code to a given entity
+ * Apply bodygroup code to a given entity
  * oEnt > The entity to attach the code for
+ * sBG  > Bodygroup code to attach like 1,2,3,4
 ]]
-function AttachBodyGroups(ePiece,sBgID)
-  if(not (ePiece and ePiece:IsValid())) then
+function ApplyBodyGroups(oEnt, sBG)
+  if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Base entity invalid"); return false end
-  local sBgID = tostring(sBgID or "")
-  local iCnt, tBG = 1, ePiece:GetBodyGroups()
-  local IDs = GetOpVar("OPSYM_SEPARATOR"):Explode(sBgID)
-  while(tBG[iCnt] and IDs[iCnt]) do local vBG = tBG[iCnt]
-    local maxID = (ePiece:GetBodygroupCount(vBG.id) - 1)
-    local curID = mathClamp(mathFloor(tonumber(IDs[iCnt]) or 0), 0, maxID)
-    LogInstance("SetBodygroup "..GetReport(iCnt, vBG.id, maxID, curID))
-    ePiece:SetBodygroup(vBG.id, curID); iCnt = iCnt + 1
-  end; LogInstance("Success "..GetReport(sBgID)); return true
+  local sBG, tBG, iB = tostring(sBG or ""), oEnt:GetBodyGroups(), 1
+  local tID = GetOpVar("OPSYM_SEPARATOR"):Explode(sBG)
+  while(tBG[iB] and tID[iB]) do local vBG = tBG[iB]
+    local mBG = (oEnt:GetBodygroupCount(vBG.id) - 1)
+    local cBG = mathClamp(mathFloor(tonumber(tID[iB]) or 0), 0, mBG)
+    LogInstance("SetBodygroup "..GetReport(iB, vBG.id, mBG, cBG))
+    oEnt:SetBodygroup(vBG.id, cBG); iB = iB + 1
+  end; LogInstance("Success "..GetReport(sBG)); return true
 end
 
 function SetPosBound(ePiece,vPos,oPly,sMode)
@@ -5037,7 +5041,7 @@ function InSpawnMargin(oPly,oRec,vPos,aAng)
     else -- Otherwise create memory entry and sore the piece location
       oRec.Mpos, oRec.Mray = Vector(vPos), aAng:Forward()
       return false -- Store the last location the piece was spawned
-    end -- Otherwise wipe the current memoty when not provided
+    end -- Otherwise wipe the current memory when not provided
   else oRec.Mpos, oRec.Mray = nil, nil end; return false
 end
 
@@ -5084,7 +5088,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(nMass > 0) then pPiece:SetMass(nMass) end -- Mass equal zero use model mass
   local tBgSk = GetOpVar("OPSYM_DIRECTORY"):Explode(sBgSkIDs or "")
   ePiece:SetSkin(mathClamp(tonumber(tBgSk[2]) or 0, 0, ePiece:SkinCount()-1))
-  if(not AttachBodyGroups(ePiece, tBgSk[1])) then ePiece:Remove()
+  if(not ApplyBodyGroups(ePiece, tBgSk[1])) then ePiece:Remove()
     LogInstance("Failed attaching bodygroups"); return nil end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     LogInstance("Failed attaching additions"); return nil end

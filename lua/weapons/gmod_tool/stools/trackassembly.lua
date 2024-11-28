@@ -1458,7 +1458,7 @@ function TOOL:LeftClick(stTrace)
       end
     else -- Visual
       local IDs = gsSymDir:Explode(bgskids)
-      if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
+      if(not asmlib.ApplyBodyGroups(trEnt,IDs[1] or "")) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Bodygroup/Skin) Failed",trEnt),gtLogs); return false end
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       asmlib.LogInstance("(Bodygroup/Skin) Success",gtLogs)
