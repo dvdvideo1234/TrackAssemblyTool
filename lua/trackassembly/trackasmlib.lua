@@ -3791,7 +3791,7 @@ end
 function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
   local sTable = tostring(sTable or ""); if(IsBlank(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local bFile, sLine, isEOF, F = fileExists(sTable), "", false
+  local bFile, sLine, isEOF, F = fileExists(sTable, "DATA"), "", false
   local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
   local sMoDB, makTab, defTab, cmdTab = GetOpVar("MODE_DATABASE")
   if(bFile) then
