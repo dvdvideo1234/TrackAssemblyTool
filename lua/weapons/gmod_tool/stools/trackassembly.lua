@@ -2333,7 +2333,7 @@ function TOOL:DrawToolScreen(w, h)
   local actrad   = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
   local workmode, workname = self:GetWorkingMode()
-  local trMaxCN, trModel, trOID, trRLen
+  local trMID, trModel, trOID, trRLen
   if(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
           trModel = trEnt:GetModel()
@@ -2349,7 +2349,7 @@ function TOOL:DrawToolScreen(w, h)
       trRLen = mathRound(stSpawn.RLen,2)
     end
     if(asmlib.IsHere(trRec)) then
-      trMaxCN = trRec.Size
+      trMID = trRec.Size
       trModel = stringGetFileName(trModel)
     else trModel = "["..gsNoMD.."]"..stringGetFileName(trModel) end
   end
@@ -2358,7 +2358,7 @@ function TOOL:DrawToolScreen(w, h)
   maxrad = asmlib.GetAsmConvar("maxactrad", "FLT")
   scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   scrTool:DrawText("HM: " ..(model      or gsNoAV),"m")
-  scrTool:DrawText("ID: ["..(trMaxCN    or gsNoID)
+  scrTool:DrawText("ID: ["..(trMID      or gsNoID)
                   .."] "  ..(trOID      or gsNoID)
                   .." >> "..(pointid    or gsNoID)
                   .. " (" ..(pnextid    or gsNoID)

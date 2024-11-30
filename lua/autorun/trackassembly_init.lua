@@ -2101,7 +2101,7 @@ else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
   local PIECES = asmlib.GetBuilderNick("PIECES"); asmlib.ModelToNameRule("CLR")
-  if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
+--  if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
     asmlib.Categorize("Develop Sprops")
     PIECES:Record({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1})
     PIECES:Record({"models/sprops/cuboids/height12/size_1/cube_12x12x12.mdl", "#", "x2", 1})
@@ -2117,7 +2117,7 @@ else
     asmlib.Categorize("Develop Test")
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "-90,  0,180"})
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "90,180,180"})
-  end
+ -- end
   asmlib.Categorize("PHX Monorail")
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 1, "", "229.885559,0.23999,13.87915"})
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 2, "", "-228.885254,0.239726,13.87915", "0,-180,0"})
@@ -4826,8 +4826,21 @@ else
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent.mdl", "#", "#", 2, "", "0,-59,-20", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent_gate.mdl", "#", "#", 1, "", "0, 59,-16", "0, 90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent_gate.mdl", "#", "#", 2, "", "0,-59,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_short.mdl", "#", "#", 1, "", "0, 31,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_short.mdl", "#", "#", 2, "", "0,-31,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_mid.mdl", "#", "#", 1, "", "0, 63,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_mid.mdl", "#", "#", 2, "", "0,-63,0", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 1, "", "0, 115,0", "0,90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 2, "", "0,-115,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_2sec.mdl", "#", "#", 1, "", "91,25,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_2sec.mdl", "#", "#", 2, "", "-24,-91,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 1, "", "91,25,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 2, "", "-24,-91,0", "0,-90,0"})
+
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 1, "", " 112,24,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 2, "", "-3.5,-90,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 3, "", "-112,24,0", "0,-180,0"})
+
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
