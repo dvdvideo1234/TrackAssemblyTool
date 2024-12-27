@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.765")
+asmlib.SetOpVar("TOOL_VERSION","9.766")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -4807,8 +4807,8 @@ else
   PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky_dip.mdl", "#", "#", 2, "", "0,-44,4", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/comp_roundroom.mdl", "#", "#", 1, "", "-20,128,-26", "0,90,0"})
   PIECES:Record({"models/scene_building/sewer_system/comp_roundroom.mdl", "#", "#", 2, "", "-94,-28, 14", "0,-180,0"})
-  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 1, "", "0, 15,0", "0, 90,0", ""})
-  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 2, "", "0,-15,0", "0,-90,0", ""})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 1, "", "0, 15,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 2, "", "0,-15,0", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 1, "", "145,0,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 2, "", "0,-175,-20", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 3, "", "-145,0,0", "0,-180,0"})
@@ -4818,8 +4818,8 @@ else
   PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 1, "", "0,-172,0", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 2, "", "-200,28,0", "0,-180,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 3, "", "200,28,0"})
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 1, "", "8.2,-121,-4", "0,-90,0", ""})
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 2, "", "-49.604,18.618,-4", "0,135,0", ""})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 1, "", "8.2,-121,-4", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 2, "", "-49.604,18.618,-4", "0,135,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 1, "", "-145,0,0", "0,-180,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 2, "", "0,175,-20", "0,90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 3, "", "0,-175,-20", "0,-90,0"})
