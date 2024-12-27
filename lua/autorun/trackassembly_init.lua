@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.815")
+asmlib.SetOpVar("TOOL_VERSION","8.816")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1274,7 +1274,7 @@ if(CLIENT) then
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
           asmlib.SetAsmConvar(oPly, "exportdb", 0)
-          if(inputIsKeyDown(KEY_LSHIFT) and asmlib.GetAsmConvar("devmode" ,"BUL")) then
+          if(inputIsKeyDown(KEY_LSHIFT)) then
             if(not asmlib.ExportSyncDB()) then
               asmlib.LogInstance("Export invalid", sLog..".Button"); return nil end
           else
@@ -1801,12 +1801,12 @@ asmlib.NewTable("PIECES",{
       local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
-      if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
-      if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
-      if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
+      if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
+      if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
+      if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
       if(nOffsID ~= (stData.Size + 1)) then
@@ -2101,7 +2101,7 @@ else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
   local PIECES = asmlib.GetBuilderNick("PIECES"); asmlib.ModelToNameRule("CLR")
---  if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
+  if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
     asmlib.Categorize("Develop Sprops")
     PIECES:Record({"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl"   , "#", "x1", 1})
     PIECES:Record({"models/sprops/cuboids/height12/size_1/cube_12x12x12.mdl", "#", "x2", 1})
@@ -2117,7 +2117,7 @@ else
     asmlib.Categorize("Develop Test")
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 1, "#", "-0.05,0.006, 21.934", "-90,  0,180"})
     PIECES:Record({"models/props_c17/furniturewashingmachine001a.mdl", "#", "#", 2, "", "-0.05,0.006,-21.922", "90,180,180"})
- -- end
+  end
   asmlib.Categorize("PHX Monorail")
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 1, "", "229.885559,0.23999,13.87915"})
   PIECES:Record({"models/props_phx/trains/monorail1.mdl", "#", "Straight Short", 2, "", "-228.885254,0.239726,13.87915", "0,-180,0"})
@@ -2495,7 +2495,8 @@ else
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 2, "", "-201.413, 0.001, 5.002", "0,180,0"})
   asmlib.Categorize("XQM Ball Rails",[[function(m)
     local g = m:gsub("models/xqm/rails/",""):gsub("/","_")
-    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local r = g:match(".-_"); if(not r) then return end
+    r = r:sub(1, -2); g = g:gsub(r.."_", "")
     local t, n = g:match(".-_"), g:gsub("%.mdl","")
     if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
       if(r:find(t)) then n = n:gsub(t.."_", "")
@@ -4832,15 +4833,80 @@ else
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_mid.mdl", "#", "#", 2, "", "0,-63,0", "0,-90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 1, "", "0, 115,0", "0,90,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 2, "", "0,-115,0", "0,-90,0"})
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_2sec.mdl", "#", "#", 1, "", "91,25,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_2sec.mdl", "#", "#", 1, "", "91,24.5,0"})
   PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_2sec.mdl", "#", "#", 2, "", "-24,-91,0", "0,-90,0"})
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 1, "", "91,25,0"})
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 2, "", "-24,-91,0", "0,-90,0"})
-
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 1, "", " 112,24,0"})
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 2, "", "-3.5,-90,0", "0,-90,0"})
-  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 3, "", "-112,24,0", "0,-180,0"})
-
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 1, "", "91,27.015,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 2, "", "-27,-91,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 1, "", "112,24.4982,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 2, "", "-2.80149,-90,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 3, "", "-112,24.362,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend_half.mdl", "#", "#", 1, "", "24.6314,19.6809,0", "0,45,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend_half.mdl", "#", "#", 2, "", "-6.55228,-65.1073,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_straight.mdl", "#", "#", 1, "", "0, 95,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_straight.mdl", "#", "#", 2, "", "0,-95,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_side.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_side.mdl", "#", "#", 2, "", "-43,0,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_side.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_sml.mdl", "#", "#", 1, "", "0,5,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_sml.mdl", "#", "#", 2, "", "0,-5,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_l.mdl", "#", "#", 1, "", "43,-4,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_l.mdl", "#", "#", 2, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_l.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp.mdl", "#", "#", 1, "", "0, 47,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp_small.mdl", "#", "#", 1, "", "0, 31,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp_small.mdl", "#", "#", 2, "", "0,-31,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_r.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_r.mdl", "#", "#", 2, "", "-43,-4,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_r.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 1, "", "43,0,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 2, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 3, "", "-43,0,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 4, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 1, "", "43,-4,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 2, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 3, "", "-43,-4,0","0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 4, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_3way.mdl", "#", "#", 1, "", "2,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_3way.mdl", "#", "#", 2, "", "-45,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_3way.mdl", "#", "#", 3, "", "2,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 1, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 2, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 3, "", "-47,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 4, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_corner.mdl", "#", "#", 1, "", "-45,2,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_corner.mdl", "#", "#", 2, "", "2,-45,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_deadend.mdl", "#", "#", 1, "", "0,-45,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/1door.mdl", "#", "#", 1, "", "0,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/1door_l.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/1door_r.mdl", "#", "#", 1, "", "64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp.mdl", "#", "#", 2, "", "-64,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_l.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_l.mdl", "#", "#", 2, "", "64,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_ml.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_ml.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_mr.mdl", "#", "#", 1, "", "64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_mr.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_r.mdl", "#", "#", 1, "", "64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_r.mdl", "#", "#", 2, "", "-64,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opposites.mdl", "#", "#", 1, "", "0,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opposites.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_sides.mdl", "#", "#", 1, "", "123,0,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_sides.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/3door.mdl", "#", "#", 1, "", "123,0,0"})
+  PIECES:Record({"models/scene_building/small_rooms/3door.mdl", "#", "#", 2, "", "0, 123,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/3door.mdl", "#", "#", 3, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 1, "", "123,0,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 2, "", "0, 123,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 3, "", "-123,0,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 4, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/stairs_straight.mdl", "#", "#", 1, "", "0,163,64", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/stairs_straight.mdl", "#", "#", 2, "", "0,-163,-64", "0,-90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 

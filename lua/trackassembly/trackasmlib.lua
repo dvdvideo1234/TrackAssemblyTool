@@ -1857,7 +1857,7 @@ function GetFrequentPieces(iCnt)
     local oRec = tSort[iD] -- Index arranged record ID
     if(oRec) then oRec = oRec.Rec -- Jump over to the record
       if(not oRec.Post) then -- Initialized. Not yet picked
-        local nT = (tmNow - oRec.Used) -- Time to display
+        local nT = (tmNow - (tonumber(oRec.Used) or 0))
         local tD = {oRec.Slot, oRec.Type, oRec.Name, oRec.Size}
         frUsed.Size = (frUsed.Size + 1) -- Increment size
         tableInsert(frUsed, {Time = nT, Data = tD})
@@ -2278,20 +2278,19 @@ end
 ]]
 function LocatePOA(oRec, ivPoID)
   if(not oRec) then LogInstance("Missing record"); return nil end
-  local sMo = oRec.Slot
-  local tOffs = oRec.Offs; if(not tOffs) then
+  local sMo, tOffs = oRec.Slot, oRec.Offs; if(not tOffs) then
     LogInstance("Missing offsets for "..GetReport(oRec.Slot)); return nil end
   local iPoID = tonumber(ivPoID); if(iPoID) then iPoID = mathFloor(iPoID)
     else LogInstance("ID mismatch "..GetReport(ivPoID)); return nil end
   local stPOA = tOffs[iPoID]; if(not IsHere(stPOA)) then
     LogInstance("Missing ID "..GetReport(iPoID, oRec.Slot)); return nil end
   if(oRec.Post) then oRec.Post = nil -- Transforming has started
-    for ID = 1, oRec.Size do
-      local tPOA = tOffs[ID]
-      local oP, oO, oA = tPOA.P, tPOA.O, tPOA.A
-      local sP, sO, sA = oP:Raw(), oO:Raw(), oA:Raw()
-      if(sO) then tPOA.O:Decode(sO, sM, "Pos") end
-      if(sA) then tPOA.A:Decode(sA, sM, "Ang") end
+    for ID = 1, oRec.Size do -- Loop trough all the points and process DB spawn
+      local tPOA = tOffs[ID] -- Extract current offset and localize raw values
+      local oP, oO, oA = tPOA.P, tPOA.O, tPOA.A -- POA object pointers
+      local sP, sO, sA = oP:Raw(), oO:Raw(), oA:Raw() -- POA raw values
+      if(sO) then tPOA.O:Decode(sO, sM, "Pos") end -- Process origin
+      if(sA) then tPOA.A:Decode(sA, sM, "Ang") end -- Process angle
       if(sP) then tPOA.P:Decode(sP, sM, "Pos", tPOA.O:Get()) end
       LogInstance("Spawn "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
@@ -2313,6 +2312,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   if(not stData.Offs) then if(iID ~= 1) then
     LogInstance("Mismatch ID "..GetReport(iID, stData.Slot)); return nil end
     stData.Offs = {}; stData.Post = true -- Mark post-process on spawn
+    if(not IsHere(stData.Used)) then stData.Used = 0 end
   end
   local tOffs = stData.Offs; if(tOffs[iID]) then
     LogInstance("Exists ID "..GetReport(iID)); return tOffs
@@ -3598,8 +3598,8 @@ function ExportSyncDB(sDelim)
       LogInstance(sHew.." SQL exec error "..GetReport(sqlLastError(), Q)); return false end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance(sHew.." No data found "..GetReport(Q)); return false end
-    stPan.Size = #qData; F:Write("# Query("..stPan.Size.."):<"..Q..">\n")
-   local coTy, cT = makTab:GetColumnName(2), nil
+    F:Write("# Query("..#qData.."):<"..Q..">\n")
+    local coTy, cT = makTab:GetColumnName(2), nil
     for iD = 1, #qData do local vRow = qData[iD]
       if(not cT or cT ~= vRow[coTy]) then cT = vRow[coTy]
         local sW = tostring(WorkshopID(cT) or sMiss)
@@ -4388,7 +4388,7 @@ function ExportTypeDSV(sType, sDelim)
           if(sCP == coLI and (tonumber(vCP) or 0) == 1) then
             local qrMo = makP:Match(rwM, 1, true)
             local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then local tQ = defA.Query[sFunc]
-              Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tW.O)):Store(qInxA):Get(qInxA, qrMo) end
+              Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxA):Get(qInxA, qrMo) end
             if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
               LogInstance("("..fPref..") Build statement failed",defA.Nick); return qsNov end
             if(iP == 1) then A:Write("# Query:<"..Q..">\n") end

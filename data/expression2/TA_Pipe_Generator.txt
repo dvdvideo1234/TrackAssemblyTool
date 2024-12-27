@@ -1,7 +1,7 @@
 @name TA Pipe Generator
-@model models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl
+@model models/props_lab/huladoll.mdl
 @persist [Scanner Pipe]:entity [F U R,C MP]:vector [TU TD TL TR]:ftrace 
-@persist [Delta Iter]:number [ScanCenter SizeCenter]:vector2 MA:angle
+@persist [Delta Iter Raun]:number [ScanCenter SizeCenter]:vector2 MA:angle
 @outputs 
 
 if(first() || dupefinished())
@@ -11,10 +11,13 @@ if(first() || dupefinished())
     ScanR = 500 # Scan radius must be bigger then pipe radius
     
     # Amount of iterations to lower delta
-    Iter = 15
+    Iter = 10
+    
+    # Rouding
+    Raun = 4
     
     # Align center to prop center
-    ScanCenter = vec2(0, 0)
+    ScanCenter = vec2(0, 3)
     SizeCenter = vec2(3, 3)
     
     # How fast it will scan the piece edge
@@ -27,6 +30,7 @@ if(first() || dupefinished())
     # Automatic stuff
     Scanner = entity()
     Pipe    = noentity()
+    U = U:normalized()
     R = F:cross(U)
     MP = Scanner:pos()
     MA = Scanner:angles()
@@ -92,7 +96,7 @@ event tick()
         }
         else
         {   
-            print("Iteration:", Iter)  
+            # print("Iteration:", Iter)  
             if(Iter <= 0)
             {   
                 Scanner = noentity()
@@ -110,21 +114,23 @@ event tick()
     {
         if(Pipe != noentity())
         {
-            print("Origin:", Pipe:toLocal(MP))  
-            print("Angle:" , Pipe:toLocal(MA))
+            Mo = Pipe:model()
+            Or = Pipe:toLocal(MP)
+            OrX = toString(round(Or:x(), Raun))
+            OrY = toString(round(Or:y(), Raun))
+            OrZ = toString(round(Or:z(), Raun))
+            OrS = OrX+","+OrY+","+OrZ
+            An = Pipe:toLocal(MA)
+            AnP = toString(round(An:pitch(), Raun))
+            AnY = toString(round(An:yaw(), Raun))
+            AnR = toString(round(An:roll(), Raun))
+            AnS = AnP+","+AnY+","+AnR
+            
+            if(OrS == "0,0,0") { OrS = "" }
+            if(AnS == "0,0,0") { AnS = "" } else { AnS = ", \""+AnS+"\"" }
+            
+            print("PIECES:Record({\""+Mo+"\", \"#\", \"#\", 0, \"\", \""+OrS+"\""+AnS+"})")
             Pipe = noentity()
         }  
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
