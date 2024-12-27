@@ -1,4 +1,4 @@
-# CacheQueryPanel:(true) 20-09-10 17:47:37 [ LUA ]
+# ExportSyncDB:(true) 20-09-10 17:47:37 [ LUA ]
 "models/alexcookie/2ft/curve/curve_90_512.mdl","AlexCookie's 2ft track pack","Curve 90 512"
 "models/alexcookie/2ft/misc/end1.mdl","AlexCookie's 2ft track pack","End1"
 "models/alexcookie/2ft/straight/straight_1024.mdl","AlexCookie's 2ft track pack","Straight 1024"

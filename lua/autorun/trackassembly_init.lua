@@ -14,6 +14,7 @@ local netSendToServer               = net and net.SendToServer
 local netReceive                    = net and net.Receive
 local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
+local netReadNormal                 = net and net.ReadNormal
 local netReadAngle                  = net and net.ReadAngle
 local netReadBool                   = net and net.ReadBool
 local netReadUInt                   = net and net.ReadUInt
@@ -86,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","8.765")
+asmlib.SetOpVar("TOOL_VERSION","9.765")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -100,10 +101,11 @@ local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
+local gsGenerPrf  = asmlib.GetOpVar("DBEXP_PREFGEN")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
+local gsDirDSV    = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
 local gsNoAnchor  = asmlib.GetOpVar("MISS_NOID")..gsSymRev..asmlib.GetOpVar("MISS_NOMD")
-local gsFullDSV   = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")..
-                    asmlib.GetInstPref()..asmlib.GetOpVar("TOOLNAME_PU")
+local gsGrossDSV  = gsDirDSV..gsGenerPrf..gsToolPrefU
 
 ------------ VARIABLE FLAGS ------------
 
@@ -149,6 +151,7 @@ asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
 asmlib.SetBorder(gsToolPrefL.."dtmessage", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."ghostblnd", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."crvsuprev", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
@@ -455,46 +458,63 @@ if(CLIENT) then
     else asmlib.LogInstance("Admin: "..asmlib.GetReport(pAdmn.Name), sLog) end
   end, gsToolPrefL.."lang")
 
-  -- http://www.famfamfam.com/lab/icons/silk/preview.php
+  -- https://wiki.facepunch.com/gmod/Silkicons
   asmlib.ToIcon(gsToolPrefU.."PIECES"        , "database_connect")
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
-  asmlib.ToIcon("subfolder_item"   , "folder"          )
-  asmlib.ToIcon("pn_externdb_bt1"  , "database"        )
-  asmlib.ToIcon("pn_externdb_bt2"  , "folder_database" )
-  asmlib.ToIcon("pn_externdb_bt3"  , "database_table"  )
-  asmlib.ToIcon("pn_externdb_bt4"  , "database_link"   )
-  asmlib.ToIcon("pn_externdb_bt5"  , "time_go"         )
-  asmlib.ToIcon("pn_externdb_bt6"  , "compress"        )
-  asmlib.ToIcon("pn_externdb_bt7"  , "database_edit"   )
-  asmlib.ToIcon("pn_externdb_bt8"  , "database_delete" )
-  asmlib.ToIcon("pn_externdb_cm1"  , "database_key"    )
-  asmlib.ToIcon("pn_externdb_cm2"  , "database_go"     )
-  asmlib.ToIcon("pn_externdb_cm3"  , "database_connect")
-  asmlib.ToIcon("pn_externdb_cm4"  , "database_edit"   )
-  asmlib.ToIcon("pn_externdb_cm5"  , "database_add"    )
-  asmlib.ToIcon("pn_externdb_cm6"  , "database_delete" )
-  asmlib.ToIcon("pn_srchcol_lb1"   , "brick"           )
-  asmlib.ToIcon("pn_srchcol_lb2"   , "package"         )
-  asmlib.ToIcon("pn_srchcol_lb3"   , "tag_green"       )
-  asmlib.ToIcon("pn_srchcol_lb4"   , "arrow_refresh"   )
-  asmlib.ToIcon("model"            , "brick"           )
-  asmlib.ToIcon("mass"             , "basket_put"      )
-  asmlib.ToIcon("bgskids"          , "layers"          )
-  asmlib.ToIcon("phyname"          , "wand"            )
-  asmlib.ToIcon("ignphysgn"        , "lightning_go"    )
-  asmlib.ToIcon("freeze"           , "lock"            )
-  asmlib.ToIcon("gravity"          , "ruby_put"        )
-  asmlib.ToIcon("weld"             , "wrench"          )
-  asmlib.ToIcon("nocollide"        , "shape_group"     )
-  asmlib.ToIcon("nocollidew"       , "world_go"        )
-  asmlib.ToIcon("dsvlist_extdb"    , "database_go"     )
-  asmlib.ToIcon("workmode_snap"    , "plugin"          ) -- General spawning and snapping mode
-  asmlib.ToIcon("workmode_cross"   , "chart_line"      ) -- Ray cross intersect interpolation
-  asmlib.ToIcon("workmode_curve"   , "vector"          ) -- Catmull-Rom curve line segment fitting
-  asmlib.ToIcon("workmode_over"    , "shape_move_back" ) -- Trace normal ray location piece flip-spawn
-  asmlib.ToIcon("workmode_turn"    , "arrow_turn_right") -- Produces smoother turns with Bezier curve
+  asmlib.ToIcon("subfolder_item"        , "folder_brick"      )
+  asmlib.ToIcon("pn_contextm_cp"        , "page_copy"         )
+  asmlib.ToIcon("pn_contextm_cpbx"      , "application_go"    )
+  asmlib.ToIcon("pn_contextm_cprw"      , "report_go"         )
+  asmlib.ToIcon("pn_contextm_cpty"      , "database_go"       )
+  asmlib.ToIcon("pn_contextm_cpnm"      , "script_go"         )
+  asmlib.ToIcon("pn_contextm_cpth"      , "map_go"            )
+  asmlib.ToIcon("pn_contextm_cpmd"      , "brick_go"          )
+  asmlib.ToIcon("pn_contextm_li"        , "database"          )
+  asmlib.ToIcon("pn_contextm_licg"      , "database_edit"     )
+  asmlib.ToIcon("pn_contextm_licr"      , "database_add"      )
+  asmlib.ToIcon("pn_contextm_lirm"      , "database_delete"   )
+  asmlib.ToIcon("pn_contextm_ws"        , "cart"              )
+  asmlib.ToIcon("pn_contextm_wsid"      , "key_go"            )
+  asmlib.ToIcon("pn_contextm_wsop"      , "world"             )
+  asmlib.ToIcon("pn_contextm_ex"        , "transmit"          )
+  asmlib.ToIcon("pn_contextm_exdv"      , "database_table"    )
+  asmlib.ToIcon("pn_contextm_exru"      , "script_code"       )
+  asmlib.ToIcon("pn_contextm_mv"        , "joystick"          )
+  asmlib.ToIcon("pn_contextm_mvup"      , "arrow_up"          )
+  asmlib.ToIcon("pn_contextm_mvdn"      , "arrow_down"        )
+  asmlib.ToIcon("pn_contextm_mvtp"      , "arrow_redo"        )
+  asmlib.ToIcon("pn_contextm_mvbt"      , "arrow_undo"        )
+  asmlib.ToIcon("pn_contextm_st"        , "database_gear"     )
+  asmlib.ToIcon("pn_contextm_si"        , "database_key"      )
+  asmlib.ToIcon("pn_contextm_stnk"      , "folder_find"       )
+  asmlib.ToIcon("pn_contextm_stpt"      , "map_go"            )
+  asmlib.ToIcon("pn_contextm_sttm"      , "time_go"           )
+  asmlib.ToIcon("pn_contextm_stsz"      , "compress"          )
+  asmlib.ToIcon("pn_contextm_sted"      , "table_edit"        )
+  asmlib.ToIcon("pn_contextm_stdl"      , "table_delete"      )
+  asmlib.ToIcon("pn_contextm_tg"        , "database_connect"  )
+  asmlib.ToIcon("pn_contextm_ep"        , "zoom"              )
+  asmlib.ToIcon("pn_routine_end"   , "arrow_refresh"     )
+  asmlib.ToIcon("pn_routine_typ"   , "package"           )
+  asmlib.ToIcon("pn_routine_nam"   , "tag_green"         )
+  asmlib.ToIcon("pn_routine_mod"   , "brick"             )
+  asmlib.ToIcon("model"            , "brick"             )
+  asmlib.ToIcon("mass"             , "basket_put"        )
+  asmlib.ToIcon("bgskids"          , "layers"            )
+  asmlib.ToIcon("phyname"          , "wand"              )
+  asmlib.ToIcon("ignphysgn"        , "lightning_go"      )
+  asmlib.ToIcon("freeze"           , "lock"              )
+  asmlib.ToIcon("gravity"          , "ruby_put"          )
+  asmlib.ToIcon("weld"             , "wrench"            )
+  asmlib.ToIcon("nocollide"        , "shape_group"       )
+  asmlib.ToIcon("nocollidew"       , "world_go"          )
+  asmlib.ToIcon("workmode_snap"    , "plugin"            ) -- General spawning and snapping mode
+  asmlib.ToIcon("workmode_cross"   , "chart_line"        ) -- Ray cross intersect interpolation
+  asmlib.ToIcon("workmode_curve"   , "vector"            ) -- Catmull-Rom curve line segment fitting
+  asmlib.ToIcon("workmode_over"    , "shape_move_back"   ) -- Trace normal ray location piece flip-spawn
+  asmlib.ToIcon("workmode_turn"    , "arrow_turn_right"  ) -- Produces smoother turns with Bezier curve
   asmlib.ToIcon("property_type"    , "package_green"     )
   asmlib.ToIcon("property_name"    , "note"              )
   asmlib.ToIcon("modedb_lua"       , "database_lightning")
@@ -506,6 +526,7 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_hint"   , "shape_square_go"   )
   asmlib.ToIcon("bnderrmod_generic", "shape_square_link" )
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
+
   -- Workshop matching crap
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
@@ -536,6 +557,7 @@ if(CLIENT) then
   asmlib.WorkshopID("RockMan's Fortification"     , "3071058065")
   asmlib.WorkshopID("SligWolf's Suspension Train" , "3297918081")
   asmlib.WorkshopID("Modular City Street"         , "3314861708")
+  asmlib.WorkshopID("Scene Builder"               , "2233731395")
 
   asmlib.SetAction("CLEAR_GHOSTS" , function() asmlib.ClearGhosts() end)
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
@@ -543,9 +565,11 @@ if(CLIENT) then
 
   asmlib.SetAction("CREATE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*CREATE_CURVE_NODE"
-      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local vNode, vNorm, vBase = netReadVector(), netReadNormal(), netReadVector()
       local vOrgw, aAngw, bRayw = netReadVector(), netReadAngle() , netReadBool()
-      local tC = asmlib.GetCacheCurve(oPly) -- Read the curve data location
+      local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly) -- Read the curve
+      if(iD > 0 and tC.Norm[iD] and tC.Size and tC.Size >= 2) then
+        tC.Norm[iD]:Set(netReadNormal()) end -- Update the previews curve normal
       tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm)
       tableInsert(tC.Base, vBase); tableInsert(tC.Rays, {vOrgw, aAngw, bRayw})
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
@@ -553,7 +577,7 @@ if(CLIENT) then
 
   asmlib.SetAction("UPDATE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*UPDATE_CURVE_NODE"
-      local vNode, vNorm, vBase = netReadVector(), netReadVector(), netReadVector()
+      local vNode, vNorm, vBase = netReadVector(), netReadNormal(), netReadVector()
       local vOrgw, aAngw, bRayw = netReadVector(), netReadAngle() , netReadBool()
       local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
       tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm)
@@ -563,9 +587,14 @@ if(CLIENT) then
   asmlib.SetAction("DELETE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*DELETE_CURVE_NODE"
       local tC = asmlib.GetCacheCurve(oPly)
-      tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
-      tableRemove(tC.Node); tableRemove(tC.Norm)
-      tableRemove(tC.Base); tableRemove(tC.Rays)
+      if(tC.Size and tC.Size > 0) then
+        tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
+        tableRemove(tC.Node); tableRemove(tC.Norm)
+        tableRemove(tC.Base); tableRemove(tC.Rays)
+        if(tC.Size and tC.Size > 0) then
+          tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
+        end
+      end
     end)
 
   asmlib.SetAction("DELETE_ALL_CURVE_NODE",
@@ -700,8 +729,9 @@ if(CLIENT) then
       end; acTo:UpdateGhost(oPly) -- Update ghosts stack for the local player
     end) -- Read client configuration
 
-  asmlib.SetAction("OPEN_EXTERNDB", -- Must have the same parameters as the hook
-    function(oPly,oCom,oArgs)
+  asmlib.SetAction("OPEN_EXTERNDB",
+    function() -- Must have the same parameters as the hook
+      local oPly = LocalPlayer()
       local sLog = "*OPEN_EXTERNDB"
       local scrW = surfaceScreenWidth()
       local scrH = surfaceScreenHeight()
@@ -721,11 +751,6 @@ if(CLIENT) then
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
-      local pnSheet = vguiCreate("DPropertySheet")
-      if(not IsValid(pnSheet)) then pnFrame:Close()
-        asmlib.LogInstance("Sheet invalid",sLog); return nil end
-      pnSheet:SetParent(pnFrame)
-      pnSheet:Dock(FILL)
       local sMis = asmlib.GetOpVar("MISS_NOAV")
       local sLib = asmlib.GetOpVar("NAME_LIBRARY")
       local sBas = asmlib.GetOpVar("DIRPATH_BAS")
@@ -735,50 +760,62 @@ if(CLIENT) then
       local sDsv = sBas..asmlib.GetOpVar("DIRPATH_DSV")
       local fDSV = sDsv..("%s"..sPrU.."%s.txt")
       local sNam = (sBas..sSet..sLib.."_dsv.txt")
-      local pnDSV = vguiCreate("DPanel")
-      if(not IsValid(pnDSV)) then pnFrame:Close()
-        asmlib.LogInstance("DSV list invalid",sLog); return nil end
-      pnDSV:SetParent(pnSheet)
-      pnDSV:DockMargin(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
-      pnDSV:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
-      pnDSV:Dock(FILL)
-      local tInfo = pnSheet:AddSheet("DSV", pnDSV, asmlib.ToIcon("dsvlist_extdb"))
-      tInfo.Tab:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb").." DSV")
-      local sDel, nB, nW, nH = "\t", 22, pnFrame:GetSize()
-      xyPos.x, xyPos.y = xyDsz.x, xyDsz.y
-      xySiz.x = (nW - 6 * xyDsz.x)
-      xySiz.y = ((nH - 6 * xyDsz.y) - 52)
+      local nW, nH = pnFrame:GetSize()
+      local sDel, nB, nT = "\t", 22, 23
+      xyPos.x, xyPos.y = xyDsz.x, (xyDsz.y + nT)
+      xySiz.x = (nW - 2 * xyDsz.x)
+      xySiz.y = (nH - nT - 2*xyDsz.y) - 2*xyDsz.y - 2*nB
       local wAct = mathFloor(((gnRatio - 1) / 10) * xySiz.x)
       local wUse, wSrc = mathFloor(xySiz.x - wAct), (xySiz.x * nAut)
       local pnListView = vguiCreate("DListView")
       if(not IsValid(pnListView)) then pnFrame:Close()
         asmlib.LogInstance("List view invalid",sLog); return nil end
-      xySiz.y = xySiz.y - 3*xyDsz.y - 2*nB
-      pnListView:SetParent(pnDSV)
+      pnListView:SetParent(pnFrame)
       pnListView:SetVisible(true)
       pnListView:SetSortable(false)
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(xyPos.x, xyPos.y)
       pnListView:SetSize(xySiz.x, xySiz.y)
-      pnListView:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_lb"))
-      pnListView:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_hd"))
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_1")):SetFixedWidth(wAct)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_2")):SetFixedWidth(wUse - wSrc)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_3")):SetFixedWidth(wSrc)
+      pnListView:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_lb"))
+      pnListView:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_hd"))
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_act")):SetFixedWidth(wAct)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_prf")):SetFixedWidth(wUse - wSrc)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_extdsv_inf")):SetFixedWidth(wSrc)
       -- Next entry to import/export to list view
       xyPos.y = xyPos.y + xySiz.y + xyDsz.y
       xySiz.y = nB -- General Y-size of elements
       local tpText = {Size = #pnListView.Columns}
+      function tpText:Scan(pnRow, bChng)
+        if(not IsValid(pnRow)) then return end
+        local bChng = (bChng and asmlib.IsHere(bChng))
+        for iV = 1, self.Size do
+          local ptx = self[iV] -- Pick a panel
+          local str = pnRow:GetColumnText(iV)
+          ptx:SetValue(str); ptx:SetText(str)
+        end -- Exchange data with list view and text. Setup change line flag
+        if(bChng) then self.Chng = true else self.Chng = nil end
+      end
+      function tpText:Swap(pnSor, pnDes)
+        if(not IsValid(pnSor)) then return end
+        if(not IsValid(pnDes)) then return end
+        local bChng = (bChng and asmlib.IsHere(bChng))
+        for iV = 1, self.Size do
+          local str = pnDes:GetColumnText(iV)
+          pnDes:SetColumnText(iV, pnSor:GetColumnText(iV))
+          pnSor:SetColumnText(iV, str)
+          pnListView:ClearSelection()
+          pnListView:SelectItem(pnDes)
+        end -- Exchange data with list view and text. Setup change line flag
+      end
       for iC = 1, tpText.Size do
         local pC = pnListView.Columns[iC]
         local cW = math.min(pC:GetMinWidth(), pC:GetMaxWidth())
         if(iC == 1 or iC == tpText.Size) then
           xySiz.x = cW - (xyDsz.x / 2)
         else xySiz.x = cW - xyDsz.x end; pC:SetWide(cW)
-        local pnText = vguiCreate("DTextEntry")
-        if(not IsValid(pnText)) then pnFrame:Close()
-          asmlib.LogInstance("Text entry active invalid", sLog); return nil end
-        pnText:SetParent(pnDSV)
+        local pnText = vguiCreate("DTextEntry"); if(not IsValid(pnText)) then pnFrame:Close()
+          asmlib.LogInstance("Entry invalid "..GetReport(iC), sLog..".TextEntry"); return nil end
+        pnText:SetParent(pnFrame)
         pnText:SetEditable(true)
         pnText:SetPos(xyPos.x, xyPos.y)
         pnText:SetSize(xySiz.x, xySiz.y)
@@ -786,7 +823,6 @@ if(CLIENT) then
                         ..languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_"..iC))
         xyPos.x = xyPos.x + xySiz.x + xyDsz.x; tpText[iC] = pnText
         pnText.OnEnter = function(pnSelf)
-          local nID, pnRow = pnListView:GetSelectedLine()
           local tDat, sMis = {}, asmlib.GetOpVar("MISS_NOAV")
           for iV = 1, tpText.Size do tDat[iV] = tpText[iV]:GetValue() end
           -- Active line. Contains X/V
@@ -799,11 +835,15 @@ if(CLIENT) then
           -- Additional information. It can be anything
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3])
-          if(not asmlib.IsBlank(tDat[1]) and not asmlib.IsBlank(tDat[2])) then
-          if(nID and nID > 0 and pnRow and not tpText[1].m_NewDSV) then local iU = 1
-            while(pnRow.Columns[iU]) do pnRow:SetColumnText(iU, tDat[iU]); iU = iU + 1 end
-          else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3])
-          end; end; for iV = 1, tpText.Size do tpText[iV]:SetValue(""); tpText[iV]:SetText("") end
+          if(asmlib.IsBlank(tDat[1])) then return end
+          if(asmlib.IsBlank(tDat[2])) then return end
+          local iD, pnRow = pnListView:GetSelectedLine()
+          if(asmlib.IsHere(iD) and IsValid(pnRow)) then
+            if(iD and iD > 0 and pnRow and tpText.Chng) then tpText.Chng = nil
+              for iU = 1, tpText.Size do pnRow:SetColumnText(iU, tDat[iU]) end
+            else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3]) end
+          else pnListView:AddLine(tDat[1], tDat[2], tDat[3]):SetTooltip(tDat[3]) end
+          for iV = 1, tpText.Size do tpText[iV]:SetValue(""); tpText[iV]:SetText("") end
         end
       end
       -- Import button. when clicked loads file into the panel
@@ -815,18 +855,23 @@ if(CLIENT) then
       xySiz.x = ((pnListView:GetWide() - xyDsz.x) / 2)
       pnImport:SetPos(xyPos.x, xyPos.y)
       pnImport:SetSize(xySiz.x, xySiz.y)
-      pnImport:SetParent(pnDSV)
+      pnImport:SetParent(pnFrame)
       pnImport:SetFont("Trebuchet24")
       pnImport:SetText(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bti"))
       pnImport:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bti_tp"))
       pnImport.DoRightClick = function() end
-      pnImport.DoClick = function(pnSelf)
+      pnImport.DoClick = function(pnSelf) pnListView:Clear()
         if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
-        local oDSV = fileOpen(sNam, "rb", "DATA"); if(not oDSV) then pnFrame:Close()
-          asmlib.LogInstance("DSV list missing",sLog); return nil end; pnListView:Clear()
+        local fD = fileOpen(sNam, "rb", "DATA"); if(not fD) then pnFrame:Close()
+          asmlib.LogInstance("File error", sLog..".Import"); return nil end
+        local sGen = (gsDirDSV..gsGenerPrf..gsToolPrefU.."*.txt")
+        local tGen = fileFind(sGen, "DATA"); if(tGen and #tGen > 0) then
+          pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(gsDirDSV)
+        else local iG = (tGen and #tGen or 0)
+          asmlib.LogInstance("Generic database: "..asmlib.GetReport(iG, sGen), sLog..".Import") end
         local sLine, bEOF, bAct = "", false, true
         while(not bEOF) do
-          sLine, bEOF = asmlib.GetStringFile(oDSV)
+          sLine, bEOF = asmlib.GetStringFile(fD)
           if(not asmlib.IsBlank(sLine)) then local sKey, sPrg
             if(not asmlib.IsDisable(sLine)) then bAct = true else
               bAct, sLine = false, sLine:sub(2,-1):Trim() end
@@ -837,7 +882,7 @@ if(CLIENT) then
             else sKey, sPrg = sLine, sMis end
             pnListView:AddLine((bAct and "V" or "X"), sKey, sPrg):SetTooltip(sPrg)
           end
-        end; oDSV:Close()
+        end; fD:Close()
       end; pnImport:DoClick()
       -- Export button. When clicked loads contents into the file
       local pnExport = vguiCreate("DButton")
@@ -846,150 +891,152 @@ if(CLIENT) then
       xyPos.x = xyPos.x + xySiz.x + xyDsz.x
       pnExport:SetPos(xyPos.x, xyPos.y)
       pnExport:SetSize(xySiz.x, xySiz.y)
-      pnExport:SetParent(pnDSV)
+      pnExport:SetParent(pnFrame)
       pnExport:SetFont("Trebuchet24")
       pnExport:SetText(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bte"))
       pnExport:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bte_tp"))
       pnExport.DoRightClick = function() end
       pnExport.DoClick = function(pnSelf)
-        local oDSV = fileOpen(sNam, "wb", "DATA")
-        if(not oDSV) then pnFrame:Close()
-          asmlib.LogInstance("DSV list missing",sLog..".ListView"); return nil end
+        local fD = fileOpen(sNam, "wb", "DATA"); if(not fD) then pnFrame:Close()
+          asmlib.LogInstance("File error",sLog..".Export"); return nil end
         local tLine = pnListView:GetLines()
         local sOff  = asmlib.GetOpVar("OPSYM_DISABLE")
-        for iK, pnCur in pairs(tLine) do
-          local sAct = ((pnCur:GetColumnText(1) == "V") and "" or sOff)
-          local sPrf = pnCur:GetColumnText(2)
-          local sPth = pnCur:GetColumnText(3)
+        for iL = 1, #tLine do local pCur = tLine[iL]
+          local sAct = ((pCur:GetColumnText(1) == "V") and "" or sOff)
+          local sPrf, sPth = pCur:GetColumnText(2), pCur:GetColumnText(3)
           if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
-          oDSV:Write(sAct..sPrf..sPth.."\n")
-        end; oDSV:Flush(); oDSV:Close()
-      end
-      local function convRow(pnRow)
-        local sSep = asmlib.GetOpVar("OPSYM_VERTDIV")
-        local sAct = pnRow:GetColumnText(1) -- Active
-        local sPrf = pnRow:GetColumnText(2) -- PK
-        local sPth = pnRow:GetColumnText(3) -- Path
-        if(not asmlib.IsBlank(sPth)) then sPth = sSep..sPth end
-        return (sAct..sSep..sPrf..sPth) -- Divided
-      end
-      local function excgRow(pnRow)
-        for iV = 1, tpText.Size do
-          local ptx = tpText[iV] -- Pick a panel
-          local str = pnRow:GetColumnText(iV)
-          ptx:SetValue(str); ptx:SetText(str)
-        end -- Exchange data with list view and text
+          if(sPrf ~= gsGenerPrf) then fD:Write(sAct..sPrf..sPth.."\n") end
+        end; fD:Flush(); fD:Close()
       end
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        if(inputIsMouseDown(MOUSE_RIGHT)) then
-          local pnMenu = vguiCreate("DMenu")
-          if(not IsValid(pnMenu)) then pnFrame:Close()
-            asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
-          local mX, mY = inputGetCursorPos()
-          local iO, tOptions = 1, {
-            function()
-              local cC, cX, cY = 0, pnSelf:ScreenToLocal(mX, mY)
-              while(cX > 0) do cC = (cC + 1); cX = (cX - pnSelf:ColumnWidth(cC))
-              end; local nID, pnRow = pnSelf:GetSelectedLine()
-              if(nID and nID > 0 and pnRow) then SetClipboardText(pnRow:GetColumnText(cC)) end
-            end,
-            function() SetClipboardText(convRow(pnLine)) end,
-            function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V")) end,
-            function() excgRow(pnLine); tpText[1].m_NewDSV = false end,
-            function() excgRow(pnLine); tpText[1].m_NewDSV = true  end,
-            function() pnSelf:RemoveLine(nIndex) end
-          }
-          while(tOptions[iO]) do local sO = tostring(iO)
-            local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_cm"..sO)
-            pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_cm"..sO))
-            iO = iO + 1 -- Loop trough the functions list and add to the menu
-          end; pnMenu:Open()
-        end -- Process only the right mouse button
-      end -- Populate the tables for every database
-      local iD, makTab = 1, asmlib.GetBuilderID(1)
-      while(makTab) do
-        local pnTable = vguiCreate("DPanel")
-        if(not IsValid(pnTable)) then pnFrame:Close()
-          asmlib.LogInstance("Category invalid",sLog); return nil end
-        local defTab = makTab:GetDefinition()
-        pnTable:SetParent(pnSheet)
-        pnTable:DockMargin(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
-        pnTable:DockPadding(xyDsz.x, xyDsz.y, xyDsz.x, xyDsz.y)
-        pnTable:Dock(FILL)
-        local tInfo = pnSheet:AddSheet(defTab.Nick, pnTable, asmlib.ToIcon(defTab.Name))
-        tInfo.Tab:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb").." "..defTab.Nick)
-        local tFile = fileFind(fDSV:format("*", defTab.Nick), "DATA")
-        if(istable(tFile) and tFile[1]) then
-          local nF, nW, nH = #tFile, pnFrame:GetSize()
-          xySiz.x, xyPos.x, xyPos.y = (nW - 6 * xyDsz.x), xyDsz.x, xyDsz.y
-          xySiz.y = (((nH - 6 * xyDsz.y) - ((nF -1) * xyDsz.y) - 52) / nF)
-          for iP = 1, nF do local sCur = tFile[iP]
-            local pnManage = vguiCreate("DButton")
-            if(not IsValid(pnSheet)) then pnFrame:Close()
-              asmlib.LogInstance("Button invalid ["..tostring(iP).."]",sLog); return nil end
-            local nS, nE = sCur:upper():find(sPrU..defTab.Nick);
-            if(nS and nE) then
-              local sPref = sCur:sub(1, nS - 1)
-              local sFile = fDSV:format(sPref, defTab.Nick)
-              pnManage:SetParent(pnTable)
-              pnManage:SetPos(xyPos.x, xyPos.y)
-              pnManage:SetSize(xySiz.x, xySiz.y)
-              pnManage:SetFont("Trebuchet24")
-              pnManage:SetText(sPref)
-              pnManage:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_lb").." "..sFile)
-              pnManage.DoRightClick = function(pnSelf)
-                local pnMenu = vguiCreate("DMenu")
-                if(not IsValid(pnMenu)) then pnFrame:Close()
-                  asmlib.LogInstance("Menu invalid",sLog..".Button"); return nil end
-                local iO, tOptions = 1, {
-                  function() SetClipboardText(pnSelf:GetText()) end,
-                  function() SetClipboardText(sDsv) end,
-                  function() SetClipboardText(defTab.Nick) end,
-                  function() SetClipboardText(sFile) end,
-                  function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end,
-                  function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end,
-                  function() -- Edit the database contents using the Luapad addon
-                    if(not luapad) then return end -- Luapad is not installed do nothing
-                    asmlib.LogInstance("Edit "..asmlib.GetReport(sFile), sLog..".Button")
-                    if(luapad.Frame) then luapad.Frame:SetVisible(true)
-                    else asmlib.SetAsmConvar(oPly, "*luapad", gsToolNameL) end
-                    luapad.AddTab("["..defTab.Nick.."]"..pnSelf:GetText(), fileRead(sFile, "DATA"), sDsv);
-                    if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                      local sCat = fDSV:format(sPref, "CATEGORY"); if(fileExists(sCat,"DATA")) then
-                        luapad.AddTab("[CATEGORY]"..pnSelf:GetText(), fileRead(sCat, "DATA"), sDsv);
-                      end -- This is done so we can distinguish between luapad and other panels
-                    end -- Luapad is designed not to be closed so we need to make it invisible
-                    luapad.Frame:SetVisible(true); luapad.Frame:Center()
-                    luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
-                  end,
-                  function() fileDelete(sFile)
-                    asmlib.LogInstance("Delete "..asmlib.GetReport(sFile), sLog..".Button")
-                    if(defTab.Nick == "PIECES") then local sCat = fDSV:format(sPref, "CATEGORY")
-                      if(fileExists(sCat,"DATA")) then fileDelete(sCat) -- Delete category when present
-                        asmlib.LogInstance("Deleted "..asmlib.GetReport(sCat), sLog..".Button") end
-                    end; pnManage:Remove()
+        local pnMenu = vguiCreate("DMenu")
+        if(not IsValid(pnMenu)) then pnFrame:Close()
+          asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
+        local sI, mX, mY = "pn_contextm_", inputGetCursorPos()
+        local sP, sT = pnLine:GetColumnText(2), ("tool."..gsToolNameL.."."..sI)
+        -- Enable and disable DSV
+        pnMenu:AddOption(languageGetPhrase(sT.."tg"),
+          function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V"))
+        end):SetImage(asmlib.ToIcon(sI.."tg"))
+        -- Copy to clipboard various values and things
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Copy menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Copy opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."cp"))
+        pIn:AddOption(languageGetPhrase(sT.."cpbx"),
+          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbx"))
+        pIn:AddOption(languageGetPhrase(sT.."cprw"),
+          function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
+        pIn:AddOption(languageGetPhrase(sT.."cpth"),
+          function() SetClipboardText(sDsv) end):SetImage(asmlib.ToIcon(sI.."cpth"))
+        -- Panel data line manipulation for import/export
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."li"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Internals menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."li"))
+        pIn:AddOption(languageGetPhrase(sT.."licg"),
+          function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."licg"))
+        pIn:AddOption(languageGetPhrase(sT.."licr"),
+          function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."licr"))
+        pIn:AddOption(languageGetPhrase(sT.."lirm"),
+          function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
+        -- Move current line around
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."mv"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Internals menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."mv"))
+        pIn:AddOption(languageGetPhrase(sT.."mvup"),
+          function()
+            if(nIndex <= 1) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(nIndex - 1))
+          end):SetImage(asmlib.ToIcon(sI.."mvup"))
+        pIn:AddOption(languageGetPhrase(sT.."mvdn"),
+          function() local nT = #pnSelf:GetLines()
+            if(nIndex >= nT) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(nIndex + 1))
+          end):SetImage(asmlib.ToIcon(sI.."mvdn"))
+        pIn:AddOption(languageGetPhrase(sT.."mvtp"),
+          function()
+            if(nIndex <= 1) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(1))
+          end):SetImage(asmlib.ToIcon(sI.."mvtp"))
+        pIn:AddOption(languageGetPhrase(sT.."mvbt"),
+          function() local nT = #pnSelf:GetLines()
+            if(nIndex >= nT) then return end
+            tpText:Swap(pnLine, pnSelf:GetLine(nT))
+          end):SetImage(asmlib.ToIcon(sI.."mvbt"))
+        -- Populate the sub-menu with all table nicknames
+        local iD, pIn, pOp = 1, nil, nil
+        local makTab = asmlib.GetBuilderID(iD)
+        while(makTab) do
+          local defTab = makTab:GetDefinition()
+          local sFile = fDSV:format(sP, defTab.Nick)
+          if(fileExists(sFile, "DATA")) then
+            if(not (pIn and pOp)) then
+              -- Manipulate content local settings related to the line
+              pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."st"))
+              if(not IsValid(pIn)) then pnFrame:Close()
+                asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return nil end
+              if(not IsValid(pOp)) then pnFrame:Close()
+                asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return nil end
+              pOp:SetIcon(asmlib.ToIcon(sI.."st"))
+            end -- When there is at least one DSV table present make table sub-menu
+            if(pIn and pOp) then -- When the sub-menu pointer is available add tables
+              local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
+              if(not IsValid(pTb)) then pnFrame:Close()
+                asmlib.LogInstance("Manage menu invalid"..GetReport(iD, defTab.Nick),sLog..".ListView"); return nil end
+              if(not IsValid(pOb)) then pnFrame:Close()
+                asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return nil end
+              pOb:SetIcon(asmlib.ToIcon(sI.."si"))
+              pTb:AddOption(languageGetPhrase(sT.."stnk"),
+                function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."stnk"))
+              pTb:AddOption(languageGetPhrase(sT.."stpt"),
+                function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."stpt"))
+              pTb:AddOption(languageGetPhrase(sT.."sttm"),
+                function() SetClipboardText(asmlib.GetDateTime(fileTime(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."sttm"))
+              pTb:AddOption(languageGetPhrase(sT.."stsz"),
+                function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
+              pTb:AddOption(languageGetPhrase(sT.."sted"),
+                function() -- Edit the database contents using the Luapad addon
+                  if(not luapad) then return end -- Luapad is not installed do nothing
+                  asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+                  if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
+                  luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), sDsv);
+                  if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                    local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
+                      luapad.AddTab("["..sP.."][CATEGORY]", fileRead(sCats, "DATA"), sDsv);
+                    end -- This is done so we can distinguish between luapad and other panels
+                  end -- Luapad is designed not to be closed so we need to make it invisible
+                  luapad.Frame:SetVisible(true); luapad.Frame:Center()
+                  luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
+                end):SetImage(asmlib.ToIcon(sI.."sted"))
+              pTb:AddOption(languageGetPhrase(sT.."stdl"),
+                function() fileDelete(sFile)
+                  asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
+                  if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY")
+                    if(fileExists(sCats,"DATA")) then fileDelete(sCats) -- Delete category when present
+                      asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
                   end
-                }
-                while(tOptions[iO]) do local sO = tostring(iO)
-                  local sDescr = languageGetPhrase("tool."..gsToolNameL..".pn_externdb_bt"..sO)
-                  pnMenu:AddOption(sDescr, tOptions[iO]):SetIcon(asmlib.ToIcon("pn_externdb_bt"..sO))
-                  iO = iO + 1 -- Loop trough the functions list and add them to the menu
-                end; pnMenu:Open()
-              end
-            else asmlib.LogInstance("File missing ["..tostring(iP).."]",sLog..".Button") end
-            xyPos.y = xyPos.y + xySiz.y + xyDsz.y
+                end):SetImage(asmlib.ToIcon(sI.."stdl"))
+            end
           end
-        else
-          asmlib.LogInstance("Missing <"..defTab.Nick..">",sLog)
+          iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
         end
-        iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-      end; pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
+        pnMenu:Open()
+      end -- Populate the tables for every database
+      pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
     end) -- Read client configuration
 
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs) local sLog = "*OPEN_FRAME"
-      local frUsed, nCount = asmlib.GetFrequentModels(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
+      local frUsed = asmlib.GetFrequentPieces(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
         asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",sLog); return nil end
       local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
         asmlib.LogInstance("Missing builder for table PIECES",sLog); return nil end
@@ -1053,10 +1100,10 @@ if(CLIENT) then
       pnComboBox:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
       pnComboBox:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol"))
       pnComboBox:SetValue(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb1"), makTab:GetColumnName(1), false, asmlib.ToIcon("pn_srchcol_lb1"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb2"), makTab:GetColumnName(2), false, asmlib.ToIcon("pn_srchcol_lb2"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb3"), makTab:GetColumnName(3), false, asmlib.ToIcon("pn_srchcol_lb3"))
-      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_srchcol_lb4"), makTab:GetColumnName(4), false, asmlib.ToIcon("pn_srchcol_lb4"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_mod"), 1, false, asmlib.ToIcon("pn_routine_mod"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_typ"), 2, false, asmlib.ToIcon("pn_routine_typ"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_nam"), 3, false, asmlib.ToIcon("pn_routine_nam"))
+      pnComboBox:AddChoice(languageGetPhrase("tool."..gsToolNameL..".pn_routine_end"), 4, false, asmlib.ToIcon("pn_routine_end"))
       pnComboBox.OnSelect = function(pnSelf, nInd, sVal, anyData)
         asmlib.LogInstance("Selected "..asmlib.GetReport(nInd,sVal,anyData),sLog..".ComboBox")
         pnSelf:SetValue(sVal)
@@ -1142,10 +1189,10 @@ if(CLIENT) then
       pnListView:SetSize(xySiz.x,xySiz.y)
       pnListView:SetName(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb"))
       pnListView:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_routine"))
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb1")):SetFixedWidth(wUse) -- (1)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb2")):SetFixedWidth(wAct) -- (2)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb3")):SetFixedWidth(wTyp) -- (3)
-      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_lb4")):SetFixedWidth(wNam) -- (4)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_use")):SetFixedWidth(wUse) -- (1)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_end")):SetFixedWidth(wAct) -- (2)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_typ")):SetFixedWidth(wTyp) -- (3)
+      pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_nam")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
         local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
@@ -1163,46 +1210,104 @@ if(CLIENT) then
         asmlib.SetAsmConvar(oPly, "model" , uiMod)
       end -- Copy the line model to the clipboard so it can be pasted with Ctrl+V
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
-        local cC, cX, cY = 0, inputGetCursorPos(); cX, cY = pnSelf:ScreenToLocal(cX, cY)
-        while(cX > 0) do cC = (cC + 1); cX = (cX - pnSelf:ColumnWidth(cC)) end
-        SetClipboardText(pnLine:GetColumnText(cC))
+        local sI, mX, mY = "pn_contextm_", inputGetCursorPos()
+        local sT, sTyp = "tool.trackassembly."..sI, pnLine:GetColumnText(3)
+        local bEx = asmlib.GetAsmConvar("exportdb", "BUL")
+        local sID = asmlib.WorkshopID(sTyp)
+        local pMenu = vguiCreate("DMenu")
+        if(not IsValid(pMenu)) then pnFrame:Close()
+          asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
+        -- Copy to clipboard various values and things
+        local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Copy menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Copy opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."cp"))
+        pIn:AddOption(languageGetPhrase(sT.."cpmd"),
+          function() SetClipboardText(pnLine:GetColumnText(5)) end):SetImage(asmlib.ToIcon(sI.."cpmd"))
+        pIn:AddOption(languageGetPhrase(sT.."cpbx"),
+          function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbx"))
+        pIn:AddOption(languageGetPhrase(sT.."cprw"),
+          function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
+        -- Handle workshop specific options
+        if(sID) then
+          local sUR = asmlib.GetOpVar("FORM_URLADDON")
+          local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
+          if(not IsValid(pIn)) then
+            LogInstance("Base WS invalid"); return nil end
+          pOp:SetIcon(asmlib.ToIcon(sI.."ws"))
+          pIn:AddOption(languageGetPhrase(sT.."wsid"),
+            function() SetClipboardText(sID) end):SetIcon(asmlib.ToIcon(sI.."wsid"))
+          pIn:AddOption(languageGetPhrase(sT.."wsop"),
+            function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
+        end
+        -- Export database contents
+        if(bEx) then
+          local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ex"))
+          if(not (IsValid(pIn) and IsValid(pOp))) then
+            asmlib.LogInstance("Base export invalid"); return nil end
+          pOp:SetIcon(asmlib.ToIcon(sI.."ex"))
+          pIn:AddOption(languageGetPhrase(sT.."exdv"),
+            function()
+              asmlib.SetAsmConvar(oPly, "exportdb", 0)
+              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+              asmlib.LogInstance("Player invalid"); return nil end
+              asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
+              asmlib.ExportTypeDSV(sTyp)
+            end):SetIcon(asmlib.ToIcon(sI.."exdv"))
+          pIn:AddOption(languageGetPhrase(sT.."exru"),
+            function()
+              asmlib.SetAsmConvar(oPly, "exportdb", 0)
+              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+              asmlib.LogInstance("Player invalid"); return nil end
+              asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
+              asmlib.ExportTypeRun(sTyp)
+            end):SetIcon(asmlib.ToIcon(sI.."exru"))
+        end
+        pMenu:Open()
       end
-      if(not asmlib.UpdateListView(pnListView,frUsed,nCount)) then
+      if(not asmlib.UpdateListView(pnListView,frUsed)) then
         asmlib.LogInstance("Populate the list view failed",sLog); return nil end
       -- The button database export by type uses the current active type in the ListView line
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
-        if(not asmlib.GetAsmConvar("exportdb", "BUL")) then return end
-        if(inputIsKeyDown(KEY_LSHIFT)) then local sType
-          local iD, pnLine = pnListView:GetSelectedLine()
-          if(asmlib.IsHere(iD)) then sType = pnLine:GetColumnText(3)
-          else local model = asmlib.GetAsmConvar("model", "STR")
-            local oRec = asmlib.CacheQueryPiece(model)
-            if(asmlib.IsHere(oRec)) then sType = oRec.Type
-            else LogInstance("Not piece <"..model..">") end
+        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+          if(inputIsKeyDown(KEY_LSHIFT)) then
+            if(not asmlib.ExportSyncDB()) then
+              asmlib.LogInstance("Export invalid", sLog..".Button"); return nil end
+          else
+            local fPref = "["..gsMoDB:lower().."-dsv]"..gsGenerPrf
+            asmlib.ExportCategory(3, nil, fPref, true)
+            asmlib.ExportDSV("PIECES", fPref, nil, true)
+            asmlib.ExportDSV("ADDITIONS", fPref, nil, true)
+            asmlib.ExportDSV("PHYSPROPERTIES", fPref, nil, true)
+            asmlib.LogInstance("Export data", sLog..".Button")
           end
-          asmlib.ExportTypeAR(sType)
-          asmlib.LogInstance("Export type "..asmlib.GetReport(sType), sLog..".Button")
         else
-          asmlib.ExportCategory(3)
-          asmlib.ExportDSV("PIECES")
-          asmlib.ExportDSV("ADDITIONS")
-          asmlib.ExportDSV("PHYSPROPERTIES")
-          asmlib.LogInstance("Export instance", sLog..".Button")
+          local fW = asmlib.GetOpVar("FORM_GITWIKI")
+          guiOpenURL(fW:format("Additional-features"))
         end
-        asmlib.SetAsmConvar(oPly, "exportdb", 0)
       end
       pnButton.DoRightClick = function(pnSelf)
-        local fW = asmlib.GetOpVar("FORM_GITWIKI")
-        guiOpenURL(fW:format("Additional-features"))
+        if(asmlib.GetAsmConvar("exportdb", "BUL")) then
+          asmlib.SetAsmConvar(oPly, "exportdb", 0)
+          local bS, vOut = asmlib.DoAction("OPEN_EXTERNDB"); if(not bS) then
+            asmlib.LogInstance("Open manager:"..vOut, sLog..".Button"); return nil end
+          asmlib.LogInstance("Open manager", sLog..".Button")
+        else
+          local fW = asmlib.GetOpVar("FORM_GITWIKI")
+          guiOpenURL(fW:format("Additional-features"))
+        end
       end
       -- Leave the TextEntry here so it can access and update the local ListView reference
       pnTextEntry.OnEnter = function(pnSelf)
-        local sPat = tostring(pnSelf:GetValue() or "")
-        local sAbr, sCol = pnComboBox:GetSelected() -- Returns two values
-              sAbr, sCol = tostring(sAbr or ""), tostring(sCol or "")
-        if(not asmlib.UpdateListView(pnListView,frUsed,nCount,sCol,sPat)) then
-          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,sCol,sPat,sLog..".TextEntry")); return nil
+        local sPa = tostring(pnSelf:GetValue() or "")
+        local sAbr, nID = pnComboBox:GetSelected() -- Returns two values
+              sAbr, nID = tostring(sAbr or ""), (tonumber(nID) or 0)
+        if(not asmlib.UpdateListView(pnListView, frUsed, nID, sPa)) then
+          asmlib.LogInstance("Update ListView fail"..asmlib.GetReport(sAbr,nID,sPa), sLog..".TextEntry"); return nil
         end
       end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
@@ -1660,9 +1765,18 @@ propertiesAdd(gsOptionsCM, gtOptionsCM)
 
 ------------ INITIALIZE DB------------
 
-asmlib.CreateTable("PIECES",{
+asmlib.NewTable("PIECES",{
   Timer = gaTimerSet[1],
-  Index = {{1},{4},{1,4}},
+  Index = {{1,4,Un=true},{1},{2},{4}},
+  Query = {
+    ExportDSV       = {O = {2,3,1,4}},
+    CacheQueryPiece = {W = {{1,"%s"}}, O = {4}},
+    ExportTypeDSV   = {W = {{2,"%s"}}, O = {3,1,4}},
+    ExportTypeRun   = {W = {{2,"%s"}}, O = {3,1,4}},
+    Record          = {"%s","%s","%s","%d","%s","%s","%s","%s"},
+    CacheQueryTree  = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}},
+    ExportSyncDB    = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}}
+  },
   Trigs = {
     Record = function(arLine, vSrc)
       local noMD  = asmlib.GetOpVar("MISS_NOMD")
@@ -1672,6 +1786,9 @@ asmlib.CreateTable("PIECES",{
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
       arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.Categorize(), noTY)
       arLine[3] = asmlib.GetEmpty(arLine[3], emFva, asmlib.ModelToName(arLine[1]), noMD)
+      arLine[5] = asmlib.GetEmpty(arLine[5], asmlib.IsBlank, noSQL)
+      arLine[6] = asmlib.GetEmpty(arLine[6], asmlib.IsBlank, noSQL)
+      arLine[7] = asmlib.GetEmpty(arLine[7], asmlib.IsBlank, noSQL)
       arLine[8] = asmlib.GetEmpty(arLine[8], emFva, noSQL)
       if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
         asmlib.LogInstance("Register trace "..asmlib.GetReport(arLine[8],arLine[1]),vSrc)
@@ -1684,26 +1801,38 @@ asmlib.CreateTable("PIECES",{
       local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
+      if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
+      if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
+      if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
-      if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
-      if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
+      if(nOffsID ~= (stData.Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID,snPK),vSrc); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
       if(not asmlib.IsHere(stPOA)) then
         asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
-      if(nOffsID > stData.Size) then stData.Size = nOffsID else
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID),vSrc); return false end
-      return true
+      stData.Size = stData.Size + 1; return true
+    end,
+    ExportSyncDB = function(oFile, makTab, tCache, sDelim, vSrc)
+      local tSort, cT = asmlib.Arrange(tCache, "Type", "Name", "Slot"), nil
+      if(not tSort) then asmlib.LogInstance("Cannot sort cache data",vSrc); return false end
+      for iS = 1, tSort.Size do local stRec = tSort[iS]
+        local sKey, vRec = stRec.Key, stRec.Rec
+        if(not cT or cT ~= vRec.Type) then cT = vRec.Type
+          local sW = tostring(asmlib.WorkshopID(cT) or sMiss)
+          oFile:Write("# Categorize("..cT.."): "..sW.."\n")
+        end
+        oFile:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
+        oFile:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
+        oFile:Write(makTab:Match(vRec.Name,3,true,"\"")); oFile:Write("\n")
+      end; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
-      local tData, defTab = {}, makTab:GetDefinition()
-      for mod, rec in pairs(tCache) do
-        tData[mod] = {KEY = (rec.Type..rec.Name..mod)} end
-      local tSort = asmlib.Sort(tData,{"KEY"})
-      if(not tSort) then oFile:Flush(); oFile:Close()
+      local defTab = makTab:GetDefinition()
+      local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
@@ -1721,16 +1850,86 @@ asmlib.CreateTable("PIECES",{
           local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
           local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim..
-            "\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
+          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim)
+          oFile:Write("\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim)
+          oFile:Write("\""..sA.."\""..sDelim.."\""..sC.."\"\n")
         end
       end; return true
     end,
-    ExportAR = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff" end
-  },
-  Query = {
-    Record = {"%s","%s","%s","%d","%s","%s","%s","%s"},
-    ExportDSV = {2,3,1,4}
+    ExportTypeDSV = function(fP, makP, PCache, fA, makA, ACache, fPref, sDelim, vSrc)
+      local tSort = asmlib.Arrange(PCache, "Name", "Slot"); if(not tSort) then
+        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+      local defP, defA = makP:GetDefinition(), makA:GetDefinition()
+      local noSQL = asmlib.GetOpVar("MISS_NOSQL")
+      local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
+      local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+      for iP = 1, tSort.Size do
+        local stRec = tSort[iP]
+        local tData = PCache[stRec.Key]
+        local sPref = tData.Type:gsub("[^%w]","_"):lower()
+        if(sPref == fPref) then
+          local sData, tOffs = defP.Name, tData.Offs
+                sData = sData..sDelim..makP:Match(stRec.Key,1,true,"\"")..sDelim..
+                  makP:Match(tData.Type,2,true,"\"")..sDelim..
+                  makP:Match(tData.Name,3,true,"\"")
+          -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
+          for iD = 1, #tOffs do
+            local stPnt = tOffs[iD] -- Read current offsets from the model
+            local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
+            local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
+                  sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+            fP:Write(sData..sDelim..makP:Match(iD,4,true,"\""))
+            fP:Write(sDelim.."\""..sP.."\""..sDelim.."\""..sO.."\"")
+            fP:Write(sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
+            if(iD == 1) then
+              local tA = ACache[stRec.Key]
+              if(tA and tA.Size and tA.Size > 0) then
+                local sH = defA.Name..sDelim..makA:Match(stRec.Key,1,true,"\"")
+                for iA = 1, tA.Size do fA:Write(sH) for iC = 2, defA.Size do
+                  local sC = defA[iC][1]
+                  local vC = tA[iA][sC]
+                  fA:Write(sDelim..makA:Match(vC,iC,true,"\""))
+                end fA:Write("\n") end
+              end
+            end
+          end
+        end
+      end; return true
+    end,
+    ExportTypeRun = function(fE, fS, sType, makP, PCache, qPieces, vSrc)
+      local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
+      local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
+      local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
+      local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
+      local sClass, iCnt = asmlib.GetOpVar("ENTITY_DEFCLASS"), 0
+      for mod, rec in pairs(PCache) do
+        if(rec.Type == sType) then
+          local iID, tOffs = 1, rec.Offs -- Start from the first point
+          local rPOA = tOffs[iID]; if(not asmlib.IsHere(rPOA)) then
+            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot),vSrc) return false end
+          for iID = 1, rec.Size do
+            iCnt = (iCnt + 1); qPieces[iCnt] = {} -- Allocate row memory
+            local qRow = qPieces[iCnt]; rPOA = tOffs[iID]
+            local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
+            local sC = (asmlib.IsHere(rec.Unit) and tostring(rec.Unit) or noSQL)
+                  sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+            qRow[coMo] = rec.Slot
+            qRow[coTy] = rec.Type
+            qRow[coNm] = rec.Name
+            qRow[coLn] = iID
+            qRow[coP ] = sP; qRow[coO ] = sO
+            qRow[coA ] = sA; qRow[coC ] = sC
+          end
+        end
+      end -- Must be the same format as returned from SQL
+      local tSort = asmlib.Arrange(qPieces, coNm, coMo, coLn); if(not tSort) then
+        LogInstance("Sort cache mismatch",vSrc); return false
+      end; tableEmpty(qPieces)
+      for iD = 1, tSort.Size do qPieces[iD] = tSort[iD].Rec end
+      asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType),vSrc)
+      return true
+    end,
+    ExportContentsRun = function(aRow) aRow[2], aRow[4] = "myType", "gsSymOff"; return true end
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
   [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
@@ -1742,12 +1941,15 @@ asmlib.CreateTable("PIECES",{
   [8] = {"CLASS" , "TEXT"   ,  nil ,  nil }
 },true,true)
 
-asmlib.CreateTable("ADDITIONS",{
+asmlib.NewTable("ADDITIONS",{
   Timer = gaTimerSet[2],
-  Index = {{1},{4},{1,4}},
+  Index = {{1,4,Un=true},{1},{4}},
   Query = {
-    Record = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"},
-    ExportDSV = {1,4}
+    ExportDSV           = {O = {1,4}},
+    SetAdditionsRun     = {W = {{1,"%s"}}, O = {4}},
+    CacheQueryAdditions = {W = {{1,"%s"}}, O = {4}},
+    ExportTypeDSV       = {W = {{1,"%s"}}, O = {1,4}},
+    Record              = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}
   },
   Cache = {
     Record = function(makTab, tCache, snPK, arLine, vSrc)
@@ -1756,22 +1958,31 @@ asmlib.CreateTable("ADDITIONS",{
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
-      local nCnt, iID = 2, makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
+      local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
+      if(iID ~= (stData.Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK),vSrc); return false end
       stData[iID] = {} -- LineID has to be set properly
-      while(nCnt <= defTab.Size) do sCol = makTab:GetColumnName(nCnt)
-        stData[iID][sCol] = makTab:Match(arLine[nCnt],nCnt)
-        if(not asmlib.IsHere(stData[iID][sCol])) then -- Check data conversion output
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport(nCnt,arLine[nCnt],snPK),vSrc); return false
-        end; nCnt = (nCnt + 1)
-      end; stData.Size = iID; return true
+      for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt); if(not sC) then
+        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iCnt,snPK),vSrc); return false end
+        stData[iID][sC] = makTab:Match(arLine[iCnt],iCnt); if(not asmlib.IsHere(stData[iID][sC])) then
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),vSrc); return false end
+      end; stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      for mod, rec in pairs(tCache) do
-        local sData = defTab.Name..sDelim..mod
-        for iIdx = 1, #rec do local tData = rec[iIdx]; oFile:Write(sData)
-          for iID = 2, defTab.Size do local vData = tData[makTab:GetColumnName(iID)]
+      local tSort = asmlib.Arrange(tCache, "Slot")
+      for iRow = 1, tSort.Size do
+        local tRow = tSort[iRow]
+        local sKey, tRec = tRow.Key, tRow.Rec
+        local sData = defTab.Name..sDelim..makTab:Match(sKey,1,true,"\"")
+        for iRec = 1, #tRec do
+          local vRec = tRec[iRec]; oFile:Write(sData)
+          for iID = 2, defTab.Size do
+            local sC = makTab:GetColumnName(iID); if(not sC) then
+              asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end
+            local vData = vRec[sC]; if(not sC) then
+              asmlib.LogInstance("Cannot extract "..asmlib.GetReport(iID,sKey),vSrc); return false end
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
               asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
             end; oFile:Write(sDelim..tostring(vM or ""))
@@ -1779,7 +1990,7 @@ asmlib.CreateTable("ADDITIONS",{
         end
       end; return true
     end,
-    ExportAR = function(aRow) aRow[4] = "gsSymOff" end
+    ExportContentsRun = function(aRow) aRow[4] = "gsSymOff"; return true end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -1795,9 +2006,17 @@ asmlib.CreateTable("ADDITIONS",{
   [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
 },true,true)
 
-asmlib.CreateTable("PHYSPROPERTIES",{
+asmlib.NewTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
-  Index = {{1},{2},{1,2}},
+  Index = {{1,2,Un=true},{1},{2}},
+  Query = {
+    Record    = {"%s","%d","%s"},
+    ExportDSV = {O = {1,2}},
+    CacheQueryProperty = {
+      N = {S = {2, 3}, W = {{1,"%s"}}, O = {2}},
+      T = {S = {1}   , W = {{2,"%s"}}, O = {1}},
+    }
+  },
   Trigs = {
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
@@ -1809,7 +2028,6 @@ asmlib.CreateTable("PHYSPROPERTIES",{
     Record = function(makTab, tCache, snPK, arLine, vSrc)
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
-      local defTab = makTab:GetDefinition()
       local tTypes = tCache[skType]; if(not tTypes) then
         tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
       local tNames = tCache[skName]; if(not tNames) then
@@ -1821,30 +2039,32 @@ asmlib.CreateTable("PHYSPROPERTIES",{
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
         tNames[snPK].Size, tNames[snPK].Slot = 0, snPK
       end -- Data matching crashes only on numbers
-      tNames[snPK].Size = iNameID
+      if(iNameID ~= (tNames[snPK].Size + 1)) then
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iNameID,snPK),vSrc); return false end
+      tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
+    ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local tTypes = tCache[asmlib.GetOpVar("HASH_PROPERTY_TYPES")]
-      local tNames = tCache[asmlib.GetOpVar("HASH_PROPERTY_NAMES")]
-      if(not (tTypes or tNames)) then F:Flush(); F:Close()
+      local pT = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
+      local pN = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
+      local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
+      if(not (tTypes or tNames)) then
         asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
-      for iInd = 1, tTypes.Size do local sType = tTypes[iInd]
-        local tType = tNames[sType]; if(not tType) then F:Flush(); F:Close()
-          asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iInd, sType),vSrc); return false end
-        for iCnt = 1, tType.Size do local vType = tType[iCnt]
-          oFile:Write(defTab.Name..sDelim..makTab:Match(sType,1,true,"\"")..
-                                   sDelim..makTab:Match(iCnt ,2,true,"\"")..
-                                   sDelim..makTab:Match(vType,3,true,"\"").."\n")
+      for iD = 1, tTypes.Size do tableInsert(tT, tTypes[iD]) end
+      local tS = asmlib.Arrange(tT); if(not tS) then
+        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+      for iS = 1, tS.Size do local sT = tS[iS].Rec
+        local tProp = tNames[sT]; if(not tProp) then
+          asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iS, sT),vSrc); return false end
+        for iP = 1, tProp.Size do local sP = tProp[iP]
+          oF:Write(defTab.Name..sDelim..makTab:Match(sT,1,true,"\"")..
+                                sDelim..makTab:Match(iP,2,true,"\"")..
+                                sDelim..makTab:Match(sP,3,true,"\"").."\n")
         end
       end; return true
     end,
-    ExportAR = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff" end
-  },
-  Query = {
-    Record = {"%s","%d","%s"},
-    ExportDSV = {1,2}
+    ExportContentsRun = function(aRow) aRow[1], aRow[2] = "myType", "gsSymOff"; return true end
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
@@ -1855,9 +2075,9 @@ asmlib.CreateTable("PHYSPROPERTIES",{
 
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
-  if(fileExists(gsFullDSV.."CATEGORY.txt", "DATA")) then
-    asmlib.LogInstance("DB CATEGORY from DSV",gtInitLogs)
-    asmlib.ImportCategory(3)
+  if(fileExists(gsGrossDSV.."CATEGORY.txt", "DATA")) then
+    asmlib.LogInstance("DB CATEGORY from GENERIC",gtInitLogs)
+    asmlib.ImportCategory(3, gsGenerPrf)
   else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
 end
 
@@ -1874,9 +2094,9 @@ end
  * First  argument of Categorize() is used to provide default track type for TABLE:Record()
  * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
-if(fileExists(gsFullDSV.."PIECES.txt", "DATA")) then
-  asmlib.LogInstance("DB PIECES from DSV",gtInitLogs)
-  asmlib.ImportDSV("PIECES", true)
+if(fileExists(gsGrossDSV.."PIECES.txt", "DATA")) then
+  asmlib.LogInstance("DB PIECES from GENERIC",gtInitLogs)
+  asmlib.ImportDSV("PIECES", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
@@ -2275,7 +2495,8 @@ else
   PIECES:Record({"models/props_phx/misc/iron_beam4.mdl", "#", "#", 2, "", "-201.413, 0.001, 5.002", "0,180,0"})
   asmlib.Categorize("XQM Ball Rails",[[function(m)
     local g = m:gsub("models/xqm/rails/",""):gsub("/","_")
-    local r = g:match(".-_"):sub(1, -2); g = g:gsub(r.."_", "")
+    local r = g:match(".-_"); if(not r) then return end
+    r = r:sub(1, -2); g = g:gsub(r.."_", "")
     local t, n = g:match(".-_"), g:gsub("%.mdl","")
     if(t) then t = t:sub(1, -2); g = g:gsub(r.."_", "")
       if(r:find(t)) then n = n:gsub(t.."_", "")
@@ -4554,12 +4775,144 @@ else
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn.mdl", "#", "#", 2, "", "-512,-1024,120", "0,-90,0"})
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn_tall.mdl", "#", "#", 1, "", "1024,512,248"})
   PIECES:Record({"models/propper/dingles_modular_streets/highway_street_1024turn_tall.mdl", "#", "#", 2, "", "-512,-1024,248", "0,-90,0"})
+  asmlib.Categorize("Scene Builder", [[function(m)
+    local g = m:gsub("models/scene_building/","")
+    local r = g:gsub("/.+$",""); return r end]])
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_med.mdl", "#", "#", 1, "", "0, 23,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_med.mdl", "#", "#", 2, "", "0,-23,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_small.mdl", "#", "#", 1, "", "0, 11,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_hall_small.mdl", "#", "#", 2, "", "0,-11,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_corner.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_corner.mdl", "#", "#", 2, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_3way.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_3way.mdl", "#", "#", 2, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_3way.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 2, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_hall_4way.mdl", "#", "#", 4, "", "-47,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door1.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door1.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door2.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/arch_small_door2.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_door.mdl", "#", "#", 1, "", "0, 6,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_door.mdl", "#", "#", 2, "", "0,-6,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall.mdl", "#", "#", 1, "", "0, 45,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall.mdl", "#", "#", 2, "", "0,-45,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky.mdl", "#", "#", 1, "", "0, 44,-10", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky.mdl", "#", "#", 2, "", "0,-44,-10", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky_dip.mdl", "#", "#", 1, "", "0, 44,4", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/beam_hall_sky_dip.mdl", "#", "#", 2, "", "0,-44,4", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/comp_roundroom.mdl", "#", "#", 1, "", "-20,128,-26", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/comp_roundroom.mdl", "#", "#", 2, "", "-94,-28, 14", "0,-180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 1, "", "0, 15,0", "0, 90,0", ""})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_med.mdl", "#", "#", 2, "", "0,-15,0", "0,-90,0", ""})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 1, "", "145,0,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 2, "", "0,-175,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 3, "", "-145,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2door.mdl", "#", "#", 4, "", "0,175,-20", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2sec.mdl", "#", "#", 1, "", "171,28,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_2sec.mdl", "#", "#", 2, "", "-28,-171,0","0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 1, "", "0,-172,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 2, "", "-200,28,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_3sec.mdl", "#", "#", 3, "", "200,28,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 1, "", "8.2,-121,-4", "0,-90,0", ""})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_big_bend.mdl", "#", "#", 2, "", "-49.604,18.618,-4", "0,135,0", ""})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 1, "", "-145,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 2, "", "0,175,-20", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_door.mdl", "#", "#", 3, "", "0,-175,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent.mdl", "#", "#", 1, "", "0, 59,-16", "0, 90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent.mdl", "#", "#", 2, "", "0,-59,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent_gate.mdl", "#", "#", 1, "", "0, 59,-16", "0, 90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_ent_gate.mdl", "#", "#", 2, "", "0,-59,-20", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_short.mdl", "#", "#", 1, "", "0, 31,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_short.mdl", "#", "#", 2, "", "0,-31,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_mid.mdl", "#", "#", 1, "", "0, 63,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_mid.mdl", "#", "#", 2, "", "0,-63,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 1, "", "0, 115,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_long.mdl", "#", "#", 2, "", "0,-115,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_2sec.mdl", "#", "#", 1, "", "91,24.5,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_2sec.mdl", "#", "#", 2, "", "-24,-91,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 1, "", "91,27.015,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend.mdl", "#", "#", 2, "", "-27,-91,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 1, "", "112,24.4982,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 2, "", "-2.80149,-90,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_3sec.mdl", "#", "#", 3, "", "-112,24.362,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend_half.mdl", "#", "#", 1, "", "24.6314,19.6809,0", "0,45,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_pipe_bend_half.mdl", "#", "#", 2, "", "-6.55228,-65.1073,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_straight.mdl", "#", "#", 1, "", "0, 95,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/sewer_system/tunnel_straight.mdl", "#", "#", 2, "", "0,-95,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_side.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_side.mdl", "#", "#", 2, "", "-43,0,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_side.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_sml.mdl", "#", "#", 1, "", "0,5,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_1door_sml.mdl", "#", "#", 2, "", "0,-5,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_l.mdl", "#", "#", 1, "", "43,-4,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_l.mdl", "#", "#", 2, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_l.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp.mdl", "#", "#", 1, "", "0, 47,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp_small.mdl", "#", "#", 1, "", "0, 31,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_opp_small.mdl", "#", "#", 2, "", "0,-31,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_r.mdl", "#", "#", 1, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_r.mdl", "#", "#", 2, "", "-43,-4,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_r.mdl", "#", "#", 3, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 1, "", "43,0,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 2, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 3, "", "-43,0,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_2door_side.mdl", "#", "#", 4, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 1, "", "43,-4,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 2, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 3, "", "-43,-4,0","0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_3door.mdl", "#", "#", 4, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector.mdl", "#", "#", 1, "", "0, 47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector.mdl", "#", "#", 2, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_3way.mdl", "#", "#", 1, "", "2,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_3way.mdl", "#", "#", 2, "", "-45,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_3way.mdl", "#", "#", 3, "", "2,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 1, "", "47,0,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 2, "", "0,47,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 3, "", "-47,0,0", "0,-180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_4way.mdl", "#", "#", 4, "", "0,-47,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_corner.mdl", "#", "#", 1, "", "-45,2,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_corner.mdl", "#", "#", 2, "", "2,-45,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_hallways/hall_connector_deadend.mdl", "#", "#", 1, "", "0,-45,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/1door.mdl", "#", "#", 1, "", "0,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/1door_l.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/1door_r.mdl", "#", "#", 1, "", "64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp.mdl", "#", "#", 2, "", "-64,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_l.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_l.mdl", "#", "#", 2, "", "64,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_ml.mdl", "#", "#", 1, "", "-64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_ml.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_mr.mdl", "#", "#", 1, "", "64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_mr.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_r.mdl", "#", "#", 1, "", "64,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opp_r.mdl", "#", "#", 2, "", "-64,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opposites.mdl", "#", "#", 1, "", "0,123,0", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_opposites.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_sides.mdl", "#", "#", 1, "", "123,0,0"})
+  PIECES:Record({"models/scene_building/small_rooms/2door_sides.mdl", "#", "#", 2, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/3door.mdl", "#", "#", 1, "", "123,0,0"})
+  PIECES:Record({"models/scene_building/small_rooms/3door.mdl", "#", "#", 2, "", "0, 123,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/3door.mdl", "#", "#", 3, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 1, "", "123,0,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 2, "", "0, 123,0", "0, 90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 3, "", "-123,0,0", "0,180,0"})
+  PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 4, "", "0,-123,0", "0,-90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/stairs_straight.mdl", "#", "#", 1, "", "0,163,64", "0,90,0"})
+  PIECES:Record({"models/scene_building/small_rooms/stairs_straight.mdl", "#", "#", 2, "", "0,-163,-64", "0,-90,0"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsFullDSV.."PHYSPROPERTIES.txt", "DATA")) then
-  asmlib.LogInstance("DB PHYSPROPERTIES from DSV",gtInitLogs)
-  asmlib.ImportDSV("PHYSPROPERTIES", true)
+if(fileExists(gsGrossDSV.."PHYSPROPERTIES.txt", "DATA")) then
+  asmlib.LogInstance("DB PHYSPROPERTIES from GENERIC",gtInitLogs)
+  asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerPrf)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
@@ -4666,9 +5019,9 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsFullDSV.."ADDITIONS.txt", "DATA")) then
-  asmlib.LogInstance("DB ADDITIONS from DSV",gtInitLogs)
-  asmlib.ImportDSV("ADDITIONS", true)
+if(fileExists(gsGrossDSV.."ADDITIONS.txt", "DATA")) then
+  asmlib.LogInstance("DB ADDITIONS from GENERIC",gtInitLogs)
+  asmlib.ImportDSV("ADDITIONS", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sqlBegin() end
   asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)

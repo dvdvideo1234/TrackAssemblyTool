@@ -24,6 +24,7 @@ local netWriteBool                     = net and net.WriteBool
 local netWriteAngle                    = net and net.WriteAngle
 local netWriteEntity                   = net and net.WriteEntity
 local netWriteVector                   = net and net.WriteVector
+local netWriteNormal                   = net and net.WriteNormal
 local vguiCreate                       = vgui and vgui.Create
 local stringUpper                      = string and string.upper
 local mathAbs                          = math and math.abs
@@ -141,6 +142,7 @@ TOOL.ClientConVar = {
   [ "upspanchor" ] = 0,
   [ "crvturnlm"  ] = 0.95,
   [ "crvleanlm"  ] = 0.95,
+  [ "crvsuprev"  ] = 0.45,
   [ "flipoverid" ] = ""
 }
 
@@ -202,6 +204,10 @@ TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..
 TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
 TOOL.Command    = nil -- Command on click (nil for default)
 TOOL.ConfigName = nil -- Configure file name (nil for default)
+
+function TOOL:GetSuperElevation()
+  return mathClamp(self:GetClientNumber("crvsuprev", 0), 0, 1)
+end
 
 function TOOL:GetCurveFactor()
   return asmlib.GetAsmConvar("curvefact", "FLT")
@@ -786,15 +792,15 @@ end
 --[[
  * Uses heuristics to provide the best suitable location the
  * curve note closest location can be updated with. Three cases:
- * 1. Both neighbors are active points. Intersect their active rays
- * 2. Only one node is an active point. Project on its active ray
- * 3. None of the neighbors are active points. Project on line bisector
  * iD    > Curve node index to be updated
  * vPnt  > The new location to update the node with
  * bMute > Mute mode. Used to disable server status messages
  * Returns multiple values:
- * 1. Curve node calculated heuristics location vector
- * 2. The amount of neighbor nodes that are active rays
+ * V > Curve node calculated heuristics location vector
+ * N > The amount of neighbor nodes that are active rays
+ *     (2) Both neighbors are active points. Intersect their active rays
+ *     (1) Only one node is an active point. Project on its active ray
+ *     (0) None of the neighbors are active points. Project on line bisector
 ]]--
 function TOOL:GetCurveNodeActive(iD, vPnt, bMute)
   local user = self:GetOwner()
@@ -862,16 +868,25 @@ function TOOL:CurveClear(bAll, bMute)
       tableRemove(tC.Rays)
       tableEmpty(tC.Snap); tC.SSize = 0
       tableRemove(tC.Base); tC.Size = (tC.Size - 1)
+      if(tC.Size and tC.Size > 0) then
+        tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
+      end
     end
   end; return tC -- Returns the updated curve nodes table
 end
 
+--[[
+ * Generates curve transform data structure
+ * It is used to create data for the curve nodes
+ * stTrace > Trace structure being used for generation
+ * bPnt    > Whenever the generation is from active point
+]]
 function TOOL:GetCurveTransform(stTrace, bPnt)
   if(not stTrace) then
     asmlib.LogInstance("Trace missing", gtLogs); return nil end
   if(not stTrace.Hit) then
     asmlib.LogInstance("Trace not hit", gtLogs); return nil end
-  local user     = self:GetOwner()
+  local user, nT = self:GetOwner(), 0
   local angsnap  = self:GetAngSnap()
   local elevpnt  = self:GetElevation()
   local surfsnap = self:GetSurfaceSnap()
@@ -895,11 +910,16 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
       tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
       tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
       tData.POA = oPOA; tData.Rec = oRec -- POA and cache record
+      local trRz, trDt = asmlib.GetTraceEntityPoint(eEnt, oID, 30000, asmlib.GetOpVar("VEC_DW"))
+      if(trRz and trRz.Hit) then
+        nT = (trDt.length * trRz.Fraction - elevpnt)
+        asmlib.SetAsmConvar(user, "nextz", nT)
+      end
     end -- Use the track piece active end to create relative curve node
   else -- Offset the curve node when it is not driven by an active point
     tData.Org:Add(vNrm * elevpnt) -- Apply model active point elevation
   end -- Apply the positional and angular offsets to the return value
-  tData.Org:Add(tData.Ang:Up()      * nextz)
+  tData.Org:Add(tData.Ang:Up()      * (nextz - nT))
   tData.Org:Add(tData.Ang:Right()   * nexty)
   tData.Org:Add(tData.Ang:Forward() * nextx)
   tData.Ang:RotateAroundAxis(tData.Ang:Up()     ,-nextyaw)
@@ -908,12 +928,58 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
   return tData
 end
 
+--[[
+ * Used to apply super-elevation on the previous node
+ * according to the location of the next node placed
+ * Must be run BEFORE inserting the new node placed
+ * tC    > Curve data stricture with the normal modified
+ * tData > Reference to the node being inserted
+]]
+function TOOL:ApplySuperElevation(tC, tData, iD)
+  if(not tData) then -- The node being managed
+    asmlib.LogInstance("Data missing", gtLogs); return 0 end
+  if(not tC) then -- The curve containing all nodes
+    asmlib.LogInstance("Curve missing", gtLogs); return 0 end
+  local spnflat = self:GetSpawnFlat()
+  local crvsuprev = self:GetSuperElevation()
+  if(not (crvsuprev > 0 and not spnflat)) then
+    asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
+  local iN, nS = tonumber(iD), asmlib.GetOpVar("FULL_SLOPEDG")
+  if(iN) then
+    local tR = tC.Rays
+    local tO, tN = tC.Node, tC.Norm
+    local vL, vP = tO[iN+1], tO[iN-1]
+    if(not (vL and vP)) then return 0 end
+    local vD = Vector(vL); vD:Sub(tData.Org); vD:Normalize()
+    local vF = Vector(vL); vF:Sub(vP); vF:Normalize()
+    local aN = vF:AngleEx(tR[iN][2]:Up())
+    local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
+    aN:RotateAroundAxis(vF, nP)
+    local vN = aN:Up(); tN[iN]:Set(vN)
+    return iN, vN
+  else
+    if(not (tC.Size and tC.Size >= 2)) then
+      asmlib.LogInstance("Two vertices needed", gtLogs); return 0 end
+    local tR, iN = tC.Rays, tC.Size
+    local tO, tN = tC.Node, tC.Norm
+    local vL, vP = tO[iN], tO[iN - 1]
+    local vD = Vector(tData.Org); vD:Sub(vL); vD:Normalize()
+    local vF = Vector(tData.Org); vF:Sub(vP); vF:Normalize()
+    local aN = vF:AngleEx(tR[iN][2]:Up())
+    local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
+    aN:RotateAroundAxis(vF, nP)
+    local vN = aN:Up(); tN[iN]:Set(vN)
+    return iN, vN
+  end
+end
+
 function TOOL:CurveInsert(stTrace, bPnt, bMute)
   local user, model = self:GetOwner(), self:GetModel()
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  local iN, vN = self:ApplySuperElevation(tC, tData)
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
   tableInsert(tC.Node, Vector(tData.Org))
   tableInsert(tC.Norm, tData.Ang:Up())
@@ -924,11 +990,13 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
     netStart(gsLibName.."SendCreateCurveNode")
       netWriteEntity(user)
       netWriteVector(tC.Node[tC.Size])
-      netWriteVector(tC.Norm[tC.Size])
+      netWriteNormal(tC.Norm[tC.Size])
       netWriteVector(tC.Base[tC.Size])
       netWriteVector(tC.Rays[tC.Size][1])
       netWriteAngle (tC.Rays[tC.Size][2])
       netWriteBool  (tC.Rays[tC.Size][3])
+      netWriteUInt  (iN, 16)
+      if(iN > 0) then netWriteNormal(vN) end
     netSend(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end
@@ -945,7 +1013,30 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     asmlib.Notify(user,"Populate nodes first !","ERROR")
     asmlib.LogInstance("Nodes missing", gtLogs); return nil
   end
+  local nrA = self:GetActiveRadius()
   local mD, mL = asmlib.GetNearest(tData.Hit, tC.Base)
+  local bTr = (mD and mD > 0 and mL < nrA^2)
+  if(bTr) then
+    if(not bPnt) then
+      local tN, vF = tC.Node, nil
+      local elevpnt  = self:GetElevation()
+      local vB, tR = tC.Base[mD], tC.Rays[mD]
+      local vN, vD = tC.Norm[mD], tC.Node[mD]
+      local vO = Vector(); vO:Set(vD); vO:Sub(vB)
+      local nextx, nexty, nextz = vO:Unpack()
+      asmlib.SetAsmConvar(oPly,"nextx", nextx)
+      asmlib.SetAsmConvar(oPly,"nexty", nextx)
+      asmlib.SetAsmConvar(oPly,"nextz", nextz - elevpnt)
+      if(not (tN[mD-1] and tN[mD+1])) then vF = tR[2]:Forward() else
+        vF = Vector(tN[mD+1]); vF:Sub(tN[mD-1]); vF:Normalize() end
+      local aO = vF:AngleEx(vN)
+      local nextpic, nextyaw, nextrol = aO:Unpack()
+      asmlib.SetAsmConvar(oPly,"nextpic", nextpic)
+      asmlib.SetAsmConvar(oPly,"nextyaw", nextyaw)
+      asmlib.SetAsmConvar(oPly,"nextrol", nextrol)
+      return tC
+    end
+  end
   tC.Node[mD]:Set(tData.Org)
   tC.Norm[mD]:Set(tData.Ang:Up())
   tC.Base[mD]:Set(tData.Hit)
@@ -953,7 +1044,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   tC.Rays[mD][2]:Set(tData.Ang)
   tC.Rays[mD][3] = (tData.POA ~= nil)
   -- Adjust node according to intersection
-  if(bPnt and not tData.POA) then
+  if(bPnt and not tData.POA and not bTr) then
     local xx = self:GetCurveNodeActive(mD, tData.Org)
     if(xx) then
       tC.Node[mD]:Set(xx)
@@ -962,12 +1053,16 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
       tC.Norm[mD]:Normalize()
     end
   end
+  if(not bTr) then -- Try to apply the new super-elevation
+    local iN, vN = self:ApplySuperElevation(tC, tData, mD)
+    if(iN > 0) then tC.Norm[iN]:Set(vN) end
+  end
   if(not bMute) then
     asmlib.Notify(user, "Node ["..mD.."] updated !", "CLEANUP")
     netStart(gsLibName.."SendUpdateCurveNode")
       netWriteEntity(user)
       netWriteVector(tC.Node[mD])
-      netWriteVector(tC.Norm[mD])
+      netWriteNormal(tC.Norm[mD])
       netWriteVector(tC.Base[mD])
       netWriteVector(tC.Rays[mD][1])
       netWriteAngle (tC.Rays[mD][2])
@@ -1182,19 +1277,18 @@ function TOOL:LeftClick(stTrace)
     }, function(oPly, oArg)
       for iD = oArg.stard, tC.SSize do tS = tC.Snap[iD]
         for iK = oArg.stark, tS.Size do local tV, ePiece = tS[iK], nil
-          oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid,
-                         nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
+          oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid, 0, 0, 0, 0, 0, 0, oArg.spawn)
           if(not oArg.spawn) then -- Make sure it persists to set it afterwards
             asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"),gtLogs); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
-              asmlib.Notify(oPly, oArg.wname.." excessive turn at "..oArg.mundo.." !", "ERROR")
+              asmlib.Notify(oPly, oArg.wname..": excessive turn at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"), gtLogs); return false
             end
             if(nU and nU < crvleanlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
-              asmlib.Notify(oPly, oArg.wname.." excessive lean at "..oArg.mundo.." !", "ERROR")
+              asmlib.Notify(oPly, oArg.wname..": excessive lean at "..oArg.mundo.." !", "ERROR")
               asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"), gtLogs); return false
             end
           end
@@ -1364,7 +1458,7 @@ function TOOL:LeftClick(stTrace)
       end
     else -- Visual
       local IDs = gsSymDir:Explode(bgskids)
-      if(not asmlib.AttachBodyGroups(trEnt,IDs[1] or "")) then
+      if(not asmlib.ApplyBodyGroups(trEnt,IDs[1] or "")) then
         asmlib.LogInstance(self:GetStatus(stTrace,"(Bodygroup/Skin) Failed",trEnt),gtLogs); return false end
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       asmlib.LogInstance("(Bodygroup/Skin) Success",gtLogs)
@@ -1521,18 +1615,6 @@ function TOOL:Reload(stTrace)
     if(user:IsAdmin()) then
       if(self:GetDeveloperMode()) then
         asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
-      if(self:GetExportDB()) then
-        if(user:KeyDown(IN_USE)) then
-          asmlib.SetAsmConvar(user,"openextdb")
-          asmlib.LogInstance("(World) Success open expdb",gtLogs)
-        else
-          asmlib.ExportDSV("PIECES")
-          asmlib.ExportDSV("ADDITIONS")
-          asmlib.ExportDSV("PHYSPROPERTIES")
-          asmlib.LogInstance("(World) Exporting DB",gtLogs)
-        end
-        asmlib.SetAsmConvar(user, "exportdb", 0)
-      end
     end
     if(user:KeyDown(IN_SPEED)) then
       if(workmode == 1) then
@@ -1636,8 +1718,6 @@ function TOOL:UpdateGhostCurve()
     local stackcnt = self:GetStackCount()
     local pointid, pnextid = self:GetPointID()
     local tGho, iGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
-    local nextx, nexty, nextz = self:GetPosOffsets()
-    local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     local bCrv = user:GetNWBool(gsToolPrefL.."engcurve", false)
     if(bCrv) then
       local workmode  = self:GetWorkingMode()
@@ -1657,8 +1737,7 @@ function TOOL:UpdateGhostCurve()
     for iD = 1, tCrv.SSize do local tS = tCrv.Snap[iD]
       for iK = 1, tS.Size do iGho = (iGho + 1)
         local tV, eGho = tS[iK], tGho[iGho]
-        local stSpawn = asmlib.GetNormalSpawn(user, tV[1], tV[2], model, pointid,
-                                  nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+        local stSpawn = asmlib.GetNormalSpawn(user, tV[1], tV[2], model, pointid, 0, 0, 0, 0, 0, 0)
         if(eGho and eGho:IsValid()) then eGho:SetNoDraw(true)
           if(stackcnt > 0) then if(iGho > stackcnt) then eGho:SetNoDraw(true) else
             if(stSpawn) then eGho:SetPos(stSpawn.SPos); eGho:SetAngles(stSpawn.SAng); eGho:SetNoDraw(false) end end
@@ -1930,7 +2009,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
-  local nrB, nrS, mD, mL = 3, 1.5
+  local nrB, nrS, nrA, mD, mL = 1.5, 1.5, self:GetActiveRadius()
   local xyO, xyH = tData.Org:ToScreen(), tData.Hit:ToScreen()
   local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
   local xyX = (tData.Org + nS * tData.Ang:Forward()):ToScreen()
@@ -1943,14 +2022,17 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(tC.Size and tC.Size > 0) then
     for iD = 1, tC.Size do
       local rN = (iD == 1 and nrB or nrS)
-      local vB, vD, vN = tC.Base[iD], tC.Node[iD], tC.Norm[iD]
+      local vB, tR = tC.Base[iD], tC.Rays[iD]
+      local vD, vN = tC.Node[iD], tC.Norm[iD]
       local nB = asmlib.GetViewRadius(oPly, vB, 2)
       local nD = asmlib.GetViewRadius(oPly, vD, rN)
       local xyB, xyD = vB:ToScreen(), vD:ToScreen()
       local xyN = (vD + nS * vN):ToScreen()
+      local xyF = (vD + nS * tR[2]:Forward()):ToScreen()
       oScreen:DrawLine(xyB, xyD, "y")
       oScreen:DrawCircle(xyB, nB)
       oScreen:DrawCircle(xyD, nD)
+      oScreen:DrawLine(xyF, xyD, "r")
       oScreen:DrawLine(xyN, xyD, "b")
       oScreen:DrawCircle(xyD, nD / 2, "r")
       if(tC.Node[iD - 1]) then
@@ -1969,7 +2051,18 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
     if(bRp and mD) then
       local xyN = tC.Node[mD]:ToScreen()
       oScreen:DrawLine(xyO, xyN, "r")
-      if(bPnt and not tData.POA) then
+      if(mL < nrA^2) then
+        local nP, vR = 10, oPly:GetRight()
+        if(bPnt) then
+          local vU = oPly:GetUp(); vU:Mul(-nP); vU:Add(tData.Org)
+          oScreen:DrawLine(xyO, (vU + nP * vR):ToScreen(), "m")
+          oScreen:DrawLine(xyO, (vU - nP * vR):ToScreen(), "m")
+        else
+          local vU = oPly:GetUp(); vU:Mul(nP); vU:Add(tData.Org)
+          oScreen:DrawLine(xyO, (vU + nP * vR):ToScreen(), "m")
+          oScreen:DrawLine(xyO, (vU - nP * vR):ToScreen(), "m")
+        end
+      elseif(bPnt and not tData.POA) then
         local xx, sx = self:GetCurveNodeActive(mD, tData.Org, true)
         if(xx) then
           local xyX = xx:ToScreen(); oScreen:DrawLine(xyX, xyO, "ry")
@@ -2240,7 +2333,7 @@ function TOOL:DrawToolScreen(w, h)
   local actrad   = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
   local workmode, workname = self:GetWorkingMode()
-  local trMaxCN, trModel, trOID, trRLen
+  local trMID, trModel, trOID, trRLen
   if(trEnt and trEnt:IsValid()) then
     if(asmlib.IsOther(trEnt)) then return end
           trModel = trEnt:GetModel()
@@ -2256,7 +2349,7 @@ function TOOL:DrawToolScreen(w, h)
       trRLen = mathRound(stSpawn.RLen,2)
     end
     if(asmlib.IsHere(trRec)) then
-      trMaxCN = trRec.Size
+      trMID = trRec.Size
       trModel = stringGetFileName(trModel)
     else trModel = "["..gsNoMD.."]"..stringGetFileName(trModel) end
   end
@@ -2265,7 +2358,7 @@ function TOOL:DrawToolScreen(w, h)
   maxrad = asmlib.GetAsmConvar("maxactrad", "FLT")
   scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   scrTool:DrawText("HM: " ..(model      or gsNoAV),"m")
-  scrTool:DrawText("ID: ["..(trMaxCN    or gsNoID)
+  scrTool:DrawText("ID: ["..(trMID      or gsNoID)
                   .."] "  ..(trOID      or gsNoID)
                   .." >> "..(pointid    or gsNoID)
                   .. " (" ..(pnextid    or gsNoID)
@@ -2290,7 +2383,6 @@ function TOOL.BuildCPanel(CPanel)
   asmlib.SetAsmConvar(nil, "flipoverid") -- Reset flip-over mode on pickup
   CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
   local drmSkin, sLog = CPanel:GetSkin(), "*TOOL.BuildCPanel"
-  local devmode = asmlib.GetAsmConvar("devmode", "BUL")
   local nMaxLin = asmlib.GetAsmConvar("maxlinear","FLT")
   local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
   local sCall, pItem, sName, aData = "_cpan" -- pItem is the current panel created
@@ -2304,13 +2396,11 @@ function TOOL.BuildCPanel(CPanel)
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets)
 
-  local cqPanel = asmlib.CacheQueryPanel(devmode); if(not cqPanel) then
+  local qPanel = asmlib.CacheQueryTree(); if(not qPanel) then
     asmlib.LogInstance("Panel population empty",sLog); return end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return end
-  local defTable = makTab:GetDefinition()
-  local catTypes = asmlib.GetOpVar("TABLE_CATEGORIES")
-  local pTree    = vguiCreate("DTree", CPanel); if(not pTree) then
+  local pTree  = vguiCreate("DTree", CPanel); if(not pTree) then
     asmlib.LogInstance("Database tree empty",sLog); return end
   pTree:Dock(TOP) -- Initialize to fill left and right bounds
   pTree:SetTall(400) -- Make it quite large
@@ -2318,73 +2408,56 @@ function TOOL.BuildCPanel(CPanel)
   pTree:SetIndentSize(0) -- All track types are closed
   pTree:UpdateColours(drmSkin) -- Apply current skin
   CPanel:AddItem(pTree) -- Register it to the panel
-  local iCnt, iTyp, pTypes, pCateg, pNode = 1, 1, {}, {}
-  while(cqPanel[iCnt]) do
-    local vRec, bNow = cqPanel[iCnt], true
-    local sMod = vRec[makTab:GetColumnName(1)]
-    local sTyp = vRec[makTab:GetColumnName(2)]
-    local sNam = vRec[makTab:GetColumnName(3)]
+  local defTable = makTab:GetDefinition()
+  local tType, tRoot = {}, {Size = 0}
+  for iC = 1, qPanel.Size do
+    local vRec, bNow = qPanel[iC], true
+    local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
     if(asmlib.IsModel(sMod)) then
-      if(not (asmlib.IsBlank(sTyp) or pTypes[sTyp])) then
+      if(not (asmlib.IsBlank(sTyp) or tType[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
               pRoot:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
-              pRoot.DoClick = function() asmlib.SetExpandNode(pRoot) end
-              pRoot.Expander.DoClick = function() asmlib.SetExpandNode(pRoot) end
-              pRoot.DoRightClick = function()
-                local sID = asmlib.WorkshopID(sTyp)
-                if(sID and sID:len() > 0 and inputIsKeyDown(KEY_LSHIFT)) then
-                  guiOpenURL(asmlib.GetOpVar("FORM_URLADDON"):format(sID))
-                else SetClipboardText(pRoot:GetText()) end
-              end
+              pRoot.DoClick = function() asmlib.SetNodeExpand(pRoot) end
+              pRoot.Expander.DoClick = function() asmlib.SetNodeExpand(pRoot) end
+              pRoot.DoRightClick = function() asmlib.OpenNodeMenu(pRoot) end
               pRoot:UpdateColours(drmSkin)
-        pTypes[sTyp] = pRoot
+        tType[sTyp] = {Base = pRoot, Node = {}}
       end -- Reset the primary tree node pointer
-      if(pTypes[sTyp]) then pItem = pTypes[sTyp] else pItem = pTree end
-      -- Register the category if definition functional is given
-      if(catTypes[sTyp]) then -- There is a category definition
-        local bSuc, ptCat, psNam = pcall(catTypes[sTyp].Cmp, sMod)
-        if(bSuc) then -- When the call is successful in protected mode
-          if(psNam and not asmlib.IsBlank(psNam)) then
-            sNam = asmlib.GetBeautifyName(psNam)
-          end -- Custom name override when the addon requests
-          local pCurr = pCateg[sTyp]
-          if(not asmlib.IsHere(pCurr)) then
-            pCateg[sTyp] = {}; pCurr = pCateg[sTyp] end
-          if(asmlib.IsBlank(ptCat)) then ptCat = nil end
-          if(asmlib.IsHere(ptCat)) then
-            if(not istable(ptCat)) then ptCat = {ptCat} end
-            if(ptCat[1]) then local iD = 1
-              while(ptCat[iD]) do local sCat = tostring(ptCat[iD]):lower():Trim()
-                if(asmlib.IsBlank(sCat)) then sCat = "other" end
-                sCat = asmlib.GetBeautifyName(sCat) -- Beautify the category
-                if(pCurr[sCat]) then -- Jump next if already created
-                  pCurr, pItem = asmlib.GetDirectory(pCurr, sCat)
-                else
-                  pCurr, pItem = asmlib.SetDirectory(pItem, pCurr, sCat)
-                end; iD = iD + 1 -- Create the last needed node regarding pItem
-              end
-            end -- When the category has at least one element
-          else -- Store the creation information of the ones without category for later
-            tableInsert(pCateg[sTyp], {sNam, sMod}); bNow = false
-          end -- Is there is any category apply it. When available process it now
-        end
-      end -- Register the node associated with the track piece when is intended for later
-      if(bNow) then asmlib.SetDirectoryNode(pItem, sNam, sMod) end
+      if(tType[sTyp]) then pItem = tType[sTyp].Base else pItem = pTree end
+      -- Register the node associated with the track piece when is intended for later
+      if(vRec.C and vRec.C.Size > 0) then -- When category for the track type is available
+        local tNode = tType[sTyp].Node -- Index the contend for the track type
+        for iD = 1, vRec.C.Size do -- Generate the path to the track piece
+          local sCat = vRec.C[iD] -- Read the category name
+          local tCat = tNode[sCat] -- Index the internal sub-category
+          if(tCat) then -- Jump next if already created
+            pItem = tCat.Base -- Assume that the category is allocated
+            tNode = tCat.Node -- Jump to the next set of base nodes
+          else -- Create a new sub-category for the incoming content
+            tNode[sCat] = {}; tCat = tNode[sCat] -- Create node info
+            pItem = asmlib.SetNodeDirectory(pItem, sCat) -- Create category
+            tCat.Base = pItem; tCat.Node = {} -- Allocate node info
+            tNode = tCat.Node -- Jump to the allocated set of base nodes
+          end -- Create the last needed node regarding pItem
+        end -- When the category has at least one element
+      else -- Panel cannot categorize the entry add it to the list
+        tRoot.Size = tRoot.Size + 1 -- Increment count to avoid calling #
+        tableInsert(tRoot, iC); bNow = false -- Attach row ID to rooted items
+      end -- When needs to be processed now just attach it to the tree
+      if(bNow) then asmlib.SetNodeContent(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
     else asmlib.LogInstance("Ignoring item "..asmlib.GetReport(sTyp, sNam, sMod),sLog) end
-    iCnt = iCnt + 1
   end
   -- Attach the hanging items to the type root
-  for typ, val in pairs(pCateg) do
-    for iD = 1, #val do
-      local pan = pTypes[typ]
-      local nam, mod = unpack(val[iD])
-      asmlib.SetDirectoryNode(pan, nam, mod)
-      asmlib.LogInstance("Rooting item "..asmlib.GetReport(typ, nam, mod),sLog)
-    end
+  for iR = 1, tRoot.Size do
+    local iRox = tRoot[iR]
+    local vRec = qPanel[iRox]
+    local sMod, sTyp, sNam = vRec.M, vRec.T, vRec.N
+    asmlib.SetNodeContent(tType[sTyp].Base, sNam, sMod)
+    asmlib.LogInstance("Rooting item "..asmlib.GetReport(sTyp, sNam, sMod), sLog)
   end -- Process all the items without category defined
-  asmlib.LogInstance("Found items #"..tostring(iCnt - 1), sLog)
+  asmlib.LogInstance("Found items #"..qPanel.Size, sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local sName = asmlib.GetAsmConvar("workmode", "NAM")
@@ -2421,21 +2494,21 @@ function TOOL.BuildCPanel(CPanel)
         pComboPhysName:SetTall(22)
         pComboPhysName:UpdateColours(drmSkin)
 
-  local cqProperty = asmlib.CacheQueryProperty(); if(not cqProperty) then
+  local qProperty = asmlib.CacheQueryProperty(); if(not qProperty) then
     asmlib.LogInstance("Property population empty",sLog); return end
 
-  while(cqProperty[iTyp]) do
-    local sT, sI = cqProperty[iTyp], asmlib.ToIcon("property_type")
-    pComboPhysType:AddChoice(sT, sT, false, sI); iTyp = iTyp + 1
+  for iP = 1, qProperty.Size do
+    local sT, sI = qProperty[iP], asmlib.ToIcon("property_type")
+    pComboPhysType:AddChoice(sT, sT, false, sI)
   end
 
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
-    local cqNames = asmlib.CacheQueryProperty(sVal)
-    if(cqNames) then local iNam = 1; pComboPhysName:Clear()
+    local qNames = asmlib.CacheQueryProperty(sVal)
+    if(qNames) then pComboPhysName:Clear()
       pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
-      while(cqNames[iNam]) do
-        local sN, sI = cqNames[iNam], asmlib.ToIcon("property_name")
-        pComboPhysName:AddChoice(sN, sN, false, sI); iNam = iNam + 1
+      for iNam = 1, qNames.Size do
+        local sN, sI = qNames[iNam], asmlib.ToIcon("property_name")
+        pComboPhysName:AddChoice(sN, sN, false, sI)
       end
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
@@ -2443,7 +2516,7 @@ function TOOL.BuildCPanel(CPanel)
   cvarsRemoveChangeCallback(sName, sName..sCall)
   cvarsAddChangeCallback(sName, function(sV, vO, vN)
     pComboPhysName:SetValue(vN) end, sName..sCall);
-  asmlib.LogTable(cqProperty, "Property", sLog)
+  asmlib.LogTable(qProperty, "Property", sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
@@ -2511,6 +2584,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "ghostblnd", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvturnlm", iMaxDec)
     asmlib.SetNumSlider(CPanel, "crvleanlm", iMaxDec)
+    asmlib.SetNumSlider(CPanel, "crvsuprev", iMaxDec)
     asmlib.SetNumSlider(CPanel, "sgradmenu", 0)
     asmlib.SetNumSlider(CPanel, "rtradmenu", iMaxDec)
     asmlib.SetCheckBox(CPanel, "enradmenu")
@@ -2518,7 +2592,8 @@ if(CLIENT) then
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
 
-  asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
+  local bS, vOut = asmlib.DoAction("TWEAK_PANEL", "Utilities", "User", setupUserSettings)
+  if(not bS) then asmlib.LogInstance("User create: "..vOut, sLog) end
 
   -- Enter `spawnmenu_reload` in the console to reload the panel
   local function setupAdminSettings(CPanel)
@@ -2668,6 +2743,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(user, "endsvlock", asmlib.GetAsmConvar("endsvlock", "DEF"))
         asmlib.SetAsmConvar(user, "curvefact", asmlib.GetAsmConvar("curvefact", "DEF"))
         asmlib.SetAsmConvar(user, "curvsmple", asmlib.GetAsmConvar("curvsmple", "DEF"))
+        asmlib.SetAsmConvar(user, "crvsuprev", asmlib.GetAsmConvar("crvsuprev", "DEF"))
         asmlib.SetAsmConvar(user, "spawnrate", asmlib.GetAsmConvar("spawnrate", "DEF"))
         asmlib.SetAsmConvar(user, "bnderrmod", asmlib.GetAsmConvar("bnderrmod", "DEF"))
         asmlib.SetAsmConvar(user, "maxfruse" , asmlib.GetAsmConvar("maxfruse" , "DEF"))
@@ -2685,5 +2761,6 @@ if(CLIENT) then
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
 
-  asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
+  local bS, vOut = asmlib.DoAction("TWEAK_PANEL", "Utilities", "Admin", setupAdminSettings)
+  if(not bS) then asmlib.LogInstance("Admin create: "..vOut, sLog) end
 end

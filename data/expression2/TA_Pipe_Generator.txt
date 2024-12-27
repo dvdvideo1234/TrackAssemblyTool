@@ -1,0 +1,136 @@
+@name TA Pipe Generator
+@model models/props_lab/huladoll.mdl
+@persist [Scanner Pipe]:entity [F U R,C MP]:vector [TU TD TL TR]:ftrace 
+@persist [Delta Iter Raun]:number [ScanCenter SizeCenter]:vector2 MA:angle
+@outputs 
+
+if(first() || dupefinished())
+{
+    # Scan size. Most rails are more wider than higher
+    # For PHX two bean rails W > H
+    ScanR = 500 # Scan radius must be bigger then pipe radius
+    
+    # Amount of iterations to lower delta
+    Iter = 10
+    
+    # Rouding
+    Raun = 4
+    
+    # Align center to prop center
+    ScanCenter = vec2(0, 3)
+    SizeCenter = vec2(3, 3)
+    
+    # How fast it will scan the piece edge
+    Delta = 1
+    
+    # Local oriantation vectors
+    F = vec(1,0,0)
+    U = vec(0,0,1)
+    
+    # Automatic stuff
+    Scanner = entity()
+    Pipe    = noentity()
+    U = U:normalized()
+    R = F:cross(U)
+    MP = Scanner:pos()
+    MA = Scanner:angles()
+    C = U * ScanCenter:y() + R * ScanCenter:x()
+    
+    holoCreate(1), holoColor(1,vec(255,0,0)), holoScale(1,0.1*vec(1,1,1)) holoModel(1,"cone")
+    holoCreate(2), holoColor(2,vec(0,0,255)), holoScale(2,0.1*vec(1,1,1)) holoModel(2,"cone")
+    holoCreate(3), holoColor(3,vec(255,255,0)), holoScale(3,0.1*vec(1,1,1)) holoModel(3,"cone")
+    holoCreate(4), holoColor(4,vec(0,255,255)), holoScale(4,0.1*vec(1,1,1)) holoModel(4,"cone")
+    holoCreate(5), holoColor(5,vec(0,255,0)), holoScale(5,0.1*vec(1,1,1)) holoModel(5,"cube")
+    holoCreate(6), holoColor(6,vec(255,0,255)), holoScale(6,0.1*vec(1,1,1)) holoModel(6,"cube")
+
+    TU = Scanner:setFTrace(C + SizeCenter:x() * U, U,  ScanR):useArray():putArray(Scanner)
+    TD = Scanner:setFTrace(C - SizeCenter:x() * U, U, -ScanR):useArray():putArray(Scanner)
+    TR = Scanner:setFTrace(C + SizeCenter:y() * R, R,  ScanR):useArray():putArray(Scanner)
+    TL = Scanner:setFTrace(C - SizeCenter:y() * R, R, -ScanR):useArray():putArray(Scanner)
+}
+
+function drawFTrace(T:ftrace, N:number)
+{
+    P = T:getPosWorld()
+    D = T:getDirWorld()
+    A = D:toAngle()
+    A = A:rotateAroundAxis(A:right(), -90)
+    holoPos(N, P)
+    holoAng(N, A)
+}
+
+event tick()
+{
+    holoPos(5, Scanner:toWorld(C))
+    drawFTrace(TU:smpLocal(), 1)
+    drawFTrace(TD:smpLocal(), 2)
+    drawFTrace(TR:smpLocal(), 3)
+    drawFTrace(TL:smpLocal(), 4)
+    
+    if(Scanner != noentity())
+    {
+        if(TU:isHit() && TD:isHit() && TR:isHit() && TL:isHit())
+        {
+            VU = (TU:getFractionLen() - TD:getFractionLen())
+            VR = (TR:getFractionLen() - TL:getFractionLen())
+            DL = U * VU + R * VR 
+            
+            MP = (TU:getPosWorld() + TD:getPosWorld() +
+                  TR:getPosWorld() + TL:getPosWorld()) / 4
+            
+            #print("Move:", DL)  
+            
+            holoPos(6, MP)
+            
+            if(Pipe == noentity())
+            {
+                Pipe = TU:getEntity()
+                print("Pipe:", Pipe)  
+            }      
+                        
+            C = C + F * Delta
+            TU:rayMove(F + DL, Delta)
+            TD:rayMove(F + DL, Delta)
+            TR:rayMove(F + DL, Delta)
+            TL:rayMove(F + DL, Delta)
+        }
+        else
+        {   
+            # print("Iteration:", Iter)  
+            if(Iter <= 0)
+            {   
+                Scanner = noentity()
+            }
+            C = C - F * Delta
+            TU:rayMove(F, -Delta)
+            TD:rayMove(F, -Delta)
+            TR:rayMove(F, -Delta)
+            TL:rayMove(F, -Delta)
+            Delta = Delta / 2
+            Iter  = Iter - 1
+        }
+    }
+    else
+    {
+        if(Pipe != noentity())
+        {
+            Mo = Pipe:model()
+            Or = Pipe:toLocal(MP)
+            OrX = toString(round(Or:x(), Raun))
+            OrY = toString(round(Or:y(), Raun))
+            OrZ = toString(round(Or:z(), Raun))
+            OrS = OrX+","+OrY+","+OrZ
+            An = Pipe:toLocal(MA)
+            AnP = toString(round(An:pitch(), Raun))
+            AnY = toString(round(An:yaw(), Raun))
+            AnR = toString(round(An:roll(), Raun))
+            AnS = AnP+","+AnY+","+AnR
+            
+            if(OrS == "0,0,0") { OrS = "" }
+            if(AnS == "0,0,0") { AnS = "" } else { AnS = ", \""+AnS+"\"" }
+            
+            print("PIECES:Record({\""+Mo+"\", \"#\", \"#\", 0, \"\", \""+OrS+"\""+AnS+"})")
+            Pipe = noentity()
+        }  
+    }
+}
