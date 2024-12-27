@@ -57,10 +57,10 @@ if(first() || dupefinished())
     }else{ error("Additions line fail "+M) }
 
     P1 = trackasmlibGetProperty()
-    if(P1[3,string] == "Metal")
+    if(P1[3,string] == "Liquid")
     {
         P2 = trackasmlibGetProperty(P1[3,string])
-        if(P2[5, string] == "crowbar")
+        if(P2[1, string] == "slime")
         {
             print("Property type OK <"+P2[5, string]+">")
         }else{ error("Property type fail <"+P2[5, string]+">")}

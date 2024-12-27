@@ -3972,7 +3972,7 @@ function TranslateDSV(sTable, sPref, sDelim)
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance(sHew.." Missing table definition",sTable); return false end
   local sDSV = GetLibraryPath(GetOpVar("DIRPATH_DSV"), fPref, defTab.Name)
-  local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), "[tr]"..fPref, defTab.Name)
+  local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), "["..sMoDB.."-tr]"..fPref, defTab.Name)
   local D = fileOpen(sDSV, "rb", "DATA"); if(not D) then
     LogInstance(sHew.." Open fail: "..sDSV,sTable); return false end
   local I = fileOpen(sEXP, "wb", "DATA"); if(not I) then
