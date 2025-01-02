@@ -52,6 +52,7 @@ local isstring                       = isstring
 local isvector                       = isvector
 local isangle                        = isangle
 local ismatrix                       = ismatrix
+local isentity                       = isentity
 local isfunction                     = isfunction
 local Vector                         = Vector
 local Matrix                         = Matrix
@@ -2253,12 +2254,28 @@ function GetAttachmentByID(vSrc, sID)
       LogInstance("Entity invalid [N] "..GetReport(sID, eSrc)); return nil, sSrc end
     eBase, sSrc = eSrc, eSrc:GetModel(); if(not isstring(sID)) then
       LogInstance("Index mismatch [N] "..GetReport(sID, sSrc)); return nil, sSrc end
-  else -- Assume the source is an entity already spawned use it instead
+  elseif(isentity(vSrc)) then -- Assume the source is an entity already spawned use it instead
     if(not (vSrc and vSrc:IsValid())) then
       LogInstance("Entity invalid [E] "..GetReport(sID, vSrc)); return nil, sSrc end
     eBase, sSrc = vSrc, vSrc:GetModel(); if(not isstring(sID)) then
       LogInstance("Index mismatch [E] "..GetReport(sID, sSrc)); return nil, sSrc end
-  end
+  elseif(isfunction(vSrc)) then
+    local bS, fSrc, fID = pcall(vSrc, sID); if(not vS) then
+      LogInstance("Routine invalid [F] "..GetReport(sID, sSrc, vO)); return nil, sSrc end
+    if(not IsHere(vO)) then -- There is nothing to extract from an empty value
+      LogInstance("Results missing [F] "..GetReport(sID, sSrc)); return nil, sSrc end
+    return GetAttachmentByID(fSrc, (IsHere(fID) and fID or sID))
+  elseif(istable(vSrc)) then local tSrc, tID = vSrc[1], vSrc[2] -- Try the array keys
+     -- Handle various table key here. Use for whatever. Extract and valide the index
+    tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.SRC)   , ((IsHere(tID) and isstring(tID)) and tID or vSrc.ID)
+    tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.Source), ((IsHere(tID) and isstring(tID)) and tID or vSrc.Index)
+    tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.Entity), ((IsHere(tID) and isstring(tID)) and tID or vSrc.Point)
+    -- Make sure to validate the index before passing to the next stage
+    tID = ((IsHere(tID) and isstring(tID)) and tID or nil)
+    return GetAttachmentByID(tSrc, (IsHere(fID) and fID or sID))
+  else -- Assume the source is not supported when it is not explicitly developed
+    LogInstance("Source invalid [X] "..GetReport(vSrc, sID)); return nil, sSrc
+  end -- When there is no need for recursive source extraction calls return current
   local mID = eBase:LookupAttachment(sID); if(not isnumber(mID)) then
     LogInstance("Attachment invalid ID "..GetReport(sID, sSrc)); return nil, sSrc end
   local mTOA = eBase:GetAttachment(mID); if(not IsHere(mTOA)) then
@@ -2289,9 +2306,9 @@ function LocatePOA(oRec, ivPoID)
       local tPOA = tOffs[ID] -- Extract current offset and localize raw values
       local oP, oO, oA = tPOA.P, tPOA.O, tPOA.A -- POA object pointers
       local sP, sO, sA = oP:Raw(), oO:Raw(), oA:Raw() -- POA raw values
-      if(sO) then tPOA.O:Decode(sO, sM, "Pos") end -- Process origin
-      if(sA) then tPOA.A:Decode(sA, sM, "Ang") end -- Process angle
-      if(sP) then tPOA.P:Decode(sP, sM, "Pos", tPOA.O:Get()) end
+      if(sO) then tPOA.O:Decode(sO, sMo, "Pos") end -- Process origin
+      if(sA) then tPOA.A:Decode(sA, sMo, "Ang") end -- Process angle
+      if(sP) then tPOA.P:Decode(sP, sMo, "Pos", tPOA.O:Get()) end
       LogInstance("Spawn "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
@@ -2312,7 +2329,6 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
   if(not stData.Offs) then if(iID ~= 1) then
     LogInstance("Mismatch ID "..GetReport(iID, stData.Slot)); return nil end
     stData.Offs = {}; stData.Post = true -- Mark post-process on spawn
-    if(not IsHere(stData.Used)) then stData.Used = 0 end
   end
   local tOffs = stData.Offs; if(tOffs[iID]) then
     LogInstance("Exists ID "..GetReport(iID)); return tOffs
@@ -2773,104 +2789,90 @@ function NewTable(sTable,defTab,bDelete,bReload)
   -- Navigates the reference in the cache
   function self:GetNavigate(...)
     local tKey = {...}; if(not IsHere(tKey[1])) then
-      LogInstance("Missing keys",tabDef.Nick); return nil end
-    local oSpot, kKey, iCnt = libCache, tKey[1], 1
-    while(tKey[iCnt]) do kKey = tKey[iCnt]; iCnt = iCnt + 1
-      if(tKey[iCnt]) then oSpot = oSpot[kKey]; if(not IsHere(oSpot)) then
-        LogTable(tKey,"Diverge("..tostring(kKey)..")",tabDef.Nick); return nil
-    end; end; end; if(not oSpot[kKey]) then
-      LogTable(tKey,"Missing",tabDef.Nick); return nil end
-    return oSpot, kKey, tKey
+      LogInstance("Missing keys", tabDef.Nick); return nil end
+    local oSpot, vKey, iCnt = libCache, tKey[1], 1
+    while(tKey[iCnt]) do vKey = tKey[iCnt]; iCnt = iCnt + 1
+      if(tKey[iCnt]) then oSpot = oSpot[vKey]; if(not IsHere(oSpot)) then
+        LogTable(tKey, "Diverge("..tostring(vKey)..")", tabDef.Nick); return nil
+    end; end; end; if(not oSpot[vKey]) then
+      LogTable(tKey, "Missing", tabDef.Nick); return nil end
+    return oSpot, vKey, tKey
   end
   -- Attaches timer to a record related in the table cache
   function self:TimerAttach(vMsg, ...)
-    local oSpot, kKey, tKey = self:GetNavigate(...)
-    if(not (IsHere(oSpot) and IsHere(kKey))) then
+    local oSpot, vKey, tKey = self:GetNavigate(...)
+    if(not (IsHere(oSpot) and IsHere(vKey))) then
       LogInstance("Navigation miss "..GetReport(unpack(tKey)),tabDef.Nick)
       LogTable(oSpot, "Navigation", tabDef.Nick); return nil
     end -- Navigated to the last table node and returned the value key
     local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
     local sMoDB, iCnt = GetOpVar("MODE_DATABASE"), select("#", ...)
-    LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
-    oSpot[kKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
+    LogInstance("Called by "..GetReport(vMsg, vKey), tabDef.Nick)
+    oSpot[vKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
       local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
-        LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
+        LogInstance("Missing timer settings", tabDef.Nick); return oSpot[vKey] end
       local smTM, tmLif, tmDie, tmCol = tTim[1], tTim[2], tTim[3], tTim[4]; if(tmLif <= 0) then
-        LogInstance("Timer attachment ignored",tabDef.Nick); return oSpot[kKey] end
+        LogInstance("Timer attachment ignored",tabDef.Nick); return oSpot[vKey] end
       LogInstance("Stats "..GetReport(iCnt, smTM, tmLif, tmDie, tmCol), tabDef.Nick)
       if(smTM == "CQT") then
-        if(iCnt > 1) then -- Record in the placeholder must be cleared
-          for key, rec in pairs(oSpot) do -- Check other items that qualify
-            if(not rec.Used) then -- Used time is updated correctly. Report it
-              LogInstance("Navigation error "..GetReport(iCnt, unpack(tKey)),tabDef.Nick)
-              LogInstance("Navigation key "..GetReport(kKey, key),tabDef.Nick)
-              LogTable(rec, "Navigation", tabDef.Nick)
-            else -- Used time is updated correctly. Try to do some work
-              local vDif = (nNow - rec.Used) -- Calculate time difference
-              if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
-                LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
-                if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key),tabDef.Nick) end
-              end -- Clear one item that qualifies for deletion and time frame is present
-            end
-          end -- Clear all the items that qualified for deletion
-        else -- The whole cache placeholder must be deleted. Identifier is at base pointer
-          local key, rec = kKey, oSpot[kKey] -- Index placeholder
-          if(not rec.Used) then -- Used time is updated correctly. Report it
-            LogInstance("Navigation error "..GetReport(iCnt, unpack(tKey)),tabDef.Nick)
-            LogInstance("Navigation key "..GetReport(kKey, key),tabDef.Nick)
-            LogTable(rec, "Navigation", tabDef.Nick)
-          else -- Used time is updated correctly. Try to do some work
+        LogInstance("Navigation key "..GetReport(iCnt, unpack(tKey)), tabDef.Nick)
+        LogTable(oSpot, "Navigation", tabDef.Nick)
+        for key, rec in pairs(oSpot) do -- Check other items that qualify
+          if(rec.Used) then  -- Used time is updated on this level
             local vDif = (nNow - rec.Used) -- Calculate time difference
             if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
               LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
-              if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key),tabDef.Nick) end
-            end -- Clear the placeholder that qualifies for deletion and time frame is present
-          end
-        end
-        if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
-        LogInstance("Finish "..GetReport(kKey, nNow), tabDef.Nick); return oSpot[kKey]
+              if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key), tabDef.Nick) end
+            end -- Clear one item that qualifies for deletion and time frame is present
+          else -- Used time is missing on this key on this level. Report record.
+            LogInstance("Spot keyhash "..GetReport(iCnt, unpack(tKey)), tabDef.Nick)
+            LogInstance("Spot skipped "..GetReport(key, vKey), tabDef.Nick)
+          end -- Not every key is cached on the same level but some may use the same table
+        end -- Clear all the items that qualified for deletion
+        if(tmCol) then collectgarbage(); LogInstance("Garbage collected", tabDef.Nick) end
+        LogInstance("Finish "..GetReport(vKey, nNow), tabDef.Nick); return oSpot[vKey]
       elseif(smTM == "OBJ") then
         local tmID = tableConcat(tKey, sDiv)
         LogInstance("Timer ID "..GetReport(tmID), tabDef.Nick)
-        if(timerExists(tmID)) then LogInstance("Timer exists",tabDef.Nick); return oSpot[kKey] end
+        if(timerExists(tmID)) then LogInstance("Timer exists", tabDef.Nick); return oSpot[vKey] end
         timerCreate(tmID, tmLif, 1, function()
           LogInstance("Qualify "..GetReport(tmID, tmLif), tabDef.Nick)
-          if(tmDie) then oSpot[kKey] = nil; LogInstance("Clear "..GetReport(kKey),tabDef.Nick) end
+          if(tmDie) then oSpot[vKey] = nil; LogInstance("Clear "..GetReport(vKey), tabDef.Nick) end
           timerStop(tmID); timerRemove(tmID)
-          if(tmCol) then collectgarbage(); LogInstance("Garbage collected",tabDef.Nick) end
-        end); timerStart(tmID); return oSpot[kKey]
-      else LogInstance("Unsupported mode "..GetReport(smTM),tabDef.Nick); return oSpot[kKey] end
+          if(tmCol) then collectgarbage(); LogInstance("Garbage collected", tabDef.Nick) end
+        end); timerStart(tmID); return oSpot[vKey]
+      else LogInstance("Unsupported mode "..GetReport(smTM), tabDef.Nick); return oSpot[vKey] end
     elseif(sMoDB == "LUA") then
-      LogInstance("Memory manager skip",tabDef.Nick); return oSpot[kKey]
-    else LogInstance("Unsupported mode "..GetReport(sMoDB),tabDef.Nick); return nil end
+      LogInstance("Memory manager skip", tabDef.Nick); return oSpot[vKey]
+    else LogInstance("Unsupported mode "..GetReport(sMoDB), tabDef.Nick); return nil end
   end
   -- Restarts timer to a record related in the table cache
   function self:TimerRestart(vMsg, ...)
-    local oSpot, kKey, tKey = self:GetNavigate(...)
-    if(not (IsHere(oSpot) and IsHere(kKey))) then
-      LogInstance("Navigation miss "..GetReport(unpack(tKey)),tabDef.Nick)
+    local oSpot, vKey, tKey = self:GetNavigate(...)
+    if(not (IsHere(oSpot) and IsHere(vKey))) then
+      LogInstance("Navigation miss "..GetReport(unpack(tKey)), tabDef.Nick)
       LogTable(oSpot, "Navigation", tabDef.Nick); return nil
     end -- Navigated to the last table node and returned the value key
     local sMoDB = GetOpVar("MODE_DATABASE")
     local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
-    LogInstance("Called by "..GetReport(vMsg, kKey),tabDef.Nick)
-    oSpot[kKey].Used = nNow -- Mark the current caching time stamp
+    LogInstance("Called by "..GetReport(vMsg, vKey), tabDef.Nick)
+    oSpot[vKey].Used = nNow -- Mark the current caching time stamp
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand()
       local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
-        LogInstance("Missing timer settings",tabDef.Nick); return oSpot[kKey] end
+        LogInstance("Missing timer settings", tabDef.Nick); return oSpot[vKey] end
       local smTM, tmLif = tTim[1], tTim[2]; if(tmLif <= 0) then
-        LogInstance("Timer life ignored",tabDef.Nick); return oSpot[kKey] end
+        LogInstance("Timer life ignored", tabDef.Nick); return oSpot[vKey] end
       if(smTM == "CQT") then smTM = "CQT" -- Cache query timer does nothing
       elseif(smTM == "OBJ") then -- Just for something to do here for mode CQT
         local tmID = tableConcat(tKey, sDiv); if(not timerExists(tmID)) then
-          LogInstance("Timer missing "..GetReport(tmID),tabDef.Nick); return nil end
+          LogInstance("Timer missing "..GetReport(tmID), tabDef.Nick); return nil end
         timerStart(tmID)
-      else LogInstance("Mode mismatch "..GetReport(smTM),tabDef.Nick); return nil end
+      else LogInstance("Mode mismatch "..GetReport(smTM), tabDef.Nick); return nil end
     elseif(sMoDB == "LUA") then
-      LogInstance("Memory manager skip",tabDef.Nick); return oSpot[kKey]
-    else LogInstance("Unsupported mode "..GetReport(sMoDB),tabDef.Nick); return nil end
-    return oSpot[kKey]
+      LogInstance("Memory manager skip",tabDef.Nick); return oSpot[vKey]
+    else LogInstance("Unsupported mode "..GetReport(sMoDB), tabDef.Nick); return nil end
+    return oSpot[vKey]
   end
   -- Object internal data validation
   function self:IsValid() local bStat = true
