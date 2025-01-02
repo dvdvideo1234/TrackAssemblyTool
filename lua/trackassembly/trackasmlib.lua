@@ -2237,33 +2237,33 @@ function GetAttachmentByID(vSrc, sID)
     LogInstance("Index missing "..GetReport(sID, vSrc)); return nil end
   if(isstring(vSrc)) then -- Source is a model path
     sSrc = vSrc; if(not IsModel(sSrc)) then
-      LogInstance("Model mismatch [S] "..GetReport(sID, sSrc)); return nil, sSrc end
+      LogInstance("[S] Source mismatch "..GetReport(sID, sSrc)); return nil, sSrc end
     eBase = GetOpVar("ENTITY_TRANSFORMPOA") -- Use transform entity
     if(eBase and eBase:IsValid()) then -- Valid basis entity then
       if(eBase:GetModel() ~= sSrc) then eBase:SetModel(sSrc)
-        LogInstance("Update [S] "..GetReport(eBase:EntIndex(), sID, sSrc)) end
+        LogInstance("[S] Source update "..GetReport(eBase:EntIndex(), sID, sSrc)) end
     else -- If there is no basis need to create one for attachment extraction
       eBase = NewEntityNone(sSrc); if(not (eBase and eBase:IsValid())) then
-        LogInstance("Basis creation error [S] "..GetReport(sID, sSrc)); return nil, sSrc end
+        LogInstance("[S] Creation error "..GetReport(sID, sSrc)); return nil, sSrc end
       SetOpVar("ENTITY_TRANSFORMPOA", eBase) -- Register the entity transform basis
     end -- Transfer the data from the transform attachment location
   elseif(isnumber(vSrc)) then
     local iSrc = mathFloor(vSrc); if(iSrc <= 0) then
-      LogInstance("Index invalid [N] "..GetReport(sID, vSrc, iSrc)); return nil, sSrc end
+      LogInstance("[N] Index invalid "..GetReport(sID, vSrc, iSrc)); return nil, sSrc end
     local eSrc = EntityID(iSrc); if(not (eSrc and eSrc:IsValid())) then
-      LogInstance("Entity invalid [N] "..GetReport(sID, eSrc)); return nil, sSrc end
+      LogInstance("[N] Entity invalid "..GetReport(sID, eSrc)); return nil, sSrc end
     eBase, sSrc = eSrc, eSrc:GetModel(); if(not isstring(sID)) then
-      LogInstance("Index mismatch [N] "..GetReport(sID, sSrc)); return nil, sSrc end
+      LogInstance("[N] Index mismatch "..GetReport(sID, sSrc)); return nil, sSrc end
   elseif(isentity(vSrc)) then -- Assume the source is an entity already spawned use it instead
     if(not (vSrc and vSrc:IsValid())) then
-      LogInstance("Entity invalid [E] "..GetReport(sID, vSrc)); return nil, sSrc end
+      LogInstance("[E] Entity invalid "..GetReport(sID, vSrc)); return nil, sSrc end
     eBase, sSrc = vSrc, vSrc:GetModel(); if(not isstring(sID)) then
-      LogInstance("Index mismatch [E] "..GetReport(sID, sSrc)); return nil, sSrc end
+      LogInstance("[E] Index mismatch "..GetReport(sID, sSrc)); return nil, sSrc end
   elseif(isfunction(vSrc)) then
-    local bS, fSrc, fID = pcall(vSrc, sID); if(not vS) then
-      LogInstance("Routine invalid [F] "..GetReport(sID, sSrc, vO)); return nil, sSrc end
-    if(not IsHere(vO)) then -- There is nothing to extract from an empty value
-      LogInstance("Results missing [F] "..GetReport(sID, sSrc)); return nil, sSrc end
+    local bS, fSrc, fID = pcall(vSrc, sID); if(not bS) then
+      LogInstance("[F] Routine invalid "..GetReport(sID, vSrc, fSrc)); return nil, sSrc end
+    if(not IsHere(fSrc)) then -- There is nothing to extract from an empty value
+      LogInstance("[F] Results missing "..GetReport(sID, vSrc)); return nil, sSrc end
     return GetAttachmentByID(fSrc, (IsHere(fID) and fID or sID))
   elseif(istable(vSrc)) then local tSrc, tID = vSrc[1], vSrc[2] -- Try the array keys
      -- Handle various table key here. Use for whatever. Extract and valide the index
@@ -2271,15 +2271,14 @@ function GetAttachmentByID(vSrc, sID)
     tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.Source), ((IsHere(tID) and isstring(tID)) and tID or vSrc.Index)
     tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.Entity), ((IsHere(tID) and isstring(tID)) and tID or vSrc.Point)
     -- Make sure to validate the index before passing to the next stage
-    tID = ((IsHere(tID) and isstring(tID)) and tID or nil)
-    return GetAttachmentByID(tSrc, (IsHere(fID) and fID or sID))
+    tID = ((IsHere(tID) and isstring(tID)) and tID or sID); return GetAttachmentByID(tSrc, tID)
   else -- Assume the source is not supported when it is not explicitly developed
-    LogInstance("Source invalid [X] "..GetReport(vSrc, sID)); return nil, sSrc
+    LogInstance("[X] Source invalid "..GetReport(vSrc, sID)); return nil, sSrc
   end -- When there is no need for recursive source extraction calls return current
   local mID = eBase:LookupAttachment(sID); if(not isnumber(mID)) then
-    LogInstance("Attachment invalid ID "..GetReport(sID, sSrc)); return nil, sSrc end
+    LogInstance("Lookup invalid ID "..GetReport(sID, sSrc)); return nil, sSrc end
   local mTOA = eBase:GetAttachment(mID); if(not IsHere(mTOA)) then
-    LogInstance("Attachment missing "..GetReport(sID, mID, sSrc)); return nil, sSrc end
+    LogInstance("Data missing ID "..GetReport(mID, sID, sSrc)); return nil, sSrc end
   LogInstance("Extract "..GetReport(sID, mTOA.Pos, mTOA.Ang))
   return mTOA, sSrc -- The function must return transform table
 end
