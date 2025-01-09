@@ -819,14 +819,14 @@ end
 
 ------------- COLOR ---------------
 
-function FixColor(nC)
+function ToColor(nC)
   local tC = GetOpVar("COLOR_CLAMP")
   return mathFloor(mathClamp((tonumber(nC) or 0), tC[1], tC[2]))
 end
 
 function GetColor(xR, xG, xB, xA)
-  local nR, nG = FixColor(xR), FixColor(xG)
-  local nB, nA = FixColor(xB), FixColor(xA)
+  local nR, nG = ToColor(xR), ToColor(xG)
+  local nB, nA = ToColor(xB), ToColor(xA)
   return Color(nR, nG, nB, nA)
 end
 

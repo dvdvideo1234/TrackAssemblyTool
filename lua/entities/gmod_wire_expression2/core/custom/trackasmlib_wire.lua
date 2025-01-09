@@ -275,7 +275,7 @@ local function newPiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, n
   if(not enFlag) then return nil end
   if(not asmlib.IsPlayer(oPly)) then return nil end
   if(oEnt and not oEnt:IsValid()) then return nil end
-  local sMod, sBsID, nA, nMs, oCol = sModel, sBgpID, asmlib.FixColor(nA or 255), nMass, nR
+  local sMod, sBsID, nA, nMs, oCol = sModel, sBgpID, asmlib.ToColor(nA or 255), nMass, nR
   if(not sMod and oEnt and oEnt:IsValid()) then sMod = oEnt:GetModel() end
   local stRec = asmlib.CacheQueryPiece(sMod); if(not stRec) then return nil end
   if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = oEnt:GetPhysicsObject()
