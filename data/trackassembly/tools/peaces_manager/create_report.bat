@@ -30,8 +30,8 @@ set emd_chew_dbase=%emd_chew_gmod%\garrysmod\data\trackassembly\exp\trackasmlib_
 set emd_chew_skip=%emd_chew_repo%\data\trackassembly\tools\peaces_manager\models_ignored.txt
 
 :: How many addons are to be processed
-set emd_chew_addfrm=31
-set emd_chew_addcnt=31
+set emd_chew_addfrm=32
+set emd_chew_addcnt=32
 
 :: GMA addons to be processed
 set emd_chew_addlst[1]=740453553
@@ -65,6 +65,7 @@ set emd_chew_addlst[28]=3071058065
 set emd_chew_addlst[29]=3297918081
 set emd_chew_addlst[30]=3314861708
 set emd_chew_addlst[31]=2233731395
+set emd_chew_addlst[32]=3302818415
 
 :: Folder list for extraction and the directories they will be extracted
 set emd_chew_adddir[1]=AlexCookie's 2ft track pack
@@ -98,6 +99,7 @@ set emd_chew_adddir[28]=RockMan's Fortification
 set emd_chew_adddir[29]=SligWolf's Suspension Train
 set emd_chew_adddir[30]=Modular City Street
 set emd_chew_adddir[31]=Scene Builder
+set emd_chew_adddir[32]=Modular Dungeons
 
 :: Show the current folder
 echo Running in: %emd_chew_pathb%
@@ -125,7 +127,7 @@ IF EXIST "%emd_chew_pathb%%emd_parm_manag%.txt" (
   echo Chewing the paths uses base path relative to the executable.
   call %emd_chew_pathb%peaces_manager.exe %emd_chew_pathb% %emd_chew_dbase% %emd_chew_skip% %emd_clog_lfile%
   :: Terminate the flow as everyting is considered being extracted
-  echo Terminate the flow as everyting is considered being extracted.
+  echo Exit with success as everyting is considered extracted.
   timeout 300
   exit 0
 ) ELSE (

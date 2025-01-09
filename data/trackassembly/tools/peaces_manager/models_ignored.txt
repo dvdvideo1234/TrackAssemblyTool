@@ -5665,3 +5665,6 @@ models/props_canal/canal_bridge_railing_lamps.mdl
 # Modular City Street
 models/propper/dingles_modular_streets/street_propper_reference_texture_block.mdl
 models/propper/dingles_modular_streets/street_propper_reference_texture_block2.mdl
+
+# Modular Dungeons
+models/coldsaturnight/dungeons/dungeontest.mdl

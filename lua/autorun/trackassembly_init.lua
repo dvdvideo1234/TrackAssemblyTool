@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.769")
+asmlib.SetOpVar("TOOL_VERSION","9.770")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -558,6 +558,7 @@ if(CLIENT) then
   asmlib.WorkshopID("SligWolf's Suspension Train" , "3297918081")
   asmlib.WorkshopID("Modular City Street"         , "3314861708")
   asmlib.WorkshopID("Scene Builder"               , "2233731395")
+  asmlib.WorkshopID("Modular Dungeons"            , "3302818415")
 
   asmlib.SetAction("CLEAR_GHOSTS" , function() asmlib.ClearGhosts() end)
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
@@ -4907,6 +4908,39 @@ else
   PIECES:Record({"models/scene_building/small_rooms/4door.mdl", "#", "#", 4, "", "0,-123,0", "0,-90,0"})
   PIECES:Record({"models/scene_building/small_rooms/stairs_straight.mdl", "#", "#", 1, "", "0,163,64", "0,90,0"})
   PIECES:Record({"models/scene_building/small_rooms/stairs_straight.mdl", "#", "#", 2, "", "0,-163,-64", "0,-90,0"})
+  asmlib.Categorize("Modular Dungeons",[[function(m)
+    local g = m:gsub("models/coldsaturnight/dungeons/","")
+    local r, n = g:gsub("%.mdl",""):lower(), nil
+    if(r:find("^combine")) then
+      n = r:gsub("^combine", ""); r = "combine"
+    else r, n = nil, nil end; return r, n end]])
+  PIECES:Record({"models/coldsaturnight/dungeons/combinearmory.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridor.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridor.mdl", "#", "#", 2, "", "-256,0,80", "0,180,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridorend.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridorcross.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridorcross.mdl", "#", "#", 2, "", "0,256,80", "0,90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridorcross.mdl", "#", "#", 3, "", "-256,0,80", "0,-180,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridorcross.mdl", "#", "#", 4, "", "0,-256,80", "0,-90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridort.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridort.mdl", "#", "#", 2, "", "-256,0,80", "0,-180,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridort.mdl", "#", "#", 3, "", "0,-256,80", "0,-90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridorturn.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinecorridorturn.mdl", "#", "#", 2, "", "0,-256,80", "0,-90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineentry.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineentry.mdl", "#", "#", 2, "", "0,256,80", "0,90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineentry.mdl", "#", "#", 3, "", "-256,0,80", "0,180,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineentry.mdl", "#", "#", 4, "", "0,-256,80", "0,-90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineladder.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineladder.mdl", "#", "#", 2, "", "-256,0,336", "0,180,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineroom.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineroom.mdl", "#", "#", 2, "", "-256,0,80", "0,180,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineroom.mdl", "#", "#", 3, "", "0,-256,80", "0,-90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineroomend.mdl", "#", "#", 1, "", "0,-256,80", "0,90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineroomend.mdl", "#", "#", 2, "", "0,-256,80", "0,-90,0"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineshaft.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combineshaftend.mdl", "#", "#", 1, "", "256,0,80"})
+  PIECES:Record({"models/coldsaturnight/dungeons/combinestart.mdl", "#", "#", 1, "", "256,0,80"})
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
