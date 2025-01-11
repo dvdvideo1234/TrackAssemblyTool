@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.772")
+asmlib.SetOpVar("TOOL_VERSION","9.773")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -105,7 +105,7 @@ local gsGenerPrf  = asmlib.GetOpVar("DBEXP_PREFGEN")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsDirDSV    = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
 local gsNoAnchor  = asmlib.GetOpVar("MISS_NOID")..gsSymRev..asmlib.GetOpVar("MISS_NOMD")
-local gsGrossDSV  = gsDirDSV..gsGenerPrf..gsToolPrefU
+local gsGenerDSV  = gsDirDSV..gsGenerPrf..gsToolPrefU
 
 ------------ VARIABLE FLAGS ------------
 
@@ -2076,7 +2076,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
 
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
-  if(fileExists(gsGrossDSV.."CATEGORY.txt", "DATA")) then
+  if(fileExists(gsGenerDSV.."CATEGORY.txt", "DATA")) then
     asmlib.LogInstance("DB CATEGORY from GENERIC",gtInitLogs)
     asmlib.ImportCategory(3, gsGenerPrf)
   else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
@@ -2095,7 +2095,7 @@ end
  * First  argument of Categorize() is used to provide default track type for TABLE:Record()
  * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
-if(fileExists(gsGrossDSV.."PIECES.txt", "DATA")) then
+if(fileExists(gsGenerDSV.."PIECES.txt", "DATA")) then
   asmlib.LogInstance("DB PIECES from GENERIC",gtInitLogs)
   asmlib.ImportDSV("PIECES", true, gsGenerPrf)
 else
@@ -4944,7 +4944,7 @@ else
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsGrossDSV.."PHYSPROPERTIES.txt", "DATA")) then
+if(fileExists(gsGenerDSV.."PHYSPROPERTIES.txt", "DATA")) then
   asmlib.LogInstance("DB PHYSPROPERTIES from GENERIC",gtInitLogs)
   asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerPrf)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
@@ -5053,7 +5053,7 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsGrossDSV.."ADDITIONS.txt", "DATA")) then
+if(fileExists(gsGenerDSV.."ADDITIONS.txt", "DATA")) then
   asmlib.LogInstance("DB ADDITIONS from GENERIC",gtInitLogs)
   asmlib.ImportDSV("ADDITIONS", true, gsGenerPrf)
 else

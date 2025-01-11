@@ -2656,7 +2656,7 @@ function GetBuilderID(vID)
   return makTab -- Return the dedicated table builder object
 end
 
-function NewTable(sTable,defTab,bDelete,bReload)
+function NewTable(sTable,defTab,bReload,bDelete)
   if(not isstring(sTable)) then
     LogInstance("Table nick mismatch "..GetReport(sTable)); return false end
   if(IsBlank(sTable)) then
@@ -2816,7 +2816,6 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Stats "..GetReport(iCnt, smTM, tmLif, tmDie, tmCol), tabDef.Nick)
       if(smTM == "CQT") then
         LogInstance("Navigation key "..GetReport(iCnt, unpack(tKey)), tabDef.Nick)
-        LogTable(oSpot, "Navigation", tabDef.Nick)
         for key, rec in pairs(oSpot) do -- Check other items that qualify
           if(rec.Used) then  -- Used time is updated on this level
             local vDif = (nNow - rec.Used) -- Calculate time difference
@@ -3208,14 +3207,55 @@ function NewTable(sTable,defTab,bDelete,bReload)
   end
   -- When database mode is SQL create a table in sqlite
   if(sMoDB == "SQL") then local vO
-    vO = self:Create():Get(); if(not IsHere(vO)) then
-      LogInstance("Build create failed"); return self:Remove(false) end
-    vO = self:Index():Get(); if(not IsHere(vO)) then
-      LogInstance("Build index failed"); return self:Remove(false) end
     vO = self:Drop():Get(); if(not IsHere(vO)) then
       LogInstance("Build drop failed"); return self:Remove(false) end
+    -- When enabled forces a table drop
+    if(bReload) then -- Remove table when SQL error is present
+      if(sqlTableExists(defTab.Name)) then
+        local qRez = sqlQuery(vO); if(not qRez and isbool(qRez)) then
+          LogInstance("Table drop fail "..GetReport(sqlLastError(), vO), tabDef.Nick)
+          return self:Remove(false) -- Remove table when SQL error is present
+        else LogInstance("Table drop success",tabDef.Nick) end
+      else LogInstance("Table drop skipped",tabDef.Nick) end
+    end
+    -- Use current query to drop the table
+    vO = self:Create():Get(); if(not IsHere(vO)) then
+      LogInstance("Build create failed"); return self:Remove(false) end
+    -- Create the table using the given name and properties
+    if(sqlTableExists(defTab.Name)) then
+      LogInstance("Table create skipped",tabDef.Nick)
+    else -- Remove table when SQL error is present
+      local qRez = sqlQuery(vO); if(not qRez and isbool(qRez)) then
+        LogInstance("Table create fail "..GetReport(sqlLastError(), vO), tabDef.Nick)
+        return self:Remove(false) -- Remove table when SQL error is present
+      end
+    end
+    vO = self:Index():Get(); if(not IsHere(vO)) then
+      LogInstance("Build index failed"); return self:Remove(false) end
+    -- Check when SQL query has passed and the table is not yet created
+    if(sqlTableExists(defTab.Name)) then
+      for iQ = 1, vO.Size do local qInx = vO[iQ]
+        local qRez = sqlQuery(qInx); if(not qRez and isbool(qRez)) then
+          LogInstance("Table create index fail "..GetReport(sqlLastError(), iQ, qInx), tabDef.Nick)
+          return self:Remove(false) -- Clear table when index is not created
+        end -- Check when the index query has passed
+        LogInstance("Table create index: "..qInx,tabDef.Nick)
+      end
+    else
+      LogInstance("Table create check fail "..GetReport(sqlLastError(), vQ), tabDef.Nick)
+      return self:Remove(false) -- Clear table when it is not created by the first pass
+    end
     vO = self:Delete():Get(); if(not IsHere(vO)) then
       LogInstance("Build delete failed"); return self:Remove(false) end
+    -- When the table is present delete all records
+    if(bDelete) then
+      if(sqlTableExists(defTab.Name)) then -- Remove table when SQL error is present
+        local qRez = sqlQuery(vO); if(not qRez and isbool(qRez)) then
+          LogInstance("Table delete fail "..GetReport(sqlLastError(), vO), tabDef.Nick)
+          return self:Remove(false) -- Remove table when SQL error is present
+        else LogInstance("Table delete success",tabDef.Nick) end
+      else LogInstance("Table delete skipped",tabDef.Nick) end
+    end
     vO = self:Begin():Get(); if(not IsHere(vO)) then
       LogInstance("Build begin failed"); return self:Remove(false) end
     vO = self:Commit():Get(); if(not IsHere(vO)) then
@@ -3224,45 +3264,6 @@ function NewTable(sTable,defTab,bDelete,bReload)
       LogInstance("Build timer failed"); return self:Remove(false) end
     local tQ = self:GetCommand(); if(not IsHere(tQ)) then
       LogInstance("Build command failed"); return self:Remove(false) end
-    -- When enabled forces a table drop
-    if(bReload) then
-      if(sqlTableExists(defTab.Name)) then -- Remove table when SQL error is present
-        local qRez = sqlQuery(tQ.DROP); if(not qRez and isbool(qRez)) then
-          LogInstance("Table drop fail "..GetReport(sqlLastError(), tQ.DROP), tabDef.Nick)
-          return self:Remove(false) -- Remove table when SQL error is present
-        else LogInstance("Table drop success",tabDef.Nick) end
-      else LogInstance("Table drop skipped",tabDef.Nick) end
-    end
-    -- Create the table using the given name and properties
-    if(sqlTableExists(defTab.Name)) then
-      LogInstance("Table create skipped",tabDef.Nick)
-    else -- Remove table when SQL error is present
-      local qRez = sqlQuery(tQ.CREATE); if(not qRez and isbool(qRez)) then
-        LogInstance("Table create fail "..GetReport(sqlLastError(), tQ.CREATE), tabDef.Nick)
-        return self:Remove(false) -- Remove table when SQL error is present
-      end -- Check when SQL query has passed and the table is not yet created
-      if(sqlTableExists(defTab.Name)) then
-        for iQ = 1, tQ.INDEX.Size do local qInx = tQ.INDEX[iQ]
-          local qRez = sqlQuery(qInx); if(not qRez and isbool(qRez)) then
-            LogInstance("Table create index fail "..GetReport(sqlLastError(), iQ, qInx), tabDef.Nick)
-            return self:Remove(false) -- Clear table when index is not created
-          end -- Check when the index query has passed
-          LogInstance("Table create index: "..qInx,tabDef.Nick)
-        end
-      else
-        LogInstance("Table create check fail "..GetReport(sqlLastError(), tQ.CREATE), tabDef.Nick)
-        return self:Remove(false) -- Clear table when it is not created by the first pass
-      end
-    end
-    -- When the table is present delete all records
-    if(bDelete) then
-      if(sqlTableExists(defTab.Name)) then local qRez = sqlQuery(tQ.DELETE)
-        if(not qRez and isbool(qRez)) then -- Remove table when SQL error is present
-          LogInstance("Table delete fail "..GetReport(sqlLastError(), tQ.DELETE), tabDef.Nick)
-          return self:Remove(false) -- Remove table when SQL error is present
-        else LogInstance("Table delete success",tabDef.Nick) end
-      else LogInstance("Table delete skipped",tabDef.Nick) end
-    end
   elseif(sMoDB == "LUA") then local tCache = libCache[tabDef.Nick]
     if(IsHere(tCache)) then -- Empty the table when its cache is located
       tableEmpty(tCache); LogInstance("Table create empty",tabDef.Nick)
@@ -3834,7 +3835,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
     F = fileOpen(fName, "rb", "DATA"); if(not F) then
       LogInstance(sHew.." Open fail: "..fName,sTable); return false end
   end
-  if(sMoDB == "SQL") then sqlQuery(cmdTab.BEGIN); LogInstance(sHew.." Begin",sTable) end
+  if(bComm and sMoDB == "SQL") then
+    sqlQuery(makTab:Begin():Get()); LogInstance(sHew.." Begin",sTable) end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       local tData = sDelim:Explode(sLine); if((#tData-1) > defTab.Size) then
@@ -3845,7 +3847,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
       if(bComm) then makTab:Record(tData) end
     end
   end; F:Close()
-  if(sMoDB == "SQL") then sqlQuery(cmdTab.COMMIT); LogInstance(sHew.." Commit",sTable) end
+  if(bComm and sMoDB == "SQL") then
+    sqlQuery(makTab:Commit():Get()); LogInstance(sHew.." Commit",sTable) end
   LogInstance(sHew.." Success",sTable); return true
 end
 
