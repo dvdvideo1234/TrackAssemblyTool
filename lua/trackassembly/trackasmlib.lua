@@ -1841,32 +1841,36 @@ function SetNodeContent(pnBase, sName, sModel)
   return pNode
 end
 
-function GetFrequentPieces(iCnt)
-  local iCnt = (tonumber(iCnt) or 0); if(iCnt < 1) then
-    LogInstance("Count not applicable"); return nil end
+function GetFrequentPieces(vCnt)
+  local iCnt = (tonumber(vCnt) or 0); if(iCnt < 1) then
+    LogInstance("Count invalid "..GetReport(iCnt,vCnt)); return nil end
   local makTab = GetBuilderNick("PIECES"); if(not IsHere(makTab)) then
-    LogInstance("Missing table builder"); return nil end
+    LogInstance("Missing table builder "..GetReport(iCnt,vCnt)); return nil end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance("Missing table definition"); return nil end
+    LogInstance("Missing table definition "..GetReport(iCnt,vCnt)); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
-    LogInstance("Missing table cache space"); return nil end
+    LogInstance("Missing cache space "..GetReport(iCnt,vCnt)); return nil end
   local tmNow, frUsed = Time(), GetOpVar("TABLE_FREQUENT_MODELS")
   local tSort = Arrange(tCache, "Used"); if(not tSort) then
-    LogInstance("Sorting table cache failed"); return nil end
+    LogInstance("Arrange cache mismatch "..GetReport(iCnt,vCnt)); return nil end
   tableEmpty(frUsed); frUsed.Size = 0; frUsed.Need = iCnt
   for iD = tSort.Size, (tSort.Size - iCnt + 1), -1 do
     local oRec = tSort[iD] -- Index arranged record ID
     if(oRec) then oRec = oRec.Rec -- Jump over to the record
-      if(not oRec.Post) then -- Initialized. Not yet picked
-        local nT = (tmNow - (tonumber(oRec.Used) or 0))
-        local tD = {oRec.Slot, oRec.Type, oRec.Name, oRec.Size}
-        frUsed.Size = (frUsed.Size + 1) -- Increment size
-        tableInsert(frUsed, {Time = nT, Data = tD})
-      end -- Time and panel data has been stored and passed
+      if(istable(oRec)) then
+        if(oRec and oRec.Size and oRec.Size > 0) then
+          if(not oRec.Post) then -- Initialized. Not yet picked
+            local nT = (tmNow - (tonumber(oRec.Used) or 0))
+            local tD = {oRec.Slot, oRec.Type, oRec.Name, oRec.Size}
+            frUsed.Size = (frUsed.Size + 1) -- Increment size
+            tableInsert(frUsed, {Time = nT, Data = tD})
+          end -- Time and panel data has been stored and passed
+        else LogInstance("Piece slot missing "..GetReport(iCnt, vCnt, oRec.Slot)) end
+      else LogInstance("Space type mismatch "..GetReport(iCnt, vCnt, type(oRec))) end
     else break end -- Nothing else left to process
   end -- Return only when at least one record is found
   if(frUsed.Size > 0) then return frUsed end
-  LogInstance("Array is empty or not available"); return nil
+  LogInstance("Array not available "..GetReport(iCnt,vCnt)); return nil
 end
 
 function SetListViewRowClipboard(pnListView)
