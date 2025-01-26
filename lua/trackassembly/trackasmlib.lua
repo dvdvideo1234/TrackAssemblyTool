@@ -4525,6 +4525,7 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
   local stSpawn = GetCacheSpawn(oPly, stData)
         stSpawn.HID  = ihdPoID
         stSpawn.HRec = hdRec
+  local aRev = GetOpVar("ANG_REV")
   if(ucsPos) then stSpawn.BPos:Set(ucsPos) end
   if(ucsAng) then stSpawn.BAng:Set(ucsAng) end
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng)
@@ -4540,10 +4541,11 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
     NegAngle(stSpawn.ANxt, true, true, false)
     local vW, aW = LocalToWorld(stSpawn.PNxt, stSpawn.ANxt, stSpawn.BPos, stSpawn.BAng)
     stSpawn.OPos:Set(vW); stSpawn.OAng:Set(aW)
-    stSpawn.F:Set(stSpawn.OAng:Forward())
-    stSpawn.R:Set(stSpawn.OAng:Right())
-    stSpawn.U:Set(stSpawn.OAng:Up())
   end
+  -- Update snap directions
+  stSpawn.F:Set(stSpawn.OAng:Forward())
+  stSpawn.R:Set(stSpawn.OAng:Right())
+  stSpawn.U:Set(stSpawn.OAng:Up())
   -- Read holder record
   stSpawn.HPnt:SetUnpacked(hdPOA.P:Get())
   stSpawn.HOrg:SetUnpacked(hdPOA.O:Get())
@@ -4556,10 +4558,11 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
   stSpawn.HMtx:Identity()
   stSpawn.HMtx:Translate(stSpawn.HOrg)
   stSpawn.HMtx:Rotate(stSpawn.HAng)
-  stSpawn.HMtx:Rotate(GetOpVar("ANG_REV"))
+  stSpawn.HMtx:Rotate(aRev)
   stSpawn.HMtx:Invert()
   -- Calculate the spawn matrix
-  stSpawn.SMtx:Set(stSpawn.TMtx * stSpawn.HMtx)
+  stSpawn.SMtx:Set(stSpawn.TMtx)
+  stSpawn.SMtx:Mul(stSpawn.HMtx)
   -- Read the spawn origin position and angle
   stSpawn.SPos:Set(stSpawn.SMtx:GetTranslation())
   stSpawn.SAng:Set(stSpawn.SMtx:GetAngles())
