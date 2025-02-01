@@ -872,14 +872,6 @@ function GridAngle(aBase, nvDec)
   aBase:SetUnpacked(P, Y, R) return aBase
 end
 
-function NegAngle(aBase, bP, bY, bR)
-  if(not aBase) then LogInstance("Base invalid"); return nil end
-  local P, Y, R = aBase:Unpack()
-  P = (IsHere(bP) and (bP and -P or P) or -P)
-  Y = (IsHere(bY) and (bY and -Y or Y) or -Y)
-  R = (IsHere(bR) and (bR and -R or R) or -R)
-  aBase:SetUnpacked(P, Y, R); return aBase
-end
 ------------- VECTOR ---------------
 
 function BasisVector(vBase, aUnit)
@@ -4530,22 +4522,15 @@ function GetNormalSpawn(oPly,ucsPos,ucsAng,shdModel,ivhdPoID,
   if(ucsAng) then stSpawn.BAng:Set(ucsAng) end
   stSpawn.OPos:Set(stSpawn.BPos); stSpawn.OAng:Set(stSpawn.BAng)
   -- Initialize F, R, U Copy the UCS like that to support database POA
-  stSpawn.ANxt:SetUnpacked(tonumber(ucsAngP) or 0,
-                           tonumber(ucsAngY) or 0,
-                           tonumber(ucsAngR) or 0)
-  stSpawn.PNxt:SetUnpacked(tonumber(ucsPosX) or 0,
-                           tonumber(ucsPosY) or 0,
-                           tonumber(ucsPosZ) or 0)
+  local pX, pY, pZ = (tonumber(ucsPosX) or 0), (tonumber(ucsPosY) or 0), (tonumber(ucsPosZ) or 0)
+  local aP, aY, aR = (tonumber(ucsAngP) or 0), (tonumber(ucsAngY) or 0), (tonumber(ucsAngR) or 0)
+  stSpawn.ANxt:SetUnpacked(-aP, -aY,  aR)
+  stSpawn.PNxt:SetUnpacked( pX, -pY,  pZ)
   -- Integrate additional position offset into the origin position
   if(not (stSpawn.ANxt:IsZero() and stSpawn.PNxt:IsZero())) then
-    NegAngle(stSpawn.ANxt, true, true, false)
     local vW, aW = LocalToWorld(stSpawn.PNxt, stSpawn.ANxt, stSpawn.BPos, stSpawn.BAng)
     stSpawn.OPos:Set(vW); stSpawn.OAng:Set(aW)
   end
-  -- Update snap directions
-  stSpawn.F:Set(stSpawn.OAng:Forward())
-  stSpawn.R:Set(stSpawn.OAng:Right())
-  stSpawn.U:Set(stSpawn.OAng:Up())
   -- Read holder record
   stSpawn.HPnt:SetUnpacked(hdPOA.P:Get())
   stSpawn.HOrg:SetUnpacked(hdPOA.O:Get())

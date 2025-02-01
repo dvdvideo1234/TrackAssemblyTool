@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.775")
+asmlib.SetOpVar("TOOL_VERSION","9.776")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -304,9 +304,6 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     end,
   },
   {Name = "Origin",
-    {"F"   , "VEC", "Origin forward vector"},
-    {"R"   , "VEC", "Origin right vector"},
-    {"U"   , "VEC", "Origin up vector"},
     {"BPos", "VEC", "Base coordinate position"},
     {"BAng", "ANG", "Base coordinate angle"},
     {"OPos", "VEC", "Origin position"},
