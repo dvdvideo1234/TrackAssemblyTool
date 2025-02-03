@@ -868,7 +868,7 @@ function GridAngle(aBase, nvDec)
   if(not aBase) then LogInstance("Base invalid"); return nil end
   local D = tonumber(nvDec or 0); if(D == 0) then return aBase end
   local P, Y, R = aBase:Unpack()
-  if(P == 0 and P == 0 and D > 0) then Y = GetGrid(Y, D) end
+  if(P == 0 and R == 0 and D > 0) then Y = GetGrid(Y, D) end
   aBase:SetUnpacked(P, Y, R) return aBase
 end
 
