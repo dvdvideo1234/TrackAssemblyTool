@@ -142,7 +142,7 @@ TOOL.ClientConVar = {
   [ "upspanchor" ] = 0,
   [ "crvturnlm"  ] = 0.95,
   [ "crvleanlm"  ] = 0.95,
-  [ "crvsuprev"  ] = 0.45,
+  [ "crvsuprev"  ] = 0,
   [ "flipoverid" ] = ""
 }
 
@@ -206,7 +206,7 @@ TOOL.Command    = nil -- Command on click (nil for default)
 TOOL.ConfigName = nil -- Configure file name (nil for default)
 
 function TOOL:GetSuperElevation()
-  return mathClamp(self:GetClientNumber("crvsuprev", 0), 0, 1)
+  return mathClamp(self:GetClientNumber("crvsuprev", 0), -2, 2)
 end
 
 function TOOL:GetCurveFactor()
@@ -254,7 +254,8 @@ function TOOL:GetModel()
 end
 
 function TOOL:GetStackCount()
-  return mathClamp(self:GetClientNumber("stackcnt", 0), 0, asmlib.GetAsmConvar("maxstcnt", "INT"))
+  local nMax = asmlib.GetAsmConvar("maxstcnt", "INT")
+  return mathClamp(self:GetClientNumber("stackcnt", 0), 0, nMax)
 end
 
 function TOOL:GetSpawnRate()
@@ -262,11 +263,13 @@ function TOOL:GetSpawnRate()
 end
 
 function TOOL:GetMass()
-  return mathClamp(self:GetClientNumber("mass", 0), 0, asmlib.GetAsmConvar("maxmass","FLT"))
+  local nMax = asmlib.GetAsmConvar("maxmass","FLT")
+  return mathClamp(self:GetClientNumber("mass", 0), 0, nMax)
 end
 
 function TOOL:GetSizeUCS()
-  return mathClamp(self:GetClientNumber("sizeucs", 0), 0, asmlib.GetAsmConvar("maxlinear","FLT"))
+  local nMax = asmlib.GetAsmConvar("maxlinear","FLT")
+  return mathClamp(self:GetClientNumber("sizeucs", 0), 0, nMax)
 end
 
 function TOOL:GetDeveloperMode()
@@ -274,10 +277,10 @@ function TOOL:GetDeveloperMode()
 end
 
 function TOOL:GetPosOffsets()
-  local nMaxLin = asmlib.GetAsmConvar("maxlinear","FLT")
-  return mathClamp(self:GetClientNumber("nextx", 0), -nMaxLin, nMaxLin),
-         mathClamp(self:GetClientNumber("nexty", 0), -nMaxLin, nMaxLin),
-         mathClamp(self:GetClientNumber("nextz", 0), -nMaxLin, nMaxLin)
+  local nMax = asmlib.GetAsmConvar("maxlinear","FLT")
+  return mathClamp(self:GetClientNumber("nextx", 0), -nMax, nMax),
+         mathClamp(self:GetClientNumber("nexty", 0), -nMax, nMax),
+         mathClamp(self:GetClientNumber("nextz", 0), -nMax, nMax)
 end
 
 function TOOL:GetAngOffsets()
@@ -319,7 +322,8 @@ function TOOL:GetGravity()
 end
 
 function TOOL:GetGhostsCount()
-  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, asmlib.GetAsmConvar("maxghcnt", "INT"))
+  local nMax = asmlib.GetAsmConvar("maxghcnt", "INT")
+  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, nMax)
 end
 
 function TOOL:GetUpSpawnAnchor()
@@ -355,7 +359,8 @@ function TOOL:GetPointID()
 end
 
 function TOOL:GetActiveRadius()
-  return mathClamp(self:GetClientNumber("activrad", 0), 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
+  local nMax = asmlib.GetAsmConvar("maxactrad", "FLT")
+  return mathClamp(self:GetClientNumber("activrad", 0), 0, nMax)
 end
 
 function TOOL:GetAngSnap()
@@ -363,7 +368,8 @@ function TOOL:GetAngSnap()
 end
 
 function TOOL:GetForceLimit()
-  return mathClamp(self:GetClientNumber("forcelim", 0), 0, asmlib.GetAsmConvar("maxforce" ,"FLT"))
+  local nMax = asmlib.GetAsmConvar("maxforce" ,"FLT")
+  return mathClamp(self:GetClientNumber("forcelim", 0), 0, nMax)
 end
 
 function TOOL:GetWeld()
@@ -942,7 +948,7 @@ function TOOL:ApplySuperElevation(tC, tData, iD)
     asmlib.LogInstance("Curve missing", gtLogs); return 0 end
   local spnflat = self:GetSpawnFlat()
   local crvsuprev = self:GetSuperElevation()
-  if(not (crvsuprev > 0 and not spnflat)) then
+  if(not (crvsuprev ~= 0 and not spnflat)) then
     asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
   local iN, nS = tonumber(iD), asmlib.GetOpVar("FULL_SLOPEDG")
   if(iN) then

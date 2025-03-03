@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.778")
+asmlib.SetOpVar("TOOL_VERSION","9.779")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -151,7 +151,7 @@ asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."sgradmenu", 1, 16)
 asmlib.SetBorder(gsToolPrefL.."dtmessage", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."ghostblnd", 0, 1)
-asmlib.SetBorder(gsToolPrefL.."crvsuprev", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."crvsuprev", -2, 2)
 asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
