@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.779")
+asmlib.SetOpVar("TOOL_VERSION","9.780")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -929,19 +929,6 @@ if(CLIENT) then
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
         pIn:AddOption(languageGetPhrase(sT.."cpth"),
           function() SetClipboardText(sDsv) end):SetImage(asmlib.ToIcon(sI.."cpth"))
-        -- Panel data line manipulation for import/export
-        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."li"))
-        if(not IsValid(pIn)) then pnFrame:Close()
-          asmlib.LogInstance("Internals menu invalid",sLog..".ListView"); return nil end
-        if(not IsValid(pOp)) then pnFrame:Close()
-          asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
-        pOp:SetIcon(asmlib.ToIcon(sI.."li"))
-        pIn:AddOption(languageGetPhrase(sT.."licg"),
-          function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."licg"))
-        pIn:AddOption(languageGetPhrase(sT.."licr"),
-          function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."licr"))
-        pIn:AddOption(languageGetPhrase(sT.."lirm"),
-          function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
         -- Move current line around
         local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."mv"))
         if(not IsValid(pIn)) then pnFrame:Close()
@@ -969,6 +956,19 @@ if(CLIENT) then
             if(nIndex >= nT) then return end
             tpText:Swap(pnLine, pnSelf:GetLine(nT))
           end):SetImage(asmlib.ToIcon(sI.."mvbt"))
+        -- Panel data line manipulation for import/export
+        local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."li"))
+        if(not IsValid(pIn)) then pnFrame:Close()
+          asmlib.LogInstance("Internals menu invalid",sLog..".ListView"); return nil end
+        if(not IsValid(pOp)) then pnFrame:Close()
+          asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return nil end
+        pOp:SetIcon(asmlib.ToIcon(sI.."li"))
+        pIn:AddOption(languageGetPhrase(sT.."licg"),
+          function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."licg"))
+        pIn:AddOption(languageGetPhrase(sT.."licr"),
+          function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."licr"))
+        pIn:AddOption(languageGetPhrase(sT.."lirm"),
+          function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
         -- Populate the sub-menu with all table nicknames
         local iD, pIn, pOp = 1, nil, nil
         local makTab = asmlib.GetBuilderID(iD)
@@ -1002,8 +1002,9 @@ if(CLIENT) then
                 function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
               pTb:AddOption(languageGetPhrase(sT.."sted"),
                 function() -- Edit the database contents using the Luapad addon
-                  if(not luapad) then return end -- Luapad is not installed do nothing
-                  asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+                  if(not luapad) then -- Luapad is not installed then do nothing
+                    asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return end
+                  asmlib.LogInstance  ("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
                   if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
                   luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), sDsv);
                   if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
