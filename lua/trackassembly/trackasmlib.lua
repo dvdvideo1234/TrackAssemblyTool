@@ -725,8 +725,8 @@ function InitBase(sName, sPurp)
     for i = 1, mathMax(#uC, #vC) do
       local uS, vS = uC[i], vC[i]
       if(uS ~= vS) then -- No category must fall behind
-        if(vS == nil or vS == "") then return true end
-        if(uS == nil or uS == "") then return false end
+        if(not vS or vS == "") then return true end
+        if(not uS or uS == "") then return false end
         return uS < vS
       end
     end
@@ -739,8 +739,8 @@ function InitBase(sName, sPurp)
       local uR, vR = u.Rec, v.Rec
       local uV, vV = uR[iR], vR[iR]
       if(uV ~= vV) then -- Nil is considered less
-        if(uV == nil or uV == "") then return true end
-        if(vV == nil or vV == "") then return false end
+        if(not uV or uV == "") then return true end
+        if(not vV or vV == "") then return false end
         return uV < vV
       end
     end; return false; end)
