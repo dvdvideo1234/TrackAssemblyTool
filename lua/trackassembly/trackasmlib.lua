@@ -1565,24 +1565,23 @@ function NewPOA(vA, vB, vC)
     else bE = self:IsSame() end
     return (mRaw or (bE and mMis or sS))
   end
-  function self:Import(sB, sM, ...)
+  function self:Import(sB, ...)
     local bE, sB = GetEmpty(sB) -- Default to string
     if(bE) then -- Check when entry data is vacant
       self:Set(...) -- Override with the default value provided
     else -- Entry data is missing use default otherwise decode the value
-      local sM = (IsHere(sM) and tostring(sM) or GetOpVar("MISS_NOMD"))
       local tPOA = mSep:Explode(sB)  -- Read the components
       for iD = 1, 3 do                 -- Apply on all components
         local nC = tonumber(tPOA[iD])  -- Is the data really a number
         if(not IsHere(nC)) then nC = 0 -- If not write zero and report it
-          LogInstance("Mismatch "..GetReport(sM, sB, iD)) end; self[iD] = nC
+          LogInstance("Mismatch "..GetReport(sB, iD)) end; self[iD] = nC
       end -- Try to decode the entry when present
     end; return self
   end
   function self:Decode(sB, vS, sT, ...)
     local bE, sB = GetEmpty(sB) -- Default to string
-    if(bE) -- Check when entry data is vacant
-      then self:Set(...) -- Override with the default value provided
+    if(bE) then -- Check when entry data is vacant
+      self:Set(...) -- Override with the default value provided
     else -- Entry data is missing use default otherwise decode the value
       if(sB:sub(1,1) == mEoa) then -- POA key must extracted from the model
         local sT = tostring(sT or "") -- Default the type index to string
@@ -1592,16 +1591,16 @@ function NewPOA(vA, vB, vC)
           local uT = tT[sT] -- Extract transform value for the type
           if(IsHere(uT)) then self:Set(uT:Unpack()) -- Load key into POA
           else -- Try decoding the transform key when not applicable
-            self:Import(sK, sM, ...) -- Try to process the key when present
-            LogInstance("Mismatch "..GetReport(sM, sK, sT)) -- Report mismatch
+            self:Import(sK, ...) -- Try to process the key when present
+            LogInstance("Mismatch "..GetReport(sB, sM, sT)) -- Report mismatch
           end -- Decode the transformation when is not null or empty string
         else -- Try decoding the transform key when not applicable
-          self:Import(sK, sM, ...) -- Try to process the key when present
-          LogInstance("Missing "..GetReport(sM, sK, sT)) -- Report mismatch
+          self:Import(sK, ...) -- Try to process the key when present
+          LogInstance("Missing "..GetReport(sB, sM, sT)) -- Report mismatch
         end -- Decode the transformation when is not null or empty string
       else -- When the value is empty use zero otherwise process the value
-        self:Import(sB, sM, ...) -- Try to process the value when present
-        LogInstance("Regular "..GetReport(sB, sM)) -- No Attachment call
+        self:Import(sB, ...) -- Try to process the value when present
+        LogInstance("Regular "..GetReport(sB, vS, sT)) -- No Attachment call
       end -- Try to decode the entry when present
     end; return self
   end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
