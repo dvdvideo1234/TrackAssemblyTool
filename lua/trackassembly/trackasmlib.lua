@@ -1507,7 +1507,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
 end
 
 function NewPOA(vA, vB, vC)
-  local self, mRaw = {0, 0, 0}
+  local self, mRaw = {0, 0, 0}, nil
   local mMis = GetOpVar("MISS_NOSQL")
   local mSep = GetOpVar("OPSYM_SEPARATOR")
   local mEoa = GetOpVar("OPSYM_ENTPOSANG")

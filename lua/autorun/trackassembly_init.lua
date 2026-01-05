@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.782")
+asmlib.SetOpVar("TOOL_VERSION","9.783")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -663,8 +663,9 @@ if(CLIENT) then
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then asmlib.LogInstance("Screen invalid",sLog); return nil end
+      local nDr = asmlib.GetOpVar("DEG_RAD")
+      local sM  = asmlib.GetOpVar("MISS_NOAV")
       local nMd = asmlib.GetOpVar("MAX_ROTATION")
-      local nDr, sM = asmlib.GetOpVar("DEG_RAD"), asmlib.GetOpVar("MISS_NOAV")
       local nBr = (acTo:GetRadialAngle() * nDr)
       local nK, nN = acTo:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (mathMin(scrW, scrH) / (2 * gnRatio))
