@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.783")
+asmlib.SetOpVar("TOOL_VERSION","9.784")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -471,6 +471,7 @@ if(CLIENT) then
   asmlib.ToIcon("pn_contextm_li"        , "database"          )
   asmlib.ToIcon("pn_contextm_licg"      , "database_edit"     )
   asmlib.ToIcon("pn_contextm_licr"      , "database_add"      )
+  asmlib.ToIcon("pn_contextm_lirf"      , "database_refresh"  )
   asmlib.ToIcon("pn_contextm_lirm"      , "database_delete"   )
   asmlib.ToIcon("pn_contextm_ws"        , "cart"              )
   asmlib.ToIcon("pn_contextm_wsid"      , "key_go"            )
@@ -968,6 +969,17 @@ if(CLIENT) then
           function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."licg"))
         pIn:AddOption(languageGetPhrase(sT.."licr"),
           function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."licr"))
+        pIn:AddOption(languageGetPhrase(sT.."lirf"),
+          function()
+            local makTab = asmlib.GetBuilderNick("PIECES")
+            local defTab = makTab:GetDefinition()
+            local sFile = fDSV:format(sP, defTab.Nick)
+            if(fileExists(sFile, "DATA")) then
+              local stData = makTab:GetNavigate(defTab.Name)
+              for key, rec in pairs(stData) do
+              asmlib.ImportDSV(defTab.Nick, true, sP)
+            end
+          end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
         -- Populate the sub-menu with all table nicknames

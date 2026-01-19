@@ -744,6 +744,7 @@ function InitBase(sName, sPurp)
         return uV < vV
       end
     end; return false; end)
+  SetOpVar("NAVIGATE_HERE", function(t, k) return t[k] end)
   SetOpVar("VCOMPARE_SKEY", function(u, v) return (u.Key < v.Key) end)
   SetOpVar("VCOMPARE_SREC", function(u, v) return (u.Rec < v.Rec) end)
   SetOpVar("MODELNAM_FUNC", function(x) return " "..x:sub(2,2):upper() end)
@@ -2787,9 +2788,16 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local oSpot, vKey, iCnt = libCache, tKey[1], 1
     while(tKey[iCnt]) do vKey = tKey[iCnt]; iCnt = iCnt + 1
       if(tKey[iCnt]) then oSpot = oSpot[vKey]; if(not IsHere(oSpot)) then
-        LogTable(tKey, "Diverge("..tostring(vKey)..")", tabDef.Nick); return nil
-    end; end; end; if(not oSpot[vKey]) then
-      LogTable(tKey, "Missing", tabDef.Nick); return nil end
+        LogInstance("Diverge("..tostring(vKey)..")", tabDef.Nick)
+        LogTable(tKey, "tKey", tabDef.Nick); return nil
+    end; end; end; local fV = GetOpVar("NAVIGATE_HERE")
+    local bS, oO = pcall(fV, oSpot, vKey)
+    if(not bS) then -- Indexing is not successful
+      LogInstance("Error("..tostring(vKey).."): "..oO, tabDef.Nick)
+      LogTable(tKey, "tKey", tabDef.Nick); return nil end
+    if(not IsHere(oO)) then -- The end branch is empty
+      LogInstance("Missing("..tostring(vKey)..")", tabDef.Nick)
+      LogTable(tKey, "tKey", tabDef.Nick); return nil end
     return oSpot, vKey, tKey
   end
   -- Attaches timer to a record related in the table cache
