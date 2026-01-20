@@ -2659,27 +2659,27 @@ function NewTable(sTable,defTab,bReload,bDelete)
     LogInstance("Table nick is mandatory"); return false end
   if(not istable(defTab)) then
     LogInstance("Table definition missing for "..GetReport(sTable)); return false end
-  defTab.Nick = sTable:upper(); defTab.Name = GetOpVar("TOOLNAME_PU")..defTab.Nick
-  defTab.Size = #defTab; if(defTab.Size <= 0) then
-    LogInstance("Record definition missing for "..GetReport(sTable), defTab.Nick); return false end
-  if(defTab.Size ~= tableMaxn(defTab)) then
-    LogInstance("Record definition mismatch for "..GetReport(sTable), defTab.Nick); return false end
-  for iCnt = 1, defTab.Size do local defRow = defTab[iCnt]
-    local sN = tostring(defRow[1] or ""); if(IsBlank(sN)) then
-      LogInstance("Missing table column name "..GetReport(iCnt), defTab.Nick); return false end
-    local sT = tostring(defRow[2] or ""); if(IsBlank(sT)) then
-      LogInstance("Missing table column type "..GetReport(iCnt), defTab.Nick); return false end
-    defRow[1], defRow[2] = sN, sT -- Convert settings to string and store back
-  end
-  local self, tabDef, tabCmd = {}, defTab, {}
   local sMoDB  = GetOpVar("MODE_DATABASE")
   local symDis = GetOpVar("OPSYM_DISABLE")
   local emFva  = GetOpVar("EMPTYSTR_BLNU")
-  for iCnt = 1, defTab.Size do local defCol = defTab[iCnt]
+  local self, tabCmd, tabDef = {}, {}, tableCopy(defTab)
+  tabDef.Nick = sTable:upper(); tabDef.Name = GetOpVar("TOOLNAME_PU")..tabDef.Nick
+  tabDef.Size = #tabDef; if(tabDef.Size <= 0) then
+    LogInstance("Record definition missing for "..GetReport(sTable), tabDef.Nick); return false end
+  if(tabDef.Size ~= tableMaxn(tabDef)) then
+    LogInstance("Record definition mismatch for "..GetReport(sTable), tabDef.Nick); return false end
+  for iCnt = 1, tabDef.Size do local vRow = tabDef[iCnt]
+    local sN = tostring(vRow[1] or ""); if(IsBlank(sN)) then
+      LogInstance("Missing table column name "..GetReport(iCnt), tabDef.Nick); return false end
+    local sT = tostring(vRow[2] or ""); if(IsBlank(sT)) then
+      LogInstance("Missing table column type "..GetReport(iCnt), tabDef.Nick); return false end
+    vRow[1], vRow[2] = sN, sT -- Convert settings to string and store back
+  end
+  for iCnt = 1, tabDef.Size do local defCol = tabDef[iCnt]
     defCol[3] = GetEmpty(defCol[3], emFva, symDis)
     defCol[4] = GetEmpty(defCol[4], emFva, symDis)
-  end; tableInsert(libQTable, defTab.Nick)
-  libCache[defTab.Name] = {}; libQTable[defTab.Nick] = self
+  end; tableInsert(libQTable, tabDef.Nick)
+  libCache[tabDef.Name] = {}; libQTable[tabDef.Nick] = self
   -- Read table definition
   function self:GetDefinition(vK)
     if(vK) then return tabDef[vK] end; return tabDef
@@ -2698,9 +2698,10 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:Store(vK, sQ)
     if(not IsHere(vK)) then return self end
     local qtCmd = self:GetCommand() -- Current query
+    local qtDef = self:GetDefinition()
     local mQ, tQ = qtCmd.STMT, GetOpVar("QUERY_STORE")
     local sQ = (sQ or (mQ and qtCmd[mQ] or nil))
-    LogInstance("Entry "..GetReport(vK, sQ), tabDef.Nick)
+    LogInstance("Entry "..GetReport(vK, sQ), qtDef.Nick)
     tQ[vK] = sQ; return self
   end
   -- Alias for reading the last created SQL statement
@@ -2721,14 +2722,14 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:GetColumnID(sN)
     local sN, qtDef = tostring(sN or ""), self:GetDefinition()
     for iD = 1, qtDef.Size do if(qtDef[iD][1] == sN) then return iD end
-    end; LogInstance("Mismatch "..GetReport(sN), tabDef.Nick); return 0
+    end; LogInstance("Mismatch "..GetReport(sN), qtDef.Nick); return 0
   end
   -- Returns the name of the found column
   function self:GetColumnName(vD)
     local iD = (tonumber(vD) or 0)
     local qtDef = self:GetDefinition()
     local qtCol = qtDef[iD]; if(qtCol) then return qtCol[1] end
-    LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
+    LogInstance("Mismatch "..GetReport(vD), qtDef.Nick); return nil
   end
   -- Returns the column information by the given ID > 0
   function self:GetColumnInfo(vD, vI)
@@ -2737,13 +2738,14 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local qtCol, iI = qtDef[iD], (tonumber(vI) or 0)
     if(qtCol) then local qtInf = qtCol[iI]
       if(vI and qtInf) then return qtInf end; return qtCol
-    end; LogInstance("Mismatch "..GetReport(vD), tabDef.Nick); return nil
+    end; LogInstance("Mismatch "..GetReport(vD), qtDef.Nick); return nil
   end
   -- Returns the row with swapped column names to indexes
-  function self:GetArrayRow(tR, bM) local tA = {} -- Store the values here
+  function self:GetArrayRow(tR, bM)
+    local qtDef, tA = self:GetDefinition(), {} -- Store the values here
     for key, val in pairs(tR) do -- Column name tables are not ordered
       local iD = self:GetColumnID(key); if(iD > 0) then tA[iD] = val
-      else LogInstance("Mismatch "..GetReport(key), tabDef.Nick) end
+      else LogInstance("Mismatch "..GetReport(key), qtDef.Nick) end
     end; return tA
   end
   -- Removes the object from the list
@@ -2770,7 +2772,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       tTm[4] = ((tonumber(vTm[4] or vTm["Co"]) or 0) ~= 0) -- Collect garbage call
     elseif(isfunction(vTm)) then -- Transfer table data from definition
       local bS, vO = pcall(vTm); if(not bS) then
-        LogInstance("Generator "..vO,tabDef.Nick); return self end
+        LogInstance("Generator "..vO,qtDef.Nick); return self end
       return self:TimerSetup(vO) -- Force function return value
     elseif(isvector(vTm) or isangle(vTm) or ismatrix(vTm)) then
       local cA, cB, cC = vTm:Unpack()
@@ -2783,139 +2785,142 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   -- Navigates the reference in the cache
   function self:GetNavigate(...)
+    local qtDef = self:GetDefinition()
     local tKey = {...}; if(not IsHere(tKey[1])) then
-      LogInstance("Missing keys", tabDef.Nick); return nil end
+      LogInstance("Missing keys", qtDef.Nick); return nil end
     local oSpot, vKey, iCnt = libCache, tKey[1], 1
     while(tKey[iCnt]) do vKey = tKey[iCnt]; iCnt = iCnt + 1
       if(tKey[iCnt]) then oSpot = oSpot[vKey]; if(not IsHere(oSpot)) then
-        LogInstance("Diverge("..tostring(vKey)..")", tabDef.Nick)
-        LogTable(tKey, "tKey", tabDef.Nick); return nil
+        LogInstance("Diverge("..tostring(vKey)..")", qtDef.Nick)
+        LogTable(tKey, "tKey", qtDef.Nick); return nil
     end; end; end; local fV = GetOpVar("NAVIGATE_HERE")
     local bS, oO = pcall(fV, oSpot, vKey)
     if(not bS) then -- Indexing is not successful
-      LogInstance("Error("..tostring(vKey).."): "..oO, tabDef.Nick)
-      LogTable(tKey, "tKey", tabDef.Nick); return nil end
+      LogInstance("Error("..tostring(vKey).."): "..oO, qtDef.Nick)
+      LogTable(tKey, "tKey", qtDef.Nick); return nil end
     if(not IsHere(oO)) then -- The end branch is empty
-      LogInstance("Missing("..tostring(vKey)..")", tabDef.Nick)
-      LogTable(tKey, "tKey", tabDef.Nick); return nil end
+      LogInstance("Missing("..tostring(vKey)..")", qtDef.Nick)
+      LogTable(tKey, "tKey", qtDef.Nick); return nil end
     return oSpot, vKey, tKey
   end
   -- Attaches timer to a record related in the table cache
   function self:TimerAttach(vMsg, ...)
+    local qtDef = self:GetDefinition()
     local oSpot, vKey, tKey = self:GetNavigate(...)
     if(not (IsHere(oSpot) and IsHere(vKey))) then
-      LogInstance("Navigation miss "..GetReport(unpack(tKey)),tabDef.Nick)
-      LogTable(oSpot, "Navigation", tabDef.Nick); return nil
+      LogInstance("Navigation miss "..GetReport(unpack(tKey)),qtDef.Nick)
+      LogTable(oSpot, "Navigation", qtDef.Nick); return nil
     end -- Navigated to the last table node and returned the value key
     local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
     local sMoDB, iCnt = GetOpVar("MODE_DATABASE"), select("#", ...)
-    LogInstance("Called by "..GetReport(vMsg, vKey), tabDef.Nick)
+    LogInstance("Called by "..GetReport(vMsg, vKey), qtDef.Nick)
     oSpot[vKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand() -- Read the command and current time
       local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
-        LogInstance("Missing timer settings", tabDef.Nick); return oSpot[vKey] end
+        LogInstance("Missing timer settings", qtDef.Nick); return oSpot[vKey] end
       local smTM, tmLif, tmDie, tmCol = tTim[1], tTim[2], tTim[3], tTim[4]; if(tmLif <= 0) then
-        LogInstance("Timer attachment ignored",tabDef.Nick); return oSpot[vKey] end
-      LogInstance("Stats "..GetReport(iCnt, smTM, tmLif, tmDie, tmCol), tabDef.Nick)
+        LogInstance("Timer attachment ignored",qtDef.Nick); return oSpot[vKey] end
+      LogInstance("Stats "..GetReport(iCnt, smTM, tmLif, tmDie, tmCol), qtDef.Nick)
       if(smTM == "CQT") then
-        LogInstance("Navigation key "..GetReport(iCnt, unpack(tKey)), tabDef.Nick)
+        LogInstance("Navigation key "..GetReport(iCnt, unpack(tKey)), qtDef.Nick)
         for key, rec in pairs(oSpot) do -- Check other items that qualify
           if(rec.Used) then  -- Used time is updated on this level
             local vDif = (nNow - rec.Used) -- Calculate time difference
             if(IsHere(rec.Used) and (vDif > tmLif)) then -- Check the deletion
-              LogInstance("Qualify "..GetReport(vDif, tmLif), tabDef.Nick)
-              if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key), tabDef.Nick) end
+              LogInstance("Qualify "..GetReport(vDif, tmLif), qtDef.Nick)
+              if(tmDie) then oSpot[key] = nil; LogInstance("Clear "..GetReport(key), qtDef.Nick) end
             end -- Clear one item that qualifies for deletion and time frame is present
           else -- Used time is missing on this key on this level. Report record.
-            LogInstance("Spot keyhash "..GetReport(iCnt, unpack(tKey)), tabDef.Nick)
-            LogInstance("Spot skipped "..GetReport(key, vKey), tabDef.Nick)
+            LogInstance("Spot keyhash "..GetReport(iCnt, unpack(tKey)), qtDef.Nick)
+            LogInstance("Spot skipped "..GetReport(key, vKey), qtDef.Nick)
           end -- Not every key is cached on the same level but some may use the same table
         end -- Clear all the items that qualified for deletion
-        if(tmCol) then collectgarbage(); LogInstance("Garbage collected", tabDef.Nick) end
-        LogInstance("Finish "..GetReport(vKey, nNow), tabDef.Nick); return oSpot[vKey]
+        if(tmCol) then collectgarbage(); LogInstance("Garbage collected", qtDef.Nick) end
+        LogInstance("Finish "..GetReport(vKey, nNow), qtDef.Nick); return oSpot[vKey]
       elseif(smTM == "OBJ") then
         local tmID = tableConcat(tKey, sDiv)
-        LogInstance("Timer ID "..GetReport(tmID), tabDef.Nick)
-        if(timerExists(tmID)) then LogInstance("Timer exists", tabDef.Nick); return oSpot[vKey] end
+        LogInstance("Timer ID "..GetReport(tmID), qtDef.Nick)
+        if(timerExists(tmID)) then LogInstance("Timer exists", qtDef.Nick); return oSpot[vKey] end
         timerCreate(tmID, tmLif, 1, function()
-          LogInstance("Qualify "..GetReport(tmID, tmLif), tabDef.Nick)
-          if(tmDie) then oSpot[vKey] = nil; LogInstance("Clear "..GetReport(vKey), tabDef.Nick) end
+          LogInstance("Qualify "..GetReport(tmID, tmLif), qtDef.Nick)
+          if(tmDie) then oSpot[vKey] = nil; LogInstance("Clear "..GetReport(vKey), qtDef.Nick) end
           timerStop(tmID); timerRemove(tmID)
-          if(tmCol) then collectgarbage(); LogInstance("Garbage collected", tabDef.Nick) end
+          if(tmCol) then collectgarbage(); LogInstance("Garbage collected", qtDef.Nick) end
         end); timerStart(tmID); return oSpot[vKey]
-      else LogInstance("Unsupported mode "..GetReport(smTM), tabDef.Nick); return oSpot[vKey] end
+      else LogInstance("Unsupported mode "..GetReport(smTM), qtDef.Nick); return oSpot[vKey] end
     elseif(sMoDB == "LUA") then
-      LogInstance("Memory manager skip", tabDef.Nick); return oSpot[vKey]
-    else LogInstance("Unsupported mode "..GetReport(sMoDB), tabDef.Nick); return nil end
+      LogInstance("Memory manager skip", qtDef.Nick); return oSpot[vKey]
+    else LogInstance("Unsupported mode "..GetReport(sMoDB), qtDef.Nick); return nil end
   end
   -- Restarts timer to a record related in the table cache
   function self:TimerRestart(vMsg, ...)
+    local qtDef = self:GetDefinition()
     local oSpot, vKey, tKey = self:GetNavigate(...)
     if(not (IsHere(oSpot) and IsHere(vKey))) then
-      LogInstance("Navigation miss "..GetReport(unpack(tKey)), tabDef.Nick)
-      LogTable(oSpot, "Navigation", tabDef.Nick); return nil
+      LogInstance("Navigation miss "..GetReport(unpack(tKey)), qtDef.Nick)
+      LogTable(oSpot, "Navigation", qtDef.Nick); return nil
     end -- Navigated to the last table node and returned the value key
     local sMoDB = GetOpVar("MODE_DATABASE")
     local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
-    LogInstance("Called by "..GetReport(vMsg, vKey), tabDef.Nick)
+    LogInstance("Called by "..GetReport(vMsg, vKey), qtDef.Nick)
     oSpot[vKey].Used = nNow -- Mark the current caching time stamp
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand()
       local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
-        LogInstance("Missing timer settings", tabDef.Nick); return oSpot[vKey] end
+        LogInstance("Missing timer settings", qtDef.Nick); return oSpot[vKey] end
       local smTM, tmLif = tTim[1], tTim[2]; if(tmLif <= 0) then
-        LogInstance("Timer life ignored", tabDef.Nick); return oSpot[vKey] end
+        LogInstance("Timer life ignored", qtDef.Nick); return oSpot[vKey] end
       if(smTM == "CQT") then smTM = "CQT" -- Cache query timer does nothing
       elseif(smTM == "OBJ") then -- Just for something to do here for mode CQT
         local tmID = tableConcat(tKey, sDiv); if(not timerExists(tmID)) then
-          LogInstance("Timer missing "..GetReport(tmID), tabDef.Nick); return nil end
+          LogInstance("Timer missing "..GetReport(tmID), qtDef.Nick); return nil end
         timerStart(tmID)
-      else LogInstance("Mode mismatch "..GetReport(smTM), tabDef.Nick); return nil end
+      else LogInstance("Mode mismatch "..GetReport(smTM), qtDef.Nick); return nil end
     elseif(sMoDB == "LUA") then
-      LogInstance("Memory manager skip",tabDef.Nick); return oSpot[vKey]
-    else LogInstance("Unsupported mode "..GetReport(sMoDB), tabDef.Nick); return nil end
+      LogInstance("Memory manager skip",qtDef.Nick); return oSpot[vKey]
+    else LogInstance("Unsupported mode "..GetReport(sMoDB), qtDef.Nick); return nil end
     return oSpot[vKey]
   end
   -- Object internal data validation
   function self:IsValid() local bStat = true
-    local qtCmd = self:GetCommand(); if(not qtCmd) then
-      LogInstance("Missing commands "..GetReport(defTab.Nick), tabDef.Nick); bStat = false end
     local qtDef = self:GetDefinition(); if(not qtDef) then
       LogInstance("Missing definition",tabDef.Nick); bStat = false end
+    local qtCmd = self:GetCommand(); if(not qtCmd) then
+      LogInstance("Missing commands "..GetReport(tabDef.Nick), qtDef.Nick); bStat = false end
     if(qtDef.Size ~= #qtDef) then
-      LogInstance("Mismatch count",tabDef.Nick); bStat = false end
+      LogInstance("Mismatch count",qtDef.Nick); bStat = false end
     if(qtDef.Size ~= tableMaxn(qtDef)) then
-      LogInstance("Mismatch maxN",tabDef.Nick); bStat = false end
-    if(defTab.Nick:upper() ~= defTab.Nick) then
-      LogInstance("Nick lower",tabDef.Nick); bStat = false end
-    if(defTab.Name:upper() ~= defTab.Name) then
-      LogInstance("Name lower "..GetReport(defTab.Nick), tabDef.Nick); bStat = false end
-    local nS, nE = defTab.Name:find(defTab.Nick); if(not (nS and nE and nS > 1 and nE == defTab.Name:len())) then
-      LogInstance("Mismatch "..GetReport(defTab.Name, defTab.Nick), tabDef.Nick); bStat = false end
+      LogInstance("Mismatch maxN",qtDef.Nick); bStat = false end
+    if(tabDef.Nick:upper() ~= tabDef.Nick) then
+      LogInstance("Nick lower",qtDef.Nick); bStat = false end
+    if(tabDef.Name:upper() ~= tabDef.Name) then
+      LogInstance("Name lower "..GetReport(tabDef.Nick), qtDef.Nick); bStat = false end
+    local nS, nE = tabDef.Name:find(tabDef.Nick); if(not (nS and nE and nS > 1 and nE == tabDef.Name:len())) then
+      LogInstance("Mismatch "..GetReport(tabDef.Name, tabDef.Nick), qtDef.Nick); bStat = false end
     for iD = 1, qtDef.Size do local tCol = qtDef[iD] if(not istable(tCol)) then
-        LogInstance("Mismatch type "..GetReport(iD),tabDef.Nick); bStat = false end
+        LogInstance("Mismatch type "..GetReport(iD),qtDef.Nick); bStat = false end
       if(not isstring(tCol[1])) then -- Check table column name
-        LogInstance("Mismatch name "..GetReport(iD, tCol[1]), tabDef.Nick); bStat = false end
+        LogInstance("Mismatch name "..GetReport(iD, tCol[1]), qtDef.Nick); bStat = false end
       if(not isstring(tCol[2])) then -- Check table column type
-        LogInstance("Mismatch type "..GetReport(iD, tCol[2]), tabDef.Nick); bStat = false end
+        LogInstance("Mismatch type "..GetReport(iD, tCol[2]), qtDef.Nick); bStat = false end
       if(tCol[3] and not isstring(tCol[3])) then -- Check trigger control
-        LogInstance("Mismatch ctrl "..GetReport(iD, tCol[3]), tabDef.Nick); bStat = false end
+        LogInstance("Mismatch ctrl "..GetReport(iD, tCol[3]), qtDef.Nick); bStat = false end
       if(tCol[4] and not isstring(tCol[4])) then -- Check quote conversion
-        LogInstance("Mismatch conv "..GetReport(iD, tCol[4]),tabDef.Nick); bStat = false end
+        LogInstance("Mismatch conv "..GetReport(iD, tCol[4]),qtDef.Nick); bStat = false end
     end; return bStat -- Successfully validated the builder table
   end
   -- Creates table column list as string
   function self:GetColumnList(sD, ...)
+    local qtDef = self:GetDefinition()
     local sD = tostring(sD or "\t"):sub(1,1); if(IsBlank(sD)) then
-      LogInstance("Missing delimiter",tabDef.Nick); return "" end
-    local nA, tA = select("#", ...), nil
-    local qtDef, sRes = self:GetDefinition(), ""
+      LogInstance("Missing delimiter",qtDef.Nick); return "" end
+    local sRes, nA, tA = "", select("#", ...), nil
     if(nA > 0) then tA = {...} else tA, nA = {}, qtDef.Size
       for iD = 1, nA do tableInsert(tA, iD) end end
     for iD = 1, nA do local iC = tA[iD]
       local tC = qtDef[iC]; if(not tC) then
-        LogInstance("Column missing "..GetReport(iD,iC,nA), tabDef.Nick); return nil end
+        LogInstance("Column missing "..GetReport(iD,iC,nA), qtDef.Nick); return nil end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column name mismatch "..GetReport(iD,iC,nA),tabDef.Nick); return nil end
+        LogInstance("Column name mismatch "..GetReport(iD,iC,nA),qtDef.Nick); return nil end
       local sCon = ((iD ~= nA) and sD or ""); sRes = (sRes..sC..sCon)
     end; return sRes
   end
@@ -2923,12 +2928,12 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:Match(snValue,ivID,bQuoted,sQuote,bNoRev,bNoNull)
     local qtDef, sNull = self:GetDefinition(), GetOpVar("MISS_NOSQL")
     local nvID = tonumber(ivID); if(not IsHere(nvID)) then
-      LogInstance("Column ID mismatch "..GetReport(ivID),tabDef.Nick); return nil end
+      LogInstance("Column ID mismatch "..GetReport(ivID),qtDef.Nick); return nil end
     local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
-      LogInstance("Invalid column "..GetReport(nvID),tabDef.Nick); return nil end
+      LogInstance("Invalid column "..GetReport(nvID),qtDef.Nick); return nil end
     local tyCol, opCol, snOut = tostring(defCol[2]), defCol[3]
     local sMoDB = GetOpVar("MODE_DATABASE"); if(sMoDB ~= "SQL" and sMoDB ~= "LUA") then
-      LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol,opCol),tabDef.Nick); return nil end
+      LogInstance("Unsupported mode "..GetReport(sMoDB,ivID,tyCol,opCol),qtDef.Nick); return nil end
     if(tyCol == "TEXT") then snOut = tostring(snValue or "")
       if(not bNoNull and IsBlank(snOut)) then
         if    (sMoDB == "SQL") then snOut = sNull
@@ -2948,29 +2953,29 @@ function NewTable(sTable,defTab,bReload,bDelete)
       end
     elseif(tyCol == "REAL" or tyCol == "INTEGER") then
       snOut = tonumber(snValue); if(not IsHere(snOut)) then
-        LogInstance("Failed converting number"..GetReport(snValue, nvID),tabDef.Nick); return nil end
+        LogInstance("Failed converting number"..GetReport(snValue, nvID),qtDef.Nick); return nil end
       if(tyCol == "INTEGER") then
         if    (opCol == "FLR") then snOut = mathFloor(snOut)
         elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
       end
-    else LogInstance("Invalid column type "..GetReport(tyCol),tabDef.Nick); return nil
+    else LogInstance("Invalid column type "..GetReport(tyCol),qtDef.Nick); return nil
     end; return snOut
   end
   function self:GetConcat(tLine, sDelim, fFoo, ...)
     local qtDef, sLine = self:GetDefinition(), ""; if(not istable(tLine)) then
-      LogInstance("Source not table "..GetReport(tLine, sDelim), tabDef.Nick); return nil end
+      LogInstance("Source not table "..GetReport(tLine, sDelim), qtDef.Nick); return nil end
     local sDelim, nA, tA = tostring(sDelim or "\t"):sub(1,1), select("#", ...), nil
     if(nA > 0) then tA = {...} else tA, nA = {}, qtDef.Size
       for iD = 1, nA do tableInsert(tA, iD) end end
     for iD = 1, nA do local iC = tA[iD]
       local tC = qtDef[iC]; if(not tC) then
-        LogInstance("Column missing "..GetReport(iD,iC,nA), tabDef.Nick); return nil end
+        LogInstance("Column missing "..GetReport(iD,iC,nA), qtDef.Nick); return nil end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column name mismatch "..GetReport(iD,iC,nA),tabDef.Nick); return nil end
+        LogInstance("Column name mismatch "..GetReport(iD,iC,nA),qtDef.Nick); return nil end
       local vC, sD = tLine[sC], (iD == 1 and "" or sDelim) -- Extract the value
       if(fFoo) then -- Call the conversion handler function when provided
         local bS, sR = pcall(fFoo, iC, sC, vC, iD, nA); if(not bS) then
-          LogInstance("Value convert error "..GetReport(iD,iC,vC,nA)..": "..sR,tabDef.Nick); return nil end
+          LogInstance("Value convert error "..GetReport(iD,iC,vC,nA)..": "..sR,qtDef.Nick); return nil end
         vC = sR -- The value is converted and updated successfully
       end; sLine = sLine..sD..tostring(vC or "")
     end; return sLine
@@ -3027,11 +3032,11 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local sStmt = qtCmd.STMT.." TABLE IF NOT EXISTS "..qtDef.Name.." ( "
     for iCnt = 1, qtDef.Size do
       local tC = qtDef[iCnt]; if(not tC) then
-        LogInstance("Column missing "..GetReport(iCnt,qtDef.Size), tabDef.Nick); return self:Deny() end
+        LogInstance("Column missing "..GetReport(iCnt,qtDef.Size), qtDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column name mismatch "..GetReport(iCnt,qtDef.Size),tabDef.Nick); return self:Deny() end
+        LogInstance("Column name mismatch "..GetReport(iCnt,qtDef.Size),qtDef.Nick); return self:Deny() end
       local sT = tostring(tC[2] or ""); if(IsBlank(sT)) then
-        LogInstance("Column type mismatch "..GetReport(iCnt,qtDef.Size),tabDef.Nick); return self:Deny() end
+        LogInstance("Column type mismatch "..GetReport(iCnt,qtDef.Size),qtDef.Nick); return self:Deny() end
       sStmt = sStmt..sC.." "..sT..(iCnt ~= qtDef.Size and ", " or " );")
     end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
@@ -3041,7 +3046,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local qtDef = self:GetDefinition()
     if(nA > 0) then tA = {...} else
       tA = qtDef.Index; nA = #tA
-      LogInstance("Definition source", tabDef.Nick)
+      LogInstance("Definition source", qtDef.Nick)
     end
     local qtCmd = self:GetCommand(); qtCmd.STMT = "INDEX"
     local tStmt = qtCmd[qtCmd.STMT]
@@ -3049,17 +3054,17 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local sDiv = GetOpVar("OPSYM_DIVIDER"); tableEmpty(tStmt); tStmt.Size = nA
     for iCnt = 1, nA do local vA = tA[iCnt]
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
-        LogInstance("Argument not table "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
+        LogInstance("Argument not table "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
       local sV, nV, bNe = "", #vA, (vA.Ne or not IsHere(vA.Ne))
       tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or "")..qtCmd.STMT..(bNe and " IF NOT EXISTS " or " ")
                              .."IND_"..qtDef.Name..sDiv..tableConcat(vA,sDiv).." ON "..qtDef.Name.." ( "
       for iInd = 1, nV do
         local iV = mathFloor(tonumber(vA[iInd]) or 0); if(iV == 0) then
-          LogInstance("Index mismatch "..GetReport(nA,iCnt,iInd),tabDef.Nick); return self:Deny() end
+          LogInstance("Index mismatch "..GetReport(nA,iCnt,iInd),qtDef.Nick); return self:Deny() end
         local tC = qtDef[iV]; if(not tC) then
-          LogInstance("Column missing "..GetReport(nA,iCnt,iInd,iV), tabDef.Nick); return self:Deny() end
+          LogInstance("Column missing "..GetReport(nA,iCnt,iInd,iV), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-          LogInstance("Column mismatch "..GetReport(nA,iCnt,iInd,iV),tabDef.Nick); return self:Deny() end
+          LogInstance("Column mismatch "..GetReport(nA,iCnt,iInd,iV),qtDef.Nick); return self:Deny() end
         sV = sV..sC..(iInd ~= nV and ", " or " );")
       end; tStmt[iCnt] = tStmt[iCnt]..sV
     end return self
@@ -3072,11 +3077,11 @@ function NewTable(sTable,defTab,bReload,bDelete)
     if(nA > 0) then local tA = {...}
       for iCnt = 1, nA do
         local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
-          LogInstance("Index mismatch "..GetReport(nA,iCnt),tabDef.Nick); return self:Deny() end
+          LogInstance("Index mismatch "..GetReport(nA,iCnt),qtDef.Nick); return self:Deny() end
         local tC = qtDef[vA]; if(not tC) then
-          LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
+          LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-          LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
+          LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
         sStmt = sStmt..sC..(iCnt ~= nA and ", " or "")
       end
     else sStmt = sStmt.."*" end
@@ -3084,50 +3089,52 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   -- Add where clause to the current statement
   function self:Where(...)
+    local qtDef = self:GetDefinition()
     local nA = select("#", ...); if(nA == 0) then
-      LogInstance("Arguments missing", tabDef.Nick); return self end
+      LogInstance("Arguments missing", qtDef.Nick); return self end
     local qtCmd = self:GetCommand(); if(not qtCmd.STMT) then
-      LogInstance("Current missing "..GetReport(nA,...), tabDef.Nick); return self end
+      LogInstance("Current missing "..GetReport(nA,...), qtDef.Nick); return self end
     local sStmt = qtCmd[qtCmd.STMT]; if(not IsHere(sStmt)) then
-      LogInstance("Statement missing "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self end
+      LogInstance("Statement missing "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self end
     if(not sStmt and isbool(sStmt)) then
-      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
+      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
-      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
-    local tA, qtDef = {...}, self:GetDefinition(); sStmt = sStmt:Trim("%s"):Trim(";")
+      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
+    local tA = {...}; sStmt = sStmt:Trim("%s"):Trim(";")
     for iCnt = 1, nA do
       local vA, sW = tA[iCnt], ((iCnt == 1) and " WHERE " or " AND "); if(not istable(vA)) then
-        LogInstance("Argument not table "..GetReport(nA,iCnt), tabDef.Nick); return self:Deny() end
+        LogInstance("Argument not table "..GetReport(nA,iCnt), qtDef.Nick); return self:Deny() end
       local wC, wV = vA[1], vA[2]; if(not (wC and wV)) then
-        LogInstance("Parameters missing "..GetReport(nA,iCnt,wC,wV), tabDef.Nick); return self:Deny() end
+        LogInstance("Parameters missing "..GetReport(nA,iCnt,wC,wV), qtDef.Nick); return self:Deny() end
       local tC = qtDef[wC]; if(not tC) then
-         LogInstance("Column missing "..GetReport(nA,iCnt,wC,wV), tabDef.Nick); return self:Deny() end
+         LogInstance("Column missing "..GetReport(nA,iCnt,wC,wV), qtDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column mismatch "..GetReport(nA,iCnt,wC,wV),tabDef.Nick); return self:Deny() end
+        LogInstance("Column mismatch "..GetReport(nA,iCnt,wC,wV),qtDef.Nick); return self:Deny() end
       sStmt = sStmt..sW..sC.." = "..tostring(wV)
     end; qtCmd[qtCmd.STMT] = sStmt..";"; return self
   end
   -- Add order by clause to the current statement
   function self:Order(...)
+    local qtDef = self:GetDefinition()
     local nA = select("#", ...); if(nA == 0) then
-      LogInstance("Arguments missing", tabDef.Nick); return self end
+      LogInstance("Arguments missing", qtDef.Nick); return self end
     local qtCmd = self:GetCommand(); if(not qtCmd.STMT) then
-      LogInstance("Current missing "..GetReport(nA,...), tabDef.Nick); return self end
+      LogInstance("Current missing "..GetReport(nA,...), qtDef.Nick); return self end
     local sStmt = qtCmd[qtCmd.STMT]; if(not IsHere(sStmt)) then
-      LogInstance("Statement missing "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self end
+      LogInstance("Statement missing "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self end
     if(not sStmt and isbool(sStmt)) then
-      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
+      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
-      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
-    local qtDef, tA = self:GetDefinition(), {...}; sStmt = sStmt:Trim("%s"):Trim(";").." ORDER BY "
+      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
+    local tA = {...}; sStmt = sStmt:Trim("%s"):Trim(";").." ORDER BY "
     for iCnt = 1, nA do
       local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
-        LogInstance("Column undefined "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
+        LogInstance("Column undefined "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
       local sDir = ((vA > 0) and " ASC" or " DESC"); vA = mathAbs(vA)
       local tC = qtDef[vA]; if(not tC) then
-        LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
+        LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
+        LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
       sStmt = sStmt..sC..sDir..(iCnt ~= nA and ", " or ";")
     end; qtCmd[qtCmd.STMT] = sStmt; return self
   end
@@ -3139,19 +3146,19 @@ function NewTable(sTable,defTab,bReload,bDelete)
     if(nA > 0) then local tA = {...}
       for iCnt = 1, nA do -- Assume the user wants to build custom insert
         local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
-          LogInstance("Column undefined "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
+          LogInstance("Column undefined "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
         local tC = qtDef[vA]; if(not tC) then
-          LogInstance("Column missing "..GetReport(nA,iCnt,vA), tabDef.Nick); return self:Deny() end
+          LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-          LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),tabDef.Nick); return self:Deny() end
+          LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
         sStmt = sStmt..sC..(iCnt ~= nA and ", " or " )")
       end
     else nA = qtDef.Size -- When called with no arguments is the same as picking all columns
       for iCnt = 1, nA do
         local tC = qtDef[iCnt]; if(not tC) then
-          LogInstance("Column missing "..GetReport(nA,iCnt), tabDef.Nick); return self:Deny() end
+          LogInstance("Column missing "..GetReport(nA,iCnt), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-          LogInstance("Column mismatch "..GetReport(nA,iCnt),tabDef.Nick); return self:Deny() end
+          LogInstance("Column mismatch "..GetReport(nA,iCnt),qtDef.Nick); return self:Deny() end
         sStmt = sStmt..sC..(iCnt ~= nA and ", " or " )")
       end
     end; qtCmd[qtCmd.STMT] = sStmt; return self
@@ -3161,21 +3168,42 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local qtCmd, qtDef = self:GetCommand(), self:GetDefinition()
     local tA, nA, sStmt = {...}, select("#", ...), qtCmd[qtCmd.STMT]
     if(not sStmt and isbool(sStmt)) then
-      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), tabDef.Nick); return self:Deny() end
+      LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
-      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),tabDef.Nick); return self:Deny() end
+      LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
     sStmt = sStmt:Trim("%s"):Trim(";").." VALUES ( "
     for iCnt = 1, nA do sStmt = sStmt..tostring(tA[iCnt])..(iCnt ~= nA and ", " or " );") end
     qtCmd[qtCmd.STMT] = sStmt; return self
+  end
+  -- Wipes a set of records via primary key
+  function self:Erase(sKey)
+    local sKey, qtDef  = tostring(sKey or ""), self:GetDefinition()
+    local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
+    if(sMoDB == "SQL") then local Q = nil
+      if(sKey == "") then
+        Q = self:Delete():Get(); if(not IsHere(Q)) then
+          LogInstance("Build delete failed"); return false end
+      else
+        local qsKey = GetOpVar("FORM_KEYSTMT")
+        local qIndx, qKey = qsKey:format(sFunc, ""), self:Match(sKey,1,true)
+        local Q = self:Get(qIndx, qKey); if(not IsHere(Q)) then local tQ = qtDef.Query[sFunc]
+          Q = self:Delete():Where(unpack(tQ.W)):Store(qIndx):Get(qIndx, qKey) end
+        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qKey),qtDef.Nick); return false end
+      end
+      local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
+        LogInstance("SQL exec error "..GetReport(sqlLastError(), Q),qtDef.Nick); return false end
+    end --
+    if(sKey == "") then tableEmpty(libCache[qtDef.Name]) else libCache[qtDef.Name][sKey] = nil end
+    return true
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
     local qtDef = self:GetDefinition()
     local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
-    if(not arLine) then LogInstance("Missing data table",tabDef.Nick); return false end
-    if(not arLine[1]) then LogInstance("Missing PK",tabDef.Nick)
+    if(not arLine) then LogInstance("Missing data table",qtDef.Nick); return false end
+    if(not arLine[1]) then LogInstance("Missing PK",qtDef.Nick)
       for key, val in pairs(arLine) do
-        LogInstance("Row data "..GetReport(key, val), tabDef.Nick) end
+        LogInstance("Row data "..GetReport(key, val), qtDef.Nick) end
       return false -- Print all other values when the model is missing
     end -- Read the log source format and reduce the number of concatenations
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
@@ -3183,29 +3211,29 @@ function NewTable(sTable,defTab,bReload,bDelete)
     -- Call the trigger when provided
     if(istable(qtDef.Trigs)) then
       local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
-      if(not bS) then LogInstance("Trigger manager "..sR,tabDef.Nick); return false end
-      if(not sR) then LogInstance("Trigger routine fail",tabDef.Nick); return false end
+      if(not bS) then LogInstance("Trigger manager "..sR,qtDef.Nick); return false end
+      if(not sR) then LogInstance("Trigger routine fail",qtDef.Nick); return false end
     end -- Populate the data after the trigger does its thing
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
       for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
       local qIndx = qsKey:format(sFunc, qtDef.Nick)
       local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then
         Q = self:Insert():Values(unpack(qtDef.Query[sFunc])):Store(qIndx):Get(qIndx, unpack(arLine)) end
-      if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,arLine[1]),tabDef.Nick); return false end
+      if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,arLine[1]),qtDef.Nick); return false end
       local qRez = sqlQuery(Q); if(not qRez and isbool(qRez)) then
-         LogInstance("Execution error "..GetReport(sqlLastError(), Q),tabDef.Nick); return false end
+         LogInstance("Execution error "..GetReport(sqlLastError(), Q),qtDef.Nick); return false end
       return true -- The dynamic statement insertion was successful
     elseif(sMoDB == "LUA") then local snPK = self:Match(arLine[1],1)
       if(not IsHere(snPK)) then -- If primary key becomes a number
-        LogInstance("Primary key mismatch "..GetReport(arLine[1], qtDef[1][1], snPK), tabDef.Nick); return false end
+        LogInstance("Primary key mismatch "..GetReport(arLine[1], qtDef[1][1], snPK), qtDef.Nick); return false end
       local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
-        LogInstance("Cache missing",tabDef.Nick); return false end
+        LogInstance("Cache missing",qtDef.Nick); return false end
       if(not istable(qtDef.Cache)) then
-        LogInstance("Cache manager missing",tabDef.Nick); return false end
+        LogInstance("Cache manager missing",qtDef.Nick); return false end
       local bS, sR = pcall(qtDef.Cache[sFunc], self, tCache, snPK, arLine, ssLog:format("Cache"))
-      if(not bS) then LogInstance("Cache manager fail "..sR,tabDef.Nick); return false end
-      if(not sR) then LogInstance("Cache routine fail",tabDef.Nick); return false end
-    else LogInstance("Unsupported mode "..GetReport(sMoDB,1,qtDef[1][2]),tabDef.Nick); return false end
+      if(not bS) then LogInstance("Cache manager fail "..sR,qtDef.Nick); return false end
+      if(not sR) then LogInstance("Cache routine fail",qtDef.Nick); return false end
+    else LogInstance("Unsupported mode "..GetReport(sMoDB,1,qtDef[1][2]),qtDef.Nick); return false end
     return true -- The dynamic cache population was successful
   end
   -- When database mode is SQL create a table in sqlite
@@ -3214,7 +3242,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Build drop failed"); return self:Remove(false) end
     -- When enabled forces a table drop
     if(bReload) then -- Remove table when SQL error is present
-      if(sqlTableExists(defTab.Name)) then
+      if(sqlTableExists(tabDef.Name)) then
         local qRez = sqlQuery(vO); if(not qRez and isbool(qRez)) then
           LogInstance("Table drop fail "..GetReport(sqlLastError(), vO), tabDef.Nick)
           return self:Remove(false) -- Remove table when SQL error is present
@@ -3225,7 +3253,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     vO = self:Create():Get(); if(not IsHere(vO)) then
       LogInstance("Build create failed"); return self:Remove(false) end
     -- Create the table using the given name and properties
-    if(sqlTableExists(defTab.Name)) then
+    if(sqlTableExists(tabDef.Name)) then
       LogInstance("Table create skipped",tabDef.Nick)
     else -- Remove table when SQL error is present
       local qRez = sqlQuery(vO); if(not qRez and isbool(qRez)) then
@@ -3236,7 +3264,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     vO = self:Index():Get(); if(not IsHere(vO)) then
       LogInstance("Build index failed"); return self:Remove(false) end
     -- Check when SQL query has passed and the table is not yet created
-    if(sqlTableExists(defTab.Name)) then
+    if(sqlTableExists(tabDef.Name)) then
       for iQ = 1, vO.Size do local qInx = vO[iQ]
         local qRez = sqlQuery(qInx); if(not qRez and isbool(qRez)) then
           LogInstance("Table create index fail "..GetReport(sqlLastError(), iQ, qInx), tabDef.Nick)
@@ -3252,7 +3280,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Build delete failed"); return self:Remove(false) end
     -- When the table is present delete all records
     if(bDelete) then
-      if(sqlTableExists(defTab.Name)) then -- Remove table when SQL error is present
+      if(sqlTableExists(tabDef.Name)) then -- Remove table when SQL error is present
         local qRez = sqlQuery(vO); if(not qRez and isbool(qRez)) then
           LogInstance("Table delete fail "..GetReport(sqlLastError(), vO), tabDef.Nick)
           return self:Remove(false) -- Remove table when SQL error is present
@@ -3741,17 +3769,17 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
   local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
-    LogInstance(sHew.." User disabled",sTable); return true end
+    LogInstance(sHew.." User disabled", sTable); return true end
   if(IsGenericDB(sTable)) then
-    LogInstance(sHew.." Generic database",sTable); return true end
+    LogInstance(sHew.." Generic database", sTable); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance(sHew.." Missing table builder",sTable); return false end
+    LogInstance(sHew.." Missing table builder", sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-    LogInstance(sHew.." Missing table definition",sTable); return nil end
+    LogInstance(sHew.." Missing table definition", sTable); return nil end
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
-    LogInstance(sHew.." Open fail: "..fName,sTable); return false end
+    LogInstance(sHew.." Open fail: "..fName, sTable); return false end
   F:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
   F:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
   if(sMoDB == "SQL") then
@@ -3760,7 +3788,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     local Q = makTab:Get(qIndx); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
       Q = makTab:Select():Order(unpack(tQ.O)):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
-      LogInstance(sHew.." Build statement failed",sTable); return false end
+      LogInstance(sHew.." Build statement failed", sTable); return false end
     F:Write("# Query:<"..Q..">\n")
     local qData = sqlQuery(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
       LogInstance(sHew.." SQL exec error "..GetReport(sqlLastError(), Q), sTable); return nil end
@@ -3774,15 +3802,15 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
     local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"Cache")
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
-      LogInstance(sHew.." Cache missing",sTable); return false end
+      LogInstance(sHew.." Cache missing", sTable); return false end
     local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog)
     if(not bS) then F:Flush(); F:Close()
-      LogInstance(sHew.." Cache manager error: "..sR,sTable); return false end
+      LogInstance(sHew.." Cache manager error: "..sR, sTable); return false end
     if(not sR) then F:Flush(); F:Close()
-      LogInstance(sHew.." Cache routine fail",sTable); return false end
-  else F:Flush(); F:Close(); LogInstance(sHew.." Unsupported mode "..GetReport(sMoDB, fName),sTable); return false end
+      LogInstance(sHew.." Cache routine fail", sTable); return false end
+  else F:Flush(); F:Close(); LogInstance(sHew.." Unsupported mode "..GetReport(sMoDB, fName), sTable); return false end
   -- The dynamic cache population was successful then send a message
-  F:Flush(); F:Close(); LogInstance(sHew.." Success",sTable); return true
+  F:Flush(); F:Close(); LogInstance(sHew.." Success", sTable); return true
 end
 
 --[[
@@ -3815,66 +3843,50 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
     sHew = tHew[2]:format(fPref, sTable, sDelim)
     F:Seek(iF); sLine, isEOF = "", false
     makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-      LogInstance(sHew.." Missing table builder",sTable); return nil end
+      LogInstance(sHew.." Missing table builder", sTable); return nil end
     defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance(sHew.." Missing table definition",sTable); return false end
+      LogInstance(sHew.." Missing table definition", sTable); return false end
     cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-      LogInstance(sHew.." Missing table command",sTable); return false end
+      LogInstance(sHew.." Missing table command", sTable); return false end
     F = fileOpen(fName, "rb", "DATA"); if(not F) then
-      LogInstance(sHew.." Open fail: "..fName,sTable); return false end
-    LogInstance(sHew.." Intern success "..GetReport(sPar))
+      LogInstance(sHew.." Open fail: "..fName, sTable); return false end
+    LogInstance(sHew.." Intern success "..GetReport(sPar), sTable)
   else
     sDelim = tostring(sDelim or "\t"):sub(1,1)
     local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
       LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
     sHew = tHew[2]:format(fPref, sTable, sDelim)
     makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-      LogInstance(sHew.." Missing table builder",sTable); return nil end
+      LogInstance(sHew.." Missing table builder", sTable); return nil end
     defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance(sHew.." Missing table definition",sTable); return false end
+      LogInstance(sHew.." Missing table definition", sTable); return false end
     cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-      LogInstance(sHew.." Missing table command",sTable); return false end
+      LogInstance(sHew.." Missing table command", sTable); return false end
     local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
     local fName = GetLibraryPath(sSors, fPref, defTab.Name)
     F = fileOpen(fName, "rb", "DATA"); if(not F) then
-      LogInstance(sHew.." Open fail: "..fName,sTable); return false end
+      LogInstance(sHew.." Open fail: "..fName, sTable); return false end
   end
-  local qsKey = GetOpVar("FORM_KEYSTMT")
-  local sFunc = debugGetinfo(1).name
-  local qIndx = qsKey:format(sFunc, "")
   local bRef  = (tobool(bRef) and (sTable == "PIECES"))
-  local bQryc = (bComm and sMoDB == "SQL")
-  local oSpot, vKey, tKey = makTab:GetNavigate(defTab.Name)
-  if(not (IsHere(oSpot) and IsHere(vKey))) then
-    LogInstance("Navigation miss",sTable); return false
-  else oSpot = oSpot[vKey] end
-  if(bQryc) then
-    sqlQuery(makTab:Begin():Get()); LogInstance(sHew.." Begin",sTable)
+  if(bComm and sMoDB == "SQL") then
+    sqlQuery(makTab:Begin():Get()); LogInstance(sHew.." Begin", sTable)
   end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       local tData = sDelim:Explode(sLine); if((#tData-1) > defTab.Size) then
-        LogInstance(sHew.." Internal length mismatch "..GetReport(sLine),sTable); return false end
+        LogInstance(sHew.." Internal length mismatch "..GetReport(sLine), sTable); return false end
       local sSors = tableRemove(tData, 1); if(sSors ~= defTab.Name) then
-        LogInstance(sHew.." Internal table mismatch "..GetReport(sLine),sTable); return false end
+        LogInstance(sHew.." Internal table mismatch "..GetReport(sLine), sTable); return false end
       for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
       if(bRef and (tonumber(tData[4]) or 0) == 1) then
-        local sModel = tostring(tData[1] or "")
-        if(bQryc) then
-          local qModel = makTab:Match(tData[1],1,true)
-          local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
-            Q = makTab:Delete():Where(unpack(tQ.W)):Store(qIndx):Get(qIndx, qModel) end
-          if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qModel)); return false end
-          local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
-            LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return false end
-        end; oSpot[sModel] = nil; LogInstance("Refresh: "..GetReport(sModel),sTable)
+        if(bComm) then makTab:Erase(tData[1]) end
       end
       if(bComm) then makTab:Record(tData) end
     end
   end; F:Close()
-  if(bQryc) then
-    sqlQuery(makTab:Commit():Get()); LogInstance(sHew.." Commit",sTable) end
-  LogInstance(sHew.." Success",sTable); return true
+  if(bComm and sMoDB == "SQL") then
+    sqlQuery(makTab:Commit():Get()); LogInstance(sHew.." Commit", sTable) end
+  LogInstance(sHew.." Success", sTable); return true
 end
 
 --[[

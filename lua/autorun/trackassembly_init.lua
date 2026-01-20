@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.785")
+asmlib.SetOpVar("TOOL_VERSION","9.786")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1780,7 +1780,7 @@ asmlib.NewTable("PIECES",{
   Index = {{1,4,Un=true},{1},{2},{4}},
   Query = {
     ExportDSV       = {O = {2,3,1,4}},
-    ImportDSV       = {W = {{1,"%s"}}},
+    Erase           = {W = {{1,"%s"}}},
     CacheQueryPiece = {W = {{1,"%s"}}, O = {4}},
     ExportTypeDSV   = {W = {{2,"%s"}}, O = {3,1,4}},
     ExportTypeRun   = {W = {{2,"%s"}}, O = {3,1,4}},
@@ -1956,6 +1956,7 @@ asmlib.NewTable("ADDITIONS",{
   Timer = gaTimerSet[2],
   Index = {{1,4,Un=true},{1},{4}},
   Query = {
+    Erase               = {W = {{1,"%s"}}},
     ExportDSV           = {O = {1,4}},
     SetAdditionsRun     = {W = {{1,"%s"}}, O = {4}},
     CacheQueryAdditions = {W = {{1,"%s"}}, O = {4}},
@@ -2021,6 +2022,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
   Timer = gaTimerSet[3],
   Index = {{1,2,Un=true},{1},{2}},
   Query = {
+    Erase     = {W = {{1,"%s"}}},
     Record    = {"%s","%d","%s"},
     ExportDSV = {O = {1,2}},
     CacheQueryProperty = {
