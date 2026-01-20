@@ -3792,8 +3792,9 @@ end
  * sPref  > Prefix used on importing ( optional )
  * sDelim > Delimiter separating the values
  * bExp   > Forces the input from the export folder.( defaults to DSV )
+ * bRef   > Refresh the internal database with the ones from the source
 ]]
-function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
+function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   local sTable = tostring(sTable or ""); if(IsBlank(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local bFile, sLine, isEOF, F = fileExists(sTable, "DATA"), "", false
@@ -3838,8 +3839,18 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
     F = fileOpen(fName, "rb", "DATA"); if(not F) then
       LogInstance(sHew.." Open fail: "..fName,sTable); return false end
   end
-  if(bComm and sMoDB == "SQL") then
-    sqlQuery(makTab:Begin():Get()); LogInstance(sHew.." Begin",sTable) end
+  local qsKey = GetOpVar("FORM_KEYSTMT")
+  local sFunc = debugGetinfo(1).name
+  local qIndx = qsKey:format(sFunc, "")
+  local bRef  = (tobool(bRef) and (sTable == "PIECES"))
+  local bQryc = (bComm and sMoDB == "SQL")
+  local oSpot, vKey, tKey = makTab:GetNavigate(defTab.Name)
+  if(not (IsHere(oSpot) and IsHere(vKey))) then
+    LogInstance("Navigation miss",sTable); return false
+  else oSpot = oSpot[vKey] end
+  if(bQryc) then
+    sqlQuery(makTab:Begin():Get()); LogInstance(sHew.." Begin",sTable)
+  end
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       local tData = sDelim:Explode(sLine); if((#tData-1) > defTab.Size) then
@@ -3847,10 +3858,21 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp)
       local sSors = tableRemove(tData, 1); if(sSors ~= defTab.Name) then
         LogInstance(sHew.." Internal table mismatch "..GetReport(sLine),sTable); return false end
       for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
+      if(bRef and (tonumber(tData[4]) or 0) == 1) then
+        local sModel = tostring(tData[1] or "")
+        if(bQryc) then
+          local qModel = makTab:Match(tData[1],1,true)
+          local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+            Q = makTab:Delete():Where(unpack(tQ.W)):Store(qIndx):Get(qIndx, qModel) end
+          if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qModel)); return false end
+          local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
+            LogInstance("SQL exec error "..GetReport(sqlLastError(), Q)); return false end
+        end; oSpot[sModel] = nil; LogInstance("Refresh: "..GetReport(sModel),sTable)
+      end
       if(bComm) then makTab:Record(tData) end
     end
   end; F:Close()
-  if(bComm and sMoDB == "SQL") then
+  if(bQryc) then
     sqlQuery(makTab:Commit():Get()); LogInstance(sHew.." Commit",sTable) end
   LogInstance(sHew.." Success",sTable); return true
 end

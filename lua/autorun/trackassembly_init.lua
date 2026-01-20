@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.784")
+asmlib.SetOpVar("TOOL_VERSION","9.785")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -975,9 +975,7 @@ if(CLIENT) then
             local defTab = makTab:GetDefinition()
             local sFile = fDSV:format(sP, defTab.Nick)
             if(fileExists(sFile, "DATA")) then
-              local stData = makTab:GetNavigate(defTab.Name)
-              for key, rec in pairs(stData) do
-              asmlib.ImportDSV(defTab.Nick, true, sP)
+              asmlib.ImportDSV(sFile, true, nil, nil, nil, true)
             end
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
@@ -1782,6 +1780,7 @@ asmlib.NewTable("PIECES",{
   Index = {{1,4,Un=true},{1},{2},{4}},
   Query = {
     ExportDSV       = {O = {2,3,1,4}},
+    ImportDSV       = {W = {{1,"%s"}}},
     CacheQueryPiece = {W = {{1,"%s"}}, O = {4}},
     ExportTypeDSV   = {W = {{2,"%s"}}, O = {3,1,4}},
     ExportTypeRun   = {W = {{2,"%s"}}, O = {3,1,4}},
