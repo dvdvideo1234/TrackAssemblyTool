@@ -1540,8 +1540,8 @@ function NewPOA(vA, vB, vC)
     end; return self
   end
   function self:Raw(sR)
-    if(IsHere(sR)) then
-      mRaw = tostring(sR) end
+    if(IsHere(sR)) then -- Remove spaces
+      mRaw = tostring(sR):gsub("%s+", "") end
     return mRaw -- Source data manager
   end
   function self:IsSame(vA, vB, vC)
@@ -2301,10 +2301,10 @@ function LocatePOA(oRec, ivPoID)
       local tPOA = tOffs[ID] -- Extract current offset and localize raw values
       local oP, oO, oA = tPOA.P, tPOA.O, tPOA.A -- POA object pointers
       local sP, sO, sA = oP:Raw(), oO:Raw(), oA:Raw() -- POA raw values
-      if(sO) then tPOA.O:Decode(sO, sMo, "Pos") end -- Process origin
-      if(sA) then tPOA.A:Decode(sA, sMo, "Ang") end -- Process angle
-      if(sP) then tPOA.P:Decode(sP, sMo, "Pos", tPOA.O:Get()) end
-      LogInstance("Spawn "..GetReport(ID, tPOA.P:String(), tPOA.O:String(), tPOA.A:String()))
+      if(sO) then oO:Decode(sO, sMo, "Pos") end -- Process origin
+      if(sA) then oA:Decode(sA, sMo, "Ang") end -- Process angle
+      if(sP) then oP:Decode(sP, sMo, "Pos", oO:Get()) end
+      LogInstance("Spawn "..GetReport(ID, oP:String(), oO:String(), oA:String()))
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
 end
