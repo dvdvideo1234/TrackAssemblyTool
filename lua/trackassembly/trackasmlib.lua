@@ -2718,6 +2718,16 @@ function NewTable(sTable,defTab,bReload,bDelete)
       return qtCmd[iK]
     end
   end
+  -- Reads the query configurations
+  function self:GetQuery(sType, sFunc)
+    local qtDef = self:GetDefinition()
+    local sFunc = tostring(sFunc or debugGetinfo(2).name)
+    local tQ = qtDef.Query; if(not tQ) then
+      LogInstance("Query missing", qtDef.Nick); return nil end
+    local tE = tQ[sFunc]; if(not tE) then
+      LogInstance("Entry missing", qtDef.Nick); return nil end
+    return (IsHere(sType) and tE[sType] or tE)
+  end
   -- Returns ID of the found column valid > 0
   function self:GetColumnID(sN)
     local sN, qtDef = tostring(sN or ""), self:GetDefinition()
@@ -3186,15 +3196,16 @@ function NewTable(sTable,defTab,bReload,bDelete)
       else
         local qsKey = GetOpVar("FORM_KEYSTMT")
         local qIndx, qKey = qsKey:format(sFunc, ""), self:Match(sKey,1,true)
-        local Q = self:Get(qIndx, qKey); if(not IsHere(Q)) then local tQ = qtDef.Query[sFunc]
+        local Q = self:Get(qIndx, qKey); if(not IsHere(Q)) then local tQ = self:GetQuery()
           Q = self:Delete():Where(unpack(tQ.W)):Store(qIndx):Get(qIndx, qKey) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qKey),qtDef.Nick); return false end
       end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError(), Q),qtDef.Nick); return false end
-    end --
-    if(sKey == "") then tableEmpty(libCache[qtDef.Name]) else libCache[qtDef.Name][sKey] = nil end
-    return true
+    end -- Clear the entry from the table cache too
+    local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
+      LogInstance("Cache missing",qtDef.Nick); return false end
+    if(sKey ~= "") then tCache[sKey] = nil else tableEmpty(tCache) end; return true
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
@@ -3218,7 +3229,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
       local qIndx = qsKey:format(sFunc, qtDef.Nick)
       local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then
-        Q = self:Insert():Values(unpack(qtDef.Query[sFunc])):Store(qIndx):Get(qIndx, unpack(arLine)) end
+        Q = self:Insert():Values(unpack(self:GetQuery("V"))):Store(qIndx):Get(qIndx, unpack(arLine)) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,arLine[1]),qtDef.Nick); return false end
       local qRez = sqlQuery(Q); if(not qRez and isbool(qRez)) then
          LogInstance("Execution error "..GetReport(sqlLastError(), Q),qtDef.Nick); return false end
@@ -3350,7 +3361,7 @@ function CacheQueryPiece(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
         Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -3397,7 +3408,7 @@ function CacheQueryAdditions(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
         Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -3472,7 +3483,7 @@ function CacheQueryTree()
     libCache[keyPan] = {}; stPan = libCache[keyPan]
     if(sMoDB == "SQL") then
       local qIndx = qsKey:format(sFunc,"")
-      local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+      local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
         Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -3525,7 +3536,7 @@ function CacheQueryProperty(sType)
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
         local qType = makTab:Match(sType,1,true)
         local qIndx = qsKey:format(sFunc,keyName)
-        local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc].N
+        local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = makTab:GetQuery().N
           Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
         local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -3556,7 +3567,7 @@ function CacheQueryProperty(sType)
       if(sMoDB == "SQL") then
         tCache[keyType] = {}; stType = tCache[keyType]; stType.Size = 0
         local qIndx = qsKey:format(sFunc,keyType)
-        local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc].T
+        local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery().T
           Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
         local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -3624,7 +3635,7 @@ function ExportSyncDB(sDelim)
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, "")
-    local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+    local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
       Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
     if(not IsHere(Q)) then LogInstance(sHew.." Build statement failed"); F:Flush(); F:Close(); return false end
     local qData = sqlQuery(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
@@ -3785,7 +3796,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, sTable)
-    local Q = makTab:Get(qIndx); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+    local Q = makTab:Get(qIndx); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
       Q = makTab:Select():Order(unpack(tQ.O)):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance(sHew.." Build statement failed", sTable); return false end
@@ -4167,7 +4178,7 @@ function SetAdditionsRun(sModel, makTab, qList)
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qModel = makTab:Match(tostring(sModel or ""), 1, true)
     local qIndx = qsKey:format(sFunc, "ADDITIONS")
-    local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = defTab.Query[sFunc]
+    local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
       Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
     if(not IsHere(Q)) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return false end
     qData = sqlQuery(Q); if(not qData and isbool(qData)) then
@@ -4294,7 +4305,7 @@ function ExportTypeRun(sType)
     end
     local qType = makP:Match(sType, 2, true)
     local qIndx = qsKey:format(sFunc, "PIECES")
-    local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = defP.Query[sFunc]
+    local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = makP:GetQuery()
       Q = makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
     if(not Q) then
       LogInstance("Build statement failed "..GetReport(qIndx,qType),defP.Nick)
@@ -4412,7 +4423,7 @@ function ExportTypeDSV(sType, sDelim)
     local qType = makP:Match(sType, 2, true)
     local qInxP = qsKey:format(sFunc, defP.Nick)
     local qInxA = qsKey:format(sFunc, defA.Nick)
-    local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then local tQ = defP.Query[sFunc]
+    local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then local tQ = makP:GetQuery()
       Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qType) end
     if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("("..fPref..") Build statement failed",defP.Nick); return false end
@@ -4428,7 +4439,7 @@ function ExportTypeDSV(sType, sDelim)
           rwM = (sCP == coMo and vCP or rwM)
           if(sCP == coLI and (tonumber(vCP) or 0) == 1) then
             local qrMo = makP:Match(rwM, 1, true)
-            local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then local tQ = defA.Query[sFunc]
+            local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then local tQ = makA:GetQuery()
               Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxA):Get(qInxA, qrMo) end
             if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
               LogInstance("("..fPref..") Build statement failed",defA.Nick); return qsNov end

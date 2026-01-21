@@ -87,7 +87,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.786")
+asmlib.SetOpVar("TOOL_VERSION","9.787")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1784,7 +1784,7 @@ asmlib.NewTable("PIECES",{
     CacheQueryPiece = {W = {{1,"%s"}}, O = {4}},
     ExportTypeDSV   = {W = {{2,"%s"}}, O = {3,1,4}},
     ExportTypeRun   = {W = {{2,"%s"}}, O = {3,1,4}},
-    Record          = {"%s","%s","%s","%d","%s","%s","%s","%s"},
+    Record          = {V = {"%s","%s","%s","%d","%s","%s","%s","%s"}},
     CacheQueryTree  = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}},
     ExportSyncDB    = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}}
   },
@@ -1961,7 +1961,7 @@ asmlib.NewTable("ADDITIONS",{
     SetAdditionsRun     = {W = {{1,"%s"}}, O = {4}},
     CacheQueryAdditions = {W = {{1,"%s"}}, O = {4}},
     ExportTypeDSV       = {W = {{1,"%s"}}, O = {1,4}},
-    Record              = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}
+    Record              = {V = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}}
   },
   Cache = {
     Record = function(makTab, tCache, snPK, arLine, vSrc)
@@ -2023,7 +2023,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
   Index = {{1,2,Un=true},{1},{2}},
   Query = {
     Erase     = {W = {{1,"%s"}}},
-    Record    = {"%s","%d","%s"},
+    Record    = {V = {"%s","%d","%s"}},
     ExportDSV = {O = {1,2}},
     CacheQueryProperty = {
       N = {S = {2, 3}, W = {{1,"%s"}}, O = {2}},
