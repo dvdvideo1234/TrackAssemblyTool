@@ -3228,8 +3228,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
       for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
       local qIndx = qsKey:format(sFunc, qtDef.Nick)
-      local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then
-        Q = self:Insert():Values(unpack(self:GetQuery("V"))):Store(qIndx):Get(qIndx, unpack(arLine)) end
+      local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then local tQ = self:GetQuery()
+        Q = self:Insert():Values(unpack(tQ.V)):Store(qIndx):Get(qIndx, unpack(arLine)) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,arLine[1]),qtDef.Nick); return false end
       local qRez = sqlQuery(Q); if(not qRez and isbool(qRez)) then
          LogInstance("Execution error "..GetReport(sqlLastError(), Q),qtDef.Nick); return false end
