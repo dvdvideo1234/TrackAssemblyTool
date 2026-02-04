@@ -3203,9 +3203,14 @@ function NewTable(sTable,defTab,bReload,bDelete)
       local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sqlLastError(), Q),qtDef.Nick); return false end
     end -- Clear the entry from the table cache too
+    local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
+    local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
     local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing",qtDef.Nick); return false end
-    if(sKey ~= "") then tCache[sKey] = nil else tableEmpty(tCache) end; return true
+    local bS, sR = pcall(qtDef.Cache[sFunc], self, tCache, snPK, ssLog:format("Cache"))
+    if(not bS) then LogInstance("Cache manager fail: "..sR,qtDef.Nick); return false end
+    if(not sR) then LogInstance("Cache routine fail",qtDef.Nick); return false end
+    return true -- The dynamic cache erasure was successful
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
@@ -3222,7 +3227,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     -- Call the trigger when provided
     if(istable(qtDef.Trigs)) then
       local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
-      if(not bS) then LogInstance("Trigger manager "..sR,qtDef.Nick); return false end
+      if(not bS) then LogInstance("Trigger manager: "..sR,qtDef.Nick); return false end
       if(not sR) then LogInstance("Trigger routine fail",qtDef.Nick); return false end
     end -- Populate the data after the trigger does its thing
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
@@ -3242,7 +3247,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       if(not istable(qtDef.Cache)) then
         LogInstance("Cache manager missing",qtDef.Nick); return false end
       local bS, sR = pcall(qtDef.Cache[sFunc], self, tCache, snPK, arLine, ssLog:format("Cache"))
-      if(not bS) then LogInstance("Cache manager fail "..sR,qtDef.Nick); return false end
+      if(not bS) then LogInstance("Cache manager fail: "..sR,qtDef.Nick); return false end
       if(not sR) then LogInstance("Cache routine fail",qtDef.Nick); return false end
     else LogInstance("Unsupported mode "..GetReport(sMoDB,1,qtDef[1][2]),qtDef.Nick); return false end
     return true -- The dynamic cache population was successful
@@ -3837,9 +3842,9 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   local sTable = tostring(sTable or ""); if(IsBlank(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local bFile, sLine, isEOF, F = fileExists(sTable, "DATA"), "", false
-  local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
+  local bRef, tHew, sHew = tobool(bRef), GetOpVar("PATTEM_EXDSVHED")
   local sMoDB, makTab, defTab, cmdTab = GetOpVar("MODE_DATABASE")
-  if(bFile) then
+  if(bFile) then -- The first argument is a file path
     local tHew, fName = GetOpVar("PATTEM_EXDSVHED"), sTable
     LogInstance("Reading configuration: "..fName)
     F = fileOpen(fName, "rb", "DATA"); if(not F) then
@@ -3862,7 +3867,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
     F = fileOpen(fName, "rb", "DATA"); if(not F) then
       LogInstance(sHew.." Open fail: "..fName, sTable); return false end
     LogInstance(sHew.." Intern success "..GetReport(sPar), sTable)
-  else
+  else -- The first argument is considered to be a table nick
     sDelim = tostring(sDelim or "\t"):sub(1,1)
     local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
       LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
@@ -3878,10 +3883,10 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
     F = fileOpen(fName, "rb", "DATA"); if(not F) then
       LogInstance(sHew.." Open fail: "..fName, sTable); return false end
   end
-  local bRef  = (tobool(bRef) and (sTable == "PIECES"))
   if(bComm and sMoDB == "SQL") then
     sqlQuery(makTab:Begin():Get()); LogInstance(sHew.." Begin", sTable)
   end
+  local iD = makTab:GetColumnID("LINEID")
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       local tData = sDelim:Explode(sLine); if((#tData-1) > defTab.Size) then
@@ -3889,7 +3894,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
       local sSors = tableRemove(tData, 1); if(sSors ~= defTab.Name) then
         LogInstance(sHew.." Internal table mismatch "..GetReport(sLine), sTable); return false end
       for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
-      if(bRef and (tonumber(tData[4]) or 0) == 1) then
+      if(bRef and (tonumber(tData[iD]) or 0) == 1) then
         if(bComm) then makTab:Erase(tData[1]) end
       end
       if(bComm) then makTab:Record(tData) end

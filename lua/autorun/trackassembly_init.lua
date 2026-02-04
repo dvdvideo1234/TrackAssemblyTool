@@ -12,6 +12,7 @@ local SetClipboardText              = SetClipboardText
 local netStart                      = net and net.Start
 local netSendToServer               = net and net.SendToServer
 local netReceive                    = net and net.Receive
+local netReadString                 = net and net.ReadString
 local netReadEntity                 = net and net.ReadEntity
 local netReadVector                 = net and net.ReadVector
 local netReadNormal                 = net and net.ReadNormal
@@ -20,6 +21,7 @@ local netReadBool                   = net and net.ReadBool
 local netReadUInt                   = net and net.ReadUInt
 local netWriteEntity                = net and net.WriteEntity
 local netWriteUInt                  = net and net.WriteUInt
+local netWriteString                = net and net.WriteString
 local bitBor                        = bit and bit.bor
 local sqlBegin                      = sql and sql.Begin
 local sqlCommit                     = sql and sql.Commit
@@ -36,6 +38,7 @@ local mathMin                       = math and math.min
 local mathMax                       = math and math.max
 local mathNormalizeAngle            = math and math.NormalizeAngle
 local gameGetWorld                  = game and game.GetWorld
+local gameSinglePlayer              = game and game.SinglePlayer
 local tableConcat                   = table and table.concat
 local tableRemove                   = table and table.remove
 local tableEmpty                    = table and table.Empty
@@ -87,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.789")
+asmlib.SetOpVar("TOOL_VERSION","9.790")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -337,8 +340,24 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
 
 ------------ ACTIONS ------------
 
+asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
+  function(tData, sPref)
+    local iD, makTab = 1, asmlib.GetBuilderID(1)
+    while(makTab) do
+      local defTab = makTab:GetDefinition()
+      local sFile = tData.fDSV:format(sPref, defTab.Nick)
+      if(fileExists(sFile, "DATA")) then
+        asmlib.ImportDSV(defTab.Nick, true, sPref, nil, nil, true)
+      end; iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
+    end
+  end, {
+    fDSV = asmlib.GetOpVar("DIRPATH_BAS")..
+           asmlib.GetOpVar("DIRPATH_DSV")..("%s"..asmlib.GetOpVar("TOOLNAME_PU").."%s.txt")
+  })
+
 if(SERVER) then
 
+  utilAddNetworkString(gsLibName.."SendRefreshDSV")
   utilAddNetworkString(gsLibName.."SendDeleteGhosts")
   utilAddNetworkString(gsLibName.."SendIntersectClear")
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
@@ -346,6 +365,13 @@ if(SERVER) then
   utilAddNetworkString(gsLibName.."SendUpdateCurveNode")
   utilAddNetworkString(gsLibName.."SendDeleteCurveNode")
   utilAddNetworkString(gsLibName.."SendDeleteAllCurveNode")
+
+  netReceive(gsLibName.."SendRefreshDSV",
+    function(nLen, oPly) local sLog = "*REFRESH_ITEM_LIST"
+      local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", netReadString())
+      if(not bS) then LogInstance("Refresh execute: "..sR,sLog); return nil end
+      if(not sR) then LogInstance("Trigger routine fail",sLog); return nil end
+    end)
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
     function(oPly,oEnt,tData) local sLog = "*DUPE_PHYS_SETTINGS"
@@ -971,12 +997,12 @@ if(CLIENT) then
           function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."licr"))
         pIn:AddOption(languageGetPhrase(sT.."lirf"),
           function()
-            local makTab = asmlib.GetBuilderNick("PIECES")
-            local defTab = makTab:GetDefinition()
-            local sFile = fDSV:format(sP, defTab.Nick)
-            if(fileExists(sFile, "DATA")) then
-              asmlib.ImportDSV(sFile, true, nil, nil, nil, true)
-            end
+            if(not gameSinglePlayer()) then -- Server and client are on the same machine
+              asmlib.LogInstance("Single player only",sLog..".ListView"); return nil end
+            local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP)
+            if(not bS) then LogInstance("Refresh execute: "..sR,sLog..".ListView"); return nil end
+            if(not sR) then LogInstance("Trigger routine fail",sLog..".ListView"); return nil end
+            netStart(gsLibName.."SendRefreshDSV"); netWriteString(sP); netSendToServer()
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
@@ -1808,6 +1834,12 @@ asmlib.NewTable("PIECES",{
     end
   },
   Cache = {
+    Erase  = function(makTab, tCache, snPK, vSrc)
+      local defTab = makTab:GetDefinition()
+      local stData = tCache[snPK]; if(not stData) then
+        asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK),vSrc); return false end
+      if(snPK and snPK ~= "") then tCache[snPK] = nil else tableEmpty(tCache) end; return true
+    end,
     Record = function(makTab, tCache, snPK, arLine, vSrc)
       local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
@@ -1964,6 +1996,12 @@ asmlib.NewTable("ADDITIONS",{
     Record              = {V = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}}
   },
   Cache = {
+    Erase  = function(makTab, tCache, snPK, vSrc)
+      local defTab = makTab:GetDefinition()
+      local stData = tCache[snPK]; if(not stData) then
+        asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK),vSrc); return false end
+      if(snPK and snPK ~= "") then tCache[snPK] = nil else tableEmpty(tCache) end; return true
+    end,
     Record = function(makTab, tCache, snPK, arLine, vSrc)
       local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
@@ -2038,6 +2076,22 @@ asmlib.NewTable("PHYSPROPERTIES",{
     end
   },
   Cache = {
+    Erase  = function(makTab, tCache, snPK, vSrc)
+      local defTab = makTab:GetDefinition()
+      local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
+      local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
+      local stName = tCache[skName]; if(not stName) then
+        asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK),vSrc); return false end
+      local stType = tCache[skType]; if(not stType) then
+        asmlib.LogInstance("Config missing "..asmlib.GetReport(snPK),vSrc); return false end
+      if(snPK and snPK ~= "") then local vT
+        for iT = 1, stName.Size do -- Remove the type from the list
+          if(stName[iT] == snPK) then vT = tableRemove(stName, iT) end
+        end; if(vT) then stType[vT] = nil; stName.Size = stName.Size - 1 end
+      else -- Otherwise clear everything not just specific type
+        tableEmpty(stName), tableEmpty(stType)
+      end; return true
+    end,
     Record = function(makTab, tCache, snPK, arLine, vSrc)
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
