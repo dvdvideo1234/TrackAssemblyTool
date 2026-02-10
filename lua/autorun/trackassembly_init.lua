@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.790")
+asmlib.SetOpVar("TOOL_VERSION","9.791")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -352,7 +352,8 @@ asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
     end
   end, {
     fDSV = asmlib.GetOpVar("DIRPATH_BAS")..
-           asmlib.GetOpVar("DIRPATH_DSV")..("%s"..asmlib.GetOpVar("TOOLNAME_PU").."%s.txt")
+           asmlib.GetOpVar("DIRPATH_DSV")..
+           ("%s"..asmlib.GetOpVar("TOOLNAME_PU").."%s.txt")
   })
 
 if(SERVER) then
@@ -486,40 +487,40 @@ if(CLIENT) then
   asmlib.ToIcon(gsToolPrefU.."ADDITIONS"     , "bricks"          )
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
-  asmlib.ToIcon("subfolder_item"        , "folder_brick"      )
-  asmlib.ToIcon("pn_contextm_cp"        , "page_copy"         )
-  asmlib.ToIcon("pn_contextm_cpbx"      , "application_go"    )
-  asmlib.ToIcon("pn_contextm_cprw"      , "report_go"         )
-  asmlib.ToIcon("pn_contextm_cpty"      , "database_go"       )
-  asmlib.ToIcon("pn_contextm_cpnm"      , "script_go"         )
-  asmlib.ToIcon("pn_contextm_cpth"      , "map_go"            )
-  asmlib.ToIcon("pn_contextm_cpmd"      , "brick_go"          )
-  asmlib.ToIcon("pn_contextm_li"        , "database"          )
-  asmlib.ToIcon("pn_contextm_licg"      , "database_edit"     )
-  asmlib.ToIcon("pn_contextm_licr"      , "database_add"      )
-  asmlib.ToIcon("pn_contextm_lirf"      , "database_refresh"  )
-  asmlib.ToIcon("pn_contextm_lirm"      , "database_delete"   )
-  asmlib.ToIcon("pn_contextm_ws"        , "cart"              )
-  asmlib.ToIcon("pn_contextm_wsid"      , "key_go"            )
-  asmlib.ToIcon("pn_contextm_wsop"      , "world"             )
-  asmlib.ToIcon("pn_contextm_ex"        , "transmit"          )
-  asmlib.ToIcon("pn_contextm_exdv"      , "database_table"    )
-  asmlib.ToIcon("pn_contextm_exru"      , "script_code"       )
-  asmlib.ToIcon("pn_contextm_mv"        , "joystick"          )
-  asmlib.ToIcon("pn_contextm_mvup"      , "arrow_up"          )
-  asmlib.ToIcon("pn_contextm_mvdn"      , "arrow_down"        )
-  asmlib.ToIcon("pn_contextm_mvtp"      , "arrow_redo"        )
-  asmlib.ToIcon("pn_contextm_mvbt"      , "arrow_undo"        )
-  asmlib.ToIcon("pn_contextm_st"        , "database_gear"     )
-  asmlib.ToIcon("pn_contextm_si"        , "database_key"      )
-  asmlib.ToIcon("pn_contextm_stnk"      , "folder_find"       )
-  asmlib.ToIcon("pn_contextm_stpt"      , "map_go"            )
-  asmlib.ToIcon("pn_contextm_sttm"      , "time_go"           )
-  asmlib.ToIcon("pn_contextm_stsz"      , "compress"          )
-  asmlib.ToIcon("pn_contextm_sted"      , "table_edit"        )
-  asmlib.ToIcon("pn_contextm_stdl"      , "table_delete"      )
-  asmlib.ToIcon("pn_contextm_tg"        , "database_connect"  )
-  asmlib.ToIcon("pn_contextm_ep"        , "zoom"              )
+  asmlib.ToIcon("subfolder_item"   , "folder_brick"      )
+  asmlib.ToIcon("pn_contextm_cp"   , "page_copy"         )
+  asmlib.ToIcon("pn_contextm_cpbx" , "application_go"    )
+  asmlib.ToIcon("pn_contextm_cprw" , "report_go"         )
+  asmlib.ToIcon("pn_contextm_cpty" , "database_go"       )
+  asmlib.ToIcon("pn_contextm_cpnm" , "script_go"         )
+  asmlib.ToIcon("pn_contextm_cpth" , "map_go"            )
+  asmlib.ToIcon("pn_contextm_cpmd" , "brick_go"          )
+  asmlib.ToIcon("pn_contextm_li"   , "database"          )
+  asmlib.ToIcon("pn_contextm_licg" , "database_edit"     )
+  asmlib.ToIcon("pn_contextm_licr" , "database_add"      )
+  asmlib.ToIcon("pn_contextm_lirf" , "database_refresh"  )
+  asmlib.ToIcon("pn_contextm_lirm" , "database_delete"   )
+  asmlib.ToIcon("pn_contextm_ws"   , "cart"              )
+  asmlib.ToIcon("pn_contextm_wsid" , "key_go"            )
+  asmlib.ToIcon("pn_contextm_wsop" , "world"             )
+  asmlib.ToIcon("pn_contextm_ex"   , "transmit"          )
+  asmlib.ToIcon("pn_contextm_exdv" , "database_table"    )
+  asmlib.ToIcon("pn_contextm_exru" , "script_code"       )
+  asmlib.ToIcon("pn_contextm_mv"   , "joystick"          )
+  asmlib.ToIcon("pn_contextm_mvup" , "arrow_up"          )
+  asmlib.ToIcon("pn_contextm_mvdn" , "arrow_down"        )
+  asmlib.ToIcon("pn_contextm_mvtp" , "arrow_redo"        )
+  asmlib.ToIcon("pn_contextm_mvbt" , "arrow_undo"        )
+  asmlib.ToIcon("pn_contextm_st"   , "database_gear"     )
+  asmlib.ToIcon("pn_contextm_si"   , "database_key"      )
+  asmlib.ToIcon("pn_contextm_stnk" , "folder_find"       )
+  asmlib.ToIcon("pn_contextm_stpt" , "map_go"            )
+  asmlib.ToIcon("pn_contextm_sttm" , "time_go"           )
+  asmlib.ToIcon("pn_contextm_stsz" , "compress"          )
+  asmlib.ToIcon("pn_contextm_sted" , "table_edit"        )
+  asmlib.ToIcon("pn_contextm_stdl" , "table_delete"      )
+  asmlib.ToIcon("pn_contextm_tg"   , "database_connect"  )
+  asmlib.ToIcon("pn_contextm_ep"   , "zoom"              )
   asmlib.ToIcon("pn_routine_end"   , "arrow_refresh"     )
   asmlib.ToIcon("pn_routine_typ"   , "package"           )
   asmlib.ToIcon("pn_routine_nam"   , "tag_green"         )
@@ -1835,13 +1836,11 @@ asmlib.NewTable("PIECES",{
   },
   Cache = {
     Erase  = function(makTab, tCache, snPK, vSrc)
-      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK),vSrc); return false end
       if(snPK and snPK ~= "") then tCache[snPK] = nil else tableEmpty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine, vSrc)
-      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
@@ -1997,7 +1996,6 @@ asmlib.NewTable("ADDITIONS",{
   },
   Cache = {
     Erase  = function(makTab, tCache, snPK, vSrc)
-      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK),vSrc); return false end
       if(snPK and snPK ~= "") then tCache[snPK] = nil else tableEmpty(tCache) end; return true
@@ -2077,7 +2075,6 @@ asmlib.NewTable("PHYSPROPERTIES",{
   },
   Cache = {
     Erase  = function(makTab, tCache, snPK, vSrc)
-      local defTab = makTab:GetDefinition()
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
       local stName = tCache[skName]; if(not stName) then
@@ -2089,7 +2086,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
           if(stName[iT] == snPK) then vT = tableRemove(stName, iT) end
         end; if(vT) then stType[vT] = nil; stName.Size = stName.Size - 1 end
       else -- Otherwise clear everything not just specific type
-        tableEmpty(stName), tableEmpty(stType)
+        tableEmpty(stName); tableEmpty(stType)
       end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine, vSrc)

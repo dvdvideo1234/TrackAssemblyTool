@@ -2320,7 +2320,7 @@ function RegisterPOA(stData, ivID, sP, sO, sA)
     LogInstance("Origin mismatch "..GetReport(sO)); return nil end
   local sA = (sA or sNu); if(not isstring(sA)) then
     LogInstance("Angle mismatch "..GetReport(sA)); return nil end
-  LogInstance("Store "..GetReport(sNu, iID, sP, sO, sA, stData.Slot))
+  LogInstance("Store "..GetReport(iID, sP, sO, sA, stData.Slot))
   if(not stData.Offs) then if(iID ~= 1) then
     LogInstance("Mismatch ID "..GetReport(iID, stData.Slot)); return nil end
     stData.Offs = {}; stData.Post = true -- Mark post-process on spawn
@@ -2647,7 +2647,9 @@ function GetBuilderID(vID)
   local nID = tonumber(vID); if(not IsHere(nID)) then
     LogInstance("ID mismatch "..GetReport(vID)); return nil end
   if(nID <= 0) then LogInstance("ID invalid "..GetReport(nID)); return nil end
-  local makTab = GetBuilderNick(libQTable[nID]); if(not IsHere(makTab)) then
+  local sTable = libQTable[nID]; if(not isstring(sTable)) then
+    LogInstance("Builder key missing "..GetReport(nID)); return nil end
+  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Builder object missing "..GetReport(nID)); return nil end
   return makTab -- Return the dedicated table builder object
 end
@@ -3207,7 +3209,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
     local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing",qtDef.Nick); return false end
-    local bS, sR = pcall(qtDef.Cache[sFunc], self, tCache, snPK, ssLog:format("Cache"))
+    local bS, sR = pcall(qtDef.Cache[sFunc], self, tCache, sKey, ssLog:format("Cache"))
     if(not bS) then LogInstance("Cache manager fail: "..sR,qtDef.Nick); return false end
     if(not sR) then LogInstance("Cache routine fail",qtDef.Nick); return false end
     return true -- The dynamic cache erasure was successful
