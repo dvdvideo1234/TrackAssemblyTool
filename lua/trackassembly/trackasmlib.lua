@@ -5673,26 +5673,31 @@ end
  * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
  * tV > A table containing the curve control points ( KNOTS )
  * nT > Amount of points to be calculated between the control points
- * nA > Parametric constant curve factor [0 ; 1]
+ * nA > Parametric constant curve factor [0 ; 1] default [0.5]
+        [0] : More sharp corners in the nodes. Can create self-intersections and loops
+        [1] : More straight lines in the nodes. Can create tight sharp bends.
  * Returns a table containing the generated curve including the control points
 ]]
 function GetCatmullRomCurve(tV, nT, nA, tO)
   if(not istable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices needed"); return nil end
-  if(nA and not isnumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
-  if(nA < 0 or nA > 1) then LogInstance("Factor invalid "..GetReport(nA)); return nil end
-  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
-    LogInstance("Samples mismatch "..GetReport(nT)); return nil end
-  local vM, iC, cS, cE, tN = GetOpVar("CURVE_MARGIN"), 1, Vector(), Vector(), (tO or {})
+  local vA = tonumber(nA); if(not vA) then vA = 0.5
+    LogInstance("Factor default to [0.5]"..GetReport(nA)) end
+  if(vA < 0 or vA > 1) then LogInstance("Factor mismatch "..GetReport(vA)); return nil end
+  local vT = tonumber(nT); if(not vT) then vT = 100
+    LogInstance("Samples default to [100]"..GetReport(nT)) end
+  local nV, rT = #tV, mathFloor(vT); if(rT < 0) then
+    LogInstance("Samples mismatch "..GetReport(vT)); return nil end
+  local vM, cS, cE, tN = GetOpVar("CURVE_MARGIN"), Vector(), Vector(), (tO or {})
   cS:Set(tV[ 1]); cS:Sub(tV[2])   ; cS:Normalize(); cS:Mul(vM); cS:Add(tV[1])
   cE:Set(tV[nV]); cE:Sub(tV[nV-1]); cE:Normalize(); cE:Mul(vM); cE:Add(tV[nV])
   tableInsert(tV, 1, cS); tableInsert(tV, cE); nV = (nV + 2); tableEmpty(tN)
   for iD = 1, (nV-3) do
     local cA, cB, cC, cD = tV[iD], tV[iD+1], tV[iD+2], tV[iD+3]
-    local tS = GetCatmullRomCurveSegment(cA, cB, cC, cD, nT, nA)
-    for iK = 1, (nT+1) do tN[iC] = tS[iK]; iC = (iC + 1) end
-  end; tN[iC] = Vector(); tN[iC]:Set(tV[nV-1])
+    local tS = GetCatmullRomCurveSegment(cA, cB, cC, cD, rT, vA)
+    for iK = 1, (rT+1) do tableInsert(tN, tS[iK]) end
+  end; tableInsert(tN, Vector(tV[nV-1]))
   tableRemove(tV, 1); tableRemove(tV); return tN
 end
 
@@ -5937,14 +5942,19 @@ function GetBezierCurve(tV, nT, tO)
   if(not istable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices needed"); return nil end
-  local nT, nV = (mathFloor(tonumber(nT) or 200) + 1), #tV; if(nT < 0) then
-    LogInstance("Samples mismatch "..GetReport(nT)); return nil end
-  local iD, cT, dT, tB = 1, 0, (1 / nT), (tO or {})
-  tB[iD], cT, iD = Vector(tV[iD]), (cT + dT), (iD + 1)
-  while(cT < 1) do -- Recursively populate all the node segments
-    tB[iD] = GetBezierCurveVertex(cT, tV) -- Recursive calculation
-    cT, iD = (cT + dT), (iD + 1) -- Prepare for next segment
-  end; tB[iD] = Vector(tV[nV]) -- Bezier must include both ends
+  local vT = tonumber(nT); if(not vT) then vT = 100
+    LogInstance("Samples default to [100]"..GetReport(nT)) end
+  local rT = mathFloor(vT); if(rT < 0) then
+    LogInstance("Samples mismatch "..GetReport(vT)); return nil end
+  local nV = #tV; if(nV <= 0) then
+    LogInstance("Nodes missing "..GetReport(nV)); return nil end
+  local vE, tB = (1 - GetOpVar("EPSILON_ZERO")), (tO or {})
+  local cT, dT, vB = 0, (1 / (rT + 1)), nil -- Della is reasonable
+  tableInsert(tB, Vector(tV[1])); cT = (cT + dT)
+  while(cT < vE) do -- Recursively populate all the node segments
+    tableInsert(tB, GetBezierCurveVertex(cT, tV)) -- Recursive calculation
+    cT = (cT + dT) -- Prepare for next segment and adjust the delta
+  end; tableInsert(tB, Vector(tV[nV])) -- Bezier must include both ends
   return tB -- Return the calculated curve table array
 end
 
