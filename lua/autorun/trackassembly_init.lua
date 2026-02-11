@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.792")
+asmlib.SetOpVar("TOOL_VERSION","9.793")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -265,7 +265,7 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
         asmlib.RunBuilderCount(function(makTab, iD)
           local sTim, defTab = arTim[iD], makTab:GetDefinition(); makTab:TimerSetup(sTim)
           asmlib.LogInstance("Timer apply "..asmlib.GetReport(defTab.Nick,sTim),gtInitLogs)
-        end); asmlib.LogInstance("Timer update "..asmlib.GetReport(vN),gtInitLogs)
+        end, "TIMER_MODE"); asmlib.LogInstance("Timer update "..asmlib.GetReport(vN),gtInitLogs)
       end})
       conCallBack:Push({"dtmessage", function(sV, vO, vN)
         if(SERVER) then
@@ -346,7 +346,7 @@ asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
       if(fileExists(sFile, "DATA")) then
         asmlib.ImportDSV(defTab.Nick, true, sPref, nil, nil, true)
       end
-    end)
+    end, "REFRESH_ITEM_LIST")
   end, {
     fDSV = asmlib.GetOpVar("DIRPATH_BAS")..
            asmlib.GetOpVar("DIRPATH_DSV")..
@@ -1058,7 +1058,7 @@ if(CLIENT) then
                 end):SetImage(asmlib.ToIcon(sI.."stdl"))
             end
           end
-        end); pnMenu:Open()
+        end, "DSV_MENU"); pnMenu:Open()
       end -- Populate the tables for every database
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
