@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.791")
+asmlib.SetOpVar("TOOL_VERSION","9.792")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -262,12 +262,10 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       end})
       conCallBack:Push({"timermode", function(sV, vO, vN)
         local arTim = gsSymDir:Explode(vN)
-        local mkTab, ID = asmlib.GetBuilderID(1), 1
-        while(mkTab) do local sTim = arTim[ID]
-          local defTab = mkTab:GetDefinition(); mkTab:TimerSetup(sTim)
+        asmlib.RunBuilderCount(function(makTab, iD)
+          local sTim, defTab = arTim[iD], makTab:GetDefinition(); makTab:TimerSetup(sTim)
           asmlib.LogInstance("Timer apply "..asmlib.GetReport(defTab.Nick,sTim),gtInitLogs)
-          ID = ID + 1; mkTab = asmlib.GetBuilderID(ID) -- Next table on the list
-        end; asmlib.LogInstance("Timer update "..asmlib.GetReport(vN),gtInitLogs)
+        end); asmlib.LogInstance("Timer update "..asmlib.GetReport(vN),gtInitLogs)
       end})
       conCallBack:Push({"dtmessage", function(sV, vO, vN)
         if(SERVER) then
@@ -342,14 +340,13 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
 
 asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
   function(tData, sPref)
-    local iD, makTab = 1, asmlib.GetBuilderID(1)
-    while(makTab) do
+    asmlib.RunBuilderCount(function(makTab, iD)
       local defTab = makTab:GetDefinition()
       local sFile = tData.fDSV:format(sPref, defTab.Nick)
       if(fileExists(sFile, "DATA")) then
         asmlib.ImportDSV(defTab.Nick, true, sPref, nil, nil, true)
-      end; iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-    end
+      end
+    end)
   end, {
     fDSV = asmlib.GetOpVar("DIRPATH_BAS")..
            asmlib.GetOpVar("DIRPATH_DSV")..
@@ -1008,9 +1005,7 @@ if(CLIENT) then
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
         -- Populate the sub-menu with all table nicknames
-        local iD, pIn, pOp = 1, nil, nil
-        local makTab = asmlib.GetBuilderID(iD)
-        while(makTab) do
+        local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
           local defTab = makTab:GetDefinition()
           local sFile = fDSV:format(sP, defTab.Nick)
           if(fileExists(sFile, "DATA")) then
@@ -1063,9 +1058,7 @@ if(CLIENT) then
                 end):SetImage(asmlib.ToIcon(sI.."stdl"))
             end
           end
-          iD = (iD + 1); makTab = asmlib.GetBuilderID(iD)
-        end
-        pnMenu:Open()
+        end); pnMenu:Open()
       end -- Populate the tables for every database
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil

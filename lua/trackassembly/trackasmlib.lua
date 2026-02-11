@@ -2654,6 +2654,16 @@ function GetBuilderID(vID)
   return makTab -- Return the dedicated table builder object
 end
 
+function RunBuilderCount(fFnc)
+  local iCnt = #libQTable -- Returns zero on error
+  if(isfunction(fFnc)) then; for iD = 1, iCnt do
+    local makTab = GetBuilderID(iD); if(not IsHere(makTab)) then
+      LogInstance("Missing table builder for "..GetReport(iD)); return 0 end
+    local bS, vO = pcall(fFnc, makTab, iD); if(not bS) then
+      LogInstance("Execute error: "..vO, GetReport(iD)); return 0 end
+  end; end; return iCnt -- Return the builder object count on success
+end
+
 function NewTable(sTable,defTab,bReload,bDelete)
   if(not isstring(sTable)) then
     LogInstance("Table nick mismatch "..GetReport(sTable)); return false end
