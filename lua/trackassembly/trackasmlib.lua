@@ -5657,12 +5657,14 @@ function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
   local vB1, vB2 = Vector(), Vector()
   local vA1, vA2, vA3 = Vector(), Vector(), Vector()
   for iD = 1, #tTN do tS[iD] = Vector(); local nTn, vTn = tTN[iD], tS[iD]
-    vA1:Set(vP0); vA1:Mul((nT1-nTn)/(nT1-nT0)); vA1:Add(vP1 * ((nTn-nT0)/(nT1-nT0)))
-    vA2:Set(vP1); vA2:Mul((nT2-nTn)/(nT2-nT1)); vA2:Add(vP2 * ((nTn-nT1)/(nT2-nT1)))
-    vA3:Set(vP2); vA3:Mul((nT3-nTn)/(nT3-nT2)); vA3:Add(vP3 * ((nTn-nT2)/(nT3-nT2)))
-    vB1:Set(vA1); vB1:Mul((nT2-nTn)/(nT2-nT0)); vB1:Add(vA2 * ((nTn-nT0)/(nT2-nT0)))
-    vB2:Set(vA2); vB2:Mul((nT3-nTn)/(nT3-nT1)); vB2:Add(vA3 * ((nTn-nT1)/(nT3-nT1)))
-    vTn:Set(vB1); vTn:Mul((nT2-nTn)/(nT2-nT1)); vTn:Add(vB2 * ((nTn-nT1)/(nT2-nT1)))
+    local nD1, nD2, nD3 = (nT1-nT0), (nT2-nT1), (nT3-nT2)
+    local nD4, nD5, nD6 = (nT2-nT0), (nT3-nT1), (nT2-nT1)
+    vA1:Set(vP0); vA1:Mul((nT1-nTn)/nD1); vA1:Add(vP1 * ((nTn-nT0)/nD1))
+    vA2:Set(vP1); vA2:Mul((nT2-nTn)/nD2); vA2:Add(vP2 * ((nTn-nT1)/nD2))
+    vA3:Set(vP2); vA3:Mul((nT3-nTn)/nD3); vA3:Add(vP3 * ((nTn-nT2)/nD3))
+    vB1:Set(vA1); vB1:Mul((nT2-nTn)/nD4); vB1:Add(vA2 * ((nTn-nT0)/nD4))
+    vB2:Set(vA2); vB2:Mul((nT3-nTn)/nD5); vB2:Add(vA3 * ((nTn-nT1)/nD5))
+    vTn:Set(vB1); vTn:Mul((nT2-nTn)/nD6); vTn:Add(vB2 * ((nTn-nT1)/nD6))
   end; return tS
 end
 
