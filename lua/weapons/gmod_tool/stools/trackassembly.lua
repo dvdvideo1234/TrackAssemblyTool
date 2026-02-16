@@ -979,12 +979,31 @@ function TOOL:ApplySuperElevation(tC, tData, iD)
   end
 end
 
+function TOOL:CheckCurveNode(vPos, iIdx)
+  local user, iIdx = self:GetOwner(), tonumber(iIdx)
+  local tC = asmlib.GetCacheCurve(user); if(not tC) then
+    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  local nM, sP = GetOpVar("CURVE_NODEMR"), user:Nick()
+  local iPr, iNx = (iIdx - 1), (iIdx + 1)
+  local vPr, vNx = tC.Node[iPr], tC.Node[iNx]
+  if(vPr and vPr:DistToSqr(vPos) < nM) then
+    asmlib.Notify(user,"Previous ["..sP.."] node ["..iPr.."] too close !","ERROR")
+    asmlib.LogInstance("Previous ["..sP.."] node ["..iPr.."] too close", gtLogs); return nil
+  end
+  if(vNx and vNx:DistToSqr(vPos) < nM) then
+    asmlib.Notify(user,"Next ["..sP.."] node ["..iNx.."] too close !","ERROR")
+    asmlib.LogInstance("Next ["..sP.."] node ["..iNx.."] too close", gtLogs); return nil
+  end; return tC
+end
+
 function TOOL:CurveInsert(stTrace, bPnt, bMute)
-  local user, model = self:GetOwner(), self:GetModel()
+  local user = self:GetOwner()
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  local tC = self:CheckCurveNode(tData.Org, tC.Size + 1); if(not tC) then
+    asmlib.LogInstance("Curve node too close", gtLogs); return nil end
   local iN, vN = self:ApplySuperElevation(tC, tData)
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
   tableInsert(tC.Node, Vector(tData.Org))
@@ -1043,6 +1062,8 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
       return tC
     end
   end
+  local tC = self:CheckCurveNode(tData.Org, mD); if(not tC) then
+    asmlib.LogInstance("Curve node too close", gtLogs); return nil end
   tC.Node[mD]:Set(tData.Org)
   tC.Norm[mD]:Set(tData.Ang:Up())
   tC.Base[mD]:Set(tData.Hit)

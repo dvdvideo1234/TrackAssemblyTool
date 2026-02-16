@@ -684,6 +684,7 @@ function InitBase(sName, sPurp)
   SetOpVar("DEG_RAD", mathPi / 180)
   SetOpVar("EPSILON_ZERO", 1e-5)
   SetOpVar("CURVE_MARGIN", 15)
+  SetOpVar("CURVE_NODEMR", 0.1)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("FULL_SLOPEDG", 45)
@@ -5702,51 +5703,6 @@ function GetCatmullRomCurve(tV, nT, nA, tO)
 end
 
 --[[
- * Calculates a full Catmull-Rom curve when there are repeating points present
- * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
- * tV > A table containing the curve control points ( KNOTS )
- * nT > Amount of points to be calculated between the control points
- * nA > Parametric constant curve factor [0 ; 1]
- * Returns a table containing the generated curve including the control points
-]]
-function GetCatmullRomCurveDupe(tV, nT, nA, tO)
-  if(not istable(tV)) then LogInstance("Vertices mismatch "..GetReport(tV)); return nil end
-  if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
-  if(not (tV[1] and tV[2])) then LogInstance("Two vertices are needed"); return nil end
-  if(nA and not isnumber(nA)) then LogInstance("Factor mismatch "..GetReport(nA)); return nil end
-  if(nA < 0 or nA > 1) then LogInstance("Factor invalid "..GetReport(nA)); return nil end
-  local nT, nV = mathFloor(tonumber(nT) or 200), #tV; if(nT < 0) then
-    LogInstance("Samples mismatch "..GetReport(nT)); return nil end
-  local nM, nN = GetOpVar("EPSILON_ZERO"), 1
-  local tN, tF = {tV[1], ID = {{true, 1}}}, (tO or {})
-  for iD = 2, nV do
-    if(tV[iD]:DistToSqr(tN[nN]) > nM) then
-      tableInsert(tN, tV[iD])
-      tN.ID[iD], nN = {true, nN}, (nN + 1)
-    else tN.ID[iD] = {false} end
-  end
-  if(nN > 1) then
-    local tC = GetCatmullRomCurve(tN, nT, nA)
-    for iD = 1, (nV - 1) do local iC = iD + 1
-      tableInsert(tF, Vector(tV[iD]))
-      if(not tN.ID[iC][1]) then
-        for iK = 1, nT do tableInsert(tF, Vector(tV[iD])) end
-      else
-        local iP = (tN.ID[iC][2] - 1) * (nT + 1)
-        for iK = 1, nT do local iI = (iP + iK + 1)
-          tableInsert(tF, Vector(tC[iI])) end
-      end
-    end; tableInsert(tF, Vector(tV[nV]))
-  else
-    for iD = 1, (nV - 1) do
-      tableInsert(tF, Vector(tV[1]))
-      for iK = 1, nT do tableInsert(tF, Vector(tV[1])) end
-    end; tableInsert(tF, Vector(tV[1]))
-  end
-  return tF
-end
-
---[[
  * Intersects a line with a sphere
  * vS > Line start point vector
  * vE > Line end point vector
@@ -5899,8 +5855,8 @@ function CalculateRomCurve(oPly, nSmp, nFac)
   tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
   tableEmpty(tC.CNode) -- Reset the curve and snapping
   tableEmpty(tC.CNorm); tC.CSize = 0 -- And normals
-  GetCatmullRomCurveDupe(tC.Node, nSmp, nFac, tC.CNode)
-  GetCatmullRomCurveDupe(tC.Norm, nSmp, nFac, tC.CNorm)
+  GetCatmullRomCurve(tC.Node, nSmp, nFac, tC.CNode)
+  GetCatmullRomCurve(tC.Norm, nSmp, nFac, tC.CNorm)
   tC.Info.UCS[1]:Set(tC.CNode[1]) -- Put the first node in the UCS
   tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
   tC.CSize = (tC.Size - 1) * nSmp + tC.Size -- Get stack depth
