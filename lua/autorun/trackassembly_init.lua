@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.797")
+asmlib.SetOpVar("TOOL_VERSION","9.798")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -586,15 +586,16 @@ if(CLIENT) then
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
 
-  asmlib.SetAction("CREATE_CURVE_NODE",
-    function(nLen) local oPly, sLog = netReadEntity(), "*CREATE_CURVE_NODE"
+  asmlib.SetAction("INSERT_CURVE_NODE",
+    function(nLen) local oPly, sLog = netReadEntity(), "*INSERT_CURVE_NODE"
       local vNode, vNorm, vBase = netReadVector(), netReadNormal(), netReadVector()
       local vOrgw, aAngw, bRayw = netReadVector(), netReadAngle() , netReadBool()
-      local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly) -- Read the curve
-      if(iD > 0 and tC.Norm[iD] and tC.Size and tC.Size >= 2) then
-        tC.Norm[iD]:Set(netReadNormal()) end -- Update the previews curve normal
-      tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm)
-      tableInsert(tC.Base, vBase); tableInsert(tC.Rays, {vOrgw, aAngw, bRayw})
+      local iD, iN, tC = netReadUInt(16), netReadUInt(16), asmlib.GetCacheCurve(oPly)
+      local iC = ((iD > 0 and iD <= tC.Size) and iD or nil) -- Read the curve index
+      if(iN > 0 and tC.Norm[iN] and tC.Size and tC.Size >= 2) then
+        tC.Norm[iN]:Set(netReadNormal()) end -- Update the previews curve normal
+      tableInsert(tC.Node, vNode, iC); tableInsert(tC.Norm, vNorm, iC)
+      tableInsert(tC.Base, vBase, iC); tableInsert(tC.Rays, {vOrgw, aAngw, bRayw}, iC)
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
     end)
 
@@ -605,6 +606,14 @@ if(CLIENT) then
       local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
       tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm)
       tC.Base[iD]:Set(vBase); tC.Rays[iD] = {vOrgw, aAngw, bRayw}
+    end)
+
+  asmlib.SetAction("REMOVE_CURVE_NODE",
+    function(nLen) local oPly, sLog = netReadEntity(), "*REMOVE_CURVE_NODE"
+      local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
+      tableRemove(tC.Node, iD); tableRemove(tC.Norm, iD)
+      tableRemove(tC.Base, iD); tableRemove(tC.Rays, iD)
+      tC.Size = (tC.Size - 1) -- Register the index
     end)
 
   asmlib.SetAction("DELETE_CURVE_NODE",

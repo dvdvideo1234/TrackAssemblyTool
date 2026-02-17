@@ -158,8 +158,9 @@ if(CLIENT) then
   netReceive(gsLibName.."SendDeleteGhosts"  , asmlib.GetActionCode("CLEAR_GHOSTS"))
   netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
-  netReceive(gsLibName.."SendCreateCurveNode", asmlib.GetActionCode("CREATE_CURVE_NODE"))
+  netReceive(gsLibName.."SendInsertCurveNode", asmlib.GetActionCode("INSERT_CURVE_NODE"))
   netReceive(gsLibName.."SendUpdateCurveNode", asmlib.GetActionCode("UPDATE_CURVE_NODE"))
+  netReceive(gsLibName.."SendRemoveCurveNode", asmlib.GetActionCode("REMOVE_CURVE_NODE"))
   netReceive(gsLibName.."SendDeleteCurveNode", asmlib.GetActionCode("DELETE_CURVE_NODE"))
   netReceive(gsLibName.."SendDeleteAllCurveNode", asmlib.GetActionCode("DELETE_ALL_CURVE_NODE"))
 
@@ -979,25 +980,26 @@ function TOOL:ApplySuperElevation(tC, tData, iD)
   end
 end
 
-function TOOL:CheckCurveNode(vPos, iIdx)
-  local user, iIdx = self:GetOwner(), tonumber(iIdx)
+function TOOL:CheckCurveNode(vPos, iID)
+  local user = self:GetOwner()
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
-  local nM, sP = GetOpVar("CURVE_NODEMR"), user:Nick()
-  local iPr, iNx = (iIdx - 1), (iIdx + 1)
+  local iID = mathFloor(mathMax(tonumber(iID) or 0, 0))
+  local nM, sN = GetOpVar("CURVE_NODEMR"), user:Nick()
+  local iPr, iNx = (iID - 1), (iID + 1)
   local vPr, vNx = tC.Node[iPr], tC.Node[iNx]
   if(vPr and vPr:DistToSqr(vPos) < nM) then
-    asmlib.Notify(user,"Previous ["..sP.."] node ["..iPr.."] too close !","ERROR")
-    asmlib.LogInstance("Previous ["..sP.."] node ["..iPr.."] too close", gtLogs); return nil
+    asmlib.Notify(user,"Previous ["..sN.."] node ["..iPr.."] too close !","ERROR")
+    asmlib.LogInstance("Previous ["..sN.."] node ["..iPr.."] too close", gtLogs); return nil
   end
   if(vNx and vNx:DistToSqr(vPos) < nM) then
-    asmlib.Notify(user,"Next ["..sP.."] node ["..iNx.."] too close !","ERROR")
-    asmlib.LogInstance("Next ["..sP.."] node ["..iNx.."] too close", gtLogs); return nil
+    asmlib.Notify(user,"Next ["..sN.."] node ["..iNx.."] too close !","ERROR")
+    asmlib.LogInstance("Next ["..sN.."] node ["..iNx.."] too close", gtLogs); return nil
   end; return tC
 end
 
-function TOOL:CurveInsert(stTrace, bPnt, bMute)
-  local user = self:GetOwner()
+function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
+  local user, iD = self:GetOwner(), mathFloor(mathMax(tonumber(iD) or 0, 0))
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
@@ -1005,14 +1007,15 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
   local tC = self:CheckCurveNode(tData.Org, tC.Size + 1); if(not tC) then
     asmlib.LogInstance("Curve node too close", gtLogs); return nil end
   local iN, vN = self:ApplySuperElevation(tC, tData)
+  local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
-  tableInsert(tC.Node, Vector(tData.Org))
-  tableInsert(tC.Norm, tData.Ang:Up())
-  tableInsert(tC.Base, Vector(tData.Hit))
-  tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+  tableInsert(tC.Node, Vector(tData.Org), iC)
+  tableInsert(tC.Norm, tData.Ang:Up(), iC)
+  tableInsert(tC.Base, Vector(tData.Hit), iC)
+  tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)}, iC)
   if(not bMute) then
     asmlib.Notify(user, "Node inserted ["..tC.Size.."] !", "CLEANUP")
-    netStart(gsLibName.."SendCreateCurveNode")
+    netStart(gsLibName.."SendInsertCurveNode")
       netWriteEntity(user)
       netWriteVector(tC.Node[tC.Size])
       netWriteNormal(tC.Norm[tC.Size])
@@ -1020,12 +1023,32 @@ function TOOL:CurveInsert(stTrace, bPnt, bMute)
       netWriteVector(tC.Rays[tC.Size][1])
       netWriteAngle (tC.Rays[tC.Size][2])
       netWriteBool  (tC.Rays[tC.Size][3])
+      netWriteUInt  (iD, 16)
       netWriteUInt  (iN, 16)
       if(iN > 0) then netWriteNormal(vN) end
     netSend(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end
   return tC -- Returns the updated curve nodes table
+end
+
+function TOOL:CurveRemove(stTrace, bPnt, bMute)
+  local user  = self:GetOwner()
+  local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
+    asmlib.LogInstance("Transform missing", gtLogs); return nil end
+  local tC = asmlib.GetCacheCurve(user); if(not tC) then
+    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  local mD, mL = asmlib.GetNearest(tData.Hit, tC.Base)
+  tableRemove(tC.Node, mD); tableRemove(tC.Norm, mD)
+  tableRemove(tC.Base, mD); tableRemove(tC.Rays, mD)
+  if(not bMute) then
+    asmlib.Notify(user, "Node removed ["..tC.Size.."] !", "CLEANUP")
+    netStart(gsLibName.."SendRemoveCurveNode")
+      netWriteEntity(user)
+      netWriteUInt  (mD, 16)
+    netSend(user)
+    user:SetNWBool(gsToolPrefL.."engcurve", true)
+  end; return tC -- Returns the updated curve nodes table
 end
 
 function TOOL:CurveUpdate(stTrace, bPnt, bMute)
@@ -1602,7 +1625,11 @@ function TOOL:RightClick(stTrace)
   if(workmode == 3 or workmode == 5) then
     local bPnt, tC = user:KeyDown(IN_USE)
     if(user:KeyDown(IN_SPEED)) then
-      tC = self:CurveUpdate(stTrace, bPnt)
+      if(user:KeyDown(IN_ALT1)) then
+        tC = self:CurveRemove(stTrace, bPnt)
+      else
+        tC = self:CurveUpdate(stTrace, bPnt)
+      end
     else -- Inserting curve cannot be intersected
       tC = self:CurveInsert(stTrace, bPnt)
     end; return (tC and true or false)
