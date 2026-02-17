@@ -155,14 +155,13 @@ if(CLIENT) then
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
   concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
 
-  netReceive(gsLibName.."SendDeleteGhosts"  , asmlib.GetActionCode("CLEAR_GHOSTS"))
-  netReceive(gsLibName.."SendIntersectClear", asmlib.GetActionCode("CLEAR_RELATION"))
+  netReceive(gsLibName.."SendDeleteGhosts"   , asmlib.GetActionCode("CLEAR_GHOSTS"))
+  netReceive(gsLibName.."SendIntersectClear" , asmlib.GetActionCode("CLEAR_RELATION"))
   netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   netReceive(gsLibName.."SendInsertCurveNode", asmlib.GetActionCode("INSERT_CURVE_NODE"))
   netReceive(gsLibName.."SendUpdateCurveNode", asmlib.GetActionCode("UPDATE_CURVE_NODE"))
   netReceive(gsLibName.."SendRemoveCurveNode", asmlib.GetActionCode("REMOVE_CURVE_NODE"))
-  netReceive(gsLibName.."SendDeleteCurveNode", asmlib.GetActionCode("DELETE_CURVE_NODE"))
-  netReceive(gsLibName.."SendDeleteAllCurveNode", asmlib.GetActionCode("DELETE_ALL_CURVE_NODE"))
+  netReceive(gsLibName.."SendClearCurveNode" , asmlib.GetActionCode("CLEAR_CURVE_NODE"))
 
   hookAdd("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
   hookAdd("PreDrawHalos", gsToolPrefL.."update_contextval", asmlib.GetActionCode("UPDATE_CONTEXTVAL"))
@@ -845,43 +844,6 @@ function TOOL:GetCurveNodeActive(iD, vPnt, bMute)
   end
 end
 
-function TOOL:CurveClear(bAll, bMute)
-  local user = self:GetOwner()
-  local tC  = asmlib.GetCacheCurve(user)
-  if(tC.Size and tC.Size > 0) then
-    if(bAll) then -- Clear all the nodes
-      if(not bMute) then
-        asmlib.Notify(user, "Nodes cleared ["..tC.Size.."] !", "CLEANUP")
-        netStart(gsLibName.."SendDeleteAllCurveNode")
-        netWriteEntity(user); netSend(user)
-        user:SetNWBool(gsToolPrefL.."engcurve", false)
-      end
-      tableEmpty(tC.Snap); tC.SSize = 0
-      tableEmpty(tC.Node)
-      tableEmpty(tC.Norm)
-      tableEmpty(tC.Rays)
-      tableEmpty(tC.Base); tC.Size = 0
-      tableEmpty(tC.CNode)
-      tableEmpty(tC.CNorm); tC.CSize = 0
-    else -- Clear the last specific node from the array
-      if(not bMute) then
-        asmlib.Notify(user, "Node removed ["..tC.Size.."] !", "CLEANUP")
-        netStart(gsLibName.."SendDeleteCurveNode");
-        netWriteEntity(user); netSend(user)
-        user:SetNWBool(gsToolPrefL.."engcurve", true)
-      end
-      tableRemove(tC.Node)
-      tableRemove(tC.Norm)
-      tableRemove(tC.Rays)
-      tableEmpty(tC.Snap); tC.SSize = 0
-      tableRemove(tC.Base); tC.Size = (tC.Size - 1)
-      if(tC.Size and tC.Size > 0) then
-        tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
-      end
-    end
-  end; return tC -- Returns the updated curve nodes table
-end
-
 --[[
  * Generates curve transform data structure
  * It is used to create data for the curve nodes
@@ -998,6 +960,13 @@ function TOOL:CheckCurveNode(vPos, iID)
   end; return tC
 end
 
+--[[
+ * Updates a curve node on the server and sends a message to update the client
+ * stTrace > The trace structure to register as a curve node
+ * bPnt    > Enable to try extracting the origin from a piece POA
+ * iD      > Node index to remove. Defaults to the last node on the stack
+ * bMute   > Enable this flag to mute (skip sending) the net* messages
+]]
 function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
   local user, iD = self:GetOwner(), mathFloor(mathMax(tonumber(iD) or 0, 0))
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
@@ -1032,25 +1001,35 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
   return tC -- Returns the updated curve nodes table
 end
 
-function TOOL:CurveRemove(stTrace, bPnt, bMute)
-  local user  = self:GetOwner()
-  local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
-    asmlib.LogInstance("Transform missing", gtLogs); return nil end
+--[[
+ * Removes a node from the server and sends a message to update the client
+ * iD    > Node index to remove. Defaults to the last node on the stack
+ * bMute > Enable this flag to mute (skip sending) the net* messages
+]]
+function TOOL:CurveRemove(iD, bMute)
+  local user, iD  = self:GetOwner(), mathFloor(mathMax(tonumber(iD) or 0, 0))
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
-  local mD, mL = asmlib.GetNearest(tData.Hit, tC.Base)
-  tableRemove(tC.Node, mD); tableRemove(tC.Norm, mD)
-  tableRemove(tC.Base, mD); tableRemove(tC.Rays, mD)
+  local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
+  tC.Size = (tC.Size - 1) -- Increment stack size. Adding stuff
+  tableRemove(tC.Node, iC); tableRemove(tC.Norm, iC)
+  tableRemove(tC.Base, iC); tableRemove(tC.Rays, iC)
   if(not bMute) then
     asmlib.Notify(user, "Node removed ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendRemoveCurveNode")
       netWriteEntity(user)
-      netWriteUInt  (mD, 16)
+      netWriteUInt  (iD, 16)
     netSend(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end; return tC -- Returns the updated curve nodes table
 end
 
+--[[
+ * Updates a curve node on the server and sends a message to update the client
+ * stTrace > The trace structure to register as a curve node
+ * bPnt    > Enable to try extracting the origin from a piece POA
+ * bMute   > Enable this flag to mute (skip sending) the net* messages
+]]
 function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   local user  = self:GetOwner()
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
@@ -1121,6 +1100,30 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     netSend(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end; return tC -- Returns the updated curve nodes table
+end
+
+--[[
+ * Clears all the curve nodes on the server and sends to the client to do the same
+ * bMute > Enable this flag to mute (skip sending) the net* messages
+]]
+function TOOL:CurveClear(bMute)
+  local user = self:GetOwner()
+  local tC  = asmlib.GetCacheCurve(user); if(not tC) then
+    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  if(not bMute) then
+    asmlib.Notify(user, "Nodes cleared ["..tC.Size.."] !", "CLEANUP")
+    netStart(gsLibName.."SendClearCurveNode")
+    netWriteEntity(user); netSend(user)
+    user:SetNWBool(gsToolPrefL.."engcurve", false)
+  end -- Show how many nodes are deleted then delete them
+  tableEmpty(tC.Snap); tC.SSize = 0
+  tableEmpty(tC.Node)
+  tableEmpty(tC.Norm)
+  tableEmpty(tC.Rays)
+  tableEmpty(tC.Base); tC.Size = 0
+  tableEmpty(tC.CNode)
+  tableEmpty(tC.CNorm); tC.CSize = 0
+  return tC -- Returns the updated curve nodes table
 end
 
 --[[
@@ -1625,11 +1628,7 @@ function TOOL:RightClick(stTrace)
   if(workmode == 3 or workmode == 5) then
     local bPnt, tC = user:KeyDown(IN_USE)
     if(user:KeyDown(IN_SPEED)) then
-      if(user:KeyDown(IN_ALT1)) then
-        tC = self:CurveRemove(stTrace, bPnt)
-      else
-        tC = self:CurveUpdate(stTrace, bPnt)
-      end
+      tC = self:CurveUpdate(stTrace, bPnt)
     else -- Inserting curve cannot be intersected
       tC = self:CurveInsert(stTrace, bPnt)
     end; return (tC and true or false)
@@ -1681,13 +1680,21 @@ function TOOL:Reload(stTrace)
         end; return true
       elseif(workmode == 2) then self:IntersectClear(false)
         asmlib.LogInstance("(World) Relate clear",gtLogs); return true
-      elseif(workmode == 3 or workmode == 5) then self:CurveClear(true)
-        asmlib.LogInstance("(World) Nodes cleared",gtLogs); return true
+      elseif(workmode == 3 or workmode == 5) then
+        if(user:KeyDown(IN_USE)) then self:CurveClear()
+          asmlib.LogInstance("(World) Nodes cleared",gtLogs); return true
+        else
+          local tC = asmlib.GetCacheCurve(user); if(not tC) then
+            asmlib.LogInstance("(World) Curve missing", gtLogs); return nil end
+          local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
+          self:CurveRemove(stTrace, bPnt)
+          asmlib.LogInstance("(World) Node ["..mD.."] removed",gtLogs); return true
+        end
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(World) Flip over cleared",gtLogs); return true
       end
     else
-      if(workmode == 3 or workmode == 5) then self:CurveClear(false)
+      if(workmode == 3 or workmode == 5) then self:CurveRemove()
         asmlib.LogInstance("(World) Node removed",gtLogs); return true
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(World) Flip over cleared",gtLogs); return true
@@ -1706,13 +1713,21 @@ function TOOL:Reload(stTrace)
         if(not self:IntersectRelate(user, trEnt, stTrace.HitPos)) then
           asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation fail"),gtLogs); return false end
         asmlib.LogInstance("(Prop) Relation set",gtLogs); return true
-      elseif(workmode == 3 or workmode == 5) then self:CurveClear(true)
-        asmlib.LogInstance("(Prop) Nodes cleared",gtLogs); return true
+      elseif(workmode == 3 or workmode == 5) then
+        if(user:KeyDown(IN_USE)) then self:CurveClear()
+          asmlib.LogInstance("(Prop) Nodes cleared",gtLogs); return true
+        else
+          local tC = asmlib.GetCacheCurve(user); if(not tC) then
+            asmlib.LogInstance("(Prop) Curve missing", gtLogs); return nil end
+          local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
+          self:CurveRemove(stTrace, bPnt)
+          asmlib.LogInstance("(Prop) Node ["..mD.."] removed",gtLogs); return true
+        end
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(Prop) Flip over cleared",gtLogs); return true
       end
     else
-      if(workmode == 3 or workmode == 5) then self:CurveClear(false)
+      if(workmode == 3 or workmode == 5) then self:CurveRemove()
         asmlib.LogInstance("(Prop) Node removed",gtLogs); return true
       elseif(workmode == 4 and bfover) then self:ClearFlipOver()
         asmlib.LogInstance("(Prop) Flip over cleared",gtLogs); return true

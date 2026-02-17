@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.798")
+asmlib.SetOpVar("TOOL_VERSION","9.799")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -599,6 +599,15 @@ if(CLIENT) then
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
     end)
 
+  asmlib.SetAction("REMOVE_CURVE_NODE",
+    function(nLen) local oPly, sLog = netReadEntity(), "*REMOVE_CURVE_NODE"
+      local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
+      local iC = ((iD > 0 and iD <= tC.Size) and iD or nil) -- Read the curve index
+      tableRemove(tC.Node, iC); tableRemove(tC.Norm, iC)
+      tableRemove(tC.Base, iC); tableRemove(tC.Rays, iC)
+      tC.Size = (tC.Size - 1) -- Register the index
+    end)
+
   asmlib.SetAction("UPDATE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*UPDATE_CURVE_NODE"
       local vNode, vNorm, vBase = netReadVector(), netReadNormal(), netReadVector()
@@ -608,35 +617,16 @@ if(CLIENT) then
       tC.Base[iD]:Set(vBase); tC.Rays[iD] = {vOrgw, aAngw, bRayw}
     end)
 
-  asmlib.SetAction("REMOVE_CURVE_NODE",
-    function(nLen) local oPly, sLog = netReadEntity(), "*REMOVE_CURVE_NODE"
-      local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
-      tableRemove(tC.Node, iD); tableRemove(tC.Norm, iD)
-      tableRemove(tC.Base, iD); tableRemove(tC.Rays, iD)
-      tC.Size = (tC.Size - 1) -- Register the index
-    end)
-
-  asmlib.SetAction("DELETE_CURVE_NODE",
-    function(nLen) local oPly, sLog = netReadEntity(), "*DELETE_CURVE_NODE"
+  asmlib.SetAction("CLEAR_CURVE_NODE",
+    function(nLen) local oPly, sLog = netReadEntity(), "*CLEAR_CURVE_NODE"
       local tC = asmlib.GetCacheCurve(oPly)
-      if(tC.Size and tC.Size > 0) then
-        tC.Size = (tC.Size - 1) -- Register the index before wiping the data for drawing
-        tableRemove(tC.Node); tableRemove(tC.Norm)
-        tableRemove(tC.Base); tableRemove(tC.Rays)
-        if(tC.Size and tC.Size > 0) then
-          tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
-        end
-      end
-    end)
-
-  asmlib.SetAction("DELETE_ALL_CURVE_NODE",
-    function(nLen) local oPly, sLog = netReadEntity(), "*DELETE_ALL_CURVE_NODE"
-      local tC = asmlib.GetCacheCurve(oPly)
-      if(tC.Size and tC.Size > 0) then
-        tableEmpty(tC.Node); tableEmpty(tC.Norm)
-        tableEmpty(tC.Base); tableEmpty(tC.Rays)
-        tC.Size = 0 -- Register the index before wiping the data for drawing
-      end
+      tableEmpty(tC.Snap); tC.SSize = 0
+      tableEmpty(tC.Node)
+      tableEmpty(tC.Norm)
+      tableEmpty(tC.Rays)
+      tableEmpty(tC.Base); tC.Size = 0
+      tableEmpty(tC.CNode)
+      tableEmpty(tC.CNorm); tC.CSize = 0
     end)
 
   asmlib.SetAction("CLEAR_RELATION",
