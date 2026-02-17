@@ -1664,80 +1664,50 @@ function TOOL:Reload(stTrace)
   local workmode   = self:GetWorkingMode()
   local bfover     = self:IsFlipOver()
   local upspanchor = self:GetUpSpawnAnchor()
-  if(stTrace.HitWorld) then
-    if(user:IsAdmin()) then
-      if(self:GetDeveloperMode()) then
-        asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
+  if(stTrace.HitWorld and user:IsAdmin()) then
+    if(self:GetDeveloperMode()) then -- Setup log controls
+      asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
+  end -- Working mode specific actions
+  if(user:KeyDown(IN_SPEED)) then
+    if(workmode == 1) then
+      if(upspanchor) then
+        if(not self:SetAnchor(stTrace)) then
+          asmlib.LogInstance(self:GetStatus(stTrace,"Anchor fail"),gtLogs); return false
+        end; asmlib.LogInstance("Anchor set",gtLogs)
+      else self:ClearAnchor(false)
+        asmlib.LogInstance("Anchor clear",gtLogs)
+      end; return true
+    elseif(workmode == 2) then self:IntersectClear(false)
+      asmlib.LogInstance("Relate clear",gtLogs); return true
+    elseif(workmode == 3 or workmode == 5) then
+      if(user:KeyDown(IN_USE)) then self:CurveClear()
+        asmlib.LogInstance("Nodes cleared",gtLogs); return true
+      else -- Clear the closest point available and recalculate
+        local tC = asmlib.GetCacheCurve(user); if(not tC) then
+          asmlib.LogInstance("Curve missing", gtLogs); return nil end
+        local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
+        self:CurveRemove(stTrace, bPnt)
+        asmlib.LogInstance("Node ["..mD.."] removed",gtLogs); return true
+      end
+    elseif(workmode == 4 and bfover) then self:ClearFlipOver()
+      asmlib.LogInstance("Flip over cleared",gtLogs); return true
     end
-    if(user:KeyDown(IN_SPEED)) then
-      if(workmode == 1) then
-        if(upspanchor) then
-          if(not self:SetAnchor(stTrace)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(World) Anchor fail"),gtLogs); return false
-          end; asmlib.LogInstance("(World) Anchor set",gtLogs)
-        else self:ClearAnchor(false)
-          asmlib.LogInstance("(World) Anchor clear",gtLogs)
-        end; return true
-      elseif(workmode == 2) then self:IntersectClear(false)
-        asmlib.LogInstance("(World) Relate clear",gtLogs); return true
-      elseif(workmode == 3 or workmode == 5) then
-        if(user:KeyDown(IN_USE)) then self:CurveClear()
-          asmlib.LogInstance("(World) Nodes cleared",gtLogs); return true
-        else
-          local tC = asmlib.GetCacheCurve(user); if(not tC) then
-            asmlib.LogInstance("(World) Curve missing", gtLogs); return nil end
-          local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-          self:CurveRemove(stTrace, bPnt)
-          asmlib.LogInstance("(World) Node ["..mD.."] removed",gtLogs); return true
-        end
-      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-        asmlib.LogInstance("(World) Flip over cleared",gtLogs); return true
-      end
-    else
-      if(workmode == 3 or workmode == 5) then self:CurveRemove()
-        asmlib.LogInstance("(World) Node removed",gtLogs); return true
-      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-        asmlib.LogInstance("(World) Flip over cleared",gtLogs); return true
-      end
-    end; asmlib.LogInstance("(World) Success",gtLogs)
-  elseif(trEnt and trEnt:IsValid()) then
+  else
+    if(workmode == 3 or workmode == 5) then self:CurveRemove()
+      asmlib.LogInstance("Node removed",gtLogs); return true
+    elseif(workmode == 4 and bfover) then self:ClearFlipOver()
+      asmlib.LogInstance("Flip over cleared",gtLogs); return true
+    end
+  end -- Grab the trace track model for building
+  if(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
-      asmlib.LogInstance("(Prop) Trace other object",gtLogs); return false end
-    if(user:KeyDown(IN_SPEED)) then
-      if(workmode == 1) then -- General anchor
-        if(not self:SetAnchor(stTrace)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Anchor fail"),gtLogs); return false end
-        asmlib.LogInstance("(Prop) Anchor set",gtLogs); return true
-      elseif(workmode == 2) then -- Intersect relation
-        if(not self:IntersectRelate(user, trEnt, stTrace.HitPos)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation fail"),gtLogs); return false end
-        asmlib.LogInstance("(Prop) Relation set",gtLogs); return true
-      elseif(workmode == 3 or workmode == 5) then
-        if(user:KeyDown(IN_USE)) then self:CurveClear()
-          asmlib.LogInstance("(Prop) Nodes cleared",gtLogs); return true
-        else
-          local tC = asmlib.GetCacheCurve(user); if(not tC) then
-            asmlib.LogInstance("(Prop) Curve missing", gtLogs); return nil end
-          local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-          self:CurveRemove(stTrace, bPnt)
-          asmlib.LogInstance("(Prop) Node ["..mD.."] removed",gtLogs); return true
-        end
-      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-        asmlib.LogInstance("(Prop) Flip over cleared",gtLogs); return true
-      end
-    else
-      if(workmode == 3 or workmode == 5) then self:CurveRemove()
-        asmlib.LogInstance("(Prop) Node removed",gtLogs); return true
-      elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-        asmlib.LogInstance("(Prop) Flip over cleared",gtLogs); return true
-      end
-    end
+      asmlib.LogInstance("Trace other object",gtLogs); return false end
     local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
     if(asmlib.IsHere(trRec) and (asmlib.GetOwner(trEnt) == user or user:IsAdmin())) then
       asmlib.InSpawnMargin(user, trRec); trEnt:Remove()
-      asmlib.LogInstance("(Prop) Remove piece",gtLogs); return true
-    end; asmlib.LogInstance("(Prop) Success",gtLogs)
+      asmlib.LogInstance("Remove piece",gtLogs); return true
+    end; asmlib.LogInstance("Success",gtLogs)
   end; return false
 end
 
