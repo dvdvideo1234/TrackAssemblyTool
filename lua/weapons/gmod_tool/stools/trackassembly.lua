@@ -1626,11 +1626,18 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(workmode == 3 or workmode == 5) then
-    local bPnt, tC = user:KeyDown(IN_USE)
+    local bPnt, tC = user:KeyDown(IN_USE), nil
     if(user:KeyDown(IN_SPEED)) then
       tC = self:CurveUpdate(stTrace, bPnt)
     else -- Inserting curve cannot be intersected
-      tC = self:CurveInsert(stTrace, bPnt)
+      if(user:KeyDown(IN_DUCK)) then
+        local tC = asmlib.GetCacheCurve(user); if(not tC) then
+          asmlib.LogInstance("Curve missing", gtLogs); return false end
+        local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
+        tC = self:CurveInsert(stTrace, bPnt, mD)
+      else
+        tC = self:CurveInsert(stTrace, bPnt)
+      end
     end; return (tC and true or false)
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
@@ -1669,25 +1676,20 @@ function TOOL:Reload(stTrace)
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
   end -- Working mode specific actions
   if(user:KeyDown(IN_SPEED)) then
-    if(workmode == 1) then
-      if(upspanchor) then
-        if(not self:SetAnchor(stTrace)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"Anchor fail"),gtLogs); return false
-        end; asmlib.LogInstance("Anchor set",gtLogs)
-      else self:ClearAnchor(false)
-        asmlib.LogInstance("Anchor clear",gtLogs)
-      end; return true
-    elseif(workmode == 2) then self:IntersectClear(false)
-      asmlib.LogInstance("Relate clear",gtLogs); return true
+    if(workmode == 1) then asmlib.LogInstance("Anchor updated",gtLogs)
+      if(upspanchor) then return self:SetAnchor(stTrace) else return self:ClearAnchor() end
+    elseif(workmode == 2) then asmlib.LogInstance("Relate clear",gtLogs)
+      self:IntersectClear(); return true
     elseif(workmode == 3 or workmode == 5) then
-      if(user:KeyDown(IN_USE)) then self:CurveClear()
-        asmlib.LogInstance("Nodes cleared",gtLogs); return true
+      if(user:KeyDown(IN_USE)) then
+        asmlib.LogInstance("Nodes cleared",gtLogs)
+        self:CurveClear(); return true
       else -- Clear the closest point available and recalculate
         local tC = asmlib.GetCacheCurve(user); if(not tC) then
-          asmlib.LogInstance("Curve missing", gtLogs); return nil end
+          asmlib.LogInstance("Curve missing", gtLogs); return false end
         local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-        self:CurveRemove(stTrace, bPnt)
-        asmlib.LogInstance("Node ["..mD.."] removed",gtLogs); return true
+        asmlib.LogInstance("Node ["..mD.."] removed",gtLogs)
+        self:CurveRemove(mD); return true
       end
     elseif(workmode == 4 and bfover) then self:ClearFlipOver()
       asmlib.LogInstance("Flip over cleared",gtLogs); return true
