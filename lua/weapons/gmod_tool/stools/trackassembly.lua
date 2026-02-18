@@ -1626,18 +1626,16 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(workmode == 3 or workmode == 5) then
-    local bPnt, tC = user:KeyDown(IN_USE), nil
+    local bPnt, tC = user:KeyDown(IN_USE)
     if(user:KeyDown(IN_SPEED)) then
       tC = self:CurveUpdate(stTrace, bPnt)
-    else -- Inserting curve cannot be intersected
-      if(user:KeyDown(IN_DUCK)) then
-        local tC = asmlib.GetCacheCurve(user); if(not tC) then
-          asmlib.LogInstance("Curve missing", gtLogs); return false end
-        local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-        tC = self:CurveInsert(stTrace, bPnt, mD)
-      else
-        tC = self:CurveInsert(stTrace, bPnt)
-      end
+    elseif(user:KeyDown(IN_DUCK)) then
+      local tC = asmlib.GetCacheCurve(user); if(not tC) then
+        asmlib.LogInstance("Curve missing", gtLogs); return false end
+      local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
+      tC = self:CurveInsert(stTrace, bPnt, mD)
+    else
+      tC = self:CurveInsert(stTrace, bPnt)
     end; return (tC and true or false)
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
@@ -1674,33 +1672,37 @@ function TOOL:Reload(stTrace)
   if(stTrace.HitWorld and user:IsAdmin()) then
     if(self:GetDeveloperMode()) then -- Setup log controls
       asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
-  end -- Working mode specific actions
-  if(user:KeyDown(IN_SPEED)) then
-    if(workmode == 1) then asmlib.LogInstance("Anchor updated",gtLogs)
+  end
+  -- Working mode specific actions
+  if(workmode == 1) then
+    if(user:KeyDown(IN_SPEED)) then
+      asmlib.LogInstance("Anchor updated",gtLogs)
       if(upspanchor) then return self:SetAnchor(stTrace) else return self:ClearAnchor() end
-    elseif(workmode == 2) then asmlib.LogInstance("Relate clear",gtLogs)
+    end
+  elseif(workmode == 2) then
+    if(user:KeyDown(IN_SPEED)) then
+      asmlib.LogInstance("Relate clear",gtLogs)
       self:IntersectClear(); return true
-    elseif(workmode == 3 or workmode == 5) then
-      if(user:KeyDown(IN_USE)) then
-        asmlib.LogInstance("Nodes cleared",gtLogs)
-        self:CurveClear(); return true
-      else -- Clear the closest point available and recalculate
-        local tC = asmlib.GetCacheCurve(user); if(not tC) then
-          asmlib.LogInstance("Curve missing", gtLogs); return false end
-        local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-        asmlib.LogInstance("Node ["..mD.."] removed",gtLogs)
-        self:CurveRemove(mD); return true
-      end
-    elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-      asmlib.LogInstance("Flip over cleared",gtLogs); return true
     end
-  else
-    if(workmode == 3 or workmode == 5) then self:CurveRemove()
-      asmlib.LogInstance("Node removed",gtLogs); return true
-    elseif(workmode == 4 and bfover) then self:ClearFlipOver()
-      asmlib.LogInstance("Flip over cleared",gtLogs); return true
+  elseif(workmode == 3 or workmode == 5) then
+    if(user:KeyDown(IN_SPEED)) then
+      asmlib.LogInstance("Curve cleared",gtLogs)
+      self:CurveClear(); return true
+    elseif(user:KeyDown(IN_DUCK)) then
+      local tC = asmlib.GetCacheCurve(user); if(not tC) then
+        asmlib.LogInstance("Curve missing", gtLogs); return false end
+      local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
+      asmlib.LogInstance("Node ["..mD.."] removed",gtLogs)
+      self:CurveRemove(mD); return true
+    else
+      asmlib.LogInstance("Node removed",gtLogs)
+      self:CurveRemove(); return true
     end
-  end -- Grab the trace track model for building
+  elseif(workmode == 4 and bfover) then
+    asmlib.LogInstance("Flip over cleared",gtLogs)
+    self:ClearFlipOver(); return true
+  end
+  -- Grab the trace track model for remove
   if(trEnt and trEnt:IsValid()) then
     if(not asmlib.IsPhysTrace(stTrace)) then return false end
     if(asmlib.IsOther(trEnt)) then
@@ -2045,11 +2047,11 @@ end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   local bPnt = inputIsKeyDown(KEY_E)
-  local bRp  = inputIsKeyDown(KEY_LSHIFT)
   local tData = self:GetCurveTransform(stTrace, bPnt)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
+  local bRp  = (inputIsKeyDown(KEY_LSHIFT) or inputIsKeyDown(KEY_LCONTROL))
   local nrB, nrS, nrA, mD, mL = 1.5, 1.5, self:GetActiveRadius()
   local xyO, xyH = tData.Org:ToScreen(), tData.Hit:ToScreen()
   local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
@@ -2060,6 +2062,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   else oScreen:DrawLine(xyH, xyO, "y") end -- When active point is used for node
   oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, tData.Org, nrB), "g")
   oScreen:DrawLine(xyO, xyZ, "b")
+  if(bRp) then mD, mL = asmlib.GetNearest(tData.Hit, tC.Base) end
   if(tC.Size and tC.Size > 0) then
     for iD = 1, tC.Size do
       local rN = (iD == 1 and nrB or nrS)
@@ -2079,12 +2082,6 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       if(tC.Node[iD - 1]) then
         local xyP = tC.Node[iD - 1]:ToScreen()
         oScreen:DrawLine(xyP, xyD, "g", sM)
-      end
-      if(bRp) then -- Get current length
-        local nL = vB:DistToSqr(tData.Hit)
-        if(mL and mD) then -- Length is allocated
-          if(nL <= mL) then mD, mL = iD, nL end
-        else mD, mL = iD, nL end
       end
     end
   end

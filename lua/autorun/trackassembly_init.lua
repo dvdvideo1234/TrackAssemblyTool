@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.801")
+asmlib.SetOpVar("TOOL_VERSION","9.802")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -549,7 +549,8 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_generic", "shape_square_link" )
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
 
-  -- Workshop matching crap
+  -- Workshop matching stuff
+  asmlib.WorkshopID("Garry's Mod Luapad"          , "107905654")
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
   asmlib.WorkshopID("SProps"                      , "173482196")
@@ -1035,6 +1036,8 @@ if(CLIENT) then
               pTb:AddOption(languageGetPhrase(sT.."sted"),
                 function() -- Edit the database contents using the Luapad addon
                   if(not luapad) then -- Luapad is not installed then do nothing
+                    local sUR = asmlib.GetOpVar("FORM_URLADDON")
+                    local sID = asmlib.WorkshopID("Garry's Mod Luapad"); guiOpenURL(sUR:format(sID))
                     asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return end
                   asmlib.LogInstance  ("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
                   if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
