@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.802")
+asmlib.SetOpVar("TOOL_VERSION","9.803")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1035,10 +1035,11 @@ if(CLIENT) then
                 function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
               pTb:AddOption(languageGetPhrase(sT.."sted"),
                 function() -- Edit the database contents using the Luapad addon
-                  if(not luapad) then -- Luapad is not installed then do nothing
-                    local sUR = asmlib.GetOpVar("FORM_URLADDON")
+                  if(not luapad) then -- Luapad is not installed. Open the link to install it
+                    local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
                     local sID = asmlib.WorkshopID("Garry's Mod Luapad"); guiOpenURL(sUR:format(sID))
-                    asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return end
+                    asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return nil
+                  end -- Luapad is installed and present. The context menu option is available
                   asmlib.LogInstance  ("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
                   if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
                   luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), sDsv);
