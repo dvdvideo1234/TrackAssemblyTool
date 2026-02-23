@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.803")
+asmlib.SetOpVar("TOOL_VERSION","9.804")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -550,7 +550,7 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
 
   -- Workshop matching stuff
-  asmlib.WorkshopID("Garry's Mod Luapad"          , "107905654")
+  asmlib.WorkshopID("Luapad for GMod 13"          , "107905654")
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
   asmlib.WorkshopID("SProps"                      , "173482196")
@@ -1035,21 +1035,22 @@ if(CLIENT) then
                 function() SetClipboardText(tostring(fileSize(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
               pTb:AddOption(languageGetPhrase(sT.."sted"),
                 function() -- Edit the database contents using the Luapad addon
-                  if(not luapad) then -- Luapad is not installed. Open the link to install it
+                  if(luapad) then -- Luapad is installed and present. The context menu option is available
+                    asmlib.LogInstance  ("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+                    if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
+                    luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), sDsv);
+                    if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                      local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
+                        luapad.AddTab("["..sP.."][CATEGORY]", fileRead(sCats, "DATA"), sDsv);
+                      end -- This is done so we can distinguish between luapad and other panels
+                    end -- Luapad is designed not to be closed so we need to make it invisible
+                    luapad.Frame:SetVisible(true); luapad.Frame:Center()
+                    luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
+                  else -- Luapad is not installed. Open the link to install it
                     local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
-                    local sID = asmlib.WorkshopID("Garry's Mod Luapad"); guiOpenURL(sUR:format(sID))
+                    local sID = asmlib.WorkshopID("Luapad for GMod 13"); guiOpenURL(sUR:format(sID))
                     asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return nil
-                  end -- Luapad is installed and present. The context menu option is available
-                  asmlib.LogInstance  ("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
-                  if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
-                  luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), sDsv);
-                  if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                    local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
-                      luapad.AddTab("["..sP.."][CATEGORY]", fileRead(sCats, "DATA"), sDsv);
-                    end -- This is done so we can distinguish between luapad and other panels
-                  end -- Luapad is designed not to be closed so we need to make it invisible
-                  luapad.Frame:SetVisible(true); luapad.Frame:Center()
-                  luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
+                  end -- Luapad is not installed and missing. Open the addon homepage
                 end):SetImage(asmlib.ToIcon(sI.."sted"))
               pTb:AddOption(languageGetPhrase(sT.."stdl"),
                 function() fileDelete(sFile)
