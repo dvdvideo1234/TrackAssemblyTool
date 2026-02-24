@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.804")
+asmlib.SetOpVar("TOOL_VERSION","9.805")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -485,6 +485,8 @@ if(CLIENT) then
   asmlib.ToIcon(gsToolPrefU.."PHYSPROPERTIES", "wand"            )
   asmlib.ToIcon(gsToolPrefL.."context_menu"  , "database_gear"   )
   asmlib.ToIcon("subfolder_item"   , "folder_brick"      )
+  asmlib.ToIcon("pn_form_freqent"  , "server_link"    )
+  asmlib.ToIcon("pn_form_plugdsv"  , "server_connect"    )
   asmlib.ToIcon("pn_contextm_cp"   , "page_copy"         )
   asmlib.ToIcon("pn_contextm_cpbx" , "application_go"    )
   asmlib.ToIcon("pn_contextm_cprw" , "report_go"         )
@@ -767,8 +769,10 @@ if(CLIENT) then
         asmlib.LogInstance("Frame invalid",sLog); return nil end
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
+      pnFrame:SetIcon(asmlib.ToIcon("pn_form_plugdsv"))
       pnFrame:SetTitle(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_hd").." "..oPly:Nick().." {"..sVer.."}")
       pnFrame:SetDraggable(true)
+      pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       pnFrame.OnClose = function(pnSelf)
         local iK = conElements:Find(pnSelf) -- Find panel key index
@@ -796,7 +800,7 @@ if(CLIENT) then
         asmlib.LogInstance("List view invalid",sLog); return nil end
       pnListView:SetParent(pnFrame)
       pnListView:SetVisible(true)
-      pnListView:SetSortable(false)
+      pnListView:SetSortable(true)
       pnListView:SetMultiSelect(false)
       pnListView:SetPos(xyPos.x, xyPos.y)
       pnListView:SetSize(xySiz.x, xySiz.y)
@@ -1091,9 +1095,11 @@ if(CLIENT) then
       xySiz.x = (scrW / gnRatio) -- This defines the size of the frame
       xyPos.x, xyPos.y = (scrW / 4), (scrH / 4)
       xySiz.y = mathFloor(xySiz.x / (1 + gnRatio))
+      pnFrame:SetIcon(asmlib.ToIcon("pn_form_freqent"))
       pnFrame:SetTitle(languageGetPhrase("tool."..gsToolNameL..".pn_routine_hd").." "..oPly:Nick().." {"..sVersion.."}")
       pnFrame:SetVisible(true)
       pnFrame:SetDraggable(true)
+      pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       pnFrame:SetPos(xyPos.x, xyPos.y)
       pnFrame:SetSize(xySiz.x, xySiz.y)
