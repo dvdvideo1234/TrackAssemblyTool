@@ -57,10 +57,10 @@ local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntit
 --- Because VEC[1] is actually faster than VEC.X
 --- Store a pointer to our module
 local asmlib = trackasmlib; if(not asmlib) then -- Module present
-  ErrorNoHalt("TOOL: Track assembly tool module fail!\n"); return end
+  ErrorNoHaltWithStack("TOOL: Track assembly tool module fail!\n"); return end
 
 if(not asmlib.IsInit()) then -- Make sure the module is initialized
-  ErrorNoHalt("TOOL: Track assembly tool not initialized!\n"); return end
+  ErrorNoHaltWithStack("TOOL: Track assembly tool not initialized!\n"); return end
 
 --- Global References
 local gtLogs      = {"TOOL"}
@@ -1910,12 +1910,13 @@ function TOOL:Think()
   local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
   local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
   if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
-    local oD = conElements:Pull() -- Retrieve a panel from the stack
-    if(istable(oD)) then oD = oD[1] -- Extract panel from table
-      if(IsValid(oD)) then oD:SetVisible(false) end -- Make it invisible
-    else -- The temporary reference is not table then close it
-      if(IsValid(oD)) then oD:Close() end -- A `close` call, get it :D
-    end -- Shortcut for closing the routine pieces
+    local tP = conElements:Pull() -- Retrieve a panel from the stack
+    if(istable(tP)) then local oP, sF = tP[1], tP[2] -- Extract panel
+      if(IsValid(oP) and isfunction(oP[sF])) then -- Validate the control entry
+        local bS, oE = pcall(oP[sF], oP, unpack(tP, 3)) -- A `close` call, get it :D
+        if(not bS) then ErrorNoHaltWithStack("TOOL: Track assembly close error: "..oE.."!\n") end
+      end -- Shortcut for closing the routine pieces, Make it invisible
+    end -- The temporary reference is not table then skip it
   end -- Front trigger for closing panels
 end
 

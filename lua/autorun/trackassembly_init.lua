@@ -85,12 +85,12 @@ include("trackassembly/trackasmlib.lua")
 ------------ MODULE POINTER ------------
 
 local asmlib = trackasmlib; if(not asmlib) then -- Module present
-  ErrorNoHalt("INIT: Track assembly tool module fail"); return end
+  ErrorNoHaltWithStack("INIT: Track assembly tool module fail"); return end
 
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.805")
+asmlib.SetOpVar("TOOL_VERSION","9.806")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1049,7 +1049,7 @@ if(CLIENT) then
                       end -- This is done so we can distinguish between luapad and other panels
                     end -- Luapad is designed not to be closed so we need to make it invisible
                     luapad.Frame:SetVisible(true); luapad.Frame:Center()
-                    luapad.Frame:MakePopup(); conElements:Push({luapad.Frame})
+                    luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
                   else -- Luapad is not installed. Open the link to install it
                     local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
                     local sID = asmlib.WorkshopID("Luapad for GMod 13"); guiOpenURL(sUR:format(sID))
@@ -1069,7 +1069,7 @@ if(CLIENT) then
         end, "DSV_MENU"); pnMenu:Open()
       end -- Populate the tables for every database
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
-      conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
+      conElements:Push({pnFrame, "Close"}); asmlib.LogInstance("Success",sLog); return nil
     end) -- Read client configuration
 
   asmlib.SetAction("OPEN_FRAME",
@@ -1351,7 +1351,7 @@ if(CLIENT) then
         end
       end
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
-      conElements:Push(pnFrame); asmlib.LogInstance("Success",sLog); return nil
+      conElements:Push({pnFrame, "Close"}); asmlib.LogInstance("Success",sLog); return nil
     end)
 
   asmlib.SetAction("DRAW_PHYSGUN",
