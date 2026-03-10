@@ -761,6 +761,7 @@ function InitBase(sName, sPurp)
   SetOpVar("TYPEMT_POA",{})
   SetOpVar("TYPEMT_QUEUE",{})
   SetOpVar("TYPEMT_SCREEN",{})
+  SetOpVar("TYPEMT_BEAUTY",{})
   SetOpVar("TYPEMT_CONTAINER",{})
   SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL"})
@@ -2152,50 +2153,6 @@ function GetPointElevation(oEnt,ivPoID)
   return mathAbs(vOBB.z)
 end
 
-function GetBeautifyName(sName)
-  local sDiv = GetOpVar("OPSYM_DIVIDER")
-  local fCon = GetOpVar("MODELNAM_FUNC")
-  local sNam = tostring(sName or ""):lower():Trim()
-  local sOut = sNam:gsub("_+","_"):gsub("_$", "")
-  if(sOut:sub(1,1) ~= "_") then sOut = "_"..sOut end
-  return sOut:gsub(sDiv.."%w", fCon):sub(2,-1)
-end
-
-function ModelToName(sModel, bNoSet)
-  if(not isstring(sModel)) then
-    LogInstance("Argument mismatch "..GetReport(sModel)); return "" end
-  if(IsBlank(sModel)) then LogInstance("Empty string"); return "" end
-  local sSymDiv, sSymDir = GetOpVar("OPSYM_DIVIDER"), GetOpVar("OPSYM_DIRECTORY")
-  local sModel = (sModel:sub(1, 1) ~= sSymDir) and (sSymDir..sModel) or sModel
-        sModel = (stringGetFileName(sModel):gsub(GetOpVar("MODELNAM_FILE"),""))
-  local gModel = (sModel:sub(1,-1)) -- Create a copy so we can select cut-off parts later
-  if(not bNoSet) then local iCnt, iNxt
-    local tCut, tSub, tApp = ModelToNameRule("GET")
-    if(tCut and tCut[1]) then iCnt, iNxt = 1, 2
-      while(tCut[iCnt] and tCut[iNxt]) do
-        local fNu, bNu = tonumber(tCut[iCnt]), tonumber(tCut[iNxt])
-        local fCh, bCh = tostring(tCut[iCnt]), tostring(tCut[iNxt])
-        if(not (IsHere(fNu) and IsHere(bNu))) then
-          LogInstance("Cut mismatch "..GetReport(fCh, bCh, sModel)); return "" end
-        gModel = gModel:gsub(sModel:sub(fNu, bNu),""); iCnt, iNxt = (iCnt + 2), (iNxt + 2)
-        LogInstance("Cut "..GetReport(fCh, bCh, gModel))
-      end
-    end -- Replace the unneeded parts by finding an in-string gModel
-    if(tSub and tSub[1]) then iCnt, iNxt = 1, 2
-      while(tSub[iCnt]) do
-        local fCh, bCh = tostring(tSub[iCnt] or ""), tostring(tSub[iNxt] or "")
-        gModel = gModel:gsub(fCh,bCh); LogInstance("Sub "..GetReport(fCh, bCh, gModel))
-        iCnt, iNxt = (iCnt + 2), (iNxt + 2)
-      end
-    end -- Append something if needed
-    if(tApp and tApp[1]) then
-      local fCh, bCh = tostring(tApp[1] or ""), tostring(tApp[2] or "")
-      gModel = (fCh..gModel..bCh); LogInstance("App "..GetReport(fCh, bCh, gModel))
-    end
-  end -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
-  return GetBeautifyName(gModel:Trim("_"))
-end
-
 --[[
  * Creates a basis instance for entity-related operations
  * The instance is invisible and cannot be hit by traces
@@ -2381,32 +2338,84 @@ function GetEmpty(sBas, fEmp, ...)
   end; return sM
 end
 
-function ModelToNameRule(sRule, gCut, gSub, gApp)
-  if(not isstring(sRule)) then
-    LogInstance("Rule mismatch "..GetReport(sRule)); return false end
-  if(sRule == "GET") then
-    return GetOpVar("TABLE_GCUT_MODEL"),
-           GetOpVar("TABLE_GSUB_MODEL"),
-           GetOpVar("TABLE_GAPP_MODEL")
-  elseif(sRule == "CLR" or sRule == "REM") then
-    SetOpVar("TABLE_GCUT_MODEL", ((sRule == "CLR") and {} or nil))
-    SetOpVar("TABLE_GSUB_MODEL", ((sRule == "CLR") and {} or nil))
-    SetOpVar("TABLE_GAPP_MODEL", ((sRule == "CLR") and {} or nil))
-  elseif(sRule == "SET") then
-    SetOpVar("TABLE_GCUT_MODEL", ((gCut and gCut[1]) and gCut or {}))
-    SetOpVar("TABLE_GSUB_MODEL", ((gSub and gSub[1]) and gSub or {}))
-    SetOpVar("TABLE_GAPP_MODEL", ((gApp and gApp[1]) and gApp or {}))
-  else LogInstance("Wrong mode: "..sRule); return false end
+function GetBeautify()
+  local moRes = GetOpVar("OBJECT_BEAUTY")
+  if(moRes) then return moRes end
+  local msLogs = "BEAUTY"
+  local msName, msConv, self = "", "", {}
+  local msDiv = GetOpVar("OPSYM_DIVIDER")
+  local msDir = GetOpVar("OPSYM_DIRECTORY")
+  local mfCon = GetOpVar("MODELNAM_FUNC")
+  local msExt = GetOpVar("MODELNAM_FILE")
+  local mtCut, mtSub, mtApp
+  function self:Get()
+    return msName
+  end
+  function self:Set(sIn)
+    msName = tostring(sIn or "")
+    return self
+  end
+  function self:GetRule()
+    return mtCut, mtSub, mtApp
+  end
+  function self:SetRule(gCut, gSub, gApp)
+    mtCut = ((gCut and gCut[1]) and gCut or nil)
+    mtSub = ((gSub and gSub[1]) and gSub or nil)
+    mtApp = ((gApp and gApp[1]) and gApp or nil)
+    return self
+  end
+  function self:Apply()
+    -- Apply the general rules on the conversion
+    if(mtCut) then local iCnt, iNxt = 1, 2
+      while(mtCut[iCnt] and mtCut[iNxt]) do
+        local fNu, bNu = tonumber(mtCut[iCnt]), tonumber(mtCut[iNxt])
+        if(IsHere(fNu) and IsHere(bNu)) then
+          LogInstance("Cut "..GetReport(fNu, bNu, msConv), msLogs)
+          msConv = msConv:gsub(msConv:sub(fNu, bNu), "", 1)
+        else LogInstance("Cut mismatch "..GetReport(fNu, bNu, sModel), msLogs); end
+        iCnt, iNxt = (iCnt + 2), (iNxt + 2)
+      end
+    end -- Replace the unneeded parts by finding an in-string msConv
+    if(mtSub) then local iCnt, iNxt = 1, 2
+      while(mtSub[iCnt]) do
+        local fCh, bCh = tostring(mtSub[iCnt] or ""), tostring(mtSub[iNxt] or "")
+        msConv = msConv:gsub(fCh, bCh); LogInstance("Sub "..GetReport(fCh, bCh, msConv), msLogs)
+        iCnt, iNxt = (iCnt + 2), (iNxt + 2)
+      end
+    end -- Append something if needed
+    if(mtApp) then
+      local fCh, bCh = tostring(mtApp[1] or ""), tostring(mtApp[2] or "")
+      msConv = (fCh..msConv..bCh); LogInstance("App "..GetReport(fCh, bCh, msConv), msLogs)
+    end; return self:Set(msConv)
+  end
+  function self:Beautify(sIn)
+    msConv = tostring(sIn or msName):lower():Trim()
+    msConv = msConv:gsub(msDiv.."+",msDiv):gsub(msDiv.."$", "")
+    if(msConv:sub(1,1) ~= msDiv) then msConv = msDiv..msConv end
+    return self:Set(msConv:gsub(msDiv.."%w", mfCon):sub(2,-1))
+  end
+  function self:Convert(sIn, bNo) -- ModelToName
+    local sIn = tostring(sIn or ""):lower():Trim()
+    if(IsBlank(sIn)) then LogInstance("Empty string", msLogs); return self:Set() end
+    sIn = (sIn:sub(1, 1) ~= msDir) and (msDir..sIn) or sIn
+    sIn = (stringGetFileName(sIn):gsub(msExt,""))
+    msConv = sIn:rep(1) -- Create a copy so we can select cut-off parts later
+    if(not bNo) then self:Apply() end -- Apply rules in the conversion
+    -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
+    return self:Beautify(msConv:Trim(msDiv))
+  end; setmetatable(self, GetOpVar("TYPEMT_BEAUTY"))
+  SetOpVar("OBJECT_BEAUTY", self); return self
 end
 
 function Categorize(oTyp, fCat, ...)
+  local oBeu = GetBeautify()
   local tCat = GetOpVar("TABLE_CATEGORIES")
   if(not IsHere(oTyp)) then
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
     local tTyp = (tCat and tCat[sTyp] or nil)
     return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
   else
-    ModelToNameRule("CLR"); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
+    oBeu:SetRule(); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
     if(CLIENT) then local tTyp -- Categories for the panel
       local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or "")
       local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
@@ -3452,13 +3461,14 @@ end
  * stPanel > The actual panel information to populate
 ]]
 local function SortCategory(stPanel)
+  local oBeu = GetBeautify()
   local tCat = GetOpVar("TABLE_CATEGORIES")
   for iCnt = 1, stPanel.Size do local vRec = stPanel[iCnt]
     -- Register the category if definition functional is given
     if(tCat[vRec.T]) then -- There is a category definition
       local bS, vC, vN = pcall(tCat[vRec.T].Cmp, vRec.M)
       if(bS) then -- When the call is successful in protected mode
-        if(vN and not IsBlank(vN)) then vRec.N = GetBeautifyName(vN) end
+        if(vN and not IsBlank(vN)) then vRec.N = oBeu:Beautify(vN):Get() end
         -- Custom name override when the addon requests
         if(IsBlank(vC)) then vC = nil end
         if(IsHere(vC)) then
@@ -3467,7 +3477,7 @@ local function SortCategory(stPanel)
           for iD = 1, vC.Size do -- Create category tree path
             vC[iD] = tostring(vC[iD] or ""):lower():Trim()
             if(IsBlank(vC[iD])) then vC[iD] = "other" end
-            vC[iD] = GetBeautifyName(vC[iD]) -- Beautify the category
+            vC[iD] = oBeu:Beautify(vC[iD]):Get() -- Beautify the category
           end -- When the category has at least one element
         end -- Is there is any category apply it. When available process it now
       else -- When there is an error in the category execution report it

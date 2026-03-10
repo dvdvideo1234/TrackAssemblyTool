@@ -25,6 +25,7 @@ local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 --[[ **************************** CONFIGURATION **************************** ]]
 
 local anyTrue, anyFalse = 1, 0
+local goBeauty = asmlib.GetBeautify()
 local gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
 local gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
@@ -65,7 +66,7 @@ local function getDataFormat(sForm, oEnt, ucsEnt, sType, sName, nPnt, sP)
   local sA = ""; if(not ucsAng:IsZero()) then local nP, nY, nR = ucsAng:Unpack()
     sA = tostring(nP)..","..tostring(nY)..","..tostring(nR) end
   local sC = (oEnt:GetClass() ~= "prop_physics" and oEnt:GetClass() or "")
-  local sN = asmlib.IsBlank(sName) and asmlib.ModelToName(sM) or sName
+  local sN = (asmlib.IsBlank(sName) and goBeauty:Convert(sM):Get() or sName)
   return sForm:format(sM, sType, sN, tonumber(nPnt or 0), sP, sO, sA, sC)
 end
 

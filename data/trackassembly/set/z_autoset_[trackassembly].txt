@@ -23,6 +23,11 @@ local myAddon = "SligWolf's Minitrains" -- Your addon name goes here
 ]]--
 local myType = myAddon -- The type your addon resides in the tool with
 
+--[[
+ * This is the beautifier object if you need to apply name beautifier rules
+]]
+BEAUTY = asmlib.GetBeautify()
+
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix
 
@@ -147,14 +152,14 @@ if(not file.Exists(myPath[1], "DATA")) then
   PIECES:Record({"models/minitrains/straight_512.mdl",  "#", "#", 2, "", "-512, -8.507, 1", "0,-180,0"})
   PIECES:Record({"models/minitrains/straight_1024.mdl", "#", "#", 1, "", "0, -8.507, 1"})
   PIECES:Record({"models/minitrains/straight_1024.mdl", "#", "#", 2, "", "-1024, -8.507, 1", "0,-180,0"})
-  asmlib.ModelToNameRule("SET",nil,{"diagonal_","ramp_"},nil)
+  BEAUTY:SetRule(nil, {"diagonal_","ramp_"}, nil)
   PIECES:Record({"models/minitrains/straight_diagonal_128.mdl", "#", "#", 1, "", "8, -8.508, 1"})
   PIECES:Record({"models/minitrains/straight_diagonal_128.mdl", "#", "#", 2, "", "-136, -8.506, 33", "0,-180,0"})
   PIECES:Record({"models/minitrains/straight_diagonal_256.mdl", "#", "#", 1, "", "8, -8.508, 1"})
   PIECES:Record({"models/minitrains/straight_diagonal_256.mdl", "#", "#", 2, "", "-264, -8.506, 33", "0,-180,0"})
   PIECES:Record({"models/minitrains/straight_diagonal_512.mdl", "#", "#", 1, "", "8, -8.508, 1"})
   PIECES:Record({"models/minitrains/straight_diagonal_512.mdl", "#", "#", 2, "", "-520, -8.506, 33", "0,-180,0"})
-  asmlib.ModelToNameRule("CLR")
+  BEAUTY:SetRule()
   PIECES:Record({"models/minitrains/curve_1_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
   PIECES:Record({"models/minitrains/curve_1_90.mdl", "#", "#", 2, "", "-138.51, 130, 1", "0,90,0"})
   PIECES:Record({"models/minitrains/curve_2_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
