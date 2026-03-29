@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.808")
+asmlib.SetOpVar("TOOL_VERSION","9.809")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -361,8 +361,9 @@ if(SERVER) then
   utilAddNetworkString(gsLibName.."SendIntersectRelate")
   utilAddNetworkString(gsLibName.."SendCreateCurveNode")
   utilAddNetworkString(gsLibName.."SendUpdateCurveNode")
-  utilAddNetworkString(gsLibName.."SendDeleteCurveNode")
-  utilAddNetworkString(gsLibName.."SendDeleteAllCurveNode")
+  utilAddNetworkString(gsLibName.."SendRemoveCurveNode")
+  utilAddNetworkString(gsLibName.."SendInsertCurveNode")
+  utilAddNetworkString(gsLibName.."SendClearCurveNode")
 
   netReceive(gsLibName.."SendRefreshDSV",
     function(nLen, oPly) local sLog = "*REFRESH_ITEM_LIST"
@@ -595,20 +596,29 @@ if(CLIENT) then
       local vOrgw, aAngw, bRayw = netReadVector(), netReadAngle() , netReadBool()
       local iD, iN, tC = netReadUInt(16), netReadUInt(16), asmlib.GetCacheCurve(oPly)
       local iC = ((iD > 0 and iD <= tC.Size) and iD or nil) -- Read the curve index
-      if(iN > 0 and tC.Norm[iN] and tC.Size and tC.Size >= 2) then
-        tC.Norm[iN]:Set(netReadNormal()) end -- Update the previews curve normal
-      tableInsert(tC.Node, vNode, iC); tableInsert(tC.Norm, vNorm, iC)
-      tableInsert(tC.Base, vBase, iC); tableInsert(tC.Rays, {vOrgw, aAngw, bRayw}, iC)
+      if(iN > 0) then tC.Norm[iN]:Set(netReadNormal()) end
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
+      if(iC) then -- We have to insert at the middle of the stack
+        tableInsert(tC.Node, iC, vNode); tableInsert(tC.Norm, iC, vNorm)
+        tableInsert(tC.Base, iC, vBase); tableInsert(tC.Rays, iC, {vOrgw, aAngw, bRayw})
+      else -- Insert at the node stack end. Send the end to the client
+        tableInsert(tC.Node, vNode); tableInsert(tC.Norm, vNorm)
+        tableInsert(tC.Base, vBase); tableInsert(tC.Rays, {vOrgw, aAngw, bRayw})
+      end
     end)
 
   asmlib.SetAction("REMOVE_CURVE_NODE",
     function(nLen) local oPly, sLog = netReadEntity(), "*REMOVE_CURVE_NODE"
       local iD, tC = netReadUInt(16), asmlib.GetCacheCurve(oPly)
       local iC = ((iD > 0 and iD <= tC.Size) and iD or nil) -- Read the curve index
-      tableRemove(tC.Node, iC); tableRemove(tC.Norm, iC)
-      tableRemove(tC.Base, iC); tableRemove(tC.Rays, iC)
       tC.Size = (tC.Size - 1) -- Register the index
+      if(iC) then
+        tableRemove(tC.Node, iC); tableRemove(tC.Norm, iC)
+        tableRemove(tC.Base, iC); tableRemove(tC.Rays, iC)
+      else
+        tableRemove(tC.Node); tableRemove(tC.Norm)
+        tableRemove(tC.Base); tableRemove(tC.Rays)
+      end
     end)
 
   asmlib.SetAction("UPDATE_CURVE_NODE",
@@ -5132,4 +5142,3 @@ else
 end
 
 asmlib.LogInstance("Version: "..asmlib.GetOpVar("TOOL_VERSION"), gtInitLogs)
-collectgarbage()

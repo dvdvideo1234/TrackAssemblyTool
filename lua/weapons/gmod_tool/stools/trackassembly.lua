@@ -34,6 +34,7 @@ local mathSqrt                         = math and math.sqrt
 local mathClamp                        = math and math.Clamp
 local mathAtan2                        = math and math.atan2
 local mathRound                        = math and math.Round
+local mathFloor                        = math and math.floor
 local gameGetWorld                     = game and game.GetWorld
 local tableInsert                      = table and table.insert
 local tableRemove                      = table and table.remove
@@ -947,7 +948,7 @@ function TOOL:CheckCurveNode(vPos, iID)
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   local iID = mathFloor(mathMax(tonumber(iID) or 0, 0))
-  local nM, sN = GetOpVar("CURVE_NODEMR"), user:Nick()
+  local nM, sN = asmlib.GetOpVar("CURVE_NODEMR"), user:Nick()
   local iPr, iNx = (iID - 1), (iID + 1)
   local vPr, vNx = tC.Node[iPr], tC.Node[iNx]
   if(vPr and vPr:DistToSqr(vPos) < nM) then
@@ -978,20 +979,27 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
   local iN, vN = self:ApplySuperElevation(tC, tData)
   local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
-  tableInsert(tC.Node, Vector(tData.Org), iC)
-  tableInsert(tC.Norm, tData.Ang:Up(), iC)
-  tableInsert(tC.Base, Vector(tData.Hit), iC)
-  tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)}, iC)
+  if(iC) then -- We have to insert at the middle of the stack
+    tableInsert(tC.Node, iC, Vector(tData.Org))
+    tableInsert(tC.Norm, iC, tData.Ang:Up())
+    tableInsert(tC.Base, iC, Vector(tData.Hit))
+    tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+  else iC = tC.Size -- Insert at the node stack end. Send the end to the client
+    tableInsert(tC.Node, Vector(tData.Org))
+    tableInsert(tC.Norm, tData.Ang:Up())
+    tableInsert(tC.Base, Vector(tData.Hit))
+    tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+  end
   if(not bMute) then
     asmlib.Notify(user, "Node inserted ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendInsertCurveNode")
       netWriteEntity(user)
-      netWriteVector(tC.Node[tC.Size])
-      netWriteNormal(tC.Norm[tC.Size])
-      netWriteVector(tC.Base[tC.Size])
-      netWriteVector(tC.Rays[tC.Size][1])
-      netWriteAngle (tC.Rays[tC.Size][2])
-      netWriteBool  (tC.Rays[tC.Size][3])
+      netWriteVector(tC.Node[iC])
+      netWriteNormal(tC.Norm[iC])
+      netWriteVector(tC.Base[iC])
+      netWriteVector(tC.Rays[iC][1])
+      netWriteAngle (tC.Rays[iC][2])
+      netWriteBool  (tC.Rays[iC][3])
       netWriteUInt  (iD, 16)
       netWriteUInt  (iN, 16)
       if(iN > 0) then netWriteNormal(vN) end
@@ -1007,9 +1015,12 @@ end
  * bMute > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveRemove(iD, bMute)
-  local user, iD  = self:GetOwner(), mathFloor(mathMax(tonumber(iD) or 0, 0))
+  local user = self:GetOwner()
+  local iD = mathFloor(mathMax(tonumber(iD) or 0, 0))
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  if(tC.Size <= 0) then
+    asmlib.LogInstance("Curve empty", gtLogs); return nil end
   local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
   tC.Size = (tC.Size - 1) -- Increment stack size. Adding stuff
   tableRemove(tC.Node, iC); tableRemove(tC.Norm, iC)

@@ -2666,7 +2666,7 @@ end
 
 function RunBuilderCount(fFnc, sSrc)
   local iCnt = #libQTable -- Returns zero on error
-  if(isfunction(fFnc)) then; for iD = 1, iCnt do
+  if(isfunction(fFnc)) then for iD = 1, iCnt do
     local makTab = GetBuilderID(iD); if(not IsHere(makTab)) then
       LogInstance("Missing table builder for "..GetReport(sSrc, iD)); return 0 end
     local bS, vO = pcall(fFnc, makTab, iD); if(not bS) then
@@ -5667,7 +5667,8 @@ function GetCatmullRomCurveSegment(vP0, vP1, vP2, vP3, nN, nA)
   local tTN = GetLinearSpace(nT1, nT2, nN)
   local vB1, vB2 = Vector(), Vector()
   local vA1, vA2, vA3 = Vector(), Vector(), Vector()
-  for iD = 1, #tTN do tS[iD] = Vector(); local nTn, vTn = tTN[iD], tS[iD]
+  for iD = 1, #tTN do tS[iD] = Vector()
+    local nTn, vTn = tTN[iD], tS[iD]
     local nD1, nD2, nD3 = (nT1-nT0), (nT2-nT1), (nT3-nT2)
     local nD4, nD5, nD6 = (nT2-nT0), (nT3-nT1), (nT2-nT1)
     vA1:Set(vP0); vA1:Mul((nT1-nTn)/nD1); vA1:Add(vP1 * ((nTn-nT0)/nD1))
