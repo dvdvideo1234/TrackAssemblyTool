@@ -273,9 +273,9 @@ function GetReport(...)
   local nV = select("#", ...) -- Read report count
   if(nV == 0) then return sD end -- Nothing to report
   if(nV == 1) then local sV = select(1, ...)
-    return ("{%s}%s%s%s"):format(type(sV),sD,sV,sD)
+    return ("{%s}%s"):format(type(sV),sD..tostring(sV)..sD)
   end; local tV = GetOpVar("REP_TABLE"); tableInsert(tV,sD)
-  for iV = 1, nV do local sV = select(iV, ...)
+  for iV = 1, nV do local sV = tostring(select(iV,...))
     tableInsert(tV,("%s%s"):format(sV,sD)) end
   local sV = tableConcat(tV); tableEmpty(tV)
   return sV -- Concatenate vararg and return a string
@@ -3622,14 +3622,14 @@ end
 --[[
  * Creates the directories needed and concatenates the
  * file path to be ready for opening the file object
- * sT > Data folder origin (DIRPATH_BAS): set/ins/dsv
- * sP > File name prefix: `test_pack_`
- * sN > File name origin: `TRACKASSEMBLY_PIECES` (txt)
+ * Target in `trackassembly/ins/my_tracks.txt`
+ * The folders must be created and the path returned
+ * sT > Data folder origin (DIRPATH_BAS): [set/ins/dsv]
+ * sP > File name prefix: `test_pack_` as pack identifier
+ * sN > File name origin: `TRACKASSEMBLY_PIECES` (*.txt)
 ]]
 function GetLibraryPath(sT, sP, sN)
-  local fName = GetOpVar("DIRPATH_BAS")
-  if(not fileIsDir(fName,"DATA")) then fileCreateDir(fName) end
-    fName = fName..tostring(sT or "") -- Target folder in `trackassembly/`
+  local fName = GetOpVar("DIRPATH_BAS")..tostring(sT or "") -- Source
   if(not fileIsDir(fName,"DATA")) then fileCreateDir(fName) end
   if(not (sP or sN)) then return fName end -- Create the folders only
   local sForm = GetOpVar("FORM_PREFIXDSV") -- Concatenate file name
