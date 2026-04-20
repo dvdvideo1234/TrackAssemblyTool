@@ -97,6 +97,7 @@ local utilGetPlayerTrace             = util and util.GetPlayerTrace
 local entsCreate                     = ents and ents.Create
 local entsCreateClientProp           = ents and ents.CreateClientProp
 local fileOpen                       = file and file.Open
+local fileIsDir                      = file and file.IsDir
 local fileExists                     = file and file.Exists
 local fileAppend                     = file and file.Append
 local fileDelete                     = file and file.Delete
@@ -263,17 +264,20 @@ end
  * Reports the type and actual value for one argument
  * Reports vararg containing many values concatenated
  * The return value must always return a string
+ * Vararg: ()             > |
  * Vararg: (66)           > {number}|66|
  * Vararg: (66,nil,"asd") > |66|nil|asd|
 ]]
 function GetReport(...)
   local sD = (GetOpVar("OPSYM_VERTDIV") or "|")
-        sD = tostring(sD):sub(1, 1) -- First symbol
-  local tV, sV = {...}, sD -- Use vertical divider
   local nV = select("#", ...) -- Read report count
-  if(nV == 0) then return sV end -- Nothing to report
-  if(nV == 1) then sV = "{"..type(tV[1]).."}"..sV end
-  for iV = 1, nV do sV = sV..tostring(tV[iV])..sD end
+  if(nV == 0) then return sD end -- Nothing to report
+  if(nV == 1) then local sV = select(1, ...)
+    return ("{%s}%s%s%s"):format(type(sV),sD,sV,sD)
+  end; local tV = GetOpVar("REP_TABLE"); tableInsert(tV,sD)
+  for iV = 1, nV do local sV = select(iV, ...)
+    tableInsert(tV,("%s%s"):format(sV,sD)) end
+  local sV = tableConcat(tV); tableEmpty(tV)
   return sV -- Concatenate vararg and return a string
 end
 
@@ -658,6 +662,7 @@ function InitBase(sName, sPurp)
     LogInstance("Purpose invalid "..GetReport(sPurp), true); return false end
   SetOpVar("LOG_SKIP",{})
   SetOpVar("LOG_ONLY",{})
+  SetOpVar("REP_TABLE",{})
   SetOpVar("LOG_MAXLOGS",0)
   SetOpVar("LOG_CURLOGS",0)
   SetOpVar("LOG_LOGLAST","")
@@ -3617,12 +3622,15 @@ end
 --[[
  * Creates the directories needed and concatenates the
  * file path to be ready for opening the file object
+ * sT > Data folder origin (DIRPATH_BAS): set/ins/dsv
+ * sP > File name prefix: `test_pack_`
+ * sN > File name origin: `TRACKASSEMBLY_PIECES` (txt)
 ]]
 function GetLibraryPath(sT, sP, sN)
   local fName = GetOpVar("DIRPATH_BAS")
-  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  if(not fileIsDir(fName,"DATA")) then fileCreateDir(fName) end
     fName = fName..tostring(sT or "") -- Target folder in `trackassembly/`
-  if(not fileExists(fName,"DATA")) then fileCreateDir(fName) end
+  if(not fileIsDir(fName,"DATA")) then fileCreateDir(fName) end
   if(not (sP or sN)) then return fName end -- Create the folders only
   local sForm = GetOpVar("FORM_PREFIXDSV") -- Concatenate file name
   return fName..sForm:format(tostring(sP or ""), tostring(sN or ""))
