@@ -182,6 +182,7 @@ local libOpVars = {} -- Used to Store operational variable values
 local libPlayer = {} -- Used to allocate personal space for players
 local libQTable = {} -- Used to allocate SQL table builder objects
 local libModel  = {} -- Used to store the the valid models status
+local libConcat = {} -- Used to store concatenation strings
 
 module("trackasmlib")
 
@@ -193,6 +194,15 @@ end
 
 function GetOpVar(sName)
   return libOpVars[sName]
+end
+
+function GetConcat(...)
+  local nC = select("#", ...) -- Read params count
+  for iC = 1, nC do
+    local vC = select(iC, ...)
+    tableInsert(libConcat, tostring(vC))
+  end; local cC = tableConcat(libConcat)
+  tableEmpty(libConcat); return cC
 end
 
 function SetOpVar(sName, vVal)
@@ -273,11 +283,11 @@ function GetReport(...)
   local nV = select("#", ...) -- Read report count
   if(nV == 0) then return sD end -- Nothing to report
   if(nV == 1) then local sV = select(1, ...)
-    return ("{%s}%s"):format(type(sV),sD..tostring(sV)..sD)
-  end; local tV = GetOpVar("REP_TABLE"); tableInsert(tV,sD)
+    return GetConcat("{",type(sV),"}",sD,tostring(sV),sD)
+  end; tableInsert(libConcat, sD)
   for iV = 1, nV do local sV = tostring(select(iV,...))
-    tableInsert(tV,("%s%s"):format(sV,sD)) end
-  local sV = tableConcat(tV); tableEmpty(tV)
+    tableInsert(libConcat,sV); tableInsert(libConcat,sD) end
+  local sV = tableConcat(libConcat); tableEmpty(libConcat)
   return sV -- Concatenate vararg and return a string
 end
 
@@ -401,8 +411,9 @@ end
 ------------------ LOGS ------------------------
 
 function GetLogID()
-  local nNum, fMax = GetOpVar("LOG_CURLOGS"), GetOpVar("LOG_FORMLID")
-  if(not (nNum and fMax)) then return "" end; return fMax:format(nNum)
+  local tLoc = asmlib.GetOpVar("LOG_CONFIG")
+  if(not (nNum and fMax)) then return "" end
+  return tLoc.Fmt:format(tLoc.Cur)
 end
 
 --[[
@@ -410,20 +421,15 @@ end
   bCon > Force output in the console
 ]]
 function Log(vMsg, bCon)
-  local iMax = GetOpVar("LOG_MAXLOGS")
-  if(iMax <= 0) then return end
-  local sMsg = tostring(vMsg)
-  local iCur = GetOpVar("LOG_CURLOGS") + 1
+  local tLoc = GetOpVar("LOG_CONFIG")
+  if(tLoc.Max <= 0) then return end
+  tLoc.Cur = ((tLoc.Cur >= tLoc.Max) and 1 or (tLoc.Cur + 1))
+  local sMsg = GetConcat(GetLogID()," [", GetDateTime(), "] ", tostring(vMsg))
   if(IsFlag("en_logging_file") and not bCon) then
-    local lbNam = GetOpVar("NAME_LIBRARY")
-    local fName = GetOpVar("LOG_FILENAME")
-    if(iCur > iMax) then SetOpVar("LOG_CURLOGS", 1)
-      fileDelete(fName) else SetOpVar("LOG_CURLOGS", iCur) end
-    fileAppend(fName,GetLogID().." ["..GetDateTime().."] "..sMsg.."\n")
+    local fName = GetConcat(GetOpVar("NAME_LIBRARY"), tLoc.Nam)
+    fileAppend(fName, sMsg.."\n")
   else -- The current has values 1..nMaxLogs(0)
-    if(iCur > iMax) then SetOpVar("LOG_CURLOGS", 1)
-    else SetOpVar("LOG_CURLOGS", iCur) end
-    print(GetLogID().." ["..GetDateTime().."] "..sMsg)
+    print(sMsg)
   end
 end
 
@@ -454,8 +460,8 @@ end
   tDbg > Debug table override
 ]]
 function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
-  local nMax = (tonumber(GetOpVar("LOG_MAXLOGS")) or 0)
-  if(nMax and (nMax <= 0)) then return end
+  local tLoc = GetOpVar("LOG_CONFIG")
+  if(tLoc.Max) then return end
   local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
   if(vSrc and istable(vSrc)) then -- Receive the stack as table
     vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
@@ -464,21 +470,21 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
         tInfo = (tInfo or (tDbg and tDbg or nil))    -- Override debug information
         tInfo = (tInfo or debugGetinfo(2))           -- Default value
   local sDbg, sFunc = "", tostring(tInfo.name or "Incognito")
-  if(GetOpVar("LOG_DEBUGEN")) then
+  if(tLoc.Dbg) then
     local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
-    sDbg = sDbg.." "..(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV)
-    sDbg = sDbg..(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV)
-    sDbg = sDbg.."@"..(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
+    sDbg = GetConcat(sDbg," ",(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV))
+    sDbg = GetConcat(sDbg," ",(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV))
+    sDbg = GetConcat(sDbg,"@",(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
   end; local sSrc, bF, bL = tostring(vSrc or "")
   if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else
     if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
   local sInst = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  local sLast, sData = GetOpVar("LOG_LOGLAST"), (sSrc..sFunc..": "..tostring(vMsg))
+  local sData = (sSrc..sFunc..": "..tostring(vMsg))
   bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
   bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
-  if(sLast == sData) then return end; SetOpVar("LOG_LOGLAST",sData)
-  Log(sInst.." > "..sToolMD.." ["..sMoDB.."]"..sDbg.." "..sData, bCon)
+  if(tLoc.Prv == sData) then return end; tLoc.Prv = sData
+  Log(GetConcat(sInst," > ",sToolMD," [",sMoDB,"]",sDbg," ",sData), bCon)
 end
 
 function LogCeption(tT,sS,tP)
@@ -626,11 +632,11 @@ end
 
 function SetLogControl(nLines, bFile)
   local bFou = IsFlag("en_logging_file", bFile)
-  local nMax = (tonumber(nLines) or 0); nMax = mathFloor((nMax > 0) and nMax or 0)
-  local sMax, sFou = tostring(GetOpVar("LOG_MAXLOGS")), tostring(bFou)
-  SetOpVar("LOG_CURLOGS", 0); SetOpVar("LOG_MAXLOGS", nMax)
-  SetOpVar("LOG_FORMLID", "%"..(tostring(nMax)):len().."d")
-  LogInstance("("..sMax..","..sFou..")")
+  local tLoc = asmlib.GetOpVar("LOG_CONFIG")
+        tLoc.Max = (tonumber(nLines) or 0); tLoc.Cur = 0
+        tLoc.Max = mathFloor((tLoc.Max > 0) and tLoc.Max or 0)
+        tLoc.Fmt = ("%"..(tostring(nMax)):len().."d")
+  LogInstance(GetConcat("(", tLoc.Max, ",", tostring(bFou), ")"))
 end
 
 function SettingsLogs(sHash)
@@ -660,13 +666,17 @@ function InitBase(sName, sPurp)
     LogInstance("Name invalid "..GetReport(sName), true); return false end
   if(IsBlank(sPurp) or tonumber(sPurp:sub(1,1))) then
     LogInstance("Purpose invalid "..GetReport(sPurp), true); return false end
+  SetOpVar("LOG_INIT",{"*Init", false, 0})
   SetOpVar("LOG_SKIP",{})
   SetOpVar("LOG_ONLY",{})
-  SetOpVar("REP_TABLE",{})
-  SetOpVar("LOG_MAXLOGS",0)
-  SetOpVar("LOG_CURLOGS",0)
-  SetOpVar("LOG_LOGLAST","")
-  SetOpVar("LOG_INIT",{"*Init", false, 0})
+  SetOpVar("LOG_CONFIG",{
+    Max = 0, -- Maximum allowed amount of logging lines
+    Cur = 0, -- Current logging line ID
+    Fmt = "", -- Log message ID format. Log file name
+    Prv = "", -- The previous logging row
+    Dbg = false, -- Force stack trace debugging
+    Nam = GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt"
+  })
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_ACTION",0.01)
   SetOpVar("DELAY_REMOVE",0.2)
@@ -719,7 +729,6 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
-  SetOpVar("LOG_FILENAME",GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt")
   SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
   SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
   SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")

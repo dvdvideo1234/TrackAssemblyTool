@@ -572,12 +572,11 @@ function TOOL:GetGhostsDepth()
 end
 
 function TOOL:GetStatus(stTr,vMsg,hdEnt)
-  local iMaxlog = asmlib.GetOpVar("LOG_MAXLOGS")
-  if(iMaxlog <= 0) then return "Status N/A" end
+  local tLoc = asmlib.GetOpVar("LOG_CONFIG")
+  if(tLoc.Max <= 0) then return "Status N/A" end
   local user, sDelim  = self:GetOwner(), "\n"
-  local iCurLog = asmlib.GetOpVar("LOG_CURLOGS")
   local bFleLog = asmlib.IsFlag("en_logging_file")
-  local sSpace  = (" "):rep(6 + tostring(iMaxlog):len())
+  local sSpace  = (" "):rep(6 + tostring(tLoc.Max):len())
   local workmode, workname = self:GetWorkingMode()
   local siAnc  , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
@@ -593,8 +592,8 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
         sDu = sDu..tostring(vMsg)..sDelim
         sDu = sDu..sSpace.."Dumping logs state:"..sDelim
         sDu = sDu..sSpace.."  LogFile:        <"..tostring(bFleLog)..">"..sDelim
-        sDu = sDu..sSpace.."  LogsMax:        <"..tostring(iMaxlog)..">"..sDelim
-        sDu = sDu..sSpace.."  LogsCur:        <"..tostring(iCurLog)..">"..sDelim
+        sDu = sDu..sSpace.."  LogsMax:        <"..tostring(tLoc.Max)..">"..sDelim
+        sDu = sDu..sSpace.."  LogsCur:        <"..tostring(tLoc.Cur)..">"..sDelim
         sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
         sDu = sDu..sSpace.."Dumping player keys:"..sDelim

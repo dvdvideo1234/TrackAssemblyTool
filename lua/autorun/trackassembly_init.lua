@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.812")
+asmlib.SetOpVar("TOOL_VERSION","9.814")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -159,7 +159,6 @@ asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
 
-asmlib.SetOpVar("LOG_DEBUGEN",false)
 asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written")
 asmlib.NewAsmConvar("logfile", 0, nil, gnIndependentUsed, "File logging output flag control")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logfile","BUL"))
@@ -252,7 +251,7 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       end})
       conCallBack:Push({"logsmax", function(sV, vO, vN)
         local nM = asmlib.BorderValue((tonumber(vN) or 0), "non-neg")
-        asmlib.SetOpVar("LOG_MAXLOGS", nM)
+        local tL = asmlib.GetOpVar("LOG_CONFIG"); tL.Max = nM
       end})
       conCallBack:Push({"logfile", function(sV, vO, vN)
         asmlib.IsFlag("en_logging_file", tobool(vN))
