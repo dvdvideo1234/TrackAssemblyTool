@@ -387,31 +387,31 @@ end
 
 function GetOwner(oEnt)
   if(not (oEnt and oEnt:IsValid())) then return nil end
-  local set, ows = oEnt.OnDieFunctions
+  local tSet, eOwn = oEnt.OnDieFunctions
   -- Use CPPI first when installed. If fails search down
-  ows = ((CPPI and oEnt.CPPIGetOwner) and oEnt:CPPIGetOwner() or nil)
-  if(IsPlayer(ows)) then return ows else ows = nil end
+  eOwn = ((CPPI and oEnt.CPPIGetOwner) and oEnt:CPPIGetOwner() or nil)
+  if(IsPlayer(eOwn)) then return eOwn end
   -- Try the direct entity methods. Extract owner from functions
-  ows = (oEnt.GetOwner and oEnt:GetOwner() or nil)
-  if(IsPlayer(ows)) then return ows else ows = nil end
-  ows = (oEnt.GetCreator and oEnt:GetCreator() or nil)
-  if(IsPlayer(ows)) then return ows else ows = nil end
-  -- Try then various entity internal key values
-  ows = oEnt.player; if(IsPlayer(ows)) then return ows else ows = nil end
-  ows = oEnt.Owner; if(IsPlayer(ows)) then return ows else ows = nil end
-  ows = oEnt.owner; if(IsPlayer(ows)) then return ows else ows = nil end
-  if(set) then -- Duplicator the functions are registered
-    set = set.GetCountUpdate; ows = (set.Args and set.Args[1] or nil)
-    if(IsPlayer(ows)) then return ows else ows = nil end
-    set = set.undo1; ows = (set.Args and set.Args[1] or nil)
-    if(IsPlayer(ows)) then return ows else ows = nil end
-  end; return ows -- No owner is found. Nothing is returned
+  eOwn = (oEnt.GetOwner and oEnt:GetOwner() or nil)
+  if(IsPlayer(eOwn)) then return eOwn end
+  eOwn = (oEnt.GetCreator and oEnt:GetCreator() or nil)
+  if(IsPlayer(eOwn)) then return eOwn end
+  -- Try various entity internal key values
+  eOwn = oEnt.player; if(IsPlayer(eOwn)) then return eOwn end
+  eOwn = oEnt.Owner; if(IsPlayer(eOwn)) then return eOwn end
+  eOwn = oEnt.owner; if(IsPlayer(eOwn)) then return eOwn end
+  if(tSet) then -- Duplicator the functions are registered
+    tSet = tSet.GetCountUpdate; eOwn = (tSet.Args and tSet.Args[1] or nil)
+    if(IsPlayer(eOwn)) then return eOwn end
+    tSet = tSet.undo1; eOwn = (tSet.Args and tSet.Args[1] or nil)
+    if(IsPlayer(eOwn)) then return eOwn end
+  end; return eOwn -- No owner is found. Nothing is returned
 end
 
 ------------------ LOGS ------------------------
 
 function GetLogID()
-  local tLoc = asmlib.GetOpVar("LOG_CONFIG")
+  local tLoc = GetOpVar("LOG_CONFIG")
   if(not (nNum and fMax)) then return "" end
   return tLoc.Fmt:format(tLoc.Cur)
 end
@@ -426,8 +426,20 @@ function Log(vMsg, bCon)
   tLoc.Cur = ((tLoc.Cur >= tLoc.Max) and 1 or (tLoc.Cur + 1))
   local sMsg = GetConcat(GetLogID()," [", GetDateTime(), "] ", tostring(vMsg))
   if(IsFlag("en_logging_file") and not bCon) then
-    local fName = GetConcat(GetOpVar("NAME_LIBRARY"), tLoc.Nam)
-    fileAppend(fName, sMsg.."\n")
+    if(tLoc.Brs > 0) then local tTbr = tLoc.Tbr
+      if(tTbr.Size > 0) then
+        tTbr.Size = (tTbr.Size - 1)
+        tableInsert(tTbr, sMsg)
+      else
+        local fName = GetConcat(GetOpVar("NAME_LIBRARY"), tLoc.Nam)
+        local fLogs = fileOpen(fName, "ab", "DATA")
+        for iL = 1, tLoc.Brs do fLogs:Write("[B"..iL.."]"..sMsg.."\n") end
+        fLogs:Flush(); fLogs:Close()
+      end
+    else
+      local fName = GetConcat(GetOpVar("NAME_LIBRARY"), tLoc.Nam)
+      fileAppend(fName, sMsg.."\n")
+    end
   else -- The current has values 1..nMaxLogs(0)
     print(sMsg)
   end
@@ -474,13 +486,13 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
     local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
     sDbg = GetConcat(sDbg," ",(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV))
     sDbg = GetConcat(sDbg," ",(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV))
-    sDbg = GetConcat(sDbg,"@",(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
+    sDbg = GetConcat(sDbg,"@",(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID))
   end; local sSrc, bF, bL = tostring(vSrc or "")
   if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else
     if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
   local sInst = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
   local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  local sData = (sSrc..sFunc..": "..tostring(vMsg))
+  local sData = GetConcat(sSrc, sFunc, ": ", tostring(vMsg))
   bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
   bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
   if(tLoc.Prv == sData) then return end; tLoc.Prv = sData
@@ -630,13 +642,14 @@ end
 
 ----------------- INITAIALIZATION -----------------
 
-function SetLogControl(nLines, bFile)
+function SetLogControl(nLines, nBurs, bFile)
   local bFou = IsFlag("en_logging_file", bFile)
-  local tLoc = asmlib.GetOpVar("LOG_CONFIG")
+  local tLoc = GetOpVar("LOG_CONFIG")
         tLoc.Max = (tonumber(nLines) or 0); tLoc.Cur = 0
         tLoc.Max = mathFloor((tLoc.Max > 0) and tLoc.Max or 0)
         tLoc.Fmt = ("%"..(tostring(nMax)):len().."d")
-  LogInstance(GetConcat("(", tLoc.Max, ",", tostring(bFou), ")"))
+        tLoc.Brs = (tonumber(nBurs) or 0); tLoc.Tbr.Size = tLoc.Brs
+  LogInstance(GetConcat("(", tLoc.Max, ","..tLoc.Brs..",", tostring(bFou), ")"))
 end
 
 function SettingsLogs(sHash)
@@ -666,17 +679,6 @@ function InitBase(sName, sPurp)
     LogInstance("Name invalid "..GetReport(sName), true); return false end
   if(IsBlank(sPurp) or tonumber(sPurp:sub(1,1))) then
     LogInstance("Purpose invalid "..GetReport(sPurp), true); return false end
-  SetOpVar("LOG_INIT",{"*Init", false, 0})
-  SetOpVar("LOG_SKIP",{})
-  SetOpVar("LOG_ONLY",{})
-  SetOpVar("LOG_CONFIG",{
-    Max = 0, -- Maximum allowed amount of logging lines
-    Cur = 0, -- Current logging line ID
-    Fmt = "", -- Log message ID format. Log file name
-    Prv = "", -- The previous logging row
-    Dbg = false, -- Force stack trace debugging
-    Nam = GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt"
-  })
   SetOpVar("TIME_INIT",Time())
   SetOpVar("DELAY_ACTION",0.01)
   SetOpVar("DELAY_REMOVE",0.2)
@@ -716,6 +718,19 @@ function InitBase(sName, sPurp)
   SetOpVar("DIRPATH_EXP","exp"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_DSV","dsv"..GetOpVar("OPSYM_DIRECTORY"))
   SetOpVar("DIRPATH_SET","set"..GetOpVar("OPSYM_DIRECTORY"))
+  SetOpVar("LOG_INIT",{"*Init", false, 0})
+  SetOpVar("LOG_SKIP",{})
+  SetOpVar("LOG_ONLY",{})
+  SetOpVar("LOG_CONFIG",{
+    Max = 0, -- Maximum allowed amount of logging lines
+    Brs = 0, -- File I/O burst rate. Write that amount of lines
+    Tbr = {}, -- Table to store burst rate log lines
+    Cur = 0, -- Current logging line ID
+    Fmt = "", -- Log message ID format. Log file name
+    Prv = "", -- The previous logging row
+    Dbg = false, -- Force stack trace debugging
+    Nam = GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt"
+  })
   SetOpVar("MISS_NOMD","X")      -- No model
   SetOpVar("MISS_NOID","N")      -- No ID selected
   SetOpVar("MISS_NOAV","N/A")    -- Not Available

@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.814")
+asmlib.SetOpVar("TOOL_VERSION","9.815")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -137,6 +137,7 @@ asmlib.SetBorder(gsToolPrefL.."angsnap"  , 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnpang", 0, gnMaxRot)
 asmlib.SetBorder(gsToolPrefL.."incsnplin", 0, 250)
 asmlib.SetBorder(gsToolPrefL.."logfile"  , 0, 1)
+asmlib.SetBorder(gsToolPrefL.."logsbrs"  , 0, 100000)
 asmlib.SetBorder(gsToolPrefL.."logsmax"  , 0, 100000)
 asmlib.SetBorder(gsToolPrefL.."maxactrad", 1, 400)
 asmlib.SetBorder(gsToolPrefL.."maxforce" , 0, 200000)
@@ -159,9 +160,12 @@ asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 
 ------------ CONFIGURE LOGGING ------------
 
-asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written")
-asmlib.NewAsmConvar("logfile", 0, nil, gnIndependentUsed, "File logging output flag control")
-asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logfile","BUL"))
+asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written before a new file is created")
+asmlib.NewAsmConvar("logsbrs", 0, nil, gnIndependentUsed, "Maximum logging lines being written in every I/O write flush")
+asmlib.NewAsmConvar("logfile", 0, nil, gnIndependentUsed, "Controls the logging output flag control for file steaming")
+asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                     asmlib.GetAsmConvar("logsbrs","INT"),
+                     asmlib.GetAsmConvar("logfile","BUL"))
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
@@ -252,6 +256,10 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       conCallBack:Push({"logsmax", function(sV, vO, vN)
         local nM = asmlib.BorderValue((tonumber(vN) or 0), "non-neg")
         local tL = asmlib.GetOpVar("LOG_CONFIG"); tL.Max = nM
+      end})
+      conCallBack:Push({"logsbrs", function(sV, vO, vN)
+        local nM = asmlib.BorderValue((tonumber(vN) or 0), "non-neg")
+        local tL = asmlib.GetOpVar("LOG_CONFIG"); tL.Brs = nM
       end})
       conCallBack:Push({"logfile", function(sV, vO, vN)
         asmlib.IsFlag("en_logging_file", tobool(vN))

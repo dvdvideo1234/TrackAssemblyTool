@@ -347,6 +347,10 @@ function TOOL:GetLogLines()
   return (asmlib.GetAsmConvar("logsmax", "INT") or 0)
 end
 
+function TOOL:GetLogBurst()
+  return (asmlib.GetAsmConvar("logsbrs", "INT") or 0)
+end
+
 function TOOL:GetLogFile()
   return asmlib.GetAsmConvar("logfile", "BUL")
 end
@@ -1680,8 +1684,11 @@ function TOOL:Reload(stTrace)
   local bfover     = self:IsFlipOver()
   local upspanchor = self:GetUpSpawnAnchor()
   if(stTrace.HitWorld and user:IsAdmin()) then
-    if(self:GetDeveloperMode()) then -- Setup log controls
-      asmlib.SetLogControl(self:GetLogLines(),self:GetLogFile()) end
+    if(self:GetDeveloperMode()) then
+      asmlib.SetLogControl(self:GetLogLines(),
+                           self:GetLogBurst(),
+                           self:GetLogFile())
+    end -- Setup log controls in dev mode
   end
   -- Working mode specific actions
   if(workmode == 1) then
@@ -2654,6 +2661,7 @@ if(CLIENT) then
     CPanel:Help(languageGetPhrase("tool."..gsToolNameL..".nonrep_var"))
     asmlib.SetCheckBox(CPanel, "logfile")
     asmlib.SetNumSlider(CPanel, "logsmax", 0)
+    asmlib.SetNumSlider(CPanel, "logsbrs", 0)
     asmlib.SetCheckBox(CPanel, "devmode")
     asmlib.SetCheckBox(CPanel, "exportdb")
     asmlib.SetNumSlider(CPanel, "maxtrmarg", iMaxDec)
@@ -2755,6 +2763,7 @@ if(CLIENT) then
     pItem.DoRightClick = function(pnSelf)
       if(inputIsKeyDown(KEY_LSHIFT)) then
         asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                             asmlib.GetAsmConvar("logsbrs","INT"),
                              asmlib.GetAsmConvar("logfile","BUL"))
       else
         local fW = asmlib.GetOpVar("FORM_GITWIKI")
@@ -2773,6 +2782,7 @@ if(CLIENT) then
         for key, val in pairs(asmlib.GetOpVar("STORE_CONVARS")) do
           asmlib.SetAsmConvar(user, "*"..key, val) end
         asmlib.SetAsmConvar(user, "logsmax"  , asmlib.GetAsmConvar("logsmax"  , "DEF"))
+        asmlib.SetAsmConvar(user, "logsbrs"  , asmlib.GetAsmConvar("logsbrs"  , "DEF"))
         asmlib.SetAsmConvar(user, "logfile"  , asmlib.GetAsmConvar("logfile"  , "DEF"))
         asmlib.SetAsmConvar(user, "modedb"   , asmlib.GetAsmConvar("modedb"   , "DEF"))
         asmlib.SetAsmConvar(user, "devmode"  , asmlib.GetAsmConvar("devmode"  , "DEF"))
@@ -2798,6 +2808,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(user, "maxfruse" , asmlib.GetAsmConvar("maxfruse" , "DEF"))
         asmlib.SetAsmConvar(user, "dtmessage", asmlib.GetAsmConvar("dtmessage", "DEF"))
         asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
+                             asmlib.GetAsmConvar("logsbrs","INT"),
                              asmlib.GetAsmConvar("logfile","BUL"))
         asmlib.LogInstance("Factory reset complete", sLog)
       end
