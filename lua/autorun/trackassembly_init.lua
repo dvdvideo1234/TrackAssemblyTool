@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.815")
+asmlib.SetOpVar("TOOL_VERSION","9.816")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -122,6 +122,8 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 
 asmlib.SetBorder("non-neg", 0)
 asmlib.SetBorder("sbox_max"..gsLimitName , 0)
+asmlib.SetBorder(gsToolPrefL.."pointid"  , 0)
+asmlib.SetBorder(gsToolPrefL.."pnextid"  , 0)
 asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."crvleanlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."curvefact", 0, 1)
@@ -669,16 +671,12 @@ if(CLIENT) then
   asmlib.SetAction("BIND_PRESS", -- Must have the same parameters as the hook
     function(oPly,sBind,bPress) local sLog = "*BIND_PRESS"
       local oPly, acSw, acTo = asmlib.GetHookInfo()
-      if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("Hook mismatch",sLog); return nil end
-      if(not acTo) then -- Make sure we have a tool
-        asmlib.LogInstance("Tool missing",sLog); return nil end
+      if(not asmlib.IsPlayer(oPly)) then return nil end -- No hook
+      if(not acTo) then return nil end -- Make sure we have a tool
       if(((sBind == "invnext") or (sBind == "invprev")) and bPress) then
         -- Switch functionality of the mouse wheel only for TA
-        if(not inputIsKeyDown(KEY_LALT)) then
-          asmlib.LogInstance("Active key missing",sLog); return nil end
-        if(not acTo:GetScrollMouse()) then
-          asmlib.LogInstance("(SCROLL) Scrolling disabled",sLog); return nil end
+        if(not inputIsKeyDown(KEY_LALT)) then return nil end -- No active key
+        if(not acTo:GetScrollMouse()) then return nil end -- Scroll disabled
         local nDir = ((sBind == "invnext") and -1) or ((sBind == "invprev") and 1) or 0
         acTo:SwitchPoint(nDir,inputIsKeyDown(KEY_LSHIFT))
         asmlib.LogInstance("("..sBind..") Processed",sLog); return true
@@ -688,25 +686,23 @@ if(CLIENT) then
             asmlib.LogInstance("("..sBind..") Menu disabled",sLog); return nil end
           asmlib.LogInstance("("..sBind..") Processed",sLog); return true
         end; return nil -- Need to disable the zoom when bind on the mouse middle
-      end -- Override only for TA and skip touching anything else
-      asmlib.LogInstance("("..sBind..") Skipped",sLog); return nil
+      end; return nil -- Override only for TA and skip touching anything else
     end) -- Read client configuration
 
   asmlib.SetAction("DRAW_RADMENU", -- Must have the same parameters as the hook
     function() local sLog = "*DRAW_RADMENU"
       local oPly, acSw, acTo = asmlib.GetHookInfo()
-      if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("Hook mismatch",sLog) return nil end
-      if(not acTo) then -- Make sure we have a tool
-        asmlib.LogInstance("Tool missing",sLog); return nil end
-      if(not acTo:GetRadialMenu()) then
-        asmlib.LogInstance("Menu disabled",sLog); return nil end
-      if(inputIsMouseDown(MOUSE_MIDDLE)) then guiEnableScreenClicker(true) else
-        guiEnableScreenClicker(false); asmlib.LogInstance("Release",sLog); return nil
+      if(not asmlib.IsPlayer(oPly)) then return nil end -- No hook
+      if(not acTo) then return nil end -- Make sure we have a tool
+      if(not acTo:GetRadialMenu()) then return nil end -- Disabled
+      if(inputIsMouseDown(MOUSE_MIDDLE)) then
+        guiEnableScreenClicker(true) -- Relese the mounse to calculate the nagle
+      else -- Otherwise as mouse miggle is not pressed hold the mouse again
+        guiEnableScreenClicker(false) return nil -- Exit with mouse hold
       end -- Draw while holding the mouse middle button
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
-      if(not actMonitor) then asmlib.LogInstance("Screen invalid",sLog); return nil end
+      if(not actMonitor) then return nil end -- Monitor object not present
       local nDr = asmlib.GetOpVar("DEG_RAD")
       local sM  = asmlib.GetOpVar("MISS_NOAV")
       local nMd = asmlib.GetOpVar("MAX_ROTATION")
@@ -756,18 +752,14 @@ if(CLIENT) then
   asmlib.SetAction("DRAW_GHOSTS", -- Must have the same parameters as the hook
     function() local sLog = "*DRAW_GHOSTS"
       local oPly, acSw, acTo = asmlib.GetHookInfo()
-      if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("Hook mismatch",sLog); return nil end
-      if(not acTo) then -- Make sure we have a tool
-        asmlib.LogInstance("Tool missing",sLog); return nil end
-      local model = acTo:GetModel()
-      if(not asmlib.IsModel(model)) then asmlib.ClearGhosts()
-        asmlib.LogInstance("Invalid model",sLog); return nil end
-      local ghcnt = acTo:GetGhostsDepth()
-      local atGho = asmlib.GetOpVar("ARRAY_GHOST")
+      if(not asmlib.IsPlayer(oPly)) then return nil end -- No hook
+      if(not acTo) then return nil end -- Make sure we have a tool
+      local model = acTo:GetModel() -- Rear the ghosting model
+      if(not asmlib.IsModel(model)) then asmlib.ClearGhosts() return nil end
+      local ghcnt, atGho = acTo:GetGhostsDepth(), asmlib.GetOpVar("ARRAY_GHOST")
       if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
         if(not asmlib.NewGhosts(ghcnt, model)) then
-          asmlib.LogInstance("Ghosting fail",sLog); return nil end
+          asmlib.LogInstance("Ghosting fail: "..asmlib.GetReport(model),sLog); return nil end
         acTo:ElevateGhost(atGho[1], oPly) -- Elevate the properly created ghost
       end; acTo:UpdateGhost(oPly) -- Update ghosts stack for the local player
     end) -- Read client configuration
@@ -910,11 +902,12 @@ if(CLIENT) then
         local fD = fileOpen(sNam, "rb", "DATA"); if(not fD) then pnFrame:Close()
           asmlib.LogInstance("File error", sLog..".Import"); return nil end
         local sGen = (gsDirDSV..gsGenerPrf..gsToolPrefU.."*.txt")
-        local tGen = fileFind(sGen, "DATA"); if(tGen and #tGen > 0) then
+        local tGen = fileFind(sGen, "DATA") -- Search for generic database
+        if(tGen and #tGen > 0) then -- some files are present. Register as DSV
           pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(gsDirDSV)
-        else local iG = (tGen and #tGen or 0)
-          asmlib.LogInstance("Generic database: "..asmlib.GetReport(iG, sGen), sLog..".Import") end
-        local sLine, bEOF, bAct = "", false, true
+        else local iG = (tGen and #tGen or 0) -- Report that generic is missing so skip
+          asmlib.LogInstance("Generic skip: "..asmlib.GetReport(iG, sGen), sLog..".Import")
+        end; local sLine, bEOF, bAct = "", false, true
         while(not bEOF) do
           sLine, bEOF = asmlib.GetStringFile(fD)
           if(not asmlib.IsBlank(sLine)) then local sKey, sPrg
@@ -1374,30 +1367,27 @@ if(CLIENT) then
   asmlib.SetAction("DRAW_PHYSGUN",
     function() local sLog = "*DRAW_PHYSGUN"
       if(not asmlib.IsInit()) then return nil end
-      if(not asmlib.GetAsmConvar("engunsnap", "BUL")) then
-        asmlib.LogInstance("Extension disabled",sLog); return nil end
-      if(not asmlib.GetAsmConvar("adviser", "BUL")) then
-        asmlib.LogInstance("Adviser disabled",sLog); return nil end
+      if(not asmlib.GetAsmConvar("engunsnap", "BUL")) then return nil end
+      if(not asmlib.GetAsmConvar("adviser", "BUL")) then return nil end
       local oPly, acSw = asmlib.GetHookInfo("weapon_physgun")
-      if(not oPly) then asmlib.LogInstance("Hook mismatch",sLog); return nil end
+      if(not oPly) then return nil end
       local hasghost = asmlib.HasGhosts(); asmlib.FadeGhosts(true)
-      if(not inputIsMouseDown(MOUSE_LEFT)) then
+      if(not inputIsMouseDown(MOUSE_LEFT)) then -- Left mouse button
         if(hasghost) then timerSimple(0, asmlib.ClearGhosts) end
-        asmlib.LogInstance("Physgun not hold",sLog); return nil
+        return nil -- Not pressing left mouse while physgun is active
       end -- When the player is not holding the piece clear ghosts
-      local actTr = asmlib.GetCacheTrace(oPly); if(not actTr) then
-        asmlib.LogInstance("Trace missing",sLog); return nil end
-      if(not actTr.Hit) then asmlib.LogInstance("Trace not hit",sLog); return nil end
-      if(actTr.HitWorld) then asmlib.LogInstance("Trace world",sLog); return nil end
-      local trEnt = actTr.Entity; if(not (trEnt and trEnt:IsValid())) then
-        asmlib.LogInstance("Trace entity invalid",sLog); return nil end
-      if(trEnt:GetNWBool(gsToolPrefL.."physgundisabled")) then
-        asmlib.LogInstance("Trace entity physgun disabled",sLog); return nil end
-      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel()); if(not trRec) then
-        asmlib.LogInstance("Trace not piece",sLog); return nil end
+      local actTr = asmlib.GetCacheTrace(oPly) -- Read player frame trace
+      if(not actTr) then return nil end -- Trace info is not present
+      if(not actTr.Hit) then return nil end -- Trace did not hit
+      if(actTr.HitWorld) then return nil end -- Trace hit world
+      local trEnt = actTr.Entity -- Read trace antity and validate it
+      if(not (trEnt and trEnt:IsValid())) then return nil end -- Physgun flag
+      if(trEnt:GetNWBool(gsToolPrefL.."physgundisabled")) then return nil end
+      local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())-- Read record
+      if(not trRec) then return nil end -- Traced model not a track piece
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
-      if(not actMonitor) then asmlib.LogInstance("Invalid screen",sLog); return nil end
+      if(not actMonitor) then return nil end -- Active creen is not created
       local atGhosts  = asmlib.GetOpVar("ARRAY_GHOST")
       local ghostcnt  = asmlib.GetAsmConvar("ghostcnt", "FLT")
       local igntype   = asmlib.GetAsmConvar("igntype" , "BUL")
@@ -1430,7 +1420,7 @@ if(CLIENT) then
                   if(ghostcnt > 0) then -- The ghosting is enabled
                     if(not (hasghost and atGhosts.Size == 1 and trRec.Slot == atGhosts.Slot)) then
                       if(not asmlib.NewGhosts(1, trRec.Slot)) then
-                        asmlib.LogInstance("Ghosting fail",sLog); return nil end
+                        asmlib.LogInstance("Ghosting fail: "..trRec.Slot, sLog); return nil end
                     end local eGho = atGhosts[1]; eGho:SetNoDraw(false)
                     eGho:SetPos(actSpawn.SPos); eGho:SetAngles(actSpawn.SAng)
                   end -- When the ghosting is disabled saves memory
@@ -1455,7 +1445,7 @@ if(CLIENT) then
                 if(not asmlib.IsHere(tgRec)) then return nil end
                 for tgI = 1, tgRec.Size do
                   local tgPOA = asmlib.LocatePOA(tgRec, tgI); if(not asmlib.IsHere(tgPOA)) then
-                    asmlib.LogInstance("ID #"..tostring(ID).." not located",sLog); return nil end
+                    asmlib.LogInstance("Cannot spawn: "..asmlib.GetReport(tgI, tgRec.Slot),sLog); return nil end
                   actMonitor:DrawPOA(oPly, tgE, tgPOA, tgI, activrad)
                 end
               end
@@ -1473,7 +1463,7 @@ if(CLIENT) then
           local nRad = asmlib.GetCacheRadius(oPly, actTr.HitPos)
           for ID = 1, trRec.Size do
             local stPOA = asmlib.LocatePOA(trRec, ID); if(not stPOA) then
-              asmlib.LogInstance("Cannot locate #"..tostring(ID), sLog); return end
+              asmlib.LogInstance("Cannot locate: "..asmlib.GetReport(ID, trRec.Slot), sLog); return end
             actMonitor:DrawPOA(oPly, trEnt, stPOA, ID, 0, false)
           end
         end

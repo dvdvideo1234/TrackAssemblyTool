@@ -409,37 +409,30 @@ function GetOwner(oEnt)
 end
 
 ------------------ LOGS ------------------------
-
-function GetLogID()
-  local tLoc = GetOpVar("LOG_CONFIG")
-  if(not (nNum and fMax)) then return "" end
-  return tLoc.Fmt:format(tLoc.Cur)
-end
-
 --[[
   sMsg > Message being displayed
   bCon > Force output in the console
 ]]
 function Log(vMsg, bCon)
   local tLoc = GetOpVar("LOG_CONFIG")
-  if(tLoc.Max <= 0) then return end
+  if(not (tLoc and tLoc.Max > 0)) then return end
   tLoc.Cur = ((tLoc.Cur >= tLoc.Max) and 1 or (tLoc.Cur + 1))
-  local sMsg = GetConcat(GetLogID()," [", GetDateTime(), "] ", tostring(vMsg))
+  local sMsg, sID = tostring(vMsg), tLoc.Fmt:format(tLoc.Cur)
+  local sMsg = GetConcat(sID, " [", GetDateTime(), "] ", sMsg)
   if(IsFlag("en_logging_file") and not bCon) then
-    if(tLoc.Brs > 0) then local tTbr = tLoc.Tbr
-      if(tTbr.Size > 0) then
-        tTbr.Size = (tTbr.Size - 1)
+    if(tLoc.Brs > 0) then
+      local tTbr = tLoc.Tbr
+      local iSiz = tTbr.Size
+      if(iSiz > 0) then
         tableInsert(tTbr, sMsg)
+        tTbr.Size = (iSiz - 1)
       else
-        local fName = GetConcat(GetOpVar("NAME_LIBRARY"), tLoc.Nam)
-        local fLogs = fileOpen(fName, "ab", "DATA")
-        for iL = 1, tLoc.Brs do fLogs:Write("[B"..iL.."]"..sMsg.."\n") end
-        fLogs:Flush(); fLogs:Close()
+        local fLog = fileOpen(tLoc.Nam, "ab", "DATA")
+        if(not fLog) then return end
+        for iL = 1, tLoc.Brs do fLog:Write(GetConcat(tTbr[iL], "\n")) end
+        fLog:Flush(); fLog:Close(); tableEmpty(tTbr); tTbr.Size = tLoc.Brs
       end
-    else
-      local fName = GetConcat(GetOpVar("NAME_LIBRARY"), tLoc.Nam)
-      fileAppend(fName, sMsg.."\n")
-    end
+    else fileAppend(tLoc.Nam, sMsg.."\n") end
   else -- The current has values 1..nMaxLogs(0)
     print(sMsg)
   end
@@ -473,7 +466,7 @@ end
 ]]
 function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local tLoc = GetOpVar("LOG_CONFIG")
-  if(tLoc.Max) then return end
+  if(not (tLoc and tLoc.Max > 0)) then return end
   local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
   if(vSrc and istable(vSrc)) then -- Receive the stack as table
     vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
@@ -647,7 +640,7 @@ function SetLogControl(nLines, nBurs, bFile)
   local tLoc = GetOpVar("LOG_CONFIG")
         tLoc.Max = (tonumber(nLines) or 0); tLoc.Cur = 0
         tLoc.Max = mathFloor((tLoc.Max > 0) and tLoc.Max or 0)
-        tLoc.Fmt = ("%"..(tostring(nMax)):len().."d")
+        tLoc.Fmt = ("%"..(tostring(tLoc.Max)):len().."d")
         tLoc.Brs = (tonumber(nBurs) or 0); tLoc.Tbr.Size = tLoc.Brs
   LogInstance(GetConcat("(", tLoc.Max, ","..tLoc.Brs..",", tostring(bFou), ")"))
 end
@@ -1290,14 +1283,13 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     local oMon = tMon[aKey]; oMon:GetColor(); return oMon end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
-  if(sW < 0 or sH < 0) then LogInstance("Start dimension invalid", tLogs); return nil end
-  if(eW < 0 or eH < 0) then LogInstance("End dimension invalid", tLogs); return nil end
+  if(sW < 0 or sH < 0) then return nil end
+  if(eW < 0 or eH < 0) then return nil end
   local sKeyD, cColD = GetOpVar("KEY_DEFAULT"), GetColor(255,255,255,255)
   local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
   local Colors = {List = conClr, Key = sKeyD, Default = cColD}
-  if(Colors.List) then -- Container check
-    if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER"))
-      then LogInstance("Color list not container", tLogs); return nil end
+  if(Colors.List) then -- Container check. Check if palette is present
+    if(getmetatable(Colors.List) ~= GetOpVar("TYPEMT_CONTAINER")) then return nil end
   else -- Color list is not present then create one
     Colors.List = GetContainer("COLORS_LIST") -- Default color container
   end
@@ -1325,12 +1317,10 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
   end
   function self:GetColor(keyCl, sMeth)
     if(not IsHere(keyCl) and not IsHere(sMeth)) then
-      Colors.Key = GetOpVar("KEY_DEFAULT")
-      LogInstance("Color reset", tLogs); return self end
-    local keyCl = (keyCl or Colors.Key); if(not IsHere(keyCl)) then
-      LogInstance("Indexing skipped", tLogs); return self end
-    if(not isstring(sMeth)) then
-      LogInstance("Method invalid "..GetReport(sMeth), tLogs); return self end
+      Colors.Key = GetOpVar("KEY_DEFAULT") ; return self end
+    local keyCl = (keyCl or Colors.Key) -- Color key
+    if(not IsHere(keyCl)) then return self end -- Present
+    if(not isstring(sMeth)) then return self end -- Method
     local rgbCl = Colors.List:Select(keyCl)
     if(not IsHere(rgbCl)) then rgbCl = Colors.Default end
     if(tostring(Colors.Key) ~= tostring(keyCl)) then -- Update the color only on change
@@ -1410,10 +1400,8 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     if(xyP.y > eH) then return -1 end; return 1
   end
   function self:GetDistance(pS, pE)
-    if(self:Enclose(pS) == -1) then
-      LogInstance("Start out of border", tLogs); return nil end
-    if(self:Enclose(pE) == -1) then
-      LogInstance("End out of border", tLogs); return nil end
+    if(self:Enclose(pS) == -1) then return nil end
+    if(self:Enclose(pE) == -1) then return nil end
     return mathSqrt((pE.x - pS.x)^2 + (pE.y - pS.y)^2)
   end
   function self:DrawLine(pS,pE,keyCl,sMeth,tArgs)
@@ -1421,10 +1409,8 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"LIN")
     local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
-      if(self:Enclose(pS) == -1) then
-        LogInstance("Start out of border", tLogs); return self end
-      if(self:Enclose(pE) == -1) then
-        LogInstance("End out of border", tLogs); return self end
+      if(self:Enclose(pS) == -1) then return self end
+      if(self:Enclose(pE) == -1) then return self end
       surfaceDrawLine(pS.x,pS.y,pE.x,pE.y)
     elseif(sMeth == "SEGM") then
       local nItr = mathClamp((tonumber(tArgs[1]) or 1),1,200)
@@ -1444,10 +1430,8 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"REC")
     local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
     if(sMeth == "SURF") then
-      if(self:Enclose(pO) == -1) then
-        LogInstance("Start out of border", tLogs); return self end
-      if(self:Enclose(pS) == -1) then
-        LogInstance("End out of border", tLogs); return self end
+      if(self:Enclose(pO) == -1) then return self end
+      if(self:Enclose(pS) == -1) then return self end
       local nR, nC = tonumber(tArgs[2]), (tonumber(tArgs[3]) or 0)
       surfaceSetTexture(self:GetMaterial(surfaceGetTextureID, tArgs[1]))
       if(nR and nR ~= 0) then local nD = (nR / GetOpVar("DEG_RAD"))
@@ -2923,21 +2907,17 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end -- Navigated to the last table node and returned the value key
     local sMoDB = GetOpVar("MODE_DATABASE")
     local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
-    LogInstance("Called by "..GetReport(vMsg, vKey), qtDef.Nick)
     oSpot[vKey].Used = nNow -- Mark the current caching time stamp
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand()
-      local tTim = qtCmd.Timer; if(not IsHere(tTim)) then
-        LogInstance("Missing timer settings", qtDef.Nick); return oSpot[vKey] end
-      local smTM, tmLif = tTim[1], tTim[2]; if(tmLif <= 0) then
-        LogInstance("Timer life ignored", qtDef.Nick); return oSpot[vKey] end
+      local tTim = qtCmd.Timer; if(not IsHere(tTim)) then return oSpot[vKey] end
+      local smTM, tmLif = tTim[1], tTim[2]; if(tmLif <= 0) then return oSpot[vKey] end
       if(smTM == "CQT") then smTM = "CQT" -- Cache query timer does nothing
       elseif(smTM == "OBJ") then -- Just for something to do here for mode CQT
-        local tmID = tableConcat(tKey, sDiv); if(not timerExists(tmID)) then
-          LogInstance("Timer missing "..GetReport(tmID), qtDef.Nick); return nil end
-        timerStart(tmID)
+        local tmID = tableConcat(tKey, sDiv) -- Create timer ID
+        if(not timerExists(tmID)) then return nil end -- No timer
+        timerStart(tmID) -- Restart the timer with the given ID
       else LogInstance("Mode mismatch "..GetReport(smTM), qtDef.Nick); return nil end
-    elseif(sMoDB == "LUA") then
-      LogInstance("Memory manager skip",qtDef.Nick); return oSpot[vKey]
+    elseif(sMoDB == "LUA") then return oSpot[vKey]
     else LogInstance("Unsupported mode "..GetReport(sMoDB), qtDef.Nick); return nil end
     return oSpot[vKey]
   end
@@ -5626,21 +5606,20 @@ end
 ]]
 function GetHookInfo(sW)
   if(SERVER) then return nil end
+  local oPly = LocalPlayer()
   local sTo = GetOpVar("TOOLNAME_NL")
   local sDe = GetOpVar("TOOL_DEFMODE")
-  local sWe = tostring(sW or sDe)
-  local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
-    LogInstance("Player invalid"); return nil end
-  local acSw = oPly:GetActiveWeapon(); if(not IsValid(acSw)) then
-    LogInstance("Swep invalid"); return nil end
-  local uWe = acSw:GetClass(); if(uWe ~= sWe) then
-    LogInstance("Swep other "..GetReport(sWe, uWe)); return nil end
-  if(sWe ~= sDe) then return oPly, acSw end
-  local uTo = acSw:GetMode(); if(uTo ~= sTo) then
-    LogInstance("Mode different "..GetReport(sTo, uTo)); return nil end
+  if(not IsPlayer(oPly)) then return nil end
+  local acSw = oPly:GetActiveWeapon() -- Get player weapon
+  if(not IsValid(acSw)) then return nil end -- Swep invalid
+  local sWe = tostring(sW or sDe) -- Swep class or default
+  local uWe = acSw:GetClass(); if(uWe ~= sWe) then return nil end
+  if(sWe ~= sDe) then return oPly, acSw end -- Swep different
+  local uTo = acSw:GetMode() -- Get player tool mode
+  if(uTo ~= sTo) then return nil end -- Mode different
   -- Here player is holding the track assembly tool
-  local acTo = acSw:GetToolObject(); if(not acTo) then
-    LogInstance("Tool invalid "..GetReport(uWe, uTo)); return nil end
+  local acTo = acSw:GetToolObject() -- Get player tool
+  if(not acTo) then return nil end -- Tool is invalid
   return oPly, acSw, acTo
 end
 

@@ -2245,7 +2245,7 @@ function TOOL:DrawHUD()
   if(not asmlib.IsInit()) then return end
   local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
   local hudMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
-  if(not hudMonitor) then asmlib.LogInstance("Invalid screen",gtLogs); return end
+  if(not hudMonitor) then return end
   if(not self:GetAdviser()) then return end
   local user = LocalPlayer()
   local stTrace = asmlib.GetCacheTrace(user)
@@ -2362,7 +2362,7 @@ function TOOL:DrawToolScreen(w, h)
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
   local scrTool = asmlib.GetScreen(0,0,w,h,conPalette,"TOOL")
-  if(not scrTool) then asmlib.LogInstance("Invalid screen",gtLogs); return end
+  if(not scrTool) then return end -- Screen not yet created
   local xyT, xyB = scrTool:GetCorners()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
   scrTool:SetTextStart(xyT.x, xyT.y)
