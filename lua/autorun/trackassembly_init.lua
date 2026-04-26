@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.816")
+asmlib.SetOpVar("TOOL_VERSION","9.817")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -122,8 +122,8 @@ local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 
 asmlib.SetBorder("non-neg", 0)
 asmlib.SetBorder("sbox_max"..gsLimitName , 0)
-asmlib.SetBorder(gsToolPrefL.."pointid"  , 0)
-asmlib.SetBorder(gsToolPrefL.."pnextid"  , 0)
+asmlib.SetBorder(gsToolPrefL.."pointid"  , 1)
+asmlib.SetBorder(gsToolPrefL.."pnextid"  , 1)
 asmlib.SetBorder(gsToolPrefL.."crvturnlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."crvleanlm", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."curvefact", 0, 1)

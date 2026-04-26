@@ -63,6 +63,7 @@ local IsValid                        = IsValid
 local Material                       = Material
 local require                        = require
 local Time                           = CurTime
+local SysTime                        = SysTime
 local EntityID                       = Entity
 local tonumber                       = tonumber
 local tostring                       = tostring
@@ -311,6 +312,30 @@ function GetDateTime(vDT, fDT)
   return GetDate(vDT, fDT).." "..GetTime(vDT, fDT)
 end
 
+function TimeTic(sN, bC)
+  local sNa = GetOpVar("MISS_NOAV")
+  local tTm = GetOpVar("TIME_BENCH")
+  local tLc = GetOpVar("LOG_CONFIG")
+  tTm.Nam, tTm.Now = tostring(sN or sNa), (SysTime() * 1000)
+  tTm.Bns, tTm.Cur, tTm.Con = tTm.Now, tTm.Now, tobool(bC)
+  Log(tTm.Ftc:format(tTm.Nam, tTm.Now), tTm.Con)
+end
+
+function TimeLap(sN)
+  local sNa = GetOpVar("MISS_NOAV")
+  local tTm = GetOpVar("TIME_BENCH")
+  local tLc = GetOpVar("LOG_CONFIG")
+  tTm.Nsn, tTm.Now = tostring(sN or "N/A"), (SysTime() * 1000)
+  tTm.Lpc, tTm.Lps = (tTm.Now - tTm.Cur), (tTm.Now - tTm.Bns); tTm.Cur = tTm.Now
+  Log(tTm.Flp:format(tTm.Nam, tTm.Nsn, tTm.Bns, tTm.Cur, tTm.Lps, tTm.Lpc), tTm.Con)
+end
+
+function TimeToc()
+  local tTm = GetOpVar("TIME_BENCH")
+  tTm.Now = SysTime()
+  LogInstance(tTm.Fto:format(tTm.Nam, tTm.Now))
+end
+
 -- Uses custom model check to remove the pre-caching overhead
 libModel.Skip = {} -- General disabled models for spawning
 libModel.Skip[""] = true -- Empty string
@@ -420,21 +445,21 @@ function Log(vMsg, bCon)
   local sMsg, sID = tostring(vMsg), tLoc.Fmt:format(tLoc.Cur)
   local sMsg = GetConcat(sID, " [", GetDateTime(), "] ", sMsg)
   if(IsFlag("en_logging_file") and not bCon) then
-    if(tLoc.Brs > 0) then
-      local tTbr = tLoc.Tbr
-      local iSiz = tTbr.Size
-      if(iSiz > 0) then
-        tableInsert(tTbr, sMsg)
-        tTbr.Size = (iSiz - 1)
-      else
+    if(tLoc.Brs > 0) then -- We still have burst rate rows
+      local tTbr = tLoc.Tbr -- Index burst table
+      local iSiz = tTbr.Size --Read current size
+      if(iSiz > 0) then -- Burst writes rates
+        tableInsert(tTbr, sMsg) -- Write to the table
+        tTbr.Size = (iSiz - 1) -- Decremrnt burst count
+      else -- Burst rates count is zero. Dump the table in the file
         local fLog = fileOpen(tLoc.Nam, "ab", "DATA")
-        if(not fLog) then return end
+        if(not fLog) then ErrorNoHalt("") end -- Skip if cannot open
         for iL = 1, tLoc.Brs do fLog:Write(GetConcat(tTbr[iL], "\n")) end
         fLog:Flush(); fLog:Close(); tableEmpty(tTbr); tTbr.Size = tLoc.Brs
-      end
+      end -- Burst mode is not activated. Open the file for every line
     else fileAppend(tLoc.Nam, sMsg.."\n") end
   else -- The current has values 1..nMaxLogs(0)
-    print(sMsg)
+    print(sMsg) -- Write the log in the console
   end
 end
 
@@ -488,7 +513,7 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local sData = GetConcat(sSrc, sFunc, ": ", tostring(vMsg))
   bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
   bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
-  if(tLoc.Prv == sData) then return end; tLoc.Prv = sData
+  --if(tLoc.Prv == sData) then return end; tLoc.Prv = sData -- TODO: Remove comment
   Log(GetConcat(sInst," > ",sToolMD," [",sMoDB,"]",sDbg," ",sData), bCon)
 end
 
@@ -723,6 +748,19 @@ function InitBase(sName, sPurp)
     Prv = "", -- The previous logging row
     Dbg = false, -- Force stack trace debugging
     Nam = GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt"
+  })
+  SetOpVar("TIME_BENCH",{
+    Now = 0,  -- Current time place holder `SysTime`
+    Bns = 0,  -- Current time at the start of benchmark
+    Cur = 0,  -- Current time at the current moment
+    Lps = 0,  -- Lap time relative to Now
+    Lpc = 0,  -- Lap time relative to Cur
+    Con = false, -- Sent the benchmark logs in the console
+    Nam = "", -- Benchmark name. begin a new benchmark
+    Nsn = "", -- Snapshot name as a lap marker
+    Ftc = "TIC[%s]: %d", -- Benchmark start format
+    Fto = "TOC[%s]: %d", -- Benchmark end format
+    Flp = "LAP[%s][%s]: %d|%d|%d|%d"
   })
   SetOpVar("MISS_NOMD","X")      -- No model
   SetOpVar("MISS_NOID","N")      -- No ID selected
@@ -3950,6 +3988,7 @@ end
  * sDelim > What delimiter is the server using
 ]]
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
+  TimeTic(sPref..":SYNC:"..sTable, true)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local sDelim, fData = tostring(sDelim or "\t"):sub(1,1), {}
@@ -3965,10 +4004,13 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance(sHew.." Missing table builder",sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
   local fName = GetLibraryPath(GetOpVar("DIRPATH_DSV"), fPref, defTab.Name)
+  TimeLap("INIT-OK")
   if(fileExists(fName, "DATA")) then
+    TimeLap("SRCIN-START")
     local sLine, isEOF = "", false
     local I = fileOpen(fName, "rb", "DATA"); if(not I) then
       LogInstance(sHew.." Open fail: "..fName,sTable); return false end
+    TimeLap("SRCIN-INIT")
     while(not isEOF) do sLine, isEOF = GetStringFile(I)
       if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
         local tLine = sDelim:Explode(sLine)
@@ -3988,9 +4030,13 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           for iCnt = 3, nL do fRow[iCnt-2] = tLine[iCnt] end -- Transfer the extracted data
         else I:Close()
           LogInstance(sHew.." Read table name mismatch",sTable); return false end
+
+        TimeLap("SRCIN-LINE"..GetReport(tLine[2],tLine[5]))
       end
     end; I:Close()
+    TimeLap("SRCIN-END")
   else LogInstance(sHew.." Creating file "..GetReport(fName),sTable) end
+  TimeLap("SRC-FILE")
   for key, rec in pairs(tData) do -- Check the given table and match the key
     local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
       LogInstance(sHew.." Sync matching PK failed "..GetReport(key),sTable); return false end
@@ -4024,12 +4070,14 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         fData[vK] = tRec; fData[vK].Size = #tRec end
     end
   end
+  TimeLap("SRC-DATA")
   local tSort = Arrange(fData); if(not tSort) then
     LogInstance(sHew.." Sorting failed",sTable); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance(sHew.." Open fail: "..fName,sTable); return false end
   O:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
   O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
+  TimeLap("OUTC-INIT")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Key
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
       O:Flush(); O:Close(); LogInstance(sHew.." Write matching PK failed "
@@ -4044,6 +4092,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       end; O:Write(sCash..sData.."\n"); sData = ""
     end
   end O:Flush(); O:Close()
+  TimeLap("OUTC-FINISH")
   LogInstance(sHew.." Success",sTable); return true
 end
 

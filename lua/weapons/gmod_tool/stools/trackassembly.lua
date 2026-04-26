@@ -2069,7 +2069,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
-  local bRp  = (inputIsKeyDown(KEY_LSHIFT) or inputIsKeyDown(KEY_LCONTROL))
+  local bSh, bCt = inputIsKeyDown(KEY_LSHIFT), inputIsKeyDown(KEY_LCONTROL)
   local nrB, nrS, nrA, mD, mL = 1.5, 1.5, self:GetActiveRadius()
   local xyO, xyH = tData.Org:ToScreen(), tData.Hit:ToScreen()
   local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
@@ -2080,7 +2080,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
   else oScreen:DrawLine(xyH, xyO, "y") end -- When active point is used for node
   oScreen:DrawCircle(xyO, asmlib.GetViewRadius(oPly, tData.Org, nrB), "g")
   oScreen:DrawLine(xyO, xyZ, "b")
-  if(bRp) then mD, mL = asmlib.GetNearest(tData.Hit, tC.Base) end
+  if(bSh or bCt) then mD, mL = asmlib.GetNearest(tData.Hit, tC.Base) end
   if(tC.Size and tC.Size > 0) then
     for iD = 1, tC.Size do
       local rN = (iD == 1 and nrB or nrS)
@@ -2095,6 +2095,9 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       oScreen:DrawCircle(xyB, nB)
       oScreen:DrawCircle(xyD, nD)
       oScreen:DrawLine(xyF, xyD, "r")
+      if(bCt) then -- TODO: Draw next id after trace id
+        oScreen:SetTextStart(xyD.x + 30, xyD.y - 30):DrawText(tostring(iD), "y")
+      end
       oScreen:DrawLine(xyN, xyD, "b")
       oScreen:DrawCircle(xyD, nD / 2, "r")
       if(tC.Node[iD - 1]) then
@@ -2104,7 +2107,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
     end
   end
   if(tC.Size and tC.Size > 0) then
-    if(bRp and mD) then
+    if((bSh or bCt) and mD) then
       local xyN = tC.Node[mD]:ToScreen()
       oScreen:DrawLine(xyO, xyN, "r")
       if(mL < nrA^2) then
