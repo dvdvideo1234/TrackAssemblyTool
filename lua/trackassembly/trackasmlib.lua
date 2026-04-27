@@ -513,7 +513,6 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local sData = GetConcat(sSrc, sFunc, ": ", tostring(vMsg))
   bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
   bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
-  --if(tLoc.Prv == sData) then return end; tLoc.Prv = sData -- TODO: Remove comment
   Log(GetConcat(sInst," > ",sToolMD," [",sMoDB,"]",sDbg," ",sData), bCon)
 end
 
@@ -745,7 +744,6 @@ function InitBase(sName, sPurp)
     Tbr = {}, -- Table to store burst rate log lines
     Cur = 0, -- Current logging line ID
     Fmt = "", -- Log message ID format. Log file name
-    Prv = "", -- The previous logging row
     Dbg = false, -- Force stack trace debugging
     Nam = GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt"
   })
