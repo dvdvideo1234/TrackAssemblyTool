@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.818")
+asmlib.SetOpVar("TOOL_VERSION","9.819")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -437,7 +437,7 @@ if(SERVER) then
                           activrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
         if(stSpawn) then
           if(not asmlib.SetPosBound(trEnt, stSpawn.SPos, pPly, bnderrmod)) then
-            asmlib.LogInstance("User "..pPly:Nick().." snapped <"..trRec.Slot.."> outside bounds",sLog); return nil end
+            asmlib.LogInstance("Snap outside bounds: "..asmlib.GetReport(pPly:Nick(), trRec.Slot),sLog); return nil end
           trEnt:SetAngles(stSpawn.SAng)
           if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
             asmlib.LogInstance("Failed to apply physical settings",sLog); return nil end
@@ -653,7 +653,7 @@ if(CLIENT) then
 
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly, sLog = netReadEntity(), "*CLEAR_RELATION"
-      asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}", sLog)
+      asmlib.LogInstance("Clear "..asmlib.GetReport(nLen,oPly), sLog)
       if(not asmlib.IntersectRayClear(oPly, "relate")) then
         asmlib.LogInstance("Failed clearing ray", sLog); return nil end
       asmlib.LogInstance("Success", sLog); return nil
@@ -662,7 +662,7 @@ if(CLIENT) then
   asmlib.SetAction("CREATE_RELATION",
     function(nLen) local sLog = "*CREATE_RELATION"
       local oEnt, vHit, oPly = netReadEntity(), netReadVector(), netReadEntity()
-      asmlib.LogInstance("{"..tostring(nLen)..","..tostring(oPly).."}", sLog)
+      asmlib.LogInstance("Create "..asmlib.GetReport(nLen,oPly), sLog)
       if(not asmlib.IntersectRayCreate(oPly, oEnt, vHit, "relate")) then
         asmlib.LogInstance("Failed updating ray", sLog); return nil end
       asmlib.LogInstance("Success", sLog); return nil
@@ -679,12 +679,12 @@ if(CLIENT) then
         if(not acTo:GetScrollMouse()) then return nil end -- Scroll disabled
         local nDir = ((sBind == "invnext") and -1) or ((sBind == "invprev") and 1) or 0
         acTo:SwitchPoint(nDir,inputIsKeyDown(KEY_LSHIFT))
-        asmlib.LogInstance("("..sBind..") Processed",sLog); return true
+        asmlib.LogInstance("Processed: "..sBind,sLog); return true
       elseif((sBind == "+zoom") and bPress) then -- Work mode radial menu selection
         if(inputIsMouseDown(MOUSE_MIDDLE)) then -- Reserve the mouse middle for radial menu
           if(not acTo:GetRadialMenu()) then -- Zoom is bind on the middle mouse button
-            asmlib.LogInstance("("..sBind..") Menu disabled",sLog); return nil end
-          asmlib.LogInstance("("..sBind..") Processed",sLog); return true
+            asmlib.LogInstance("Menu disabled: "..sBind,sLog); return nil end
+          asmlib.LogInstance("Processed: "..sBind,sLog); return true
         end; return nil -- Need to disable the zoom when bind on the mouse middle
       end; return nil -- Override only for TA and skip touching anything else
     end) -- Read client configuration
@@ -696,8 +696,8 @@ if(CLIENT) then
       if(not acTo) then return nil end -- Make sure we have a tool
       if(not acTo:GetRadialMenu()) then return nil end -- Disabled
       if(inputIsMouseDown(MOUSE_MIDDLE)) then
-        guiEnableScreenClicker(true) -- Relese the mounse to calculate the nagle
-      else -- Otherwise as mouse miggle is not pressed hold the mouse again
+        guiEnableScreenClicker(true) -- Release the mouse to calculate the angle
+      else -- Otherwise as mouse middle is not pressed hold the mouse again
         guiEnableScreenClicker(false) return nil -- Exit with mouse hold
       end -- Draw while holding the mouse middle button
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
@@ -1085,7 +1085,7 @@ if(CLIENT) then
   asmlib.SetAction("OPEN_FRAME",
     function(oPly,oCom,oArgs) local sLog = "*OPEN_FRAME"
       local frUsed = asmlib.GetFrequentPieces(oArgs[1]); if(not asmlib.IsHere(frUsed)) then
-        asmlib.LogInstance("Retrieving most frequent models failed ["..tostring(oArgs[1]).."]",sLog); return nil end
+        asmlib.LogInstance("Most frequent models failed "..asmlib.GetReport(oArgs[1]),sLog); return nil end
       local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
         asmlib.LogInstance("Missing builder for table PIECES",sLog); return nil end
       local defTab = makTab:GetDefinition(); if(not defTab) then
@@ -1251,7 +1251,7 @@ if(CLIENT) then
           asmlib.LogInstance("Model entity invalid "..asmlib.GetReport(uiMod), sLog..".ListView"); return nil end
         uiEnt:SetModel(uiMod); uiEnt:SetModelName(uiMod) -- Apply the model on the model panel even for changed compiled model paths
         local uiBox = asmlib.CacheBoxLayout(uiEnt,gnRatio,gnRatio-1); if(not asmlib.IsHere(uiBox)) then
-          asmlib.LogInstance("Box invalid for <"..uiMod..">",sLog..".ListView"); return nil end
+          asmlib.LogInstance("Box invalid for "..asmlib.GetReport(uiMod),sLog..".ListView"); return nil end
         pnModelPanel:SetLookAt(uiBox.Eye); pnModelPanel:SetCamPos(uiBox.Cam)
         local pointid, pnextid = asmlib.GetAsmConvar("pointid","INT"), asmlib.GetAsmConvar("pnextid","INT")
               pointid, pnextid = asmlib.SnapReview(pointid, pnextid, uiAct); SetClipboardText(uiMod)
@@ -1763,7 +1763,7 @@ gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
     local sName = languageGetPhrase(sKey.."_con"):Trim():Trim(":")
     if(isfunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
-        asmlib.LogInstance("Request "..asmlib.GetReport(sKey,iD).." fail: "..vE,gsOptionsLG); return end
+        asmlib.LogInstance("Request fail "..asmlib.GetReport(sKey,iD,vE),gsOptionsLG); return end
       sName = sName..": "..tostring(vE)          -- Attach client value ( CLIENT )
     elseif(isfunction(wDraw)) then
       sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
@@ -1789,7 +1789,7 @@ gtOptionsCM.Evaluate = function(self, ent, idx, key)
     local oPly = LocalPlayer()
     local oTr  = oPly:GetEyeTrace()
     local bS, vE = pcall(fHandle,ent,oPly,oTr,key); if(not bS) then
-      asmlib.LogInstance("Request "..asmlib.GetReport(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+      asmlib.LogInstance("Request fail "..asmlib.GetReport(sKey,idx,vE),gsOptionsLG); return end
     if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport(sKey,idx),gsOptionsLG); return end
   end
 end
@@ -1804,7 +1804,7 @@ gtOptionsCM.Receive = function(self, len, ply)
   if(not propertiesCanBeTargeted(ent, ply)) then return end
   local sKey, fHandle = tLine[1], tLine[3] -- Menu function handler
   local bS, vE = pcall(fHandle, ent, ply, oTr, sKey); if(not bS) then
-    asmlib.LogInstance("Request "..asmlib.GetReport(sKey,idx).." fail: "..vE,gsOptionsLG); return end
+    asmlib.LogInstance("Request fail "..asmlib.GetReport(sKey,idx,vE),gsOptionsLG); return end
   if(bS and not vE) then asmlib.LogInstance("Failure "..asmlib.GetReport(sKey,idx),gsOptionsLG); return end
 end
 -- Register the track assembly setup options in the context menu
@@ -1887,7 +1887,7 @@ asmlib.NewTable("PIECES",{
     ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref),vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
@@ -1912,7 +1912,7 @@ asmlib.NewTable("PIECES",{
     end,
     ExportTypeDSV = function(fP, makP, PCache, fA, makA, ACache, fPref, sDelim, vSrc)
       local tSort = asmlib.Arrange(PCache, "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref),vSrc); return false end
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
@@ -2126,13 +2126,13 @@ asmlib.NewTable("PHYSPROPERTIES",{
       local pN = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
       if(not (tTypes or tNames)) then
-        asmlib.LogInstance("("..fPref..") No data found",vSrc); return false end
+        asmlib.LogInstance("No data found "..asmlib.GetReport(fPref),vSrc); return false end
       for iD = 1, tTypes.Size do tableInsert(tT, tTypes[iD]) end
       local tS = asmlib.Arrange(tT); if(not tS) then
-        asmlib.LogInstance("("..fPref..") Cannot sort cache data",vSrc); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref),vSrc); return false end
       for iS = 1, tS.Size do local sT = tS[iS].Rec
         local tProp = tNames[sT]; if(not tProp) then
-          asmlib.LogInstance("("..fPref..") Missing index "..asmlib.GetReport(iS, sT),vSrc); return false end
+          asmlib.LogInstance("Missing index "..asmlib.GetReport(fPref, iS, sT),vSrc); return false end
         for iP = 1, tProp.Size do local sP = tProp[iP]
           oF:Write(defTab.Name..sDelim..makTab:Match(sT,1,true,"\"")..
                                 sDelim..makTab:Match(iP,2,true,"\"")..
