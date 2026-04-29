@@ -957,13 +957,14 @@ function TOOL:CheckCurveNode(vPos, iID)
   local nM, sN = asmlib.GetOpVar("CURVE_NODEMR"), user:Nick()
   local iPr, iNx = (iID - 1), (iID + 1)
   local vPr, vNx = tC.Node[iPr], tC.Node[iNx]
+  local sFm = ("%s [%s] node [%d] too close%s")
   if(vPr and vPr:DistToSqr(vPos) < nM) then
-    asmlib.Notify(user,"Previous ["..sN.."] node ["..iPr.."] too close !","ERROR")
-    asmlib.LogInstance("Previous ["..sN.."] node ["..iPr.."] too close", gtLogs); return nil
+    asmlib.Notify(user,sFm:format("Previous", sN, iPr, " !"),"ERROR")
+    asmlib.LogInstance(sFm:format("Previous", sN, iPr, ""), gtLogs); return nil
   end
   if(vNx and vNx:DistToSqr(vPos) < nM) then
-    asmlib.Notify(user,"Next ["..sN.."] node ["..iNx.."] too close !","ERROR")
-    asmlib.LogInstance("Next ["..sN.."] node ["..iNx.."] too close", gtLogs); return nil
+    asmlib.Notify(user,sFm:format("Next", sN, iNx, " !"),"ERROR")
+    asmlib.LogInstance(sFm:format("Next", sN, iNx, ""), gtLogs); return nil
   end; return tC
 end
 
@@ -984,20 +985,36 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
     asmlib.LogInstance("Curve node too close", gtLogs); return nil end
   local iN, vN = self:ApplySuperElevation(tC, tData)
   local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
-  tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
-  if(iC) then -- We have to insert at the middle of the stack
-    tableInsert(tC.Node, iC, Vector(tData.Org))
-    tableInsert(tC.Norm, iC, tData.Ang:Up())
-    tableInsert(tC.Base, iC, Vector(tData.Hit))
-    tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
-  else iC = tC.Size -- Insert at the node stack end. Send the end to the client
+  if(iC) then local iB, iF = (iC - 1), (iC + 1)
+    if(iB > 0 and iB <= tC.Size and iF > 0 and iF <= tC.Size) then
+      local vDN = Vector(tData.Org); vDN:Sub(tC.Node[iC])
+      local vDP = Vector(tC.Node[iP]); vDP:Sub(tC.Node[iC])
+      if(vDN:Dot(vDP) > 0) then -- We have to insert at the middle of the stack
+        tableInsert(tC.Node, iC, Vector(tData.Org))
+        tableInsert(tC.Norm, iC, tData.Ang:Up())
+        tableInsert(tC.Base, iC, Vector(tData.Hit))
+        tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+      else iC, iD = iF, iF -- Insert in the middle. Use the next point not to twist the curve
+        tableInsert(tC.Node, iC, Vector(tData.Org))
+        tableInsert(tC.Norm, iC, tData.Ang:Up())
+        tableInsert(tC.Base, iC, Vector(tData.Hit))
+        tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+      end
+    else -- The insert is at the beginning or at the end
+      tableInsert(tC.Node, iC, Vector(tData.Org))
+      tableInsert(tC.Norm, iC, tData.Ang:Up())
+      tableInsert(tC.Base, iC, Vector(tData.Hit))
+      tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+    end -- Insert at the node stack end. Send the end to the client
+  else iC, iD = (tC.Size + 1), 0 -- Client insertion ID is not provided
     tableInsert(tC.Node, Vector(tData.Org))
     tableInsert(tC.Norm, tData.Ang:Up())
     tableInsert(tC.Base, Vector(tData.Hit))
     tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
   end
+  tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
   if(not bMute) then
-    asmlib.Notify(user, "Node inserted ["..tC.Size.."] !", "CLEANUP")
+    asmlib.Notify(user, ("Node inserted [%d] !"):format(iC), "CLEANUP")
     netStart(gsLibName.."SendInsertCurveNode")
       netWriteEntity(user)
       netWriteVector(tC.Node[iC])
@@ -1654,9 +1671,6 @@ function TOOL:RightClick(stTrace)
     else
       tC = self:CurveInsert(stTrace, bPnt)
     end; return (tC and true or false)
-  elseif(workmode == 2) then -- Intersect relation
-    if(not self:IntersectRelate(trEnt, stTrace.HitPos)) then
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation fail"),gtLogs); return false end
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
   end
@@ -1699,13 +1713,28 @@ function TOOL:Reload(stTrace)
   -- Working mode specific actions
   if(workmode == 1) then
     if(user:KeyDown(IN_SPEED)) then
-      asmlib.LogInstance("Anchor updated",gtLogs)
-      if(upspanchor) then return self:SetAnchor(stTrace) else return self:ClearAnchor() end
+      if(trEnt and trEnt:IsValid()) then
+        asmlib.LogInstance("(Prop) Anchor set",gtLogs)
+        return self:SetAnchor(stTrace)
+      else -- Pointing the world
+        if(upspanchor) then -- Spawn anchor
+          asmlib.LogInstance("(World) Anchor set",gtLogs)
+          return self:SetAnchor(stTrace)
+        else -- Clear anchor when disabled
+          asmlib.LogInstance("(World) Anchor clear",gtLogs)
+          return self:ClearAnchor()
+        end -- Anchor processed for hit world
+      end
     end
   elseif(workmode == 2) then
     if(user:KeyDown(IN_SPEED)) then
-      asmlib.LogInstance("Relate clear",gtLogs)
-      self:IntersectClear(); return true
+      if(trEnt and trEnt:IsValid()) then
+        asmlib.LogInstance("(Prop) Relation set",gtLogs)
+        return self:IntersectRelate(trEnt, stTrace.HitPos)
+      else
+        asmlib.LogInstance("(World) Relation clear",gtLogs)
+        return self:IntersectClear()
+      end
     end
   elseif(workmode == 3 or workmode == 5) then
     if(user:KeyDown(IN_SPEED)) then
@@ -1715,10 +1744,10 @@ function TOOL:Reload(stTrace)
       local tC = asmlib.GetCacheCurve(user); if(not tC) then
         asmlib.LogInstance("Curve missing", gtLogs); return false end
       local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-      asmlib.LogInstance("Node ["..mD.."] removed",gtLogs)
+      asmlib.LogInstance(("Node [%d] removed"):format(mD),gtLogs)
       self:CurveRemove(mD); return true
     else
-      asmlib.LogInstance("Node removed",gtLogs)
+      asmlib.LogInstance("Node [N] removed",gtLogs)
       self:CurveRemove(); return true
     end
   elseif(workmode == 4 and bfover) then
