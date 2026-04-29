@@ -427,7 +427,7 @@ function TOOL:SwitchPoint(vDir, bNxt)
   if(pnextid == pointid) then pnextid = asmlib.SwitchID(pnextid,nDir,oRec) end
   asmlib.SetAsmConvar(user, "pnextid", pnextid)
   asmlib.SetAsmConvar(user, "pointid", pointid)
-  asmlib.LogInstance("("..nDir..","..tostring(bNxt)..") Success",gtLogs)
+  asmlib.LogInstance("Success "..asmlib.GetReport(nDir, bNxt),gtLogs)
   return pointid, pnextid
 end
 
@@ -435,30 +435,32 @@ function TOOL:IntersectClear(bMute)
   local user = self:GetOwner()
   local stRay = asmlib.IntersectRayRead(user, "relate")
   if(stRay) then asmlib.IntersectRayClear(user, "relate")
-    if(SERVER) then local ryEnt, sRel = stRay.Ent
+    if(SERVER) then local ryEnt, sRe = stRay.Ent, nil
       netStart(gsLibName.."SendIntersectClear"); netWriteEntity(user); netSend(user)
-      if(ryEnt and ryEnt:IsValid()) then
+      if(not (ryEnt and ryEnt:IsValid())) then sRe = gsNoID..gsSymRev..gsNoMD else
         asmlib.UpdateColor(ryEnt, "intersect", "ry", false)
-        sRel = ryEnt:EntIndex()..gsSymRev..stringGetFileName(ryEnt:GetModel()) end
-      if(not bMute) then sRel = (sRel and (": "..tostring(sRel)) or "")
-        asmlib.LogInstance("Relation cleared <"..sRel..">",gtLogs)
-        asmlib.Notify(user,"Intersect relation clear"..sRel.." !","CLEANUP")
+        sRe = ryEnt:EntIndex()..gsSymRev..stringGetFileName(ryEnt:GetModel())
+      end -- If the entity is not valid show legend is unavailable
+      if(not bMute) then
+        asmlib.LogInstance("Relation cleared "..sRe, gtLogs)
+        asmlib.Notify(user,("Intersect relation clear: %s !"):format(sRe),"CLEANUP")
       end -- Make sure to delete the relation on both client and server
     end
   end; return true
 end
 
-function TOOL:IntersectRelate(oPly, oEnt, vHit)
-  self:IntersectClear(true) -- Clear intersect related player on new relation
-  local stRay = asmlib.IntersectRayCreate(oPly, oEnt, vHit, "relate")
+function TOOL:IntersectRelate(oEnt, vHit)
+  local user = self:GetOwner(); self:IntersectClear(true)
+  local stRay = asmlib.IntersectRayCreate(user, oEnt, vHit, "relate")
   if(not stRay) then -- Create/update the ray in question
     asmlib.LogInstance("Update fail",gtLogs); return false end
   if(SERVER) then -- Only the server is allowed to define relation ray
     netStart(gsLibName.."SendIntersectRelate")
-    netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(oPly); netSend(oPly)
-    local sRel = oEnt:EntIndex()..gsSymRev..stringGetFileName(oEnt:GetModel())
-    asmlib.Notify(oPly,"Intersect relation set: "..sRel.." !","UNDO")
-    asmlib.UpdateColor(oEnt, "intersect", "ry", true)
+    netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(user); netSend(user)
+    if(not (oEnt and oEnt:IsValid())) then sRe = gsNoID..gsSymRev..gsNoMD else
+      sRe = oEnt:EntIndex()..gsSymRev..stringGetFileName(oEnt:GetModel())
+      asmlib.UpdateColor(oEnt, "intersect", "ry", true)
+    end; asmlib.Notify(user,("Intersect relation set: %s !"):format(sRe),"UNDO")
   end return true
 end
 
@@ -788,15 +790,16 @@ end
 
 function TOOL:SelectModel(sModel)
   local trRec = asmlib.CacheQueryPiece(sModel); if(not asmlib.IsHere(trRec)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"Model <"..sModel.."> not piece"),gtLogs); return false end
-  local user = self:GetOwner()
+    asmlib.LogInstance(self:GetStatus(stTrace,"Model not piece "
+      ..asmlib.GetReport(sModel)),gtLogs); return false end
+  local user, namo = self:GetOwner(), stringGetFileName(sModel)
   local pointid, pnextid = self:GetPointID()
         pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Size)
-  asmlib.Notify(user,"Model: "..stringGetFileName(sModel).." selected !","UNDO")
+  asmlib.Notify(user,("Model selected: %s !"):format(namo),"UNDO")
   asmlib.SetAsmConvar(user,"pointid", pointid)
   asmlib.SetAsmConvar(user,"pnextid", pnextid)
   asmlib.SetAsmConvar(user, "model" , sModel)
-  asmlib.LogInstance("Success <"..sModel..">",gtLogs); return true
+  asmlib.LogInstance("Success "..asmlib.GetReport(namo,sModel),gtLogs); return true
 end
 
 --[[
@@ -1651,6 +1654,9 @@ function TOOL:RightClick(stTrace)
     else
       tC = self:CurveInsert(stTrace, bPnt)
     end; return (tC and true or false)
+  elseif(workmode == 2) then -- Intersect relation
+    if(not self:IntersectRelate(trEnt, stTrace.HitPos)) then
+      asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Relation fail"),gtLogs); return false end
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
   end
@@ -1688,7 +1694,7 @@ function TOOL:Reload(stTrace)
       asmlib.SetLogControl(self:GetLogLines(),
                            self:GetLogBurst(),
                            self:GetLogFile())
-    end -- Setup log controls in dev mode
+    end -- Setup log controls in developer mode
   end
   -- Working mode specific actions
   if(workmode == 1) then

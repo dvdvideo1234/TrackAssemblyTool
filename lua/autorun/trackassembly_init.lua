@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.819")
+asmlib.SetOpVar("TOOL_VERSION","9.820")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1012,7 +1012,7 @@ if(CLIENT) then
             if(not gameSinglePlayer()) then -- Server and client are on the same machine
               asmlib.LogInstance("Single player only",sLog..".ListView"); return nil end
             local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP)
-            if(not bS) then LogInstance("Refresh execute: "..sR,sLog..".ListView"); return nil end
+            if(not bS) then LogInstance("Refresh execute "..asmlib.GetReport(sP, sR),sLog..".ListView"); return nil end
             if(not sR) then LogInstance("Trigger routine fail",sLog..".ListView"); return nil end
             netStart(gsLibName.."SendRefreshDSV"); netWriteString(sP); netSendToServer()
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
@@ -1700,12 +1700,9 @@ if(SERVER) then
         local sKey, wDraw = tLine[1], tLine[5]  -- Extract the key and handler
         if(type(wDraw) == "function") then      -- Check when the value is function
           local bS, vO = pcall(wDraw, oEnt); vO = tostring(vO) -- Always being string
-          if(not bS) then oEnt:SetNWString(sKey, sNoA)
-            asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey,iD).." fail: "..vO, sLog)
-          else
-            asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey,iD,vO), sLog)
-            oEnt:SetNWString(sKey, vO) -- Write networked value to the hover entity
-          end
+          asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey, iD, bS, vO), sLog)
+           -- Write networked value to the hover entity. When fails display not available
+          if(not bS) then oEnt:SetNWString(sKey, sNoA) else oEnt:SetNWString(sKey, vO) end
         end
       end
     else
@@ -1726,7 +1723,7 @@ if(CLIENT) then
       if(not asmlib.IsFlag("tg_context_menu")) then return nil end -- Menu not opened
       if(not asmlib.GetAsmConvar("enctxmenu", "BUL")) then return nil end -- Menu not enabled
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-        asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly)..">", sLog); return nil end
+        asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly), sLog); return nil end
       local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
       local oEnt = propertiesGetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
       if(asmlib.IsOther(oEnt) or tTrig[1] == tTrig[2]) then return nil end -- Entity trigger
