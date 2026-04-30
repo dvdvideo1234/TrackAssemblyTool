@@ -351,10 +351,6 @@ function TOOL:GetLogBurst()
   return (asmlib.GetAsmConvar("logsbrs", "INT") or 0)
 end
 
-function TOOL:GetLogFile()
-  return asmlib.GetAsmConvar("logfile", "BUL")
-end
-
 function TOOL:GetAdviser()
   return (self:GetClientNumber("adviser", 0) ~= 0)
 end
@@ -577,15 +573,13 @@ function TOOL:GetGhostsDepth()
   end; return 0
 end
 
-function TOOL:GetStatus(stTr,vMsg,hdEnt)
+function TOOL:LogStatus(stTr,vMsg,hdEnt)
   local tLoc = asmlib.GetOpVar("LOG_CONFIG")
   if(tLoc.Max <= 0) then return "Status N/A" end
-  local user, sDelim  = self:GetOwner(), "\n"
-  local bFleLog = asmlib.IsFlag("en_logging_file")
-  local sSpace  = (" "):rep(6 + tostring(tLoc.Max):len())
-  local workmode, workname = self:GetWorkingMode()
+  local user = self:GetOwner()
   local siAnc  , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
+  local workmode, workname = self:GetWorkingMode()
   local nextx  , nexty   , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw , nextrol = self:GetAngOffsets()
   local hdModel, trModel , trRec   = self:GetModel()
@@ -594,80 +588,78 @@ function TOOL:GetStatus(stTr,vMsg,hdEnt)
     trModel = stTr.Entity:GetModel()
     trRec   = asmlib.CacheQueryPiece(trModel)
   end
-  local sDu = ""
-        sDu = sDu..tostring(vMsg)..sDelim
-        sDu = sDu..sSpace.."Dumping logs state:"..sDelim
-        sDu = sDu..sSpace.."  LogFile:        <"..tostring(bFleLog)..">"..sDelim
-        sDu = sDu..sSpace.."  LogsMax:        <"..tostring(tLoc.Max)..">"..sDelim
-        sDu = sDu..sSpace.."  LogsCur:        <"..tostring(tLoc.Cur)..">"..sDelim
-        sDu = sDu..sSpace.."  MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">"..sDelim
-        sDu = sDu..sSpace.."  MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">"..sDelim
-        sDu = sDu..sSpace.."Dumping player keys:"..sDelim
-        sDu = sDu..sSpace.."  Player:         "..tostring(user):gsub("Player%s","")..sDelim
-        sDu = sDu..sSpace.."  IN.USE:         <"..tostring(user:KeyDown(IN_USE))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.DUCK:        <"..tostring(user:KeyDown(IN_DUCK))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.SPEED:       <"..tostring(user:KeyDown(IN_SPEED))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.RELOAD:      <"..tostring(user:KeyDown(IN_RELOAD))..">"..sDelim
-        sDu = sDu..sSpace.."  IN.SCORE:       <"..tostring(user:KeyDown(IN_SCORE))..">"..sDelim
-        sDu = sDu..sSpace.."Dumping trace data state:"..sDelim
-        sDu = sDu..sSpace.."  Trace:          <"..tostring(stTr)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.Hit:         <"..tostring(stTr and stTr.Hit or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.HitW:        <"..tostring(stTr and stTr.HitWorld or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.ENT:         <"..tostring(stTr and stTr.Entity or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  TR.File:        <"..tostring(trModel and stringGetFileName(trModel) or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."Dumping console variables state:"..sDelim
-        sDu = sDu..sSpace.."  HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}"..sDelim
-        sDu = sDu..sSpace.."  HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.File:        <"..tostring(hdModel and stringGetFileName(hdModel) or gsNoAV)..">"..sDelim
-        sDu = sDu..sSpace.."  HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmConvar("modedb" ,"STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(siAnc)..">"..sDelim
-        sDu = sDu..sSpace.."  HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]"..sDelim
-        sDu = sDu..sSpace.."  HD.Weld:        <"..tostring(self:GetWeld())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Mass:        <"..tostring(self:GetMass())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Freeze:      <"..tostring(self:GetFreeze())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.YawSnap:     <"..tostring(self:GetAngSnap())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Gravity:     <"..tostring(self:GetGravity())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Adviser:     <"..tostring(self:GetAdviser())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.ForceLimit:  <"..tostring(self:GetForceLimit())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.Elevation:   <"..tostring(self:GetElevation())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.ExportDB:    <"..tostring(self:GetExportDB())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.NoCollide:   <"..tostring(self:GetNoCollide())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.NoCollideW:  <"..tostring(self:GetNocollideWorld())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.UpSpAnchor:  <"..tostring(self:GetUpSpawnAnchor())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.SpawnCen:    <"..tostring(self:GetSpawnCenter())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnCxMenuAll: <"..tostring(self:GetContextMenuAll())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.PntAssist:   <"..tostring(self:GetPointAssist())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.StackCnt:    <"..tostring(self:GetStackCount())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.GhostsCnt:   <"..tostring(self:GetGhostsCount())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">"..sDelim
-        sDu = sDu..sSpace.."  HD.TimerMode:   <"..tostring(asmlib.GetAsmConvar("timermode","STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnableEWire: <"..tostring(asmlib.GetAsmConvar("enwiremod","BUL"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.EnableMTask: <"..tostring(asmlib.GetAsmConvar("enmultask","BUL"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.DevelopMode: <"..tostring(asmlib.GetAsmConvar("devmode"  ,"BUL"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxMass:     <"..tostring(asmlib.GetAsmConvar("maxmass"  ,"INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxLinear:   <"..tostring(asmlib.GetAsmConvar("maxlinear","INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxForce:    <"..tostring(asmlib.GetAsmConvar("maxforce" ,"INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxARadius:  <"..tostring(asmlib.GetAsmConvar("maxactrad","INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxStackCnt: <"..tostring(asmlib.GetAsmConvar("maxstcnt" ,"INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.BoundErrMod: <"..tostring(asmlib.GetAsmConvar("bnderrmod","STR"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxFrequent: <"..tostring(asmlib.GetAsmConvar("maxfruse" ,"INT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxTrMargin: <"..tostring(asmlib.GetAsmConvar("maxtrmarg","FLT"))..">"..sDelim
-        sDu = sDu..sSpace.."  HD.MaxSpMargin: <"..tostring(asmlib.GetAsmConvar("maxspmarg","FLT"))..">"..sDelim
+  asmlib.LogInstance(vMsg, gtLogs)
+  asmlib.LogInstance("  Dumping logs state:", gtLogs)
+  asmlib.LogInstance("    LogsMax:        <"..tostring(tLoc.Max)..">", gtLogs)
+  asmlib.LogInstance("    LogsBrs:        <"..tostring(tLoc.Brs)..">", gtLogs)
+  asmlib.LogInstance("    LogsCur:        <"..tostring(tLoc.Cur)..">", gtLogs)
+  asmlib.LogInstance("    MaxProps:       <"..tostring(GetConVar("sbox_maxprops"):GetInt())..">", gtLogs)
+  asmlib.LogInstance("    MaxTrack:       <"..tostring(GetConVar("sbox_max"..gsLimitName):GetInt())..">", gtLogs)
+  asmlib.LogInstance("  Dumping player keys:", gtLogs)
+  asmlib.LogInstance("    Player:         "..tostring(user):gsub("Player%s",""), gtLogs)
+  asmlib.LogInstance("    IN.USE:         <"..tostring(user:KeyDown(IN_USE))..">", gtLogs)
+  asmlib.LogInstance("    IN.DUCK:        <"..tostring(user:KeyDown(IN_DUCK))..">", gtLogs)
+  asmlib.LogInstance("    IN.SPEED:       <"..tostring(user:KeyDown(IN_SPEED))..">", gtLogs)
+  asmlib.LogInstance("    IN.RELOAD:      <"..tostring(user:KeyDown(IN_RELOAD))..">", gtLogs)
+  asmlib.LogInstance("    IN.SCORE:       <"..tostring(user:KeyDown(IN_SCORE))..">", gtLogs)
+  asmlib.LogInstance("  Dumping trace data state:", gtLogs)
+  asmlib.LogInstance("    Trace:          <"..tostring(stTr)..">", gtLogs)
+  asmlib.LogInstance("    TR.Hit:         <"..tostring(stTr and stTr.Hit or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("    TR.HitW:        <"..tostring(stTr and stTr.HitWorld or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("    TR.ENT:         <"..tostring(stTr and stTr.Entity or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("    TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]", gtLogs)
+  asmlib.LogInstance("    TR.File:        <"..tostring(trModel and stringGetFileName(trModel) or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("  Dumping console variables state:", gtLogs)
+  asmlib.LogInstance("    HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("    HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}", gtLogs)
+  asmlib.LogInstance("    HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]", gtLogs)
+  asmlib.LogInstance("    HD.File:        <"..tostring(hdModel and stringGetFileName(hdModel) or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("    HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmConvar("modedb" ,"STR"))..">", gtLogs)
+  asmlib.LogInstance("    HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(siAnc)..">", gtLogs)
+  asmlib.LogInstance("    HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]", gtLogs)
+  asmlib.LogInstance("    HD.AngOffsets:  ["..tostring(nextx)..","..tostring(nexty)..","..tostring(nextz).."]", gtLogs)
+  asmlib.LogInstance("    HD.PosOffsets:  ["..tostring(nextpic)..","..tostring(nextyaw)..","..tostring(nextrol).."]", gtLogs)
+  asmlib.LogInstance("    HD.Weld:        <"..tostring(self:GetWeld())..">", gtLogs)
+  asmlib.LogInstance("    HD.Mass:        <"..tostring(self:GetMass())..">", gtLogs)
+  asmlib.LogInstance("    HD.Freeze:      <"..tostring(self:GetFreeze())..">", gtLogs)
+  asmlib.LogInstance("    HD.YawSnap:     <"..tostring(self:GetAngSnap())..">", gtLogs)
+  asmlib.LogInstance("    HD.Gravity:     <"..tostring(self:GetGravity())..">", gtLogs)
+  asmlib.LogInstance("    HD.Adviser:     <"..tostring(self:GetAdviser())..">", gtLogs)
+  asmlib.LogInstance("    HD.ForceLimit:  <"..tostring(self:GetForceLimit())..">", gtLogs)
+  asmlib.LogInstance("    HD.Elevation:   <"..tostring(self:GetElevation())..">", gtLogs)
+  asmlib.LogInstance("    HD.ExportDB:    <"..tostring(self:GetExportDB())..">", gtLogs)
+  asmlib.LogInstance("    HD.NoCollide:   <"..tostring(self:GetNoCollide())..">", gtLogs)
+  asmlib.LogInstance("    HD.NoCollideW:  <"..tostring(self:GetNocollideWorld())..">", gtLogs)
+  asmlib.LogInstance("    HD.UpSpAnchor:  <"..tostring(self:GetUpSpawnAnchor())..">", gtLogs)
+  asmlib.LogInstance("    HD.SpawnFlat:   <"..tostring(self:GetSpawnFlat())..">", gtLogs)
+  asmlib.LogInstance("    HD.IgnoreType:  <"..tostring(self:GetIgnoreType())..">", gtLogs)
+  asmlib.LogInstance("    HD.SurfSnap:    <"..tostring(self:GetSurfaceSnap())..">", gtLogs)
+  asmlib.LogInstance("    HD.SpawnCen:    <"..tostring(self:GetSpawnCenter())..">", gtLogs)
+  asmlib.LogInstance("    HD.AppAngular:  <"..tostring(self:ApplyAngularFirst())..">", gtLogs)
+  asmlib.LogInstance("    HD.AppLinear:   <"..tostring(self:ApplyLinearFirst())..">", gtLogs)
+  asmlib.LogInstance("    HD.EnCxMenuAll: <"..tostring(self:GetContextMenuAll())..">", gtLogs)
+  asmlib.LogInstance("    HD.PntAssist:   <"..tostring(self:GetPointAssist())..">", gtLogs)
+  asmlib.LogInstance("    HD.StackCnt:    <"..tostring(self:GetStackCount())..">", gtLogs)
+  asmlib.LogInstance("    HD.GhostsCnt:   <"..tostring(self:GetGhostsCount())..">", gtLogs)
+  asmlib.LogInstance("    HD.PhysMeter:   <"..tostring(self:GetPhysMeterial())..">", gtLogs)
+  asmlib.LogInstance("    HD.ActRadius:   <"..tostring(self:GetActiveRadius())..">", gtLogs)
+  asmlib.LogInstance("    HD.SkinBG:      <"..tostring(self:GetBodyGroupSkin())..">", gtLogs)
+  asmlib.LogInstance("    HD.StackAtempt: <"..tostring(self:GetStackAttempts())..">", gtLogs)
+  asmlib.LogInstance("    HD.IgnorePG:    <"..tostring(self:GetIgnorePhysgun())..">", gtLogs)
+  asmlib.LogInstance("    HD.TimerMode:   <"..tostring(asmlib.GetAsmConvar("timermode","STR"))..">", gtLogs)
+  asmlib.LogInstance("    HD.EnableEWire: <"..tostring(asmlib.GetAsmConvar("enwiremod","BUL"))..">", gtLogs)
+  asmlib.LogInstance("    HD.EnableMTask: <"..tostring(asmlib.GetAsmConvar("enmultask","BUL"))..">", gtLogs)
+  asmlib.LogInstance("    HD.DevelopMode: <"..tostring(asmlib.GetAsmConvar("devmode"  ,"BUL"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxMass:     <"..tostring(asmlib.GetAsmConvar("maxmass"  ,"INT"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxLinear:   <"..tostring(asmlib.GetAsmConvar("maxlinear","INT"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxForce:    <"..tostring(asmlib.GetAsmConvar("maxforce" ,"INT"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxARadius:  <"..tostring(asmlib.GetAsmConvar("maxactrad","INT"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxStackCnt: <"..tostring(asmlib.GetAsmConvar("maxstcnt" ,"INT"))..">", gtLogs)
+  asmlib.LogInstance("    HD.BoundErrMod: <"..tostring(asmlib.GetAsmConvar("bnderrmod","STR"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxFrequent: <"..tostring(asmlib.GetAsmConvar("maxfruse" ,"INT"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxTrMargin: <"..tostring(asmlib.GetAsmConvar("maxtrmarg","FLT"))..">", gtLogs)
+  asmlib.LogInstance("    HD.MaxSpMargin: <"..tostring(asmlib.GetAsmConvar("maxspmarg","FLT"))..">", gtLogs)
   if(hdEnt and hdEnt:IsValid()) then hdEnt:Remove() end
-  return sDu
 end
 
 -- Returns true if there are entity ID stored
@@ -790,8 +782,7 @@ end
 
 function TOOL:SelectModel(sModel)
   local trRec = asmlib.CacheQueryPiece(sModel); if(not asmlib.IsHere(trRec)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"Model not piece "
-      ..asmlib.GetReport(sModel)),gtLogs); return false end
+    self:LogStatus(stTrace,"Model not piece "..asmlib.GetReport(sModel)); return false end
   local user, namo = self:GetOwner(), stringGetFileName(sModel)
   local pointid, pnextid = self:GetPointID()
         pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Size)
@@ -1257,14 +1248,14 @@ function TOOL:NormalSpawn(stTrace, oPly)
     local stSpawn = asmlib.GetNormalSpawn(oPly,vPos,aAng,model,
                       pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then -- Make sure it persists to set it afterwards
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Cannot obtain spawn data"),gtLogs); return false end
+      self:LogStatus(stTrace,"(Spawn) Cannot obtain spawn data"); return false end
     vPos:Set(stSpawn.SPos); aAng:Set(stSpawn.SAng)
   end
   -- Update the anchor entity automatically when enabled
   if(upspanchor) then -- Read the auto-update flag
     if(anEnt ~= trEnt) then -- When the anchor needs to be changed
       if(not self:SetAnchor(stTrace)) then -- Update anchor with current trace
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Anchor fail"),gtLogs); return false
+        self:LogStatus(stTrace,"(Spawn) Anchor fail"); return false
       end; siAnc, anEnt = self:GetAnchor() -- Export anchor to locals
     end -- This needs to be triggered only when the user is not meshing
 
@@ -1283,15 +1274,15 @@ function TOOL:NormalSpawn(stTrace, oPly)
       asmlib.SetCenter(ePiece, vPos, aAng, nextx, -nexty, nextz)
     end
     if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Failed to apply physical settings",ePiece),gtLogs); return false end
+      self:LogStatus(stTrace,"(Spawn) Failed to apply physical settings",ePiece); return false end
     if(not asmlib.ApplyPhysicalAnchor(ePiece,anEnt,weld,nocollide,nocollidew,forcelim)) then
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Failed to apply physical anchor",ePiece),gtLogs); return false end
+      self:LogStatus(stTrace,"(Spawn) Failed to apply physical anchor",ePiece); return false end
     asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Spawn )")
     asmlib.UndoAddEntity(ePiece)
     asmlib.UndoFinish(oPly)
     asmlib.LogInstance("(Spawn) Success",gtLogs); return true
   end
-  asmlib.LogInstance(self:GetStatus(stTrace,"(Spawn) Failed to create"),gtLogs); return false
+  self:LogStatus(stTrace,"(Spawn) Failed to create"); return false
 end
 
 function TOOL:LeftClick(stTrace)
@@ -1340,9 +1331,9 @@ function TOOL:LeftClick(stTrace)
   if(workmode == 3 or workmode == 5) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user,"Server busy !","ERROR"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtLogs); return false end
+      self:LogStatus(stTrace,"(Hold) Holder model not piece"); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Curve) Validation fail"), gtLogs); return nil end
+      self:LogStatus(stTrace,"(Curve) Validation fail"); return nil end
     local fInt = asmlib.GetOpVar("FORM_INTEGER")
     local curvefact, curvsmple = self:GetCurveFactor()  , self:GetCurveSamples()
     local crvturnlm, crvleanlm = self:GetCurvatureTurn(), self:GetCurvatureLean()
@@ -1366,17 +1357,17 @@ function TOOL:LeftClick(stTrace)
         for iK = oArg.stark, tS.Size do local tV, ePiece = tS[iK], nil
           oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid, 0, 0, 0, 0, 0, 0, oArg.spawn)
           if(not oArg.spawn) then -- Make sure it persists to set it afterwards
-            asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"),gtLogs); return false end
+            self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
               asmlib.Notify(oPly, oArg.wname..": excessive turn at "..oArg.mundo.." !", "ERROR")
-              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"), gtLogs); return false
+              self:LogStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"); return false
             end
             if(nU and nU < crvleanlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
               asmlib.Notify(oPly, oArg.wname..": excessive lean at "..oArg.mundo.." !", "ERROR")
-              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"), gtLogs); return false
+              self:LogStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"); return false
             end
           end
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
@@ -1386,11 +1377,11 @@ function TOOL:LeftClick(stTrace)
           oPly:SetNWFloat(gsToolPrefL.."progress", (oArg.imake / tC.SKept) * 100)
           if(ePiece) then -- We still have enough memory to preform the stacking
             if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply physical settings fail"),gtLogs); return false end
+              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply physical settings fail"); return false end
             if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply weld fail"),gtLogs); return false end
+              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply weld fail"); return false end
             if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply no-collide fail"),gtLogs); return false end
+              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply no-collide fail"); return false end
             oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece -- When the routine item is still busy
             tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
@@ -1404,8 +1395,8 @@ function TOOL:LeftClick(stTrace)
             end
           else oArg.mundo = sItr -- We still have enough memory to preform the stacking
             if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
-              asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Segment limit reached"), gtLogs); return false
-            else asmlib.LogInstance(self:GetStatus(stTrace,"("..oArg.wname..") "..sItr..": Stack attempts fail"), gtLogs); return false end
+              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Segment limit reached"); return false
+            else self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Stack attempts fail"); return false end
           end
         end
       end
@@ -1435,7 +1426,7 @@ function TOOL:LeftClick(stTrace)
     local tC, nC = asmlib.GetConstraintOver(tE)
     if(not tE or nE <= 0) then
       asmlib.Notify(user, "No tracks selected !", "ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Over) No tracks selected",trEnt),gtLogs); return false
+      self:LogStatus(stTrace,"(Over) No tracks selected",trEnt); return false
     end
     poQueue:Attach(user, {
       start = 1,
@@ -1467,7 +1458,7 @@ function TOOL:LeftClick(stTrace)
             end
           else
             asmlib.Notify(user, "Spawn data invalid "..asmlib.GetReport(iD, oArg.mundo).." !", "ERROR")
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Spawn data invalid",trEnt),gtLogs); return false
+            self:LogStatus(stTrace,"(Over) Spawn data invalid",trEnt); return false
           end
         end
       end
@@ -1490,29 +1481,29 @@ function TOOL:LeftClick(stTrace)
         local tB, tL = oArg.tcons[iD].Base, oArg.tcons[iD].Link
         if(not asmlib.IsOther(tB.Ent) and tB.Ovr) then
           if(not asmlib.ApplyPhysicalSettings(tB.Ent,ignphysgn,freeze,gravity,physmater)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",tB.Ent),gtLogs); return false end
-        else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical settings invalid",tB.Ent),gtLogs); return false end
+            self:LogStatus(stTrace,"(Over) Failed to apply physical settings",tB.Ent); return false end
+        else self:LogStatus(stTrace,"(Over) Physical settings invalid",tB.Ent); return false end
         for key, val in pairs(tL) do
           if(not asmlib.IsOther(val.Ent)) then
             if(not asmlib.ApplyPhysicalAnchor(tB.Ent,(anEnt or val.Ent),weld,nocollide,nocollidew,forcelim)) then
-              asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical anchor",val.Ent),gtLogs); return false end
-          else asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Physical anchor invalid",val.Ent),gtLogs); return false end
+              self:LogStatus(stTrace,"(Over) Failed to apply physical anchor",val.Ent); return false end
+          else self:LogStatus(stTrace,"(Over) Physical anchor invalid",val.Ent); return false end
         end
       end
     end); return true
   end
 
   local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Hold) Holder model not piece"),gtLogs); return false end
+    self:LogStatus(stTrace,"(Hold) Holder model not piece"); return false end
 
   if(stTrace.HitWorld) then return self:NormalSpawn(stTrace, user) end -- Switch the tool mode ( Spawn )
 
   if(not (trEnt and trEnt:IsValid())) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace entity invalid"),gtLogs); return false end
+    self:LogStatus(stTrace,"(Prop) Trace entity invalid"); return false end
   if(asmlib.IsOther(trEnt)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace other object"),gtLogs); return false end
+    self:LogStatus(stTrace,"(Prop) Trace other object"); return false end
   if(not asmlib.IsPhysTrace(stTrace)) then
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Prop) Trace not physical object"),gtLogs); return false end
+    self:LogStatus(stTrace,"(Prop) Trace not physical object"); return false end
 
   local trRec = asmlib.CacheQueryPiece(trEnt:GetModel())
   if(not asmlib.IsHere(trRec)) then return self:NormalSpawn(stTrace, user) end
@@ -1523,21 +1514,21 @@ function TOOL:LeftClick(stTrace)
   if(not stSpawn) then -- Not aiming into an active point update settings/properties
     if(user:KeyDown(IN_USE)) then -- Physical
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical settings",trEnt),gtLogs); return false end
+        self:LogStatus(stTrace,"(Physical) Failed to apply physical settings",trEnt); return false end
       if(not asmlib.ApplyPhysicalAnchor(trEnt,anEnt,weld,nocollide,nocollidew,forcelim)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Physical) Failed to apply physical anchor",trEnt),gtLogs); return false end
+        self:LogStatus(stTrace,"(Physical) Failed to apply physical anchor",trEnt); return false end
       trEnt:GetPhysicsObject():SetMass(mass)
       asmlib.LogInstance("(Physical) Success",gtLogs)
     elseif(user:KeyDown(IN_SPEED)) then -- Fast single flip over the anchor relative to a piece OBB
       if(not (anEnt and anEnt:IsValid())) then return false end
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Failed to apply physical settings",trEnt),gtLogs); return false end
+        self:LogStatus(stTrace,"(Over) Failed to apply physical settings",trEnt); return false end
       local spPos, spAng = asmlib.GetTransformOBB(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()),
                              stTrace.HitNormal, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
       local ePiece = asmlib.NewPiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Over) Apply physical settings fail"),gtLogs); return false end
+          self:LogStatus(stTrace,"(Over) Apply physical settings fail"); return false end
         asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Over )")
         asmlib.UndoAddEntity(ePiece)
         asmlib.UndoFinish(user)
@@ -1546,7 +1537,7 @@ function TOOL:LeftClick(stTrace)
     else -- Visual
       local IDs = gsSymDir:Explode(bgskids)
       if(not asmlib.ApplyBodyGroups(trEnt,IDs[1] or "")) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Bodygroup/Skin) Failed",trEnt),gtLogs); return false end
+        self:LogStatus(stTrace,"(Bodygroup/Skin) Failed",trEnt); return false end
       trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       asmlib.LogInstance("(Bodygroup/Skin) Success",gtLogs)
     end; return true
@@ -1554,11 +1545,11 @@ function TOOL:LeftClick(stTrace)
 
   if((workmode == 1) and (stackcnt > 0) and user:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user, "Server busy !","ERROR"); return true end
-    if(pointid == pnextid) then asmlib.LogInstance(self:GetStatus(stTrace,"Point ID overlap"), gtLogs); return false end
+    if(pointid == pnextid) then self:LogStatus(stTrace,"Point ID overlap"); return false end
     local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
     if(not hdOffs) then -- Make sure the next point is present so we have something to stack on
       asmlib.Notify(user,"Missing next point ID !","ERROR")
-      asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) Missing next point ID"), gtLogs); return false
+      self:LogStatus(stTrace,"(Stack) Missing next point ID"); return false
     end -- Validated existent next point ID
     poQueue:Attach(user, {
       start = 1,
@@ -1577,11 +1568,11 @@ function TOOL:LeftClick(stTrace)
           ePiece = asmlib.NewPiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
         if(ePiece) then -- Set position is valid and store reference to the track piece
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"),gtLogs); return false end
+            self:LogStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"); return false end
           if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"),gtLogs); return false end
+            self:LogStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"); return false end
           if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"),gtLogs); return false end
+            self:LogStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"); return false end
           oArg.vtemp:SetUnpacked(hdOffs.P:Get())
           oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.sppos)
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
@@ -1590,7 +1581,7 @@ function TOOL:LeftClick(stTrace)
             actrad, spnflat, igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
           if(not oArg.spawn) then -- Something happened spawn is not available and task must be removed
             asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
-            asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Cannot obtain spawn data"),gtLogs); return false
+            self:LogStatus(stTrace,"(Stack) "..sItr..": Cannot obtain spawn data"); return false
           end -- Spawn data is valid for the current iteration iNdex
           oArg.sppos:Set(oArg.spawn.SPos); oArg.spang:Set(oArg.spawn.SAng)
           oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece
@@ -1604,7 +1595,7 @@ function TOOL:LeftClick(stTrace)
           end
         else -- Something happened piece cannot be created and task must be removed
           asmlib.Notify(oPly,"Stack attempts extinct !", "ERROR")
-          asmlib.LogInstance(self:GetStatus(stTrace,"(Stack) "..sItr..": Stack attempts extinct"),gtLogs); return false
+          self:LogStatus(stTrace,"(Stack) "..sItr..": Stack attempts extinct"); return false
         end -- We still have enough memory to preform the stacking
       end -- Update the progress and successfully tell the task we are not busy anymore
       oPly:SetNWFloat(gsToolPrefL.."progress", 100); return false
@@ -1630,17 +1621,17 @@ function TOOL:LeftClick(stTrace)
     local ePiece = asmlib.NewPiece(user,model,stSpawn.SPos,stSpawn.SAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
     if(ePiece) then
       if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply physical settings fail"),gtLogs); return false end
+        self:LogStatus(stTrace,"(Snap) Apply physical settings fail"); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or trEnt),weld,nil,nil,forcelim)) then -- Weld all created to the anchor/previous
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply weld fail"),gtLogs); return false end
+        self:LogStatus(stTrace,"(Snap) Apply weld fail"); return false end
       if(not asmlib.ApplyPhysicalAnchor(ePiece,trEnt,nil,nocollide,nocollidew,forcelim)) then       -- NoCollide all to previous
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Apply no-collide fail"),gtLogs); return false end
+        self:LogStatus(stTrace,"(Snap) Apply no-collide fail"); return false end
       asmlib.UndoCrate(gsUndoPrefN..fnmodel.." ( Snap )")
       asmlib.UndoAddEntity(ePiece)
       asmlib.UndoFinish(user)
       asmlib.LogInstance("(Snap) Success",gtLogs); return true
     end
-    asmlib.LogInstance(self:GetStatus(stTrace,"(Snap) Create piece fail"),gtLogs); return false
+    self:LogStatus(stTrace,"(Snap) Create piece fail"); return false
   end
 end
 
@@ -1682,7 +1673,7 @@ function TOOL:RightClick(stTrace)
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr or (user:KeyDown(IN_USE) and not enpntmscr)) then
       if(not self:SelectModel(trEnt:GetModel())) then
-        asmlib.LogInstance(self:GetStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"),gtLogs); return false end
+        self:LogStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"); return false end
       asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtLogs); return true
     end
   end
@@ -1705,9 +1696,7 @@ function TOOL:Reload(stTrace)
   local upspanchor = self:GetUpSpawnAnchor()
   if(stTrace.HitWorld and user:IsAdmin()) then
     if(self:GetDeveloperMode()) then
-      asmlib.SetLogControl(self:GetLogLines(),
-                           self:GetLogBurst(),
-                           self:GetLogFile())
+      asmlib.SetLogControl(self:GetLogLines(), self:GetLogBurst())
     end -- Setup log controls in developer mode
   end
   -- Working mode specific actions
@@ -2697,7 +2686,6 @@ if(CLIENT) then
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
     CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".utilities_admin"))
     CPanel:Help(languageGetPhrase("tool."..gsToolNameL..".nonrep_var"))
-    asmlib.SetCheckBox(CPanel, "logfile")
     asmlib.SetNumSlider(CPanel, "logsmax", 0)
     asmlib.SetNumSlider(CPanel, "logsbrs", 0)
     asmlib.SetCheckBox(CPanel, "devmode")
@@ -2800,9 +2788,7 @@ if(CLIENT) then
     end
     pItem.DoRightClick = function(pnSelf)
       if(inputIsKeyDown(KEY_LSHIFT)) then
-        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
-                             asmlib.GetAsmConvar("logsbrs","INT"),
-                             asmlib.GetAsmConvar("logfile","BUL"))
+        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logsbrs","INT"))
       else
         local fW = asmlib.GetOpVar("FORM_GITWIKI")
         guiOpenURL(fW:format("Memory-manager-configuration"))
@@ -2821,7 +2807,6 @@ if(CLIENT) then
           asmlib.SetAsmConvar(user, "*"..key, val) end
         asmlib.SetAsmConvar(user, "logsmax"  , asmlib.GetAsmConvar("logsmax"  , "DEF"))
         asmlib.SetAsmConvar(user, "logsbrs"  , asmlib.GetAsmConvar("logsbrs"  , "DEF"))
-        asmlib.SetAsmConvar(user, "logfile"  , asmlib.GetAsmConvar("logfile"  , "DEF"))
         asmlib.SetAsmConvar(user, "modedb"   , asmlib.GetAsmConvar("modedb"   , "DEF"))
         asmlib.SetAsmConvar(user, "devmode"  , asmlib.GetAsmConvar("devmode"  , "DEF"))
         asmlib.SetAsmConvar(user, "maxtrmarg", asmlib.GetAsmConvar("maxtrmarg", "DEF"))
@@ -2845,9 +2830,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(user, "bnderrmod", asmlib.GetAsmConvar("bnderrmod", "DEF"))
         asmlib.SetAsmConvar(user, "maxfruse" , asmlib.GetAsmConvar("maxfruse" , "DEF"))
         asmlib.SetAsmConvar(user, "dtmessage", asmlib.GetAsmConvar("dtmessage", "DEF"))
-        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"),
-                             asmlib.GetAsmConvar("logsbrs","INT"),
-                             asmlib.GetAsmConvar("logfile","BUL"))
+        asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logsbrs","INT"))
         asmlib.LogInstance("Factory reset complete", sLog)
       end
     end

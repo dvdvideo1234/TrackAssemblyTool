@@ -284,7 +284,7 @@ function GetReport(...)
   local nV = select("#", ...) -- Read report count
   if(nV == 0) then return sD end -- Nothing to report
   if(nV == 1) then local sV = select(1, ...)
-    return GetConcat("{",type(sV),"}",sD,tostring(sV),sD)
+    return GetConcat("{",type(sV),"}",sD,sV,sD)
   end; tableInsert(libConcat, sD)
   for iV = 1, nV do local sV = tostring(select(iV,...))
     tableInsert(libConcat,sV); tableInsert(libConcat,sD) end
@@ -444,20 +444,18 @@ function Log(vMsg, bCon)
   tLoc.Cur = ((tLoc.Cur >= tLoc.Max) and 1 or (tLoc.Cur + 1))
   local sMsg, sID = tostring(vMsg), tLoc.Fmt:format(tLoc.Cur)
   local sMsg = GetConcat(sID, " [", GetDateTime(), "] ", sMsg)
-  if(IsFlag("en_logging_file") and not bCon) then
-    if(tLoc.Brs > 0) then -- We still have burst rate rows
-      local tTbr = tLoc.Tbr -- Index burst table
-      local iSiz = tTbr.Size --Read current size
-      if(iSiz > 0) then -- Burst writes rates
-        tableInsert(tTbr, sMsg) -- Write to the table
-        tTbr.Size = (iSiz - 1) -- Decremrnt burst count
-      else -- Burst rates count is zero. Dump the table in the file
-        local fLog = fileOpen(tLoc.Nam, "ab", "DATA")
-        if(not fLog) then ErrorNoHalt("") end -- Skip if cannot open
-        for iL = 1, tLoc.Brs do fLog:Write(GetConcat(tTbr[iL], "\n")) end
-        fLog:Flush(); fLog:Close(); tableEmpty(tTbr); tTbr.Size = tLoc.Brs
-      end -- Burst mode is not activated. Open the file for every line
-    else fileAppend(tLoc.Nam, sMsg.."\n") end
+  if(tLoc.Brs > 0  and not bCon) then -- We still have burst rate rows
+    local tTbr = tLoc.Tbr -- Index burst table
+    local iSiz = tTbr.Size --Read current size
+    if(iSiz > 0) then -- Burst writes rates
+      tableInsert(tTbr, sMsg) -- Write to the table
+      tTbr.Size = (iSiz - 1) -- Decrement burst count
+    else -- Burst rates count is zero. Dump the table in the file
+      local fLog = fileOpen(tLoc.Nam, "ab", "DATA")
+      if(not fLog) then ErrorNoHalt("") end -- Skip if cannot open
+      for iL = 1, tLoc.Brs do fLog:Write(GetConcat(tTbr[iL], "\n")) end
+      fLog:Flush(); fLog:Close(); tableEmpty(tTbr); tTbr.Size = tLoc.Brs
+    end -- Burst mode is not activated. Open the file for every line
   else -- The current has values 1..nMaxLogs(0)
     print(sMsg) -- Write the log in the console
   end
@@ -505,12 +503,12 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
     sDbg = GetConcat(sDbg," ",(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV))
     sDbg = GetConcat(sDbg," ",(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV))
     sDbg = GetConcat(sDbg,"@",(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID))
-  end; local sSrc, bF, bL = tostring(vSrc or "")
+  end; local sSrc, bF, bL = tostring(vSrc or ""), nil, nil
   if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else
     if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
   local sInst = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
-  local sMoDB, sToolMD = tostring(GetOpVar("MODE_DATABASE")), tostring(GetOpVar("TOOLNAME_NU"))
-  local sData = GetConcat(sSrc, sFunc, ": ", tostring(vMsg))
+  local sMoDB, sToolMD = GetOpVar("MODE_DATABASE"), GetOpVar("TOOLNAME_NU")
+  local sData = GetConcat(sSrc, sFunc, ": ", vMsg)
   bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
   bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
   Log(GetConcat(sInst," > ",sToolMD," [",sMoDB,"]",sDbg," ",sData), bCon)
@@ -519,18 +517,18 @@ end
 function LogCeption(tT,sS,tP)
   local tLoc = GetOpVar("LOG_CONFIG")
   if(not (tLoc and tLoc.Max > 0)) then return end
-  local sS, tFrc = tostring(sS or "Data"), tLoc.Frc
+  local sS, sQ, tFrc = tostring(sS or "Data"), "\"", tLoc.Frc
   if(not istable(tT)) then
     LogInstance(tFrc.VV:format(type(tT),sS,tostring(tT)),tP); return nil
   end; LogInstance(tFrc.EM:format(sS),tP)
   if(not IsHere(next(tT))) then return nil end
-  for k,v in pairs(tT) do
-    local sK = (isstring(k) and GetConcat("\"",k,"\"") or tostring(k))
+  for k,v in pairs(tT) do --Key number 1 is different than string "1"
+    local sK = (isstring(k) and GetConcat(sQ,k,sQ) or tostring(k))
     local sF = tFrc.KV:format(sS,tostring(sK))
-    if(not istable(v)) then
-      local sV = (isstring(v) and GetConcat("\"",v,"\"") or tostring(v))
+    if(not istable(v)) then -- Not a table so convert and display
+      local sV = (isstring(v) and GetConcat(sQ,v,sQ) or tostring(v))
       LogInstance(tFrc.EQ:format(sF,sV),tP)
-    else
+    else -- Check if a value is equal to source table
       if(v == tT) then LogInstance(tFrc.EQ:format(sF,sS),tP)
       else LogCeption(v,sF,tP) end
     end
@@ -655,14 +653,13 @@ end
 
 ----------------- INITAIALIZATION -----------------
 
-function SetLogControl(nLines, nBurs, bFile)
-  local bFou = IsFlag("en_logging_file", bFile)
+function SetLogControl(nLines, nBurs)
   local tLoc = GetOpVar("LOG_CONFIG")
         tLoc.Max = (tonumber(nLines) or 0); tLoc.Cur = 0
         tLoc.Max = mathFloor((tLoc.Max > 0) and tLoc.Max or 0)
         tLoc.Fmt = ("%"..(tostring(tLoc.Max)):len().."d")
         tLoc.Brs = (tonumber(nBurs) or 0); tLoc.Tbr.Size = tLoc.Brs
-  LogInstance(GetConcat("(", tLoc.Max, ",",tLoc.Brs,",", tostring(bFou), ")"))
+  LogInstance(GetConcat("(", tLoc.Max, ",",tLoc.Brs, ")"))
 end
 
 function SettingsLogs(sHash)
