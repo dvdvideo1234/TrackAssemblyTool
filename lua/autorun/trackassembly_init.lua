@@ -1,7 +1,7 @@
 ------------ LOCALIZNG FUNCTIONS ------------
 
 local pcall                         = pcall
-local Time                          = CurTime
+local CurTime                       = CurTime
 local IsValid                       = IsValid
 local tobool                        = tobool
 local istable                       = istable
@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.821")
+asmlib.SetOpVar("TOOL_VERSION","9.822")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1182,7 +1182,7 @@ if(CLIENT) then
         else pnSelf.pcX, pnSelf.pcY = nil, nil end
         local stSpawn = asmlib.GetNormalSpawn(oPly, gvVecZero, uiBox.Ang, oEnt:GetModel(), 1)
         if(not stSpawn) then asmlib.LogInstance("Spawn data fail",sLog..".LayoutEntity"); return nil end
-        stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up(), mathNormalizeAngle(40 * Time()))
+        stSpawn.SAng:RotateAroundAxis(stSpawn.SAng:Up(), mathNormalizeAngle(40 * CurTime()))
         stSpawn.SPos:Set(uiBox.Cen); stSpawn.SPos:Rotate(stSpawn.SAng)
         stSpawn.SPos:Mul(-1); stSpawn.SPos:Add(uiBox.Cen)
         oEnt:SetAngles(stSpawn.SAng); oEnt:SetPos(stSpawn.SPos)
@@ -1680,7 +1680,7 @@ if(SERVER) then
   local function PopulateEntity(nLen, oPly)
     local dTim = asmlib.GetOpVar("MSDELTA_SEND")
     local tHov = asmlib.GetOpVar("HOVER_TRIGGER")
-    local pTim, cTim, nDel = tHov[oPly], Time(), 15
+    local pTim, cTim, nDel = tHov[oPly], CurTime(), 15
     if(not pTim) then pTim = {cTim, (nDel + cTim)}; tHov[oPly] = pTim end
     if(dTim == 0 or (dTim > 0 and cTim > (pTim[1] + dTim))) then
       if(cTim > pTim[2]) then pTim[2] = (cTim + nDel) end

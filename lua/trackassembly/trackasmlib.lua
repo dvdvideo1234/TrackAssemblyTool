@@ -62,7 +62,7 @@ local IsEntity                       = IsEntity
 local IsValid                        = IsValid
 local Material                       = Material
 local require                        = require
-local Time                           = CurTime
+local CurTime                        = CurTime
 local SysTime                        = SysTime
 local EntityID                       = Entity
 local tonumber                       = tonumber
@@ -81,7 +81,7 @@ local collectgarbage                 = collectgarbage
 local LocalToWorld                   = LocalToWorld
 local IsUselessModel                 = IsUselessModel
 local SafeRemoveEntityDelayed        = SafeRemoveEntityDelayed
-local osClock                        = os and os.clock
+local ErrorNoHalt                    = ErrorNoHalt
 local osDate                         = os and os.date
 local bitBand                        = bit and bit.band
 local guiOpenURL                     = gui and gui.OpenURL
@@ -330,12 +330,6 @@ function TimeLap(sN)
   Log(tTm.Flp:format(tTm.Nam, tTm.Nsn, tTm.Bns, tTm.Cur, tTm.Lps, tTm.Lpc), tTm.Con)
 end
 
-function TimeToc()
-  local tTm = GetOpVar("TIME_BENCH")
-  tTm.Now = SysTime()
-  LogInstance(tTm.Fto:format(tTm.Nam, tTm.Now))
-end
-
 -- Uses custom model check to remove the pre-caching overhead
 libModel.Skip = {} -- General disabled models for spawning
 libModel.Skip[""] = true -- Empty string
@@ -446,14 +440,14 @@ function Log(vMsg, bCon)
   local sMsg = GetConcat(sID, " [", GetDateTime(), "] ", sMsg)
   if(tLoc.Brs > 0  and not bCon) then -- We still have burst rate rows
     local tTbr = tLoc.Tbr -- Index burst table
-    local iSiz = tTbr.Size --Read current size
+    local sLn, iSiz = ("\n"), tTbr.Size --Read current size
     if(iSiz > 0) then -- Burst writes rates
       tableInsert(tTbr, sMsg) -- Write to the table
       tTbr.Size = (iSiz - 1) -- Decrement burst count
     else -- Burst rates count is zero. Dump the table in the file
-      local fLog = fileOpen(tLoc.Nam, "ab", "DATA")
-      if(not fLog) then ErrorNoHalt("") end -- Skip if cannot open
-      for iL = 1, tLoc.Brs do fLog:Write(GetConcat(tTbr[iL], "\n")) end
+      local fLog = fileOpen(tLoc.Nam, "ab", "DATA"); if(not fLog) then
+        ErrorNoHalt("Open fail "..GetConcat(tLoc.Brs,"|",tLoc.Nam)); return end
+      for iL = 1, tLoc.Brs do fLog:Write(GetConcat(tTbr[iL],sLn)) end
       fLog:Flush(); fLog:Close(); tableEmpty(tTbr); tTbr.Size = tLoc.Brs
     end -- Burst mode is not activated. Open the file for every line
   else -- The current has values 1..nMaxLogs(0)
@@ -689,7 +683,7 @@ function InitBase(sName, sPurp)
     LogInstance("Name invalid "..GetReport(sName), true); return false end
   if(IsBlank(sPurp) or tonumber(sPurp:sub(1,1))) then
     LogInstance("Purpose invalid "..GetReport(sPurp), true); return false end
-  SetOpVar("TIME_INIT",Time())
+  SetOpVar("TIME_INIT",CurTime())
   SetOpVar("DELAY_ACTION",0.01)
   SetOpVar("DELAY_REMOVE",0.2)
   SetOpVar("MAX_ROTATION",360)
@@ -742,17 +736,16 @@ function InitBase(sName, sPurp)
     Frc = {KV = "%s[%s]", EQ = "%s = %s", VV = "{%s}[%s] = <%s>", EM = "%s = {}"}
   })
   SetOpVar("TIME_BENCH",{
-    Now = 0,  -- Current time place holder `SysTime`
-    Bns = 0,  -- Current time at the start of benchmark
-    Cur = 0,  -- Current time at the current moment
+    Bns = 0,  -- Time at the start of the benchmark
+    Now = 0,  -- Time place holder for `SysTime` value
+    Cur = 0,  -- Time at the previous `Now` moment
     Lps = 0,  -- Lap time relative to Now
     Lpc = 0,  -- Lap time relative to Cur
     Con = false, -- Sent the benchmark logs in the console
     Nam = "", -- Benchmark name. begin a new benchmark
     Nsn = "", -- Snapshot name as a lap marker
-    Ftc = "TIC[%s]: %d", -- Benchmark start format
-    Fto = "TOC[%s]: %d", -- Benchmark end format
-    Flp = "LAP[%s][%s]: %d|%d|%d|%d"
+    Ftc = "TIC[%s]: |%d|", -- Benchmark start format
+    Flp = "LAP[%s][%s]: |%d|%d|%d|%d|"
   })
   SetOpVar("MISS_NOMD","X")      -- No model
   SetOpVar("MISS_NOID","N")      -- No ID selected
@@ -1887,7 +1880,7 @@ function GetFrequentPieces(vCnt)
     LogInstance("Missing table definition "..GetReport(iCnt,vCnt)); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Missing cache space "..GetReport(iCnt,vCnt)); return nil end
-  local tmNow, frUsed = Time(), GetOpVar("TABLE_FREQUENT_MODELS")
+  local tmNow, frUsed = CurTime(), GetOpVar("TABLE_FREQUENT_MODELS")
   local tSort = Arrange(tCache, "Used"); if(not tSort) then
     LogInstance("Arrange cache mismatch "..GetReport(iCnt,vCnt)); return nil end
   tableEmpty(frUsed); frUsed.Size = 0; frUsed.Need = iCnt
@@ -2611,7 +2604,7 @@ end
 function GetCacheTrace(pPly)
   local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
     LogInstance("Spot missing"); return nil end
-  local stData, plyTime = stSpot["TRACE"], Time()
+  local stData, plyTime = stSpot["TRACE"], CurTime()
   if(not IsHere(stData)) then -- Define trace delta margin
     LogInstance("Allocate "..GetReport(pPly, pPly:Nick()))
     stSpot["TRACE"] = {}; stData = stSpot["TRACE"]
@@ -2886,7 +2879,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Navigation miss "..GetReport(unpack(tKey)),qtDef.Nick)
       LogTable(oSpot, "Navigation", qtDef.Nick); return nil
     end -- Navigated to the last table node and returned the value key
-    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
+    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), CurTime()
     local sMoDB, iCnt = GetOpVar("MODE_DATABASE"), select("#", ...)
     LogInstance("Called by "..GetReport(vMsg, vKey), qtDef.Nick)
     oSpot[vKey].Used = nNow -- Make the first selected deleteable to avoid phantom records
@@ -2936,7 +2929,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogTable(oSpot, "Navigation", qtDef.Nick); return nil
     end -- Navigated to the last table node and returned the value key
     local sMoDB = GetOpVar("MODE_DATABASE")
-    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), Time()
+    local sDiv, nNow = GetOpVar("OPSYM_DIVIDER"), CurTime()
     oSpot[vKey].Used = nNow -- Mark the current caching time stamp
     if(sMoDB == "SQL") then local qtCmd = self:GetCommand()
       local tTim = qtCmd.Timer; if(not IsHere(tTim)) then return oSpot[vKey] end
