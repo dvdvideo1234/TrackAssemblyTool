@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.822")
+asmlib.SetOpVar("TOOL_VERSION","9.823")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -106,9 +106,15 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
 local gsGenerPrf  = asmlib.GetOpVar("DBEXP_PREFGEN")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gsDirDSV    = asmlib.GetOpVar("DIRPATH_BAS")..asmlib.GetOpVar("DIRPATH_DSV")
-local gsNoAnchor  = asmlib.GetOpVar("MISS_NOID")..gsSymRev..asmlib.GetOpVar("MISS_NOMD")
-local gsGenerDSV  = gsDirDSV..gsGenerPrf..gsToolPrefU
+local gsNoMD      = asmlib.GetOpVar("MISS_NOMD")
+local gsNoID      = asmlib.GetOpVar("MISS_NOID")
+local gsDirBAS    = asmlib.GetOpVar("DIRPATH_BAS")
+local gsDirDSV    = asmlib.GetOpVar("DIRPATH_DSV")
+local gsDirDSV    = asmlib.GetOpVar("DIRPATH_EXP")
+local gsDrcDSV    = asmlib.GetConcat(gsDirBAS, gsDirDSV)
+local gsDrcEXP    = asmlib.GetConcat(gsDirBAS, gsDirEXP)
+local gsNoAnchor  = asmlib.GetConcat(gsNoID, gsSymRev, gsNoMD)
+local gsGenerDSV  = asmlib.GetConcat(gsDrcDSV, gsGenerPrf, gsToolPrefU)
 
 ------------ VARIABLE FLAGS ------------
 
@@ -348,11 +354,22 @@ asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
       if(fileExists(sFile, "DATA")) then
         asmlib.ImportDSV(defTab.Nick, true, sPref, nil, nil, true)
       end
-    end, "REFRESH_ITEM_LIST")
+    end, "REFRESH_ITEM_LIST"); return true
   end, {
-    fDSV = asmlib.GetOpVar("DIRPATH_BAS")..
-           asmlib.GetOpVar("DIRPATH_DSV")..
-           ("%s"..asmlib.GetOpVar("TOOLNAME_PU").."%s.txt")
+    fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefU, "%s.txt")
+  })
+
+asmlib.SetAction("CONVERT_ITEM_LIST", -- Duplicator wrapper
+  function(tData, sPref)
+    asmlib.RunBuilderCount(function(makTab, iD)
+      local defTab = makTab:GetDefinition()
+      local sFile = tData.fEXP:format(sPref, defTab.Nick)
+      if(fileExists(sFile, "DATA")) then
+        asmlib.TranslateDSV(defTab.Nick, sPref, nil, true)
+      end
+    end, "CONVERT_ITEM_LIST"); return true
+  end, {
+    fEXP = asmlib.GetConcat(gsDrcEXP, "%s", gsToolPrefU, "%s.txt")
   })
 
 if(SERVER) then
@@ -370,8 +387,8 @@ if(SERVER) then
   netReceive(gsLibName.."SendRefreshDSV",
     function(nLen, oPly) local sLog = "*REFRESH_ITEM_LIST"
       local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", netReadString())
-      if(not bS) then LogInstance("Refresh execute: "..sR,sLog); return nil end
-      if(not sR) then LogInstance("Trigger routine fail",sLog); return nil end
+      if(not bS) then asmlib.LogInstance("Refresh execute: "..sR,sLog); return nil end
+      if(not sR) then asmlib.LogInstance("Trigger routine fail",sLog); return nil end
     end)
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
@@ -508,6 +525,9 @@ if(CLIENT) then
   asmlib.ToIcon("pn_contextm_ex"   , "transmit"          )
   asmlib.ToIcon("pn_contextm_exdv" , "database_table"    )
   asmlib.ToIcon("pn_contextm_exru" , "script_code"       )
+  asmlib.ToIcon("pn_contextm_extr" , "report"            )
+
+
   asmlib.ToIcon("pn_contextm_mv"   , "joystick"          )
   asmlib.ToIcon("pn_contextm_mvup" , "arrow_up"          )
   asmlib.ToIcon("pn_contextm_mvdn" , "arrow_down"        )
@@ -894,10 +914,10 @@ if(CLIENT) then
         if(not fileExists(sNam, "DATA")) then fileWrite(sNam, "") end
         local fD = fileOpen(sNam, "rb", "DATA"); if(not fD) then pnFrame:Close()
           asmlib.LogInstance("File error", sLog..".Import"); return nil end
-        local sGen = (gsDirDSV..gsGenerPrf..gsToolPrefU.."*.txt")
+        local sGen = (gsGenerDSV.."*.txt") -- Create the pattern for generic DB
         local tGen = fileFind(sGen, "DATA") -- Search for generic database
         if(tGen and #tGen > 0) then -- some files are present. Register as DSV
-          pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(gsDirDSV)
+          pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(gsDrcDSV)
         else local iG = (tGen and #tGen or 0) -- Report that generic is missing so skip
           asmlib.LogInstance("Generic skip: "..asmlib.GetReport(iG, sGen), sLog..".Import")
         end; local sLine, bEOF, bAct = "", false, true
@@ -1005,8 +1025,8 @@ if(CLIENT) then
             if(not gameSinglePlayer()) then -- Server and client are on the same machine
               asmlib.LogInstance("Single player only",sLog..".ListView"); return nil end
             local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP)
-            if(not bS) then LogInstance("Refresh execute "..asmlib.GetReport(sP, sR),sLog..".ListView"); return nil end
-            if(not sR) then LogInstance("Trigger routine fail",sLog..".ListView"); return nil end
+            if(not bS) then asmlib.LogInstance("Refresh execute "..asmlib.GetReport(sP, sR),sLog..".ListView"); return nil end
+            if(not sR) then asmlib.LogInstance("Trigger routine fail",sLog..".ListView"); return nil end
             netStart(gsLibName.."SendRefreshDSV"); netWriteString(sP); netSendToServer()
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
@@ -1238,7 +1258,7 @@ if(CLIENT) then
       pnListView:AddColumn(languageGetPhrase("tool."..gsToolNameL..".pn_routine_nam")):SetFixedWidth(wNam) -- (4)
       pnListView:AddColumn(""):SetFixedWidth(0) -- (5) This is actually the hidden model of the piece used.
       pnListView.OnRowSelected = function(pnSelf, nIndex, pnLine)
-        local uiMod =  tostring(pnLine:GetColumnText(5)  or asmlib.GetOpVar("MISS_NOMD")) -- Actually the model in the table
+        local uiMod =  tostring(pnLine:GetColumnText(5)  or gsNoMD) -- Actually the model in the table
         local uiAct = (tonumber(pnLine:GetColumnText(2)) or 0); pnModelPanel:SetModel(uiMod) -- Active track ends per model create entity
         local uiEnt = pnModelPanel:GetEntity(); if(not (uiEnt and uiEnt:IsValid())) then -- Makes sure the entity is validated first
           asmlib.LogInstance("Model entity invalid "..asmlib.GetReport(uiMod), sLog..".ListView"); return nil end
@@ -1307,6 +1327,18 @@ if(CLIENT) then
               asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
               asmlib.ExportTypeRun(sTyp)
             end):SetIcon(asmlib.ToIcon(sI.."exru"))
+          pIn:AddOption(languageGetPhrase(sT.."extr"),
+            function()
+              asmlib.SetAsmConvar(oPly, "exportdb", 0)
+              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+              asmlib.LogInstance("Player invalid"); return nil end
+              asmlib.LogInstance("Convert "..asmlib.GetReport(oPly:Nick(), sTyp))
+              local sPrf = sTyp:gsub("[^%w]","_") -- Addon prefix
+              local tTyp = fileFind(myPref, "DATA") -- Search for generic database
+              local bS, sR = asmlib.DoAction("CONVERT_ITEM_LIST", sPrf)
+              if(not bS) then asmlib.LogInstance("Refresh execute "..asmlib.GetReport(sPrf, sR),sLog..".ListView"); return nil end
+              if(not sR) then asmlib.LogInstance("Trigger routine fail",sLog..".ListView"); return nil end
+            end):SetIcon(asmlib.ToIcon(sI.."extr"))
         end
         pMenu:Open()
       end
@@ -1819,13 +1851,12 @@ asmlib.NewTable("PIECES",{
   },
   Trigs = {
     Record = function(arLine, vSrc)
-      local noMD  = asmlib.GetOpVar("MISS_NOMD")
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
       arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.Categorize(), noTY)
-      arLine[3] = asmlib.GetEmpty(arLine[3], emFva, BEAUTY:Convert(arLine[1]):Get(), noMD)
+      arLine[3] = asmlib.GetEmpty(arLine[3], emFva, BEAUTY:Convert(arLine[1]):Get(), gsNoMD)
       arLine[5] = asmlib.GetEmpty(arLine[5], asmlib.IsBlank, noSQL)
       arLine[6] = asmlib.GetEmpty(arLine[6], asmlib.IsBlank, noSQL)
       arLine[7] = asmlib.GetEmpty(arLine[7], asmlib.IsBlank, noSQL)
@@ -1884,19 +1915,23 @@ asmlib.NewTable("PIECES",{
       for iR = 1, tSort.Size do
         local stRec = tSort[iR]
         local tData = tCache[stRec.Key]
-        local sData, tOffs = defTab.Name, tData.Offs
-              sData = sData..sDelim..makTab:Match(stRec.Key,1,true,"\"")..sDelim..
-                makTab:Match(tData.Type,2,true,"\"")..sDelim..
-                makTab:Match(tData.Name,3,true,"\"")
+        local tOffs = tData.Offs
+        local sData = asmlib.GetConcat(defTab.Name, sDelim,
+          makTab:Match(stRec.Key ,1,true, "\""), sDelim,
+          makTab:Match(tData.Type,2,true, "\""), sDelim,
+          makTab:Match(tData.Name,3,true, "\""))
         -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
         for iD = 1, #tOffs do
           local stPnt = tOffs[iD] -- Read current offsets from the model
           local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
           local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-          oFile:Write(sData..sDelim..makTab:Match(iD,4,true,"\"")..sDelim)
-          oFile:Write("\""..sP.."\""..sDelim.."\""..sO.."\""..sDelim)
-          oFile:Write("\""..sA.."\""..sDelim.."\""..sC.."\"\n")
+          oFile:Write(sData); oFile:Write(sDelim)
+          oFile:Write(makTab:Match(iD,4,true,"\"")); oFile:Write(sDelim)
+          oFile:Write("\""); oFile:Write(sP); oFile:Write("\""); oFile:Write(sDelim)
+          oFile:Write("\""); oFile:Write(sO); oFile:Write("\""); oFile:Write(sDelim)
+          oFile:Write("\""); oFile:Write(sA); oFile:Write("\""); oFile:Write(sDelim)
+          oFile:Write("\""); oFile:Write(sC); oFile:Write("\"\n")
         end
       end; return true
     end,
@@ -1911,20 +1946,23 @@ asmlib.NewTable("PIECES",{
         local stRec = tSort[iP]
         local tData = PCache[stRec.Key]
         local sPref = tData.Type:gsub("[^%w]","_"):lower()
-        if(sPref == fPref) then
-          local sData, tOffs = defP.Name, tData.Offs
-                sData = sData..sDelim..makP:Match(stRec.Key,1,true,"\"")..sDelim..
-                  makP:Match(tData.Type,2,true,"\"")..sDelim..
-                  makP:Match(tData.Name,3,true,"\"")
+        if(sPref == fPref) then local tOffs = tData.Offs
+          local sData = asmlib.GetConcat(defP.Name, sDelim,
+            makP:Match(stRec.Key ,1, true, "\""), sDelim..
+            makP:Match(tData.Type,2, true, "\""), sDelim..
+            makP:Match(tData.Name,3, true, "\""))
           -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
           for iD = 1, #tOffs do
             local stPnt = tOffs[iD] -- Read current offsets from the model
             local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
             local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
                   sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-            fP:Write(sData..sDelim..makP:Match(iD,4,true,"\""))
-            fP:Write(sDelim.."\""..sP.."\""..sDelim.."\""..sO.."\"")
-            fP:Write(sDelim.."\""..sA.."\""..sDelim.."\""..sC.."\"\n")
+            fP:Write(sData); fP:Write(sDelim);
+            fP:Write(makP:Match(iD,4,true,"\"")); fP:Write(sDelim)
+            fP:Write("\""); fP:Write(sP); fP:Write("\""); fP:Write(sDelim)
+            fP:Write("\""); fP:Write(sO); fP:Write("\""); fP:Write(sDelim)
+            fP:Write("\""); fP:Write(sA); fP:Write("\""); fP:Write(sDelim)
+            fP:Write("\""); fP:Write(sC); fP:Write("\"\n")
             if(iD == 1) then
               local tA = ACache[stRec.Key]
               if(tA and tA.Size and tA.Size > 0) then
@@ -1932,12 +1970,12 @@ asmlib.NewTable("PIECES",{
                 for iA = 1, tA.Size do fA:Write(sH) for iC = 2, defA.Size do
                   local sC = defA[iC][1]
                   local vC = tA[iA][sC]
-                  fA:Write(sDelim..makA:Match(vC,iC,true,"\""))
+                  fA:Write(sDelim); fA:Write(makA:Match(vC,iC,true,"\""))
                 end fA:Write("\n") end
+                end
               end
             end
           end
-        end
       end; return true
     end,
     ExportTypeRun = function(fE, fS, sType, makP, PCache, qPieces, vSrc)
@@ -2035,7 +2073,7 @@ asmlib.NewTable("ADDITIONS",{
               asmlib.LogInstance("Cannot extract "..asmlib.GetReport(iID,sKey),vSrc); return false end
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
               asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
-            end; oFile:Write(sDelim..tostring(vM or ""))
+            end; oFile:Write(sDelim); oFile:Write(tostring(vM or ""))
           end; oFile:Write("\n") -- Data is already inserted, there will be no crash
         end
       end; return true
@@ -2124,9 +2162,10 @@ asmlib.NewTable("PHYSPROPERTIES",{
         local tProp = tNames[sT]; if(not tProp) then
           asmlib.LogInstance("Missing index "..asmlib.GetReport(fPref, iS, sT),vSrc); return false end
         for iP = 1, tProp.Size do local sP = tProp[iP]
-          oF:Write(defTab.Name..sDelim..makTab:Match(sT,1,true,"\"")..
-                                sDelim..makTab:Match(iP,2,true,"\"")..
-                                sDelim..makTab:Match(sP,3,true,"\"").."\n")
+          oF:Write(defTab.Name); oF:Write(sDelim)
+          oF:Write(makTab:Match(sT,1,true,"\"")); oF:Write(sDelim)
+          oF:Write(makTab:Match(iP,2,true,"\"")); oF:Write(sDelim)
+          oF:Write(makTab:Match(sP,3,true,"\"")); oF:Write("\n")
         end
       end; return true
     end,

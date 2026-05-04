@@ -299,17 +299,17 @@ end
 
 -- Gets the date according to the specified format
 function GetDate(vD, fD)
-  return osDate(fD or GetOpVar("DATE_FORMAT"), vD)
+  return osDate(fD or GetOpVar("FORMAT_DATE"), vD)
 end
 
 -- Gets the time according to the specified format
 function GetTime(vT, fT)
-  return osDate(fT or GetOpVar("TIME_FORMAT"), vT)
+  return osDate(fT or GetOpVar("FORMAT_TIME"), vT)
 end
 
 -- Gets the date and time according to the specified format
-function GetDateTime(vDT, fDT)
-  return GetDate(vDT, fDT).." "..GetTime(vDT, fDT)
+function GetDateTime(vS, fS)
+  return osDate(fS or GetOpVar("FORMAT_DTTM"), vS)
 end
 
 function TimeTic(sN, bC)
@@ -436,19 +436,18 @@ function Log(vMsg, bCon)
   local tLoc = GetOpVar("LOG_CONFIG")
   if(not (tLoc and tLoc.Max > 0)) then return end
   tLoc.Cur = ((tLoc.Cur >= tLoc.Max) and 1 or (tLoc.Cur + 1))
-  local sMsg, sID = tostring(vMsg), tLoc.Fmt:format(tLoc.Cur)
-  local sMsg = GetConcat(sID, " [", GetDateTime(), "] ", sMsg)
+  local sInst = (SERVER and "SERVER" or (CLIENT and "CLIENT" or "NOINST"))
+  local sMoDB, sToMD = GetOpVar("MODE_DATABASE"), GetOpVar("TOOLNAME_NU")
+  local sMsg = tLoc.Fmt:format(tLoc.Cur, GetDateTime(), sMoDB, sInst, sToMD, tostring(vMsg))
   if(tLoc.Brs > 0  and not bCon) then -- We still have burst rate rows
-    local tTbr = tLoc.Tbr -- Index burst table
-    local sLn, iSiz = ("\n"), tTbr.Size --Read current size
-    if(iSiz > 0) then -- Burst writes rates
-      tableInsert(tTbr, sMsg) -- Write to the table
-      tTbr.Size = (iSiz - 1) -- Decrement burst count
-    else -- Burst rates count is zero. Dump the table in the file
+    local tTbr, sLn = tLoc.Tbr, ("\n") -- Index burst table and new line
+    tTbr.Size = ((tonumber(tTbr.Size) or 0) + 1) --Read current size
+    tableInsert(tTbr, sMsg) -- Write to the table. Dump the table in the file
+    if(tTbr.Size >= tLoc.Brs) then -- Pending lines count equal to burst rate
       local fLog = fileOpen(tLoc.Nam, "ab", "DATA"); if(not fLog) then
-        ErrorNoHalt("Open fail "..GetConcat(tLoc.Brs,"|",tLoc.Nam)); return end
-      for iL = 1, tLoc.Brs do fLog:Write(GetConcat(tTbr[iL],sLn)) end
-      fLog:Flush(); fLog:Close(); tableEmpty(tTbr); tTbr.Size = tLoc.Brs
+        ErrorNoHalt("Open fail "..GetReport(tLoc.Brs, tLoc.Nam)); return end
+      for iL = 1, tTbr.Size do fLog:Write(GetConcat(tTbr[iL],sLn)) end
+      fLog:Flush(); fLog:Close(); tableEmpty(tTbr); tTbr.Size = 0
     end -- Burst mode is not activated. Open the file for every line
   else -- The current has values 1..nMaxLogs(0)
     print(sMsg) -- Write the log in the console
@@ -492,20 +491,17 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
         tInfo = (tInfo or (tDbg and tDbg or nil))    -- Override debug information
         tInfo = (tInfo or debugGetinfo(2))           -- Default value
   local sDbg, sFunc = "", tostring(tInfo.name or "Incognito")
-  if(tLoc.Dbg) then
-    local snID, snAV = GetOpVar("MISS_NOID"), GetOpVar("MISS_NOAV")
-    sDbg = GetConcat(sDbg," ",(tInfo.linedefined and "["..tInfo.linedefined.."]" or snAV))
-    sDbg = GetConcat(sDbg," ",(tInfo.currentline and ("["..tInfo.currentline.."]") or snAV))
-    sDbg = GetConcat(sDbg,"@",(tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID))
+  if(tLoc.Dbg) then local snID = GetOpVar("MISS_NOID")
+    local sLD, sLC = tonumber(tInfo.linedefined or 0), tonumber(tInfo.currentline or 0)
+    local sSR = (tInfo.source and (tInfo.source:gsub("^%W+", ""):gsub("\\","/")) or snID)
+    sDbg = tLoc.Fdg:format(sLD, sLC, sSR)
   end; local sSrc, bF, bL = tostring(vSrc or ""), nil, nil
   if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else
     if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
-  local sInst = ((SERVER and "SERVER" or nil) or (CLIENT and "CLIENT" or nil) or "NOINST")
-  local sMoDB, sToolMD = GetOpVar("MODE_DATABASE"), GetOpVar("TOOLNAME_NU")
   local sData = GetConcat(sSrc, sFunc, ": ", vMsg)
   bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
   bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
-  Log(GetConcat(sInst," > ",sToolMD," [",sMoDB,"]",sDbg," ",sData), bCon)
+  Log(GetConcat(sDbg, sData), bCon)
 end
 
 function LogCeption(tT,sS,tP)
@@ -651,8 +647,8 @@ function SetLogControl(nLines, nBurs)
   local tLoc = GetOpVar("LOG_CONFIG")
         tLoc.Max = (tonumber(nLines) or 0); tLoc.Cur = 0
         tLoc.Max = mathFloor((tLoc.Max > 0) and tLoc.Max or 0)
-        tLoc.Fmt = ("%"..(tostring(tLoc.Max)):len().."d")
-        tLoc.Brs = (tonumber(nBurs) or 0); tLoc.Tbr.Size = tLoc.Brs
+        tLoc.Fmt = ("%"..(tostring(tLoc.Max)):len().."d [%s][%s][%s][%s] %s")
+        tLoc.Brs = (tonumber(nBurs) or 0); tLoc.Tbr.Size = 0
   LogInstance(GetConcat("(", tLoc.Max, ",",tLoc.Brs, ")"))
 end
 
@@ -709,8 +705,9 @@ function InitBase(sName, sPurp)
   SetOpVar("COLOR_CLAMP", {0, 255})
   SetOpVar("GOLDEN_RATIO",1.61803398875)
   SetOpVar("FULL_SLOPEDG", 45)
-  SetOpVar("DATE_FORMAT","%y-%m-%d")
-  SetOpVar("TIME_FORMAT","%H:%M:%S")
+  SetOpVar("FORMAT_DATE","%y-%m-%d")
+  SetOpVar("FORMAT_TIME","%H:%M:%S")
+  SetOpVar("FORMAT_DTTM","%y-%m-%d %H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
   SetOpVar("NAME_PERP",sPurp:lower())
   SetOpVar("NAME_LIBRARY", GetOpVar("NAME_INIT").."asmlib")
@@ -731,6 +728,7 @@ function InitBase(sName, sPurp)
     Tbr = {}, -- Table to store burst rate log lines
     Cur = 0, -- Current logging line ID
     Fmt = "", -- Log message ID format. Log file name
+    Fdg = "[%d][%d]@%s|",
     Dbg = false, -- Force stack trace debugging
     Nam = GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt",
     Frc = {KV = "%s[%s]", EQ = "%s = %s", VV = "{%s}[%s] = <%s>", EM = "%s = {}"}
@@ -2746,6 +2744,23 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:GetCommand(vK)
     if(vK) then return tabCmd[vK] end; return tabCmd
   end
+  -- Register a string in the STMT concat list
+  function self:SetFragment(...)
+    local qtCmd = self:GetCommand()
+    local qtFrg, nF = qtCmd.FRAG, select("#", ...)
+    if(not qtFrg) then qtCmd.FRAG = {}; qtFrg = qtCmd.FRAG end
+    for iF = 1, nF do local vF = select(iF, ...)
+      tableInsert(qtFrg, tostring(vF))
+    end; return self
+  end
+  -- Creates the statement from the list and returns it
+  function self:GetFragment()
+    local qtCmd = self:GetCommand()
+    local qtFrg = qtCmd.FRAG
+    if(not qtFrg) then return "" end
+    local sFrag = tableConcat(qtFrg)
+    tableEmpty(qtFrg); return sFrag
+  end
   -- Deny the currently built statement
   function self:Deny()
     local qtCmd = self:GetCommand()
@@ -3093,7 +3108,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:Create()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "CREATE"
-    local sStmt = qtCmd.STMT.." TABLE IF NOT EXISTS "..qtDef.Name.." ( "
+    self:SetFragment(qtCmd.STMT, " TABLE IF NOT EXISTS ", qtDef.Name, " ( ")
     for iCnt = 1, qtDef.Size do
       local tC = qtDef[iCnt]; if(not tC) then
         LogInstance("Column missing "..GetReport(iCnt,qtDef.Size), qtDef.Nick); return self:Deny() end
@@ -3101,8 +3116,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
         LogInstance("Column name mismatch "..GetReport(iCnt,qtDef.Size),qtDef.Nick); return self:Deny() end
       local sT = tostring(tC[2] or ""); if(IsBlank(sT)) then
         LogInstance("Column type mismatch "..GetReport(iCnt,qtDef.Size),qtDef.Nick); return self:Deny() end
-      sStmt = sStmt..sC.." "..sT..(iCnt ~= qtDef.Size and ", " or " );")
-    end; qtCmd[qtCmd.STMT] = sStmt; return self
+      self:SetFragment(sC, " ", sT, (iCnt ~= qtDef.Size and ", " or " );"))
+    end; qtCmd[qtCmd.STMT] = self:GetFragment(); return self
   end
   -- Build SQL table indexes statement
   function self:Index(...)
@@ -3119,9 +3134,10 @@ function NewTable(sTable,defTab,bReload,bDelete)
     for iCnt = 1, nA do local vA = tA[iCnt]
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
-      local sV, nV, bNe = "", #vA, (vA.Ne or not IsHere(vA.Ne))
-      tStmt[iCnt] = "CREATE "..(vA.Un and "UNIQUE " or "")..qtCmd.STMT..(bNe and " IF NOT EXISTS " or " ")
-                             .."IND_"..qtDef.Name..sDiv..tableConcat(vA,sDiv).." ON "..qtDef.Name.." ( "
+      local nV, bNe = #vA, (vA.Ne or not IsHere(vA.Ne))
+      self:SetFragment("CREATE ", (vA.Un and "UNIQUE " or ""), qtCmd.STMT)
+      self:SetFragment((bNe and " IF NOT EXISTS " or " "), "IND_", qtDef.Name)
+      self:SetFragment(sDiv, tableConcat(vA,sDiv), " ON ", qtDef.Name, " ( ")
       for iInd = 1, nV do
         local iV = mathFloor(tonumber(vA[iInd]) or 0); if(iV == 0) then
           LogInstance("Index mismatch "..GetReport(nA,iCnt,iInd),qtDef.Nick); return self:Deny() end
@@ -3129,15 +3145,15 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt,iInd,iV), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,iInd,iV),qtDef.Nick); return self:Deny() end
-        sV = sV..sC..(iInd ~= nV and ", " or " );")
-      end; tStmt[iCnt] = tStmt[iCnt]..sV
+        self:SetFragment(sC, (iInd ~= nV and ", " or " );"))
+      end; tStmt[iCnt] = self:GetFragment()
     end return self
   end
   -- Builds an SQL select statement
   function self:Select(...)
-    local qtCmd = self:GetCommand()
+    local qtCmd, nA = self:GetCommand(), select("#", ...)
     local qtDef = self:GetDefinition(); qtCmd.STMT = "SELECT"
-    local sStmt, nA = qtCmd.STMT.." ", select("#", ...)
+    self:SetFragment(qtCmd.STMT, " ")
     if(nA > 0) then local tA = {...}
       for iCnt = 1, nA do
         local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
@@ -3146,10 +3162,10 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
-        sStmt = sStmt..sC..(iCnt ~= nA and ", " or "")
+        self:SetFragment(sC, (iCnt ~= nA and ", " or ""))
       end
-    else sStmt = sStmt.."*" end
-    qtCmd[qtCmd.STMT] = sStmt .." FROM "..qtDef.Name..";"; return self
+    else self:SetFragment("*") end; self:SetFragment(" FROM ", qtDef.Name, ";")
+    qtCmd[qtCmd.STMT] = self:GetFragment(); return self
   end
   -- Add where clause to the current statement
   function self:Where(...)
@@ -3164,7 +3180,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
-    local tA = {...}; sStmt = sStmt:Trim("%s"):Trim(";")
+    local tA = {...}; self:SetFragment(sStmt:Trim("%s"):Trim(";"))
     for iCnt = 1, nA do
       local vA, sW = tA[iCnt], ((iCnt == 1) and " WHERE " or " AND "); if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt), qtDef.Nick); return self:Deny() end
@@ -3174,8 +3190,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
          LogInstance("Column missing "..GetReport(nA,iCnt,wC,wV), qtDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
         LogInstance("Column mismatch "..GetReport(nA,iCnt,wC,wV),qtDef.Nick); return self:Deny() end
-      sStmt = sStmt..sW..sC.." = "..tostring(wV)
-    end; qtCmd[qtCmd.STMT] = sStmt..";"; return self
+      self:SetFragment(sW, sC, " = ", tostring(wV))
+    end; self:SetFragment(";"); qtCmd[qtCmd.STMT] = self:GetFragment(); return self
   end
   -- Add order by clause to the current statement
   function self:Order(...)
@@ -3190,7 +3206,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
-    local tA = {...}; sStmt = sStmt:Trim("%s"):Trim(";").." ORDER BY "
+    local tA = {...}; self:SetFragment(sStmt:Trim("%s"):Trim(";"), " ORDER BY ")
     for iCnt = 1, nA do
       local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
         LogInstance("Column undefined "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
@@ -3199,14 +3215,14 @@ function NewTable(sTable,defTab,bReload,bDelete)
         LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
         LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
-      sStmt = sStmt..sC..sDir..(iCnt ~= nA and ", " or ";")
-    end; qtCmd[qtCmd.STMT] = sStmt; return self
+      self:SetFragment(sC, sDir, (iCnt ~= nA and ", " or ";"))
+    end; qtCmd[qtCmd.STMT] = self:GetFragment(); return self
   end
   -- Build SQL insert statement
   function self:Insert(...)
     local qtCmd, nA = self:GetCommand(), select("#", ...)
     local qtDef = self:GetDefinition(); qtCmd.STMT = "INSERT"
-    local sStmt = qtCmd.STMT.." INTO "..qtDef.Name.." ( "
+    self:SetFragment(qtCmd.STMT, " INTO ", qtDef.Name, " ( ")
     if(nA > 0) then local tA = {...}
       for iCnt = 1, nA do -- Assume the user wants to build custom insert
         local vA = mathFloor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
@@ -3215,7 +3231,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
-        sStmt = sStmt..sC..(iCnt ~= nA and ", " or " )")
+        self:SetFragment(sC, (iCnt ~= nA and ", " or " )"))
       end
     else nA = qtDef.Size -- When called with no arguments is the same as picking all columns
       for iCnt = 1, nA do
@@ -3223,9 +3239,9 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt),qtDef.Nick); return self:Deny() end
-        sStmt = sStmt..sC..(iCnt ~= nA and ", " or " )")
+        self:SetFragment(sC, (iCnt ~= nA and ", " or " )"))
       end
-    end; qtCmd[qtCmd.STMT] = sStmt; return self
+    end; qtCmd[qtCmd.STMT] = self:GetFragment(); return self
   end
   -- Add values clause to the current statement
   function self:Values(...)
@@ -3235,9 +3251,9 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
-    sStmt = sStmt:Trim("%s"):Trim(";").." VALUES ( "
-    for iCnt = 1, nA do sStmt = sStmt..tostring(tA[iCnt])..(iCnt ~= nA and ", " or " );") end
-    qtCmd[qtCmd.STMT] = sStmt; return self
+    self:SetFragment(sStmt:Trim("%s"):Trim(";").." VALUES ( ")
+    for iCnt = 1, nA do self:SetFragment(tostring(tA[iCnt]), (iCnt ~= nA and ", " or " );")) end
+    qtCmd[qtCmd.STMT] = self:GetFragment(); return self
   end
   -- Wipes a set of records via primary key
   function self:Erase(sKey)
@@ -4082,7 +4098,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   LogInstance("Success "..GetReport(sHew, sMoDB),sTable); return true
 end
 
-function TranslateDSV(sTable, sPref, sDelim)
+function TranslateDSV(sTable, sPref, sDelim, bExp)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
@@ -4098,10 +4114,11 @@ function TranslateDSV(sTable, sPref, sDelim)
     LogInstance("Missing table builder "..GetReport(sHew,sMoDB),sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition "..GetReport(sHew,sMoDB),sTable); return false end
-  local sDSV = GetLibraryPath(GetOpVar("DIRPATH_DSV"), fPref, defTab.Name)
+  local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
+  local sSRC = GetLibraryPath(GetOpVar(sSors), fPref, defTab.Name)
   local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), "["..sMoDB.."-tr]"..fPref, defTab.Name)
-  local D = fileOpen(sDSV, "rb", "DATA"); if(not D) then
-    LogInstance("Open fail "..GetReport(sHew, sDSV),sTable); return false end
+  local D = fileOpen(sSRC, "rb", "DATA"); if(not D) then
+    LogInstance("Open fail "..GetReport(sHew, sSRC),sTable); return false end
   local I = fileOpen(sEXP, "wb", "DATA"); if(not I) then
     LogInstance("Open fail "..GetReport(sHew, sEXP),sTable); return false end
   I:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
@@ -4111,14 +4128,14 @@ function TranslateDSV(sTable, sPref, sDelim)
   while(not isEOF) do sLine, isEOF = GetStringFile(D)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       sLine = sLine:gsub(defTab.Name,""):Trim()
-      local tBoo, sCat = sDelim:Explode(sLine), ""
-      for nCnt = 1, #tBoo do
-        local vMatch = makTab:Match(GetStrip(tBoo[nCnt]),nCnt,true,"\"",true)
+      local tLine = sDelim:Explode(sLine)
+      for nCnt = 1, #tLine do
+        local vMatch = makTab:Match(GetStrip(tLine[nCnt]),nCnt,true,"\"",true)
         if(not IsHere(vMatch)) then D:Close(); I:Flush(); I:Close()
           LogInstance("Given matching failed "
-            ..GetReport(sHew, tBoo[nCnt], nCnt, defTab[nCnt][1]), sTable); return false end
-        sCat = sCat..", "..tostring(vMatch)
-      end; I:Write(sFr..sCat:sub(3,-1)..sBk)
+            ..GetReport(sHew, tLine[nCnt], nCnt, defTab[nCnt][1]), sTable); return false end
+        tLine[nCnt] = tostring(vMatch)
+      end; I:Write(sFr); I:Write(tableConcat(tLine, ", ")); I:Write(sBk)
     end
   end; D:Close(); I:Flush(); I:Close()
   LogInstance("Success "..GetReport(sHew,sMoDB),sTable); return true
@@ -4303,7 +4320,7 @@ function ExportContentsRun(fF,qData,sName,sInd,qList)
     end
   end
   if(istable(qData) and IsHere(qData[1])) then
-    fF:Write("local "..sName.." = {\n")
+    fF:Write("local "); fF:Write(sName); fF:Write(" = {\n")
     local pkID, sInd, fRow = 1, "  ", true
     local ixID = makTab:GetColumnID("LINEID")
     local coMo = makTab:GetColumnName(1)
@@ -4317,26 +4334,27 @@ function ExportContentsRun(fF,qData,sName,sInd,qList)
         if(vA == dbNull) then aRow[iA] = "gsMissDB" end
       end
       if(fRow) then fRow = false
-        fF:Write(sInd:rep(1).."["..aRow[pkID].."] = {\n")
+        fF:Write(sInd:rep(1)); fF:Write("["); fF:Write(aRow[pkID]); fF:Write("] = {\n")
         if(makAdd and qList) then if(not SetAdditionsRun(mMod, makAdd, qList)) then
           LogInstance("Addition primary error "..GetReport(iD,qList,mMod)); return false end end
       else
         if(aRow[ixID] == 1) then fF:Seek(fF:Tell() - 2)
-          fF:Write("\n"..sInd:rep(1).."},\n"..sInd:rep(1).."["..aRow[pkID].."] = {\n")
+          fF:Write("\n") fF:Write(sInd:rep(1)); fF:Write("},\n")
+          fF:Write(sInd:rep(1)); fF:Write("["); fF:Write(aRow[pkID]); fF:Write("] = {\n")
           if(makAdd and qList) then if(not SetAdditionsRun(mMod, makAdd, qList)) then
             LogInstance("Addition secondary error "..GetReport(iD,qList,mMod)); return false end end
         end
       end
       local bS, sR = pcall(mgrTab[sFunc], aRow);
-      if(not bS) then LogInstance("Routine error "..GetReport(iD,mMod)..": "..sR); return false end
+      if(not bS) then LogInstance("Routine error "..GetReport(iD,mMod,sR)); return false end
       if(not sR) then LogInstance("Internal error "..GetReport(iD,mMod)); return false end
       tableRemove(aRow, 1); fF:Write(sInd:rep(2).."{"..tableConcat(aRow, ", ").."},\n")
     end
     fF:Seek(fF:Tell() - 2)
-    fF:Write("\n"..sInd:rep(1).."}\n")
+    fF:Write("\n"); fF:Write(sInd:rep(1)); fF:Write("}\n")
     fF:Write("}\n")
   else
-    fF:Write("local "..sName.." = {}\n")
+    fF:Write("local "); fF:Write(sName); fF:Write(" = {}\n")
   end; return true
 end
 
@@ -4709,10 +4727,9 @@ function GetEntitySpawn(oPly,trEnt,trHitPos,shdModel,ivhdPoID,
   local trID, trRad, trPOA, trRec = GetEntityHitID(trEnt, trHitPos, true)
   if(not (IsHere(trID) and IsHere(trRad) and IsHere(trPOA) and IsHere(trRec))) then
     LogInstance("Active point missed "..GetReport(trEnt:GetModel())); return nil end
+  if(trRad > nActRadius) then return nil end
   if(not IsHere(LocatePOA(trRec, 1))) then
     LogInstance("Trace has no points"); return nil end
-  if(trRad > nActRadius) then
-    LogInstance("Trace outside radius"); return nil end
   local hdRec = CacheQueryPiece(shdModel); if(not IsHere(hdRec)) then
     LogInstance("Holder model missing "..GetReport(shdModel)); return nil end
   local hdOffs, ihdPoID = LocatePOA(hdRec,ivhdPoID); if(not IsHere(hdOffs)) then

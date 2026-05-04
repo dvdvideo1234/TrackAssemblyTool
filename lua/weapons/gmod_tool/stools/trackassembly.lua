@@ -979,7 +979,7 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
   if(iC) then local iB, iF = (iC - 1), (iC + 1)
     if(iB > 0 and iB <= tC.Size and iF > 0 and iF <= tC.Size) then
       local vDN = Vector(tData.Org); vDN:Sub(tC.Node[iC])
-      local vDP = Vector(tC.Node[iP]); vDP:Sub(tC.Node[iC])
+      local vDP = Vector(tC.Node[iB]); vDP:Sub(tC.Node[iC])
       if(vDN:Dot(vDP) > 0) then -- We have to insert at the middle of the stack
         tableInsert(tC.Node, iC, Vector(tData.Org))
         tableInsert(tC.Norm, iC, tData.Ang:Up())
@@ -991,11 +991,16 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
         tableInsert(tC.Base, iC, Vector(tData.Hit))
         tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
       end
-    else -- The insert is at the beginning or at the end
+    elseif(iC == 1) then
       tableInsert(tC.Node, iC, Vector(tData.Org))
       tableInsert(tC.Norm, iC, tData.Ang:Up())
       tableInsert(tC.Base, iC, Vector(tData.Hit))
       tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+    else iC, iD = (tC.Size + 1), 0 -- The insert is at the beginning or at the end
+      tableInsert(tC.Node, Vector(tData.Org))
+      tableInsert(tC.Norm, tData.Ang:Up())
+      tableInsert(tC.Base, Vector(tData.Hit))
+      tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
     end -- Insert at the node stack end. Send the end to the client
   else iC, iD = (tC.Size + 1), 0 -- Client insertion ID is not provided
     tableInsert(tC.Node, Vector(tData.Org))
@@ -1019,8 +1024,7 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
       if(iN > 0) then netWriteNormal(vN) end
     netSend(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
-  end
-  return tC -- Returns the updated curve nodes table
+  end; return tC -- Returns the updated curve nodes table
 end
 
 --[[
@@ -1036,9 +1040,9 @@ function TOOL:CurveRemove(iD, bMute)
   if(tC.Size <= 0) then
     asmlib.LogInstance("Curve empty", gtLogs); return nil end
   local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
-  tC.Size = (tC.Size - 1) -- Increment stack size. Adding stuff
   tableRemove(tC.Node, iC); tableRemove(tC.Norm, iC)
   tableRemove(tC.Base, iC); tableRemove(tC.Rays, iC)
+  tC.Size = (tC.Size - 1) -- Increment stack size. Adding stuff
   if(not bMute) then
     asmlib.Notify(user, "Node removed ["..tC.Size.."] !", "CLEANUP")
     netStart(gsLibName.."SendRemoveCurveNode")
@@ -1718,29 +1722,23 @@ function TOOL:Reload(stTrace)
   elseif(workmode == 2) then
     if(user:KeyDown(IN_SPEED)) then
       if(trEnt and trEnt:IsValid()) then
-        asmlib.LogInstance("(Prop) Relation set",gtLogs)
         return self:IntersectRelate(trEnt, stTrace.HitPos)
       else
-        asmlib.LogInstance("(World) Relation clear",gtLogs)
         return self:IntersectClear()
       end
     end
   elseif(workmode == 3 or workmode == 5) then
     if(user:KeyDown(IN_SPEED)) then
-      asmlib.LogInstance("Curve cleared",gtLogs)
       self:CurveClear(); return true
     elseif(user:KeyDown(IN_DUCK)) then
       local tC = asmlib.GetCacheCurve(user); if(not tC) then
         asmlib.LogInstance("Curve missing", gtLogs); return false end
       local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-      asmlib.LogInstance(("Node [%d] removed"):format(mD),gtLogs)
       self:CurveRemove(mD); return true
     else
-      asmlib.LogInstance("Node [N] removed",gtLogs)
       self:CurveRemove(); return true
     end
   elseif(workmode == 4 and bfover) then
-    asmlib.LogInstance("Flip over cleared",gtLogs)
     self:ClearFlipOver(); return true
   end
   -- Grab the trace track model for remove
@@ -2120,7 +2118,8 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       oScreen:DrawCircle(xyD, nD)
       oScreen:DrawLine(xyF, xyD, "r")
       if(bCt) then -- TODO: Draw next id after trace id
-        oScreen:SetTextStart(xyD.x + 30, xyD.y - 30):DrawText(tostring(iD), "y")
+        oScreen:SetTextStart(xyD.x + 30, xyD.y - 30)
+        oScreen:DrawText(tostring(iD), "y", "SURF",{"DebugSpawnTA"})
       end
       oScreen:DrawLine(xyN, xyD, "b")
       oScreen:DrawCircle(xyD, nD / 2, "r")
