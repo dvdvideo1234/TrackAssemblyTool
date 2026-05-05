@@ -97,6 +97,7 @@ local utilPrecacheModel              = util and util.PrecacheModel
 local utilGetPlayerTrace             = util and util.GetPlayerTrace
 local entsCreate                     = ents and ents.Create
 local entsCreateClientProp           = ents and ents.CreateClientProp
+local fileFind                       = file and file.Find
 local fileOpen                       = file and file.Open
 local fileIsDir                      = file and file.IsDir
 local fileExists                     = file and file.Exists
@@ -755,6 +756,8 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_CONCMD", "%s %s")
   SetOpVar("FORM_INTEGER", "[%d]")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
+  SetOpVar("FORM_PREFIXFMT", "[%s-%s]%s")
+  SetOpVar("FORM_HEADEREXP", {"# %s:(%s) %s [%s]\n", "# %s:(%s)\n"})
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
@@ -1795,7 +1798,6 @@ function OpenNodeMenu(pnBase)
         SetAsmConvar(oPly, "exportdb", 0)
         local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
         LogInstance("Player invalid"); return nil end
-        LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
         ExportTypeDSV(pT:GetText())
       end):SetIcon(ToIcon(sI.."exdv"))
     pIn:AddOption(languageGetPhrase(sT.."exru"),
@@ -1803,9 +1805,25 @@ function OpenNodeMenu(pnBase)
         SetAsmConvar(oPly, "exportdb", 0)
         local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
         LogInstance("Player invalid"); return nil end
-        LogInstance("Export "..GetReport(oPly:Nick(), pT:GetText()))
         ExportTypeRun(pT:GetText())
       end):SetIcon(ToIcon(sI.."exru"))
+    pIn:AddOption(languageGetPhrase(sT.."extr"),
+      function()
+        SetAsmConvar(oPly, "exportdb", 0)
+        local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+        LogInstance("Player invalid"); return nil end
+        local sDir = GetLibraryPath(GetOpVar("DIRPATH_EXP"))
+        local sExp = GetConcat(gsDirBAS, gsDirEXP)
+        local sPrf = pT:GetText():gsub("[^%w]","_"):lower() -- Addon prefix
+        local sLsn = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
+        local sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sLsn)
+        local tSrc = fileFind(sDir..sNam, "DATA") -- Search for generic database
+        for iF = 1, #tSrc do local vF = tSrc[iF] -- Attemt to translate DSV to records
+          if(not vF:find("category.txt", 1, true)) then -- Ignore categories
+            TranslateDSV(sDir..vF, sPrf, nil, true) -- Translate files of the type
+          end -- All files realted to that type are translated
+        end
+      end):SetIcon(ToIcon(sI.."extr"))
   end
   pMenu:Open()
 end
@@ -3699,7 +3717,7 @@ end
 function ExportSyncDB(sDelim)
   if(SERVER) then LogInstance("Working on server"); return true end
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
-  local sMiss, sTable = GetOpVar("MISS_NOAV"), "PIECES"
+  local sMiss, sTable, tHea = GetOpVar("MISS_NOAV"), "PIECES", GetOpVar("FORM_HEADEREXP")
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
   local sHew, sFunc = tHew[2]:format(sMiss, sTable, sDelim), debugGetinfo(1).name
   local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"), GetOpVar("NAME_LIBRARY"), "_db")
@@ -3709,8 +3727,8 @@ function ExportSyncDB(sDelim)
     LogInstance("Missing table definition "..GetReport(sHew,sMoDB)); return false end
   local F = fileOpen(fName, "wb" ,"DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew,fName)); return false end
-  F:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  F:Write("# "..defTab.Nick..":("..makTab:GetColumnList(nil,1,2,3)..")\n")
+  F:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  F:Write(tHea[2]:format(defTab.Nick, makTab:GetColumnList(nil,1,2,3)))
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, "")
@@ -3771,11 +3789,11 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local fName = GetLibraryPath(sSors, fPref, sSnam)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew,fName)); return false end
-  local sEq, nLen = ("="):rep(nEq), (nEq+2)
+  local sEq, nLen, tHea = ("="):rep(nEq), (nEq+2), GetOpVar("FORM_HEADEREXP")
   local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
   local tSort = Arrange(tCat); if(not tSort) then
     LogInstance("Sorting keys fail "..GetReport(sHew,sMoDB)); return false end
-  F:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
+  F:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   for iS = 1, tSort.Size do local rec, cat = tSort[iS], nil; rec, cat = rec.Rec, rec.Key
   if(isstring(rec.Txt)) then F:Write("["..sEq.."["..cat..sEq..rec.Txt:Trim().."]"..sEq.."]".."\n")
     else F:Flush(); F:Close(); LogInstance("Category code mismatch "..GetReport(sHew, cat, rec.Txt)); return false end
@@ -3853,7 +3871,7 @@ end
 function ExportDSV(sTable, sPref, sDelim, bExp)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sDelim, tHea = tostring(sDelim or "\t"):sub(1,1), GetOpVar("FORM_HEADEREXP")
   local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
@@ -3870,8 +3888,8 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew, fName), sTable); return false end
-  F:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  F:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
+  F:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  F:Write(tHea[2]:format(sTable, makTab:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, sTable)
@@ -3916,52 +3934,42 @@ end
 function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   local sTable = tostring(sTable or ""); if(IsBlank(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local bFile, sLine, isEOF, F = fileExists(sTable, "DATA"), "", false
-  local bRef, tHew, sHew = tobool(bRef), GetOpVar("PATTEM_EXDSVHED")
-  local sMoDB, makTab, defTab, cmdTab = GetOpVar("MODE_DATABASE")
-  if(bFile) then -- The first argument is a file path
-    local tHew, fName = GetOpVar("PATTEM_EXDSVHED"), sTable
+  local bFile, fName = fileExists(sTable, "DATA")
+  local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
+  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local fPref = tostring(sPref or GetInstPref())
+  local sMoDB, bRef = GetOpVar("MODE_DATABASE"), tobool(bRef)
+  if(bFile) then fName = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(sMoDB,fName))
-    F = fileOpen(fName, "rb", "DATA"); if(not F) then
+    local F = fileOpen(fName, "rb", "DATA"); if(not F) then
       LogInstance("Open fail "..GetReport(sMoDB,fName)); return false end
-    local iF = F:Tell() -- Store the initial file pointer
-    local sLine, isEOF = GetStringFile(F) -- Read the file header
-    local sPar = sLine:match(tHew[3]); if(not sPar) then
+    local sRow, bEOF = GetStringFile(F) -- Read the file header
+    local sPar = sRow:match(tHew[3]); if(not sPar) then
       LogInstance("Intern header missing "..GetReport(sMoDB,fName)); return false end
     local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
     fPref, sTable = tPar[1]:Trim(), tPar[2]:Trim()
-    sDelim = tostring(tPar[3] or "\t"):sub(1,1)
-    sHew = tHew[2]:format(fPref, sTable, sDelim)
-    F:Seek(iF); sLine, isEOF = "", false
-    makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-      LogInstance("Missing table builder "..GetReport(sHew,sMoDB), sTable); return nil end
-    defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance("Missing table definition "..GetReport(sHew,sMoDB), sTable); return false end
-    cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-      LogInstance("Missing table command "..GetReport(sHew,sMoDB), sTable); return false end
-    F = fileOpen(fName, "rb", "DATA"); if(not F) then
-      LogInstance("Open fail "..GetReport(sHew,fName), sTable); return false end
-    LogInstance("Intern success "..GetReport(sHew,sPar), sTable)
-  else -- The first argument is considered to be a table nick
-    sDelim = tostring(sDelim or "\t"):sub(1,1)
-    local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
-      LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
-    sHew = tHew[2]:format(fPref, sTable, sDelim)
-    makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-      LogInstance("Missing table builder "..GetReport(sHew,sMoDB), sTable); return nil end
-    defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
-      LogInstance("Missing table definition "..GetReport(sHew,sMoDB), sTable); return false end
-    cmdTab = makTab:GetCommand(); if(not IsHere(cmdTab)) then
-      LogInstance("Missing table command "..GetReport(sHew,sMoDB), sTable); return false end
+    sDelim = tostring((tPar[3] and not IsBlank(tPar[3])) and tPar[3] or sDelim):sub(1,1)
+    sHew = tHew[2]:format(fPref, sTable, sDelim); F:Close()
+  else sHew = tHew[2]:format(fPref, sTable, sDelim) end
+  if(IsBlank(fPref)) then -- The first argument is considered to be a table nick
+    LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
+  local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
+    LogInstance("Missing table builder "..GetReport(sHew,sMoDB), sTable); return nil end
+  local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
+    LogInstance("Missing table definition "..GetReport(sHew,sMoDB), sTable); return false end
+  if(bFile) then
+    LogInstance("Intern "..GetReport(sHew,fName), sTable)
+  else
     local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-    local fName = GetLibraryPath(sSors, fPref, defTab.Name)
-    F = fileOpen(fName, "rb", "DATA"); if(not F) then
-      LogInstance("Open fail "..GetReport(sHew,sMoDB,fName), sTable); return false end
+    fName = GetLibraryPath(sSors, fPref, defTab.Name)
+    LogInstance("Extern "..GetReport(sHew,fName), sTable)
   end
+  local F = fileOpen(fName, "rb", "DATA"); if(not F) then
+    LogInstance("Open fail "..GetReport(sHew,sMoDB,fName), sTable); return false end
   if(bComm and sMoDB == "SQL") then
     sqlQuery(makTab:Begin():Get()); LogInstance("Begin "..GetReport(sHew,sMoDB), sTable)
   end
-  local iD = makTab:GetColumnID("LINEID")
+  local sLine, isEOF, iD = "", false, makTab:GetColumnID("LINEID")
   while(not isEOF) do sLine, isEOF = GetStringFile(F)
     if((not IsBlank(sLine)) and (not IsDisable(sLine))) then
       local tData = sDelim:Explode(sLine); if((#tData-1) > defTab.Size) then
@@ -4000,7 +4008,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew,sMoDB),sTable); return true end
-  if(IsGenericDB(sTable)) then
+  local tHea = GetOpVar("FORM_HEADEREXP"); if(IsGenericDB(sTable)) then
     LogInstance("Generic database "..GetReport(sHew,sMoDB),sTable); return true end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew,sMoDB),sTable); return false end
@@ -4077,8 +4085,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("Sorting failed "..GetReport(sHew, sMoDB),sTable); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("Open fail "..GetReport(sHew,fName),sTable); return false end
-  O:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  O:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
+  O:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  O:Write(tHea[2]:format(sTable, makTab:GetColumnList(sDelim)))
   TimeLap("OUTC-INIT")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Key
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
@@ -4101,11 +4109,25 @@ end
 function TranslateDSV(sTable, sPref, sDelim, bExp)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
+  local bFile, sSRC = fileExists(sTable, "DATA")
+  local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
-  local fPref = tostring(sPref or GetInstPref()); if(IsBlank(fPref)) then
+  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
+  local fPref, tHea = tostring(sPref or GetInstPref()), GetOpVar("FORM_HEADEREXP")
+  if(bFile) then sSRC = sTable -- Use the settings form the file or override
+    LogInstance("Reading configuration "..GetReport(sMoDB,sSRC))
+    local F = fileOpen(sSRC, "rb", "DATA"); if(not F) then
+      LogInstance("Open fail "..GetReport(sMoDB,sSRC)); return false end
+    local sRow, bEOF = GetStringFile(F) -- Read the file header
+    local sPar = sRow:match(tHew[3]); if(not sPar) then
+      LogInstance("Intern header missing "..GetReport(sMoDB,sSRC)); return false end
+    local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
+    fPref, sTable = tPar[1]:Trim(), tPar[2]:Trim()
+    sDelim = tostring((tPar[3] and not IsBlank(tPar[3])) and tPar[3] or sDelim):sub(1,1)
+    sHew = tHew[2]:format(fPref, sTable, sDelim); F:Close()
+  else sHew = tHew[2]:format(fPref, sTable, sDelim) end
+  if(IsBlank(fPref)) then -- The first argument is considered to be a table nick
     LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
-  local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew,sMoDB),sTable); return true end
   if(IsGenericDB(sTable)) then
@@ -4114,15 +4136,21 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
     LogInstance("Missing table builder "..GetReport(sHew,sMoDB),sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition "..GetReport(sHew,sMoDB),sTable); return false end
-  local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  local sSRC = GetLibraryPath(GetOpVar(sSors), fPref, defTab.Name)
-  local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), "["..sMoDB.."-tr]"..fPref, defTab.Name)
+  if(bFile) then
+    LogInstance("Intern "..GetReport(sHew,sSRC), sTable)
+  else
+    local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
+    sSRC = GetLibraryPath(sSors, fPref, defTab.Name)
+    LogInstance("Extern "..GetReport(sHew,sSRC), sTable)
+  end
   local D = fileOpen(sSRC, "rb", "DATA"); if(not D) then
     LogInstance("Open fail "..GetReport(sHew, sSRC),sTable); return false end
+  local sFpr = GetOpVar("FORM_PREFIXFMT"):format(sMoDB:lower(), "tr", fPref)
+  local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
   local I = fileOpen(sEXP, "wb", "DATA"); if(not I) then
     LogInstance("Open fail "..GetReport(sHew, sEXP),sTable); return false end
-  I:Write("# "..sFunc..":"..sHew.." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  I:Write("# "..sTable..":("..makTab:GetColumnList(sDelim)..")\n")
+  I:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  I:Write(tHea[2]:format(sTable, makTab:GetColumnList(sDelim)))
   local sLine, isEOF = "", false
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
   while(not isEOF) do sLine, isEOF = GetStringFile(D)
@@ -4199,10 +4227,10 @@ end
  * sDelim > The delimiter to be used while processing the DSV list
 ]]
 function ProcessDSV(sDelim)
-  local lbNam, sPU = GetOpVar("NAME_LIBRARY"), GetOpVar("TOOLNAME_PU")
+  local lbNam, sPL= GetOpVar("NAME_LIBRARY"), GetOpVar("TOOLNAME_PL")
   local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), lbNam, "_dsv")
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
-  local sDsv, tProc = GetOpVar("DIRPATH_DSV"), {}
+  local sDelim, sFms = tostring(sDelim or "\t"):sub(1,1), GetOpVar("FORM_PREFIXDSV")
+  local sDsv, tProc = GetLibraryPath(GetOpVar("DIRPATH_DSV")), {}
   local F = fileOpen(fName, "rb" ,"DATA"); if(not F) then
     LogInstance("Open fail: "..GetReport(fName)); return false end
   local sLine, isEOF, sGen = "", false, GetOpVar("DBEXP_PREFGEN")
@@ -4231,9 +4259,9 @@ function ProcessDSV(sDelim)
       LogInstance("Prefix clones "..GetReport(prf, tab.Size, fName))
       for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
     else
-      if(CLIENT) then local srNam = (sPU.."CATEGORY")
-        if(not fileExists(GetLibraryPath(sDsv, sGen, srNam), "DATA")) then
-          if(fileExists(GetLibraryPath(sDsv, prf, srNam), "DATA")) then
+      if(CLIENT) then local srNam = (sPL.."CATEGORY"):lower()
+        if(not fileExists(GetConcat(sDsv, sFms:format(sGen, srNam):lower()), "DATA")) then
+          if(fileExists(GetConcat(sDsv, sFms:format(prf, srNam):lower()), "DATA")) then
             if(not ImportCategory(3, prf)) then
               LogInstance("Failed "..GetReport(prf, "CATEGORY")) end
           else LogInstance("Missing "..GetReport(prf, "CATEGORY")) end
@@ -4242,9 +4270,9 @@ function ProcessDSV(sDelim)
       for iD = 1, #libQTable do
         local makTab = GetBuilderID(iD)
         local defTab = makTab:GetDefinition()
-        local srNam  = (sPU..defTab.Nick)
-        if(not fileExists(GetLibraryPath(sDsv, sGen, srNam), "DATA")) then
-          if(fileExists(GetLibraryPath(sDsv, prf, srNam), "DATA")) then
+        local srNam  = (sPL..defTab.Nick):lower()
+        if(not fileExists(GetConcat(sDsv, sFms:format(sGen, srNam):lower()), "DATA")) then
+          if(fileExists(GetConcat(sDsv, sFms:format(prf, srNam):lower()), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
               LogInstance("Failed "..GetReport(prf, defTab.Nick)) end
           else LogInstance("Missing "..GetReport(prf, defTab.Nick)) end
@@ -4486,7 +4514,7 @@ end
  * sType > Track type the DSV files are created for
 ]]
 function ExportTypeDSV(sType, sDelim)
-  if(not isstring(sType)) then
+  local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return false end
   local fPref, tHew = sType:gsub("[^%w]","_"):lower(), GetOpVar("PATTEM_EXDSVHED")
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
@@ -4505,10 +4533,10 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("Open fail "..GetReport(fPref,sMoDB,pNam)); return false end
   local A = fileOpen(aNam, "wb", "DATA"); if(not A) then
     LogInstance("Open fail "..GetReport(fPref,sMoDB,aNam)); return false end
-  P:Write("# "..sFunc..":"..tHew[2]:format(fPref,defP.Nick,sDelim).." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  P:Write("# "..defP.Nick..":("..makP:GetColumnList(sDelim)..")\n")
-  A:Write("# "..sFunc..":"..tHew[2]:format(fPref,defA.Nick,sDelim).." "..GetDateTime().." [ "..sMoDB.." ]\n")
-  A:Write("# "..defA.Nick..":("..makA:GetColumnList(sDelim)..")\n")
+  P:Write(tHea[1]:format(sFunc, tHew[2]:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
+  P:Write(tHea[2]:format(defP.Nick, makP:GetColumnList(sDelim)))
+  A:Write(tHea[1]:format(sFunc, tHew[2]:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
+  A:Write(tHea[2]:format(defP.Nick, makA:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
     local qsNov = GetOpVar("MISS_NOAV")
     local qsKey = GetOpVar("FORM_KEYSTMT")

@@ -90,13 +90,11 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.823")
+asmlib.SetOpVar("TOOL_VERSION","9.824")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
 local gtInitLogs  = asmlib.GetOpVar("LOG_INIT")
-local gvVecZero   = asmlib.GetOpVar("VEC_ZERO")
-local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
@@ -108,13 +106,16 @@ local gsGenerPrf  = asmlib.GetOpVar("DBEXP_PREFGEN")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD")
 local gsNoID      = asmlib.GetOpVar("MISS_NOID")
+local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
 local gsDirBAS    = asmlib.GetOpVar("DIRPATH_BAS")
 local gsDirDSV    = asmlib.GetOpVar("DIRPATH_DSV")
-local gsDirDSV    = asmlib.GetOpVar("DIRPATH_EXP")
+local gsDirEXP    = asmlib.GetOpVar("DIRPATH_EXP")
+local gsDirSET    = asmlib.GetOpVar("DIRPATH_SET")
 local gsDrcDSV    = asmlib.GetConcat(gsDirBAS, gsDirDSV)
 local gsDrcEXP    = asmlib.GetConcat(gsDirBAS, gsDirEXP)
+local gsDrcSET    = asmlib.GetConcat(gsDirBAS, gsDirSET)
 local gsNoAnchor  = asmlib.GetConcat(gsNoID, gsSymRev, gsNoMD)
-local gsGenerDSV  = asmlib.GetConcat(gsDrcDSV, gsGenerPrf, gsToolPrefU)
+local gsGenerDSV  = asmlib.GetConcat(gsDrcDSV, gsGenerPrf, gsToolPrefL)
 
 ------------ VARIABLE FLAGS ------------
 
@@ -297,9 +298,10 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
   Name = "Spawn data definition",
   Draw = {
     ["RDB"] = function(scr, key, typ, inf, def, spn)
-      local rec, fmt = spn[key], asmlib.GetOpVar("FORM_DRAWDBG")
-      local fky, nav = asmlib.GetOpVar("FORM_DRWSPKY"), asmlib.GetOpVar("MISS_NOAV")
-      local out = (rec and tostring(stringGetFileName(rec.Slot)) or nav)
+      local rec = spn[key]
+      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
+      local fky = asmlib.GetOpVar("FORM_DRWSPKY")
+      local out = (rec and tostring(stringGetFileName(rec.Slot)) or gsNoAV)
       scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
     end,
     ["MTX"] = function(scr, key, typ, inf, def, spn)
@@ -356,20 +358,7 @@ asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
       end
     end, "REFRESH_ITEM_LIST"); return true
   end, {
-    fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefU, "%s.txt")
-  })
-
-asmlib.SetAction("CONVERT_ITEM_LIST", -- Duplicator wrapper
-  function(tData, sPref)
-    asmlib.RunBuilderCount(function(makTab, iD)
-      local defTab = makTab:GetDefinition()
-      local sFile = tData.fEXP:format(sPref, defTab.Nick)
-      if(fileExists(sFile, "DATA")) then
-        asmlib.TranslateDSV(defTab.Nick, sPref, nil, true)
-      end
-    end, "CONVERT_ITEM_LIST"); return true
-  end, {
-    fEXP = asmlib.GetConcat(gsDrcEXP, "%s", gsToolPrefU, "%s.txt")
+    fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt")
   })
 
 if(SERVER) then
@@ -525,9 +514,7 @@ if(CLIENT) then
   asmlib.ToIcon("pn_contextm_ex"   , "transmit"          )
   asmlib.ToIcon("pn_contextm_exdv" , "database_table"    )
   asmlib.ToIcon("pn_contextm_exru" , "script_code"       )
-  asmlib.ToIcon("pn_contextm_extr" , "report"            )
-
-
+  asmlib.ToIcon("pn_contextm_extr" , "shape_square_go"   )
   asmlib.ToIcon("pn_contextm_mv"   , "joystick"          )
   asmlib.ToIcon("pn_contextm_mvup" , "arrow_up"          )
   asmlib.ToIcon("pn_contextm_mvdn" , "arrow_down"        )
@@ -716,15 +703,13 @@ if(CLIENT) then
       local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then return nil end -- Monitor object not present
-      local nDr = asmlib.GetOpVar("DEG_RAD")
-      local sM  = asmlib.GetOpVar("MISS_NOAV")
-      local nMd = asmlib.GetOpVar("MAX_ROTATION")
-      local nBr = (acTo:GetRadialAngle() * nDr)
+      local nDr = asmlib.GetOpVar("DEG_RAD") -- Degrees to radians conversion
+      local nBr = (acTo:GetRadialAngle() * nDr) -- Convert radial angle
       local nK, nN = acTo:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (mathMin(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(guiMouseX(), guiMouseY())
       local vCn = asmlib.NewXY(mathFloor(scrW/2), mathFloor(scrH/2))
-      local nMr, vTx, nD = (nMd * nDr), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
+      local nMr, vTx, nD = (gnMaxRot * nDr), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
       local vA, vB = asmlib.NewXY(), asmlib.NewXY()
       local tP = {asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY()}
       local vF, vN = asmlib.NewXY(nR, 0), asmlib.NewXY(mathClamp(nR - nD, 0, nR), 0)
@@ -739,7 +724,7 @@ if(CLIENT) then
       asmlib.SetXY(vA, vN); asmlib.NegY(vA); asmlib.AddXY(vA, vA, vCn); asmlib.SetXY(tP[3], vA)
       local nT, nB = mathCeil((nK - 1) / 2) + 1, mathFloor((nK - 1) / 2) + 1
       for iD = 1, nN do asmlib.SetXY(vTx, 0, 0)
-        local sW = tostring(conWorkMode:Select(iD) or sM) -- Read selection name
+        local sW = tostring(conWorkMode:Select(iD) or gsNoAV) -- Read selection name
         local sC = ((iW == iD) and "pf" or "pb") -- Change color for selected option
         -- Draw polygon segment using triangles with the same color and array of vertices
         for iK = 1, nK do -- Interpolate the circle with given number of segments
@@ -801,15 +786,9 @@ if(CLIENT) then
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
-      local sMis = asmlib.GetOpVar("MISS_NOAV")
-      local sLib = asmlib.GetOpVar("NAME_LIBRARY")
-      local sBas = asmlib.GetOpVar("DIRPATH_BAS")
-      local sSet = asmlib.GetOpVar("DIRPATH_SET")
-      local sPrU = asmlib.GetOpVar("TOOLNAME_PU")
-      local sRev = asmlib.GetOpVar("OPSYM_REVISION")
-      local sDsv = sBas..asmlib.GetOpVar("DIRPATH_DSV")
-      local fDSV = sDsv..("%s"..sPrU.."%s.txt")
-      local sNam = (sBas..sSet..sLib.."_dsv.txt")
+      local sDsv = gsDrcDSV
+      local fDSV = sDsv..("%s"..gsToolPrefL.."%s.txt")
+      local sNam = (gsDrcSET..gsLibName.."_dsv.txt")
       local nW, nH = pnFrame:GetSize()
       local sDel, nB, nT = "\t", 22, 23
       xyPos.x, xyPos.y = xyDsz.x, (xyDsz.y + nT)
@@ -872,8 +851,7 @@ if(CLIENT) then
         pnText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".pn_externdb_ttt").." "
                         ..languageGetPhrase("tool."..gsToolNameL..".pn_ext_dsv_"..iC))
         xyPos.x = xyPos.x + xySiz.x + xyDsz.x; tpText[iC] = pnText
-        pnText.OnEnter = function(pnSelf)
-          local tDat, sMis = {}, asmlib.GetOpVar("MISS_NOAV")
+        pnText.OnEnter = function(pnSelf) local tDat = {}
           for iV = 1, tpText.Size do tDat[iV] = tpText[iV]:GetValue() end
           -- Active line. Contains X/V
           tDat[1] = tostring(tDat[1] or "X")
@@ -884,7 +862,7 @@ if(CLIENT) then
           tDat[2] = tDat[2]:Trim():gsub("[^%w]","_")
           -- Additional information. It can be anything
           tDat[3] = tostring(tDat[3] or ""):Trim()
-          tDat[3] = (asmlib.IsBlank(tDat[3]) and sMis or tDat[3])
+          tDat[3] = (asmlib.IsBlank(tDat[3]) and gsNoAV or tDat[3])
           if(asmlib.IsBlank(tDat[1])) then return end
           if(asmlib.IsBlank(tDat[2])) then return end
           local iD, pnRow = pnListView:GetSelectedLine()
@@ -917,7 +895,7 @@ if(CLIENT) then
         local sGen = (gsGenerDSV.."*.txt") -- Create the pattern for generic DB
         local tGen = fileFind(sGen, "DATA") -- Search for generic database
         if(tGen and #tGen > 0) then -- some files are present. Register as DSV
-          pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(gsDrcDSV)
+          pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(sGen)
         else local iG = (tGen and #tGen or 0) -- Report that generic is missing so skip
           asmlib.LogInstance("Generic skip: "..asmlib.GetReport(iG, sGen), sLog..".Import")
         end; local sLine, bEOF, bAct = "", false, true
@@ -930,7 +908,7 @@ if(CLIENT) then
             if(nS and nE) then
               sKey = sLine:sub(1, nS-1)
               sPrg = sLine:sub(nE+1,-1)
-            else sKey, sPrg = sLine, sMis end
+            else sKey, sPrg = sLine, gsNoAV end
             pnListView:AddLine((bAct and "V" or "X"), sKey, sPrg):SetTooltip(sPrg)
           end
         end; fD:Close()
@@ -1316,7 +1294,6 @@ if(CLIENT) then
               asmlib.SetAsmConvar(oPly, "exportdb", 0)
               local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
               asmlib.LogInstance("Player invalid"); return nil end
-              asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
               asmlib.ExportTypeDSV(sTyp)
             end):SetIcon(asmlib.ToIcon(sI.."exdv"))
           pIn:AddOption(languageGetPhrase(sT.."exru"),
@@ -1324,7 +1301,6 @@ if(CLIENT) then
               asmlib.SetAsmConvar(oPly, "exportdb", 0)
               local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
               asmlib.LogInstance("Player invalid"); return nil end
-              asmlib.LogInstance("Export "..asmlib.GetReport(oPly:Nick(), sTyp))
               asmlib.ExportTypeRun(sTyp)
             end):SetIcon(asmlib.ToIcon(sI.."exru"))
           pIn:AddOption(languageGetPhrase(sT.."extr"),
@@ -1332,12 +1308,15 @@ if(CLIENT) then
               asmlib.SetAsmConvar(oPly, "exportdb", 0)
               local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
               asmlib.LogInstance("Player invalid"); return nil end
-              asmlib.LogInstance("Convert "..asmlib.GetReport(oPly:Nick(), sTyp))
-              local sPrf = sTyp:gsub("[^%w]","_") -- Addon prefix
-              local tTyp = fileFind(myPref, "DATA") -- Search for generic database
-              local bS, sR = asmlib.DoAction("CONVERT_ITEM_LIST", sPrf)
-              if(not bS) then asmlib.LogInstance("Refresh execute "..asmlib.GetReport(sPrf, sR),sLog..".ListView"); return nil end
-              if(not sR) then asmlib.LogInstance("Trigger routine fail",sLog..".ListView"); return nil end
+              local sPrf = sTyp:gsub("[^%w]","_"):lower() -- Addon prefix
+              local sLsn = asmlib.GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
+              local sNam = asmlib.GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sLsn)
+              local tSrc = fileFind(gsDrcEXP..sNam, "DATA") -- Search for generic database
+              for iF = 1, #tSrc do local vF = tSrc[iF] -- Attemt to translate DSV to records
+                if(not vF:find("category.txt", 1, true)) then -- Ignore categories
+                  asmlib.TranslateDSV(gsDrcEXP..vF, sPrf, nil, true) -- Translate files of the type
+                end -- All files realted to that type are translated
+              end
             end):SetIcon(asmlib.ToIcon(sI.."extr"))
         end
         pMenu:Open()
@@ -1718,7 +1697,6 @@ if(SERVER) then
       if(cTim > pTim[2]) then pTim[2] = (cTim + nDel) end
       pTim[1] = cTim -- Raise the flag to notify the flooding client
       local oEnt, sLog = netReadEntity(), "*POPULATE_ENTITY" -- Logs identifier
-      local sNoA = asmlib.GetOpVar("MISS_NOAV") -- String to put when not present
       asmlib.LogInstance("Populate:"..tostring(oEnt), sLog) -- Draw the entity log
       for iD = 1, conContextMenu:GetSize() do   -- Loop the context menu entries
         local tLine = conContextMenu:Select(iD) -- Grab the value from the container
@@ -1727,7 +1705,7 @@ if(SERVER) then
           local bS, vO = pcall(wDraw, oEnt); vO = tostring(vO) -- Always being string
           asmlib.LogInstance("Populate:"..asmlib.GetReport(sKey, iD, bS, vO), sLog)
            -- Write networked value to the hover entity. When fails display not available
-          if(not bS) then oEnt:SetNWString(sKey, sNoA) else oEnt:SetNWString(sKey, vO) end
+          if(not bS) then oEnt:SetNWString(sKey, gsNoAV) else oEnt:SetNWString(sKey, vO) end
         end
       end
     else
