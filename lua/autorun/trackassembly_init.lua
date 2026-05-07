@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.824")
+asmlib.SetOpVar("TOOL_VERSION","9.826")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1009,6 +1009,7 @@ if(CLIENT) then
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
+        OpenExportMenu(pnMenu, sP) -- Export database contents by type/prefix
         -- Populate the sub-menu with all table nicknames
         local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
           local defTab = makTab:GetDefinition()
@@ -1253,7 +1254,6 @@ if(CLIENT) then
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
         local sI, mX, mY = "pn_contextm_", inputGetCursorPos()
         local sT, sTyp = "tool.trackassembly."..sI, pnLine:GetColumnText(3)
-        local bEx = asmlib.GetAsmConvar("exportdb", "BUL")
         local sID = asmlib.WorkshopID(sTyp)
         local pMenu = vguiCreate("DMenu")
         if(not IsValid(pMenu)) then pnFrame:Close()
@@ -1283,42 +1283,7 @@ if(CLIENT) then
           pIn:AddOption(languageGetPhrase(sT.."wsop"),
             function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
         end
-        -- Export database contents
-        if(bEx) then
-          local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ex"))
-          if(not (IsValid(pIn) and IsValid(pOp))) then
-            asmlib.LogInstance("Base export invalid"); return nil end
-          pOp:SetIcon(asmlib.ToIcon(sI.."ex"))
-          pIn:AddOption(languageGetPhrase(sT.."exdv"),
-            function()
-              asmlib.SetAsmConvar(oPly, "exportdb", 0)
-              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-              asmlib.LogInstance("Player invalid"); return nil end
-              asmlib.ExportTypeDSV(sTyp)
-            end):SetIcon(asmlib.ToIcon(sI.."exdv"))
-          pIn:AddOption(languageGetPhrase(sT.."exru"),
-            function()
-              asmlib.SetAsmConvar(oPly, "exportdb", 0)
-              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-              asmlib.LogInstance("Player invalid"); return nil end
-              asmlib.ExportTypeRun(sTyp)
-            end):SetIcon(asmlib.ToIcon(sI.."exru"))
-          pIn:AddOption(languageGetPhrase(sT.."extr"),
-            function()
-              asmlib.SetAsmConvar(oPly, "exportdb", 0)
-              local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-              asmlib.LogInstance("Player invalid"); return nil end
-              local sPrf = sTyp:gsub("[^%w]","_"):lower() -- Addon prefix
-              local sLsn = asmlib.GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
-              local sNam = asmlib.GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sLsn)
-              local tSrc = fileFind(gsDrcEXP..sNam, "DATA") -- Search for generic database
-              for iF = 1, #tSrc do local vF = tSrc[iF] -- Attemt to translate DSV to records
-                if(not vF:find("category.txt", 1, true)) then -- Ignore categories
-                  asmlib.TranslateDSV(gsDrcEXP..vF, sPrf, nil, true) -- Translate files of the type
-                end -- All files realted to that type are translated
-              end
-            end):SetIcon(asmlib.ToIcon(sI.."extr"))
-        end
+        OpenExportMenu(pMenu, sTyp) -- Export database contents by type/prefix
         pMenu:Open()
       end
       if(not asmlib.UpdateListView(pnListView,frUsed)) then

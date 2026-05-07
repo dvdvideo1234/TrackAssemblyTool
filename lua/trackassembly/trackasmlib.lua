@@ -1741,23 +1741,51 @@ function GetNodeTypeRoot(pnBase, iRep, sSym)
   end; return pT, sP:sub(sD:len()+1, -1)
 end
 
+function OpenExportMenu(pnMenu, sType, bDisp)
+  local bEx = GetAsmConvar("exportdb", "BUL")
+  if(not bEx) then LogInstance("Export disabled"); return end
+  if(not bDisp) then LogInstance("Export hidden"); return end
+  local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
+    LogInstance("Player invalid"); return end
+  local sM, sI = GetOpVar("TOOLNAME_NL"), "pn_contextm_"
+  local sT = GetConcat("tool.", sM, ".", sI)
+  local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."ex"))
+  if(not (IsValid(pIn) and IsValid(pOp))) then
+    LogInstance("Base export invalid"); return end
+  pOp:SetIcon(ToIcon(sI.."ex")); SetAsmConvar(oPly, "exportdb", 0)
+  pIn:AddOption(languageGetPhrase(sT.."exdv"),
+    function()
+      ExportTypeDSV(sType)
+      SetAsmConvar(oPly, "exportdb", 0)
+    end):SetIcon(ToIcon(sI.."exdv"))
+  pIn:AddOption(languageGetPhrase(sT.."exru"),
+    function()
+      ExportTypeRun(sType)
+      SetAsmConvar(oPly, "exportdb", 0)
+    end):SetIcon(ToIcon(sI.."exru"))
+  pIn:AddOption(languageGetPhrase(sT.."extr"),
+    function()
+      ExportTypeTrn(sType)
+      SetAsmConvar(oPly, "exportdb", 0)
+    end):SetIcon(ToIcon(sI.."extr"))
+end
+
 function OpenNodeMenu(pnBase)
   if(not IsValid(pnBase)) then
-    LogInstance("Base panel invalid"); return nil end
+    LogInstance("Base panel invalid"); return end
   local pMenu = DermaMenu(false, pnBase)
   if(not IsValid(pMenu)) then
-    LogInstance("Base menu invalid"); return nil end
+    LogInstance("Base menu invalid"); return end
   local pT, sP = GetNodeTypeRoot(pnBase, 1)
   if(not IsValid(pT)) then
-    LogInstance("Base root invalid"); return nil end
+    LogInstance("Base root invalid"); return end
   local sM, sI = GetOpVar("TOOLNAME_NL"), "pn_contextm_"
-  local sT = "tool."..sM.."."..sI
+  local sT = GetConcat("tool.", sM, ".", sI)
   local sID = WorkshopID(pT:GetText())
-  local bEx = GetAsmConvar("exportdb", "BUL")
   -- Copy node information
   local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
   if(not (IsValid(pIn) and IsValid(pOp))) then
-    LogInstance("Base copy invalid"); return nil end
+    LogInstance("Base copy invalid"); return end
   -- Copy various strings
   pOp:SetIcon(ToIcon(sI.."cp"))
   if(pnBase.Content) then
@@ -1775,7 +1803,7 @@ function OpenNodeMenu(pnBase)
     local sUR = GetOpVar("FORM_URLADDON")
     local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
     if(not (IsValid(pIn) and IsValid(pOp))) then
-      LogInstance("Base WS invalid"); return nil end
+      LogInstance("Base WS invalid"); return end
     pOp:SetIcon(ToIcon(sI.."ws"))
     pIn:AddOption(languageGetPhrase(sT.."wsid"),
       function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."wsid"))
@@ -1787,44 +1815,8 @@ function OpenNodeMenu(pnBase)
     pMenu:AddOption(languageGetPhrase(sT.."ep"),
       function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."ep"))
   end
-  -- Export database contents on autorun
-  if(bEx and pnBase == pT) then
-    local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ex"))
-    if(not (IsValid(pIn) and IsValid(pOp))) then
-      LogInstance("Base export invalid"); return nil end
-    pOp:SetIcon(ToIcon(sI.."ex"))
-    pIn:AddOption(languageGetPhrase(sT.."exdv"),
-      function()
-        SetAsmConvar(oPly, "exportdb", 0)
-        local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
-        LogInstance("Player invalid"); return nil end
-        ExportTypeDSV(pT:GetText())
-      end):SetIcon(ToIcon(sI.."exdv"))
-    pIn:AddOption(languageGetPhrase(sT.."exru"),
-      function()
-        SetAsmConvar(oPly, "exportdb", 0)
-        local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
-        LogInstance("Player invalid"); return nil end
-        ExportTypeRun(pT:GetText())
-      end):SetIcon(ToIcon(sI.."exru"))
-    pIn:AddOption(languageGetPhrase(sT.."extr"),
-      function()
-        SetAsmConvar(oPly, "exportdb", 0)
-        local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
-        LogInstance("Player invalid"); return nil end
-        local sDir = GetLibraryPath(GetOpVar("DIRPATH_EXP"))
-        local sExp = GetConcat(gsDirBAS, gsDirEXP)
-        local sPrf = pT:GetText():gsub("[^%w]","_"):lower() -- Addon prefix
-        local sLsn = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
-        local sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sLsn)
-        local tSrc = fileFind(sDir..sNam, "DATA") -- Search for generic database
-        for iF = 1, #tSrc do local vF = tSrc[iF] -- Attemt to translate DSV to records
-          if(not vF:find("category.txt", 1, true)) then -- Ignore categories
-            TranslateDSV(sDir..vF, sPrf, nil, true) -- Translate files of the type
-          end -- All files realted to that type are translated
-        end
-      end):SetIcon(ToIcon(sI.."extr"))
-  end
+   -- Export database contents by type/prefix
+  OpenExportMenu(pMenu, pT:GetText(), (pnBase == pT))
   pMenu:Open()
 end
 
@@ -2051,40 +2043,40 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
       if(tonumber(sVam)) then
         local nAmt = (tonumber(sVam) or 0)
         if(not vBtn.L) then
-          vBtn.L=function(pB, pS, nS) pS:SetValue(-nAmt) end
+          vBtn.L = function(pB, pS, nS) pS:SetValue(-nAmt) end
         end
         if(not vBtn.R) then
-          vBtn.R=function(pB, pS, nS) pS:SetValue(nAmt) end
+          vBtn.R = function(pB, pS, nS) pS:SetValue(nAmt) end
         end
         sTip = languageGetPhrase("tool."..sTool..".buttonas"..syRev).." "..nAmt
       elseif(sVam == "D") then
         if(not vBtn.L) then
-          vBtn.L=function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end
+          vBtn.L = function(pB, pS, nS) pS:SetValue(pS:GetDefaultValue()) end
         end
         if(not vBtn.R) then
-          vBtn.R=function(pB, pS, nS) SetClipboardText(pS:GetDefaultValue()) end
+          vBtn.R = function(pB, pS, nS) SetClipboardText(pS:GetDefaultValue()) end
         end
       elseif(sVam == "M") then
         if(not vBtn.L) then
-          vBtn.L=function(pB, pS, nS) pS:SetValue(tonumber(GetOpVar("CLIPBOARD_TEXT")) or 0) end
+          vBtn.L = function(pB, pS, nS) pS:SetValue(tonumber(GetOpVar("CLIPBOARD_TEXT")) or 0) end
         end
         if(not vBtn.R) then
-          vBtn.R=function(pB, pS, nS) SetClipboardText(nS); SetOpVar("CLIPBOARD_TEXT", nS) end
+          vBtn.R = function(pB, pS, nS) SetClipboardText(nS); SetOpVar("CLIPBOARD_TEXT", nS) end
         end
       end
     elseif(sTxt == "+/-") then
       if(not vBtn.L) then
-        vBtn.L=function(pB, pS, nS) pS:SetValue(-nS) end
+        vBtn.L = function(pB, pS, nS) pS:SetValue(-nS) end
       end
       if(not vBtn.R) then
-        vBtn.R=function(pB, pS, nS) pS:SetValue(mathRemap(nS, pS:GetMin(), pS:GetMax(), pS:GetMax(), pS:GetMin())) end
+        vBtn.R = function(pB, pS, nS) pS:SetValue(mathRemap(nS, pS:GetMin(), pS:GetMax(), pS:GetMax(), pS:GetMin())) end
       end
     elseif(sTxt == "<>") then
       if(not vBtn.L) then
-        vBtn.L=function(pB, pS, nS) pS:SetValue(GetSnap(nS,-GetAsmConvar("incsnpang","FLT"))) end
+        vBtn.L = function(pB, pS, nS) pS:SetValue(GetSnap(nS,-GetAsmConvar("incsnpang","FLT"))) end
       end
       if(not vBtn.R) then
-        vBtn.R=function(pB, pS, nS) pS:SetValue(GetSnap(nS, GetAsmConvar("incsnpang","FLT"))) end
+        vBtn.R = function(pB, pS, nS) pS:SetValue(GetSnap(nS, GetAsmConvar("incsnpang","FLT"))) end
       end
     end
     pPanel:SetButton(sTxt, sTip)
@@ -4390,19 +4382,19 @@ end
  * This function extracts some track type from the database and creates
  * dedicated autorun control script files adding the given type argument
  * to the database by using external plugable DSV prefix list
- * sType > Track type the autorun file is created for
+ * sType > Track type or prefix the DSV files are created for
 ]]
 function ExportTypeRun(sType)
   if(SERVER) then
     LogInstance("Working on server"); return end
-  if(IsBlank(sType)) then
-    LogInstance("Track type blank"); return end
+  if(not isstring(sType)) then
+    LogInstance("Type mismatch "..GetReport(sType)); return end
   local qPieces, qAdditions
   local sFunc = debugGetinfo(1).name
   local sBase = GetOpVar("DIRPATH_BAS")
   local noSQL = GetOpVar("MISS_NOSQL")
   local sTool = GetOpVar("TOOLNAME_NL")
-  local sPref = sType:gsub("[^%w]","_")
+  local sPref = sType:gsub("[^%w]","_"):lower()
   local sMoDB = GetOpVar("MODE_DATABASE")
   local sForm = GetOpVar("FORM_FILENAMEAR")
   local fMon  = "["..sMoDB:lower().."-run]"
@@ -4511,28 +4503,29 @@ end
  * This function extracts some track type from the database and creates
  * dedicated DSV files adding the given type argument
  * to the database by using external plugable DSV prefix list
- * sType > Track type the DSV files are created for
+ * sType > Track type or prefix the DSV files are created for
 ]]
 function ExportTypeDSV(sType, sDelim)
+  if(SERVER) then LogInstance("Working on server"); return end
   local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
-    LogInstance("Type mismatch "..GetReport(sType)); return false end
+    LogInstance("Type mismatch "..GetReport(sType)); return end
   local fPref, tHew = sType:gsub("[^%w]","_"):lower(), GetOpVar("PATTEM_EXDSVHED")
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
-    LogInstance("Missing pieces builder "..GetReport(fPref,sMoDB)); return false end
+    LogInstance("Missing pieces builder "..GetReport(fPref,sMoDB)); return end
   local defP = makP:GetDefinition(); if(not IsHere(defP)) then
-    LogInstance("Missing pieces definition "..GetReport(fPref,sMoDB)); return nil end
+    LogInstance("Missing pieces definition "..GetReport(fPref,sMoDB)); return end
   local makA = GetBuilderNick("ADDITIONS"); if(not IsHere(makA)) then
-    LogInstance("Missing additions builder "..GetReport(fPref,sMoDB)); return false end
+    LogInstance("Missing additions builder "..GetReport(fPref,sMoDB)); return end
   local defA = makA:GetDefinition(); if(not IsHere(defA)) then
-    LogInstance("Missing additions definition "..GetReport(fPref,sMoDB)); return nil end
+    LogInstance("Missing additions definition "..GetReport(fPref,sMoDB)); return end
   local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
   local sDelim, fMon = tostring(sDelim or "\t"):sub(1,1), "["..sMoDB:lower().."-dsv]"
   local pNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defP.Name)
   local aNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defA.Name)
   local P = fileOpen(pNam, "wb", "DATA"); if(not P) then
-    LogInstance("Open fail "..GetReport(fPref,sMoDB,pNam)); return false end
+    LogInstance("Open fail "..GetReport(fPref,sMoDB,pNam)); return end
   local A = fileOpen(aNam, "wb", "DATA"); if(not A) then
-    LogInstance("Open fail "..GetReport(fPref,sMoDB,aNam)); return false end
+    LogInstance("Open fail "..GetReport(fPref,sMoDB,aNam)); return end
   P:Write(tHea[1]:format(sFunc, tHew[2]:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   P:Write(tHea[2]:format(defP.Nick, makP:GetColumnList(sDelim)))
   A:Write(tHea[1]:format(sFunc, tHew[2]:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
@@ -4546,12 +4539,12 @@ function ExportTypeDSV(sType, sDelim)
     local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then local tQ = makP:GetQuery()
       Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qType) end
     if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Build statement failed "..GetReport(fPref,sMoDB),defP.Nick); return false end
+      LogInstance("Build statement failed "..GetReport(fPref,sMoDB),defP.Nick); return end
     P:Write("# Query:<"..Q..">\n")
     local qP = sqlQuery(Q); if(not qP and isbool(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("SQL exec error "..GetReport(fPref,sqlLastError(), Q), defP.Nick); return false end
+      LogInstance("SQL exec error "..GetReport(fPref,sqlLastError(), Q), defP.Nick); return end
     if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("No data found "..GetReport(fPref, Q), defP.Nick); return false end
+      LogInstance("No data found "..GetReport(fPref, Q), defP.Nick); return end
     local coMo, coLI, rwM = makP:GetColumnName(1), makP:GetColumnName(4), ""
     for iP = 1, #qP do
       P:Write(defP.Name..sDelim..makP:GetConcat(qP[iP], sDelim,
@@ -4581,16 +4574,38 @@ function ExportTypeDSV(sType, sDelim)
     local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
     local PCache, ACache = libCache[defP.Name], libCache[defA.Name]
     if(not IsHere(PCache)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Cache missing "..GetReport(fPref,sMoDB),defP.Nick) ; return false end
+      LogInstance("Cache missing "..GetReport(fPref,sMoDB),defP.Nick); return end
     local bS, sR = pcall(defP.Cache[sFunc], P, makP, PCache, A, makA, ACache, fPref, sDelim, ssLog:format("Cache"))
     if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Cache manager error "..GetReport(fPref,sMoDB,sR),defP.Nick) ; return false end
+      LogInstance("Cache manager error "..GetReport(fPref,sMoDB,sR),defP.Nick); return end
     if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Cache routine fail "..GetReport(fPref,sMoDB),defP.Nick) ; return false end
+      LogInstance("Cache routine fail "..GetReport(fPref,sMoDB),defP.Nick); return end
   else P:Flush(); P:Close(); A:Flush(); A:Close()
-    LogInstance("Unsupported mode "..GetReport(fPref, sMoDB, fName),defP.Nick); return false
+    LogInstance("Unsupported mode "..GetReport(fPref, sMoDB, fName),defP.Nick); return
   end -- The dynamic cache population was successful then send a message
-  P:Flush(); P:Close(); A:Flush(); A:Close(); LogInstance("Success "..GetReport(fPref,sMoDB)); return true
+  P:Flush(); P:Close(); A:Flush(); A:Close(); LogInstance("Success "..GetReport(fPref,sMoDB))
+end
+
+--[[
+ * This function translates all the DSV for a given type
+ * to its Lua source OOP DB record equivalent in one pass
+ * sType > Track type or prefix the DSV files are created for
+]]
+function ExportTypeTrn(sType)
+  if(SERVER) then -- Working on the server
+    LogInstance("Working on server"); return end
+  if(not isstring(sType)) then -- Type is not a string
+    LogInstance("Type mismatch "..GetReport(sType)); return end
+  local sDir = GetLibraryPath(GetOpVar("DIRPATH_EXP"))
+  local sPrf = sType:gsub("[^%w]","_"):lower() -- Addon prefix
+  local sLsn = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
+  local sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sLsn)
+  local tSrc = fileFind(sDir..sNam, "DATA") -- Search for generic database
+  for iF = 1, #tSrc do local vF = tSrc[iF] -- Attempt to translate DSV to records
+    if(not vF:find("category.txt", 1, true)) then -- Ignore categories
+      TranslateDSV(sDir..vF, sPrf, nil, true) -- Translate files of the type
+    end -- All files related to that type are translated
+  end
 end
 
 ----------------------------- SNAPPING ------------------------------
