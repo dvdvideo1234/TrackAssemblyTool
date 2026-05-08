@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.828")
+asmlib.SetOpVar("TOOL_VERSION","9.829")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1009,8 +1009,10 @@ if(CLIENT) then
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
+        -- Handle workshop specific options for the given track type
         asmlib.AppendWorkshopMenu(pnMenu, sP) -- Workshop ID for given track type
-        AppendExportMenu(pnMenu, sP) -- Export database contents by type/prefix
+        -- Use the already exported DSV. Export database contents by type/prefix
+        asmlib.AppendExportMenu(pnMenu, sP, true) -- Export database contents by type/prefix
         -- Populate the sub-menu with all table nicknames
         local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
           local defTab = makTab:GetDefinition()
@@ -1273,9 +1275,9 @@ if(CLIENT) then
         pIn:AddOption(languageGetPhrase(sT.."cprw"),
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
         -- Handle workshop specific options for the given track type
-        asmlib.AppendWorkshopMenu(pMenu, sTyp)
-         -- Use the already exported DSV. Export database contents by type/prefix
-        AppendExportMenu(pMenu, sTyp, true)
+        asmlib.AppendWorkshopMenu(pMenu, sTyp) -- Workshop ID for given track type
+        -- Use the already exported DSV. Export database contents by type/prefix
+        asmlib.AppendExportMenu(pMenu, sTyp, true) -- Export database contents by type/prefix
         pMenu:Open()
       end
       if(not asmlib.UpdateListView(pnListView,frUsed)) then

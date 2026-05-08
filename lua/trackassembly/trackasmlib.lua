@@ -621,20 +621,19 @@ function WorkshopID(sType, sID)
     LogInstance("Invalid "..GetReport(sType)); return nil end
   local sType = sType:Trim() -- Trim leading and trailing spaces
   local sPref = sType:gsub("[^%w]","_"):lower()
-  local sWT, sWP = tID[sType], tID[sPref] -- Read the value under the key
+  local sWP = tID[sPref] -- Read the value under the key
   if(sID) then local sPS = tostring(sID or ""):Trim() -- Convert argument
     local nS, nE = sPS:find(GetOpVar("PATTEM_WORKSHID")) -- Check ID
     if(nS and nE) then -- The number meets the format requirement
-      if(not (sWT and sWP)) then -- One is not present
-        sWT, sWP = sPS, sPS -- Assign the validated value
-        tID[sType], tID[sPref] = sPS, sPS -- Index by prefix and type
+      if(not sWP) then sWP = sPS -- One is not present
+        tID[sPref] = sPS -- Index by prefix and type
       else -- Updated value already exists so do nothing
-        LogInstance("Exists "..GetReport(sType, sWT, sWP, sID))
+        LogInstance("Exists "..GetReport(sType, sPref, sWP, sID))
       end -- Report overwrite value is present in the list
     else -- The number does not meet the format
-      LogInstance("Mismatch "..GetReport(sType, sWT, sWP, sID))
+      LogInstance("Mismatch "..GetReport(sType, sPref, sWP, sID))
     end -- Return the current value under the specified key
-  end; return (sWT or sWP)
+  end; return sWP
 end
 
 function IsFlag(vKey, vVal)
@@ -1753,40 +1752,54 @@ function AppendExportMenu(pnMenu, sType, bDisp)
   local oPly = LocalPlayer(); if(not IsPlayer(oPly)) then
     LogInstance("Player invalid"); return end
   local sM, sI = GetOpVar("TOOLNAME_NL"), "pn_contextm_"
-  local sT = GetConcat("tool.", sM, ".", sI)
+  local sT, pSe = GetConcat("tool.", sM, ".", sI)
   local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."ex"))
   if(not (IsValid(pIn) and IsValid(pOp))) then
     LogInstance("Base export invalid"); return end
   pOp:SetIcon(ToIcon(sI.."ex")); SetAsmConvar(oPly, "exportdb", 0)
-  pIn:AddOption(languageGetPhrase(sT.."exdv"),
+  pOp:SetTooltip(languageGetPhrase(sT.."ex_tp"))
+  pSe = pIn:AddOption(languageGetPhrase(sT.."exdv"),
     function()
       ExportTypeDSV(sType)
       SetAsmConvar(oPly, "exportdb", 0)
-    end):SetIcon(ToIcon(sI.."exdv"))
-  pIn:AddOption(languageGetPhrase(sT.."exru"),
+    end)
+  pSe:SetIcon(ToIcon(sI.."exdv"))
+  pSe:SetTooltip(languageGetPhrase(sT.."exdv_tp"))
+  pSe = pIn:AddOption(languageGetPhrase(sT.."exru"),
     function()
       ExportTypeRun(sType)
       SetAsmConvar(oPly, "exportdb", 0)
-    end):SetIcon(ToIcon(sI.."exru"))
-  pIn:AddOption(languageGetPhrase(sT.."extr"),
+    end)
+  pSe:SetIcon(ToIcon(sI.."exru"))
+  pSe:SetTooltip(languageGetPhrase(sT.."exru_tp"))
+  pSe = pIn:AddOption(languageGetPhrase(sT.."extr"),
     function()
-      ExportTypeTrn(sType)
+      ExportTypeTrn(sType, inputIsKeyDown(KEY_LSHIFT))
       SetAsmConvar(oPly, "exportdb", 0)
-    end):SetIcon(ToIcon(sI.."extr"))
+    end)
+  pSe:SetIcon(ToIcon(sI.."extr"))
+  pSe:SetTooltip(languageGetPhrase(sT.."extr_tp"))
 end
 
 function AppendWorkshopMenu(pnMenu, sType)
   local sID = WorkshopID(sType); if(not sID) then
-    LogInstance("Workshop ID missing: "..GetReport(sType)); return end
+    LogInstance("Missing ID: "..GetReport(sType)); return end
   local sUR = GetOpVar("FORM_URLADDON")
+  local sM, sI = GetOpVar("TOOLNAME_NL"), "pn_contextm_"
+  local sT, pSe = GetConcat("tool.", sM, ".", sI)
   local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
   if(not (IsValid(pIn) and IsValid(pOp))) then
     LogInstance("Base WS invalid"); return end
   pOp:SetIcon(ToIcon(sI.."ws"))
-  pIn:AddOption(languageGetPhrase(sT.."wsid"),
-    function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."wsid"))
-  pIn:AddOption(languageGetPhrase(sT.."wsop"),
-    function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."wsop"))
+  pOp:SetTooltip(languageGetPhrase(sT.."ws_tp"))
+  pSe = pIn:AddOption(languageGetPhrase(sT.."wsid"),
+    function() SetClipboardText(sID) end)
+  pSe:SetIcon(ToIcon(sI.."wsid"))
+  pSe:SetTooltip(languageGetPhrase(sT.."wsid_tp"))
+  pSe = pIn:AddOption(languageGetPhrase(sT.."wsop"),
+    function() guiOpenURL(sUR:format(sID)) end)
+  pSe:SetIcon(ToIcon(sI.."wsop"))
+  pSe:SetTooltip(languageGetPhrase(sT.."wsop_tp"))
 end
 
 function OpenNodeMenu(pnBase)
@@ -1799,7 +1812,7 @@ function OpenNodeMenu(pnBase)
   if(not IsValid(pT)) then
     LogInstance("Base root invalid"); return end
   local sM, sI = GetOpVar("TOOLNAME_NL"), "pn_contextm_"
-  local sT = GetConcat("tool.", sM, ".", sI)
+  local sT, pSe = GetConcat("tool.", sM, ".", sI)
   -- Copy node information
   local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
   if(not (IsValid(pIn) and IsValid(pOp))) then
