@@ -1741,7 +1741,7 @@ function GetNodeTypeRoot(pnBase, iRep, sSym)
   end; return pT, sP:sub(sD:len()+1, -1)
 end
 
-function OpenExportMenu(pnMenu, sType, bDisp)
+function AppendExportMenu(pnMenu, sType, bDisp)
   local bEx = GetAsmConvar("exportdb", "BUL")
   if(not bEx) then LogInstance("Export disabled"); return end
   if(not bDisp) then LogInstance("Export hidden"); return end
@@ -1816,7 +1816,7 @@ function OpenNodeMenu(pnBase)
       function() SetNodeExpand(pnBase) end):SetIcon(ToIcon(sI.."ep"))
   end
    -- Export database contents by type/prefix
-  OpenExportMenu(pMenu, pT:GetText(), (pnBase == pT))
+  AppendExportMenu(pMenu, pT:GetText(), (pnBase == pT))
   pMenu:Open()
 end
 
@@ -4590,20 +4590,26 @@ end
  * This function translates all the DSV for a given type
  * to its Lua source OOP DB record equivalent in one pass
  * sType > Track type or prefix the DSV files are created for
+ * bExp  > utilize the export folder otherwise the DSV folder
 ]]
-function ExportTypeTrn(sType)
+function ExportTypeTrn(sType, bExp)
   if(SERVER) then -- Working on the server
     LogInstance("Working on server"); return end
   if(not isstring(sType)) then -- Type is not a string
     LogInstance("Type mismatch "..GetReport(sType)); return end
-  local sDir = GetLibraryPath(GetOpVar("DIRPATH_EXP"))
-  local sPrf = sType:gsub("[^%w]","_"):lower() -- Addon prefix
-  local sLsn = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
-  local sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sLsn)
+  local sSrc = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
+  local sDir, sPrf, sNam = GetLibraryPath(sSrc), sType:gsub("[^%w]","_"):lower()
+  if(bExp) then -- Use the pattern for the export file format
+    sNam = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
+    sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sNam)
+  else -- Use the pattern prefix for the DSV file format
+    sNam = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*")
+  end -- Try to create translation files list
   local tSrc = fileFind(sDir..sNam, "DATA") -- Search for generic database
   for iF = 1, #tSrc do local vF = tSrc[iF] -- Attempt to translate DSV to records
     if(not vF:find("category.txt", 1, true)) then -- Ignore categories
-      TranslateDSV(sDir..vF, sPrf, nil, true) -- Translate files of the type
+      LogInstance("Translate "..GetReport(sNam, sDir, vF))
+      TranslateDSV(sDir..vF, sPrf, nil, bExp) -- Translate files of the type
     end -- All files related to that type are translated
   end
 end

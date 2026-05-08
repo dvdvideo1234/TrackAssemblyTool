@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.826")
+asmlib.SetOpVar("TOOL_VERSION","9.827")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1009,7 +1009,7 @@ if(CLIENT) then
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
-        OpenExportMenu(pnMenu, sP) -- Export database contents by type/prefix
+        AppendExportMenu(pnMenu, sP) -- Export database contents by type/prefix
         -- Populate the sub-menu with all table nicknames
         local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
           local defTab = makTab:GetDefinition()
@@ -1282,8 +1282,8 @@ if(CLIENT) then
             function() SetClipboardText(sID) end):SetIcon(asmlib.ToIcon(sI.."wsid"))
           pIn:AddOption(languageGetPhrase(sT.."wsop"),
             function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
-        end
-        OpenExportMenu(pMenu, sTyp) -- Export database contents by type/prefix
+        end -- Use the already exported DSV. Export database contents by type/prefix
+        AppendExportMenu(pMenu, sTyp, true)
         pMenu:Open()
       end
       if(not asmlib.UpdateListView(pnListView,frUsed)) then
