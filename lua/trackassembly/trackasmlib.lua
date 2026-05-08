@@ -615,21 +615,26 @@ function ToIcon(vKey, vVal)
   return GetOpVar("FORM_ICONS"):format(tostring(sIcon))
 end
 
-function WorkshopID(sKey, sID)
+function WorkshopID(sType, sID)
   if(SERVER) then return nil end
-  local tID = GetOpVar("TABLE_WSIDADDON"); if(not isstring(sKey)) then
-    LogInstance("Invalid "..GetReport(sKey)); return nil end
-  local sWS = tID[sKey] -- Read the value under the key
-  if(sID) then local sPS = tostring(sID or "") -- Convert argument
+  local tID = GetOpVar("TABLE_WSIDADDON"); if(not isstring(sType)) then
+    LogInstance("Invalid "..GetReport(sType)); return nil end
+  local sType = sType:Trim() -- Trim leading and trailing spaces
+  local sPref = sType:gsub("[^%w]","_"):lower()
+  local sWT, sWP = tID[sType], tID[sPref] -- Read the value under the key
+  if(sID) then local sPS = tostring(sID or ""):Trim() -- Convert argument
     local nS, nE = sPS:find(GetOpVar("PATTEM_WORKSHID")) -- Check ID
-    if(nS and nE) then -- The number meets the format
-      if(not sWS) then tID[sKey], sWS = sPS, sPS else -- Update value
-        LogInstance("Exists "..GetReport(sKey, sWS, sID))
+    if(nS and nE) then -- The number meets the format requirement
+      if(not (sWT and sWP)) then -- One is not present
+        sWT, sWP = sPS, sPS -- Assign the validated value
+        tID[sType], tID[sPref] = sPS, sPS -- Index by prefix and type
+      else -- Updated value already exists so do nothing
+        LogInstance("Exists "..GetReport(sType, sWT, sWP, sID))
       end -- Report overwrite value is present in the list
     else -- The number does not meet the format
-      LogInstance("Mismatch "..GetReport(sKey, sWS, sID))
+      LogInstance("Mismatch "..GetReport(sType, sWT, sWP, sID))
     end -- Return the current value under the specified key
-  end; return sWS
+  end; return (sWT or sWP)
 end
 
 function IsFlag(vKey, vVal)
@@ -1770,6 +1775,20 @@ function AppendExportMenu(pnMenu, sType, bDisp)
     end):SetIcon(ToIcon(sI.."extr"))
 end
 
+function AppendWorkshopMenu(pnMenu, sType)
+  local sID = WorkshopID(sType); if(not sID) then
+    LogInstance("Workshop ID missing: "..GetReport(sType)); return end
+  local sUR = GetOpVar("FORM_URLADDON")
+  local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
+  if(not (IsValid(pIn) and IsValid(pOp))) then
+    LogInstance("Base WS invalid"); return end
+  pOp:SetIcon(ToIcon(sI.."ws"))
+  pIn:AddOption(languageGetPhrase(sT.."wsid"),
+    function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."wsid"))
+  pIn:AddOption(languageGetPhrase(sT.."wsop"),
+    function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."wsop"))
+end
+
 function OpenNodeMenu(pnBase)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return end
@@ -1781,7 +1800,6 @@ function OpenNodeMenu(pnBase)
     LogInstance("Base root invalid"); return end
   local sM, sI = GetOpVar("TOOLNAME_NL"), "pn_contextm_"
   local sT = GetConcat("tool.", sM, ".", sI)
-  local sID = WorkshopID(pT:GetText())
   -- Copy node information
   local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."cp"))
   if(not (IsValid(pIn) and IsValid(pOp))) then
@@ -1799,17 +1817,7 @@ function OpenNodeMenu(pnBase)
   pIn:AddOption(languageGetPhrase(sT.."cpth"),
     function() SetClipboardText(sP) end):SetIcon(ToIcon(sI.."cpth"))
   -- Handle workshop
-  if(sID) then
-    local sUR = GetOpVar("FORM_URLADDON")
-    local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
-    if(not (IsValid(pIn) and IsValid(pOp))) then
-      LogInstance("Base WS invalid"); return end
-    pOp:SetIcon(ToIcon(sI.."ws"))
-    pIn:AddOption(languageGetPhrase(sT.."wsid"),
-      function() SetClipboardText(sID) end):SetIcon(ToIcon(sI.."wsid"))
-    pIn:AddOption(languageGetPhrase(sT.."wsop"),
-      function() guiOpenURL(sUR:format(sID)) end):SetIcon(ToIcon(sI.."wsop"))
-  end
+  AppendWorkshopMenu(pMenu, pT:GetText())
   -- Panel handling
   if(not pnBase.Content) then
     pMenu:AddOption(languageGetPhrase(sT.."ep"),

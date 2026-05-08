@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.827")
+asmlib.SetOpVar("TOOL_VERSION","9.828")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1009,6 +1009,7 @@ if(CLIENT) then
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
+        asmlib.AppendWorkshopMenu(pnMenu, sP) -- Workshop ID for given track type
         AppendExportMenu(pnMenu, sP) -- Export database contents by type/prefix
         -- Populate the sub-menu with all table nicknames
         local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
@@ -1271,18 +1272,9 @@ if(CLIENT) then
           function() asmlib.SetListViewBoxClipboard(pnSelf, mX, mY) end):SetImage(asmlib.ToIcon(sI.."cpbx"))
         pIn:AddOption(languageGetPhrase(sT.."cprw"),
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
-        -- Handle workshop specific options
-        if(sID) then
-          local sUR = asmlib.GetOpVar("FORM_URLADDON")
-          local pIn, pOp = pMenu:AddSubMenu(languageGetPhrase(sT.."ws"))
-          if(not IsValid(pIn)) then
-            LogInstance("Base WS invalid"); return nil end
-          pOp:SetIcon(asmlib.ToIcon(sI.."ws"))
-          pIn:AddOption(languageGetPhrase(sT.."wsid"),
-            function() SetClipboardText(sID) end):SetIcon(asmlib.ToIcon(sI.."wsid"))
-          pIn:AddOption(languageGetPhrase(sT.."wsop"),
-            function() guiOpenURL(sUR:format(sID)) end):SetIcon(asmlib.ToIcon(sI.."wsop"))
-        end -- Use the already exported DSV. Export database contents by type/prefix
+        -- Handle workshop specific options for the given track type
+        asmlib.AppendWorkshopMenu(pMenu, sTyp)
+         -- Use the already exported DSV. Export database contents by type/prefix
         AppendExportMenu(pMenu, sTyp, true)
         pMenu:Open()
       end
