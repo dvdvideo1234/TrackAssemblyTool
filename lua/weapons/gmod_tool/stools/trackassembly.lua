@@ -154,7 +154,6 @@ if(CLIENT) then
   TOOL.Information = asmlib.GetToolInformation()
 
   concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
-  concommandAdd(gsToolPrefL.."openextdb", asmlib.GetActionCode("OPEN_EXTERNDB"))
 
   netReceive(gsLibName.."SendDeleteGhosts"   , asmlib.GetActionCode("CLEAR_GHOSTS"))
   netReceive(gsLibName.."SendIntersectClear" , asmlib.GetActionCode("CLEAR_RELATION"))

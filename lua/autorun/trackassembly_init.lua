@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.829")
+asmlib.SetOpVar("TOOL_VERSION","9.831")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1010,9 +1010,9 @@ if(CLIENT) then
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
         -- Handle workshop specific options for the given track type
-        asmlib.AppendWorkshopMenu(pnMenu, sP) -- Workshop ID for given track type
+        asmlib.WorkshopAttachMenu(pnMenu, sP) -- Workshop ID for given track type
         -- Use the already exported DSV. Export database contents by type/prefix
-        asmlib.AppendExportMenu(pnMenu, sP, true) -- Export database contents by type/prefix
+        asmlib.ExportAttachMenu(pnMenu, sP, true) -- Export database contents by type/prefix
         -- Populate the sub-menu with all table nicknames
         local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
           local defTab = makTab:GetDefinition()
@@ -1257,8 +1257,7 @@ if(CLIENT) then
       pnListView.OnRowRightClick = function(pnSelf, nIndex, pnLine)
         local sI, mX, mY = "pn_contextm_", inputGetCursorPos()
         local sT, sTyp = "tool.trackassembly."..sI, pnLine:GetColumnText(3)
-        local sID = asmlib.WorkshopID(sTyp)
-        local pMenu = vguiCreate("DMenu")
+        local pMenu, sID = vguiCreate("DMenu"), asmlib.WorkshopID(sTyp)
         if(not IsValid(pMenu)) then pnFrame:Close()
           asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
         -- Copy to clipboard various values and things
@@ -1275,9 +1274,9 @@ if(CLIENT) then
         pIn:AddOption(languageGetPhrase(sT.."cprw"),
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
         -- Handle workshop specific options for the given track type
-        asmlib.AppendWorkshopMenu(pMenu, sTyp) -- Workshop ID for given track type
+        asmlib.WorkshopAttachMenu(pMenu, sTyp) -- Workshop ID for given track type
         -- Use the already exported DSV. Export database contents by type/prefix
-        asmlib.AppendExportMenu(pMenu, sTyp, true) -- Export database contents by type/prefix
+        asmlib.ExportAttachMenu(pMenu, sTyp, true) -- Export database contents by type/prefix
         pMenu:Open()
       end
       if(not asmlib.UpdateListView(pnListView,frUsed)) then
@@ -1286,7 +1285,6 @@ if(CLIENT) then
       pnButton.DoClick = function(pnSelf)
         asmlib.LogInstance("Click "..asmlib.GetReport(pnSelf:GetText()), sLog..".Button")
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          asmlib.SetAsmConvar(oPly, "exportdb", 0)
           if(inputIsKeyDown(KEY_LSHIFT)) then
             if(not asmlib.ExportSyncDB()) then
               asmlib.LogInstance("Export invalid", sLog..".Button"); return nil end
@@ -1305,7 +1303,6 @@ if(CLIENT) then
       end
       pnButton.DoRightClick = function(pnSelf)
         if(asmlib.GetAsmConvar("exportdb", "BUL")) then
-          asmlib.SetAsmConvar(oPly, "exportdb", 0)
           local bS, vOut = asmlib.DoAction("OPEN_EXTERNDB"); if(not bS) then
             asmlib.LogInstance("Open manager:"..vOut, sLog..".Button"); return nil end
           asmlib.LogInstance("Open manager", sLog..".Button")
@@ -2117,7 +2114,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
 
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
-  if(fileExists(gsGenerDSV.."CATEGORY.txt", "DATA")) then
+  if(fileExists(gsGenerDSV.."category.txt", "DATA")) then
     asmlib.LogInstance("DB CATEGORY from GENERIC",gtInitLogs)
     asmlib.ImportCategory(3, gsGenerPrf)
   else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
@@ -2136,7 +2133,7 @@ end
  * First  argument of Categorize() is used to provide default track type for TABLE:Record()
  * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
-if(fileExists(gsGenerDSV.."PIECES.txt", "DATA")) then
+if(fileExists(gsGenerDSV.."pieces.txt", "DATA")) then
   asmlib.LogInstance("DB PIECES from GENERIC",gtInitLogs)
   asmlib.ImportDSV("PIECES", true, gsGenerPrf)
 else
@@ -4985,7 +4982,7 @@ else
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsGenerDSV.."PHYSPROPERTIES.txt", "DATA")) then
+if(fileExists(gsGenerDSV.."physproperties.txt", "DATA")) then
   asmlib.LogInstance("DB PHYSPROPERTIES from GENERIC",gtInitLogs)
   asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerPrf)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
@@ -5094,7 +5091,7 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
   if(gsMoDB == "SQL") then sqlCommit() end
 end
 
-if(fileExists(gsGenerDSV.."ADDITIONS.txt", "DATA")) then
+if(fileExists(gsGenerDSV.."additions.txt", "DATA")) then
   asmlib.LogInstance("DB ADDITIONS from GENERIC",gtInitLogs)
   asmlib.ImportDSV("ADDITIONS", true, gsGenerPrf)
 else
