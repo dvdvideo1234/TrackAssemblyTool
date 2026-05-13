@@ -2670,6 +2670,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "rtradmenu", iMaxDec)
     asmlib.SetCheckBox(CPanel, "enradmenu")
     asmlib.SetCheckBox(CPanel, "enpntmscr")
+    asmlib.SetCheckBox(CPanel, "ioreadall")
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
   end
 
@@ -2821,6 +2822,7 @@ if(CLIENT) then
         asmlib.SetAsmConvar(user, "enctxmenu", asmlib.GetAsmConvar("enctxmenu", "DEF"))
         asmlib.SetAsmConvar(user, "enctxmall", asmlib.GetAsmConvar("enctxmall", "DEF"))
         asmlib.SetAsmConvar(user, "endsvlock", asmlib.GetAsmConvar("endsvlock", "DEF"))
+        asmlib.SetAsmConvar(user, "ioreadall", asmlib.GetAsmConvar("ioreadall", "DEF"))
         asmlib.SetAsmConvar(user, "curvefact", asmlib.GetAsmConvar("curvefact", "DEF"))
         asmlib.SetAsmConvar(user, "curvsmple", asmlib.GetAsmConvar("curvsmple", "DEF"))
         asmlib.SetAsmConvar(user, "crvsuprev", asmlib.GetAsmConvar("crvsuprev", "DEF"))

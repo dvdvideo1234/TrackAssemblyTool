@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.831")
+asmlib.SetOpVar("TOOL_VERSION","9.833")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -176,9 +176,10 @@ asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
 
 asmlib.NewAsmConvar("modedb"   , "LUA", nil, gnIndependentUsed, "Database storage operating mode LUA or SQL")
-asmlib.NewAsmConvar("devmode"  ,    0 , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
+asmlib.NewAsmConvar("devmode"  , 0    , nil, gnIndependentUsed, "Toggle developer mode on/off server side")
 asmlib.NewAsmConvar("maxtrmarg", 0.02 , nil, gnIndependentUsed, "Maximum time to avoid performing new traces")
-asmlib.NewAsmConvar("maxmenupr",    5 , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
+asmlib.NewAsmConvar("maxmenupr", 5    , nil, gnIndependentUsed, "Maximum decimal places utilized in the control panel")
+asmlib.NewAsmConvar("ioreadall", 1    , nil, gnIndependentUsed, "Enable reading a file lines at once to an array of strings")
 asmlib.NewAsmConvar("timermode", "CQT@1800@1@1/CQT@900@1@1/CQT@600@1@1", nil, gnIndependentUsed, "Memory management setting when DB mode is SQL")
 
 ------------ CONFIGURE REPLICATED CVARS ------------ Server tells the client what value to use
@@ -196,11 +197,11 @@ asmlib.NewAsmConvar("enctxmall", 0     , nil, gnServerControled, "Toggle the con
 asmlib.NewAsmConvar("endsvlock", 0     , nil, gnServerControled, "Toggle the DSV external database file update on/off")
 asmlib.NewAsmConvar("curvefact", 0.5   , nil, gnServerControled, "Parametric constant track curving factor")
 asmlib.NewAsmConvar("curvsmple", 50    , nil, gnServerControled, "Amount of samples between two curve nodes")
-asmlib.NewAsmConvar("spawnrate",  1    , nil, gnServerControled, "Maximum pieces spawned in every think tick")
+asmlib.NewAsmConvar("spawnrate", 1     , nil, gnServerControled, "Maximum pieces spawned in every think tick")
 asmlib.NewAsmConvar("bnderrmod","LOG"  , nil, gnServerControled, "Unreasonable position error handling mode")
-asmlib.NewAsmConvar("maxfruse" ,  50   , nil, gnServerControled, "Maximum frequent pieces to be listed")
-asmlib.NewAsmConvar("maxspmarg",  0    , nil, gnServerControled, "Maximum spawn distance new piece created margin")
-asmlib.NewAsmConvar("dtmessage",  1    , nil, gnServerControled, "Time interval for server addressed messages")
+asmlib.NewAsmConvar("maxfruse" , 50    , nil, gnServerControled, "Maximum frequent pieces to be listed")
+asmlib.NewAsmConvar("maxspmarg", 0     , nil, gnServerControled, "Maximum spawn distance new piece created margin")
+asmlib.NewAsmConvar("dtmessage", 1     , nil, gnServerControled, "Time interval for server addressed messages")
 asmlib.NewAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Maximum number of tracks to be spawned")
 
 ------------ CONFIGURE INTERNALS ------------
@@ -208,6 +209,7 @@ asmlib.NewAsmConvar("*sbox_max"..gsLimitName, 1500, nil, gnServerControled, "Max
 asmlib.IsFlag("new_close_frame", false) -- The old state for frame shortcut detecting a pulse
 asmlib.IsFlag("old_close_frame", false) -- The new state for frame shortcut detecting a pulse
 asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the game context menu
+asmlib.IsFlag("file_read_once" , asmlib.GetAsmConvar("ioreadall", "BUL"))
 asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
 asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
@@ -266,8 +268,11 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
         local nM = asmlib.BorderValue((tonumber(vN) or 0), "non-neg")
         local tL = asmlib.GetOpVar("LOG_CONFIG"); tL.Brs = nM
       end})
-      conCallBack:Push({"endsvlock", function(sV, vO, vN)
+      conCallBack:Push({"ioreadall", function(sV, vO, vN)
         asmlib.IsFlag("en_dsv_datalock", tobool(vN))
+      end})
+      conCallBack:Push({"endsvlock", function(sV, vO, vN)
+        asmlib.IsFlag("file_read_once", tobool(vN))
       end})
       conCallBack:Push({"timermode", function(sV, vO, vN)
         local arTim = gsSymDir:Explode(vN)
@@ -898,20 +903,19 @@ if(CLIENT) then
           pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(sGen)
         else local iG = (tGen and #tGen or 0) -- Report that generic is missing so skip
           asmlib.LogInstance("Generic skip: "..asmlib.GetReport(iG, sGen), sLog..".Import")
-        end; local sLine, bEOF, bAct = "", false, true
-        while(not bEOF) do
-          sLine, bEOF = asmlib.GetStringFile(fD)
-          if(not asmlib.IsBlank(sLine)) then local sKey, sPrg
-            if(not asmlib.IsDisable(sLine)) then bAct = true else
-              bAct, sLine = false, sLine:sub(2,-1):Trim() end
-            local nS, nE = sLine:find("%s+")
+        end; sRow, tCon = asmlib.GetFileRow(fD)
+        while(sRow) do
+          if(not asmlib.IsBlank(sRow)) then local sKey, sPrg
+            if(not asmlib.IsDisable(sRow)) then bAct = true else
+              bAct, sRow = false, sRow:sub(2,-1):Trim() end
+            local nS, nE = sRow:find("%s+")
             if(nS and nE) then
-              sKey = sLine:sub(1, nS-1)
-              sPrg = sLine:sub(nE+1,-1)
-            else sKey, sPrg = sLine, gsNoAV end
+              sKey = sRow:sub(1, nS-1)
+              sPrg = sRow:sub(nE+1,-1)
+            else sKey, sPrg = sRow, gsNoAV end
             pnListView:AddLine((bAct and "V" or "X"), sKey, sPrg):SetTooltip(sPrg)
-          end
-        end; fD:Close()
+          end; sRow, tCon = asmlib.GetFileRow(fD, tCon)
+        end -- If a data error is not present. File is closed automatically
       end; pnImport:DoClick()
       -- Export button. When clicked loads contents into the file
       local pnExport = vguiCreate("DButton")
@@ -1010,9 +1014,9 @@ if(CLIENT) then
         pIn:AddOption(languageGetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
         -- Handle workshop specific options for the given track type
-        asmlib.WorkshopAttachMenu(pnMenu, sP) -- Workshop ID for given track type
+        asmlib.WorkshopAttachToMenu(pnMenu, sP) -- Workshop ID for given track type
         -- Use the already exported DSV. Export database contents by type/prefix
-        asmlib.ExportAttachMenu(pnMenu, sP, true) -- Export database contents by type/prefix
+        asmlib.ExportAttachToMenu(pnMenu, sP, true) -- Export database contents by type/prefix
         -- Populate the sub-menu with all table nicknames
         local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
           local defTab = makTab:GetDefinition()
@@ -1274,9 +1278,9 @@ if(CLIENT) then
         pIn:AddOption(languageGetPhrase(sT.."cprw"),
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
         -- Handle workshop specific options for the given track type
-        asmlib.WorkshopAttachMenu(pMenu, sTyp) -- Workshop ID for given track type
+        asmlib.WorkshopAttachToMenu(pMenu, sTyp) -- Workshop ID for given track type
         -- Use the already exported DSV. Export database contents by type/prefix
-        asmlib.ExportAttachMenu(pMenu, sTyp, true) -- Export database contents by type/prefix
+        asmlib.ExportAttachToMenu(pMenu, sTyp, true) -- Export database contents by type/prefix
         pMenu:Open()
       end
       if(not asmlib.UpdateListView(pnListView,frUsed)) then
@@ -1814,6 +1818,7 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
+      if(not asmlib.IsHere(stData.Pref)) then stData.Pref = arLine[2]:gsub("[^%w]","_"):lower()  end
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
@@ -1912,14 +1917,15 @@ asmlib.NewTable("PIECES",{
           end
       end; return true
     end,
-    ExportTypeRun = function(fE, fS, sType, makP, PCache, qPieces, vSrc)
+    ExportTypeRun = function(sType, makP, PCache, qPieces, vSrc)
       local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
       local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
       local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
       local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
-      local sClass, iCnt = asmlib.GetOpVar("ENTITY_DEFCLASS"), 0
+      local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+      local sPref, iCnt = sType:gsub("[^%w]","_"):lower(), 0
       for mod, rec in pairs(PCache) do
-        if(rec.Type == sType) then
+        if(rec.Type == sType or rec.Pref == sPref) then
           local iID, tOffs = 1, rec.Offs -- Start from the first point
           local rPOA = tOffs[iID]; if(not asmlib.IsHere(rPOA)) then
             asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot),vSrc) return false end
