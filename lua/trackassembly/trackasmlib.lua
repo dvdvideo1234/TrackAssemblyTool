@@ -594,24 +594,25 @@ end
  *    oC > File contents current status
  * Returns line contents and reaching EOF flag
  *    rC > The current row being worked in
- *    oC > The output contents received from the file (array/string)
- *    bW > Read mode for the file IO. Close it yourself!
+ *    oC > The output contents received from the file
 ]]
 function GetFileRow(pF, oC)
   local oC, rC = oC, nil
-  local bW = IsFlag("file_read_once")
-  if(bW) then -- Read the whole file at once
-    if(oC) then oC.ID = (oC.ID + 1) else
+  if(oC) then oC.ID = (oC.ID + 1)
+    rC = (oC.RO and oC[oC.ID] or pF:ReadLine())
+  else -- Allocate file read configuration
+    local bW = IsFlag("file_read_once")
+    if(bW) then -- File at once fast I/O
       local sN = GetOpVar("PATTEM_NEWLINE")
       oC = sN:Explode(pF:Read(), true); pF:Close()
       oC.ID, oC.RO, oC.ER = 1, bW, false
-    end; rC = oC[oC.ID]
-  else -- read the file line by line
-    if(oC) then oC.ID = (oC.ID + 1)
-    else oC = {ID = 1, RO = bW, ER = false} end
-    rC = pF:ReadLine()
-    if(not rC) then pF:Close() end
-  end; return rC, oC, bW
+      rC = oC[oC.ID] -- Index the next row
+    else -- Read it line by line less memory
+      oC = {ID = 1, RO = bW, ER = false}
+      rC = pF:ReadLine() -- Read one line
+    end -- Close the file on EOF reading line by line
+  end; if(not (rC or oC.RO)) then pF:Close() end
+  return rC, oC
 end
 
 function ToIcon(vKey, vVal)
@@ -3488,6 +3489,7 @@ function CacheQueryPiece(sModel)
         LogInstance("No data found "..GetReport(Q)); return nil end
       stData.Slot, stData.Size = sModel, #qData
       stData.Type = qData[1][makTab:GetColumnName(2)]
+      stData.Pref = stData.Type:gsub("[^%w]","_"):lower()
       stData.Name = qData[1][makTab:GetColumnName(3)]
       stData.Unit = qData[1][makTab:GetColumnName(8)]
       local coID, coP = makTab:GetColumnName(4), makTab:GetColumnName(5)
@@ -4010,8 +4012,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
         if(bComm) then makTab:Erase(tData[1]) end
       end
       if(bComm) then makTab:Record(tData) end
-    end
-    sRow, tCon = GetFileRow(F, tCon)
+    end; sRow, tCon = GetFileRow(F, tCon)
   end
   if(tCon.ER) then if(not tCon.RO) then F:Close() end
     LogInstance("Contents error "..GetReport(sHew, fName),sTable); return false end
