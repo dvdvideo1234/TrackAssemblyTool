@@ -599,7 +599,7 @@ end
 function GetFileRow(pF, oC)
   local oC, rC = oC, nil
   if(oC) then oC.ID = (oC.ID + 1)
-    rC = (oC.RO and oC[oC.ID] or pF:ReadLine())
+    if(oC.RO) then rC = oC[oC.ID] else pF:ReadLine() end
   else -- Allocate file read configuration
     local bW = IsFlag("file_read_once")
     if(bW) then -- File at once fast I/O
@@ -3082,7 +3082,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end; return snOut
   end
   function self:GetConcat(tLine, sDelim, fFoo, ...)
-    local qtDef, sLine = self:GetDefinition(), ""; if(not istable(tLine)) then
+    local qtDef = self:GetDefinition(); if(not istable(tLine)) then
       LogInstance("Source not table "..GetReport(tLine, sDelim), qtDef.Nick); return nil end
     local sDelim, nA, tA = tostring(sDelim or "\t"):sub(1,1), select("#", ...), nil
     if(nA > 0) then tA = {...} else tA, nA = {}, qtDef.Size
@@ -3097,8 +3097,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
         local bS, sR = pcall(fFoo, iC, sC, vC, iD, nA); if(not bS) then
           LogInstance("Value convert error "..GetReport(iD,iC,vC,nA,sR),qtDef.Nick); return nil end
         vC = sR -- The value is converted and updated successfully
-      end; sLine = sLine..sD..tostring(vC or "")
-    end; return sLine
+      end; self:SetFragment(sD, tostring(vC or ""))
+    end; return self:GetFragment()
   end
   -- Build SQL drop statement
   function self:Drop()
@@ -4015,7 +4015,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
     end; sRow, tCon = GetFileRow(F, tCon)
   end
   if(tCon.ER) then if(not tCon.RO) then F:Close() end
-    LogInstance("Contents error "..GetReport(sHew, fName),sTable); return false end
+    LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
   if(bComm and sMoDB == "SQL") then
     sqlQuery(makTab:Commit():Get()); LogInstance("Commit "..GetReport(sHew, fName), sTable) end
   LogInstance("Success "..GetReport(sHew,fName), sTable); return true
@@ -4054,26 +4054,26 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     local sRow, tCon = GetFileRow(I)
     while(sRow) do
       if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
-        local tLine = sDelim:Explode(sRow)
-        if(tLine[1] == defTab.Name) then local nL = #tLine
-          for iCnt = 2, nL do local vV, iL = tLine[iCnt], (iCnt-1); vV = GetStrip(vV)
+        local tRow = sDelim:Explode(sRow)
+        if(tRow[1] == defTab.Name) then local nL = #tRow
+          for iCnt = 2, nL do local vV, iL = tRow[iCnt], (iCnt-1); vV = GetStrip(vV)
             vM = makTab:Match(vV,iL,false,"",true,true)
             if(not IsHere(vV)) then LogInstance("Read matching failed "
               ..GetReport(sHew, vV, iL, defTab[iL][1], fName),sTable); tCon.ER = true; break end
-            tLine[iCnt] = vM -- Register the matched value
+            tRow[iCnt] = vM -- Register the matched value
           end -- Allocate table memory for the matched key
-          local vK = tLine[2]; if(not fData[vK]) then fData[vK] = {Size = 0} end
+          local vK = tRow[2]; if(not fData[vK]) then fData[vK] = {Size = 0} end
           -- Where the line ID must be read from. Validate the value
-          local fRec, vID, nID = fData[vK], tLine[iD+1]; nID = (tonumber(vID) or 0)
+          local fRec, vID, nID = fData[vK], tRow[iD+1]; nID = (tonumber(vID) or 0)
           if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
             LogInstance("Scatter line ID "..GetReport(sHew, vID, vK, fName),sTable); tCon.ER = true; break end
           fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Register the new line
-          for iCnt = 3, nL do fRow[iCnt-2] = tLine[iCnt] end -- Transfer the extracted data
+          for iCnt = 3, nL do fRow[iCnt-2] = tRow[iCnt] end -- Transfer the extracted data
         else LogInstance("Read table name mismatch "..GetReport(sHew, fName),sTable); tCon.ER = true; break end
       end; sRow, tCon = GetFileRow(I, tCon) -- Read the next row
     end -- The file contents are read locally then converted
     if(tCon.ER) then if(not tCon.RO) then I:Close() end
-      LogInstance("Contents error "..GetReport(sHew, fName),sTable); return false end
+      LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
   TimeLap("SRC-FILE")
   for key, rec in pairs(tData) do -- Check the given table and match the key
@@ -4187,18 +4187,18 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   while(sRow) do
     if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
       sRow = sRow:gsub(defTab.Name,""):Trim()
-      local tLine = sDelim:Explode(sRow)
-      for nCnt = 1, #tLine do
-        local vMatch = makTab:Match(GetStrip(tLine[nCnt]),nCnt,true,"\"",true)
+      local tRow = sDelim:Explode(sRow)
+      for nCnt = 1, #tRow do
+        local vMatch = makTab:Match(GetStrip(tRow[nCnt]),nCnt,true,"\"",true)
         if(not IsHere(vMatch)) then I:Flush(); I:Close()
           LogInstance("Given matching failed "
-            ..GetReport(sHew, tLine[nCnt], nCnt, defTab[nCnt][1]), sTable); tCon.ER = true; break end
-        tLine[nCnt] = tostring(vMatch)
-      end; I:Write(sFr); I:Write(tableConcat(tLine, ", ")); I:Write(sBk)
+            ..GetReport(sHew, tRow[nCnt], nCnt, defTab[nCnt][1]), sTable); tCon.ER = true; break end
+        tRow[nCnt] = tostring(vMatch)
+      end; I:Write(sFr); I:Write(tableConcat(tRow, ", ")); I:Write(sBk)
     end; sRow, tCon = GetFileRow(S, tCon)
   end; I:Flush(); I:Close()
   if(tCon.ER) then if(not tCon.RO) then S:Close() end
-    LogInstance("Contents error "..GetReport(sHew, fName),sTable); return false end
+    LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
   LogInstance("Success "..GetReport(sHew,sSRC),sTable); return true
 end
 
@@ -4268,23 +4268,23 @@ function ProcessDSV(sDelim)
   local sGen = GetOpVar("DBEXP_PREFGEN")
   local sRow, tCon = GetFileRow(F)
   while(sRow) do
-    if(not IsBlank(sLine)) then
-      if(not IsDisable(sLine)) then
-        local tInf = sDelim:Explode(sLine)
+    if(not IsBlank(sRow)) then
+      if(not IsDisable(sRow)) then
+        local tInf = sDelim:Explode(sRow)
         local fPrf = GetStrip(tostring(tInf[1] or ""):Trim())
         local fSrc = GetStrip(tostring(tInf[2] or ""):Trim())
         if(not IsBlank(fPrf)) then -- Is there something
           local tStore = tProc[fPrf]
-          if(not tStore) then
+          if(not tStore) then -- Allocate
             tProc[fPrf] = {Size = 1}
             tStore = tProc[fPrf]
             tableInsert(tStore, fSrc)
           else -- Prefix is processed already
-            tStore.Size = tStore.Size + 1 -- Store the count of the repeated prefixes
-            tableInsert(tStore, fSrc)
+            tStore.Size = tStore.Size + 1 -- Store prefixes count
+            tableInsert(tStore, fSrc) -- Register the prefix
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
-      else LogInstance("Skipped "..GetReport(sLine)) end
+      else LogInstance("Skipped "..GetReport(sRow)) end
     end; sRow, tCon = GetFileRow(F, tCon)
   end
   for prf, tab in pairs(tProc) do
@@ -4528,7 +4528,7 @@ function ExportTypeRun(sType)
     end; sRow, tCon = GetFileRow(fS, tCon)
   end; fE:Write("\n"); fE:Flush(); fE:Close()
   if(tCon.ER) then if(not tCon.RO) then fS:Close() end
-    LogInstance("Contents error "..GetReport(sHew, fName),sTable) end
+    LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable) end
 end
 
 --[[
