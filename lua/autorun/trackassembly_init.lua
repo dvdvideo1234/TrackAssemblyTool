@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.834")
+asmlib.SetOpVar("TOOL_VERSION","9.835")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1829,22 +1829,22 @@ asmlib.NewTable("PIECES",{
         asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK),vSrc); return false end
       stData.Size = stData.Size + 1; return true
     end,
-    ExportSyncDB = function(oFile, makTab, tCache, sDelim, vSrc)
+    ExportSyncDB = function(oF, makTab, tCache, sDelim, vSrc)
       local tSort, cT = asmlib.Arrange(tCache, "Type", "Name", "Slot"), nil
       if(not tSort) then asmlib.LogInstance("Cannot sort cache data",vSrc); return false end
       for iS = 1, tSort.Size do local stRec = tSort[iS]
         local sKey, vRec = stRec.Key, stRec.Rec
         if(not cT or cT ~= vRec.Type) then cT = vRec.Type
           local sW = tostring(asmlib.WorkshopID(cT) or sMiss)
-          oFile:Write("# Categorize("); oFile:Write(cT)
-          oFile:Write("): "); oFile:Write(sW); oFile:Write("\n")
+          oF:Write("# Categorize("); oF:Write(cT)
+          oF:Write("): "); oF:Write(sW); oF:Write("\n")
         end
-        oFile:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
-        oFile:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
-        oFile:Write(makTab:Match(vRec.Name,3,true,"\"")); oFile:Write("\n")
+        oF:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
+        oF:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
+        oF:Write(makTab:Match(vRec.Name,3,true,"\"")); oF:Write("\n")
       end; return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
+    ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref),vSrc); return false end
@@ -1865,12 +1865,12 @@ asmlib.NewTable("PIECES",{
           local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
           local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
                 sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
-          oFile:Write(sData); oFile:Write(sDelim)
-          oFile:Write(makTab:Match(iD,4,true,"\"")); oFile:Write(sDelim)
-          oFile:Write("\""); oFile:Write(sP); oFile:Write("\""); oFile:Write(sDelim)
-          oFile:Write("\""); oFile:Write(sO); oFile:Write("\""); oFile:Write(sDelim)
-          oFile:Write("\""); oFile:Write(sA); oFile:Write("\""); oFile:Write(sDelim)
-          oFile:Write("\""); oFile:Write(sC); oFile:Write("\"\n")
+          oF:Write(sData); oF:Write(sDelim)
+          oF:Write(makTab:Match(iD,4,true,"\"")); oF:Write(sDelim)
+          oF:Write("\""); oF:Write(sP); oF:Write("\""); oF:Write(sDelim)
+          oF:Write("\""); oF:Write(sO); oF:Write("\""); oF:Write(sDelim)
+          oF:Write("\""); oF:Write(sA); oF:Write("\""); oF:Write(sDelim)
+          oF:Write("\""); oF:Write(sC); oF:Write("\"\n")
         end
       end; return true
     end,
@@ -1996,14 +1996,14 @@ asmlib.NewTable("ADDITIONS",{
           asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),vSrc); return false end
       end; stData.Size = stData.Size + 1; return true
     end,
-    ExportDSV = function(oFile, makTab, tCache, fPref, sDelim, vSrc)
+    ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Slot")
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
         for iRec = 1, #tRec do local vRec = tRec[iRec]
-          oFile:Write(defTab.Name); oFile:Write(Delim); oFile:Write(makTab:Match(sKey,1,true,"\""))
+          oF:Write(defTab.Name); oF:Write(Delim); oF:Write(makTab:Match(sKey,1,true,"\""))
           for iID = 2, defTab.Size do
             local sC = makTab:GetColumnName(iID); if(not sC) then
               asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end
@@ -2011,8 +2011,8 @@ asmlib.NewTable("ADDITIONS",{
               asmlib.LogInstance("Cannot extract "..asmlib.GetReport(iID,sKey),vSrc); return false end
             local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
               asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
-            end; oFile:Write(sDelim); oFile:Write(tostring(vM or ""))
-          end; oFile:Write("\n") -- Data is already inserted, there will be no crash
+            end; oF:Write(sDelim); oF:Write(tostring(vM or ""))
+          end; oF:Write("\n") -- Data is already inserted, there will be no crash
         end
       end; return true
     end,
