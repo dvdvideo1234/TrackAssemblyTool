@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.833")
+asmlib.SetOpVar("TOOL_VERSION","9.834")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -791,9 +791,8 @@ if(CLIENT) then
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
-      local sDsv = gsDrcDSV
-      local fDSV = sDsv..("%s"..gsToolPrefL.."%s.txt")
-      local sNam = (gsDrcSET..gsLibName.."_dsv.txt")
+      local fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt")
+      local sNam = asmlib.GetConcat(gsDrcSET, gsLibName, "_dsv.txt")
       local nW, nH = pnFrame:GetSize()
       local sDel, nB, nT = "\t", 22, 23
       xyPos.x, xyPos.y = xyDsz.x, (xyDsz.y + nT)
@@ -963,7 +962,7 @@ if(CLIENT) then
         pIn:AddOption(languageGetPhrase(sT.."cprw"),
           function() asmlib.SetListViewRowClipboard(pnSelf) end):SetImage(asmlib.ToIcon(sI.."cprw"))
         pIn:AddOption(languageGetPhrase(sT.."cpth"),
-          function() SetClipboardText(sDsv) end):SetImage(asmlib.ToIcon(sI.."cpth"))
+          function() SetClipboardText(gsDrcDSV) end):SetImage(asmlib.ToIcon(sI.."cpth"))
         -- Move current line around
         local pIn, pOp = pnMenu:AddSubMenu(languageGetPhrase(sT.."mv"))
         if(not IsValid(pIn)) then pnFrame:Close()
@@ -1049,12 +1048,12 @@ if(CLIENT) then
               pTb:AddOption(languageGetPhrase(sT.."sted"),
                 function() -- Edit the database contents using the Luapad addon
                   if(luapad) then -- Luapad is installed and present. The context menu option is available
-                    asmlib.LogInstance  ("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+                    asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
                     if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
-                    luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), sDsv);
+                    luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), gsDrcDSV);
                     if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
                       local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
-                        luapad.AddTab("["..sP.."][CATEGORY]", fileRead(sCats, "DATA"), sDsv);
+                        luapad.AddTab("["..sP.."][CATEGORY]", fileRead(sCats, "DATA"), gsDrcDSV);
                       end -- This is done so we can distinguish between luapad and other panels
                     end -- Luapad is designed not to be closed so we need to make it invisible
                     luapad.Frame:SetVisible(true); luapad.Frame:Center()
@@ -1293,7 +1292,7 @@ if(CLIENT) then
             if(not asmlib.ExportSyncDB()) then
               asmlib.LogInstance("Export invalid", sLog..".Button"); return nil end
           else
-            local fPref = "["..gsMoDB:lower().."-dsv]"..gsGenerPrf
+            local fPref = asmlib.GetConcat("[", gsMoDB:lower(), "-dsv]", gsGenerPrf)
             asmlib.ExportCategory(3, nil, fPref, true)
             asmlib.ExportDSV("PIECES", fPref, nil, true)
             asmlib.ExportDSV("ADDITIONS", fPref, nil, true)
@@ -1582,7 +1581,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
               if(bSuc and cnW and cnW:IsValid()) then
-                local sIde = ePiece:EntIndex()..gsSymDir..eBase:EntIndex()
+                local sIde = asmlib.GetConcat(ePiece:EntIndex(), gsSymDir, eBase:EntIndex())
                 asmlib.UndoCrate("TA Weld > "..asmlib.GetReport(sIde,cnW:GetClass()))
                 asmlib.UndoAddEntity(cnW); asmlib.UndoFinish(oPly); return true
               end; return false
@@ -1611,7 +1610,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local forcelim = mathClamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
               if(bSuc and cnN and cnN:IsValid()) then
-                local sIde = ePiece:EntIndex()..gsSymDir..eBase:EntIndex()
+                local sIde = asmlib.GetConcat(ePiece:EntIndex(), gsSymDir, eBase:EntIndex())
                 asmlib.UndoCrate("TA NoCollide > "..asmlib.GetReport(sIde,cnN:GetClass()))
                 asmlib.UndoAddEntity(cnN); asmlib.UndoFinish(oPly); return true
               end; return false
@@ -1724,9 +1723,9 @@ gtOptionsCM.MenuOpen = function(self, opt, ent, tr)
     if(isfunction(fDraw)) then
       local bS, vE = pcall(fDraw, ent, oPly, tr, sKey); if(not bS) then
         asmlib.LogInstance("Request fail "..asmlib.GetReport(sKey,iD,vE),gsOptionsLG); return end
-      sName = sName..": "..tostring(vE)          -- Attach client value ( CLIENT )
+      sName = asmlib.GetConcat(sName, ": ", vE)          -- Attach client value ( CLIENT )
     elseif(isfunction(wDraw)) then
-      sName = sName..": "..ent:GetNWString(sKey) -- Attach networked value ( SERVER )
+      sName = asmlib.GetConcat(sName, ": ", ent:GetNWString(sKey)) -- Attach networked value ( SERVER )
     end; local fEval = function() self:Evaluate(ent,iD,tr,sKey) end
     local pnOpt = pnSub:AddOption(sName, fEval); if(not IsValid(pnOpt)) then
       asmlib.LogInstance("Invalid "..asmlib.GetReport(sKey,iD),gsOptionsLG); return end
@@ -1837,7 +1836,8 @@ asmlib.NewTable("PIECES",{
         local sKey, vRec = stRec.Key, stRec.Rec
         if(not cT or cT ~= vRec.Type) then cT = vRec.Type
           local sW = tostring(asmlib.WorkshopID(cT) or sMiss)
-          oFile:Write("# Categorize("..cT.."): "..sW.."\n")
+          oFile:Write("# Categorize("); oFile:Write(cT)
+          oFile:Write("): "); oFile:Write(sW); oFile:Write("\n")
         end
         oFile:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
         oFile:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
@@ -1887,8 +1887,8 @@ asmlib.NewTable("PIECES",{
         local sPref = tData.Type:gsub("[^%w]","_"):lower()
         if(sPref == fPref) then local tOffs = tData.Offs
           local sData = asmlib.GetConcat(defP.Name, sDelim,
-            makP:Match(stRec.Key ,1, true, "\""), sDelim..
-            makP:Match(tData.Type,2, true, "\""), sDelim..
+            makP:Match(stRec.Key ,1, true, "\""), sDelim,
+            makP:Match(tData.Type,2, true, "\""), sDelim,
             makP:Match(tData.Name,3, true, "\""))
           -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
           for iD = 1, #tOffs do
@@ -1902,19 +1902,18 @@ asmlib.NewTable("PIECES",{
             fP:Write("\""); fP:Write(sO); fP:Write("\""); fP:Write(sDelim)
             fP:Write("\""); fP:Write(sA); fP:Write("\""); fP:Write(sDelim)
             fP:Write("\""); fP:Write(sC); fP:Write("\"\n")
-            if(iD == 1) then
-              local tA = ACache[stRec.Key]
+            if(iD == 1) then local tA = ACache[stRec.Key]
               if(tA and tA.Size and tA.Size > 0) then
-                local sH = defA.Name..sDelim..makA:Match(stRec.Key,1,true,"\"")
-                for iA = 1, tA.Size do fA:Write(sH) for iC = 2, defA.Size do
-                  local sC = defA[iC][1]
-                  local vC = tA[iA][sC]
-                  fA:Write(sDelim); fA:Write(makA:Match(vC,iC,true,"\""))
-                end fA:Write("\n") end
+                local sH = asmlib.GetConcat(defA.Name, sDelim, makA:Match(stRec.Key,1,true,"\""))
+                for iA = 1, tA.Size do fA:Write(sH)
+                  for iC = 2, defA.Size do local sC = defA[iC][1]
+                    local vC = tA[iA][sC]; fA:Write(sDelim); fA:Write(makA:Match(vC,iC,true,"\""))
+                  end; fA:Write("\n")
                 end
               end
             end
           end
+        end
       end; return true
     end,
     ExportTypeRun = function(sType, makP, PCache, qPieces, vSrc)
@@ -2003,9 +2002,8 @@ asmlib.NewTable("ADDITIONS",{
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
-        local sData = defTab.Name..sDelim..makTab:Match(sKey,1,true,"\"")
-        for iRec = 1, #tRec do
-          local vRec = tRec[iRec]; oFile:Write(sData)
+        for iRec = 1, #tRec do local vRec = tRec[iRec]
+          oFile:Write(defTab.Name); oFile:Write(Delim); oFile:Write(makTab:Match(sKey,1,true,"\""))
           for iID = 2, defTab.Size do
             local sC = makTab:GetColumnName(iID); if(not sC) then
               asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end
