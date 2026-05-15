@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.835")
+asmlib.SetOpVar("TOOL_VERSION","9.836")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2055,16 +2055,16 @@ asmlib.NewTable("PHYSPROPERTIES",{
     Erase  = function(makTab, tCache, snPK, vSrc)
       local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
       local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
-      local stName = tCache[skName]; if(not stName) then
+      local tNames = tCache[skName]; if(not tNames) then
         asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK),vSrc); return false end
-      local stType = tCache[skType]; if(not stType) then
+      local tTypes = tCache[skType]; if(not tTypes) then
         asmlib.LogInstance("Config missing "..asmlib.GetReport(snPK),vSrc); return false end
-      if(snPK and snPK ~= "") then local vT
-        for iT = 1, stName.Size do -- Remove the type from the list
-          if(stName[iT] == snPK) then vT = tableRemove(stName, iT) end
-        end; if(vT) then stType[vT] = nil; stName.Size = stName.Size - 1 end
+      if(snPK and snPK ~= "") then  -- Remove the type from the list
+        for iT = 1, tTypes.Size do; if(tTypes[iT] == snPK) then
+          tableRemove(tTypes, iT); tTypes.Size = (tTypes.Size - 1); break
+        end; end; tNames[snPK] = nil -- Erase the names for the type as well
       else -- Otherwise clear everything not just specific type
-        tableEmpty(stName); tableEmpty(stType)
+        tableEmpty(tNames); tableEmpty(tTypes)
       end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine, vSrc)
