@@ -211,12 +211,12 @@ function SetOpVar(sName, vVal)
   libOpVars[sName] = vVal
 end
 
-function IsInit()
-  return IsHere(GetOpVar("TIME_INIT"))
+function GetInstPref()
+  return (CLIENT and "cl_" or (SERVER and "sv_" or "na_"))
 end
 
-function GetInstPref()
-  return (CLIENT and "cl_" or SERVER and "sv_" or "na_")
+function IsInit()
+  return IsHere(GetOpVar("TIME_INIT"))
 end
 
 function IsBlank(vVal)
@@ -1570,14 +1570,14 @@ function NewPOA(vA, vB, vC)
   local mtPOA = GetOpVar("TYPEMT_POA")
   setmetatable(self, mtPOA)
   if(not mtPOA.__type) then
-    mtPOA.__fraw = "%s+"
-    mtPOA.__fnum = "%10.3f"
-    mtPOA.__type = "POA"
-    mtPOA.__index = mtPOA
+    mtPOA.__fraw, mtPOA.__fnum = "%s+", "%10.3f"
+    mtPOA.__type, mtPOA.__index = "POA", mtPOA
     mtPOA.__eoa = GetOpVar("OPSYM_ENTPOSANG")
     mtPOA.__sep = GetOpVar("OPSYM_SEPARATOR")
     mtPOA.__mis = GetOpVar("MISS_NOSQL")
-    mtPOA.__form = tableConcat({mtPOA.__type,"{", mtPOA.__fnum,",",mtPOA.__fnum,",",mtPOA.__fnum,"}","(%s)"})
+    mtPOA.__form = GetConcat(
+      mtPOA.__type,"{", mtPOA.__fnum,",",
+      mtPOA.__fnum,",",mtPOA.__fnum,"}","[%s]")
     mtPOA.Get = function(o)
       return unpack(o)
     end
