@@ -1566,104 +1566,117 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
 end
 
 function NewPOA(vA, vB, vC)
-  local self, mRaw = {0, 0, 0}, nil
-  local mMis = GetOpVar("MISS_NOSQL")
-  local mSep = GetOpVar("OPSYM_SEPARATOR")
-  local mEoa = GetOpVar("OPSYM_ENTPOSANG")
-  function self:Get()
-    return unpack(self)
-  end
-  function self:Array()
-    return {self:Get()}
-  end
-  function self:Vector()
-    return Vector(self:Get())
-  end
-  function self:Angle()
-    return Angle(self:Get())
-  end
-  function self:String(sS)
-    local sS = (IsHere(sS) and tostring(sS) or mSep)
-    return tableConcat(self, sS) -- Custom separator
-  end
-  function self:Set(vA, vB, vC)
-    if(istable(vA)) then
-      self[1] = (tonumber(vA[1]) or 0)
-      self[2] = (tonumber(vA[2]) or 0)
-      self[3] = (tonumber(vA[3]) or 0)
-    else
-      self[1] = (tonumber(vA) or 0)
-      self[2] = (tonumber(vB) or 0)
-      self[3] = (tonumber(vC) or 0)
-    end; return self
-  end
-  function self:Raw(sR)
-    if(IsHere(sR)) then -- Remove spaces
-      mRaw = tostring(sR):gsub("%s+", "") end
-    return mRaw -- Source data manager
-  end
-  function self:IsSame(vA, vB, vC)
-    if(istable(vA)) then
-      for iD = 1, 3 do
-        local nP = (tonumber(vA[iD]) or 0)
-        if(nP ~= self[iD]) then return false end
-      end -- Compare with a array of values
-    else -- Try to convert to number
-      local vA = (tonumber(vA) or 0)
-      if(vA ~= self[1]) then return false end
-      local vB = (tonumber(vB) or 0)
-      if(vB ~= self[2]) then return false end
-      local vC = (tonumber(vC) or 0)
-      if(vC ~= self[3]) then return false end
-    end; return true
-  end
-  function self:Export(vA, vB, vC)
-    local sS, bE = self:String()
-    if(vA) then -- Must compare
-      bE = self:IsSame(vA, vB, vC)
-    else bE = self:IsSame() end
-    return (mRaw or (bE and mMis or sS))
-  end
-  function self:Import(sB, ...)
-    local bE, sB = GetEmpty(sB) -- Default to string
-    if(bE) then -- Check when entry data is vacant
-      self:Set(...) -- Override with the default value provided
-    else -- Entry data is missing use default otherwise decode the value
-      local tPOA = mSep:Explode(sB)  -- Read the components
-      for iD = 1, 3 do                 -- Apply on all components
-        local nC = tonumber(tPOA[iD])  -- Is the data really a number
-        if(not IsHere(nC)) then nC = 0 -- If not write zero and report it
-          LogInstance("Mismatch "..GetReport(sB, iD)) end; self[iD] = nC
-      end -- Try to decode the entry when present
-    end; return self
-  end
-  function self:Decode(sB, vS, sT, ...)
-    local bE, sB = GetEmpty(sB) -- Default to string
-    if(bE) then -- Check when entry data is vacant
-      self:Set(...) -- Override with the default value provided
-    else -- Entry data is missing use default otherwise decode the value
-      if(sB:sub(1,1) == mEoa) then -- POA key must extracted from the model
-        local sT = tostring(sT or "") -- Default the type index to string
-        local sK = sB:sub(2, -1) -- Read key transform ID and try to index
-        local tT, sM = GetAttachmentByID(vS, sK) -- Read transform key
-        if(IsHere(tT)) then -- Attachment is found. Try to process it
-          local uT = tT[sT] -- Extract transform value for the type
-          if(IsHere(uT)) then self:Set(uT:Unpack()) -- Load key into POA
+  local self = {0, 0, 0, __raw = ""}
+  local mtPOA = GetOpVar("TYPEMT_POA")
+  setmetatable(self, mtPOA)
+  if(not mtPOA.__type) then
+    mtPOA.__fraw = "%s+"
+    mtPOA.__fnum = "%10.3f"
+    mtPOA.__type = "POA"
+    mtPOA.__index = mtPOA
+    mtPOA.__eoa = GetOpVar("OPSYM_ENTPOSANG")
+    mtPOA.__sep = GetOpVar("OPSYM_SEPARATOR")
+    mtPOA.__mis = GetOpVar("MISS_NOSQL")
+    mtPOA.__form = tableConcat({mtPOA.__type,"{", mtPOA.__fnum,",",mtPOA.__fnum,",",mtPOA.__fnum,"}","(%s)"})
+    mtPOA.Get = function(o)
+      return unpack(o)
+    end
+    mtPOA.Array = function(o)
+      return {o:Get()}
+    end
+    mtPOA.Vector = function(o)
+      return Vector(o:Get())
+    end
+    mtPOA.Angle = function(o)
+      return Angle(o:Get())
+    end
+    mtPOA.String = function(o, sS)
+      local sS = (IsHere(sS) and tostring(sS) or mtPOA.__sep)
+      return tableConcat(o, sS) -- Custom separator
+    end
+    mtPOA.Set = function(o, vA, vB, vC)
+      if(istable(vA)) then
+        o[1] = (tonumber(vA[1]) or 0)
+        o[2] = (tonumber(vA[2]) or 0)
+        o[3] = (tonumber(vA[3]) or 0)
+      else
+        o[1] = (tonumber(vA) or 0)
+        o[2] = (tonumber(vB) or 0)
+        o[3] = (tonumber(vC) or 0)
+      end; return o
+    end
+    mtPOA.IsSame = function(o, vA, vB, vC)
+      if(istable(vA)) then
+        for iD = 1, 3 do
+          local nP = (tonumber(vA[iD]) or 0)
+          if(nP ~= o[iD]) then return false end
+        end -- Compare with a array of values
+      else -- Try to convert to number
+        local vA = (tonumber(vA) or 0)
+        if(vA ~= o[1]) then return false end
+        local vB = (tonumber(vB) or 0)
+        if(vB ~= o[2]) then return false end
+        local vC = (tonumber(vC) or 0)
+        if(vC ~= o[3]) then return false end
+      end; return true
+    end
+    mtPOA.Raw = function(o, sR)
+      if(IsHere(sR)) then -- Remove spaces
+        o.__raw = tostring(sR):gsub(mtPOA.__fraw, "") end
+      return o.__raw -- Source data manager
+    end
+    mtPOA.Export = function(o, vA, vB, vC)
+      local sS, bE = o:String()
+      if(vA) then -- Must compare
+        bE = o:IsSame(vA, vB, vC)
+      else bE = o:IsSame() end
+      return (o:Raw() or (bE and mtPOA.__mis or sS))
+    end
+    mtPOA.Import = function(o, sB, ...)
+      local bE, sB = GetEmpty(sB) -- Default to string
+      if(bE) then -- Check when entry data is vacant
+        o:Set(...) -- Override with the default value provided
+      else -- Entry data is missing use default otherwise decode the value
+        local tPOA = mtPOA.__sep:Explode(sB)  -- Read the components
+        for iD = 1, 3 do                 -- Apply on all components
+          local nC = tonumber(tPOA[iD])  -- Is the data really a number
+          if(not IsHere(nC)) then nC = 0 -- If not write zero and report it
+            LogInstance("Mismatch "..GetReport(sB, iD)) end; o[iD] = nC
+        end -- Try to decode the entry when present
+      end; return o
+    end
+    mtPOA.Decode = function(o, sB, vS, sT, ...)
+      local bE, sB = GetEmpty(sB) -- Default to string
+      if(bE) then -- Check when entry data is vacant
+        o:Set(...) -- Override with the default value provided
+      else -- Entry data is missing use default otherwise decode the value
+        if(sB:sub(1,1) == mtPOA.__eoa) then -- POA key must extracted from the model
+          local sT = tostring(sT or "") -- Default the type index to string
+          local sK = sB:sub(2, -1) -- Read key transform ID and try to index
+          local tT, sM = GetAttachmentByID(vS, sK) -- Read transform key
+          if(IsHere(tT)) then -- Attachment is found. Try to process it
+            local uT = tT[sT] -- Extract transform value for the type
+            if(IsHere(uT)) then o:Set(uT:Unpack()) -- Load key into POA
+            else -- Try decoding the transform key when not applicable
+              o:Import(sK, ...) -- Try to process the key when present
+              LogInstance("Mismatch "..GetReport(sB, sM, sT)) -- Report mismatch
+            end -- Decode the transformation when is not null or empty string
           else -- Try decoding the transform key when not applicable
-            self:Import(sK, ...) -- Try to process the key when present
-            LogInstance("Mismatch "..GetReport(sB, sM, sT)) -- Report mismatch
+            o:Import(sK, ...) -- Try to process the key when present
+            LogInstance("Missing "..GetReport(sB, sM, sT)) -- Report mismatch
           end -- Decode the transformation when is not null or empty string
-        else -- Try decoding the transform key when not applicable
-          self:Import(sK, ...) -- Try to process the key when present
-          LogInstance("Missing "..GetReport(sB, sM, sT)) -- Report mismatch
-        end -- Decode the transformation when is not null or empty string
-      else -- When the value is empty use zero otherwise process the value
-        self:Import(sB, ...) -- Try to process the value when present
-        LogInstance("Regular "..GetReport(sB, vS, sT)) -- No Attachment call
-      end -- Try to decode the entry when present
-    end; return self
+        else -- When the value is empty use zero otherwise process the value
+          o:Import(sB, ...) -- Try to process the value when present
+          LogInstance("Regular "..GetReport(sB, vS, sT)) -- No Attachment call
+        end -- Try to decode the entry when present
+      end; return o
+    end
+    mtPOA.__tostring = function(o)
+      local nP, nO, nA = o:Get()
+      return mtPOA.__form:format(nP, nO, nA, o:Raw())
+    end
   end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
-  setmetatable(self, GetOpVar("TYPEMT_POA")); return self
+  return self
 end
 
 function SetAction(sKey, fAct, tDat)
@@ -3094,12 +3107,12 @@ function NewTable(sTable,defTab,bReload,bDelete)
       end
     elseif(tyCol == "REAL" or tyCol == "INTEGER") then
       snOut = tonumber(snValue); if(not IsHere(snOut)) then
-        LogInstance("Failed converting number"..GetReport(snValue, nvID),qtDef.Nick); return nil end
+        LogInstance("Invalid number "..GetReport(snValue, nvID),qtDef.Nick); return nil end
       if(tyCol == "INTEGER") then
         if    (opCol == "FLR") then snOut = mathFloor(snOut)
         elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
       end
-    else LogInstance("Invalid column type "..GetReport(tyCol),qtDef.Nick); return nil
+    else LogInstance("Invalid type "..GetReport(tyCol),qtDef.Nick); return nil
     end; return snOut
   end
   function self:GetPrepare(tLine, sDelim, fFoo, ...)
@@ -4055,7 +4068,7 @@ end
  * sDelim > What delimiter is the server using
 ]]
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
-  TimeTic("SYNC:"..GetReport(sTable, bRepl, sPref, sDelim), false)
+  TimeTic("SYNC: "..GetReport(sTable, bRepl, sPref, sDelim), false)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local sDelim, fData = tostring(sDelim or "\t"):sub(1,1), {}
@@ -5859,10 +5872,10 @@ function GetCatmullRomCurve(tV, nT, nA, tO)
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices needed"); return nil end
   local vA = tonumber(nA); if(not vA) then vA = 0.5
-    LogInstance("Factor default to [0.5]"..GetReport(nA)) end
+    LogInstance("Factor default to [0.5] "..GetReport(nA)) end
   if(vA < 0 or vA > 1) then LogInstance("Factor mismatch "..GetReport(vA)); return nil end
   local vT = tonumber(nT); if(not vT) then vT = 100
-    LogInstance("Samples default to [100]"..GetReport(nT)) end
+    LogInstance("Samples default to [100] "..GetReport(nT)) end
   local nV, rT = #tV, mathFloor(vT); if(rT < 0) then
     LogInstance("Samples mismatch "..GetReport(vT)); return nil end
   local vM, cS, cE, tN = GetOpVar("CURVE_MARGIN"), Vector(), Vector(), (tO or {})
@@ -6074,7 +6087,7 @@ function GetBezierCurve(tV, nT, tO)
   if(IsEmpty(tV)) then LogInstance("Vertices missing "..GetReport(tV)); return nil end
   if(not (tV[1] and tV[2])) then LogInstance("Two vertices needed"); return nil end
   local vT = tonumber(nT); if(not vT) then vT = 100
-    LogInstance("Samples default to [100]"..GetReport(nT)) end
+    LogInstance("Samples default to [100] "..GetReport(nT)) end
   local rT = mathFloor(vT); if(rT < 0) then
     LogInstance("Samples mismatch "..GetReport(vT)); return nil end
   local nV = #tV; if(nV <= 0) then

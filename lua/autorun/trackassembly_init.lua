@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.836")
+asmlib.SetOpVar("TOOL_VERSION","9.837")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1033,7 +1033,7 @@ if(CLIENT) then
             if(pIn and pOp) then -- When the sub-menu pointer is available add tables
               local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
               if(not IsValid(pTb)) then pnFrame:Close()
-                asmlib.LogInstance("Manage menu invalid"..GetReport(iD, defTab.Nick),sLog..".ListView"); return nil end
+                asmlib.LogInstance("Manage menu invalid "..GetReport(iD, defTab.Nick),sLog..".ListView"); return nil end
               if(not IsValid(pOb)) then pnFrame:Close()
                 asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return nil end
               pOb:SetIcon(asmlib.ToIcon(sI.."si"))
