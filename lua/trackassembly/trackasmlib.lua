@@ -1566,7 +1566,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
 end
 
 function NewPOA(vA, vB, vC)
-  local self = {0, 0, 0, __raw = ""}
+  local self = {0, 0, 0}
   local mtPOA = GetOpVar("TYPEMT_POA")
   setmetatable(self, mtPOA)
   if(not mtPOA.__type) then
@@ -1578,18 +1578,10 @@ function NewPOA(vA, vB, vC)
     mtPOA.__form = GetConcat(
       mtPOA.__type,"{", mtPOA.__fnum,",",
       mtPOA.__fnum,",",mtPOA.__fnum,"}","[%s]")
-    mtPOA.Get = function(o)
-      return unpack(o)
-    end
-    mtPOA.Array = function(o)
-      return {o:Get()}
-    end
-    mtPOA.Vector = function(o)
-      return Vector(o:Get())
-    end
-    mtPOA.Angle = function(o)
-      return Angle(o:Get())
-    end
+    mtPOA.Get = function(o) return unpack(o) end
+    mtPOA.Array = function(o) return {o:Get()} end
+    mtPOA.Angle = function(o) return Angle(o:Get()) end
+    mtPOA.Vector = function(o) return Vector(o:Get()) end
     mtPOA.String = function(o, sS)
       local sS = (IsHere(sS) and tostring(sS) or mtPOA.__sep)
       return tableConcat(o, sS) -- Custom separator
@@ -1672,8 +1664,8 @@ function NewPOA(vA, vB, vC)
       end; return o
     end
     mtPOA.__tostring = function(o)
-      local nP, nO, nA = o:Get()
-      return mtPOA.__form:format(nP, nO, nA, o:Raw())
+      local sR, nA, nB, nC = o:Raw(), o:Get()
+      return mtPOA.__form:format(nA, nB, nC, sR)
     end
   end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
   return self
