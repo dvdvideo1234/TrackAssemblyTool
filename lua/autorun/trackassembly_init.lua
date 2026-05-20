@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.839")
+asmlib.SetOpVar("TOOL_VERSION","9.840")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -863,7 +863,7 @@ if(CLIENT) then
           tDat[1] = ((tDat[1] == "V") and "V" or "X")
           -- Database unique prefix. Contains non-spaces
           tDat[2] = tostring(tDat[2] or "")
-          tDat[2] = tDat[2]:Trim():gsub("[^%w]","_")
+          tDat[2] = asmlib.GetTypePrefix(tDat[2]):lower()
           -- Additional information. It can be anything
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and gsNoAV or tDat[3])
@@ -945,7 +945,7 @@ if(CLIENT) then
         if(not IsValid(pnMenu)) then pnFrame:Close()
           asmlib.LogInstance("Menu invalid",sLog..".ListView"); return nil end
         local sI, mX, mY = "pn_contextm_", inputGetCursorPos()
-        local sP, sT = pnLine:GetColumnText(2), ("tool."..gsToolNameL.."."..sI)
+        local sP, sT = pnLine:GetColumnText(2):lower(), ("tool."..gsToolNameL.."."..sI)
         -- Enable and disable DSV
         pnMenu:AddOption(languageGetPhrase(sT.."tg"),
           function() pnLine:SetColumnText(1, ((pnLine:GetColumnText(1) == "V") and "X" or "V"))
@@ -1052,7 +1052,7 @@ if(CLIENT) then
                     if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
                     luapad.AddTab("["..sP.."]["..defTab.Nick.."]", fileRead(sFile, "DATA"), gsDrcDSV);
                     if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                      local sCats = fDSV:format(sP, "CATEGORY"); if(fileExists(sCats,"DATA")) then
+                      local sCats = fDSV:format(sP, "CATEGORY"):lower(); if(fileExists(sCats,"DATA")) then
                         luapad.AddTab("["..sP.."][CATEGORY]", fileRead(sCats, "DATA"), gsDrcDSV);
                       end -- This is done so we can distinguish between luapad and other panels
                     end -- Luapad is designed not to be closed so we need to make it invisible
@@ -1067,7 +1067,7 @@ if(CLIENT) then
               pTb:AddOption(languageGetPhrase(sT.."stdl"),
                 function() fileDelete(sFile)
                   asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
-                  if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY")
+                  if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY"):lower()
                     if(fileExists(sCats,"DATA")) then fileDelete(sCats) -- Delete category when present
                       asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
                   end
@@ -1817,7 +1817,7 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
-      if(not asmlib.IsHere(stData.Pref)) then stData.Pref = arLine[2]:gsub("[^%w]","_"):lower()  end
+      if(not asmlib.IsHere(stData.Pref)) then stData.Pref = asmlib.GetTypePrefix(arLine[2])  end
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
@@ -1884,7 +1884,7 @@ asmlib.NewTable("PIECES",{
       for iP = 1, tSort.Size do
         local stRec = tSort[iP]
         local tData = PCache[stRec.Key]
-        local sPref = tData.Type:gsub("[^%w]","_"):lower()
+        local sPref = asmlib.GetTypePrefix(tData.Type)
         if(sPref == fPref) then local tOffs = tData.Offs
           local sData = asmlib.GetConcat(defP.Name, sDelim,
             makP:Match(stRec.Key ,1, true, "\""), sDelim,
@@ -1922,7 +1922,7 @@ asmlib.NewTable("PIECES",{
       local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
       local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
-      local sPref, iCnt = sType:gsub("[^%w]","_"):lower(), 0
+      local sPref, iCnt = asmlib.GetTypePrefix(sType), 0
       for mod, rec in pairs(PCache) do
         if(rec.Type == sType or rec.Pref == sPref) then
           local iID, tOffs = 1, rec.Offs -- Start from the first point
@@ -2003,7 +2003,7 @@ asmlib.NewTable("ADDITIONS",{
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
         for iRec = 1, #tRec do local vRec = tRec[iRec]
-          oF:Write(defTab.Name); oF:Write(Delim); oF:Write(makTab:Match(sKey,1,true,"\""))
+          oF:Write(defTab.Name); oF:Write(sDelim); oF:Write(makTab:Match(sKey,1,true,"\""))
           for iID = 2, defTab.Size do
             local sC = makTab:GetColumnName(iID); if(not sC) then
               asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end

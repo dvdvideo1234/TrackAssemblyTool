@@ -32,7 +32,7 @@ local mySource = "DSV"
 local myType = myAddon -- The type your addon resides in the tool with
 
 -- This is used for addon relation prefix. Fingers away from it
-local myPrefix = myAddon:gsub("[^%w]","_") -- Addon prefix
+local myPrefix = asmlib.GetTypePrefix(myAddon) -- Addon prefix
 
 -- This is the script path. It tells TA who wants to add these models
 -- Do not touch this also, it is used for debugging

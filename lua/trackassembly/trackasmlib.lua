@@ -211,8 +211,12 @@ function SetOpVar(sName, vVal)
   libOpVars[sName] = vVal
 end
 
-function GetInstPref()
+function GetInstPrefix()
   return (CLIENT and "cl_" or (SERVER and "sv_" or "na_"))
+end
+
+function GetTypePrefix(sP)
+  return tostring(sP or ""):Trim():gsub("[^%w]","_"):lower()
 end
 
 function IsInit()
@@ -630,7 +634,7 @@ function WorkshopID(sType, sID)
   local tID = GetOpVar("TABLE_WSIDADDON"); if(not isstring(sType)) then
     LogInstance("Invalid "..GetReport(sType)); return nil end
   local sType = sType:Trim() -- Trim leading and trailing spaces
-  local sPref = sType:gsub("[^%w]","_"):lower()
+  local sPref = GetTypePrefix(sType)
   local sWP = tID[sPref] -- Read the value under the key
   if(sID) then local sPS = tostring(sID or ""):Trim() -- Convert argument
     local nS, nE = sPS:find(GetOpVar("PATTEM_WORKSHID")) -- Check ID
@@ -1578,69 +1582,74 @@ function NewPOA(vA, vB, vC)
     mtPOA.__form = GetConcat(
       mtPOA.__type,"{", mtPOA.__fnum,",",
       mtPOA.__fnum,",",mtPOA.__fnum,"}","[%s]")
-    mtPOA.Get = function(o) return unpack(o) end
-    mtPOA.Array = function(o) return {o:Get()} end
-    mtPOA.Angle = function(o) return Angle(o:Get()) end
-    mtPOA.Vector = function(o) return Vector(o:Get()) end
-    mtPOA.String = function(o, sS)
+    function mtPOA:Get() return unpack(self) end
+    function mtPOA:Array() return {self:Get()} end
+    function mtPOA:Angle() return Angle(self:Get()) end
+    function mtPOA:Vector() return Vector(self:Get()) end
+    function mtPOA:String(sS)
       local sS = (IsHere(sS) and tostring(sS) or mtPOA.__sep)
-      return tableConcat(o, sS) -- Custom separator
+      return tableConcat(self, sS) -- Custom separator
     end
-    mtPOA.Set = function(o, vA, vB, vC)
+    function mtPOA:Set(vA, vB, vC)
       if(istable(vA)) then
-        o[1] = (tonumber(vA[1]) or 0)
-        o[2] = (tonumber(vA[2]) or 0)
-        o[3] = (tonumber(vA[3]) or 0)
+        self[1] = (tonumber(vA[1]) or 0)
+        self[2] = (tonumber(vA[2]) or 0)
+        self[3] = (tonumber(vA[3]) or 0)
       else
-        o[1] = (tonumber(vA) or 0)
-        o[2] = (tonumber(vB) or 0)
-        o[3] = (tonumber(vC) or 0)
-      end; return o
+        self[1] = (tonumber(vA) or 0)
+        self[2] = (tonumber(vB) or 0)
+        self[3] = (tonumber(vC) or 0)
+      end; return self
     end
-    mtPOA.IsSame = function(o, vA, vB, vC)
+    function mtPOA:IsZero()
+      for iD = 1, 3 do
+        if(self[iD] ~= 0) then return false end
+      end; return true
+    end
+    function mtPOA:IsSame(vA, vB, vC)
       if(istable(vA)) then
         for iD = 1, 3 do
           local nP = (tonumber(vA[iD]) or 0)
-          if(nP ~= o[iD]) then return false end
+          if(nP ~= self[iD]) then return false end
         end -- Compare with a array of values
       else -- Try to convert to number
         local vA = (tonumber(vA) or 0)
-        if(vA ~= o[1]) then return false end
+        if(vA ~= self[1]) then return false end
         local vB = (tonumber(vB) or 0)
-        if(vB ~= o[2]) then return false end
+        if(vB ~= self[2]) then return false end
         local vC = (tonumber(vC) or 0)
-        if(vC ~= o[3]) then return false end
+        if(vC ~= self[3]) then return false end
       end; return true
     end
-    mtPOA.Raw = function(o, sR)
+    function mtPOA:Raw(sR)
       if(IsHere(sR)) then -- Remove spaces
-        o.__raw = tostring(sR):gsub(mtPOA.__fraw, "") end
-      return o.__raw -- Source data manager
+        self.__raw = tostring(sR):gsub(mtPOA.__fraw, "") end
+      return self.__raw -- Source data manager
     end
-    mtPOA.Export = function(o, vA, vB, vC)
-      local sS, bE = o:String()
+    function mtPOA:Export(vA, vB, vC)
+      local sS, bE = self:String()
       if(vA) then -- Must compare
-        bE = o:IsSame(vA, vB, vC)
-      else bE = o:IsSame() end
-      return (o:Raw() or (bE and mtPOA.__mis or sS))
+        bE = self:IsSame(vA, vB, vC)
+      else bE = self:IsSame() end
+      return (self:Raw() or (bE and mtPOA.__mis or sS))
     end
-    mtPOA.Import = function(o, sB, ...)
+    function mtPOA:Import(sB, ...)
       local bE, sB = GetEmpty(sB) -- Default to string
       if(bE) then -- Check when entry data is vacant
-        o:Set(...) -- Override with the default value provided
+        self:Set(...) -- Override with the default value provided
       else -- Entry data is missing use default otherwise decode the value
         local tPOA = mtPOA.__sep:Explode(sB)  -- Read the components
         for iD = 1, 3 do                 -- Apply on all components
           local nC = tonumber(tPOA[iD])  -- Is the data really a number
           if(not IsHere(nC)) then nC = 0 -- If not write zero and report it
-            LogInstance("Mismatch "..GetReport(sB, iD)) end; o[iD] = nC
+            LogInstance("Mismatch "..GetReport(sB, iD)) end; self[iD] = nC
         end -- Try to decode the entry when present
-      end; return o
+      end; return self
     end
-    mtPOA.Decode = function(o, sB, vS, sT, ...)
+    function mtPOA:Decode(sB, vS, sT, ...)
       local bE, sB = GetEmpty(sB) -- Default to string
       if(bE) then -- Check when entry data is vacant
-        o:Set(...) -- Override with the default value provided
+        self:Set(...) -- Override with the default value provided
       else -- Entry data is missing use default otherwise decode the value
         if(sB:sub(1,1) == mtPOA.__eoa) then -- POA key must extracted from the model
           local sT = tostring(sT or "") -- Default the type index to string
@@ -1648,23 +1657,23 @@ function NewPOA(vA, vB, vC)
           local tT, sM = GetAttachmentByID(vS, sK) -- Read transform key
           if(IsHere(tT)) then -- Attachment is found. Try to process it
             local uT = tT[sT] -- Extract transform value for the type
-            if(IsHere(uT)) then o:Set(uT:Unpack()) -- Load key into POA
+            if(IsHere(uT)) then self:Set(uT:Unpack()) -- Load key into POA
             else -- Try decoding the transform key when not applicable
-              o:Import(sK, ...) -- Try to process the key when present
+              self:Import(sK, ...) -- Try to process the key when present
               LogInstance("Mismatch "..GetReport(sB, sM, sT)) -- Report mismatch
             end -- Decode the transformation when is not null or empty string
           else -- Try decoding the transform key when not applicable
-            o:Import(sK, ...) -- Try to process the key when present
+            self:Import(sK, ...) -- Try to process the key when present
             LogInstance("Missing "..GetReport(sB, sM, sT)) -- Report mismatch
           end -- Decode the transformation when is not null or empty string
         else -- When the value is empty use zero otherwise process the value
-          o:Import(sB, ...) -- Try to process the value when present
+          self:Import(sB, ...) -- Try to process the value when present
           LogInstance("Regular "..GetReport(sB, vS, sT)) -- No Attachment call
         end -- Try to decode the entry when present
-      end; return o
+      end; return self
     end
-    mtPOA.__tostring = function(o)
-      local sR, nA, nB, nC = o:Raw(), o:Get()
+    function mtPOA.__tostring(self)
+      local sR, nA, nB, nC = self:Raw(), self:Get()
       return mtPOA.__form:format(nA, nB, nC, sR)
     end
   end; if(vA or vB or vC) then self:Set(vA, vB, vC) end
@@ -2419,12 +2428,17 @@ end
 function GetBeautify()
   local moRes = GetOpVar("OBJECT_BEAUTY")
   if(moRes) then return moRes end
-  local msLogs = "BEAUTY"
+  local mtBeu = GetOpVar("TYPEMT_BEAUTY")
   local msName, msConv, self = "", "", {}
+  local msLogs = "BEAUTY"; setmetatable(self, mtBeu)
+  local msExt = GetOpVar("MODELNAM_FILE")
+  local mfCon = GetOpVar("MODELNAM_FUNC")
   local msDiv = GetOpVar("OPSYM_DIVIDER")
   local msDir = GetOpVar("OPSYM_DIRECTORY")
-  local mfCon = GetOpVar("MODELNAM_FUNC")
-  local msExt = GetOpVar("MODELNAM_FILE")
+  self.__GSUB = {
+    {msDiv.."+" , msDiv}, {msDiv.."$" , ""   },
+    {msDiv.."%w", mfCon}, {msExt      , ""   }
+  }
   local mtCut, mtSub, mtApp
   function self:Get()
     return msName
@@ -2467,106 +2481,104 @@ function GetBeautify()
     end; return self:Set(msConv)
   end
   function self:Beautify(sIn)
+    local tA, tB, tC, tD = unpack(self.__GSUB)
     msConv = tostring(sIn or msName):lower():Trim()
-    msConv = msConv:gsub(msDiv.."+",msDiv):gsub(msDiv.."$", "")
+    msConv = msConv:gsub(tA[1], tA[2]):gsub(tB[1], tB[2])
     if(msConv:sub(1,1) ~= msDiv) then msConv = msDiv..msConv end
-    return self:Set(msConv:gsub(msDiv.."%w", mfCon):sub(2,-1))
+    return self:Set(msConv:gsub(tC[1], tC[2]):sub(2,-1))
   end
   function self:Convert(sIn, bNo) -- ModelToName
+    local tA, tB, tC, tD = unpack(self.__GSUB)
     local sIn = tostring(sIn or ""):lower():Trim()
     if(IsBlank(sIn)) then return self:Set() end
-    sIn = (sIn:sub(1, 1) ~= msDir) and (msDir..sIn) or sIn
-    sIn = (stringGetFileName(sIn):gsub(msExt,""))
+    sIn = (sIn:sub(1, 1) ~= msDir) and GetConcat(msDir, sIn) or sIn
+    sIn = (stringGetFileName(sIn):gsub(tD[1], tD[2]))
     msConv = sIn:rep(1) -- Create a copy so we can select cut-off parts later
     if(not bNo) then self:Apply() end -- Apply rules in the conversion
     -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
     return self:Beautify(msConv:Trim(msDiv))
-  end; setmetatable(self, GetOpVar("TYPEMT_BEAUTY"))
-  SetOpVar("OBJECT_BEAUTY", self); return self
+  end; SetOpVar("OBJECT_BEAUTY", self); return self
 end
 
 function Categorize(oTyp, fCat, ...)
   local oBeu = GetBeautify()
   local tCat = GetOpVar("TABLE_CATEGORIES")
-  if(not IsHere(oTyp)) then
+  if(not IsHere(oTyp)) then -- No category then read the contents
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or ""):Trim()
-    local sPrf = sTyp:gsub("[^%w]","_"):lower()
     local tTyp = (tCat and tCat[sTyp] or nil)
     return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
-  else
+  else -- Category is provided. Update the default
     oBeu:SetRule(); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
-    if(CLIENT) then local tTyp -- Categories for the panel
-      local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or ""):Trim()
-      local sPrf = sTyp:gsub("[^%w]","_"):lower()
-      local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-      local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
-      LogInstance("Name "..GetReport(type(fCat), oTyp, sTyp, sPrf), ssLog)
-      if(isstring(fCat)) then
-        tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
-      elseif(istable(fCat)) then local tArg, tTxt = {...}, {}
-        local sTr = GetOpVar("OPSYM_REVISION") -- Trigger
-        local sSe = GetOpVar("OPSYM_DIRECTORY") -- Separator
-        tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
-        tableInsert(tTxt, "function(m) local o = {}\n")
-        tableInsert(tTxt, "function setBranch(v, p, b, q)\n")
-        tableInsert(tTxt, "  if(v:find(p)) then\n")
-        tableInsert(tTxt, "    local e = v:gsub(\"%W*\"..p..\"%W*\", \"_\")\n")
-        tableInsert(tTxt, "    if(b and o.M) then return e end\n")
-        tableInsert(tTxt, "    if(b and not o.M) then o.M = true end\n")
-        tableInsert(tTxt, "    table.insert(o, (q or p)); return e\n")
-        tableInsert(tTxt, "  end; return v\n")
-        tableInsert(tTxt, "end\n")
-        tableInsert(tTxt, "local r = m:gsub(\"")
-        tableInsert(tTxt, tostring(tArg[1] or ""))
-        tableInsert(tTxt, "\",\"\"):gsub(\"%.mdl$\",\"\");")
-        for iD = 1, #fCat do
-          local tV = sSe:Explode(fCat[iD])
-          local sR = tostring(tV[2] and GetConcat("\"", tV[2], "\"") or nil)
-          if(tV[1]:sub(1,1) == sTr) then tV[1] = tV[1]:sub(2,-1)
-            tableInsert(tTxt, "\nr = setBranch(r, \"")
-            tableInsert(tTxt, tostring(tV[1]))
-            tableInsert(tTxt, GetConcat("\", true, ", sR, ")"))
-          else
-            tableInsert(tTxt, "\nr = setBranch(r, \"")
-            tableInsert(tTxt, tostring(tV[1]))
-            tableInsert(tTxt, GetConcat("\", false, ", sR, ")"))
-          end
+    if(SERVER) then return end -- The server must bail out right here
+    local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or ""):Trim()
+    local fsLog, tTyp = GetOpVar("FORM_LOGSOURCE") -- The format value
+    local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
+    LogInstance("Name "..GetReport(type(fCat), oTyp, sTyp, sPrf), ssLog)
+    if(isstring(fCat)) then
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
+    elseif(istable(fCat)) then local tArg, tTxt = {...}, {}
+      local sTr = GetOpVar("OPSYM_REVISION") -- Trigger
+      local sSe = GetOpVar("OPSYM_DIRECTORY") -- Separator
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+      tableInsert(tTxt, "function(m) local o = {}\n")
+      tableInsert(tTxt, "function setBranch(v, p, b, q)\n")
+      tableInsert(tTxt, "  if(v:find(p)) then\n")
+      tableInsert(tTxt, "    local e = v:gsub(\"%W*\"..p..\"%W*\", \"_\")\n")
+      tableInsert(tTxt, "    if(b and o.M) then return e end\n")
+      tableInsert(tTxt, "    if(b and not o.M) then o.M = true end\n")
+      tableInsert(tTxt, "    table.insert(o, (q or p)); return e\n")
+      tableInsert(tTxt, "  end; return v\n")
+      tableInsert(tTxt, "end\n")
+      tableInsert(tTxt, "local r = m:gsub(\"")
+      tableInsert(tTxt, tostring(tArg[1] or ""))
+      tableInsert(tTxt, "\",\"\"):gsub(\"%.mdl$\",\"\");")
+      for iD = 1, #fCat do
+        local tV = sSe:Explode(fCat[iD])
+        local sR = tostring(tV[2] and GetConcat("\"", tV[2], "\"") or nil)
+        if(tV[1]:sub(1,1) == sTr) then tV[1] = tV[1]:sub(2,-1)
+          tableInsert(tTxt, "\nr = setBranch(r, \"")
+          tableInsert(tTxt, tostring(tV[1]))
+          tableInsert(tTxt, GetConcat("\", true, ", sR, ")"))
+        else
+          tableInsert(tTxt, "\nr = setBranch(r, \"")
+          tableInsert(tTxt, tostring(tV[1]))
+          tableInsert(tTxt, GetConcat("\", false, ", sR, ")"))
         end
-        tableInsert(tTxt, "\no.M = nil; return o, r:gsub(\"^_+\", \"\")")
-        tableInsert(tTxt, ":gsub(\"_+$\", \"\"):gsub(\"_+\", \"_\") end")
-        tTyp.Txt = tableConcat(tTxt)
-      elseif(isnumber(fCat)) then local tArg, tTxt = {...}, {}
-        tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
-        tableInsert(tTxt, "function(m)")
-        tableInsert(tTxt, "\nlocal n = math.floor(tonumber(")
-        tableInsert(tTxt, fCat); tableInsert(tTxt, ") or 0)")
-        tableInsert(tTxt, "\nlocal m = m:gsub(\"")
-        tableInsert(tTxt, tostring(tArg[1] or ""))
-        tableInsert(tTxt, "\", \"\")\n")
-        for i = 2, #tArg do local aP, aN = tArg[i], tArg[i+1]
-          if(aP and aN) then
-             tableInsert(tTxt, "\nlocal m = m:gsub(\"")
-             tableInsert(tTxt, aP); tableInsert(tTxt, "\", \"")
-             tableInsert(tTxt, aN); tableInsert(tTxt, "\")\n")
-          end
+      end
+      tableInsert(tTxt, "\no.M = nil; return o, r:gsub(\"^_+\", \"\")")
+      tableInsert(tTxt, ":gsub(\"_+$\", \"\"):gsub(\"_+\", \"_\") end")
+      tTyp.Txt = tableConcat(tTxt)
+    elseif(isnumber(fCat)) then local tArg, tTxt = {...}, {}
+      tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
+      tableInsert(tTxt, "function(m)")
+      tableInsert(tTxt, "\nlocal n = math.floor(tonumber(")
+      tableInsert(tTxt, fCat); tableInsert(tTxt, ") or 0)")
+      tableInsert(tTxt, "\nlocal m = m:gsub(\"")
+      tableInsert(tTxt, tostring(tArg[1] or ""))
+      tableInsert(tTxt, "\", \"\")\n")
+      for i = 2, #tArg do local aP, aN = tArg[i], tArg[i+1]
+        if(aP and aN) then
+           tableInsert(tTxt, "\nlocal m = m:gsub(\"")
+           tableInsert(tTxt, aP); tableInsert(tTxt, "\", \"")
+           tableInsert(tTxt, aN); tableInsert(tTxt, "\")\n")
         end
-        tableInsert(tTxt, "local t, x = {n = 0}, m:find(\"/\", 1, true)\n")
-        tableInsert(tTxt, "while(x and x > 0) do\n")
-        tableInsert(tTxt, "  t.n = t.n + 1; t[t.n] = m:sub(1, x-1)\n")
-        tableInsert(tTxt, "  m = m:sub(x+1, -1); x = m:find(\"/\", 1, true)\n")
-        tableInsert(tTxt, "  end; m = m:gsub(\"%.mdl$\",\"\")\n")
-        tableInsert(tTxt, "  if(n == 0) then return t, m end; local a = math.abs(n)\n")
-        tableInsert(tTxt, "  if(a > t.n) then return t, m end; local s = #t-a\n")
-        tableInsert(tTxt, "  if(n < 0) then for i = 1, a do t[i] = t[i+s] end end\n")
-        tableInsert(tTxt, "  while(s > 0) do table.remove(t); s = s - 1 end\n")
-        tableInsert(tTxt, "  return t, m\n")
-        tableInsert(tTxt, "end"); tTyp.Txt = tableConcat(tTxt)
-      else LogInstance("Skip "..GetReport(fCat), ssLog); return nil end
-      tTyp.Cmp = CompileString(GetConcat("return (", tTyp.Txt, ")"), sTyp)
-      local bS, vO = pcall(tTyp.Cmp); if(not bS) then
-        LogInstance("Failed "..GetReport(fCat, vO), ssLog); return nil end
-      tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
-    end
+      end
+      tableInsert(tTxt, "local t, x = {n = 0}, m:find(\"/\", 1, true)\n")
+      tableInsert(tTxt, "while(x and x > 0) do\n")
+      tableInsert(tTxt, "  t.n = t.n + 1; t[t.n] = m:sub(1, x-1)\n")
+      tableInsert(tTxt, "  m = m:sub(x+1, -1); x = m:find(\"/\", 1, true)\n")
+      tableInsert(tTxt, "  end; m = m:gsub(\"%.mdl$\",\"\")\n")
+      tableInsert(tTxt, "  if(n == 0) then return t, m end; local a = math.abs(n)\n")
+      tableInsert(tTxt, "  if(a > t.n) then return t, m end; local s = #t-a\n")
+      tableInsert(tTxt, "  if(n < 0) then for i = 1, a do t[i] = t[i+s] end end\n")
+      tableInsert(tTxt, "  while(s > 0) do table.remove(t); s = s - 1 end\n")
+      tableInsert(tTxt, "  return t, m\n")
+      tableInsert(tTxt, "end"); tTyp.Txt = tableConcat(tTxt)
+    else LogInstance("Skip "..GetReport(fCat), ssLog); return nil end
+    tTyp.Cmp = CompileString(GetConcat("return (", tTyp.Txt, ")"), sTyp)
+    local bS, vO = pcall(tTyp.Cmp); if(not bS) then
+      LogInstance("Failed "..GetReport(fCat, vO), ssLog); return nil end
+    tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
   end
 end
 
@@ -3515,7 +3527,7 @@ function CacheQueryPiece(sModel)
         LogInstance("No data found "..GetReport(Q)); return nil end
       stData.Slot, stData.Size = sModel, #qData
       stData.Type = qData[1][makTab:GetColumnName(2)]
-      stData.Pref = stData.Type:gsub("[^%w]","_"):lower()
+      stData.Pref = GetTypePrefix(stData.Type)
       stData.Name = qData[1][makTab:GetColumnName(3)]
       stData.Unit = qData[1][makTab:GetColumnName(8)]
       local coID, coP = makTab:GetColumnName(4), makTab:GetColumnName(5)
@@ -3828,7 +3840,7 @@ end
 ]]
 function ExportCategory(vEq, tData, sPref, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
-  local fPref = tostring(sPref or GetInstPref()):lower(); if(IsBlank(fPref)) then
+  local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref)); return false end
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
@@ -3838,18 +3850,20 @@ function ExportCategory(vEq, tData, sPref, bExp)
     LogInstance("User disabled "..GetReport(sHew)); return true end
   if(IsGenericDB("CATEGORY")) then
     LogInstance("Generic database "..GetReport(sHew)); return true end
-  local sSnam = GetOpVar("TOOLNAME_PU").."CATEGORY"
+  local sSnam = (GetOpVar("TOOLNAME_PL").."CATEGORY"):lower()
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, sSnam)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew,fName)); return false end
   local sEq, nLen, tHea = ("="):rep(nEq), (nEq+2), GetOpVar("FORM_HEADEREXP")
   local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
+  LogInstance("Source "..GetReport(sHew, (tCat == tData)))
   local tSort = Arrange(tCat); if(not tSort) then
     LogInstance("Sorting keys fail "..GetReport(sHew)); return false end
   F:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   for iS = 1, tSort.Size do local rec, cat = tSort[iS]
-    rec, cat = rec.Rec, rec.Key; if(isstring(rec.Txt)) then
+    rec, cat = rec.Rec, rec.Key -- Record is the structure and key is the type
+    if(isstring(rec.Txt)) then -- In case there is something for compilation
       F:Write("["); F:Write(sEq); F:Write("["); F:Write(cat); F:Write(sEq)
       F:Write(rec.Txt:Trim()); F:Write("]"); F:Write(sEq); F:Write("]\n");
     else F:Flush(); F:Close(); LogInstance("Category code mismatch "..GetReport(sHew, cat, rec.Txt)); return false end
@@ -3864,12 +3878,12 @@ end
 ]]
 function ImportCategory(vEq, sPref, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
-  local fPref = tostring(sPref or GetInstPref()):lower(); if(IsBlank(fPref)) then
+  local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref)); return false end
   local nEq = mathMax(mathFloor(tonumber(vEq) or 0), 0)
   local tHew = GetOpVar("PATTEM_EXCATHED")
   local sHew = tHew[2]:format(fPref, nEq)
-  local sSnam = GetOpVar("TOOLNAME_PU").."CATEGORY"
+  local sSnam = (GetOpVar("TOOLNAME_PL").."CATEGORY"):lower()
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, sSnam)
   local F = fileOpen(fName, "rb", "DATA"); if(not F) then
@@ -3931,7 +3945,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local sDelim, tHea = tostring(sDelim or "\t"):sub(1,1), GetOpVar("FORM_HEADEREXP")
-  local fPref = tostring(sPref or GetInstPref()):lower(); if(IsBlank(fPref)) then
+  local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
@@ -3992,7 +4006,7 @@ end
 function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   local sTable = tostring(sTable or ""); if(IsBlank(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local fPref = tostring(sPref or GetInstPref()):lower(); if(IsBlank(fPref)) then
+  local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local bFile, fName = fileExists(sTable, "DATA")
   local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
@@ -4064,7 +4078,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local sDelim, fData = tostring(sDelim or "\t"):sub(1,1), {}
-  local fPref = tostring(sPref or GetInstPref()):lower(); if(IsBlank(fPref)) then
+  local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
   local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
@@ -4172,7 +4186,7 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
-  local fPref, tHea = tostring(sPref or GetInstPref()):lower(), GetOpVar("FORM_HEADEREXP")
+  local fPref, tHea = tostring(sPref or GetInstPrefix()):lower(), GetOpVar("FORM_HEADEREXP")
   if(bFile) then sSRC = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(sSRC))
     local F = fileOpen(sSRC, "rb", "DATA"); if(not F) then
@@ -4242,7 +4256,7 @@ end
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
   local sProg = tostring(sProg or ""); if(IsBlank(sProg)) then
     LogInstance("Program empty "..GetReport(sProg, sPref)); return false end
-  local fPref = tostring(sPref or GetInstPref()):lower(); if(IsBlank(fPref)) then
+  local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sProg, sPref, fPref), sTable); return false end
   if(CLIENT and gameSinglePlayer()) then
     LogInstance("Single client "..GetReport(sProg, sPref)); return true end
@@ -4466,7 +4480,7 @@ function ExportTypeRun(sType)
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return end
   local sType, sFunc = sType:Trim(), debugGetinfo(1).name
-  local sPref, qPieces, qAdditions = sType:gsub("[^%w]","_"):lower()
+  local sPref, qPieces, qAdditions = GetTypePrefix(sType)
   local noSQL, sTool = GetOpVar("MISS_NOSQL"), GetOpVar("TOOLNAME_NL")
   local sForm, fMon = GetOpVar("FORM_FILENAMEAR"), GetConcat("[", sMoDB:lower(), "-run]")
   local sS = GetLibraryPath(GetOpVar("DIRPATH_SET"), sForm:format(sTool))
@@ -4571,7 +4585,7 @@ function ExportTypeDSV(sType, sDelim)
   local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return end
   local tHew, sType = GetOpVar("PATTEM_EXDSVHED"), sType:Trim()
-  local fPref = sType:gsub("[^%w]","_"):lower()
+  local fPref = GetTypePrefix(sType)
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
     LogInstance("Missing pieces builder "..GetReport(sType, fPref)); return end
   local defP = makP:GetDefinition(); if(not IsHere(defP)) then
@@ -4658,8 +4672,8 @@ function ExportTypeTrn(sType, bExp)
   if(not isstring(sType)) then -- Type is not a string
     LogInstance("Type mismatch "..GetReport(sType)); return end
   local sSrc = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  local sType, sDir, sNam = sType:Trim(), GetLibraryPath(sSrc)
-  local sPrf = sType:gsub("[^%w]","_"):lower()
+  local sType, sDir = sType:Trim(), GetLibraryPath(sSrc)
+  local sPrf, sNam = GetTypePrefix(sType)
   if(bExp) then -- Use the pattern for the export file format
     sNam = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*"):lower()
     sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sNam):lower()
