@@ -215,8 +215,12 @@ function GetInstPrefix()
   return (CLIENT and "cl_" or (SERVER and "sv_" or "na_"))
 end
 
-function GetTypePrefix(sP)
-  return tostring(sP or ""):Trim():gsub("[^%w]","_"):lower()
+function GetTypePrefix(sT)
+  return tostring(sT or ""):Trim():gsub("[^%w]","_"):lower()
+end
+
+function GetTypeUnit(sT)
+  return tostring(sT or ""):gsub("%s+", " "):Trim()
 end
 
 function IsInit()
@@ -619,6 +623,13 @@ function GetFileRow(pF, oC)
   return rC, oC
 end
 
+--[[
+ * Formats a given string to icon image path
+ *  vKey > Key to retrieve/store the icon for
+ *  vVal > Icon base image being stored
+ * Returns line contents and reaching EOF flag
+ *  sIco > The consolidated icon image path
+]]
 function ToIcon(vKey, vVal)
   if(SERVER) then return nil end
   local tIcon = GetOpVar("TABLE_SKILLICON"); if(not IsHere(vKey)) then
@@ -629,6 +640,13 @@ function ToIcon(vKey, vVal)
   return GetOpVar("FORM_ICONS"):format(tostring(sIcon))
 end
 
+--[[
+ * Registers the workshop ID for the given addon name
+ * sType > The addon name to register ID for
+ *   sID > Workshop ID being registered to the addon
+ * Returns line contents and reaching EOF flag
+ *   sWP > The stored workshop ID bases on the prefix
+]]
 function WorkshopID(sType, sID)
   if(SERVER) then return nil end
   local tID = GetOpVar("TABLE_WSIDADDON"); if(not isstring(sType)) then
@@ -648,6 +666,30 @@ function WorkshopID(sType, sID)
       LogInstance("Mismatch "..GetReport(sType, sPref, sWP, sID))
     end -- Return the current value under the specified key
   end; return sWP
+end
+
+--[[
+ * Used to register multiple track types for single addon
+ * Addon units are registered based on where and what is called
+ * sType > The addon name that contains multiple track types
+ * [...] > The internal track types being registered
+]]
+function RegisterType(sType, ...)
+  local nT = select("#", ...)
+  if(nT < 1) then return end
+  local sU = GetTypeUnit(sType)
+  local tU = GetOpVar("TABLE_CATEGORIES").Unit
+  local tA = (tU[sU] or {}); tU[sU] = tA
+  local nA = #tA -- Remove length calculation
+  for iT = 1, nT do -- Process the parameters
+    local vT = select(iT, ...) -- Read params
+    local sT = GetTypeUnit(vT) -- Normal
+    if(not tA[sT]) then -- Does not exist
+      tableInsert(tA, sT) -- Store it
+      nA = nA + 1 -- Register adding
+      tA[sT] = nA -- Reverse indexed
+    else LogInstance("Exists "..GetReport(sU, iT, sT)) end
+  end; return tA
 end
 
 function IsFlag(vKey, vVal)
@@ -882,7 +924,7 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_SKILLICON",{})
     SetOpVar("TABLE_WSIDADDON", {ID = "^%d+$", Data = {}})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
-    SetOpVar("TABLE_CATEGORIES",{})
+    SetOpVar("TABLE_CATEGORIES",{Unit = {}, Data = {}})
     SetOpVar("CLIPBOARD_TEXT","")
     SetOpVar("FMNODE_PATH","%s>%s")
   end; LogInstance("Success"); return true
@@ -2501,7 +2543,7 @@ end
 
 function Categorize(oTyp, fCat, ...)
   local oBeu = GetBeautify()
-  local tCat = GetOpVar("TABLE_CATEGORIES")
+  local tCat = GetOpVar("TABLE_CATEGORIES").Data
   if(not IsHere(oTyp)) then -- No category then read the contents
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or ""):Trim()
     local tTyp = (tCat and tCat[sTyp] or nil)
@@ -3374,8 +3416,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end -- Read the log source format and reduce the number of concatenations
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
     local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
-    -- Call the trigger when provided
-    if(istable(qtDef.Trigs)) then
+    if(istable(qtDef.Trigs)) then -- Call the trigger when provided
       local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
       if(not bS) then LogInstance("Trigger manager: "..sR,qtDef.Nick); return false end
       if(not sR) then LogInstance("Trigger routine fail",qtDef.Nick); return false end
@@ -3592,7 +3633,7 @@ end
 ]]
 local function SortCategory(stPanel)
   local oBeu = GetBeautify()
-  local tCat = GetOpVar("TABLE_CATEGORIES")
+  local tCat = GetOpVar("TABLE_CATEGORIES").Data
   for iCnt = 1, stPanel.Size do local vRec = stPanel[iCnt]
     -- Register the category if definition functional is given
     if(tCat[vRec.T]) then -- There is a category definition
@@ -3855,7 +3896,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew,fName)); return false end
   local sEq, nLen, tHea = ("="):rep(nEq), (nEq+2), GetOpVar("FORM_HEADEREXP")
-  local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
+  local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES").Data)
   LogInstance("Source "..GetReport(sHew, (tCat == tData)))
   local tSort = Arrange(tCat); if(not tSort) then
     LogInstance("Sorting keys fail "..GetReport(sHew)); return false end
@@ -3897,7 +3938,7 @@ function ImportCategory(vEq, sPref, bExp)
     sHew = tHew[2]:format(fPref, nEq)
     LogInstance("Intern success "..GetReport(sHew,sPar,fName))
   end
-  local tCat = GetOpVar("TABLE_CATEGORIES")
+  local tCat = GetOpVar("TABLE_CATEGORIES").Data
   local sEq, nLen = ("="):rep(nEq), (nEq + 2)
   local cFr, cBk = GetConcat("[", sEq, "["), GetConcat("]", sEq, "]")
   local sPar, isPar, sRow, tCon = "", false, GetFileRow(F)
@@ -4535,7 +4576,7 @@ function ExportTypeRun(sType)
     if(sRow:find(patAddon)) then isSkip = true
       fE:Write("local myAddon = \""); fE:Write(sType); fE:Write("\"\n")
     elseif(sRow:find(patCateg)) then isSkip = true
-      local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
+      local tCat = GetOpVar("TABLE_CATEGORIES").Data[sType]
       if(istable(tCat) and tCat.Txt) then
         fE:Write("local myCategory = {\n")
         fE:Write(sInd:rep(1).."[myType] = {Txt = [[\n")
