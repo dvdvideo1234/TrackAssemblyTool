@@ -4519,8 +4519,8 @@ function ExportTypeRun(sType)
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return end
-  local sType, sFunc = sType:Trim(), debugGetinfo(1).name
-  local sPref, qPieces, qAdditions = GetTypePrefix(sType)
+  local sType, qPieces, qAdditions = GetTypeUnit(sType) -- Normalize type
+  local sPref, sFunc = GetTypePrefix(sType), debugGetinfo(1).name
   local noSQL, sTool = GetOpVar("MISS_NOSQL"), GetOpVar("TOOLNAME_NL")
   local sForm, fMon = GetOpVar("FORM_FILENAMEAR"), GetConcat("[", sMoDB:lower(), "-run]")
   local sS = GetLibraryPath(GetOpVar("DIRPATH_SET"), sForm:format(sTool))
@@ -4624,8 +4624,8 @@ function ExportTypeDSV(sType, sDelim)
   if(SERVER) then LogInstance("Working on server"); return end
   local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return end
-  local tHew, sType = GetOpVar("PATTEM_EXDSVHED"), sType:Trim()
-  local fPref = GetTypePrefix(sType)
+  local sType = GetTypeUnit(sType) -- Normalize type and convert it
+  local tHew, fPref = GetOpVar("PATTEM_EXDSVHED"), GetTypePrefix(sType)
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
     LogInstance("Missing pieces builder "..GetReport(sType, fPref)); return end
   local defP = makP:GetDefinition(); if(not IsHere(defP)) then
@@ -4712,8 +4712,8 @@ function ExportTypeTrn(sType, bExp)
   if(not isstring(sType)) then -- Type is not a string
     LogInstance("Type mismatch "..GetReport(sType)); return end
   local sSrc = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  local sType, sDir = sType:Trim(), GetLibraryPath(sSrc)
-  local sPrf, sNam = GetTypePrefix(sType)
+  local sType = GetTypeUnit(sType) -- Normalize type and convert it
+  local sDir, sPrf, sNam = GetLibraryPath(sSrc), GetTypePrefix(sType)
   if(bExp) then -- Use the pattern for the export file format
     sNam = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*"):lower()
     sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sNam):lower()

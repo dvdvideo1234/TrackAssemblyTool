@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.842")
+asmlib.SetOpVar("TOOL_VERSION","9.843")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -863,7 +863,7 @@ if(CLIENT) then
           tDat[1] = ((tDat[1] == "V") and "V" or "X")
           -- Database unique prefix. Contains non-spaces
           tDat[2] = tostring(tDat[2] or "")
-          tDat[2] = asmlib.GetTypePrefix(tDat[2]):lower()
+          tDat[2] = asmlib.GetTypePrefix(tDat[2])
           -- Additional information. It can be anything
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and gsNoAV or tDat[3])
@@ -1816,7 +1816,7 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
-      if(not asmlib.IsHere(stData.Type)) then stData.Type = arLine[2] end
+      if(not asmlib.IsHere(stData.Type)) then stData.Type = asmlib.GetTypeUnit(arLine[2]) end
       if(not asmlib.IsHere(stData.Pref)) then stData.Pref = asmlib.GetTypePrefix(arLine[2])  end
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
