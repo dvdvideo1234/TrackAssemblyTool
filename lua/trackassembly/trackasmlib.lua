@@ -635,12 +635,12 @@ function WorkshopID(sType, sID)
     LogInstance("Invalid "..GetReport(sType)); return nil end
   local sType = sType:Trim() -- Trim leading and trailing spaces
   local sPref = GetTypePrefix(sType)
-  local sWP = tID[sPref] -- Read the value under the key
+  local sWP = tID.Data[sPref] -- Read the value under the key
   if(sID) then local sPS = tostring(sID or ""):Trim() -- Convert argument
-    local nS, nE = sPS:find(GetOpVar("PATTEM_WORKSHID")) -- Check ID
+    local nS, nE = sPS:find(tID.ID) -- Check ID
     if(nS and nE) then -- The number meets the format requirement
       if(not sWP) then sWP = sPS -- One is not present
-        tID[sPref] = sPS -- Index by prefix and type
+        tID.Data[sPref] = sPS -- Index by prefix and type
       else -- Updated value already exists so do nothing
         LogInstance("Exists "..GetReport(sType, sPref, sWP, sID))
       end -- Report overwrite value is present in the list
@@ -777,8 +777,8 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_PREFIXFMT", "[%s-%s]%s")
   SetOpVar("FORM_HEADEREXP", {
-    "# %s:(%s) %s [%s]\n" , "# %s:(%s)\n",
-    "# Query(%d):[[%s]]\n", "# Categorize(%s): %s\n"
+    Src = "# %s:(%s) %s [%s]\n" , Tco = "# %s:(%s)\n",
+    Qry = "# Query(%d):[[%s]]\n", Cax = "# Categorize(%s): %s\n"
   })
   SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_METHCALLS","%s:%s(%s)")
@@ -859,7 +859,6 @@ function InitBase(sName, sPurp)
   SetOpVar("PATTEX_TABLEDPS", "%s*local%s+myPieces%s*=%s*")
   SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
   SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
-  SetOpVar("PATTEM_WORKSHID", "^%d+$")
   SetOpVar("PATTEM_NEWLINE" , "[\n\r]+")
   SetOpVar("PATTEM_EXCATHED", {"@", "(%s@%d)"   , "^#.*Category.*%(.+%)", "%(.+%)"})
   SetOpVar("PATTEM_EXDSVHED", {"@", "(%s@%s@%s)", "^#.*DSV.*%(.+%)"     , "%(.+%)"})
@@ -881,7 +880,7 @@ function InitBase(sName, sPurp)
     SetOpVar("FORM_ICONS","icon16/%s.png")
     SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%s")
     SetOpVar("TABLE_SKILLICON",{})
-    SetOpVar("TABLE_WSIDADDON", {})
+    SetOpVar("TABLE_WSIDADDON", {ID = "^%d+$", Data = {}})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("TABLE_CATEGORIES",{})
     SetOpVar("CLIPBOARD_TEXT","")
@@ -3797,8 +3796,8 @@ function ExportSyncDB(sDelim)
     LogInstance("Missing table definition "..GetReport(sHew)); return false end
   local F = fileOpen(fName, "wb" ,"DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew,fName)); return false end
-  F:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
-  F:Write(tHea[2]:format(defTab.Nick, makTab:GetColumnList(nil,1,2,3)))
+  F:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  F:Write(tHea.Tco:format(defTab.Nick, makTab:GetColumnList(nil,1,2,3)))
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, "")
@@ -3809,12 +3808,12 @@ function ExportSyncDB(sDelim)
       LogInstance("SQL exec error "..GetReport(sHew, sqlLastError(), Q)); return false end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(sHew, Q)); return false end
-    F:Write(tHea[3]:format(#qData, Q))
+    F:Write(tHea.Qry:format(#qData, Q))
     local coTy, cT = makTab:GetColumnName(2), nil
     for iD = 1, #qData do local vRow = qData[iD]
       if(not cT or cT ~= vRow[coTy]) then cT = vRow[coTy]
         local sW = tostring(WorkshopID(cT) or sMiss)
-        F:Write(tHea[4]:format(cT, sW))
+        F:Write(tHea.Cax:format(cT, sW))
       end; F:Write(makTab:GetPrepare(vRow, sDelim,
       function(iCT, sCT, vCT) return makTab:Match(vCT,iCT,true,"\"",true) end).."\n")
     end
@@ -3860,7 +3859,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   LogInstance("Source "..GetReport(sHew, (tCat == tData)))
   local tSort = Arrange(tCat); if(not tSort) then
     LogInstance("Sorting keys fail "..GetReport(sHew)); return false end
-  F:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  F:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   for iS = 1, tSort.Size do local rec, cat = tSort[iS]
     rec, cat = rec.Rec, rec.Key -- Record is the structure and key is the type
     if(isstring(rec.Txt)) then -- In case there is something for compilation
@@ -3963,8 +3962,8 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew, fName), sTable); return false end
-  F:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
-  F:Write(tHea[2]:format(sTable, makTab:GetColumnList(sDelim)))
+  F:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  F:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, sTable)
@@ -3976,7 +3975,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
       LogInstance("SQL exec error "..GetReport(sHew, fName, sqlLastError(), Q), sTable); return false end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(sHew, fName, Q), sTable); return false end
-    F:Write(tHea[3]:format(#qData, Q))
+    F:Write(tHea.Qry:format(#qData, Q))
     for iCnt = 1, #qData do
       F:Write(defTab.Name); F:Write(sDelim); F:Write(makTab:GetPrepare(qData[iCnt], sDelim,
         function(iCT, sCT, vCT) return makTab:Match(vCT,iCT,true,"\"",true) end)); F:Write("\n")
@@ -4157,8 +4156,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("Sorting failed "..GetReport(sHew),sTable); return false end
   local O = fileOpen(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("Open fail "..GetReport(sHew,fName),sTable); return false end
-  O:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
-  O:Write(tHea[2]:format(sTable, makTab:GetColumnList(sDelim)))
+  O:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  O:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   TimeLap("OUTC-INIT")
   for iKey = 1, tSort.Size do local key = tSort[iKey].Key
     local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
@@ -4223,8 +4222,8 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
   local I = fileOpen(sEXP, "wb", "DATA"); if(not I) then
     LogInstance("Open fail "..GetReport(sHew, sEXP),sTable); return false end
-  I:Write(tHea[1]:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
-  I:Write(tHea[2]:format(sTable, makTab:GetColumnList(sDelim)))
+  I:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  I:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
   local sRow, tCon = GetFileRow(S)
   while(sRow) do
@@ -4604,10 +4603,10 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("Open fail "..GetReport(sType, fPref,pNam)); return end
   local A = fileOpen(aNam, "wb", "DATA"); if(not A) then
     LogInstance("Open fail "..GetReport(sType, fPref,aNam)); return end
-  P:Write(tHea[1]:format(sFunc, tHew[2]:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
-  P:Write(tHea[2]:format(defP.Nick, makP:GetColumnList(sDelim)))
-  A:Write(tHea[1]:format(sFunc, tHew[2]:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
-  A:Write(tHea[2]:format(defP.Nick, makA:GetColumnList(sDelim)))
+  P:Write(tHea.Src:format(sFunc, tHew[2]:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
+  P:Write(tHea.Tco:format(defP.Nick, makP:GetColumnList(sDelim)))
+  A:Write(tHea.Src:format(sFunc, tHew[2]:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
+  A:Write(tHea.Tco:format(defP.Nick, makA:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
     local qsNov = GetOpVar("MISS_NOAV")
     local qsKey = GetOpVar("FORM_KEYSTMT")
@@ -4623,7 +4622,7 @@ function ExportTypeDSV(sType, sDelim)
     if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("No data found "..GetReport(fPref, Q), defP.Nick); return end
     local coMo, coLI, rwM = makP:GetColumnName(1), makP:GetColumnName(4), ""
-    P:Write(tHea[3]:format(#qP, Q))
+    P:Write(tHea.Qry:format(#qP, Q))
     for iP = 1, #qP do
       P:Write(defP.Name); P:Write(sDelim); P:Write(makP:GetPrepare(qP[iP], sDelim,
         function(iCP, sCP, vCP)
@@ -4638,7 +4637,7 @@ function ExportTypeDSV(sType, sDelim)
               LogInstance("SQL exec error "..GetReport(fPref, sqlLastError(), Q), defA.Nick); return qsNov end
             if(not IsHere(qA) or IsEmpty(qA)) then
               LogInstance("No data found "..GetReport(fPref, Q), defA.Nick)
-            else if(iP == 1) then A:Write(tHea[3]:format(#qA, Q)) end
+            else if(iP == 1) then A:Write(tHea.Qry:format(#qA, Q)) end
               for iA = 1, #qA do
                 A:Write(defA.Name); A:Write(sDelim); A:Write(makA:GetPrepare(qA[iA], sDelim,
                   function(iCA, sCA, vCA) return makA:Match(vCA,iCA,true,"\"",true) end).."\n")
