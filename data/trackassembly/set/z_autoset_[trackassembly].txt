@@ -12,14 +12,23 @@
 local asmlib = trackasmlib; if(not asmlib) then -- Module present
   ErrorNoHaltWithStack("TOOL: Track assembly tool module fail!\n"); return end
 
--- Change this to your addon name.
-local myAddon = "SligWolf's Minitrains" -- Your addon name goes here
-
 --[[
+ * This is your addon name. It is mandatory and it must be string.
+ * It is used by TA in order to classify the content you are creating
+ * It must NOT be an empty string nil or any other type regarding
+ * The value will be automatically pattern converted to a index prefix
  * Change this if you want to use different in-game type
  * You can also use multiple types myType1, myType2,
- * myType3, ... myType/n when your addon contains
- * multiple model packs.
+ * myType3, ... myType/n as variable arguments when your
+ * addon contains multiple model packs.
+]]
+local myAddon, myGroup = asmlib.RegisterTypeGroup("SligWolf's Minitrains") -- Your addon name
+
+--[[
+ * If you have passed a vararg above you will have a type group that
+ * indicates multiple model packs. Assign these using Lua selection operator
+ * Example: myType1 = (myGroup and myGroup[1] or myAddon)
+ * Then pass the calculated grouped type to myPieces record
 ]]--
 local myType = myAddon -- The type your addon resides in the tool with
 

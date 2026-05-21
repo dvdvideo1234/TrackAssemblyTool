@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.843")
+asmlib.SetOpVar("TOOL_VERSION","9.844")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1816,7 +1816,7 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
-      if(not asmlib.IsHere(stData.Type)) then stData.Type = asmlib.GetTypeUnit(arLine[2]) end
+      if(not asmlib.IsHere(stData.Type)) then stData.Type = asmlib.GetTypeClean(arLine[2]) end
       if(not asmlib.IsHere(stData.Pref)) then stData.Pref = asmlib.GetTypePrefix(arLine[2])  end
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
@@ -1922,7 +1922,8 @@ asmlib.NewTable("PIECES",{
       local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
       local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
-      local sPref, iCnt = asmlib.GetTypePrefix(sType), 0
+      local sType, iCnt = asmlib.GetTypeClean(sType), 0
+      local sPref = asmlib.GetTypePrefix(sType)
       for mod, rec in pairs(PCache) do
         if(rec.Type == sType or rec.Pref == sPref) then
           local iID, tOffs = 1, rec.Offs -- Start from the first point

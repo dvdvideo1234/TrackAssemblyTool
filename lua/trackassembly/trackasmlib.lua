@@ -219,7 +219,7 @@ function GetTypePrefix(sT)
   return tostring(sT or ""):Trim():gsub("[^%w]","_"):lower()
 end
 
-function GetTypeUnit(sT)
+function GetTypeClean(sT)
   return tostring(sT or ""):gsub("%s+", " "):Trim()
 end
 
@@ -674,22 +674,24 @@ end
  * sType > The addon name that contains multiple track types
  * [...] > The internal track types being registered
 ]]
-function RegisterType(sType, ...)
+function RegisterTypeGroup(sType, ...)
   local nT = select("#", ...)
-  if(nT < 1) then return end
-  local sU = GetTypeUnit(sType)
+  local sU = GetTypeClean(sType)
+  if(nT <= 0) then return sU end
   local tU = GetOpVar("TABLE_CATEGORIES").Unit
   local tA = (tU[sU] or {}); tU[sU] = tA
   local nA = #tA -- Remove length calculation
   for iT = 1, nT do -- Process the parameters
     local vT = select(iT, ...) -- Read params
-    local sT = GetTypeUnit(vT) -- Normal
-    if(not tA[sT]) then -- Does not exist
-      tableInsert(tA, sT) -- Store it
-      nA = nA + 1 -- Register adding
-      tA[sT] = nA -- Reverse indexed
-    else LogInstance("Exists "..GetReport(sU, iT, sT)) end
-  end; return tA
+    local sT = GetTypeClean(vT) -- Normal
+    if(sT ~= sU) then -- Do not register itself
+      if(not tA[sT]) then -- Does not exist
+        tableInsert(tA, sT) -- Store it
+        nA = nA + 1 -- Register adding
+        tA[sT] = nA -- Reverse indexed
+      else LogInstance("Exists "..GetReport(sU, iT, sT)) end
+    else LogInstance("Origin "..GetReport(sU, iT)) end
+  end; return sU, tA
 end
 
 function IsFlag(vKey, vVal)
@@ -4519,7 +4521,7 @@ function ExportTypeRun(sType)
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return end
-  local sType, qPieces, qAdditions = GetTypeUnit(sType) -- Normalize type
+  local sType, qPieces, qAdditions = GetTypeClean(sType) -- Normalize type
   local sPref, sFunc = GetTypePrefix(sType), debugGetinfo(1).name
   local noSQL, sTool = GetOpVar("MISS_NOSQL"), GetOpVar("TOOLNAME_NL")
   local sForm, fMon = GetOpVar("FORM_FILENAMEAR"), GetConcat("[", sMoDB:lower(), "-run]")
@@ -4624,7 +4626,7 @@ function ExportTypeDSV(sType, sDelim)
   if(SERVER) then LogInstance("Working on server"); return end
   local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return end
-  local sType = GetTypeUnit(sType) -- Normalize type and convert it
+  local sType = GetTypeClean(sType) -- Normalize type and convert it
   local tHew, fPref = GetOpVar("PATTEM_EXDSVHED"), GetTypePrefix(sType)
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
     LogInstance("Missing pieces builder "..GetReport(sType, fPref)); return end
@@ -4712,7 +4714,7 @@ function ExportTypeTrn(sType, bExp)
   if(not isstring(sType)) then -- Type is not a string
     LogInstance("Type mismatch "..GetReport(sType)); return end
   local sSrc = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  local sType = GetTypeUnit(sType) -- Normalize type and convert it
+  local sType = GetTypeClean(sType) -- Normalize type and convert it
   local sDir, sPrf, sNam = GetLibraryPath(sSrc), GetTypePrefix(sType)
   if(bExp) then -- Use the pattern for the export file format
     sNam = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*"):lower()

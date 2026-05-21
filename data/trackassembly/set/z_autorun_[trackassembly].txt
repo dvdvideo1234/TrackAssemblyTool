@@ -17,17 +17,21 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
  * It is used by TA in order to classify the content you are creating
  * It must NOT be an empty string nil or any other type regarding
  * The value will be automatically pattern converted to a index prefix
+ * Change this if you want to use different in-game type
+ * You can also use multiple types myType1, myType2,
+ * myType3, ... myType/n as variable arguments when your
+ * addon contains multiple model packs.
 ]]
-local myAddon = "Test's track pack"
+local myAddon = asmlib.RegisterTypeGroup("Test's track pack")
 
 -- Log messages identifier. Leave DSV here or change it if you like
 local mySource = "DSV"
 
 --[[
- * Change this if you want to use different in-game type
- * You can also use multiple types myType1, myType2,
- * myType3, ... myType/n when your addon contains
- * multiple model packs.
+ * If you have passed a vararg above you will have a type group that
+ * indicates multiple model packs. Assign these using Lua selection operator
+ * Example: myType1 = (myGroup and myGroup[1] or myAddon)
+ * Then pass the calculated grouped type to myPieces record
 ]]--
 local myType = myAddon -- The type your addon resides in the tool with
 
