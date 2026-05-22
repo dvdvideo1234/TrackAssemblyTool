@@ -671,14 +671,19 @@ end
 --[[
  * Used to register multiple track types for single addon
  * Addon units are registered based on where and what is called
+ * Can also be used to translate one type to another (nT == 1)
  * sType > The addon name that contains multiple track types
  * [...] > The internal track types being registered
 ]]
 function RegisterTypeGroup(sType, ...)
   local nT = select("#", ...)
   local sU = GetTypeClean(sType)
-  if(nT <= 0) then return sU end
   local tU = GetOpVar("TABLE_CATEGORIES").Unit
+  if(nT <= 0) then
+    local tA = tU[sU]
+    local nA = #tA
+    return sU, tA, nA
+  end
   local tA = (tU[sU] or {}); tU[sU] = tA
   local nA = #tA -- Remove length calculation
   for iT = 1, nT do -- Process the parameters
@@ -691,7 +696,7 @@ function RegisterTypeGroup(sType, ...)
         tA[sT] = nA -- Reverse indexed
       else LogInstance("Exists "..GetReport(sU, iT, sT)) end
     else LogInstance("Origin "..GetReport(sU, iT)) end
-  end; return sU, tA
+  end; return sU, tA, nA
 end
 
 function IsFlag(vKey, vVal)
@@ -898,14 +903,25 @@ function InitBase(sName, sPurp)
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("CONSTRAINT_LIST", {"Weld", "AdvBallsocket", "NoCollide"})
-  SetOpVar("PATTEX_CATEGORY", "%s*local%s+myCategory%s*=%s*")
-  SetOpVar("PATTEX_WORKSHID", "%s*asmlib%.WorkshopID%s*")
-  SetOpVar("PATTEX_TABLEDPS", "%s*local%s+myPieces%s*=%s*")
-  SetOpVar("PATTEX_TABLEDAD", "%s*local%s+myAdditions%s*=%s*")
-  SetOpVar("PATTEX_VARADDON", "%s*local%s+myAddon%s*=%s*")
   SetOpVar("PATTEM_NEWLINE" , "[\n\r]+")
-  SetOpVar("PATTEM_EXCATHED", {"@", "(%s@%d)"   , "^#.*Category.*%(.+%)", "%(.+%)"})
-  SetOpVar("PATTEM_EXDSVHED", {"@", "(%s@%s@%s)", "^#.*DSV.*%(.+%)"     , "%(.+%)"})
+  SetOpVar("PATTEX_AUTORUN", {
+    Cax = "%s*local%s+myCategory.*%s*=%s*",
+    Wrs = "%s*asmlib%.WorkshopID%s*",
+    Tps = "%s*local%s+myPieces.*%s*=%s*",
+    Tad = "%s*local%s+myAdditions.*%s*=%s*",
+    Var = "%s*local%s+myAddon.*%s*=%s*",
+    Typ = "%s*local%s+myType.*%s*=%s*"
+  })
+  SetOpVar("PATTEM_EXCATHED", {
+    Sym = GetOpVar("OPSYM_REVISION"),
+    Fmt = tableConcat({"(%s","%d)"}, GetOpVar("OPSYM_REVISION")),
+    Hdr = "^#.*Category.*%(.+%)", Par = "%(.+%)"
+  })
+  SetOpVar("PATTEM_EXDSVHED", {
+    Sym = GetOpVar("OPSYM_REVISION"),
+    Fmt = tableConcat({"(%s","%s","%s)"}, GetOpVar("OPSYM_REVISION")),
+    Hdr = "^#.*DSV.*%(.+%)", Par = "%(.+%)"
+  })
   SetOpVar("HOVER_TRIGGER"  , {})
   if(CLIENT) then
     SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
@@ -3831,7 +3847,7 @@ function ExportSyncDB(sDelim)
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return false end
-  local sHew, sFunc = tHew[2]:format(sMiss, sTable, sDelim), debugGetinfo(1).name
+  local sHew, sFunc = tHew.Fmt:format(sMiss, sTable, sDelim), debugGetinfo(1).name
   local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"), GetOpVar("NAME_LIBRARY"), "_db")
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew)); return false end
@@ -3887,7 +3903,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXCATHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(fPref, nEq), debugGetinfo(1).name
+  local sHew, sFunc = tHew.Fmt:format(fPref, nEq), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew)); return true end
   if(IsGenericDB("CATEGORY")) then
@@ -3924,7 +3940,7 @@ function ImportCategory(vEq, sPref, bExp)
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref)); return false end
   local nEq = mathMax(mathFloor(tonumber(vEq) or 0), 0)
   local tHew = GetOpVar("PATTEM_EXCATHED")
-  local sHew = tHew[2]:format(fPref, nEq)
+  local sHew = tHew.Fmt:format(fPref, nEq)
   local sSnam = (GetOpVar("TOOLNAME_PL").."CATEGORY"):lower()
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, sSnam)
@@ -3932,12 +3948,12 @@ function ImportCategory(vEq, sPref, bExp)
     LogInstance("Open fail: "..GetReport(sHew,fName)); return false end
   if(nEq == 0) then local iF = F:Tell() -- Store the initial file pointer
     local sRow = F:ReadLine(); F:Seek(iF) -- Read the file header to decode it
-    local sPar = sRow:match(tHew[3]); if(not sPar) then
+    local sPar = sRow:match(tHew.Hdr); if(not sPar) then
       LogInstance("Intern header missing "..GetReport(sHew,fName)); return false end
-    local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
+    local tPar = tHew.Sym:Explode(sPar:match(tHew.Par):Trim():sub(2,-2):Trim())
     nEq = mathMax(mathFloor(tonumber(tPar[2]) or 0), 0); if(nEq <= 0) then
       LogInstance("Marker length error "..GetReport(sHew,nEq,vEq,fName)); return false end
-    sHew = tHew[2]:format(fPref, nEq)
+    sHew = tHew.Fmt:format(fPref, nEq)
     LogInstance("Intern success "..GetReport(sHew,sPar,fName))
   end
   local tCat = GetOpVar("TABLE_CATEGORIES").Data
@@ -3992,7 +4008,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return false end
-  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
+  local sHew, sFunc = tHew.Fmt:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew), sTable); return true end
   if(IsGenericDB(sTable)) then
@@ -4059,14 +4075,14 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
     local F = fileOpen(fName, "rb", "DATA"); if(not F) then
       LogInstance("Open fail "..GetReport(fName)); return false end
     local sRow = F:ReadLine(); F:Close() -- Read the file header
-    local sPar = sRow:match(tHew[3]); if(not sPar) then
+    local sPar = sRow:match(tHew.Hdr); if(not sPar) then
       LogInstance("Intern header missing "..GetReport(fName)); return false end
-    local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
+    local tPar = tHew.Sym:Explode(sPar:match(tHew.Par):Trim():sub(2,-2):Trim())
     local bDem = (tPar[3] and not IsBlank(tPar[3]))
     fPref, sTable = tPar[1]:Trim(), tPar[2]:Trim()
     sDelim = tostring(bDem and tPar[3] or sDelim):sub(1,1)
-    sHew = tHew[2]:format(fPref, sTable, sDelim)
-  else sHew = tHew[2]:format(fPref, sTable, sDelim) end
+    sHew = tHew.Fmt:format(fPref, sTable, sDelim)
+  else sHew = tHew.Fmt:format(fPref, sTable, sDelim) end
   if(IsBlank(fPref)) then -- The first argument is considered to be a table nick
     LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
@@ -4123,7 +4139,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local tHew, sMoDB = GetOpVar("PATTEM_EXDSVHED"), GetOpVar("MODE_DATABASE")
-  local sHew, sFunc = tHew[2]:format(fPref, sTable, sDelim), debugGetinfo(1).name
+  local sHew, sFunc = tHew.Fmt:format(fPref, sTable, sDelim), debugGetinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew),sTable); return true end
   local tHea = GetOpVar("FORM_HEADEREXP"); if(IsGenericDB(sTable)) then
@@ -4234,14 +4250,14 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
     local F = fileOpen(sSRC, "rb", "DATA"); if(not F) then
       LogInstance("Open fail "..GetReport(sSRC)); return false end
     local sRow = F:ReadLine(); F:Close() -- Read the file header
-    local sPar = sRow:match(tHew[3]); if(not sPar) then
+    local sPar = sRow:match(tHew.Hdr); if(not sPar) then
       LogInstance("Intern header missing "..GetReport(sSRC)); return false end
-    local tPar = tHew[1]:Explode(sPar:match(tHew[4]):Trim():sub(2,-2):Trim())
+    local tPar = tHew.Sym:Explode(sPar:match(tHew.Par):Trim():sub(2,-2):Trim())
     local bDem = (tPar[3] and not IsBlank(tPar[3]))
     fPref, sTable = tPar[1]:Trim():lower(), tPar[2]:Trim()
     sDelim = tostring(bDem and tPar[3] or sDelim):sub(1,1)
-    sHew = tHew[2]:format(fPref, sTable, sDelim)
-  else sHew = tHew[2]:format(fPref, sTable, sDelim) end
+    sHew = tHew.Fmt:format(fPref, sTable, sDelim)
+  else sHew = tHew.Fmt:format(fPref, sTable, sDelim) end
   if(IsBlank(fPref)) then -- The first argument is considered to be a table nick
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   if(IsFlag("en_dsv_datalock")) then
@@ -4521,7 +4537,8 @@ function ExportTypeRun(sType)
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return end
-  local sType, qPieces, qAdditions = GetTypeClean(sType) -- Normalize type
+  local qPieces, qAdditions -- Prepare placeholder references
+  local sType, tType, nType = RegisterTypeGroup(sType)
   local sPref, sFunc = GetTypePrefix(sType), debugGetinfo(1).name
   local noSQL, sTool = GetOpVar("MISS_NOSQL"), GetOpVar("TOOLNAME_NL")
   local sForm, fMon = GetOpVar("FORM_FILENAMEAR"), GetConcat("[", sMoDB:lower(), "-run]")
@@ -4533,19 +4550,14 @@ function ExportTypeRun(sType)
     LogInstance("Missing table definition"); return end
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
-    if(not IsHere(makP)) then
-      LogInstance("Missing table builder",defP.Nick); return
-    end
     local qType = makP:Match(sType, 2, true)
     local qIndx = qsKey:format(sFunc, "PIECES")
     local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = makP:GetQuery()
       Q = makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
     if(not Q) then
-      LogInstance("Build statement failed "..GetReport(qIndx,qType),defP.Nick); return
-    end
+      LogInstance("Build statement failed "..GetReport(qIndx,qType),defP.Nick); return end
     qPieces = sqlQuery(Q); if(not qPieces and isbool(qPieces)) then
-      LogInstance("SQL exec error "..GetReport(sqlLastError(), Q),defP.Nick); return
-    end
+      LogInstance("SQL exec error "..GetReport(sqlLastError(), Q),defP.Nick); return end
     if(not IsHere(qPieces) or IsEmpty(qPieces)) then
       LogInstance("No data found "..GetReport(Q),defP.Nick)
       if(not IsHere(qPieces)) then qPieces = {} end
@@ -4566,51 +4578,67 @@ function ExportTypeRun(sType)
     LogInstance("Generate fail "..GetReport(sN)); return end
   local fS = fileOpen(sS, "rb", "DATA"); if(not fS) then
     fE:Close(); LogInstance("Source fail "..GetReport(sS)) return end
-  local patCateg = GetOpVar("PATTEX_CATEGORY")
-  local patWorks = GetOpVar("PATTEX_WORKSHID")
-  local patPiece = GetOpVar("PATTEX_TABLEDPS")
-  local patAddit = GetOpVar("PATTEX_TABLEDAD")
-  local patAddon = GetOpVar("PATTEX_VARADDON")
-  local keyBuild = GetOpVar("KEYQ_BUILDER"); qPieces[keyBuild] = makP
-  local sRow, tCon = GetFileRow(fS)
+  local tPat, kyMak = GetOpVar("PATTEX_AUTORUN"), GetOpVar("KEYQ_BUILDER")
+  local sRow, tCon = GetFileRow(fS); qPieces[kyMak] = makP
   local isSkip, sInd, qAdditions = false, "  ", {}
   while(sRow) do sRow = sRow:gsub("%s*$", "")
-    if(sRow:find(patAddon)) then isSkip = true
-      fE:Write("local myAddon = \""); fE:Write(sType); fE:Write("\"\n")
-    elseif(sRow:find(patCateg)) then isSkip = true
+    if(sRow:find(tPat.Var)) then isSkip = true
+      fE:Write("local myAddon, myGroup = asmlib.RegisterTypeGroup(\"")
+      fE:Write(sType); fE:Write("\"")
+      for iU = 1, nType do
+        fE:Write(", "); fE:Write("\"")
+        fE:Write(tType[iU]); fE:Write("\"")
+      end
+      fE:Write(")\n")
+    elseif(sRow:find(tPat.Typ)) then isSkip = true
+      fE:Write("local myType0 = asmlib.GetTypeClean(myAddon)")
+      fE:Write("\n")
+      if(nType > 0) then
+        for iU = 1, nType do local sU = tostring(iU)
+          fE:Write("local myType"); fE:Write(sU); fE:Write(" = ")
+          fE:Write("asmlib.GetTypeClean(myGroup and myGroup[");
+          fE:Write(sU); fE:Write("] or myAddon)"); fE:Write("\n")
+        end
+      end
+    elseif(sRow:find(tPat.Cax)) then isSkip = true
+      fE:Write("local myCategory = {}\n")
       local tCat = GetOpVar("TABLE_CATEGORIES").Data[sType]
       if(istable(tCat) and tCat.Txt) then
-        fE:Write("local myCategory = {\n")
-        fE:Write(sInd:rep(1).."[myType] = {Txt = [[\n")
-        fE:Write(sInd:rep(2)); fE:Write(tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
-        fE:Write(sInd:rep(1).."]]}\n")
-        fE:Write("}\n")
-      else
-        fE:Write("local myCategory = {}\n")
+        fE:Write(sInd:rep(3)); fE:Write("myCategory[myType0] = {Txt = [[\n")
+        fE:Write(sInd:rep(4)); fE:Write(tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
+        fE:Write(sInd:rep(3)); fE:Write("]]}\n")
       end
-    elseif(sRow:find(patWorks)) then isSkip = true
+      for iU = 1, nType do local sU, sT = tostring(iU), tType[iU]
+        local tCat = GetOpVar("TABLE_CATEGORIES").Data[sT]
+        if(istable(tCat) and tCat.Txt) then
+          fE:Write(sInd:rep(3)); fE:Write("myCategory[myType");
+          fE:Write(sU); fE:Write("] = {Txt = [[\n")
+          fE:Write(sInd:rep(4)); fE:Write(tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
+          fE:Write(sInd:rep(3)); fE:Write("]]}\n")
+        end
+      end
+    elseif(sRow:find(tPat.Wrs)) then isSkip = true
       local sID = WorkshopID(sType)
       if(sID and sID:len() > 0) then
-        fE:Write("asmlib.WorkshopID(myAddon, \""); fE:Write(sID); fE:Write("\")\n")
+        fE:Write("asmlib.WorkshopID(myType0, \""); fE:Write(sID); fE:Write("\")\n")
       else
-        fE:Write("asmlib.WorkshopID(myAddon)\n")
+        fE:Write("asmlib.WorkshopID(myType0)\n")
       end
-    elseif(sRow:find(patPiece)) then isSkip = true
-      if(not ExportContentsRun(fE, qPieces, "myPieces", sInd, qAdditions)) then
-        LogInstance("Pieces variable fail "..GetReport(patPiece,sRow),defP.Nick)
-        fE:Flush(); fE:Close(); tCon.ER = true; break
+    elseif(sRow:find(tPat.Tps)) then isSkip = true
+      if(not ExportContentsRun(fE, qPieces, "myPieces0", sInd, qAdditions)) then
+        LogInstance("Pieces error "..GetReport(tPat.Tps,sRow),defP.Nick)
+        tCon.ER = true; break -- Break the loop to finish automatically
       end
-    elseif(sRow:find(patAddit)) then isSkip = true
-      if(not ExportContentsRun(fE, qAdditions, "myAdditions", sInd)) then
-        LogInstance("Additions variable fail "..GetReport(patAddit,sRow),defP.Nick)
-        fE:Flush(); fE:Close(); tCon.ER = true; break
+    elseif(sRow:find(tPat.Tad)) then isSkip = true
+      if(not ExportContentsRun(fE, qAdditions, "myAdditions0", sInd)) then
+        LogInstance("Additions error "..GetReport(tPat.Tad,sRow),defP.Nick)
+        tCon.ER = true; break -- Break the loop to finish automatically
       end
     else
       if(isSkip and IsBlank(sRow:Trim())) then isSkip = false end
     end
-    if(not isSkip) then
-      if(isEOF) then fE:Write(sRow) else fE:Write(sRow.."\n") end
-    end; sRow, tCon = GetFileRow(fS, tCon)
+    if(not isSkip) then fE:Write(sRow); fE:Write("\n") end
+    sRow, tCon = GetFileRow(fS, tCon)
   end; fE:Write("\n"); fE:Flush(); fE:Close()
   if(tCon.ER) then if(not tCon.RO) then fS:Close() end
     LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable) end
@@ -4646,10 +4674,10 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("Open fail "..GetReport(sType, fPref,pNam)); return end
   local A = fileOpen(aNam, "wb", "DATA"); if(not A) then
     LogInstance("Open fail "..GetReport(sType, fPref,aNam)); return end
-  P:Write(tHea.Src:format(sFunc, tHew[2]:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
+  P:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   P:Write(tHea.Tco:format(defP.Nick, makP:GetColumnList(sDelim)))
-  A:Write(tHea.Src:format(sFunc, tHew[2]:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
-  A:Write(tHea.Tco:format(defP.Nick, makA:GetColumnList(sDelim)))
+  A:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
+  A:Write(tHea.Tco:format(defA.Nick, makA:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
     local qsNov = GetOpVar("MISS_NOAV")
     local qsKey = GetOpVar("FORM_KEYSTMT")
