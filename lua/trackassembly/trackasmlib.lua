@@ -904,19 +904,6 @@ function InitBase(sName, sPurp)
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("CONSTRAINT_LIST", {"Weld", "AdvBallsocket", "NoCollide"})
   SetOpVar("PATTEM_NEWLINE" , "[\n\r]+")
-  SetOpVar("PATTEX_AUTORUN", {
-    Cax = "%s*local%s+myCategory.*%s*=%s*",
-    Wrs = "%s*asmlib%.WorkshopID%s*",
-    Tps = "%s*local%s+myPieces.*%s*=%s*",
-    Tad = "%s*local%s+myAdditions.*%s*=%s*",
-    Var = "%s*local%s+myAddon.*%s*=%s*",
-    Typ = "%s*local%s+myType.*%s*=%s*"
-  })
-  SetOpVar("PATTEM_EXCATHED", {
-    Sym = GetOpVar("OPSYM_REVISION"),
-    Fmt = tableConcat({"(%s","%d)"}, GetOpVar("OPSYM_REVISION")),
-    Hdr = "^#.*Category.*%(.+%)", Par = "%(.+%)"
-  })
   SetOpVar("PATTEM_EXDSVHED", {
     Sym = GetOpVar("OPSYM_REVISION"),
     Fmt = tableConcat({"(%s","%s","%s)"}, GetOpVar("OPSYM_REVISION")),
@@ -924,6 +911,20 @@ function InitBase(sName, sPurp)
   })
   SetOpVar("HOVER_TRIGGER"  , {})
   if(CLIENT) then
+    SetOpVar("PATTEM_EXCATHED", {
+      Sym = GetOpVar("OPSYM_REVISION"),
+      Fmt = tableConcat({"(%s","%d)"}, GetOpVar("OPSYM_REVISION")),
+      Hdr = "^#.*Category.*%(.+%)", Par = "%(.+%)"
+    })
+    SetOpVar("PATTEX_AUTORUN", {
+      Cax = "%s*local%s+myCategory.*%s*=%s*",
+      Wrs = "%s*asmlib%.WorkshopID%s*",
+      Tps = "%s*local%s+myPieces.*%s*=%s*",
+      Tad = "%s*local%s+myAdditions.*%s*=%s*",
+      Tpp = "%s*local%s+myPhysproperties.*%s*=%s*",
+      Var = "%s*local%s+myAddon.*%s*=%s*",
+      Typ = "%s*local%s+myType.*%s*=%s*"
+    })
     SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
     SetOpVar("TABLE_TOOLINF", {
       {name = "workmode"} ,
@@ -4000,6 +4001,7 @@ end
  * bExp   > Forces the input from the export folder.( defaults to DSV )
 ]]
 function ExportDSV(sTable, sPref, sDelim, bExp)
+  if(SERVER) then LogInstance("Working on server"); return true end
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local sDelim, tHea = tostring(sDelim or "\t"):sub(1,1), GetOpVar("FORM_HEADEREXP")
@@ -4466,8 +4468,8 @@ function SetAdditionsRun(sModel, makTab, qList)
   return true
 end
 
-function ExportContentsRun(fF,qData,sName,sInd,qList)
-  local dbNull = GetOpVar("MISS_NOSQL")
+function ExportContentsRun(fF,sType,qData,sName,sInd,qList)
+  local noSQL = GetOpVar("MISS_NOSQL")
   local keyBld, makAdd = GetOpVar("KEYQ_BUILDER")
   local makTab = qData[keyBld]; if(not IsHere(makTab)) then
     LogInstance("Missing table builder"); return false end
@@ -4496,7 +4498,7 @@ function ExportContentsRun(fF,qData,sName,sInd,qList)
       for iA = 1, #aRow do local vA = aRow[iA]
         aRow[iA] = makTab:Match(vA,iA,true,"\"",true,true); if(not IsHere(aRow[iA])) then
           LogInstance("Matching error "..GetReport(iA,vA,mMod)); return false end
-        if(vA == dbNull) then aRow[iA] = "gsMissDB" end
+        if(vA == noSQL) then aRow[iA] = "gsMissDB" end
       end
       if(fRow) then fRow = false
         fF:Write(sInd:rep(1)); fF:Write("["); fF:Write(aRow[pkID]); fF:Write("] = {\n")
@@ -4510,7 +4512,7 @@ function ExportContentsRun(fF,qData,sName,sInd,qList)
             LogInstance("Addition secondary error "..GetReport(iD,qList,mMod)); return false end end
         end
       end
-      local bS, sR = pcall(mgrTab[sFunc], aRow);
+      local bS, sR = pcall(mgrTab[sFunc], sType, aRow);
       if(not bS) then LogInstance("Routine error "..GetReport(iD,mMod,sR)); return false end
       if(not sR) then LogInstance("Internal error "..GetReport(iD,mMod)); return false end
       tableRemove(aRow, 1); fF:Write(sInd:rep(2)); fF:Write("{"); fF:Write(tableConcat(aRow, ", ")); fF:Write("},\n")
@@ -4548,29 +4550,29 @@ function ExportTypeRun(sType)
     LogInstance("Missing table builder"); return end
   local defP = makP:GetDefinition(); if(not defP) then
     LogInstance("Missing table definition"); return end
-  if(sMoDB == "SQL") then
+  if(sMoDB == "SQL") then qPieces = {}
     local qsKey = GetOpVar("FORM_KEYSTMT")
-    local qType = makP:Match(sType, 2, true)
     local qIndx = qsKey:format(sFunc, "PIECES")
-    local Q = makP:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = makP:GetQuery()
-      Q = makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
-    if(not Q) then
-      LogInstance("Build statement failed "..GetReport(qIndx,qType),defP.Nick); return end
-    qPieces = sqlQuery(Q); if(not qPieces and isbool(qPieces)) then
-      LogInstance("SQL exec error "..GetReport(sqlLastError(), Q),defP.Nick); return end
-    if(not IsHere(qPieces) or IsEmpty(qPieces)) then
-      LogInstance("No data found "..GetReport(Q),defP.Nick)
-      if(not IsHere(qPieces)) then qPieces = {} end
-    end
+    local function SetContentsDB(iTy, sTy)
+      local qTy = makP:Match(sTy, 2, true)
+      local Q = makP:Get(qIndx, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery()
+        Q = makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qTy) end
+      if(not Q) then
+        LogInstance("Build statement failed "..GetReport(qIndx,qTy),defP.Nick); return end
+      local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
+        LogInstance("SQL exec error "..GetReport(sqlLastError(), Q),defP.Nick); return end
+      for iR = 1, #qData do tableInsert(qPieces, qData[iR]) end
+    end; SetContentsDB(0, sType); for iT = 1, nType do SetContentsDB(iT, tType[iT]) end
   elseif(sMoDB == "LUA") then
-    local tCache = libCache[defP.Name]
-    if(not IsHere(tCache)) then
-      LogInstance("Cache missing",defP.Nick) ; return false end
+    local tCache = libCache[defP.Name]; if(not IsHere(tCache)) then
+      LogInstance("Cache missing",defP.Nick); return false end
     local fsLog = GetOpVar("FORM_LOGSOURCE"); qPieces = {}
     local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
-    local bS, sR = pcall(defP.Cache[sFunc], sType, makP, tCache, qPieces, ssLog:format("Cache"))
-    if(not bS) then LogInstance("Cache manager error: "..sR,defP.Nick); return end
-    if(not sR) then LogInstance("Cache routine fail",defP.Nick); return end
+    local function SetContentsDB(iTy, sTy)
+      local bS, sR = pcall(defP.Cache[sFunc], sTy, makP, tCache, qPieces, ssLog:format("Cache"))
+      if(not bS) then LogInstance("Cache manager error "..GetReport(iTy, sTy, sR),defP.Nick); return end
+      if(not sR) then LogInstance("Cache routine fail "..GetReport(iTy, sTy, sR),defP.Nick); return end
+    end; SetContentsDB(0, sType); for iT = 1, nType do SetContentsDB(iT, tType[iT]) end
   end
   if(not (IsHere(qPieces) and IsHere(qPieces[1]))) then
     LogInstance("Export content missing", defP.Nick) end
@@ -4591,8 +4593,7 @@ function ExportTypeRun(sType)
       end
       fE:Write(")\n")
     elseif(sRow:find(tPat.Typ)) then isSkip = true
-      fE:Write("local myType0 = asmlib.GetTypeClean(myAddon)")
-      fE:Write("\n")
+      fE:Write("local myType0 = asmlib.GetTypeClean(myAddon)\n")
       if(nType > 0) then
         for iU = 1, nType do local sU = tostring(iU)
           fE:Write("local myType"); fE:Write(sU); fE:Write(" = ")
@@ -4625,12 +4626,12 @@ function ExportTypeRun(sType)
         fE:Write("asmlib.WorkshopID(myType0)\n")
       end
     elseif(sRow:find(tPat.Tps)) then isSkip = true
-      if(not ExportContentsRun(fE, qPieces, "myPieces0", sInd, qAdditions)) then
+      if(not ExportContentsRun(fE, sType, qPieces, "myPieces", sInd, qAdditions)) then
         LogInstance("Pieces error "..GetReport(tPat.Tps,sRow),defP.Nick)
         tCon.ER = true; break -- Break the loop to finish automatically
       end
     elseif(sRow:find(tPat.Tad)) then isSkip = true
-      if(not ExportContentsRun(fE, qAdditions, "myAdditions0", sInd)) then
+      if(not ExportContentsRun(fE, sType, qAdditions, "myAdditions", sInd)) then
         LogInstance("Additions error "..GetReport(tPat.Tad,sRow),defP.Nick)
         tCon.ER = true; break -- Break the loop to finish automatically
       end
@@ -4654,7 +4655,7 @@ function ExportTypeDSV(sType, sDelim)
   if(SERVER) then LogInstance("Working on server"); return end
   local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return end
-  local sType = GetTypeClean(sType) -- Normalize type and convert it
+  local sType, tType, nType = RegisterTypeGroup(sType) -- Normalize type
   local tHew, fPref = GetOpVar("PATTEM_EXDSVHED"), GetTypePrefix(sType)
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
     LogInstance("Missing pieces builder "..GetReport(sType, fPref)); return end
@@ -4689,9 +4690,9 @@ function ExportTypeDSV(sType, sDelim)
     if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("Build statement failed "..GetReport(sType, fPref),defP.Nick); return end
     local qP = sqlQuery(Q); if(not qP and isbool(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("SQL exec error "..GetReport(fPref,sqlLastError(), Q), defP.Nick); return end
+      LogInstance("SQL exec error "..GetReport(sType,fPref,sqlLastError(), Q), defP.Nick); return end
     if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("No data found "..GetReport(fPref, Q), defP.Nick); return end
+      LogInstance("No data found "..GetReport(sType,fPref, Q), defP.Nick); return end
     local coMo, coLI, rwM = makP:GetColumnName(1), makP:GetColumnName(4), ""
     P:Write(tHea.Qry:format(#qP, Q))
     for iP = 1, #qP do
@@ -4705,9 +4706,9 @@ function ExportTypeDSV(sType, sDelim)
             if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
               LogInstance("Build statement failed "..GetReport(sType, fPref),defA.Nick); return qsNov end
             local qA = sqlQuery(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-              LogInstance("SQL exec error "..GetReport(fPref, sqlLastError(), Q), defA.Nick); return qsNov end
+              LogInstance("SQL exec error "..GetReport(sType, fPref, sqlLastError(), Q), defA.Nick); return qsNov end
             if(not IsHere(qA) or IsEmpty(qA)) then
-              LogInstance("No data found "..GetReport(fPref, Q), defA.Nick)
+              LogInstance("No data found "..GetReport(sType, fPref, Q), defA.Nick)
             else if(iP == 1) then A:Write(tHea.Qry:format(#qA, Q)) end
               for iA = 1, #qA do
                 A:Write(defA.Name); A:Write(sDelim); A:Write(makA:GetPrepare(qA[iA], sDelim,
@@ -4722,7 +4723,7 @@ function ExportTypeDSV(sType, sDelim)
     local PCache, ACache = libCache[defP.Name], libCache[defA.Name]
     if(not IsHere(PCache)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("Cache missing "..GetReport(sType, fPref),defP.Nick); return end
-    local bS, sR = pcall(defP.Cache[sFunc], P, makP, PCache, A, makA, ACache, fPref, sDelim, ssLog:format("Cache"))
+    local bS, sR = pcall(defP.Cache[sFunc], P, makP, PCache, A, makA, ACache, sType, sDelim, ssLog:format("Cache"))
     if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("Cache manager error "..GetReport(sType, fPref, sR),defP.Nick); return end
     if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
