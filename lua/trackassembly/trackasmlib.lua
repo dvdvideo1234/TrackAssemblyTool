@@ -676,16 +676,17 @@ end
  * [...] > The internal track types being registered
 ]]
 function ComponentType(sType, ...)
+  local sK = GetOpVar("KEY_DEFAULT")
   local tU = GetOpVar("TABLE_COMPONENTS")
   local sU, nT = GetTypeClean(sType), select("#", ...)
   local tA = tU[sU] -- Index the componet array
-  if(not tA) then tA = {__Size__ = 0}; tU[sU] = tA end
+  if(not tA) then tA = {[sK] = 0}; tU[sU] = tA end
   if(nT <= 0) then -- No conponents specified
     local tA = tU[sU] -- Components index
-    local nA = tA.__Size__ -- Component size
+    local nA = tA[sK] -- Component size
     return sU, tA, nA -- Return type info
   end -- There are multiple type components
-  local nA = tA.__Size__ -- Length calculation
+  local nA = tA[sK] -- Length calculation
   for iT = 1, nT do -- Process the parameters
     local vT = select(iT, ...) -- Read params
     local sT = GetTypeClean(vT) -- Normal
@@ -696,7 +697,7 @@ function ComponentType(sType, ...)
         tA[sT] = nA -- Reverse indexed
       else LogInstance("Exists "..GetReport(sU, iT, sT)) end
     else LogInstance("Origin "..GetReport(sU, iT)) end
-  end; tA.__Size__ = nA; return sU, tA, nA
+  end; tA[sK] = nA; return sU, tA, nA
 end
 
 function IsFlag(vKey, vVal)
