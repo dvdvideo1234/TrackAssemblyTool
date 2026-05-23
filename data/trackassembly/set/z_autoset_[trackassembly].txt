@@ -22,7 +22,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
  * myType3, ... myType/n as variable arguments when your
  * addon contains multiple model packs.
 ]]
-local myAddon, myGroup = asmlib.RegisterTypeGroup("SligWolf's Minitrains") -- Your addon name
+local myAddon, myGroup = asmlib.ComponentType("SligWolf's Minitrains") -- Your addon name
 
 --[[
  * If you have passed a vararg above you will have a type group that

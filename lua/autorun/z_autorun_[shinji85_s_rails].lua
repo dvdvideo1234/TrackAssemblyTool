@@ -18,7 +18,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
  * It must NOT be an empty string nil or any other type regarding
  * The value will be automatically pattern converted to a index prefix
 ]]
-local myAddon = asmlib.RegisterTypeGroup("Shinji85's Rails") -- Your addon name
+local myAddon = asmlib.ComponentType("Shinji85's Rails") -- Your addon name
 
 -- Log messages identifier. Leave DSV here or change it if you like
 local mySource = "DSV"

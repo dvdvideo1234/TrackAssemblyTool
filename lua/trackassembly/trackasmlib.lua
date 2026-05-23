@@ -675,17 +675,17 @@ end
  * sType > The addon name that contains multiple track types
  * [...] > The internal track types being registered
 ]]
-function RegisterTypeGroup(sType, ...)
-  local nT = select("#", ...)
-  local sU = GetTypeClean(sType)
-  local tU = GetOpVar("TABLE_CATEGORIES").Unit
-  if(nT <= 0) then
-    local tA = tU[sU]
-    local nA = #tA
-    return sU, tA, nA
-  end
-  local tA = (tU[sU] or {}); tU[sU] = tA
-  local nA = #tA -- Remove length calculation
+function ComponentType(sType, ...)
+  local tU = GetOpVar("TABLE_COMPONENTS")
+  local sU, nT = GetTypeClean(sType), select("#", ...)
+  local tA = tU[sU] -- Index the componet array
+  if(not tA) then tA = {__Size__ = 0}; tU[sU] = tA end
+  if(nT <= 0) then -- No conponents specified
+    local tA = tU[sU] -- Components index
+    local nA = tA.__Size__ -- Component size
+    return sU, tA, nA -- Return type info
+  end -- There are multiple type components
+  local nA = tA.__Size__ -- Length calculation
   for iT = 1, nT do -- Process the parameters
     local vT = select(iT, ...) -- Read params
     local sT = GetTypeClean(vT) -- Normal
@@ -696,7 +696,7 @@ function RegisterTypeGroup(sType, ...)
         tA[sT] = nA -- Reverse indexed
       else LogInstance("Exists "..GetReport(sU, iT, sT)) end
     else LogInstance("Origin "..GetReport(sU, iT)) end
-  end; return sU, tA, nA
+  end; tA.__Size__ = nA; return sU, tA, nA
 end
 
 function IsFlag(vKey, vVal)
@@ -943,7 +943,8 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_SKILLICON",{})
     SetOpVar("TABLE_WSIDADDON", {ID = "^%d+$", Data = {}})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
-    SetOpVar("TABLE_CATEGORIES",{Unit = {}, Data = {}})
+    SetOpVar("TABLE_CATEGORIES", {})
+    SetOpVar("TABLE_COMPONENTS", {})
     SetOpVar("CLIPBOARD_TEXT","")
     SetOpVar("FMNODE_PATH","%s>%s")
   end; LogInstance("Success"); return true
@@ -2562,7 +2563,7 @@ end
 
 function Categorize(oTyp, fCat, ...)
   local oBeu = GetBeautify()
-  local tCat = GetOpVar("TABLE_CATEGORIES").Data
+  local tCat = GetOpVar("TABLE_CATEGORIES")
   if(not IsHere(oTyp)) then -- No category then read the contents
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or ""):Trim()
     local tTyp = (tCat and tCat[sTyp] or nil)
@@ -3652,7 +3653,7 @@ end
 ]]
 local function SortCategory(stPanel)
   local oBeu = GetBeautify()
-  local tCat = GetOpVar("TABLE_CATEGORIES").Data
+  local tCat = GetOpVar("TABLE_CATEGORIES")
   for iCnt = 1, stPanel.Size do local vRec = stPanel[iCnt]
     -- Register the category if definition functional is given
     if(tCat[vRec.T]) then -- There is a category definition
@@ -3915,7 +3916,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew,fName)); return false end
   local sEq, nLen, tHea = ("="):rep(nEq), (nEq+2), GetOpVar("FORM_HEADEREXP")
-  local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES").Data)
+  local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
   LogInstance("Source "..GetReport(sHew, (tCat == tData)))
   local tSort = Arrange(tCat); if(not tSort) then
     LogInstance("Sorting keys fail "..GetReport(sHew)); return false end
@@ -3957,7 +3958,7 @@ function ImportCategory(vEq, sPref, bExp)
     sHew = tHew.Fmt:format(fPref, nEq)
     LogInstance("Intern success "..GetReport(sHew,sPar,fName))
   end
-  local tCat = GetOpVar("TABLE_CATEGORIES").Data
+  local tCat = GetOpVar("TABLE_CATEGORIES")
   local sEq, nLen = ("="):rep(nEq), (nEq + 2)
   local cFr, cBk = GetConcat("[", sEq, "["), GetConcat("]", sEq, "]")
   local sPar, isPar, sRow, tCon = "", false, GetFileRow(F)
@@ -4512,7 +4513,7 @@ function ExportContentsRun(fF,sType,qData,sName,sInd,qList)
             LogInstance("Addition secondary error "..GetReport(iD,qList,mMod)); return false end end
         end
       end
-      local bS, sR = pcall(mgrTab[sFunc], sType, aRow);
+      local bS, sR = pcall(mgrTab[sFunc], aRow, sType);
       if(not bS) then LogInstance("Routine error "..GetReport(iD,mMod,sR)); return false end
       if(not sR) then LogInstance("Internal error "..GetReport(iD,mMod)); return false end
       tableRemove(aRow, 1); fF:Write(sInd:rep(2)); fF:Write("{"); fF:Write(tableConcat(aRow, ", ")); fF:Write("},\n")
@@ -4540,7 +4541,7 @@ function ExportTypeRun(sType)
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return end
   local qPieces, qAdditions -- Prepare placeholder references
-  local sType, tType, nType = RegisterTypeGroup(sType)
+  local sType, tType, nType = ComponentType(sType)
   local sPref, sFunc = GetTypePrefix(sType), debugGetinfo(1).name
   local noSQL, sTool = GetOpVar("MISS_NOSQL"), GetOpVar("TOOLNAME_NL")
   local sForm, fMon = GetOpVar("FORM_FILENAMEAR"), GetConcat("[", sMoDB:lower(), "-run]")
@@ -4585,7 +4586,7 @@ function ExportTypeRun(sType)
   local isSkip, sInd, qAdditions = false, "  ", {}
   while(sRow) do sRow = sRow:gsub("%s*$", "")
     if(sRow:find(tPat.Var)) then isSkip = true
-      fE:Write("local myAddon, myGroup = asmlib.RegisterTypeGroup(\"")
+      fE:Write("local myAddon, myGroup = asmlib.ComponentType(\"")
       fE:Write(sType); fE:Write("\"")
       for iU = 1, nType do
         fE:Write(", "); fE:Write("\"")
@@ -4603,14 +4604,14 @@ function ExportTypeRun(sType)
       end
     elseif(sRow:find(tPat.Cax)) then isSkip = true
       fE:Write("local myCategory = {}\n")
-      local tCat = GetOpVar("TABLE_CATEGORIES").Data[sType]
+      local tCat = GetOpVar("TABLE_CATEGORIES")[sType]
       if(istable(tCat) and tCat.Txt) then
         fE:Write(sInd:rep(3)); fE:Write("myCategory[myType0] = {Txt = [[\n")
         fE:Write(sInd:rep(4)); fE:Write(tCat.Txt:gsub("\n","\n"..sInd:rep(2)).."\n")
         fE:Write(sInd:rep(3)); fE:Write("]]}\n")
       end
       for iU = 1, nType do local sU, sT = tostring(iU), tType[iU]
-        local tCat = GetOpVar("TABLE_CATEGORIES").Data[sT]
+        local tCat = GetOpVar("TABLE_CATEGORIES")[sT]
         if(istable(tCat) and tCat.Txt) then
           fE:Write(sInd:rep(3)); fE:Write("myCategory[myType");
           fE:Write(sU); fE:Write("] = {Txt = [[\n")
@@ -4655,7 +4656,7 @@ function ExportTypeDSV(sType, sDelim)
   if(SERVER) then LogInstance("Working on server"); return end
   local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return end
-  local sType, tType, nType = RegisterTypeGroup(sType) -- Normalize type
+  local sType, tType, nType = ComponentType(sType) -- Normalize type
   local tHew, fPref = GetOpVar("PATTEM_EXDSVHED"), GetTypePrefix(sType)
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
     LogInstance("Missing pieces builder "..GetReport(sType, fPref)); return end

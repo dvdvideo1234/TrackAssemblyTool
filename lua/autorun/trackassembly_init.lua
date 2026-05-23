@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.847")
+asmlib.SetOpVar("TOOL_VERSION","9.848")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1877,7 +1877,7 @@ asmlib.NewTable("PIECES",{
     ExportTypeDSV = function(fP, makP, PCache, fA, makA, ACache, sType, sDelim, vSrc)
       local tSort = asmlib.Arrange(PCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType),vSrc); return false end
-      local sType, tType, nType = asmlib.RegisterTypeGroup(sType) -- Normalize type
+      local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
@@ -1950,8 +1950,8 @@ asmlib.NewTable("PIECES",{
       asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType),vSrc)
       return true
     end,
-    ExportContentsRun = function(sType, aRow)
-      local sType, tType, nType = asmlib.RegisterTypeGroup(sType)
+    ExportContentsRun = function(aRow, sType)
+      local sType, tType, nType = asmlib.ComponentType(sType)
       local aType, rType = asmlib.GetStrip(aRow[2], "\""), aRow[2]
       rType = ((aType == sType) and "myType0" or rType)
       for iT = 1, nType do local sT = tType[iT]
@@ -2023,7 +2023,7 @@ asmlib.NewTable("ADDITIONS",{
         end
       end; return true
     end,
-    ExportContentsRun = function(sType, aRow) aRow[4] = "gsSymOff"; return true end
+    ExportContentsRun = function(aRow) aRow[4] = "gsSymOff"; return true end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -2114,7 +2114,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         end
       end; return true
     end,
-    ExportContentsRun = function(sType, aRow) aRow[2] = "gsSymOff"; return true end
+    ExportContentsRun = function(aRow) aRow[2] = "gsSymOff"; return true end
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },

@@ -22,7 +22,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
  * myType3, ... myType/n as variable arguments when your
  * addon contains multiple model packs.
 ]]
-local myAddon, myGroup = asmlib.RegisterTypeGroup("Test's track pack")
+local myAddon, myGroup = asmlib.ComponentType("Test's track pack")
 
 -- Log messages identifier. Leave DSV here or change it if you like
 local mySource = "DSV"
