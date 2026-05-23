@@ -4682,19 +4682,20 @@ function ExportTypeDSV(sType, sDelim)
   A:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   A:Write(tHea.Tco:format(defA.Nick, makA:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
-    local qsNov = GetOpVar("MISS_NOAV")
     local qsKey = GetOpVar("FORM_KEYSTMT")
-    local qType = makP:Match(sType, 2, true)
+    local qsNov, qP = GetOpVar("MISS_NOAV"), {}
     local qInxP = qsKey:format(sFunc, defP.Nick)
     local qInxA = qsKey:format(sFunc, defA.Nick)
-    local Q = makP:Get(qInxP, qType); if(not IsHere(Q)) then local tQ = makP:GetQuery()
-      Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qType) end
-    if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Build statement failed "..GetReport(sType, fPref),defP.Nick); return end
-    local qP = sqlQuery(Q); if(not qP and isbool(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("SQL exec error "..GetReport(sType,fPref,sqlLastError(), Q), defP.Nick); return end
-    if(not IsHere(qP) or IsEmpty(qP)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("No data found "..GetReport(sType,fPref, Q), defP.Nick); return end
+    local function SetContentsDB(iTy, sTy)
+      local qTy = makP:Match(sTy, 2, true)
+      local Q = makP:Get(qInxP, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery()
+        Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qTy) end
+      if(not IsHere(Q)) then
+        LogInstance("Build statement failed "..GetReport(iTy, sTy, fPref),defP.Nick); return end
+      local qData = sqlQuery(Q); if(not qData and isbool(qData)) then
+        LogInstance("SQL exec error "..GetReport(iTy,sTy,fPref,sqlLastError(), Q), defP.Nick); return end
+      for iR = 1, #qData do tableInsert(qP, qData[iR]) end
+    end; SetContentsDB(0, sType); for iT = 1, nType do SetContentsDB(iT, tType[iT]) end
     local coMo, coLI, rwM = makP:GetColumnName(1), makP:GetColumnName(4), ""
     P:Write(tHea.Qry:format(#qP, Q))
     for iP = 1, #qP do
