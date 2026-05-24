@@ -1,38 +1,9 @@
+trackasmlib = trackasmlib or {}
+
+local GENV = _G
+
 local SERVER = SERVER
 local CLIENT = CLIENT
-
----------------- Localizing Player keys ----------------
-
-local IN_ALT1      = IN_ALT1
-local IN_ALT2      = IN_ALT2
-local IN_ATTACK    = IN_ATTACK
-local IN_ATTACK2   = IN_ATTACK2
-local IN_BACK      = IN_BACK
-local IN_DUCK      = IN_DUCK
-local IN_FORWARD   = IN_FORWARD
-local IN_JUMP      = IN_JUMP
-local IN_LEFT      = IN_LEFT
-local IN_MOVELEFT  = IN_MOVELEFT
-local IN_MOVERIGHT = IN_MOVERIGHT
-local IN_RELOAD    = IN_RELOAD
-local IN_RIGHT     = IN_RIGHT
-local IN_SCORE     = IN_SCORE
-local IN_SPEED     = IN_SPEED
-local IN_USE       = IN_USE
-local IN_WALK      = IN_WALK
-local IN_ZOOM      = IN_ZOOM
-
----------------- Localizing ENT Properties ----------------
-
-local TOP                   = TOP
-local KEY_LSHIFT            = KEY_LSHIFT
-local MASK_SOLID            = MASK_SOLID
-local SOLID_VPHYSICS        = SOLID_VPHYSICS
-local SOLID_NONE            = SOLID_NONE
-local MOVETYPE_VPHYSICS     = MOVETYPE_VPHYSICS
-local MOVETYPE_NONE         = MOVETYPE_NONE
-local COLLISION_GROUP_NONE  = COLLISION_GROUP_NONE
-local RENDERMODE_TRANSALPHA = RENDERMODE_TRANSALPHA
 
 ---------------- Localizing needed functions ----------------
 
@@ -221,6 +192,14 @@ end
 
 function GetTypeClean(sT)
   return tostring(sT or ""):gsub("%s+", " "):Trim()
+end
+
+function GetEnumName(sT, iN)
+  local tE = GetOpVar("TABLE_MAPENUM")[sT]
+  if(not tE) then return nil end
+  local sE = tE[tostring(iN)]
+  if(not sE) then return nil end
+  return tE.Fmt:format(tE.Fme:format(sT, sE))
 end
 
 function IsInit()
@@ -899,7 +878,7 @@ function InitBase(sName, sPurp)
     length = 0, -- Will store the trace length when needed
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
-    mask   = MASK_SOLID,  -- Mask telling it what to hit
+    mask   = GENV.MASK_SOLID,  -- Mask telling it what to hit
     filter = function(oEnt) -- Only valid props which are not the main entity, world or TRACE_FILTER
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
@@ -934,6 +913,31 @@ function InitBase(sName, sPurp)
       {name = "right"     , icon = "gui/rmb.png"},
       {name = "right_use" , icon = "gui/rmb.png" , icon2 = "gui/e.png"},
       {name = "reload"    , icon = "gui/r.png"  }
+    })
+    SetOpVar("TABLE_MAPENUM", {
+      ["MOVETYPE"] = { Fme = "%s_%s", Fmt = "%-19s",
+        [tostring(GENV.MOVETYPE_NONE      )] = "NONE",
+        [tostring(GENV.MOVETYPE_ISOMETRIC )] = "ISOMETRIC",
+        [tostring(GENV.MOVETYPE_WALK      )] = "WALK",
+        [tostring(GENV.MOVETYPE_STEP      )] = "STEP",
+        [tostring(GENV.MOVETYPE_FLY       )] = "FLY",
+        [tostring(GENV.MOVETYPE_FLYGRAVITY)] = "FLYGRAVITY",
+        [tostring(GENV.MOVETYPE_VPHYSICS  )] = "VPHYSICS",
+        [tostring(GENV.MOVETYPE_PUSH      )] = "PUSH",
+        [tostring(GENV.MOVETYPE_NOCLIP    )] = "NOCLIP",
+        [tostring(GENV.MOVETYPE_LADDER    )] = "LADDER",
+        [tostring(GENV.MOVETYPE_OBSERVER  )] = "OBSERVER",
+        [tostring(GENV.MOVETYPE_CUSTOM    )] = "CUSTOM"
+      },
+      ["SOLID"] = { Fme = "%s_%s", Fmt = "%-14s",
+        [tostring(GENV.SOLID_NONE    )] = "NONE",
+        [tostring(GENV.SOLID_BSP     )] = "BSP",
+        [tostring(GENV.SOLID_BBOX    )] = "BBOX",
+        [tostring(GENV.SOLID_OBB     )] = "OBB",
+        [tostring(GENV.SOLID_OBB_YAW )] = "OBB_YAW",
+        [tostring(GENV.SOLID_CUSTOM  )] = "CUSTOM",
+        [tostring(GENV.SOLID_VPHYSICS)] = "VPHYSICS"
+      }
     })
     SetOpVar("TOOL_DEFMODE","gmod_tool")
     SetOpVar("FORM_FILENAMEAR", "z_autorun_[%s]")
@@ -970,18 +974,18 @@ function UpdateColor(oEnt, sVar, sCol, bSet)
   local sPrf = GetOpVar("TOOLNAME_PL")..sVar
   if(IsHere(bSet)) then
     if(bSet) then
-      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select(sCol))
       oEnt:SetNWBool(sPrf, true)
     else
-      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select("w"))
       oEnt:SetNWBool(sPrf, false)
     end
   else
     local bNow = oEnt:GetNWBool(sPrf, false)
     if(bNow) then
-      oEnt:SetRenderMode(RENDERMODE_TRANSALPHA)
+      oEnt:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select(sCol))
     end
   end
@@ -1859,7 +1863,7 @@ function ExportAttachToMenu(pnMenu, sType, bDisp)
   pSe:SetIcon(ToIcon(sI.."exru"))
   pSe:SetTooltip(languageGetPhrase(sT.."exru_tp"))
   pSe = pIn:AddOption(languageGetPhrase(sT.."extr"),
-    function() ExportTypeTRN(sType, inputIsKeyDown(KEY_LSHIFT)) end)
+    function() ExportTypeTRN(sType, inputIsKeyDown(GENV.KEY_LSHIFT)) end)
   pSe:SetIcon(ToIcon(sI.."extr"))
   pSe:SetTooltip(languageGetPhrase(sT.."extr_tp"))
   pSe = pIn:AddOption(languageGetPhrase(sT.."catg"),
@@ -1932,7 +1936,7 @@ function SetNodeExpand(pnBase)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
   local bEx = pnBase:GetExpanded()
-  if(inputIsKeyDown(KEY_LSHIFT)) then
+  if(inputIsKeyDown(GENV.KEY_LSHIFT)) then
     pnBase:ExpandRecurse(not bEx)
   else
     pnBase:SetExpanded(not bEx)
@@ -2060,7 +2064,7 @@ function SetComboBoxList(cPanel, sVar)
     local sName = GetAsmConvar(sVar, "NAM")
     local sMenu, sTtip = languageGetPhrase(sBase.."_con"), languageGetPhrase(sBase)
     pItem = cPanel:ComboBox(sMenu, sName)
-    pItem:SetSortItems(false); pItem:Dock(TOP); pItem:SetTall(25)
+    pItem:SetSortItems(false); pItem:Dock(GENV.TOP); pItem:SetTall(25)
     pItem:SetTooltip(sTtip); pItem:UpdateColours(tSkin)
     pItem:SetValue(GetAsmConvar(sVar, "STR"))
     pItem.DoRightClick = function(pnSelf)
@@ -2324,8 +2328,8 @@ function NewEntityNone(sModel, vPos, aAng) local eNone
   local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
   eNone:SetPos(vPos); eNone:SetAngles(aAng)
   eNone.DoNotDuplicate = true -- Disable duping
-  eNone:SetCollisionGroup(COLLISION_GROUP_NONE)
-  eNone:SetSolid(SOLID_NONE); eNone:SetMoveType(MOVETYPE_NONE)
+  eNone:SetCollisionGroup(GENV.COLLISION_GROUP_NONE)
+  eNone:SetSolid(GENV.SOLID_NONE); eNone:SetMoveType(GENV.MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
   LogInstance("Create "..GetReport(eNone:EntIndex(),sModel)); return eNone
 end
@@ -4492,8 +4496,7 @@ function SetAdditionsRUN(sModel, makTab, qList)
   end
   if(not IsHere(qData) or IsEmpty(qData)) then
     LogInstance("Additions empty "..GetReport(IsHere(qData), IsEmpty(qData), sModel)); return true end
-  local iE = #qList; for iD = 1, #qData do qList[iE + iD] = qData[iD] end
-  return true
+  for iD = 1, #qData do tableInsert(qList, qData[iD]) end; return true
 end
 
 function ExportContentsRUN(fF,sType,qData,sName,sInd,qList)
@@ -5284,13 +5287,13 @@ function AttachAdditions(ePiece)
     else eBonus:SetAngles(eAng); LogInstance("ENT:SetAngles(PIECE:ANG)") end
     local nMo = (tonumber(arRec[coMO]) or -1)
     if(nMo >= 0) then eBonus:SetMoveType(nMo)
-      LogInstance(saFM:format("ENT", "SetMoveType", nMo)) end
+      LogInstance(saFM:format("ENT", "SetMoveType", tostring(nMo))) end
     local nPh = (tonumber(arRec[coPI]) or -1)
     if(nPh >= 0) then eBonus:PhysicsInit(nPh)
-      LogInstance(saFM:format("ENT", "PhysicsInit", nPh)) end
+      LogInstance(saFM:format("ENT", "PhysicsInit", tostring(nPh))) end
     local nSh = (tonumber(arRec[coDR]) or 0)
     if(nSh ~= 0) then nSh = (nSh > 0); eBonus:DrawShadow(nSh)
-      LogInstance("ENT", "DrawShadow", tostring(nSh)) end
+      LogInstance(saFM:format("ENT", "DrawShadow", tostring(nSh))) end
     eBonus:SetParent(ePiece); LogInstance("ENT:SetParent(PIECE)")
     eBonus:Spawn(); LogInstance("ENT:Spawn()")
     pPonus = eBonus:GetPhysicsObject()
@@ -5444,9 +5447,9 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local sClass = GetEmpty(stData.Unit, nil, GetOpVar("ENTITY_DEFCLASS"))
   local ePiece = entsCreate(sClass); if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid "..GetReport(sClass, sModel)); return nil end
-  ePiece:SetCollisionGroup(COLLISION_GROUP_NONE)
-  ePiece:SetSolid(SOLID_VPHYSICS)
-  ePiece:SetMoveType(MOVETYPE_VPHYSICS)
+  ePiece:SetCollisionGroup(GENV.COLLISION_GROUP_NONE)
+  ePiece:SetSolid(GENV.SOLID_VPHYSICS)
+  ePiece:SetMoveType(GENV.MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
   if(not SetPosBound(ePiece,vPos,pPly,sMode)) then
@@ -5455,7 +5458,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
-  ePiece:SetRenderMode(RENDERMODE_TRANSALPHA)
+  ePiece:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
   ePiece:SetColor(clColor or GetColor(255,255,255,255))
   ePiece:DrawShadow(false)
   ePiece:PhysWake()
@@ -5504,7 +5507,7 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
   ePiece:SetNWBool(sToolPrefL.."physgundisabled", bPi) -- Disable drawing physgun grab and move
   ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
-  ePiece:SetMoveType(MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
+  ePiece:SetMoveType(GENV.MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
   -- Delay the freeze by a tiny amount because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
   timerSimple(GetOpVar("DELAY_ACTION"), function() -- If frozen motion is disabled
@@ -5858,10 +5861,10 @@ function NewEntityGhost(sModel, vPos, aAng)
   eGho:SetNoDraw(true)
   eGho:SetNotSolid(true)
   eGho:DrawShadow(false)
-  eGho:SetSolid(SOLID_NONE)
-  eGho:SetMoveType(MOVETYPE_NONE)
-  eGho:SetCollisionGroup(COLLISION_GROUP_NONE)
-  eGho:SetRenderMode(RENDERMODE_TRANSALPHA)
+  eGho:SetSolid(GENV.SOLID_NONE)
+  eGho:SetMoveType(GENV.MOVETYPE_NONE)
+  eGho:SetCollisionGroup(GENV.COLLISION_GROUP_NONE)
+  eGho:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
   eGho:SetColor(cPal:Select("gh"))
   eGho:Spawn()
   return eGho

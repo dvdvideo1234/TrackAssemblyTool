@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.851")
+asmlib.SetOpVar("TOOL_VERSION","9.852")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1951,7 +1951,7 @@ asmlib.NewTable("PIECES",{
       asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType),vSrc)
       return true
     end,
-    ExportContentsRun = function(aRow, sType)
+    ExportContentsRUN = function(aRow, sType)
       local sType, tType, nType = asmlib.ComponentType(sType)
       local aType, rType = asmlib.GetStrip(aRow[2], "\""), aRow[2]
       rType = ((aType == sType) and "myType0" or rType)
@@ -1976,7 +1976,7 @@ asmlib.NewTable("ADDITIONS",{
   Query = {
     Erase               = {W = {{1,"%s"}}},
     ExportDSV           = {O = {1,4}},
-    SetAdditionsRun     = {W = {{1,"%s"}}, O = {4}},
+    SetAdditionsRUN     = {W = {{1,"%s"}}, O = {4}},
     CacheQueryAdditions = {W = {{1,"%s"}}, O = {4}},
     ExportTypeDSV       = {W = {{1,"%s"}}, O = {1,4}},
     Record              = {V = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}}
@@ -2024,7 +2024,16 @@ asmlib.NewTable("ADDITIONS",{
         end
       end; return true
     end,
-    ExportContentsRun = function(aRow) aRow[4] = "gsSymOff"; return true end
+    ExportContentsRUN = function(aRow)
+      local sF = "%+d"; aRow[ 4] = "gsSymOff"
+      aRow[7]  = (asmlib.GetEnumName("MOVETYPE", aRow[7]) or aRow[7])
+      aRow[8]  = (asmlib.GetEnumName("SOLID"   , aRow[8]) or aRow[8])
+      aRow[9]  = sF:format(aRow[9]) -- Draw shadow
+      aRow[10] = sF:format(aRow[10]) -- Enable motion
+      aRow[11] = sF:format(aRow[11]) -- Physics sleep
+      aRow[12] = (asmlib.GetEnumName("SOLID"   , aRow[12]) or aRow[12])
+      return true
+    end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
   [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
@@ -2115,7 +2124,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         end
       end; return true
     end,
-    ExportContentsRun = function(aRow) aRow[2] = "gsSymOff"; return true end
+    ExportContentsRUN = function(aRow) aRow[2] = "gsSymOff"; return true end
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
