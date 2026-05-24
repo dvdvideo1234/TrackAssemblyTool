@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.849")
+asmlib.SetOpVar("TOOL_VERSION","9.851")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -520,6 +520,7 @@ if(CLIENT) then
   asmlib.ToIcon("pn_contextm_exdv" , "database_table"    )
   asmlib.ToIcon("pn_contextm_exru" , "script_code"       )
   asmlib.ToIcon("pn_contextm_extr" , "shape_square_go"   )
+  asmlib.ToIcon("pn_contextm_catg" , "folder_brick"   )
   asmlib.ToIcon("pn_contextm_mv"   , "joystick"          )
   asmlib.ToIcon("pn_contextm_mvup" , "arrow_up"          )
   asmlib.ToIcon("pn_contextm_mvdn" , "arrow_down"        )
@@ -1781,7 +1782,7 @@ asmlib.NewTable("PIECES",{
     Erase           = {W = {{1,"%s"}}},
     CacheQueryPiece = {W = {{1,"%s"}}, O = {4}},
     ExportTypeDSV   = {W = {{2,"%s"}}, O = {3,1,4}},
-    ExportTypeRun   = {W = {{2,"%s"}}, O = {3,1,4}},
+    ExportTypeRUN   = {W = {{2,"%s"}}, O = {3,1,4}},
     Record          = {V = {"%s","%s","%s","%d","%s","%s","%s","%s"}},
     CacheQueryTree  = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}},
     ExportSyncDB    = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}}
@@ -1916,7 +1917,7 @@ asmlib.NewTable("PIECES",{
         end
       end; return true
     end,
-    ExportTypeRun = function(sType, makP, PCache, qPieces, vSrc)
+    ExportTypeRUN = function(sType, makP, PCache, qPieces, vSrc)
       local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
       local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
       local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
