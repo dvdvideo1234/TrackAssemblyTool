@@ -161,8 +161,8 @@ module("trackasmlib")
 
 ---------------------------- PRIMITIVES ----------------------------
 
-function IsHere(vVal)
-  return (vVal ~= nil)
+function IsHere(vV)
+  return (vV ~= nil)
 end
 
 function GetOpVar(sName)
@@ -178,8 +178,8 @@ function GetConcat(...)
   tableEmpty(libConcat); return cC
 end
 
-function SetOpVar(sName, vVal)
-  libOpVars[sName] = vVal
+function SetOpVar(sName, vV)
+  libOpVars[sName] = vV
 end
 
 function GetInstPrefix()
@@ -194,47 +194,39 @@ function GetTypeClean(sT)
   return tostring(sT or ""):gsub("%s+", " "):Trim()
 end
 
-function GetEnumName(sT, iN)
-  local tE = GetOpVar("TABLE_MAPENUM")[sT]
-  if(not tE) then return nil end
-  local sE = tE[tostring(iN)]
-  if(not sE) then return nil end
-  return tE.Fmt:format(tE.Fme:format(sT, sE))
-end
-
 function IsInit()
   return IsHere(GetOpVar("TIME_INIT"))
 end
 
-function IsBlank(vVal)
-  if(not isstring(vVal)) then return false end
-  return (vVal == "")
+function IsBlank(vV)
+  if(not isstring(vV)) then return false end
+  return (vV == "")
 end
 
-function IsNull(vVal)
-  if(not isstring(vVal)) then return false end
-  return (vVal == GetOpVar("MISS_NOSQL"))
+function IsNull(vV)
+  if(not isstring(vV)) then return false end
+  return (vV == GetOpVar("MISS_NOSQL"))
 end
 
-function IsDisable(vVal)
-  if(not isstring(vVal)) then return false end
-  return (vVal:sub(1,1) == GetOpVar("OPSYM_DISABLE"))
+function IsDisable(vV)
+  if(not isstring(vV)) then return false end
+  return (vV:sub(1,1) == GetOpVar("OPSYM_DISABLE"))
 end
 
 function IsEmpty(tVal)
   return (istable(tVal) and not next(tVal))
 end
 
-function IsExact(vVal)
-  if(not isstring(vVal)) then return false end
-  return (vVal:sub(1,1) == "*")
+function IsExact(vV)
+  if(not isstring(vV)) then return false end
+  return (vV:sub(1,1) == "*")
 end
 
-function GetNameExp(vVal)
-  local bExa = IsExact(vVal)
+function GetNameExp(vV)
+  local bExa = IsExact(vV)
   local sPrf = GetOpVar("TOOLNAME_PL")
-  local sNam = (bExa and vVal:sub(2, -1) or vVal)
-  local sKey = (bExa and vVal:sub(2, -1) or (sPrf..vVal))
+  local sNam = (bExa and vV:sub(2, -1) or vV)
+  local sKey = (bExa and vV:sub(2, -1) or (sPrf..vV))
   return sKey:lower(), sNam:lower(), bExa -- Extracted convar name
 end
 
@@ -351,6 +343,23 @@ function IsModel(sModel, bDeep)
   libModel.Deep[sModel] = vDeep -- Store deep validation
   LogInstance("Deep >> "..GetReport(vDeep, vFile, sModel))
   return vDeep -- Gonna spawn on the server. Must validate.
+end
+
+--[[
+ * Maps enums names to their values and back
+ * sT > Enum set to use [value to name]. Disable for using [name to value]
+ * vI > Key to search for in the set to map the value
+ Returns: The mapped value
+]]
+function GetEnumMap(sT, vI)
+  local sD = GetOpVar("OPSYM_DISABLE")
+  local tE = GetOpVar("TABLE_MAPENUM")[sT]
+  if(not tE) then return nil end
+  if(IsDisable(sT)) then return tE[vI] else
+    local sE = tE[tostring(vI)]
+    if(not sE) then return nil end
+    return tE.Fmt:format(tE.Fme:format(sT, sE))
+  end
 end
 
 -- Strips a string from quotes
@@ -605,15 +614,15 @@ end
 --[[
  * Formats a given string to icon image path
  *  vKey > Key to retrieve/store the icon for
- *  vVal > Icon base image being stored
+ *  vV   > Icon base image being stored
  * Returns line contents and reaching EOF flag
  *  sIco > The consolidated icon image path
 ]]
-function ToIcon(vKey, vVal)
+function ToIcon(vKey, vV)
   if(SERVER) then return nil end
   local tIcon = GetOpVar("TABLE_SKILLICON"); if(not IsHere(vKey)) then
     LogInstance("Invalid "..GetReport(vKey)); return nil end
-  if(IsHere(vVal)) then tIcon[vKey] = tostring(vVal) end
+  if(IsHere(vV)) then tIcon[vKey] = tostring(vV) end
   local sIcon = tIcon[vKey]; if(not IsHere(sIcon)) then
     LogInstance("Missing "..GetReport(vKey)); return nil end
   return GetOpVar("FORM_ICONS"):format(tostring(sIcon))
@@ -937,6 +946,27 @@ function InitBase(sName, sPurp)
         [tostring(GENV.SOLID_OBB_YAW )] = "OBB_YAW",
         [tostring(GENV.SOLID_CUSTOM  )] = "CUSTOM",
         [tostring(GENV.SOLID_VPHYSICS)] = "VPHYSICS"
+      },
+      ["#"] = {
+        ["MOVETYPE_NONE"      ] = GENV.MOVETYPE_NONE,
+        ["MOVETYPE_ISOMETRIC" ] = GENV.MOVETYPE_ISOMETRIC,
+        ["MOVETYPE_WALK"      ] = GENV.MOVETYPE_WALK,
+        ["MOVETYPE_STEP"      ] = GENV.MOVETYPE_STEP,
+        ["MOVETYPE_FLY"       ] = GENV.MOVETYPE_FLY,
+        ["MOVETYPE_FLYGRAVITY"] = GENV.MOVETYPE_FLYGRAVITY,
+        ["MOVETYPE_VPHYSICS"  ] = GENV.MOVETYPE_VPHYSICS,
+        ["MOVETYPE_PUSH"      ] = GENV.MOVETYPE_PUSH,
+        ["MOVETYPE_NOCLIP"    ] = GENV.MOVETYPE_NOCLIP,
+        ["MOVETYPE_LADDER"    ] = GENV.MOVETYPE_LADDER,
+        ["MOVETYPE_OBSERVER"  ] = GENV.MOVETYPE_OBSERVER,
+        ["MOVETYPE_CUSTOM"    ] = GENV.MOVETYPE_CUSTOM,
+        ["SOLID_NONE"         ] = GENV.SOLID_NONE,
+        ["SOLID_BSP"          ] = GENV.SOLID_BSP,
+        ["SOLID_BBOX"         ] = GENV.SOLID_BBOX,
+        ["SOLID_OBB"          ] = GENV.SOLID_OBB,
+        ["SOLID_OBB_YAW"      ] = GENV.SOLID_OBB_YAW,
+        ["SOLID_CUSTOM"       ] = GENV.SOLID_CUSTOM,
+        ["SOLID_VPHYSICS"     ] = GENV.SOLID_VPHYSICS
       }
     })
     SetOpVar("TOOL_DEFMODE","gmod_tool")
@@ -3456,6 +3486,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
     local qtDef = self:GetDefinition()
+    local tTrig = (istable(qtDef.Trigs) and qtDef.Trigs or nil)
     local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debugGetinfo(1).name
     local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
       LogInstance("Unsupported mode", qtDef.Nick); return false end
@@ -3467,8 +3498,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end -- Read the log source format and reduce the number of concatenations
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
     local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
-    if(istable(qtDef.Trigs)) then -- Call the trigger when provided
-      local bS, sR = pcall(qtDef.Trigs[sFunc], arLine, ssLog:format("Trigs"))
+    if(tTrig and tTrig[sFunc]) then -- Call the trigger when provided
+      local bS, sR = pcall(tTrig[sFunc], arLine, ssLog:format("Trigs"))
       if(not bS) then LogInstance("Trigger manager: "..sR,qtDef.Nick); return false end
       if(not sR) then LogInstance("Trigger routine fail",qtDef.Nick); return false end
     end -- Populate the data after the trigger does its thing
@@ -4051,6 +4082,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     LogInstance("Missing table builder "..GetReport(sHew), sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition "..GetReport(sHew), sTable); return false end
+  local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = fileOpen(fName, "wb", "DATA"); if(not F) then
@@ -4069,9 +4101,15 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(sHew, fName, Q), sTable); return false end
     F:Write(tHea.Qry:format(#qData, Q))
-    for iCnt = 1, #qData do
-      F:Write(defTab.Name); F:Write(sDelim); F:Write(makTab:GetPrepare(qData[iCnt], sDelim,
-        function(iCT, sCT, vCT) return makTab:Match(vCT,iCT,true,"\"",true) end)); F:Write("\n")
+    for iR = 1, #qData do local aRow = makTab:GetArrayRow(qData[iR])
+      for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
+      if(tTrig[sFunc]) then
+        local bS, sR = pcall(tTrig[sFunc], aRow)
+        if(not bS) then F:Flush(); F:Close()
+          LogInstance("Trigs manager error "..GetReport(sHew, fName, sR), sTable); return false end
+        if(not sR) then F:Flush(); F:Close()
+          LogInstance("Trigs routine fail "..GetReport(sHew, fName, sR), sTable); return false end
+      end; F:Write(defTab.Name); F:Write(sDelim); F:Write(tableConcat(aRow, sDelim)); F:Write("\n")
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
@@ -4137,16 +4175,17 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   end
   local iD, sRow, tCon = makTab:GetColumnID("LINEID"), GetFileRow(F)
   while(sRow) do
-    if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
-      local tData = sDelim:Explode(sRow); if((#tData-1) > defTab.Size) then
-        LogInstance("Internal length mismatch "..GetReport(sHew,sRow), sTable); tCon.ER = true; break end
-      local sSors = tableRemove(tData, 1); if(sSors ~= defTab.Name) then
-        LogInstance("Internal table mismatch "..GetReport(sHew,sRow), sTable); tCon.ER = true; break end
-      for iCnt = 1, defTab.Size do tData[iCnt] = GetStrip(tData[iCnt]) end
-      if(bRef and (tonumber(tData[iD]) or 0) == 1) then
-        if(bComm) then makTab:Erase(tData[1]) end
+    if(not (IsBlank(sRow) or IsDisable(sRow))) then
+      local aRow = sDelim:Explode(sRow)
+      if(tableRemove(aRow, 1) ~= defTab.Name) then tCon.ER = true
+        LogInstance("Internal table mismatch "..GetReport(sHew, sRow), sTable); break end
+      if(#aRow ~= defTab.Size) then tCon.ER = true
+        LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
+      for iC = 1, defTab.Size do aRow[iC] = GetStrip(aRow[iC]) end
+      if(bRef and (tonumber(aRow[iD]) or 0) == 1) then
+        if(bComm) then makTab:Erase(aRow[1]) end
       end
-      if(bComm) then makTab:Record(tData) end
+      if(bComm) then makTab:Record(aRow) end
     end; sRow, tCon = GetFileRow(F, tCon)
   end
   if(tCon.ER) then if(not tCon.RO) then F:Close() end
@@ -4181,6 +4220,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
+  local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local fName = GetLibraryPath(GetOpVar("DIRPATH_DSV"), fPref, defTab.Name)
   TimeLap("INIT-OK")
   if(fileExists(fName, "DATA")) then
@@ -4231,11 +4271,11 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
             ..GetReport(sHew, tRow[nCnt], (nCnt+1), defTab[nCnt+1][1], sKey),sTable); return false
         end; tRow[nCnt] = vM -- Store the matched value in the same place as the original
       end -- Check whenever triggers are available. Run them if present
-      if(istable(defTab.Trigs)) then tableInsert(tRow, 1, vK) -- Apply trigger format
-        local bS, sR = pcall(defTab.Trigs["Record"], tRow, sFunc); if(not bS) then
-          LogInstance("Trigger error "..GetReport(sHew, nID, vK, sR),sTable); return false end
+      if(tTrig and tTrig["Record"]) then tableInsert(tRow, 1, vK) -- Apply trigger format
+        local bS, sR = pcall(tTrig["Record"], tRow, sFunc); if(not bS) then
+          LogInstance("Store manager fail: "..GetReport(sHew, nID, vK, sR),sTable); return false end
         if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
-          LogInstance("Trigger routine fail "..GetReport(sHew, nID, vK),sTable); return false end
+          LogInstance("Store routine fail: "..GetReport(sHew, nID, vK),sTable); return false end
         tableRemove(tRow, 1) -- Remove the fictive duplicated primary key from the row data first column
       end
     end -- Register the read line to the output file
@@ -4252,19 +4292,36 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   O:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   O:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   TimeLap("OUTC-INIT")
-  for iKey = 1, tSort.Size do local key = tSort[iKey].Key
-    local vK = makTab:Match(key,1,true,"\"",true); if(not IsHere(vK)) then
-      O:Flush(); O:Close(); LogInstance("Write matching PK failed "
+  for iS = 1, tSort.Size do local key = tSort[iS].Key
+    local fRec, vK = fData[key], makTab:Match(key,1,true,"\"",true)
+    if(not IsHere(vK)) then O:Flush(); O:Close()
+      LogInstance("Write matching PK failed "
         ..GetReport(sHew,key),sTable); return false end
-    local fRec = fData[key]
-    for iCnt = 1, fRec.Size do local fRow = fRec[iCnt]
-      O:Write(defTab.Name); O:Write(sDelim); O:Write(vK)
-      for nCnt = 1, #fRow do
-        local vM = makTab:Match(fRow[nCnt],nCnt+1,true,"\"",true); if(not IsHere(vM)) then
-          O:Flush(); O:Close(); LogInstance("Write matching failed "
-            ..GetReport(sHew, fRow[nCnt], (nCnt+1), defTab[nCnt+1][1], key),sTable); return false
-        end; O:Write(sDelim); O:Write(tostring(vM))
-      end; O:Write("\n")
+    for iR = 1, fRec.Size do
+      local fRow = fRec[iR]; tableInsert(fRow, 1, key)
+      if(tTrig and tTrig["Record"]) then
+        local bS, sR = pcall(tTrig["Record"], fRow)
+        if(not bS) then O:Flush(); O:Close()
+          LogInstance("Import manager fail: "..sR,defTab.Nick); return false end
+        if(not sR) then O:Flush(); O:Close()
+          LogInstance("Import routine fail",defTab.Nick); return false end
+      end
+      O:Write(defTab.Name); O:Write(sDelim)
+      for iM = 1, #fRow do
+        local vM = makTab:Match(fRow[iM],iM,true,"\"",true)
+        if(not IsHere(vM)) then O:Flush(); O:Close(); LogTable(fRow, "Row", sTable)
+          LogInstance("Write matching failed "..GetReport(sHew, fRow[iM], iM, defTab[iM][1], key),sTable)
+          return false -- Matching has failed
+        end; fRow[iM] = vM
+      end
+      if(tTrig and tTrig["Export"]) then
+        local bS, sR = pcall(tTrig["Export"], fRow)
+        if(not bS) then O:Flush(); O:Close()
+          LogInstance("Export manager fail: "..sR,defTab.Nick); return false end
+        if(not sR) then O:Flush(); O:Close()
+          LogInstance("Export routine fail",defTab.Nick); return false end
+        for iT = 1, #fRow do fRow[iT] = tostring(fRow[iT]):Trim() end
+      end; O:Write(tableConcat(fRow, sDelim)); O:Write("\n")
     end
   end; O:Flush(); O:Close()
   TimeLap("OUTC-FINISH")
@@ -4311,6 +4368,7 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   end
   local S = fileOpen(sSRC, "rb", "DATA"); if(not S) then
     LogInstance("Open fail "..GetReport(sHew, sSRC),sTable); return false end
+  local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local sFpr = GetOpVar("FORM_PREFIXFMT"):format(sMoDB:lower(), "tr", fPref)
   local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
   local I = fileOpen(sEXP, "wb", "DATA"); if(not I) then
@@ -4320,21 +4378,31 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
   local sRow, tCon = GetFileRow(S)
   while(sRow) do
-    if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
-      sRow = sRow:gsub(defTab.Name,""):Trim()
-      local tRow = sDelim:Explode(sRow)
-      for nCnt = 1, #tRow do
-        local vMatch = makTab:Match(GetStrip(tRow[nCnt]),nCnt,true,"\"",true)
-        if(not IsHere(vMatch)) then I:Flush(); I:Close()
+    if(not (IsBlank(sRow) or IsDisable(sRow))) then
+      local aRow = sDelim:Explode(sRow)
+      if(tableRemove(aRow, 1) ~= defTab.Name) then tCon.ER = true
+        LogInstance("Internal table mismatch "..GetReport(sHew, sRow), sTable); break end
+      if(#aRow ~= defTab.Size) then tCon.ER = true
+        LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
+      if(tTrig and tTrig["Record"]) then
+        local bS, sR = pcall(tTrig["Record"], aRow)
+        if(not bS) then tCon.ER = true
+          LogInstance("Import manager fail: "..sR,defTab.Nick); break end
+        if(not sR) then tCon.ER = true
+          LogInstance("Import routine fail",defTab.Nick); break end
+      end
+      for nCnt = 1, #aRow do
+        local vM = makTab:Match(GetStrip(aRow[nCnt]),nCnt,true,"\"",true)
+        if(not IsHere(vM)) then I:Flush(); I:Close(); tCon.ER = true
           LogInstance("Given matching failed "
-            ..GetReport(sHew, tRow[nCnt], nCnt, defTab[nCnt][1]), sTable); tCon.ER = true; break end
-        tRow[nCnt] = tostring(vMatch)
-      end; I:Write(sFr); I:Write(tableConcat(tRow, ", ")); I:Write(sBk)
+            ..GetReport(sHew, aRow[nCnt], nCnt, defTab[nCnt][1]), sTable); break end
+        aRow[nCnt] = tostring(vM)
+      end; I:Write(sFr); I:Write(tableConcat(aRow, ", ")); I:Write(sBk)
     end; sRow, tCon = GetFileRow(S, tCon)
   end; I:Flush(); I:Close()
   if(tCon.ER) then if(not tCon.RO) then S:Close() end
     LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
-  LogInstance("Success "..GetReport(sHew,sSRC),sTable); return true
+  LogInstance("Success "..GetReport(sHew, sSRC),sTable); return true
 end
 
 --[[

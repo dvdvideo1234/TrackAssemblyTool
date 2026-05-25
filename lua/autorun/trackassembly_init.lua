@@ -90,7 +90,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.852")
+asmlib.SetOpVar("TOOL_VERSION","9.853")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1880,6 +1880,7 @@ asmlib.NewTable("PIECES",{
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType),vSrc); return false end
       local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
+      local tTrgA = (istable(defA.Trigs) and defA.Trigs or nil)
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
@@ -1905,11 +1906,16 @@ asmlib.NewTable("PIECES",{
             fP:Write("\""); fP:Write(sC); fP:Write("\"\n")
             if(iD == 1) then local tA = ACache[stRec.Key]
               if(tA and tA.Size and tA.Size > 0) then
-                local sH = asmlib.GetConcat(defA.Name, sDelim, makA:Match(stRec.Key,1,true,"\""))
+                local sH = asmlib.GetConcat(defA.Name, sDelim)
                 for iA = 1, tA.Size do fA:Write(sH)
-                  for iC = 2, defA.Size do local sC = defA[iC][1]
-                    local vC = tA[iA][sC]; fA:Write(sDelim); fA:Write(makA:Match(vC,iC,true,"\""))
-                  end; fA:Write("\n")
+                  local aRow = makA:GetArrayRow(tA[iA]); aRow[1] = stRec.Key
+                  for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
+                  if(tTrgA and tTrgA["ExportDSV"]) then
+                    local bS, sR = pcall(tTrgA["ExportDSV"], aRow)
+                    if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,defA.Nick); return false end
+                    if(not sR) then asmlib.LogInstance("Trigs routine fail",defA.Nick); return false end
+                    for iT = 1, #aRow do aRow[iT] = tostring(aRow[iT]):Trim() end
+                  end; fA:Write(tableConcat(aRow, sDelim)); fA:Write("\n")
                 end
               end
             end
@@ -1951,13 +1957,13 @@ asmlib.NewTable("PIECES",{
       asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType),vSrc)
       return true
     end,
-    ExportContentsRUN = function(aRow, sType)
+    ExportContentsRUN = function(arLine, sType)
       local sType, tType, nType = asmlib.ComponentType(sType)
-      local aType, rType = asmlib.GetStrip(aRow[2], "\""), aRow[2]
+      local aType, rType = asmlib.GetStrip(arLine[2], "\""), arLine[2]
       rType = ((aType == sType) and "myType0" or rType)
       for iT = 1, nType do local sT = tType[iT]
         rType = ((aType == sT) and "myType"..iT or rType)
-      end; aRow[2], aRow[4] = rType, "gsSymOff"; return true
+      end; arLine[2], arLine[4] = rType, "gsSymOff"; return true
     end
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
@@ -1980,6 +1986,24 @@ asmlib.NewTable("ADDITIONS",{
     CacheQueryAdditions = {W = {{1,"%s"}}, O = {4}},
     ExportTypeDSV       = {W = {{1,"%s"}}, O = {1,4}},
     Record              = {V = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}}
+  },
+  Trigs = {
+    Export = function(arLine)
+      local sF = "%+d"
+      arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
+      arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
+      arLine[9]  = sF:format(arLine[9]) -- Draw shadow
+      arLine[10] = sF:format(arLine[10]) -- Enable motion
+      arLine[11] = sF:format(arLine[11]) -- Physics sleep
+      arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
+      return true
+    end,
+    Record = function(arLine)
+      arLine[7]  = (asmlib.GetEnumMap("#", arLine[7]) or arLine[7])
+      arLine[8]  = (asmlib.GetEnumMap("#", arLine[8]) or arLine[8])
+      arLine[12] = (asmlib.GetEnumMap("#", arLine[12]) or arLine[12])
+      return true
+    end,
   },
   Cache = {
     Erase  = function(makTab, tCache, snPK, vSrc)
@@ -2005,33 +2029,34 @@ asmlib.NewTable("ADDITIONS",{
       end; stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
-      local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Slot")
+      local defTab, sFunc = makTab:GetDefinition(), "ExportDSV"
+      local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
-        for iRec = 1, #tRec do local vRec = tRec[iRec]
-          oF:Write(defTab.Name); oF:Write(sDelim); oF:Write(makTab:Match(sKey,1,true,"\""))
-          for iID = 2, defTab.Size do
-            local sC = makTab:GetColumnName(iID); if(not sC) then
-              asmlib.LogInstance("Cannot index "..asmlib.GetReport(iID,sKey),vSrc); return false end
-            local vData = vRec[sC]; if(not sC) then
-              asmlib.LogInstance("Cannot extract "..asmlib.GetReport(iID,sKey),vSrc); return false end
-            local vM = makTab:Match(vData,iID,true,"\""); if(not asmlib.IsHere(vM)) then
-              asmlib.LogInstance("Cannot match "..asmlib.GetReport(iID,vData)); return false
-            end; oF:Write(sDelim); oF:Write(tostring(vM or ""))
-          end; oF:Write("\n") -- Data is already inserted, there will be no crash
+        for iRec = 1, #tRec do
+          local aRow = makTab:GetArrayRow(tRec[iRec]); aRow[1] = sKey
+          for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
+          if(tTrig and tTrig[sFunc]) then
+            local bS, sR = pcall(tTrig[sFunc], aRow)
+            if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,vSrc); return false end
+            if(not sR) then asmlib.LogInstance("Trigs routine fail",vSrc); return false end
+            for iC = 1, #aRow do aRow[iC] = tostring(aRow[iC]):Trim() end
+          end
+          oF:Write(defTab.Name); oF:Write(sDelim)
+          oF:Write(tableConcat(aRow, sDelim)); oF:Write("\n")
         end
       end; return true
     end,
-    ExportContentsRUN = function(aRow)
-      local sF = "%+d"; aRow[ 4] = "gsSymOff"
-      aRow[7]  = (asmlib.GetEnumName("MOVETYPE", aRow[7]) or aRow[7])
-      aRow[8]  = (asmlib.GetEnumName("SOLID"   , aRow[8]) or aRow[8])
-      aRow[9]  = sF:format(aRow[9]) -- Draw shadow
-      aRow[10] = sF:format(aRow[10]) -- Enable motion
-      aRow[11] = sF:format(aRow[11]) -- Physics sleep
-      aRow[12] = (asmlib.GetEnumName("SOLID"   , aRow[12]) or aRow[12])
+    ExportContentsRUN = function(arLine)
+      local sF = "%+d"; arLine[4] = "gsSymOff"
+      arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
+      arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
+      arLine[9]  = sF:format(arLine[9]) -- Draw shadow
+      arLine[10] = sF:format(arLine[10]) -- Enable motion
+      arLine[11] = sF:format(arLine[11]) -- Physics sleep
+      arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
       return true
     end
   },
@@ -2124,7 +2149,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         end
       end; return true
     end,
-    ExportContentsRUN = function(aRow) aRow[2] = "gsSymOff"; return true end
+    ExportContentsRUN = function(arLine) arLine[2] = "gsSymOff"; return true end
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
