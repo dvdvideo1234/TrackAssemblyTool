@@ -1,5 +1,3 @@
-trackasmlib = trackasmlib or {}
-
 local GENV = _G
 
 local SERVER = SERVER
@@ -310,7 +308,7 @@ function TimeLap(sN)
   Log(tTm.Flp:format(tTm.Nam, tTm.Nsn, tTm.Bns, tTm.Cur, tTm.Lps, tTm.Lpc), tTm.Con)
 end
 
--- Uses custom model check to remove the pre-caching overhead
+-- Uses a custom model check to remove the pre-caching overhead
 libModel.Skip = {} -- General disabled models for spawning
 libModel.Skip[""] = true -- Empty string
 libModel.Skip["models/error.mdl"] = true
@@ -337,7 +335,7 @@ function IsModel(sModel, bDeep)
       LogInstance("File missing "..GetReport(sModel)); return vFile end
     vFile = true; libModel.File[sModel] = vFile -- The file validated
     LogInstance("File >> "..GetReport(vDeep, vFile, sModel))
-  end -- At this point file path is valid. Have to validate model
+  end -- At this point the file path is valid. Have to validate the model
   if(CLIENT or not bDeep) then return vFile end -- File is validated
   utilPrecacheModel(sModel); vDeep = utilIsValidModel(sModel)
   libModel.Deep[sModel] = vDeep -- Store deep validation
@@ -349,16 +347,20 @@ end
  * Maps enums names to their values and back
  * sT > Enum set to use [value to name]. Disable for using [name to value]
  * vI > Key to search for in the set to map the value
+ * bT > Trim the output. Do not align to the longest entry
  Returns: The mapped value
 ]]
-function GetEnumMap(sT, vI)
+function GetEnumMap(sT, vI, bT)
   local sD = GetOpVar("OPSYM_DISABLE")
+  local sT = tostring(sT or sD)
   local tE = GetOpVar("TABLE_MAPENUM")[sT]
   if(not tE) then return nil end
   if(IsDisable(sT)) then return tE[vI] else
     local sE = tE[tostring(vI)]
     if(not sE) then return nil end
-    return tE.Fmt:format(tE.Fme:format(sT, sE))
+    local sF = tE.Fme:format(sT, sE)
+    if(bT) then return sF end
+    return tE.Fmt:format(sF)
   end
 end
 
@@ -879,8 +881,7 @@ function InitBase(sName, sPurp)
   SetOpVar("CVAR_LIMITNAME","asm"..GetOpVar("NAME_INIT").."s")
   SetOpVar("MODE_DATABASE",GetOpVar("MISS_NOAV"))
   SetOpVar("HASH_USER_PANEL",GetOpVar("TOOLNAME_PU").."USER_PANEL")
-  SetOpVar("HASH_PROPERTY_NAMES","PROPERTY_NAMES")
-  SetOpVar("HASH_PROPERTY_TYPES","PROPERTY_TYPES")
+  SetOpVar("HASH_PROPERTY", {Name = "NAMES", Type = "TYPES"})
   SetOpVar("TRACE_CLASS", {[GetOpVar("ENTITY_DEFCLASS")]=true})
   SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
     length = 0, -- Will store the trace length when needed
@@ -3806,20 +3807,20 @@ function CacheQueryProperty(sType)
   local qsKey, sFunc = GetOpVar("FORM_KEYSTMT"), debugGetinfo(1).name
   if(isstring(sType) and not IsBlank(sType)) then
     local sType = makTab:Match(sType,1,false,"",true,true)
-    local keyName = GetOpVar("HASH_PROPERTY_NAMES")
-    local arNames = tCache[keyName]
+    local pN = GetOpVar("HASH_PROPERTY").Name
+    local arNames = tCache[pN]
     if(not IsHere(arNames)) then
-      tCache[keyName] = {}; arNames = tCache[keyName] end
+      tCache[pN] = {}; arNames = tCache[pN] end
     local stName = arNames[sType]
     if(IsHere(stName) and IsHere(stName.Size)) then
       if(stName.Size <= 0) then stName = nil else
-        stName = makTab:TimerRestart(sFunc, defTab.Name, keyName, sType) end
+        stName = makTab:TimerRestart(sFunc, defTab.Name, pN, sType) end
       return stName
     else
       if(sMoDB == "SQL") then
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
         local qType = makTab:Match(sType,1,true)
-        local qIndx = qsKey:format(sFunc,keyName)
+        local qIndx = qsKey:format(sFunc,pN)
         local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = makTab:GetQuery().N
           Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
@@ -3834,22 +3835,22 @@ function CacheQueryProperty(sType)
             LogInstance("Sequential mismatch "..GetReport(iCnt,sType)); return nil end
           stName[iCnt] = qRec[coNm] -- Properties are stored as arrays of strings
         end
-        LogInstance("Save >> "..GetReport(sType, keyName))
-        stName = makTab:TimerAttach(sFunc, defTab.Name, keyName, sType); return stName
+        LogInstance("Save >> "..GetReport(sType, pN))
+        stName = makTab:TimerAttach(sFunc, defTab.Name, pN, sType); return stName
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil end
     end
   else
-    local keyType = GetOpVar("HASH_PROPERTY_TYPES")
-    local stType  = tCache[keyType]
+    local pT = GetOpVar("HASH_PROPERTY").Type
+    local stType  = tCache[pT]
     if(IsHere(stType) and IsHere(stType.Size)) then
-      LogInstance("Load >> "..GetReport(keyType))
+      LogInstance("Load >> "..GetReport(pT))
       if(stType.Size <= 0) then stType = nil else
-        stType = makTab:TimerRestart(sFunc, defTab.Name, keyType) end
+        stType = makTab:TimerRestart(sFunc, defTab.Name, pT) end
       return stType
     else
       if(sMoDB == "SQL") then
-        tCache[keyType] = {}; stType = tCache[keyType]; stType.Size = 0
-        local qIndx = qsKey:format(sFunc,keyType)
+        tCache[pT] = {}; stType = tCache[pT]; stType.Size = 0
+        local qIndx = qsKey:format(sFunc,pT)
         local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery().T
           Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
@@ -3859,8 +3860,8 @@ function CacheQueryProperty(sType)
           LogInstance("No data found "..GetReport(Q)); return nil end
         local coNm = makTab:GetColumnName(1); stType.Size = #qData
         for iCnt = 1, stType.Size do stType[iCnt] = qData[iCnt][coNm] end
-        LogInstance("Save >> "..GetReport(keyType))
-        stType = makTab:TimerAttach(sFunc, defTab.Name, keyType); return stType
+        LogInstance("Save >> "..GetReport(pT))
+        stType = makTab:TimerAttach(sFunc, defTab.Name, pT); return stType
       elseif(sMoDB == "LUA") then LogInstance("Record missing"); return nil end
     end
   end

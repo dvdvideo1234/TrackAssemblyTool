@@ -2095,11 +2095,11 @@ asmlib.NewTable("PHYSPROPERTIES",{
   },
   Cache = {
     Erase  = function(makTab, tCache, snPK, vSrc)
-      local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
-      local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
-      local tNames = tCache[skName]; if(not tNames) then
+      local tProID = asmlib.GetOpVar("HASH_PROPERTY")
+      local pN, pT = tProID.Name, tProID.Type
+      local tNames = tCache[pN]; if(not tNames) then
         asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK),vSrc); return false end
-      local tTypes = tCache[skType]; if(not tTypes) then
+      local tTypes = tCache[pT]; if(not tTypes) then
         asmlib.LogInstance("Config missing "..asmlib.GetReport(snPK),vSrc); return false end
       if(snPK and snPK ~= "") then  -- Remove the type from the list
         for iT = 1, tTypes.Size do; if(tTypes[iT] == snPK) then
@@ -2110,12 +2110,12 @@ asmlib.NewTable("PHYSPROPERTIES",{
       end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine, vSrc)
-      local skName = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
-      local skType = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
-      local tTypes = tCache[skType]; if(not tTypes) then
-        tCache[skType] = {}; tTypes = tCache[skType]; tTypes.Size = 0 end
-      local tNames = tCache[skName]; if(not tNames) then
-        tCache[skName] = {}; tNames = tCache[skName] end
+      local tProID = asmlib.GetOpVar("HASH_PROPERTY")
+      local pN, pT = tProID.Name, tProID.Type
+      local tTypes = tCache[pT]; if(not tTypes) then
+        tCache[pT] = {}; tTypes = tCache[pT]; tTypes.Size = 0 end
+      local tNames = tCache[pN]; if(not tNames) then
+        tCache[pN] = {}; tNames = tCache[pN] end
       local iNameID = makTab:Match(arLine[2],2); if(not asmlib.IsHere(iNameID)) then
         asmlib.LogInstance("Cannot match "..asmlib.GetReport(2,arLine[2],snPK),vSrc); return false end
       if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
@@ -2130,8 +2130,8 @@ asmlib.NewTable("PHYSPROPERTIES",{
     end,
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
       local defTab = makTab:GetDefinition()
-      local pT = asmlib.GetOpVar("HASH_PROPERTY_TYPES")
-      local pN = asmlib.GetOpVar("HASH_PROPERTY_NAMES")
+      local tProID = asmlib.GetOpVar("HASH_PROPERTY")
+      local pN, pT = tProID.Name, tProID.Type
       local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
       if(not (tTypes or tNames)) then
         asmlib.LogInstance("No data found "..asmlib.GetReport(fPref),vSrc); return false end
