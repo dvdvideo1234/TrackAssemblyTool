@@ -3001,7 +3001,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   -- Returns the name of the found column
   function self:GetColumnName(vD)
-    local iD = (tonumber(vD) or 0)
+    local iD = mathFloor(tonumber(vD) or 0)
     local qtDef = self:GetDefinition()
     local qtCol = qtDef[iD]; if(qtCol) then return qtCol[1] end
     LogInstance("Mismatch "..GetReport(vD), qtDef.Nick); return nil
@@ -3015,12 +3015,28 @@ function NewTable(sTable,defTab,bReload,bDelete)
       if(vI and qtInf) then return qtInf end; return qtCol
     end; LogInstance("Mismatch "..GetReport(vD), qtDef.Nick); return nil
   end
-  -- Returns the row with swapped column names to indexes
-  function self:GetArrayRow(tR, bM)
-    local qtDef, tA = self:GetDefinition(), {} -- Store the values here
+  --[[
+   * Returns the row with swapped column names to indexes
+   * tR > Record being converted to array
+   * tO > Data output when provided (may have holes)
+  ]]
+  function self:GetArrayRow(tR, tO)
+    local tA = (tO or {}) -- Store it here
     for key, val in pairs(tR) do -- Column name tables are not ordered
-      local iD = self:GetColumnID(key); if(iD > 0) then tA[iD] = val
-      else LogInstance("Mismatch "..GetReport(key), qtDef.Nick) end
+      local iD = self:GetColumnID(key) -- Retrieve a valid column ID
+      if(iD > 0) then tA[iD] = val end -- Validate and assign the array
+    end; return tA -- Return pointer to the output (may have holes)
+  end
+  --[[
+   * Returns the row with swapped indexes to column names
+   * tR > Array being converted to record
+   * tO > Data output when provided
+  ]]
+  function self:GetRecordRow(tR, tO)
+    local tA = (tO or {}) -- Store it here
+    for key, val in pairs(tR) do -- Record is not ordered so either way
+      local sN = self:GetColumnName(key) -- Get column name mapping
+      if(sN) then tA[sN] = val end
     end; return tA
   end
   -- Removes the object from the list
@@ -4558,9 +4574,8 @@ function SetAdditionsRUN(sModel, makTab, qList)
     local tSort = Arrange(qData, coMo, coLn); if(not tSort) then
         LogInstance("Sort cache mismatch"); return false end; tableEmpty(qData)
     for iD = 1, tSort.Size do qData[iD] = tSort[iD].Rec end
-  end
-  if(not IsHere(qData) or IsEmpty(qData)) then
-    LogInstance("Additions empty "..GetReport(IsHere(qData), IsEmpty(qData), sModel)); return true end
+  end -- If there are no additions selected for this model exit
+  if(not IsHere(qData) or IsEmpty(qData)) then return true end
   for iD = 1, #qData do tableInsert(qList, qData[iD]) end; return true
 end
 

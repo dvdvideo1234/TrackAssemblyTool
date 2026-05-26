@@ -96,6 +96,7 @@ asmlib.SetOpVar("TOOL_VERSION","9.853")
 
 local gtInitLogs  = asmlib.GetOpVar("LOG_INIT")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
+local gsSymDis    = asmlib.GetOpVar("OPSYM_DISABLE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
@@ -933,9 +934,8 @@ if(CLIENT) then
         local fD = fileOpen(sNam, "wb", "DATA"); if(not fD) then pnFrame:Close()
           asmlib.LogInstance("File error",sLog..".Export"); return nil end
         local tLine = pnListView:GetLines()
-        local sOff  = asmlib.GetOpVar("OPSYM_DISABLE")
         for iL = 1, #tLine do local pCur = tLine[iL]
-          local sAct = ((pCur:GetColumnText(1) == "V") and "" or sOff)
+          local sAct = ((pCur:GetColumnText(1) == "V") and "" or gsSymDis)
           local sPrf, sPth = pCur:GetColumnText(2), pCur:GetColumnText(3)
           if(not asmlib.IsBlank(sPth)) then sPth = sDel..sPth end
           if(sPrf ~= gsGenerPrf) then fD:Write(sAct..sPrf..sPth.."\n") end
@@ -1850,7 +1850,6 @@ asmlib.NewTable("PIECES",{
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref),vSrc); return false end
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
-      local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
       for iR = 1, tSort.Size do
         local stRec = tSort[iR]
@@ -1882,7 +1881,6 @@ asmlib.NewTable("PIECES",{
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
       local tTrgA = (istable(defA.Trigs) and defA.Trigs or nil)
       local noSQL = asmlib.GetOpVar("MISS_NOSQL")
-      local symOff = asmlib.GetOpVar("OPSYM_DISABLE")
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
       for iP = 1, tSort.Size do
         local stRec = tSort[iP] -- Sorted sequential key
@@ -1998,9 +1996,9 @@ asmlib.NewTable("ADDITIONS",{
       return true
     end,
     Record = function(arLine)
-      arLine[7]  = (asmlib.GetEnumMap("#", arLine[7]) or arLine[7])
-      arLine[8]  = (asmlib.GetEnumMap("#", arLine[8]) or arLine[8])
-      arLine[12] = (asmlib.GetEnumMap("#", arLine[12]) or arLine[12])
+      arLine[7]  = (asmlib.GetEnumMap(gsSymDis, arLine[7]) or arLine[7])
+      arLine[8]  = (asmlib.GetEnumMap(gsSymDis, arLine[8]) or arLine[8])
+      arLine[12] = (asmlib.GetEnumMap(gsSymDis, arLine[12]) or arLine[12])
       return true
     end,
   },
